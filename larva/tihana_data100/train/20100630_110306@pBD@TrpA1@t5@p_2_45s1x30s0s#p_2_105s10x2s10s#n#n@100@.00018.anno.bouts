@@ -1,0 +1,4 @@
+	beh	start	end	#	beh	start	end	#	beh	start	end	#	beh	start	end	#	beh	start	end	#	beh	start	end	#	beh	start	end	#	beh	start	end	#	beh	start	end	#	
+Turn	Str	0.007000	14.118000	#	LThW	14.118000	14.430000	#	Str	14.430000	20.917000	#	LTiW	20.917000	21.389000	#	Str	21.389000	45.337002	#	LThW	45.337002	45.812000	#	LThS	45.812000	46.450001	#	LThW	46.450001	46.930000	#	Str	46.930000	53.091000	#	
+Hunch	Unh	0.007000	45.337002	#	Wea	45.337002	46.930000	#	Unh	46.930000	53.091000	#	
+Moving	For	0.007000	45.337002	#	Sti	45.337002	46.930000	#	For	46.930000	53.091000	#	

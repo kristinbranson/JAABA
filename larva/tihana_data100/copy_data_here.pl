@@ -5,7 +5,7 @@ use strict;
 my $prefix = "/groups/zlatic/zlaticlab/Data/results";
 my $listname = "FilesToCopy.txt";
 my $dstdir = "train";
-my $nFilesPerDir = 1;
+my $nFilesPerDir = 2;
 my $DEBUG = 0;
 
 # read file list
@@ -23,6 +23,9 @@ while( $line = <IN> ){
 
     $line =~ s/^\s+//;
     $line =~ s/\s+$//;
+    if(length($line) == 0){
+	next;
+    }
 
     $srcdir = $prefix . "/" . $line;
 
