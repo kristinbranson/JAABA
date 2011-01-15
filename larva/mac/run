@@ -1,0 +1,4 @@
+#!/bin/bash
+export DYLD_LIBRARY_PATH=${0%/*}/lib
+cd ${0%/*}
+./gui

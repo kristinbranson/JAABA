@@ -1,0 +1,123 @@
+* Make a directory called data100 in larva:
+
+cd larva
+mkdir data100
+
+* Make a directory called train in data100:
+
+mkdir data100/train
+
+* Copied a few outline files to data100/train from:
+/groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/
+
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00001.outline data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00002.outline data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00003.outline data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00004.outline data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00005.outline data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00006.outline data100/train/.
+
+* Copied the corresponding anno files into data100/train:
+
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00001.anno data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00002.anno data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00003.anno data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00004.anno data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00005.anno data100/train/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00006.anno data100/train/.
+
+* Copied the behaviors.txt file from data to data100:
+
+cp data/behaviors.txt data100/behaviors.txt
+
+* Created an empty train.txt file in data100:
+
+touch data100/train.txt
+
+* Run the gui with data directory data100:
+
+cd code
+./gui -d ../data100
+
+* Within the gui, we added each of the .outline files using the add button, and selecting the outline file within data100/train. 
+
+* Within the gui, verified all frames of all sequences. 
+
+* Created the directory classifier within data100:
+
+mkdir ../data100/classifier
+
+* Within the gui, clicked "Train" to train the SVM. 
+(and waited)
+
+* Created a directory test within data100:
+
+mkdir ../data100/test
+
+* Copied some outline files to data100/test from:
+/groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/
+
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00100.outline data100/test/.
+cp /groups/zlatic/zlaticlab/Data/results/t5/GMR_10D05_AE_01\@TrpA1/p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100/20100630_174947/20100630_174947\@GMR_10D05_AE_01\@TrpA1\@t5\@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n\@100\@.00098.outline data100/test/.
+
+
+Repeated the above (approximately) for data_single. 
+
+
+
+************
+
+
+2010/10/04
+
+* Moved old classifier into new directory:
+
+mkdir data100/behaviors0
+mv data100/classifier/All.svmbehavior data100/behaviors0/.
+cp data100/behaviors.txt data100/behaviors0/.
+
+* Added a new "Turn" behavior by clicking Turn -> Edit -> Add:
+
+Name: Ball
+Abbreviation: Bal
+Color: 9900
+
+(this change gets propagated to data100/behaviors.txt)
+
+* Labeled "Ball" behaviors in all of the training files. 
+
+* Clicked "Train". After many hours, this created a new classifier in
+data100/classifier/All.svmbehavior.
+
+* After training is finished, close the gui and reopen. 
+
+* Added a test file from data100/test
+
+* Clicked "Fit all" to fit skeleton and behaviors. 
+
+* Copied data/behaviors.txt.meta into our new data100 directory:
+cp data/behaviors.txt.meta data100/.
+
+* Run 
+
+./gui -d ../data100 -m meta
+
+to open gui in metabehavior mode. This runs the metaclassifier on all of the training data and creates the .anno.bouts outputs in data100/train. 
+
+* To run the classifier on a whole directory of .outline files (../data100/test), run:
+./gui -d ../data100/ -P ../data100/test -m meta
+Make sure there are no .anno files if you want it to do something. 
+This created .anno, .anno.bouts, and .anno.bouts.meta files. 
+
+* Copy behaviors.txt.leftright into the data100 directory
+cp data/behaviors.txt.leftright data100/.
+
+* To run with leftright metabehavior definition instead, run
+./gui -d ../data100 -M ../data100/test -m leftright
+
+* To run with strongweak metabehavior:
+ * Copy behaviors.txt.strongweak to data100:
+ cp data/behaviors.txt.strongweak data100/.
+
+ * Run
+./gui -d ../data100 -M ../data100/test -m strongweak

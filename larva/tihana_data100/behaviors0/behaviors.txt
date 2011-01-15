@@ -1,0 +1,35 @@
+9 1
+*Turn 0 1
+Left Thoracic Weak <45	LThW	0	0x976b61
+Left Thoracic Strong <45<90	LThS	0	0x975345
+Left Thoracic Extra Strong	LThES	0	0x972007
+Left Abdominal Weak <45		LAW	0	0x97805d
+Left Abdominal Strong <45<90	LAS	0	0x977138
+Left Abdominal Extra Strong	LAES	0	0x975d07
+Left Tip Weak <45	LTiW	0	0x97925d
+Left Tip Strong <45<90	LTiS	0	0x978e33
+Left Tip Extra Strong >90	LTiES	0	0x978a0a
+Sigmoid Left Thoracic Right Tip	SLR	0	0x73970a
+Straight	Str	0	0x747474
+Right Thoracic Weak <45	RThW	0	0x975e90
+Right Thoracic Strong <45<90	RThS	0	0x972f8a
+Right Thoracic Extra Strong	RThES	0	0x970786
+Right Abdominal Weak <45		RAW	0	0x806b97
+Right Abdominal Strong <45<90	RAS	0	0x653597
+Right Abdominal Extra Strong	RAES	0	0x4e0797
+Right Tip Weak <45	RTiW	0	0x6b8397
+Right Tip Strong <45<90	RTiS	0	0x366b97
+Right Tip Extra Strong >90	RTiES	0	0x0b5797
+Sigmoid Right Thoracic Left Tip	SRL	0	0x0b9788
+
+*Hunch 0 1
+Unhunched	Unh	0	0x747474
+Weak		Wea	0	0x977474
+Strong		Str	0	0x970d0d
+
+*Moving 0 1
+Still	Sti	0	0x747474
+Forward		For	0	0x970d0d
+Backward	Bac	0	0x150d97
+Roll		Rol	0	0x970d93
+Dig		Dig	0	0xe6e014

@@ -1,0 +1,9 @@
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_174947@GMR_10D05_AE_01@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00001.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_174947@GMR_10D05_AE_01@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00002.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_174947@GMR_10D05_AE_01@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00003.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_174947@GMR_10D05_AE_01@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00004.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_174947@GMR_10D05_AE_01@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00005.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_174947@GMR_10D05_AE_01@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00006.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_174947@GMR_10D05_AE_01@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00007.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_110306@pBD@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00001.anno
+/groups/branson/home/bransonk/behavioranalysis/code/larva/tihana_data100/train/20100630_110306@pBD@TrpA1@t5@p_2_45s1x30s0s#p_2_105s10x2s10s#n#n@100@.00018.anno

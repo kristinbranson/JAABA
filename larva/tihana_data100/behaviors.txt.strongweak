@@ -1,0 +1,16 @@
+0 1
+*Turn 0 1
+Turn Extra Strong	EStr	0	0x972007	((<LThW>|<LAW>|<LTiW>)*(<LThS>|<LAS>|<LTiS>)*(<LThES>|<LAES>|<LTiES>)+(<LThS>|<LAS>|<LTiS>)*(<LThW>|<LAW>|<LTiW>)*)|((<RThW>|<RAW>|<RTiW>)*(<RThS>|<RAS>|<RTiS>)*(<RThES>|<RAES>|<RTiES>)+(<RThS>|<RAS>|<RTiS>)*(<RThW>|<RAW>|<RTiW>)*)
+Turn Strong	Stro	0	0x975345	((<LThW>|<LAW>|<LTiW>)*(<LThS>|<LAS>|<LTiS>)+(<LThW>|<LAW>|<LTiW>)*)|((<RThW>|<RAW>|<RTiW>)*(<RThS>|<RAS>|<RTiS>)+(<RThW>|<RAW>|<RTiW>)*)
+Turn Weak	Weak	0	0x976b61	((<LThW>|<LAW>|<LTiW>)+)|((<RThW>|<RAW>|<RTiW>)+)
+Straight	Stra	0	0x747474	<Str>+
+
+*Hunch 0 1
+Strong	Str	0	0x970d0d	<Wea>*<Str>+<Wea>*
+Weak	Wea	0	0x977474	<Wea>+
+Unhunched	Unh	0	0x747474	<Unh>+
+
+*Moving 0 1
+Forward		For	0	0x970d0d	<For>+
+Backward	Bac	0	0x150d97	<Bac>+
+Still	Sti	0	0x747474	<Sti>+
