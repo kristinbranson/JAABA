@@ -1,0 +1,3 @@
+9 1
+*Walk 0 1
+walk	walk	0	0x976b61
