@@ -21,7 +21,7 @@ endif
 
 WX_HEADERS = $(shell $(WXCONFIG) --cxxflags)
 WX_LIBS = $(shell $(WXCONFIG) --libs)
-O_FILES = blob.o fit_model.o spine_features.o train.o
+O_FILES = blob.o fit_model.o spine_features.o train.o common.o
 
 all: gui svm_struct_classify svm_struct_learn $(EXTRA_PROGS)
 #all: svm_struct_classify svm_struct_learn $(EXTRA_PROGS)
@@ -50,13 +50,17 @@ fit_model.o: fit_model.cpp fit_model.h blob.h spine_features.h
 spine_features.o: spine_features.cpp fit_model.h blob.h spine_features.h
 	$(CC) $(CFLAGS) -c spine_features.cpp 
 
-train.o: train.cpp fit_model.h blob.h spine_features.h train.h
+train.o: train.cpp fit_model.h blob.h spine_features.h train.h common.h
 	$(CC) $(CFLAGS) -c train.cpp 
+
+common.o: common.h
+	$(CC) $(CFLAGS) -c common.cpp
+	
 
 libbehaviors.a: $(O_FILES)
 	ar rcs libbehaviors.a $(O_FILES)
 
-gui.o: gui.cpp fit_model.h gui.h blob.h spine_features.h train.h
+gui.o: gui.cpp fit_model.h gui.h blob.h spine_features.h train.h common.h
 	$(CC) $(CFLAGS) $(WX_HEADERS) -c gui.cpp 
 
 gui: $(O_FILES) gui.o libsvmstructmulti.a libbehaviors.a

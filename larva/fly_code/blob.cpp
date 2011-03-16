@@ -380,7 +380,8 @@ BlobSequence *load_blob_sequence(const char *fname, BehaviorGroups *behaviors) {
       while(j < i && b->frames[j].is_manual == 2)
 	j++;
       if(j-i <= 2) {
-	b->frames[i].is_manual = b->frames[j-1].is_manual = 0; 
+	//b->frames[i].is_manual = b->frames[j-1].is_manual = 0; // CSC 20110210:
+	b->frames[i].is_manual = b->frames[j].is_manual = 0; 
       }
     }
   }

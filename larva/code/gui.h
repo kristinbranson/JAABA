@@ -1,6 +1,7 @@
 #ifndef __GUI_H
 #define __GUI_H
 
+#include "common.h"
 #include "fit_model.h"
 
 
@@ -53,6 +54,7 @@
 #include "wx/dcbuffer.h"
 #include "wx/textctrl.h"
 #include "wx/dirdlg.h"
+
 
 // control ids
 enum
@@ -153,9 +155,11 @@ public:
     void TimelineScroll(int s);
     void Cleanup();
     void Backup(const char *);
+//  void LoadBehaviors(const char *classifier_appendix = ""); // CSC: parameter with default value added    
     void LoadBehaviors();
     void ProcessDirectory(const char *dirName);
     void ProcessFile(const char *fname);
+    void crossValidate(); // CSC
     void SetBlobs(BlobSequence *b, int is_import);
     void RecomputeTimelines();
     void DetectMetaBehaviors(const char *multiName);

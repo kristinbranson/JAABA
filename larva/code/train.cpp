@@ -1,5 +1,7 @@
+#include "common.h"
 #include "train.h"
 #include "fit_model.h"
+//#include "gui.h" // CSC: for g_trainFile and g_classifierFile
 
 #include <cv.h>
 #include <highgui.h>
@@ -188,7 +190,9 @@ void train_behavior_detector(const char *dir, char **train_list, int num_files, 
   if(method == CLASSIFIER_SVM_STRUCT_BEHAVIOR) {
     char train_file[1000];
     sprintf(fname, "%s/All.%s", dir, g_classifer_extensions[method]);
-    sprintf(train_file, "train.txt.tmp");
+//    sprintf(train_file, "train.txt.tmp"); // CSC 20110210
+    sprintf(train_file, "%s.tmp", g_trainFile);
+//printf("train file should be: %s.tmp\n", g_trainFile);
     save_train_list(train_file, train_list, num_files); 
     sprintf(constraints_file, "%s/All.%s.constraints", dir, g_classifer_extensions[method]);
     CvSVMStructBehaviorSequence *bs = new CvSVMStructBehaviorSequence(params, behaviors, -1);
@@ -208,6 +212,9 @@ void train_behavior_detector(const char *dir, char **train_list, int num_files, 
 
   // Load in all manually verified blob frames as training examples
   for(j = 0; j < num_files; j++) {
+	if(!train_list[j]) {	
+		continue;	// CSC: skip null-filesnames, which are passed for cross-validation
+	}
     blobs = load_blob_sequence(train_list[j], behaviors);
     for(i = 0; i < blobs->num_frames; i++) 
       if(!blobs->frames[i].features)

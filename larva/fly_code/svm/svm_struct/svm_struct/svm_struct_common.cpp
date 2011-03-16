@@ -200,6 +200,28 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
   m->svm_struct_learn_api_exit();
 }
 
+SVMStructMethod *instantiate_SVMStructMethod(char *classtype)
+{
+#define SVM_FLY_BEHAVIOR_SEQUENCE_STRING "robiea"
+#define SVM_BLOB_BEHAVIOR_SEQUENCE_STRING "zlatic"
+
+  if(!classtype) {
+	printf("SVMMultiClass\n");
+	return new SVMMultiClass;
+  }
+  else if(strstr(classtype, SVM_FLY_BEHAVIOR_SEQUENCE_STRING)) {
+  	printf("SVMFlyBehaviorSequence\n");
+        return new SVMFlyBehaviorSequence(feat_name, behaviors, -1);
+  }
+  else if(strstr(classtype, SVM_BLOB_BEHAVIOR_SEQUENCE_STRING)) {
+        printf("SVMBlobBehaviorSequence\n");
+//	return new SVMBlobBehaviorSequence( FitParams *p    , behaviors, -1,    SVMFeatureParams *sparams);
+  }
+  else {
+        printf("Unsupported classType\n");
+	return 0;
+  }
+}
 
 void print_help_train(SVMStructMethod *m);
 

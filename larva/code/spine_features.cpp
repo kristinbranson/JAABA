@@ -7,6 +7,8 @@
 
 int g_debug = 0;
 
+#define MYSIGNUM(x) (-(x<0)+(x>0)) // CSC: fast signum function
+
 #define LINE_SIDE(x, y, x0, y0, vx, vy) ((x-x0)*vy - (y-y0)*vx)
   
 #define GET_CONTOUR_DIRECTION(p1, p3, dir, diff)			\
@@ -138,6 +140,9 @@ int compute_pairwise_features(SpinePointLocation *t1, SpinePointLocation *t2,
 
   // Check if the change in angle exceeds the maximum angle change
   features[F_ANGLE_CHANGE] = ANGLE_MOD(ORI(t2->orientation)-ORI(t1->orientation));
+    // CSC: split signed value into absolute value and sign
+//  features[CSCF_ANGLE_CHANGE_ABS] = abs(features[F_ANGLE_CHANGE]); // CSC
+//  features(CSCF_ANGLE_CHANGE_SIGN] = MYSIGNUM(features[F_ANGLE_CHANGE]); // CSC
   if(my_abs(features[F_ANGLE_CHANGE]) > params->max_angle_change)
     return 0;
 
