@@ -200,6 +200,7 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
   m->svm_struct_learn_api_exit();
 }
 
+/*
 SVMStructMethod *instantiate_SVMStructMethod(char *classtype)
 {
 #define SVM_FLY_BEHAVIOR_SEQUENCE_STRING "robiea"
@@ -222,6 +223,7 @@ SVMStructMethod *instantiate_SVMStructMethod(char *classtype)
 	return 0;
   }
 }
+*/
 
 void print_help_train(SVMStructMethod *m);
 
