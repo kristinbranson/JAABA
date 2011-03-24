@@ -51,8 +51,11 @@
 SVMBehaviorSequence::SVMBehaviorSequence(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams) {
   for(int i = 0; i < behaviors->num; i++) {
     if(beh == -1 || i == beh) {
-      restrict_behavior_features[beh] = (bool**)my_malloc(behaviors->behaviors[beh].num_values*sizeof(bool*));
-      memset(restrict_behavior_features[beh], 0, sizeof(bool*)*behaviors->behaviors[beh].num_values);
+      restrict_behavior_features[i] = (bool**)my_malloc(behaviors->behaviors[i].num_values*sizeof(bool*));
+      memset(restrict_behavior_features[i], 0, sizeof(bool*)*behaviors->behaviors[i].num_values);
+/*
+	CSC & SB 20110324: changed beh to i
+*/
     }
   }
 
@@ -63,8 +66,13 @@ SVMBehaviorSequence::SVMBehaviorSequence(struct _BehaviorGroups *behaviors, int 
   Init(0, behaviors, beh);
   for(int i = 0; i < behaviors->num; i++) {
     if(beh == -1 || i == beh) {
-      restrict_behavior_features[beh] = (bool**)my_malloc(behaviors->behaviors[beh].num_values*sizeof(bool*));
+      restrict_behavior_features[i] = (bool**)my_malloc(behaviors->behaviors[i].num_values*sizeof(bool*));
+      memset(restrict_behavior_features[i], 0, sizeof(bool*)*behaviors->behaviors[i].num_values);
+/*
+	CSC & SB 20110324: changed beh to i
+	restrict_behavior_features[beh] = (bool**)my_malloc(behaviors->behaviors[beh].num_values*sizeof(bool*));
       memset(restrict_behavior_features[beh], 0, sizeof(bool*)*behaviors->behaviors[beh].num_values);
+*/
     }
   }
 }
@@ -600,6 +608,13 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
  * to time proportional to the number of frames in the bout)
  */
 void SVMBehaviorSequence::update_bout_feature_caches(BehaviorBoutFeatures *b, int t_start, int t_end, int c) {
+/*
+BehaviorBoutFeatures *b: contains b-> start and b->and, which contain
+
+Two usage scenarios:
+(a) ev
+(b) within 
+*/
   bool reset = false;
   int i, j;
   SVMFeatureParams *p;
@@ -1467,7 +1482,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 
     gt_bout[0] = 0;
     partial_label_bout[0] = 0;
-    for(t = 1; t <= T; t++) {
+    for(t = 1; t <= T; t++) { // looping through all possible bout ends // T .. length of annotation window
       for(c = 0; c < num_classes[beh]; c++) 
 	table[t][c] = -INFINITY;
 
@@ -1553,6 +1568,8 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	for(c = 0; c < num_classes[beh]; c++) {
 	  if(class_training_count[beh][c] && (restrict_c_p<=0 || c == restrict_c_p)) {
 	    if(restrict_behavior_features[beh] && restrict_behavior_features[beh][c])
+			printf('restrict_behavior_features currently not used\n');
+			assert(0);
 	      bout_scores[c] = sprod_nn_map(class_weights[c], tmp_features, num_features, restrict_behavior_features[beh][c]); 
 	    else
 	      bout_scores[c] = sprod_nn(class_weights[c], tmp_features, num_features); 

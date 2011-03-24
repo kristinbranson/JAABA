@@ -5,6 +5,8 @@
 #include <highgui.h>
 #include <ml.h>  
 
+#include <wx/dir.h>
+
 void strip_extension(char *fname) {
   int i;
 
@@ -159,9 +161,9 @@ MultiBlobSequence *import_multi_blob_sequence(const char *dir_name, int num_spin
   strcpy(m->fname, dir_name);
 
 #ifdef WIN32
-#include <wx/dir.h>
 
-  size_t nfiles = wxDir::GetAllFiles(wxString(dir, wxConvUTF8), &files, wxT("*.outline"). wxDIR_FILES|wxDIR_DIRS);
+  wxArrayString files;
+  size_t nfiles = wxDir::GetAllFiles(wxString(dir_name, wxConvUTF8), &files, wxT("*.outline"), wxDIR_FILES|wxDIR_DIRS);
   for (size_t i = 0; i < nfiles; i++) {
     m->blobs = (BlobSequence**)realloc(m->blobs, (m->num_blobs+1)*sizeof(BlobSequence*));
     sprintf(fname, "%s", files.Item(i).mb_str());
