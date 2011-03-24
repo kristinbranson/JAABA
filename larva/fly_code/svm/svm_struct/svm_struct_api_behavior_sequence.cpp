@@ -281,8 +281,10 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(EXAMPL
 	if(behavior < 0 || beh == behavior) {
 	  for(j = 0; j < y->num_bouts[beh]; j++) {
 	    mean = 0;
-	    for(k = y->bouts[beh][j].start_frame; k < y->bouts[beh][j].end_frame; k++)
+	    for(k = y->bouts[beh][j].start_frame; k < y->bouts[beh][j].end_frame; k++) {
+		assert(k >= 0);  // CSC 20110324
 	      mean += x->features[i][k];
+		}
 	    mean /= (y->bouts[beh][j].end_frame-y->bouts[beh][j].start_frame);
 	    feat[i][curr++] = mean;
 	  }
@@ -571,6 +573,9 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
   // Normalize each feature to have mean 0 and standard deviation 1 (as determined by the training set)
   if(normalize) {
     for(i = 0; i < ind; i++)  {
+	if(isnan(feat[i])) {
+		printf("Upcoming error...\n");
+	}
       assert(!isnan(feat[i]));
       feat[i] = (feat[i]-features_mu[i])*features_gamma[i];
       assert(!isnan(feat[i]));
@@ -600,6 +605,9 @@ void SVMBehaviorSequence::update_bout_feature_caches(BehaviorBoutFeatures *b, in
   SVMFeatureParams *p;
 
   if(t_end == b->bout_end) {
+	if(t_start >= b->bout_start) {
+		printf("Upcoming Error...\n");
+	}
     assert(t_start < b->bout_start);
   } else {
     reset = true;

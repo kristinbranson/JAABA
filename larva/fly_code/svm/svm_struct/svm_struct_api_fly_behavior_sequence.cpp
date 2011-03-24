@@ -249,9 +249,10 @@ void *SVMFlyBehaviorSequence::load_training_example(const char *fname, BehaviorG
     for(i = 0; i < num_bouts; i++) {
       assert(fread(&start_frame, sizeof(int), 1, fin));
       assert(fread(&end_frame, sizeof(int), 1, fin) && end_frame >= start_frame);
-      assert(fread(&behavior, sizeof(int), 1, fin) && behavior >= 0 && behavior < behaviors->behaviors[ind].num_values); 
+      assert(fread(&behavior, sizeof(int), 1, fin)); 
+      assert(behavior >= 0 && behavior < behaviors->behaviors[ind].num_values); 
       assert(start_frame >= lastframe);
-      if(start_frame > lastframe) {
+      if(start_frame > lastframe && i > 0) {
 	// Pad unlabelled bouts as the "Unknown" class
 	fly->bouts->bouts[ind] = (BehaviorBout*)realloc(fly->bouts->bouts[ind], sizeof(BehaviorBout)*(num_bouts+num_added+1));
 	fly->bouts->bouts[ind][fly->bouts->num_bouts[ind]].start_frame = lastframe;

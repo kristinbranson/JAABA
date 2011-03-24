@@ -199,7 +199,6 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
 
   m->svm_struct_learn_api_exit();
 }
-
 /*
 SVMStructMethod *instantiate_SVMStructMethod(char *classtype)
 {
@@ -208,7 +207,7 @@ SVMStructMethod *instantiate_SVMStructMethod(char *classtype)
 
   if(!classtype) {
 	printf("SVMMultiClass\n");
-	return new SVMMultiClass;
+	return new SVMMultiClass();
   }
   else if(strstr(classtype, SVM_FLY_BEHAVIOR_SEQUENCE_STRING)) {
   	printf("SVMFlyBehaviorSequence\n");

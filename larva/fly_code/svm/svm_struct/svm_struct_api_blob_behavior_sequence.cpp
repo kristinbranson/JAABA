@@ -3,7 +3,7 @@
 #define BEH(f) ((!build_partial_label || (blobs->frames[f].is_good && (blobs->frames[f].is_manual&2)==2)) ? blobs->frames[f].behaviors[beh] : 0)
 
 
-SVMFeatureParams g_blob_heavior_params[F_NUM_GOOD_GLOBAL_FEATURES] = { 
+SVMFeatureParams g_blob_heavior_params[F_NUM_GOOD_GLOBAL_FEATURES] = {
   SVMBlobBehaviorSequence::AspectRatioParams(),
   SVMBlobBehaviorSequence::VelocityParams(),
   SVMBlobBehaviorSequence::VelocityParams(),
