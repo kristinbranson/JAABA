@@ -719,6 +719,7 @@ void SVMBehaviorSequence::print_features(const char *fname, EXAMPLE *ex, int n, 
   BehaviorBoutSequence *y;
   BehaviorBoutFeatures *x;
   FILE *fout = fopen(fname, "w");
+	assert(fout);
 
   for(i = 0; i < n; i++) {
     y = (BehaviorBoutSequence*)ex[i].y.data;
