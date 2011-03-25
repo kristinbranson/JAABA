@@ -1567,10 +1567,11 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	is_first = false;
 	for(c = 0; c < num_classes[beh]; c++) {
 	  if(class_training_count[beh][c] && (restrict_c_p<=0 || c == restrict_c_p)) {
-	    if(restrict_behavior_features[beh] && restrict_behavior_features[beh][c])
-			printf('restrict_behavior_features currently not used\n');
+	    if(restrict_behavior_features[beh] && restrict_behavior_features[beh][c]) {
+			printf("restrict_behavior_features currently not used\n");
 			assert(0);
 	      bout_scores[c] = sprod_nn_map(class_weights[c], tmp_features, num_features, restrict_behavior_features[beh][c]); 
+		}
 	    else
 	      bout_scores[c] = sprod_nn(class_weights[c], tmp_features, num_features); 
 	  }
