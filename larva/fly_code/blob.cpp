@@ -5,7 +5,9 @@
 #include <highgui.h>
 #include <ml.h>  
 
-#include <wx/dir.h>
+#ifdef WIN32
+	#include <wx/dir.h>
+#endif
 
 void strip_extension(char *fname) {
   int i;
