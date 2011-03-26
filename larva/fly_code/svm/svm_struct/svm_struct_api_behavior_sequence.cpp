@@ -1189,6 +1189,7 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
     }
 
 #if DEBUG_FEATURES
+	CreateDirectoryIfNecessary("debug");
 	char basename[1000];
     char fname[1000];
     strcpy(basename, sparm->datasetfile);
@@ -1236,6 +1237,9 @@ void        SVMBehaviorSequence::init_struct_model(SAMPLE sample, STRUCTMODEL *s
      feature space in sizePsi. This is the maximum number of different
      weights that can be learned. Later, the weight vector w will
      contain the learned weights for the model. */
+#ifdef DEBUG_WEIGHTS
+	CreateDirectoryIfNecessary("debug");
+#endif
 
   sm->sizePsi=sizePsi;
   if(struct_verbosity>=0)

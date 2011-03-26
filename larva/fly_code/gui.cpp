@@ -1,3 +1,5 @@
+#include "wx/wxprec.h"
+
 #include "gui.h"
 #include "train.h"
 
