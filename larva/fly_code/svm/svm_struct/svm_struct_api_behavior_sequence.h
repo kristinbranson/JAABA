@@ -33,6 +33,7 @@ typedef struct _SVMFeatureParams {
     use_end_sum_absolute_diff_haar_features, use_start_sum_diff_haar_features, use_end_sum_diff_haar_features, 
     use_start_ave_absolute_diff_haar_features, use_end_ave_absolute_diff_haar_features, use_start_ave_diff_haar_features, 
     use_end_ave_diff_haar_features;
+  bool use_bout_sum_absolute_features, use_bout_ave_absolute_features;
 
   int num_features;
 } SVMFeatureParams;

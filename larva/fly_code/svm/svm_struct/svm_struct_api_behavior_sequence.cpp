@@ -142,8 +142,7 @@ int SVMBehaviorSequence::test (int argc, const char* argv[], STRUCT_LEARN_PARM *
  *  any initializations that might be necessary. 
  * Sets a constant loss term for a bout false positive and false negative
  */
-void        SVMBehaviorSequence::svm_struct_learn_api_init(int argc, const char* argv[])
-{
+void SVMBehaviorSequence::svm_struct_learn_api_init(int argc, const char* argv[]) {
   int i, beh;
 
   sizePsi = 0;
@@ -167,7 +166,6 @@ void        SVMBehaviorSequence::svm_struct_learn_api_init(int argc, const char*
 
     sizePsi += (this->num_features+this->num_classes[beh])*this->num_classes[beh];
   }
-
 }
 
 /* Called in learning part at the very end to allow any clean-up
@@ -199,6 +197,7 @@ void        SVMBehaviorSequence::svm_struct_classify_api_exit()
  */
 SVMFeatureParams SVMBehaviorSequence::DefaultParams() {
   SVMFeatureParams p;
+  memset(&p, 0, sizeof(SVMFeatureParams));
 
   // When computing the min and max feature responses, average over a window of 2*5+1 frames
   p.feature_sample_smoothness_window = 5;
@@ -207,6 +206,7 @@ SVMFeatureParams SVMBehaviorSequence::DefaultParams() {
   // and the 2nd half of the bout.  Add features for both the bout average and raw sum response
   p.num_temporal_levels = 2;   
   p.use_bout_sum_features = p.use_bout_ave_features = true;
+  p.use_bout_sum_absolute_features = p.use_bout_ave_absolute_features = false;
 
   // Use the standard deviation of the feature over the entire bout
   p.use_standard_deviation = true;
@@ -454,6 +454,8 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 		       b->integral_features[i][(int)(start+.5)]);
 	if(p->use_bout_sum_features) feat[ind++] = f;
 	if(p->use_bout_ave_features) feat[ind++] = f*inv;
+	if(p->use_bout_sum_absolute_features) feat[ind++] = my_abs(f);
+	if(p->use_bout_ave_absolute_features) feat[ind++] = my_abs(f)*inv;
       }
     }
 
@@ -821,6 +823,8 @@ int SVMBehaviorSequence::compute_feature_space_size() {
       for(k = 0; k < (1<<j); k++) {
 	if(p->use_bout_sum_features) { sprintf(str, "bout_sum_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
 	if(p->use_bout_ave_features) { sprintf(str, "bout_average_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
+	if(p->use_bout_sum_absolute_features) { sprintf(str, "bout_sum_abs_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
+	if(p->use_bout_ave_absolute_features) { sprintf(str, "bout_average_abs_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
       }
     }
     if(p->use_sum_variance) set_feature_name(num_features++, i, "sum_variance"); 
@@ -1075,6 +1079,8 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
   bool computeClassTransitions = class_training_transitions ? false : true;
   BehaviorBoutFeatures *feature_cache;
 
+  strcpy(sparm->datasetfile, file);
+
   examples=(EXAMPLE *)my_malloc(sizeof(EXAMPLE)*num);
 
   // Keep track of the number of transitions between each pair of classes
@@ -1134,8 +1140,16 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
     }
 
 #if DEBUG_FEATURES
-    print_features("debug/features_unnormalized.txt", examples, n, false);
-    print_features("debug/features_normalized.txt",   examples, n, true);
+	char basename[1000];
+    char fname[1000];
+    strcpy(basename, sparm->datasetfile);
+    for(int ii = 0; ii < strlen(basename); ii++)
+	  if(basename[ii] == '/' || basename[ii] == '\\')
+		  basename[ii] = '_';
+	sprintf(fname, "debug/features_%s_unnormalized.txt", basename);
+    print_features(fname, examples, n, false);
+	sprintf(fname, "debug/features_%s_normalized.txt", basename);
+    print_features(fname,   examples, n, true);
 #endif
 
     
@@ -1306,9 +1320,18 @@ void SVMBehaviorSequence::on_finished_iteration(CONSTSET c, STRUCTMODEL *sm,
     save_const_set(c, save_const_set_fname);
 
 #if DEBUG_WEIGHTS
-  char fname[400];
-  sprintf(fname, "debug/weights%d.txt", iter_num);
+  char basename[1000];
+  char fname[1000];
+  strcpy(basename, sparm->datasetfile);
+  for(int i = 0; i < strlen(basename); i++)
+	  if(basename[i] == '/' || basename[i] == '\\')
+		  basename[i] = '_';
+
+  sprintf(fname, "debug/weights_%s%d.txt", basename, iter_num);
   print_weights(fname, sm->svm_model->lin_weights+1);
+
+  sprintf(fname, "debug/model_%s%d.txt", basename, iter_num);
+  write_struct_model(fname, sm, sparm);
 #endif
 }
 
@@ -2105,7 +2128,7 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
     fprintf(modelfl, "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "
 	    "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "
 	    "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "
-	    "use_bout_sum_features=%d, use_bout_ave_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
+	    "use_bout_sum_features=%d, use_bout_ave_features=%d, use_bout_sum_features=%d, use_bout_ave_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
 	    "use_bout_max_feature=%d, use_bout_min_feature=%d, "
 	    "use_global_difference_max_ave_features=%d, use_global_difference_min_ave_features=%d, use_global_difference_ave_ave_features=%d, "
 	    "use_global_difference_max_sum_features=%d, use_global_difference_min_sum_features=%d, use_global_difference_ave_sum_features=%d, "
@@ -2117,7 +2140,8 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
 	    "use_end_ave_diff_haar_features=%d  # %dth feature params\n", 
 	    p->feature_sample_smoothness_window, p->num_temporal_levels, p->num_bout_max_thresholds, 
 	    p->num_bout_min_thresholds, p->num_bout_change_points, p->num_histogram_bins, p->num_histogram_temporal_levels, 
-	    p->num_difference_temporal_levels, p->num_harmonic_features, p->use_bout_sum_features?1:0, p->use_bout_ave_features?1:0, 
+	    p->num_difference_temporal_levels, p->num_harmonic_features, p->use_bout_sum_features?1:0, p->use_bout_ave_features?1:0,
+		p->use_bout_sum_absolute_features?1:0, p->use_bout_ave_absolute_features?1:0, 
 	    p->use_standard_deviation?1:0, p->use_sum_variance?1:0, p->use_bout_max_feature?1:0, p->use_bout_min_feature?1:0,
 	    p->use_global_difference_max_ave_features?1:0, p->use_global_difference_min_ave_features?1:0, p->use_global_difference_ave_ave_features?1:0,
 	    p->use_global_difference_max_sum_features?1:0, p->use_global_difference_min_sum_features?1:0, p->use_global_difference_ave_sum_features?1:0,
@@ -2180,11 +2204,11 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
 
 bool SVMBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p) {
   int num;
-  int b[28];
+  int b[30];
   if((num=fscanf(modelfl, "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "
 		     "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "
 		     "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "
-		     "use_bout_sum_features=%d, use_bout_ave_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
+		     "use_bout_sum_features=%d, use_bout_ave_features=%d, use_bout_sum_absolute_features=%d, use_bout_ave_absolute_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
 		     "use_bout_max_feature=%d, use_bout_min_feature=%d, "
 		     "use_global_difference_max_ave_features=%d, use_global_difference_min_ave_features=%d, use_global_difference_ave_ave_features=%d, "
 		     "use_global_difference_max_sum_features=%d, use_global_difference_min_sum_features=%d, use_global_difference_ave_sum_features=%d, "
@@ -2195,7 +2219,7 @@ bool SVMBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p) {
 		     "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "
 		     "use_end_ave_diff_haar_features=%d%*[^\n]\n", &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
 		     &p->num_bout_min_thresholds, &p->num_bout_change_points, &p->num_histogram_bins, &p->num_histogram_temporal_levels, 
-		     &p->num_difference_temporal_levels, &p->num_harmonic_features, &b[0], &b[1], &b[26], &b[27], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7], &b[8], &b[9], 
+		     &p->num_difference_temporal_levels, &p->num_harmonic_features, &b[0], &b[1], &b[28], &b[29], &b[26], &b[27], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7], &b[8], &b[9], 
 		 &b[10], &b[11], &b[12], &b[13], &b[14], &b[15], &b[16], &b[17], &b[18], &b[19], &b[20], &b[21], &b[22], &b[23], &b[24], &b[25]))!=37) {
     return false;
   }
@@ -2208,13 +2232,14 @@ bool SVMBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p) {
   p->use_end_sum_absolute_diff_haar_features=b[19]; p->use_start_sum_diff_haar_features=b[20]; p->use_end_sum_diff_haar_features=b[21];
   p->use_start_ave_absolute_diff_haar_features=b[22]; p->use_end_ave_absolute_diff_haar_features=b[23]; p->use_start_ave_diff_haar_features=b[24]; 
   p->use_end_ave_diff_haar_features=b[25];  p->use_standard_deviation=b[26]; p->use_sum_variance=b[27];
+  
+  p->use_bout_sum_absolute_features=b[28]; p->use_bout_ave_absolute_features=b[29]; 
 
   return true;
 }
 
 
-STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEARN_PARM *sparm)
-{
+STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEARN_PARM *sparm) {
   /* Reads structural model sm from file file. This function is used
      only in the prediction module, not in the learning module. */
   FILE *modelfl;
