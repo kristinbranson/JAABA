@@ -1098,7 +1098,7 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
 
   n = 0;
   for(j = 0; j < num; j++) {
-    d = load_training_example(train_list[j], behaviors);
+    d = load_training_example(train_list[j]);
     if(!d) continue;
 
     bouts = create_behavior_bout_sequence(d, behaviors, false);

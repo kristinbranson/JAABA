@@ -201,11 +201,11 @@ void SVMBlobBehaviorSequence::load_behavior_bout_features(void *b, BehaviorBoutF
   for(j = 0; j < T; j++)
     feature_cache->frame_times[j] = blobs->frames[j].frame_time;
 }
-
+ 
 /*
  * Read a blob annotation file from disk.  Returns NULL if the specified file has no annotated frames
  */
-void *SVMBlobBehaviorSequence::load_training_example(const char *fname, BehaviorGroups *behaviors) {
+void *SVMBlobBehaviorSequence::load_training_example(const char *fname) {
   Blob *b;
   BlobSequence *blobs = load_blob_sequence(fname, behaviors);  
   int has_frames = 0, i;

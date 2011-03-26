@@ -13,7 +13,15 @@ struct _BehaviorBoutFeatures;
 // When SVMBehaviorSequence is used, LABEL->data can be cast to a (BehaviorBoutSequence*)
 // and SPATTERN->data can be cast to a BehaviorBoutFeatures*
 
-typedef struct {
+/**
+ * @struct _SVMFeatureParams
+ * 
+ * @brief Parameters defining how to construct bout-level features from frame-level
+ * features
+ *
+ * TODO: comment this
+ */
+typedef struct _SVMFeatureParams {
   int feature_sample_smoothness_window, num_temporal_levels, num_bout_max_thresholds, num_bout_min_thresholds,
     num_bout_change_points, num_histogram_bins, num_histogram_temporal_levels, num_difference_temporal_levels, num_harmonic_features;   
   bool use_bout_sum_features, use_bout_ave_features, use_standard_deviation, use_sum_variance, use_bout_max_feature, use_bout_min_feature,
@@ -30,50 +38,73 @@ typedef struct {
 } SVMFeatureParams;
 
 
-// A single labeled bout of behavior
+/**
+ * @struct _BehaviorBout
+ * 
+ * @brief A single labeled bout of behavior
+ */
 typedef struct _BehaviorBout {
-  int start_frame, end_frame;
-  int behavior;
-  double bout_score, transition_score, loss_fn, loss_fp;
+  int start_frame;  /**< the starting frame number of a behavior bout in a tracked sequence */
+  int end_frame;  /**< the end frame number of a behavior bout in a tracked sequence (non-inclusive).  The bout begins at frame start_frame and ends at frame end_frame-1*/
+  int behavior;   /**< the index of the behavior */
+  double bout_score;  /**< the score of the bout (the dot product <w_bout,f_bout>) */
+  double transition_score;  /**< the component of the bout score due to transitioning from the previous behavior class to the class of this bout */
+  double loss_fn;  /**< the loss associated with missing detection of some behavior bout(s) that overlap with this bout */
+  double loss_fp;  /**< the loss associated with predicting this bout incorrectly */
 } BehaviorBout;
 
-// All behavior bouts for a given trajectory
+
+/**
+ * @struct _BehaviorBoutSequence
+ * 
+ * @brief The set of all behavior bouts for a given trajectory
+ */
 typedef struct _BehaviorBoutSequence {
-  struct _BehaviorGroups *behaviors;
-  struct _BehaviorBoutFeatures *features;
-  int *num_bouts;
-  BehaviorBout **bouts;
-  double score, loss, slack;
-  double *scores, *losses;
+  struct _BehaviorGroups *behaviors;  /**< A pointer to the object defining all behavior classes */
+  struct _BehaviorBoutFeatures *features;  /**< A pointer to the object used to compute all bout-level features */
+  int *num_bouts;  /**< A behaviors->num array storing the number or behavior bouts for each grouping of behaviors */
+  BehaviorBout **bouts;  /**< A behaviors->numXnum_bouts[i] array storing an assignment of behavior bouts to the trajectory sequence */
+  double score;  /**< The score associated with the behavior predictions in bouts (the dot product <w,f>) */
+  double loss;  /**< The loss associated with the behavior predictions with respect to the ground truth behavior labels */
+  double slack;  /**< The error associated with the behavior predictions (score+loss-score_gt) */
+  double *scores;  /**< A behaviors->num array of scores for each behavior group */
+  double *losses;  /**< A behaviors->num array of losses for each behavior group */
 } BehaviorBoutSequence;
 
-// Features and pre-computed feature caches for an entire trajectory
+
+/**
+ * @struct _BehaviorBoutFeatures
+ * 
+ * @brief Features and pre-computed feature caches for an entire trajectory.  This
+ * struct is used to compute and maintain bout-level features when fitting behaviors
+ */
 typedef struct _BehaviorBoutFeatures {
-  BehaviorBoutSequence *partial_label;
-  unsigned char *memory_buffer;
+  BehaviorBoutSequence *partial_label;  /**< If non-null, contains a partial label where a subset of behavior bouts are pre-specified */
+  unsigned char *memory_buffer;  /**< A malloc'd memory buffer containing dynamically allocated memory for this struct */
 
   /* Precomputed feature caches */
-  double **features;             // A num_base_features X T array of all features
-  double *frame_times;           // A num_base_features array of all frame times
-  double **smoothed_features;    // A num_base_features X T array of all features smoothed around some temporal window
-  double **integral_features;    // A num_base_features X T array encoding integral (sum) features
-  double **integral_sqr_features;// A num_base_features X T array encoding integral (sum) of squared features
-  double *max_feature_responses; // A num_base_features array encoding the global max response of each feature
-  double *min_feature_responses; // A num_base_features array encoding the global min response of each feature
-  double *ave_feature_responses; // A num_base_features array encoding the global ave response of each feature
-  double ***integral_histogram_features;  // A num_base_features X num_thresholds X T encoding integral features for each histogram bin
-  int **histogram_bins;          // A num_base_features X T array encoding the histogram index of each frame feature
+  double **features;             /**< A num_base_features X T array of all features */
+  double *frame_times;           /**< A num_base_features array of all frame times */
+  double **smoothed_features;    /**< A num_base_features X T array of all features smoothed around some temporal window */
+  double **integral_features;    /**< A num_base_features X T array encoding integral (sum) features */
+  double **integral_sqr_features;/**< A num_base_features X T array encoding integral (sum) of squared features */
+  double *max_feature_responses; /**< A num_base_features array encoding the global max response of each feature */
+  double *min_feature_responses; /**< A num_base_features array encoding the global min response of each feature */
+  double *ave_feature_responses; /**< A num_base_features array encoding the global ave response of each feature */
+  double ***integral_histogram_features;  // A num_base_features X num_thresholds X T encoding integral features for each histogram bin */
+  int **histogram_bins;          /**< A num_base_features X T array encoding the histogram index of each frame feature */
 
   /* Feature caches that are updated during dynamic programming */
-  double *bout_max_feature_responses; // A num_base_features array encoding the max response of each feature in the current bout
-  double *bout_min_feature_responses; // A num_base_features array encoding the min response of each feature in the current bout
-  int bout_start, bout_end;
+  double *bout_max_feature_responses; /**< A num_base_features array encoding the max response of each feature in the current bout */
+  double *bout_min_feature_responses; /**< A num_base_features array encoding the min response of each feature in the current bout */
+  int bout_start;  /**< The start frame of the last call to psi_bout() */
+  int bout_end;  /**< The end frame of the last call to psi_bout() */
 
-  void *data;
-  char fname[400];
-  int num_frames;
+  void *data;  /**< A pointer to a structure defining all data for a particular tracked sequence (the return value of load_training_example()) */
+  char fname[400];  /**< The name of the file on disk from which this tracked sequence was loaded */ 
+  int num_frames;  /**< The total number of frames in this tracked sequence */
 
-  SVECTOR *fvec;
+  SVECTOR *fvec;  /**< segmentation-level features for this tracked (the return value of psi()) */
 } BehaviorBoutFeatures;
 
 
@@ -81,33 +112,83 @@ typedef struct _BehaviorBoutFeatures {
 #define MAX_HARMONIC_LEVELS 8
 #define MAX_BASE_FEATURES 1000
 
+
+/**
+ * @class SVMBehaviorSequence
+ * 
+ * @brief A class used for training and fitting behavior detectors/segmentors.  Typically, this class should be inherited
+ * by a custom behavior class definition (e.g. SVMFlyBehaviorSequence, SVMBlobBehaviorSequence) which define domain
+ * specific routines for reading in data files, features used, etc.
+ *
+ */
 class SVMBehaviorSequence : public SVMStructMethod {
  protected:
-  struct _BehaviorGroups *behaviors;
-  int num_classes[MAX_BEHAVIOR_GROUPS];
-  int num_features, num_base_features;
-  int feature_diff_frames;
-  int sizePsi;
-  int behavior;   // if not -1, only run the model on one behavior group
-  double *false_negative_cost[MAX_BEHAVIOR_GROUPS], *false_positive_cost[MAX_BEHAVIOR_GROUPS];
-  int ***class_training_transitions, **class_training_transitions_count, **class_training_count;
-  double time_approximation;
-  SVMFeatureParams feature_params[MAX_BASE_FEATURES];
-  double *features_mu, *features_gamma;
-  double **histogram_thresholds, **min_thresholds, **max_thresholds;
-  int min_bout_duration;
-  char **feature_names;
-  bool **restrict_behavior_features[MAX_BEHAVIOR_GROUPS];
+  struct _BehaviorGroups *behaviors;  /**< A pointer to the object defining all behavior classes */
+  int num_classes[MAX_BEHAVIOR_GROUPS];  /**< The number of behavior classes for each group (same as behaviors->num_values) */
+  int num_features;  /**< The total number of bout-level features (not including class transition features) */
+  int num_base_features;  /**< The total number of frame-level features */
+  int feature_diff_frames;  /**< DEPRECATED: I don't think this is used anymore; however deleting it might change the file format for the learned output files */
+  int sizePsi;   /**< The size of the feature space (like num_features but includes class transition features) */
+  int behavior;   /**< If not -1, only run the model on one behavior group */
+  double *false_negative_cost[MAX_BEHAVIOR_GROUPS];   /**< A behaviors->num X num_classes[i] array of costs for missing detection of a given behavior class */
+  double *false_positive_cost[MAX_BEHAVIOR_GROUPS];  /**< A behaviors->num X num_classes[i] array of costs for incorrectly detecting a given behavior class */
+  int ***class_training_transitions;  /**< A behaviors->numXnum_classes[i]Xclass_training_transitions_count[i][j] array of indices specifying indices of behavior classes that are allowed to proceed a given behavior class */
+  int **class_training_transitions_count;  /**< A behaviors->numXnum_classes[i] array specifying the number of behavior classes that are allowed to proceed a given behavior class */
+  int **class_training_count; /**< A behaviors->numXnum_classes[i] array specifying the number of times each class occurs in the training set */
+  double time_approximation; /**< When searching for behavior bouts, for computational purposes, the duration of bouts (in terms of # of frames) considered is a geometrically increasing series of size time_approximation,time_approximation^2,time_approximation^3...*/
+  SVMFeatureParams feature_params[MAX_BASE_FEATURES];  /**< For each frame feature, a set of parameters defining how frame-level features are expanded into bout-level features */
+  double *features_mu;  /**< A num_features array defining the mean of each bout-level feature (used to normalize all features to be roughly on the same scale) */
+  double *features_gamma;  /**< A num_features array defining the inverse of the standard deviation of each bout-level feature (used to normalize all features to be roughly on the same scale) */
+  double **histogram_thresholds;  /**< A num_base_featuresXfeature_params[i]->num_histogram_bins defining a set of thresholds for histogram bins, such that each bin in the histogram is between two adjacent thresholds */
+  double **min_thresholds;  /**< A num_base_featuresXfeature_params[i]->num_histogram_bins defining a set of thresholds for checking if the min of a given feature is below a given threshold */
+  double **max_thresholds;  /**< A num_base_featuresXfeature_params[i]->num_histogram_bins defining a set of thresholds for checking if the max of a given feature is below a given threshold */
+  int min_bout_duration;  /**< The minimum length (in frames of a behavior bout) */
+  char **feature_names;  /**< A num_features array of strings defining a human-interpretable name for each feature */
+  bool **restrict_behavior_features[MAX_BEHAVIOR_GROUPS];  /**< Untested: A behaviors->numXnum_classes[i]Xnum_features defining which bout-level features to use on a per-behavior basis.  Intended to allow different features to be used for different behaviors. */
   
  public:
+  /**
+   * @brief Constructor, assumes feature definitions are known before hand and passed to the constructor 
+   *
+   * @param num_feat The number of frame-level features
+   * @param behaviors Definition of all behavior classes
+   * @param beh If -1 uses all groups of behaviors, otherwise uses just one group behaviors->behaviors[beh] (a group is a set of mutually exclusive behavior classes)
+   * @params sparams A num_feat array defining all bout-level features we want to use for each frame-level feature
+   */
   SVMBehaviorSequence(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams = NULL);
+  
+  /**
+   * @brief Constructor, assumes feature definitions will be defined later 
+   *
+   * @param behaviors Definition of all behavior classes
+   * @param beh If -1 uses all groups of behaviors, otherwise uses just one group behaviors->behaviors[beh] (a group is a set of mutually exclusive behavior classes)
+   */
   SVMBehaviorSequence(struct _BehaviorGroups *behaviors, int beh);
-  SVMBehaviorSequence(const char *feature_params, struct _BehaviorGroups *behaviors, int beh);
+
+  /**
+   * @brief Destructor
+   */
   ~SVMBehaviorSequence();
+
+  /**
+   * @brief Helper function to initialize feature definitions are known before hand and passed to the constructor 
+   *
+   * @param num_feat The number of frame-level features
+   * @param behaviors Definition of all behavior classes
+   * @param beh If -1 uses all groups of behaviors, otherwise uses just one group behaviors->behaviors[beh] (a group is a set of mutually exclusive behavior classes)
+   * @params sparams A num_feat array defining all bout-level features we want to use for each frame-level feature
+   */
   void Init(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams = NULL);
   
-
+  /**
+   * @brief Train a new behavior detector/segmentor.  This is a wrapper for the standalone command line program to train behaviors
+   */
   int train (int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRUCTMODEL *structmodel);
+  
+  
+  /**
+   * @brief Test a new behavior detector/segmentor.  This is a wrapper for the standalone command line program to test behavior detectors
+   */
   int test (int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRUCTMODEL *structmodel);
 
   SVMFeatureParams DefaultParams();
@@ -199,15 +280,38 @@ class SVMBehaviorSequence : public SVMStructMethod {
     return false_negative_cost[group][behavior];
   }
 
- 
-  virtual const char *get_base_feature_name(int ind) = 0;
+
+  /******** Functions that should be overridden by a child class that inherits this class **************/
+
+  /**
+   * @brief Read a dataset file containing a list of training files.  Each training file is some tracked sequence that may contain multiple bouts of behaviors.
+   *
+   * @param fname The name of the dataset file
+   * @param num The returned number of training files (a pointer set by this function)
+   * @return A *num array, a list of all training file names
+   */
+  virtual char **load_examples(const char *fname, int *num) = 0;
+
+  /**
+   * @brief Read a particular training file.  Each training file is some tracked sequence that may contain multiple bouts of behaviors.
+   *
+   * @param fname The name of the training file
+   * @return A pointer to an object (of custom type) that contains all loaded data applicaple to this training example
+   */
+  virtual void *load_training_example(const char *fname) = 0;
+
+  /**
+   * @brief Get a human-interpretable name of the ith frame-level feature
+   *
+   * @param i The index of the frame-level feature
+   */
+  virtual const char *get_base_feature_name(int i) = 0;
+
   virtual void load_from_bout_sequence(BehaviorBoutSequence *y, void *b) = 0;
   virtual BehaviorBoutSequence *create_behavior_bout_sequence(void *b, BehaviorGroups *behaviors, bool build_partial_label) = 0;
   virtual void load_behavior_bout_features(void *b, BehaviorBoutFeatures *feature_cache) = 0; 
-  virtual void *load_training_example(const char *fname, BehaviorGroups *behaviors) = 0;
   virtual void free_data(void *d) = 0;
   virtual int num_frames(void *d) = 0;
-  virtual char **load_examples(const char *fname, int *num) = 0;
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);

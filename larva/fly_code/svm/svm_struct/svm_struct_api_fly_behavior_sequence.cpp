@@ -192,7 +192,7 @@ void SVMFlyBehaviorSequence::load_behavior_bout_features(void *b, BehaviorBoutFe
 /*
  * Read a behavior label from file
  */
-void *SVMFlyBehaviorSequence::load_training_example(const char *fname, BehaviorGroups *behaviors) {
+void *SVMFlyBehaviorSequence::load_training_example(const char *fname) {
   FlyBehaviorBoutSequence *fly = (FlyBehaviorBoutSequence*)malloc(sizeof(FlyBehaviorBoutSequence));
   memset(fly, 0, sizeof(FlyBehaviorBoutSequence));
   fly->behaviors = behaviors;
