@@ -102,6 +102,7 @@ typedef struct struct_learn_parm {
 				  functions via -l command line
 				  option */
 
+  char datasetfile[400];
   /* further parameters that are passed to init_struct_model() */
 
 } STRUCT_LEARN_PARM;

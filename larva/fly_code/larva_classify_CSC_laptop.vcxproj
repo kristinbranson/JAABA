@@ -108,7 +108,7 @@
     <ClCompile Include="svm\svm_struct\svm_light\svm_common.cpp" />
     <ClCompile Include="svm\svm_struct\svm_light\svm_hideo.cpp" />
     <ClCompile Include="svm\svm_struct\svm_light\svm_learn.cpp" />
-    <ClCompile Include="svm\svm_struct\svm_struct\svm_struct_main.cpp" />
+    <ClCompile Include="svm\svm_struct\svm_struct\svm_struct_classify.cpp" />
     <ClCompile Include="svm\svm_struct\svm_struct_api_behavior_sequence.cpp" />
     <ClCompile Include="svm\svm_struct\svm_struct_api_blob_behavior_sequence.cpp" />
     <ClCompile Include="svm\svm_struct\svm_struct_api_fly_behavior_sequence.cpp" />
