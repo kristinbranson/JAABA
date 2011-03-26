@@ -258,7 +258,7 @@ int cmp_double(const void * a, const void * b) { double d = *(double*)a - *(doub
  */
 void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(EXAMPLE *ex, int num_examples) {
   int i, j, k, n, ind, beh, num_bouts = 0, curr = 0;
-  double **feat, *ptr, mean, num_histogram_bins = 0, num_max_thresholds = 0, num_min_thresholds = 0, w, target;
+  double **feat, *ptr, mean, num_histogram_bins = 0, num_max_thresholds = 0, num_min_thresholds = 0, w, target, m;
   BehaviorBoutSequence *y;
   double *tmp_features = (double*)malloc(sizeof(double)*num_features);
   SVMFeatureParams *p;
@@ -315,6 +315,11 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(EXAMPL
 
     histogram_thresholds[i] = p->num_histogram_bins ? ptr : NULL; 
     ptr += p->num_histogram_bins;
+    min_thresholds[i] = p->num_bout_min_thresholds ? ptr : NULL; 
+    ptr += p->num_bout_min_thresholds;
+	max_thresholds[i] = p->num_bout_max_thresholds ? ptr : NULL; 
+    ptr += p->num_bout_max_thresholds;
+    
     for(j = 0; j < p->num_histogram_bins; j++) {
       target = (j+1)*num_bouts / (double)p->num_histogram_bins;
       ind = (int)target;
@@ -322,9 +327,31 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(EXAMPL
       while(j && ind < num_bouts && feat[i][ind] == histogram_thresholds[i][j-1]) ind++;
       histogram_thresholds[i][j] = feat[i][my_min(ind,num_bouts-1)]*w + feat[i][my_min(ind+1,num_bouts-1)]*(1-w);
     }
+  }
 
-    min_thresholds[i] = p->num_bout_min_thresholds ? ptr : NULL; 
-    ptr += p->num_bout_min_thresholds;
+  for(i = 0; i < num_base_features; i++) {
+    // Compute the bout-level min over all training examples
+    curr = 0;
+    for(n = 0; n < num_examples; n++) {
+      y = ((BehaviorBoutSequence*)ex[n].y.data);
+      x = ((BehaviorBoutFeatures*)ex[n].x.data);
+      for(beh = 0; beh < behaviors->num; beh++) {
+		  if(behavior < 0 || beh == behavior) {
+			  for(j = 0; j < y->num_bouts[beh]; j++) {
+				  m = 1000000;
+				  for(k = y->bouts[beh][j].start_frame; k < y->bouts[beh][j].end_frame; k++) {
+					  m = my_min(x->features[i][k],m);
+				  }
+				  feat[i][curr++] = m;
+			  }
+		  }
+	  }
+	}
+
+
+    p = &feature_params[i];
+    qsort(feat[i], num_bouts, sizeof(double), cmp_double);
+
     for(j = 0; j < p->num_bout_min_thresholds; j++) {
       target = (j+1)*num_bouts / (double)(p->num_bout_min_thresholds+1);
       ind = (int)target;
@@ -332,9 +359,31 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(EXAMPL
       while(j && ind < num_bouts && feat[i][ind] == min_thresholds[i][j-1]) ind++;
       min_thresholds[i][j] = feat[i][my_min(ind,num_bouts-1)]*w + feat[i][my_min(ind+1,num_bouts-1)]*(1-w);
     }
+  }
 
-    max_thresholds[i] = p->num_bout_max_thresholds ? ptr : NULL; 
-    ptr += p->num_bout_max_thresholds;
+  for(i = 0; i < num_base_features; i++) {
+    p = &feature_params[i];
+
+	// Compute the bout-level max over all training examples
+    curr = 0;
+    for(n = 0; n < num_examples; n++) {
+      y = ((BehaviorBoutSequence*)ex[n].y.data);
+      x = ((BehaviorBoutFeatures*)ex[n].x.data);
+      for(beh = 0; beh < behaviors->num; beh++) {
+		  if(behavior < 0 || beh == behavior) {
+			  for(j = 0; j < y->num_bouts[beh]; j++) {
+				  m = -100000000;
+				  for(k = y->bouts[beh][j].start_frame; k < y->bouts[beh][j].end_frame; k++) {
+					  m = my_max(x->features[i][k],m);
+				  }
+				  feat[i][curr++] = m;
+			  }
+		  }
+	  }
+	}
+
+    qsort(feat[i], num_bouts, sizeof(double), cmp_double);
+
     for(j = 0; j < p->num_bout_max_thresholds; j++) {
       target = (j+1)*num_bouts / (double)(p->num_bout_max_thresholds+1);
       ind = (int)target;
