@@ -210,6 +210,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\svm\svm_struct\svm_struct_api_fly_behavior_sequence.h"
+				>
+			</File>
+			<File
 				RelativePath=".\svm\svm_struct\svm_struct_api_multiclass.h"
 				>
 			</File>
@@ -275,6 +279,10 @@
 			</File>
 			<File
 				RelativePath=".\svm\svm_struct\svm_struct_api_blob_behavior_sequence.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\svm\svm_struct\svm_struct_api_fly_behavior_sequence.cpp"
 				>
 			</File>
 			<File

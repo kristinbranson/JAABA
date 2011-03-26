@@ -5,7 +5,7 @@
 #include <highgui.h>
 #include <ml.h>  
 
-#include <wx/dir.h>
+//#include <wx/dir.h>
 
 void strip_extension(char *fname) {
   int i;
@@ -161,14 +161,26 @@ MultiBlobSequence *import_multi_blob_sequence(const char *dir_name, int num_spin
   strcpy(m->fname, dir_name);
 
 #ifdef WIN32
+  WIN32_FIND_DATA FileInformation; 
+  char strPattern[1000];
+  sprintf(strPattern, "%s/*.outline", dir_name);
+  HANDLE hFile = ::FindFirstFile(strPattern, &FileInformation);
+  if(hFile != INVALID_HANDLE_VALUE) {
+	  do {
+		  m->blobs = (BlobSequence**)realloc(m->blobs, (m->num_blobs+1)*sizeof(BlobSequence*));
+	      sprintf(fname, "%s/%s", dir_name, FileInformation.cFileName);
+		  m->blobs[m->num_blobs++] = import_blob_sequence(fname, num_spine_points);
+	  } while(::FindNextFile(hFile, &FileInformation) == TRUE);
+  }
 
+  /*
   wxArrayString files;
   size_t nfiles = wxDir::GetAllFiles(wxString(dir_name, wxConvUTF8), &files, wxT("*.outline"), wxDIR_FILES|wxDIR_DIRS);
   for (size_t i = 0; i < nfiles; i++) {
     m->blobs = (BlobSequence**)realloc(m->blobs, (m->num_blobs+1)*sizeof(BlobSequence*));
     sprintf(fname, "%s", files.Item(i).mb_str());
     m->blobs[m->num_blobs++] = import_blob_sequence(fname, num_spine_points);
-  }
+  }*/
 #else
 
   sprintf(sys, "ls %s/*.outline", dir_name);
