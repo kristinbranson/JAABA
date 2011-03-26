@@ -5,6 +5,10 @@
 #include <highgui.h>
 #include <ml.h>  
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 //#include <wx/dir.h>
 
 void strip_extension(char *fname) {
@@ -19,6 +23,17 @@ void strip_extension(char *fname) {
     }
     fname[i] = '\0';
   }
+}
+
+
+void CreateDirectoryIfNecessary(const char *dirName) {
+#ifndef WIN32
+  char str[400]; 
+  sprintf(str, "mkdir %s", dirName);
+  system(str);
+#else
+  CreateDirectory(dirName, NULL);
+#endif
 }
 
 // Read a blob outline file.  These are outputs of the MultiwormTracker, which
