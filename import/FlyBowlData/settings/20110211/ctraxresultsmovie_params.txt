@@ -1,0 +1,10 @@
+fps,30
+nzoomr,5
+nzoomc,3
+boxradius,20
+taillength,25
+fps,30
+firstframes,1,14751,29501
+endframes,500,15250,30000
+#endframes,50,14800,29550
+figpos,1,1,1600,1024

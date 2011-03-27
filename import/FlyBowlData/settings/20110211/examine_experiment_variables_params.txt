@@ -1,0 +1,8 @@
+requiredfiles,ctraxdiagnosticsfilestr,quickstatsfilestr,temperaturefilestr,ufmfdiagnosticsfilestr,registrationtxtfilestr,sexclassifierdiagnosticsfilestr
+nstatsperpage,50
+figpos,10,30,1400,900
+axespos,.05,.2,.9,.75
+offx,.3
+examineexperimentvariablesstatsfile,
+maxdistclick,50
+rcfile,.FlyBowlExamineExperimentVariables.mat

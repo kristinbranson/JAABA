@@ -347,12 +347,15 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
 	       exit(0);
       }
   }
-  
+
   if(!m) {
     if(strlen(feat_name)) {
       m = new SVMFlyBehaviorSequence(feat_name, behaviors, -1);
-    } else 
-      m = new SVMMulticlass;
+    } else {
+      printf("Error: SVMFeatureParams file not input\n");
+      assert(0);
+      //m = new SVMMulticlass;
+    }
   }
 
   m->set_constraint_files(load_constraints_fname, save_constraints_fname);
