@@ -7,6 +7,7 @@
 #include <ml.h>  
 
 #ifdef WIN32
+
 #pragma comment(lib, "cv210")
 #pragma comment(lib, "cxcore210")
 #pragma comment(lib, "highgui210")

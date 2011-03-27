@@ -2273,7 +2273,8 @@ bool SVMBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p) {
 		     "use_end_ave_diff_haar_features=%d%*[^\n]\n", &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
 		     &p->num_bout_min_thresholds, &p->num_bout_change_points, &p->num_histogram_bins, &p->num_histogram_temporal_levels, 
 		     &p->num_difference_temporal_levels, &p->num_harmonic_features, &b[0], &b[1], &b[28], &b[29], &b[26], &b[27], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7], &b[8], &b[9], 
-		 &b[10], &b[11], &b[12], &b[13], &b[14], &b[15], &b[16], &b[17], &b[18], &b[19], &b[20], &b[21], &b[22], &b[23], &b[24], &b[25]))!=37) {
+		 &b[10], &b[11], &b[12], &b[13], &b[14], &b[15], &b[16], &b[17], &b[18], &b[19], &b[20], &b[21], &b[22], &b[23], &b[24], &b[25]))!=39) {
+			 fprintf(stderr, "ERROR parsing feature params: only read first %d numbers\n", num);
     return false;
   }
   p->use_bout_sum_features=b[0]; p->use_bout_ave_features=b[1]; p->use_bout_max_feature=b[2]; p->use_bout_min_feature=b[3];
