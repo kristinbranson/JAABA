@@ -624,7 +624,7 @@ int test_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRU
 	  }
 	  fclose(fout);
       sprintf(fname, "%s/index.html", outdir);
-	  FILE *fout = fopen(fname, "w");
+	  fout = fopen(fname, "w");
 	  if(fout) fclose(fout);
   }
 
