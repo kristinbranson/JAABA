@@ -1881,23 +1881,25 @@ void SVMBehaviorSequence::on_finished_find_most_violated_constraint(LABEL *ybar,
       ExtractFolderAndFileName(ename, folder, file);
 	  StripFileExtension(file);
 	  int beh = this->behavior >= 0 ? this->behavior : 0;
-	  if(y) sprintf(fname, "%s/%s_%d", sparm->debugdir, file, iter);
+	  if(iter >= 0) sprintf(fname, "%s/%s_%d", sparm->debugdir, file, iter);
 	  else sprintf(fname, "%s/%s", sparm->debugdir, file);
       VisualizeBouts((BehaviorBoutSequence*)ybar->data, behaviors, beh, fname, html);
 	  if(y) {
 	    sprintf(fname, "%s/%s_gt_%d", sparm->debugdir, file, iter);
 		VisualizeBouts((BehaviorBoutSequence*)y->data, behaviors, beh, fname, html_gt);
-	    sprintf(fname, "%s/iter%d.html", sparm->debugdir, iter);
-	  } else
-        sprintf(fname, "%s/predictions.html", sparm->debugdir);
+	  } 
+	  if(iter >= 0)
+        sprintf(fname, "%s/iter%d.html", sparm->debugdir, iter);
+      else
+        sprintf(fname, "%s/index.html", sparm->debugdir);
 	  FILE *fout = fopen(fname, "a");
 	  assert(fout);
       BehaviorBoutSequence *yybar = (BehaviorBoutSequence*)ybar->data;
 	  if(y) {
 		  BehaviorBoutSequence *yy = (BehaviorBoutSequence*)y->data;
-		  fprintf(fout, "<br><br>%s: most violated, score=%f, loss=%f<br>%s<br>%s: ground truth, score=%f, loss=%f<br>%s\n", file, (float)yybar->score, (float)yybar->loss, html, file, (float)yy->score, (float)yy->loss, html_gt);
+		  fprintf(fout, "<br><br>%s: %s, score=%f, loss=%f<br>%s<br>%s: ground truth, score=%f, loss=%f<br>%s\n", file, iter >= 0 ? "most violated" : "best_score", (float)yybar->score, (float)yybar->loss, html, file, (float)yy->score, (float)yy->loss, html_gt);
 	  } else 
-		  fprintf(fout, "<br><br>%s: most violated, score=%f, loss=%f<br>%s\n", file, (float)yybar->score, (float)yybar->loss, html, file);
+		  fprintf(fout, "<br><br>%s: best score, score=%f, loss=%f<br>%s\n", file, (float)yybar->score, (float)yybar->loss, html, file);
 	  fclose(fout);
 	  free(html);
 	  free(html_gt);

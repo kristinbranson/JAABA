@@ -623,6 +623,9 @@ int test_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRU
 		  fprintf(fout, "%s", argv[i]);
 	  }
 	  fclose(fout);
+      sprintf(fname, "%s/index.html", outdir);
+	  FILE *fout = fopen(fname, "w");
+	  if(fout) fclose(fout);
   }
 
   if(struct_verbosity>=1) {
@@ -679,10 +682,6 @@ omp_init_lock (&lock);
 #endif
     runtime+=(get_runtime()-t1);
 
-      char ename[1000];
-      sprintf(ename, "%d", i);
-	  m->on_finished_find_most_violated_constraint(&y, NULL, 0, struct_parm, ename);
-
     m->write_label(predfl,y);
     if(!strcmp(outfilelist, "*")) {
       char tmp[1000]; strcpy(tmp, test_list[i]);
@@ -703,6 +702,11 @@ omp_init_lock (&lock);
     else
       incorrect++;
     m->eval_prediction(i,testsample.examples[i],y,structmodel,struct_parm,&teststats);
+
+	  char ename[1000];
+      sprintf(ename, "%d", i);
+	  m->on_finished_find_most_violated_constraint(&y, &testsample.examples[i].y, -1, struct_parm, ename);
+
 
     if(m->empty_label(testsample.examples[i].y)) 
       { no_accuracy=1; } /* test data is not labeled */
