@@ -2231,19 +2231,7 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
   fprintf(modelfl, " # allowable class transitions\n");
   for(i = 0; i < num_base_features; i++) {
     p = &feature_params[i];
-    fprintf(modelfl, "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "
-	    "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "
-	    "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "
-	    "use_bout_sum_features=%d, use_bout_ave_features=%d, use_bout_sum_features=%d, use_bout_ave_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
-	    "use_bout_max_feature=%d, use_bout_min_feature=%d, "
-	    "use_global_difference_max_ave_features=%d, use_global_difference_min_ave_features=%d, use_global_difference_ave_ave_features=%d, "
-	    "use_global_difference_max_sum_features=%d, use_global_difference_min_sum_features=%d, use_global_difference_ave_sum_features=%d, "
-	    "use_bout_change=%d, use_bout_absolute_change=%d, use_histogram_sum_features=%d, "
-	    "use_histogram_ave_features=%d, use_sum_harmonic_features=%d, use_ave_harmonic_features=%d, use_sum_absolute_harmonic_features=%d, "
-	    "use_ave_absolute_harmonic_features=%d, use_start_sum_absolute_diff_haar_features=%d, "
-	    "use_end_sum_absolute_diff_haar_features=%d, use_start_sum_diff_haar_features=%d, use_end_sum_diff_haar_features=%d,  "
-	    "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "
-	    "use_end_ave_diff_haar_features=%d  # %dth feature params\n", 
+    fprintf(modelfl, FORMAT__BOUT_FEATURE_PARAMS, 
 	    p->feature_sample_smoothness_window, p->num_temporal_levels, p->num_bout_max_thresholds, 
 	    p->num_bout_min_thresholds, p->num_bout_change_points, p->num_histogram_bins, p->num_histogram_temporal_levels, 
 	    p->num_difference_temporal_levels, p->num_harmonic_features, p->use_bout_sum_features?1:0, p->use_bout_ave_features?1:0,
@@ -2311,19 +2299,7 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
 bool SVMBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p) {
   int num;
   int b[30];
-  if((num=fscanf(modelfl, "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "
-		     "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "
-		     "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "
-		     "use_bout_sum_features=%d, use_bout_ave_features=%d, use_bout_sum_absolute_features=%d, use_bout_ave_absolute_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
-		     "use_bout_max_feature=%d, use_bout_min_feature=%d, "
-		     "use_global_difference_max_ave_features=%d, use_global_difference_min_ave_features=%d, use_global_difference_ave_ave_features=%d, "
-		     "use_global_difference_max_sum_features=%d, use_global_difference_min_sum_features=%d, use_global_difference_ave_sum_features=%d, "
-		     "use_bout_change=%d, use_bout_absolute_change=%d, use_histogram_sum_features=%d, "
-		     "use_histogram_ave_features=%d, use_sum_harmonic_features=%d, use_ave_harmonic_features=%d, use_sum_absolute_harmonic_features=%d, "
-		     "use_ave_absolute_harmonic_features=%d, use_start_sum_absolute_diff_haar_features=%d, "
-		     "use_end_sum_absolute_diff_haar_features=%d, use_start_sum_diff_haar_features=%d, use_end_sum_diff_haar_features=%d,  "
-		     "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "
-		     "use_end_ave_diff_haar_features=%d%*[^\n]\n", &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
+  if((num=fscanf(modelfl, FORMAT__BOUT_FEATURE_PARAMS, &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
 		     &p->num_bout_min_thresholds, &p->num_bout_change_points, &p->num_histogram_bins, &p->num_histogram_temporal_levels, 
 		     &p->num_difference_temporal_levels, &p->num_harmonic_features, &b[0], &b[1], &b[28], &b[29], &b[26], &b[27], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7], &b[8], &b[9], 
 		 &b[10], &b[11], &b[12], &b[13], &b[14], &b[15], &b[16], &b[17], &b[18], &b[19], &b[20], &b[21], &b[22], &b[23], &b[24], &b[25]))!=39) {
