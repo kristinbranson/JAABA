@@ -746,6 +746,18 @@ omp_init_lock (&lock);
 	    omp_unset_lock(&lock);
 #endif	    
 	  }
+
+
+#ifdef USE_OPENMP
+	    omp_set_lock(&lock);
+#endif
+      char ename[1000];
+      sprintf(ename, "%d", i);
+	  m->on_finished_find_most_violated_constraint(&ybar, &ex[i].y, numIt, sparm, ename);
+#ifdef USE_OPENMP
+	    omp_unset_lock(&lock);
+#endif
+
 	  m->free_label(ybar);
 
 

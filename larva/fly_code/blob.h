@@ -270,4 +270,15 @@ inline void ExtractFolderAndFileName(const char *str, char *folder, char *fname)
   folder[num] = '\0';
 }
 
+inline void StripFileExtension(char *str) {
+  int i = (int)strlen(str);
+  while(i >= 0) {
+    if(str[i] == '.') {
+      strcpy(str+i, "");
+      break;
+    }
+    i--;
+  }
+}
+
 #endif

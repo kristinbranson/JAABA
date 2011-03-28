@@ -206,10 +206,12 @@ class SVMBehaviorSequence : public SVMStructMethod {
 
   void on_finished_iteration(CONSTSET c, STRUCTMODEL *sm, 
 						STRUCT_LEARN_PARM *sparm, int iter_num) ;
+  void on_finished_find_most_violated_constraint(LABEL *ybar, LABEL *y, int iter, STRUCT_LEARN_PARM *sparm, const char *ename);
+
 
   BehaviorBoutFeatures *create_behavior_bout_feature_cache(void *d, bool compute_cache=true);
   EXAMPLE *find_example(SAMPLE s, const char *fname);
-  
+
 
   void        svm_struct_learn_api_init(int argc, const char* argv[]);
   void        svm_struct_learn_api_exit();
