@@ -24,8 +24,10 @@
 #include "svm_struct/svm_struct_learn.h"
 
 #define DEBUG 0
-#define DEBUG_WEIGHTS 1
-#define DEBUG_FEATURES 1
+
+#include "cv.h"
+#include "highgui.h"
+IplImage *VisualizeBouts(BehaviorBoutSequence *seq, BehaviorGroups *groups, int beh, const char *fname, char *html);
 
 /*
  * Routines to fit an optimal scoring sequence of behavior bouts given a tracking sequence
@@ -1128,8 +1130,6 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
   bool computeClassTransitions = class_training_transitions ? false : true;
   BehaviorBoutFeatures *feature_cache;
 
-  strcpy(sparm->datasetfile, file);
-
   examples=(EXAMPLE *)my_malloc(sizeof(EXAMPLE)*num);
 
   // Keep track of the number of transitions between each pair of classes
@@ -1188,19 +1188,14 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
       behavior_bout->fvec = psi(examples[j].x, examples[j].y, NULL, sparm);
     }
 
-#if DEBUG_FEATURES
-	CreateDirectoryIfNecessary("debug");
-	char basename[1000];
-    char fname[1000];
-    strcpy(basename, sparm->datasetfile);
-    for(int ii = 0; ii < strlen(basename); ii++)
-	  if(basename[ii] == '/' || basename[ii] == '\\')
-		  basename[ii] = '_';
-	sprintf(fname, "debug/features_%s_unnormalized.txt", basename);
-    print_features(fname, examples, n, false);
-	sprintf(fname, "debug/features_%s_normalized.txt", basename);
-    print_features(fname,   examples, n, true);
-#endif
+	if(strlen(sparm->debugdir) && sparm->debug_features) {
+      char fname[1000];
+	  CreateDirectoryIfNecessary(sparm->debugdir);
+      sprintf(fname, "%s/features_unnormalized.txt", sparm->debugdir);
+      print_features(fname, examples, n, false);
+	  sprintf(fname, "%s/features_normalized.txt", sparm->debugdir);
+      print_features(fname, examples, n, true);
+    }
 
     
     // Compress the class transitions into a sparse array
@@ -1237,9 +1232,7 @@ void        SVMBehaviorSequence::init_struct_model(SAMPLE sample, STRUCTMODEL *s
      feature space in sizePsi. This is the maximum number of different
      weights that can be learned. Later, the weight vector w will
      contain the learned weights for the model. */
-#ifdef DEBUG_WEIGHTS
-	CreateDirectoryIfNecessary("debug");
-#endif
+
 
   sm->sizePsi=sizePsi;
   if(struct_verbosity>=0)
@@ -1247,6 +1240,22 @@ void        SVMBehaviorSequence::init_struct_model(SAMPLE sample, STRUCTMODEL *s
 	   num_features,behaviors->num);
   if(struct_verbosity>=0)
     printf("Size of Psi: %ld\n",sm->sizePsi);
+  
+
+  if(strlen(sparm->debugdir)) {
+    char fname[1000];
+    CreateDirectoryIfNecessary(sparm->debugdir);
+	if(sparm->debug_predictions) {
+      sprintf(fname, "%s/index.html", sparm->debugdir);
+      FILE *fout = fopen(fname, "w");
+      assert(fout);
+	  fprintf(fout, "<html></body><h2>Iteration %d</h2>\n", 0);
+      fclose(fout);
+	  sprintf(fname, "%s/iter%d.html", sparm->debugdir, 1);
+	  fout = fopen(fname, "w");
+	  if(fout) fclose(fout);
+	}
+  }
 }
 
 
@@ -1371,21 +1380,27 @@ void SVMBehaviorSequence::on_finished_iteration(CONSTSET c, STRUCTMODEL *sm,
 						STRUCT_LEARN_PARM *sparm, int iter_num) {
   if(strlen(save_const_set_fname))
     save_const_set(c, save_const_set_fname);
+  
+  sparm->iter = iter_num;
 
-#if DEBUG_WEIGHTS
-  char basename[1000];
   char fname[1000];
-  strcpy(basename, sparm->datasetfile);
-  for(int i = 0; i < strlen(basename); i++)
-	  if(basename[i] == '/' || basename[i] == '\\')
-		  basename[i] = '_';
+  if(strlen(sparm->debugdir) && sparm->debug_weights) {
+    sprintf(fname, "%s/weights_%d.txt", sparm->debugdir, iter_num);
+    print_weights(fname, sm->svm_model->lin_weights+1);
+  }
 
-  sprintf(fname, "debug/weights_%s%d.txt", basename, iter_num);
-  print_weights(fname, sm->svm_model->lin_weights+1);
+  if(strlen(sparm->debugdir) && sparm->debug_model) {
+    sprintf(fname, "%s/model_%d.txt", sparm->debugdir, iter_num);
+    write_struct_model(fname, sm, sparm);
+  }
 
-  sprintf(fname, "debug/model_%s%d.txt", basename, iter_num);
-  write_struct_model(fname, sm, sparm);
-#endif
+  if(strlen(sparm->debugdir) && sparm->debug_predictions) {
+	sprintf(fname, "%s/index.html", sparm->debugdir);
+    FILE *fout = fopen(fname, "a");
+    assert(fout);
+	fprintf(fout, "<br><br><h2>Iteration %d</h2><a href=\"weights_%d.txt\">weights</a>|<a href=\"iter%d.html\">predictions</a>\n", iter_num, iter_num, iter_num);
+    fclose(fout);
+  }
 }
 
 #if DEBUG > 0
@@ -1770,6 +1785,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
       // to the loss when comparing the sequences y and ybar.  If this fails, something is probably wrong
       // with the computation of the loss during dynamic programming or with the function loss2()
       assert(my_abs(ybar->losses[beh] - loss2(*yy, yybar, sparm, beh, 1)) < .01);
+#endif
 
       // Compute the scores for the ground truth label y.  The cache tables in dynamic programming should always have
       // at least as high a score as the score yielded by the ground truth labeling.  If this fails, something
@@ -1782,9 +1798,12 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	psi_bout(b, y->bouts[beh][i].start_frame, y->bouts[beh][i].end_frame, beh, -1, tmp_features, true, false);  
 	y->bouts[beh][i].bout_score = sprod_nn(class_weights[y->bouts[beh][i].behavior], tmp_features, num_features);
 	y->bouts[beh][i].transition_score = transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior];
+	y->bouts[beh][i].loss_fn = y->bouts[beh][i].loss_fp = 0;
 	if(i < y->num_bouts[beh]-1) 
 	  y->bouts[beh][i].transition_score += transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior];
 	y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score;
+
+#if DEBUG > 0
 	if(y->scores[beh] > (i < y->num_bouts[beh]-1 ? table[y->bouts[beh][i+1].start_frame][y->bouts[beh][i+1].behavior] : table[T][0])) {
 	  // Something went wrong, it might be informative for debugging (break here using gdb) to test the same dynamic 
 	  // programming problem but without using loss, then compare y_max to y
@@ -1793,8 +1812,10 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	  BehaviorBoutSequence *y_max = (BehaviorBoutSequence*)(yy_max.data);
 	  assert(0);
 	}
+#endif
       }
       y->score += y->scores[beh];
+#if DEBUG > 0
       assert(ybar->score+ybar->loss >= y->score);
 #endif
     }
@@ -1851,6 +1872,38 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 
 void SVMBehaviorSequence::write_label(LABEL y, FILE *fout, int iter, int num_examples) {
   write_bout_sequence((BehaviorBoutSequence*)y.data, fout, iter, num_examples);
+}
+
+void SVMBehaviorSequence::on_finished_find_most_violated_constraint(LABEL *ybar, LABEL *y, int iter, STRUCT_LEARN_PARM *sparm, const char *ename) {
+	// Save a visualization of all predicted bouts
+    if(strlen(sparm->debugdir) && sparm->debug_predictions) {
+      char *html=(char*)malloc(10000000), *html_gt=(char*)malloc(10000000), folder[1000], file[1000], fname[1000];
+      ExtractFolderAndFileName(ename, folder, file);
+	  StripFileExtension(file);
+	  int beh = this->behavior >= 0 ? this->behavior : 0;
+	  if(iter >= 0) sprintf(fname, "%s/%s_%d", sparm->debugdir, file, iter);
+	  else sprintf(fname, "%s/%s", sparm->debugdir, file);
+      VisualizeBouts((BehaviorBoutSequence*)ybar->data, behaviors, beh, fname, html);
+	  if(y) {
+	    sprintf(fname, "%s/%s_gt_%d", sparm->debugdir, file, iter);
+		VisualizeBouts((BehaviorBoutSequence*)y->data, behaviors, beh, fname, html_gt);
+	  } 
+	  if(iter >= 0)
+        sprintf(fname, "%s/iter%d.html", sparm->debugdir, iter);
+      else
+        sprintf(fname, "%s/index.html", sparm->debugdir);
+	  FILE *fout = fopen(fname, "a");
+	  assert(fout);
+      BehaviorBoutSequence *yybar = (BehaviorBoutSequence*)ybar->data;
+	  if(y) {
+		  BehaviorBoutSequence *yy = (BehaviorBoutSequence*)y->data;
+		  fprintf(fout, "<br><br>%s: %s, score=%f, loss=%f<br>%s<br>%s: ground truth, score=%f, loss=%f<br>%s\n", file, iter >= 0 ? "most violated" : "best_score", (float)yybar->score, (float)yybar->loss, html, file, (float)yy->score, (float)yy->loss, html_gt);
+	  } else 
+		  fprintf(fout, "<br><br>%s: best score, score=%f, loss=%f<br>%s\n", file, (float)yybar->score, (float)yybar->loss, html, file);
+	  fclose(fout);
+	  free(html);
+	  free(html_gt);
+	}
 }
 
 LABEL SVMBehaviorSequence::read_label(FILE *fin, char *fname, int *iter, int *num_examples) {
@@ -2014,12 +2067,11 @@ double      SVMBehaviorSequence::loss2(LABEL yy, LABEL yybar, STRUCT_LEARN_PARM 
   double sum_y = 0, sum_ybar = 0;
   BehaviorBoutFeatures *b = y->features;
   int T = b->num_frames;
-  double cl, l_fn = 0;
+  double cl, l_fn = 0, l_fn2 = 0;
   
   while(curr_y < y->num_bouts[beh] || curr_ybar < ybar->num_bouts[beh]) {
     if(curr_y < y->num_bouts[beh] && curr_ybar < ybar->num_bouts[beh]) {
-      // Check if the current bout in y and ybar match.  The current criterion for a match
-      // is if the percent overlap is at least 50% of the length of either bout.
+      // Check if the current bout in y and ybar match.  
       dur_ybar = (b->frame_times[my_min(ybar->bouts[beh][curr_ybar].end_frame,T-1)] - 
 		  b->frame_times[ybar->bouts[beh][curr_ybar].start_frame]);
       dur_y = (b->frame_times[my_min(y->bouts[beh][curr_y].end_frame,T-1)] -
@@ -2030,9 +2082,10 @@ double      SVMBehaviorSequence::loss2(LABEL yy, LABEL yybar, STRUCT_LEARN_PARM 
       if(y->bouts[beh][curr_y].behavior == ybar->bouts[beh][curr_ybar].behavior) {
 	sum_ybar += inter;
 	sum_y += inter;
-	if(debug)
+	//if(debug)
 	  l_fn -= match_false_negative_cost(dur_y, beh, y->bouts[beh][curr_y].behavior)*(dur_y ? (inter/dur_y) : 0);
-      }
+      } else
+	    l_fn2 += match_false_negative_cost(dur_y, beh, y->bouts[beh][curr_y].behavior)*(dur_y ? (inter/dur_y) : 0);
     } else
       inter = 0;
 
@@ -2057,9 +2110,11 @@ double      SVMBehaviorSequence::loss2(LABEL yy, LABEL yybar, STRUCT_LEARN_PARM 
 	assert(my_abs(cl - ybar->bouts[beh][curr_ybar].loss_fp) < .00001);
 	assert(my_abs(l_fn - ybar->bouts[beh][curr_ybar].loss_fn) < .00001);
       }
+	  ybar->bouts[beh][curr_ybar].loss_fn = l_fn2;
+	  ybar->bouts[beh][curr_ybar].loss_fp = cl;
       curr_ybar++;
       sum_ybar = 0;
-      l_fn = 0;
+      l_fn = 0; l_fn2 = 0;
     }
   }
   if(debug)
@@ -2178,19 +2233,7 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
   fprintf(modelfl, " # allowable class transitions\n");
   for(i = 0; i < num_base_features; i++) {
     p = &feature_params[i];
-    fprintf(modelfl, "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "
-	    "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "
-	    "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "
-	    "use_bout_sum_features=%d, use_bout_ave_features=%d, use_bout_sum_features=%d, use_bout_ave_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
-	    "use_bout_max_feature=%d, use_bout_min_feature=%d, "
-	    "use_global_difference_max_ave_features=%d, use_global_difference_min_ave_features=%d, use_global_difference_ave_ave_features=%d, "
-	    "use_global_difference_max_sum_features=%d, use_global_difference_min_sum_features=%d, use_global_difference_ave_sum_features=%d, "
-	    "use_bout_change=%d, use_bout_absolute_change=%d, use_histogram_sum_features=%d, "
-	    "use_histogram_ave_features=%d, use_sum_harmonic_features=%d, use_ave_harmonic_features=%d, use_sum_absolute_harmonic_features=%d, "
-	    "use_ave_absolute_harmonic_features=%d, use_start_sum_absolute_diff_haar_features=%d, "
-	    "use_end_sum_absolute_diff_haar_features=%d, use_start_sum_diff_haar_features=%d, use_end_sum_diff_haar_features=%d,  "
-	    "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "
-	    "use_end_ave_diff_haar_features=%d  # %dth feature params\n", 
+    fprintf(modelfl, FORMAT__BOUT_FEATURE_PARAMS, 
 	    p->feature_sample_smoothness_window, p->num_temporal_levels, p->num_bout_max_thresholds, 
 	    p->num_bout_min_thresholds, p->num_bout_change_points, p->num_histogram_bins, p->num_histogram_temporal_levels, 
 	    p->num_difference_temporal_levels, p->num_harmonic_features, p->use_bout_sum_features?1:0, p->use_bout_ave_features?1:0,
@@ -2258,19 +2301,7 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
 bool SVMBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p) {
   int num;
   int b[30];
-  if((num=fscanf(modelfl, "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "
-		     "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "
-		     "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "
-		     "use_bout_sum_features=%d, use_bout_ave_features=%d, use_bout_sum_absolute_features=%d, use_bout_ave_absolute_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "
-		     "use_bout_max_feature=%d, use_bout_min_feature=%d, "
-		     "use_global_difference_max_ave_features=%d, use_global_difference_min_ave_features=%d, use_global_difference_ave_ave_features=%d, "
-		     "use_global_difference_max_sum_features=%d, use_global_difference_min_sum_features=%d, use_global_difference_ave_sum_features=%d, "
-		     "use_bout_change=%d, use_bout_absolute_change=%d, use_histogram_sum_features=%d, "
-		     "use_histogram_ave_features=%d, use_sum_harmonic_features=%d, use_ave_harmonic_features=%d, use_sum_absolute_harmonic_features=%d, "
-		     "use_ave_absolute_harmonic_features=%d, use_start_sum_absolute_diff_haar_features=%d, "
-		     "use_end_sum_absolute_diff_haar_features=%d, use_start_sum_diff_haar_features=%d, use_end_sum_diff_haar_features=%d,  "
-		     "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "
-		     "use_end_ave_diff_haar_features=%d%*[^\n]\n", &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
+  if((num=fscanf(modelfl, FORMAT__BOUT_FEATURE_PARAMS, &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
 		     &p->num_bout_min_thresholds, &p->num_bout_change_points, &p->num_histogram_bins, &p->num_histogram_temporal_levels, 
 		     &p->num_difference_temporal_levels, &p->num_harmonic_features, &b[0], &b[1], &b[28], &b[29], &b[26], &b[27], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7], &b[8], &b[9], 
 		 &b[10], &b[11], &b[12], &b[13], &b[14], &b[15], &b[16], &b[17], &b[18], &b[19], &b[20], &b[21], &b[22], &b[23], &b[24], &b[25]))!=39) {
@@ -2559,4 +2590,98 @@ void         SVMBehaviorSequence::parse_struct_parameters_classify(STRUCT_LEARN_
       }
   }
 }
+
+#define LABEL_BOUTS 0
+IplImage *VisualizeBouts(BehaviorBoutSequence *seq, BehaviorGroups *groups, int beh, const char *fname, char *html) { 
+  BehaviorGroup *group = &groups->behaviors[beh];
+  if(!seq->num_bouts[beh]) 
+	  return NULL;
+
+  int h = LABEL_BOUTS ? 50 : 10;
+  int T = seq->bouts[beh][seq->num_bouts[beh]-1].end_frame;
+  CvFont font;
+  CvSize sz;
+  cvInitFont(&font, CV_FONT_VECTOR0, 0.5f, 0.4f, 0, 2);
+
+  IplImage *img = cvCreateImage(cvSize(T, h), IPL_DEPTH_8U, 3);
+  cvZero(img);
+
+  // Draw bouts as colored rectangles
+  int i;
+  for(i = 0; i < seq->num_bouts[beh]; i++) {
+    int c = seq->bouts[beh][i].behavior;
+    cvRectangle(img, cvPoint(seq->bouts[beh][i].start_frame,0), cvPoint(seq->bouts[beh][i].end_frame,h), 
+		CV_RGB((group->values[c].color & 0xff0000)>>16,
+		       (group->values[c].color & 0x00ff00)>>8,
+		       (group->values[c].color & 0xff)), CV_FILLED);
+  }
+
+#if LABEL_BOUTS
+  // Draw labels for bouts
+  int prev_prev_max_x = -100000, prev_max_x = -100000;
+  int last_pos = 2, last_last_pos = 1;
+  int y[3], ymin;
+  for(i = 0; i < seq->num_bouts[beh]; i++) {
+    int c = seq->bouts[beh][i].behavior;
+    int m = (seq->bouts[beh][i].start_frame+seq->bouts[beh][i].end_frame)/2;
+
+    cvGetTextSize(group->values[c].abbreviation, &font, &sz, &ymin);
+
+	if(i == 0) {
+      y[0] = my_min(h-2, (h+sz.height)/2);
+      y[1] = h-6;
+      y[2] = sz.height;
+    }
+
+    int pos = 0;
+    if(m-sz.width/2 < prev_prev_max_x+4) 
+      pos = 3 - last_last_pos - last_pos;
+    else if(m-sz.width/2 < prev_max_x+4) 
+      pos = last_pos > 0 ? 0 : 1;
+    else {
+      pos = 0;
+      last_pos = 2;
+    }
+    last_last_pos = last_pos;
+    last_pos = pos;
+    prev_prev_max_x = prev_max_x;
+    prev_max_x = m+sz.width/2;
+    cvPutText(img, group->values[c].abbreviation, cvPoint(m-sz.width/2, y[pos]), 
+							&font, CV_RGB(255,255,255));
+  }
+#endif
+
+  if(fname) {
+      char *html_tmp=(char*)malloc(10000000), folder[1000], fname2[1000];
+	  sprintf(fname2, "%s.png", fname);
+	  cvSaveImage(fname2, img);
+	  cvReleaseImage(&img);
+
+    if(html) {
+      ExtractFolderAndFileName(fname, folder, fname2);    
+      sprintf(html_tmp, "<img src=\"%s.png\" usemap=\"#%s\" height=50 />\n<map name=\"%s\">\n", fname2, fname2, fname2);
+
+      char str[10000], alt[1000];
+	  char *ptr = html_tmp+strlen(html_tmp);
+	  for(i = 0; i < seq->num_bouts[beh]; i++) {
+        int c = seq->bouts[beh][i].behavior;
+        float z = 50.0f/h;
+        sprintf(alt, "behavior=%s bout_score=%f transition_score=%f loss_fn=%f loss_fp=%f", group->values[c].name, 
+		  (float)seq->bouts[beh][i].bout_score, (float)seq->bouts[beh][i].transition_score, (float)seq->bouts[beh][i].loss_fn,  (float)seq->bouts[beh][i].loss_fp);
+	    sprintf(str, "  <area shape=\"rect\" coords=\"%d,%d,%d,%d\" href=\"features_%s.html#%d\" title=\"%s\" />\n", (int)(z*seq->bouts[beh][i].start_frame), 0, 
+		  (int)(z*seq->bouts[beh][i].end_frame), (int)(z*h), fname2, i, alt);
+        
+		  
+	    strcpy(ptr, str);
+		ptr += strlen(str);
+	  }
+	  strcpy(ptr, "</map>");
+	  strcpy(html, html_tmp);
+	  free(html_tmp);
+	}
+  }
+  
+  return img;
+}
+
 

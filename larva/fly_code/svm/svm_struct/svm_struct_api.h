@@ -81,6 +81,7 @@ class SVMStructMethod {
   virtual void        parse_struct_parameters_classify(STRUCT_LEARN_PARM *sparm) {};
   virtual void on_finished_iteration(CONSTSET c, STRUCTMODEL *sm, 
 						STRUCT_LEARN_PARM *sparm, int iter_num) {};
+  virtual void on_finished_find_most_violated_constraint(LABEL *ybar, LABEL *y, int iter, STRUCT_LEARN_PARM *sparm, const char *ename) {};
   virtual void write_label(LABEL y, FILE *fout, int iter, int num) {};
   virtual LABEL read_label(FILE *fin, char *fname, int *iter, int *num) {LABEL y; memset(&y,0,sizeof(y)); return y; };
   virtual void save_example(void *b, void *d, const char *fname) {}

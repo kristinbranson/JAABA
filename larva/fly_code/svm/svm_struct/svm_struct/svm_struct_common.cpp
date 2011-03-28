@@ -342,6 +342,13 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
       case '-': strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);i++; strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);break; 
       case 'v': i++; (*struct_verbosity)=atol(argv[i]); break;
       case 'y': i++; (*verbosity)=atol(argv[i]); break;
+      case 'D':
+          struct_parm->debug_weights = strstr(argv[i], "w") != NULL;
+          struct_parm->debug_features = strstr(argv[i], "f") != NULL;
+          struct_parm->debug_predictions = strstr(argv[i], "p") != NULL;
+          struct_parm->debug_model = strstr(argv[i], "m") != NULL;
+		  strcpy (struct_parm->debugdir, argv[++i]); 
+		  break;
       default: printf("\nUnrecognized option %s!\n\n",argv[i]);
 	       print_help_train(m);
 	       exit(0);
@@ -604,6 +611,7 @@ int test_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRU
   m->svm_struct_classify_api_init(argc,argv);
   
   if(strlen(outdir)) {
+	  strcpy(struct_parm->debugdir, outdir);
 	  // Save command line arguments
 	  CreateDirectoryIfNecessary(outdir);
 	  char fname[1000]; 
@@ -615,6 +623,9 @@ int test_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRU
 		  fprintf(fout, "%s", argv[i]);
 	  }
 	  fclose(fout);
+      sprintf(fname, "%s/index.html", outdir);
+	  FILE *fout = fopen(fname, "w");
+	  if(fout) fclose(fout);
   }
 
   if(struct_verbosity>=1) {
@@ -691,6 +702,11 @@ omp_init_lock (&lock);
     else
       incorrect++;
     m->eval_prediction(i,testsample.examples[i],y,structmodel,struct_parm,&teststats);
+
+	  char ename[1000];
+      sprintf(ename, "%d", i);
+	  m->on_finished_find_most_violated_constraint(&y, &testsample.examples[i].y, -1, struct_parm, ename);
+
 
     if(m->empty_label(testsample.examples[i].y)) 
       { no_accuracy=1; } /* test data is not labeled */
@@ -774,7 +790,13 @@ SVMStructMethod *read_input_parameters_test(int argc,const char *argv[],char *te
 	break; 
       case 'o': strcpy (outfilelist, argv[++i]); break;
       case 'O': strcpy (outfilelist, "*"); break;
-      case 'D': strcpy (outdir, argv[++i]); break;
+      case 'D':
+          struct_parm->debug_weights = strstr(argv[i], "w") != NULL;
+          struct_parm->debug_features = strstr(argv[i], "f") != NULL;
+          struct_parm->debug_predictions = strstr(argv[i], "p") != NULL;
+          struct_parm->debug_model = strstr(argv[i], "m") != NULL;
+		  strcpy (outdir, argv[++i]); 
+		  break;
       default: printf("\nUnrecognized option %s!\n\n",argv[i]);
 	       print_help_test(m);
 	       exit(0);

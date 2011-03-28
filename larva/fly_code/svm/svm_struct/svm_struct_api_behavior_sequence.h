@@ -7,6 +7,22 @@
 
 #include "../../blob.h"
 
+
+#define FORMAT__BOUT_FEATURE_PARAMS "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "\
+		     "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "\
+		     "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "\
+		     "use_bout_sum_features=%d, use_bout_ave_features=%d, use_bout_sum_absolute_features=%d, use_bout_ave_absolute_features=%d, use_standard_deviation=%d, use_sum_variance=%d, "\
+		     "use_bout_max_feature=%d, use_bout_min_feature=%d, "\
+		     "use_global_difference_max_ave_features=%d, use_global_difference_min_ave_features=%d, use_global_difference_ave_ave_features=%d, "\
+		     "use_global_difference_max_sum_features=%d, use_global_difference_min_sum_features=%d, use_global_difference_ave_sum_features=%d, "\
+		     "use_bout_change=%d, use_bout_absolute_change=%d, use_histogram_sum_features=%d, "\
+		     "use_histogram_ave_features=%d, use_sum_harmonic_features=%d, use_ave_harmonic_features=%d, use_sum_absolute_harmonic_features=%d, "\
+		     "use_ave_absolute_harmonic_features=%d, use_start_sum_absolute_diff_haar_features=%d, "\
+		     "use_end_sum_absolute_diff_haar_features=%d, use_start_sum_diff_haar_features=%d, use_end_sum_diff_haar_features=%d,  "\
+		     "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "\
+		     "use_end_ave_diff_haar_features=%d%*[^\n]\n"
+
+
 struct _BehaviorGroups;
 struct _BehaviorBoutFeatures;
 
@@ -206,10 +222,12 @@ class SVMBehaviorSequence : public SVMStructMethod {
 
   void on_finished_iteration(CONSTSET c, STRUCTMODEL *sm, 
 						STRUCT_LEARN_PARM *sparm, int iter_num) ;
+  void on_finished_find_most_violated_constraint(LABEL *ybar, LABEL *y, int iter, STRUCT_LEARN_PARM *sparm, const char *ename);
+
 
   BehaviorBoutFeatures *create_behavior_bout_feature_cache(void *d, bool compute_cache=true);
   EXAMPLE *find_example(SAMPLE s, const char *fname);
-  
+
 
   void        svm_struct_learn_api_init(int argc, const char* argv[]);
   void        svm_struct_learn_api_exit();
