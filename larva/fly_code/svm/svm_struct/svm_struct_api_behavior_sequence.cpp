@@ -1574,10 +1574,14 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
     gt_bout[0] = 0;
     partial_label_bout[0] = 0;
     for(t = 1; t <= T; t++) { // looping through all possible bout ends // T .. length of annotation window
-      for(c = 0; c < num_classes[beh]; c++) 
-	table[t][c] = -INFINITY;
+
+
+      for(c = 0; c < num_classes[beh]; c++) { // initialize for all classes
+		table[t][c] = -INFINITY;
+	  }
 
       // When given a groundtruth label y, stores the index of the bout corresponding to this timestep
+	  // during training invocation, not classifying invocation
       if(y) gt_bout[t] = y->bouts[beh][gt_bout[t-1]].end_frame < t ? gt_bout[t-1]+1 : gt_bout[t-1];
 
       // When given a manually supplied partial labelling, store the index of the bout corresponding to this timestep
@@ -1598,7 +1602,11 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
       next_duration = 1;
       tt = 0; t_p = t;
       is_first = true;
-      while(next_duration >= 0 && tt < num_durations) {
+
+
+      while(next_duration >= 0 && tt < num_durations) { // loop through all possible bout starts (resp. durations)
+
+
 	// Try all possible durations.  We may choose to add extra durations to make sure we explore the solutions
 	// contained in y or b->partial_label
 	if(y && (last_gt >= y->num_bouts[beh] || t_p == y->bouts[beh][last_gt].start_frame))
@@ -1609,7 +1617,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 
 	next_duration = 1;
 	t_p = t-durations[tt];
-
+	// BEGIN squeeze in partial duration that is not in traversed durations (some durations are skipped, durations increase geometrically)
 	if(y && (t_p < 0 ? -1 : gt_bout[t_p]) != last_gt && t_p != y->bouts[beh][last_gt].start_frame) {
 	  t_p = y->bouts[beh][last_gt].start_frame;
 	  next_duration = 0;
@@ -1619,6 +1627,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	  t_p = b->partial_label->bouts[beh][last_partial].start_frame;
 	  next_duration = 0;
 	}
+	// END squeeze
 	tt += next_duration;
 	if(t_p <= 0) {
 	  t_p = 0;
@@ -1646,7 +1655,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	    
 	  // When given a partial labelling, there is some potential computational savings by cutting 
 	  // duration search spaces extending past multiple labelled bouts
-	  if(bad_label)
+	  if(bad_label) // multiple user-given partial labels withing current start-to-end bout, will conflict for sure for currently selected bout duration
 	    break;
 	}
 
@@ -1654,21 +1663,23 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	// assumption, move this below the for(c_p...) loop and call psi_bout(b, t_p, t, c_p, tmp_features).  
 	// These loops were intentially ordered in a semi-funny way to make sure the computations
 	// psi_bout(t_p,t) and w_c*psi() are computed as few times as possible
-	psi_bout(b, t_p, t, beh, -1, tmp_features, true, !is_first);
+	psi_bout(b, t_p, t, beh, -1, tmp_features, true, !is_first); // compute bout-level features
 	is_first = false;
 	for(c = 0; c < num_classes[beh]; c++) {
 	  if(class_training_count[beh][c] && (restrict_c_p<=0 || c == restrict_c_p)) {
 	    if(restrict_behavior_features[beh] && restrict_behavior_features[beh][c]) {
 			printf("restrict_behavior_features currently not used\n");
 			assert(0);
-	      bout_scores[c] = sprod_nn_map(class_weights[c], tmp_features, num_features, restrict_behavior_features[beh][c]); 
+	      bout_scores[c] = sprod_nn_map(class_weights[c], tmp_features, num_features, restrict_behavior_features[beh][c]); // untested
 		}
 	    else
-	      bout_scores[c] = sprod_nn(class_weights[c], tmp_features, num_features); 
+	      bout_scores[c] = sprod_nn(class_weights[c], tmp_features, num_features); // function f_b(x,s,e) (8), which is summed to compute f(x,y) (7)
 	  }
 	}
 
-	for(c = 0; c < num_classes[beh]; c++) {
+	for(c = 0; c < num_classes[beh]; c++) { // iterate through all classes (starting at t-next_duration, ending at t)
+
+
 	  if((t == T && c != 0) || (t < T && (!class_training_count[beh][c])))
 	    continue;  // class c doesn't appear in the training set
 
@@ -1677,7 +1688,10 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 
 	  // Consider a bout of class c_p beginning at frame t_p, ending at frame t, and transitioning
 	  // into a new bout of class c
-	  for(cc = 0; cc < (t == T ? num_classes[beh] : class_training_transitions_count[beh][c]); cc++) {
+
+	  for(cc = 0; cc < (t == T ? num_classes[beh] : class_training_transitions_count[beh][c]); cc++) { // iterate through all classes in bouts FOLLOWING the current bout of class c
+
+
 	    // Consider only class transition pairs that occur in the training set
 	    c_p = (t == T ? cc : class_training_transitions[beh][c][cc]); 
 
@@ -1685,6 +1699,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	      continue;  // class c_p doesn't agree with a user-supplied partial labeling
 
 	    if(t < T || c == 0) {  // t==T,c==0 is a special case to extract the final optimal solution
+			// if t==T, then there is no "following" bout...
 	    
 	      // Compute classification score as a function of the raw input features and the bout's class,
 	      // start, end end
@@ -1696,25 +1711,31 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	      // transition_weights[c_p][c_p] is a special case which is used to stored a unary cost
 	      // for adding a bout of class c_p.  In general, this should add a penalty that encourages
 	      // segmentations with fewer total bouts
-	      transition_score += transition_weights[c_p][c_p];
+	      transition_score += transition_weights[c_p][c_p]; // adding "unary" cost (class specific appearance cost)
 
-	      if(y) {
+	      if(y) { // if invoked in LEARNING mode
 		// If a ground truth label y is given, update the componenent of loss(y,ybar) that is 
 		// attributable to the completed bout ybar_i=(c_p,t_p,t)
+
+			  // computes (5)
+
 		dur = b->frame_times[my_min(t,T-1)]-b->frame_times[t_p];
-		loss_fp = fp = match_false_positive_cost(dur, beh, c_p);
+		loss_fp = fp = match_false_positive_cost(dur, beh, c_p); // l^b_fp in (5) // start at maximum FP cost and...
 		loss_fn = 0;
 		for(j = gt_bout[t_p]; j <= gt_bout[t] && j < y->num_bouts[beh]; j++) {
 		  // Loop through all ground truth bouts intersecting with ybar_i
 		  inter = (b->frame_times[my_min(my_min(y->bouts[beh][j].end_frame,t),T-1)] - 
 			   b->frame_times[my_max(y->bouts[beh][j].start_frame,t_p)]);
 		  if(c_p == y->bouts[beh][j].behavior && inter > 0) {
-		    loss_fn -= fn[j]*inter/dur_gt[j];
-		    loss_fp -= fp*inter/dur;
+		    loss_fn -= fn[j]*inter/dur_gt[j]; // loss_fm is a negative number (initialized 0, then subtracting), 
+											  // the absolute false negative cost is not used but rather the relative FN cost, 
+											  // where the "common shared" constant is left out, 
+											  // but since we are only interested in the maximum, that doesn't matter
+		    loss_fp -= fp*inter/dur; // ... and subtract agreeing frames from that maximum
 		  }
 		}
 		loss_score = loss_fn + loss_fp;
-	      } 
+	      } // end if (y)
 	    
 	      // Check if the completed bout has a higher score than all previously examined solutions that 
 	      // begin a bout of class c at time t
@@ -1725,6 +1746,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 		states[t][c].start_frame =  t_p;
 		states[t][c].end_frame =  t;
 		states[t][c].behavior = c_p;	
+		// states stores start/end/label for every end-frame and label, rest is debug information
 		states[t][c].bout_score = bout_score;		
 		states[t][c].transition_score = transition_score;
 		states[t][c].loss_fn = loss_fn;
@@ -1739,7 +1761,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
     // First backtrack to count the number of bouts in the optimal solution  
     t = T; c = 0; 
     ybar->num_bouts[beh] = 0;
-    while(t >= 0 && states[t][c].start_frame >= 0) { 
+    while(t >= 0 && states[t][c].start_frame >= 0) { // start at T, determine label and start_frame, check at states[start_frame], ...
       tt = states[t][c].start_frame; 
       c = states[t][c].behavior; 
       t = tt;
@@ -1752,7 +1774,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
     ybar->scores[beh] = 0; 
     ybar->losses[beh] = max_fn_cost;
     i = ybar->num_bouts[beh]-1;
-    while(t >= 0 && states[t][c].start_frame >= 0) { 
+    while(t >= 0 && states[t][c].start_frame >= 0) { // start at T, determine label and start_frame, check at states[start_frame], ...
       ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score;
       ybar->losses[beh] += states[t][c].loss_fn + states[t][c].loss_fp;
       ybar->bouts[beh][i] = states[t][c];
@@ -1763,7 +1785,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
     }
     yybar.data = ybar;
     ybar->score += ybar->scores[beh];
-    assert(my_abs(ybar->scores[beh] + ybar->losses[beh] - table[T][0]) <= .01);
+    assert(my_abs(ybar->scores[beh] + ybar->losses[beh] - table[T][0]) <= .01); // sanity check for dynamic programming
 
 
     if(b->partial_label) {
@@ -1777,7 +1799,9 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 
     // By subtracting off the score for the groundtruth label, 
     // the score will be positive for a violated constraint
-    if(y) {
+    if(y) { // if invokec in LEARNING mode
+// this block contains either debug output or sanity checks only 
+
       ybar->slack += ybar->scores[beh] + ybar->losses[beh];
       ybar->loss += ybar->losses[beh];
 #if DEBUG > 0
