@@ -30,7 +30,7 @@ typedef struct {
 
 
 class SVMFlyBehaviorSequence : public SVMBehaviorSequence {
- FlyBehaviorFeatures feature_defs[MAX_BASE_FEATURES];
+FlyBehaviorFeatures feature_defs[MAX_BASE_FEATURES];
 
  public:
   SVMFlyBehaviorSequence(const char *fname, struct _BehaviorGroups *behaviors, int beh);
@@ -47,6 +47,7 @@ class SVMFlyBehaviorSequence : public SVMBehaviorSequence {
   void save_example(void *b, void *d, const char *fname);
   void free_data(void *d);
   char **load_examples(const char *fname, int *num);
+  char *getLabelName(void* d);
 };
 
 #endif

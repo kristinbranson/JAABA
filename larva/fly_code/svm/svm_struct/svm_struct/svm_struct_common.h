@@ -19,6 +19,10 @@
 #ifndef svm_struct_common
 #define svm_struct_common
 
+//#ifdef DEBUG > 0 
+//extern char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
+//#endif
+
 # define STRUCT_VERSION       "V3.10"
 # define STRUCT_VERSION_DATE  "14.08.08"
 
@@ -30,6 +34,7 @@ class SVMStructMethod;
 typedef struct example {  /* an example is a pair of pattern and label */
   SPATTERN x;
   LABEL y;
+  char labelname[1001]; // CSC 20110420: store filename labels are loaded from here, used for debug purposes
 } EXAMPLE;
 
 typedef struct sample { /* a sample is a set of examples */
