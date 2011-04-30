@@ -1,0 +1,12 @@
+mu_area_female,1.845341
+mu_area_male,1.417263
+var_area,0.015504
+ptrans_female_given_female,0.998620
+ptrans_male_given_female,0.001380
+ptrans_female_given_male,0.001245
+ptrans_male_given_male,0.998755
+prior_female,0.449063
+prior_male,0.550937
+areasmooth_maxerrx,0.279077
+areasmooth_maxfreq,0.005000
+areasmooth_filterorder,1.000000

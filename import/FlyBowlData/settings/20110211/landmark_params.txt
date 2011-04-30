@@ -1,0 +1,2 @@
+arena_center_mm,0,0
+arena_radius_mm,63.5
