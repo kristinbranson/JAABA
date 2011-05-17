@@ -104,7 +104,8 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 	this->behaviors = behaviors;
 	this->behavior = beh;
 	this->feature_diff_frames = feature_diff_frames;
-	time_approximation = .05;
+//	time_approximation = .05;
+	time_approximation = 0; // CSC: test EVERY Frame, no log time-saving unless optimality may still be guaranteed!
 	class_training_transitions = NULL;
 	class_training_transitions_count = class_training_count = NULL;
 	features_mu = features_gamma = NULL;
@@ -181,7 +182,7 @@ void SVMBehaviorSequence::svm_struct_learn_api_init(int argc, const char* argv[]
 		// class-specific values for these constants .
 		// In the future, we could implement this with a per class-pair confusion cost
 		false_negative_cost[beh][0] = 0;
-		false_positive_cost[beh][0] = 100;
+		false_positive_cost[beh][0] = 100; // CSC: Move FP/FN costs to Params/BehaviorParams.txt? or to Model/Model.txt?
 		for(i = 1; i < num_classes[beh]; i++) {
 			false_negative_cost[beh][i] = 100;
 			false_positive_cost[beh][i] = 100;
@@ -1554,14 +1555,46 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 
 #if DEBUG > 0
 #define MAX_FILENAME 1000
+#define DEBUG__FILESEPARATION 3 // 0.. all in one  1.. per destClass  2.. per currClass  2.. per 500 frames
+//#define DEBUG__PRINTNUM
+#define DEBUG__STDOUT
+
 								char filename[MAX_FILENAME];
 //								char g_currFile[MAX_FILENAME]={0};
 								char *currFileWithoutPath = getFilenameWithoutPath(g_currFile);
-								sprintf(filename, "%s/debug_%s_%d.csv", /*sparm->debugdir*/ "C:\\tmp", currFileWithoutPath, beh);
-//								FILE *out2 = stdout;//fopen(filename, "w");
-								FILE *out2 = fopen(filename, "w"); // comma-separated list
-								assert(out2);
-								int writeHeader = 1;
+								int *writeHeader;
+								FILE **outA;
+								int numA = 0;
+
+#if DEBUG__FILESEPARATION == 0
+								numA = 1;
+#elif DEBUG__FILESEPARATION == 1
+								numA = num_classes[beh];
+#elif DEBUG__FILESEPARATION == 2
+								numA = num_classes[beh];
+#elif DEBUG__FILESEPARATION == 3
+#define DEBUG__FILESEPARATION_WINDOW 2
+								numA = T / DEBUG__FILESEPARATION_WINDOW + 1;
+#endif
+
+								int maxStdio = _setmaxstdio(numA+20);
+								assert(maxStdio == numA+20);
+
+								outA = (FILE **)my_malloc(numA*sizeof(FILE*));
+								writeHeader = (int*)my_malloc(numA*sizeof(int));
+
+								for(cc=0; cc < numA; cc++) {
+//									sprintf(filename, "%s\\debug_%s_%d_%d__%d.csv", /*sparm->debugdir*/"C:\\tmp\\every_line", currFileWithoutPath, DEBUG__FILESEPARATION, beh, cc);
+									sprintf(filename, "%s\\debug_%s_%d_%d__%d.csv", sparm->debugdir, currFileWithoutPath, DEBUG__FILESEPARATION, beh, cc);
+#ifdef DEBUG___STDOUT
+									outA[cc] = stdout;
+#else
+									outA[cc] = fopen(filename, "w"); // comma-separated list
+#endif
+									assert(outA[cc]);
+									writeHeader[cc] = 1;
+								}
+								unsigned long ul = 0;
 								// print header of comma-separated list later, during first iteration
 #endif
 
@@ -1609,7 +1642,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 		for(i = 0; i < num_classes[beh]; i++, ptr += num_features) 
 			class_weights[i] = ptr;
 		for(i = 0; i < num_classes[beh]; i++, ptr += num_classes[beh]) 
-			transition_weights[i] = ptr;
+			transition_weights[i] = ptr; // treat unary costs differently here?
 
 		// Setup dynamic programming cache tables.  table[t][c] stores the maximal score for any sub-solution
 		// to frames 1...t in which a bout of class c begins at time t
@@ -1824,13 +1857,29 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 							if(!y) { // do this in classification mode only
 								assert(loss_score==0);
 								assert(bout_score==bout_scores[c_p]);
+								int currI;
 
-								if(writeHeader) {
+#if DEBUG__FILESEPARATION == 0
+								currI = 0;
+#elif DEBUG__FILESEPARATION == 1
+								currI = c_p;
+#elif DEBUG__FILESEPARATION == 2
+								currI = c;
+#elif DEBUG__FILESEPARATION == 3
+								currI = t / DEBUG__FILESEPARATION_WINDOW;
+#endif
+
+								FILE *out2 = outA[currI];
+								if(writeHeader[currI]) {
 /*									fprintf(out2, ",,,,,,,,,,,,, ");
 									for(i=0; i < num_features; i++)
 										fprintf(out2, "%s, %s", base_feature_names[g_feature_map2[i]], base_feature_names[g_feature_map2[i]]);
 									fprintf(out2, "\n");*/
+#ifdef DEBUG__PRINTNUM
+									fprintf(out2, "#, t, t_p, c, c_p, table[t][c], f, table[t_p][c_p], transition_score, bout_score, loss_score, loss_fp, loss_fn, transition_weights[c_p][c], transition_weights[c_p][c_p], ");
+#else
 									fprintf(out2, "t, t_p, c, c_p, table[t][c], f, table[t_p][c_p], transition_score, bout_score, loss_score, loss_fp, loss_fn, transition_weights[c_p][c], transition_weights[c_p][c_p], ");
+#endif
 									for(i=0; i < num_features; i++)
 										fprintf(out2, "W %s, V %s, ", feature_names[i], feature_names[i]);//bout_feature_names[g_feature_map[i]], bout_feature_names[g_feature_map[i]]);
 									fprintf(out2, "backtrack\n");
@@ -1839,12 +1888,16 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 //									for(i=0; i < num_features; i++)
 //										fprintf(out2, "weight %d, value %d", g_feature_map3[i], g_feature_map3[i]);
 
-									writeHeader = 0;
+									writeHeader[currI] = 0;
 								}
 
-
+#ifdef DEBUG__PRINTNUM
+								fprintf(out2, "%d, %d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, ",
+										ul++, t, t_p, c, c_p, table[t][c], f, table[t_p][c_p], transition_score, bout_score, loss_score, loss_fp, loss_fn, transition_weights[c_p][c], transition_weights[c_p][c_p]);
+#else
 								fprintf(out2, "%d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, ",
-									          t, t_p, c, c_p, table[t][c], f, table[t_p][c_p], transition_score, bout_score, loss_score, loss_fp, loss_fn, transition_weights[c_p][c], transition_weights[c_p][c_p]);
+										t, t_p, c, c_p, table[t][c], f, table[t_p][c_p], transition_score, bout_score, loss_score, loss_fp, loss_fn, transition_weights[c_p][c], transition_weights[c_p][c_p]);
+#endif
 								for(i=0; i < num_features; i++)
 									fprintf(out2, "%f, %f, ", class_weights[c_p][i], tmp_features[i]);
 							    fprintf(out2, "0\n");
@@ -1967,7 +2020,11 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 		}
 
 #if DEBUG > 0
-								fclose(out2);
+								for(cc=0; cc < numA; cc++) {
+									fclose(outA[cc]);
+								}
+								free(outA);
+								free(writeHeader);
 #endif
 
 		free(class_weights);

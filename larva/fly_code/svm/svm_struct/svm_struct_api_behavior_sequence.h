@@ -26,7 +26,7 @@ extern char *g_currFile; // CSC 20110420: hack to pass current filename for debu
 		     "use_end_ave_diff_haar_features=%d%*[^\n]\n"
 
 
-#define DEBUG 1
+#define DEBUG 0
 #define MAX_FILENAME 1000
 #define MAX_FEATURES 1000
 
