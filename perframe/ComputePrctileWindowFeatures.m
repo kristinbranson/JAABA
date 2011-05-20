@@ -99,31 +99,35 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = padgrab(res,nan,1,nprctiles,1+r+off,N+r+off);
-    y(end+1:end+nprctiles,:) = res1;
-    for prctilei = 1:nprctiles,
-      feature_names{end+1} = {'stat','prctile','trans','none','radius',r,'offset',off,'prctile',prctiles(prctilei)}; %#ok<*AGROW>
-    end
     
-    if SANITY_CHECK,
+    if ismember('none',trans_types),
       
-      res_real = y(end-nprctiles+1:end,:);
-      res_dumb = nan(nprctiles,N);
-      for n_dumb = 1:N,
-        tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
-        if all(isnan(tmp)),
-          res_dumb(:,n_dumb) = nan;
-        else
-          res_dumb(:,n_dumb) = prctile(tmp,prctiles);
+      y(end+1:end+nprctiles,:) = res1;
+      for prctilei = 1:nprctiles,
+        feature_names{end+1} = {'stat','prctile','trans','none','radius',r,'offset',off,'prctile',prctiles(prctilei)}; %#ok<*AGROW>
+      end
+      
+      if SANITY_CHECK,
+        
+        res_real = y(end-nprctiles+1:end,:);
+        res_dumb = nan(nprctiles,N);
+        for n_dumb = 1:N,
+          tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
+          if all(isnan(tmp)),
+            res_dumb(:,n_dumb) = nan;
+          else
+            res_dumb(:,n_dumb) = prctile(tmp,prctiles);
+          end
         end
-      end
-      if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-        fprintf('SANITY CHECK: prctile, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-      else
-        fprintf('SANITY CHECK: prctile, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
+        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
+          fprintf('SANITY CHECK: prctile, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
+        else
+          fprintf('SANITY CHECK: prctile, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
+        end
+        
       end
       
     end
-    
     
     if ismember('abs',trans_types),
       y(end+1:end+nprctiles,:) = abs(res1);

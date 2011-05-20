@@ -97,26 +97,31 @@ for radiusi = 1:nradii,
     for windowi = windowis',
       off = windows(windowi,2);
       res1 = padgrab(res,nan,1,1,1+off,N+off);
-      y(end+1,:) = res1; %#ok<*AGROW>
-      feature_names{end+1} = {'stat','harmonic','trans','none','radius',r,'offset',off,'num_harmonic',num_harmonic_curr};
       
-      if SANITY_CHECK,
+      if ismember('none',trans_types),
         
-        res_dumb = nan(1,N);
-        for n_dumb = 1:N,
-          r_dumb = min([r,n_dumb+off-1,N-n_dumb-off]);
-          if r_dumb < 1,
-            continue;
+        y(end+1,:) = res1; %#ok<*AGROW>
+        feature_names{end+1} = {'stat','harmonic','trans','none','radius',r,'offset',off,'num_harmonic',num_harmonic_curr};
+        
+        if SANITY_CHECK,
+          
+          res_dumb = nan(1,N);
+          for n_dumb = 1:N,
+            r_dumb = min([r,n_dumb+off-1,N-n_dumb-off]);
+            if r_dumb < 1,
+              continue;
+            end
+            w_dumb = 2*r_dumb+1;
+            fil_dumb = cos(linspace(0,pi*num_harmonic_curr,w_dumb))/w_dumb*(num_harmonic_curr+1);
+            res_dumb(n_dumb) = sum(fil_dumb.*x(n_dumb+off-r_dumb:n_dumb+off+r_dumb));
           end
-          w_dumb = 2*r_dumb+1;
-          fil_dumb = cos(linspace(0,pi*num_harmonic_curr,w_dumb))/w_dumb*(num_harmonic_curr+1);
-          res_dumb(n_dumb) = sum(fil_dumb.*x(n_dumb+off-r_dumb:n_dumb+off+r_dumb));
-        end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: harmonic, trans = none, r = %d, off = %d, num_harmonic = %d, nan mismatch\n',r,off,num_harmonic_curr);
-        else
-          fprintf('SANITY CHECK: harmonic, trans = none, r = %d, off = %d, num_harmonic_curr = %d, max error = %f\n',r,off,num_harmonic_curr,max(abs(y(end,:)-res_dumb)));
+          
+          if any(isnan(y(end,:)) ~= isnan(res_dumb)),
+            fprintf('SANITY CHECK: harmonic, trans = none, r = %d, off = %d, num_harmonic = %d, nan mismatch\n',r,off,num_harmonic_curr);
+          else
+            fprintf('SANITY CHECK: harmonic, trans = none, r = %d, off = %d, num_harmonic_curr = %d, max error = %f\n',r,off,num_harmonic_curr,max(abs(y(end,:)-res_dumb)));
+          end
+          
         end
         
       end

@@ -103,24 +103,28 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = x_trans - padgrab(res,nan,1,ntrans,1+r+off,N+r+off);
-    y(end+1,:) = res1(IDX_ORIG,:); %#ok<*AGROW>
-    feature_names{end+1} = {'stat','diff_neighbor_min','trans','none','radius',r,'offset',off};
     
-    if SANITY_CHECK,
+    if ismember('none',trans_types),
       
-      res_dumb = nan(1,N);
-      for n_dumb = 1:N,
-        res_dumb(n_dumb) = x(n_dumb) - min(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
-      end
+      y(end+1,:) = res1(IDX_ORIG,:); %#ok<*AGROW>
+      feature_names{end+1} = {'stat','diff_neighbor_min','trans','none','radius',r,'offset',off};
       
-      if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-        fprintf('SANITY CHECK: diff_neighbor_min, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-      else
-        fprintf('SANITY CHECK: diff_neighbor_min, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
+      if SANITY_CHECK,
+        
+        res_dumb = nan(1,N);
+        for n_dumb = 1:N,
+          res_dumb(n_dumb) = x(n_dumb) - min(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+        end
+        
+        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
+          fprintf('SANITY CHECK: diff_neighbor_min, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
+        else
+          fprintf('SANITY CHECK: diff_neighbor_min, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
+        end
+        
       end
       
     end
-    
     
     if IDX_ABS > 0,
       y(end+1,:) = res1(IDX_ABS,:);

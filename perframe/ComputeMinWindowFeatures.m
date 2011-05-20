@@ -102,22 +102,24 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = padgrab(res,nan,1,ntrans,1+r+off,N+r+off);
-    y(end+1,:) = res1(IDX_ORIG,:); %#ok<*AGROW>
-    feature_names{end+1} = {'stat','min','trans','none','radius',r,'offset',off};
+    if ismember('none',trans_types),
+      y(end+1,:) = res1(IDX_ORIG,:); %#ok<*AGROW>
+      feature_names{end+1} = {'stat','min','trans','none','radius',r,'offset',off};
     
-    if SANITY_CHECK,
-      
-      res_dumb = nan(1,N);
-      for n_dumb = 1:N,
-        res_dumb(n_dumb) = nanmin(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+      if SANITY_CHECK,
+        
+        res_dumb = nan(1,N);
+        for n_dumb = 1:N,
+          res_dumb(n_dumb) = nanmin(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+        end
+        
+        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
+          fprintf('SANITY CHECK: min, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
+        else
+          fprintf('SANITY CHECK: min, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
+        end
+        
       end
-      
-      if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-        fprintf('SANITY CHECK: min, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-      else
-        fprintf('SANITY CHECK: min, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-      end
-      
     end
     
     
