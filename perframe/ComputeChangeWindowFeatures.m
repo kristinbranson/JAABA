@@ -121,22 +121,27 @@ for change_r_i = 1:numel(change_window_radii),
       % and we want to grab from [1+off,N+off] which is
       % [1+off-r+change_r,N+off-r+change_r], relative to res
       res1 = padgrab(res,nan,1,1,1+off-r+change_r,N+off-r+change_r)/r;
-      y(end+1,:) = res1;
-      feature_names{end+1} = {'stat','change','trans','none','radius',r,'offset',off,'change_window_radius',change_r}; %#ok<*AGROW>
       
-      if SANITY_CHECK,
+      if ismember('none',trans_types),
         
-        res_real = y(end,:);
-        res_dumb = nan(1,N);
-        for n_dumb = 1:N,
-          tmp1 = padgrab(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
-          tmp2 = padgrab(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
-          res_dumb(n_dumb) = (nanmean(tmp2) - nanmean(tmp1))/r;
-        end
-        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-          fprintf('SANITY CHECK: change, trans = none, r = %d, off = %d, change_r = %d, nan mismatch\n',r,off,change_r);
-        else
-          fprintf('SANITY CHECK: change, trans = none, r = %d, off = %d, change_r = %d, max error = %f\n',r,off,change_r,max(abs(res_real(:)-res_dumb(:))));
+        y(end+1,:) = res1;
+        feature_names{end+1} = {'stat','change','trans','none','radius',r,'offset',off,'change_window_radius',change_r}; %#ok<*AGROW>
+        
+        if SANITY_CHECK,
+          
+          res_real = y(end,:);
+          res_dumb = nan(1,N);
+          for n_dumb = 1:N,
+            tmp1 = padgrab(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
+            tmp2 = padgrab(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
+            res_dumb(n_dumb) = (nanmean(tmp2) - nanmean(tmp1))/r;
+          end
+          if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
+            fprintf('SANITY CHECK: change, trans = none, r = %d, off = %d, change_r = %d, nan mismatch\n',r,off,change_r);
+          else
+            fprintf('SANITY CHECK: change, trans = none, r = %d, off = %d, change_r = %d, max error = %f\n',r,off,change_r,max(abs(res_real(:)-res_dumb(:))));
+          end
+          
         end
         
       end

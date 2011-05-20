@@ -35,7 +35,7 @@ labelmatnames = {
   'labeledsharpturns_movie09_GMR_16E02_AE_01_TrpA_Rig1Plate10BowlC_20110202T140143_fly1_09.mat'
   };
 
-for expdiri = 1:numel(labelmatnames),
+for expdiri = 8:numel(labelmatnames),
 
   labeldata = load(fullfile(rootdatadir,labelmatnames{expdiri}));
   
@@ -74,8 +74,10 @@ for expdiri = 1:numel(labelmatnames),
     'settingsdir',settingsdir);
   trx.AddExpDir(expdir);
 
+  % start of labeled sequence, relative to video
   video_labelstart = labeldata.t0tolabelcurr;
   video_labelend = labeldata.t1tolabelcurr;
+  % start of labeled sequence, relative to trajectory indices
   trk_labelstart = video_labelstart + trx(fly).off;
   trk_labelend = video_labelend + trx(fly).off;
   

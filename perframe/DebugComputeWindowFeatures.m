@@ -28,88 +28,169 @@ labelmatnames = {
   'perframe_labeledsharpturns_movie08_GMR_14H07_AE_01_TrpA_Rig1Plate10BowlB_20110202T084231_fly1_09.mat'
   'perframe_labeledsharpturns_movie09_GMR_16E02_AE_01_TrpA_Rig1Plate10BowlC_20110202T140143_fly1_09.mat'
   };
-labeldata = load(fullfile(rootdatadir,labelmatnames{1}));
-paramsfilename = fullfile(rootdatadir,'SharpturnPerFrameParams.xml');
+nexps = numel(labelmatnames);
 
+paramsfilename = 'SharpturnPerFrameParams_AllParams.xml';
 
 %% set parameters
 [params,cellparams] = ReadPerFrameParams(paramsfilename);
+fns = fieldnames(cellparams);
 
 %% do it
 
-fns = fieldnames(cellparams);
-y = cell(1,numel(fns));
-feature_names = cell(1,numel(fns));
-for i = 1:numel(fns),
-  fn = fns{i};
-  j = find(strcmp(labeldata.perframefns,fn));
-  if isempty(j),
-    error('Unknown perframe field %s',fn);
-  end
-  [y{i},feature_names{i}] = ...
-    ComputeWindowFeatures(labeldata.perframedata{j},cellparams.(fn){:});  
-end
-%% plot stuff
+X = cell(1,nexps);
+Y = cell(1,nexps);
+feature_names = {};
 
-figure(1);
-clf;
-plot(1:N,x,'ko-','markerfacecolor','k');
-hold on;
+for expi = 1:nexps,
 
-fns_plot = {{'stat','mean','trans','none','radius',9,'offset',0},...
-  {'stat','min','trans','flip','radius',11,'offset',0},...
-  {'stat','max','trans','none','radius',3,'offset',-3},...
-  {'stat','hist','trans','abs','radius',3,'offset',0,'bin',nbins},...
-  {'stat','prctile','trans','abs','radius',20,'offset',0,'prctile',97.5},...
-  {'stat','change','trans','none','radius',20,'offset',-20,'change_window_radius',2},...
-  {'stat','std','trans','none','radius',20,'offset',0},...
-  {'stat','harmonic','trans','none','radius',20,'offset',0,'num_harmonic',1},...
-  {'stat','diff_neighbor_mean','trans','abs','radius',20,'offset',0},...
-  {'stat','diff_neighbor_min','trans','abs','radius',20,'offset',0},...
-  {'stat','diff_neighbor_max','trans','none','radius',20,'offset',0},...
-  {'stat','zscore_neighbors','trans','none','radius',20,'offset',0}};
-
-for i1 = 1:numel(fns_plot),
-  fn1 = fns_plot{i1};
-  disp(fn1);
-  ismatch = false;
-  % find the matching feature
-  for i2 = 1:numel(feature_names),
-    ismatch = true;
-    fn2 = feature_names{i2};
-    for j1 = 1:2:numel(fn1)-1,
-      j2 = find(strcmp(fn1{j1},fn2(1:2:end)),1);
-      if isempty(j2),
-        ismatch = false;
-        break;
-      else
-        j2 = j2*2-1;
-        if ischar(fn1{j1+1}) && ~strcmpi(fn1{j1+1},fn2{j2+1}),
-          ismatch = false;
-          break;
-        elseif ~ischar(fn1{j1+1}) && abs(fn1{j1+1}-fn2{j2+1}>.0001),
-          ismatch = false;
-          break;
-        end
-      end
-    end
-    if ismatch,
-      break;
-    end
-  end
-  if ~ismatch,
-    fprintf('\n');
-    warning('No match found for fns_plot %d',i1);
-    disp(fns_plot{i1});
-    fprintf('\n');
-    input('Press enter to continue: ');    
+  labelfilename = fullfile(rootdatadir,labelmatnames{expi});
+  fprintf('Computing window features for file %s...\n',labelmatnames{expi});
+  if ~exist(labelfilename,'file'),
+    warning('File %s does not exist, skipping',labelfilename);
     continue;
   end
-  hplot = plot(1:N,y(i2,:),'r.-');
-  disp(feature_names{i2});
-  input('Press enter to continue: ');
-  if ishandle(hplot) && i1 ~= numel(fns_plot),
-    delete(hplot);
+  labeldata = load(labelfilename);
+  for i = 1:numel(fns),
+    fn = fns{i};
+    fprintf('Per-frame feature %s...\n',fn);
+    j = find(strcmp(labeldata.perframefns,fn));
+    if isempty(j),
+      error('Unknown perframe field %s',fn);
+    end
+    [x_curr,feature_names_curr] = ...
+      ComputeWindowFeatures(labeldata.perframedata{j},cellparams.(fn){:});
+    if expi == 1,
+      feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)];
+    end
+    
+    % crop out labeled part of video
+    x_curr = x_curr(:,labeldata.trk_labelstart:labeldata.trk_labelend-1);
+
+    % store
+    X{expi} = [X{expi};x_curr];
+  end
+  
+  % store labels
+  Y{expi} = labeldata.label;
+  
+end
+nfeatures = numel(feature_names);
+
+%% display names for stats
+
+statnames = cell(1,nfeatures);
+for i = 1:nfeatures,
+  fn = '';
+  for j = 1:numel(feature_names{i}),
+    if j == 1,
+    elseif mod(j,2) == 0,
+      fn = [fn,', '];
+    else
+      fn = [fn,'='];
+    end
+    if ischar(feature_names{i}{j}),
+      fn = [fn,feature_names{i}{j}];
+    else
+      fn = [fn,num2str(feature_names{i}{j})];
+    end
+  end
+  statnames{i} = fn;
+end
+
+%% combine stats to plot everything
+
+X_combine = X{1};
+Y_combine = Y{1};
+expi_combine = ones(1,size(X{1},2));
+for expi = 2:nexps,
+  if isempty(X{expi}),
+    continue;
+  end
+  X_combine = [X_combine,nan([nfeatures,1]),X{expi}];
+  Y_combine = [Y_combine,nan,Y{expi}];
+  expi_combine = [expi_combine,nan,expi+zeros(1,size(X{expi},2))];
+end
+N = numel(Y_combine);
+
+%% interactive figure in which we can plot some of the window features
+
+handles = struct;
+handles.fig = 1;
+axespos = [.05,.1,.7,.85];
+border = .01;
+listpos = [axespos(1)+axespos(3)+border,...
+  axespos(2),...
+  1-(axespos(1)+axespos(3)+2*border),...
+  axespos(4)];
+figure(handles.fig);
+clf;
+handles.ax = axes('Parent',handles.fig,'Units','Normalized','Position',axespos);
+handles.listbox = uicontrol(handles.fig,'Style','listbox',...
+  'Units','normalized','Position',listpos,...
+  'String',statnames,...
+  'Max',nfeatures,'Min',0,'Value',[]);
+xlim = [0,N+1];
+ylim = [min(X_combine(:)),max(X_combine(:))];
+set(handles.fig,'ToolBar','figure');
+set(handles.ax,'XLim',xlim,'YLim',ylim);
+hold(handles.ax,'on');
+[i0,i1] = get_interval_ends(Y_combine==1);
+i1 = i1 - 1;
+for i = 1:numel(i0),
+  patch([i0(i)-.5,i1(i)+.5,i1(i)+.5,i0(i)-.5,i0(i)-.5],ylim([1,1,2,2,1]),...
+    [1,.7,.7],'EdgeColor','none');
+end
+[i0,i1] = get_interval_ends(isnan(Y_combine));
+i1 = i1 - 1;
+for i = 1:numel(i0),
+  patch([i0(i)-.5,i1(i)+.5,i1(i)+.5,i0(i)-.5,i0(i)-.5],ylim([1,1,2,2,1]),...
+    [.5,.5,.5],'EdgeColor','none');
+end
+handles.title = title('');
+handles.data = [];
+setappdata(handles.listbox,'handles',handles);
+setappdata(handles.listbox,'x',X_combine);
+set(handles.listbox,'Callback',@DebugComputeWindowFeatures_ListBoxCallback);
+
+%% interactive figure in which we can histogram some of the window features
+
+nbins = 100;
+edges = nan(nfeatures,nbins+1);
+centers = nan(nfeatures,nbins);
+frac = nan(nfeatures,nbins,2);
+for i = 1:nfeatures,
+  edges(i,:) = linspace(min(X_combine(i,:)),max(X_combine(i,:)),nbins+1);
+  centers(i,:) = (edges(i,1:end-1)+edges(i,2:end))/2;
+  edges(i,end) = inf;
+  for j = 1:2,
+    counts = histc(X_combine(i,Y_combine==j-1),edges(i,:));
+    frac(i,:,j) = counts(1:end-1) / sum(counts(1:end-1));
   end
 end
+
+handles = struct;
+handles.fig = 2;
+axespos = [.05,.1,.7,.85];
+border = .01;
+listpos = [axespos(1)+axespos(3)+border,...
+  axespos(2),...
+  1-(axespos(1)+axespos(3)+2*border),...
+  axespos(4)];
+figure(handles.fig);
+clf;
+handles.ax = axes('Parent',handles.fig,'Units','Normalized','Position',axespos);
+handles.listbox = uicontrol(handles.fig,'Style','listbox',...
+  'Units','normalized','Position',listpos,...
+  'String',statnames,...
+  'Max',1,'Min',0,'Value',1);
+set(handles.fig,'ToolBar','figure');
+hold(handles.ax,'on');
+handles.data = [];
+setappdata(handles.listbox,'handles',handles);
+setappdata(handles.listbox,'frac',frac);
+setappdata(handles.listbox,'centers',centers);
+setappdata(handles.listbox,'legends',{'none','sharpturn'});
+DebugComputeWindowFeatures_ListBoxCallback_Hist(handles.listbox);
+set(handles.listbox,'Callback',@DebugComputeWindowFeatures_ListBoxCallback_Hist);
 

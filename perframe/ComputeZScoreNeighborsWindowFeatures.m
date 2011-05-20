@@ -128,24 +128,29 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = (x - padgrab(res_mean,nan,1,1,1+r+off,N+r+off))./padgrab(res_std,nan,1,1,1+r+off,N+r+off);
-    y(end+1,:) = res1; %#ok<*AGROW>
-    feature_names{end+1} = {'stat','zscore_neighbors','trans','none','radius',r,'offset',off};
     
-    if SANITY_CHECK,
+    if ismember('none',trans_types),
       
-      res_dumb = nan(1,N);
-      for n_dumb = 1:N,
-        s = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
-        if s == 0,
-          s = 1;
+      y(end+1,:) = res1; %#ok<*AGROW>
+      feature_names{end+1} = {'stat','zscore_neighbors','trans','none','radius',r,'offset',off};
+      
+      if SANITY_CHECK,
+        
+        res_dumb = nan(1,N);
+        for n_dumb = 1:N,
+          s = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
+          if s == 0,
+            s = 1;
+          end
+          res_dumb(n_dumb) = (x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
         end
-        res_dumb(n_dumb) = (x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
-      end
-      
-      if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-        fprintf('SANITY CHECK: zscore_neighbor, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-      else
-        fprintf('SANITY CHECK: zscore_neighbor, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
+        
+        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
+          fprintf('SANITY CHECK: zscore_neighbor, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
+        else
+          fprintf('SANITY CHECK: zscore_neighbor, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
+        end
+        
       end
       
     end

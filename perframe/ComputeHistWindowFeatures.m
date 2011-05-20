@@ -90,7 +90,9 @@ for radiusi = 1:nradii,
     % initialize first value:
     % t contains [max(1,t-r),min(N,t+r)]
     % t = 1 will contain 1:r+1
-    res(bin(1,j),1,j) = 1;
+    if bin(1,j) > 0 && bin(1,j) <= nbins,
+      res(bin(1,j),1,j) = 1;
+    end
     for n = 1-r+1:N+r,
       res(:,n+r,j) = res(:,n+r-1,j);
       if n > r+1 && bin(n-r-1,j) > 0 && bin(n-r-1,j) <= nbins,
@@ -118,31 +120,35 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = padgrab(res,nan,1,nbins,1+r+off,N+r+off,1,ntrans);
-    y(end+1:end+nbins,:) = res1(:,:,IDX_ORIG);
-    for bini = 1:nbins,
-      feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
-    end
-    
-    if SANITY_CHECK,
+    if ismember('none',trans_types),
       
-      res_real = y(end-nbins+1:end,:);
-      res_dumb = nan(nbins,N);
-      for n_dumb = 1:N,
-        tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
-        Z_dumb = nnz(~isnan(tmp));
-        if all(isnan(tmp)),
-          res_dumb(:,n_dumb) = nan;
-        else
-          tmp = histc(tmp,hist_edges);
-          tmp = [tmp(1:end-2),tmp(end-1)+tmp(end)];
-          tmp = tmp / Z_dumb;
-          res_dumb(:,n_dumb) = tmp;
-        end
+      y(end+1:end+nbins,:) = res1(:,:,IDX_ORIG);
+      for bini = 1:nbins,
+        feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
       end
-      if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-        warning('SANITY CHECK: hist, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-      else
-        fprintf('SANITY CHECK: hist, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
+      
+      if SANITY_CHECK,
+        
+        res_real = y(end-nbins+1:end,:);
+        res_dumb = nan(nbins,N);
+        for n_dumb = 1:N,
+          tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
+          Z_dumb = nnz(~isnan(tmp));
+          if all(isnan(tmp)),
+            res_dumb(:,n_dumb) = nan;
+          else
+            tmp = histc(tmp,hist_edges);
+            tmp = [tmp(1:end-2),tmp(end-1)+tmp(end)];
+            tmp = tmp / Z_dumb;
+            res_dumb(:,n_dumb) = tmp;
+          end
+        end
+        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
+          warning('SANITY CHECK: hist, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
+        else
+          fprintf('SANITY CHECK: hist, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
+        end
+        
       end
       
     end
