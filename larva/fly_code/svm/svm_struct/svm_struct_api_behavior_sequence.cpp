@@ -104,8 +104,11 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 	this->behaviors = behaviors;
 	this->behavior = beh;
 	this->feature_diff_frames = feature_diff_frames;
-//	time_approximation = .05;
+#ifdef ALLOW_SAME_TRANSITIONS
+	time_approximation = .05;
+#else
 	time_approximation = 0; // CSC: test EVERY Frame, no log time-saving unless optimality may still be guaranteed!
+#endif
 	class_training_transitions = NULL;
 	class_training_transitions_count = class_training_count = NULL;
 	features_mu = features_gamma = NULL;
@@ -1463,6 +1466,18 @@ char *getFilenameWithoutPath(char *filepath) {
 
 #endif
 
+
+
+#define getTransitionScore(dest, unary, addTransition, transition) \
+	dest = unary; \
+	if(addTransition) \
+		dest += transition;
+    // Generalization of
+	// y->bouts[beh][i].transition_score = transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior]; // !!! add unary costs here
+	// if(i < y->num_bouts[beh]-1) 
+    //		y->bouts[beh][i].transition_score += transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior];
+
+
 /*
 * Use dynamic programming to infer the label ybar that yields the highest score:
 *   argmax_{ybar} w*psi(x,ybar)
@@ -1643,6 +1658,30 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 			class_weights[i] = ptr;
 		for(i = 0; i < num_classes[beh]; i++, ptr += num_classes[beh]) 
 			transition_weights[i] = ptr; // treat unary costs differently here?
+#ifdef ALLOW_SAME_TRANSITIONS
+		double *unary_costs = (double*)my_malloc(num_classes[beh]*sizeof(double*));
+			for(i = 0; i < num_classes[beh]; i++, ptr++) {
+				if(sm->compactUnaryCosts) {
+					unary_costs[i] = transition_weights[i][i]; // same transition costs are unary costs
+					transition_weights[i][i] = 0; // allowing same class transitions, since no transition cost values were given same transition costs are initialized with 0 (= no cost for same-class transitions besides bout-level-feature costs)
+				}
+				else // if(sm.extraUnaryCosts)
+					unary_costs[i] = *ptr; // unary costs are explicitely given, same transition costs remain
+			}
+#else
+		if(sm->extraUnaryCosts) // we don't allow same transitions, but have read same-transition-weights AND unary weights
+			for(i = 0; i < num_classes[beh]; i++, ptr++)
+#ifndef SOLVE_UNARY_COST_CONFLICT
+				transition_weights[i][i] = *ptr; // default: replace same transition costs by unary costs
+#elif SOLVE_UNARY_COST_CONFLICT == 1 // 0... skip unary costs  1... add unary costs to transition costs
+				transition_weights[i][i] += *ptr; // optional: add unary costs to same transition costs
+#elif SOLVE_UNARY_COST_CONFLICT == 0
+				; // keep same transition costs and just skip unary costs
+#else
+#error invalid values of SOLVE_UNARY_COST_CONFLICT, expected values are 0 or 1.
+#endif
+		// else: nothing to do (don't allow same transitions, no extra unary costs read)
+#endif
 
 		// Setup dynamic programming cache tables.  table[t][c] stores the maximal score for any sub-solution
 		// to frames 1...t in which a bout of class c begins at time t
@@ -1763,7 +1802,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 				// assumption, move this below the for(c_p...) loop and call psi_bout(b, t_p, t, c_p, tmp_features).  
 				// These loops were intentially ordered in a semi-funny way to make sure the computations
 				// psi_bout(t_p,t) and w_c*psi() are computed as few times as possible
-				psi_bout(b, t_p, t, beh, -1, tmp_features, true, !is_first); // compute bout-level features
+				psi_bout(b, t_p, t, beh, -1, tmp_features, true, !is_first); // compute bout-level features // !!! use startframe of c in case c==c_p
 				is_first = false;
 				for(c = 0; c < num_classes[beh]; c++) {
 					if(class_training_count[beh][c] && (restrict_c_p<=0 || c == restrict_c_p)) {
@@ -1789,11 +1828,23 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 					// Consider a bout of class c_p beginning at frame t_p, ending at frame t, and transitioning
 					// into a new bout of class c
 
+#ifndef ALLOW_SAME_TRANSITIONS
 					for(cc = 0; cc < (t == T ? num_classes[beh] : class_training_transitions_count[beh][c]); cc++) { // iterate through all classes in bouts FOLLOWING the current bout of class c
+#else
+					for(cc = -1; cc < (t == T ? num_classes[beh] : class_training_transitions_count[beh][c]); cc++) { // iterate through all classes in bouts FOLLOWING the current bout of class c
+						if(cc == -1)
+							c_p = c;
+						else {
+#endif
+							// Consider only class transition pairs that occur in the training set
+							c_p = (t == T ? cc : class_training_transitions[beh][c][cc]); 
+						// end if (cc == -1) in #ifdef ALLOW_SAME_TRANSITION
 
-
-						// Consider only class transition pairs that occur in the training set
-						c_p = (t == T ? cc : class_training_transitions[beh][c][cc]); 
+#ifdef ALLOW_SAME_TRANSITIONS
+						}
+						if(c_p == c && cc != -1)
+							continue; // already computed that at iteration -1, don't compute it again
+#endif
 
 						if(restrict_c_p>0 && restrict_c_p != c_p)
 							continue;  // class c_p doesn't agree with a user-supplied partial labeling
@@ -1805,19 +1856,32 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 							// start, end end
 							bout_score = bout_scores[c_p]; 
 
+
+// This block is replaced by getTransitionScore BEGIN
 							// Compute the score due to transitioning from class c_p to class c
-							transition_score = t != T ? transition_weights[c_p][c] : 0;
+//							transition_score = t != T ? transition_weights[c_p][c] : 0;
 
 							// transition_weights[c_p][c_p] is a special case which is used to stored a unary cost
 							// for adding a bout of class c_p.  In general, this should add a penalty that encourages
 							// segmentations with fewer total bouts
-							transition_score += transition_weights[c_p][c_p]; // adding "unary" cost (class specific appearance cost)
+//#ifdef ALLOW_SAME_TRANSITIONS
+//							transition_score += unary_costs[c_p]; // adding "unary" cost (class specific appearance cost)
+//#else
+//							transition_score += transition_weights[c_p][c_p]; // adding "unary" cost (class specific appearance cost)
+//#endif
+// This block is replaced by getTransitionScore END
+#ifdef ALLOW_SAME_TRANSITIONS
+							getTransitionScore(transition_score,             unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0)
+#else
+							getTransitionScore(transition_score, transition_weights[c_p][c_p], 1, t != T ? transition_weights[c_p][c] : 0)
+#endif
+
 
 							if(y) { // if invoked in LEARNING mode
 								// If a ground truth label y is given, update the componenent of loss(y,ybar) that is 
 								// attributable to the completed bout ybar_i=(c_p,t_p,t)
 
-								// computes (5)
+								// computes (5) // !!! use startframe of c in case c==c_p
 
 								dur = b->frame_times[my_min(t,T-1)]-b->frame_times[t_p];
 								loss_fp = fp = match_false_positive_cost(dur, beh, c_p); // l^b_fp in (5) // start at maximum FP cost and...
@@ -1996,10 +2060,15 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 			for(i = 0; i < y->num_bouts[beh]; i++) {
 				psi_bout(b, y->bouts[beh][i].start_frame, y->bouts[beh][i].end_frame, beh, -1, tmp_features, true, false);  
 				y->bouts[beh][i].bout_score = sprod_nn(class_weights[y->bouts[beh][i].behavior], tmp_features, num_features);
-				y->bouts[beh][i].transition_score = transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior];
+#ifdef ALLOW_SAME_TRANSITIONS
+				getTransitionScore(y->bouts[beh][i].transition_score,        unary_costs[y->bouts[beh][i].behavior],                            i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior])
+#else
+				getTransitionScore(y->bouts[beh][i].transition_score, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior], i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior])
+#endif
+//				y->bouts[beh][i].transition_score = transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior];
+//				if(i < y->num_bouts[beh]-1) 
+//					y->bouts[beh][i].transition_score += transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior];
 				y->bouts[beh][i].loss_fn = y->bouts[beh][i].loss_fp = 0;
-				if(i < y->num_bouts[beh]-1) 
-					y->bouts[beh][i].transition_score += transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior];
 				y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score;
 
 #if DEBUG > 0
@@ -2687,6 +2756,11 @@ STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEAR
 
 	sizePsi = sm.sizePsi= sm.svm_model->totwords;
 	sm.w=NULL;
+
+	beh = 0; // HACK!! Should iterate through all behaviors here
+	sm.compactUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh]) * num_classes[beh]; /* CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
+	sm.extraUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh] + 1) * num_classes[beh]; /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+	assert(sm.compactUnaryCosts != sm.extraUnaryCosts);
 
 	return(sm);
 }

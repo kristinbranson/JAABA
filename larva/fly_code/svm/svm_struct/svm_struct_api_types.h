@@ -74,6 +74,8 @@ typedef struct structmodel {
   /* other information that is needed for the stuctural model can be
      added here, e.g. the grammar rules for NLP parsing */
   int add_your_variables_here;
+  bool compactUnaryCosts; /* CSC: true iff case Unary costs are stored as same transition costs (and no further weights are given) */
+  bool extraUnaryCosts; /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
 } STRUCTMODEL;
 
 typedef struct struct_learn_parm {
