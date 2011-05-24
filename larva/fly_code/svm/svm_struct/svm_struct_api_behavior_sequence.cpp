@@ -165,6 +165,18 @@ int SVMBehaviorSequence::test (int argc, const char* argv[], STRUCT_LEARN_PARM *
 }
 
 
+
+
+#define compactUnarySize(p_features, p_classes) ((p_features) + (p_classes)    ) * (p_classes)
+#define   extraUnarySize(p_features, p_classes) ((p_features) + (p_classes) + 1) * (p_classes)
+#ifdef ALLOW_SAME_TRANSITION
+#define getPsiSize(p_features, p_classes) compactUnarySize(p_features, p_classes)
+#else
+#define getPsiSize(p_features, p_classes) extraUnarySize(p_features, p_classes)
+#endif
+
+
+
 /* Called in learning part before anything else is done to allow
 *  any initializations that might be necessary. 
 * Sets a constant loss term for a bout false positive and false negative
@@ -191,7 +203,8 @@ void SVMBehaviorSequence::svm_struct_learn_api_init(int argc, const char* argv[]
 			false_positive_cost[beh][i] = 100;
 		}
 
-		sizePsi += (this->num_features+this->num_classes[beh])*this->num_classes[beh];
+//		sizePsi += (this->num_features+this->num_classes[beh])*this->num_classes[beh];
+		sizePsi += getPsiSize(this->num_features, this->num_classes[beh]);
 	}
 }
 
@@ -2758,8 +2771,11 @@ STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEAR
 	sm.w=NULL;
 
 	beh = 0; // HACK!! Should iterate through all behaviors here
-	sm.compactUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh]) * num_classes[beh]; /* CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
-	sm.extraUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh] + 1) * num_classes[beh]; /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+//	sm.compactUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh]) * num_classes[beh]; /* CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
+//	sm.extraUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh] + 1) * num_classes[beh]; /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+	sm.compactUnaryCosts = (sizePsi-1) == compactUnarySize(num_features, num_classes[beh]); /* CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
+	sm.extraUnaryCosts = (sizePsi-1) == extraUnarySize(num_features, num_classes[beh]); /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+	
 	assert(sm.compactUnaryCosts != sm.extraUnaryCosts);
 
 	return(sm);
