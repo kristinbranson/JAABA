@@ -782,17 +782,26 @@ SVECTOR     *SVMBehaviorSequence::psi(SPATTERN x, LABEL yy, STRUCTMODEL *sm,
 	SVECTOR *retval;
 	double *all_features = tmp_features+num_features+10;
 	double *ptr = all_features+1, *class_features, *class_transitions;
+#ifdef ALLOW_SAME_TRANSITIONS
+	double *class_unary;
+#endif
 
 	for(i = 0; i < sizePsi; i++)
 		ptr[i] = 0;
 
 	for(beh = 0; beh < behaviors->num; beh++) {
 		if(behavior >= 0 && beh != behavior) {
-			ptr += num_classes[beh]*(num_classes[beh]+num_features);
+			ptr += getPsiSize(num_features, num_classes[beh]); //num_classes[beh]*(num_classes[beh]+num_features);
 			continue;
 		}
-		class_features = ptr; ptr += num_features*num_classes[beh];
-		class_transitions = ptr; ptr += num_classes[beh]*num_classes[beh];
+		class_features = ptr; ptr += num_features*num_classes[beh];        // line 1
+		class_transitions = ptr; ptr += num_classes[beh]*num_classes[beh]; // line 2
+#ifdef ALLOW_SAME_TRANSITIONS
+		class_unary = ptr; ptr += num_classes[beh];                        // line 3: these 3 lines have to correspond to getPsiSize
+
+		for(i = 0; i < num_classes[beh]; i++)
+			class_unary[i] = 0;
+#endif
 
 		for(i = 0; i < num_classes[beh]*num_features; i++) 
 			class_features[i] = 0;
@@ -801,12 +810,57 @@ SVECTOR     *SVMBehaviorSequence::psi(SPATTERN x, LABEL yy, STRUCTMODEL *sm,
 			class_transitions[i] = 0;
 
 		for(i = 0; i < y->num_bouts[beh]; i++) {
+/* BEGIN BLOCK */
 			// Count of the number transitions from class C1 to C2, for all pairs (C1,C2), C!=C2
 			if(i)
 				class_transitions[y->bouts[beh][i-1].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++;
 
+#ifdef ALLOW_SAME_TRANSITIONS
+			class_unary[y->bouts[beh][i].behavior]++;
+			/* Note: Same class transition weights were already computed above and are simply NOT OVERWRITTEN by unary costs */
+#ifndef SOLVE_UNARY_COST
+				; // transition diagonal still counts same class transitions; transition diagonal not used when classifying with this option
+#elif SOLVE_UNARY_COST_CONFLICT == 1
+				class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior] = 0; // transition diagonal is added to unary costs when classifying with this option
+#elif SOLVE_UNARY_COST_CONFLICT == 0
+				; // transition diagonal still counts same class transitions; unary costs not used when classifying with this option
+#endif
+#else // old compact format using diagonal of transition matrix
 			// Count of the number of bouts for each class C
-			class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++;
+			class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; // transition diagonal is overwritten by unary costs
+#endif
+/* END BLOCK */
+
+
+
+/* the BLOCK above corresponds to the following lines (copied from above)
+
+#ifdef ALLOW_SAME_TRANSITIONS
+		double *unary_costs = (double*)my_malloc(num_classes[beh]*sizeof(double*));
+			for(i = 0; i < num_classes[beh]; i++, ptr++) {
+				if(sm->compactUnaryCosts) {
+					unary_costs[i] = transition_weights[i][i]; // same transition costs are unary costs
+					transition_weights[i][i] = 0; // allowing same class transitions, since no transition cost values were given same transition costs are initialized with 0 (= no cost for same-class transitions besides bout-level-feature costs)
+				}
+				else // if(sm.extraUnaryCosts)
+					unary_costs[i] = *ptr; // unary costs are explicitely given, same transition costs remain
+			}
+#else
+		if(sm->extraUnaryCosts) // we don't allow same transitions, but have read same-transition-weights AND unary weights
+			for(i = 0; i < num_classes[beh]; i++, ptr++)
+#ifndef SOLVE_UNARY_COST_CONFLICT
+				transition_weights[i][i] = *ptr; // default: replace same transition costs by unary costs
+#elif SOLVE_UNARY_COST_CONFLICT == 1 // 0... skip unary costs  1... add unary costs to transition costs
+				transition_weights[i][i] += *ptr; // optional: add unary costs to same transition costs
+#elif SOLVE_UNARY_COST_CONFLICT == 0
+				; // keep same transition costs and just skip unary costs
+#else
+*/
+
+
+
+
+
 
 			// The main appearance features used to compute the score of a bout for a given class.
 			// Since the total score is the sum of the scores over bouts, we can simply add together
@@ -1884,7 +1938,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 //#endif
 // This block is replaced by getTransitionScore END
 #ifdef ALLOW_SAME_TRANSITIONS
-							getTransitionScore(transition_score,             unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0)
+							getTransitionScore(transition_score, transition_weights[c_p][c_p], unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0)
 #else
 							getTransitionScore(transition_score, transition_weights[c_p][c_p], 1, t != T ? transition_weights[c_p][c] : 0)
 #endif
@@ -2074,9 +2128,9 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 				psi_bout(b, y->bouts[beh][i].start_frame, y->bouts[beh][i].end_frame, beh, -1, tmp_features, true, false);  
 				y->bouts[beh][i].bout_score = sprod_nn(class_weights[y->bouts[beh][i].behavior], tmp_features, num_features);
 #ifdef ALLOW_SAME_TRANSITIONS
-				getTransitionScore(y->bouts[beh][i].transition_score,        unary_costs[y->bouts[beh][i].behavior],                            i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior])
+				getTransitionScore(y->bouts[beh][i].transition_score,                                   unary_costs[y->bouts[beh][i].behavior], i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior]); // unary costs added, same-transition costs added whenever same transition     is used (y->bouts[beh][i].behavior and y->bouts[beh][i+1].behavior MAY BE the SAME behavior)
 #else
-				getTransitionScore(y->bouts[beh][i].transition_score, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior], i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior])
+				getTransitionScore(y->bouts[beh][i].transition_score, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior], i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior]); // unary costs stored in same transition costs;            same transitions never used (y->bouts[beh][i].behavior and y->bouts[beh][i+1].behavior are ALWAYS DIFFERENT behaviors)
 #endif
 //				y->bouts[beh][i].transition_score = transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior];
 //				if(i < y->num_bouts[beh]-1) 
