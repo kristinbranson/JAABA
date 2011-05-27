@@ -730,7 +730,7 @@ omp_init_lock (&lock);
 
 	  /* compute most violating fydelta=fy-fybar and rhs for example i */
 	  find_most_violated_constraint(&fydelta,&rhs_i,&ex[i],fycache[i],n,
-					sm,sparm,&rt_viol,&rt_psi,&argmax_count, m, &ybar);
+					sm,sparm,&rt_viol,&rt_psi,&argmax_count, m, &ybar); // rhs_i is set to m->loss(ex->y,ybar,sparm) / n
 
 	  
 

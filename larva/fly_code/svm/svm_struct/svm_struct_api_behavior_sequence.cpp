@@ -824,6 +824,7 @@ SVECTOR     *SVMBehaviorSequence::psi(SPATTERN x, LABEL yy, STRUCTMODEL *sm,
 				class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior] = 0; // transition diagonal is added to unary costs when classifying with this option
 #elif SOLVE_UNARY_COST_CONFLICT == 0
 				; // transition diagonal still counts same class transitions; unary costs not used when classifying with this option
+				//class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; // transition diagonal is overwritten by unary costs
 #endif
 #else // old compact format using diagonal of transition matrix
 			// Count of the number of bouts for each class C
@@ -1728,11 +1729,11 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 #ifdef ALLOW_SAME_TRANSITIONS
 		double *unary_costs = (double*)my_malloc(num_classes[beh]*sizeof(double*));
 			for(i = 0; i < num_classes[beh]; i++, ptr++) {
-				if(sm->compactUnaryCosts) {
-					unary_costs[i] = transition_weights[i][i]; // same transition costs are unary costs
-					transition_weights[i][i] = 0; // allowing same class transitions, since no transition cost values were given same transition costs are initialized with 0 (= no cost for same-class transitions besides bout-level-feature costs)
-				}
-				else // if(sm.extraUnaryCosts)
+//				if(sm->compactUnaryCosts) {
+//					unary_costs[i] = transition_weights[i][i]; // same transition costs are unary costs
+//					transition_weights[i][i] = 0; // allowing same class transitions, since no transition cost values were given same transition costs are initialized with 0 (= no cost for same-class transitions besides bout-level-feature costs)
+//				}
+//				else // if(sm.extraUnaryCosts)
 					unary_costs[i] = *ptr; // unary costs are explicitely given, same transition costs remain
 			}
 #else
@@ -1869,7 +1870,11 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 				// assumption, move this below the for(c_p...) loop and call psi_bout(b, t_p, t, c_p, tmp_features).  
 				// These loops were intentially ordered in a semi-funny way to make sure the computations
 				// psi_bout(t_p,t) and w_c*psi() are computed as few times as possible
+#ifndef MERGE_SAME_BOUTS
 				psi_bout(b, t_p, t, beh, -1, tmp_features, true, !is_first); // compute bout-level features // !!! use startframe of c in case c==c_p
+#else // then merge bouts
+//				psi_bout(b, last__t_p[c], t, beh, -1, tmp_features, true, !is_first); // tweak t_p resp. t instead
+#endif
 				is_first = false;
 				for(c = 0; c < num_classes[beh]; c++) {
 					if(class_training_count[beh][c] && (restrict_c_p<=0 || c == restrict_c_p)) {
