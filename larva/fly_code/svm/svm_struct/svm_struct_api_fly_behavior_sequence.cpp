@@ -43,7 +43,10 @@ int SVMFlyBehaviorSequence::ReadFeatureParams(const char *fname, SVMFeatureParam
   while(fscanf(fin, "%s ", feature_defs[num].name) && strlen(feature_defs[num].name) && 
 	feature_defs[num].name[strlen(feature_defs[num].name)-1] == ':') {
     feature_defs[num].name[strlen(feature_defs[num].name)-1] = '\0';
-    assert(ReadFeatureParam(fin, &p[num++]));
+
+	strcpy(base_feature_names[num], feature_defs[num].name);
+
+	assert(ReadFeatureParam(fin, &p[num++]));
   }
   assert(num);
   fclose(fin);
@@ -189,6 +192,10 @@ void SVMFlyBehaviorSequence::load_behavior_bout_features(void *b, BehaviorBoutFe
   fclose(fin);
 }
 
+char *SVMFlyBehaviorSequence::getLabelName(void* d) {
+	FlyBehaviorBoutSequence *fly = (FlyBehaviorBoutSequence*)d;
+	return fly->labelname;
+}
 /*
  * Read a behavior label from file
  */

@@ -29,7 +29,9 @@
 #include "../../../spine_features.h"
 #include "../svm_struct_api_blob_behavior_sequence.h"
 #include "../svm_struct_api_fly_behavior_sequence.h"
+#include "../svm_struct_api_behavior_sequence.h"
 #include "../svm_struct_api_multiclass.h"
+
 
 #define DATA_DIR "../data"
 
@@ -673,7 +675,12 @@ omp_init_lock (&lock);
 #endif
   for(long i=0;i<testsample.n;i++) {
     double t1=get_runtime();
-    fprintf(stderr, "Classifying sequence %d...\n", (int)i);
+	fprintf(stderr, "Classifying sequence %d... file %s\n", (int)i, testsample.examples[i].labelname);
+#ifdef DEBUG > 0
+	g_currFile = testsample.examples[i].labelname;
+//	for(i=0; i<MAX_FEATURES; i++)
+		//if(i < m->
+#endif
     LABEL y=m->classify_struct_example(testsample.examples[i].x,structmodel,struct_parm);
     fprintf(stderr, "  sequence %d done\n", (int)i);
     

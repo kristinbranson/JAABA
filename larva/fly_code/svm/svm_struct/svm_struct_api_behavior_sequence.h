@@ -1,3 +1,7 @@
+#ifdef DEBUG > 0 
+extern char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
+#endif
+
 #ifndef  __SVM_STRUCT_API_BEHAVIOR_SEQUENCE__
 #define __SVM_STRUCT_API_BEHAVIOR_SEQUENCE__
 
@@ -6,7 +10,6 @@
 
 
 #include "../../blob.h"
-
 
 #define FORMAT__BOUT_FEATURE_PARAMS "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "\
 		     "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "\
@@ -21,6 +24,58 @@
 		     "use_end_sum_absolute_diff_haar_features=%d, use_start_sum_diff_haar_features=%d, use_end_sum_diff_haar_features=%d,  "\
 		     "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "\
 		     "use_end_ave_diff_haar_features=%d%*[^\n]\n"
+
+
+#define ALLOW_SAME_TRANSITIONS
+#define DEBUG 0
+#define MAX_FILENAME 1000
+#define MAX_FEATURES 1000
+
+#if DEBUG > 0
+//#define MAX_FEATURES 1000
+extern const char *bout_feature_names[]; // initialized in svm_struct_api_behavior_sequence.cpp; used to display feature names (in combination with g_feature_map)
+//extern const char *g_feature_names[MAX_FEATURES];
+#endif
+
+#define fEATURE_SAMPLE_SMOOTHNESS_WINDOW 1
+#define NUM_TEMPORAL_LEVELS 2
+#define NUM_BOUT_MAX_THRESHOLDS 3
+#define NUM_BOUT_MIN_THRESHOLDS 4
+#define NUM_BOUT_CHANGE_POINTS 5
+#define NUM_HISTOGRAM_BINS 6
+#define NUM_HISTOGRAM_TEMPORAL_LEVELS 7
+#define NUM_DIFFERENCE_TEMPORAL_LEVELS 8
+#define NUM_HARMONIC_FEATURES 9
+#define USE_BOUT_SUM_FEATURES 10
+#define USE_BOUT_AVE_FEATURES 11
+#define USE_BOUT_SUM_ABSOLUTE_FEATURES 12
+#define USE_BOUT_AVE_ABSOLUTE_FEATURES 13
+#define USE_STANDARD_DEVIATION 14
+#define USE_SUM_VARIANCE 15
+#define USE_BOUT_MAX_FEATURE 16
+#define USE_BOUT_MIN_FEATURE 17
+#define USE_GLOBAL_DIFFERENCE_MAX_AVE_FEATURES 18
+#define USE_GLOBAL_DIFFERENCE_MIN_AVE_FEATURES 19
+#define USE_GLOBAL_DIFFERENCE_AVE_AVE_FEATURES 20 
+#define USE_GLOBAL_DIFFERENCE_MAX_SUM_FEATURES 21
+#define USE_GLOBAL_DIFFERENCE_MIN_SUM_FEATURES 22
+#define USE_GLOBAL_DIFFERENCE_AVE_SUM_FEATURES 23
+#define USE_BOUT_CHANGE 24
+#define USE_BOUT_ABSOLUTE_CHANGE 25
+#define USE_HISTOGRAM_SUM_FEATURES 26
+#define USE_HISTOGRAM_AVE_FEATURES 27
+#define USE_SUM_HARMONIC_FEATURES 28
+#define USE_AVE_HARMONIC_FEATURES 29
+#define USE_SUM_ABSOLUTE_HARMONIC_FEATURES 30
+#define USE_AVE_ABSOLUTE_HARMONIC_FEATURES 31
+#define USE_START_SUM_ABSOLUTE_DIFF_HAAR_FEATURES 32
+#define USE_END_SUM_ABSOLUTE_DIFF_HAAR_FEATURES 33
+#define USE_START_SUM_DIFF_HAAR_FEATURES 34
+#define USE_END_SUM_DIFF_HAAR_FEATURES 35
+#define USE_START_AVE_ABSOLUTE_DIFF_HAAR_FEATURES 36
+#define USE_END_AVE_ABSOLUTE_DIFF_HAAR_FEATURES 37
+#define USE_START_AVE_DIFF_HAAR_FEATURES 38
+#define USE_END_AVE_DIFF_HAAR_FEATURES 39
 
 
 struct _BehaviorGroups;
@@ -160,10 +215,12 @@ class SVMBehaviorSequence : public SVMStructMethod {
   double **min_thresholds;  /**< A num_base_featuresXfeature_params[i]->num_histogram_bins defining a set of thresholds for checking if the min of a given feature is below a given threshold */
   double **max_thresholds;  /**< A num_base_featuresXfeature_params[i]->num_histogram_bins defining a set of thresholds for checking if the max of a given feature is below a given threshold */
   int min_bout_duration;  /**< The minimum length (in frames of a behavior bout) */
-  char **feature_names;  /**< A num_features array of strings defining a human-interpretable name for each feature */
   bool **restrict_behavior_features[MAX_BEHAVIOR_GROUPS];  /**< Untested: A behaviors->numXnum_classes[i]Xnum_features defining which bout-level features to use on a per-behavior basis.  Intended to allow different features to be used for different behaviors. */
   
  public:
+  char **feature_names;  /**< A num_features array of strings defining a human-interpretable name for each feature */
+  char base_feature_names[MAX_BASE_FEATURES][1001];
+
   /**
    * @brief Constructor, assumes feature definitions are known before hand and passed to the constructor 
    *
@@ -331,6 +388,8 @@ class SVMBehaviorSequence : public SVMStructMethod {
   virtual void load_behavior_bout_features(void *b, BehaviorBoutFeatures *feature_cache) = 0; 
   virtual void free_data(void *d) = 0;
   virtual int num_frames(void *d) = 0;
+
+  virtual char *getLabelName(void* d) = 0;
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);
