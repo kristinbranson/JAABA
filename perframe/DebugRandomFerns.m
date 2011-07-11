@@ -2,20 +2,52 @@
 
 %% set up path
 
-if ispc,
-  JCtrax_path = 'E:\Code\JCtrax';
-  FlyBowlAnalysis_path = 'E:\Code\FlyBowlAnalysis';
-  rootdatadir = 'E:\Code\Jdetect\larva\fly_data\TrainingData';
-  settingsdir = 'E:\Code\FlyBowlAnalysis\settings';
-else
-  JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
-  FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
-  settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
+[~,computername] = system('hostname');
+computername = strtrim(computername);
+
+switch computername,
+  
+  case 'bransonk-lw1',
+
+    JCtrax_path = 'E:\Code\JCtrax';
+    FlyBowlAnalysis_path = 'E:\Code\FlyBowlAnalysis';
+    rootdatadir = 'E:\Code\Jdetect\larva\fly_data\TrainingData';
+    settingsdir = 'E:\Code\FlyBowlAnalysis\settings';
+    mRMR_path = 'E:\Code\mRMR_0.9_compiled';
+
+  case 'bransonk-lw2',
+
+    JCtrax_path = 'C:\Code\JCtrax';
+    FlyBowlAnalysis_path = 'C:\Code\FlyBowlAnalysis';
+    rootdatadir = 'C:\Code\Jdetect\larva\fly_data\TrainingData';
+    settingsdir = 'C:\Code\FlyBowlAnalysis\settings';
+    mRMR_path = 'C:\Code\mrmr';
+
+  case 'bransonk-desktop',
+
+    JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
+    FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
+    rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
+    settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
+    mRMR_path = '/groups/branson/home/bransonk/behavioranalysis/code/mRMR_0.9_compiled';
+    
+  otherwise
+    
+    warning('Unknown computer %s. Paths may not be setup correctly',computername);
+    JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
+    FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
+    rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
+    settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
+    mRMR_path = '/groups/branson/home/bransonk/behavioranalysis/code/mRMR_0.9_compiled';
+
 end
+
 addpath(genpath(fullfile(JCtrax_path,'pdollar_toolbox')));
 addpath(fullfile(JCtrax_path,'misc'));
 addpath(fullfile(JCtrax_path,'filehandling'));
 addpath(FlyBowlAnalysis_path);
+addpath(genpath(mRMR_path));
+
 
 %% data, parameter locations
 
@@ -34,10 +66,39 @@ nexps = numel(labelmatnames);
 
 paramsfilename = 'SharpturnPerFrameParams.xml';
 
-%% read parameters
+%% parameters
 
-[params,cellparams] = ReadPerFrameParams(paramsfilename);
-fns = fieldnames(cellparams);
+% parameters files to use when evaluating fern parameters & associated mat
+% files for caching results
+windowfeaturesparamsfile_lots = 'WindowFeatures_Lots.xml';
+windowfeaturesmatfile_lots = 'WindowFeatures20110608.mat';
+windowfeaturesparamsfile_few = 'SharpturnPerFrameParams.xml';
+windowfeaturesmatfile_few = 'SharpturnWindowFeatures20110616.mat';
+paramsfilenames = {windowfeaturesparamsfile_lots,windowfeaturesparamsfile_few};
+windowfeaturesmatfiles = {windowsfeaturesmatfile_lots,windowfeaturesmatfile_few};
+
+% nferns to test
+n_nferns_tests_lots = 100;
+nferns_test_lots = round(logspace(1,4,n_nferns_tests_lots));
+n_nferns_tests_few = 5;
+nferns_test_few = round(logspace(1,4,n_nferns_tests_lots));
+
+% fern depths to test
+fern_depth_tests_lots = 3:15;
+n_fern_depth_tests_lots = numel(fern_depth_tests_lots);
+fern_depth_tests_few = [5,10,15];
+n_fern_depth_tests_few = numel(fern_depth_tests_few);
+
+% one setting of fern parameters
+nferns = 100;
+fern_depth = 10;
+threshold_range = [-4,4];
+maxdiff_logprob0 = 0;
+mindiff_logprob1 = 0;
+fern_params = struct('S',fern_depth,'M',nferns,'thrr',threshold_range);
+
+% whether to recompute window features
+docomputewindowfeatures = false;
 
 %% load data
 
