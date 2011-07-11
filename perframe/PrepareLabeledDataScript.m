@@ -35,7 +35,7 @@ labelmatnames = {
   'labeledsharpturns_movie09_GMR_16E02_AE_01_TrpA_Rig1Plate10BowlC_20110202T140143_fly1_09.mat'
   };
 
-for expdiri = 8:numel(labelmatnames),
+for expdiri = 1:numel(labelmatnames),
 
   labeldata = load(fullfile(rootdatadir,labelmatnames{expdiri}));
   
@@ -50,7 +50,7 @@ for expdiri = 8:numel(labelmatnames),
   ctraxfile = fullfile(expdir,ctraxfilestr);
   load(ctraxfile,'trx');
   
-  % apply latest spatial resolution
+  % apply latest spatial registration
   rd = load(fullfile(expdir,registrationdatafilestr));
   rd = detectRegistrationMarks('registrationData',rd);
   

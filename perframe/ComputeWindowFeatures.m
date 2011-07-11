@@ -4,7 +4,7 @@ function [y,feature_names] = ComputeWindowFeatures(x,varargin)
 
 x = x(:)';
 N = numel(x);
-y = nan(0,N);
+y = zeros(0,N);
 feature_names = {};
 feature_types_computed = {};
 
