@@ -1,4 +1,5 @@
-#ifdef DEBUG > 0 
+
+#if DEBUG > 0 
 extern char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
 #endif
 

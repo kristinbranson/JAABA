@@ -175,7 +175,7 @@ void train_main(int argc, const char** argv, STRUCT_LEARN_PARM *struct_parm, STR
   }
 
   char learner[1000];  
-  sprintf(learner, "%s.learner", modelfile_in ? modelfile_in : modelfile);
+  sprintf(learner, "%s.learner", strlen(modelfile_in) ? modelfile_in : modelfile);
   if(strlen(modelfile_in) && FileExists(modelfile_in)) {
     StructuredSVMOnlineLearner *learner = new StructuredSVMOnlineLearner(m, modelfile_in);
 	if(*learner_ptr) *learner_ptr = learner;
@@ -700,7 +700,7 @@ omp_init_lock (&lock);
   for(long i=0;i<testsample.n;i++) {
     double t1=get_runtime();
 	fprintf(stderr, "Classifying sequence %d... file %s\n", (int)i, testsample.examples[i].labelname);
-#ifdef DEBUG > 0
+#if DEBUG > 0
 	g_currFile = testsample.examples[i].labelname;
 //	for(i=0; i<MAX_FEATURES; i++)
 		//if(i < m->
@@ -736,7 +736,7 @@ omp_init_lock (&lock);
     m->eval_prediction(i,testsample.examples[i],y,structmodel,struct_parm,&teststats);
 
 	  char ename[1000];
-      sprintf(ename, "%d", i);
+	  sprintf(ename, "%d", (int)i);
 	  m->on_finished_find_most_violated_constraint(&y, &testsample.examples[i].y, -1, struct_parm, ename);
 
 

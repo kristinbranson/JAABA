@@ -23,7 +23,7 @@
 #include "svm_struct_api_behavior_sequence.h"
 #include "svm_struct/svm_struct_learn.h"
 
-#ifdef DEBUG > 0 
+#if DEBUG > 0
 char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
 #endif
 
@@ -516,7 +516,7 @@ int g_csc_ind;
 	g_feature_map3[(g_csc_ind)] = feature3_id; \
 }
 #else
-#define ADD_FEATURE(feat, ind, val, feature_id)	{ (feat)[(ind)] = (val); ind++; }
+#define ADD_FEATURE(feat, ind, val, feature_id, feature2_id, feature3_id)	{ (feat)[(ind)] = (val); ind++; }
 #endif
 
 /*
