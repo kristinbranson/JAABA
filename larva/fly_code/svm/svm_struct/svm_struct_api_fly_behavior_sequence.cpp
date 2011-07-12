@@ -43,7 +43,10 @@ int SVMFlyBehaviorSequence::ReadFeatureParams(const char *fname, SVMFeatureParam
   while(fscanf(fin, "%s ", feature_defs[num].name) && strlen(feature_defs[num].name) && 
 	feature_defs[num].name[strlen(feature_defs[num].name)-1] == ':') {
     feature_defs[num].name[strlen(feature_defs[num].name)-1] = '\0';
-    assert(ReadFeatureParam(fin, &p[num++]));
+
+	strcpy(base_feature_names[num], feature_defs[num].name);
+
+	assert(ReadFeatureParam(fin, &p[num++]));
   }
   assert(num);
   fclose(fin);
@@ -57,6 +60,28 @@ int SVMFlyBehaviorSequence::num_frames(void *b) {
 }
 
 // Read a file containing a list of training examples and return a string array of file names
+void SVMFlyBehaviorSequence::save_examples(const char *fname, SAMPLE sample) {
+  char **retval = NULL, line[1000], folder[1000];
+  FILE *fout = fopen(fname, "w");
+  strcpy(folder, fname);
+  for(int i = strlen(folder); i >= 0 && folder[i] != '/' && folder[i] != '\\'; i--) 
+    folder[i] = '\0';
+
+  if(!fout) return;
+
+  for(int i = 0; i < sample.n; i++) {
+    char fname2[1000];
+    strcpy(fname2, getLabelName(((BehaviorBoutFeatures*)(sample.examples[i].x.data))->data));
+    char *ptr = fname2;
+	int j = 0;
+    while(fname2[j] == folder[j] || ((fname2[j]=='/'||fname2[j]=='\\')&&(folder[j]=='/'||folder[j]=='\\'))) j++;
+    if(fname2[j] == '/' || fname2[j] == '\\')
+      j++;
+    fprintf(fout, "%s\n", fname2+j);
+  }
+  fclose(fout);
+}
+
 char **SVMFlyBehaviorSequence::load_examples(const char *fname, int *num) {
   char **retval = NULL, line[1000], folder[1000];
   FILE *fin = fopen(fname, "r");
@@ -189,10 +214,14 @@ void SVMFlyBehaviorSequence::load_behavior_bout_features(void *b, BehaviorBoutFe
   fclose(fin);
 }
 
+char *SVMFlyBehaviorSequence::getLabelName(void* d) {
+	FlyBehaviorBoutSequence *fly = (FlyBehaviorBoutSequence*)d;
+	return fly->labelname;
+}
 /*
  * Read a behavior label from file
  */
-void *SVMFlyBehaviorSequence::load_training_example(const char *fname, BehaviorGroups *behaviors) {
+void *SVMFlyBehaviorSequence::load_training_example(const char *fname) {
   FlyBehaviorBoutSequence *fly = (FlyBehaviorBoutSequence*)malloc(sizeof(FlyBehaviorBoutSequence));
   memset(fly, 0, sizeof(FlyBehaviorBoutSequence));
   fly->behaviors = behaviors;
@@ -249,9 +278,10 @@ void *SVMFlyBehaviorSequence::load_training_example(const char *fname, BehaviorG
     for(i = 0; i < num_bouts; i++) {
       assert(fread(&start_frame, sizeof(int), 1, fin));
       assert(fread(&end_frame, sizeof(int), 1, fin) && end_frame >= start_frame);
-      assert(fread(&behavior, sizeof(int), 1, fin) && behavior >= 0 && behavior < behaviors->behaviors[ind].num_values); 
+      assert(fread(&behavior, sizeof(int), 1, fin)); 
+      assert(behavior >= 0 && behavior < behaviors->behaviors[ind].num_values); 
       assert(start_frame >= lastframe);
-      if(start_frame > lastframe) {
+      if(start_frame > lastframe && i > 0) {
 	// Pad unlabelled bouts as the "Unknown" class
 	fly->bouts->bouts[ind] = (BehaviorBout*)realloc(fly->bouts->bouts[ind], sizeof(BehaviorBout)*(num_bouts+num_added+1));
 	fly->bouts->bouts[ind][fly->bouts->num_bouts[ind]].start_frame = lastframe;

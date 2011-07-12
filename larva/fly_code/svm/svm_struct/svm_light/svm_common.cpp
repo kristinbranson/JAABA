@@ -979,6 +979,59 @@ double *create_nvector(int n)
   return(vector);
 }
 
+double sum_sqr_diff_ss(SVECTOR *a, SVECTOR *b) {
+  SVECTOR *diff = sub_ss(a, b);
+  double d = sprod_ss(diff, diff);
+  free_svector(diff);
+  return d;
+}
+
+SVECTOR *create_svector_zero() {
+  SVECTOR *vec = (SVECTOR *)my_malloc(sizeof(SVECTOR));
+  memset(vec, 0, sizeof(SVECTOR));
+  vec->words = (SWORD *)my_malloc(sizeof(SWORD)*(1));
+  vec->words[0].wnum = 0;
+  vec->words[0].weight = 0;
+  return vec;
+}
+
+
+SVECTOR *read_svector(FILE *fin) {
+  int len;
+  assert(fread(&len, sizeof(int), 1, fin));
+  SVECTOR *v = (SVECTOR *)my_malloc(sizeof(SVECTOR));
+  memset(v, 0, sizeof(SVECTOR));
+  v->words = (SWORD *)my_malloc(sizeof(SWORD)*(len+1));
+  if(len) {
+    assert(fread(v->words, 1, len*sizeof(SWORD), fin));
+  } 
+  v->words[len].wnum = 0;
+  v->words[len].weight = 0;
+
+  return v;
+}
+
+void write_svector(SVECTOR *v, FILE *fout) {
+  int len = 0; 
+  while(v->words[len].wnum) len++;
+  assert(fwrite(&len, sizeof(int), 1, fout));
+  if(len) {
+    assert(fwrite(v->words, 1, len*sizeof(SWORD), fout));
+  }
+}
+
+double *create_nvector(int n, SVECTOR *v) {
+  double *f = create_nvector(n);
+  clear_nvector(f, n);
+  register SWORD *ai;
+  ai=v->words;
+  while (ai->wnum) {
+    f[ai->wnum] = ai->weight;
+    ai++;
+  }
+  return f;
+}
+
 void clear_nvector(double *vec, long int n)
 {
   register long i;

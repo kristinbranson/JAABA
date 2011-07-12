@@ -3,7 +3,7 @@
 #define BEH(f) ((!build_partial_label || (blobs->frames[f].is_good && (blobs->frames[f].is_manual&2)==2)) ? blobs->frames[f].behaviors[beh] : 0)
 
 
-SVMFeatureParams g_blob_heavior_params[F_NUM_GOOD_GLOBAL_FEATURES] = { 
+SVMFeatureParams g_blob_heavior_params[F_NUM_GOOD_GLOBAL_FEATURES] = {
   SVMBlobBehaviorSequence::AspectRatioParams(),
   SVMBlobBehaviorSequence::VelocityParams(),
   SVMBlobBehaviorSequence::VelocityParams(),
@@ -117,6 +117,18 @@ char **SVMBlobBehaviorSequence::load_examples(const char *fname, int *num) {
   return load_train_list(fname, num);
 }
 
+void SVMBlobBehaviorSequence::save_examples(const char *fname, SAMPLE sample) {
+  int num = 0;
+  char *tlist[10000];
+  for(int i = 0; i < sample.n; i++)
+    tlist[i] = getLabelName(((BehaviorBoutFeatures*)(sample.examples[i].x.data))->data);
+  save_train_list(fname, tlist, num);
+}
+
+char *SVMBlobBehaviorSequence::getLabelName(void* d) {
+	return ((BlobSequence*)d)->fname;
+}
+
 /*
  * Use a sequence of behavior bouts to set the per-frame behavior labels in b
  */
@@ -201,11 +213,11 @@ void SVMBlobBehaviorSequence::load_behavior_bout_features(void *b, BehaviorBoutF
   for(j = 0; j < T; j++)
     feature_cache->frame_times[j] = blobs->frames[j].frame_time;
 }
-
+ 
 /*
  * Read a blob annotation file from disk.  Returns NULL if the specified file has no annotated frames
  */
-void *SVMBlobBehaviorSequence::load_training_example(const char *fname, BehaviorGroups *behaviors) {
+void *SVMBlobBehaviorSequence::load_training_example(const char *fname) {
   Blob *b;
   BlobSequence *blobs = load_blob_sequence(fname, behaviors);  
   int has_frames = 0, i;

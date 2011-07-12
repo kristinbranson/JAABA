@@ -251,5 +251,34 @@ inline int nearest_to_line(double x, double y, double vx, double vy, int forward
   return retval;
 }
 
+void CreateDirectoryIfNecessary(const char *dirName);
+
+
+inline void ExtractFolderAndFileName(const char *str, char *folder, char *fname) {
+  int i = (int)strlen(str)-1;
+  while(i >= 0 && str[i] != '/' && str[i] != '\\')
+    i--;
+  strcpy(fname, str+i+1);
+  
+  if(i > 0) i--;
+  int num = 0;
+  while(i >= 0 && str[i] != '/' && str[i] != '\\') {
+    i--;
+    num++;
+  }
+  strcpy(folder, str+i+1);
+  folder[num] = '\0';
+}
+
+inline void StripFileExtension(char *str) {
+  int i = (int)strlen(str);
+  while(i >= 0) {
+    if(str[i] == '.') {
+      strcpy(str+i, "");
+      break;
+    }
+    i--;
+  }
+}
 
 #endif

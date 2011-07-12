@@ -5,6 +5,12 @@
 #include <highgui.h>
 #include <ml.h>  
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
+//#include <wx/dir.h>
+
 void strip_extension(char *fname) {
   int i;
 
@@ -17,6 +23,17 @@ void strip_extension(char *fname) {
     }
     fname[i] = '\0';
   }
+}
+
+
+void CreateDirectoryIfNecessary(const char *dirName) {
+#ifndef WIN32
+  char str[400]; 
+  sprintf(str, "mkdir %s", dirName);
+  system(str);
+#else
+  CreateDirectory(dirName, NULL);
+#endif
 }
 
 // Read a blob outline file.  These are outputs of the MultiwormTracker, which
@@ -159,14 +176,26 @@ MultiBlobSequence *import_multi_blob_sequence(const char *dir_name, int num_spin
   strcpy(m->fname, dir_name);
 
 #ifdef WIN32
-#include <wx/dir.h>
+  WIN32_FIND_DATA FileInformation; 
+  char strPattern[1000];
+  sprintf(strPattern, "%s/*.outline", dir_name);
+  HANDLE hFile = ::FindFirstFile(strPattern, &FileInformation);
+  if(hFile != INVALID_HANDLE_VALUE) {
+	  do {
+		  m->blobs = (BlobSequence**)realloc(m->blobs, (m->num_blobs+1)*sizeof(BlobSequence*));
+	      sprintf(fname, "%s/%s", dir_name, FileInformation.cFileName);
+		  m->blobs[m->num_blobs++] = import_blob_sequence(fname, num_spine_points);
+	  } while(::FindNextFile(hFile, &FileInformation) == TRUE);
+  }
 
-  size_t nfiles = wxDir::GetAllFiles(wxString(dir, wxConvUTF8), &files, wxT("*.outline"). wxDIR_FILES|wxDIR_DIRS);
+  /*
+  wxArrayString files;
+  size_t nfiles = wxDir::GetAllFiles(wxString(dir_name, wxConvUTF8), &files, wxT("*.outline"), wxDIR_FILES|wxDIR_DIRS);
   for (size_t i = 0; i < nfiles; i++) {
     m->blobs = (BlobSequence**)realloc(m->blobs, (m->num_blobs+1)*sizeof(BlobSequence*));
     sprintf(fname, "%s", files.Item(i).mb_str());
     m->blobs[m->num_blobs++] = import_blob_sequence(fname, num_spine_points);
-  }
+  }*/
 #else
 
   sprintf(sys, "ls %s/*.outline", dir_name);
@@ -380,7 +409,8 @@ BlobSequence *load_blob_sequence(const char *fname, BehaviorGroups *behaviors) {
       while(j < i && b->frames[j].is_manual == 2)
 	j++;
       if(j-i <= 2) {
-	b->frames[i].is_manual = b->frames[j-1].is_manual = 0; 
+	//b->frames[i].is_manual = b->frames[j-1].is_manual = 0; // CSC 20110210:
+	b->frames[i].is_manual = b->frames[j].is_manual = 0; 
       }
     }
   }
@@ -626,4 +656,5 @@ int find_behavior(BehaviorGroups *behaviors, int *ids, const char *str) {
   }
   return 1;
 }
+
 

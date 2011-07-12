@@ -29,7 +29,10 @@
 #include "../../../spine_features.h"
 #include "../svm_struct_api_blob_behavior_sequence.h"
 #include "../svm_struct_api_fly_behavior_sequence.h"
+#include "../svm_struct_api_behavior_sequence.h"
 #include "../svm_struct_api_multiclass.h"
+#include "../online_structured_learning.h"
+
 
 #define DATA_DIR "../data"
 
@@ -144,20 +147,43 @@ CONSTSET load_const_set(const char *fname) {
 /**** end print methods ****/
 
 
-void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRUCTMODEL *structmodel, SVMStructMethod *m) {  
+void train_main(int argc, const char** argv, STRUCT_LEARN_PARM *struct_parm, STRUCTMODEL *structmodel, SVMStructMethod *m, StructuredSVMOnlineLearner **learner_ptr) {  
   SAMPLE sample;  /* training sample */
   LEARN_PARM learn_parm;
   KERNEL_PARM kernel_parm;
   int alg_type;
-  char modelfile[1000], trainfile[1000];
+  char modelfile[1000], modelfile_in[1000], trainfile[1000];
   
   strcpy(modelfile, "");
 
   m = read_input_parameters_train(argc,argv,trainfile,modelfile,&verbosity,
 				  &struct_verbosity,struct_parm,&learn_parm,
-				  &kernel_parm,&alg_type, m);
+				  &kernel_parm,&alg_type, m, modelfile_in);
   m->svm_struct_learn_api_init(argc,argv);
 
+  if(strlen(modelfile)) {
+	  // Save command line arguments
+	  char fname[1000];
+	  sprintf(fname, "%s.sh", modelfile);
+	  FILE *fout = fopen(fname, "w");
+	  assert(fout);
+	  for(int i = 0; i < argc; i++) {
+		  if(i) fprintf(fout, " ");
+		  fprintf(fout, "%s", argv[i]);
+	  }
+	  fclose(fout);
+  }
+
+  char learner[1000];  
+  sprintf(learner, "%s.learner", modelfile_in ? modelfile_in : modelfile);
+  if(strlen(modelfile_in) && FileExists(modelfile_in)) {
+    StructuredSVMOnlineLearner *learner = new StructuredSVMOnlineLearner(m, modelfile_in);
+	if(*learner_ptr) *learner_ptr = learner;
+    learner->Train();
+    *structmodel = *learner->GetStructModel();
+    delete learner;
+	return;
+  } else {
   if(struct_verbosity>=1) {
     printf("Reading training examples..."); fflush(stdout);
   }
@@ -168,6 +194,13 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
   }
   
   /* Do the learning and return structmodel. */
+  if(struct_parm->method != SPO_CUTTING_PLANE) {
+    StructuredSVMOnlineLearner *learner = new StructuredSVMOnlineLearner(m, &learn_parm, &kernel_parm, struct_parm, &sample, trainfile, modelfile);
+	if(*learner_ptr) *learner_ptr = learner;
+    learner->Train();
+    *structmodel = *learner->GetStructModel();
+    delete learner;
+  } else {
   if(alg_type == 0)
     svm_learn_struct(sample,struct_parm,&learn_parm,&kernel_parm,structmodel,NSLACK_ALG,m);
   else if(alg_type == 1)
@@ -182,6 +215,7 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
     svm_learn_struct_joint_custom(sample,struct_parm,&learn_parm,&kernel_parm,structmodel,m);
   else
     exit(1);
+  }
 
   /* Warning: The model contains references to the original data 'docs'.
      If you want to free the original data, and only keep the model, you 
@@ -198,8 +232,32 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
   m->free_struct_sample(sample);
 
   m->svm_struct_learn_api_exit();
+  }
 }
+/*
+SVMStructMethod *instantiate_SVMStructMethod(char *classtype)
+{
+#define SVM_FLY_BEHAVIOR_SEQUENCE_STRING "robiea"
+#define SVM_BLOB_BEHAVIOR_SEQUENCE_STRING "zlatic"
 
+  if(!classtype) {
+	printf("SVMMultiClass\n");
+	return new SVMMultiClass();
+  }
+  else if(strstr(classtype, SVM_FLY_BEHAVIOR_SEQUENCE_STRING)) {
+  	printf("SVMFlyBehaviorSequence\n");
+        return new SVMFlyBehaviorSequence(feat_name, behaviors, -1);
+  }
+  else if(strstr(classtype, SVM_BLOB_BEHAVIOR_SEQUENCE_STRING)) {
+        printf("SVMBlobBehaviorSequence\n");
+//	return new SVMBlobBehaviorSequence( FitParams *p    , behaviors, -1,    SVMFeatureParams *sparams);
+  }
+  else {
+        printf("Unsupported classType\n");
+	return 0;
+  }
+}
+*/
 
 void print_help_train(SVMStructMethod *m);
 
@@ -208,7 +266,7 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
 			   long *verbosity,long *struct_verbosity, 
 			   STRUCT_LEARN_PARM *struct_parm,
 			   LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm,
-				       int *alg_type, SVMStructMethod *m)
+				       int *alg_type, SVMStructMethod *m, char *modelfile_in)
 {
   long i;
   char type[100], cname[400], bname[400], feat_name[400], load_constraints_fname[400], save_constraints_fname[400];
@@ -229,6 +287,7 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
   struct_parm->batch_size=100;
 
   strcpy (modelfile, "svm_struct_model");
+  if(modelfile_in) strcpy (modelfile_in, "");
   strcpy (learn_parm->predfile, "trans_predictions");
   strcpy (learn_parm->alphafile, "");
   (*verbosity)=0;/*verbosity for svm_light*/
@@ -306,6 +365,13 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
       case '-': strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);i++; strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);break; 
       case 'v': i++; (*struct_verbosity)=atol(argv[i]); break;
       case 'y': i++; (*verbosity)=atol(argv[i]); break;
+      case 'D':
+          struct_parm->debug_weights = strstr(argv[i], "w") != NULL;
+          struct_parm->debug_features = strstr(argv[i], "f") != NULL;
+          struct_parm->debug_predictions = strstr(argv[i], "p") != NULL;
+          struct_parm->debug_model = strstr(argv[i], "m") != NULL;
+		  strcpy (struct_parm->debugdir, argv[++i]); 
+		  break;
       default: printf("\nUnrecognized option %s!\n\n",argv[i]);
 	       print_help_train(m);
 	       exit(0);
@@ -330,6 +396,9 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
   strcpy (trainfile, argv[i]);
   if((i+1)<argc) {
     strcpy (modelfile, argv[i+1]);
+  }
+  if((i+2)<argc && modelfile_in) {
+    strcpy (modelfile_in, argv[i+2]);
   }
   if(learn_parm->svm_iter_to_shrink == -9999) {
     learn_parm->svm_iter_to_shrink=100;
@@ -543,9 +612,9 @@ void print_help_train(SVMStructMethod *m)
   printf("    SVMs, Machine Learning Journal, to appear.\n");
 }
 
-
-SVMStructMethod *read_input_parameters_test(int, const char **, char *, char *, char *, char *, 
-				STRUCT_LEARN_PARM *, long*, long *, SVMStructMethod *);
+SVMStructMethod *read_input_parameters_test(int argc,const char *argv[],char *testfile,
+					    char *modelfile,char *predictionsfile, char *outfilelist, char *outdir,
+			   STRUCT_LEARN_PARM *struct_parm, long *verbosity,long *struct_verbosity, SVMStructMethod *m);
 void print_help_test(SVMStructMethod *);
 
 int test_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRUCTMODEL *structmodel, SVMStructMethod *m)
@@ -560,12 +629,30 @@ int test_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRU
   char modelfile[200];
   char predictionsfile[200];
   char outfilelist[200];
+  char outdir[200];
   STRUCTMODEL structmodel2;
 
-  m = read_input_parameters_test(argc,argv,testfile,modelfile,predictionsfile,outfilelist,struct_parm,
+  m = read_input_parameters_test(argc,argv,testfile,modelfile,predictionsfile,outfilelist,outdir,struct_parm,
 				 &verbosity,&struct_verbosity, m);
   m->svm_struct_classify_api_init(argc,argv);
   
+  if(strlen(outdir)) {
+	  strcpy(struct_parm->debugdir, outdir);
+	  // Save command line arguments
+	  CreateDirectoryIfNecessary(outdir);
+	  char fname[1000]; 
+	  sprintf(fname, "%s/run.sh", outdir);
+	  FILE *fout = fopen(fname, "w");
+	  assert(fout);
+	  for(int i = 0; i < argc; i++) {
+		  if(i) fprintf(fout, " ");
+		  fprintf(fout, "%s", argv[i]);
+	  }
+	  fclose(fout);
+      sprintf(fname, "%s/index.html", outdir);
+	  fout = fopen(fname, "w");
+	  if(fout) fclose(fout);
+  }
 
   if(struct_verbosity>=1) {
     printf("Reading model..."); fflush(stdout);
@@ -612,8 +699,14 @@ omp_init_lock (&lock);
 #endif
   for(long i=0;i<testsample.n;i++) {
     double t1=get_runtime();
-    fprintf(stderr, "Classifying sequence %d...\n", (int)i);
-    LABEL y=m->classify_struct_example(testsample.examples[i].x,structmodel,struct_parm);
+	fprintf(stderr, "Classifying sequence %d... file %s\n", (int)i, testsample.examples[i].labelname);
+#ifdef DEBUG > 0
+	g_currFile = testsample.examples[i].labelname;
+//	for(i=0; i<MAX_FEATURES; i++)
+		//if(i < m->
+#endif
+	double score;
+    LABEL y=m->classify_struct_example(&testsample.examples[i].x,structmodel,struct_parm, &score);
     fprintf(stderr, "  sequence %d done\n", (int)i);
     
 #ifdef USE_OPENMP
@@ -625,6 +718,11 @@ omp_init_lock (&lock);
     if(!strcmp(outfilelist, "*")) {
       char tmp[1000]; strcpy(tmp, test_list[i]);
       strcat(tmp, ".label");
+	  if(strlen(outdir)) {
+		  char folder[1000], fname[1000];
+		  ExtractFolderAndFileName(tmp, folder, fname);
+		  sprintf(tmp, "%s/%s", outdir, fname);
+	  }
       m->save_example(((BehaviorBoutFeatures*)testsample.examples[i].x.data)->data, (BehaviorBoutSequence*)y.data, tmp);
     } else if(test_list)
       m->save_example(((BehaviorBoutFeatures*)testsample.examples[i].x.data)->data, (BehaviorBoutSequence*)y.data, test_list[i]);
@@ -636,6 +734,11 @@ omp_init_lock (&lock);
     else
       incorrect++;
     m->eval_prediction(i,testsample.examples[i],y,structmodel,struct_parm,&teststats);
+
+	  char ename[1000];
+      sprintf(ename, "%d", i);
+	  m->on_finished_find_most_violated_constraint(&y, &testsample.examples[i].y, -1, struct_parm, ename);
+
 
     if(m->empty_label(testsample.examples[i].y)) 
       { no_accuracy=1; } /* test data is not labeled */
@@ -674,7 +777,7 @@ omp_init_lock (&lock);
 
 
 SVMStructMethod *read_input_parameters_test(int argc,const char *argv[],char *testfile,
-					    char *modelfile,char *predictionsfile, char *outfilelist,
+					    char *modelfile,char *predictionsfile, char *outfilelist, char *outdir,
 			   STRUCT_LEARN_PARM *struct_parm,
 			   long *verbosity,long *struct_verbosity, SVMStructMethod *m)
 {
@@ -688,6 +791,7 @@ SVMStructMethod *read_input_parameters_test(int argc,const char *argv[],char *te
   strcpy (modelfile, "svm_model");
   strcpy (predictionsfile, "svm_predictions"); 
   strcpy (outfilelist, ""); 
+  strcpy (outdir, ""); 
   (*verbosity)=0;/*verbosity for svm_light*/
   (*struct_verbosity)=1; /*verbosity for struct learning portion*/
   struct_parm->custom_argc=0;
@@ -718,6 +822,13 @@ SVMStructMethod *read_input_parameters_test(int argc,const char *argv[],char *te
 	break; 
       case 'o': strcpy (outfilelist, argv[++i]); break;
       case 'O': strcpy (outfilelist, "*"); break;
+      case 'D':
+          struct_parm->debug_weights = strstr(argv[i], "w") != NULL;
+          struct_parm->debug_features = strstr(argv[i], "f") != NULL;
+          struct_parm->debug_predictions = strstr(argv[i], "p") != NULL;
+          struct_parm->debug_model = strstr(argv[i], "m") != NULL;
+		  strcpy (outdir, argv[++i]); 
+		  break;
       default: printf("\nUnrecognized option %s!\n\n",argv[i]);
 	       print_help_test(m);
 	       exit(0);

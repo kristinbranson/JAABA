@@ -148,7 +148,7 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
   if(USE_FYCACHE) {
     fycache=(SVECTOR **)my_malloc(n*sizeof(SVECTOR *));
     for(i=0;i<n;i++) {
-      fy=m->psi(ex[i].x,ex[i].y,sm,sparm);
+      fy=m->psi(&ex[i].x,&ex[i].y,sm,sparm);
       if(kparm->kernel_type == K_LINEAR) {
 	diff=add_list_ss(fy); /* store difference vector directly */
 	free_svector(fy);
@@ -203,14 +203,15 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 					add a new constraint */
 	    rt2=get_runtime();
 	    argmax_count++;
+		double score;
 	    if(sparm->loss_type == SLACK_RESCALING) 
-	      ybar=m->find_most_violated_constraint_slackrescaling(ex[i].x,
-								ex[i].y,sm,
-								  sparm);
+	      ybar=m->find_most_violated_constraint_slackrescaling(&ex[i].x,
+								&ex[i].y,sm,
+								  sparm, &score);
 	    else
-	      ybar=m->find_most_violated_constraint_marginrescaling(ex[i].x,
-								 ex[i].y,sm,
-								 sparm);
+	      ybar=m->find_most_violated_constraint_marginrescaling(&ex[i].x,
+								 &ex[i].y,sm,
+								 sparm, &score);
 	    rt_viol+=MAX(get_runtime()-rt2,0);
 	    
 	    if(m->empty_label(ybar)) {
@@ -228,8 +229,8 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 	    if(fycache) 
 	      fy=copy_svector(fycache[i]);
 	    else
-	      fy=m->psi(ex[i].x,ex[i].y,sm,sparm);
-	    fybar=m->psi(ex[i].x,ybar,sm,sparm);
+	      fy=m->psi(&ex[i].x,&ex[i].y,sm,sparm);
+	    fybar=m->psi(&ex[i].x,&ybar,sm,sparm);
 	    rt_psi+=MAX(get_runtime()-rt2,0);
 	    
 	    /**** scale feature vector and margin by loss ****/
@@ -583,7 +584,7 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
   fycache=(SVECTOR **)my_malloc(n*sizeof(SVECTOR *));
   for(i=0;i<n;i++) {
     if(USE_FYCACHE) {
-      fy=m->psi(ex[i].x,ex[i].y,sm,sparm);
+      fy=m->psi(&ex[i].x,&ex[i].y,sm,sparm);
       if(kparm->kernel_type == K_LINEAR) { /* store difference vector directly */
 	diff=add_list_sort_ss_r(fy,COMPACT_ROUNDING_THRESH); 
 	free_svector(fy);
@@ -730,7 +731,7 @@ omp_init_lock (&lock);
 
 	  /* compute most violating fydelta=fy-fybar and rhs for example i */
 	  find_most_violated_constraint(&fydelta,&rhs_i,&ex[i],fycache[i],n,
-					sm,sparm,&rt_viol,&rt_psi,&argmax_count, m, &ybar);
+					sm,sparm,&rt_viol,&rt_psi,&argmax_count, m, &ybar); // rhs_i is set to m->loss(ex->y,ybar,sparm) / n
 
 	  
 
@@ -746,6 +747,18 @@ omp_init_lock (&lock);
 	    omp_unset_lock(&lock);
 #endif	    
 	  }
+
+
+#ifdef USE_OPENMP
+	    omp_set_lock(&lock);
+#endif
+      char ename[1000];
+      sprintf(ename, "%d", i);
+	  m->on_finished_find_most_violated_constraint(&ybar, &ex[i].y, numIt, sparm, ename);
+#ifdef USE_OPENMP
+	    omp_unset_lock(&lock);
+#endif
+
 	  m->free_label(ybar);
 
 
@@ -969,14 +982,14 @@ void find_most_violated_constraint(SVECTOR **fydelta, double *rhs,
   double      rt2=0;
   LABEL       ybar;
   SVECTOR     *fybar, *fy;
-  double      factor,lossval;
+  double      factor,lossval, score;
 
   if(struct_verbosity>=2) rt2=get_runtime();
   (*argmax_count)++;
   if(sparm->loss_type == SLACK_RESCALING) 
-    ybar=m->find_most_violated_constraint_slackrescaling(ex->x,ex->y,sm,sparm);
+    ybar=m->find_most_violated_constraint_slackrescaling(&ex->x,&ex->y,sm,sparm,&score);
   else
-    ybar=m->find_most_violated_constraint_marginrescaling(ex->x,ex->y,sm,sparm);
+    ybar=m->find_most_violated_constraint_marginrescaling(&ex->x,&ex->y,sm,sparm,&score);
   if(struct_verbosity>=2) (*rt_viol)+=MAX(get_runtime()-rt2,0);
   
   if(m->empty_label(ybar)) {
@@ -990,8 +1003,8 @@ void find_most_violated_constraint(SVECTOR **fydelta, double *rhs,
   if(fycached)
     fy=copy_svector(fycached); 
   else 
-    fy=m->psi(ex->x,ex->y,sm,sparm);
-  fybar=m->psi(ex->x,ybar,sm,sparm);
+    fy=m->psi(&ex->x,&ex->y,sm,sparm);
+  fybar=m->psi(&ex->x,&ybar,sm,sparm);
   if(struct_verbosity>=2) (*rt_psi)+=MAX(get_runtime()-rt2,0);
   lossval=m->loss(ex->y,ybar,sparm);
 

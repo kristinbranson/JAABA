@@ -54,6 +54,19 @@
 # define COMPACT_ROUNDING_THRESH 10E-15
 
 
+typedef enum {
+  SPO_CUTTING_PLANE,   // SVM^struct 
+
+  // Online Algorithms, which process one training example i per iteration:
+  SPO_SGD,             // stochastic gradient descent: w^t = w^{t-1} - step_size*(w^{t-1} + grad_i(w^{t-1})),   step_size=1/(lambda*t)
+  SPO_SGD_PEGASOS,     // Do SGD step, then ensure that ||w^t||^2 <= 1/lambda   (downscale w^t if this doesn't hold)
+  SPO_DUAL_UPDATE,     // w^t = w^{t-1}(t-1)/t - alpha*grad_i(w^{t-1}),   where alpha is chosen to maximize dual objective
+  SPO_DUAL_UPDATE_WITH_CACHE,     // Same as SPO_DUAL_UPDATE, but also run dual update steps in a background process on labels from earlier iterations
+  SPO_DUAL_MULTI_SAMPLE_UPDATE,   // Sample multiple labels per iteration (instead of just getting the "most violated constraint"), then optimize parameters jointly
+  SPO_DUAL_MULTI_SAMPLE_UPDATE_WITH_CACHE,  // Same as SPO_DUAL_MULTI_SAMPLE_UPDATE, but also run multi-sample dual update steps in a background process 
+} StructuredPredictionOptimizationMethod;
+
+
 typedef struct pattern {
   /* this defines the x-part of a training example, e.g. the structure
      for storing a natural language sentence in NLP parsing */
@@ -74,9 +87,13 @@ typedef struct structmodel {
   /* other information that is needed for the stuctural model can be
      added here, e.g. the grammar rules for NLP parsing */
   int add_your_variables_here;
+  bool compactUnaryCosts; /* CSC: true iff case Unary costs are stored as same transition costs (and no further weights are given) */
+  bool extraUnaryCosts; /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
 } STRUCTMODEL;
 
 typedef struct struct_learn_parm {
+  StructuredPredictionOptimizationMethod method;
+
   double epsilon;              /* precision for which to solve
 				  quadratic program */
   double newconstretrain;      /* number of new constraints to
@@ -103,6 +120,9 @@ typedef struct struct_learn_parm {
 				  option */
 
   /* further parameters that are passed to init_struct_model() */
+  char debugdir[400];
+  bool debug_predictions, debug_weights, debug_features, debug_model;
+  int iter;
 
 } STRUCT_LEARN_PARM;
 

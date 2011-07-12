@@ -93,9 +93,10 @@ public:
     SPATTERN x;
     BehaviorBoutFeatures *blob_features;
 
+	double score;
     x.data = blob_features = svm_struct->create_behavior_bout_feature_cache(blobs);
     blob_features->partial_label = svm_struct->create_behavior_bout_sequence(blobs, behaviors, true);
-    yy = svm_struct->classify_struct_example(x, &model, &sparm);
+    yy = svm_struct->classify_struct_example(&x, &model, &sparm, &score);
     y = (BehaviorBoutSequence*)yy.data;
     retval = (float)y->score;
     svm_struct->load_from_bout_sequence(y, blobs);

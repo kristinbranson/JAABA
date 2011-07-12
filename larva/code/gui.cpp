@@ -1,3 +1,4 @@
+#include "common.h"
 #include "gui.h"
 #include "train.h"
 
@@ -38,7 +39,10 @@
 #endif
 #endif
 
-char g_processFile[400], g_processDir[400], g_meta_ext[400], g_detect_meta[400];
+
+char g_processFile[FILENAME_LENGTH], g_processDir[FILENAME_LENGTH], g_meta_ext[FILENAME_LENGTH], g_detect_meta[FILENAME_LENGTH];
+char g_train = 0; // CSC 20110209
+//char g_trainFile[FILENAME_LENGTH], g_classifierFile[FILENAME_LENGTH];//CSC: moved to common.cpp
 
 static const wxCmdLineEntryDesc g_cmdLineDesc [] =
 {
@@ -51,6 +55,9 @@ static const wxCmdLineEntryDesc g_cmdLineDesc [] =
      { wxCMD_LINE_OPTION, wxT("P"), wxT("folder"), wxT("Bulk processes all .outline files in a folder, fitting both the skeleton and behaviors to all .outline files"), wxCMD_LINE_VAL_STRING },
      { wxCMD_LINE_OPTION, wxT("m"), wxT("meta"), wxT("Detect and show meta behaviors.  Assumes a config file ../data/behaviors.txt.<str> exists"), wxCMD_LINE_VAL_STRING },
      { wxCMD_LINE_OPTION, wxT("M"), wxT("detect_meta"), wxT("Detect meta behaviors for all files in a directory, assuming a folder has already been processed using -P"), wxCMD_LINE_VAL_STRING },
+     { wxCMD_LINE_SWITCH, wxT("l"), wxT("learn"), wxT("learn classifier") },
+     { wxCMD_LINE_OPTION, wxT("t"), wxT("train file"), wxT("train file name"), wxCMD_LINE_VAL_STRING },
+     { wxCMD_LINE_OPTION, wxT("c"), wxT("classifier file"), wxT("classifier file name"), wxCMD_LINE_VAL_STRING },
      { wxCMD_LINE_NONE }
 };
 
@@ -277,13 +284,22 @@ bool LabelApp::OnCmdLineParsed(wxCmdLineParser& parser)
   parser.Found(wxT("o"), &fname);
 
   wxString dir, fname, meta;
+
+
+  strcpy(g_trainFile, "train.txt"); // default value
+  strcpy(g_classifierFile, "classifier"); // default value
+
+
   if(parser.Found(wxT("d"), &dir)) {
     char str[1000];
     strcpy(str, wxString(dir).mb_str());
     DATA_DIR = StringCopy(str);
     fprintf(stderr, "Data dir is %s\n", str);
   }
-
+  if(parser.Found(wxT("l"))) {
+    g_train = 1;
+    fprintf(stderr, "learn request detected\n");
+  }
   strcpy(g_processFile, "");
   strcpy(g_processDir, "");
   strcpy(g_meta_ext, "");
@@ -303,6 +319,16 @@ bool LabelApp::OnCmdLineParsed(wxCmdLineParser& parser)
       strcat(g_detect_meta, "/dir.multi");
   }
 
+  if(parser.Found(wxT("t"), &fname)) {
+    strcpy(g_trainFile, wxString(fname).mb_str());
+    fprintf(stderr, "train filename is %s\n", g_trainFile);
+  }
+  if(parser.Found(wxT("c"), &dir)) {
+    strcpy(g_classifierFile, wxString(dir).mb_str());
+    fprintf(stderr, "classifier directory is %s\n", g_classifierFile);
+  }
+
+
   return true;
 }
 
@@ -321,7 +347,7 @@ void LabelFrame::LoadBehaviors() {
   char bname[1000], classifier_dir[300];
   if(behaviors) free_behaviors(behaviors);
   sprintf(bname, "%s/behaviors.txt", DATA_DIR);
-  sprintf(classifier_dir, "%s/classifier", DATA_DIR);
+  sprintf(classifier_dir, "%s/%s", DATA_DIR, g_classifierFile); // CSC: add (by default empty) classifier appendix, for cross-validation classifier dir's are named classifier.<idx>, where idx is the index of the left out training resp. test file.
   behaviors = load_behaviors(bname, classifier_dir);
   assert(behaviors);
 
@@ -374,12 +400,13 @@ LabelFrame::LabelFrame(const wxString& title, const char *fname)
 
     params = default_parameters();
 
-
+//fprintf(stderr, "test\n");
     LoadBehaviors();
     
     char bname[400];
-    sprintf(bname, "%s/train.txt", DATA_DIR);
+    sprintf(bname, "%s/%s", DATA_DIR, g_trainFile);
     train_list = load_train_list(bname, &num_train_files);
+//fprintf(stderr, "bname = '%s', num_train_files = %d\n", bname, num_train_files);
     GenerateTrainListStrings();
     
     /*
@@ -520,6 +547,20 @@ LabelFrame::LabelFrame(const wxString& title, const char *fname)
     if(fname) 
       Open(fname);
 
+    if(g_train) {
+      fprintf(stderr, "training new classifier - this may take several hours...\n");
+	wxCommandEvent event;
+      OnTrain(event); // pass an WXUNUSED(event)
+      fprintf(stderr, "All done!\n");
+      exit(0);
+    }
+//    if(g_crossValidation) {
+//      fprintf(stderr, "performing cross-validation analysis - this may take several dozens of hours...\n");
+//      crossValidate();
+//      fprintf(stderr, "All done!\n");
+//      exit(0);      
+//    }
+
     if(strlen(g_processFile)) {
       ProcessFile(g_processFile);
       fprintf(stderr, "All done!\n");
@@ -548,6 +589,44 @@ LabelFrame::~LabelFrame()
 {
 }
 
+void LabelFrame::crossValidate() {// CSC
+  char classifier_dir[FILENAME_LENGTH];
+	char *curr_file;
+
+// preferably do in parallel - fork?:
+
+  for(int i = 0; i < num_train_files; i++) {
+
+	// training step
+
+//  	sprintf(classifier_dir, "%s/%s", DATA_DIR, g_classifierFile);
+strcpy(classifier_dir, g_classifierFile);
+	curr_file = train_list[i];
+	train_list[i] = 0;
+  	train_behavior_detector(classifier_dir, train_list, num_train_files, behaviors, &params);
+	train_list[i] = curr_file;
+
+	// prediction step
+
+	char classifier_appendix[10]; // allows up to 99.999.999 test files
+	sprintf(classifier_appendix, ".%d", i);
+	LoadBehaviors();
+
+	char orig_name[FILENAME_LENGTH], test_name[FILENAME_LENGTH], result_name[FILENAME_LENGTH];
+	sprintf(orig_name, "%s.orig", curr_file);
+	sprintf(test_name, "%s.test", curr_file);
+	sprintf(result_name, "%s.result", curr_file);
+
+	rename(curr_file, orig_name);
+	ProcessFile(curr_file); // the rename steps make sure that we don't overwrite the manual annotation.
+	rename(curr_file, test_name);
+	rename(orig_name, curr_file);
+
+	// compare prediction vs. manual annotation
+
+	// execute compiled matlab script 'compareAnnoFiles curr_file test_name Turn > result_name';
+  }
+}
 
 
 
@@ -812,7 +891,7 @@ void LabelFrame::OnTrainList(wxCommandEvent& WXUNUSED(event)) {
 void LabelFrame::OnTrain(wxCommandEvent& WXUNUSED(event)) {
   char classifier_dir[400];
 
-  sprintf(classifier_dir, "%s/classifier", DATA_DIR);
+  sprintf(classifier_dir, "%s/%s", DATA_DIR, g_classifierFile);
   train_behavior_detector(classifier_dir, train_list, num_train_files, behaviors, &params);
 }
 
@@ -895,18 +974,18 @@ void LabelFrame::Backup(const char *dir) {
   assert(::wxMkdir(dir_str));
 
   // Copy trained classifier files
-  sprintf(fname, "%s/classifier", dir);
+  sprintf(fname, "%s/%s", dir, g_classifierFile);
   assert(::wxMkdir(wxString(fname, wxConvUTF8)));
   if(behaviors->classifier_method) {
-    sprintf(fname, "%s/classifier/All.%s", DATA_DIR, g_classifer_extensions[behaviors->classifier_method]);
+    sprintf(fname, "%s/%s/All.%s", DATA_DIR, g_classifierFile, g_classifer_extensions[behaviors->classifier_method]);
     if(FileExists(fname)) {
-      sprintf(tmp, "%s/classifier/All.%s", dir, g_classifer_extensions[behaviors->classifier_method]);
+      sprintf(tmp, "%s/%s/All.%s", dir, g_classifierFile, g_classifer_extensions[behaviors->classifier_method]);
       fprintf(stderr, "Copying %s...\n", fname);
       assert(::wxCopyFile(wxString(fname, wxConvUTF8), wxString(tmp, wxConvUTF8)));
     }
-    sprintf(fname, "%s/classifier/All.%s.constraints", DATA_DIR, g_classifer_extensions[behaviors->classifier_method]);
+    sprintf(fname, "%s/%s/All.%s.constraints", DATA_DIR, g_classifierFile, g_classifer_extensions[behaviors->classifier_method]);
     if(FileExists(fname)) {
-      sprintf(tmp, "%s/classifier/All.%s.constraints", dir, g_classifer_extensions[behaviors->classifier_method]);
+      sprintf(tmp, "%s/%s/All.%s.constraints", dir, g_classifierFile, g_classifer_extensions[behaviors->classifier_method]);
       fprintf(stderr, "Copying %s...\n", fname);
       assert(::wxCopyFile(wxString(fname, wxConvUTF8), wxString(tmp, wxConvUTF8)));
     }
@@ -919,10 +998,10 @@ void LabelFrame::Backup(const char *dir) {
   }
   for(i = 0; i < behaviors->num; i++) {
     if(behaviors->behaviors[i].classifier_method) {
-	sprintf(fname, "%s/classifier/%s.%s", DATA_DIR, behaviors->behaviors[i].name, 
+	sprintf(fname, "%s/%s/%s.%s", DATA_DIR, g_classifierFile, behaviors->behaviors[i].name, 
 		g_classifer_extensions[behaviors->behaviors[i].values[j].classifier_method]);
 	if(FileExists(fname)) {
-	  sprintf(tmp, "%s/classifier/%s.%s", dir, behaviors->behaviors[i].name,
+	  sprintf(tmp, "%s/%s/%s.%s", dir, g_classifierFile, behaviors->behaviors[i].name,
 		  g_classifer_extensions[behaviors->behaviors[i].values[j].classifier_method]);
 	  fprintf(stderr, "Copying %s...\n", fname);
 	  assert(::wxCopyFile(wxString(fname, wxConvUTF8), wxString(tmp, wxConvUTF8)));
@@ -930,10 +1009,10 @@ void LabelFrame::Backup(const char *dir) {
     }
     for(j = 0; j < behaviors->behaviors[i].num_values; j++) {
       if(behaviors->behaviors[i].values[j].classifier_method) {
-	sprintf(fname, "%s/classifier/%s_%s.%s", DATA_DIR, behaviors->behaviors[i].name, behaviors->behaviors[i].values[j].name, 
+	sprintf(fname, "%s/%s/%s_%s.%s", DATA_DIR, g_classifierFile, behaviors->behaviors[i].name, behaviors->behaviors[i].values[j].name, 
 		g_classifer_extensions[behaviors->behaviors[i].values[j].classifier_method]);
 	if(FileExists(fname)) {
-	  sprintf(tmp, "%s/classifier/%s_%s.%s", dir, behaviors->behaviors[i].name, behaviors->behaviors[i].values[j].name, 
+	  sprintf(tmp, "%s/%s/%s_%s.%s", dir, g_classifierFile, behaviors->behaviors[i].name, behaviors->behaviors[i].values[j].name, 
 		  g_classifer_extensions[behaviors->behaviors[i].values[j].classifier_method]);
 	  fprintf(stderr, "Copying %s...\n", fname);
 	  assert(::wxCopyFile(wxString(fname, wxConvUTF8), wxString(tmp, wxConvUTF8)));
@@ -1662,7 +1741,7 @@ BehaviorManagerControls::BehaviorManagerControls(BehaviorTimelineControls *paren
   
   char bname[1000], classifier_dir[1000];
   sprintf(bname, "%s/behaviors.txt", DATA_DIR);
-  sprintf(classifier_dir, "%s/classifier", DATA_DIR);
+  sprintf(classifier_dir, "%s/%s", DATA_DIR, g_classifierFile);
   behaviors = load_behaviors(bname, classifier_dir);
   group = &behaviors->behaviors[behavior_ind];
   assert(behaviors && group);

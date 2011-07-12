@@ -178,51 +178,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\gui.h"
-				>
-			</File>
-			<File
 				RelativePath=".\svm\svm_struct\svm_light\kernel.h"
 				>
 			</File>
 			<File
 				RelativePath=".\spine_features.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_light\svm_common.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_light\svm_learn.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api_behavior_sequence.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api_blob_behavior_sequence.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api_multiclass.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api_types.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct\svm_struct_common.h"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct\svm_struct_learn.h"
 				>
 			</File>
 			<File
@@ -250,47 +210,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\gui.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\spine_features.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_light\svm_common.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_light\svm_hideo.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_light\svm_learn.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api_behavior_sequence.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api_blob_behavior_sequence.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_api_multiclass.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct\svm_struct_common.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct\svm_struct_learn.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\svm\svm_struct\svm_struct_learn_custom.cpp"
 				>
 			</File>
 			<File
