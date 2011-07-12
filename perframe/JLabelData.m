@@ -54,29 +54,16 @@ classdef JLabelData < handle
     trx = {};
 
     % last-used per-frame data (one fly)
-    perframedata = []
+    perframedata = [];
     
-    % last-used window data (one fly)
-    windowdata_curr = [];
-    
-    % window data for all labeled exps, flies, frames
-    windowdata_labeled = [];
-    exp_labeled = [];
-    flies_labeled = [];
-    ts_labeled = [];
-    labelidx_old_labeled = [];
-    labelidx_new_labeled = [];
-    
-    % which frames are in the training set
-    isintrainingset = false(1,0);    
-    
-    % offsets into labeled data per experiment
-    exp2labeloff = [];
+    % computed and cached window features
+    windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
+      'labelidx_old',[],'labelidx_new',[],'featurenames',{});
     
     % labels structure
     labels = [];
-    labels_bin = [];
-    labels_bin_off = 0;
+    labelidx = [];
+    labelidx_off = 0;
     t0_curr = 0;
     t1_curr = 0;
     
@@ -310,6 +297,125 @@ classdef JLabelData < handle
       end
       
     end
+
+    function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
+      
+      success = false;
+      msg = '';
+      
+      if numel(expi) ~= 1,
+        error('Usage: expi must be a scalar');
+      end
+      
+      if size(flies,1) ~= 1,
+        error('Usage: one set of flies must be selected');
+      end
+      
+      idxcurr = obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
+      tscurr = obj.windowdata.t(idxcurr);
+      missingts = setdiff(tscurr,ts);
+      
+      if isempty(missingts),
+        success = true;
+        return;
+      end
+
+      % get labels for current flies
+      [labelidx,t0_labelidx] = obj.GetLabelIdx(obj.expi,flies);
+      
+      while true,
+        
+        t = missingts(1);
+        [success1,msg,t0,t1,X] = obj.ComputeWindowData(expi,flies,t);
+        if ~success1,
+          return;
+        end
+        
+        tsnew = t0:t1;
+        idxnew = ~ismember(tsnew,tscurr);
+        m = nnz(idxnew);
+        
+        obj.windowdata.X(:,end+1:end+m) = X(:,idxnew);
+        obj.windowdata.exp(end+1:end+m,1) = expi;
+        obj.windowdata.flies(end+1:end+m,:) = repmat(flies,[m,1]);
+        obj.windowdata.t(end+1:end+m,1) = tsnew(idxnew);
+        obj.windowdata.labelidx_old(end+1:end+m,1) = 0;
+        obj.windowdata.labelidx_new = labelidx(t0-t0_labelidx+1:t1-t0_labelidx+1);
+
+        missingts(missingts >= t0 & missingts <= t1) = [];
+        
+        if isempty(missingts),
+          break;
+        end
+        
+      end
+      
+      success = true;
+      
+    end
+
+    function [success,msg,t0,t1] = ComputeWindowDataChunk(obj,expi,flies,t)
+      
+      success = false;
+      msg = '';
+      
+      % choose frames to compute
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      t1 = min(t+obj.windowdatachunk_radius,T1);
+      t0 = max(t1-2*obj.winodwdatachunk_radius-1,T0);
+      off = 1-t0;
+      n = t1-t0+1;
+      docompute = false(1,n);
+      tscomputed = obj.windowdata.t(obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2));
+      docompute(tscomputed+off) = false;
+      t0 = find(docompute,1,'first') - off;
+      t1 = find(docompute,1,'last') - off;
+
+      try
+        X = [];
+        feature_names = {};
+
+        % loop through per-frame fields
+        for j = 1:numel(obj.perframefns),
+          fn = obj.perframefns{j};
+
+          % get per-frame data
+          if all(flies == obj.flies),
+        
+            % use pre-loaded per-frame data
+            [x_curr,feature_names_curr] = ...
+              ComputeWindowFeatures(obj.perframedata{j},obj.windowfeaturescellparams.(fn){:});
+            
+          else
+            
+            % load in data
+            perframedir = obj.GetFile('perframedir',expi);
+            perframedata = load(fullfile(perframedir,[fn,'.mat']));
+            % TODO: adapt for multiple flies labeled at once
+            [x_curr,feature_names_curr] = ...
+              ComputeWindowFeatures(perframedata.data{fly},obj.windowfeaturescellparams.(fn){:});
+            
+          end
+          
+          nold = size(X,2);
+          nnew = size(x_curr,2);
+          if nold > nnew,
+            x_curr(:,end+1:end+nold-nnew) = nan;
+          elseif nnew > nold,
+            X(:,end+1:end+nnew-nold) = nan;
+          end
+          X = [X;x_curr]; %#ok<AGROW>
+          feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
+        end
+      catch ME,
+        msg = getReport(ME);
+        return;
+      end
+      
+      success = true;
+     
+    end
     
     function [success,msg] = SetMovieFileName(obj,moviefilename)
 
@@ -509,56 +615,56 @@ classdef JLabelData < handle
 %     end
 
 
-    function UpdateWindowDataLabeled(obj)
-
-      % indices into cached data for current experiment and flies
-      idxcurr = obj.exp_labeled' == obj.expi & all(bsxfun(@eq,obj.flies_labeled,obj.flies),2);
-      
-      % frames of current experiment and flies that have old labeled data
-      
-      % indices into cached data that are for this exp, these flies, have
-      % labelidx_old
-      idxcurr1 = idxcurr & obj.labelidx_old_labeled ~= 0;
-      % which frames for expi, flies that have labelidx_old ~= 0
-      tsold = obj.ts_labeled(idxcurr1);
-      % indices into labels_bin that have labelidx_old ~= 0
-      idxold = tsold+obj.labels_bin_off;
-            
-      % keep/add windowdata if labelidx_old ~= 0 or if labels_bin ~= 0
-      % indices into labels_bin for which new labelidx_new ~= 0
-      cacheidx = any(obj.labels_bin,2);
-      % or labelidx_old ~= 0
-      cacheidx(idxold) = true;
-      m = nnz(cacheidx);
-
-      % labelidx_old for these frames
-      labelidx_old = zeros(1,m);
-      labelidx_old(idxold) = obj.labelidx_old_labeled(idxcurr1);
-      
-      % remove all data from the cache for the current exp, flies
-      obj.windowdata_labeled(:,idxcurr) = [];
-      obj.exp_labeled(idxcurr) = [];
-      obj.flies_labeled(idxcurr,:) = [];
-      obj.labelidx_old_labeled(idx) = [];
-      obj.labelidx_new_labeled(idx) = [];
-      obj.ts_labeled(idx) = [];
-      
-      % convert labels_bin to integer
-      n = size(obj.labels_bin,1);
-      labelidx = zeros(1,n);
-      for i = 1:obj.nbehaviors,
-        labelidx(obj.labels_bin(:,i)) = i;
-      end
-      
-      % add this data      
-      obj.windowdata_labeled(:,end+1:end+m) = obj.windowdata_curr(:,cacheidx);
-      obj.exp_labeled(end+1:end+m) = obj.expi;
-      obj.flies_labeled(end+1:end+m,:) = repmat(obj.flies,[m,1]);
-      obj.labelidx_old_labeled(end+1:end+m) = labelidx_old;
-      obj.labelidx_new_labeled(end+1:end+m) = labelidx;
-      obj.ts_labeled(end+1:end+m) = find(cacheidx) + obj.labels_bin_off;
-
-    end
+%     function UpdateWindowDataLabeled(obj)
+% 
+%       % indices into cached data for current experiment and flies
+%       idxcurr = obj.exp_labeled' == obj.expi & all(bsxfun(@eq,obj.flies_labeled,obj.flies),2);
+%       
+%       % frames of current experiment and flies that have old labeled data
+%       
+%       % indices into cached data that are for this exp, these flies, have
+%       % labelidx_old
+%       idxcurr1 = idxcurr & obj.labelidx_old_labeled ~= 0;
+%       % which frames for expi, flies that have labelidx_old ~= 0
+%       tsold = obj.ts_labeled(idxcurr1);
+%       % indices into labels_bin that have labelidx_old ~= 0
+%       idxold = tsold+obj.labels_bin_off;
+%             
+%       % keep/add windowdata if labelidx_old ~= 0 or if labels_bin ~= 0
+%       % indices into labels_bin for which new labelidx_new ~= 0
+%       cacheidx = any(obj.labels_bin,2);
+%       % or labelidx_old ~= 0
+%       cacheidx(idxold) = true;
+%       m = nnz(cacheidx);
+% 
+%       % labelidx_old for these frames
+%       labelidx_old = zeros(1,m);
+%       labelidx_old(idxold) = obj.labelidx_old_labeled(idxcurr1);
+%       
+%       % remove all data from the cache for the current exp, flies
+%       obj.windowdata_labeled(:,idxcurr) = [];
+%       obj.exp_labeled(idxcurr) = [];
+%       obj.flies_labeled(idxcurr,:) = [];
+%       obj.labelidx_old_labeled(idx) = [];
+%       obj.labelidx_new_labeled(idx) = [];
+%       obj.ts_labeled(idx) = [];
+%       
+%       % convert labels_bin to integer
+%       n = size(obj.labels_bin,1);
+%       labelidx = zeros(1,n);
+%       for i = 1:obj.nbehaviors,
+%         labelidx(obj.labels_bin(:,i)) = i;
+%       end
+%       
+%       % add this data      
+%       obj.windowdata_labeled(:,end+1:end+m) = obj.windowdata_curr(:,cacheidx);
+%       obj.exp_labeled(end+1:end+m) = obj.expi;
+%       obj.flies_labeled(end+1:end+m,:) = repmat(obj.flies,[m,1]);
+%       obj.labelidx_old_labeled(end+1:end+m) = labelidx_old;
+%       obj.labelidx_new_labeled(end+1:end+m) = labelidx;
+%       obj.ts_labeled(end+1:end+m) = find(cacheidx) + obj.labels_bin_off;
+% 
+%     end
     
 %     function RemoveFromWindowDataLabeled(obj,expi,flies)
 % 
@@ -910,7 +1016,7 @@ classdef JLabelData < handle
         obj.expi = 0;
         obj.flies = nan(size(obj.flies));
         % TODO: may want to save labels somewhere before just overwriting
-        % labels_bin
+        % labelidx
         obj.PreLoad(obj.nexps,1);
 
       end
@@ -1417,7 +1523,7 @@ classdef JLabelData < handle
       diffflies = diffexpi || ~isempty(setdiff(flies,obj.flies)) || ~isempty(setdiff(obj.flies,flies));
 
       if diffflies && ~isempty(obj.expi) && obj.expi > 0,
-        % store labels currently in labels_bin to labels
+        % store labels currently in labelidx to labels
         obj.StoreLabels();
       end
       
@@ -1436,8 +1542,8 @@ classdef JLabelData < handle
       
       if diffflies,
         
-        % set labels_bin from labels
-        obj.CacheLabelsBin(flies);
+        % set labelidx from labels
+        obj.CacheLabelIdx(flies);
         
         % window data for the currenf flies
         [success1,msg] = obj.LoadWindowData(expi,flies);
@@ -1471,7 +1577,7 @@ classdef JLabelData < handle
     end
 
     
-    function CacheLabelsBin(obj,flies)
+    function CacheLabelIdx(obj,flies)
       
       if nargin < 2,
         flies = obj.flies;
@@ -1481,18 +1587,36 @@ classdef JLabelData < handle
       obj.t1_curr = min(obj.GetTrxEndFrame(obj.expi,flies));
 
       n = obj.t1_curr-obj.t0_curr+1;
-      obj.labels_bin = false(n,obj.nbehaviors);
+      obj.labelidx = zeros(1,n);
 
       % get labels for current flies 
       labels_curr = obj.GetLabels(obj.expi,flies);
       
       % loop through all behaviors
-      obj.labels_bin_off = labels_curr.off;
+      obj.labelidx_off = labels_curr.off;
       for j = 1:obj.nbehaviors,
         for k = find(strcmp(labels_curr.names,obj.labelnames{j})),
           t0 = labels_curr.t0s(k);
           t1 = labels_curr.t1s(k);
-          obj.labels_bin(t0+obj.labels_bin_off:t1+obj.labels_bin_off,j) = true;
+          obj.labelidx(t0+obj.labelidx_off:t1+obj.labelidx_off) = j;
+        end
+      end
+      
+    end
+    
+    function labelidx = GetLabelIdx(obj,expi,flies)
+      
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      n = T1-T0+1;
+      off = 1 - T0;
+      labels_curr = obj.GetLabels(expi,flies);
+      labelidx = zeros(1,n);
+      for i = 1:obj.nbehaviors,
+        for j = find(strcmp(labels_curr.names,obj.labelnames{i})),
+          t0 = labels_curr.t0s(j);
+          t1 = labels_curr.t1s(j);
+          labelidx(t0+off:t1+off) = i;
         end
       end
       
@@ -1521,7 +1645,7 @@ classdef JLabelData < handle
           error('This should never happen -- only should get new labels for current experiment');
         end
         t0_curr = max(obj.GetTrxFirstFrame(expi,flies));
-        labels_curr.off = 1-t0_curr;        
+        labels_curr.off = 1-t0_curr;
       end
 
       
@@ -1530,18 +1654,18 @@ classdef JLabelData < handle
     function StoreLabels(obj)
       
       % flies not yet initialized
-      if isempty(obj.flies) || all(isnan(obj.flies)) || ~isfield(obj,'labels_bin'),
+      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx),
         return;
       end
       
       % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'off',obj.labels_bin_off);
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'off',obj.labelidx_off);
       for j = 1:obj.nbehaviors,
-        [i0s,i1s] = get_interval_ends(obj.labels_bin(:,j));
+        [i0s,i1s] = get_interval_ends(obj.labelidx==j);
         if ~isempty(i0s),
           n = numel(i0s);
-          newlabels.t0s(end+1:end+n) = i0s - obj.labels_bin_off;
-          newlabels.t1s(end+1:end+n) = i1s - obj.labels_bin_off;
+          newlabels.t0s(end+1:end+n) = i0s - obj.labelidx_off;
+          newlabels.t1s(end+1:end+n) = i1s - obj.labelidx_off;
           newlabels.names(end+1:end+n) = repmat(obj.labelnames(j),[1,n]);
         end
       end
@@ -1554,7 +1678,13 @@ classdef JLabelData < handle
       obj.labels(obj.expi).names{j} = newlabels.names;
       obj.labels(obj.expi).flies(j,:) = obj.flies;
       
-      obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
+      ts = find(obj.labelidx~=0) - obj.labelidx_off;
+      [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
+      if ~success,
+        warning(msg);
+      end
+      
+      %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
       
     end
     
@@ -1567,12 +1697,15 @@ classdef JLabelData < handle
           
       else
         
+        % need things to be in the old order!
         waslabeled = obj.labelidx_old_labeled ~= 0;
         islabeled = obj.labelidx_new_labeled ~= 0;
         % examples to be removed
         idx_remove = waslabeled & ~islabeled;
         [obj.classifier,hsPr] = fernsClfRemoveTrainingData( obj.labelidx_old_labeled, remove_data_idx, ferns )
-      
+
+      end
+        
     end
 
   end
