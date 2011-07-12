@@ -47,6 +47,7 @@ FlyBehaviorFeatures feature_defs[MAX_BASE_FEATURES];
   void save_example(void *b, void *d, const char *fname);
   void free_data(void *d);
   char **load_examples(const char *fname, int *num);
+  void save_examples(const char *fname, SAMPLE sample);
   char *getLabelName(void* d);
 };
 

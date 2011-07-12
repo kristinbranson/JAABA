@@ -21,6 +21,7 @@
 
 # include <stdio.h>
 #ifdef WIN32
+#ifndef _MSC_STDINT_H_
 typedef __int64 int64_t;
 typedef __int32 int32_t;
 typedef __int16 int16_t;
@@ -29,6 +30,7 @@ typedef unsigned __int64 uint64_t;
 typedef unsigned __int32 uint32_t;
 typedef unsigned __int16 uint16_t;
 typedef unsigned __int8 uint8_t;
+#endif
 #else
 # include <stdint.h>
 #endif
@@ -381,6 +383,13 @@ void   *my_malloc(size_t);
 void   copyright_notice(void);
 double sprod_nn(double *vec_n, double *vec_s, int n);
 double sprod_ns_bounded(double *vec_n, SVECTOR *vec_s, int s, int e);
+
+
+double *create_nvector(int n, SVECTOR *v);
+SVECTOR *read_svector(FILE *fin);
+void write_svector(SVECTOR *v, FILE *fout);
+SVECTOR *create_svector_zero();
+double sum_sqr_diff_ss(SVECTOR *a, SVECTOR *b);
 
 #ifdef WIN32
 #include <float.h>

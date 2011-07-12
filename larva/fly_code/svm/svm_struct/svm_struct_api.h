@@ -36,22 +36,22 @@ class SVMStructMethod {
   virtual void        svm_struct_learn_api_exit() {};
   virtual void        svm_struct_classify_api_init(int argc, const char* argv[]) {};
   virtual void        svm_struct_classify_api_exit() {};
-  virtual SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm) { SAMPLE s; memset(&s,0,sizeof(s)); return s;};
+  virtual SAMPLE      read_struct_examples(const char *file, STRUCT_LEARN_PARM *sparm) { SAMPLE s; memset(&s,0,sizeof(s)); return s;};
   virtual void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm, 
 			      STRUCT_LEARN_PARM *sparm, LEARN_PARM *lparm, 
 			      KERNEL_PARM *kparm) {};
   virtual CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm, 
 					      STRUCT_LEARN_PARM *sparm) {CONSTSET c; memset(&c,0,sizeof(c)); return c;};
-  virtual LABEL       find_most_violated_constraint_slackrescaling(SPATTERN x, LABEL y, 
+  virtual LABEL       find_most_violated_constraint_slackrescaling(SPATTERN *x, LABEL *y, 
 						     STRUCTMODEL *sm, 
-						     STRUCT_LEARN_PARM *sparm) { LABEL yy; memset(&yy,0,sizeof(yy)); return yy; };
-  virtual LABEL       find_most_violated_constraint_marginrescaling(SPATTERN x, LABEL y, 
+						     STRUCT_LEARN_PARM *sparm, double *score) { LABEL yy; memset(&yy,0,sizeof(yy)); return yy; };
+  virtual LABEL       find_most_violated_constraint_marginrescaling(SPATTERN *x, LABEL *y, 
 						     STRUCTMODEL *sm, 
-						     STRUCT_LEARN_PARM *sparm) { LABEL yy; memset(&yy,0,sizeof(yy)); return yy; };
-  virtual LABEL       classify_struct_example(SPATTERN x, STRUCTMODEL *sm, 
-					      STRUCT_LEARN_PARM *sparm) { LABEL y; memset(&y,0,sizeof(y)); return y; };
+						     STRUCT_LEARN_PARM *sparm, double *score) { LABEL yy; memset(&yy,0,sizeof(yy)); return yy; };
+  virtual LABEL       classify_struct_example(SPATTERN *x, STRUCTMODEL *sm, 
+					      STRUCT_LEARN_PARM *sparm, double *score) { LABEL y; memset(&y,0,sizeof(y)); return y; };
   virtual int         empty_label(LABEL y) { return 0; };
-  virtual SVECTOR     *psi(SPATTERN x, LABEL y, STRUCTMODEL *sm, 
+  virtual SVECTOR     *psi(SPATTERN *x, LABEL *y, STRUCTMODEL *sm, 
 			   STRUCT_LEARN_PARM *sparm) { return NULL; };
   virtual double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm) { return 0; };
   virtual int         finalize_iteration(double ceps, int cached_constraint,
@@ -86,13 +86,16 @@ class SVMStructMethod {
   virtual LABEL read_label(FILE *fin, char *fname, int *iter, int *num) {LABEL y; memset(&y,0,sizeof(y)); return y; };
   virtual void save_example(void *b, void *d, const char *fname) {}
   virtual char **load_examples(const char *fname, int *num) { return NULL; }
+  virtual void save_examples(const char *fname, SAMPLE sample) {}
+  virtual EXAMPLE read_struct_example(const char *fname, STRUCT_LEARN_PARM *sparm) { EXAMPLE y; memset(&y,0,sizeof(y)); return y; };
+  virtual void label_string(char *str, LABEL yy) { strcpy(str, ""); }
 };
 
 
 
 SVMStructMethod   *read_input_parameters_train(int, const char **, char *, char *,long *, long *,
 					       STRUCT_LEARN_PARM *, LEARN_PARM *, KERNEL_PARM *,
-					       int *, SVMStructMethod *m = NULL);
+					       int *, SVMStructMethod *m = NULL, char *modelfile_in=NULL);
 
 
 #endif

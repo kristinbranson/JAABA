@@ -1,4 +1,5 @@
-#ifdef DEBUG > 0 
+
+#if DEBUG > 0 
 extern char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
 #endif
 
@@ -23,11 +24,14 @@ extern char *g_currFile; // CSC 20110420: hack to pass current filename for debu
 		     "use_ave_absolute_harmonic_features=%d, use_start_sum_absolute_diff_haar_features=%d, "\
 		     "use_end_sum_absolute_diff_haar_features=%d, use_start_sum_diff_haar_features=%d, use_end_sum_diff_haar_features=%d,  "\
 		     "use_start_ave_absolute_diff_haar_features=%d, use_end_ave_absolute_diff_haar_features=%d, use_start_ave_diff_haar_features=%d,  "\
-		     "use_end_ave_diff_haar_features=%d%*[^\n]\n"
+		     "use_end_ave_diff_haar_features=%d"
+
+#define FORMAT__BOUT_FEATURE_PARAMS_READ FORMAT__BOUT_FEATURE_PARAMS \
+	"%*[^\n]\n"
 
 
 #define ALLOW_SAME_TRANSITIONS
-#define DEBUG 0
+#define DEBUG 1
 #define MAX_FILENAME 1000
 #define MAX_FEATURES 1000
 
@@ -276,6 +280,7 @@ class SVMBehaviorSequence : public SVMStructMethod {
   void print_weights(FILE *fout, double *w);
   void print_weights(const char *fname, double *w);
   void set_feature_name(int feature_ind, int base_feature_ind, const char *name);
+  void label_string(char *str, LABEL yy);
 
   void on_finished_iteration(CONSTSET c, STRUCTMODEL *sm, 
 						STRUCT_LEARN_PARM *sparm, int iter_num) ;
@@ -290,22 +295,22 @@ class SVMBehaviorSequence : public SVMStructMethod {
   void        svm_struct_learn_api_exit();
   void        svm_struct_classify_api_init(int argc, const char* argv[]);
   void        svm_struct_classify_api_exit();
-  SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm);
+  SAMPLE      read_struct_examples(const char *file, STRUCT_LEARN_PARM *sparm);
   void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm, 
 			      STRUCT_LEARN_PARM *sparm, LEARN_PARM *lparm, 
 			      KERNEL_PARM *kparm);
   CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm, 
 				    STRUCT_LEARN_PARM *sparm);
-  LABEL       find_most_violated_constraint_slackrescaling(SPATTERN x, LABEL y, 
+  LABEL       find_most_violated_constraint_slackrescaling(SPATTERN *x, LABEL *y, 
 						     STRUCTMODEL *sm, 
-						     STRUCT_LEARN_PARM *sparm);
-  LABEL       find_most_violated_constraint_marginrescaling(SPATTERN x, LABEL y, 
+						     STRUCT_LEARN_PARM *sparm, double *score_loss);
+  LABEL       find_most_violated_constraint_marginrescaling(SPATTERN *x, LABEL *y, 
 						     STRUCTMODEL *sm, 
-						     STRUCT_LEARN_PARM *sparm);
-  LABEL       classify_struct_example(SPATTERN x, STRUCTMODEL *sm, 
-				    STRUCT_LEARN_PARM *sparm);
+						     STRUCT_LEARN_PARM *sparm, double *score_loss);
+  LABEL       classify_struct_example(SPATTERN *x, STRUCTMODEL *sm, 
+				    STRUCT_LEARN_PARM *sparm, double *score_loss);
   int         empty_label(LABEL y);
-  SVECTOR     *psi(SPATTERN x, LABEL y, STRUCTMODEL *sm, 
+  SVECTOR     *psi(SPATTERN *x, LABEL *y, STRUCTMODEL *sm, 
 			  STRUCT_LEARN_PARM *sparm);
   double      loss2(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm, int beh, int debug=0);
   double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm);
@@ -339,10 +344,11 @@ class SVMBehaviorSequence : public SVMStructMethod {
   void write_bout_sequence(BehaviorBoutSequence *b, FILE *fout, int iter, int num);
   LABEL read_label(FILE *fin, char *fname, int *iter, int *num);
   void write_label(LABEL y, FILE *fout, int iter, int num);
+  EXAMPLE read_struct_example(const char *fname, STRUCT_LEARN_PARM *sparm);
   
   double      *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, bool fast_update=false);
   LABEL       inference_via_dynamic_programming(SPATTERN *x, STRUCTMODEL *sm, 
-						STRUCT_LEARN_PARM *sparm, LABEL *yy);
+						STRUCT_LEARN_PARM *sparm, LABEL *yy, double *score);
   void compute_feature_mean_variance_median_statistics(EXAMPLE *ex, int num_examples);
 
   // Currently, cost does not depend on the bout duration.  It only depends on the percent overlap
@@ -367,6 +373,8 @@ class SVMBehaviorSequence : public SVMStructMethod {
    * @return A *num array, a list of all training file names
    */
   virtual char **load_examples(const char *fname, int *num) = 0;
+  
+  virtual void save_examples(const char *fname, SAMPLE sample) = 0;
 
   /**
    * @brief Read a particular training file.  Each training file is some tracked sequence that may contain multiple bouts of behaviors.

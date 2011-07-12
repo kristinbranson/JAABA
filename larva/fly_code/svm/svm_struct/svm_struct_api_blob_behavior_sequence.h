@@ -25,7 +25,8 @@ class SVMBlobBehaviorSequence : public SVMBehaviorSequence {
   void save_example(void *b, void *d, const char *fname);
   void free_data(void *d);
   char **load_examples(const char *fname, int *num);
-  char *getLabelName(void* d) {return 0;}
+  void save_examples(const char *fname, SAMPLE sample);
+  char *getLabelName(void* d);
 };
 
 #endif
