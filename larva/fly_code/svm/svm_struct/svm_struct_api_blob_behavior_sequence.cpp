@@ -117,6 +117,18 @@ char **SVMBlobBehaviorSequence::load_examples(const char *fname, int *num) {
   return load_train_list(fname, num);
 }
 
+void SVMBlobBehaviorSequence::save_examples(const char *fname, SAMPLE sample) {
+  int num = 0;
+  char *tlist[10000];
+  for(int i = 0; i < sample.n; i++)
+    tlist[i] = getLabelName(((BehaviorBoutFeatures*)(sample.examples[i].x.data))->data);
+  save_train_list(fname, tlist, num);
+}
+
+char *SVMBlobBehaviorSequence::getLabelName(void* d) {
+	return ((BlobSequence*)d)->fname;
+}
+
 /*
  * Use a sequence of behavior bouts to set the per-frame behavior labels in b
  */

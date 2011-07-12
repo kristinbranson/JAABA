@@ -60,6 +60,28 @@ int SVMFlyBehaviorSequence::num_frames(void *b) {
 }
 
 // Read a file containing a list of training examples and return a string array of file names
+void SVMFlyBehaviorSequence::save_examples(const char *fname, SAMPLE sample) {
+  char **retval = NULL, line[1000], folder[1000];
+  FILE *fout = fopen(fname, "w");
+  strcpy(folder, fname);
+  for(int i = strlen(folder); i >= 0 && folder[i] != '/' && folder[i] != '\\'; i--) 
+    folder[i] = '\0';
+
+  if(!fout) return;
+
+  for(int i = 0; i < sample.n; i++) {
+    char fname2[1000];
+    strcpy(fname2, getLabelName(((BehaviorBoutFeatures*)(sample.examples[i].x.data))->data));
+    char *ptr = fname2;
+	int j = 0;
+    while(fname2[j] == folder[j] || ((fname2[j]=='/'||fname2[j]=='\\')&&(folder[j]=='/'||folder[j]=='\\'))) j++;
+    if(fname2[j] == '/' || fname2[j] == '\\')
+      j++;
+    fprintf(fout, "%s\n", fname2+j);
+  }
+  fclose(fout);
+}
+
 char **SVMFlyBehaviorSequence::load_examples(const char *fname, int *num) {
   char **retval = NULL, line[1000], folder[1000];
   FILE *fin = fopen(fname, "r");

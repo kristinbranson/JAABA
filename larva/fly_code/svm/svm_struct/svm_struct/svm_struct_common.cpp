@@ -31,6 +31,7 @@
 #include "../svm_struct_api_fly_behavior_sequence.h"
 #include "../svm_struct_api_behavior_sequence.h"
 #include "../svm_struct_api_multiclass.h"
+#include "../online_structured_learning.h"
 
 
 #define DATA_DIR "../data"
@@ -146,18 +147,18 @@ CONSTSET load_const_set(const char *fname) {
 /**** end print methods ****/
 
 
-void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, STRUCTMODEL *structmodel, SVMStructMethod *m) {  
+void train_main(int argc, const char** argv, STRUCT_LEARN_PARM *struct_parm, STRUCTMODEL *structmodel, SVMStructMethod *m, StructuredSVMOnlineLearner **learner_ptr) {  
   SAMPLE sample;  /* training sample */
   LEARN_PARM learn_parm;
   KERNEL_PARM kernel_parm;
   int alg_type;
-  char modelfile[1000], trainfile[1000];
+  char modelfile[1000], modelfile_in[1000], trainfile[1000];
   
   strcpy(modelfile, "");
 
   m = read_input_parameters_train(argc,argv,trainfile,modelfile,&verbosity,
 				  &struct_verbosity,struct_parm,&learn_parm,
-				  &kernel_parm,&alg_type, m);
+				  &kernel_parm,&alg_type, m, modelfile_in);
   m->svm_struct_learn_api_init(argc,argv);
 
   if(strlen(modelfile)) {
@@ -173,6 +174,16 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
 	  fclose(fout);
   }
 
+  char learner[1000];  
+  sprintf(learner, "%s.learner", modelfile_in ? modelfile_in : modelfile);
+  if(strlen(modelfile_in) && FileExists(modelfile_in)) {
+    StructuredSVMOnlineLearner *learner = new StructuredSVMOnlineLearner(m, modelfile_in);
+	if(*learner_ptr) *learner_ptr = learner;
+    learner->Train();
+    *structmodel = *learner->GetStructModel();
+    delete learner;
+	return;
+  } else {
   if(struct_verbosity>=1) {
     printf("Reading training examples..."); fflush(stdout);
   }
@@ -183,6 +194,13 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
   }
   
   /* Do the learning and return structmodel. */
+  if(struct_parm->method != SPO_CUTTING_PLANE) {
+    StructuredSVMOnlineLearner *learner = new StructuredSVMOnlineLearner(m, &learn_parm, &kernel_parm, struct_parm, &sample, trainfile, modelfile);
+	if(*learner_ptr) *learner_ptr = learner;
+    learner->Train();
+    *structmodel = *learner->GetStructModel();
+    delete learner;
+  } else {
   if(alg_type == 0)
     svm_learn_struct(sample,struct_parm,&learn_parm,&kernel_parm,structmodel,NSLACK_ALG,m);
   else if(alg_type == 1)
@@ -197,6 +215,7 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
     svm_learn_struct_joint_custom(sample,struct_parm,&learn_parm,&kernel_parm,structmodel,m);
   else
     exit(1);
+  }
 
   /* Warning: The model contains references to the original data 'docs'.
      If you want to free the original data, and only keep the model, you 
@@ -213,6 +232,7 @@ void train_main(int argc, const char* argv[], STRUCT_LEARN_PARM *struct_parm, ST
   m->free_struct_sample(sample);
 
   m->svm_struct_learn_api_exit();
+  }
 }
 /*
 SVMStructMethod *instantiate_SVMStructMethod(char *classtype)
@@ -246,7 +266,7 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
 			   long *verbosity,long *struct_verbosity, 
 			   STRUCT_LEARN_PARM *struct_parm,
 			   LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm,
-				       int *alg_type, SVMStructMethod *m)
+				       int *alg_type, SVMStructMethod *m, char *modelfile_in)
 {
   long i;
   char type[100], cname[400], bname[400], feat_name[400], load_constraints_fname[400], save_constraints_fname[400];
@@ -267,6 +287,7 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
   struct_parm->batch_size=100;
 
   strcpy (modelfile, "svm_struct_model");
+  if(modelfile_in) strcpy (modelfile_in, "");
   strcpy (learn_parm->predfile, "trans_predictions");
   strcpy (learn_parm->alphafile, "");
   (*verbosity)=0;/*verbosity for svm_light*/
@@ -375,6 +396,9 @@ SVMStructMethod *read_input_parameters_train(int argc,const char *argv[],char *t
   strcpy (trainfile, argv[i]);
   if((i+1)<argc) {
     strcpy (modelfile, argv[i+1]);
+  }
+  if((i+2)<argc && modelfile_in) {
+    strcpy (modelfile_in, argv[i+2]);
   }
   if(learn_parm->svm_iter_to_shrink == -9999) {
     learn_parm->svm_iter_to_shrink=100;
@@ -681,7 +705,8 @@ omp_init_lock (&lock);
 //	for(i=0; i<MAX_FEATURES; i++)
 		//if(i < m->
 #endif
-    LABEL y=m->classify_struct_example(testsample.examples[i].x,structmodel,struct_parm);
+	double score;
+    LABEL y=m->classify_struct_example(&testsample.examples[i].x,structmodel,struct_parm, &score);
     fprintf(stderr, "  sequence %d done\n", (int)i);
     
 #ifdef USE_OPENMP

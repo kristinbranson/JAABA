@@ -103,7 +103,7 @@ SVMBehaviorSequence::SVMBehaviorSequence(struct _BehaviorGroups *behaviors, int 
 void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams) {
 	this->behaviors = behaviors;
 	this->behavior = beh;
-	this->feature_diff_frames = feature_diff_frames;
+	this->feature_diff_frames = 10;
 #ifdef ALLOW_SAME_TRANSITIONS
 	time_approximation = .05;
 #else
@@ -169,12 +169,18 @@ int SVMBehaviorSequence::test (int argc, const char* argv[], STRUCT_LEARN_PARM *
 
 #define compactUnarySize(p_features, p_classes) ((p_features) + (p_classes)    ) * (p_classes)
 #define   extraUnarySize(p_features, p_classes) ((p_features) + (p_classes) + 1) * (p_classes)
+/*
 #ifdef ALLOW_SAME_TRANSITION
 #define getPsiSize(p_features, p_classes) compactUnarySize(p_features, p_classes)
 #else
 #define getPsiSize(p_features, p_classes) extraUnarySize(p_features, p_classes)
 #endif
-
+*/
+#ifdef ALLOW_SAME_TRANSITIONS  //SJB
+#define getPsiSize(p_features, p_classes) extraUnarySize(p_features, p_classes)
+#else
+#define getPsiSize(p_features, p_classes) compactUnarySize(p_features, p_classes)
+#endif
 
 
 /* Called in learning part before anything else is done to allow
@@ -493,8 +499,8 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(EXAMPL
 	free(tmp_features);
 }
 
-#if DEBUG > 0
-#define MAX_FEATURES 1000
+#if DEBUG > 1
+#define MAX_FEATURES 10000
 int g_feature_map[MAX_FEATURES] = {0}; // if first element is initialized the rest will be zero-filled
 int g_feature_map2[MAX_FEATURES] = {0}; // if first element is initialized the rest will be zero-filled
 int g_feature_map3[MAX_FEATURES] = {0}; // if first element is initialized the rest will be zero-filled
@@ -502,13 +508,15 @@ int g_csc_ind;
 
 #define ADD_FEATURE(feat, ind, val, feature_id, feature2_id, feature3_id) {\
 	g_csc_ind = ind; \
-	(feat)[(g_csc_ind)] = (val); \
+	(feat)[(ind)] = (val); \
+	ind++; \
+	assert(abs(f) < 100000000); \
 	g_feature_map[(g_csc_ind)] = feature_id; \
 	g_feature_map2[(g_csc_ind)] = feature2_id;\
-	g_feature_map3[(g_csc_ind)] = feature3_id;\
+	g_feature_map3[(g_csc_ind)] = feature3_id; \
 }
 #else
-#define ADD_FEATURE(feat, ind, val, feature_id)	(feat)[(ind)] = (val);
+#define ADD_FEATURE(feat, ind, val, feature_id)	{ (feat)[(ind)] = (val); ind++; }
 #endif
 
 /*
@@ -559,10 +567,10 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 			for(k = 0, start = t_start; k < (1<<j); k++, start += temporal_grid_size[j]) {
 				f = (b->integral_features[i][(int)(start+temporal_grid_size[j]+.5)] -
 					b->integral_features[i][(int)(start+.5)]);
-				if(p->use_bout_sum_features) ADD_FEATURE(feat, ind++, f, USE_BOUT_SUM_FEATURES, i, j);
-				if(p->use_bout_ave_features) ADD_FEATURE(feat, ind++, f*inv, USE_BOUT_AVE_FEATURES, i, j);
-				if(p->use_bout_sum_absolute_features) ADD_FEATURE(feat, ind++, my_abs(f), USE_BOUT_SUM_ABSOLUTE_FEATURES, i, j);
-				if(p->use_bout_ave_absolute_features) ADD_FEATURE(feat, ind++, my_abs(f)*inv, USE_BOUT_AVE_ABSOLUTE_FEATURES, i, j);
+				if(p->use_bout_sum_features) ADD_FEATURE(feat, ind, f, USE_BOUT_SUM_FEATURES, i, j);
+				if(p->use_bout_ave_features) ADD_FEATURE(feat, ind, f*inv, USE_BOUT_AVE_FEATURES, i, j);
+				if(p->use_bout_sum_absolute_features) ADD_FEATURE(feat, ind, my_abs(f), USE_BOUT_SUM_ABSOLUTE_FEATURES, i, j);
+				if(p->use_bout_ave_absolute_features) ADD_FEATURE(feat, ind, my_abs(f)*inv, USE_BOUT_AVE_ABSOLUTE_FEATURES, i, j);
 			}
 		}
 
@@ -571,35 +579,35 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 			sum_sqr = (b->integral_sqr_features[i][t_end]-b->integral_sqr_features[i][t_start]);
 			f = sum_sqr - 2*ave*sum + SQR(ave)*dur;
 			if(f < 0) f = 0;  // avoid precision-related errors
-			if(p->use_sum_variance) ADD_FEATURE(feat, ind++, f, USE_SUM_VARIANCE, i, 0);
-			if(p->use_standard_deviation) ADD_FEATURE(feat, ind++, sqrt(f*inv), USE_STANDARD_DEVIATION, i, 0);
+			if(p->use_sum_variance) ADD_FEATURE(feat, ind, f, USE_SUM_VARIANCE, i, 0);
+			if(p->use_standard_deviation) ADD_FEATURE(feat, ind, sqrt(f*inv), USE_STANDARD_DEVIATION, i, 0);
 		}
 
 		// Add features for the min/max feature response in the current bout, or thresholded versions of the min/max values
 		if(p->use_bout_max_feature) 
-			ADD_FEATURE(feat, ind++, b->bout_max_feature_responses[i], USE_BOUT_MAX_FEATURE, i, j);
+			ADD_FEATURE(feat, ind, b->bout_max_feature_responses[i], USE_BOUT_MAX_FEATURE, i, j);
 		if(p->use_bout_min_feature) 
-			ADD_FEATURE(feat, ind++, b->bout_min_feature_responses[i], USE_BOUT_MIN_FEATURE, i, j);
+			ADD_FEATURE(feat, ind, b->bout_min_feature_responses[i], USE_BOUT_MIN_FEATURE, i, j);
 		for(l = 0; l < p->num_bout_max_thresholds; l++) 
-			ADD_FEATURE(feat, ind++, b->bout_max_feature_responses[i] > max_thresholds[i][l] ? 1 : 0, NUM_BOUT_MAX_THRESHOLDS, i, j);
+			ADD_FEATURE(feat, ind, b->bout_max_feature_responses[i] > max_thresholds[i][l] ? 1 : 0, NUM_BOUT_MAX_THRESHOLDS, i, j);
 		for(l = 0; l < p->num_bout_min_thresholds; l++) 
-			ADD_FEATURE(feat, ind++, b->bout_min_feature_responses[i] < min_thresholds[i][l] ? 1 : 0, NUM_BOUT_MIN_THRESHOLDS, i, j);
+			ADD_FEATURE(feat, ind, b->bout_min_feature_responses[i] < min_thresholds[i][l] ? 1 : 0, NUM_BOUT_MIN_THRESHOLDS, i, j);
 
 
 		// These are differences in the bout average or sum response for the bout as compared to the global max, min,
 		// and average over the entire behavioral sequence
 		if(p->use_global_difference_max_sum_features) 
-			ADD_FEATURE(feat, ind++, sum - b->max_feature_responses[i]*(t_end-t_start), USE_GLOBAL_DIFFERENCE_MAX_SUM_FEATURES, i, 0);
+			ADD_FEATURE(feat, ind, sum - b->max_feature_responses[i]*(t_end-t_start), USE_GLOBAL_DIFFERENCE_MAX_SUM_FEATURES, i, 0);
 		if(p->use_global_difference_max_ave_features) 
-			ADD_FEATURE(feat, ind++, ave - b->max_feature_responses[i], USE_GLOBAL_DIFFERENCE_MAX_AVE_FEATURES, i, 0);
+			ADD_FEATURE(feat, ind, ave - b->max_feature_responses[i], USE_GLOBAL_DIFFERENCE_MAX_AVE_FEATURES, i, 0);
 		if(p->use_global_difference_min_sum_features) 
-			ADD_FEATURE(feat, ind++, sum - b->min_feature_responses[i]*(t_end-t_start), USE_GLOBAL_DIFFERENCE_MIN_SUM_FEATURES, i, 0);
+			ADD_FEATURE(feat, ind, sum - b->min_feature_responses[i]*(t_end-t_start), USE_GLOBAL_DIFFERENCE_MIN_SUM_FEATURES, i, 0);
 		if(p->use_global_difference_min_ave_features) 
-			ADD_FEATURE(feat, ind++, ave - b->min_feature_responses[i], USE_GLOBAL_DIFFERENCE_MIN_AVE_FEATURES, i, 0);
+			ADD_FEATURE(feat, ind, ave - b->min_feature_responses[i], USE_GLOBAL_DIFFERENCE_MIN_AVE_FEATURES, i, 0);
 		if(p->use_global_difference_ave_sum_features) 
-			ADD_FEATURE(feat, ind++, sum - b->ave_feature_responses[i]*(t_end-t_start), USE_GLOBAL_DIFFERENCE_AVE_SUM_FEATURES, i, 0);
+			ADD_FEATURE(feat, ind, sum - b->ave_feature_responses[i]*(t_end-t_start), USE_GLOBAL_DIFFERENCE_AVE_SUM_FEATURES, i, 0);
 		if(p->use_global_difference_ave_ave_features) 
-			ADD_FEATURE(feat, ind++, ave - b->ave_feature_responses[i], USE_GLOBAL_DIFFERENCE_AVE_AVE_FEATURES, i, 0);
+			ADD_FEATURE(feat, ind, ave - b->ave_feature_responses[i], USE_GLOBAL_DIFFERENCE_AVE_AVE_FEATURES, i, 0);
 
 
 		// The total change from the beginning of the bout to the end of the bout
@@ -607,9 +615,9 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 			for(j = 0, t=t_start; j < p->num_bout_change_points; j++, t+=harmonic_grid_size[p->num_bout_change_points]) {
 				f = b->features[i][my_max((int)t,t_end-1)] - b->features[i][t_start];
 				if(p->use_bout_change) 
-					ADD_FEATURE(feat, ind++, f, USE_BOUT_CHANGE, i, j);
+					ADD_FEATURE(feat, ind, f, USE_BOUT_CHANGE, i, j);
 				if(p->use_bout_absolute_change) 
-					ADD_FEATURE(feat, ind++, my_abs(f), USE_BOUT_ABSOLUTE_CHANGE, i, j);
+					ADD_FEATURE(feat, ind, my_abs(f), USE_BOUT_ABSOLUTE_CHANGE, i, j);
 			}
 		}
 
@@ -623,8 +631,8 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 				for(k = 0, start = t_start; k < (1<<j); k++, start += temporal_grid_size[j]) {
 					f = (b->integral_histogram_features[i][l][(int)(start+temporal_grid_size[j]+.5)] -
 						b->integral_histogram_features[i][l][(int)(start+.5)]);
-					if(p->use_histogram_sum_features) ADD_FEATURE(feat, ind++, f, USE_HISTOGRAM_SUM_FEATURES, i, j);
-					if(p->use_histogram_ave_features) ADD_FEATURE(feat, ind++, f*inv, USE_HISTOGRAM_AVE_FEATURES, i, j);
+					if(p->use_histogram_sum_features) ADD_FEATURE(feat, ind, f, USE_HISTOGRAM_SUM_FEATURES, i, j);
+					if(p->use_histogram_ave_features) ADD_FEATURE(feat, ind, f*inv, USE_HISTOGRAM_AVE_FEATURES, i, j);
 				}
 			}
 		}
@@ -641,27 +649,27 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 			td = (int)(temporal_grid_size[j+1]+.5);
 			f = b->integral_features[i][t_start+td] - 2*b->integral_features[i][t_start] + b->integral_features[i][t_start-td];
 			if(p->use_start_sum_diff_haar_features)
-				ADD_FEATURE(feat, ind++, f, USE_START_SUM_DIFF_HAAR_FEATURES, i, 0);
+				ADD_FEATURE(feat, ind, f, USE_START_SUM_DIFF_HAAR_FEATURES, i, 0);
 			if(p->use_start_ave_diff_haar_features)
-				ADD_FEATURE(feat, ind++, f*inv, USE_START_AVE_DIFF_HAAR_FEATURES, i, 0);
+				ADD_FEATURE(feat, ind, f*inv, USE_START_AVE_DIFF_HAAR_FEATURES, i, 0);
 			if(p->use_start_sum_absolute_diff_haar_features) 
-				ADD_FEATURE(feat, ind++, my_abs(f), USE_START_SUM_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
+				ADD_FEATURE(feat, ind, my_abs(f), USE_START_SUM_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
 			if(p->use_start_ave_absolute_diff_haar_features) 
-				ADD_FEATURE(feat, ind++, my_abs(f*inv), USE_START_AVE_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
+				ADD_FEATURE(feat, ind, my_abs(f*inv), USE_START_AVE_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
 
 
 			// Difference in average feature response in the region inside the bout (t_start,t_end) and 
 			// the region of duration (t_end-t_start)/(2^j) immediately after t_end
 			f = -b->integral_features[i][t_end+td] + 2*b->integral_features[i][t_end] - b->integral_features[i][t_end-td];
 			if(p->use_end_sum_diff_haar_features)
-				ADD_FEATURE(feat, ind++, f, USE_END_SUM_DIFF_HAAR_FEATURES, i, 0);
+				ADD_FEATURE(feat, ind, f, USE_END_SUM_DIFF_HAAR_FEATURES, i, 0);
 			if(p->use_end_ave_diff_haar_features)
-				ADD_FEATURE(feat, ind++, f*inv, USE_END_AVE_DIFF_HAAR_FEATURES, i, 0);
-				//ADD_FEATURE(feat, ind++, f*inv, USE_END_AVE_DIFF_HAAR_FEATURES);
+				ADD_FEATURE(feat, ind, f*inv, USE_END_AVE_DIFF_HAAR_FEATURES, i, 0);
+				//ADD_FEATURE(feat, ind, f*inv, USE_END_AVE_DIFF_HAAR_FEATURES);
 			if(p->use_end_sum_absolute_diff_haar_features) 
-				ADD_FEATURE(feat, ind++, my_abs(f), USE_END_SUM_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
+				ADD_FEATURE(feat, ind, my_abs(f), USE_END_SUM_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
 			if(p->use_end_ave_absolute_diff_haar_features) 
-				ADD_FEATURE(feat, ind++, my_abs(f*inv), USE_END_AVE_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
+				ADD_FEATURE(feat, ind, my_abs(f*inv), USE_END_AVE_ABSOLUTE_DIFF_HAAR_FEATURES, i, 0);
 		}
 
 		// An extension of the 1D Haar-like features, these capture changes or harmonic motion within the
@@ -676,13 +684,13 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 					b->integral_features[i][(int)(start+.5)]);
 			}
 			if(p->use_sum_harmonic_features)
-				ADD_FEATURE(feat, ind++, f, USE_SUM_HARMONIC_FEATURES, i, j);
+				ADD_FEATURE(feat, ind, f, USE_SUM_HARMONIC_FEATURES, i, j);
 			if(p->use_ave_harmonic_features)
-				ADD_FEATURE(feat, ind++, f*inv, USE_AVE_HARMONIC_FEATURES, i, j);
+				ADD_FEATURE(feat, ind, f*inv, USE_AVE_HARMONIC_FEATURES, i, j);
 			if(p->use_sum_absolute_harmonic_features)
-				ADD_FEATURE(feat, ind++, my_abs(f), USE_SUM_ABSOLUTE_HARMONIC_FEATURES, i, j);
+				ADD_FEATURE(feat, ind, my_abs(f), USE_SUM_ABSOLUTE_HARMONIC_FEATURES, i, j);
 			if(p->use_ave_absolute_harmonic_features)
-				ADD_FEATURE(feat, ind++, my_abs(f*inv), USE_AVE_ABSOLUTE_HARMONIC_FEATURES, i, j);
+				ADD_FEATURE(feat, ind, my_abs(f*inv), USE_AVE_ABSOLUTE_HARMONIC_FEATURES, i, j);
 		}
 		assert(ind-beg == p->num_features);
 	}
@@ -695,8 +703,10 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 				printf("Upcoming error...\n");
 			}
 			assert(!isnan(feat[i]));
+			assert(abs(feat[i]) < 10000000);
 			feat[i] = (feat[i]-features_mu[i])*features_gamma[i];
 			assert(!isnan(feat[i]));
+			assert(abs(feat[i]) < 10000000);
 		}
 	}
 
@@ -752,7 +762,7 @@ void SVMBehaviorSequence::update_bout_feature_caches(BehaviorBoutFeatures *b, in
 	b->bout_start = t_start;
 }
 
-SVECTOR     *SVMBehaviorSequence::psi(SPATTERN x, LABEL yy, STRUCTMODEL *sm,
+SVECTOR     *SVMBehaviorSequence::psi(SPATTERN *x, LABEL *yy, STRUCTMODEL *sm,
 	STRUCT_LEARN_PARM *sparm)
 {
 	/* Returns a feature vector describing the match between pattern x
@@ -775,8 +785,8 @@ SVECTOR     *SVMBehaviorSequence::psi(SPATTERN x, LABEL yy, STRUCTMODEL *sm,
 	that ybar!=y that maximizes psi(x,ybar,sm)*sm.w (where * is the
 	inner vector product) and the appropriate function of the
 	loss + margin/slack rescaling method. See that paper for details. */
-	BehaviorBoutSequence *y = (BehaviorBoutSequence*)yy.data;
-	BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x.data;
+	BehaviorBoutSequence *y = (BehaviorBoutSequence*)yy->data;
+	BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x->data;
 	int i, j, beh;
 	double *tmp_features = (double*)malloc(sizeof(double)*(sizePsi+num_features+20));
 	SVECTOR *retval;
@@ -1228,7 +1238,7 @@ BehaviorBoutFeatures *SVMBehaviorSequence::create_behavior_bout_feature_cache(vo
 
 
 
-SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
+SAMPLE      SVMBehaviorSequence::read_struct_examples(const char *file, STRUCT_LEARN_PARM *sparm)
 {
 	/* Reads struct examples and returns them in sample. The number of
 	examples must be written into sample.n */
@@ -1298,7 +1308,7 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
 		// Compute features for each training bout, normalized to have (0,1) mean and standard deviation
 		for(j = 0; j < n; j++) {
 			BehaviorBoutFeatures *behavior_bout = ((BehaviorBoutFeatures*)examples[j].x.data);
-			behavior_bout->fvec = psi(examples[j].x, examples[j].y, NULL, sparm);
+			behavior_bout->fvec = psi(&examples[j].x, &examples[j].y, NULL, sparm);
 		}
 
 		if(strlen(sparm->debugdir) && sparm->debug_features) {
@@ -1326,6 +1336,7 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
 			BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)examples[j].x.data;
 			load_behavior_bout_features(x->data, x);
 			compute_bout_feature_caches(x);
+			x->fvec = psi(&examples[j].x, &examples[j].y, NULL, sparm);
 		}
 	}
 
@@ -1335,6 +1346,23 @@ SAMPLE      SVMBehaviorSequence::read_struct_examples(char *file, STRUCT_LEARN_P
 	return(sample);
 }
 
+EXAMPLE SVMBehaviorSequence::read_struct_example(const char *fname, STRUCT_LEARN_PARM *sparm) {
+  EXAMPLE ex;
+  memset(&ex, 0, sizeof(EXAMPLE));
+  void *d = load_training_example(fname);
+
+  BehaviorBoutSequence *bouts = create_behavior_bout_sequence(d, behaviors, false);
+  bouts->features = create_behavior_bout_feature_cache(d, false);
+  strcpy(bouts->features->fname, fname);
+  ex.x.data = bouts->features;
+  ex.y.data = bouts;
+  strcpy(ex.labelname, getLabelName(d));
+  BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)ex.x.data;
+  load_behavior_bout_features(x->data, x);
+  compute_bout_feature_caches(x);
+  x->fvec = psi(&ex.x, &ex.y, NULL, sparm);
+  return ex;
+}
 
 void        SVMBehaviorSequence::init_struct_model(SAMPLE sample, STRUCTMODEL *sm, 
 	STRUCT_LEARN_PARM *sparm, LEARN_PARM *lparm, 
@@ -1439,13 +1467,13 @@ CONSTSET    SVMBehaviorSequence::init_struct_constraints(SAMPLE sample, STRUCTMO
 
 					// Compute psi(x,y)-psi(x,ybar) and loss(y,ybar), and use it to update the constraint for this iteration
 					yybar.data = ybar;
-					fybar=psi(ex->x,yybar,sm,sparm);
+					fybar=psi(&ex->x,&yybar,sm,sparm);
 					lossval=loss(ex->y,yybar,sparm);
 					if(sparm->loss_type == SLACK_RESCALING)
 						factor=lossval/sample.n;
 					else                 /* do not rescale vector for */
 						factor=1.0/sample.n;      /* margin rescaling loss type */
-					fy=psi(ex->x,ex->y,sm,sparm);
+					fy=psi(&ex->x,&ex->y,sm,sparm);
 					mult_svector_list(fy,factor);
 					mult_svector_list(fybar,-factor);
 					append_svector_list(fybar,fy);   /* compute fy-fybar */
@@ -1499,7 +1527,7 @@ void SVMBehaviorSequence::on_finished_iteration(CONSTSET c, STRUCTMODEL *sm,
 		char fname[1000];
 		if(strlen(sparm->debugdir) && sparm->debug_weights) {
 			sprintf(fname, "%s/weights_%d.txt", sparm->debugdir, iter_num);
-			print_weights(fname, sm->svm_model->lin_weights+1);
+			print_weights(fname, sm->w+1);
 		}
 
 		if(strlen(sparm->debugdir) && sparm->debug_model) {
@@ -1566,7 +1594,7 @@ char *getFilenameWithoutPath(char *filepath) {
 *
 */
 LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, STRUCTMODEL *sm, 
-	STRUCT_LEARN_PARM *sparm, LABEL *yy)
+	STRUCT_LEARN_PARM *sparm, LABEL *yy, double *score_loss)
 {
 	BehaviorBoutSequence *y = (BehaviorBoutSequence*)(yy ? yy->data : NULL);
 	LABEL yybar;
@@ -1617,26 +1645,28 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	ybar->num_bouts = (int*)(ybar->bouts+behaviors->num);
 	ybar->scores = (double*)(ybar->num_bouts+behaviors->num);
 	ybar->losses = (double*)(ybar->scores+behaviors->num);
-	ybar->slack = ybar->score = -sm->svm_model->b;
+	ybar->slack = ybar->score = sm->svm_model ? -sm->svm_model->b : 0;
 	ybar->loss = 0;
+    ybar->behaviors = behaviors;
 	if(y) {
 		ybar->features = y->features;
 		ybar->behaviors = y->behaviors;
 #if DEBUG > 0
-		y->score = -sm->svm_model->b;
+		y->score = sm->svm_model ? -sm->svm_model->b : 0;
 #endif
 	}
 
 
-	ptr = sm->svm_model->lin_weights+1;
+	ptr = sm->w+1;
 	for(beh = 0; beh < behaviors->num; beh++) {
 		// Currently optimizes each behavior group independently
 		if(behavior >= 0 && beh != behavior) {
-			ptr += num_classes[beh]*(num_classes[beh]+num_features);
+			//ptr += num_classes[beh]*(num_classes[beh]+num_features);
+			ptr += getPsiSize(this->num_features, this->num_classes[beh]);
 			continue;
 		}
 
-#if DEBUG > 0
+#if DEBUG > 1
 #define MAX_FILENAME 1000
 #define DEBUG__FILESEPARATION 3 // 0.. all in one  1.. per destClass  2.. per currClass  2.. per 500 frames
 //#define DEBUG__PRINTNUM
@@ -1727,7 +1757,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 		for(i = 0; i < num_classes[beh]; i++, ptr += num_classes[beh]) 
 			transition_weights[i] = ptr; // treat unary costs differently here?
 #ifdef ALLOW_SAME_TRANSITIONS
-		double *unary_costs = (double*)my_malloc(num_classes[beh]*sizeof(double*));
+		double *unary_costs = (double*)my_malloc(num_classes[beh]*sizeof(double));
 			for(i = 0; i < num_classes[beh]; i++, ptr++) {
 //				if(sm->compactUnaryCosts) {
 //					unary_costs[i] = transition_weights[i][i]; // same transition costs are unary costs
@@ -1875,6 +1905,9 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 #else // then merge bouts
 //				psi_bout(b, last__t_p[c], t, beh, -1, tmp_features, true, !is_first); // tweak t_p resp. t instead
 #endif
+				
+//for(int q = 0; q < num_features; q++) { assert(abs(tmp_features[q]) < 1000000); }
+
 				is_first = false;
 				for(c = 0; c < num_classes[beh]; c++) {
 					if(class_training_count[beh][c] && (restrict_c_p<=0 || c == restrict_c_p)) {
@@ -1943,8 +1976,10 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 //#endif
 // This block is replaced by getTransitionScore END
 #ifdef ALLOW_SAME_TRANSITIONS
-							getTransitionScore(transition_score, transition_weights[c_p][c_p], unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0)
+							//getTransitionScore(transition_score, transition_weights[c_p][c_p], unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0)
+                            getTransitionScore(transition_score, unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0);  // SJB
 #else
+							//getTransitionScore(transition_score, transition_weights[c_p][c_p], 1, t != T ? transition_weights[c_p][c] : 0)
 							getTransitionScore(transition_score, transition_weights[c_p][c_p], 1, t != T ? transition_weights[c_p][c] : 0)
 #endif
 
@@ -1978,6 +2013,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 							f = table[t_p][c_p] + bout_score + transition_score + loss_score;
 							assert(!isnan(f));
 
+
 							if(f > table[t][c]) {  
 								table[t][c] = f;						
 								states[t][c].start_frame =  t_p;
@@ -1989,7 +2025,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 								states[t][c].loss_fn = loss_fn;
 								states[t][c].loss_fp = loss_fp;
 							} // end if(f > table[t][c]) {  
-#if DEBUG > 0
+#if DEBUG > 1
 							if(!y) { // do this in classification mode only
 								assert(loss_score==0);
 								assert(bout_score==bout_scores[c_p]);
@@ -2119,7 +2155,8 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 			// Makes sure the computed components of the loss aggregated during dynamic programming are identical
 			// to the loss when comparing the sequences y and ybar.  If this fails, something is probably wrong
 			// with the computation of the loss during dynamic programming or with the function loss2()
-			assert(my_abs(ybar->losses[beh] - loss2(*yy, yybar, sparm, beh, 1)) < .01);
+			double l = loss2(*yy, yybar, sparm, beh, 1);
+			assert(my_abs(ybar->losses[beh] - l) < .01);
 #endif
 
 			// Compute the scores for the ground truth label y.  The cache tables in dynamic programming should always have
@@ -2148,7 +2185,8 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 					// Something went wrong, it might be informative for debugging (break here using gdb) to test the same dynamic 
 					// programming problem but without using loss, then compare y_max to y
 					g_table = table; g_states = states; g_y = y;
-					LABEL yy_max = classify_struct_example(*x, sm, sparm);
+					double score_classify;
+					LABEL yy_max = classify_struct_example(x, sm, sparm, &score_classify);
 					BehaviorBoutSequence *y_max = (BehaviorBoutSequence*)(yy_max.data);
 					assert(0);
 				}
@@ -2160,7 +2198,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 #endif
 		}
 
-#if DEBUG > 0
+#if DEBUG > 1
 								for(cc=0; cc < numA; cc++) {
 									fclose(outA[cc]);
 								}
@@ -2169,6 +2207,9 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 #endif
 
 		free(class_weights);
+#ifdef ALLOW_SAME_TRANSITIONS
+		free(unary_costs);
+#endif
 		free(table);
 		free(states);
 		if(fn) free(fn);
@@ -2184,7 +2225,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 		// Compare the score computed for y when looping through the bouts in y to the score when evaluating
 		// w*psi(x,y).  If this fails, something is probably wrong with the dynamic programming algorithm with
 		// respect to the extraction of features or bout scores, or something is wrong with the function psi()
-		y_score = (sprod_ns(sm->svm_model->lin_weights, b->fvec)*b->fvec->factor - sm->svm_model->b);
+		y_score = (sprod_ns(sm->w, b->fvec)*b->fvec->factor +(sm->svm_model ? -sm->svm_model->b : 0));
 		assert(my_abs(y_score - y->score) < .01);
 
 		// Further sanity checks that are probably redundant with earlier ones
@@ -2192,15 +2233,18 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 		assert(ybar->slack >= -0.01);
 		//y_max = classify_struct_example(*x, sm, sparm);
 		//assert(((BehaviorBoutSequence*)y_max.data)->score >= y->score);
-		fvec = psi(*x, yybar, sm, sparm);
-		doc=create_example(1,0,1,1,fvec);
-		assert(my_abs(ybar->score - (sprod_ns(sm->svm_model->lin_weights, fvec)*fvec->factor - sm->svm_model->b)) < .1);
-		assert(my_abs(ybar->score-classify_example(sm->svm_model,doc)) < .1);
-		free_example(doc,0);
+		fvec = psi(x, &yybar, sm, sparm);
+		double ybar_score = (sprod_ns(sm->w, fvec)*fvec->factor +(sm->svm_model ? -sm->svm_model->b : 0));
+		assert(my_abs(ybar->score - ybar_score) < .1);
+		if(sm->svm_model && 0) {
+          doc=create_example(1,0,1,1,fvec);
+          assert(my_abs(ybar->score-classify_example(sm->svm_model,doc)) < .1);
+          free_example(doc,0);
+        }
 		free_svector(fvec);
 
 #if DEBUG > 2
-		printf("w:"); for(i = 1; i <= sizePsi; i++) { printf(" %d:%f", i, (float)sm->svm_model->lin_weights[i]); } printf("\n");
+		printf("w:"); for(i = 1; i <= sizePsi; i++) { printf(" %d:%f", i, (float)sm->w[i]); } printf("\n");
 		printf("psi:"); SWORD *ptr=b->fvec->words; while(ptr->wnum) { printf(" %d:%f", ptr->wnum, (float)ptr->weight); ptr++; } printf("\n");
 #endif
 
@@ -2215,6 +2259,7 @@ LABEL       SVMBehaviorSequence::inference_via_dynamic_programming(SPATTERN *x, 
 	free(tmp_features);
 	free(durations);
 
+	if(score_loss) *score_loss = ybar->score + ybar->loss;
 	return(yybar);
 }
 
@@ -2304,8 +2349,8 @@ BehaviorBoutSequence *SVMBehaviorSequence::read_bout_sequence(FILE *fin, char *f
 
 
 
-LABEL       SVMBehaviorSequence::classify_struct_example(SPATTERN x, STRUCTMODEL *sm, 
-	STRUCT_LEARN_PARM *sparm)
+LABEL       SVMBehaviorSequence::classify_struct_example(SPATTERN *x, STRUCTMODEL *sm, 
+	STRUCT_LEARN_PARM *sparm, double *score)
 {
 	/* Finds the label yhat for pattern x that scores the highest
 	according to the linear evaluation function in sm, especially the
@@ -2314,13 +2359,13 @@ LABEL       SVMBehaviorSequence::classify_struct_example(SPATTERN x, STRUCTMODEL
 	by psi() and range from index 1 to index sm->sizePsi. If the
 	function cannot find a label, it shall return an empty label as
 	recognized by the function empty_label(y). */
-	return inference_via_dynamic_programming(&x, sm, sparm, NULL);
+	return inference_via_dynamic_programming(x, sm, sparm, NULL, score);
 }
 
 
-LABEL       SVMBehaviorSequence::find_most_violated_constraint_slackrescaling(SPATTERN x, LABEL y, 
+LABEL       SVMBehaviorSequence::find_most_violated_constraint_slackrescaling(SPATTERN *x, LABEL *y, 
 	STRUCTMODEL *sm, 
-	STRUCT_LEARN_PARM *sparm) {
+	STRUCT_LEARN_PARM *sparm, double *score_loss) {
 		/* Finds the label ybar for pattern x that that is responsible for
 		the most violated constraint for the slack rescaling
 		formulation. For linear slack variables, this is that label ybar
@@ -2343,13 +2388,13 @@ LABEL       SVMBehaviorSequence::find_most_violated_constraint_slackrescaling(SP
 		shall return an empty label as recognized by the function
 		empty_label(y). */
 
-		return inference_via_dynamic_programming(&x, sm, sparm, &y);
+		return inference_via_dynamic_programming(x, sm, sparm, y, score_loss);
 }
 
 
-LABEL       SVMBehaviorSequence::find_most_violated_constraint_marginrescaling(SPATTERN x, LABEL y, 
+LABEL       SVMBehaviorSequence::find_most_violated_constraint_marginrescaling(SPATTERN *x, LABEL *y, 
 	STRUCTMODEL *sm, 
-	STRUCT_LEARN_PARM *sparm)
+	STRUCT_LEARN_PARM *sparm, double *score_loss)
 {
 	/* Finds the label ybar for pattern x that that is responsible for
 	the most violated constraint for the margin rescaling
@@ -2372,7 +2417,7 @@ LABEL       SVMBehaviorSequence::find_most_violated_constraint_marginrescaling(S
 	Psi(x,ybar)>Psi(x,y)-1. If the function cannot find a label, it
 	shall return an empty label as recognized by the function
 	empty_label(y). */
-	return inference_via_dynamic_programming(&x, sm, sparm, &y);
+	return inference_via_dynamic_programming(x, sm, sparm, y, score_loss);
 }
 
 int         SVMBehaviorSequence::empty_label(LABEL y)
@@ -2490,7 +2535,7 @@ void        SVMBehaviorSequence::print_struct_learning_stats(SAMPLE sample, STRU
 
 	/* Replace SV with single weight vector */
 	MODEL *model=sm->svm_model;
-	if(model->kernel_parm.kernel_type == K_LINEAR) {
+	if(model && model->kernel_parm.kernel_type == K_LINEAR) {
 		if(struct_verbosity>=1) {
 			printf("Compacting linear model..."); fflush(stdout);
 		}
@@ -2551,8 +2596,8 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
 		this->num_base_features);
 	fprintf(modelfl,"%d # behavior group\n", behavior);
 	fprintf(modelfl,"%d # feature diff frames\n", feature_diff_frames);
-	fprintf(modelfl,"%d # loss function\n",
-		sparm->loss_function);
+	fprintf(modelfl,"%d %d # loss function, learning method\n",
+		sparm->loss_function, sparm->method);
 	fprintf(modelfl,"%ld # kernel type\n",
 		model->kernel_parm.kernel_type);
 	fprintf(modelfl,"%ld # kernel parameter -d \n",
@@ -2594,7 +2639,8 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
 			p->use_ave_absolute_harmonic_features?1:0, p->use_start_sum_absolute_diff_haar_features?1:0,
 			p->use_end_sum_absolute_diff_haar_features?1:0, p->use_start_sum_diff_haar_features?1:0, p->use_end_sum_diff_haar_features?1:0, 
 			p->use_start_ave_absolute_diff_haar_features?1:0, p->use_end_ave_absolute_diff_haar_features?1:0, p->use_start_ave_diff_haar_features?1:0, 
-			p->use_end_ave_diff_haar_features?1:0, (int)i);
+			p->use_end_ave_diff_haar_features?1:0);//, (int)i);
+		fprintf(modelfl, " # %s \n", this->base_feature_names[i]);
 	}
 	for(i = 0; i < num_features; i++)
 		fprintf(modelfl, "%lf ", features_mu[i]);
@@ -2649,7 +2695,7 @@ void        SVMBehaviorSequence::write_struct_model(const char *file, STRUCTMODE
 bool SVMBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p) {
 	int num;
 	int b[30];
-	if((num=fscanf(modelfl, FORMAT__BOUT_FEATURE_PARAMS, &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
+	if((num=fscanf(modelfl, FORMAT__BOUT_FEATURE_PARAMS_READ, &p->feature_sample_smoothness_window, &p->num_temporal_levels, &p->num_bout_max_thresholds, 
 		&p->num_bout_min_thresholds, &p->num_bout_change_points, &p->num_histogram_bins, &p->num_histogram_temporal_levels, 
 		&p->num_difference_temporal_levels, &p->num_harmonic_features, &b[0], &b[1], &b[28], &b[29], &b[26], &b[27], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7], &b[8], &b[9], 
 		&b[10], &b[11], &b[12], &b[13], &b[14], &b[15], &b[16], &b[17], &b[18], &b[19], &b[20], &b[21], &b[22], &b[23], &b[24], &b[25]))!=39) {
@@ -2700,6 +2746,7 @@ STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEAR
 	if ((modelfl = fopen (file, "r")) == NULL)
 	{ perror (file); exit (1); }
 
+	int meth = 4;
 	fscanf(modelfl,"SVM-Behavior Version %s\n",version_buffer);
 	if(strcmp(version_buffer, INST_VERSION)) {
 		perror ("Version of model-file does not match version of svm_struct_classify!"); 
@@ -2712,7 +2759,7 @@ STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEAR
 	fscanf(modelfl,"%d%*[^\n]\n", &this->num_base_features);  
 	fscanf(modelfl,"%d%*[^\n]\n", &this->behavior);
 	fscanf(modelfl,"%d%*[^\n]\n", &this->feature_diff_frames);
-	fscanf(modelfl,"%d%*[^\n]\n", &sparm->loss_function);  
+	fscanf(modelfl,"%d %d%*[^\n]\n", &sparm->loss_function, &meth);  
 	fscanf(modelfl,"%ld%*[^\n]\n", &model->kernel_parm.kernel_type);  
 	fscanf(modelfl,"%ld%*[^\n]\n", &model->kernel_parm.poly_degree);
 	fscanf(modelfl,"%lf%*[^\n]\n", &model->kernel_parm.rbf_gamma);
@@ -2720,6 +2767,7 @@ STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEAR
 	fscanf(modelfl,"%lf%*[^\n]\n", &model->kernel_parm.coef_const);
 	fscanf(modelfl,"%[^#]%*[^\n]\n", model->kernel_parm.custom);
 	fscanf(modelfl,"%lf%*[^\n]\n", &tmp);
+	sparm->method = (StructuredPredictionOptimizationMethod)meth;
 
 	fscanf(modelfl,"%ld%*[^\n]\n", &model->totwords);
 	fscanf(modelfl,"%ld%*[^\n]\n", &model->totdoc);
@@ -2832,9 +2880,12 @@ STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEAR
 	beh = 0; // HACK!! Should iterate through all behaviors here
 //	sm.compactUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh]) * num_classes[beh]; /* CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
 //	sm.extraUnaryCosts = (sizePsi-1) == (num_features + num_classes[beh] + 1) * num_classes[beh]; /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
-	sm.compactUnaryCosts = (sizePsi-1) == compactUnarySize(num_features, num_classes[beh]); /* CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
-	sm.extraUnaryCosts = (sizePsi-1) == extraUnarySize(num_features, num_classes[beh]); /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
-	
+
+	//sm.compactUnaryCosts = (sizePsi-1) == compactUnarySize(num_features, num_classes[beh]); /* CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
+	//sm.extraUnaryCosts = (sizePsi-1) == extraUnarySize(num_features, num_classes[beh]); /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+	sm.compactUnaryCosts = (sizePsi) == compactUnarySize(num_features, num_classes[beh]); /* SJB: removed -1.  CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
+	sm.extraUnaryCosts = (sizePsi) == extraUnarySize(num_features, num_classes[beh]); /* SJB: removed -1.  CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+
 	assert(sm.compactUnaryCosts != sm.extraUnaryCosts);
 
 	return(sm);
@@ -2842,16 +2893,26 @@ STRUCTMODEL SVMBehaviorSequence::read_struct_model(const char *file, STRUCT_LEAR
 
 void        SVMBehaviorSequence::write_label(FILE *fp, LABEL yy)
 {
-	BehaviorBoutSequence *bouts = (BehaviorBoutSequence*)yy.data;
-	int i, beh;
-
-	fprintf(fp,"score=%lf loss=%lf", bouts->score, bouts->loss);
-	for(beh = 0; beh < behaviors->num; beh++) {
-		fprintf(fp,"num_bouts[%d]=%d score[%d]=%lf loss[%d]=%lf", beh, bouts->num_bouts[beh], beh, bouts->scores[beh], beh, bouts->losses[beh]);
-		for(i = 0; i < bouts->num_bouts[beh]; i++) 
-			fprintf(fp," (%d:%d,%d,%d)", beh, bouts->bouts[beh][i].behavior, bouts->bouts[beh][i].start_frame, bouts->bouts[beh][i].end_frame);
-	}
+  char *str = (char*)malloc(5000000);
+  label_string(str, yy);
+  fprintf(fp, "%s", str);
+  free(str);
 } 
+
+void SVMBehaviorSequence::label_string(char *str, LABEL yy) {
+    BehaviorBoutSequence *bouts = (BehaviorBoutSequence*)yy.data;
+    int i, beh;
+    strcpy(str, "");
+    char *ptr = str;
+
+	sprintf(ptr,"score=%lf loss=%lf", bouts->score, bouts->loss); ptr += strlen(ptr);
+	for(beh = 0; beh < behaviors->num; beh++) {
+		sprintf(ptr, " num_bouts[%d]=%d score[%d]=%lf loss[%d]=%lf", beh, bouts->num_bouts[beh], beh, bouts->scores[beh], beh, bouts->losses[beh]); ptr += strlen(ptr);
+		for(i = 0; i < bouts->num_bouts[beh]; i++) {
+			sprintf(ptr," (%d:%d,s=%d,e=%d,bout_score=%f,trans_score=%f,l_fn=%f,l_fp=%f)", beh, bouts->bouts[beh][i].behavior, bouts->bouts[beh][i].start_frame, bouts->bouts[beh][i].end_frame, (float)bouts->bouts[beh][i].bout_score, (float)bouts->bouts[beh][i].transition_score, (float)bouts->bouts[beh][i].loss_fn, (float)bouts->bouts[beh][i].loss_fp); ptr += strlen(ptr);
+		}
+	}
+}
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num) {
 	int i;
@@ -3009,7 +3070,8 @@ IplImage *VisualizeBouts(BehaviorBoutSequence *seq, BehaviorGroups *groups, int 
 
 	if(fname) {
 		char *html_tmp=(char*)malloc(10000000), folder[1000], fname2[1000];
-		sprintf(fname2, "%s.png", fname);
+		if(!strstr(fname, ".png")) sprintf(fname2, "%s.png", fname);
+		else strcpy(fname2, fname);
 		cvSaveImage(fname2, img);
 		cvReleaseImage(&img);
 
