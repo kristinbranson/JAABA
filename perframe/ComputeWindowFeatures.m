@@ -4,7 +4,6 @@ function [y,feature_names] = ComputeWindowFeatures(x,varargin)
 
 x = x(:)';
 N = numel(x);
-y = zeros(0,N);
 feature_names = {};
 feature_types_computed = {};
 
@@ -64,7 +63,8 @@ DOCACHE = true;
   diff_neighbor_max_params,...
   zscore_neighbors_params,...
   SANITY_CHECK,...
-  DOCACHE...
+  DOCACHE,...
+  t0,t1...
   ] = myparse(varargin,...
   'windows',default_windows,...
   'window_radii',default_window_radii,'window_offsets',default_window_offsets,...
@@ -84,7 +84,8 @@ DOCACHE = true;
   'diff_neighbor_max_params',diff_neighbor_max_params,...
   'zscore_neighbors_params',zscore_neighbors_params,...
   'sanitycheck',SANITY_CHECK,...
-  'docache',DOCACHE);
+  'docache',DOCACHE,...
+  't0',[],'t1',[]);
 
 %% whether we've specified to use all features
 
@@ -117,6 +118,32 @@ common_params = {'sanitycheck',SANITY_CHECK,...
 
 %% we'll need to compute means, stds mins, maxs for multiple features
 cache = InitializeCache();
+
+%% if t0 or t1 are input, then only compute in a boundary around t0, t1
+% compute the maximum dependency radius and only compute up to there. 
+% there's more efficient ways to do this, but this is the simplest
+% modification to the code
+
+MAXDEPENDENCYRADIUS = ComputeMaxDependencyRadius({'windows',default_windows},...
+  mean_params,min_params,max_params,hist_params,prctile_params,change_params,std_params,...
+  harmonic_params,diff_neighbor_mean_params,diff_neighbor_min_params,...
+  diff_neighbor_max_params,zscore_neighbors_params);
+  
+if isempty(t0),
+  t0 = 1;
+  OFF0 = 1;
+else
+  OFF0 = max(1,t0-MAXDEPENDENCYRADIUS);
+end
+
+if isempty(t1),
+  t1 = N;
+  OFF1 = N;
+else
+  OFF1 = min(N,t1+MAXDEPENDENCYRADIUS);
+end
+x = x(OFF0:OFF1);
+y = zeros(0,OFF1-OFF0+1);
 
 %% window mean
 
@@ -263,3 +290,8 @@ if useallfeatures || ismember('zscore_neighbors',feature_types),
   feature_types_computed{end+1} = 'zscore_neighbors'; %#ok<NASGU>
 
 end
+
+%% get the part of y that we actually want to return
+pad0 = t0-OFF0;
+pad1 = OFF1-t1;
+y = y(:,1+pad0:end-pad1);

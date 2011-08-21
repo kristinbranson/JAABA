@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 08-Jul-2011 17:27:16
+% Last Modified by GUIDE v2.5 19-Jul-2011 16:16:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,6 +61,12 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
   'configfilename','',...
   'defaultpath','');
 
+% initialize statusbar
+handles.status_bar_text = sprintf('Status: No experiment loaded');
+handles.idlestatuscolor = [0,1,0];
+handles.busystatuscolor = [1,0,1];
+ClearStatus(handles);
+
 % read configuration
 [handles,success] = LoadConfig(handles);
 if ~success,
@@ -74,6 +80,23 @@ handles = InitializeState(handles);
 
 % initialize plot handles
 handles = InitializePlots(handles);
+
+% load classifier
+if ~isempty(handles.classifierfilename),
+  if exist(handles.classifierfilename,'file'),
+    [success,msg] = handles.data.SetClassifierFileName(handles.classifierfilename);
+    if ~success,
+      warning(msg);
+      SetStatus(handles,'Error loading classifier from file');
+    end
+  end
+end
+
+if isempty(handles.data.expdirs),
+  guidata(hObject,handles);
+  menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
+  handles = guidata(hObject);
+end
 
 % enable gui
 EnableGUI(handles);
@@ -214,6 +237,11 @@ for i = 1:numel(handles.axes_timelines),
   set(handles.axes_timelines(i),'YTick',[],'XColor','w','YColor','w');
 end
 
+handles.hcurr_timelines = nan(size(handles.axes_timelines));
+for i = 1:numel(handles.axes_timelines),
+  handles.hcurr_timelines(i) = plot(handles.axes_timelines(i),nan(1,2),[.5,1.5],'y-','HitTest','off','linewidth',2);
+end
+
 for i = 1:numel(handles.axes_timelines),
   if handles.axes_timelines(i) ~= handles.axes_timeline_error,
     set(handles.axes_timelines(i),'XTickLabel',{});
@@ -242,34 +270,38 @@ function UpdatePlots(handles,varargin)
 
 [axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
   refresh_timeline_manual,refresh_timeline_auto,refresh_timeline_suggest,refresh_timeline_error,...
-  refresh_timeline_xlim] = ...
+  refresh_timeline_xlim,refresh_timeline_hcurr] = ...
   myparse(varargin,'axes',1:numel(handles.axes_previews),...
   'refreshim',true,'refreshflies',true,'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',true,...
   'refresh_timeline_auto',true,...
   'refresh_timeline_suggest',true,...
   'refresh_timeline_error',true,...
-  'refresh_timeline_xlim',true);
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true);
 
 % update timelines
 if refresh_timeline_manual,
   set(handles.himage_timeline_manual,'CData',handles.labels_plot.im);
-  tmp = find(any(handles.labels_plot.isstart,2));
+  tmp = find(handles.labels_plot.isstart);
   nstarts = numel(tmp);
-  tmpx = reshape(cat(1,repmat(tmp',[2,1]),nan(1,nstarts)),[3*nstarts,1]);
+  tmpx = reshape(cat(1,repmat(tmp,[2,1]),nan(1,nstarts)),[3*nstarts,1]);
   tmpy = reshape(repmat([.5;1.5;nan],[1,nstarts]),[3*nstarts,1]);
   set(handles.htimeline_manual_starts,'XData',tmpx,'YData',tmpy);  
 end
 
 % TODO: replace this with per-timeline images
-if refresh_timeline_auto,
+if refresh_timeline_manual,
   set(handles.himage_timeline_auto,'CData',handles.labels_plot.im);
 end
+if refresh_timeline_auto,
+  set(handles.himage_timeline_auto,'CData',handles.labels_plot.predicted_im);
+end
 if refresh_timeline_suggest,
-  set(handles.himage_timeline_suggest,'CData',handles.labels_plot.im);
+  set(handles.himage_timeline_suggest,'CData',handles.labels_plot.suggested_im);
 end
 if refresh_timeline_error,
-  set(handles.himage_timeline_error,'CData',handles.labels_plot.im);
+  set(handles.himage_timeline_error,'CData',handles.labels_plot.error_im);
 end
 
 if refresh_timeline_xlim,
@@ -370,6 +402,10 @@ for i = axes,
   
 end
 
+if refresh_timeline_hcurr,
+  set(handles.hcurr_timelines,'XData',handles.ts([1,1]));
+end
+
 
 function [handles,success] = SetCurrentMovie(handles,expi)
 
@@ -394,11 +430,13 @@ end
 
 % open new movie
 try
+  SetStatus(handles,'Opening movie...');
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
     get_readframe_fcn(moviefilename,'interruptible',false,'nout',1);
   im = handles.readframe(1);
 catch ME,
   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
+  ClearStatus(handles);
   return;
 end
 
@@ -558,6 +596,9 @@ handles.t1_curr = min(handles.data.GetTrxEndFrame(handles.expi,handles.flies));
 handles.labels_plot = struct;
 n = handles.t1_curr-handles.t0_curr+1;
 handles.labels_plot.im = zeros([1,n,3]);
+handles.labels_plot.predicted_im = zeros([1,n,3]);
+handles.labels_plot.suggested_im = zeros([1,n,3]);
+handles.labels_plot.error_im = zeros([1,n,3]);
 handles.labels_plot.x = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot.y = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot_off = 1-handles.t0_curr;
@@ -567,16 +608,12 @@ for flyi = 1:numel(flies),
   x = handles.data.GetTrxX(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   y = handles.data.GetTrxY(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
-    idx = handles.data.labels_bin(:,behaviori,fly);
+    idx = handles.data.labelidx == behaviori;
     handles.labels_plot.x(idx,behaviori,flyi) = x(idx);
     handles.labels_plot.y(idx,behaviori,flyi) = y(idx);
-    for channel = 1:3,
-      handles.labels_plot.im(1,idx,channel) = handles.labelcolors(behaviori,channel);
-    end
   end
 end
-handles.labels_plot.isstart = cat(1,handles.data.labels_bin(1,:,:),...
-  handles.data.labels_bin(2:end,:,:)&~handles.data.labels_bin(1:end-1,:,:));
+handles = UpdateTimelineIms(handles);
 
 % which interval we're currently within
 handles.current_interval = [];
@@ -597,11 +634,53 @@ for i = 1:numel(handles.axes_previews),
   end
 end
 
+% status bar text
+[~,expname] = fileparts(handles.data.expdirs{handles.expi});
+if numel(handles.flies) == 1,
+  handles.status_bar_text = sprintf('%s, fly %d',expname,handles.flies);
+else
+  handles.status_bar_text = [sprintf('%s, flies',expname),sprintf(' %d',handles.flies)];
+end
+ClearStatus(handles);
+
 guidata(handles.figure_JLabel,handles);
 
 if doupdateplot,
   UpdatePlots(handles);
 end
+
+function handles = UpdateTimelineIms(handles)
+
+for behaviori = 1:handles.data.nbehaviors
+  idx = handles.data.labelidx == behaviori;
+  for channel = 1:3,
+    handles.labels_plot.im(1,idx,channel) = handles.labelcolors(behaviori,channel);
+  end
+end
+for behaviori = 1:handles.data.nbehaviors
+  idx = handles.data.predictedidx == behaviori;
+  for channel = 1:3,
+    handles.labels_plot.predicted_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
+  end
+end
+for behaviori = 1:handles.data.nbehaviors
+  idx = handles.data.suggestedidx == behaviori;
+  for channel = 1:3,
+    handles.labels_plot.suggested_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
+  end
+end
+idx = handles.data.erroridx == 1;
+for channel = 1:3,
+  handles.labels_plot.error_im(1,idx,channel) = handles.correctcolor(channel);
+end
+idx = handles.data.erroridx == 2;
+for channel = 1:3,
+  handles.labels_plot.error_im(1,idx,channel) = handles.incorrectcolor(channel);
+end
+handles.labels_plot.isstart = ...
+  cat(2,handles.data.labelidx(1)~=0,...
+  handles.data.labelidx(2:end)~=0 & ...
+  handles.data.labelidx(1:end-1)~=handles.data.labelidx(2:end));
 
 
 % set current frame
@@ -789,7 +868,7 @@ end
 % save needed if list has changed
 handles = SetNeedSave(handles);
 
-if ~isempty(oldexpdir) && ismmeber(oldexpdir,handles.data.expdirs),
+if ~isempty(oldexpdir) && ismember(oldexpdir,handles.data.expdirs),
   j = find(strcmp(oldexpdir,handles.data.expdirs),1);
   handles.expi = j;
 else
@@ -814,6 +893,12 @@ function menu_file_save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+[filename,pathname] = uiputfile('*.mat','Save classifier',handles.data.classifierfilename);
+if ~ischar(filename),
+  return;
+end
+handles.data.classifierfilename = fullfile(pathname,filename);
+handles.data.SaveClassifier();
 
 % --------------------------------------------------------------------
 function menu_file_exit_Callback(hObject, eventdata, handles)
@@ -930,7 +1015,9 @@ handles.needsave = false;
 % initialize data structure
 handles.data = JLabelData(handles.configfilename,...
   'defaultpath',handles.defaultpath,...
-  'classifierfilename',handles.classifierfilename);
+  'classifierfilename',handles.classifierfilename,...
+  'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
+  'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel));
 
 % number of flies to label at a time
 handles.nflies_label = 1;
@@ -977,6 +1064,9 @@ if isfield(handles.configparams,'behaviors') && ...
   end
 end
 handles.labelunknowncolor = [0,0,0];
+
+handles.correctcolor = [0,.7,0];
+handles.incorrectcolor = [.7,0,0];
 
 % create buttons for each label
 handles = CreateLabelButtons(handles);
@@ -1055,7 +1145,8 @@ h = [handles.menu_view_timeline_options,...
   handles.togglebutton_label_behaviors(:)',...
   handles.togglebutton_label_unknown];
 hp = [handles.panel_previews(:)',...
-  handles.panel_timelines];
+  handles.panel_timelines,...
+  handles.panel_learn];
 if handles.expi >= 1 && handles.expi <= handles.data.nexps,
   set(h,'Enable','on');
   set(hp,'Visible','on');
@@ -1262,7 +1353,7 @@ if get(hObject,'Value'),
   UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
 else
   handles.label_state = 0;
-  handles.data.StoreLabels();
+  %handles.data.StoreLabels();
   set(handles.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.data.labelnames{behaviori}));
 end
 
@@ -1297,13 +1388,13 @@ end
 
 handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
-handles.data.labels_bin(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:) = false;
+handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = 0;
 
 for channel = 1:3,
   handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelunknowncolor(channel);
 end
 if behaviori > 0,
-  handles.data.labels_bin(t0+handles.labels_plot_off:t1+handles.labels_plot_off,behaviori) = true;
+  handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = behaviori;
   for channel = 1:3,
     handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelcolors(behaviori,channel);
   end
@@ -1322,13 +1413,17 @@ end
 
 % isstart
 if t0 == handles.t0_curr,
-  handles.labels_plot.isstart(t+handles.labels_plot_off,:) = ...
-    handles.data.labels_bin(t+handles.labels_plot_off,:);
+  handles.labels_plot.isstart(t+handles.labels_plot_off) = ...
+    handles.data.labelidx(t+handles.labels_plot_off)~=0;
 end
 t00 = max(handles.t0_curr+1,t0);
-handles.labels_plot.isstart(t00+handles.labels_plot_off:t2+handles.labels_plot_off,:) = ...
-  ~handles.data.labels_bin(t00-1+handles.labels_plot_off:t2-1+handles.labels_plot_off,:) & ...
-  handles.data.labels_bin(t00+handles.labels_plot_off:t2+handles.labels_plot_off,:);
+off0 = t00+handles.labels_plot_off;
+off1 = t2+handles.labels_plot_off;
+handles.labels_plot.isstart(t00+handles.labels_plot_off:t2+handles.labels_plot_off) = ...
+  handles.data.labelidx(off0:off1)~=0 & ...
+  handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
+
+handles = UpdateErrors(handles);
 
 handles.lastframe_labeled = t;
 
@@ -1355,7 +1450,7 @@ if get(hObject,'Value'),
   set(handles.togglebutton_label_unknown,'String','*Label Unknown*');
 else
   handles.label_state = 0;
-  handles.data.StoreLabels();
+  %handles.data.StoreLabels();
   set(handles.togglebutton_label_unknown,'String','Label Unknown');
 end
 
@@ -1458,9 +1553,9 @@ if ~strcmpi(get(handles.figure_JLabel,'SelectionType'),'open') || ...
 end
 
 % check if the user wants to switch to this fly
-[ism,j] = ismember(fly,handles.labels(handles.expi).flies,'rows');
+[ism,j] = ismember(fly,handles.data.labels(handles.expi).flies,'rows');
 if ism,
-  nbouts = nnz(~strcmpi(handles.labels(handles.expi).names{j},'None'));
+  nbouts = nnz(~strcmpi(handles.data.labels(handles.expi).names{j},'None'));
 else
   nbouts = 0;
 end
@@ -1498,6 +1593,36 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 
 % store the current labels to windowdata_labeled
 handles.data.StoreLabels();
+handles.data.Train();
+% predict for current window
+handles = UpdatePrediction(handles);
+guidata(hObject,handles);
+
+function handles = UpdatePrediction(handles)
+
+% update prediction for currently shown timeline
+% TODO: make this work for multiple axes
+t0 = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
+t1 = min(handles.t1_curr,ceil(handles.ts(1)+handles.timeline_nframes/2));
+handles.data.Predict(handles.expi,handles.flies,t0:t1);
+handles = UpdateTimelineIms(handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',...
+  false,'refreshtrx',false,'refreshlabels',false,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false);
+
+
+function handles = UpdateErrors(handles)
+
+% update prediction for currently shown timeline
+% TODO: make this work for multiple axes
+handles.data.UpdateErrorIdx();
+handles = UpdateTimelineIms(handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',...
+  false,'refreshtrx',false,'refreshlabels',false,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false);
+
 
 % --- Executes on button press in pushbutton_predict.
 function pushbutton_predict_Callback(hObject, eventdata, handles)
@@ -1505,7 +1630,8 @@ function pushbutton_predict_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
+handles = UpdatePrediction(handles);
+guidata(hObject,handles);
 
 % --- Executes on key press with focus on figure_JLabel or any of its controls.
 function figure_JLabel_WindowKeyPressFcn(hObject, eventdata, handles)
@@ -1518,3 +1644,45 @@ function figure_JLabel_WindowKeyPressFcn(hObject, eventdata, handles)
 
 disp(eventdata.Character);
 disp(eventdata.Modifier);
+
+function SetStatusCallback(s,h)
+
+handles = guidata(h);
+SetStatus(handles,s);
+
+function ClearStatusCallback(h)
+
+handles = guidata(h);
+ClearStatus(handles);
+
+function SetStatus(handles,s,isbusy)
+
+if nargin < 3 || isbusy,
+  color = handles.busystatuscolor;
+else
+  color = handles.idlestatuscolor;
+end
+set(handles.text_status,'ForegroundColor',color,'String',s);
+
+function ClearStatus(handles)
+
+set(handles.text_status,'ForegroundColor',handles.idlestatuscolor,'String',handles.status_bar_text);
+
+
+% --------------------------------------------------------------------
+function menu_file_load_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_load (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if exist(handles.data.classifierfilename,'file'),
+  filename = fileparts(handles.data.classifierfilename);
+else
+  filename = handles.data.classifierfilename;
+end
+[filename,pathname] = uigetfile('*.mat','Load classifier',filename);
+if ~ischar(filename),
+  return;
+end
+classifiername = fullfile(pathname,filename);
+handles.data.SetClassifierFileName(classifiername);

@@ -291,12 +291,14 @@ if handles.data.FileExists(file,v),
 end
 fprintf('Generating %s...\n',handles.data.GetFile(file,v));
 switch file,
-  case 'window',
-    [success,msg] = handles.data.GenerateWindowFeaturesFiles(v,true);
-    if ~success,
-      uiwait(warndlg(msg,'Error generating file'));
-      return;
-    end
+%   case 'window',
+%     [success,msg] = handles.data.GenerateWindowFeaturesFiles(v,true);
+%     if ~success,
+%       uiwait(warndlg(msg,'Error generating file'));
+%       return;
+%     end
+  case 'perframe',
+    fprintf('TODO: generate perframe data\n');
 end
 UpdateStatusTable(handles);
 
