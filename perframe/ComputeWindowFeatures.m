@@ -1,3 +1,10 @@
+% [y,feature_names] = ComputeWindowFeatures(x,...)
+% 
+% Wrapper function that computes all the window features y for the input
+% one-dimensional time series x. 
+% 
+% 
+
 function [y,feature_names] = ComputeWindowFeatures(x,varargin)
 
 %% initialize
