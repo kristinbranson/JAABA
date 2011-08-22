@@ -1919,7 +1919,8 @@ classdef JLabelData < handle
             
             % new data added to windowdata at the end, so classifier.inds still
             % matches windowdata(:,1:Nprev)
-            Nprev = size(obj.classifier.inds,1);
+            Nprev = size(obj.windowdata.labelidx_old);
+            Ncurr = size(obj.windowdata.labelidx_new);
             waslabeled = obj.windowdata.labelidx_old(1:Nprev) ~= 0;
             islabeled = obj.windowdata.labelidx_new(1:Nprev) ~= 0;
             
@@ -1927,7 +1928,7 @@ classdef JLabelData < handle
             % islabeled & waslabeled will not change
             idx_relabel = islabeled & waslabeled & (obj.windowdata.labelidx_new(1:Nprev) ~= obj.windowdata.labelidx_old(1:Nprev));
             if any(idx_relabel),
-              obj.SetStatus('Updating fern classifier for %d relabeled examples...',numel(idx_relabel));
+              obj.SetStatus('Updating fern classifier for %d relabeled examples...',nnz(idx_relabel));
               [obj.classifier] = fernsClfRelabelTrainingData( obj.windowdata.labelidx_old(waslabeled), ...
                 obj.windowdata.labelidx_new(waslabeled), obj.classifier );
               % update labelidx_old
@@ -1937,20 +1938,20 @@ classdef JLabelData < handle
             % remove training examples that were labeled but now aren't
             idx_remove = waslabeled & ~islabeled(1:Nprev);
             if any(idx_remove),
-              obj.SetStatus('Removing %d training examples from fern classifier',numel(idx_remove));
-              [obj.classifier] = fernsClfRemoveTrainingData(obj.windowdata.labelidx_old(1:Nprev), idx_remove, obj.classifier );
+              obj.SetStatus('Removing %d training examples from fern classifier',nnz(idx_remove));
+              [obj.classifier] = fernsClfRemoveTrainingData(obj.windowdata.labelidx_old(waslabeled), idx_remove(waslabeled), obj.classifier );
               % update labelidx_old
               obj.windowdata.labelidx_old(idx_remove) = 0;
             end
             % update islabeled and waslabeled
             islabeled = obj.windowdata.labelidx_new ~= 0;
-            waslabeled = obj.windowdata.labelidx_old ~= 0;
+            waslabeled = [obj.windowdata.labelidx_old ~= 0;false(Ncurr-Nprev,1)];
             % now only examples with islabeled should be in training set
             
             % add training examples that are labeled now but weren't before
             idx_add = ~waslabeled(islabeled);
             if any(idx_add),
-              obj.SetStatus('Adding %d new examples to fern classifier...',numel(idx_add));
+              obj.SetStatus('Adding %d new examples to fern classifier...',nnz(idx_add));
               [obj.classifier] = fernsClfAddTrainingData( obj.windowdata.X(islabeled,:), ...
                 obj.windowdata.labelidx_new(islabeled), find(idx_add), obj.classifier );
               % update labelidx_old
