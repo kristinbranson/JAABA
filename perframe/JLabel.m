@@ -432,7 +432,7 @@ end
 try
   SetStatus(handles,'Opening movie...');
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
-    get_readframe_fcn(moviefilename,'interruptible',false,'nout',1);
+    get_readframe_fcn(moviefilename,'interruptible',false);
   im = handles.readframe(1);
 catch ME,
   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
