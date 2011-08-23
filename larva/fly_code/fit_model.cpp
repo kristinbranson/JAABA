@@ -6,12 +6,12 @@
 #include <highgui.h>
 #include <ml.h>  
 
-#ifdef WIN32
-#pragma comment(lib, "cv210")
-#pragma comment(lib, "cxcore210")
-#pragma comment(lib, "highgui210")
-#pragma comment(lib, "ml210")
-#endif
+//#ifdef WIN32
+//#pragma comment(lib, "cv210")
+//#pragma comment(lib, "cxcore210")
+//#pragma comment(lib, "highgui210")
+//#pragma comment(lib, "ml210")
+//#endif
 
 #define SCALE 20
 
