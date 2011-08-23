@@ -205,7 +205,7 @@ for i = 1:numel(handles.axes_previews),
 end
 
 % TODO: allow colormap options
-colormap(handles.figure_JLabel,gray(256));
+colormap(handles.axes_preview,gray(256));
 
 % timelines
 
