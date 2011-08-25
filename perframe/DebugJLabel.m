@@ -49,4 +49,4 @@ addpath(FlyBowlAnalysis_path);
 
 %% start JLabel
 
-JLabel('configfilename',configfilename);
+hfig = JLabel('configfilename',configfilename); handles = guidata(hfig);

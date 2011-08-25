@@ -1721,9 +1721,7 @@ classdef JLabelData < handle
           catch ME,
             msg = getReport(ME);
           end
-          obj.UpdatePredictedIdx();
         end
-        obj.ClearStatus();
         
 %         % window data for the currenf flies
 %         [success1,msg] = obj.LoadWindowData(expi,flies);
@@ -1733,6 +1731,9 @@ classdef JLabelData < handle
         
       end
       obj.flies = flies;
+
+      obj.UpdatePredictedIdx();
+      obj.ClearStatus();
            
       success = true;
       
