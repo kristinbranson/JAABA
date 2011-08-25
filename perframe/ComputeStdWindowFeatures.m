@@ -1,3 +1,78 @@
+% [y,feature_names,cache] = ComputeStdWindowFeatures(x,...)
+% 
+% Computes the standard deviation window features y for the input
+% one-dimensional per-frame time series data x. y(i,t) will correspond to
+% standard deviation window feature i and frame t, and is standard
+% deviation of all the per-frame data in the window defined by i and t. 
+% 
+% For window feature i, let r_i be the window radius, and off_i be the
+% window offset. The window feature y(i,t) is the standard deviation of the
+% per-frame data between (t-r_i+off_i) and (t+r_i+off_i). The
+% transformation types are ignored for this feature. 
+%
+% Input:
+%
+% x: 1 x NFRAMES array of per-frame data. 
+% 
+% Output: 
+%
+% y: NWINDOWFEATURES x NFRAMES matrix of window data, where y(i,t)
+% corresponds to window feature i and frame t. i indexes the radius and
+% offset of the window as well as the transformation type. 
+% feature_names: 1 x NWINDOWFEATURES cell in which feature_names{i}
+% describes the ith window feature computed. feature_names{i} is itself a
+% cell that can be interpreted as pairs of a string description followed by
+% a value, e.g. 
+% {'stat','std','trans','none','radius',1,'offset',1}
+% cache: if DOCACHE is set to true, then computations useful in other
+% window feature calculations may be saved in the output cache. 
+%
+% Optional inputs:
+%
+% 'change_window_radii': The 1 X NCHANGEWINDOWRADII change window radii to
+% use (this defines the size of the sub-window averaged over at the end and
+% start of the original window). default value: 0. 
+%
+% DEFAULT WINDOW LOCATIONS:
+% These window locations are used if window locations are not specified on
+% a per-feature type basis. Default default values set by
+% SetDefaultWindowParameters.
+% Inputs interpreted by SetWindowParameters. 
+% The same window parameter interpretation is done in all
+% Compute*WindowFeatures functions. 
+% 'windows': window offsets and radii to try ([radius1,offset1];...;[radiusn,offsetn])
+% if empty, then window_radii and window_offsets are used to specify
+% windows. if the window is [r,off], then the window feature at time t
+% will be computed from the window at t-r+off to t+r+off. default value: [].
+% 'window_radii': if windows is empty, then the cross-product of window_radii
+% and window_offsets is used to set windows. if empty, then
+% min_window_radius, max_window_radius, and nwindow_radii are used to set
+% window_radii. default value: [].
+% 'window_offsets': if windows is empty, then the cross-product of  window_radii
+% and window_offsets is used to set windows. window_offsets are relative to
+% radius, so the window corresponding to radius r_i and offset off_j_rel
+% will be [r_i,off_i=r_i*off_j_rel]. default value: [-1,0,1].
+% 'min_window_radius': if windows and window_radii are both empty, then
+% window_radii is set to nwindow_radii evenly spaced radii between
+% min_window_radii and max_window_radii. default value: 0
+% 'max_window_radius': see 'min_window_radius'. default value: 20.
+% 'nwindow_radii: see 'min_window_radius'. default value: 5. 
+%
+% 'trans_types': default types of transformations to apply for each feature
+% type, if not otherwise specified. This input is actually ignored by this
+% function. 
+%
+% 'sanitycheck': whether to compute all the features a second time in the
+% obvious way to make sure that the optimized computations are correct.
+% default value: false. 
+%
+% 'docache': whether to cache computations that might be useful, e.g. the
+% mean computations are useful when computing the std window features.
+% default value: true.
+%
+% 'cache': input cached computations that might be useful in this
+% computation. 
+
 function [y,feature_names,cache] = ComputeStdWindowFeatures(x,varargin)
 
 x = x(:)';

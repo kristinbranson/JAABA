@@ -210,6 +210,7 @@ colormap(handles.axes_preview,gray(256));
 % timelines
 
 % manual timeline
+timeline_axes_color = get(handles.panel_timelines,'BackgroundColor');
 handles.himage_timeline_manual = image(zeros([1,1,3]),'Parent',handles.axes_timeline_manual);
 set(handles.himage_timeline_manual,'HitTest','off');
 hold(handles.axes_timeline_manual,'on');
@@ -234,7 +235,7 @@ hold(handles.axes_timeline_error,'on');
 handles.htimeline_error_starts = plot(handles.axes_timeline_error,nan,nan,'w-','HitTest','off');
 
 for i = 1:numel(handles.axes_timelines),
-  set(handles.axes_timelines(i),'YTick',[],'XColor','w','YColor','w');
+  set(handles.axes_timelines(i),'YTick',[],'XColor','w','YColor','w','Color',timeline_axes_color);
 end
 
 handles.hcurr_timelines = nan(size(handles.axes_timelines));
@@ -305,8 +306,8 @@ if refresh_timeline_error,
 end
 
 if refresh_timeline_xlim,
-  xlim = [max(handles.t0_curr-.5,handles.ts(1)-(handles.timeline_nframes-1)/2),...
-    min(handles.t1_curr+.5,handles.ts(1)+(handles.timeline_nframes-1)/2)];
+  xlim = [handles.ts(1)-(handles.timeline_nframes-1)/2,...
+    handles.ts(1)+(handles.timeline_nframes-1)/2];
   set(handles.axes_timelines,'XLim',xlim);
 end
 
@@ -349,12 +350,17 @@ for i = axes,
   if refreshflies,
     %trx = handles.data.GetTrx(handles.expi,1:handles.nflies_curr,handles.ts(i));
     for fly = 1:handles.nflies_curr,
-      j = handles.ts(i) + handles.data.trx(fly).off;
-      updatefly(handles.hflies(fly,i),handles.data.trx(fly).x(j),...
-        handles.data.trx(fly).y(j),...
-        handles.data.trx(fly).theta(j),...
-        handles.data.trx(fly).a(j),...
-        handles.data.trx(fly).b(j));
+      if handles.ts(i) < handles.data.trx(fly).firstframe || ...
+          handles.ts(i) > handles.data.trx(fly).endframe,
+        set(handles.hflies(fly,i),'xdata',nan,'ydata',nan);
+      else
+        j = handles.ts(i) + handles.data.trx(fly).off;
+        updatefly(handles.hflies(fly,i),handles.data.trx(fly).x(j),...
+          handles.data.trx(fly).y(j),...
+          handles.data.trx(fly).theta(j),...
+          handles.data.trx(fly).a(j),...
+          handles.data.trx(fly).b(j));
+      end
       %updatefly(handles.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.flies),
         set(handles.hflies(fly,i),'LineWidth',5);
@@ -602,6 +608,9 @@ handles.labels_plot.error_im = zeros([1,n,3]);
 handles.labels_plot.x = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot.y = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot_off = 1-handles.t0_curr;
+set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
+  handles.himage_timeline_error,handles.himage_timeline_suggest],...
+  'XData',[handles.t0_curr,handles.t1_curr]);
 
 for flyi = 1:numel(flies),
   fly = flies(flyi);
@@ -699,10 +708,10 @@ t = round(t);
 if doforce || handles.ts(i) ~= t,
 
   handles.ts(i) = t;
-
+  
   % update labels
   if handles.label_state ~= 0,
-    handles = SetLabelPlot(handles,handles.ts(1),handles.label_state);
+    handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,t)),handles.label_state);
   end
   
   % update slider
@@ -726,6 +735,20 @@ if doforce || handles.ts(i) ~= t,
   for i = 1:numel(handles.axes_timelines),
     zoom(handles.axes_timelines(i),'reset');
   end
+  
+  % out of bounds for labeling? then turn off labeling
+  if (t < handles.t0_curr || t > handles.t1_curr),
+    if handles.label_state > 0,
+      set(handles.togglebutton_label_behaviors(handles.label_state),'Value',0);
+    elseif handles.label_state < 0,
+      set(handles.togglebutton_label_unknown,'Value',0);
+    end
+    handles.label_state = 0;
+    set([handles.togglebutton_label_behaviors,handles.togglebutton_label_unknown],'Enable','off');
+  else
+    set([handles.togglebutton_label_behaviors,handles.togglebutton_label_unknown],'Enable','on');
+  end
+
   
 end
 
@@ -1349,7 +1372,7 @@ if get(hObject,'Value'),
   
   % set the current frame to be labeled
   handles.lastframe_labeled = [];
-  handles = SetLabelPlot(handles,handles.ts(1),behaviori);
+  handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,handles.ts(1))),behaviori);
   UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
 else
   handles.label_state = 0;
@@ -1445,7 +1468,7 @@ if get(hObject,'Value'),
   end
   % set the current frame to be labeled
   handles.lastframe_labeled = [];
-  handles = SetLabelPlot(handles,handles.ts(1),-1);
+  handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,handles.ts(1))),-1);
   UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
   set(handles.togglebutton_label_unknown,'String','*Label Unknown*');
 else
@@ -1580,7 +1603,7 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 pt = get(hObject,'CurrentPoint');
-t = min(handles.t1_curr,max(handles.t0_curr,round(pt(1,1))));
+t = min(handles.nframes,max(1,round(pt(1,1))));
 % TODO: which axes?
 SetCurrentFrame(handles,1,t,hObject);
 
