@@ -2,8 +2,9 @@
 % 
 % Computes the percentile window features y for the input one-dimensional
 % per-frame time series data x. y(i,t) will correspond to percentile
-% window feature i and frame t, and is the (transformation of) the min of
-% all the per-frame data within the window defined by i at t. 
+% window feature i and frame t, and is the desired percentile of the
+% (transformation of) the per-frame data within the window defined by i at
+% t.
 % 
 % For window feature i, let p_i be the percentile to compute, r_i be the
 % window radius, and off_i be the window offset. If the transformation type
