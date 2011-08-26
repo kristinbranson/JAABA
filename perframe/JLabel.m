@@ -465,6 +465,8 @@ end
 
 handles.expi = expi;
 
+ClearStatus(handles);
+
 % TODO: change hard-coded colormap
 % update colors
 handles.fly_colors = jet(handles.nflies_curr)*.7;
