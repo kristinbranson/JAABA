@@ -71,7 +71,8 @@ classdef JLabelData < handle
     predictedidx = [];
     erroridx = [];
     suggestedidx = [];
-        
+    labelstats = struct('nflies_labeled',{},'nframes_labeled',{},...
+      'datestr',{});
     % behavior names
     labelnames = {};
     nbehaviors = 0;
@@ -586,12 +587,15 @@ classdef JLabelData < handle
         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
 
         try
-          loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off');
+          loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
           obj.labels(expi).t0s = loadedlabels.t0s;
           obj.labels(expi).t1s = loadedlabels.t1s;
           obj.labels(expi).names = loadedlabels.names;
           obj.labels(expi).flies = loadedlabels.flies;
           obj.labels(expi).off = loadedlabels.off;
+          obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
+          obj.labelstats(expi).nframes_labeled = sum(max(0,loadedlabels.t1s-loadedlabels.t0s+1));
+          obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
         catch ME,
           msg = getReport(ME);
           obj.ClearStatus();
@@ -607,7 +611,10 @@ classdef JLabelData < handle
         obj.labels(expi).names = {};
         obj.labels(expi).flies = [];
         obj.labels(expi).off = [];
-              
+        obj.labelstats(expi).nflies_labeled = 0;
+        obj.labelstats(expi).nframes_labeled = 0;
+        obj.labelstats(expi).datestr = 'never';
+
       end
       
       % TODO: update windowdata
@@ -1024,13 +1031,17 @@ classdef JLabelData < handle
         else
           try
             % REMOVE THIS
-            global CACHED_TRX; %#ok<TLEV>
-            if isempty(CACHED_TRX),
+            global CACHED_TRX;
+            global CACHED_TRX_EXPNAME; %#ok<TLEV>
+            if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+                ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
               hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',obj.expnames{expi}));
               trx = load_tracks(trxfile);
               if ishandle(hwait), delete(hwait); end
               CACHED_TRX = trx;
+              CACHED_TRX_EXPNAME = obj.expnames{expi};
             else
+              fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
               trx = CACHED_TRX;
             end
           catch ME,
@@ -1165,6 +1176,7 @@ classdef JLabelData < handle
       obj.endframes_per_exp(expi) = [];
       obj.nexps = obj.nexps - numel(expi);
       obj.labels(expi) = [];
+      obj.labelstats(expi) = [];
       % TODO: exp2labeloff
 
       % update current exp, flies
@@ -1648,10 +1660,14 @@ classdef JLabelData < handle
   
         % TODO: remove this
         global CACHED_TRX; %#ok<TLEV>
-        if isempty(CACHED_TRX),
+        global CACHED_TRX_EXPNAME; %#ok<TLEV>
+        if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+            ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
           obj.trx = load_tracks(trxfilename);
           CACHED_TRX = obj.trx;
+          CACHED_TRX_EXPNAME = obj.expnames{expi};
         else
+          fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
           obj.trx = CACHED_TRX;
         end
       catch ME,
@@ -1859,6 +1875,11 @@ classdef JLabelData < handle
       obj.labels(obj.expi).names{j} = newlabels.names;
       obj.labels(obj.expi).flies(j,:) = obj.flies;
       obj.labels(obj.expi).off(j) = obj.labelidx_off;
+
+      % store labelstats
+      obj.labelstats(obj.expi).nflies_labeled = numel(unique(obj.labels(obj.expi).flies));
+      obj.labelstats(obj.expi).nframes_labeled = sum(max(0,newlabels.t1s-newlabels.t0s+1));
+      obj.labelstats(obj.expi).datestr = datestr(now,'yyyymmddTHHMMSS');
       
       ts = find(obj.labelidx~=0) - obj.labelidx_off;
       [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
