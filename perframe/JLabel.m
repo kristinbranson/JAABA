@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 19-Jul-2011 16:16:02
+% Last Modified by GUIDE v2.5 25-Aug-2011 18:22:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -945,8 +945,8 @@ function menu_view_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_label_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_label (see GCBO)
+function menu_to_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_to (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1709,3 +1709,42 @@ if ~ischar(filename),
 end
 classifiername = fullfile(pathname,filename);
 handles.data.SetClassifierFileName(classifiername);
+
+
+% --------------------------------------------------------------------
+function menu_go_switch_experiment_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_switch_experiment (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+s = cell(1,handles.data.nexps);
+for i = 1:handles.data.nexps,
+  if i == handles.expi,
+    s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
+      handles.data.expnames{i},handles.data.nflies_per_exp(i));
+  else
+    s{i} = sprintf('%s, N flies: %d, N flies labeled: %d, N frames labeled: %d, last labeled: %s',...
+      handles.data.expnames{i},handles.data.nflies_per_exp(i),...
+      handles.data.labelstats(i).nflies_labeled,...
+      handles.data.labelstats(i).nframes_labeled,...
+      handles.data.labelstats(i).datestr);
+  end
+end
+[expi,ok] = listdlg('ListString',s,'SelectionMode','single',...
+  'InitialValue',handles.expi,'Name','Switch experiment',...
+  'PromptString','Select experiment:',...
+  'ListSize',[640,300]);
+if ~ok || expi == handles.expi,
+  return;
+end
+[handles,success] = SetCurrentMovie(handles,expi);
+if ~success,
+  return;
+end
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function menu_go_switch_target_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_switch_target (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
