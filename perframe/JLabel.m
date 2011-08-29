@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 25-Aug-2011 18:22:07
+% Last Modified by GUIDE v2.5 28-Aug-2011 16:57:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -291,7 +291,6 @@ if refresh_timeline_manual,
   set(handles.htimeline_manual_starts,'XData',tmpx,'YData',tmpy);  
 end
 
-% TODO: replace this with per-timeline images
 if refresh_timeline_manual,
   set(handles.himage_timeline_auto,'CData',handles.labels_plot.im);
 end
@@ -349,18 +348,16 @@ for i = axes,
   % update current position
   if refreshflies,
     %trx = handles.data.GetTrx(handles.expi,1:handles.nflies_curr,handles.ts(i));
-    for fly = 1:handles.nflies_curr,
-      if handles.ts(i) < handles.data.trx(fly).firstframe || ...
-          handles.ts(i) > handles.data.trx(fly).endframe,
-        set(handles.hflies(fly,i),'xdata',nan,'ydata',nan);
-      else
-        j = handles.ts(i) + handles.data.trx(fly).off;
-        updatefly(handles.hflies(fly,i),handles.data.trx(fly).x(j),...
-          handles.data.trx(fly).y(j),...
-          handles.data.trx(fly).theta(j),...
-          handles.data.trx(fly).a(j),...
-          handles.data.trx(fly).b(j));
-      end
+    inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
+      handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
+    set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
+    for fly = find(inbounds),
+      j = handles.ts(i) + handles.data.trx(fly).off;
+      updatefly(handles.hflies(fly,i),handles.data.trx(fly).x(j),...
+        handles.data.trx(fly).y(j),...
+        handles.data.trx(fly).theta(j),...
+        handles.data.trx(fly).a(j),...
+        handles.data.trx(fly).b(j));
       %updatefly(handles.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.flies),
         set(handles.hflies(fly,i),'LineWidth',5);
@@ -368,6 +365,10 @@ for i = axes,
         set(handles.hflies(fly,i),'LineWidth',2);
       end
     end
+    
+    if handles.zoom_fly,
+      ZoomInOnFlies(handles,i);
+    end    
   end
 
   % update trx
@@ -440,6 +441,8 @@ try
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
     get_readframe_fcn(moviefilename,'interruptible',false);
   im = handles.readframe(1);
+  handles.movie_width = size(im,2);
+  handles.movie_height = size(im,1);
 catch ME,
   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
   ClearStatus(handles);
@@ -462,6 +465,12 @@ if ~success,
   uiwait(errordlg(sprintf('Error loading data for experiment %d: %s',expi,msg)));
   return;
 end
+
+% set zoom radius
+if isnan(handles.zoom_fly_radius),
+  handles.zoom_fly_radius = nanmean([handles.data.trx.a])*20;
+end
+
 
 handles.expi = expi;
 
@@ -506,7 +515,7 @@ end
 
 % update zoom
 for i = 1:numel(handles.axes_previews),
-  axis(handles.axes_previews(i),[.5,size(im,2)+.5,.5,size(im,1)+.5]);
+  axis(handles.axes_previews(i),[.5,handles.movie_width+.5,.5,handles.movie_height+.5]);
 end
 for i = 1:numel(handles.axes_previews),
   zoom(handles.axes_previews(i),'reset');
@@ -652,6 +661,18 @@ if numel(handles.flies) == 1,
 else
   handles.status_bar_text = [sprintf('%s, flies',expname),sprintf(' %d',handles.flies)];
 end
+
+% make sure frame is within bounds
+isset = handles.ts ~= 0;
+ts = max(handles.t0_curr,min(handles.t1_curr,handles.ts));
+ts(~isset) = 0;
+for i = 1:numel(ts),
+  if ts(i) ~= handles.ts(i),
+    handles = SetCurrentFrame(handles,i,ts(i),nan);
+    handles.ts(i) = ts(i);
+  end
+end
+
 ClearStatus(handles);
 
 guidata(handles.figure_JLabel,handles);
@@ -786,6 +807,10 @@ function menu_file_editfiles_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if isfield(handles,'data'),
+%   [success,msg] = handles.data.UpdateStatusTable();
+%   if ~success,
+%     error(msg);
+%   end
   params = {handles.data};
 else
   params = {handles.configfilename};
@@ -923,7 +948,10 @@ if ~ischar(filename),
   return;
 end
 handles.data.classifierfilename = fullfile(pathname,filename);
+SetStatus(handles,sprintf('Saving classifier to %s',handles.data.classifierfilename));
 handles.data.SaveClassifier();
+handles.data.SaveLabels();
+ClearStatus(handles);
 
 % --------------------------------------------------------------------
 function menu_file_exit_Callback(hObject, eventdata, handles)
@@ -1100,6 +1128,11 @@ handles = CreateLabelButtons(handles);
 % clicking on preview window
 handles.max_click_dist_preview = .025^2;
 
+% zoom state
+handles.zoom_fly = true;
+handles.zoom_fly_radius = nan;
+set(handles.menu_view_zoom_in_on_fly,'Checked','on');
+
 % create buttons for each label
 function handles = CreateLabelButtons(handles)
 
@@ -1168,7 +1201,8 @@ function EnableGUI(handles)
 % these controls require a movie to currently be open
 h = [handles.menu_view_timeline_options,...
   handles.togglebutton_label_behaviors(:)',...
-  handles.togglebutton_label_unknown];
+  handles.togglebutton_label_unknown,...
+  handles.menu_view_zoom_in_on_fly];
 hp = [handles.panel_previews(:)',...
   handles.panel_timelines,...
   handles.panel_learn];
@@ -1522,8 +1556,8 @@ answers = {num2str(handles.timeline_nframes)};
 res = inputdlg(prompts,'Timeline view options',numel(prompts),answers);
 handles.timeline_nframes = str2double(res{1});
 
-xlim = [max(handles.t0_curr-.5,handles.ts(1)-(handles.timeline_nframes-1)/2),...
-  min(handles.t1_curr+.5,handles.ts(1)+(handles.timeline_nframes-1)/2)];
+xlim = [handles.ts(1)-(handles.timeline_nframes-1)/2,...
+  handles.ts(1)+(handles.timeline_nframes-1)/2];
 for i = 1:numel(handles.axes_timelines),
   set(handles.axes_timelines(i),'XLim',xlim);
   zoom(handles.axes_timelines(i),'reset');
@@ -1700,11 +1734,7 @@ function menu_file_load_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if exist(handles.data.classifierfilename,'file'),
-  filename = fileparts(handles.data.classifierfilename);
-else
-  filename = handles.data.classifierfilename;
-end
+filename = handles.data.classifierfilename;
 [filename,pathname] = uigetfile('*.mat','Load classifier',filename);
 if ~ischar(filename),
   return;
@@ -1725,10 +1755,10 @@ for i = 1:handles.data.nexps,
     s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
       handles.data.expnames{i},handles.data.nflies_per_exp(i));
   else
-    s{i} = sprintf('%s, N flies: %d, N flies labeled: %d, N frames labeled: %d, last labeled: %s',...
+    s{i} = sprintf('%s, N flies: %d, N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
       handles.data.expnames{i},handles.data.nflies_per_exp(i),...
       handles.data.labelstats(i).nflies_labeled,...
-      handles.data.labelstats(i).nframes_labeled,...
+      handles.data.labelstats(i).nbouts_labeled,...
       handles.data.labelstats(i).datestr);
   end
 end
@@ -1750,3 +1780,76 @@ function menu_go_switch_target_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_go_switch_target (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% TODO: generalize this to multiple flies labeled
+
+nflies = handles.data.nflies_per_exp(handles.expi);
+s = cell(1,nflies);
+for fly = 1:nflies,
+  
+  [ism,j] = ismember(fly,handles.data.labels(handles.expi).flies,'rows');
+  if ism,
+    nbouts = nnz(~strcmpi(handles.data.labels(handles.expi).names{j},'None'));
+  else
+    nbouts = 0;
+  end
+  
+  if fly == handles.flies(1),
+    s{fly} = sprintf('Target %d, CURRENTLY SELECTED',fly);
+  else
+    s{fly} = sprintf('Target %d, Trajectory length %d, First frame %d, N bouts labeled %d',...
+      fly,handles.data.trx(fly).nframes,...
+      handles.data.trx(fly).firstframe,...
+      nbouts);
+  end
+end
+[fly,ok] = listdlg('ListString',s,'SelectionMode','single',...
+  'InitialValue',handles.flies(1),'Name','Switch target',...
+  'PromptString','Select experiment:',...
+  'ListSize',[640,300]);
+if ~ok || fly == handles.flies(1),
+  return;
+end
+handles = SetCurrentFlies(handles,fly);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_zoom_in_on_fly_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_zoom_in_on_fly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.zoom_fly = ~handles.zoom_fly;
+if handles.zoom_fly,
+  set(hObject,'Checked','on');
+else
+  set(hObject,'Checked','off');
+end
+if handles.zoom_fly,
+  ZoomInOnFlies(handles);
+end
+
+function ZoomInOnFlies(handles,is)
+
+if nargin < 2,
+  is = 1:numel(handles.axes_previews);
+end
+
+xs = nan(1,numel(handles.flies));
+ys = nan(1,numel(handles.flies));
+for i = is,
+  inds = handles.ts(i)-handles.data.firstframes_per_exp{handles.expi}(handles.flies)+1;
+  for j = 1:numel(handles.flies),
+    if inds(j) <= 0 || inds(j) > handles.data.trx(handles.flies(j)).nframes,
+      continue;
+    end
+    xs(j) = handles.data.trx(handles.flies(j)).x(inds(j));
+    ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
+  end
+  if ~all(isnan(xs)) && ~all(isnan(ys)),
+    xlim = [max([.5,xs-handles.zoom_fly_radius]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius])];
+    ylim = [max([.5,ys-handles.zoom_fly_radius]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius])];
+    set(handles.axes_previews(i),'XLim',xlim,'YLim',ylim);
+  end
+end
