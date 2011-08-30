@@ -1,53 +1,12 @@
 classdef JLabelData < handle
   
   properties (Access=public)
+
+    % current selection
     
-    % config parameters: locations of files
-    moviefilename = 0;
-    trxfilename = 0;
-    labelfilename = 0;
-    %windowfilename = 0;
-    perframedir = 0;
-    featureparamsfilename = 0;
-    classifierfilename = '';
-    rootoutputdir = 0;
-    configfilename = '';
-    
-    % experiment directories
-    expdirs = {};
-    expnames = {};
-    outexpdirs = {};
-    nflies_per_exp = [];
-    firstframes_per_exp = {};
-    endframes_per_exp = {};
-    nexps = 0;
-    
-    % files per experiment directory
-    filetypes = {'movie','trx','label','perframedir'};%,'window'};
-    
-    % stuff stored in classifier mat file
-    classifiervars = {'expdirs','outexpdirs','expnames','nflies_per_exp',...
-      'firstframes_per_exp','endframes_per_exp',...
-      'moviefilename','trxfilename','labelfilename','perframedir','featureparamsfilename',...
-      'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params'};%'windowfilename',
-    
-    % last used paths
-    defaultpath = '';
-    
-    % window feature params
-    windowfeaturesparams = struct;
-    windowfeaturescellparams = {};
-    perframefns = {};
-    
-    % whether files are missing
-    fileexists = [];
-    filetimestamps = [];
-    allfilesexist = true;
-    filesfixable = true;
-    
-    % current experiment
+    % currently selected  experiment
     expi = 0;
-    % current flies
+    % currently selected flies
     flies = [];
     
     % last-used trajectories (one experiment, all flies)
@@ -60,30 +19,183 @@ classdef JLabelData < handle
     windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
       'labelidx_old',[],'labelidx_new',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[]);
+    
+    % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
     
-    % labels structure
-    labels = [];
+    % total number of experiments
+    nexps = 0;
+    
+    % labels struct array
+    % labels(expi) is the labeled data for experiment expi
+    % labels(expi).t0s are the start frames of all labeled sequences for
+    % experiment expi
+    % labels(expi).t1s are the corresponding end frames of all labeled
+    % sequences for experiment expi
+    % labels(expi).names is the cell array of the corresponding behavior
+    % names for all labeled sequences for experiment expi
+    % labels(expi).flies is the nseq x nflies_labeled matrix of the
+    % corresponding flies for all labeled sequences for experiment expi
+    % t0s(j), t1s(j), names{j}, and flies(j,:) correspond to each other. 
+    % labels(expi).off is the offset so that labels(expi).t0s(j) +
+    % labels(expi).off corresponds to the frame of the movie (since the
+    % first frame for the trajectory(s) may not be 1.
+    % labels(expi).timestamp is the Matlab timestamp at which labels(expi)
+    % was last set
+    labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{});
+    
+    % labels for the current experiment and flies, represented as an array
+    % such that labelidx(t+labelidx_off) is the index of the behavior for
+    % frame t of the movie. labelidx(i) == 0 corresponds to
+    % unlabeled/unknown, otherwise labelidx(i) corresponds to behavior
+    % labelnames{labelidx{i})
     labelidx = [];
     labelidx_off = 0;
+    
+    % first frame that all flies currently selected are tracked
     t0_curr = 0;
+    % last frame that all flies currently selected are tracked
     t1_curr = 0;
+    
+    % predicted label for current experiment and flies, with the same type
+    % of representation as labelidx
     predictedidx = [];
+    
+    % whether the predicted label matches the true label. 0 stands for
+    % either not predicted or not labeled, 1 for matching, 2 for not
+    % matching. this has the same representation as labelidx.
     erroridx = [];
+    
+    % TODO: remove this
+    % predictedidx for unlabeled data, same representation as labelidx
     suggestedidx = [];
+    
+    % names of behaviors, corresponding to labelidx
+    labelnames = {};
+    
+    % number of behaviors, including 'none'
+    nbehaviors = 0;
+
+    % statistics of labeled data per experiment
+    % labelstats(expi).nflies_labeled is the total number of flies labeled,
+    % labelstats(expi).nbouts_labeled is the total number of bouts of
+    % behaviors labeled, labelstats(expi).datestr is the last time
+    % labels(expi) was stored. 
     labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
       'datestr',{});
-    % behavior names
-    labelnames = {};
-    nbehaviors = 0;
     
     % classifier
-    classifiertype = 'ferns';
-    classifier = [];
-    classifier_params = struct;
-    last_predicted_inds = [];
     
-    % functions for setting a status bar
+    % type of classifier to use
+    classifiertype = 'ferns';
+    
+    % currently learned classifier. structure depends on the type of
+    % classifier. if empty, then no classifier has been trained yet. 
+    % ferns:
+    % classifier is a struct with the following fields (M is the number of
+    % ferns, S is the fern depth, N is the number of training examples). 
+    %   .fids     - [MxS] feature ids for each fern for each depth
+    %   .thrs     - [MxS] threshold corresponding to each fid
+    %   .pFern    - [2^SxHxM] learned log probs at fern leaves
+    %   .bayes    - if true combine probs using bayes assumption
+    %   .inds     - [NxM] cached indices for original training data
+    %   .H        - number classes
+    classifier = [];
+    
+    % parameters to learning the classifier. struct fields depend on type
+    % of classifier.
+    % TODO
+    classifier_params = struct;
+    
+    % stuff cached during prediction
+    predict_cache = struct;
+    
+    % name of file containing config parameters
+    configfilename = '';
+    
+    % constant: files per experiment directory
+    filetypes = {'movie','trx','label','perframedir'};
+    
+    % config parameters
+    
+    % locations of files within experiment directories
+    moviefilename = 0;
+    trxfilename = 0;
+    labelfilename = 0;
+    perframedir = 0;
+    
+    % file containing feature parameters
+    featureparamsfilename = 0;
+    
+    % in case we don't want to write to the experiment directory, we will
+    % mirror the experiment directory structure in the rootoutput dir
+    % this can be the same as the input root directory
+    rootoutputdir = 0;
+
+    % name of classifier file to save/load classifier from
+    classifierfilename = '';
+    
+    % experiment info: expi indexes the following
+    
+    % cell array of input experiment directory paths
+    expdirs = {};
+    
+    % cell array of corresponding experiment names (last part of path)
+    expnames = {};
+    
+    % cell array of corresponding output experiment directory paths
+    outexpdirs = {};
+    
+    % array of number of flies in each experiment
+    nflies_per_exp = [];
+    
+    % cell array of arrays of first frame of each trajectory for each
+    % experiment: firstframes_per_exp{expi}(fly) is the first frame of the
+    % trajectory of fly for experiment expi. 
+    firstframes_per_exp = {};
+    % cell array of arrays of end frame of each trajectory for each
+    % experiment: endframes_per_exp{expi}(fly) is the last frame of the
+    % trajectory of fly for experiment expi. 
+    endframes_per_exp = {};
+    
+    % constant: stuff stored in classifier mat file
+    classifiervars = {'expdirs','outexpdirs','expnames','nflies_per_exp',...
+      'firstframes_per_exp','endframes_per_exp',...
+      'moviefilename','trxfilename','labelfilename','perframedir','featureparamsfilename',...
+      'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params'};%'windowfilename',
+    
+    % last used path for loading experiment
+    defaultpath = '';
+    
+    % parameters of window features, represented as a struct
+    windowfeaturesparams = struct;
+    
+    % parameters of window features, represented as a cell array of
+    % parameter name, parameter value, so that it can be input to
+    % ComputeWindowFeatures
+    windowfeaturescellparams = {};
+    
+    % per-frame features that are used
+    perframefns = {};
+
+    % experiment/file management
+
+    % matrix of size numel(file_types) x nexps, where
+    % fileexists(filei,expi) indicates whether file filetypes{filei} exists
+    % for experiment expi
+    fileexists = [];
+    
+    % timestamps indicating time the files were last edited, same structure
+    % as fileexists
+    filetimestamps = [];
+    
+    % whether all necessary files for all experiments exist
+    allfilesexist = true;
+
+    % whether we can generate any missing files
+    filesfixable = true;
+    
+    % functions for writing text to a status bar
     setstatusfn = '';
     clearstatusfn = '';
     
@@ -96,24 +208,71 @@ classdef JLabelData < handle
     
   methods (Access=public,Static=true)
 
+    % movie, trx, and perframedir are required for each experiment
     function res = IsRequiredFile(file)
-      res = ismember(file,{'movie','trx','perframedir'});%,'window'});
+      res = ismember(file,{'movie','trx','perframedir'});
     end    
+    
+    % perframedir can be generated
     function res = CanGenerateFile(file)
-      res = ismember(file,{'perframedir'});%,'window'});
+      res = ismember(file,{'perframedir'});
     end
+    
+    % which files should go in the output directory
     function res = IsOutputFile(file)
-      res = ismember(file,{'label'});%,'window'});
+      res = ismember(file,{'label'});
     end
+    
+    % which files are stored individually per fly (none anymore -- used to
+    % be window files)
     function res = IsPerFlyFile(file)
-      res = ismember(file,{});%{'window'});
+      res = ismember(file,{});
     end
     
   end
   
   methods (Access=public)
-  
-    function obj = JLabelData(configfilename,varargin)
+
+    % obj = JLabelData(configfilename,...)
+    %
+    % constructor: first input should be the config file name. All other
+    % inputs are optional. if configfilename is not input, user will be
+    % prompted for it. 
+    % 
+    % optional inputs: 
+    %
+    % TODO: debug this
+    % override stuff set in the config file: 
+    %
+    % moviefilename, trxfilename, labelfilename, perframedir: names of
+    % files within experiment directories: 
+    % featureparamsfilename: file containing feature parameters
+    % rootoutputdir: in case we don't want to write to the experiment
+    % directory, we will mirror the experiment directory structure in the
+    % rootoutputdir this can be the same as the input root directory
+    %
+    % defaultpath: default location to look for experiments
+    % setstatusfn: handle to function that inputs sprintf-like input and
+    % outputs the corresponding string to a status bar.
+    % clearstatusfn: handle to function that returns the status to the
+    % default string
+    % classifierfilename: name of classifier file to save/load classifier from
+
+    function obj = JLabelData(varargin)
+ 
+      if nargin == 0 || isempty(varargin{1}),
+        [filename,pathname] = uigetfile('*.xml','Choose config XML file');
+        if ~ischar(filename),
+          return;
+        end
+        configfilename = fullfile(pathname,filename);
+        if ~isempty(varargin),
+          varargin = varargin(2:end);
+        end
+      else
+        configfilename = varargin{1};
+        varargin = varargin(2:end);
+      end
       
       if mod(numel(varargin),2) ~= 0,
         error('Number of inputs to JLabelData constructor must be even');
@@ -184,15 +343,6 @@ classdef JLabelData < handle
         end
       end
       
-%       % window
-%       i = find(strcmpi(s,'windowfilename'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetWindowFileName(v{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-      
       % classifier
       i = find(strcmpi(s,'classifierfilename'),1);
       if ~isempty(i),
@@ -230,6 +380,7 @@ classdef JLabelData < handle
         end
       end
       
+      % initialize the status table describing what required files exist
       [success,msg] = obj.UpdateStatusTable();
       if ~success,
         error(msg);
@@ -237,6 +388,15 @@ classdef JLabelData < handle
       
     end
 
+    % [success,msg] = SetConfigFileName(obj,configfilename)
+    % Set and read config file. 
+    % Reads the XML config file, then sets all the file names and paths.
+    % I think this currently needs to be called before experiments, labels
+    % are loaded in, as locations of files, behaviors can be modified by
+    % this step. 
+    % labelnames, nbehaviors are also set by the config file. If not
+    % included explicitly, the 'None' behavior is added. 'None' is put at
+    % the end of the behavior list. 
     function [success,msg] = SetConfigFileName(obj,configfilename)
       
       success = false;
@@ -276,12 +436,6 @@ classdef JLabelData < handle
             return;
           end
         end
-%         if isfield(configparams.file,'windowfilename'),
-%           [success1,msg] = obj.SetWindowFileName(configparams.file.windowfilename);
-%           if ~success1,
-%             return;
-%           end
-%         end
         if isfield(configparams.file,'rootoutputdir'),
           [success1,msg] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
           if ~success1,
@@ -321,7 +475,17 @@ classdef JLabelData < handle
       end
       
     end
-
+    
+    % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
+    % Compute and store the window data for experiment expi, flies flies,
+    % and all frames ts. 
+    % This function finds all frames that currently do not have window data
+    % cached. In a loop, it finds the first frame that is missing window
+    % data, and computes window data for all frames in a chunk of size
+    % 2*obj.windowdatachunk_radius + 1 after this frame using the function
+    % ComputeWindowDataChunk. Then, it updates the frames that are missing
+    % window data. It proceeds in this loop until there are not frames
+    % in the input ts missing window data. 
     function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
       
       success = false;
@@ -335,6 +499,7 @@ classdef JLabelData < handle
         error('Usage: one set of flies must be selected');
       end
       
+      % which frames don't have window data yet
       if isempty(obj.windowdata.exp),
         missingts = ts;
         tscurr = [];
@@ -344,31 +509,42 @@ classdef JLabelData < handle
         missingts = setdiff(ts,tscurr);
       end
         
+      % no frames missing data?
       if isempty(missingts),
         success = true;
         return;
       end
 
-      % get labels for current flies
+      % get labels for current flies -- will be used when filling in
+      % windowdata
       [labelidx,t0_labelidx] = obj.GetLabelIdx(expi,flies);
-      
+
+      % total number of frames to compute window data for -- used for
+      % showing prctage complete. 
       nts0 = numel(missingts);
       
       while true,
-        
-        t = missingts(1);
-        obj.SetStatus('Computing window data %d%% done...',round(100*(nts0-numel(missingts))/nts0));
 
+        % choose a frame missing window data
+        t = missingts(1);
+        
+        % update the status
+        obj.SetStatus('Computing window data for exp %s, flies%s: %d%% done...',...
+          obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
+
+        % compute window data for a chunk starting at t
         [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t);
         if ~success1,
           warning(msg);
           return;
         end
         
+        % only store window data that isn't already cached
         tsnew = t0:t1;
         idxnew = ~ismember(tsnew,tscurr);
         m = nnz(idxnew);
-        
+
+        % add to windowdata
         obj.windowdata.X(end+1:end+m,:) = X(idxnew,:);
         obj.windowdata.exp(end+1:end+m,1) = expi;
         obj.windowdata.flies(end+1:end+m,:) = repmat(flies,[m,1]);
@@ -378,14 +554,18 @@ classdef JLabelData < handle
         obj.windowdata.predicted(end+1:end+m,1) = 0;
         obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
 
+        % remove from missingts all ts that were computed in this chunk
         missingts(missingts >= t0 & missingts <= t1) = [];
-        
+
+        % stop if we're done
         if isempty(missingts),
           obj.ClearStatus();
           break;
         end
         
       end
+      
+      % store feature_names -- these shouldn't really change
       obj.windowdata.featurenames = feature_names;
       
       success = true;
@@ -595,6 +775,7 @@ classdef JLabelData < handle
           obj.labels(expi).names = loadedlabels.names;
           obj.labels(expi).flies = loadedlabels.flies;
           obj.labels(expi).off = loadedlabels.off;
+          obj.labels(expi).timestamp = loadedlabels.timestamp;
           obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
           obj.labelstats(expi).nbouts_labeled = numel(loadedlabels.t1s);
           obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
@@ -613,6 +794,7 @@ classdef JLabelData < handle
         obj.labels(expi).names = {};
         obj.labels(expi).flies = [];
         obj.labels(expi).off = [];
+        obj.labels(expi).timestamp = [];
         obj.labelstats(expi).nflies_labeled = 0;
         obj.labelstats(expi).nbouts_labeled = 0;
         obj.labelstats(expi).datestr = 'never';
@@ -914,7 +1096,7 @@ classdef JLabelData < handle
               
               case 'ferns',
                 waslabeled = obj.windowdata.labelidx_old ~= 0;
-                obj.classifier.inds = obj.last_predicted_inds(waslabeled,:);
+                obj.classifier.inds = obj.predict_cache.last_predicted_inds(waslabeled,:);
             
             end
           end
@@ -1002,7 +1184,7 @@ classdef JLabelData < handle
         names = obj.labels(i).names; %#ok<NASGU>
         flies = obj.labels(i).flies; %#ok<NASGU>
         off = obj.labels(i).off; %#ok<NASGU>
-        timestamp = now; %#ok<NASGU>
+        timestamp = obj.labels(i).timestamp; %#ok<NASGU>
         
         try
           save(lfn,'t0s','t1s','names','flies','off','timestamp');
@@ -1919,7 +2101,7 @@ classdef JLabelData < handle
       end
       
       % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'off',obj.labelidx_off);
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'off',obj.labelidx_off,'timestamp',now);
       for j = 1:obj.nbehaviors,
         [i0s,i1s] = get_interval_ends(obj.labelidx==j);
         if ~isempty(i0s),
@@ -1937,12 +2119,11 @@ classdef JLabelData < handle
       obj.labels(obj.expi).t1s{j} = newlabels.t1s;
       obj.labels(obj.expi).names{j} = newlabels.names;
       obj.labels(obj.expi).flies(j,:) = obj.flies;
-      obj.labels(obj.expi).off(j) = obj.labelidx_off;
 
       % store labelstats
       obj.labelstats(obj.expi).nflies_labeled = numel(unique(obj.labels(obj.expi).flies));
       obj.labelstats(obj.expi).nbouts_labeled = numel(newlabels.t1s);
-      obj.labelstats(obj.expi).datestr = datestr(now,'yyyymmddTHHMMSS');
+      obj.labelstats(obj.expi).datestr = datestr(obj.labels(obj.expi).timestamp,'yyyymmddTHHMMSS');
       
       ts = find(obj.labelidx~=0) - obj.labelidx_off;
       [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
@@ -2074,7 +2255,7 @@ classdef JLabelData < handle
           obj.SetStatus('Applying fern classifier to %d windows',size(obj.windowdata.X,1));
           [obj.windowdata.predicted,...
             obj.windowdata.predicted_probs,...
-            obj.last_predicted_inds] = ...
+            obj.predict_cache.last_predicted_inds] = ...
             fernsClfApply(obj.windowdata.X,obj.classifier);
           obj.windowdata.isvalidprediction(:) = true;
           obj.ClearStatus();
