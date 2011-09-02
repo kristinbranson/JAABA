@@ -629,8 +629,8 @@ for flyi = 1:numel(flies),
   y = handles.data.GetTrxY(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
     idx = handles.data.labelidx == behaviori;
-    handles.labels_plot.x(idx,behaviori,flyi) = x(idx);
-    handles.labels_plot.y(idx,behaviori,flyi) = y(idx);
+    handles.labels_plot.x(idx,behaviori,flyi) = x{1}(idx);
+    handles.labels_plot.y(idx,behaviori,flyi) = y{1}(idx);
   end
 end
 handles = UpdateTimelineIms(handles);
@@ -1722,10 +1722,15 @@ else
   color = handles.idlestatuscolor;
 end
 set(handles.text_status,'ForegroundColor',color,'String',s);
+if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
+  msgbox(s,'JLabel Status','modal');
+end
 
 function ClearStatus(handles)
 
 set(handles.text_status,'ForegroundColor',handles.idlestatuscolor,'String',handles.status_bar_text);
+h = findall(0,'Type','figure','Name','JLabel Status');
+if ~isempty(h), delete(h(ishandle(h))); end
 
 
 % --------------------------------------------------------------------
