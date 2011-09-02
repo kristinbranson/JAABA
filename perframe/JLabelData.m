@@ -1974,7 +1974,11 @@ classdef JLabelData < handle
       
       if expi ~= obj.expi,
         % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,1);
+        if nargin < 3,
+          [success,msg] = obj.PreLoad(expi,1);
+        else
+          [success,msg] = obj.PreLoad(expi,flies(1));
+        end
         if ~success,
           error('Error loading trx for experiment %d: %s',expi,msg);
         end
@@ -1997,6 +2001,28 @@ classdef JLabelData < handle
         js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
         x{i} = obj.trx(fly).x(js);
       end
+    end
+    
+    % x = GetTrxX1(obj,expi,fly,ts)
+    % Returns the x-positions for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+    function x = GetTrxX1(obj,expi,fly,ts)
+      
+      if all(expi ~= obj.expi),
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        x = obj.trx(fly).x;
+        return;
+      end
+      
+      x = obj.trx(fly).x(ts + obj.trx(fly).off);
+
     end
 
     % y = GetTrxY(obj,expi,flies,ts)
@@ -2035,6 +2061,28 @@ classdef JLabelData < handle
         js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
         y{i} = obj.trx(fly).y(js);
       end
+    end
+    
+    % y = GetTrxY1(obj,expi,fly,ts)
+    % Returns the y-positions for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+    function y = GetTrxY1(obj,expi,fly,ts)
+      
+      if all(expi ~= obj.expi),
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        y = obj.trx(fly).y;
+        return;
+      end
+      
+      y = obj.trx(fly).y(ts + obj.trx(fly).off);
+
     end
 
     % a = GetTrxA(obj,expi,flies,ts)
@@ -2075,6 +2123,28 @@ classdef JLabelData < handle
       end
     end
     
+    % a = GetTrxA1(obj,expi,fly,ts)
+    % Returns the quarter-major-axes for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+    function a = GetTrxA1(obj,expi,fly,ts)
+      
+      if all(expi ~= obj.expi),
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        a = obj.trx(fly).a;
+        return;
+      end
+      
+      a = obj.trx(fly).a(ts + obj.trx(fly).off);
+
+    end
+    
     % b = GetTrxB(obj,expi,flies,ts)
     % Returns the quarter minor axis lengths for the input experiment,
     % flies, and frames. This is a cell array with an entry for each fly.
@@ -2113,6 +2183,28 @@ classdef JLabelData < handle
       end
     end
     
+    % b = GetTrxB1(obj,expi,fly,ts)
+    % Returns the quarter-minor-axes for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+    function b = GetTrxB1(obj,expi,fly,ts)
+      
+      if all(expi ~= obj.expi),
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        b = obj.trx(fly).b;
+        return;
+      end
+      
+      b = obj.trx(fly).b(ts + obj.trx(fly).off);
+
+    end
+    
     % theta = GetTrxTheta(obj,expi,flies,ts)
     % Returns the orientations for the input experiment,
     % flies, and frames. This is a cell array with an entry for each fly.
@@ -2149,6 +2241,58 @@ classdef JLabelData < handle
         js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
         theta{i} = obj.trx(fly).theta(js);
       end
+    end
+
+    % theta = GetTrxTheta1(obj,expi,fly,ts)
+    % Returns the orientations for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+    function theta = GetTrxTheta1(obj,expi,fly,ts)
+      
+      if all(expi ~= obj.expi),
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        theta = obj.trx(fly).theta;
+        return;
+      end
+      
+      theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+
+    end
+    
+    % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
+    % Returns the position for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+    function [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
+      
+      if all(expi ~= obj.expi),
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        x = obj.trx(fly).theta;
+        y = obj.trx(fly).y;
+        theta = obj.trx(fly).theta;
+        a = obj.trx(fly).a;
+        b = obj.trx(fly).b;
+        return;
+      end
+      
+      x = obj.trx(fly).x(ts + obj.trx(fly).off);
+      y = obj.trx(fly).y(ts + obj.trx(fly).off);
+      theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+      a = obj.trx(fly).a(ts + obj.trx(fly).off);
+      b = obj.trx(fly).b(ts + obj.trx(fly).off);
+
     end
     
     % t0 = GetTrxFirstFrame(obj,expi,flies)
