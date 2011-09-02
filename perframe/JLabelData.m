@@ -526,14 +526,18 @@ classdef JLabelData < handle
       while true,
 
         % choose a frame missing window data
-        t = missingts(1);
+        %t = missingts(1);
+        t = median(missingts);
+        if ~ismember(t,missingts),
+          t = missingts(argmin(abs(t-missingts)));
+        end
         
         % update the status
         obj.SetStatus('Computing window data for exp %s, flies%s: %d%% done...',...
           obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
 
         % compute window data for a chunk starting at t
-        [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'start');
+        [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
         if ~success1,
           warning(msg);
           return;
@@ -615,10 +619,10 @@ classdef JLabelData < handle
           t1 = min(t0+2*obj.windowdatachunk_radius,T1);
         case 'start',
           t0 = max(t,T0);
-          t1 = min(t+2*obj.windowdatachunk_radius,T1);
+          t1 = min(t0+2*obj.windowdatachunk_radius,T1);
         case 'end',
           t1 = min(t,T1);
-          t0 = max(t-2*obj.windowdatachunk_radius,T0);
+          t0 = max(t1-2*obj.windowdatachunk_radius,T0);
         otherwise
           error('Unknown mode %s',mode);
       end
@@ -634,7 +638,10 @@ classdef JLabelData < handle
         docompute(tscomputed+off) = false;
       end
       
+      X = [];
+      feature_names = {};
       if ~any(docompute),
+        t1 = t0-1;
         success = true;
         return;
       end
@@ -643,8 +650,6 @@ classdef JLabelData < handle
       t1 = find(docompute,1,'last') - off;
       
       try
-        X = [];
-        feature_names = {};
 
         % loop through per-frame fields
         for j = 1:numel(obj.perframefns),
@@ -1515,6 +1520,13 @@ classdef JLabelData < handle
       obj.rootoutputdir = rootoutputdir;
       obj.outexpdirs{end+1} = outexpdir;
       
+      % load labels for this experiment
+      [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
+      if ~success1,
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+
       % get trxinfo
       if istrxinfo,
         obj.nflies_per_exp(end+1) = nflies_per_exp;
@@ -1530,13 +1542,6 @@ classdef JLabelData < handle
           obj.RemoveExpDirs(obj.nexps);
           return;
         end
-      end
-      
-      % load labels for this experiment
-      [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.RemoveExpDirs(obj.nexps);
-        return;
       end
       
       [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
@@ -2182,57 +2187,57 @@ classdef JLabelData < handle
       
     end
 
-    % [success,msg] = LoadTrx(obj,expi)
-    % Load trajectories for input experiment. This should only be called by
-    % PreLoad()!. 
-    function [success,msg] = LoadTrx(obj,expi)
-
-      success = false;
-      msg = '';
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-
-      if expi < 1,
-        msg = 'expi not yet set';
-        return;
-      end
-      
-      % load trx
-      try
-        trxfilename = obj.GetFile('trx',expi);
-  
-        hwait = mywaitbar(0,'Loading trx');
-  
-        % TODO: remove this
-        global CACHED_TRX; %#ok<TLEV>
-        global CACHED_TRX_EXPNAME; %#ok<TLEV>
-        if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-            ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-          obj.trx = load_tracks(trxfilename);
-          CACHED_TRX = obj.trx;
-          CACHED_TRX_EXPNAME = obj.expnames{expi};
-        else
-          fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-          obj.trx = CACHED_TRX;
-        end
-      catch ME,
-        msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
-        if ishandle(hwait),
-          delete(hwait);
-          drawnow;
-        end
-        return;
-      end
-
-      if ishandle(hwait),
-        delete(hwait);
-        drawnow;
-      end
-      success = true;
-      
-    end
+%     % [success,msg] = LoadTrx(obj,expi)
+%     % Load trajectories for input experiment. This should only be called by
+%     % PreLoad()!. 
+%     function [success,msg] = LoadTrx(obj,expi)
+% 
+%       success = false;
+%       msg = '';
+%       
+%       if numel(expi) ~= 1,
+%         error('expi must be a scalar');
+%       end
+% 
+%       if expi < 1,
+%         msg = 'expi not yet set';
+%         return;
+%       end
+%       
+%       % load trx
+%       try
+%         trxfilename = obj.GetFile('trx',expi);
+%   
+%         hwait = mywaitbar(0,'Loading trx');
+%   
+%         % TODO: remove this
+%         global CACHED_TRX; %#ok<TLEV>
+%         global CACHED_TRX_EXPNAME; %#ok<TLEV>
+%         if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+%             ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
+%           obj.trx = load_tracks(trxfilename);
+%           CACHED_TRX = obj.trx;
+%           CACHED_TRX_EXPNAME = obj.expnames{expi};
+%         else
+%           fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+%           obj.trx = CACHED_TRX;
+%         end
+%       catch ME,
+%         msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
+%         if ishandle(hwait),
+%           delete(hwait);
+%           drawnow;
+%         end
+%         return;
+%       end
+% 
+%       if ishandle(hwait),
+%         delete(hwait);
+%         drawnow;
+%       end
+%       success = true;
+%       
+%     end
     
     % [success,msg] = PreLoad(obj,expi,flies)
     % Preloads data associated with the input experiment and flies. If
@@ -2241,8 +2246,7 @@ classdef JLabelData < handle
     % in labelidx into labels using StoreLabels. We then load from labels
     % into labelidx for the new experiment and flies. We load the per-frame
     % data for this experiment and flies. If this is a different
-    % experiment, then we load in the trajectories for this experiment
-    % using LoadTrx.  
+    % experiment, then we load in the trajectories for this experiment.  
     function [success,msg] = PreLoad(obj,expi,flies)
       
       success = false;
@@ -2261,6 +2265,7 @@ classdef JLabelData < handle
       diffflies = diffexpi || numel(flies) ~= numel(obj.flies) || ~all(flies == obj.flies);
       % nothing to do
       if ~diffflies,
+        success = true;
         return;
       end
 
@@ -2289,6 +2294,11 @@ classdef JLabelData < handle
             fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
             obj.trx = CACHED_TRX;
           end
+          % store trx_info, in case this is the first time these trx have
+          % been loaded
+          obj.nflies_per_exp(expi) = numel(obj.trx);
+          obj.firstframes_per_exp{expi} = [obj.trx.firstframe];
+          obj.endframes_per_exp{expi} = [obj.trx.endframe];
         catch ME,
           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
           if ishandle(hwait),
@@ -2303,6 +2313,7 @@ classdef JLabelData < handle
       % set labelidx from labels
       obj.SetStatus('Caching labels for experiment %s, flies%s',obj.expnames{expi},sprintf(' %d',flies));
       [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
+      obj.labelidx_off = 1 - obj.t0_curr;
       
       % load perframedata
       obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(obj.flies));
@@ -2372,7 +2383,7 @@ classdef JLabelData < handle
     % labels. 
     function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies)
 
-      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies),
+      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
         labelidx = obj.labelidx;
         T0 = obj.t0_curr;
         T1 = obj.t1_curr;
@@ -2437,7 +2448,7 @@ classdef JLabelData < handle
       end
       
       % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'off',obj.labelidx_off,'timestamp',now);
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[]);
       for j = 1:obj.nbehaviors,
         [i0s,i1s] = get_interval_ends(obj.labelidx==j);
         if ~isempty(i0s),
@@ -2455,6 +2466,8 @@ classdef JLabelData < handle
       obj.labels(obj.expi).t1s{j} = newlabels.t1s;
       obj.labels(obj.expi).names{j} = newlabels.names;
       obj.labels(obj.expi).flies(j,:) = obj.flies;
+      obj.labels(obj.expi).off(j) = obj.labelidx_off;
+      obj.labels(obj.expi).timestamp = now;
 
       % store labelstats
       obj.labelstats(obj.expi).nflies_labeled = numel(unique(obj.labels(obj.expi).flies));
