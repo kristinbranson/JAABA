@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 28-Aug-2011 16:57:21
+% Last Modified by GUIDE v2.5 02-Sep-2011 09:32:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -281,6 +281,12 @@ function UpdatePlots(handles,varargin)
   'refresh_timeline_xlim',true,...
   'refresh_timeline_hcurr',true);
 
+% make sure data for this experiment is loaded
+if handles.expi ~= handles.data.expi,
+  SetStatus('Preloading data for experiment %s, flies %s',handles.data.expnames{handles.expi},mat2str(handles.flies));
+  handles.data.PreLoad(handles.expi,handles.flies);
+end
+
 % update timelines
 if refresh_timeline_manual,
   set(handles.himage_timeline_manual,'CData',handles.labels_plot.im);
@@ -352,6 +358,8 @@ for i = axes,
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
     set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
+      % NOTE: this accesses handles.data.trx directly -- make sure that
+      % handles.data.trx is loaded for the correct movie
       j = handles.ts(i) + handles.data.trx(fly).off;
       updatefly(handles.hflies(fly,i),handles.data.trx(fly).x(j),...
         handles.data.trx(fly).y(j),...
@@ -683,24 +691,35 @@ end
 
 function handles = UpdateTimelineIms(handles)
 
+% Note: this function directly accesses handles.data.labelidx,
+% handles.data.predictedidx for speed, so make sure we've preloaded the
+% right experiment, flies
+if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
+  handles.data.Preload(handles.expi,handles.flies);
+end
+
+handles.labels_plot.im(:) = 0;
 for behaviori = 1:handles.data.nbehaviors
   idx = handles.data.labelidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
 end
+handles.labels_plot.predicted_im(:) = 0;
 for behaviori = 1:handles.data.nbehaviors
   idx = handles.data.predictedidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.predicted_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
 end
+handles.labels_plot.suggested_im(:) = 0;
 for behaviori = 1:handles.data.nbehaviors
   idx = handles.data.suggestedidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.suggested_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
 end
+handles.labels_plot.error_im(:) = 0;
 idx = handles.data.erroridx == 1;
 for channel = 1:3,
   handles.labels_plot.error_im(1,idx,channel) = handles.correctcolor(channel);
@@ -1445,6 +1464,12 @@ else
   end
 end
 
+% NOTE: this function directly accesses handles.data.labelidx, trx make sure
+% that we've preloaded the right experiment and flies. 
+if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
+  handles.data.Preload(handles.expi,handles.flies);
+end
+
 handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = 0;
@@ -1571,6 +1596,12 @@ function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% NOTE: this function directly accesses handles.data.trx make sure
+% that we've preloaded the right experiment and flies. 
+if handles.expi ~= handles.data.expi,
+  handles.data.Preload(handles.expi,handles.flies);
+end
+
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
 nprev = 25;
@@ -1612,6 +1643,7 @@ if ~strcmpi(get(handles.figure_JLabel,'SelectionType'),'open') || ...
 end
 
 % check if the user wants to switch to this fly
+% TODO: this directly accesses handles.data.labels -- abstract this
 [ism,j] = ismember(fly,handles.data.labels(handles.expi).flies,'rows');
 if ism,
   nbouts = nnz(~strcmpi(handles.data.labels(handles.expi).names{j},'None'));
@@ -1619,9 +1651,11 @@ else
   nbouts = 0;
 end
 
+endframe = handles.data.endframes_per_exp{handles.expi}(fly);
+firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
 res = questdlg({sprintf('Switch to fly %d?',fly),...
-  sprintf('Trajectory length = %d',handles.data.trx(fly).nframes),...
-  sprintf('First frame = %d',handles.data.trx(fly).firstframe),...
+  sprintf('Trajectory length = %d',endframe-firstframe+1),...
+  sprintf('First frame = %d',firstframe),...
   sprintf('N. bouts labeled: %d',nbouts)},...
   'Change flies?','Yes','No','Yes');
 
@@ -1792,9 +1826,11 @@ nflies = handles.data.nflies_per_exp(handles.expi);
 s = cell(1,nflies);
 for fly = 1:nflies,
   
+  % TODO: this function directly accesses handles.data.labels, abstract
+  % this
   [ism,j] = ismember(fly,handles.data.labels(handles.expi).flies,'rows');
   if ism,
-    nbouts = nnz(~strcmpi(handles.data.labels(handles.expi).names{j},'None'));
+    nbouts = numel(handles.data.labels(handles.expi).t0s{j});
   else
     nbouts = 0;
   end
@@ -1802,9 +1838,11 @@ for fly = 1:nflies,
   if fly == handles.flies(1),
     s{fly} = sprintf('Target %d, CURRENTLY SELECTED',fly);
   else
+    endframe = handles.data.endframes_per_exp{handles.expi}(fly);
+    firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
     s{fly} = sprintf('Target %d, Trajectory length %d, First frame %d, N bouts labeled %d',...
-      fly,handles.data.trx(fly).nframes,...
-      handles.data.trx(fly).firstframe,...
+      fly,endframe-firstframe+1,...
+      firstframe,...
       nbouts);
   end
 end
@@ -1837,6 +1875,9 @@ end
 
 function ZoomInOnFlies(handles,is)
 
+% NOTE: this function accesses handles.data.trx directly -- this requires
+% the correct experiment to be loaded
+
 if nargin < 2,
   is = 1:numel(handles.axes_previews);
 end
@@ -1844,9 +1885,12 @@ end
 xs = nan(1,numel(handles.flies));
 ys = nan(1,numel(handles.flies));
 for i = is,
-  inds = handles.ts(i)-handles.data.firstframes_per_exp{handles.expi}(handles.flies)+1;
+  firstframes = handles.data.firstframes_per_exp{handles.expi}(handles.flies);
+  endframes = handles.data.endframes_per_exp{handles.expi}(handles.flies);
+  nframes = endframes - firstframes + 1;
+  inds = handles.ts(i)-firstframes+1;
   for j = 1:numel(handles.flies),
-    if inds(j) <= 0 || inds(j) > handles.data.trx(handles.flies(j)).nframes,
+    if inds(j) <= 0 || inds(j) > nframes(j),
       continue;
     end
     xs(j) = handles.data.trx(handles.flies(j)).x(inds(j));
@@ -1857,4 +1901,34 @@ for i = is,
     ylim = [max([.5,ys-handles.zoom_fly_radius]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius])];
     set(handles.axes_previews(i),'XLim',xlim,'YLim',ylim);
   end
+end
+
+
+% --------------------------------------------------------------------
+function menu_file_save_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.data.SaveLabels();
+
+% --------------------------------------------------------------------
+function menu_edit_clear_all_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_clear_all_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+s = {};
+s{end+1} = 'Experiments with labels: ';
+for i = 1:numel(handles.data.labelstats),
+  if handles.data.labelstats(i).nbouts_labeled > 0,
+    s{end+1} = sprintf('%s: %d bouts',handles.data.expnames{i},handles.data.labelstats(i).nbouts_labeled); %#ok<AGROW>
+  end
+end
+
+res = questdlg(s,'Really delete all labels?','Yes','No','Cancel','Cancel');
+if strcmpi(res,'Yes'),
+  handles.data.ClearLabels();
+  handles = UpdateTimelineIms(handles);
+  UpdatePlots(handles);
 end
