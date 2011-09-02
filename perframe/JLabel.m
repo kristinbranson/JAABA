@@ -267,7 +267,8 @@ end
 
 function UpdatePlots(handles,varargin)
 
-% NOTE: we directly access handles.data.trx for speed here
+% WARNING: we directly access handles.data.trx for speed here -- 
+% REMOVED! NOT SO SLOW
 
 [axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
   refresh_timeline_manual,refresh_timeline_auto,refresh_timeline_suggest,refresh_timeline_error,...
@@ -282,10 +283,10 @@ function UpdatePlots(handles,varargin)
   'refresh_timeline_hcurr',true);
 
 % make sure data for this experiment is loaded
-if handles.expi ~= handles.data.expi,
-  SetStatus('Preloading data for experiment %s, flies %s',handles.data.expnames{handles.expi},mat2str(handles.flies));
-  handles.data.PreLoad(handles.expi,handles.flies);
-end
+% if handles.expi ~= handles.data.expi,
+%   SetStatus('Preloading data for experiment %s, flies %s',handles.data.expnames{handles.expi},mat2str(handles.flies));
+%   handles.data.PreLoad(handles.expi,handles.flies);
+% end
 
 % update timelines
 if refresh_timeline_manual,
@@ -353,19 +354,31 @@ for i = axes,
   
   % update current position
   if refreshflies,
-    %trx = handles.data.GetTrx(handles.expi,1:handles.nflies_curr,handles.ts(i));
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
     set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
-      % NOTE: this accesses handles.data.trx directly -- make sure that
+      % WARNING: this accesses handles.data.trx directly -- make sure that
       % handles.data.trx is loaded for the correct movie
-      j = handles.ts(i) + handles.data.trx(fly).off;
-      updatefly(handles.hflies(fly,i),handles.data.trx(fly).x(j),...
-        handles.data.trx(fly).y(j),...
-        handles.data.trx(fly).theta(j),...
-        handles.data.trx(fly).a(j),...
-        handles.data.trx(fly).b(j));
+      % REMOVED! NOT SO SLOW
+
+      t = handles.ts(i);
+      [xcurr,ycurr,thetacurr,acurr,bcurr] = ...
+        handles.data.GetTrxPos1(handles.expi,fly,t);
+      updatefly(handles.hflies(fly,i),...
+        xcurr,ycurr,thetacurr,acurr,bcurr);
+%       updatefly(handles.hflies(fly,i),...
+%         handles.data.GetTrxX1(handles.expi,fly,t),...
+%         handles.data.GetTrxY1(handles.expi,fly,t),...
+%         handles.data.GetTrxTheta1(handles.expi,fly,t),...
+%         handles.data.GetTrxA1(handles.expi,fly,t),...
+%         handles.data.GetTrxB1(handles.expi,fly,t));
+%       j = handles.ts(i) + handles.data.trx(fly).off;
+%       updatefly(handles.hflies(fly,i),handles.data.trx(fly).x(j),...
+%         handles.data.trx(fly).y(j),...
+%         handles.data.trx(fly).theta(j),...
+%         handles.data.trx(fly).a(j),...
+%         handles.data.trx(fly).b(j));
       %updatefly(handles.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.flies),
         set(handles.hflies(fly,i),'LineWidth',5);
@@ -387,10 +400,15 @@ for i = axes,
     for j = 1:numel(handles.flies),
       fly = handles.flies(j);
       tmp = handles.ts(i) + handles.data.trx(fly).off;
-      j0 = max(1,tmp-nprev);
-      j1 = min(handles.data.trx(fly).nframes,tmp+npost);
-      set(handles.htrx(j,i),'XData',handles.data.trx(fly).x(j0:j1),...
-        'YData',handles.data.trx(fly).y(j0:j1));
+      t0 = handles.data.firstframes_per_exp{handles.expi}(fly);
+      t1 = handles.data.endframes_per_exp{handles.expi}(fly);
+      ts = max(t0,min(t1,tmp-nprev:tmp+npost));
+      set(handles.htrx(j,i),'XData',handles.data.GetTrxX1(handles.expi,fly,ts),...
+        'YData',handles.data.GetTrxY1(handles.expi,fly,ts));
+      %j0 = max(1,tmp-nprev);
+      %j1 = min(handles.data.trx(fly).nframes,tmp+npost);
+      %set(handles.htrx(j,i),'XData',handles.data.trx(fly).x(j0:j1),...
+      %  'YData',handles.data.trx(fly).y(j0:j1));
       %trx = handles.data.GetTrx(handles.expi,fly,handles.ts(i)-nprev:handles.ts(i)+npost);
       %set(handles.htrx(j,i),'XData',trx.x,'YData',trx.y);
     end
@@ -400,8 +418,8 @@ for i = axes,
   if refreshlabels,
     for k = 1:numel(handles.flies),
       fly = handles.flies(k);
-      T0 = handles.data.trx(fly).firstframe;
-      T1 = handles.data.trx(fly).endframe;
+      T0 = handles.data.firstframes_per_exp{handles.expi}(fly);
+      T1 = handles.data.endframes_per_exp{handles.expi}(fly);
 %       T0 = handles.data.GetTrxFirstFrame(handles.expi,fly);
 %       T1 = handles.data.GetTrxEndFrame(handles.expi,fly);
       t0 = min(T1,max(T0,handles.ts(i)-nprev));
@@ -1464,7 +1482,7 @@ else
   end
 end
 
-% NOTE: this function directly accesses handles.data.labelidx, trx make sure
+% WARNING: this function directly accesses handles.data.labelidx, trx make sure
 % that we've preloaded the right experiment and flies. 
 if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
   handles.data.Preload(handles.expi,handles.flies);
@@ -1483,15 +1501,20 @@ if behaviori > 0,
     handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelcolors(behaviori,channel);
   end
   for l = 1:numel(handles.flies),
-    off = handles.data.trx(handles.flies(l)).off;
-    j0 = t0+off;
-    j2 = t2+off;
+    %off = handles.data.trx(handles.flies(l)).off;
+    %j0 = t0+off;
+    %j2 = t2+off;
     k0 = t0+handles.labels_plot_off;
     k2 = t2+handles.labels_plot_off;
     handles.labels_plot.x(k0:k2,behaviori,l) = ...
-      handles.data.trx(handles.flies(l)).x(j0:j2);
+      handles.data.GetTrxX1(handles.exp,handles.flies(l),t0:t2);
     handles.labels_plot.y(k0:k2,behaviori,l) = ...
-      handles.data.trx(handles.flies(l)).y(j0:j2);
+      handles.data.GetTrxY1(handles.exp,handles.flies(l),t0:t2);
+
+%     handles.labels_plot.x(k0:k2,behaviori,l) = ...
+%       handles.data.trx(handles.flies(l)).x(j0:j2);
+%     handles.labels_plot.y(k0:k2,behaviori,l) = ...
+%       handles.data.trx(handles.flies(l)).y(j0:j2);
   end
 end
 
@@ -1596,8 +1619,9 @@ function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% NOTE: this function directly accesses handles.data.trx make sure
+% WARNING: this function directly accesses handles.data.trx make sure
 % that we've preloaded the right experiment and flies. 
+% REMOVED!
 if handles.expi ~= handles.data.expi,
   handles.data.Preload(handles.expi,handles.flies);
 end
@@ -1614,11 +1638,15 @@ dx = diff(get(handles.axes_previews(i),'XLim'));
 dy = diff(get(handles.axes_previews(i),'YLim'));
 for j = 1:numel(handles.flies),
   fly = handles.flies(j);
-  t0 = min(handles.data.trx(fly).endframe,max(handles.data.trx(fly).firstframe,handles.ts(i)-nprev));
-  t1 = min(handles.data.trx(fly).endframe,max(handles.data.trx(fly).firstframe,handles.ts(i)+npost));
-  off = handles.data.trx(fly).off;
-  [mindcurr,k] = min( ((handles.data.trx(fly).x(t0+off:t1+off)-xclick)/dx).^2 + ...
-    ((handles.data.trx(fly).y(t0+off:t1+off)-yclick)/dy).^2 );
+  T0 = handles.data.firstframes_per_exp{handles.exp}(fly);
+  T1 = handles.data.endframes_per_exp{handles.exp}(fly);
+  t0 = min(T1,max(T0,handles.ts(i)-nprev));
+  t1 = min(T1,max(T0,handles.ts(i)+npost));
+  %off = handles.data.trx(fly).off;
+%   [mindcurr,k] = min( ((handles.data.trx(fly).x(t0+off:t1+off)-xclick)/dx).^2 + ...
+%     ((handles.data.trx(fly).y(t0+off:t1+off)-yclick)/dy).^2 );
+  [mindcurr,k] = min( ((handles.data.GetTrxX1(handles.exp,fly,t0:t1)-xclick)/dx).^2 + ...
+    ((handles.data.GetTrxY1(handles.exp,fly,t0:t1)-yclick)/dy).^2 );
   if mindcurr < mind,
     mind = mindcurr;
     mint = k+t0-1;
@@ -1875,8 +1903,9 @@ end
 
 function ZoomInOnFlies(handles,is)
 
-% NOTE: this function accesses handles.data.trx directly -- this requires
+% WARNING: this function accesses handles.data.trx directly -- this requires
 % the correct experiment to be loaded
+% REMOVED!
 
 if nargin < 2,
   is = 1:numel(handles.axes_previews);
@@ -1887,14 +1916,15 @@ ys = nan(1,numel(handles.flies));
 for i = is,
   firstframes = handles.data.firstframes_per_exp{handles.expi}(handles.flies);
   endframes = handles.data.endframes_per_exp{handles.expi}(handles.flies);
-  nframes = endframes - firstframes + 1;
-  inds = handles.ts(i)-firstframes+1;
+  %inds = handles.ts(i)-firstframes+1;
   for j = 1:numel(handles.flies),
-    if inds(j) <= 0 || inds(j) > nframes(j),
+    if handles.ts(i) < firstframes(j) || handles.ts(i) > endframes(j),
       continue;
     end
-    xs(j) = handles.data.trx(handles.flies(j)).x(inds(j));
-    ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
+    xs(j) = handles.data.GetTrxX1(handles.expi,handles.flies(j),handles.ts(i));
+    ys(j) = handles.data.GetTrxY1(handles.expi,handles.flies(j),handles.ts(i));
+    %xs(j) = handles.data.trx(handles.flies(j)).x(inds(j));
+    %ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
   end
   if ~all(isnan(xs)) && ~all(isnan(ys)),
     xlim = [max([.5,xs-handles.zoom_fly_radius]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius])];
