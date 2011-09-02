@@ -855,8 +855,8 @@ classdef JLabelData < handle
           obj.labels(expi).flies = loadedlabels.flies;
           obj.labels(expi).off = loadedlabels.off;
           obj.labels(expi).timestamp = loadedlabels.timestamp;
-          obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-          obj.labelstats(expi).nbouts_labeled = numel(loadedlabels.t1s);
+          obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+          obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
           obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
         catch ME,
           msg = getReport(ME);
@@ -2489,6 +2489,74 @@ classdef JLabelData < handle
       end
       
       %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
+      
+    end
+    
+    function ClearLabels(obj,expi,flies)
+      
+      if obj.nexps == 0,
+        return;
+      end
+      
+      timestamp = now;
+      
+      % use all experiments by default
+      if nargin < 2,
+        expi = 1:obj.nexps;
+      end
+      
+      % delete all flies by default
+      if nargin < 3,
+        for i = expi(:)',
+          obj.labels(expi).t0s = {};
+          obj.labels(expi).t1s = {};
+          obj.labels(expi).names = {};
+          obj.labels(expi).flies = [];
+          obj.labels(expi).off = [];
+          obj.labels(expi).timestamp = [];
+          obj.labelstats(expi).nflies_labeled = 0;
+          obj.labelstats(expi).nbouts_labeled = 0;
+          obj.labelstats(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
+        end
+      else
+        if numel(expi) > 1,
+          error('If flies input to ClearLabels, expi must be a single experiment');
+        end
+        % no labels
+        if numel(obj.labels) < expi,
+          return;
+        end
+        % which index of labels
+        [~,flyis] = ismember(obj.labels(expi).flies,flies,'rows');
+        for flyi = flyis(:)',
+          % keep track of number of bouts so that we can update stats
+          ncurr = numel(obj.labels(expi).t0s{flyi});
+          obj.labels(expi).t0s{flyi} = [];
+          obj.labels(expi).t1s{flyi} = [];
+          obj.labels(expi).names{flyi} = {};
+          obj.labels(expi).timestamp(flyi) = timestamp;
+          % update stats
+          obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
+          obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
+        end
+        obj.labelstats(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
+      end
+      
+      % clear labelidx if nec
+      if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
+        obj.labelidx(:) = 0;
+      end
+      
+      % clear windowdata labelidx_new
+      for i = expi(:)',
+        if nargin < 3,
+          idx = obj.windowdata.exp == i;
+        else
+          idx = obj.windowdata.exp == i & ismember(obj.windowdata.flies,flies,'rows');
+        end
+        obj.windowdata.labelidx_new(idx) = 0;
+        obj.UpdateErrorIdx();
+      end
       
     end
     
