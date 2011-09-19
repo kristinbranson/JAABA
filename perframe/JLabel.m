@@ -649,13 +649,15 @@ set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
   handles.himage_timeline_error,handles.himage_timeline_suggest],...
   'XData',[handles.t0_curr,handles.t1_curr]);
 
+labelidx = handles.data.GetLabelIdx(handles.expi,flies,handles.t0_curr,handles.t1_curr);
 for flyi = 1:numel(flies),
   fly = flies(flyi);
   x = handles.data.GetTrxX(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   y = handles.data.GetTrxY(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
     % WARNING: accesses labelidx
-    idx = handles.data.labelidx == behaviori;
+    % REMOVED!
+    idx = labelidx == behaviori;
     handles.labels_plot.x(idx,behaviori,flyi) = x{1}(idx);
     handles.labels_plot.y(idx,behaviori,flyi) = y{1}(idx);
   end
@@ -713,13 +715,16 @@ function handles = UpdateTimelineIms(handles)
 % Note: this function directly accesses handles.data.labelidx,
 % handles.data.predictedidx for speed, so make sure we've preloaded the
 % right experiment, flies
-if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
-  handles.data.Preload(handles.expi,handles.flies);
-end
+% REMOVED!
+
+% if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
+%   handles.data.Preload(handles.expi,handles.flies);
+% end
 
 handles.labels_plot.im(:) = 0;
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.t0_curr,handles.t1_curr);
 for behaviori = 1:handles.data.nbehaviors
-  idx = handles.data.labelidx == behaviori;
+  idx = labelidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
@@ -748,9 +753,9 @@ for channel = 1:3,
   handles.labels_plot.error_im(1,idx,channel) = handles.incorrectcolor(channel);
 end
 handles.labels_plot.isstart = ...
-  cat(2,handles.data.labelidx(1)~=0,...
-  handles.data.labelidx(2:end)~=0 & ...
-  handles.data.labelidx(1:end-1)~=handles.data.labelidx(2:end));
+  cat(2,labelidx(1)~=0,...
+  labelidx(2:end)~=0 & ...
+  labelidx(1:end-1)~=labelidx(2:end));
 
 
 % set current frame

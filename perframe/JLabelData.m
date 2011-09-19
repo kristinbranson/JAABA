@@ -2553,6 +2553,38 @@ classdef JLabelData < handle
       end
       
     end
+    
+    % [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies)
+    % Returns the labelidx for the input experiment and flies read from
+    % labels. 
+    function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
+
+      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
+        if nargin < 4,
+          idx = obj.labelidx == behaviori;
+          T0 = obj.t0_curr;
+          T1 = obj.t1_curr;
+        else
+          idx = obj.labelidx(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
+        end
+        return;
+      end
+      
+      if nargin < 4,
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
+      n = T1-T0+1;
+      off = 1 - T0;
+      labels_curr = obj.GetLabels(expi,flies);
+      idx = false(1,n);
+      for j = find(strcmp(labels_curr.names,obj.labelnames{behaviori})),
+        t0 = labels_curr.t0s(j);
+        t1 = labels_curr.t1s(j);
+        idx(t0+off:t1+off) = true;
+      end
+      
+    end
 
     % labels_curr = GetLabels(obj,expi,flies)
     % Returns the labels for the input 
