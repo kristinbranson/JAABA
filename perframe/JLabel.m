@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 02-Sep-2011 09:32:57
+% Last Modified by GUIDE v2.5 19-Sep-2011 11:42:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -97,6 +97,9 @@ if isempty(handles.data.expdirs),
   menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
   handles = guidata(hObject);
 end
+
+% keypress callback for all non-edit text objects
+RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 % enable gui
 EnableGUI(handles);
@@ -1970,4 +1973,58 @@ if strcmpi(res,'Yes'),
   handles.data.ClearLabels();
   handles = UpdateTimelineIms(handles);
   UpdatePlots(handles);
+end
+
+function RecursiveSetKeyPressFcn(hfig)
+
+hchil = findall(hfig,'-property','KeyPressFcn');
+goodidx = true(1,numel(hchil));
+for i = 1:numel(hchil),
+  if strcmpi(get(hchil(i),'Type'),'uicontrol') && strcmpi(get(hchil(i),'Type'),'edit'),
+    goodidx(i) = false;
+  end
+end
+set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
+
+% --- Executes on key press with focus on figure_JLabel and none of its controls.
+function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+switch eventdata.Key,
+  
+  case 'leftarrow',
+    % TODO: make this work with multiple preview axes
+    axesi = 1;
+    t = min(max(1,handles.ts(axesi)-1),handles.nframes);
+    % set current frame
+    SetCurrentFrame(handles,axesi,t,hObject);
+    
+  case 'rightarrow',
+    % TODO: make this work with multiple preview axes
+    axesi = 1;
+    t = min(max(1,handles.ts(axesi)+1),handles.nframes);
+    % set current frame
+    SetCurrentFrame(handles,axesi,t,hObject);
+  
+  case 'uparrow',
+    % TODO: make this work with multiple preview axes
+    axesi = 1;
+    % TODO: hardcoded in 10 as up/down arrow step
+    t = min(max(1,handles.ts(axesi)-10),handles.nframes);
+    % set current frame
+    SetCurrentFrame(handles,axesi,t,hObject);
+    
+  case 'downarrow',
+    % TODO: make this work with multiple preview axes
+    axesi = 1;
+    % TODO: hardcoded in 10 as up/down arrow step
+    t = min(max(1,handles.ts(axesi)+10),handles.nframes);
+    % set current frame
+    SetCurrentFrame(handles,axesi,t,hObject);
+    
 end
