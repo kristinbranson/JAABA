@@ -654,6 +654,7 @@ for flyi = 1:numel(flies),
   x = handles.data.GetTrxX(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   y = handles.data.GetTrxY(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
+    % WARNING: accesses labelidx
     idx = handles.data.labelidx == behaviori;
     handles.labels_plot.x(idx,behaviori,flyi) = x{1}(idx);
     handles.labels_plot.y(idx,behaviori,flyi) = y{1}(idx);
@@ -1484,19 +1485,21 @@ end
 
 % WARNING: this function directly accesses handles.data.labelidx, trx make sure
 % that we've preloaded the right experiment and flies. 
-if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
-  handles.data.Preload(handles.expi,handles.flies);
-end
+% REMOVED!
+% if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
+%   handles.data.Preload(handles.expi,handles.flies);
+% end
 
 handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
-handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = 0;
+% handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = 0;
 
 for channel = 1:3,
   handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelunknowncolor(channel);
 end
+handles.data.SetLabel(handles.expi,handles.flies,t0:t1,behaviori);
 if behaviori > 0,
-  handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = behaviori;
+  % handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = behaviori;
   for channel = 1:3,
     handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelcolors(behaviori,channel);
   end
@@ -1520,15 +1523,16 @@ end
 
 % isstart
 if t0 == handles.t0_curr,
-  handles.labels_plot.isstart(t+handles.labels_plot_off) = ...
-    handles.data.labelidx(t+handles.labels_plot_off)~=0;
+  handles.labels_plot.isstart(t+handles.labels_plot_off) = behaviori ~= 0;
 end
 t00 = max(handles.t0_curr+1,t0);
 off0 = t00+handles.labels_plot_off;
 off1 = t2+handles.labels_plot_off;
-handles.labels_plot.isstart(t00+handles.labels_plot_off:t2+handles.labels_plot_off) = ...
-  handles.data.labelidx(off0:off1)~=0 & ...
-  handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
+% handles.labels_plot.isstart(off0:off1) = ...
+%   handles.data.labelidx(off0:off1)~=0 & ...
+%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
+handles.labels_plot.isstart(off0:off1) = ...
+  handles.data.IsLabelStart(handles.expi,handles.flies,t00:t2);
 
 handles = UpdateErrors(handles);
 
