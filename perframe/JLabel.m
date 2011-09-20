@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 20-Sep-2011 00:32:46
+% Last Modified by GUIDE v2.5 20-Sep-2011 13:07:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -225,17 +225,24 @@ set(handles.himage_timeline_auto,'HitTest','off');
 hold(handles.axes_timeline_auto,'on');
 handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','HitTest','off');
 
+% whether the manual and auto match
+handles.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
+  'color',handles.incorrectcolor,'HitTest','off','Linewidth',5);
+% new suggestions
+handles.htimeline_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
+  'color',handles.suggestcolor,'HitTest','off','Linewidth',5);
+
 % suggest timeline
-handles.himage_timeline_suggest = image(zeros([1,1,3]),'Parent',handles.axes_timeline_suggest);
-set(handles.himage_timeline_suggest,'HitTest','off');
-hold(handles.axes_timeline_suggest,'on');
-handles.htimeline_suggest_starts = plot(handles.axes_timeline_suggest,nan,nan,'w-','HitTest','off');
+% handles.himage_timeline_suggest = image(zeros([1,1,3]),'Parent',handles.axes_timeline_suggest);
+% set(handles.himage_timeline_suggest,'HitTest','off');
+% hold(handles.axes_timeline_suggest,'on');
+% handles.htimeline_suggest_starts = plot(handles.axes_timeline_suggest,nan,nan,'w-','HitTest','off');
 
 % error timeline
-handles.himage_timeline_error = image(zeros([1,1,3]),'Parent',handles.axes_timeline_error);
-set(handles.himage_timeline_error,'HitTest','off');
-hold(handles.axes_timeline_error,'on');
-handles.htimeline_error_starts = plot(handles.axes_timeline_error,nan,nan,'w-','HitTest','off');
+% handles.himage_timeline_error = image(zeros([1,1,3]),'Parent',handles.axes_timeline_error);
+% set(handles.himage_timeline_error,'HitTest','off');
+% hold(handles.axes_timeline_error,'on');
+% handles.htimeline_error_starts = plot(handles.axes_timeline_error,nan,nan,'w-','HitTest','off');
 
 for i = 1:numel(handles.axes_timelines),
   set(handles.axes_timelines(i),'YTick',[],'XColor','w','YColor','w','Color',timeline_axes_color);
@@ -247,7 +254,8 @@ for i = 1:numel(handles.axes_timelines),
 end
 
 for i = 1:numel(handles.axes_timelines),
-  if handles.axes_timelines(i) ~= handles.axes_timeline_error,
+%  if handles.axes_timelines(i) ~= handles.axes_timeline_error,
+  if handles.axes_timelines(i) ~= handles.axes_timeline_auto,
     set(handles.axes_timelines(i),'XTickLabel',{});
   end
 end
@@ -308,10 +316,14 @@ if refresh_timeline_auto,
   set(handles.himage_timeline_auto,'CData',handles.labels_plot.predicted_im);
 end
 if refresh_timeline_suggest,
-  set(handles.himage_timeline_suggest,'CData',handles.labels_plot.suggested_im);
+  set(handles.htimeline_suggestions,'XData',handles.labels_plot.suggest_xs,...
+    'YData',zeros(size(handles.labels_plot.suggest_xs))+1.5);
+  %set(handles.himage_timeline_suggest,'CData',handles.labels_plot.suggested_im);
 end
 if refresh_timeline_error,
-  set(handles.himage_timeline_error,'CData',handles.labels_plot.error_im);
+  set(handles.htimeline_errors,'XData',handles.labels_plot.error_xs,...
+  'YData',zeros(size(handles.labels_plot.error_xs))+1.5);
+  %set(handles.himage_timeline_error,'CData',handles.labels_plot.error_im);
 end
 
 if refresh_timeline_xlim,
@@ -643,13 +655,17 @@ handles.labels_plot = struct;
 n = handles.t1_curr-handles.t0_curr+1;
 handles.labels_plot.im = zeros([1,n,3]);
 handles.labels_plot.predicted_im = zeros([1,n,3]);
-handles.labels_plot.suggested_im = zeros([1,n,3]);
-handles.labels_plot.error_im = zeros([1,n,3]);
+handles.labels_plot.suggest_xs = nan;
+handles.labels_plot.error_xs = nan;
+%handles.labels_plot.suggested_im = zeros([1,n,3]);
+%handles.labels_plot.error_im = zeros([1,n,3]);
 handles.labels_plot.x = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot.y = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot_off = 1-handles.t0_curr;
-set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
-  handles.himage_timeline_error,handles.himage_timeline_suggest],...
+% set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
+%   handles.himage_timeline_error,handles.himage_timeline_suggest],...
+%   'XData',[handles.t0_curr,handles.t1_curr]);
+set([handles.himage_timeline_manual,handles.himage_timeline_auto],...
   'XData',[handles.t0_curr,handles.t1_curr]);
 
 labelidx = handles.data.GetLabelIdx(handles.expi,flies,handles.t0_curr,handles.t1_curr);
@@ -725,7 +741,7 @@ function handles = UpdateTimelineIms(handles)
 % end
 
 handles.labels_plot.im(:) = 0;
-labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.t0_curr,handles.t1_curr);
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies);
 for behaviori = 1:handles.data.nbehaviors
   idx = labelidx == behaviori;
   for channel = 1:3,
@@ -733,28 +749,43 @@ for behaviori = 1:handles.data.nbehaviors
   end
 end
 handles.labels_plot.predicted_im(:) = 0;
+predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies);
 for behaviori = 1:handles.data.nbehaviors
-  idx = handles.data.predictedidx == behaviori;
+  idx = predictedidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.predicted_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
 end
-handles.labels_plot.suggested_im(:) = 0;
-for behaviori = 1:handles.data.nbehaviors
-  idx = handles.data.suggestedidx == behaviori;
-  for channel = 1:3,
-    handles.labels_plot.suggested_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
-  end
-end
-handles.labels_plot.error_im(:) = 0;
-idx = handles.data.erroridx == 1;
-for channel = 1:3,
-  handles.labels_plot.error_im(1,idx,channel) = handles.correctcolor(channel);
-end
-idx = handles.data.erroridx == 2;
-for channel = 1:3,
-  handles.labels_plot.error_im(1,idx,channel) = handles.incorrectcolor(channel);
-end
+[error_t0s,error_t1s] = get_interval_ends(labelidx ~= 0 & predictedidx ~= 0 & ...
+  labelidx ~= predictedidx);
+error_t0s = error_t0s + handles.t0_curr - 1.5;
+error_t1s = error_t1s + handles.t0_curr - 1.5;
+handles.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
+set(handles.htimeline_errors,'XData',handles.labels_plot.error_xs,...
+  'YData',zeros(size(handles.labels_plot.error_xs))+1.5);
+[suggest_t0s,suggest_t1s] = get_interval_ends(labelidx == 0 & predictedidx ~= 0);
+suggest_t0s = suggest_t0s + handles.t0_curr - 1.5;
+suggest_t1s = suggest_t1s + handles.t0_curr - 1.5;
+handles.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+set(handles.htimeline_suggestions,'XData',handles.labels_plot.suggest_xs,...
+  'YData',zeros(size(handles.labels_plot.suggest_xs))+1.5);
+
+%handles.labels_plot.suggested_im(:) = 0;
+%for behaviori = 1:handles.data.nbehaviors
+%  idx = handles.data.suggestedidx == behaviori;
+%  for channel = 1:3,
+%    handles.labels_plot.suggested_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
+%  end
+%end
+%handles.labels_plot.error_im(:) = 0;
+%idx = handles.data.erroridx == 1;
+%for channel = 1:3,
+%  handles.labels_plot.error_im(1,idx,channel) = handles.correctcolor(channel);
+%end
+%idx = handles.data.erroridx == 2;
+%for channel = 1:3,
+%  handles.labels_plot.error_im(1,idx,channel) = handles.incorrectcolor(channel);
+%end
 handles.labels_plot.isstart = ...
   cat(2,labelidx(1)~=0,...
   labelidx(2:end)~=0 & ...
@@ -1165,7 +1196,8 @@ end
 handles.labelunknowncolor = [0,0,0];
 
 handles.correctcolor = [0,.7,0];
-handles.incorrectcolor = [.7,0,0];
+handles.incorrectcolor = [.7,.7,0];
+handles.suggestcolor = [0,.7,.7];
 
 % create buttons for each label
 handles = CreateLabelButtons(handles);
