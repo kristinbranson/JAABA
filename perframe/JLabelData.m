@@ -2554,9 +2554,41 @@ classdef JLabelData < handle
       
     end
     
-    % [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies)
-    % Returns the labelidx for the input experiment and flies read from
-    % labels. 
+    function [predictedidx,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
+
+      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
+        if nargin < 4,
+          predictedidx = obj.predictedidx;
+          T0 = obj.t0_curr;
+          T1 = obj.t1_curr;
+        else
+          predictedidx = obj.predictedidx(T0+obj.labelidx_off:T1+obj.labelidx_off);
+        end
+        return;
+      end
+      
+      if nargin < 4,
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
+      
+      n = T1-T0+1;
+      off = 1 - T0;
+      predictedidx = zeros(1,n);
+            
+      idxcurr = obj.windowdata.exp == obj.expi & ...
+        all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2) & ...
+        obj.windowdata.t >= T0 & obj.windowdata.t <= T1 & ...
+        obj.windowdata.isvalidprediction;
+      predictedidx(obj.windowdata.t(idxcurr)+off) = ...
+        obj.windowdata.predicted(idxcurr);
+
+    end
+    
+    % [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
+    % Returns whether the behavior is labeled as behaviori for experiment
+    % expi, flies from frames T0 to T1. If T0 and T1 are not input, then
+    % firstframe to endframe are used. 
     function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
 
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
