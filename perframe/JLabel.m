@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 19-Sep-2011 11:42:31
+% Last Modified by GUIDE v2.5 20-Sep-2011 00:32:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1021,8 +1021,8 @@ function menu_view_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_to_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_to (see GCBO)
+function menu_go_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1179,6 +1179,22 @@ handles.zoom_fly = true;
 handles.zoom_fly_radius = nan;
 set(handles.menu_view_zoom_in_on_fly,'Checked','on');
 
+% initialize labels for navigation
+SetJumpGoMenuLabels(handles)
+
+% which behavior we seek to, initialize to all except unknown
+handles.seek_behaviors_go = 1:handles.data.nbehaviors;
+
+% label shortcuts
+if numel(handles.label_shortcuts) ~= handles.data.nbehaviors + 1,
+  handles.label_shortcuts = cellstr(num2str((0:handles.data.nbehaviors)'))';
+end
+
+function SetJumpGoMenuLabels(handles)
+
+set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames',handles.nframes_jump_go));
+set(handles.menu_go_back_X_frames,'Label',sprintf('Back %d frames',handles.nframes_jump_go));
+
 % create buttons for each label
 function handles = CreateLabelButtons(handles)
 
@@ -1299,6 +1315,18 @@ try
   else
     handles.timeline_nframes = 250;
   end
+  if isfield(handles.rc,'nframes_jump_go')
+    handles.nframes_jump_go = handles.rc.nframes_jump_go;
+  else
+    handles.nframes_jump_go = 30;
+  end
+  
+  if isfield(handles.rc,'label_shortcuts'),
+    handles.label_shortcuts = handles.rc.label_shortcuts;
+  else
+    handles.label_shortcuts = [];
+  end
+    
 catch ME,
   warning('Error loading RC file: %s',getReport(ME));  
 end
@@ -1327,6 +1355,16 @@ try
   
   set(handles.figure_JLabel,'Units','pixels');
   rc.figure_JLabel_Position_px = get(handles.figure_JLabel,'Position');
+  
+  if isfield(handles,'nframes_jump_go'),
+    rc.nframes_jump_go = handles.nframes_jump_go;
+  end
+  
+  % label shortcuts
+  if isfield(handles,'label_shortcuts'),
+    rc.label_shortcuts = handles.label_shortcuts;
+  end
+  
   save(handles.rcfilename,'-struct','rc');
 catch ME,
   warning('Error saving RC file: %s',getReport(ME));
@@ -1518,9 +1556,9 @@ if behaviori > 0,
     k0 = t0+handles.labels_plot_off;
     k2 = t2+handles.labels_plot_off;
     handles.labels_plot.x(k0:k2,behaviori,l) = ...
-      handles.data.GetTrxX1(handles.exp,handles.flies(l),t0:t2);
+      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0:t2);
     handles.labels_plot.y(k0:k2,behaviori,l) = ...
-      handles.data.GetTrxY1(handles.exp,handles.flies(l),t0:t2);
+      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0:t2);
 
 %     handles.labels_plot.x(k0:k2,behaviori,l) = ...
 %       handles.data.trx(handles.flies(l)).x(j0:j2);
@@ -1650,15 +1688,15 @@ dx = diff(get(handles.axes_previews(i),'XLim'));
 dy = diff(get(handles.axes_previews(i),'YLim'));
 for j = 1:numel(handles.flies),
   fly = handles.flies(j);
-  T0 = handles.data.firstframes_per_exp{handles.exp}(fly);
-  T1 = handles.data.endframes_per_exp{handles.exp}(fly);
+  T0 = handles.data.firstframes_per_exp{handles.expi}(fly);
+  T1 = handles.data.endframes_per_exp{handles.expi}(fly);
   t0 = min(T1,max(T0,handles.ts(i)-nprev));
   t1 = min(T1,max(T0,handles.ts(i)+npost));
   %off = handles.data.trx(fly).off;
 %   [mindcurr,k] = min( ((handles.data.trx(fly).x(t0+off:t1+off)-xclick)/dx).^2 + ...
 %     ((handles.data.trx(fly).y(t0+off:t1+off)-yclick)/dy).^2 );
-  [mindcurr,k] = min( ((handles.data.GetTrxX1(handles.exp,fly,t0:t1)-xclick)/dx).^2 + ...
-    ((handles.data.GetTrxY1(handles.exp,fly,t0:t1)-yclick)/dy).^2 );
+  [mindcurr,k] = min( ((handles.data.GetTrxX1(handles.expi,fly,t0:t1)-xclick)/dx).^2 + ...
+    ((handles.data.GetTrxY1(handles.expi,fly,t0:t1)-yclick)/dy).^2 );
   if mindcurr < mind,
     mind = mindcurr;
     mint = k+t0-1;
@@ -1775,8 +1813,8 @@ function figure_JLabel_WindowKeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
-disp(eventdata.Character);
-disp(eventdata.Modifier);
+%disp(eventdata.Character);
+%disp(eventdata.Modifier);
 
 function SetStatusCallback(s,h)
 
@@ -1980,7 +2018,7 @@ function RecursiveSetKeyPressFcn(hfig)
 hchil = findall(hfig,'-property','KeyPressFcn');
 goodidx = true(1,numel(hchil));
 for i = 1:numel(hchil),
-  if strcmpi(get(hchil(i),'Type'),'uicontrol') && strcmpi(get(hchil(i),'Type'),'edit'),
+  if strcmpi(get(hchil(i),'Type'),'uicontrol') && strcmpi(get(hchil(i),'Style'),'edit'),
     goodidx(i) = false;
   end
 end
@@ -1998,33 +2036,175 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 switch eventdata.Key,
   
   case 'leftarrow',
-    % TODO: make this work with multiple preview axes
-    axesi = 1;
-    t = min(max(1,handles.ts(axesi)-1),handles.nframes);
-    % set current frame
-    SetCurrentFrame(handles,axesi,t,hObject);
-    
+    if strcmpi(eventdata.Modifier,'control'),
+      menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
+    else
+      menu_go_previous_frame_Callback(hObject, eventdata, handles);
+    end
+     
   case 'rightarrow',
-    % TODO: make this work with multiple preview axes
-    axesi = 1;
-    t = min(max(1,handles.ts(axesi)+1),handles.nframes);
-    % set current frame
-    SetCurrentFrame(handles,axesi,t,hObject);
+    if strcmpi(eventdata.Modifier,'control'),
+      menu_go_next_bout_start_Callback(hObject,eventdata,handles);
+    else
+      menu_go_next_frame_Callback(hObject, eventdata, handles);
+    end
   
   case 'uparrow',
-    % TODO: make this work with multiple preview axes
-    axesi = 1;
-    % TODO: hardcoded in 10 as up/down arrow step
-    t = min(max(1,handles.ts(axesi)-10),handles.nframes);
-    % set current frame
-    SetCurrentFrame(handles,axesi,t,hObject);
+    menu_go_back_X_frames_Callback(hObject, eventdata, handles);
     
   case 'downarrow',
-    % TODO: make this work with multiple preview axes
-    axesi = 1;
-    % TODO: hardcoded in 10 as up/down arrow step
-    t = min(max(1,handles.ts(axesi)+10),handles.nframes);
-    % set current frame
-    SetCurrentFrame(handles,axesi,t,hObject);
+    menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
+    
+  case handles.label_shortcuts,
+    behaviori = find(strcmp(eventdata.Key,handles.label_shortcuts),1);
+    behaviori = behaviori - 1;
+    if behaviori == 0,
+      set(handles.togglebutton_label_unknown,'Value',get(handles.togglebutton_label_unknown,'Value')==0);
+      togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
+    else
+      set(handles.togglebutton_label_behaviors(behaviori),'Value',...
+        get(handles.togglebutton_label_behaviors(behaviori),'Value')==0);
+      togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);
+    end
+    
+  case {'esc','escape'},
+    if get(handles.togglebutton_label_unknown,'Value') ~= 0,
+      set(handles.togglebutton_label_unknown,'Value',0);
+      togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
+    else
+      for behaviori = 1:handles.data.nbehaviors,
+        if get(handles.togglebutton_label_behaviors(behaviori),'Value') ~= 0,
+          set(handles.togglebutton_label_behaviors(behaviori),'Value',0);
+          togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);
+        end
+      end
+    end
     
 end
+
+
+% --------------------------------------------------------------------
+function menu_go_next_frame_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_next_frame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+t = min(max(1,handles.ts(axesi)+1),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+% --------------------------------------------------------------------
+function menu_go_previous_frame_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_previous_frame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+t = min(max(1,handles.ts(axesi)-1),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_forward_X_frames_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_forward_X_frames (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+% TODO: hardcoded in 10 as up/down arrow step
+t = min(max(1,handles.ts(axesi)+handles.nframes_jump_go),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_back_X_frames_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_back_X_frames (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+% TODO: hardcoded in 10 as up/down arrow step
+t = min(max(1,handles.ts(axesi)-handles.nframes_jump_go),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_next_bout_start_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_next_bout_start (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+if handles.ts(axesi) >= handles.t1_curr,
+  return;
+end
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.ts(axesi),handles.t1_curr);
+j = find(labelidx ~= labelidx(1),1);
+if isempty(j),
+  return;
+end
+k = find(ismember(labelidx(j:end),handles.seek_behaviors_go),1);
+if isempty(k),
+  return;
+end
+t = handles.ts(axesi) + j - 1 + k - 1;
+SetCurrentFrame(handles,axesi,t,hObject);
+
+% --------------------------------------------------------------------
+function menu_go_previous_bout_end_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_previous_bout_end (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+if handles.t0_curr >= handles.ts(axesi),
+  return;
+end
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.t0_curr,handles.ts(axesi));
+j = find(labelidx ~= labelidx(end),1,'last');
+if isempty(j),
+  return;
+end
+k = find(ismember(labelidx(1:j),handles.seek_behaviors_go),1,'last');
+if isempty(k),
+  return;
+end
+t = handles.t0_curr + k - 1;
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_navigation_preferences_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_navigation_preferences (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isfield(handles,'figure_NavigationPreferences') && ishandle(handles.figure_NavigationPreferences),
+  figure(handles.figure_NavigationPreferences);
+else
+  handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel);
+  guidata(hObject,handles);
+end
+
+
+% --------------------------------------------------------------------
+function menu_edit_label_shortcuts_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_label_shortcuts (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+prompts = [{'Unknown'},handles.data.labelnames];
+sh = inputdlg(prompts,'Label Shortcuts',1,handles.label_shortcuts);
+handles.label_shortcuts = sh;
+guidata(hObject,handles);
