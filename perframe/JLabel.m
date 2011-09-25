@@ -372,6 +372,7 @@ for i = axes,
   
   % update current position
   if refreshflies,
+    labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
     set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
@@ -400,6 +401,11 @@ for i = axes,
       %updatefly(handles.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.flies),
         set(handles.hflies(fly,i),'LineWidth',5);
+        if labelidx == 0,
+          set(handles.hflies(fly,i),'Color',handles.labelunknowncolor);
+        else
+          set(handles.hflies(fly,i),'Color',handles.labelcolors(labelidx,:));
+        end
       else
         set(handles.hflies(fly,i),'LineWidth',2);
       end
@@ -1227,8 +1233,8 @@ end
 
 function SetJumpGoMenuLabels(handles)
 
-set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames',handles.nframes_jump_go));
-set(handles.menu_go_back_X_frames,'Label',sprintf('Back %d frames',handles.nframes_jump_go));
+set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.nframes_jump_go));
+set(handles.menu_go_back_X_frames,'Label',sprintf('Back %d frames (up arrow)',handles.nframes_jump_go));
 
 % create buttons for each label
 function handles = CreateLabelButtons(handles)
