@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 20-Sep-2011 13:07:15
+% Last Modified by GUIDE v2.5 25-Sep-2011 08:40:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,6 +66,9 @@ handles.status_bar_text = sprintf('Status: No experiment loaded');
 handles.idlestatuscolor = [0,1,0];
 handles.busystatuscolor = [1,0,1];
 ClearStatus(handles);
+
+% get relative locations of stuffs
+handles = GetGUIPositions(handles);
 
 % read configuration
 [handles,success] = LoadConfig(handles);
@@ -2240,3 +2243,161 @@ prompts = [{'Unknown'},handles.data.labelnames];
 sh = inputdlg(prompts,'Label Shortcuts',1,handles.label_shortcuts);
 handles.label_shortcuts = sh;
 guidata(hObject,handles);
+
+
+% --- Executes when figure_JLabel is resized.
+function figure_JLabel_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~isfield(handles,'guipos'),
+  return;
+end
+
+set(handles.figure_JLabel,'Units','pixels');
+figpos = get(handles.figure_JLabel,'Position');
+
+minh = 500;
+minw = 500;
+if figpos(3) < minw || figpos(4) < minh,
+  figpos(3:4) = max(figpos(3:4),[minw,minh]);
+  set(handles.figure_JLabel,'Position',figpos);
+end
+
+labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+learn_pos = get(handles.panel_learn,'Position');
+width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
+  handles.guipos.leftborder_rightpanels - handles.guipos.width_rightpanels - ...
+  handles.guipos.rightborder_rightpanels;
+h = figpos(4) - handles.guipos.bottomborder_bottompanels - ...
+  handles.guipos.topborder_toppanels - handles.guipos.bottomborder_previewpanels;
+height_timelines = h*handles.guipos.frac_height_timelines;
+height_previews = h - height_timelines;
+timelines_pos = [handles.guipos.leftborder_leftpanels,handles.guipos.bottomborder_bottompanels,...
+  width_leftpanels,height_timelines];
+set(handles.panel_timelines,'Position',timelines_pos);
+% TODO: deal with multiple preview panels
+preview_pos = [handles.guipos.leftborder_leftpanels,...
+  figpos(4) - handles.guipos.topborder_toppanels - height_previews,...
+  width_leftpanels,height_previews];
+set(handles.panel_previews(1),'Position',preview_pos);
+
+label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guipos.rightborder_rightpanels,...
+  figpos(4) - labelbuttons_pos(4) - handles.guipos.topborder_toppanels,...
+  labelbuttons_pos(3:4)];
+set(handles.panel_labelbuttons,'Position',label_pos);
+
+new_learn_pos = [figpos(3) - learn_pos(3) - handles.guipos.rightborder_rightpanels,...
+  handles.guipos.bottomborder_bottompanels,...
+  learn_pos(3:4)];
+set(handles.panel_learn,'Position',...
+  new_learn_pos);
+
+function handles = GetGUIPositions(handles)
+
+figpos = get(handles.figure_JLabel,'Position');
+panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+% panel_learn_pos = get(handles.panel_learn,'Position');
+panel_timelines_pos = get(handles.panel_timelines,'Position');
+panel_previews = findobj(handles.figure_JLabel,'-regexp','Tag','panel_axes\d+');
+panel_previews_pos = cell(size(panel_previews));
+for i = 1:numel(panel_previews),
+  panel_previews_pos{i} = get(panel_previews(i),'Position');
+end
+handles.guipos.width_rightpanels = panel_labelbuttons_pos(3);
+handles.guipos.rightborder_rightpanels = figpos(3) - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
+handles.guipos.leftborder_leftpanels = panel_timelines_pos(1);
+handles.guipos.leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
+handles.guipos.topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
+handles.guipos.bottomborder_bottompanels = panel_timelines_pos(2);
+handles.guipos.bottomborder_previewpanels = panel_previews_pos{end}(2) - (panel_timelines_pos(2)+panel_timelines_pos(4));
+handles.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos{1}(4));
+
+manual_pos = get(handles.axes_timeline_manual,'Position');
+auto_pos = get(handles.axes_timeline_auto,'Position');
+
+handles.guipos.timeseries_bordery = manual_pos(2) - auto_pos(2) - auto_pos(4) + 1;
+handles.guipos.timeseries_bottom_border = auto_pos(2);
+handles.guipos.timeseries_xpos = manual_pos(1);
+handles.guipos.timeseries_rightborder = panel_timelines_pos(3) - manual_pos(1) - manual_pos(3);
+
+axes_pos = get(handles.axes_preview,'Position');
+slider_pos = get(handles.slider_preview,'Position');
+edit_pos = get(handles.edit_framenumber,'Position');
+handles.guipos.preview_axes_top_border = panel_previews_pos{end}(4) - axes_pos(4) - axes_pos(2);
+handles.guipos.preview_axes_bottom_border = axes_pos(2);
+handles.guipos.preview_axes_left_border = axes_pos(1);
+handles.guipos.preview_axes_right_border = panel_previews_pos{end}(3) - axes_pos(1) - axes_pos(3);
+handles.guipos.preview_slider_left_border = slider_pos(1);
+handles.guipos.preview_slider_right_border = panel_previews_pos{end}(3) - slider_pos(1) - slider_pos(3);
+handles.guipos.preview_slider_bottom_border = slider_pos(2);
+handles.guipos.preview_edit_left_border = edit_pos(1) - slider_pos(1) - slider_pos(3);
+handles.guipos.preview_edit_bottom_border = edit_pos(2);
+
+% --- Executes when panel_timelines is resized.
+function panel_timelines_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to panel_timelines (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+panel_pos = get(handles.panel_timelines,'Position');
+
+ntimelines = 2;
+h = (panel_pos(4) - ntimelines*handles.guipos.timeseries_bordery - handles.guipos.timeseries_bottom_border) / ntimelines;
+w = panel_pos(3) - handles.guipos.timeseries_rightborder - handles.guipos.timeseries_xpos;
+
+axes_manual_pos = [handles.guipos.timeseries_xpos,...
+  panel_pos(4)-handles.guipos.timeseries_bordery-h,w,h];
+set(handles.axes_timeline_manual,'Position',axes_manual_pos);  
+
+axes_auto_pos = [handles.guipos.timeseries_xpos,...
+  axes_manual_pos(2)-handles.guipos.timeseries_bordery-h,w,h];
+set(handles.axes_timeline_auto,'Position',axes_auto_pos);  
+
+text_manual_pos = get(handles.text_timeseries_manual,'Position');
+m = axes_manual_pos(2) + axes_manual_pos(4)/2;
+new_text_manual_pos = [text_manual_pos(1),m - text_manual_pos(4)/2,...
+  text_manual_pos(3:4)];
+set(handles.text_timeseries_manual,'Position',new_text_manual_pos);
+
+text_auto_pos = get(handles.text_timeseries_automatic,'Position');
+m = axes_auto_pos(2) + axes_auto_pos(4)/2;
+new_text_auto_pos = [text_auto_pos(1),m - text_auto_pos(4)/2,...
+  text_auto_pos(3:4)];
+set(handles.text_timeseries_automatic,'Position',new_text_auto_pos);
+
+
+% --- Executes when panel_axes1 is resized.
+function panel_axes1_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to panel_axes1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~isfield(handles,'panel_previews'),
+  return;
+end
+previewi = find(handles.panel_previews==hObject,1);
+if isempty(previewi), 
+  return;
+end
+
+panel_pos = get(handles.panel_previews(previewi),'Position');
+
+axes_pos = [handles.guipos.preview_axes_left_border,...
+  handles.guipos.preview_axes_bottom_border,...
+  panel_pos(3) - handles.guipos.preview_axes_left_border - handles.guipos.preview_axes_right_border,...
+  panel_pos(4) - handles.guipos.preview_axes_top_border - handles.guipos.preview_axes_bottom_border];
+set(handles.axes_previews(previewi),'Position',axes_pos);
+  
+slider_pos = get(handles.slider_previews(previewi),'Position');
+new_slider_pos = [handles.guipos.preview_slider_left_border,...
+  handles.guipos.preview_slider_bottom_border,...
+  panel_pos(3) - handles.guipos.preview_slider_left_border - handles.guipos.preview_slider_right_border,...
+  slider_pos(4)];
+set(handles.slider_previews(previewi),'Position',new_slider_pos);
+
+edit_pos = get(handles.edit_framenumbers(previewi),'Position');
+new_edit_pos = [new_slider_pos(1) + new_slider_pos(3) + handles.guipos.preview_edit_left_border,...
+  handles.guipos.preview_edit_bottom_border,edit_pos(3:4)];
+set(handles.edit_framenumbers(previewi),'Position',new_edit_pos);
