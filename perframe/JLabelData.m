@@ -177,6 +177,7 @@ classdef JLabelData < handle
     
     % per-frame features that are used
     perframefns = {};
+    perframeunits = {};
 
     % experiment/file management
 
@@ -648,6 +649,8 @@ classdef JLabelData < handle
       
       t0 = find(docompute,1,'first') - off;
       t1 = find(docompute,1,'last') - off;
+      i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
+      i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;
       
       try
 
@@ -660,7 +663,7 @@ classdef JLabelData < handle
         
             % use pre-loaded per-frame data
             [x_curr,feature_names_curr] = ...
-              ComputeWindowFeatures(obj.perframedata{j},obj.windowfeaturescellparams.(fn){:},'t0',t0,'t1',t1);
+              ComputeWindowFeatures(obj.perframedata{j},obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i1);
             
           else
             
@@ -669,7 +672,7 @@ classdef JLabelData < handle
             perframedata = load(fullfile(perframedir,[fn,'.mat']));
             % TODO: adapt for multiple flies labeled at once
             [x_curr,feature_names_curr] = ...
-              ComputeWindowFeatures(perframedata.data{flies(1)},obj.windowfeaturescellparams.(fn){:},'t0',t0,'t1',t1);
+              ComputeWindowFeatures(perframedata.data{flies(1)},obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i1);
             
           end
           
@@ -1811,6 +1814,7 @@ classdef JLabelData < handle
       obj.perframefns = fieldnames(obj.windowfeaturescellparams);
       if numel(obj.perframedata) ~= numel(obj.perframefns),
         obj.perframedata = cell(1,numel(obj.perframefns));
+        obj.perframeunits = cell(1,numel(obj.perframefns));
       end
       success = true;
     end
@@ -2470,6 +2474,7 @@ classdef JLabelData < handle
         try
           tmp = load(file);
           obj.perframedata{j} = tmp.data{flies(1)};
+          obj.perframeunits{j} = tmp.units;
         catch ME,
           msg = getReport(ME);
         end
@@ -2553,7 +2558,50 @@ classdef JLabelData < handle
       end
       
     end
-    
+
+    % [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
+    % Returns the per-frame data for the input experiment, flies, and
+    % property. 
+    function [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
+
+      if ischar(prop),
+        prop = find(strcmp(prop,handles.perframefn),1);
+        if isempty(prop),
+          error('Property %s is not a per-frame property');
+        end
+      end
+      
+      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
+        if nargin < 5,
+          perframedata = obj.perframedata{prop};
+          T0 = obj.t0_curr;
+          T1 = obj.t0_curr + numel(perframedata) - 1;
+        else
+          T0 = max(T0,obj.t0_curr);
+          T1 = min(T1,obj.t0_curr+numel(obj.perframedata{prop})-1);
+          i0 = T0 - obj.t0_curr + 1;
+          i1 = T1 - obj.t0_curr + 1;
+          perframedata = obj.perframedata{prop}(i0:i1);
+        end
+        return;
+      end
+      
+      perframedir = obj.GetFile('perframedir',expi);
+      tmp = load(fullfile(perframedir,[obj.perframefns{prop},'.mat']));
+      if nargin < 5,
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        % TODO: generalize to multi-fly
+        perframedata = tmp.data{flies(1)};
+        T1 = T0 + numel(perframedata) - 1;
+        return;
+      end
+      off = 1 - GetTrxFirstFrame(expi,flies);
+      i0 = T0 + off;
+      i1 = T1 + off;
+      perframedata = tmp.data{flies(1)}(i0:i1);
+
+    end
+
     function [predictedidx,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
 
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
