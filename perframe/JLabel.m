@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 27-Sep-2011 08:01:13
+% Last Modified by GUIDE v2.5 03-Oct-2011 13:28:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -548,8 +548,8 @@ if ~success,
 end
 
 % set zoom radius
-if isnan(handles.zoom_fly_radius),
-  handles.zoom_fly_radius = nanmean([handles.data.trx.a])*20;
+if isnan(handles.zoom_fly_radius(1)),
+  handles.zoom_fly_radius = nanmean([handles.data.trx.a])*20 + [0,0];
 end
 
 
@@ -1267,7 +1267,7 @@ handles.max_click_dist_preview = .025^2;
 
 % zoom state
 handles.zoom_fly = true;
-handles.zoom_fly_radius = nan;
+handles.zoom_fly_radius = nan(1,2);
 set(handles.menu_view_zoom_in_on_fly,'Checked','on');
 
 % initialize labels for navigation
@@ -2069,8 +2069,8 @@ for i = is,
     %ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
   end
   if ~all(isnan(xs)) && ~all(isnan(ys)),
-    xlim = [max([.5,xs-handles.zoom_fly_radius]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius])];
-    ylim = [max([.5,ys-handles.zoom_fly_radius]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius])];
+    xlim = [max([.5,xs-handles.zoom_fly_radius(1)]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius(1)])];
+    ylim = [max([.5,ys-handles.zoom_fly_radius(2)]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius(2)])];
     set(handles.axes_previews(i),'XLim',xlim,'YLim',ylim);
   end
 end
@@ -2533,7 +2533,6 @@ function menu_view_preview_options_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
 % --- Executes on button press in pushbutton_add_timeline.
 function pushbutton_add_timeline_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_add_timeline (see GCBO)
@@ -2741,10 +2740,20 @@ handles = guidata(handles.figure_JLabel);
 function PostZoomCallback(hObject,eventdata,handles)
 
 propi = find(eventdata.Axes == handles.axes_timeline_props,1);
+previewi = find(eventdata.Axes == handles.axes_previews,1);
 if ~isempty(propi),
   prop = handles.perframepropis(propi);
   ylim = get(eventdata.Axes,'YLim');
   handles.timeline_data_ylims(:,prop) = ylim;
   guidata(eventdata.Axes,handles);
+elseif ~isempty(previewi),
+  xlim = get(eventdata.Axes,'XLim');
+  ylim = get(eventdata.Axes,'YLim');
+  rx = round((diff(xlim)-1)/2);
+  ry = round((diff(ylim)-1)/2);
+  if rx ~= handles.zoom_fly_radius(1) || ...
+      ry ~= handles.zoom_fly_radius(2),
+    handles.zoom_fly_radius = [rx,ry];
+    guidata(eventdata.Axes,handles);
+  end  
 end
-
