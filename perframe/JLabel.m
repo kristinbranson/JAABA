@@ -2041,6 +2041,7 @@ end
 if handles.zoom_fly,
   ZoomInOnFlies(handles);
 end
+guidata(hObject,handles);
 
 function ZoomInOnFlies(handles,is)
 
