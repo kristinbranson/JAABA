@@ -87,7 +87,8 @@ classdef JLabelData < handle
     % classifier
     
     % type of classifier to use
-    classifiertype = 'ferns';
+%     classifiertype = 'ferns';
+    classifiertype = 'boosting';
     
     % currently learned classifier. structure depends on the type of
     % classifier. if empty, then no classifier has been trained yet. 
@@ -679,10 +680,8 @@ classdef JLabelData < handle
           if nold > nnew,
             warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
             x_curr(:,end+1:end+nold-nnew) = nan;
-          elseif nnew > nold,
-            if j > 1,
-              warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
-            end
+          elseif nnew > nold && ~isempty(X),
+            warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
             X(end+1:end+nnew-nold,:) = nan;
           end
           X = [X,x_curr']; %#ok<AGROW>
@@ -2571,9 +2570,9 @@ classdef JLabelData < handle
         labels_curr.names = obj.labels(expi).names{fliesi};
         labels_curr.off = obj.labels(expi).off(fliesi);
       else
-        if expi ~= obj.expi,
-          error('This should never happen -- only should get new labels for current experiment');
-        end
+%         if expi ~= obj.expi,
+%           error('This should never happen -- only should get new labels for current experiment');
+%         end
         t0_curr = max(obj.GetTrxFirstFrame(expi,flies));
         labels_curr.off = 1-t0_curr;
       end
@@ -2805,6 +2804,16 @@ classdef JLabelData < handle
               error('Sanity check: labelidx_old and labelidx_new should match');
             end
           end
+          
+        case 'boosting',
+            obj.SetStatus('Training boosting classifier from %d examples...',numel(islabeled));
+
+            s = struct2paramscell(obj.classifier_params);
+            obj.classifier = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
+            obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
+
+          
+          
       end
 
       obj.ClearStatus();
@@ -2836,6 +2845,13 @@ classdef JLabelData < handle
             fernsClfApply(obj.windowdata.X,obj.classifier);
           obj.windowdata.isvalidprediction(:) = true;
           obj.ClearStatus();
+        case 'boosting',
+          obj.SetStatus('Applying boosting classifier to %d windows',size(obj.windowdata.X,1));
+          scores = myBoostClassify(obj.windowdata.X,obj.classifier);
+          obj.windowdata.predicted = -sign(scores)*0.5+1.5;
+          obj.windowdata.isvalidprediction(:) = true;
+          obj.ClearStatus();
+          
       end
             
       % transfer to predictidx for current fly
@@ -2988,7 +3004,14 @@ classdef JLabelData < handle
             obj.windowdata.predicted_probs(idxcurr,:)] = ...
             fernsClfApply(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.isvalidprediction(idxcurr) = true;
-        obj.ClearStatus();
+          obj.ClearStatus();
+        case 'boosting',
+          obj.SetStatus('Applying boosting classifier to %d windows',nnz(idxcurr));
+          scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
+          obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
+          obj.windowdata.isvalidprediction(idxcurr) = true;
+          obj.ClearStatus();
+
       end
            
       obj.UpdatePredictedIdx();
