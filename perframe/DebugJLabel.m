@@ -38,7 +38,7 @@ switch computername,
     rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
     configfilename = 'JLabelParamsMayank.xml';
-    
+
   otherwise
     
     warning('Unknown computer %s. Paths may not be setup correctly',computername);
