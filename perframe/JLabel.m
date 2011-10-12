@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 02-Sep-2011 09:32:57
+% Last Modified by GUIDE v2.5 27-Sep-2011 08:01:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,6 +67,9 @@ handles.idlestatuscolor = [0,1,0];
 handles.busystatuscolor = [1,0,1];
 ClearStatus(handles);
 
+% get relative locations of stuffs
+handles = GetGUIPositions(handles);
+
 % read configuration
 [handles,success] = LoadConfig(handles);
 if ~success,
@@ -97,6 +100,9 @@ if isempty(handles.data.expdirs),
   menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
   handles = guidata(hObject);
 end
+
+% keypress callback for all non-edit text objects
+RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 % enable gui
 EnableGUI(handles);
@@ -130,20 +136,10 @@ varargout{1} = handles.figure_JLabel;
 
 function handles = InitializePlots(handles)
 
-% all axes panels
-handles.panel_previews = findobj(handles.figure_JLabel,'-regexp','Tag','panel_axes\d+');
-% all preview axes
-handles.axes_previews = findobj(handles.figure_JLabel,'Tag','axes_preview');
 handles.axes_preview_curr = 1;
-% all sliders
-handles.slider_previews = findobj(handles.figure_JLabel,'Tag','slider_preview');
-% all frame number edit boxes
-handles.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumber');
 if numel(handles.axes_previews) > numel(handles.ts),
   handles.ts = [handles.ts,repmat(handles.ts(end),[1,numel(handles.axes_previews)-numel(handles.ts)])];
 end
-% all timelines
-handles.axes_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline.*');
 
 % slider callbacks
 for i = 1:numel(handles.slider_previews),
@@ -209,54 +205,82 @@ colormap(handles.axes_preview,gray(256));
 
 % timelines
 
+% zoom
+handles.hzoom = zoom(handles.figure_JLabel);
+handles.hpan = pan(handles.figure_JLabel);
+set(handles.hzoom,'ActionPostCallback',@(hObject,eventdata) PostZoomCallback(hObject,eventdata,guidata(eventdata.Axes)));
+set(handles.hpan,'ActionPostCallback',@(hObject,eventdata) PostZoomCallback(hObject,eventdata,guidata(eventdata.Axes)));
+
 % manual timeline
 timeline_axes_color = get(handles.panel_timelines,'BackgroundColor');
 handles.himage_timeline_manual = image(zeros([1,1,3]),'Parent',handles.axes_timeline_manual);
 set(handles.himage_timeline_manual,'HitTest','off');
 hold(handles.axes_timeline_manual,'on');
 handles.htimeline_manual_starts = plot(handles.axes_timeline_manual,nan,nan,'w-','HitTest','off');
+set(handles.axes_timeline_manual,'YTick',[]);
+setAxesZoomMotion(handles.hzoom,handles.axes_timeline_manual,'horizontal');
+setAllowAxesPan(handles.hpan,handles.axes_timeline_manual,false);
 
 % auto timeline
 handles.himage_timeline_auto = image(zeros([1,1,3]),'Parent',handles.axes_timeline_auto);
 set(handles.himage_timeline_auto,'HitTest','off');
 hold(handles.axes_timeline_auto,'on');
 handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','HitTest','off');
+set(handles.axes_timeline_auto,'YTick',[]);
+setAxesZoomMotion(handles.hzoom,handles.axes_timeline_auto,'horizontal');
+setAllowAxesPan(handles.hpan,handles.axes_timeline_auto,false);
+
+% properties
+propi = 1;
+handles.htimeline_data(propi) = plot(nan,nan,'w.-','HitTest','off');
+
+% whether the manual and auto match
+handles.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
+  'color',handles.incorrectcolor,'HitTest','off','Linewidth',5);
+% new suggestions
+handles.htimeline_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
+  'color',handles.suggestcolor,'HitTest','off','Linewidth',5);
 
 % suggest timeline
-handles.himage_timeline_suggest = image(zeros([1,1,3]),'Parent',handles.axes_timeline_suggest);
-set(handles.himage_timeline_suggest,'HitTest','off');
-hold(handles.axes_timeline_suggest,'on');
-handles.htimeline_suggest_starts = plot(handles.axes_timeline_suggest,nan,nan,'w-','HitTest','off');
+% handles.himage_timeline_suggest = image(zeros([1,1,3]),'Parent',handles.axes_timeline_suggest);
+% set(handles.himage_timeline_suggest,'HitTest','off');
+% hold(handles.axes_timeline_suggest,'on');
+% handles.htimeline_suggest_starts = plot(handles.axes_timeline_suggest,nan,nan,'w-','HitTest','off');
 
 % error timeline
-handles.himage_timeline_error = image(zeros([1,1,3]),'Parent',handles.axes_timeline_error);
-set(handles.himage_timeline_error,'HitTest','off');
-hold(handles.axes_timeline_error,'on');
-handles.htimeline_error_starts = plot(handles.axes_timeline_error,nan,nan,'w-','HitTest','off');
+% handles.himage_timeline_error = image(zeros([1,1,3]),'Parent',handles.axes_timeline_error);
+% set(handles.himage_timeline_error,'HitTest','off');
+% hold(handles.axes_timeline_error,'on');
+% handles.htimeline_error_starts = plot(handles.axes_timeline_error,nan,nan,'w-','HitTest','off');
+
+for i = 1:numel(handles.axes_timeline_props),
+  setAxesZoomMotion(handles.hzoom,handles.axes_timeline_props(i),'vertical');
+  setAllowAxesPan(handles.hpan,handles.axes_timeline_props(i),true);
+  setAxesPanMotion(handles.hpan,handles.axes_timeline_props(i),'vertical');
+end
 
 for i = 1:numel(handles.axes_timelines),
-  set(handles.axes_timelines(i),'YTick',[],'XColor','w','YColor','w','Color',timeline_axes_color);
+  hold(handles.axes_timelines(i),'on');
+  set(handles.axes_timelines(i),'XColor','w','YColor','w','Color',timeline_axes_color);
 end
 
 handles.hcurr_timelines = nan(size(handles.axes_timelines));
 for i = 1:numel(handles.axes_timelines),
-  handles.hcurr_timelines(i) = plot(handles.axes_timelines(i),nan(1,2),[.5,1.5],'y-','HitTest','off','linewidth',2);
+  handles.hcurr_timelines(i) = plot(handles.axes_timelines(i),nan(1,2),[-10^6,10^6],'y-','HitTest','off','linewidth',2);
 end
 
-for i = 1:numel(handles.axes_timelines),
-  if handles.axes_timelines(i) ~= handles.axes_timeline_error,
+for i = 2:numel(handles.axes_timelines),
+%  if handles.axes_timelines(i) ~= handles.axes_timeline_error,
+%  if handles.axes_timelines(i) ~= handles.axes_timeline_auto,
     set(handles.axes_timelines(i),'XTickLabel',{});
-  end
+%  end
 end
 
-linkaxes(handles.axes_timelines);
+linkaxes(handles.axes_timelines,'x');
 
-% zoom
-handles.hzoom = zoom(handles.figure_JLabel);
-
-for i = 1:numel(handles.axes_timelines),
-  setAxesZoomMotion(handles.hzoom,handles.axes_timelines(i),'horizontal');
-end
+%for i = 1:numel(handles.axes_timelines),
+%  setAxesZoomMotion(handles.hzoom,handles.axes_timelines(i),'horizontal');
+%end
 
 % timeline callbacks
 fcn = @(hObject,eventdata) JLabel('axes_timeline_ButtonDownFcn',hObject,eventdata,guidata(hObject));
@@ -272,7 +296,8 @@ function UpdatePlots(handles,varargin)
 
 [axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
   refresh_timeline_manual,refresh_timeline_auto,refresh_timeline_suggest,refresh_timeline_error,...
-  refresh_timeline_xlim,refresh_timeline_hcurr] = ...
+  refresh_timeline_xlim,refresh_timeline_hcurr,...
+  refresh_timeline_props] = ...
   myparse(varargin,'axes',1:numel(handles.axes_previews),...
   'refreshim',true,'refreshflies',true,'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',true,...
@@ -280,7 +305,8 @@ function UpdatePlots(handles,varargin)
   'refresh_timeline_suggest',true,...
   'refresh_timeline_error',true,...
   'refresh_timeline_xlim',true,...
-  'refresh_timeline_hcurr',true);
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_props',false);
 
 % make sure data for this experiment is loaded
 % if handles.expi ~= handles.data.expi,
@@ -305,16 +331,23 @@ if refresh_timeline_auto,
   set(handles.himage_timeline_auto,'CData',handles.labels_plot.predicted_im);
 end
 if refresh_timeline_suggest,
-  set(handles.himage_timeline_suggest,'CData',handles.labels_plot.suggested_im);
+  set(handles.htimeline_suggestions,'XData',handles.labels_plot.suggest_xs,...
+    'YData',zeros(size(handles.labels_plot.suggest_xs))+1.5);
+  %set(handles.himage_timeline_suggest,'CData',handles.labels_plot.suggested_im);
 end
 if refresh_timeline_error,
-  set(handles.himage_timeline_error,'CData',handles.labels_plot.error_im);
+  set(handles.htimeline_errors,'XData',handles.labels_plot.error_xs,...
+  'YData',zeros(size(handles.labels_plot.error_xs))+1.5);
+  %set(handles.himage_timeline_error,'CData',handles.labels_plot.error_im);
 end
 
 if refresh_timeline_xlim,
   xlim = [handles.ts(1)-(handles.timeline_nframes-1)/2,...
     handles.ts(1)+(handles.timeline_nframes-1)/2];
-  set(handles.axes_timelines,'XLim',xlim);
+  for i = 1:numel(handles.axes_timelines),
+    set(handles.axes_timelines,'XLim',xlim);
+    zoom(handles.axes_timelines(i),'reset');
+  end
 end
 
 %drawnow;
@@ -354,6 +387,11 @@ for i = axes,
   
   % update current position
   if refreshflies,
+    if handles.ts(i) < handles.t0_curr || handles.ts(i) > handles.t1_curr,
+      labelidx = [];
+    else
+      labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
+    end
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
     set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
@@ -382,6 +420,11 @@ for i = axes,
       %updatefly(handles.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.flies),
         set(handles.hflies(fly,i),'LineWidth',5);
+        if labelidx <= 0,
+          set(handles.hflies(fly,i),'Color',handles.labelunknowncolor);
+        else
+          set(handles.hflies(fly,i),'Color',handles.labelcolors(labelidx,:));
+        end
       else
         set(handles.hflies(fly,i),'LineWidth',2);
       end
@@ -399,10 +442,10 @@ for i = axes,
   if refreshtrx,
     for j = 1:numel(handles.flies),
       fly = handles.flies(j);
-      tmp = handles.ts(i) + handles.data.trx(fly).off;
+      tmp = handles.ts(i);
       t0 = handles.data.firstframes_per_exp{handles.expi}(fly);
       t1 = handles.data.endframes_per_exp{handles.expi}(fly);
-      ts = max(t0,min(t1,tmp-nprev:tmp+npost));
+      ts = max(t0,tmp-nprev):min(t1,tmp+npost);
       set(handles.htrx(j,i),'XData',handles.data.GetTrxX1(handles.expi,fly,ts),...
         'YData',handles.data.GetTrxY1(handles.expi,fly,ts));
       %j0 = max(1,tmp-nprev);
@@ -439,6 +482,18 @@ if refresh_timeline_hcurr,
   set(handles.hcurr_timelines,'XData',handles.ts([1,1]));
 end
 
+if refresh_timeline_props,
+  for propi = 1:numel(handles.perframepropis),
+    v = handles.perframepropis(propi);
+    [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,v);
+    set(handles.htimeline_data(propi),'XData',T0:T1,...
+      'YData',perframedata);
+    if isnan(handles.timeline_data_ylims(1,v)),
+      ylim = [min(perframedata),max(perframedata)];
+      set(handles.axes_timeline_props(propi),'YLim',ylim);
+    end
+  end
+end
 
 function [handles,success] = SetCurrentMovie(handles,expi)
 
@@ -548,7 +603,10 @@ for i = 1:numel(handles.axes_previews),
 end
 
 % update plot
-UpdatePlots(handles);
+UpdatePlots(handles,'refresh_timeline_props',true);
+for i = 1:numel(handles.axes_timelines),
+  zoom(handles.axes_timelines(i),'reset');
+end
 
 % enable GUI components
 EnableGUI(handles);
@@ -640,21 +698,28 @@ handles.labels_plot = struct;
 n = handles.t1_curr-handles.t0_curr+1;
 handles.labels_plot.im = zeros([1,n,3]);
 handles.labels_plot.predicted_im = zeros([1,n,3]);
-handles.labels_plot.suggested_im = zeros([1,n,3]);
-handles.labels_plot.error_im = zeros([1,n,3]);
+handles.labels_plot.suggest_xs = nan;
+handles.labels_plot.error_xs = nan;
+%handles.labels_plot.suggested_im = zeros([1,n,3]);
+%handles.labels_plot.error_im = zeros([1,n,3]);
 handles.labels_plot.x = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot.y = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot_off = 1-handles.t0_curr;
-set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
-  handles.himage_timeline_error,handles.himage_timeline_suggest],...
+% set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
+%   handles.himage_timeline_error,handles.himage_timeline_suggest],...
+%   'XData',[handles.t0_curr,handles.t1_curr]);
+set([handles.himage_timeline_manual,handles.himage_timeline_auto],...
   'XData',[handles.t0_curr,handles.t1_curr]);
 
+labelidx = handles.data.GetLabelIdx(handles.expi,flies);
 for flyi = 1:numel(flies),
   fly = flies(flyi);
   x = handles.data.GetTrxX(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   y = handles.data.GetTrxY(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
-    idx = handles.data.labelidx == behaviori;
+    % WARNING: accesses labelidx
+    % REMOVED!
+    idx = labelidx == behaviori;
     handles.labels_plot.x(idx,behaviori,flyi) = x{1}(idx);
     handles.labels_plot.y(idx,behaviori,flyi) = y{1}(idx);
   end
@@ -704,7 +769,7 @@ ClearStatus(handles);
 guidata(handles.figure_JLabel,handles);
 
 if doupdateplot,
-  UpdatePlots(handles);
+  UpdatePlots(handles,'refresh_timeline_props',true);
 end
 
 function handles = UpdateTimelineIms(handles)
@@ -712,44 +777,62 @@ function handles = UpdateTimelineIms(handles)
 % Note: this function directly accesses handles.data.labelidx,
 % handles.data.predictedidx for speed, so make sure we've preloaded the
 % right experiment, flies
-if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
-  handles.data.Preload(handles.expi,handles.flies);
-end
+% REMOVED!
+
+% if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
+%   handles.data.Preload(handles.expi,handles.flies);
+% end
 
 handles.labels_plot.im(:) = 0;
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies);
 for behaviori = 1:handles.data.nbehaviors
-  idx = handles.data.labelidx == behaviori;
+  idx = labelidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
 end
 handles.labels_plot.predicted_im(:) = 0;
+predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies);
 for behaviori = 1:handles.data.nbehaviors
-  idx = handles.data.predictedidx == behaviori;
+  idx = predictedidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.predicted_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
 end
-handles.labels_plot.suggested_im(:) = 0;
-for behaviori = 1:handles.data.nbehaviors
-  idx = handles.data.suggestedidx == behaviori;
-  for channel = 1:3,
-    handles.labels_plot.suggested_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
-  end
-end
-handles.labels_plot.error_im(:) = 0;
-idx = handles.data.erroridx == 1;
-for channel = 1:3,
-  handles.labels_plot.error_im(1,idx,channel) = handles.correctcolor(channel);
-end
-idx = handles.data.erroridx == 2;
-for channel = 1:3,
-  handles.labels_plot.error_im(1,idx,channel) = handles.incorrectcolor(channel);
-end
+[error_t0s,error_t1s] = get_interval_ends(labelidx ~= 0 & predictedidx ~= 0 & ...
+  labelidx ~= predictedidx);
+error_t0s = error_t0s + handles.t0_curr - 1.5;
+error_t1s = error_t1s + handles.t0_curr - 1.5;
+handles.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
+set(handles.htimeline_errors,'XData',handles.labels_plot.error_xs,...
+  'YData',zeros(size(handles.labels_plot.error_xs))+1.5);
+[suggest_t0s,suggest_t1s] = get_interval_ends(labelidx == 0 & predictedidx ~= 0);
+suggest_t0s = suggest_t0s + handles.t0_curr - 1.5;
+suggest_t1s = suggest_t1s + handles.t0_curr - 1.5;
+handles.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+set(handles.htimeline_suggestions,'XData',handles.labels_plot.suggest_xs,...
+  'YData',zeros(size(handles.labels_plot.suggest_xs))+1.5);
+
+%handles.labels_plot.suggested_im(:) = 0;
+%for behaviori = 1:handles.data.nbehaviors
+%  idx = handles.data.suggestedidx == behaviori;
+%  for channel = 1:3,
+%    handles.labels_plot.suggested_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
+%  end
+%end
+%handles.labels_plot.error_im(:) = 0;
+%idx = handles.data.erroridx == 1;
+%for channel = 1:3,
+%  handles.labels_plot.error_im(1,idx,channel) = handles.correctcolor(channel);
+%end
+%idx = handles.data.erroridx == 2;
+%for channel = 1:3,
+%  handles.labels_plot.error_im(1,idx,channel) = handles.incorrectcolor(channel);
+%end
 handles.labels_plot.isstart = ...
-  cat(2,handles.data.labelidx(1)~=0,...
-  handles.data.labelidx(2:end)~=0 & ...
-  handles.data.labelidx(1:end-1)~=handles.data.labelidx(2:end));
+  cat(2,labelidx(1)~=0,...
+  labelidx(2:end)~=0 & ...
+  labelidx(1:end-1)~=labelidx(2:end));
 
 
 % set current frame
@@ -770,7 +853,9 @@ if doforce || handles.ts(i) ~= t,
   handles.ts(i) = t;
   
   % update labels
-  if handles.label_state ~= 0,
+  if handles.label_state < 0,
+    handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,t)),0);
+  elseif handles.label_state > 0,
     handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,t)),handles.label_state);
   end
   
@@ -1012,8 +1097,8 @@ function menu_view_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_to_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_to (see GCBO)
+function menu_go_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1156,10 +1241,25 @@ end
 handles.labelunknowncolor = [0,0,0];
 
 handles.correctcolor = [0,.7,0];
-handles.incorrectcolor = [.7,0,0];
+handles.incorrectcolor = [.7,.7,0];
+handles.suggestcolor = [0,.7,.7];
 
 % create buttons for each label
 handles = CreateLabelButtons(handles);
+
+% timeline properties
+handles.timeline_prop_remove_string = '<html><body><i>Remove</i></body></html>';
+handles.timeline_prop_help_string = '<html><body><i>Help</i></body></html>';
+handles.timeline_prop_options = ...
+  {handles.timeline_prop_remove_string,...
+  handles.timeline_prop_help_string};
+for i = 1:numel(handles.data.perframefns),
+  handles.timeline_prop_options{end+1} = handles.data.perframefns{i};
+end
+handles.perframepropfns = handles.data.perframefns(1);
+handles.perframepropis = 1;
+set(handles.timeline_label_prop1,'String',handles.timeline_prop_options,'Value',3);
+handles.timeline_data_ylims = nan(2,numel(handles.data.perframefns));
 
 % maximum distance squared in fraction of axis to change frames when
 % clicking on preview window
@@ -1169,6 +1269,22 @@ handles.max_click_dist_preview = .025^2;
 handles.zoom_fly = true;
 handles.zoom_fly_radius = nan;
 set(handles.menu_view_zoom_in_on_fly,'Checked','on');
+
+% initialize labels for navigation
+SetJumpGoMenuLabels(handles)
+
+% which behavior we seek to, initialize to all except unknown
+handles.seek_behaviors_go = 1:handles.data.nbehaviors;
+
+% label shortcuts
+if numel(handles.label_shortcuts) ~= handles.data.nbehaviors + 1,
+  handles.label_shortcuts = cellstr(num2str((0:handles.data.nbehaviors)'))';
+end
+
+function SetJumpGoMenuLabels(handles)
+
+set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.nframes_jump_go));
+set(handles.menu_go_back_X_frames,'Label',sprintf('Back %d frames (up arrow)',handles.nframes_jump_go));
 
 % create buttons for each label
 function handles = CreateLabelButtons(handles)
@@ -1290,6 +1406,18 @@ try
   else
     handles.timeline_nframes = 250;
   end
+  if isfield(handles.rc,'nframes_jump_go')
+    handles.nframes_jump_go = handles.rc.nframes_jump_go;
+  else
+    handles.nframes_jump_go = 30;
+  end
+  
+  if isfield(handles.rc,'label_shortcuts'),
+    handles.label_shortcuts = handles.rc.label_shortcuts;
+  else
+    handles.label_shortcuts = [];
+  end
+    
 catch ME,
   warning('Error loading RC file: %s',getReport(ME));  
 end
@@ -1318,6 +1446,16 @@ try
   
   set(handles.figure_JLabel,'Units','pixels');
   rc.figure_JLabel_Position_px = get(handles.figure_JLabel,'Position');
+  
+  if isfield(handles,'nframes_jump_go'),
+    rc.nframes_jump_go = handles.nframes_jump_go;
+  end
+  
+  % label shortcuts
+  if isfield(handles,'label_shortcuts'),
+    rc.label_shortcuts = handles.label_shortcuts;
+  end
+  
   save(handles.rcfilename,'-struct','rc');
 catch ME,
   warning('Error saving RC file: %s',getReport(ME));
@@ -1484,19 +1622,21 @@ end
 
 % WARNING: this function directly accesses handles.data.labelidx, trx make sure
 % that we've preloaded the right experiment and flies. 
-if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
-  handles.data.Preload(handles.expi,handles.flies);
-end
+% REMOVED!
+% if handles.expi ~= handles.data.expi || ~all(handles.flies == handles.data.flies),
+%   handles.data.Preload(handles.expi,handles.flies);
+% end
 
 handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
-handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = 0;
+% handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = 0;
 
 for channel = 1:3,
   handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelunknowncolor(channel);
 end
+handles.data.SetLabel(handles.expi,handles.flies,t0:t1,behaviori);
 if behaviori > 0,
-  handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = behaviori;
+  % handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = behaviori;
   for channel = 1:3,
     handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelcolors(behaviori,channel);
   end
@@ -1520,15 +1660,16 @@ end
 
 % isstart
 if t0 == handles.t0_curr,
-  handles.labels_plot.isstart(t+handles.labels_plot_off) = ...
-    handles.data.labelidx(t+handles.labels_plot_off)~=0;
+  handles.labels_plot.isstart(t+handles.labels_plot_off) = behaviori ~= 0;
 end
 t00 = max(handles.t0_curr+1,t0);
 off0 = t00+handles.labels_plot_off;
 off1 = t2+handles.labels_plot_off;
-handles.labels_plot.isstart(t00+handles.labels_plot_off:t2+handles.labels_plot_off) = ...
-  handles.data.labelidx(off0:off1)~=0 & ...
-  handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
+% handles.labels_plot.isstart(off0:off1) = ...
+%   handles.data.labelidx(off0:off1)~=0 & ...
+%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
+handles.labels_plot.isstart(off0:off1) = ...
+  handles.data.IsLabelStart(handles.expi,handles.flies,t00:t2);
 
 handles = UpdateErrors(handles);
 
@@ -1552,7 +1693,7 @@ if get(hObject,'Value'),
   end
   % set the current frame to be labeled
   handles.lastframe_labeled = [];
-  handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,handles.ts(1))),-1);
+  handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,handles.ts(1))),0);
   UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
   set(handles.togglebutton_label_unknown,'String','*Label Unknown*');
 else
@@ -1763,8 +1904,8 @@ function figure_JLabel_WindowKeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
-disp(eventdata.Character);
-disp(eventdata.Modifier);
+%disp(eventdata.Character);
+%disp(eventdata.Modifier);
 
 function SetStatusCallback(s,h)
 
@@ -1900,6 +2041,7 @@ end
 if handles.zoom_fly,
   ZoomInOnFlies(handles);
 end
+guidata(hObject,handles);
 
 function ZoomInOnFlies(handles,is)
 
@@ -1962,3 +2104,647 @@ if strcmpi(res,'Yes'),
   handles = UpdateTimelineIms(handles);
   UpdatePlots(handles);
 end
+
+function RecursiveSetKeyPressFcn(hfig)
+
+hchil = findall(hfig,'-property','KeyPressFcn');
+goodidx = true(1,numel(hchil));
+for i = 1:numel(hchil),
+  if strcmpi(get(hchil(i),'Type'),'uicontrol') && strcmpi(get(hchil(i),'Style'),'edit'),
+    goodidx(i) = false;
+  end
+end
+set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
+
+% --- Executes on key press with focus on figure_JLabel and none of its controls.
+function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+switch eventdata.Key,
+  
+  case 'leftarrow',
+    if strcmpi(eventdata.Modifier,'control'),
+      menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
+    else
+      menu_go_previous_frame_Callback(hObject, eventdata, handles);
+    end
+     
+  case 'rightarrow',
+    if strcmpi(eventdata.Modifier,'control'),
+      menu_go_next_bout_start_Callback(hObject,eventdata,handles);
+    else
+      menu_go_next_frame_Callback(hObject, eventdata, handles);
+    end
+  
+  case 'uparrow',
+    menu_go_back_X_frames_Callback(hObject, eventdata, handles);
+    
+  case 'downarrow',
+    menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
+    
+  case handles.label_shortcuts,
+    behaviori = find(strcmp(eventdata.Key,handles.label_shortcuts),1);
+    behaviori = behaviori - 1;
+    if behaviori == 0,
+      set(handles.togglebutton_label_unknown,'Value',get(handles.togglebutton_label_unknown,'Value')==0);
+      togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
+    else
+      set(handles.togglebutton_label_behaviors(behaviori),'Value',...
+        get(handles.togglebutton_label_behaviors(behaviori),'Value')==0);
+      togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);
+    end
+    
+  case {'esc','escape'},
+    if get(handles.togglebutton_label_unknown,'Value') ~= 0,
+      set(handles.togglebutton_label_unknown,'Value',0);
+      togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
+    else
+      for behaviori = 1:handles.data.nbehaviors,
+        if get(handles.togglebutton_label_behaviors(behaviori),'Value') ~= 0,
+          set(handles.togglebutton_label_behaviors(behaviori),'Value',0);
+          togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);
+        end
+      end
+    end
+    
+end
+
+
+% --------------------------------------------------------------------
+function menu_go_next_frame_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_next_frame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+t = min(max(1,handles.ts(axesi)+1),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+% --------------------------------------------------------------------
+function menu_go_previous_frame_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_previous_frame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+t = min(max(1,handles.ts(axesi)-1),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_forward_X_frames_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_forward_X_frames (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+% TODO: hardcoded in 10 as up/down arrow step
+t = min(max(1,handles.ts(axesi)+handles.nframes_jump_go),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_back_X_frames_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_back_X_frames (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+% TODO: hardcoded in 10 as up/down arrow step
+t = min(max(1,handles.ts(axesi)-handles.nframes_jump_go),handles.nframes);
+% set current frame
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_next_bout_start_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_next_bout_start (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+if handles.ts(axesi) >= handles.t1_curr,
+  return;
+end
+t0 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,t0,handles.t1_curr);
+j = find(labelidx ~= labelidx(1),1);
+if isempty(j),
+  return;
+end
+k = find(ismember(labelidx(j:end),handles.seek_behaviors_go),1);
+if isempty(k),
+  return;
+end
+t = handles.ts(axesi) + j - 1 + k - 1;
+SetCurrentFrame(handles,axesi,t,hObject);
+
+% --------------------------------------------------------------------
+function menu_go_previous_bout_end_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_previous_bout_end (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+if handles.t0_curr >= handles.ts(axesi),
+  return;
+end
+t1 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.t0_curr,t1);
+j = find(labelidx ~= labelidx(end),1,'last');
+if isempty(j),
+  return;
+end
+k = find(ismember(labelidx(1:j),handles.seek_behaviors_go),1,'last');
+if isempty(k),
+  return;
+end
+t = handles.t0_curr + k - 1;
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_go_navigation_preferences_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_navigation_preferences (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isfield(handles,'figure_NavigationPreferences') && ishandle(handles.figure_NavigationPreferences),
+  figure(handles.figure_NavigationPreferences);
+else
+  handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel);
+  guidata(hObject,handles);
+end
+
+
+% --------------------------------------------------------------------
+function menu_edit_label_shortcuts_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_label_shortcuts (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+prompts = [{'Unknown'},handles.data.labelnames];
+sh = inputdlg(prompts,'Label Shortcuts',1,handles.label_shortcuts);
+handles.label_shortcuts = sh;
+guidata(hObject,handles);
+
+
+% --- Executes when figure_JLabel is resized.
+function figure_JLabel_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~isfield(handles,'guipos'),
+  return;
+end
+
+set(handles.figure_JLabel,'Units','pixels');
+figpos = get(handles.figure_JLabel,'Position');
+
+minh = 700;
+minw = 500;
+if figpos(3) < minw || figpos(4) < minh,
+  figpos(3:4) = max(figpos(3:4),[minw,minh]);
+  set(handles.figure_JLabel,'Position',figpos);
+end
+
+labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+learn_pos = get(handles.panel_learn,'Position');
+width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
+  handles.guipos.leftborder_rightpanels - handles.guipos.width_rightpanels - ...
+  handles.guipos.rightborder_rightpanels;
+h = figpos(4) - handles.guipos.bottomborder_bottompanels - ...
+  handles.guipos.topborder_toppanels - handles.guipos.bottomborder_previewpanels;
+height_timelines = h*handles.guipos.frac_height_timelines;
+height_previews = h - height_timelines;
+timelines_pos = [handles.guipos.leftborder_leftpanels,handles.guipos.bottomborder_bottompanels,...
+  width_leftpanels,height_timelines];
+set(handles.panel_timelines,'Position',timelines_pos);
+% TODO: deal with multiple preview panels
+preview_pos = [handles.guipos.leftborder_leftpanels,...
+  figpos(4) - handles.guipos.topborder_toppanels - height_previews,...
+  width_leftpanels,height_previews];
+set(handles.panel_previews(1),'Position',preview_pos);
+
+label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guipos.rightborder_rightpanels,...
+  figpos(4) - labelbuttons_pos(4) - handles.guipos.topborder_toppanels,...
+  labelbuttons_pos(3:4)];
+set(handles.panel_labelbuttons,'Position',label_pos);
+
+new_learn_pos = [figpos(3) - learn_pos(3) - handles.guipos.rightborder_rightpanels,...
+  handles.guipos.bottomborder_bottompanels,...
+  learn_pos(3:4)];
+set(handles.panel_learn,'Position',...
+  new_learn_pos);
+
+function handles = GetGUIPositions(handles)
+
+% all axes panels
+handles.panel_previews = findobj(handles.figure_JLabel,'-regexp','Tag','panel_axes\d+');
+% all preview axes
+handles.axes_previews = findobj(handles.figure_JLabel,'Tag','axes_preview');
+% all sliders
+handles.slider_previews = findobj(handles.figure_JLabel,'Tag','slider_preview');
+% all frame number edit boxes
+handles.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumber');
+% all timelines
+handles.axes_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline.*');
+handles.labels_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^timeline_label.*');
+handles.axes_timeline_props = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline_prop.*');
+if numel(handles.labels_timelines) ~= numel(handles.labels_timelines),
+  error('Number of timeline axes does not match number of timeline labels');
+end
+% sort by y-position
+ys = nan(1,numel(handles.axes_timelines));
+for i = 1:numel(handles.axes_timelines),
+  pos = get(handles.axes_timelines(i),'Position');
+  ys(i) = pos(2);
+end
+[~,order] = sort(ys);
+handles.axes_timelines = handles.axes_timelines(order);
+% sort by y-position
+ys = nan(1,numel(handles.labels_timelines));
+for i = 1:numel(handles.labels_timelines),
+  pos = get(handles.labels_timelines(i),'Position');
+  ys(i) = pos(2);
+end
+[~,order] = sort(ys);
+handles.labels_timelines = handles.labels_timelines(order);
+
+figpos = get(handles.figure_JLabel,'Position');
+panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+% panel_learn_pos = get(handles.panel_learn,'Position');
+panel_timelines_pos = get(handles.panel_timelines,'Position');
+panel_previews_pos = cell(size(handles.panel_previews));
+for i = 1:numel(handles.panel_previews),
+  panel_previews_pos{i} = get(handles.panel_previews(i),'Position');
+end
+handles.guipos.width_rightpanels = panel_labelbuttons_pos(3);
+handles.guipos.rightborder_rightpanels = figpos(3) - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
+handles.guipos.leftborder_leftpanels = panel_timelines_pos(1);
+handles.guipos.leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
+handles.guipos.topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
+handles.guipos.bottomborder_bottompanels = panel_timelines_pos(2);
+handles.guipos.bottomborder_previewpanels = panel_previews_pos{end}(2) - (panel_timelines_pos(2)+panel_timelines_pos(4));
+handles.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos{1}(4));
+
+handles.guipos.timeline_bottom_borders = nan(1,numel(handles.axes_timelines));
+handles.guipos.timeline_left_borders = nan(1,numel(handles.axes_timelines));
+pos0 = get(handles.axes_timelines(1),'Position');
+handles.guipos.timeline_bottom_borders(1) = pos0(2);
+handles.guipos.timeline_heights(1) = pos0(4);
+handles.guipos.timeline_xpos = pos0(1);
+handles.guipos.timeline_rightborder = panel_timelines_pos(3) - pos0(1) - pos0(3);
+for i = 2:numel(handles.axes_timelines),
+  pos1 = get(handles.axes_timelines(i),'Position');
+  handles.guipos.timeline_bottom_borders(i) = pos1(2) - pos0(2) - pos0(4);
+  handles.guipos.timeline_heights(i) = pos1(4);
+  pos0 = pos1;
+end
+handles.guipos.timeline_top_border = panel_timelines_pos(4) - pos1(2) - pos1(4);
+handles.guipos.timeline_heights = handles.guipos.timeline_heights / sum(handles.guipos.timeline_heights);
+for i = 1:numel(handles.axes_timelines),
+  label_pos = get(handles.labels_timelines(i),'Position');
+  handles.guipos.timeline_left_borders(i) = label_pos(1);
+end
+pos = get(handles.axes_timeline_prop1,'Position');
+handles.guipos.timeline_prop_height = pos(4);
+pos = get(handles.timeline_label_prop1,'Position');
+handles.guipos.timeline_prop_label_left_border = pos(1);
+handles.guipos.timeline_prop_label_size = pos(3:4);
+handles.guipos.timeline_prop_label_callback = get(handles.timeline_label_prop1,'Callback');
+handles.guipos.timeline_prop_fontsize = get(handles.timeline_label_prop1,'FontSize');
+
+axes_pos = get(handles.axes_preview,'Position');
+slider_pos = get(handles.slider_preview,'Position');
+edit_pos = get(handles.edit_framenumber,'Position');
+handles.guipos.preview_axes_top_border = panel_previews_pos{end}(4) - axes_pos(4) - axes_pos(2);
+handles.guipos.preview_axes_bottom_border = axes_pos(2);
+handles.guipos.preview_axes_left_border = axes_pos(1);
+handles.guipos.preview_axes_right_border = panel_previews_pos{end}(3) - axes_pos(1) - axes_pos(3);
+handles.guipos.preview_slider_left_border = slider_pos(1);
+handles.guipos.preview_slider_right_border = panel_previews_pos{end}(3) - slider_pos(1) - slider_pos(3);
+handles.guipos.preview_slider_bottom_border = slider_pos(2);
+handles.guipos.preview_edit_left_border = edit_pos(1) - slider_pos(1) - slider_pos(3);
+handles.guipos.preview_edit_bottom_border = edit_pos(2);
+
+% --- Executes when panel_timelines is resized.
+function panel_timelines_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to panel_timelines (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~isfield(handles,'axes_timelines'),
+  return;
+end
+panel_pos = get(handles.panel_timelines,'Position');
+
+ntimelines = numel(handles.axes_timelines);
+h = panel_pos(4) - sum(handles.guipos.timeline_bottom_borders) - handles.guipos.timeline_top_border;
+w = panel_pos(3) - handles.guipos.timeline_rightborder - handles.guipos.timeline_xpos;
+
+y0 = 0;
+for i = 1:ntimelines,
+  y0 = y0 + handles.guipos.timeline_bottom_borders(i);
+  axes_pos = [handles.guipos.timeline_xpos,y0,w,h*handles.guipos.timeline_heights(i)];
+  set(handles.axes_timelines(i),'Position',axes_pos);
+  label_pos = get(handles.labels_timelines(i),'Position');
+  new_label_pos = [handles.guipos.timeline_left_borders(i),...
+    y0+axes_pos(4)/2-label_pos(4)/2,...
+    label_pos(3:4)];
+  set(handles.labels_timelines(i),'Position',new_label_pos);
+  y0 = y0 + axes_pos(4);
+end
+% axes_manual_pos = [handles.guipos.timeline_xpos,...
+%   panel_pos(4)-handles.guipos.timeline_bordery-h,w,h];
+% set(handles.axes_timeline_manual,'Position',axes_manual_pos);  
+% 
+% axes_auto_pos = [handles.guipos.timeline_xpos,...
+%   axes_manual_pos(2)-handles.guipos.timeline_bordery-h,w,h];
+% set(handles.axes_timeline_auto,'Position',axes_auto_pos);  
+% 
+% text_manual_pos = get(handles.timeline_label_manual,'Position');
+% m = axes_manual_pos(2) + axes_manual_pos(4)/2;
+% new_text_manual_pos = [text_manual_pos(1),m - text_manual_pos(4)/2,...
+%   text_manual_pos(3:4)];
+% set(handles.timeline_label_manual,'Position',new_text_manual_pos);
+% 
+% text_auto_pos = get(handles.timeline_label_automatic,'Position');
+% m = axes_auto_pos(2) + axes_auto_pos(4)/2;
+% new_text_auto_pos = [text_auto_pos(1),m - text_auto_pos(4)/2,...
+%   text_auto_pos(3:4)];
+% set(handles.timeline_label_automatic,'Position',new_text_auto_pos);
+
+
+% --- Executes when panel_axes1 is resized.
+function panel_axes1_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to panel_axes1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~isfield(handles,'panel_previews'),
+  return;
+end
+previewi = find(handles.panel_previews==hObject,1);
+if isempty(previewi), 
+  return;
+end
+
+panel_pos = get(handles.panel_previews(previewi),'Position');
+
+axes_pos = [handles.guipos.preview_axes_left_border,...
+  handles.guipos.preview_axes_bottom_border,...
+  panel_pos(3) - handles.guipos.preview_axes_left_border - handles.guipos.preview_axes_right_border,...
+  panel_pos(4) - handles.guipos.preview_axes_top_border - handles.guipos.preview_axes_bottom_border];
+set(handles.axes_previews(previewi),'Position',axes_pos);
+  
+slider_pos = get(handles.slider_previews(previewi),'Position');
+new_slider_pos = [handles.guipos.preview_slider_left_border,...
+  handles.guipos.preview_slider_bottom_border,...
+  panel_pos(3) - handles.guipos.preview_slider_left_border - handles.guipos.preview_slider_right_border,...
+  slider_pos(4)];
+set(handles.slider_previews(previewi),'Position',new_slider_pos);
+
+edit_pos = get(handles.edit_framenumbers(previewi),'Position');
+new_edit_pos = [new_slider_pos(1) + new_slider_pos(3) + handles.guipos.preview_edit_left_border,...
+  handles.guipos.preview_edit_bottom_border,edit_pos(3:4)];
+set(handles.edit_framenumbers(previewi),'Position',new_edit_pos);
+
+
+% --------------------------------------------------------------------
+function menu_view_preview_options_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_preview_options (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_add_timeline.
+function pushbutton_add_timeline_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_add_timeline (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+AddPropAxes(handles);
+
+% --- Executes on selection change in timeline_label_prop1.
+function timeline_label_prop1_Callback(hObject, eventdata, handles)
+% hObject    handle to timeline_label_prop1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns timeline_label_prop1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from timeline_label_prop1
+propi = GetTimelinePropNumber(hObject,handles);
+v = get(hObject,'Value');
+s = handles.timeline_prop_options{v};
+if strcmpi(s,handles.timeline_prop_remove_string),
+  RemovePropAxes(handles,propi);
+elseif strcmpi(s,handles.timeline_prop_help_string),
+  
+  
+else
+  prop = find(strcmpi(s,handles.data.perframefns),1);
+  handles.perframepropis(propi) = prop;
+  handles.perframeprops{propi} = s;
+  [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,prop);
+  set(handles.htimeline_data(propi),'XData',T0:T1,'YData',perframedata);
+  if isnan(handles.timeline_data_ylims(1,prop)),
+    ylim = [min(perframedata),max(perframedata)];
+  else
+    ylim = handles.timeline_data_ylims(:,prop);
+  end
+  set(handles.axes_timeline_props(propi),'YLim',ylim);
+  guidata(hObject,handles);
+end
+
+function i = GetTimelinePropNumber(hObject,handles)
+
+t = get(hObject,'Type');
+if strcmpi(t,'axes'),
+  i = find(hObject == handles.axes_timeline_props,1);
+elseif strcmpi(t,'uicontrol'),
+  s = get(hObject,'Style');
+  if strcmpi(s,'popupmenu'),
+    j = find(hObject == handles.labels_timelines,1);
+    if isempty(j),
+      i = [];
+    else
+      i = find(handles.axes_timelines(j) == handles.axes_timeline_props,1);
+    end
+  else
+    i = [];
+  end
+else
+  i = [];
+end
+if isempty(i),
+  warning('Could not find index of parent panel');
+  i = 1;
+end
+
+function handles = RemovePropAxes(handles,propi)
+
+% which axes
+axi = find(handles.axes_timelines == handles.axes_timeline_props(propi));
+
+% how much height we will remove
+axes_pos = get(handles.axes_timeline_props(propi),'Position');
+hremove = axes_pos(4) + handles.guipos.timeline_bottom_borders(axi+1);
+
+% set the sizes of the other axes to stretch
+Z0 = sum(handles.guipos.timeline_heights);
+Z1 = Z0 - handles.guipos.timeline_heights(axi);
+handles.guipos.timeline_heights = handles.guipos.timeline_heights * Z0 / Z1;
+
+% delete the axes
+delete(handles.axes_timeline_props(propi));
+delete(handles.labels_timelines(axi));
+handles.axes_timeline_props(propi) = [];
+handles.axes_timelines(axi) = [];
+handles.labels_timelines(axi) = [];
+handles.htimeline_data(propi) = [];
+handles.hcurr_timelines(axi) = [];
+handles.guipos.timeline_bottom_borders(axi+1) = [];
+handles.guipos.timeline_heights(axi) = [];
+handles.guipos.timeline_left_borders(axi) = [];
+handles.perframepropfns(propi) = [];
+handles.perframepropis(propi) = [];
+
+% show the xticks
+set(handles.axes_timelines(1),'XTickLabelMode','auto');
+
+guidata(handles.figure_JLabel,handles);
+
+% make the panel smaller
+panel_pos = get(handles.panel_timelines,'Position');
+panel_pos(4) = panel_pos(4) - hremove;
+set(handles.panel_timelines,'Position',panel_pos);
+
+% make the preview panel bigger
+panel_pos = get(handles.panel_previews,'Position');
+panel_pos(2) = panel_pos(2) - hremove;
+panel_pos(4) = panel_pos(4) + hremove;
+set(handles.panel_previews,'Position',panel_pos);
+
+handles = guidata(handles.figure_JLabel);
+
+
+function handles = AddPropAxes(handles,prop)
+
+% choose a property
+if nargin < 2,
+  prop = find(~ismember(1:numel(handles.data.perframefns),handles.perframepropis),1);
+  if isempty(prop),
+    prop = 1;
+  end
+end
+propi = numel(handles.axes_timeline_props)+1;
+% how much height we will add
+hadd = handles.guipos.timeline_prop_height + handles.guipos.timeline_bottom_borders(2);
+
+% set the sizes of the other axes to shrink
+panel_pos = get(handles.panel_timelines,'Position');
+Z0 = panel_pos(4) - sum(handles.guipos.timeline_bottom_borders) - handles.guipos.timeline_top_border;
+Z1 = Z0 + hadd;
+handles.guipos.timeline_heights = handles.guipos.timeline_heights * Z0 / Z1;
+
+% add the axes
+w = panel_pos(3) - handles.guipos.timeline_rightborder - handles.guipos.timeline_xpos;
+ax_pos = [handles.guipos.timeline_xpos,handles.guipos.timeline_bottom_borders(1),...
+  w,handles.guipos.timeline_prop_height];
+hax = axes('Parent',handles.panel_timelines,'Units','pixels',...
+  'Position',ax_pos,'XColor','w','YColor','w',...
+  'Color',get(handles.panel_timelines,'BackgroundColor'),...
+  'Tag',sprintf('timeline_axes_prop%d',propi));
+handles.axes_timeline_props = [hax,handles.axes_timeline_props];
+handles.axes_timelines = [hax;handles.axes_timelines];
+fcn = get(handles.axes_timelines(1),'ButtonDownFcn');
+set(hax,'ButtonDownFcn',fcn);
+setAxesZoomMotion(handles.hzoom,hax,'vertical');
+hold(hax,'on');
+[perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,prop);
+hdata = plot(T0:T1,perframedata,'w.-');
+handles.htimeline_data = [hdata,handles.htimeline_data];
+xlim = get(handles.axes_timelines(2),'XLim');
+if isnan(handles.timeline_data_ylims(1,prop)),
+  ylim = [min(perframedata),max(perframedata)];
+else
+  ylim = handles.timeline_data_ylims(:,prop)';
+end
+set(hax,'XLim',xlim,'YLim',ylim);
+zoom(hax,'reset');
+hcurr = plot(hax,[0,0]+handles.ts(1),[-10^6,10^6],'y-','HitTest','off','linewidth',2);
+handles.hcurr_timelines = [hcurr;handles.hcurr_timelines];
+linkaxes(handles.axes_timelines,'x');
+
+% add the label
+pos = [handles.guipos.timeline_prop_label_left_border,...
+  ax_pos(2)+ax_pos(4)/2-handles.guipos.timeline_prop_label_size(2)/2,...
+  handles.guipos.timeline_prop_label_size];
+hlabel = uicontrol(handles.panel_timelines,...
+  'Style','popupmenu',...
+  'Units','pixels',...
+  'BackgroundColor',get(handles.labels_timelines(1),'BackgroundColor'),...
+  'ForegroundColor',get(handles.labels_timelines(1),'ForegroundColor'),...
+  'String',handles.timeline_prop_options,...
+  'Value',prop+2,...
+  'Position',pos,...
+  'FontUnits','pixels',...
+  'FontSize',handles.guipos.timeline_prop_fontsize,...
+  'Tag',sprintf('timeline_label_prop%d',propi));
+set(hlabel,'Callback',@(hObject,eventdata) timeline_label_prop1_Callback(hObject,eventdata,guidata(hObject)));
+
+handles.labels_timelines = [hlabel;handles.labels_timelines];
+
+% add new axes sizes
+handles.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guipos.timeline_heights];
+handles.guipos.timeline_bottom_borders = handles.guipos.timeline_bottom_borders([1,2,2:numel(handles.guipos.timeline_bottom_borders)]);
+handles.guipos.timeline_left_borders = [pos(1),handles.guipos.timeline_left_borders];
+handles.perframepropfns = [handles.data.perframefns(prop),handles.perframepropfns];
+handles.perframepropis = [prop,handles.perframepropis];
+
+% hide the xtick labels
+set(handles.axes_timelines(2),'XTickLabel',{});
+
+
+guidata(handles.figure_JLabel,handles);
+
+% make the panel bigger
+panel_pos = get(handles.panel_timelines,'Position');
+panel_pos(4) = panel_pos(4) + hadd;
+set(handles.panel_timelines,'Position',panel_pos);
+
+% make the preview panel smaller
+panel_pos = get(handles.panel_previews,'Position');
+panel_pos(2) = panel_pos(2) + hadd;
+panel_pos(4) = panel_pos(4) - hadd;
+set(handles.panel_previews,'Position',panel_pos);
+
+handles = guidata(handles.figure_JLabel);
+
+function PostZoomCallback(hObject,eventdata,handles)
+
+propi = find(eventdata.Axes == handles.axes_timeline_props,1);
+if ~isempty(propi),
+  prop = handles.perframepropis(propi);
+  ylim = get(eventdata.Axes,'YLim');
+  handles.timeline_data_ylims(:,prop) = ylim;
+  guidata(eventdata.Axes,handles);
+end
+
