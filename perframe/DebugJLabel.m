@@ -31,6 +31,14 @@ switch computername,
     settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
     configfilename = 'JLabelParams_bransonk-desktop.xml';
     
+  case 'kabram-ws.janelia.priv',
+
+    JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
+    FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
+    rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
+    settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
+    configfilename = 'JLabelParamsMayank.xml';
+    
   otherwise
     
     warning('Unknown computer %s. Paths may not be setup correctly',computername);

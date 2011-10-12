@@ -1507,9 +1507,9 @@ if behaviori > 0,
     k0 = t0+handles.labels_plot_off;
     k2 = t2+handles.labels_plot_off;
     handles.labels_plot.x(k0:k2,behaviori,l) = ...
-      handles.data.GetTrxX1(handles.exp,handles.flies(l),t0:t2);
+      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0:t2);
     handles.labels_plot.y(k0:k2,behaviori,l) = ...
-      handles.data.GetTrxY1(handles.exp,handles.flies(l),t0:t2);
+      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0:t2);
 
 %     handles.labels_plot.x(k0:k2,behaviori,l) = ...
 %       handles.data.trx(handles.flies(l)).x(j0:j2);
@@ -1638,15 +1638,15 @@ dx = diff(get(handles.axes_previews(i),'XLim'));
 dy = diff(get(handles.axes_previews(i),'YLim'));
 for j = 1:numel(handles.flies),
   fly = handles.flies(j);
-  T0 = handles.data.firstframes_per_exp{handles.exp}(fly);
-  T1 = handles.data.endframes_per_exp{handles.exp}(fly);
+  T0 = handles.data.firstframes_per_exp{handles.expi}(fly);
+  T1 = handles.data.endframes_per_exp{handles.expi}(fly);
   t0 = min(T1,max(T0,handles.ts(i)-nprev));
   t1 = min(T1,max(T0,handles.ts(i)+npost));
   %off = handles.data.trx(fly).off;
 %   [mindcurr,k] = min( ((handles.data.trx(fly).x(t0+off:t1+off)-xclick)/dx).^2 + ...
 %     ((handles.data.trx(fly).y(t0+off:t1+off)-yclick)/dy).^2 );
-  [mindcurr,k] = min( ((handles.data.GetTrxX1(handles.exp,fly,t0:t1)-xclick)/dx).^2 + ...
-    ((handles.data.GetTrxY1(handles.exp,fly,t0:t1)-yclick)/dy).^2 );
+  [mindcurr,k] = min( ((handles.data.GetTrxX1(handles.expi,fly,t0:t1)-xclick)/dx).^2 + ...
+    ((handles.data.GetTrxY1(handles.expi,fly,t0:t1)-yclick)/dy).^2 );
   if mindcurr < mind,
     mind = mindcurr;
     mint = k+t0-1;
