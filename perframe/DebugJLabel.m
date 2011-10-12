@@ -38,7 +38,14 @@ switch computername,
     rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
     configfilename = 'JLabelParamsMayank.xml';
-
+  
+  case 'robiea-ws'
+    JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
+    FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
+    rootdatadir = '/groups/sciserv/flyolympiad/Olympiad_Screen/fly_bowl/bowl_data';
+    settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
+    configfilename = '/groups/branson/home/robiea/Projects_data/JLabel/JLabelParams.xml';
+    
   otherwise
     
     warning('Unknown computer %s. Paths may not be setup correctly',computername);
