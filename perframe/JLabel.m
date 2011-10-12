@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 27-Sep-2011 08:01:13
+% Last Modified by GUIDE v2.5 09-Oct-2011 20:49:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -268,6 +268,14 @@ handles.hcurr_timelines = nan(size(handles.axes_timelines));
 for i = 1:numel(handles.axes_timelines),
   handles.hcurr_timelines(i) = plot(handles.axes_timelines(i),nan(1,2),[-10^6,10^6],'y-','HitTest','off','linewidth',2);
 end
+handles.hselection = nan(size(handles.axes_timelines));
+for i = 1:numel(handles.axes_timelines),
+  ylim = [.5,1.5];
+  ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
+  handles.hselection(i) = ...
+    plot(handles.axes_timelines(i),nan(1,5),ydata([1,2,2,1,1]),'--','color',handles.selection_color,...
+    'HitTest','off','Linewidth',3);
+end
 
 for i = 2:numel(handles.axes_timelines),
 %  if handles.axes_timelines(i) ~= handles.axes_timeline_error,
@@ -283,10 +291,10 @@ linkaxes(handles.axes_timelines,'x');
 %end
 
 % timeline callbacks
-fcn = @(hObject,eventdata) JLabel('axes_timeline_ButtonDownFcn',hObject,eventdata,guidata(hObject));
-for i = 1:numel(handles.axes_timelines),
-  set(handles.axes_timelines(i),'ButtonDownFcn',fcn);
-end
+% fcn = @(hObject,eventdata) JLabel('axes_timeline_ButtonDownFcn',hObject,eventdata,guidata(hObject));
+% for i = 1:numel(handles.axes_timelines),
+%   set(handles.axes_timelines(i),'ButtonDownFcn',fcn);
+% end
 
 
 function UpdatePlots(handles,varargin)
@@ -297,7 +305,7 @@ function UpdatePlots(handles,varargin)
 [axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
   refresh_timeline_manual,refresh_timeline_auto,refresh_timeline_suggest,refresh_timeline_error,...
   refresh_timeline_xlim,refresh_timeline_hcurr,...
-  refresh_timeline_props] = ...
+  refresh_timeline_props,refresh_timeline_selection] = ...
   myparse(varargin,'axes',1:numel(handles.axes_previews),...
   'refreshim',true,'refreshflies',true,'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',true,...
@@ -306,7 +314,8 @@ function UpdatePlots(handles,varargin)
   'refresh_timeline_error',true,...
   'refresh_timeline_xlim',true,...
   'refresh_timeline_hcurr',true,...
-  'refresh_timeline_props',false);
+  'refresh_timeline_props',false,...
+  'refresh_timeline_selection',false);
 
 % make sure data for this experiment is loaded
 % if handles.expi ~= handles.data.expi,
@@ -481,6 +490,10 @@ end
 if refresh_timeline_hcurr,
   set(handles.hcurr_timelines,'XData',handles.ts([1,1]));
 end
+if refresh_timeline_selection,
+  tmp = handles.selected_ts + .5*[-1,1];
+  set(handles.hselection,'XData',tmp([1,1,2,2,1]));
+end
 
 if refresh_timeline_props,
   for propi = 1:numel(handles.perframepropis),
@@ -490,7 +503,9 @@ if refresh_timeline_props,
       'YData',perframedata);
     if isnan(handles.timeline_data_ylims(1,v)),
       ylim = [min(perframedata),max(perframedata)];
+      ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
       set(handles.axes_timeline_props(propi),'YLim',ylim);
+      set(handles.hselection(propi),'YData',ydata([1,2,2,1,1]));
     end
   end
 end
@@ -548,8 +563,8 @@ if ~success,
 end
 
 % set zoom radius
-if isnan(handles.zoom_fly_radius),
-  handles.zoom_fly_radius = nanmean([handles.data.trx.a])*20;
+if isnan(handles.zoom_fly_radius(1)),
+  handles.zoom_fly_radius = nanmean([handles.data.trx.a])*20 + [0,0];
 end
 
 
@@ -867,6 +882,12 @@ if doforce || handles.ts(i) ~= t,
   % update frame number edit box
   if hObject ~= handles.edit_framenumbers(i),
     set(handles.edit_framenumbers(i),'String',num2str(t));
+  end
+  
+  % update selection
+  if handles.selecting,
+    handles.selected_ts(end) = t;
+    UpdateSelection(handles);
   end
   
   guidata(handles.figure_JLabel,handles);
@@ -1244,6 +1265,9 @@ handles.correctcolor = [0,.7,0];
 handles.incorrectcolor = [.7,.7,0];
 handles.suggestcolor = [0,.7,.7];
 
+handles.selection_color = [1,.6,0];
+handles.selection_alpha = .5;
+
 % create buttons for each label
 handles = CreateLabelButtons(handles);
 
@@ -1267,8 +1291,20 @@ handles.max_click_dist_preview = .025^2;
 
 % zoom state
 handles.zoom_fly = true;
-handles.zoom_fly_radius = nan;
+handles.zoom_fly_radius = nan(1,2);
 set(handles.menu_view_zoom_in_on_fly,'Checked','on');
+
+% last clicked object
+handles.selection_t0 = nan;
+handles.selection_t1 = nan;
+handles.selected_ts = nan(1,2);
+handles.buttondown_t0 = nan;
+handles.buttondown_axes = nan;
+set([handles.pushbutton_playselection,handles.pushbutton_clearselection],'Enable','off');
+
+% not selecting
+handles.selecting = false;
+set(handles.togglebutton_select,'Value',0);
 
 % initialize labels for navigation
 SetJumpGoMenuLabels(handles)
@@ -1281,6 +1317,19 @@ if numel(handles.label_shortcuts) ~= handles.data.nbehaviors + 1,
   handles.label_shortcuts = cellstr(num2str((0:handles.data.nbehaviors)'))';
 end
 
+% play/stop
+handles.hplaying = nan;
+handles.play_FPS = 2;
+
+handles.traj_nprev = 25;
+handles.traj_npost = 25;
+
+% whether to show trajectories
+set(handles.menu_view_plottracks,'Checked','on');
+
+% bookmarked clips windows
+handles.bookmark_windows = [];
+
 function SetJumpGoMenuLabels(handles)
 
 set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.nframes_jump_go));
@@ -1292,6 +1341,7 @@ function handles = CreateLabelButtons(handles)
 % get positions of stuff
 set(handles.panel_labelbuttons,'Units','pixels');
 panel_pos = get(handles.panel_labelbuttons,'Position');
+select_pos = get(handles.panel_select,'Position');
 set(handles.togglebutton_label_behavior1,'Units','pixels');
 button1_pos = get(handles.togglebutton_label_behavior1,'Position');
 set(handles.togglebutton_label_unknown,'Units','pixels');
@@ -1309,6 +1359,9 @@ new_panel_height = 2*out_border_y + (handles.data.nbehaviors+1)*button_height + 
 panel_top = panel_pos(2)+panel_pos(4);
 new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
 set(handles.panel_labelbuttons,'Position',new_panel_pos);
+dy_label_select = panel_pos(2) - select_pos(2) - select_pos(4);
+new_select_pos = [select_pos(1),new_panel_pos(2)-select_pos(4)-dy_label_select,select_pos(3:4)];
+set(handles.panel_select,'Position',new_select_pos);
 
 % move unknown button to the bottom
 new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
@@ -1352,7 +1405,7 @@ set(handles.togglebutton_label_unknown,...
 function EnableGUI(handles)
 
 % these controls require a movie to currently be open
-h = [handles.menu_view_timeline_options,...
+h = [handles.contextmenu_timeline_manual_timeline_options,...
   handles.togglebutton_label_behaviors(:)',...
   handles.togglebutton_label_unknown,...
   handles.menu_view_zoom_in_on_fly];
@@ -1769,8 +1822,8 @@ end
 
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
-nprev = 25;
-npost = 25;
+nprev = handles.traj_nprev;
+npost = handles.traj_npost;
 mind = inf;
 pt = get(handles.axes_previews(i),'CurrentPoint');
 xclick = pt(1,1);
@@ -2069,8 +2122,8 @@ for i = is,
     %ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
   end
   if ~all(isnan(xs)) && ~all(isnan(ys)),
-    xlim = [max([.5,xs-handles.zoom_fly_radius]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius])];
-    ylim = [max([.5,ys-handles.zoom_fly_radius]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius])];
+    xlim = [max([.5,xs-handles.zoom_fly_radius(1)]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius(1)])];
+    ylim = [max([.5,ys-handles.zoom_fly_radius(2)]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius(2)])];
     set(handles.axes_previews(i),'XLim',xlim,'YLim',ylim);
   end
 end
@@ -2325,6 +2378,7 @@ if figpos(3) < minw || figpos(4) < minh,
 end
 
 labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+select_pos = get(handles.panel_select,'Position');
 learn_pos = get(handles.panel_learn,'Position');
 width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
   handles.guipos.leftborder_rightpanels - handles.guipos.width_rightpanels - ...
@@ -2347,6 +2401,12 @@ label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guipos.rightborder_rightp
   labelbuttons_pos(3:4)];
 set(handles.panel_labelbuttons,'Position',label_pos);
 
+dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
+new_select_pos = [figpos(3) - select_pos(3) - handles.guipos.rightborder_rightpanels,...
+  label_pos(2) - select_pos(4) - dy_label_select,...
+  select_pos(3:4)];
+set(handles.panel_select,'Position',new_select_pos);
+
 new_learn_pos = [figpos(3) - learn_pos(3) - handles.guipos.rightborder_rightpanels,...
   handles.guipos.bottomborder_bottompanels,...
   learn_pos(3:4)];
@@ -2363,6 +2423,8 @@ handles.axes_previews = findobj(handles.figure_JLabel,'Tag','axes_preview');
 handles.slider_previews = findobj(handles.figure_JLabel,'Tag','slider_preview');
 % all frame number edit boxes
 handles.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumber');
+% all play buttons
+handles.pushbutton_playstops = findobj(handles.figure_JLabel,'Tag','pushbutton_playstop');
 % all timelines
 handles.axes_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline.*');
 handles.labels_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^timeline_label.*');
@@ -2434,6 +2496,7 @@ handles.guipos.timeline_prop_fontsize = get(handles.timeline_label_prop1,'FontSi
 axes_pos = get(handles.axes_preview,'Position');
 slider_pos = get(handles.slider_preview,'Position');
 edit_pos = get(handles.edit_framenumber,'Position');
+play_pos = get(handles.pushbutton_playstop,'Position');
 handles.guipos.preview_axes_top_border = panel_previews_pos{end}(4) - axes_pos(4) - axes_pos(2);
 handles.guipos.preview_axes_bottom_border = axes_pos(2);
 handles.guipos.preview_axes_left_border = axes_pos(1);
@@ -2441,7 +2504,9 @@ handles.guipos.preview_axes_right_border = panel_previews_pos{end}(3) - axes_pos
 handles.guipos.preview_slider_left_border = slider_pos(1);
 handles.guipos.preview_slider_right_border = panel_previews_pos{end}(3) - slider_pos(1) - slider_pos(3);
 handles.guipos.preview_slider_bottom_border = slider_pos(2);
-handles.guipos.preview_edit_left_border = edit_pos(1) - slider_pos(1) - slider_pos(3);
+handles.guipos.preview_play_left_border = play_pos(1) - slider_pos(1) - slider_pos(3);
+handles.guipos.preview_play_bottom_border = play_pos(2);
+handles.guipos.preview_edit_left_border = edit_pos(1) - play_pos(1) - play_pos(3);
 handles.guipos.preview_edit_bottom_border = edit_pos(2);
 
 % --- Executes when panel_timelines is resized.
@@ -2521,8 +2586,14 @@ new_slider_pos = [handles.guipos.preview_slider_left_border,...
   slider_pos(4)];
 set(handles.slider_previews(previewi),'Position',new_slider_pos);
 
+play_pos = get(handles.pushbutton_playstops(previewi),'Position');
+new_play_pos = [new_slider_pos(1) + new_slider_pos(3) + handles.guipos.preview_play_left_border,...
+  handles.guipos.preview_play_bottom_border,play_pos(3:4)];
+set(handles.pushbutton_playstops(previewi),'Position',new_play_pos);
+
+
 edit_pos = get(handles.edit_framenumbers(previewi),'Position');
-new_edit_pos = [new_slider_pos(1) + new_slider_pos(3) + handles.guipos.preview_edit_left_border,...
+new_edit_pos = [new_play_pos(1) + new_play_pos(3) + handles.guipos.preview_edit_left_border,...
   handles.guipos.preview_edit_bottom_border,edit_pos(3:4)];
 set(handles.edit_framenumbers(previewi),'Position',new_edit_pos);
 
@@ -2532,6 +2603,44 @@ function menu_view_preview_options_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_preview_options (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+prompts = {'Playback Speed (fps):','N. previous positions plotted:',...
+  'N. future positions plotted:'};
+
+while true,
+  defaults = {num2str(handles.play_FPS),num2str(handles.traj_nprev),...
+    num2str(handles.traj_npost)};
+  res = inputdlg(prompts,'Preview Options',1,defaults);
+  errs = {};
+  play_FPS = str2double(res{1});
+  if isnan(play_FPS) || play_FPS <= 0,
+    errs{end+1} = 'Playback speed must be a positive number'; %#ok<AGROW>
+  else
+    handles.play_FPS = play_FPS;
+  end
+  
+  traj_nprev = str2double(res{2});
+  if isnan(traj_nprev) || traj_nprev < 0 || rem(traj_nprev,1) ~= 0,
+    errs{end+1} = 'N. previous positions plotted must be a postive integer'; %#ok<AGROW>
+  else
+    handles.traj_nprev = traj_nprev;
+  end
+  
+  traj_npost = str2double(res{3});
+  if isnan(traj_npost) || traj_npost < 0 || rem(traj_npost,1) ~= 0,
+    errs{end+1} = 'N. future positions plotted must be a postive integer'; %#ok<AGROW>
+  else
+    handles.traj_npost = traj_npost;
+  end
+  
+  if isempty(errs),
+    break;
+  else
+    uiwait(warndlg(errs,'Bad preview options'));
+  end
+  
+end
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_add_timeline.
@@ -2570,6 +2679,8 @@ else
     ylim = handles.timeline_data_ylims(:,prop);
   end
   set(handles.axes_timeline_props(propi),'YLim',ylim);
+  ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
+  set(handles.hselection(propi),'YData',ydata([1,2,2,1,1]));
   guidata(hObject,handles);
 end
 
@@ -2620,6 +2731,7 @@ handles.axes_timelines(axi) = [];
 handles.labels_timelines(axi) = [];
 handles.htimeline_data(propi) = [];
 handles.hcurr_timelines(axi) = [];
+handles.hselection(axi) = [];
 handles.guipos.timeline_bottom_borders(axi+1) = [];
 handles.guipos.timeline_heights(axi) = [];
 handles.guipos.timeline_left_borders(axi) = [];
@@ -2674,16 +2786,17 @@ hax = axes('Parent',handles.panel_timelines,'Units','pixels',...
   'Tag',sprintf('timeline_axes_prop%d',propi));
 handles.axes_timeline_props = [hax,handles.axes_timeline_props];
 handles.axes_timelines = [hax;handles.axes_timelines];
-fcn = get(handles.axes_timelines(1),'ButtonDownFcn');
-set(hax,'ButtonDownFcn',fcn);
+% fcn = get(handles.axes_timelines(1),'ButtonDownFcn');
+% set(hax,'ButtonDownFcn',fcn);
 setAxesZoomMotion(handles.hzoom,hax,'vertical');
 hold(hax,'on');
 [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,prop);
+maxylim = [min(perframedata),max(perframedata)];
 hdata = plot(T0:T1,perframedata,'w.-');
 handles.htimeline_data = [hdata,handles.htimeline_data];
 xlim = get(handles.axes_timelines(2),'XLim');
 if isnan(handles.timeline_data_ylims(1,prop)),
-  ylim = [min(perframedata),max(perframedata)];
+  ylim = maxylim;
 else
   ylim = handles.timeline_data_ylims(:,prop)';
 end
@@ -2691,6 +2804,12 @@ set(hax,'XLim',xlim,'YLim',ylim);
 zoom(hax,'reset');
 hcurr = plot(hax,[0,0]+handles.ts(1),[-10^6,10^6],'y-','HitTest','off','linewidth',2);
 handles.hcurr_timelines = [hcurr;handles.hcurr_timelines];
+ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
+hselection = plot(hax,handles.selected_ts([1,1,2,2,1]),ydata([1,2,2,1,1]),'--',...
+  'color',handles.selection_color,...
+  'HitTest','off',...
+  'LineWidth',3);
+handles.hselection = [hselection;handles.hselection];
 linkaxes(handles.axes_timelines,'x');
 
 % add the label
@@ -2740,11 +2859,402 @@ handles = guidata(handles.figure_JLabel);
 
 function PostZoomCallback(hObject,eventdata,handles)
 
-propi = find(eventdata.Axes == handles.axes_timeline_props,1);
-if ~isempty(propi),
-  prop = handles.perframepropis(propi);
-  ylim = get(eventdata.Axes,'YLim');
-  handles.timeline_data_ylims(:,prop) = ylim;
+timelinei = find(eventdata.Axes == handles.axes_timelines,1);
+previewi = find(eventdata.Axes == handles.axes_previews,1);
+if ~isempty(timelinei),
+  for propj = 1:numel(handles.perframepropis),
+    prop = handles.perframepropis(propj);
+    ylim = get(eventdata.Axes,'YLim');
+    handles.timeline_data_ylims(:,prop) = ylim;
+    ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
+    set(handles.hselection(propj),'YData',ydata([1,2,2,1,1]));
+  end
   guidata(eventdata.Axes,handles);
+elseif ismember(eventdata.Axes,[handles.axes_timeline_manual,handles.axes_timeline_auto]),
+  xlim = get(eventdata.Axes,'XLim');
+  handles.timeline_nframes = max(1,round(diff(xlim)-1)/2);
+  guidata(eventdata.Axes,handles);
+elseif ~isempty(previewi),
+  xlim = get(eventdata.Axes,'XLim');
+  ylim = get(eventdata.Axes,'YLim');
+  rx = round((diff(xlim)-1)/2);
+  ry = round((diff(ylim)-1)/2);
+  if rx ~= handles.zoom_fly_radius(1) || ...
+      ry ~= handles.zoom_fly_radius(2),
+    handles.zoom_fly_radius = [rx,ry];
+    guidata(eventdata.Axes,handles);
+  end  
 end
 
+
+% --- Executes on mouse press over figure background, over a disabled or
+% --- inactive control, or over an axes background.
+function figure_JLabel_WindowButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+hchil = gco;
+if ismember(hchil,handles.axes_timelines),
+  seltype = get(hObject,'SelectionType');
+  switch lower(seltype),
+    case 'normal', %left
+      pt = get(hchil,'CurrentPoint');
+      handles.buttondown_t0 = round(pt(1,1));
+      %fprintf('buttondown at %d\n',handles.buttondown_t0);
+      handles.buttondown_axes = hchil;
+      handles.selection_t0 = nan;
+      handles.selection_t1 = nan;
+      guidata(hObject,handles);
+    case {'alternate','extend'}, %right,middle
+      pt = get(hchil,'CurrentPoint');
+      t = pt(1,1);
+      if t >= handles.selected_ts(1) && t <= handles.selected_ts(2),
+      end
+    case 'open', % double click
+  end
+end
+
+
+% --- Executes on mouse motion over figure - except title and menu.
+function figure_JLabel_WindowButtonMotionFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~ishandle(handles.buttondown_axes),
+  return;
+end
+if ~isnan(handles.buttondown_t0) && isnan(handles.selection_t0) && ...
+    isnan(handles.selection_t1),    
+  handles.selection_t0 = handles.buttondown_t0;
+  handles.buttondown_t0 = nan;
+  if handles.selecting,
+    set(handles.togglebutton_select,'Value',0);
+    handles.selecting = false;
+  end
+  guidata(hObject,handles);
+end
+if ~isnan(handles.selection_t0),
+  pt = get(handles.buttondown_axes,'CurrentPoint');
+  handles.selection_t1 = round(pt(1,1));
+  handles.selected_ts = [handles.selection_t0,handles.selection_t1];
+  %fprintf('Selecting %d to %d\n',handles.selection_t0,handles.selection_t1);
+  guidata(hObject,handles);
+  UpdateSelection(handles);
+end
+  
+
+
+% --- Executes on mouse press over figure background, over a disabled or
+% --- inactive control, or over an axes background.
+function figure_JLabel_WindowButtonUpFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if ~ishandle(handles.buttondown_axes),
+  return;
+end
+if isnan(handles.selection_t0),
+  h = handles.buttondown_axes;
+  handles.buttondown_axes = nan;
+  handles.selection_t0 = nan;
+  handles.selection_t1 = nan;
+  axes_timeline_ButtonDownFcn(h, eventdata, handles);
+  return;
+end
+if ~isnan(handles.selection_t0),
+  pt = get(handles.buttondown_axes,'CurrentPoint');
+  handles.selection_t1 = round(pt(1,1));
+  handles.selected_ts = sort([handles.selection_t0,handles.selection_t1]);
+  %fprintf('Selected %d to %d\n',handles.selected_ts);
+  UpdateSelection(handles);
+end
+handles.buttondown_axes = nan;
+handles.selection_t0 = nan;
+handles.selection_t1 = nan;
+disp('bye');
+guidata(hObject,handles);
+
+function UpdateSelection(handles)
+
+tmp = handles.selected_ts + .5*[-1,1];
+set(handles.hselection,'XData',tmp([1,1,2,2,1]));
+buttons = [handles.pushbutton_playselection,handles.pushbutton_clearselection];
+if any(isnan(handles.selected_ts)),
+  set(buttons,'Enable','off');
+else
+  set(buttons,'Enable','on');
+end
+
+% --- Executes on button press in togglebutton_select.
+function togglebutton_select_Callback(hObject, eventdata, handles)
+% hObject    handle to togglebutton_select (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of togglebutton_select
+if get(hObject,'Value'),
+  handles.selecting = true;
+  handles.selected_ts = handles.ts(1)+[0,0];
+  handles.buttondown_axes = nan;
+  UpdateSelection(handles);
+else
+  handles.selecting = false;
+end
+guidata(hObject,handles);
+
+% --- Executes on button press in pushbutton_clearselection.
+function pushbutton_clearselection_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_clearselection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if handles.hplaying == handles.pushbutton_playselection,
+  handles = stop(handles);
+end
+
+handles.selected_ts = nan(1,2);
+handles.buttondown_axes = nan;
+handles.selection_t0 = nan;
+handles.selection_t1 = nan;
+guidata(hObject,handles);
+UpdateSelection(handles);
+
+
+% --- Executes on button press in pushbutton_playstop.
+function pushbutton_playstop_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_playstop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if handles.hplaying == hObject,
+  stop(handles);
+else
+  if ~isnan(handles.hplaying),
+    stop(handles);
+  end
+  play(hObject,handles);
+end
+
+% --- Executes on button press in pushbutton_playselection.
+function pushbutton_playselection_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_playselection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if handles.hplaying == hObject,
+  stop(handles);
+else
+  if ~isnan(handles.hplaying),
+    stop(handles);
+  end
+  play(hObject,handles,handles.selected_ts(1),handles.selected_ts(2),true);
+end
+
+function handles = play(hObject,handles,t0,t1,doloop)
+
+axi = 1;
+set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
+handles.hplaying = hObject;
+guidata(hObject,handles);
+tic;
+if nargin < 3,
+  t0 = handles.ts(axi);
+  t1 = handles.nframes;
+  doloop = false;
+end
+while true,
+  handles = guidata(hObject);
+  if handles.hplaying ~= hObject,
+    return;
+  end
+  % how long has it been
+  dt_sec = toc;
+  % wait until the next frame should be played
+  dt = dt_sec*handles.play_FPS;
+  t = ceil(dt)+t0;
+  if t > t1,
+    if doloop,
+      tic;
+      continue;
+    else
+      handles.hplaying = nan;
+      guidata(hObject,handles);
+      break;
+    end
+  end
+  SetCurrentFrame(handles,axi,t,hObject);
+  dt_sec = toc;
+  pause_time = (t-t0)/handles.play_FPS - dt_sec;
+  if pause_time <= 0,
+    drawnow;
+  else
+    pause(pause_time);
+  end
+end
+
+stop(handles);
+
+function handles = stop(handles)
+
+set(handles.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
+hObject = handles.hplaying;
+handles.hplaying = nan;
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_plottracks_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plottracks (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+v = get(handles.menu_view_plottracks,'Checked');
+
+if strcmpi(v,'on'),
+  h = findall(handles.axes_previews,'Type','line','Visible','on');
+  handles.tracks_visible = h;
+  set(h,'Visible','off');
+  set(hObject,'Checked','off');
+else
+  handles.tracks_visible = handles.tracks_visible(ishandle(handles.tracks_visible));
+  set(handles.tracks_visible(:),'Visible','on');
+  set(hObject,'Checked','on');
+end
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_manual_go_next_bout_start_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_manual_go_next_bout_start (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_go_next_bout_start_Callback(hObject,eventdata,handles);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_manual_go_previous_bout_end_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_manual_go_previous_bout_end (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
+
+function [t0,t1,labelidx,label] = GetBoutProperties(handles,t)
+
+if t < handles.t0_curr && t > handles.t1_curr,
+  t0 = nan;
+  t1 = nan;
+  labelidx = nan;
+  label = '';
+  return;
+end
+
+[labelidx,T0,T1] = handles.data.GetLabelIdx(handles.expi,handles.flies);
+i = t - T0 + 1;
+i0 = find(labelidx(1:i-1) ~= labelidx(i),1,'last');
+if isempty(i0),
+  t0 = T0;
+else
+  t0 = i0 + T0;
+end
+i1 = find(labelidx(i+1:end) ~= labelidx(i),1,'first');
+if isempty(i1),
+  t1 = T1;
+else
+  t1 = i1 + t - 1;
+end
+labelidx = labelidx(i);
+if nargout >= 4,
+  if labelidx == 0,
+    label = 'Unknown';
+  else
+    label = handles.data.labelnames{labelidx};
+  end
+end
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_manual_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_manual (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+disp('hi');
+pt = get(handles.axes_timeline_manual,'CurrentPoint');
+t = pt(1,1);
+
+% inside a bout?
+if t >= handles.t0_curr && t <= handles.t1_curr,
+  [handles.bookmark_info.t0,handles.bookmark_info.t1,...
+    handles.bookmark_info.labelidx,handles.bookmark_info.label] = ...
+    GetBoutProperties(handles,round(t));
+  s = sprintf('Bookmark %s bout (%d:%d)',handles.bookmark_info.label,...
+    handles.bookmark_info.t0,handles.bookmark_info.t1);  
+  set(handles.contextmenu_timeline_manual_bookmark_bout,'Visible','on',...
+    'Label',s);
+else
+  set(handles.contextmenu_timeline_manual_bookmark_bout,'Visible','off');
+end
+  
+% inside the current selection?
+if t >= handles.selected_ts(1) && t <= handles.selected_ts(2),
+  s = sprintf('Bookmark selection (%d:%d)',handles.selected_ts);
+  handles.bookmark_info.t0 = min(handles.selected_ts);
+  handles.bookmark_info.t1 = max(handles.selected_ts);
+  handles.bookmark_info.labelidx = nan;
+  handles.bookmark_info.label = 'Selection';
+  set(handles.contextmenu_timeline_manual_bookmark_selection,'Visible','on','Label',s);
+else
+  set(handles.contextmenu_timeline_manual_bookmark_selection,'Visible','off');
+end
+
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_manual_bookmark_bout_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_manual_bookmark_bout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+AddBookmark(handles,handles.bookmark_info);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_manual_bookmark_selection_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_manual_bookmark_selection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
+handles.bookmark_info.labelidx = unique(labelidx);
+tmp = [{'Unknown'},handles.data.labelnames];
+if numel(handles.bookmark_info.labelidx) == 1,
+  handles.bookmark_info.label = tmp{handles.bookmark_info.labelidx+1};
+else
+  counts = hist(labelidx,handles.bookmark_info.labelidx);
+  pct = round(counts / numel(labelidx) * 100);
+  s = '';
+  for i = 1:numel(handles.bookmark_info.labelidx),
+    s = [s,sprintf('%s(%d%%), ',tmp{handles.bookmark_info.labelidx(i)+1},pct(i))]; %#ok<AGROW>
+  end
+  s = s(1:end-2);
+  handles.bookmark_info.label = s;
+end
+guidata(hObject,handles);
+
+AddBookmark(handles,handles.bookmark_info);
+
+function handles = AddBookmark(handles,clip)
+
+fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
+%BookmarkedClips(handles.figure_JLabel,'clips',clip);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_manual_timeline_options_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_manual_timeline_options (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_view_timeline_options_Callback(hObject, eventdata, handles);
