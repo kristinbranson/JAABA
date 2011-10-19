@@ -18,7 +18,8 @@ classdef JLabelData < handle
     % computed and cached window features
     windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
       'labelidx_old',[],'labelidx_new',[],'featurenames',{{}},...
-      'predicted',[],'predicted_probs',[],'isvalidprediction',[]);
+      'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
+      'distNdx',[]);
     
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
@@ -200,6 +201,11 @@ classdef JLabelData < handle
     % functions for writing text to a status bar
     setstatusfn = '';
     clearstatusfn = '';
+    
+    % data for show similar frames.
+    frameFig = [];
+    distMat = [];
+    bagModels = {};
     
   end
   
@@ -2970,10 +2976,11 @@ classdef JLabelData < handle
             obj.SetStatus('Training boosting classifier from %d examples...',numel(islabeled));
 
             s = struct2paramscell(obj.classifier_params);
-            obj.classifier = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
+            [obj.classifier obj.bagModels obj.distMat] = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
             obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
-
-          
+            obj.windowdata.distNdx = zeros(1,length(islabeled));
+            obj.windowdata.distNdx(islabeled) = 1:sum(islabeled);
+            obj.windowdata.distNdx(~islabeled) = nan;
           
       end
 
@@ -2985,6 +2992,97 @@ classdef JLabelData < handle
       % predict for all window data
       obj.PredictLoaded();
       
+    end
+    
+    function InitSimilarFrames(obj)
+      obj.frameFig = showSimilarFrames;
+      showSimilarFrames('SetJLabelData',obj.frameFig,obj);
+      ShowSimilarFrames('CacheTracksLabeled',obj.frameFig);
+    end
+    
+    function SimilarFrames(obj,curTime)
+      
+      if isempty(obj.frameFig)
+        obj.InitSimilarFrames();
+      end
+      
+      windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
+        (obj.windowdata.flies == obj.flies) & ...
+        (obj.windowdata.t == curTime) ,1);
+      
+      if windowNdx>length(obj.windowdata.distNdx) || ...
+        isnan(obj.windowdata.distNdx(windowNdx)) % The example was not part of the training data.
+      
+        outOfTraining = 1;
+        curX = obj.windowdata.X(windowNdx,:);
+        curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
+        count = 1;
+        for bagNo = 1:length(obj.bagModels)
+          curModel = obj.bagModels{bagNo};
+          for j = 1:length(curModel)
+            curWk = curModel(j);
+            dd = curX(curWk.dim)*curWk.dir;
+            tt = curWk.tr*curWk.dir;
+            curD(count) = (dd>tt)*curWk.alpha;
+            count = count+1;
+          end
+        end
+      else
+        outOfTraining = 0;
+        distNdx = obj.windowdata.distNdx(windowNdx);
+        curD = obj.distMat(distNdx,:);
+      end
+
+      diffMat = zeros(size(obj.distMat));
+      for ndx = 1:size(diffMat,2);
+        diffMat(:,ndx) = abs(obj.distMat(:,ndx)-curD(ndx));
+      end
+      dist2train = nanmean(diffMat,2)*200;
+      [rr rrNdx] = sort(dist2train,'ascend');
+      
+      if~outOfTraining
+        rr = rr(2:end);
+        curEx = rrNdx(1); rrNdx = rrNdx(2:end);
+      else
+        curEx = [];
+      end
+      % hack.
+      islabeled = obj.windowdata.labelidx_new ~= 0;
+      trainLabels =  obj.windowdata.labelidx_new(islabeled);
+      allPos = rrNdx(trainLabels(rrNdx)>1.5);
+      
+      curP = [];
+      for ex = allPos'
+        if length(curP)>4; break; end;
+        used = [curEx curP];
+        if(any( abs(ex-used)<5)); continue; end
+        curP(end+1) = ex;
+      end
+      
+      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
+      curN = [];
+      for ex = allNeg'
+        if length(curN)>4; break; end;
+        used = [curEx curN];
+        if(any( abs(ex-used)<5)); continue; end
+        curN(end+1) = ex;
+      end
+      
+      varForSSF.curFrame.expNum = obj.windowdata.exp(windowNdx);
+      varForSSF.curFrame.flyNum = obj.windowdata.flies(windowNdx);
+      varForSSF.curFrame.curTime = obj.windowdata.t(windowNdx);
+      
+      for k = 1:4
+        posNdx = find(obj.windowdata.distNdx==curP(k),1);
+        negNdx = find(obj.windowdata.distNdx==curN(k),1);
+        varForSSF.posFrames(k).expNum = obj.windowdata.exp(posNdx);
+        varForSSF.posFrames(k).flyNum = obj.windowdata.flies(posNdx);
+        varForSSF.posFrames(k).curTime = obj.windowdata.t(posNdx);
+        varForSSF.negFrames(k).expNum = obj.windowdata.exp(negNdx);
+        varForSSF.negFrames(k).flyNum = obj.windowdata.flies(negNdx);
+        varForSSF.negFrames(k).curTime = obj.windowdata.t(negNdx);
+      end
+      showSimilarFrames('setFrames',obj.frameFig,varForSSF);
     end
     
     % PredictLoaded(obj)
