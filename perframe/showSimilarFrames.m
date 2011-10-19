@@ -66,6 +66,8 @@ handles.fwdLimit = 5;
 handles.revLimit = 5;
 handles.fps = 3;
 handles.maxfps = 10;
+handles.tsize = 500;
+handles.cache = containers.Map('keyType','char','valueType','any');
 
 set(handles.frameSlider,'SliderStep',[1/(2*handles.maxFrames) 3/(2*handles.maxFrames)]);
 set(handles.beforeSlider,'SliderStep',[1/handles.maxFrames 3/handles.maxFrames]);
@@ -106,25 +108,94 @@ function varargout = showSimilarFrames_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function loadmovies(hObject, movieNames)
+function SetJLabelData(hObject,obj)
+handles = guidata(hObject);
+handles.JLDobj = obj;
+guidata(hObject,handles);
+
+%{
+function loadmovies(hObject)
 % Loads the movies.
 
 handles = guidata(hObject);
-pointer = []; trx = {}; labels = {};
+pointer = []; 
+movieNames = handles.JLDobj.expdirs;
 for movieNum = 1:length(movieNames)
-  fprintf('Loading..');
 [pointer(movieNum).readframe,pointer(movieNum).nframes,pointer(movieNum).movie_fid,pointer(movieNum).movieheaderinfo] = ...
   get_readframe_fcn(sprintf('%s/movie.ufmf',movieNames{movieNum}),'interruptible',false);
-  trx{movieNum} = load_tracks(sprintf('%s/registered_trx.mat',movieNames{movieNum}));
-  fprintf('Done %s\n',movieNames{movieNum});
-  labels{movieNum} = load(sprintf('%s/labeledsharpturns.mat',movieNames{movieNum}));
 end
 handles.movieNames = movieNames;
 handles.pointer = pointer;
-handles.origTrx = trx;
-handles.labels = labels;
 
 guidata(hObject,handles);
+%}
+
+function CacheTracksLabeled(hObject,exps)
+% Load the tracks.
+
+handles = guidata(hObject);
+blk = handles.tsize;
+off = handles.maxFrames;
+fprintf('Loading ');
+if nargin<2
+  exps = 1:handles.JLDobj.nexps;
+end
+for expNum = exps
+  fprintf('.');
+  trxfile = handles.JLDobj.GetFile('trx',expNum);
+  trx = load_tracks(trxfile);
+  
+  % Get labels. Store only those parts of tracks that have been labeled.
+  for curFly = 1:length(trx)
+    labels = handles.JLDobj.GetLabels(expNum,curFly);
+    for curNdx = 1:length(labels.t0s)
+      curblockStart = floor( (labels.t0s(curNdx)-off)/blk)+1;
+      curblockEnd = ceil( (labels.t1s(curNdx)+off)/blk);
+      for curBlk = curblockStart:curblockEnd
+        idStr = sprintf('%d_%d_%d',expNum,curFly,curBlk);
+        if ~isKey(handles.cache,idStr),
+          tSlice = ((curBlk-1)*blk+1):(curBlk*blk);
+          trax = [];
+          trax.X = trx(curFly).x(tSlice);
+          trax.Y = trx(curFly).y(tSlice);
+          trax.theta = trx(curFly).theta(tSlice);
+          trax.maj = trx(curFly).a(tSlice);
+          trax.min = trx(curFly).b(tSlice);
+          handles.cache(idStr) = trax;
+        end
+      end
+    end
+    
+  end
+end
+fprintf(' Done loading tracks\n');
+
+guidata(hObject,handles);
+
+
+function CacheTracks(hObject,expNum,curFly,t0,t1)
+handles = guidata(hObject);
+blk = handles.tsize;
+off = handles.maxFrames;
+curblockStart = floor( (t0-off)/blk)+1;
+curblockEnd = ceil( (t1+off)/blk);
+trxfile = handles.JLDobj.GetFile('trx',expNum);
+trx = load_tracks(trxfile);
+for curBlk = curblockStart:curblockEnd
+  idStr = sprintf('%d_%d_%d',expNum,curFly,curBlk);
+  if ~isKey(handles.cache,idStr),
+    tSlice = ((curBlk-1)*blk+1):(curBlk*blk);
+    trax = [];
+    trax.X = trx(curFly).x(tSlice);
+    trax.Y = trx(curFly).y(tSlice);
+    trax.theta = trx(curFly).theta(tSlice);
+    trax.maj = trx(curFly).a(tSlice);
+    trax.min = trx(curFly).b(tSlice);
+    handles.cache(idStr) = trax;
+  end
+end
+guidata(hObject,handles);
+
 
 function setFrames(hObject,frameData)
 % Sets the frames to be shown.
@@ -145,30 +216,30 @@ function readFrames(hObject)
   handles.isPlaying = false;
   guidata(hObject,handles);
   curImg = getRotatedFrame(handles,handles.frames{2});
-  mtrx = getTracks(handles,handles.frames{2});
-  [ptrx ntrx] = getLabels(handles,handles.frames{2});
+  relTrx = getRelTrx(handles,handles.frames{2});
+  [labels predictions] = getLabels(handles,handles.frames{2});
+  ptrx = labels.ptrx;
+  ntrx = labels.ntrx;
   for ndx = 1:handles.numSimilar
     handles.im{2,ndx} = curImg;
-    handles.trx{2,ndx} = mtrx;
-    x = handles.trx{2,ndx}.X;
-    y = handles.trx{2,ndx}.Y;
-    set(handles.hAxes(2,ndx).labelPos,'XData',x.*ptrx,'Ydata',y.*ptrx);
-    set(handles.hAxes(2,ndx).labelNeg,'XData',x.*ntrx,'Ydata',y.*ntrx);
-    set(handles.hAxes(2,ndx).trax,'XData',x,'YData',y);
+    handles.trx{2,ndx} = relTrx;
+    set(handles.hAxes(2,ndx).labelPos,'XData',relTrx.X.*ptrx,'Ydata',relTrx.Y.*ptrx);
+    set(handles.hAxes(2,ndx).labelNeg,'XData',relTrx.X.*ntrx,'Ydata',relTrx.Y.*ntrx);
+    set(handles.hAxes(2,ndx).trax,'XData',relTrx.X,'YData',relTrx.Y);
   end
   
   for row = [1 3]
     for ndx = 1:handles.numSimilar
+      relTrx = getRelTrx(handles,handles.frames{row}(ndx));
       handles.im{row,ndx} = getRotatedFrame(handles,handles.frames{row}(ndx));
-      handles.trx{row,ndx} = getTracks(handles,handles.frames{row}(ndx));
       
-      x = handles.trx{row,ndx}.X;
-      y = handles.trx{row,ndx}.Y;
-      ptrx = handles.trx{row,ndx}.ptrx;
-      ntrx = handles.trx{row,ndx}.ntrx;
-      set(handles.hAxes(row,ndx).labelPos,'XData',x.*ptrx,'YData',y.*ptrx);    
-      set(handles.hAxes(row,ndx).labelNeg,'XData',x.*ntrx,'YData',y.*ntrx);    
-      set(handles.hAxes(row,ndx).trax,'XData',x,'YData',y);
+      handles.trx{row,ndx} = relTrx;
+      [labels predictions] = getLabels(handles,handles.frames{row}(ndx));
+      ptrx = labels.ptrx;
+      ntrx = labels.ntrx;
+      set(handles.hAxes(row,ndx).labelPos,'XData',relTrx.X.*ptrx,'YData',relTrx.Y.*ptrx);    
+      set(handles.hAxes(row,ndx).labelNeg,'XData',relTrx.X.*ntrx,'YData',relTrx.Y.*ntrx);    
+      set(handles.hAxes(row,ndx).trax,'XData',relTrx.X,'YData',relTrx.Y);
       fprintf('.');
     end
     fprintf('\n');
@@ -181,7 +252,7 @@ function updatePlots(hObject,handles,frameNo)
   for row = 1:3
     for ndx = 1:handles.numSimilar
       set(handles.hAxes(row,ndx).image,'CData',uint8(handles.im{row,ndx}(:,:,:,frameNo)));
-      updatefly(handles.hAxes(row,ndx).fly,handles.trx{row,ndx},frameNo);
+      updatefly(handles.hAxes(row,ndx).fly,handles.hAxes(row,ndx).flyPred,handles.trx{row,ndx},frameNo);
       set(handles.FrameText,'String',sprintf('frame:%d',frameNo-handles.maxFrames-1));
     end
   end
@@ -215,7 +286,9 @@ function play(hObject)
   handles.frameNo = frameNo;
   guidata(hObject,handles);
  
-function [ptrx ntrx]= getLabels(handles,curFrame)
+function [labels predictions]= getLabels(handles,curFrame)
+% Reads labels and predictions.
+
   curExp = curFrame.expNum;
   curFly = curFrame.flyNum;
   curTime = curFrame.curTime;
@@ -223,15 +296,17 @@ function [ptrx ntrx]= getLabels(handles,curFrame)
   
   tSlice = curTime-sz:curTime+sz;
   ltrx = nan(1,length(tSlice));
-  ptrx = nan(1,length(tSlice));
-  ntrx = nan(1,length(tSlice));
+  labels.ptrx = nan(1,length(tSlice));
+  labels.ntrx = nan(1,length(tSlice));
   
-  curLabel = handles.labels{curExp};
-  if ~ismember(curFly,curLabel.flies),return; end
-  tflyNum = find(curLabel.flies==curFly);
-  curT0 = curLabel.t0s{tflyNum};
-  curT1 = curLabel.t1s{tflyNum};
-  curNames = curLabel.names{tflyNum};
+  curLabel = handles.JLDobj.GetLabels(curExp,curFly);
+  windowNdx = find( (handles.JLDobj.windowdata.exp == curExp) & ...
+      (handles.JLDobj.windowdata.flies == curFly) & ...
+      (handles.JLDobj.windowdata.t == curTime) ,1);
+  predictions = handles.JLDobj.windowdata.predicted(windowNdx-sz:windowNdx+sz);
+  curT0 = curLabel.t0s;
+  curT1 = curLabel.t1s;
+  curNames = curLabel.names;
   
   for bnum = 1:length(curNames)
     if strcmpi(curNames{bnum},'None')
@@ -239,30 +314,28 @@ function [ptrx ntrx]= getLabels(handles,curFrame)
     else
       curVal = 1;
     end
-    curBoutSlice = curT0(bnum):curT1(bnum);
+    curBoutSlice = curT0(bnum):(curT1(bnum)-1);
     overlap = ismember(tSlice,curBoutSlice);
     ltrx(overlap)=curVal;
     
   end
-  ptrx(ltrx>0) = 1;
-  ntrx(ltrx<0) = 1;
+  labels.ptrx(ltrx>0) = 1;
+  labels.ntrx(ltrx<0) = 1;
   
   
-function trax = getTracks(handles,curFrame)
+  
+
+function relTrax = getRelTrx(handles,curFrame)
   curExp = curFrame.expNum;
   curFly = curFrame.flyNum;
   curTime = curFrame.curTime;
   sz = handles.maxFrames;
   
   tSlice = curTime-sz:curTime+sz;
-  trax.X = handles.origTrx{curExp}(curFly).x(tSlice);
-  trax.Y = handles.origTrx{curExp}(curFly).y(tSlice);
-  trax.theta = handles.origTrx{curExp}(curFly).theta(tSlice);
-  trax.maj = handles.origTrx{curExp}(curFly).a(tSlice);
-  trax.min = handles.origTrx{curExp}(curFly).b(tSlice);
-
+  trax = readCache(handles,curExp,curFly,curTime);
+  
   % Rotate
-  curA = handles.origTrx{curExp}(curFly).theta(curTime)-pi/2;
+  curA = trax.theta(handles.maxFrames+1)-pi/2;
   trax.theta = trax.theta-curA;
 
   rotMat = [cos(curA) sin(curA) ; -sin(curA) cos(curA) ];
@@ -272,7 +345,9 @@ function trax = getTracks(handles,curFrame)
   trax.X = R(1,:); trax.Y = R(2,:);
   trax.X = trax.X + handles.halfSize+1;
   trax.Y = trax.Y + handles.halfSize+1;
-  [trax.ptrx trax.ntrx] = getLabels(handles,curFrame);
+  [trax.labels trax.predictions] = getLabels(handles,curFrame);
+  relTrax = trax;
+
   
 function im = getRotatedFrame(handles,curFrame)
 % Reads frames around curFrame and rotates them so that the fly is vertical
@@ -280,20 +355,58 @@ function im = getRotatedFrame(handles,curFrame)
   curExp = curFrame.expNum;
   curFly = curFrame.flyNum;
   curTime = curFrame.curTime;
-  curX = floor(handles.origTrx{curExp}(curFly).x(curTime));
-  curY = floor(handles.origTrx{curExp}(curFly).y(curTime));
-  curA = handles.origTrx{curExp}(curFly).theta(curTime);
+  curTrx = readCache(handles,curExp,curFly,curTime);
+  curX = round(curTrx.X(handles.maxFrames+1));
+  curY = round(curTrx.Y(handles.maxFrames+1));
+  curA = curTrx.theta(handles.maxFrames+1);
   tt = zeros(handles.imgY+2*sz,handles.imgX+2*sz,1);
   im = zeros(2*sz+1,2*sz+1,1,2*handles.maxFrames+1);
   bBoxX = (curX-2*sz:curX+2*sz)+sz;
   bBoxY = (curY-2*sz:curY+2*sz)+sz;
   
+  pointer = [];
+  curMovie = handles.JLDobj.GetFile('movie',curExp);
+  [pointer.readframe, pointer.nframes, pointer.movie_fid, pointer.movieheaderinfo] = ...
+    get_readframe_fcn(curMovie,'interruptible',false);
+
+  
   for offset = -handles.maxFrames:handles.maxFrames
-    tt(sz+1:end-sz,sz+1:end-sz,1) = handles.pointer(curExp).readframe(curTime+offset);
+    tt(sz+1:end-sz,sz+1:end-sz,1) = pointer.readframe(curTime+offset);
     timg = tt(bBoxY,bBoxX,:);
     rotI = imrotate(timg,curA*180/pi-90,'bilinear','crop');
     im(:,:,:,offset+handles.maxFrames+1) = rotI(sz+1:end-sz,sz+1:end-sz,:);
   end
+  
+  fclose(pointer.movie_fid);
+
+  
+function trx = readCache(handles,expNum,flyNum,curT)
+
+  blk = handles.tsize;
+  sz = handles.maxFrames;
+  blkNumStart = floor( (curT-sz)/blk)+1;
+  blkNumEnd = ceil( (curT+sz)/blk);
+  off = curT - (blkNumStart-1)*blk - sz;
+  trx.X = []; trx.Y = []; trx.theta = []; trx.maj = []; trx.min = [];
+  for curBlk = blkNumStart:blkNumEnd
+    idStr = sprintf('%d_%d_%d',expNum,flyNum,curBlk);
+    if ~isKey(handles.cache,idStr)
+      CacheTracks(handles.output,expNum,flyNum,curT,curT);
+      handles = guidata(handles.output);
+    end
+    curTrx = handles.cache(idStr);
+    trx.X = [trx.X curTrx.X];
+    trx.Y = [trx.Y curTrx.Y];
+    trx.theta = [trx.theta curTrx.theta];
+    trx.maj = [trx.maj curTrx.maj];
+    trx.min = [trx.min curTrx.min];
+  end
+ 
+  trx.X = trx.X(off:(off+2*sz));
+  trx.Y = trx.Y(off:(off+2*sz));
+  trx.theta = trx.theta(off:(off+2*sz));
+  trx.maj = trx.maj(off:(off+2*sz));
+  trx.min = trx.min(off:(off+2*sz));
 
   
 function axesH = initAxes(ax,sz)
@@ -307,10 +420,12 @@ function axesH = initAxes(ax,sz)
   axesH.trax = plot(ax,nan,nan,'Linestyle','-','Marker','.',...
     'Color',[0.1 0.1 0.1],'MarkerSize',4,'Linewidth',0.1);
   axesH.fly = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.2 0.2]);
+  axesH.flyPred = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.2 0.2],...
+    'Linewidth',2);
   colormap(ax,'gray');
   axis(ax,'image','off');
 
-function updatefly(h,trx,t)
+function updatefly(h1,h2,trx,t)
 % Coped from JCtrax.
 
 % draw an isosceles triangle with center (x,y)
@@ -339,13 +454,20 @@ pts = pts*R;
 pts(:,1) = pts(:,1) + x;
 pts(:,2) = pts(:,2) + y;
 
-% plot
-set(h,'xdata',pts([1:3,1],1),'ydata',pts([1:3,1],2));
+% plot for labels.
+set(h1,'xdata',pts([1 2],1),'ydata',pts([1 2],2));
 colr = [0.2 0.2 0.2];
-if ~isnan(trx.ptrx(t)); colr = [0.1 0.5 0.1]; end
-if ~isnan(trx.ntrx(t)); colr = [0.5 0.1 0.1]; end
-set(h,'Color',colr);
-  
+if ~isnan(trx.labels.ptrx(t)); colr = [0.1 0.5 0.1]; end
+if ~isnan(trx.labels.ntrx(t)); colr = [0.5 0.1 0.1]; end
+set(h1,'Color',colr);
+
+% plot for labels
+set(h2,'xdata',pts([2 3 1], 1),'ydata',pts([2 3 1],2));
+colr = [0.2 0.2 0.2];
+if (trx.predictions(t)<1.5); colr = [0.1 0.5 0.1]; 
+else colr = [0.5 0.1 0.1]; end
+set(h2,'Color',colr);
+
 % --- Executes on slider movement.
 function frameSlider_Callback(hObject, eventdata, handles)
 % hObject    handle to frameSlider (see GCBO)

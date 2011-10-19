@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 09-Oct-2011 20:49:57
+% Last Modified by GUIDE v2.5 13-Oct-2011 11:20:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -3258,3 +3258,15 @@ function contextmenu_timeline_manual_timeline_options_Callback(hObject, eventdat
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_view_timeline_options_Callback(hObject, eventdata, handles);
+
+
+% --- Executes on button press in similarFramesButton.
+function similarFramesButton_Callback(hObject, eventdata, handles)
+% hObject    handle to similarFramesButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of similarFramesButton
+
+curTime = handles.ts(1);
+handles.data.SimilarFrames(curTime);
