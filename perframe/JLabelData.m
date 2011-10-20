@@ -2978,9 +2978,12 @@ classdef JLabelData < handle
             s = struct2paramscell(obj.classifier_params);
             [obj.classifier obj.bagModels obj.distMat] = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
             obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
-            obj.windowdata.distNdx = zeros(1,length(islabeled));
-            obj.windowdata.distNdx(islabeled) = 1:sum(islabeled);
-            obj.windowdata.distNdx(~islabeled) = nan;
+
+            % To later find out where each example came from.
+            obj.windowdata.distNdx.exps = obj.windowdata.exp(islabeled);
+            obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
+            obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
+            obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
           
       end
 
@@ -3001,18 +3004,20 @@ classdef JLabelData < handle
     end
     
     function SimilarFrames(obj,curTime)
+
       
-      if isempty(obj.frameFig)
-        obj.InitSimilarFrames();
-      end
+      if isempty(obj.frameFig), obj.InitSimilarFrames(), end
+      
+      distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
+        (obj.windowdata.distNdx.flies == obj.flies) & ...
+        (obj.windowdata.distNdx.t == curTime) ,1);
       
       windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
         (obj.windowdata.flies == obj.flies) & ...
         (obj.windowdata.t == curTime) ,1);
-      
-      if windowNdx>length(obj.windowdata.distNdx) || ...
-        isnan(obj.windowdata.distNdx(windowNdx)) % The example was not part of the training data.
-      
+
+
+      if ~distNdx % The example was not part of the training data.
         outOfTraining = 1;
         curX = obj.windowdata.X(windowNdx,:);
         curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
@@ -3029,10 +3034,10 @@ classdef JLabelData < handle
         end
       else
         outOfTraining = 0;
-        distNdx = obj.windowdata.distNdx(windowNdx);
         curD = obj.distMat(distNdx,:);
       end
 
+      % Compute the distance 
       diffMat = zeros(size(obj.distMat));
       for ndx = 1:size(diffMat,2);
         diffMat(:,ndx) = abs(obj.distMat(:,ndx)-curD(ndx));
@@ -3046,26 +3051,64 @@ classdef JLabelData < handle
       else
         curEx = [];
       end
-      % hack.
-      islabeled = obj.windowdata.labelidx_new ~= 0;
-      trainLabels =  obj.windowdata.labelidx_new(islabeled);
-      allPos = rrNdx(trainLabels(rrNdx)>1.5);
       
-      curP = [];
+      % Find 5 closest pos and neg examples.
+      % This looks complicated then it should be.
+      % DEBUG: find values of actual labels 
+     
+      trainLabels =  obj.windowdata.distNdx.labels;
+      allPos = rrNdx(trainLabels(rrNdx)>1.5);
+      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
+      
+      
+      curP = zeros(1,5);
+      curN = zeros(1,5);
+      count = 0;
       for ex = allPos'
-        if length(curP)>4; break; end;
-        used = [curEx curP];
-        if(any( abs(ex-used)<5)); continue; end
-        curP(end+1) = ex;
+        if count>4; break; end;
+        isClose = 0;
+        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
+           abs( (obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5),
+           continue; 
+        end
+        
+        for used = curP(1:count)
+          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
+             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
+             abs( (obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5),
+             isClose = 1; 
+             break; 
+          end
+        end
+        
+        if isClose; continue; end;
+        count = count+1;
+        curP(count) = ex;
       end
       
-      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
-      curN = [];
+      count = 0;
       for ex = allNeg'
-        if length(curN)>4; break; end;
-        used = [curEx curN];
-        if(any( abs(ex-used)<5)); continue; end
-        curN(end+1) = ex;
+        if count>4; break; end;
+        isClose = 0;
+        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
+           abs( (obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5),
+           continue; 
+        end
+        
+        for used = curP(1:count)
+          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
+             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
+             abs( (obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5),
+             isClose = 1; 
+             break; 
+          end
+        end
+        
+        if isClose; continue; end;
+        count = count+1;
+        curP(count) = ex;
       end
       
       varForSSF.curFrame.expNum = obj.windowdata.exp(windowNdx);
@@ -3073,14 +3116,12 @@ classdef JLabelData < handle
       varForSSF.curFrame.curTime = obj.windowdata.t(windowNdx);
       
       for k = 1:4
-        posNdx = find(obj.windowdata.distNdx==curP(k),1);
-        negNdx = find(obj.windowdata.distNdx==curN(k),1);
-        varForSSF.posFrames(k).expNum = obj.windowdata.exp(posNdx);
-        varForSSF.posFrames(k).flyNum = obj.windowdata.flies(posNdx);
-        varForSSF.posFrames(k).curTime = obj.windowdata.t(posNdx);
-        varForSSF.negFrames(k).expNum = obj.windowdata.exp(negNdx);
-        varForSSF.negFrames(k).flyNum = obj.windowdata.flies(negNdx);
-        varForSSF.negFrames(k).curTime = obj.windowdata.t(negNdx);
+        varForSSF.posFrames(k).expNum = obj.windowdata.distNdx.exp(curP(k));
+        varForSSF.posFrames(k).flyNum = obj.windowdata.distNdx.flies(curP(k));
+        varForSSF.posFrames(k).curTime = obj.windowdata.distNdx.t(curP(k));
+        varForSSF.negFrames(k).expNum = obj.windowdata.distNdx.exp(curP(k));
+        varForSSF.negFrames(k).flyNum = obj.windowdata.distNdx.flies(curP(k));
+        varForSSF.negFrames(k).curTime = obj.windowdata.distNdx.t(curP(k));
       end
       showSimilarFrames('setFrames',obj.frameFig,varForSSF);
     end
