@@ -37,7 +37,7 @@ classdef JLabelData < handle
     % names for all labeled sequences for experiment expi
     % labels(expi).flies is the nseq x nflies_labeled matrix of the
     % corresponding flies for all labeled sequences for experiment expi
-    % t0s(j), t1s(j), names{j}, and flies(j,:) correspond to each other. 
+    % t0s{j}, t1s{j}, names{j}, and flies(j,:) correspond to each other. 
     % labels(expi).off is the offset so that labels(expi).t0s(j) +
     % labels(expi).off corresponds to the frame of the movie (since the
     % first frame for the trajectory(s) may not be 1.
@@ -365,7 +365,7 @@ classdef JLabelData < handle
       if ~isempty(i),
         [success,msg] = obj.SetDefaultPath(v{i});
         if ~success,
-          error(msg);
+          warning(msg);
         end
       end
       
@@ -669,17 +669,25 @@ classdef JLabelData < handle
           if ~isempty(obj.flies) && all(flies == obj.flies),
         
             % use pre-loaded per-frame data
+            i11 = min(i1,numel(obj.perframedata{j}));
             [x_curr,feature_names_curr] = ...
-              ComputeWindowFeatures(obj.perframedata{j},obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i1);
+              ComputeWindowFeatures(obj.perframedata{j},obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
+            if i11 < i1,
+              x_curr(:,end+1:end+i1-i11) = nan;
+            end
             
           else
             
             % load in data
             perframedir = obj.GetFile('perframedir',expi);
             perframedata = load(fullfile(perframedir,[fn,'.mat']));
+            i11 = min(i1,numel(perframedata.data{flies(1)}));
             % TODO: adapt for multiple flies labeled at once
             [x_curr,feature_names_curr] = ...
-              ComputeWindowFeatures(perframedata.data{flies(1)},obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i1);
+              ComputeWindowFeatures(perframedata.data{flies(1)},obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
+            if i11 < i1,
+              x_curr(:,end+1:end+i1-i11) = nan;
+            end
             
           end
           
@@ -1288,6 +1296,9 @@ classdef JLabelData < handle
         expis = 1:obj.nexps;
       end
       
+      % store labels in labelidx
+      obj.StoreLabels();
+      
       for i = expis,
         
         lfn = GetFile(obj,'label',i);
@@ -1644,13 +1655,13 @@ classdef JLabelData < handle
       fn = obj.GetFileName(file);
       
       % if this is an output file, only look in output experiment directory
-      if JLabelData.IsOutputFile(file),
-        expdirs_try = obj.outexpdirs(expi);
-      else
-        % otherwise, first look in output directory, then look in input
-        % directory
+      %if JLabelData.IsOutputFile(file),
+      %  expdirs_try = obj.outexpdirs(expi);
+      %else
+      %  % otherwise, first look in output directory, then look in input
+      %  % directory
         expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
-      end
+      %end
       
       % initialize timestamp = -inf if we never set
       timestamp = -inf;
@@ -2469,7 +2480,7 @@ classdef JLabelData < handle
       obj.labelidx_off = 1 - obj.t0_curr;
       
       % load perframedata
-      obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(obj.flies));
+      obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(flies));
       perframedir = obj.GetFile('perframedir',expi);
       for j = 1:numel(obj.perframefns),
         fn = obj.perframefns{j};
@@ -2560,7 +2571,7 @@ classdef JLabelData < handle
         for j = find(strcmp(labels_curr.names,obj.labelnames{i})),
           t0 = labels_curr.t0s(j);
           t1 = labels_curr.t1s(j);
-          labelidx(t0+off:t1+off) = i;
+          labelidx(t0+off:t1-1+off) = i;
         end
       end
       
@@ -2668,7 +2679,7 @@ classdef JLabelData < handle
       for j = find(strcmp(labels_curr.names,obj.labelnames{behaviori})),
         t0 = labels_curr.t0s(j);
         t1 = labels_curr.t1s(j);
-        idx(t0+off:t1+off) = true;
+        idx(t0+off:t1-1+off) = true;
       end
       
     end
