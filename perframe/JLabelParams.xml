@@ -11,7 +11,7 @@
       labelfilename="labeledbehavior.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="C:\Code\Jdetect\perframe\WindowFeatures_Lots.xml"
+      featureparamfilename="C:\Code\Jdetect\perframe\SharpturnPerFrameParams.xml"
       rootoutputdir="C:\Data\FlyBowl\Jdetect"
       />
   
