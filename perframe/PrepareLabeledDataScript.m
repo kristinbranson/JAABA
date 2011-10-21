@@ -2,10 +2,10 @@
 
 % set up path
 if ispc,
-  JCtrax_path = 'E:\Code\JCtrax';
-  FlyBowlAnalysis_path = 'E:\Code\FlyBowlAnalysis';
-  rootdatadir = 'E:\Code\Jdetect\larva\fly_data\TrainingData';
-  settingsdir = 'E:\Code\FlyBowlAnalysis\settings';
+  JCtrax_path = 'C:\Code\JCtrax';
+  FlyBowlAnalysis_path = 'C:\Code\FlyBowlAnalysis';
+  rootdatadir = 'C:\Code\Jdetect\larva\fly_data\TrainingData';
+  settingsdir = 'C:\Code\FlyBowlAnalysis\settings';
 else
   JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
   FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
