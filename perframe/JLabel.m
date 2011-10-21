@@ -1648,9 +1648,9 @@ guidata(hObject,handles);
 
 function handles = SetLabelPlot(handles,t,behaviori)
 
-if behaviori == 0,
-  return;
-end
+% if behaviori == 0,
+%   return;
+% end
 
 if t == handles.lastframe_labeled,
   warning('This should never happen');
