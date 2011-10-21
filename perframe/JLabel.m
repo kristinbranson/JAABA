@@ -359,6 +359,35 @@ if refresh_timeline_xlim,
   end
 end
 
+
+if refresh_timeline_hcurr,
+  set(handles.hcurr_timelines,'XData',handles.ts([1,1]));
+end
+if refresh_timeline_selection,
+  tmp = handles.selected_ts + .5*[-1,1];
+  set(handles.hselection,'XData',tmp([1,1,2,2,1]));
+end
+
+if refresh_timeline_props,
+  for propi = 1:numel(handles.perframepropis),
+    v = handles.perframepropis(propi);
+    [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,v);
+    set(handles.htimeline_data(propi),'XData',T0:T1,...
+      'YData',perframedata);
+    %if isnan(handles.timeline_data_ylims(1,v)),
+      ylim = [min(perframedata),max(perframedata)];
+      set(handles.axes_timeline_props(propi),'YLim',ylim);
+      zoom(handles.axes_timeline_props(propi),'reset');
+    %end
+    if ~isnan(handles.timeline_data_ylims(1,v)),
+      ylim = handles.timeline_data_ylims(:,v);
+      set(handles.axes_timeline_props(propi),'YLim',ylim);
+    end
+    ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
+    set(handles.hselection(propi),'YData',ydata([1,2,2,1,1]));      
+  end
+end
+
 %drawnow;
 
 for i = axes,
@@ -487,28 +516,6 @@ for i = axes,
   
 end
 
-if refresh_timeline_hcurr,
-  set(handles.hcurr_timelines,'XData',handles.ts([1,1]));
-end
-if refresh_timeline_selection,
-  tmp = handles.selected_ts + .5*[-1,1];
-  set(handles.hselection,'XData',tmp([1,1,2,2,1]));
-end
-
-if refresh_timeline_props,
-  for propi = 1:numel(handles.perframepropis),
-    v = handles.perframepropis(propi);
-    [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,v);
-    set(handles.htimeline_data(propi),'XData',T0:T1,...
-      'YData',perframedata);
-    if isnan(handles.timeline_data_ylims(1,v)),
-      ylim = [min(perframedata),max(perframedata)];
-      ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
-      set(handles.axes_timeline_props(propi),'YLim',ylim);
-      set(handles.hselection(propi),'YData',ydata([1,2,2,1,1]));
-    end
-  end
-end
 
 function [handles,success] = SetCurrentMovie(handles,expi)
 
@@ -619,8 +626,8 @@ end
 
 % update plot
 UpdatePlots(handles,'refresh_timeline_props',true);
-for i = 1:numel(handles.axes_timelines),
-  zoom(handles.axes_timelines(i),'reset');
+for h = handles.axes_timeline_labels,
+  zoom(h,'reset');
 end
 
 % enable GUI components
@@ -748,8 +755,8 @@ handles.current_interval = [];
 set(handles.himage_timeline_manual,'CData',handles.labels_plot.im);
 axis(handles.axes_timeline_manual,[handles.t0_curr-.5,handles.t1_curr+.5,.5,1.5]);
 % update zoom
-for i = 1:numel(handles.axes_timelines),
-  zoom(handles.axes_timelines(i),'reset');
+for h = handles.axes_timeline_labels,
+  zoom(h,'reset');
 end
 
 % update trx colors
@@ -900,8 +907,8 @@ if doforce || handles.ts(i) ~= t,
   end
   
   % TODO: update timeline zoom
-  for i = 1:numel(handles.axes_timelines),
-    zoom(handles.axes_timelines(i),'reset');
+  for h = handles.axes_timeline_labels,
+    zoom(h,'reset');
   end
   
   % out of bounds for labeling? then turn off labeling
@@ -2439,9 +2446,10 @@ handles.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumbe
 % all play buttons
 handles.pushbutton_playstops = findobj(handles.figure_JLabel,'Tag','pushbutton_playstop');
 % all timelines
-handles.axes_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline.*');
+handles.axes_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline.*')';
 handles.labels_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^timeline_label.*');
-handles.axes_timeline_props = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline_prop.*');
+handles.axes_timeline_props = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline_prop.*')';
+handles.axes_timeline_labels = setdiff(handles.axes_timelines,handles.axes_timeline_props);
 if numel(handles.labels_timelines) ~= numel(handles.labels_timelines),
   error('Number of timeline axes does not match number of timeline labels');
 end
@@ -2883,7 +2891,7 @@ if ~isempty(timelinei),
     set(handles.hselection(propj),'YData',ydata([1,2,2,1,1]));
   end
   guidata(eventdata.Axes,handles);
-elseif ismember(eventdata.Axes,[handles.axes_timeline_manual,handles.axes_timeline_auto]),
+elseif ismember(eventdata.Axes,handles.axes_timeline_labels),
   xlim = get(eventdata.Axes,'XLim');
   handles.timeline_nframes = max(1,round(diff(xlim)-1)/2);
   guidata(eventdata.Axes,handles);
