@@ -1,5 +1,6 @@
 function [allDataModel bagModels trainDistMat] = boostingWrapper(data,labels)
 
+boostIterations = 100;
 % Learn classifier with all the data.
 
 posEx = labels == 1;
@@ -16,7 +17,7 @@ wt = wt./sum(wt);
 
 modLabels = sign( (labels==1)-0.5);
 
-[scores allDataModel] = loglossboostLearnMod(data,modLabels,100,wt);
+[scores allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt);
 
 
 % Do bagging.
@@ -49,7 +50,7 @@ for numIter = 1:numRepeat
       wt(curTrainLabels~=1)=negWt;
       wt = wt./sum(wt);
 
-      [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,200,wt);
+      [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,boostIterations,wt);
       outOfBag(curTrain{ndx},count)=0;
       bagModels{count} = curModel;
       count = count+1;
