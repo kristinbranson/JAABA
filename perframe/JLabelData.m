@@ -19,7 +19,7 @@ classdef JLabelData < handle
     windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
       'labelidx_old',[],'labelidx_new',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'distNdx',[]);
+      'distNdx',[],'scores',[],'scoreNorm',[]);
     
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
@@ -61,6 +61,7 @@ classdef JLabelData < handle
     % predicted label for current experiment and flies, with the same type
     % of representation as labelidx
     predictedidx = [];
+    scoresidx = [];
     
     % whether the predicted label matches the true label. 0 stands for
     % either not predicted or not labeled, 1 for matching, 2 for not
@@ -241,6 +242,7 @@ classdef JLabelData < handle
   
   methods (Access=public)
 
+    %
     % obj = JLabelData(configfilename,...)
     %
     % constructor: first input should be the config file name. All other
@@ -265,6 +267,7 @@ classdef JLabelData < handle
     % clearstatusfn: handle to function that returns the status to the
     % default string
     % classifierfilename: name of classifier file to save/load classifier from
+    %
 
     function obj = JLabelData(varargin)
  
@@ -901,7 +904,8 @@ classdef JLabelData < handle
       success = true;
       
     end
-    
+ 
+%{    
 %     function AddWindowDataLabeled(obj,expi,flies)
 %       
 %       if numel(expi) ~= 1,
@@ -950,9 +954,11 @@ classdef JLabelData < handle
 %       end
 %       
 %     end
+%}
 
 
-%     function UpdateWindowDataLabeled(obj)
+%{
+%       function UpdateWindowDataLabeled(obj)
 % 
 %       % indices into cached data for current experiment and flies
 %       idxcurr = obj.exp_labeled' == obj.expi & all(bsxfun(@eq,obj.flies_labeled,obj.flies),2);
@@ -1002,7 +1008,9 @@ classdef JLabelData < handle
 %       obj.ts_labeled(end+1:end+m) = find(cacheidx) + obj.labels_bin_off;
 % 
 %     end
-    
+%}
+
+%{    
 %     function RemoveFromWindowDataLabeled(obj,expi,flies)
 % 
 %       idx = ismember(obj.exp_labeled,expi);
@@ -1016,7 +1024,8 @@ classdef JLabelData < handle
 %       obj.labelidx_labeled(idx) = [];
 %       
 %     end
-
+%}
+    
     % [success,msg] = SetPerFrameDir(obj,perframedir)
     % Sets the per-frame directory name within the experiment directory.
     % Currently, this does not change the cached per-frame data or check
@@ -1042,7 +1051,8 @@ classdef JLabelData < handle
       end
       
     end
-    
+
+%{    
 %     function [success,msg] = SetWindowFileName(obj,windowfilename)
 %       
 %       success = false;
@@ -1062,6 +1072,7 @@ classdef JLabelData < handle
 %       end
 %       
 %     end
+%}
     
     % [success,msg] = SetDefaultPath(obj,defaultpath)
     % sets the default path to load experiments from. only checks for
@@ -1748,7 +1759,8 @@ classdef JLabelData < handle
       end
       
     end
-    
+  
+%{    
 %     function [success,msg] = GenerateWindowFeaturesFiles(obj,expi,doforce)
 %       
 %       success = false;
@@ -1800,7 +1812,8 @@ classdef JLabelData < handle
 %       end
 %       
 %     end
-
+%}
+    
     % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
     % Sets the name of the file describing the features to use to
     % featureparamsfilename. These parameters are read in. Currently, the
@@ -2351,6 +2364,7 @@ classdef JLabelData < handle
       
     end
 
+%{    
 %     % [success,msg] = LoadTrx(obj,expi)
 %     % Load trajectories for input experiment. This should only be called by
 %     % PreLoad()!. 
@@ -2402,6 +2416,7 @@ classdef JLabelData < handle
 %       success = true;
 %       
 %     end
+%}    
     
     % [success,msg] = PreLoad(obj,expi,flies)
     % Preloads data associated with the input experiment and flies. If
@@ -2520,11 +2535,12 @@ classdef JLabelData < handle
       obj.t0_curr = 0;
       obj.t1_curr = 0;
       obj.predictedidx = [];
+      obj.scoresidx = [];
       obj.erroridx = [];
       obj.suggestedidx = [];
     end
 
-
+%{ 
 %     function [success,msg] = LoadWindowData(obj,expi,flies)
 % 
 %       success = false;
@@ -2542,6 +2558,7 @@ classdef JLabelData < handle
 %       success = true;
 %       
 %     end
+%}    
     
     % [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies)
     % Returns the labelidx for the input experiment and flies read from
@@ -2620,15 +2637,17 @@ classdef JLabelData < handle
 
     end
 
-    function [predictedidx,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
+    function [predictedidx,scoresidx,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
 
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
         if nargin < 4,
           predictedidx = obj.predictedidx;
+          scoresidx = obj.scoresidx;
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
           predictedidx = obj.predictedidx(T0+obj.labelidx_off:T1+obj.labelidx_off);
+          scoresidx = obj.scoresidx(T0+obj.labelidx_off:T1+obj.labelidx_off);
         end
         return;
       end
@@ -2641,6 +2660,7 @@ classdef JLabelData < handle
       n = T1-T0+1;
       off = 1 - T0;
       predictedidx = zeros(1,n);
+      scoresidx = zeros(1,n);
             
       idxcurr = obj.windowdata.exp == obj.expi & ...
         all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2) & ...
@@ -2648,7 +2668,10 @@ classdef JLabelData < handle
         obj.windowdata.isvalidprediction;
       predictedidx(obj.windowdata.t(idxcurr)+off) = ...
         obj.windowdata.predicted(idxcurr);
-
+      
+      scoresidx(obj.windowdata.t(idxcurr)+off) = ...
+        obj.windowdata.scores(idxcurr);
+      
     end
     
     % [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
@@ -2989,9 +3012,12 @@ classdef JLabelData < handle
             s = struct2paramscell(obj.classifier_params);
             [obj.classifier obj.bagModels obj.distMat] = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
             obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
-            obj.windowdata.distNdx = zeros(1,length(islabeled));
-            obj.windowdata.distNdx(islabeled) = 1:sum(islabeled);
-            obj.windowdata.distNdx(~islabeled) = nan;
+
+            % To later find out where each example came from.
+            obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
+            obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
+            obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
+            obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
           
       end
 
@@ -2999,6 +3025,7 @@ classdef JLabelData < handle
       
       % all predictions invalid now
       obj.windowdata.isvalidprediction(:) = false;
+      obj.windowdata.scoreNorm = [];
       
       % predict for all window data
       obj.PredictLoaded();
@@ -3012,18 +3039,20 @@ classdef JLabelData < handle
     end
     
     function SimilarFrames(obj,curTime)
+
       
-      if isempty(obj.frameFig)
-        obj.InitSimilarFrames();
-      end
+      if isempty(obj.frameFig), obj.InitSimilarFrames(), end
+      
+      distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
+        (obj.windowdata.distNdx.flies == obj.flies) & ...
+        (obj.windowdata.distNdx.t == curTime) ,1);
       
       windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
         (obj.windowdata.flies == obj.flies) & ...
         (obj.windowdata.t == curTime) ,1);
-      
-      if windowNdx>length(obj.windowdata.distNdx) || ...
-        isnan(obj.windowdata.distNdx(windowNdx)) % The example was not part of the training data.
-      
+
+
+      if isempty(distNdx) % The example was not part of the training data.
         outOfTraining = 1;
         curX = obj.windowdata.X(windowNdx,:);
         curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
@@ -3040,10 +3069,10 @@ classdef JLabelData < handle
         end
       else
         outOfTraining = 0;
-        distNdx = obj.windowdata.distNdx(windowNdx);
         curD = obj.distMat(distNdx,:);
       end
 
+      % Compute the distance 
       diffMat = zeros(size(obj.distMat));
       for ndx = 1:size(diffMat,2);
         diffMat(:,ndx) = abs(obj.distMat(:,ndx)-curD(ndx));
@@ -3057,26 +3086,64 @@ classdef JLabelData < handle
       else
         curEx = [];
       end
-      % hack.
-      islabeled = obj.windowdata.labelidx_new ~= 0;
-      trainLabels =  obj.windowdata.labelidx_new(islabeled);
-      allPos = rrNdx(trainLabels(rrNdx)>1.5);
       
-      curP = [];
+      % Find 5 closest pos and neg examples.
+      % This looks complicated then it should be.
+      % DEBUG: find values of actual labels 
+     
+      trainLabels =  obj.windowdata.distNdx.labels;
+      allPos = rrNdx(trainLabels(rrNdx)>1.5);
+      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
+      
+      
+      curP = zeros(1,5);
+      curN = zeros(1,5);
+      count = 0;
       for ex = allPos'
-        if length(curP)>4; break; end;
-        used = [curEx curP];
-        if(any( abs(ex-used)<5)); continue; end
-        curP(end+1) = ex;
+        if count>4; break; end;
+        isClose = 0;
+        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
+           abs( (obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5),
+           continue; 
+        end
+        
+        for used = curP(1:count)
+          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
+             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
+             abs( (obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5),
+             isClose = 1; 
+             break; 
+          end
+        end
+        
+        if isClose; continue; end;
+        count = count+1;
+        curP(count) = ex;
       end
       
-      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
-      curN = [];
+      count = 0;
       for ex = allNeg'
-        if length(curN)>4; break; end;
-        used = [curEx curN];
-        if(any( abs(ex-used)<5)); continue; end
-        curN(end+1) = ex;
+        if count>4; break; end;
+        isClose = 0;
+        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
+           abs( (obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5),
+           continue; 
+        end
+        
+        for used = curN(1:count)
+          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
+             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
+             abs( (obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5),
+             isClose = 1; 
+             break; 
+          end
+        end
+        
+        if isClose; continue; end;
+        count = count+1;
+        curN(count) = ex;
       end
       
       varForSSF.curFrame.expNum = obj.windowdata.exp(windowNdx);
@@ -3084,14 +3151,12 @@ classdef JLabelData < handle
       varForSSF.curFrame.curTime = obj.windowdata.t(windowNdx);
       
       for k = 1:4
-        posNdx = find(obj.windowdata.distNdx==curP(k),1);
-        negNdx = find(obj.windowdata.distNdx==curN(k),1);
-        varForSSF.posFrames(k).expNum = obj.windowdata.exp(posNdx);
-        varForSSF.posFrames(k).flyNum = obj.windowdata.flies(posNdx);
-        varForSSF.posFrames(k).curTime = obj.windowdata.t(posNdx);
-        varForSSF.negFrames(k).expNum = obj.windowdata.exp(negNdx);
-        varForSSF.negFrames(k).flyNum = obj.windowdata.flies(negNdx);
-        varForSSF.negFrames(k).curTime = obj.windowdata.t(negNdx);
+        varForSSF.posFrames(k).expNum = obj.windowdata.distNdx.exp(curP(k));
+        varForSSF.posFrames(k).flyNum = obj.windowdata.distNdx.flies(curP(k));
+        varForSSF.posFrames(k).curTime = obj.windowdata.distNdx.t(curP(k));
+        varForSSF.negFrames(k).expNum = obj.windowdata.distNdx.exp(curN(k));
+        varForSSF.negFrames(k).flyNum = obj.windowdata.distNdx.flies(curN(k));
+        varForSSF.negFrames(k).curTime = obj.windowdata.distNdx.t(curN(k));
       end
       showSimilarFrames('setFrames',obj.frameFig,varForSSF);
     end
@@ -3119,6 +3184,12 @@ classdef JLabelData < handle
           obj.SetStatus('Applying boosting classifier to %d windows',size(obj.windowdata.X,1));
           scores = myBoostClassify(obj.windowdata.X,obj.classifier);
           obj.windowdata.predicted = -sign(scores)*0.5+1.5;
+          normScores = abs(scores);
+          prc = prctile(normScores,95);
+          normScores(normScores>prc) = prc;
+          obj.windowdata.scoreNorm = prc;
+          normScores = normScores/prc;
+          obj.windowdata.scores = normScores;
           obj.windowdata.isvalidprediction(:) = true;
           obj.ClearStatus();
           
@@ -3207,6 +3278,7 @@ classdef JLabelData < handle
       
       n = obj.t1_curr - obj.t0_curr + 1;
       obj.predictedidx = zeros(1,n);
+      obj.scoresidx = zeros(1,n);
       if isempty(obj.windowdata.exp),
         return;
       end
@@ -3215,6 +3287,8 @@ classdef JLabelData < handle
         obj.windowdata.isvalidprediction;
       obj.predictedidx(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
         obj.windowdata.predicted(idxcurr);
+      obj.scoresidx(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
+        obj.windowdata.scores(idxcurr);      
 
       obj.UpdateErrorIdx();
             
@@ -3279,6 +3353,12 @@ classdef JLabelData < handle
           obj.SetStatus('Applying boosting classifier to %d windows',nnz(idxcurr));
           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
+          
+          normScores = abs(scores);
+          prc = prctile(normScores,95);
+          normScores(normScores>prc) = prc;
+          normScores = normScores/obj.windowdata.scoreNorm;
+          obj.windowdata.scores(idxcurr) = normScores;
           obj.windowdata.isvalidprediction(idxcurr) = true;
           obj.ClearStatus();
 

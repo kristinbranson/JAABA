@@ -185,12 +185,20 @@ for curBlk = curblockStart:curblockEnd
   idStr = sprintf('%d_%d_%d',expNum,curFly,curBlk);
   if ~isKey(handles.cache,idStr),
     tSlice = ((curBlk-1)*blk+1):(curBlk*blk);
+    tSliceValid = tSlice >= trx(curFly).firstframe & tSlice<=trx(curFly).endframe;
     trax = [];
-    trax.X = trx(curFly).x(tSlice);
-    trax.Y = trx(curFly).y(tSlice);
-    trax.theta = trx(curFly).theta(tSlice);
-    trax.maj = trx(curFly).a(tSlice);
-    trax.min = trx(curFly).b(tSlice);
+    trax.X = nan(1,length(tSlice));
+    trax.Y = nan(1,length(tSlice));
+    trax.theta = nan(1,length(tSlice));
+    trax.maj = nan(1,length(tSlice));
+    trax.min = nan(1,length(tSlice));
+    
+    validNdx = tSlice(tSliceValid);
+    trax.X(tSliceValid) = trx(curFly).x(validNdx);
+    trax.Y(tSliceValid) = trx(curFly).y(validNdx);
+    trax.theta(tSliceValid) = trx(curFly).theta(validNdx);
+    trax.maj(tSliceValid) = trx(curFly).a(validNdx);
+    trax.min(tSliceValid) = trx(curFly).b(validNdx);
     handles.cache(idStr) = trax;
   end
 end
@@ -286,6 +294,7 @@ function play(hObject)
   handles.frameNo = frameNo;
   guidata(hObject,handles);
  
+  
 function [labels predictions]= getLabels(handles,curFrame)
 % Reads labels and predictions.
 
@@ -300,10 +309,19 @@ function [labels predictions]= getLabels(handles,curFrame)
   labels.ntrx = nan(1,length(tSlice));
   
   curLabel = handles.JLDobj.GetLabels(curExp,curFly);
-  windowNdx = find( (handles.JLDobj.windowdata.exp == curExp) & ...
-      (handles.JLDobj.windowdata.flies == curFly) & ...
-      (handles.JLDobj.windowdata.t == curTime) ,1);
-  predictions = handles.JLDobj.windowdata.predicted(windowNdx-sz:windowNdx+sz);
+%   windowNdx = find( (handles.JLDobj.windowdata.exp == curExp) & ...
+%       (handles.JLDobj.windowdata.flies == curFly) & ...
+%       (handles.JLDobj.windowdata.t == curTime) ,1);
+    
+  idxcurr = handles.JLDobj.windowdata.exp == curExp & ...
+    all(bsxfun(@eq,handles.JLDobj.windowdata.flies,curFly),2) & ...
+    handles.JLDobj.windowdata.t >= (curTime-sz) & ...
+    handles.JLDobj.windowdata.t <= (curTime+sz) & ...
+    handles.JLDobj.windowdata.isvalidprediction;
+
+  tNdx = handles.JLDobj.windowdata.t(idxcurr);  
+  predictions = nan(1,length(tSlice));
+  predictions(  (tNdx-curTime+sz+1) ) = handles.JLDobj.windowdata.predicted(idxcurr);
   curT0 = curLabel.t0s;
   curT1 = curLabel.t1s;
   curNames = curLabel.names;
@@ -321,10 +339,8 @@ function [labels predictions]= getLabels(handles,curFrame)
   end
   labels.ptrx(ltrx>0) = 1;
   labels.ntrx(ltrx<0) = 1;
-  
-  
-  
 
+  
 function relTrax = getRelTrx(handles,curFrame)
   curExp = curFrame.expNum;
   curFly = curFrame.flyNum;
@@ -371,7 +387,12 @@ function im = getRotatedFrame(handles,curFrame)
 
   
   for offset = -handles.maxFrames:handles.maxFrames
-    tt(sz+1:end-sz,sz+1:end-sz,1) = pointer.readframe(curTime+offset);
+    if curTime+offset<1 || curTime+offset>pointer.movieheaderinfo.nframes
+      tt(sz+1:end-sz,sz+1:end-sz,1) = ...
+        zeros(pointer.movieheaderinfo.nr,pointer.movieheaderinfo.nc);
+    else
+      tt(sz+1:end-sz,sz+1:end-sz,1) = pointer.readframe(curTime+offset);
+    end
     timg = tt(bBoxY,bBoxX,:);
     rotI = imrotate(timg,curA*180/pi-90,'bilinear','crop');
     im(:,:,:,offset+handles.maxFrames+1) = rotI(sz+1:end-sz,sz+1:end-sz,:);
@@ -425,6 +446,7 @@ function axesH = initAxes(ax,sz)
   colormap(ax,'gray');
   axis(ax,'image','off');
 
+  
 function updatefly(h1,h2,trx,t)
 % Coped from JCtrax.
 
@@ -463,10 +485,15 @@ set(h1,'Color',colr);
 
 % plot for labels
 set(h2,'xdata',pts([2 3 1], 1),'ydata',pts([2 3 1],2));
+
 colr = [0.2 0.2 0.2];
-if (trx.predictions(t)<1.5); colr = [0.1 0.5 0.1]; 
-else colr = [0.5 0.1 0.1]; end
+if isnan(trx.predictions(t)), colr = [0.2 0.2 0.2];
+elseif trx.predictions(t)<1.5, colr = [0.1 0.5 0.1]; 
+else colr = [0.5 0.1 0.1]; 
+end
+
 set(h2,'Color',colr);
+
 
 % --- Executes on slider movement.
 function frameSlider_Callback(hObject, eventdata, handles)

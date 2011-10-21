@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 13-Oct-2011 11:20:24
+% Last Modified by GUIDE v2.5 21-Oct-2011 10:40:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -222,7 +222,7 @@ setAxesZoomMotion(handles.hzoom,handles.axes_timeline_manual,'horizontal');
 setAllowAxesPan(handles.hpan,handles.axes_timeline_manual,false);
 
 % auto timeline
-handles.himage_timeline_auto = image(zeros([1,1,3]),'Parent',handles.axes_timeline_auto);
+handles.himage_timeline_auto = image(zeros([3,1,3]),'Parent',handles.axes_timeline_auto);
 set(handles.himage_timeline_auto,'HitTest','off');
 hold(handles.axes_timeline_auto,'on');
 handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','HitTest','off');
@@ -428,14 +428,14 @@ for i = axes,
 %         handles.data.trx(fly).b(j));
       %updatefly(handles.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.flies),
-        set(handles.hflies(fly,i),'LineWidth',5);
+        set(handles.hflies(fly,i),'LineWidth',3);
         if labelidx <= 0,
           set(handles.hflies(fly,i),'Color',handles.labelunknowncolor);
         else
           set(handles.hflies(fly,i),'Color',handles.labelcolors(labelidx,:));
         end
       else
-        set(handles.hflies(fly,i),'LineWidth',2);
+        set(handles.hflies(fly,i),'LineWidth',1);
       end
     end
     
@@ -807,11 +807,13 @@ for behaviori = 1:handles.data.nbehaviors
   end
 end
 handles.labels_plot.predicted_im(:) = 0;
-predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+[predictedidx,scores,dump1,dump2]= handles.data.GetPredictedIdx(handles.expi,handles.flies);
 for behaviori = 1:handles.data.nbehaviors
   idx = predictedidx == behaviori;
   for channel = 1:3,
-    handles.labels_plot.predicted_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
+    handles.labels_plot.predicted_im(1:2,idx,channel) = handles.labelcolors(behaviori,channel);
+    scoreNdx = ceil(scores(idx)*64)+1;
+    handles.labels_plot.predicted_im(3,idx,channel) = handles.scorecolor(scoreNdx,channel);
   end
 end
 [error_t0s,error_t1s] = get_interval_ends(labelidx ~= 0 & predictedidx ~= 0 & ...
@@ -1260,6 +1262,9 @@ if isfield(handles.configparams,'behaviors') && ...
   end
 end
 handles.labelunknowncolor = [0,0,0];
+
+handles.scorecolor = jet(64);
+handles.scorecolor = [0 0 0; jet];
 
 handles.correctcolor = [0,.7,0];
 handles.incorrectcolor = [.7,.7,0];
@@ -2380,6 +2385,8 @@ end
 labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
 select_pos = get(handles.panel_select,'Position');
 learn_pos = get(handles.panel_learn,'Position');
+similar_pos = get(handles.panel_similar,'Position');
+
 width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
   handles.guipos.leftborder_rightpanels - handles.guipos.width_rightpanels - ...
   handles.guipos.rightborder_rightpanels;
@@ -2406,6 +2413,12 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guipos.rightborder_rightpa
   label_pos(2) - select_pos(4) - dy_label_select,...
   select_pos(3:4)];
 set(handles.panel_select,'Position',new_select_pos);
+
+dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
+new_similar_pos = [figpos(3) - similar_pos(3) - handles.guipos.rightborder_rightpanels,...
+  new_select_pos(2) - similar_pos(4) - dy_label_select,...
+  similar_pos(3:4)];
+set(handles.panel_similar,'Position',new_similar_pos);
 
 new_learn_pos = [figpos(3) - learn_pos(3) - handles.guipos.rightborder_rightpanels,...
   handles.guipos.bottomborder_bottompanels,...
