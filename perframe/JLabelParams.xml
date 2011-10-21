@@ -25,5 +25,8 @@
 	linewidth="3"
 	/>
   </plot>
+  <learning
+      classifiertype="ferns"
+      />
 
 </params>

@@ -485,6 +485,12 @@ classdef JLabelData < handle
         
       end
       
+      if isfield(configparams,'learning'),
+        if isfield(configparams.learning,'classifiertype'),
+          obj.SetClassifierType(configparams.learning.classifiertype);
+        end
+      end
+      
     end
     
     % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
@@ -849,6 +855,20 @@ classdef JLabelData < handle
         [success,msg] = obj.UpdateStatusTable('label');   
         
       end
+      
+    end
+    
+    function [success,msg] = SetClassifierType(obj,classifiertype)
+
+      success = true;
+      msg = '';
+      
+      % TODO: retrain classifier if necessary
+      if strcmpi(classifiertype,obj.classifiertype),
+        return;
+      end
+      
+      obj.classifiertype = classifiertype;
       
     end
     
@@ -1312,7 +1332,7 @@ classdef JLabelData < handle
       
       for i = expis,
         
-        lfn = GetFile(obj,'label',i);
+        lfn = GetFile(obj,'label',i,true);
         obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
 
         didbak = false;
@@ -1660,19 +1680,23 @@ classdef JLabelData < handle
 
     % [filename,timestamp] = GetFile(obj,file,expi)
     % Get the full path to the file of type file for experiment expi. 
-    function [filename,timestamp] = GetFile(obj,file,expi)
+    function [filename,timestamp] = GetFile(obj,file,expi,dowrite)
+      
+      if nargin < 4,
+        dowrite = false;
+      end
       
       % base name
       fn = obj.GetFileName(file);
       
       % if this is an output file, only look in output experiment directory
-      %if JLabelData.IsOutputFile(file),
-      %  expdirs_try = obj.outexpdirs(expi);
-      %else
-      %  % otherwise, first look in output directory, then look in input
-      %  % directory
+      if dowrite && JLabelData.IsOutputFile(file),
+        expdirs_try = obj.outexpdirs(expi);
+      else
+        % otherwise, first look in output directory, then look in input
+        % directory
         expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
-      %end
+      end
       
       % initialize timestamp = -inf if we never set
       timestamp = -inf;
@@ -3179,6 +3203,9 @@ classdef JLabelData < handle
             obj.predict_cache.last_predicted_inds] = ...
             fernsClfApply(obj.windowdata.X,obj.classifier);
           obj.windowdata.isvalidprediction(:) = true;
+          s = exp(obj.windowdata.predicted_probs);
+          s = bsxfun(@rdivide,s,sum(s,2));
+          obj.windowdata.scores = max(s,[],2);
           obj.ClearStatus();
         case 'boosting',
           obj.SetStatus('Applying boosting classifier to %d windows',size(obj.windowdata.X,1));
