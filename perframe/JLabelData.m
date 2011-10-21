@@ -88,7 +88,7 @@ classdef JLabelData < handle
     % classifier
     
     % type of classifier to use
-%     classifiertype = 'ferns';
+%    classifiertype = 'ferns';
     classifiertype = 'boosting';
     
     % currently learned classifier. structure depends on the type of
