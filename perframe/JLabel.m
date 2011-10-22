@@ -818,8 +818,9 @@ handles.labels_plot.predicted_im(:) = 0;
 for behaviori = 1:handles.data.nbehaviors
   idx = predictedidx == behaviori;
   for channel = 1:3,
-    handles.labels_plot.predicted_im(1:2,idx,channel) = handles.labelcolors(behaviori,channel);
-    scoreNdx = ceil(scores(idx)*64)+1;
+    handles.labels_plot.predicted_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
+    scoreNdx = ceil(scores(idx)*31)+32;
+    handles.labels_plot.predicted_im(2,idx,channel) = handles.scorecolor(scoreNdx,channel);
     handles.labels_plot.predicted_im(3,idx,channel) = handles.scorecolor(scoreNdx,channel);
   end
 end
@@ -1270,8 +1271,14 @@ if isfield(handles.configparams,'behaviors') && ...
 end
 handles.labelunknowncolor = [0,0,0];
 
-handles.scorecolor = jet(64);
-handles.scorecolor = [0 0 0; jet];
+for channel = 1:3
+  midValue = handles.labelunknowncolor(channel);
+  startValue = handles.labelcolors(2,channel);
+  endValue = handles.labelcolors(1,channel);
+  handles.scorecolor(1:32,channel) = (midValue-startValue)*(0:31)/31+startValue;
+  handles.scorecolor(32:63,channel) = (endValue-midValue)*(0:31)/31+midValue;
+  
+end
 
 handles.correctcolor = [0,.7,0];
 handles.incorrectcolor = [.7,.7,0];

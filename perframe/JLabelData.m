@@ -3212,11 +3212,11 @@ classdef JLabelData < handle
           scores = myBoostClassify(obj.windowdata.X,obj.classifier);
           obj.windowdata.predicted = -sign(scores)*0.5+1.5;
           normScores = abs(scores);
-          prc = prctile(normScores,95);
-          normScores(normScores>prc) = prc;
+          prc = prctile(normScores,70);
+          scores(scores>prc) = prc;
+          scores(scores<-prc) = -prc;
           obj.windowdata.scoreNorm = prc;
-          normScores = normScores/prc;
-          obj.windowdata.scores = normScores;
+          obj.windowdata.scores = scores/prc;
           obj.windowdata.isvalidprediction(:) = true;
           obj.ClearStatus();
           
@@ -3380,12 +3380,11 @@ classdef JLabelData < handle
           obj.SetStatus('Applying boosting classifier to %d windows',nnz(idxcurr));
           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
+
+          scores(scores<-obj.windowdata.scoreNorm) = -obj.windowdata.scoreNorm;
+          scores(scores>obj.windowdata.scoreNorm) = obj.windowdata.scoreNorm;
           
-          normScores = abs(scores);
-          prc = prctile(normScores,95);
-          normScores(normScores>prc) = prc;
-          normScores = normScores/obj.windowdata.scoreNorm;
-          obj.windowdata.scores(idxcurr) = normScores;
+          obj.windowdata.scores(idxcurr) = scores/obj.windowdata.scoreNorm;
           obj.windowdata.isvalidprediction(idxcurr) = true;
           obj.ClearStatus();
 
