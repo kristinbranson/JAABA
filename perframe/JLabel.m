@@ -2882,7 +2882,7 @@ hax = axes('Parent',handles.panel_timelines,'Units','pixels',...
   'Color',get(handles.panel_timelines,'BackgroundColor'),...
   'Tag',sprintf('timeline_axes_prop%d',propi));
 handles.axes_timeline_props = [hax,handles.axes_timeline_props];
-handles.axes_timelines = [hax;handles.axes_timelines];
+handles.axes_timelines = [hax,handles.axes_timelines];
 % fcn = get(handles.axes_timelines(1),'ButtonDownFcn');
 % set(hax,'ButtonDownFcn',fcn);
 setAxesZoomMotion(handles.hzoom,hax,'vertical');
@@ -2900,13 +2900,13 @@ end
 set(hax,'XLim',xlim,'YLim',ylim);
 zoom(hax,'reset');
 hcurr = plot(hax,[0,0]+handles.ts(1),[-10^6,10^6],'y-','HitTest','off','linewidth',2);
-handles.hcurr_timelines = [hcurr;handles.hcurr_timelines];
+handles.hcurr_timelines = [hcurr,handles.hcurr_timelines];
 ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
 hselection = plot(hax,handles.selected_ts([1,1,2,2,1]),ydata([1,2,2,1,1]),'--',...
   'color',handles.selection_color,...
   'HitTest','off',...
   'LineWidth',3);
-handles.hselection = [hselection;handles.hselection];
+handles.hselection = [hselection,handles.hselection];
 linkaxes(handles.axes_timelines,'x');
 
 % add the label
