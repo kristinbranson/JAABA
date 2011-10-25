@@ -161,6 +161,15 @@ classdef JLabelData < handle
     % trajectory of fly for experiment expi. 
     endframes_per_exp = {};
     
+    % sex per experiment, fly
+    frac_sex_per_exp = {};
+    sex_per_exp = {};
+    
+    % whether sex is computed
+    hassex = false;
+    % whether sex is computed on a per-frame basis
+    hasperframesex = false;
+    
     % constant: stuff stored in classifier mat file
     classifiervars = {'expdirs','outexpdirs','expnames','nflies_per_exp',...
       'firstframes_per_exp','endframes_per_exp',...
@@ -2351,6 +2360,52 @@ classdef JLabelData < handle
       b = obj.trx(fly).b(ts + obj.trx(fly).off);
 
     end
+
+    % x = GetSex(obj,expi,fly,ts)
+    % Returns the sex for the input experiment, SINGLE fly, and
+    % frames. If ts is not input, then all frames are returned. 
+    function sex = GetSex(obj,expi,fly,ts,fast)
+
+      if ~obj.hassex,
+        sex = '?';
+        return;
+      end
+      
+      if nargin < 5,
+        fast = false;
+      end
+      
+      if ~obj.hasperframesex || fast,
+        sex = obj.sex_per_exp{expi}(fly);
+        return;
+      end
+      
+      if expi ~= obj.expi,
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+      
+      if nargin < 4,
+        sex = obj.trx(fly).sex;
+        return;
+      end
+      
+      sex = obj.trx(fly).sex(ts + obj.trx(fly).off);
+
+    end
+
+    % x = GetSexFrac(obj,expi,fly)
+    % Returns a struct indicating the fraction of frames for which the sex
+    % of the fly is M, F
+    function sexfrac = GetSexFrac(obj,expi,fly)
+
+      sexfrac = obj.frac_sex_per_exp{expi}(fly);
+
+    end
+
     
     % t0 = GetTrxFirstFrame(obj,expi,flies)
     % Returns the firstframes for the input experiment and flies. If flies
@@ -2502,6 +2557,44 @@ classdef JLabelData < handle
           obj.nflies_per_exp(expi) = numel(obj.trx);
           obj.firstframes_per_exp{expi} = [obj.trx.firstframe];
           obj.endframes_per_exp{expi} = [obj.trx.endframe];
+          obj.hassex = obj.hassex || isfield(obj.trx,'sex');
+
+          % store sex info
+          tmp = repmat({nan},[1,numel(obj.trx)]);
+          obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
+          obj.sex_per_exp{expi} = repmat({'?'},[1,numel(obj.trx)]);
+          if isfield(obj.trx,'sex'),
+            if numel(obj.trx) > 1,
+              obj.hasperframesex = iscell(obj.trx(1).sex);
+            end
+            if obj.hasperframesex,
+              for fly = 1:numel(obj.trx),
+                n = numel(obj.trx(fly).sex);
+                nmale = nnz(strcmpi(obj.trx(fly).sex,'M'));
+                nfemale = nnz(strcmpi(obj.trx(fly).sex,'F'));
+                obj.frac_sex_per_exp{expi}(fly).M = nmale/n;
+                obj.frac_sex_per_exp{expi}(fly).F = nfemale/n;
+                if nmale > nfemale,
+                  obj.sex_per_exp{expi}{fly} = 'M';
+                elseif nfemale > nmale,
+                  obj.sex_per_exp{expi}{fly} = 'F';
+                else
+                  obj.sex_per_exp{expi}{fly} = '?';
+                end
+              end
+            else
+              for fly = 1:numel(obj.trx),
+                obj.sex_per_exp{expi}{fly} = obj.trx(fly).sex;
+                if strcmpi(obj.trx(fly).sex,'M'),
+                  obj.frac_sex_per_exp{expi}(fly).M = 1;
+                  obj.frac_sex_per_exp{expi}(fly).F = 0;
+                elseif strcmpi(obj.trx(fly).sex,'F'),
+                  obj.frac_sex_per_exp{expi}(fly).M = 0;
+                  obj.frac_sex_per_exp{expi}(fly).F = 1;
+                end
+              end
+            end
+          end
         catch ME,
           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
           if ishandle(hwait),

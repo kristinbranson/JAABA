@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 21-Oct-2011 10:40:04
+% Last Modified by GUIDE v2.5 25-Oct-2011 04:18:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -837,6 +837,10 @@ for i = 1:numel(ts),
 end
 
 ClearStatus(handles);
+
+% TODO: generalize to multiple flies
+s = GetTargetInfo(handles,flies(1));
+set(handles.text_selection_info,'String',s);
 
 guidata(handles.figure_JLabel,handles);
 
@@ -2539,6 +2543,7 @@ labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
 select_pos = get(handles.panel_select,'Position');
 learn_pos = get(handles.panel_learn,'Position');
 similar_pos = get(handles.panel_similar,'Position');
+info_pos = get(handles.panel_selection_info,'Position');
 
 width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
   handles.guipos.leftborder_rightpanels - handles.guipos.width_rightpanels - ...
@@ -2567,11 +2572,17 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guipos.rightborder_rightpa
   select_pos(3:4)];
 set(handles.panel_select,'Position',new_select_pos);
 
-dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
+%dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
 new_similar_pos = [figpos(3) - similar_pos(3) - handles.guipos.rightborder_rightpanels,...
   new_select_pos(2) - similar_pos(4) - dy_label_select,...
   similar_pos(3:4)];
 set(handles.panel_similar,'Position',new_similar_pos);
+
+new_info_pos = [figpos(3) - info_pos(3) - handles.guipos.rightborder_rightpanels,...
+  new_similar_pos(2) - info_pos(4) - dy_label_select,...
+  info_pos(3:4)];
+set(handles.panel_selection_info,'Position',new_info_pos);
+
 
 new_learn_pos = [figpos(3) - learn_pos(3) - handles.guipos.rightborder_rightpanels,...
   handles.guipos.bottomborder_bottompanels,...
@@ -3547,3 +3558,29 @@ function similarFramesButton_Callback(hObject, eventdata, handles)
 
 curTime = handles.ts(1);
 handles.data.SimilarFrames(curTime);
+
+function s = GetTargetInfo(handles,fly)
+
+  s = {};
+  i = 1;
+  s{i} = sprintf('Target: %d',fly);
+  i = i + 1;
+  if handles.data.hassex,
+    t = max(handles.t0_curr,handles.ts(1));
+    sex = handles.data.GetSex(handles.expi,fly,t);
+    if iscell(sex),
+      sex = sex{1};
+    end
+    if handles.data.hasperframesex,
+      sexfrac = handles.data.GetSexFrac(handles.expi,fly);
+      s{i} = sprintf('Sex: %s (%d%%M, %d%%F)',sex,round(sexfrac.M*100),round(sexfrac.F*100));
+    else
+      s{i} = sprintf('Sex: %s',sex);
+    end
+    i = i + 1;
+  end
+  endframe = handles.data.endframes_per_exp{handles.expi}(fly);
+  firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
+  s{i} = sprintf('Frames: %d-%d',firstframe,endframe);
+  i = i + 1;
+  s{i} = sprintf(handles.data.expnames{handles.expi});
