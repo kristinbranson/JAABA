@@ -159,6 +159,7 @@ handles.htrx = zeros(handles.nflies_label,numel(handles.axes_previews));
 handles.fly_colors = jet(handles.nflies_curr)*.7;
 handles.fly_colors = handles.fly_colors(randperm(handles.nflies_curr),:);
 
+handles.hlabel_curr = nan(1,numel(handles.axes_previews));
 for i = 1:numel(handles.axes_previews),
   cla(handles.axes_previews(i),'reset');
 
@@ -184,6 +185,11 @@ for i = 1:numel(handles.axes_previews),
     set(handles.axes_previews(i),'Color','k','XColor','w','YColor','w');
     
   end
+  
+  % current label plotted on axes
+  handles.hlabel_curr(i) = plot(nan(1,2),nan(1,2),'k-',...
+    'Parent',handles.axes_previews(i),...
+    'HitTest','off','Linewidth',5);
   
   % trx of flies
   for j = 1:handles.nflies_label,
@@ -244,7 +250,8 @@ end
 
 % properties
 propi = 1;
-handles.htimeline_data(propi) = plot(nan,nan,'w.-','HitTest','off');
+handles.htimeline_data(propi) = plot(handles.axes_timeline_props(propi),nan,nan,'w.-','HitTest','off');
+hold(handles.axes_timeline_props(propi),'on');
 
 % whether the manual and auto match
 handles.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
@@ -317,7 +324,8 @@ function UpdatePlots(handles,varargin)
 [axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
   refresh_timeline_manual,refresh_timeline_auto,refresh_timeline_suggest,refresh_timeline_error,...
   refresh_timeline_xlim,refresh_timeline_hcurr,...
-  refresh_timeline_props,refresh_timeline_selection] = ...
+  refresh_timeline_props,refresh_timeline_selection,...
+  refresh_curr_prop] = ...
   myparse(varargin,'axes',1:numel(handles.axes_previews),...
   'refreshim',true,'refreshflies',true,'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',true,...
@@ -327,7 +335,8 @@ function UpdatePlots(handles,varargin)
   'refresh_timeline_xlim',true,...
   'refresh_timeline_hcurr',true,...
   'refresh_timeline_props',false,...
-  'refresh_timeline_selection',false);
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',true);
 
 % make sure data for this experiment is loaded
 % if handles.expi ~= handles.data.expi,
@@ -440,6 +449,8 @@ for i = axes,
   if refreshflies,
     if handles.ts(i) < handles.t0_curr || handles.ts(i) > handles.t1_curr,
       labelidx = [];
+    elseif handles.label_state ~= 0,
+      labelidx = handles.label_state;
     else
       labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
     end
@@ -522,6 +533,31 @@ for i = axes,
         set(handles.hlabels(j),'XData',handles.labels_plot.x(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k),...
           'YData',handles.labels_plot.y(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k));
       end
+      if handles.label_state ~= 0,
+        ts = sort([handles.label_t0,handles.ts(1)]);
+        t0 = max(t0,ts(1));
+        t1 = min(t1,ts(2)+1);
+        xdata = handles.data.GetTrxX1(handles.expi,handles.flies(1),t0:t1);
+        ydata = handles.data.GetTrxY1(handles.expi,handles.flies(1),t0:t1);
+        set(handles.hlabel_curr(1),'XData',xdata,'YData',ydata);
+        if handles.label_state == -1,
+          set(handles.hlabel_curr(1),'Color',handles.labelunknowncolor);
+        else
+          set(handles.hlabel_curr(1),'Color',handles.labelcolors(handles.label_state,:));
+        end
+      else
+        set(handles.hlabel_curr(1),'XData',nan,'YData',nan);
+      end
+
+    end
+  end
+  
+  if refresh_curr_prop,
+    for propi = 1:numel(handles.perframepropis),
+      v = handles.perframepropis(propi);
+      perframedata = handles.data.GetPerFrameData1(handles.expi,handles.flies,v,handles.ts(i));
+      s = sprintf('%.3f',perframedata);
+      set(handles.text_timeline_props(propi),'String',s);
     end
   end
   
@@ -638,7 +674,8 @@ for i = 1:numel(handles.axes_previews),
 end
 
 % update plot
-UpdatePlots(handles,'refresh_timeline_props',true);
+UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
+
 for h = handles.axes_timeline_labels,
   zoom(h,'reset');
 end
@@ -804,7 +841,7 @@ ClearStatus(handles);
 guidata(handles.figure_JLabel,handles);
 
 if doupdateplot,
-  UpdatePlots(handles,'refresh_timeline_props',true);
+  UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
 end
 
 function handles = UpdateTimelineIms(handles)
@@ -1671,7 +1708,19 @@ if get(hObject,'Value'),
   % set the current frame to be labeled
   %handles.lastframe_labeled = [];
   %handles = SetLabelPlot(handles,min(handles.t1_curr,max(handles.t0_curr,handles.ts(1))),behaviori);
-  %UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
+  
+  UpdatePlots(handles,...
+     'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+     'refresh_timeline_manual',true,...
+     'refresh_timeline_auto',false,...
+     'refresh_timeline_suggest',false,...
+     'refresh_timeline_error',true,...
+     'refresh_timeline_xlim',false,...
+     'refresh_timeline_hcurr',false,...
+     'refresh_timeline_props',false,...
+     'refresh_timeline_selection',false,...
+     'refresh_curr_prop',false);
+
 else
   if handles.ts(1) <= handles.label_t0,
     t0 = handles.ts(1);
@@ -1687,7 +1736,17 @@ else
   handles.label_state = 0;
   handles.label_t0 = [];
   set(handles.htimeline_label_curr,'XData',nan(1,5));
-  UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
+  UpdatePlots(handles,...
+    'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+    'refresh_timeline_manual',true,...
+    'refresh_timeline_auto',false,...
+    'refresh_timeline_suggest',false,...
+    'refresh_timeline_error',true,...
+    'refresh_timeline_xlim',false,...
+    'refresh_timeline_hcurr',false,...
+    'refresh_timeline_props',false,...
+    'refresh_timeline_selection',false,...
+    'refresh_curr_prop',false);
   
   %handles.data.StoreLabels();
   for j = 1:handles.data.nbehaviors,
@@ -1830,8 +1889,12 @@ else
   handles.label_state = 0;
   handles.label_t0 = [];
   set(handles.htimeline_label_curr,'XData',nan(1,5));
-  UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
-  
+  UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false,...
+    'refresh_timeline_auto',false,...
+    'refresh_timeline_xlim',false,...
+    'refresh_timeline_hcurr',false,...
+    'refresh_curr_prop',false);
+    
   %handles.data.StoreLabels();
   for j = 1:handles.data.nbehaviors,
     set(handles.togglebutton_label_behaviors(j),'Value',0,'String',sprintf('Start %s',handles.data.labelnames{j}),'Enable','on');
@@ -2009,11 +2072,13 @@ t0 = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
 t1 = min(handles.t1_curr,ceil(handles.ts(1)+handles.timeline_nframes/2));
 handles.data.Predict(handles.expi,handles.flies,t0:t1);
 handles = UpdateTimelineIms(handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',...
-  false,'refreshtrx',false,'refreshlabels',false,...
+UpdatePlots(handles,'refreshim',false,'refreshflies',false,...
+  'refreshtrx',false,'refreshlabels',false,...
   'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false);
-
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 function handles = UpdateErrors(handles)
 
@@ -2024,8 +2089,10 @@ handles = UpdateTimelineIms(handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',...
   false,'refreshtrx',false,'refreshlabels',false,...
   'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false);
-
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 % --- Executes on button press in pushbutton_predict.
 function pushbutton_predict_Callback(hObject, eventdata, handles)
@@ -2441,6 +2508,9 @@ function menu_edit_label_shortcuts_Callback(hObject, eventdata, handles)
 
 prompts = [{'Unknown'},handles.data.labelnames];
 sh = inputdlg(prompts,'Label Shortcuts',1,handles.label_shortcuts);
+if isempty(sh),
+  return;
+end
 handles.label_shortcuts = sh;
 guidata(hObject,handles);
 
@@ -2522,10 +2592,11 @@ handles.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumbe
 % all play buttons
 handles.pushbutton_playstops = findobj(handles.figure_JLabel,'Tag','pushbutton_playstop');
 % all timelines
-handles.axes_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline.*')';
-handles.labels_timelines = findobj(handles.figure_JLabel','-regexp','Tag','^timeline_label.*');
-handles.axes_timeline_props = findobj(handles.figure_JLabel','-regexp','Tag','^axes_timeline_prop.*')';
+handles.axes_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
+handles.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
+handles.axes_timeline_props = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
 handles.axes_timeline_labels = setdiff(handles.axes_timelines,handles.axes_timeline_props);
+
 if numel(handles.labels_timelines) ~= numel(handles.labels_timelines),
   error('Number of timeline axes does not match number of timeline labels');
 end
@@ -2546,6 +2617,18 @@ end
 [~,order] = sort(ys);
 handles.labels_timelines = handles.labels_timelines(order);
 
+handles.text_timeline_props = nan(size(handles.axes_timeline_props));
+handles.text_timelines = nan(size(handles.axes_timelines));
+[~,idx] = ismember(handles.axes_timeline_props,handles.axes_timelines);
+for ii = 1:numel(handles.axes_timeline_props),
+  i = idx(ii);
+  t = get(handles.axes_timeline_props(ii),'Tag');
+  m = regexp(t,'^axes_timeline_prop(.*)$','tokens','once');
+  t2 = ['text_timeline_prop',m{1}];
+  handles.text_timeline_props(ii) = handles.(t2);
+  handles.text_timelines(i) = handles.text_timeline_props(ii);
+end
+
 figpos = get(handles.figure_JLabel,'Position');
 panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
 % panel_learn_pos = get(handles.panel_learn,'Position');
@@ -2565,6 +2648,7 @@ handles.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines
 
 handles.guipos.timeline_bottom_borders = nan(1,numel(handles.axes_timelines));
 handles.guipos.timeline_left_borders = nan(1,numel(handles.axes_timelines));
+handles.guipos.timeline_label_middle_offsets = nan(1,numel(handles.axes_timelines));
 pos0 = get(handles.axes_timelines(1),'Position');
 handles.guipos.timeline_bottom_borders(1) = pos0(2);
 handles.guipos.timeline_heights(1) = pos0(4);
@@ -2579,16 +2663,29 @@ end
 handles.guipos.timeline_top_border = panel_timelines_pos(4) - pos1(2) - pos1(4);
 handles.guipos.timeline_heights = handles.guipos.timeline_heights / sum(handles.guipos.timeline_heights);
 for i = 1:numel(handles.axes_timelines),
+  ax_pos = get(handles.axes_timelines(i),'Position');
   label_pos = get(handles.labels_timelines(i),'Position');
   handles.guipos.timeline_left_borders(i) = label_pos(1);
+  m = ax_pos(2) + ax_pos(4)/2;
+  handles.guipos.timeline_label_middle_offsets(i) = label_pos(2)-m;
 end
-pos = get(handles.axes_timeline_prop1,'Position');
-handles.guipos.timeline_prop_height = pos(4);
+ax_pos = get(handles.axes_timeline_prop1,'Position');
+handles.guipos.timeline_prop_height = ax_pos(4);
 pos = get(handles.timeline_label_prop1,'Position');
 handles.guipos.timeline_prop_label_left_border = pos(1);
 handles.guipos.timeline_prop_label_size = pos(3:4);
 handles.guipos.timeline_prop_label_callback = get(handles.timeline_label_prop1,'Callback');
 handles.guipos.timeline_prop_fontsize = get(handles.timeline_label_prop1,'FontSize');
+m = ax_pos(2) + ax_pos(4)/2;
+handles.guipos.timeline_prop_label_middle_offset = pos(2)-m;
+
+pos = get(handles.text_timeline_prop1,'Position');
+handles.guipos.text_timeline_prop_right_border = ax_pos(1) - pos(1) - pos(3);
+handles.guipos.text_timeline_prop_size = pos(3:4);
+handles.guipos.text_timeline_prop_middle_offset = pos(2)-m;
+handles.guipos.text_timeline_prop_fontsize = get(handles.text_timeline_prop1,'FontSize');
+handles.guipos.text_timeline_prop_bgcolor = get(handles.text_timeline_prop1,'BackgroundColor');
+handles.guipos.text_timeline_prop_fgcolor = get(handles.text_timeline_prop1,'ForegroundColor');
 
 axes_pos = get(handles.axes_preview,'Position');
 slider_pos = get(handles.slider_preview,'Position');
@@ -2625,12 +2722,19 @@ y0 = 0;
 for i = 1:ntimelines,
   y0 = y0 + handles.guipos.timeline_bottom_borders(i);
   axes_pos = [handles.guipos.timeline_xpos,y0,w,h*handles.guipos.timeline_heights(i)];
+  m = axes_pos(2) + axes_pos(4)/2;
   set(handles.axes_timelines(i),'Position',axes_pos);
   label_pos = get(handles.labels_timelines(i),'Position');
   new_label_pos = [handles.guipos.timeline_left_borders(i),...
-    y0+axes_pos(4)/2-label_pos(4)/2,...
+    m+handles.guipos.timeline_label_middle_offsets(i),...
     label_pos(3:4)];
   set(handles.labels_timelines(i),'Position',new_label_pos);
+  if ishandle(handles.text_timelines(i)),
+    new_text_pos = [axes_pos(1)-handles.guipos.text_timeline_prop_right_border-handles.guipos.text_timeline_prop_size(1),...
+      m+handles.guipos.text_timeline_prop_middle_offset,...
+      handles.guipos.text_timeline_prop_size];
+    set(handles.text_timelines(i),'Position',new_text_pos);
+  end
   y0 = y0 + axes_pos(4);
 end
 % axes_manual_pos = [handles.guipos.timeline_xpos,...
@@ -2823,15 +2927,20 @@ handles.guipos.timeline_heights = handles.guipos.timeline_heights * Z0 / Z1;
 % delete the axes
 delete(handles.axes_timeline_props(propi));
 delete(handles.labels_timelines(axi));
+if ishandle(handles.text_timelines(axi)),
+  delete(handles.text_timelines(axi));
+end
 handles.axes_timeline_props(propi) = [];
 handles.axes_timelines(axi) = [];
 handles.labels_timelines(axi) = [];
+handles.text_timelines(axi) = [];
 handles.htimeline_data(propi) = [];
 handles.hcurr_timelines(axi) = [];
 handles.hselection(axi) = [];
 handles.guipos.timeline_bottom_borders(axi+1) = [];
 handles.guipos.timeline_heights(axi) = [];
 handles.guipos.timeline_left_borders(axi) = [];
+handles.guipos.timeline_label_middle_offsets(axi) = [];
 handles.perframepropfns(propi) = [];
 handles.perframepropis(propi) = [];
 
@@ -2910,8 +3019,9 @@ handles.hselection = [hselection,handles.hselection];
 linkaxes(handles.axes_timelines,'x');
 
 % add the label
+m = ax_pos(2)+ax_pos(4)/2; 
 pos = [handles.guipos.timeline_prop_label_left_border,...
-  ax_pos(2)+ax_pos(4)/2-handles.guipos.timeline_prop_label_size(2)/2,...
+  m+handles.guipos.timeline_prop_label_middle_offset,...
   handles.guipos.timeline_prop_label_size];
 hlabel = uicontrol(handles.panel_timelines,...
   'Style','popupmenu',...
@@ -2932,8 +3042,29 @@ handles.labels_timelines = [hlabel;handles.labels_timelines];
 handles.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guipos.timeline_heights];
 handles.guipos.timeline_bottom_borders = handles.guipos.timeline_bottom_borders([1,2,2:numel(handles.guipos.timeline_bottom_borders)]);
 handles.guipos.timeline_left_borders = [pos(1),handles.guipos.timeline_left_borders];
+handles.guipos.timeline_label_middle_offsets = [handles.guipos.timeline_prop_label_middle_offset,handles.guipos.timeline_label_middle_offsets];
 handles.perframepropfns = [handles.data.perframefns(prop),handles.perframepropfns];
 handles.perframepropis = [prop,handles.perframepropis];
+
+% add the text box
+pos = [ax_pos(1)-handles.guipos.text_timeline_prop_right_border-handles.guipos.text_timeline_prop_size(1),...
+  m+handles.guipos.text_timeline_prop_middle_offset,...
+  handles.guipos.text_timeline_prop_size];
+htext = uicontrol(handles.panel_timelines,...
+  'Style','text',...
+  'Units','pixels',...
+  'BackgroundColor',handles.guipos.text_timeline_prop_bgcolor,...
+  'ForegroundColor',handles.guipos.text_timeline_prop_fgcolor,...
+  'String','????????',...
+  'Position',pos,...
+  'FontUnits','pixels',...
+  'FontSize',handles.guipos.text_timeline_prop_fontsize,...
+  'Tag',sprintf('text_timeline_prop%d',propi),...
+  'HorizontalAlignment','right');
+
+handles.text_timeline_props = [htext;handles.text_timeline_props];
+handles.text_timelines = [htext,handles.text_timelines];
+
 
 % hide the xtick labels
 set(handles.axes_timelines(2),'XTickLabel',{});
@@ -2953,6 +3084,19 @@ panel_pos(4) = panel_pos(4) - hadd;
 set(handles.panel_previews,'Position',panel_pos);
 
 handles = guidata(handles.figure_JLabel);
+
+UpdatePlots(handles,...
+  'refreshim',false,'refreshflies',false,'refreshtrx',false,'refreshlabels',false,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_auto',false,...
+  'refresh_timeline_suggest',false,...
+  'refresh_timeline_error',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_props',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',true);
+
 
 function PostZoomCallback(hObject,eventdata,handles)
 
