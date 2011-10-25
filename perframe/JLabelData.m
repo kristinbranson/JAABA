@@ -2661,6 +2661,31 @@ classdef JLabelData < handle
 
     end
 
+    % perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
+    % Returns the per-frame data for the input experiment, flies, and
+    % property. 
+    function perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
+
+%       if ischar(prop),
+%         prop = find(strcmp(prop,handles.perframefn),1);
+%         if isempty(prop),
+%           error('Property %s is not a per-frame property');
+%         end
+%       end
+      
+      if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
+        perframedata = obj.perframedata{prop}(t-obj.t0_curr+1);
+        return;
+      end
+      
+      perframedir = obj.GetFile('perframedir',expi);
+      tmp = load(fullfile(perframedir,[obj.perframefns{prop},'.mat']));
+      off = 1 - GetTrxFirstFrame(expi,flies);
+      perframedata = tmp.data{flies(1)}(t+off);
+
+    end
+
+    
     function [predictedidx,scoresidx,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
 
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
@@ -3205,7 +3230,11 @@ classdef JLabelData < handle
           obj.windowdata.isvalidprediction(:) = true;
           s = exp(obj.windowdata.predicted_probs);
           s = bsxfun(@rdivide,s,sum(s,2));
-          obj.windowdata.scores = max(s,[],2);
+          scores = max(s,[],2);
+          idx0 = obj.windowdata.predicted == 1;
+          obj.windowdata.scores(idx0) = -scores(idx0);
+          idx1 = obj.windowdata.predicted > 1;
+          obj.windowdata.scores(idx1) = scores(idx0);
           obj.ClearStatus();
         case 'boosting',
           obj.SetStatus('Applying boosting classifier to %d windows',size(obj.windowdata.X,1));
