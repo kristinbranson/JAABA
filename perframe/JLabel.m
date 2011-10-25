@@ -2961,17 +2961,20 @@ set(handles.axes_timelines(1),'XTickLabelMode','auto');
 guidata(handles.figure_JLabel,handles);
 
 % make the panel smaller
-panel_pos = get(handles.panel_timelines,'Position');
-panel_pos(4) = panel_pos(4) - hremove;
-set(handles.panel_timelines,'Position',panel_pos);
+panel_timelines_pos = get(handles.panel_timelines,'Position');
+panel_timelines_pos(4) = panel_timelines_pos(4) - hremove;
+set(handles.panel_timelines,'Position',panel_timelines_pos);
 
 % make the preview panel bigger
-panel_pos = get(handles.panel_previews,'Position');
-panel_pos(2) = panel_pos(2) - hremove;
-panel_pos(4) = panel_pos(4) + hremove;
-set(handles.panel_previews,'Position',panel_pos);
+panel_previews_pos = get(handles.panel_previews,'Position');
+panel_previews_pos(2) = panel_previews_pos(2) - hremove;
+panel_previews_pos(4) = panel_previews_pos(4) + hremove;
+set(handles.panel_previews,'Position',panel_previews_pos);
 
 handles = guidata(handles.figure_JLabel);
+
+handles.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos(4));
+guidata(handles.figure_JLabel,handles);
 
 
 function handles = AddPropAxes(handles,prop)
@@ -3084,17 +3087,21 @@ set(handles.axes_timelines(2),'XTickLabel',{});
 guidata(handles.figure_JLabel,handles);
 
 % make the panel bigger
-panel_pos = get(handles.panel_timelines,'Position');
-panel_pos(4) = panel_pos(4) + hadd;
-set(handles.panel_timelines,'Position',panel_pos);
+panel_timelines_pos = get(handles.panel_timelines,'Position');
+panel_timelines_pos(4) = panel_timelines_pos(4) + hadd;
+set(handles.panel_timelines,'Position',panel_timelines_pos);
 
 % make the preview panel smaller
-panel_pos = get(handles.panel_previews,'Position');
-panel_pos(2) = panel_pos(2) + hadd;
-panel_pos(4) = panel_pos(4) - hadd;
-set(handles.panel_previews,'Position',panel_pos);
+panel_previews_pos = get(handles.panel_previews,'Position');
+panel_previews_pos(2) = panel_previews_pos(2) + hadd;
+panel_previews_pos(4) = panel_previews_pos(4) - hadd;
+set(handles.panel_previews,'Position',panel_previews_pos);
 
 handles = guidata(handles.figure_JLabel);
+
+handles.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos(4));
+
+guidata(handles.figure_JLabel,handles);
 
 UpdatePlots(handles,...
   'refreshim',false,'refreshflies',false,'refreshtrx',false,'refreshlabels',false,...
