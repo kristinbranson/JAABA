@@ -436,8 +436,8 @@ function axesH = initAxes(ax,sz)
   set(ax,'XLimMode','manual');  xlim(ax,[1 2*sz+1]);
   set(ax,'YLimMode','manual');  ylim(ax,[1 2*sz+1]);
   axesH.image = imagesc(zeros(2*sz+1),'Parent',ax,[0,255]);
-  axesH.labelNeg = plot(ax,nan,nan,'Linestyle','-','Color',[0.5 0.1 0.1],'Linewidth',3);
-  axesH.labelPos = plot(ax,nan,nan,'Linestyle','-','Color',[0.1 0.5 0.1],'Linewidth',3);
+  axesH.labelNeg = plot(ax,nan,nan,'Linestyle','-','Color',[0.0 0.0 0.7],'Linewidth',3);
+  axesH.labelPos = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.0 0.0],'Linewidth',3);
   axesH.trax = plot(ax,nan,nan,'Linestyle','-','Marker','.',...
     'Color',[0.1 0.1 0.1],'MarkerSize',4,'Linewidth',0.1);
   axesH.fly = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.2 0.2]);
@@ -479,8 +479,8 @@ pts(:,2) = pts(:,2) + y;
 % plot for labels.
 set(h1,'xdata',pts([1 2],1),'ydata',pts([1 2],2));
 colr = [0.2 0.2 0.2];
-if ~isnan(trx.labels.ptrx(t)); colr = [0.1 0.5 0.1]; end
-if ~isnan(trx.labels.ntrx(t)); colr = [0.5 0.1 0.1]; end
+if ~isnan(trx.labels.ptrx(t)); colr = [0.7 0.0 0.0]; end
+if ~isnan(trx.labels.ntrx(t)); colr = [0.0 0.0 0.7]; end
 set(h1,'Color',colr);
 
 % plot for labels
@@ -488,8 +488,8 @@ set(h2,'xdata',pts([2 3 1], 1),'ydata',pts([2 3 1],2));
 
 colr = [0.2 0.2 0.2];
 if isnan(trx.predictions(t)), colr = [0.2 0.2 0.2];
-elseif trx.predictions(t)<1.5, colr = [0.1 0.5 0.1]; 
-else colr = [0.5 0.1 0.1]; 
+elseif trx.predictions(t)<1.5, colr = [0.7 0.0 0.0]; 
+else colr = [0.0 0.0 0.7]; 
 end
 
 set(h2,'Color',colr);

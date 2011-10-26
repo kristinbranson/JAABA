@@ -831,6 +831,7 @@ handles.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(sugge
 set(handles.htimeline_suggestions,'XData',handles.labels_plot.suggest_xs,...
   'YData',zeros(size(handles.labels_plot.suggest_xs))+1.5);
 
+%{
 %handles.labels_plot.suggested_im(:) = 0;
 %for behaviori = 1:handles.data.nbehaviors
 %  idx = handles.data.suggestedidx == behaviori;
@@ -847,10 +848,12 @@ set(handles.htimeline_suggestions,'XData',handles.labels_plot.suggest_xs,...
 %for channel = 1:3,
 %  handles.labels_plot.error_im(1,idx,channel) = handles.incorrectcolor(channel);
 %end
+%}
+
 handles.labels_plot.isstart = ...
-  cat(2,labelidx(1)~=0,...
-  labelidx(2:end)~=0 & ...
-  labelidx(1:end-1)~=labelidx(2:end));
+cat(2,labelidx(1)~=0,...
+labelidx(2:end)~=0 & ...
+labelidx(1:end-1)~=labelidx(2:end));
 
 
 % set current frame
