@@ -3325,9 +3325,9 @@ classdef JLabelData < handle
           s = bsxfun(@rdivide,s,sum(s,2));
           scores = max(s,[],2);
           idx0 = obj.windowdata.predicted == 1;
-          obj.windowdata.scores(idx0) = -scores(idx0);
           idx1 = obj.windowdata.predicted > 1;
-          obj.windowdata.scores(idx1) = scores(idx0);
+          obj.windowdata.scores(idx1) = -scores(idx1);
+          obj.windowdata.scores(idx0) = scores(idx0);
           obj.ClearStatus();
         case 'boosting',
           obj.SetStatus('Applying boosting classifier to %d windows',size(obj.windowdata.X,1));
