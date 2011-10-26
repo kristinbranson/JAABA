@@ -9,8 +9,10 @@ end
 model = struct('dim',{},'error',{},'dir',{},'tr',{},'alpha',{});
 scores = zeros(numEx,1);
 
+[binVals bins] = findThresholds(data);
+
 for itt = 1:numIters
-  wkRule = findWeakRule(data,labels,wt,itt);
+  wkRule = findWeakRule(data,labels,wt,binVals,bins);
   wkRule.alpha = 1-2*wkRule.error;
   model(itt) = wkRule;
   scores = myBoostClassify(data,model(1:itt));

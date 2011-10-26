@@ -3177,7 +3177,7 @@ classdef JLabelData < handle
     function InitSimilarFrames(obj)
       obj.frameFig = showSimilarFrames;
       showSimilarFrames('SetJLabelData',obj.frameFig,obj);
-      ShowSimilarFrames('CacheTracksLabeled',obj.frameFig);
+      showSimilarFrames('CacheTracksLabeled',obj.frameFig);
     end
     
     function SimilarFrames(obj,curTime)
