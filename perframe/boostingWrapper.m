@@ -17,7 +17,7 @@ wt = wt./sum(wt);
 
 modLabels = sign( (labels==1)-0.5);
 
-[scores allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt);
+[~, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt);
 
 
 % Do bagging.
