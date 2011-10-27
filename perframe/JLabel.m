@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 27-Oct-2011 10:41:42
+% Last Modified by GUIDE v2.5 27-Oct-2011 13:29:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1495,7 +1495,7 @@ function EnableGUI(handles)
 h = [handles.contextmenu_timeline_manual_timeline_options,...
   handles.togglebutton_label_behaviors(:)',...
   handles.togglebutton_label_unknown,...
-  handles.menu_view_zoom_in_on_fly];
+  handles.menu_view_zoom_options(:)'];
 hp = [handles.panel_previews(:)',...
   handles.panel_timelines,...
   handles.panel_learn];
@@ -1859,6 +1859,56 @@ handles = UpdateErrors(handles);
 %handles.lastframe_labeled = t;
 
 guidata(handles.figure_JLabel,handles);
+
+
+function handles = SetLabelsPlot(handles,t0,t1,behavioris)
+
+handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+
+for channel = 1:3,
+  handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelunknowncolor(channel);
+end
+handles.data.SetLabel(handles.expi,handles.flies,t0:t1,behavioris);
+
+for behaviori = 1:handles.data.nbehaviors,
+
+  bidx = find(behaviori == behavioris);
+  if isempty(bidx),
+    continue;
+  end
+  for channel = 1:3,
+    handles.labels_plot.im(1,t0-1+bidx+handles.labels_plot_off,channel) = handles.labelcolors(behaviori,channel);
+  end
+  for l = 1:numel(handles.flies),
+    ks = t0-1+handles.labels_plot_off+bidx;
+    handles.labels_plot.x(ks,behaviori,l) = ...
+      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
+    handles.labels_plot.y(ks,behaviori,l) = ...
+      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+  end
+  
+end
+
+% isstart
+if t0 == handles.t0_curr,
+  handles.labels_plot.isstart(t0+handles.labels_plot_off) = behavioris(1) ~= 0;
+end
+t00 = max(handles.t0_curr+1,t0);
+off0 = t00+handles.labels_plot_off;
+off1 = t1+handles.labels_plot_off;
+% handles.labels_plot.isstart(off0:off1) = ...
+%   handles.data.labelidx(off0:off1)~=0 & ...
+%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
+handles.labels_plot.isstart(off0:off1) = ...
+  handles.data.IsLabelStart(handles.expi,handles.flies,t00:t1);
+
+handles = UpdateErrors(handles);
+
+%handles.lastframe_labeled = t;
+
+guidata(handles.figure_JLabel,handles);
+
 
 % --- Executes on button press in togglebutton_label_unknown.
 function togglebutton_label_unknown_Callback(hObject, eventdata, handles)
@@ -3483,7 +3533,11 @@ function contextmenu_timeline_manual_go_previous_bout_end_Callback(hObject, even
 
 menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
 
-function [t0,t1,labelidx,label] = GetBoutProperties(handles,t)
+function [t0,t1,labelidx,label] = GetBoutProperties(handles,t,labeltype)
+
+if nargin < 3,
+  labeltype = 'manual';
+end
 
 if t < handles.t0_curr && t > handles.t1_curr,
   t0 = nan;
@@ -3493,7 +3547,11 @@ if t < handles.t0_curr && t > handles.t1_curr,
   return;
 end
 
-[labelidx,T0,T1] = handles.data.GetLabelIdx(handles.expi,handles.flies);
+if strcmpi(labeltype,'manual'),
+  [labelidx,T0,T1] = handles.data.GetLabelIdx(handles.expi,handles.flies);
+else
+  [labelidx,~,T0,T1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+end
 i = t - T0 + 1;
 i0 = find(labelidx(1:i-1) ~= labelidx(i),1,'last');
 if isempty(i0),
@@ -3514,6 +3572,9 @@ if nargout >= 4,
   else
     label = handles.data.labelnames{labelidx};
   end
+  if ~strcmpi(labeltype,'manual'),
+    label = ['Predicted ',label];
+  end
 end
 
 % --------------------------------------------------------------------
@@ -3521,7 +3582,7 @@ function contextmenu_timeline_manual_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_manual (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-disp('hi');
+%disp('hi');
 pt = get(handles.axes_timeline_manual,'CurrentPoint');
 t = pt(1,1);
 
@@ -3743,3 +3804,143 @@ handles.preview_zoom_mode = 'static';
 set(setdiff(handles.menu_view_zoom_options,hObject),'Checked','off');
 set(hObject,'Checked','on');
 guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_go_next_bout_start_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_go_next_bout_start (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_go_previous_bout_end_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_go_previous_bout_end (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_bookmark_bout_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_bookmark_bout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+clip = handles.bookmark_info;
+clip.t0 = max(1,clip.t0-1);
+clip.t1 = min(handles.nframes,clip.t1+1);
+AddBookmark(handles,handles.bookmark_info);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_bookmark_selection_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_bookmark_selection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+labelidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
+handles.bookmark_info.labelidx = unique(labelidx);
+tmp = [{'Unknown'},handles.data.labelnames];
+if numel(handles.bookmark_info.labelidx) == 1,
+  handles.bookmark_info.label = ['Predicted ',tmp{handles.bookmark_info.labelidx+1}];
+else
+  counts = hist(labelidx,handles.bookmark_info.labelidx);
+  pct = round(counts / numel(labelidx) * 100);
+  s = 'Predicted ';
+  for i = 1:numel(handles.bookmark_info.labelidx),
+    s = [s,sprintf('%s(%d%%), ',tmp{handles.bookmark_info.labelidx(i)+1},pct(i))]; %#ok<AGROW>
+  end
+  s = s(1:end-2);
+  handles.bookmark_info.label = s;
+end
+guidata(hObject,handles);
+
+AddBookmark(handles,handles.bookmark_info);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_timeline_options_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_timeline_options (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_view_timeline_options_Callback(hObject, eventdata, handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+pt = get(handles.axes_timeline_auto,'CurrentPoint');
+t = pt(1,1);
+
+% inside a bout?
+if t >= handles.t0_curr && t <= handles.t1_curr,
+  [handles.bookmark_info.t0,handles.bookmark_info.t1,...
+    handles.bookmark_info.labelidx,handles.bookmark_info.label] = ...
+    GetBoutProperties(handles,round(t),'automatic');
+  s = sprintf('Bookmark %s bout (%d:%d)',handles.bookmark_info.label,...
+    handles.bookmark_info.t0,handles.bookmark_info.t1);  
+  set(handles.contextmenu_timeline_automatic_bookmark_bout,'Visible','on',...
+    'Label',s);
+  s = sprintf('Accept %s bout (%d:%d)',handles.bookmark_info.label,...
+    handles.bookmark_info.t0,handles.bookmark_info.t1);
+  set(handles.contextmenu_timeline_automatic_accept_bout,'Visible','on',...
+    'Label',s);
+else
+  set(handles.contextmenu_timeline_automatic_bookmark_bout,'Visible','off');
+  set(handles.contextmenu_timeline_automatic_accept_bout,'Visible','off');
+end
+  
+% inside the current selection?
+if t >= handles.selected_ts(1) && t <= handles.selected_ts(2),
+  s = sprintf('Bookmark selection (%d:%d)',handles.selected_ts);
+  handles.bookmark_info.t0 = min(handles.selected_ts);
+  handles.bookmark_info.t1 = max(handles.selected_ts);
+  handles.bookmark_info.labelidx = nan;
+  handles.bookmark_info.label = 'Selection';
+  set(handles.contextmenu_timeline_automatic_bookmark_selection,'Visible','on','Label',s);
+  s = sprintf('Accept selected suggested labels (%d:%d)',handles.selected_ts);
+  set(handles.contextmenu_timeline_automatic_accept_selected,'Visible','on','Label',s);  
+else
+  set(handles.contextmenu_timeline_automatic_bookmark_selection,'Visible','off');
+  set(handles.contextmenu_timeline_automatic_accept_selected,'Visible','off');
+end
+
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_accept_selected_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_accept_selected (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+t0 = handles.bookmark_info.t0;
+t1 = handles.bookmark_info.t1;
+
+t0 = min(handles.t1_curr,max(handles.t0_curr,t0));
+t1 = min(handles.t1_curr,max(handles.t0_curr,t1));
+predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+handles = SetLabelsPlot(handles,t0,t1,predictedidx);
+
+UpdatePlots(handles,...
+  'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_auto',false,...
+  'refresh_timeline_suggest',false,...
+  'refresh_timeline_error',true,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_props',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_accept_bout_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_accept_bout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
