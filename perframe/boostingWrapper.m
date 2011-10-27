@@ -19,7 +19,8 @@ modLabels = sign( (labels==1)-0.5);
 
 [~, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt);
 
-
+bagModels =[]; trainDistMat = [];
+return;
 % Do bagging.
 
 numRepeat = 2;
