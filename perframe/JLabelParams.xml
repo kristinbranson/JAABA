@@ -2,16 +2,16 @@
 
 <params>
   <behaviors 
-      names="Sharpturn"
+      names="Walk"
       labelcolors=".7,0,0,0,0,.7"
       />
   <file 
       moviefilename="movie.ufmf"
       trxfilename="registered_trx.mat"
-      labelfilename="labeledbehavior.mat"
+      labelfilename="labeledwalks.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="C:\Code\Jdetect\perframe\SharpturnPerFrameParams.xml"
+      featureparamfilename="C:\Code\Jdetect\perframe\WindowFeatures_Lots.xml"
       rootoutputdir="C:\Data\FlyBowl\Jdetect"
       />
   

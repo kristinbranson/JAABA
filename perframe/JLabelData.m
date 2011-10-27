@@ -2773,7 +2773,7 @@ classdef JLabelData < handle
       
       perframedir = obj.GetFile('perframedir',expi);
       tmp = load(fullfile(perframedir,[obj.perframefns{prop},'.mat']));
-      off = 1 - GetTrxFirstFrame(expi,flies);
+      off = 1 - obj.GetTrxFirstFrame(expi,flies);
       perframedata = tmp.data{flies(1)}(t+off);
 
     end

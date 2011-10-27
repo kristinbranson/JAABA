@@ -555,8 +555,12 @@ for i = axes,
   if refresh_curr_prop,
     for propi = 1:numel(handles.perframepropis),
       v = handles.perframepropis(propi);
-      perframedata = handles.data.GetPerFrameData1(handles.expi,handles.flies,v,handles.ts(i));
-      s = sprintf('%.3f',perframedata);
+      if handles.ts(i) < handles.t0_curr,
+        s = '';
+      else
+        perframedata = handles.data.GetPerFrameData1(handles.expi,handles.flies,v,handles.ts(i));
+        s = sprintf('%.3f',perframedata);
+      end
       set(handles.text_timeline_props(propi),'String',s);
     end
   end
@@ -2366,14 +2370,29 @@ switch eventdata.Key,
     behaviori = find(strcmp(eventdata.Key,handles.label_shortcuts),1);
     behaviori = behaviori - 1;
     if behaviori == 0,
+      if handles.label_state > 0,
+        set(handles.togglebutton_label_behaviors(handles.label_state),'Value',false);
+        togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(handles.label_state), eventdata, handles);
+        handles = guidata(hObject);
+      end
       set(handles.togglebutton_label_unknown,'Value',get(handles.togglebutton_label_unknown,'Value')==0);
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
+      return;
     else
+      if handles.label_state == -1,
+        set(handles.togglebutton_label_unknown,'Value',false);
+        togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
+        handles = guidata(hObject);
+      elseif handles.label_state > 0 && handles.label_state ~= behaviori,
+        set(handles.togglebutton_label_behaviors(handles.label_state),'Value',false);
+        togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(handles.label_state), eventdata, handles);
+        handles = guidata(hObject);
+      end
       set(handles.togglebutton_label_behaviors(behaviori),'Value',...
         get(handles.togglebutton_label_behaviors(behaviori),'Value')==0);
       togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);
+      return;
     end
-    
   case {'esc','escape'},
     if get(handles.togglebutton_label_unknown,'Value') ~= 0,
       set(handles.togglebutton_label_unknown,'Value',0);
