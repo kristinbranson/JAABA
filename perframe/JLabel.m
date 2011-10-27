@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 25-Oct-2011 04:18:46
+% Last Modified by GUIDE v2.5 27-Oct-2011 10:41:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -260,6 +260,9 @@ handles.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
 handles.htimeline_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.suggestcolor,'HitTest','off','Linewidth',5);
 
+handles.menu_view_zoom_options = setdiff(findall(handles.menu_view_zoom,'Type','uimenu'),...
+  handles.menu_view_zoom);
+
 % suggest timeline
 % handles.himage_timeline_suggest = image(zeros([1,1,3]),'Parent',handles.axes_timeline_suggest);
 % set(handles.himage_timeline_suggest,'HitTest','off');
@@ -492,8 +495,10 @@ for i = axes,
       end
     end
     
-    if handles.zoom_fly,
+    if strcmpi(handles.preview_zoom_mode,'center_on_fly'),
       ZoomInOnFlies(handles,i);
+    elseif strcmpi(handles.preview_zoom_mode,'follow_fly'),
+      KeepFliesInView(handles,i);
     end    
   end
 
@@ -1370,8 +1375,10 @@ handles.timeline_data_ylims = nan(2,numel(handles.data.perframefns));
 handles.max_click_dist_preview = .025^2;
 
 % zoom state
-handles.zoom_fly = true;
+handles.preview_zoom_mode = 'center_on_fly';
 handles.zoom_fly_radius = nan(1,2);
+handles.menu_view_zoom_options = findall(handles.menu_view_zoom,'Type','menu');
+set(handles.menu_view_zoom_options,'Checked','off');
 set(handles.menu_view_zoom_in_on_fly,'Checked','on');
 
 % last clicked object
@@ -2251,15 +2258,10 @@ function menu_view_zoom_in_on_fly_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.zoom_fly = ~handles.zoom_fly;
-if handles.zoom_fly,
-  set(hObject,'Checked','on');
-else
-  set(hObject,'Checked','off');
-end
-if handles.zoom_fly,
-  ZoomInOnFlies(handles);
-end
+handles.preview_zoom_mode = 'center_on_fly';
+set(setdiff(handles.menu_view_zoom_options,hObject),'Checked','off');
+set(hObject,'Checked','on');
+ZoomInOnFlies(handles);
 guidata(hObject,handles);
 
 function ZoomInOnFlies(handles,is)
@@ -2294,6 +2296,49 @@ for i = is,
   end
 end
 
+function KeepFliesInView(handles,is)
+
+% WARNING: this function accesses handles.data.trx directly -- this requires
+% the correct experiment to be loaded
+% REMOVED!
+
+if nargin < 2,
+  is = 1:numel(handles.axes_previews);
+end
+
+xs = nan(1,numel(handles.flies));
+ys = nan(1,numel(handles.flies));
+for i = is,
+  firstframes = handles.data.firstframes_per_exp{handles.expi}(handles.flies);
+  endframes = handles.data.endframes_per_exp{handles.expi}(handles.flies);
+  %inds = handles.ts(i)-firstframes+1;
+  for j = 1:numel(handles.flies),
+    if handles.ts(i) < firstframes(j) || handles.ts(i) > endframes(j),
+      continue;
+    end
+    xs(j) = handles.data.GetTrxX1(handles.expi,handles.flies(j),handles.ts(i));
+    ys(j) = handles.data.GetTrxY1(handles.expi,handles.flies(j),handles.ts(i));
+    %xs(j) = handles.data.trx(handles.flies(j)).x(inds(j));
+    %ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
+  end
+  xlim = get(handles.axes_previews(i),'XLim');
+  % a little border at the edge of the image
+  border = .1;
+  dx = diff(xlim);
+  xlim(1) = xlim(1) + dx*border;
+  xlim(2) = xlim(2) - dx*border;
+  ylim = get(handles.axes_previews(i),'YLim');
+  dy = diff(ylim);
+  ylim(1) = ylim(1) + dy*border;
+  ylim(2) = ylim(2) - dy*border;
+  if min(xs) < xlim(1) || min(ys) < ylim(1) || ...
+      max(xs) > xlim(2) || max(ys) > ylim(2),
+    % center on flies
+    newxlim = [max([.5,xs-handles.zoom_fly_radius(1)]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius(1)])];
+    newylim = [max([.5,ys-handles.zoom_fly_radius(2)]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius(2)])];
+    set(handles.axes_previews(i),'XLim',newxlim,'YLim',newylim);    
+  end
+end
 
 % --------------------------------------------------------------------
 function menu_file_save_labels_Callback(hObject, eventdata, handles)
@@ -2349,6 +2394,8 @@ switch eventdata.Key,
   case 'leftarrow',
     if strcmpi(eventdata.Modifier,'control'),
       menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
+    elseif strcmpi(eventdata.Modifier,'shift'),
+      menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
     else
       menu_go_previous_frame_Callback(hObject, eventdata, handles);
     end
@@ -2356,6 +2403,8 @@ switch eventdata.Key,
   case 'rightarrow',
     if strcmpi(eventdata.Modifier,'control'),
       menu_go_next_bout_start_Callback(hObject,eventdata,handles);
+    elseif strcmpi(eventdata.Modifier,'shift'),
+      menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
     else
       menu_go_next_frame_Callback(hObject, eventdata, handles);
     end
@@ -3545,7 +3594,7 @@ fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
 
 clip.expi = handles.expi;
 clip.flies = handles.flies;
-clip.zoom_fly = handles.zoom_fly;
+clip.preview_zoom_mode = handles.preview_zoom_mode;
 axesi = 1;
 clip.xlim = get(handles.axes_previews(axesi),'XLim');
 clip.ylim = get(handles.axes_previews(axesi),'YLim');
@@ -3613,3 +3662,84 @@ function s = GetTargetInfo(handles,fly)
   s{i} = sprintf('Frames: %d-%d',firstframe,endframe);
   i = i + 1;
   s{i} = sprintf(handles.data.expnames{handles.expi});
+
+
+% --------------------------------------------------------------------
+function menu_go_next_automatic_bout_start_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_next_automatic_bout_start (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+if handles.ts(axesi) >= handles.t1_curr,
+  return;
+end
+t0 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
+predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,handles.t1_curr);
+j = find(predictedidx ~= predictedidx(1),1);
+if isempty(j),
+  return;
+end
+k = find(ismember(predictedidx(j:end),handles.seek_behaviors_go),1);
+if isempty(k),
+  return;
+end
+t = handles.ts(axesi) + j - 1 + k - 1;
+SetCurrentFrame(handles,axesi,t,hObject);
+
+% --------------------------------------------------------------------
+function menu_go_previous_automatic_bout_end_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_previous_automatic_bout_end (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% TODO: make this work with multiple preview axes
+axesi = 1;
+if handles.t0_curr >= handles.ts(axesi),
+  return;
+end
+t1 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
+predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.t0_curr,t1);
+j = find(predictedidx ~= predictedidx(end),1,'last');
+if isempty(j),
+  return;
+end
+k = find(ismember(predictedidx(1:j),handles.seek_behaviors_go),1,'last');
+if isempty(k),
+  return;
+end
+t = handles.t0_curr + k - 1;
+SetCurrentFrame(handles,axesi,t,hObject);
+
+
+% --------------------------------------------------------------------
+function menu_view_zoom_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_zoom (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_view_zoom_keep_target_in_view_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_zoom_keep_target_in_view (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.preview_zoom_mode = 'follow_fly';
+set(setdiff(handles.menu_view_zoom_options,hObject),'Checked','off');
+set(hObject,'Checked','on');
+KeepFliesInView(handles);
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function menu_view_zoom_static_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_zoom_static (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.preview_zoom_mode = 'static';
+set(setdiff(handles.menu_view_zoom_options,hObject),'Checked','off');
+set(hObject,'Checked','on');
+guidata(hObject,handles);
