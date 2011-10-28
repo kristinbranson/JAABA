@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 27-Oct-2011 13:29:13
+% Last Modified by GUIDE v2.5 28-Oct-2011 16:03:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -166,16 +166,19 @@ for i = 1:numel(handles.axes_previews),
   % image in axes_preview
   handles.himage_previews(i) = imagesc(0,'Parent',handles.axes_previews(i),[0,255]);
   set(handles.himage_previews(i),'HitTest','off');
-  axis(handles.axes_previews(i),'image');
+  axis(handles.axes_previews(i),'equal');
   
   set(handles.axes_previews(i),'ButtonDownFcn',@(hObject,eventdata) JLabel('axes_preview_ButtonDownFcn',hObject,eventdata,guidata(hObject)));
   hold(handles.axes_previews(i),'on');
 
   % labeled behaviors
   handles.hlabels = nan(1,handles.data.nbehaviors);
+  handles.hpredicted = nan(1,handles.data.nbehaviors);
   handles.hlabelstarts = nan(1,handles.data.nbehaviors);
   for j = 1:handles.data.nbehaviors,
     handles.hlabels(j) = plot(handles.axes_previews(i),nan,nan,'-',...
+      'color',handles.labelcolors(j,:),'linewidth',5,'HitTest','off');
+    handles.hpredicted(j) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.labelcolors(j,:),'linewidth',5,'HitTest','off');
     % start of label
     handles.hlabelstarts(j) = plot(handles.axes_previews(i),nan,nan,'v',...
@@ -184,6 +187,17 @@ for i = 1:numel(handles.axes_previews),
     
     set(handles.axes_previews(i),'Color','k','XColor','w','YColor','w');
     
+  end
+  
+  if handles.plot_labels_manual,
+    set(handles.hlabels,'Visible','on');
+  else
+    set(handles.hlabels,'Visible','off');
+  end
+  if handles.plot_labels_automatic,
+    set(handles.hpredicted,'Visible','on');
+  else
+    set(handles.hpredicted,'Visible','off');
   end
   
   % current label plotted on axes
@@ -227,7 +241,12 @@ ylim = [.5,1.5];
 ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
 handles.htimeline_label_curr = patch(nan(1,5),ydata([1,2,2,1,1]),'k',...
   'Parent',handles.axes_timeline_manual,'LineStyle','--','EdgeColor','w',...
-  'HitTest','off','Linewidth',3);
+  'HitTest','off','Linewidth',3,'Clipping','on');
+if handles.plot_labels_manual,
+  set(handles.timeline_label_manual,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.timeline_label_manual,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
 
 set(handles.axes_timeline_manual,'YTick',[]);
 setAxesZoomMotion(handles.hzoom,handles.axes_timeline_manual,'horizontal');
@@ -243,6 +262,11 @@ handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','Hi
 set(handles.axes_timeline_auto,'YTick',[]);
 setAxesZoomMotion(handles.hzoom,handles.axes_timeline_auto,'horizontal');
 setAllowAxesPan(handles.hpan,handles.axes_timeline_auto,false);
+if handles.plot_labels_automatic,
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
 
 for h = handles.axes_timeline_labels,
   set(h,'YLim',[.5,1.5]);
@@ -454,8 +478,10 @@ for i = axes,
       labelidx = [];
     elseif handles.label_state ~= 0,
       labelidx = handles.label_state;
-    else
+    elseif handles.plot_labels_manual,
       labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
+    elseif handles.plot_labels_automatic,
+      labelidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
     end
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
@@ -537,6 +563,8 @@ for i = axes,
       for j = 1:handles.data.nbehaviors,
         set(handles.hlabels(j),'XData',handles.labels_plot.x(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k),...
           'YData',handles.labels_plot.y(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k));
+        set(handles.hpredicted(j),'XData',handles.labels_plot.predx(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k),...
+          'YData',handles.labels_plot.predy(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k));
       end
       if handles.label_state ~= 0,
         ts = sort([handles.label_t0,handles.ts(1)]);
@@ -560,7 +588,7 @@ for i = axes,
   if refresh_curr_prop,
     for propi = 1:numel(handles.perframepropis),
       v = handles.perframepropis(propi);
-      if handles.ts(i) < handles.t0_curr,
+      if handles.ts(i) < handles.t0_curr || handles.ts(i) > handles.t1_curr,
         s = '';
       else
         perframedata = handles.data.GetPerFrameData1(handles.expi,handles.flies,v,handles.ts(i));
@@ -785,6 +813,8 @@ handles.labels_plot.error_xs = nan;
 %handles.labels_plot.error_im = zeros([1,n,3]);
 handles.labels_plot.x = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot.y = nan(n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.predx = nan(n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.predy = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot_off = 1-handles.t0_curr;
 % set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
 %   handles.himage_timeline_error,handles.himage_timeline_suggest],...
@@ -793,16 +823,20 @@ set([handles.himage_timeline_manual,handles.himage_timeline_auto],...
   'XData',[handles.t0_curr,handles.t1_curr]);
 
 labelidx = handles.data.GetLabelIdx(handles.expi,flies);
+predictedidx = handles.data.GetPredictedIdx(handles.expi,flies);
 for flyi = 1:numel(flies),
   fly = flies(flyi);
-  x = handles.data.GetTrxX(handles.expi,fly,handles.t0_curr:handles.t1_curr);
-  y = handles.data.GetTrxY(handles.expi,fly,handles.t0_curr:handles.t1_curr);
+  x = handles.data.GetTrxX1(handles.expi,fly,handles.t0_curr:handles.t1_curr);
+  y = handles.data.GetTrxY1(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
     % WARNING: accesses labelidx
     % REMOVED!
     idx = labelidx == behaviori;
-    handles.labels_plot.x(idx,behaviori,flyi) = x{1}(idx);
-    handles.labels_plot.y(idx,behaviori,flyi) = y{1}(idx);
+    handles.labels_plot.x(idx,behaviori,flyi) = x(idx);
+    handles.labels_plot.y(idx,behaviori,flyi) = y(idx);
+    idx = predictedidx == behaviori;
+    handles.labels_plot.predx(idx,behaviori,flyi) = x(idx);
+    handles.labels_plot.predy(idx,behaviori,flyi) = y(idx);
   end
 end
 handles = UpdateTimelineIms(handles);
@@ -1353,6 +1387,10 @@ handles.suggestcolor = [0,.7,.7];
 handles.selection_color = [1,.6,0];
 handles.selection_alpha = .5;
 
+% color for showing which labels are being plotted
+handles.emphasiscolor = [.7,.7,0];
+handles.unemphasiscolor = [1,1,1];
+
 % create buttons for each label
 handles = CreateLabelButtons(handles);
 
@@ -1416,6 +1454,12 @@ set(handles.menu_view_plottracks,'Checked','on');
 
 % bookmarked clips windows
 handles.bookmark_windows = [];
+
+% whether to plot manual labels or automatic labels
+handles.plot_labels_manual = true;
+handles.plot_labels_automatic = false;
+set(handles.menu_view_plot_labels_manual,'Checked','on');
+set(handles.menu_view_plot_labels_automatic,'Checked','off');
 
 function SetJumpGoMenuLabels(handles)
 
@@ -1910,6 +1954,35 @@ handles = UpdateErrors(handles);
 guidata(handles.figure_JLabel,handles);
 
 
+function handles = SetPredictedPlot(handles,t0,t1,behavioris)
+
+if nargin < 2,
+  [behavioris,~,t0,t1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+elseif nargin < 4,
+  behavioris = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+end
+
+handles.labels_plot.predx(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.predy(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+
+for behaviori = 1:handles.data.nbehaviors,
+
+  bidx = find(behaviori == behavioris);
+  if isempty(bidx),
+    continue;
+  end
+  for l = 1:numel(handles.flies),
+    ks = t0-1+handles.labels_plot_off+bidx;
+    handles.labels_plot.predx(ks,behaviori,l) = ...
+      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
+    handles.labels_plot.predy(ks,behaviori,l) = ...
+      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+  end
+  
+end
+
+guidata(handles.figure_JLabel,handles);
+
 % --- Executes on button press in togglebutton_label_unknown.
 function togglebutton_label_unknown_Callback(hObject, eventdata, handles)
 % hObject    handle to togglebutton_label_unknown (see GCBO)
@@ -2128,6 +2201,7 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 % store the current labels to windowdata_labeled
 handles.data.StoreLabels();
 handles.data.Train();
+handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
 guidata(hObject,handles);
@@ -2139,9 +2213,12 @@ function handles = UpdatePrediction(handles)
 t0 = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
 t1 = min(handles.t1_curr,ceil(handles.ts(1)+handles.timeline_nframes/2));
 handles.data.Predict(handles.expi,handles.flies,t0:t1);
+handles = SetPredictedPlot(handles,t0,t1);
+
 handles = UpdateTimelineIms(handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',false,...
-  'refreshtrx',false,'refreshlabels',false,...
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',false,...
   'refresh_timeline_xlim',false,...
   'refresh_timeline_hcurr',false,...
@@ -3364,7 +3441,6 @@ end
 handles.buttondown_axes = nan;
 handles.selection_t0 = nan;
 handles.selection_t1 = nan;
-disp('bye');
 guidata(hObject,handles);
 
 function UpdateSelection(handles)
@@ -3944,3 +4020,67 @@ function contextmenu_timeline_automatic_accept_bout_Callback(hObject, eventdata,
 % hObject    handle to contextmenu_timeline_automatic_accept_bout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_view_plot_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plot_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_view_plot_labels_manual_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plot_labels_manual (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.plot_labels_manual = true;
+handles.plot_labels_automatic = false;
+UpdatePlotLabels(handles);
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plot_labels_automatic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.plot_labels_manual = false;
+handles.plot_labels_automatic = true;
+UpdatePlotLabels(handles);
+guidata(hObject,handles);
+
+function UpdatePlotLabels(handles)
+
+if handles.plot_labels_manual,
+  set(handles.hlabels,'Visible','on');
+  set(handles.menu_view_plot_labels_manual,'Checked','on');
+  set(handles.timeline_label_manual,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.hlabels,'Visible','off');
+  set(handles.menu_view_plot_labels_manual,'Checked','off');
+  set(handles.menu_view_plot_labels_manual,'Checked','off');
+  set(handles.timeline_label_manual,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
+if handles.plot_labels_automatic,
+  set(handles.hpredicted,'Visible','on');
+  set(handles.menu_view_plot_labels_automatic,'Checked','on');
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.hpredicted,'Visible','off');
+  set(handles.menu_view_plot_labels_automatic,'Checked','off');
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
+
+UpdatePlots(handles,...
+  'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_auto',false,...
+  'refresh_timeline_suggest',false,...
+  'refresh_timeline_error',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_props',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);

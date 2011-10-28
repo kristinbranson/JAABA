@@ -2767,7 +2767,14 @@ classdef JLabelData < handle
 %       end
       
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
-        perframedata = obj.perframedata{prop}(t-obj.t0_curr+1);
+        is = t-obj.t0_curr+1;
+        badidx = is > numel(obj.perframedata{prop});
+        if any(badidx),
+          perframedata = nan(size(is));
+          perframedata(~badidx) = obj.perframedata{prop}(is(~badidx));
+        else
+          perframedata = obj.perframedata{prop}(is);
+        end
         return;
       end
       
