@@ -3504,6 +3504,16 @@ classdef JLabelData < handle
             obj.windowdata.predicted_probs(idxcurr,:)] = ...
             fernsClfApply(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.isvalidprediction(idxcurr) = true;
+
+          s = exp(obj.windowdata.predicted_probs);
+          s = bsxfun(@rdivide,s,sum(s,2));
+          scores = max(s,[],2);
+          idxcurr1 = find(idxcurr);
+          idx0 = obj.windowdata.predicted(idxcurr) == 1;
+          idx1 = obj.windowdata.predicted(idxcurr) > 1;
+          obj.windowdata.scores(idxcurr1(idx1)) = -scores(idx1);
+          obj.windowdata.scores(idxcurr1(idx0)) = scores(idx0);
+          
           obj.ClearStatus();
         case 'boosting',
           obj.SetStatus('Applying boosting classifier to %d windows',nnz(idxcurr));
