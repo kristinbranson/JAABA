@@ -3148,32 +3148,52 @@ classdef JLabelData < handle
             end
           end
           
-        case 'boosting',
-            obj.SetStatus('Training boosting classifier from %d examples...',numel(islabeled));
+          obj.windowdata.isvalidprediction(:) = false;
+          obj.windowdata.scoreNorm = [];
 
-            s = struct2paramscell(obj.classifier_params);
-            [obj.classifier obj.bagModels obj.distMat] = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
-            obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
-
-            % To later find out where each example came from.
-            obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
-            obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
-            obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
-            obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
+          % predict for all window data
+          obj.PredictLoaded();
           
+        case 'boosting',
+          obj.SetStatus('Training boosting classifier from %d examples...',numel(islabeled));
+          
+          s = struct2paramscell(obj.classifier_params);
+          tClassify = tic;
+          [obj.classifier obj.bagModels obj.distMat outScores] = ...
+            boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled),obj);
+          obj.SetStatus('Time to train...',toc(tClassify));
+          obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
+          
+          % To later find out where each example came from.
+          obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
+          obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
+          obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
+          obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
+
+          obj.windowdata.predicted = zeros(1,numel(islabeled));
+          obj.windowdata.predicted(islabeled) = -sign(outScores)*0.5+1.5;
+          
+          normScores = abs(outScores);
+          prc = prctile(normScores,70);
+          outScores(outScores>prc) = prc;
+          outScores(outScores<-prc) = -prc;
+          outScores = outScores/prc;
+
+          obj.windowdata.scoreNorm = prc;
+          obj.windowdata.scores = zeros(1,numel(islabeled));
+          obj.windowdata.scores(islabeled) = outScores;
+          obj.windowdata.isvalidprediction(islabeled) = true;
+          obj.windowdata.isvalidprediction(~islabeled) = false;
+          
+          obj.PredictLoaded();
       end
 
       obj.ClearStatus();
       
       % all predictions invalid now
-      obj.windowdata.isvalidprediction(:) = false;
-      obj.windowdata.scoreNorm = [];
-      
-      % predict for all window data
-      obj.PredictLoaded();
       
     end
-    
+     
     function InitSimilarFrames(obj)
       obj.frameFig = showSimilarFrames;
       showSimilarFrames('SetJLabelData',obj.frameFig,obj);
@@ -3330,16 +3350,16 @@ classdef JLabelData < handle
           obj.windowdata.scores(idx0) = scores(idx0);
           obj.ClearStatus();
         case 'boosting',
-          obj.SetStatus('Applying boosting classifier to %d windows',size(obj.windowdata.X,1));
-          scores = myBoostClassify(obj.windowdata.X,obj.classifier);
-          obj.windowdata.predicted = -sign(scores)*0.5+1.5;
-          normScores = abs(scores);
-          prc = prctile(normScores,70);
+          
+          toPredict = ~obj.windowdata.isvalidprediction;
+          obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
+          scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
+          obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
+          prc = obj.windowdata.scoreNorm;
           scores(scores>prc) = prc;
           scores(scores<-prc) = -prc;
-          obj.windowdata.scoreNorm = prc;
-          obj.windowdata.scores = scores/prc;
-          obj.windowdata.isvalidprediction(:) = true;
+          obj.windowdata.scores(toPredict) = scores/prc;
+          obj.windowdata.isvalidprediction(toPredict) = true;
           obj.ClearStatus();
           
       end

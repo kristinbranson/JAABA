@@ -1,4 +1,4 @@
-function [scores model] = loglossboostLearnMod(data,labels,numIters,initWt)
+function [scores model] = loglossboostLearnMod(data,labels,numIters,initWt,obj)
 
 numEx = size(data,1);
 if(nargin<4)
@@ -12,16 +12,17 @@ scores = zeros(numEx,1);
 [binVals bins] = findThresholds(data);
 
 for itt = 1:numIters
-  wkRule = findWeakRule(data,labels,wt,binVals,bins);
+  wkRule = findWeakRuleSamples(data,labels,wt,binVals,bins);
   wkRule.alpha = 1-2*wkRule.error;
   model(itt) = wkRule;
   scores = myBoostClassify(data,model(1:itt));
   tt = scores.*labels;
   wt = initWt./(1+exp(tt));
   wt = wt./sum(wt);
-  fprintf('%0.3f ',wkRule.alpha);
-  if(mod(itt,15)==0); fprintf(' %d\n',itt); end
+  if(mod(itt,10)==0)  
+    obj.SetStatus('%d%% training done.. ',round(itt/numIters*100)); 
+    drawnow();
+  end
 end
-fprintf('\n');
 end
 

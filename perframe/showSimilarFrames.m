@@ -145,12 +145,16 @@ for expNum = exps
   trxfile = handles.JLDobj.GetFile('trx',expNum);
   trx = load_tracks(trxfile);
   
+  handles.firstframe{expNum} = [trx.firstframe];
+  handles.endframe{expNum} = [trx.endframe];
+
   % Get labels. Store only those parts of tracks that have been labeled.
   for curFly = 1:length(trx)
     labels = handles.JLDobj.GetLabels(expNum,curFly);
     for curNdx = 1:length(labels.t0s)
-      curblockStart = floor( (labels.t0s(curNdx)-off)/blk)+1;
-      curblockEnd = ceil( (labels.t1s(curNdx)+off)/blk);
+      trxOffset = handles.firstframe{expNum}(curFly);
+      curblockStart = floor( (labels.t0s(curNdx)-off-trxOffset+1)/blk)+1;
+      curblockEnd = ceil( (labels.t1s(curNdx)+off-trxOffset+1)/blk);
       for curBlk = curblockStart:curblockEnd
         idStr = sprintf('%d_%d_%d',expNum,curFly,curBlk);
         if ~isKey(handles.cache,idStr),
@@ -177,15 +181,20 @@ function CacheTracks(hObject,expNum,curFly,t0,t1)
 handles = guidata(hObject);
 blk = handles.tsize;
 off = handles.maxFrames;
-curblockStart = floor( (t0-off)/blk)+1;
-curblockEnd = ceil( (t1+off)/blk);
 trxfile = handles.JLDobj.GetFile('trx',expNum);
 trx = load_tracks(trxfile);
+
+handles.firstframe{exp} = [trx.firstframe];
+handles.endframe{exp} = [trx.endframe];
+trxOffset = handles.firstframe{curExp}(curFly);
+curblockStart = floor( (t0-off-trxOffset+1)/blk)+1;
+curblockEnd = ceil( (t1+off-trxOffset+1)/blk);
+
 for curBlk = curblockStart:curblockEnd
   idStr = sprintf('%d_%d_%d',expNum,curFly,curBlk);
   if ~isKey(handles.cache,idStr),
     tSlice = ((curBlk-1)*blk+1):(curBlk*blk);
-    tSliceValid = tSlice >= trx(curFly).firstframe & tSlice<=trx(curFly).endframe;
+    tSliceValid = tSlice >= 1 & tSlice<=(trx(curFly).endframe-trxOffset+1);
     trax = [];
     trax.X = nan(1,length(tSlice));
     trax.Y = nan(1,length(tSlice));
@@ -387,11 +396,13 @@ function im = getRotatedFrame(handles,curFrame)
 
   
   for offset = -handles.maxFrames:handles.maxFrames
-    if curTime+offset<1 || curTime+offset>pointer.movieheaderinfo.nframes
+    if curTime+offset<handles.firstframe{curExp}(curFly) || ...
+        curTime+offset>handles.endframe{curExp}(curFly)
       tt(sz+1:end-sz,sz+1:end-sz,1) = ...
         zeros(pointer.movieheaderinfo.nr,pointer.movieheaderinfo.nc);
     else
-      tt(sz+1:end-sz,sz+1:end-sz,1) = pointer.readframe(curTime+offset);
+      tt(sz+1:end-sz,sz+1:end-sz,1) = ...
+        pointer.readframe(curTime+offset);
     end
     timg = tt(bBoxY,bBoxX,:);
     rotI = imrotate(timg,curA*180/pi-90,'bilinear','crop');
@@ -405,9 +416,10 @@ function trx = readCache(handles,expNum,flyNum,curT)
 
   blk = handles.tsize;
   sz = handles.maxFrames;
-  blkNumStart = floor( (curT-sz)/blk)+1;
-  blkNumEnd = ceil( (curT+sz)/blk);
-  off = curT - (blkNumStart-1)*blk - sz;
+  trxOffset = handles.firstframe{expNum}(flyNum);
+  blkNumStart = floor( (curT-sz-trxOffset+1)/blk)+1;
+  blkNumEnd = ceil( (curT+sz-trxOffset+1)/blk);
+  off = curT-trxOffset+1 - (blkNumStart-1)*blk - sz;
   trx.X = []; trx.Y = []; trx.theta = []; trx.maj = []; trx.min = [];
   for curBlk = blkNumStart:blkNumEnd
     idStr = sprintf('%d_%d_%d',expNum,flyNum,curBlk);

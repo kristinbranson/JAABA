@@ -17,7 +17,7 @@ parfor dim = 1:numDim
   numBins = size(binVals,1)+1;
   binNdx =  bins(:,dim)+numBins*(labels>0);
   allCount = zeros(1,numBins*2);
-  for count=1:68; 
+  for count=1:2*numBins; 
     allCount(count) = sum(dist(binNdx==count)); 
   end; 
   posCount = allCount(numBins+1:end);
