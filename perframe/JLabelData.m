@@ -1780,6 +1780,11 @@ classdef JLabelData < handle
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
+              [success1,msg1] = obj.GeneratePerFrameFiles(expi);
+              success = success && success1;
+              if ~success1,
+                msg = [msg,'\n',msg1]; %#ok<AGROW>
+              end
           end
         end
       end
@@ -1789,6 +1794,41 @@ classdef JLabelData < handle
         msg = msg1;
       else
         msg = sprintf('%s\n%s',msg,msg1);
+      end
+      
+    end
+    
+    function [success,msg] = GeneratePerFrameFiles(obj,expi)
+      success = false;
+      msg = '';
+      
+      perframedir = obj.GetFile('perframedir',expi);
+      if exist(perframedir,'dir'),
+        res = questdlg('Do you want to overwrite existing files or keep them?',...
+          'Regenerate files?','Overwrite','Keep','Keep');
+        dooverwrite = strcmpi(res,'Overwrite');
+        expdir = fileparts(perframedir);
+      else
+        dooverwrite = true;
+        expdir = obj.outexpdirs{expi};
+      end
+      
+      perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
+        'moviefilestr',obj.GetFileName('movie'),...
+        'perframedir',obj.GetFileName('perframedir'),...
+        'landmark_params',obj.landmark_params,...
+        'perframe_params',obj.perframe_params);
+      
+      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
+      
+      for i = 1:numel(obj.perframefns),
+        fn = obj.perframefns{i};
+        file = fullfile(perframedir,[fn,'.mat']);
+        if ~dooverwrite && exist(file,'file'),
+          continue;
+        end
+          
+          
       end
       
     end
