@@ -86,6 +86,10 @@ classdef JLabelData < handle
     labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
       'datestr',{});
     
+    % computing per-frame properties
+    perframe_params = {};
+    landmark_params = {};
+    
     % classifier
     
     % type of classifier to use
@@ -466,6 +470,14 @@ classdef JLabelData < handle
           [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
           if ~success1,
             return;
+          end
+        end
+        if isfield(configparams,'perframe'),
+          if isfield(configparams.perframe,'params'),
+            obj.perframe_params = struct2paramscell(configparams.perframe.params);
+          end
+          if isfield(configparams.perframe,'landmark_params'),
+            obj.landmark_params = struct2paramscell(configparams.perframe.landmark_params);
           end
         end
       end
@@ -1799,7 +1811,7 @@ classdef JLabelData < handle
     end
     
     function [success,msg] = GeneratePerFrameFiles(obj,expi)
-      success = false;
+      success = false; %#ok<NASGU>
       msg = '';
       
       perframedir = obj.GetFile('perframedir',expi);
@@ -1813,6 +1825,8 @@ classdef JLabelData < handle
         expdir = obj.outexpdirs{expi};
       end
       
+      hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir));
+
       perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
         'moviefilestr',obj.GetFileName('movie'),...
         'perframedir',obj.GetFileName('perframedir'),...
@@ -1827,9 +1841,16 @@ classdef JLabelData < handle
         if ~dooverwrite && exist(file,'file'),
           continue;
         end
-          
+        hwait = mywaitbar(i/numel(obj.perframefns),sprintf('Computing %s and saving to file %s',fn,file));
+        perframetrx.(fn);
           
       end
+      
+      if ishandle(hwait),
+        delete(hwait);
+      end
+      
+      success = true;
       
     end
   
