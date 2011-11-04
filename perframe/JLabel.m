@@ -1655,7 +1655,7 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
 if isfield(handles,'movie_fid') && ~isempty(handles.movie_fid) && ...
-    ~isempty(fopen(handles.movie_fid)),
+    handles.movie_fid > 1 && ~isempty(fopen(handles.movie_fid)),
   fclose(handles.movie_fid);
   handles.movie_fid = [];
 end
