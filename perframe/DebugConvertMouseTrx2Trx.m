@@ -25,13 +25,13 @@ end
 inmoviename = fullfile(indatadir,inmoviefilestr);
 outmoviename = fullfile(outexpdir,outmoviefilestr);
 if ~exist(outmoviename,'file'),
-  unix(sprintf('ln -s %s %s',inmoviename,outmoviename));
+  unix(sprintf('ln -s "%s" %s',inmoviename,outmoviename));
 end
 
 inmoviename2 = fullfile(indatadir,inmoviefilestr2);
 outmoviename2 = fullfile(outexpdir,outmoviefilestr2);
 if ~exist(outmoviename2,'file'),
-  unix(sprintf('ln -s %s %s',inmoviename2,outmoviename2));
+  unix(sprintf('ln -s "%s" %s',inmoviename2,outmoviename2));
 end
 
 
