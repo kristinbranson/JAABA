@@ -2458,6 +2458,33 @@ classdef JLabelData < handle
 
     end
 
+    % x = GetSex1(obj,expi,fly,t)
+    % Returns the sex for the input experiment, SINGLE fly, and
+    % SINGLE frame. 
+    function sex = GetSex1(obj,expi,fly,t)
+
+      if ~obj.hassex,
+        sex = '?';
+        return;
+      end
+            
+      if ~obj.hasperframesex,
+        sex = obj.sex_per_exp{expi}(fly);
+        return;
+      end
+      
+      if expi ~= obj.expi,
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+            
+      sex = obj.trx(fly).sex{t + obj.trx(fly).off};
+
+    end
+    
     % x = GetSexFrac(obj,expi,fly)
     % Returns a struct indicating the fraction of frames for which the sex
     % of the fly is M, F
