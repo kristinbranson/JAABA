@@ -151,6 +151,7 @@ end
 
 % fly current positions
 handles.hflies = zeros(handles.nflies_curr,numel(handles.axes_previews));
+handles.hfly_markers = zeros(handles.nflies_curr,numel(handles.axes_previews));
 % fly path
 handles.htrx = zeros(handles.nflies_label,numel(handles.axes_previews));
 
@@ -216,6 +217,10 @@ for i = 1:numel(handles.axes_previews),
     handles.hflies(fly,i) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
       'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
+    handles.hfly_markers(fly,i) = plot(handles.axes_previews(i),nan,nan,'*',...
+      'color',handles.fly_colors(fly,:),'linewidth',3,...
+      'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
+      'Visible','off');
   end
 
 end
@@ -486,6 +491,7 @@ for i = axes,
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
     set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
+    set(handles.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
       % WARNING: this accesses handles.data.trx directly -- make sure that
       % handles.data.trx is loaded for the correct movie
@@ -496,6 +502,13 @@ for i = axes,
         handles.data.GetTrxPos1(handles.expi,fly,t);
       updatefly(handles.hflies(fly,i),...
         xcurr,ycurr,thetacurr,acurr,bcurr);
+      set(handles.hflies(fly,i),'XData',xcurr,'YData',ycurr);
+      sexcurr = handles.data.GetSex1(handles.expi,fly,t);
+      if lower(sexcurr(1)) == 'm',
+        set(handles.hflies(fly,i),'Visible','on');
+      else
+        set(handles.hflies(fly,i),'Visible','off');
+      end
 %       updatefly(handles.hflies(fly,i),...
 %         handles.data.GetTrxX1(handles.expi,fly,t),...
 %         handles.data.GetTrxY1(handles.expi,fly,t),...
