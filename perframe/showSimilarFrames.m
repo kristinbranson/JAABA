@@ -184,9 +184,9 @@ off = handles.maxFrames;
 trxfile = handles.JLDobj.GetFile('trx',expNum);
 trx = load_tracks(trxfile);
 
-handles.firstframe{exp} = [trx.firstframe];
-handles.endframe{exp} = [trx.endframe];
-trxOffset = handles.firstframe{curExp}(curFly);
+handles.firstframe{expNum} = [trx.firstframe];
+handles.endframe{expNum} = [trx.endframe];
+trxOffset = handles.firstframe{expNum}(curFly);
 curblockStart = floor( (t0-off-trxOffset+1)/blk)+1;
 curblockEnd = ceil( (t1+off-trxOffset+1)/blk);
 
