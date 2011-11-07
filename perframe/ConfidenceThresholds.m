@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before ConfidenceThresholds is made visible.
-function ConfidenceThresholds_OpeningFcn(hObject, eventdata, handles, varargin)
+function ConfidenceThresholds_OpeningFcn(hObject, eventdata, handles)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -78,6 +78,11 @@ handles.JLDobj = obj;
 handles.JLabelHandle = JLabelHandle;
 guidata(hObject,handles);
 
+function SetSliderColor(hObject,sliderNum,color)
+handles = guidata(hObject);
+curSlider = sprintf('slider%d',sliderNum);
+set(handles.(curSlider),'BackgroundColor',color);
+guidata(hObject,handles);
 
 % --- Executes on slider movement.
 function slider1_Callback(hObject, eventdata, handles)
@@ -89,7 +94,7 @@ function slider1_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 val = get(hObject,'Value');
 handles.JLDobj.SetConfidenceThreshold(val,1);
-JLabel('UpdatePlots',handles.JlabelHandles);
+JLabel('UpdatePrediction',handles.JLabelHandle);
 
 % --- Executes during object creation, after setting all properties.
 function slider1_CreateFcn(hObject, eventdata, handles)
@@ -113,7 +118,7 @@ function slider2_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 val = get(hObject,'Value');
 handles.JLDobj.SetConfidenceThreshold(val,2);
-JLabel('UpdatePlots',handles.JlabelHandles);
+JLabel('UpdatePrediction',handles.JLabelHandle);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -133,3 +138,9 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+val1 = get(handles.slider1,'value');
+val2 = get(handles.slider2,'value');
+handles.JLDobj.SetConfidenceThreshold(val1,1);
+handles.JLDobj.SetConfidenceThreshold(val2,1);
+JLabel('UpdatePrediction',handles.JLabelHandle);
+close(handles.figure1);

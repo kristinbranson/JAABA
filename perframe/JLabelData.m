@@ -19,7 +19,7 @@ classdef JLabelData < handle
     windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
       'labelidx_old',[],'labelidx_new',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'distNdx',[],'scores',[],'scoreNorm',[]);
+      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',[]);
     
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
@@ -2447,10 +2447,16 @@ classdef JLabelData < handle
       
     end
 
-    function SetConfidenceTreshold(obj,thresholds,ndx)
+    function SetConfidenceThreshold(obj,thresholds,ndx)
       obj.confThresholds(ndx) = thresholds;
     end
-%{    
+    
+    function thresholds = GetConfidenceThreshold(obj,ndx)
+      thresholds =obj.confThresholds(ndx) ;
+    end
+
+    
+    %{
 %     % [success,msg] = LoadTrx(obj,expi)
 %     % Load trajectories for input experiment. This should only be called by
 %     % PreLoad()!. 
@@ -3165,7 +3171,7 @@ classdef JLabelData < handle
           if isempty(obj.classifier)
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
-            [obj.binVals, obj.bins] = findThresholds(obj.windowdata.X);
+            [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
             [obj.classifier, obj.bagModels, obj.distMat, outScores] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
@@ -3184,7 +3190,8 @@ classdef JLabelData < handle
             
             [obj.classifier, outScores] = boostingUpdate(obj.windowdata.X(islabeled,:),...
                                           obj.windowdata.labelidx_new(islabeled),...
-                                          obj.classifier,obj.binVals,obj.bins(:,islabeled));
+                                          obj.classifier,obj.windowdata.binVals,...
+                                          obj.windowdata.bins(:,islabeled));
             toc;
           end
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
