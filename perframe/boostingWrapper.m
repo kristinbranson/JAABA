@@ -56,7 +56,7 @@ for numIter = 1:numRepeat
       wt(curTrainLabels~=1)=negWt;
       wt = wt./sum(wt);
 
-      [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,boostIterations,wt,obj);
+      [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,boostIterations,wt,obj,binVals,bins);
       tScores = myBoostClassify(data(curTrain{3-ndx},:),curModel);
 %       outScores(curTrain{3-ndx}) = outScores(curTrain{3-ndx}) + tScores;
       outOfBag(curTrain{ndx},count)=0;
