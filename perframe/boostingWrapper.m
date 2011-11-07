@@ -1,6 +1,6 @@
-function [allDataModel bagModels trainDistMat outScores] = boostingWrapper(data,labels,obj)
+function [allDataModel bagModels trainDistMat outScores] = boostingWrapper(data,labels,obj,binVals,bins)
 
-boostIterations = 100;
+boostIterations = 10;
 % Learn classifier with all the data.
 
 posEx = labels == 1;
@@ -17,10 +17,10 @@ wt = wt./sum(wt);
 
 modLabels = sign( (labels==1)-0.5);
 
-[outScores, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt,obj);
+[outScores, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt,obj,binVals,bins);
 
-bagModels =[]; trainDistMat = []; 
-return;
+% bagModels =[]; trainDistMat = []; 
+% return;
 % Do bagging.
 
 numRepeat = 2;
@@ -30,7 +30,7 @@ count = 1;
 outOfBag = ones(numEx,numRepeat*6);
 bagModels = {};
 
-outScores = zeros(numEx,1);
+% outScores = zeros(numEx,1);
 for numIter = 1:numRepeat
 %   rr = randperm(numEx);
   rr = 1:numEx;
@@ -58,7 +58,7 @@ for numIter = 1:numRepeat
 
       [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,boostIterations,wt,obj);
       tScores = myBoostClassify(data(curTrain{3-ndx},:),curModel);
-      outScores(curTrain{3-ndx}) = outScores(curTrain{3-ndx}) + tScores;
+%       outScores(curTrain{3-ndx}) = outScores(curTrain{3-ndx}) + tScores;
       outOfBag(curTrain{ndx},count)=0;
       bagModels{count} = curModel;
       count = count+1;
@@ -67,7 +67,7 @@ for numIter = 1:numRepeat
   
 end
 
-outScores = outScores/6;
+% outScores = outScores/6;
 % Distance matrix based on bagging.
 
 trainDistMat = zeros(numEx,length(bagModels)*length(bagModels{1}));

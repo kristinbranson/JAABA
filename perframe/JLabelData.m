@@ -216,6 +216,9 @@ classdef JLabelData < handle
     frameFig = [];
     distMat = [];
     bagModels = {};
+    binVals = [];
+    bins = [];
+    confThresholds = zeros(1,2);
     
   end
   
@@ -582,6 +585,7 @@ classdef JLabelData < handle
         obj.windowdata.labelidx_old(end+1:end+m,1) = 0;
         obj.windowdata.labelidx_new(end+1:end+m,1) = labelidx(t0-t0_labelidx+1:t1-t0_labelidx+1);
         obj.windowdata.predicted(end+1:end+m,1) = 0;
+        obj.windowdata.scores(end+1:end+m,1) = 0;
         obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
 
         % remove from missingts all ts that were computed in this chunk
@@ -2443,6 +2447,9 @@ classdef JLabelData < handle
       
     end
 
+    function SetConfidenceTreshold(obj,thresholds,ndx)
+      obj.confThresholds(ndx) = thresholds;
+    end
 %{    
 %     % [success,msg] = LoadTrx(obj,expi)
 %     % Load trajectories for input experiment. This should only be called by
@@ -3155,13 +3162,31 @@ classdef JLabelData < handle
           obj.PredictLoaded();
           
         case 'boosting',
-          obj.SetStatus('Training boosting classifier from %d examples...',numel(islabeled));
-          
-          s = struct2paramscell(obj.classifier_params);
-          tClassify = tic;
-          [obj.classifier obj.bagModels obj.distMat outScores] = ...
-            boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled),obj);
-          obj.SetStatus('Time to train...',toc(tClassify));
+          if isempty(obj.classifier)
+            obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
+
+            [obj.binVals, obj.bins] = findThresholds(obj.windowdata.X);
+            [obj.classifier, obj.bagModels, obj.distMat, outScores] =...
+                boostingWrapper( obj.windowdata.X(islabeled,:), ...
+                                 obj.windowdata.labelidx_new(islabeled),obj,...
+                                 obj.windowdata.binVals,...
+                                 obj.windowdata.bins(:,islabeled));
+            
+          else
+            tic;
+            obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
+            
+            oldBinSize = size(obj.bins,2);
+            newData = size(obj.windowdata.X,1) - size(obj.bins,2);
+            if newData>0
+              obj.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.binVals);
+            end
+            
+            [obj.classifier, outScores] = boostingUpdate(obj.windowdata.X(islabeled,:),...
+                                          obj.windowdata.labelidx_new(islabeled),...
+                                          obj.classifier,obj.binVals,obj.bins(:,islabeled));
+            toc;
+          end
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
           
           % To later find out where each example came from.
@@ -3170,7 +3195,7 @@ classdef JLabelData < handle
           obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
           obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
 
-          obj.windowdata.predicted = zeros(1,numel(islabeled));
+          obj.windowdata.predicted = zeros(numel(islabeled),1);
           obj.windowdata.predicted(islabeled) = -sign(outScores)*0.5+1.5;
           
           normScores = abs(outScores);
@@ -3180,7 +3205,7 @@ classdef JLabelData < handle
           outScores = outScores/prc;
 
           obj.windowdata.scoreNorm = prc;
-          obj.windowdata.scores = zeros(1,numel(islabeled));
+          obj.windowdata.scores = zeros(numel(islabeled),1);
           obj.windowdata.scores(islabeled) = outScores;
           obj.windowdata.isvalidprediction(islabeled) = true;
           obj.windowdata.isvalidprediction(~islabeled) = false;
