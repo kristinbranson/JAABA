@@ -19,7 +19,7 @@ classdef JLabelData < handle
     windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
       'labelidx_old',[],'labelidx_new',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'distNdx',[],'scores',[],'scoreNorm',[]);
+      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',[]);
     
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
@@ -221,6 +221,9 @@ classdef JLabelData < handle
     frameFig = [];
     distMat = [];
     bagModels = {};
+    binVals = [];
+    bins = [];
+    confThresholds = zeros(1,2);
     
   end
   
@@ -595,6 +598,7 @@ classdef JLabelData < handle
         obj.windowdata.labelidx_old(end+1:end+m,1) = 0;
         obj.windowdata.labelidx_new(end+1:end+m,1) = labelidx(t0-t0_labelidx+1:t1-t0_labelidx+1);
         obj.windowdata.predicted(end+1:end+m,1) = 0;
+        obj.windowdata.scores(end+1:end+m,1) = 0;
         obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
 
         % remove from missingts all ts that were computed in this chunk
@@ -2634,7 +2638,16 @@ classdef JLabelData < handle
       
     end
 
-%{    
+    function SetConfidenceThreshold(obj,thresholds,ndx)
+      obj.confThresholds(ndx) = thresholds;
+    end
+    
+    function thresholds = GetConfidenceThreshold(obj,ndx)
+      thresholds =obj.confThresholds(ndx) ;
+    end
+
+    
+    %{
 %     % [success,msg] = LoadTrx(obj,expi)
 %     % Load trajectories for input experiment. This should only be called by
 %     % PreLoad()!. 
@@ -3310,32 +3323,71 @@ classdef JLabelData < handle
             end
           end
           
-        case 'boosting',
-            obj.SetStatus('Training boosting classifier from %d examples...',numel(islabeled));
+          obj.windowdata.isvalidprediction(:) = false;
+          obj.windowdata.scoreNorm = [];
 
-            %s = struct2paramscell(obj.classifier_params);
-            [obj.classifier obj.bagModels obj.distMat] = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
-            obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
-
-            % To later find out where each example came from.
-            obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
-            obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
-            obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
-            obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
+          % predict for all window data
+          obj.PredictLoaded();
           
+        case 'boosting',
+          if isempty(obj.classifier)
+            obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
+
+            [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+            [obj.classifier, obj.bagModels, obj.distMat, outScores] =...
+                boostingWrapper( obj.windowdata.X(islabeled,:), ...
+                                 obj.windowdata.labelidx_new(islabeled),obj,...
+                                 obj.windowdata.binVals,...
+                                 obj.windowdata.bins(:,islabeled));
+            
+          else
+            tic;
+            obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
+            
+            oldBinSize = size(obj.windowdata.bins,2);
+            newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
+            if newData>0
+              obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
+            end
+            
+            [obj.classifier, outScores] = boostingUpdate(obj.windowdata.X(islabeled,:),...
+                                          obj.windowdata.labelidx_new(islabeled),...
+                                          obj.classifier,obj.windowdata.binVals,...
+                                          obj.windowdata.bins(:,islabeled));
+            toc;
+          end
+          obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
+          
+          % To later find out where each example came from.
+          obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
+          obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
+          obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
+          obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
+
+          obj.windowdata.predicted = zeros(numel(islabeled),1);
+          obj.windowdata.predicted(islabeled) = -sign(outScores)*0.5+1.5;
+          
+          normScores = abs(outScores);
+          prc = prctile(normScores,70);
+          outScores(outScores>prc) = prc;
+          outScores(outScores<-prc) = -prc;
+          outScores = outScores/prc;
+
+          obj.windowdata.scoreNorm = prc;
+          obj.windowdata.scores = zeros(numel(islabeled),1);
+          obj.windowdata.scores(islabeled) = outScores;
+          obj.windowdata.isvalidprediction(islabeled) = true;
+          obj.windowdata.isvalidprediction(~islabeled) = false;
+          
+          obj.PredictLoaded();
       end
 
       obj.ClearStatus();
       
       % all predictions invalid now
-      obj.windowdata.isvalidprediction(:) = false;
-      obj.windowdata.scoreNorm = [];
-      
-      % predict for all window data
-      obj.PredictLoaded();
       
     end
-    
+     
     function InitSimilarFrames(obj)
       obj.frameFig = showSimilarFrames;
       showSimilarFrames('SetJLabelData',obj.frameFig,obj);
@@ -3492,16 +3544,16 @@ classdef JLabelData < handle
           obj.windowdata.scores(idx0) = scores(idx0);
           obj.ClearStatus();
         case 'boosting',
-          obj.SetStatus('Applying boosting classifier to %d windows',size(obj.windowdata.X,1));
-          scores = myBoostClassify(obj.windowdata.X,obj.classifier);
-          obj.windowdata.predicted = -sign(scores)*0.5+1.5;
-          normScores = abs(scores);
-          prc = prctile(normScores,70);
+          
+          toPredict = ~obj.windowdata.isvalidprediction;
+          obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
+          scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
+          obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
+          prc = obj.windowdata.scoreNorm;
           scores(scores>prc) = prc;
           scores(scores<-prc) = -prc;
-          obj.windowdata.scoreNorm = prc;
-          obj.windowdata.scores = scores/prc;
-          obj.windowdata.isvalidprediction(:) = true;
+          obj.windowdata.scores(toPredict) = scores/prc;
+          obj.windowdata.isvalidprediction(toPredict) = true;
           obj.ClearStatus();
           
       end
