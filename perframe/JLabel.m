@@ -939,12 +939,14 @@ end
 handles.labels_plot.predicted_im(:) = 0;
 [predictedidx,scores]= handles.data.GetPredictedIdx(handles.expi,handles.flies);
 for behaviori = 1:handles.data.nbehaviors
-  idx = predictedidx == behaviori;
+  idxScores = (predictedidx == behaviori);
+  idxPredict = idxScores & ...
+    (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
   for channel = 1:3,
-    handles.labels_plot.predicted_im(1,idx,channel) = handles.labelcolors(behaviori,channel);
-    scoreNdx = ceil(scores(idx)*31)+32;
-    handles.labels_plot.predicted_im(2,idx,channel) = handles.scorecolor(scoreNdx,channel);
-    handles.labels_plot.predicted_im(3,idx,channel) = handles.scorecolor(scoreNdx,channel);
+    handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
+    scoreNdx = ceil(scores(idxScores)*31)+32;
+    handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel);
+    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel);
   end
 end
 [error_t0s,error_t1s] = get_interval_ends(labelidx ~= 0 & predictedidx ~= 0 & ...

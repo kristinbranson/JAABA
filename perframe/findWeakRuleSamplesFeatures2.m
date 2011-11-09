@@ -1,4 +1,4 @@
-function best = findWeakRule(data,labels,dist,binVals,bins)
+function best = findWeakRuleSamplesFeatures2(data,labels,dist,binVals,bins)
 
 numDim = size(data,2);
 
@@ -7,20 +7,28 @@ best.error = 0.5;
 best.dir = 1;
 best.tr = 0;
 
-
 curBestErr = 0.5*ones(1,numDim);
 binNo = ones(1,numDim);
 bestDir = ones(1,numDim);
 
-parfor dim = 1:numDim
-  
+numS = 2500;
+curSel = zeros(1,numS);
+cumD = cumsum(dist);
+for ndx = 1:numS
+  curSel(ndx) = sum(cumD<rand(1,1))+1;
+end
+
+curBins = bins(curSel,:);
+curLabels = labels(curSel);
+curSelDim = find(rand(1,numDim)>0.9);
+
+parfor dimNdx = 1:numel(curSelDim)
+  dim = curSelDim(dimNdx);
   numBins = size(binVals,1)+1;
-  binNdx =  bins(:,dim)+numBins*(labels>0);
-  allCount = zeros(1,numBins*2);
-  for count=1:2*numBins; 
-    allCount(count) = sum(dist(binNdx==count)); 
-  end; 
-  posCount = allCount(numBins+1:end);
+  binNdx =  curBins(:,dim)+numBins*(curLabels>0);
+  allCount = histc(binNdx,.5:(2*numBins+0.5));
+  allCount = allCount/sum(allCount);
+  posCount = allCount(numBins+1:end-1);
   negCount = allCount(1:numBins);
     
   posLeft = 0;
@@ -43,13 +51,14 @@ parfor dim = 1:numDim
     end
   end
   err = 0.5-err/2;
-  [curBestErr(dim) binNo(dim)]= min(err);
-  bestDir(dim) = dir(binNo(dim));
+  [curBestErr(dimNdx) binNo(dimNdx)]= min(err);
+  bestDir(dimNdx) = dir(binNo(dimNdx));
 end
 
-[minError minDim] = min(curBestErr);
+[minError minDimNdx] = min(curBestErr);
+minDim = curSelDim(minDimNdx);
 best.error = minError;   best.dim = minDim; 
-best.dir = bestDir(minDim);   best.tr = binVals(binNo(minDim),minDim);
+best.dir = bestDir(minDimNdx);   best.tr = binVals(binNo(minDim),minDim);
 
 end
 
