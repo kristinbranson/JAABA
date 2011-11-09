@@ -8,6 +8,7 @@ end
 
 % clear file names
 obj.expdirs(n) = [];
+obj.outexpdirs(n) = [];
 
 % clear video info
 obj.nrs(n) = [];

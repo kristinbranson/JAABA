@@ -4,6 +4,11 @@ function AddExpDir(obj,expdir,varargin)
 
 [dooverwrite] = myparse(varargin,'dooverwrite',true);
 
+% remove trailing /
+if expdir(end) == '/' || (ispc && expdir(end) == '\'),
+  expdir = expdir(1:end-1);
+end
+
 if ismember(expdir,obj.expdirs),
   obj.RemoveExpDir(expdir);
 end
@@ -12,8 +17,24 @@ obj.nexpdirs = obj.nexpdirs + 1;
 n = obj.nexpdirs;
 
 obj.expdirs{n} = expdir;
+[~,expname] = myfileparts(expdir);
+if ischar(obj.rootwritedir),
+  obj.outexpdirs{n} = fullfile(obj.rootwritedir,expname);
+  if ~exist(obj.outexpdirs{n},'dir'),
+    [success,msg,~] = mkdir(obj.rootwritedir,expname);
+    if ~success,
+      error('Could not create output write directory %s: %s',obj.outexpdirs{n},msg);
+    end
+  end
+else
+  obj.outexpdirs{n} = expdir;
+end
 
 moviename = fullfile(obj.expdirs{n},obj.moviefilestr);
+outmoviename = fullfile(obj.outexpdirs{n},obj.moviefilestr);
+if ~exist(moviename,'file') && exist(outmoviename,'file'),
+  moviename = outmoviename;
+end
 obj.movienames{n} = moviename;
 if ~exist(moviename,'file'),
   error('Movie %s does not exist',moviename);
@@ -34,7 +55,12 @@ end
 obj.movie_nframes(n) = nframes;
 
 % read trajectories
-obj.trxfiles{n} = fullfile(obj.expdirs{n},obj.trxfilestr);
+trxfilename = fullfile(obj.expdirs{n},obj.trxfilestr);
+outtrxfilename = fullfile(obj.outexpdirs{n},obj.trxfilestr);
+if ~exist(trxfilename,'file') && exist(outtrxfilename,'file'),
+  trxfilename = outtrxfilename;
+end
+obj.trxfiles{n} = trxfilename;
 if ~exist(obj.trxfiles{n},'file'),
   error('Trajectory file %s does not exist',obj.trxfiles{n});
 end

@@ -57,10 +57,14 @@ classdef Trx < handle
     moviefilestr = 'movie.ufmf';
 
     %% data locations
+        
+    % there may be two directories for the data
+    rootwritedir = 0;
     
     % names of the experiment directories
     expdirs = {};
-    
+    outexpdirs = {};
+
     % names of mat files containing registered, processed trajectories,
     % with sex classified
     trxfiles = {};
