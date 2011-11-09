@@ -502,12 +502,12 @@ for i = axes,
         handles.data.GetTrxPos1(handles.expi,fly,t);
       updatefly(handles.hflies(fly,i),...
         xcurr,ycurr,thetacurr,acurr,bcurr);
-      set(handles.hflies(fly,i),'XData',xcurr,'YData',ycurr);
+      set(handles.hfly_markers(fly,i),'XData',xcurr,'YData',ycurr);
       sexcurr = handles.data.GetSex1(handles.expi,fly,t);
       if lower(sexcurr(1)) == 'm',
-        set(handles.hflies(fly,i),'Visible','on');
+        set(handles.hfly_markers(fly,i),'Visible','on');
       else
-        set(handles.hflies(fly,i),'Visible','off');
+        set(handles.hfly_markers(fly,i),'Visible','off');
       end
 %       updatefly(handles.hflies(fly,i),...
 %         handles.data.GetTrxX1(handles.expi,fly,t),...
@@ -691,15 +691,24 @@ if isfield(handles,'hflies'),
   delete(handles.hflies(ishandle(handles.hflies)));
   handles.hflies = [];
 end
+if isfield(handles,'hfly_markers'),
+  delete(handles.hfly_markers(ishandle(handles.hfly_markers)));
+  handles.hfly_markers = [];
+end
 
 % update plotted trx handles, as number of flies will change
 handles.hflies = zeros(handles.nflies_curr,numel(handles.axes_previews));
+handles.hfly_markers = zeros(handles.nflies_curr,numel(handles.axes_previews));
 for i = 1:numel(handles.axes_previews),
   % fly current positions
   for fly = 1:handles.nflies_curr,
     handles.hflies(fly,i) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
       'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
+    handles.hfly_markers(fly,i) = plot(handles.axes_previews(i),nan,nan,'*',...
+      'color',handles.fly_colors(fly,:),'linewidth',3,...
+      'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
+      'Visible','off');
   end
 end
 
@@ -751,6 +760,10 @@ handles.nflies_curr = 0;
 if isfield(handles,'hflies'),
   delete(handles.hflies(ishandle(handles.hflies)));
   handles.hflies = [];
+end
+if isfield(handles,'hfly_markers'),
+  delete(handles.hfly_markers(ishandle(handles.hfly_markers)));
+  handles.hfly_markers = [];
 end
 
 
@@ -874,7 +887,7 @@ for i = 1:numel(handles.axes_previews),
 end
 
 % status bar text
-[~,expname] = fileparts(handles.data.expdirs{handles.expi});
+[~,expname] = myfileparts(handles.data.expdirs{handles.expi});
 if numel(handles.flies) == 1,
   handles.status_bar_text = sprintf('%s, fly %d',expname,handles.flies);
 else
@@ -1271,7 +1284,7 @@ end
 if isempty(handles.configfilename),
   defaultconfigfilename = fullfile(handles.defaultpath,'JLabelConfig.xml');
 else
-  defaultpath = fileparts(handles.configfilename);
+  defaultpath = myfileparts(handles.configfilename);
   if exist(defaultpath,'file'),
     handles.defaultpath = defaultpath;
   end
@@ -1574,7 +1587,7 @@ end
 function handles = LoadRC(handles)
 
 % rc file name
-handles.rcfilename = fullfile(fileparts(which('JLabel')),'.JLabelrc.mat');
+handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
 handles.rc = struct;
 if exist(handles.rcfilename,'file'),
   try
@@ -1623,7 +1636,7 @@ function handles = SaveRC(handles)
 
 try
   if ~isfield(handles,'rcfilename'),
-    handles.rcfilename = fullfile(fileparts(which('JLabel')),'.JLabelrc.mat');
+    handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
   end
   
   if isfield(handles,'rc'),
@@ -2180,10 +2193,21 @@ end
 
 endframe = handles.data.endframes_per_exp{handles.expi}(fly);
 firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
-res = questdlg({sprintf('Switch to fly %d?',fly),...
+prompt = {sprintf('Switch to fly %d?',fly),...
   sprintf('Trajectory length = %d',endframe-firstframe+1),...
   sprintf('First frame = %d',firstframe),...
-  sprintf('N. bouts labeled: %d',nbouts)},...
+  sprintf('N. bouts labeled: %d',nbouts)};
+
+if handles.data.hassex,
+  if handles.data.hasperframesex,
+    sexfrac = handles.data.GetSexFrac(handles.expi,fly);
+    prompt{end+1} = sprintf('Sex: %d%%M, %d%%F',round(sexfrac.M*100),round(sexfrac.F*100));
+  else
+    prompt{i} = sprintf('Sex: %s',sex);
+  end
+end
+
+res = questdlg(prompt,...
   'Change flies?','Yes','No','Yes');
 
 if strcmpi(res,'No'),
@@ -2329,11 +2353,20 @@ for i = 1:handles.data.nexps,
     s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
       handles.data.expnames{i},handles.data.nflies_per_exp(i));
   else
-    s{i} = sprintf('%s, N flies: %d, N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
-      handles.data.expnames{i},handles.data.nflies_per_exp(i),...
+    s{i} = sprintf('%s, N flies: %d',handles.data.expnames{i},handles.data.nflies_per_exp(i));
+    if handles.data.hassex,
+      nmales = sum([handles.data.frac_sex_per_exp{i}.M]);
+      nfemales = sum([handles.data.frac_sex_per_exp{i}.F]);
+      if handles.data.hasperframesex,
+        s{i} = [s{i},sprintf('(%.1f M, %.1f F)',nmales,nfemales)];
+      else
+        s{i} = [s{i},sprintf('(%d M, %d F)',nmales,nfemales)];
+      end
+    end
+    s{i} = [s{i},sprintf(', N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
       handles.data.labelstats(i).nflies_labeled,...
       handles.data.labelstats(i).nbouts_labeled,...
-      handles.data.labelstats(i).datestr);
+      handles.data.labelstats(i).datestr)];
   end
 end
 [expi,ok] = listdlg('ListString',s,'SelectionMode','single',...
@@ -2371,14 +2404,22 @@ for fly = 1:nflies,
   end
   
   if fly == handles.flies(1),
-    s{fly} = sprintf('Target %d, CURRENTLY SELECTED',fly);
+    s{fly} = sprintf('Target %3d, CURRENTLY SELECTED',fly);
   else
     endframe = handles.data.endframes_per_exp{handles.expi}(fly);
     firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
-    s{fly} = sprintf('Target %d, Trajectory length %d, First frame %d, N bouts labeled %d',...
+    s{fly} = sprintf('Target %3d, Trajectory length %5d, First frame %5d, N bouts labeled %2d',...
       fly,endframe-firstframe+1,...
       firstframe,...
       nbouts);
+    if handles.data.hassex,
+      if handles.data.hasperframesex,
+        sexfrac = handles.data.GetSexFrac(handles.expi,fly);
+        s{fly} = [s{fly},sprintf(', Sex: %3d%%M, %3d%%F',round(sexfrac.M*100),round(sexfrac.F*100))];
+      else
+        s{fly} = [s{fly},sprintf(', Sex: %s',sex)];
+      end
+    end
   end
 end
 [fly,ok] = listdlg('ListString',s,'SelectionMode','single',...

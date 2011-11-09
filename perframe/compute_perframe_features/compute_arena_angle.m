@@ -7,8 +7,8 @@ data = cell(1,nflies);
 for i = 1:nflies,
   fly = flies(i);  
   
-  data{i} = atan2(trx(fly).y_mm-trx.landmark_params.arena_center_mm(2),...
-    trx(fly).x_mm-trx.landmark_params.arena_center_mm(1));
+  data{i} = atan2(trx(fly).y_mm-trx.landmark_params.arena_center_mm_y,...
+    trx(fly).x_mm-trx.landmark_params.arena_center_mm_x);
     
 end
 units = parseunits('rad');
