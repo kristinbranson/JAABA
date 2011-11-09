@@ -1215,22 +1215,32 @@ function handles = SetNeedSave(handles)
 
 handles.needsave = true;
 set(handles.menu_file_save,'Enable','on');
+set(handles.menu_file_save_labels,'Enable','on');
+
+function handles = SetSaved(handles)
+
+handles.needsave = false;
+set(handles.menu_file_save,'Enable','off');
+set(handles.menu_file_save_labels,'Enable','off');
 
 % --------------------------------------------------------------------
-function menu_file_save_Callback(hObject, eventdata, handles)
+function success = menu_file_save_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 [filename,pathname] = uiputfile('*.mat','Save classifier',handles.data.classifierfilename);
 if ~ischar(filename),
+  success = false;
   return;
 end
 handles.data.classifierfilename = fullfile(pathname,filename);
 SetStatus(handles,sprintf('Saving classifier to %s',handles.data.classifierfilename));
 handles.data.SaveClassifier();
 handles.data.SaveLabels();
+handles = SetSaved(handles);
 ClearStatus(handles);
+success = true;
 
 % --------------------------------------------------------------------
 function menu_file_exit_Callback(hObject, eventdata, handles)
@@ -1238,6 +1248,7 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
 
 % --------------------------------------------------------------------
 function menu_edit_Callback(hObject, eventdata, handles)
@@ -1680,6 +1691,21 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
+
+% check if we need to save
+if handles.needsave,
+  res = questdlg('Save before quitting?','Save?','Yes','No','Cancel','Yes');
+  if strcmpi(res,'Yes'),
+    success = menu_file_save_Callback(hObject, eventdata, handles);
+    if ~success,
+      return;
+    end
+    handles = guidata(hObject);
+  elseif strcmpi(res,'Cancel'),
+    return;
+  end
+end
+
 if isfield(handles,'movie_fid') && ~isempty(handles.movie_fid) && ...
     handles.movie_fid > 1 && ~isempty(fopen(handles.movie_fid)),
   fclose(handles.movie_fid);
@@ -1926,6 +1952,8 @@ handles.labels_plot.isstart(off0:off1) = ...
 
 handles = UpdateErrors(handles);
 
+handles = SetNeedSave(handles);
+
 %handles.lastframe_labeled = t;
 
 guidata(handles.figure_JLabel,handles);
@@ -1974,6 +2002,8 @@ handles.labels_plot.isstart(off0:off1) = ...
   handles.data.IsLabelStart(handles.expi,handles.flies,t00:t1);
 
 handles = UpdateErrors(handles);
+
+handles = SetNeedSave(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -2241,6 +2271,7 @@ handles.data.Train();
 handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
+handles = SetNeedSave(handles);
 guidata(hObject,handles);
 
 function handles = UpdatePrediction(handles)

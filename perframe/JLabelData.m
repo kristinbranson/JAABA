@@ -2055,7 +2055,6 @@ classdef JLabelData < handle
           return;
         end
       else
-        filetypes = obj.filetypes;
         fileis = 1:numel(obj.filetypes);
       end
       if nargin <= 2 || isempty(expis),
@@ -3314,7 +3313,7 @@ classdef JLabelData < handle
         case 'boosting',
             obj.SetStatus('Training boosting classifier from %d examples...',numel(islabeled));
 
-            s = struct2paramscell(obj.classifier_params);
+            %s = struct2paramscell(obj.classifier_params);
             [obj.classifier obj.bagModels obj.distMat] = boostingWrapper( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled));
             obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
 
