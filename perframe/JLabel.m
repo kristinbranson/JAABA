@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 27-Oct-2011 10:41:42
+% Last Modified by GUIDE v2.5 28-Oct-2011 16:03:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -151,6 +151,7 @@ end
 
 % fly current positions
 handles.hflies = zeros(handles.nflies_curr,numel(handles.axes_previews));
+handles.hfly_markers = zeros(handles.nflies_curr,numel(handles.axes_previews));
 % fly path
 handles.htrx = zeros(handles.nflies_label,numel(handles.axes_previews));
 
@@ -166,16 +167,19 @@ for i = 1:numel(handles.axes_previews),
   % image in axes_preview
   handles.himage_previews(i) = imagesc(0,'Parent',handles.axes_previews(i),[0,255]);
   set(handles.himage_previews(i),'HitTest','off');
-  axis(handles.axes_previews(i),'image');
+  axis(handles.axes_previews(i),'equal');
   
   set(handles.axes_previews(i),'ButtonDownFcn',@(hObject,eventdata) JLabel('axes_preview_ButtonDownFcn',hObject,eventdata,guidata(hObject)));
   hold(handles.axes_previews(i),'on');
 
   % labeled behaviors
   handles.hlabels = nan(1,handles.data.nbehaviors);
+  handles.hpredicted = nan(1,handles.data.nbehaviors);
   handles.hlabelstarts = nan(1,handles.data.nbehaviors);
   for j = 1:handles.data.nbehaviors,
     handles.hlabels(j) = plot(handles.axes_previews(i),nan,nan,'-',...
+      'color',handles.labelcolors(j,:),'linewidth',5,'HitTest','off');
+    handles.hpredicted(j) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.labelcolors(j,:),'linewidth',5,'HitTest','off');
     % start of label
     handles.hlabelstarts(j) = plot(handles.axes_previews(i),nan,nan,'v',...
@@ -184,6 +188,17 @@ for i = 1:numel(handles.axes_previews),
     
     set(handles.axes_previews(i),'Color','k','XColor','w','YColor','w');
     
+  end
+  
+  if handles.plot_labels_manual,
+    set(handles.hlabels,'Visible','on');
+  else
+    set(handles.hlabels,'Visible','off');
+  end
+  if handles.plot_labels_automatic,
+    set(handles.hpredicted,'Visible','on');
+  else
+    set(handles.hpredicted,'Visible','off');
   end
   
   % current label plotted on axes
@@ -202,6 +217,10 @@ for i = 1:numel(handles.axes_previews),
     handles.hflies(fly,i) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
       'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
+    handles.hfly_markers(fly,i) = plot(handles.axes_previews(i),nan,nan,'*',...
+      'color',handles.fly_colors(fly,:),'linewidth',3,...
+      'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
+      'Visible','off');
   end
 
 end
@@ -227,7 +246,12 @@ ylim = [.5,1.5];
 ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
 handles.htimeline_label_curr = patch(nan(1,5),ydata([1,2,2,1,1]),'k',...
   'Parent',handles.axes_timeline_manual,'LineStyle','--','EdgeColor','w',...
-  'HitTest','off','Linewidth',3);
+  'HitTest','off','Linewidth',3,'Clipping','on');
+if handles.plot_labels_manual,
+  set(handles.timeline_label_manual,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.timeline_label_manual,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
 
 set(handles.axes_timeline_manual,'YTick',[]);
 setAxesZoomMotion(handles.hzoom,handles.axes_timeline_manual,'horizontal');
@@ -243,6 +267,11 @@ handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','Hi
 set(handles.axes_timeline_auto,'YTick',[]);
 setAxesZoomMotion(handles.hzoom,handles.axes_timeline_auto,'horizontal');
 setAllowAxesPan(handles.hpan,handles.axes_timeline_auto,false);
+if handles.plot_labels_automatic,
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
 
 for h = handles.axes_timeline_labels,
   set(h,'YLim',[.5,1.5]);
@@ -454,12 +483,15 @@ for i = axes,
       labelidx = [];
     elseif handles.label_state ~= 0,
       labelidx = handles.label_state;
-    else
+    elseif handles.plot_labels_manual,
       labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
+    elseif handles.plot_labels_automatic,
+      labelidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
     end
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
     set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
+    set(handles.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
       % WARNING: this accesses handles.data.trx directly -- make sure that
       % handles.data.trx is loaded for the correct movie
@@ -470,6 +502,13 @@ for i = axes,
         handles.data.GetTrxPos1(handles.expi,fly,t);
       updatefly(handles.hflies(fly,i),...
         xcurr,ycurr,thetacurr,acurr,bcurr);
+      set(handles.hfly_markers(fly,i),'XData',xcurr,'YData',ycurr);
+      sexcurr = handles.data.GetSex1(handles.expi,fly,t);
+      if lower(sexcurr(1)) == 'm',
+        set(handles.hfly_markers(fly,i),'Visible','on');
+      else
+        set(handles.hfly_markers(fly,i),'Visible','off');
+      end
 %       updatefly(handles.hflies(fly,i),...
 %         handles.data.GetTrxX1(handles.expi,fly,t),...
 %         handles.data.GetTrxY1(handles.expi,fly,t),...
@@ -537,6 +576,8 @@ for i = axes,
       for j = 1:handles.data.nbehaviors,
         set(handles.hlabels(j),'XData',handles.labels_plot.x(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k),...
           'YData',handles.labels_plot.y(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k));
+        set(handles.hpredicted(j),'XData',handles.labels_plot.predx(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k),...
+          'YData',handles.labels_plot.predy(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k));
       end
       if handles.label_state ~= 0,
         ts = sort([handles.label_t0,handles.ts(1)]);
@@ -560,7 +601,7 @@ for i = axes,
   if refresh_curr_prop,
     for propi = 1:numel(handles.perframepropis),
       v = handles.perframepropis(propi);
-      if handles.ts(i) < handles.t0_curr,
+      if handles.ts(i) < handles.t0_curr || handles.ts(i) > handles.t1_curr,
         s = '';
       else
         perframedata = handles.data.GetPerFrameData1(handles.expi,handles.flies,v,handles.ts(i));
@@ -650,15 +691,24 @@ if isfield(handles,'hflies'),
   delete(handles.hflies(ishandle(handles.hflies)));
   handles.hflies = [];
 end
+if isfield(handles,'hfly_markers'),
+  delete(handles.hfly_markers(ishandle(handles.hfly_markers)));
+  handles.hfly_markers = [];
+end
 
 % update plotted trx handles, as number of flies will change
 handles.hflies = zeros(handles.nflies_curr,numel(handles.axes_previews));
+handles.hfly_markers = zeros(handles.nflies_curr,numel(handles.axes_previews));
 for i = 1:numel(handles.axes_previews),
   % fly current positions
   for fly = 1:handles.nflies_curr,
     handles.hflies(fly,i) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
       'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
+    handles.hfly_markers(fly,i) = plot(handles.axes_previews(i),nan,nan,'*',...
+      'color',handles.fly_colors(fly,:),'linewidth',3,...
+      'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i),...
+      'Visible','off');
   end
 end
 
@@ -710,6 +760,10 @@ handles.nflies_curr = 0;
 if isfield(handles,'hflies'),
   delete(handles.hflies(ishandle(handles.hflies)));
   handles.hflies = [];
+end
+if isfield(handles,'hfly_markers'),
+  delete(handles.hfly_markers(ishandle(handles.hfly_markers)));
+  handles.hfly_markers = [];
 end
 
 
@@ -785,6 +839,8 @@ handles.labels_plot.error_xs = nan;
 %handles.labels_plot.error_im = zeros([1,n,3]);
 handles.labels_plot.x = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot.y = nan(n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.predx = nan(n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.predy = nan(n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot_off = 1-handles.t0_curr;
 % set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
 %   handles.himage_timeline_error,handles.himage_timeline_suggest],...
@@ -793,16 +849,20 @@ set([handles.himage_timeline_manual,handles.himage_timeline_auto],...
   'XData',[handles.t0_curr,handles.t1_curr]);
 
 labelidx = handles.data.GetLabelIdx(handles.expi,flies);
+predictedidx = handles.data.GetPredictedIdx(handles.expi,flies);
 for flyi = 1:numel(flies),
   fly = flies(flyi);
-  x = handles.data.GetTrxX(handles.expi,fly,handles.t0_curr:handles.t1_curr);
-  y = handles.data.GetTrxY(handles.expi,fly,handles.t0_curr:handles.t1_curr);
+  x = handles.data.GetTrxX1(handles.expi,fly,handles.t0_curr:handles.t1_curr);
+  y = handles.data.GetTrxY1(handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
     % WARNING: accesses labelidx
     % REMOVED!
     idx = labelidx == behaviori;
-    handles.labels_plot.x(idx,behaviori,flyi) = x{1}(idx);
-    handles.labels_plot.y(idx,behaviori,flyi) = y{1}(idx);
+    handles.labels_plot.x(idx,behaviori,flyi) = x(idx);
+    handles.labels_plot.y(idx,behaviori,flyi) = y(idx);
+    idx = predictedidx == behaviori;
+    handles.labels_plot.predx(idx,behaviori,flyi) = x(idx);
+    handles.labels_plot.predy(idx,behaviori,flyi) = y(idx);
   end
 end
 handles = UpdateTimelineIms(handles);
@@ -827,7 +887,7 @@ for i = 1:numel(handles.axes_previews),
 end
 
 % status bar text
-[~,expname] = fileparts(handles.data.expdirs{handles.expi});
+[~,expname] = myfileparts(handles.data.expdirs{handles.expi});
 if numel(handles.flies) == 1,
   handles.status_bar_text = sprintf('%s, fly %d',expname,handles.flies);
 else
@@ -1157,22 +1217,32 @@ function handles = SetNeedSave(handles)
 
 handles.needsave = true;
 set(handles.menu_file_save,'Enable','on');
+set(handles.menu_file_save_labels,'Enable','on');
+
+function handles = SetSaved(handles)
+
+handles.needsave = false;
+set(handles.menu_file_save,'Enable','off');
+set(handles.menu_file_save_labels,'Enable','off');
 
 % --------------------------------------------------------------------
-function menu_file_save_Callback(hObject, eventdata, handles)
+function success = menu_file_save_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 [filename,pathname] = uiputfile('*.mat','Save classifier',handles.data.classifierfilename);
 if ~ischar(filename),
+  success = false;
   return;
 end
 handles.data.classifierfilename = fullfile(pathname,filename);
 SetStatus(handles,sprintf('Saving classifier to %s',handles.data.classifierfilename));
 handles.data.SaveClassifier();
 handles.data.SaveLabels();
+handles = SetSaved(handles);
 ClearStatus(handles);
+success = true;
 
 % --------------------------------------------------------------------
 function menu_file_exit_Callback(hObject, eventdata, handles)
@@ -1180,6 +1250,7 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
 
 % --------------------------------------------------------------------
 function menu_edit_Callback(hObject, eventdata, handles)
@@ -1226,7 +1297,7 @@ end
 if isempty(handles.configfilename),
   defaultconfigfilename = fullfile(handles.defaultpath,'JLabelConfig.xml');
 else
-  defaultpath = fileparts(handles.configfilename);
+  defaultpath = myfileparts(handles.configfilename);
   if exist(defaultpath,'file'),
     handles.defaultpath = defaultpath;
   end
@@ -1355,6 +1426,10 @@ handles.suggestcolor = [0,.7,.7];
 handles.selection_color = [1,.6,0];
 handles.selection_alpha = .5;
 
+% color for showing which labels are being plotted
+handles.emphasiscolor = [.7,.7,0];
+handles.unemphasiscolor = [1,1,1];
+
 % create buttons for each label
 handles = CreateLabelButtons(handles);
 
@@ -1418,6 +1493,12 @@ set(handles.menu_view_plottracks,'Checked','on');
 
 % bookmarked clips windows
 handles.bookmark_windows = [];
+
+% whether to plot manual labels or automatic labels
+handles.plot_labels_manual = true;
+handles.plot_labels_automatic = false;
+set(handles.menu_view_plot_labels_manual,'Checked','on');
+set(handles.menu_view_plot_labels_automatic,'Checked','off');
 
 function SetJumpGoMenuLabels(handles)
 
@@ -1497,7 +1578,7 @@ function EnableGUI(handles)
 h = [handles.contextmenu_timeline_manual_timeline_options,...
   handles.togglebutton_label_behaviors(:)',...
   handles.togglebutton_label_unknown,...
-  handles.menu_view_zoom_in_on_fly];
+  handles.menu_view_zoom_options(:)'];
 hp = [handles.panel_previews(:)',...
   handles.panel_timelines,...
   handles.panel_learn];
@@ -1519,7 +1600,7 @@ end
 function handles = LoadRC(handles)
 
 % rc file name
-handles.rcfilename = fullfile(fileparts(which('JLabel')),'.JLabelrc.mat');
+handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
 handles.rc = struct;
 if exist(handles.rcfilename,'file'),
   try
@@ -1568,7 +1649,7 @@ function handles = SaveRC(handles)
 
 try
   if ~isfield(handles,'rcfilename'),
-    handles.rcfilename = fullfile(fileparts(which('JLabel')),'.JLabelrc.mat');
+    handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
   end
   
   if isfield(handles,'rc'),
@@ -1612,8 +1693,23 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
+
+% check if we need to save
+if handles.needsave,
+  res = questdlg('Save before quitting?','Save?','Yes','No','Cancel','Yes');
+  if strcmpi(res,'Yes'),
+    success = menu_file_save_Callback(hObject, eventdata, handles);
+    if ~success,
+      return;
+    end
+    handles = guidata(hObject);
+  elseif strcmpi(res,'Cancel'),
+    return;
+  end
+end
+
 if isfield(handles,'movie_fid') && ~isempty(handles.movie_fid) && ...
-    ~isempty(fopen(handles.movie_fid)),
+    handles.movie_fid > 1 && ~isempty(fopen(handles.movie_fid)),
   fclose(handles.movie_fid);
   handles.movie_fid = [];
 end
@@ -1858,7 +1954,90 @@ handles.labels_plot.isstart(off0:off1) = ...
 
 handles = UpdateErrors(handles);
 
+handles = SetNeedSave(handles);
+
 %handles.lastframe_labeled = t;
+
+guidata(handles.figure_JLabel,handles);
+
+
+function handles = SetLabelsPlot(handles,t0,t1,behavioris)
+
+handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+
+for channel = 1:3,
+  handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelunknowncolor(channel);
+end
+handles.data.SetLabel(handles.expi,handles.flies,t0:t1,behavioris);
+
+for behaviori = 1:handles.data.nbehaviors,
+
+  bidx = find(behaviori == behavioris);
+  if isempty(bidx),
+    continue;
+  end
+  for channel = 1:3,
+    handles.labels_plot.im(1,t0-1+bidx+handles.labels_plot_off,channel) = handles.labelcolors(behaviori,channel);
+  end
+  for l = 1:numel(handles.flies),
+    ks = t0-1+handles.labels_plot_off+bidx;
+    handles.labels_plot.x(ks,behaviori,l) = ...
+      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
+    handles.labels_plot.y(ks,behaviori,l) = ...
+      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+  end
+  
+end
+
+% isstart
+if t0 == handles.t0_curr,
+  handles.labels_plot.isstart(t0+handles.labels_plot_off) = behavioris(1) ~= 0;
+end
+t00 = max(handles.t0_curr+1,t0);
+off0 = t00+handles.labels_plot_off;
+off1 = t1+handles.labels_plot_off;
+% handles.labels_plot.isstart(off0:off1) = ...
+%   handles.data.labelidx(off0:off1)~=0 & ...
+%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
+handles.labels_plot.isstart(off0:off1) = ...
+  handles.data.IsLabelStart(handles.expi,handles.flies,t00:t1);
+
+handles = UpdateErrors(handles);
+
+handles = SetNeedSave(handles);
+
+%handles.lastframe_labeled = t;
+
+guidata(handles.figure_JLabel,handles);
+
+
+function handles = SetPredictedPlot(handles,t0,t1,behavioris)
+
+if nargin < 2,
+  [behavioris,~,t0,t1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+elseif nargin < 4,
+  behavioris = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+end
+
+handles.labels_plot.predx(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.predy(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+
+for behaviori = 1:handles.data.nbehaviors,
+
+  bidx = find(behaviori == behavioris);
+  if isempty(bidx),
+    continue;
+  end
+  for l = 1:numel(handles.flies),
+    ks = t0-1+handles.labels_plot_off+bidx;
+    handles.labels_plot.predx(ks,behaviori,l) = ...
+      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
+    handles.labels_plot.predy(ks,behaviori,l) = ...
+      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+  end
+  
+end
 
 guidata(handles.figure_JLabel,handles);
 
@@ -2046,10 +2225,21 @@ end
 
 endframe = handles.data.endframes_per_exp{handles.expi}(fly);
 firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
-res = questdlg({sprintf('Switch to fly %d?',fly),...
+prompt = {sprintf('Switch to fly %d?',fly),...
   sprintf('Trajectory length = %d',endframe-firstframe+1),...
   sprintf('First frame = %d',firstframe),...
-  sprintf('N. bouts labeled: %d',nbouts)},...
+  sprintf('N. bouts labeled: %d',nbouts)};
+
+if handles.data.hassex,
+  if handles.data.hasperframesex,
+    sexfrac = handles.data.GetSexFrac(handles.expi,fly);
+    prompt{end+1} = sprintf('Sex: %d%%M, %d%%F',round(sexfrac.M*100),round(sexfrac.F*100));
+  else
+    prompt{i} = sprintf('Sex: %s',sex);
+  end
+end
+
+res = questdlg(prompt,...
   'Change flies?','Yes','No','Yes');
 
 if strcmpi(res,'No'),
@@ -2080,8 +2270,10 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 % store the current labels to windowdata_labeled
 handles.data.StoreLabels();
 handles.data.Train();
+handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
+handles = SetNeedSave(handles);
 guidata(hObject,handles);
 
 function handles = UpdatePrediction(handles)
@@ -2091,9 +2283,12 @@ function handles = UpdatePrediction(handles)
 t0 = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
 t1 = min(handles.t1_curr,ceil(handles.ts(1)+handles.timeline_nframes/2));
 handles.data.Predict(handles.expi,handles.flies,t0:t1);
+handles = SetPredictedPlot(handles,t0,t1);
+
 handles = UpdateTimelineIms(handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',false,...
-  'refreshtrx',false,'refreshlabels',false,...
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',false,...
   'refresh_timeline_xlim',false,...
   'refresh_timeline_hcurr',false,...
@@ -2191,11 +2386,20 @@ for i = 1:handles.data.nexps,
     s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
       handles.data.expnames{i},handles.data.nflies_per_exp(i));
   else
-    s{i} = sprintf('%s, N flies: %d, N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
-      handles.data.expnames{i},handles.data.nflies_per_exp(i),...
+    s{i} = sprintf('%s, N flies: %d',handles.data.expnames{i},handles.data.nflies_per_exp(i));
+    if handles.data.hassex,
+      nmales = sum([handles.data.frac_sex_per_exp{i}.M]);
+      nfemales = sum([handles.data.frac_sex_per_exp{i}.F]);
+      if handles.data.hasperframesex,
+        s{i} = [s{i},sprintf('(%.1f M, %.1f F)',nmales,nfemales)];
+      else
+        s{i} = [s{i},sprintf('(%d M, %d F)',nmales,nfemales)];
+      end
+    end
+    s{i} = [s{i},sprintf(', N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
       handles.data.labelstats(i).nflies_labeled,...
       handles.data.labelstats(i).nbouts_labeled,...
-      handles.data.labelstats(i).datestr);
+      handles.data.labelstats(i).datestr)];
   end
 end
 [expi,ok] = listdlg('ListString',s,'SelectionMode','single',...
@@ -2233,14 +2437,22 @@ for fly = 1:nflies,
   end
   
   if fly == handles.flies(1),
-    s{fly} = sprintf('Target %d, CURRENTLY SELECTED',fly);
+    s{fly} = sprintf('Target %3d, CURRENTLY SELECTED',fly);
   else
     endframe = handles.data.endframes_per_exp{handles.expi}(fly);
     firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
-    s{fly} = sprintf('Target %d, Trajectory length %d, First frame %d, N bouts labeled %d',...
+    s{fly} = sprintf('Target %3d, Trajectory length %5d, First frame %5d, N bouts labeled %2d',...
       fly,endframe-firstframe+1,...
       firstframe,...
       nbouts);
+    if handles.data.hassex,
+      if handles.data.hasperframesex,
+        sexfrac = handles.data.GetSexFrac(handles.expi,fly);
+        s{fly} = [s{fly},sprintf(', Sex: %3d%%M, %3d%%F',round(sexfrac.M*100),round(sexfrac.F*100))];
+      else
+        s{fly} = [s{fly},sprintf(', Sex: %s',sex)];
+      end
+    end
   end
 end
 [fly,ok] = listdlg('ListString',s,'SelectionMode','single',...
@@ -3316,7 +3528,6 @@ end
 handles.buttondown_axes = nan;
 handles.selection_t0 = nan;
 handles.selection_t1 = nan;
-disp('bye');
 guidata(hObject,handles);
 
 function UpdateSelection(handles)
@@ -3485,7 +3696,11 @@ function contextmenu_timeline_manual_go_previous_bout_end_Callback(hObject, even
 
 menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
 
-function [t0,t1,labelidx,label] = GetBoutProperties(handles,t)
+function [t0,t1,labelidx,label] = GetBoutProperties(handles,t,labeltype)
+
+if nargin < 3,
+  labeltype = 'manual';
+end
 
 if t < handles.t0_curr && t > handles.t1_curr,
   t0 = nan;
@@ -3495,7 +3710,11 @@ if t < handles.t0_curr && t > handles.t1_curr,
   return;
 end
 
-[labelidx,T0,T1] = handles.data.GetLabelIdx(handles.expi,handles.flies);
+if strcmpi(labeltype,'manual'),
+  [labelidx,T0,T1] = handles.data.GetLabelIdx(handles.expi,handles.flies);
+else
+  [labelidx,~,T0,T1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+end
 i = t - T0 + 1;
 i0 = find(labelidx(1:i-1) ~= labelidx(i),1,'last');
 if isempty(i0),
@@ -3516,6 +3735,9 @@ if nargout >= 4,
   else
     label = handles.data.labelnames{labelidx};
   end
+  if ~strcmpi(labeltype,'manual'),
+    label = ['Predicted ',label];
+  end
 end
 
 % --------------------------------------------------------------------
@@ -3523,7 +3745,7 @@ function contextmenu_timeline_manual_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_manual (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-disp('hi');
+%disp('hi');
 pt = get(handles.axes_timeline_manual,'CurrentPoint');
 t = pt(1,1);
 
@@ -3745,3 +3967,207 @@ handles.preview_zoom_mode = 'static';
 set(setdiff(handles.menu_view_zoom_options,hObject),'Checked','off');
 set(hObject,'Checked','on');
 guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_go_next_bout_start_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_go_next_bout_start (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_go_previous_bout_end_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_go_previous_bout_end (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_bookmark_bout_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_bookmark_bout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+clip = handles.bookmark_info;
+clip.t0 = max(1,clip.t0-1);
+clip.t1 = min(handles.nframes,clip.t1+1);
+AddBookmark(handles,handles.bookmark_info);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_bookmark_selection_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_bookmark_selection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+labelidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
+handles.bookmark_info.labelidx = unique(labelidx);
+tmp = [{'Unknown'},handles.data.labelnames];
+if numel(handles.bookmark_info.labelidx) == 1,
+  handles.bookmark_info.label = ['Predicted ',tmp{handles.bookmark_info.labelidx+1}];
+else
+  counts = hist(labelidx,handles.bookmark_info.labelidx);
+  pct = round(counts / numel(labelidx) * 100);
+  s = 'Predicted ';
+  for i = 1:numel(handles.bookmark_info.labelidx),
+    s = [s,sprintf('%s(%d%%), ',tmp{handles.bookmark_info.labelidx(i)+1},pct(i))]; %#ok<AGROW>
+  end
+  s = s(1:end-2);
+  handles.bookmark_info.label = s;
+end
+guidata(hObject,handles);
+
+AddBookmark(handles,handles.bookmark_info);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_timeline_options_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_timeline_options (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_view_timeline_options_Callback(hObject, eventdata, handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+pt = get(handles.axes_timeline_auto,'CurrentPoint');
+t = pt(1,1);
+
+% inside a bout?
+if t >= handles.t0_curr && t <= handles.t1_curr,
+  [handles.bookmark_info.t0,handles.bookmark_info.t1,...
+    handles.bookmark_info.labelidx,handles.bookmark_info.label] = ...
+    GetBoutProperties(handles,round(t),'automatic');
+  s = sprintf('Bookmark %s bout (%d:%d)',handles.bookmark_info.label,...
+    handles.bookmark_info.t0,handles.bookmark_info.t1);  
+  set(handles.contextmenu_timeline_automatic_bookmark_bout,'Visible','on',...
+    'Label',s);
+  s = sprintf('Accept %s bout (%d:%d)',handles.bookmark_info.label,...
+    handles.bookmark_info.t0,handles.bookmark_info.t1);
+  set(handles.contextmenu_timeline_automatic_accept_bout,'Visible','on',...
+    'Label',s);
+else
+  set(handles.contextmenu_timeline_automatic_bookmark_bout,'Visible','off');
+  set(handles.contextmenu_timeline_automatic_accept_bout,'Visible','off');
+end
+  
+% inside the current selection?
+if t >= handles.selected_ts(1) && t <= handles.selected_ts(2),
+  s = sprintf('Bookmark selection (%d:%d)',handles.selected_ts);
+  handles.bookmark_info.t0 = min(handles.selected_ts);
+  handles.bookmark_info.t1 = max(handles.selected_ts);
+  handles.bookmark_info.labelidx = nan;
+  handles.bookmark_info.label = 'Selection';
+  set(handles.contextmenu_timeline_automatic_bookmark_selection,'Visible','on','Label',s);
+  s = sprintf('Accept selected suggested labels (%d:%d)',handles.selected_ts);
+  set(handles.contextmenu_timeline_automatic_accept_selected,'Visible','on','Label',s);  
+else
+  set(handles.contextmenu_timeline_automatic_bookmark_selection,'Visible','off');
+  set(handles.contextmenu_timeline_automatic_accept_selected,'Visible','off');
+end
+
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_accept_selected_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_accept_selected (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+t0 = handles.bookmark_info.t0;
+t1 = handles.bookmark_info.t1;
+
+t0 = min(handles.t1_curr,max(handles.t0_curr,t0));
+t1 = min(handles.t1_curr,max(handles.t0_curr,t1));
+predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+handles = SetLabelsPlot(handles,t0,t1,predictedidx);
+
+UpdatePlots(handles,...
+  'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_auto',false,...
+  'refresh_timeline_suggest',false,...
+  'refresh_timeline_error',true,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_props',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_accept_bout_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_accept_bout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_view_plot_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plot_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_view_plot_labels_manual_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plot_labels_manual (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.plot_labels_manual = true;
+handles.plot_labels_automatic = false;
+UpdatePlotLabels(handles);
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plot_labels_automatic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.plot_labels_manual = false;
+handles.plot_labels_automatic = true;
+UpdatePlotLabels(handles);
+guidata(hObject,handles);
+
+function UpdatePlotLabels(handles)
+
+if handles.plot_labels_manual,
+  set(handles.hlabels,'Visible','on');
+  set(handles.menu_view_plot_labels_manual,'Checked','on');
+  set(handles.timeline_label_manual,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.hlabels,'Visible','off');
+  set(handles.menu_view_plot_labels_manual,'Checked','off');
+  set(handles.menu_view_plot_labels_manual,'Checked','off');
+  set(handles.timeline_label_manual,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
+if handles.plot_labels_automatic,
+  set(handles.hpredicted,'Visible','on');
+  set(handles.menu_view_plot_labels_automatic,'Checked','on');
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.emphasiscolor,'FontWeight','bold');
+else
+  set(handles.hpredicted,'Visible','off');
+  set(handles.menu_view_plot_labels_automatic,'Checked','off');
+  set(handles.timeline_label_automatic,'ForegroundColor',handles.unemphasiscolor,'FontWeight','normal');
+end
+
+UpdatePlots(handles,...
+  'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_auto',false,...
+  'refresh_timeline_suggest',false,...
+  'refresh_timeline_error',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_props',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);

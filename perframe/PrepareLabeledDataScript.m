@@ -40,9 +40,9 @@ for expdiri = 1:numel(labelmatnames),
   labeldata = load(fullfile(rootdatadir,labelmatnames{expdiri}));
   
   % replace root dir
-  [pathstr,moviefilestr,moviefileext] = fileparts(labeldata.moviename);
-  moviefilestr = [moviefilestr,moviefileext];
-  [pathstr,expdir,~] = fileparts(pathstr);
+  [pathstr,moviefilestr] = myfileparts(labeldata.moviename);
+  %moviefilestr = [moviefilestr,moviefileext];
+  [pathstr,expdir] = myfileparts(pathstr);
   expdir = fullfile(rootdatadir,expdir);
   moviename = fullfile(expdir,moviefilestr);
   
@@ -109,8 +109,8 @@ for expdiri = 1:numel(labelmatnames),
   axisalmosttight;
   drawnow;
 
-  [~,savename,ext] = fileparts(labelmatnames{expdiri});
-  savename = fullfile(rootdatadir,['perframe_',savename,ext]);
+  [~,savename] = myfileparts(labelmatnames{expdiri});
+  savename = fullfile(rootdatadir,['perframe_',savename]);
   save(savename,'perframefns','perframedata','label',...
     'video_labelstart','video_labelend','trk_labelstart','trk_labelend',...
     'behaviorname','expdir','moviename','ctraxfile','trxfile');
