@@ -283,13 +283,6 @@ if numel(v) > 1,
   v = v(end);
 end
 expname = handles.data.expnames{v};
-if handles.data.FileExists(file,v),
-  res = questdlg(sprintf('Regenerate file %s for experiment %s? File will be overwritten.',file,expname),'Regenerate?','Yes','No','Cancel','No');
-  if ~strcmpi(res,'Yes'),
-    return;
-  end
-end
-fprintf('Generating %s...\n',handles.data.GetFile(file,v));
 switch file,
 %   case 'window',
 %     [success,msg] = handles.data.GenerateWindowFeaturesFiles(v,true);
@@ -297,8 +290,11 @@ switch file,
 %       uiwait(warndlg(msg,'Error generating file'));
 %       return;
 %     end
-  case 'perframe',
-    fprintf('TODO: generate perframe data\n');
+  case 'perframedir',
+    [success,msg] = handles.data.GeneratePerFrameFiles(v);
+    if ~success,
+      uiwait(warndlg(sprintf('Error generating %s files for %s: %s',file,expname,msg)));
+    end
 end
 UpdateStatusTable(handles);
 
