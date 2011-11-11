@@ -3185,7 +3185,7 @@ classdef JLabelData < handle
             oldBinSize = size(obj.bins,2);
             newData = size(obj.windowdata.X,1) - size(obj.bins,2);
             if newData>0
-              obj.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.binVals);
+              obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
             end
             
             [obj.classifier, outScores] = boostingUpdate(obj.windowdata.X(islabeled,:),...
