@@ -47,7 +47,7 @@ end
 
 function [newModel,scores] = addNewRules(data,labels,updatedModel,binVals,bins,exWt)
 
-extraIters = 10;
+extraIters = 15;
 
 newModel = updatedModel;
 scores = myBoostClassify(data,updatedModel);
