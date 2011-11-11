@@ -86,6 +86,10 @@ classdef JLabelData < handle
     labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
       'datestr',{});
     
+    % computing per-frame properties
+    perframe_params = {};
+    landmark_params = {};
+    
     % classifier
     
     % type of classifier to use
@@ -171,7 +175,8 @@ classdef JLabelData < handle
     hasperframesex = false;
     
     % constant: stuff stored in classifier mat file
-    classifiervars = {'expdirs','outexpdirs','expnames','nflies_per_exp',...
+    classifiervars = {'expdirs','outexpdirs','expnames',...
+      'nflies_per_exp','sex_per_exp','frac_sex_per_exp',...
       'firstframes_per_exp','endframes_per_exp',...
       'moviefilename','trxfilename','labelfilename','perframedir','featureparamsfilename',...
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params'};%'windowfilename',
@@ -469,6 +474,14 @@ classdef JLabelData < handle
           [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
           if ~success1,
             return;
+          end
+        end
+        if isfield(configparams,'perframe'),
+          if isfield(configparams.perframe,'params'),
+            obj.perframe_params = configparams.perframe.params;
+          end
+          if isfield(configparams.perframe,'landmark_params'),
+            obj.landmark_params = configparams.perframe.landmark_params;
           end
         end
       end
@@ -1223,7 +1236,8 @@ classdef JLabelData < handle
            
           % set experiment directories
           obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
-            loadeddata.nflies_per_exp,loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp); 
+            loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
+            loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp); 
 
           [success,msg] = obj.UpdateStatusTable();
           if ~success,
@@ -1387,7 +1401,8 @@ classdef JLabelData < handle
     % classifier. This function calls RemoveExpDirs to remove all current
     % experiments not in expdirs, then calls AddExpDirs to add the new
     % experiment directories. 
-    function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
+    function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
+        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
 
       success = false;
       msg = '';
@@ -1402,8 +1417,10 @@ classdef JLabelData < handle
       
       isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
       isnflies = nargin > 3 && ~isempty(nflies_per_exp);
-      isfirstframes = nargin > 4 && ~isempty(firstframes_per_exp);
-      isendframes = nargin > 5 && ~isempty(endframes_per_exp);
+      issex = nargin > 4 && ~isempty(sex_per_exp);
+      isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
+      isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
+      isendframes = nargin > 7 && ~isempty(endframes_per_exp);
       
       % check inputs
       
@@ -1436,11 +1453,17 @@ classdef JLabelData < handle
         if isnflies,
           params{3} = nflies_per_exp(i);
         end
+        if issex,
+          params{4} = sex_per_exp{i};
+        end
+        if isfracsex,
+          params{5} = frac_sex_per_exp{i};
+        end
         if isfirstframes,
-          params{4} = firstframes_per_exp{i};
+          params{6} = firstframes_per_exp{i};
         end
         if isendframes,
-          params{5} = endframes_per_exp{i};
+          params{7} = endframes_per_exp{i};
         end
         [success1,msg1] = obj.AddExpDir(params{:});
         success = success && success1;
@@ -1456,63 +1479,100 @@ classdef JLabelData < handle
     % [success,msg] = GetTrxInfo(obj,expi)
     % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
     % for experiment expi. This may require loading in trajectories. 
-    function [success,msg] = GetTrxInfo(obj,expi,canusecache)
+    function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
       success = true;
       msg = '';
       if nargin < 3,
         canusecache = true;
       end
+      istrxinput = nargin >= 4;
       
       obj.SetStatus('Reading trx info for experiment %s',obj.expdirs{expi});
       if numel(obj.nflies_per_exp) < expi || ...
+          numel(obj.sex_per_exp) < expi || ...
+          numel(obj.frac_sex_per_exp) < expi || ...
           numel(obj.firstframes_per_exp) < expi || ...
           numel(obj.endframes_per_exp) < expi || ...
-          isnan(obj.nflies_per_exp(expi)) || ...
-          isnan(obj.firstframes_per_exp(expi)) || ...
-          isnan(obj.endframes_per_exp(expi)),
-        trxfile = fullfile(obj.expdirs{expi},obj.GetFileName('trx'));
-        if ~exist(trxfile,'file'),
-          msg = sprintf('Trx file %s does not exist, cannot count flies',trxfile);
-          success = false;
-        else
-          
-          if isempty(obj.expi) || obj.expi == 0,
-            % TODO: make this work for multiple flies
-            obj.PreLoad(expi,1);
-            obj.nflies_per_exp(expi) = numel(obj.trx);
-            obj.firstframes_per_exp{expi} = [obj.trx.firstframe];
-            obj.endframes_per_exp{expi} = [obj.trx.endframe];          
-          elseif canusecache && expi == obj.expi,
-            obj.nflies_per_exp(expi) = numel(obj.trx);
-            obj.firstframes_per_exp{expi} = [obj.trx.firstframe];
-            obj.endframes_per_exp{expi} = [obj.trx.endframe];
+          isnan(obj.nflies_per_exp(expi)),
+        if ~istrxinput,
+
+          trxfile = fullfile(obj.expdirs{expi},obj.GetFileName('trx'));
+          if ~exist(trxfile,'file'),
+            msg = sprintf('Trx file %s does not exist, cannot count flies',trxfile);
+            success = false;
           else
-            
-            try
-              % REMOVE THIS
-              global CACHED_TRX; %#ok<TLEV>
-              global CACHED_TRX_EXPNAME; %#ok<TLEV>
-              if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-                  ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-                hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',obj.expnames{expi}));
-                trx = load_tracks(trxfile);
-                if ishandle(hwait), delete(hwait); end
-                CACHED_TRX = trx;
-                CACHED_TRX_EXPNAME = obj.expnames{expi};
-              else
-                fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-                trx = CACHED_TRX;
+          
+            if isempty(obj.expi) || obj.expi == 0,
+              % TODO: make this work for multiple flies
+              obj.PreLoad(expi,1);
+              trx = obj.trx;
+            elseif canusecache && expi == obj.expi,
+              trx = obj.trx;
+            else
+              try
+                % REMOVE THIS
+                global CACHED_TRX; %#ok<TLEV>
+                global CACHED_TRX_EXPNAME; %#ok<TLEV>
+                if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+                    ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
+                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',obj.expnames{expi}),'interpreter','none');
+                  trx = load_tracks(trxfile);
+                  if ishandle(hwait), delete(hwait); end
+                  CACHED_TRX = trx;
+                  CACHED_TRX_EXPNAME = obj.expnames{expi};
+                else
+                  fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+                  trx = CACHED_TRX;
+                end
+              catch ME,
+                msg = sprintf('Could not load trx file for experiment %s to count flies: %s',obj.expdirs{expi},getReport(ME));
               end
-            catch ME,
-              msg = sprintf('Could not load trx file for experiment %s to count flies: %s',obj.expdirs{expi},getReport(ME));
             end
-            obj.nflies_per_exp(expi) = numel(trx);
-            obj.firstframes_per_exp{expi} = [trx.firstframe];
-            obj.endframes_per_exp{expi} = [trx.endframe];
+          end
+        end
+        obj.nflies_per_exp(expi) = numel(trx);
+        obj.firstframes_per_exp{expi} = [trx.firstframe];
+        obj.endframes_per_exp{expi} = [trx.endframe];
+
+        obj.hassex = obj.hassex || isfield(trx,'sex');
+        
+        % store sex info
+        tmp = repmat({nan},[1,numel(trx)]);
+        obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
+        obj.sex_per_exp{expi} = repmat({'?'},[1,numel(trx)]);
+        if isfield(trx,'sex'),
+          if numel(trx) > 1,
+            obj.hasperframesex = iscell(trx(1).sex);
+          end
+          if obj.hasperframesex,
+            for fly = 1:numel(trx),
+              n = numel(trx(fly).sex);
+              nmale = nnz(strcmpi(trx(fly).sex,'M'));
+              nfemale = nnz(strcmpi(trx(fly).sex,'F'));
+              obj.frac_sex_per_exp{expi}(fly).M = nmale/n;
+              obj.frac_sex_per_exp{expi}(fly).F = nfemale/n;
+              if nmale > nfemale,
+                obj.sex_per_exp{expi}{fly} = 'M';
+              elseif nfemale > nmale,
+                obj.sex_per_exp{expi}{fly} = 'F';
+              else
+                obj.sex_per_exp{expi}{fly} = '?';
+              end
+            end
+          else
+            for fly = 1:numel(trx),
+              obj.sex_per_exp{expi}{fly} = trx(fly).sex;
+              if strcmpi(trx(fly).sex,'M'),
+                obj.frac_sex_per_exp{expi}(fly).M = 1;
+                obj.frac_sex_per_exp{expi}(fly).F = 0;
+              elseif strcmpi(trx(fly).sex,'F'),
+                obj.frac_sex_per_exp{expi}(fly).M = 0;
+                obj.frac_sex_per_exp{expi}(fly).F = 1;
+              end
+            end
           end
         end
       end
-      
       obj.ClearStatus();
       
     end
@@ -1520,7 +1580,7 @@ classdef JLabelData < handle
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
     % then it will be preloaded. 
-    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
+    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
 
       success = false;
       msg = '';
@@ -1540,7 +1600,7 @@ classdef JLabelData < handle
       end
       
       isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
-      istrxinfo = nargin > 5 && ~isempty(nflies_per_exp);
+      istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
 
       % base name
       [~,expname] = myfileparts(expdir);
@@ -1593,10 +1653,14 @@ classdef JLabelData < handle
       % get trxinfo
       if istrxinfo,
         obj.nflies_per_exp(end+1) = nflies_per_exp;
+        obj.sex_per_exp{end+1} = sex_per_exp;
+        obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
         obj.firstframes_per_exp{end+1} = firstframes_per_exp;
         obj.endframes_per_exp{end+1} = endframes_per_exp;
       else
         obj.nflies_per_exp(end+1) = nan;
+        obj.sex_per_exp{end+1} = {};
+        obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
         obj.firstframes_per_exp{end+1} = [];
         obj.endframes_per_exp{end+1} = [];
         [success1,msg1] = obj.GetTrxInfo(obj.nexps);
@@ -1644,6 +1708,8 @@ classdef JLabelData < handle
       obj.expnames(expi) = [];
       obj.outexpdirs(expi) = [];
       obj.nflies_per_exp(expi) = [];
+      obj.sex_per_exp(expi) = [];
+      obj.frac_sex_per_exp(expi) = [];
       obj.firstframes_per_exp(expi) = [];
       obj.endframes_per_exp(expi) = [];
       obj.nexps = obj.nexps - numel(expi);
@@ -1690,7 +1756,48 @@ classdef JLabelData < handle
           error('Unknown file type %s',file);
       end
     end
+    
+    % [filenames,timestamps] = GetPerFrameFiles(obj,file,expi)
+    % Get the full path to the per-frame mat files for experiment expi
+    function [filenames,timestamps] = GetPerframeFiles(obj,expi,dowrite)
+      
+      if nargin < 3,
+        dowrite = false;
+      end
+      
+      fn = obj.GetFileName('perframedir');
+      
+      % if this is an output file, only look in output experiment directory
+      if dowrite && JLabelData.IsOutputFile('perframedir'),
+        expdirs_try = obj.outexpdirs(expi);
+      else
+        % otherwise, first look in output directory, then look in input
+        % directory
+        expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
+      end
+      
+      filenames = cell(1,numel(obj.perframefns));
+      timestamps = -inf(1,numel(obj.perframefns));
+      
+      for i = 1:numel(obj.perframefns),
 
+        % loop through directories to look in
+        for j = 1:numel(expdirs_try),
+          expdir = expdirs_try{j};
+          filename = fullfile(expdir,fn,[obj.perframefns{i},'.mat']);
+          
+          if exist(filename,'file'),
+            filenames{i} = filename;
+            tmp = dir(filename);
+            timestamps(i) = tmp.datenum;
+          elseif j == 1,
+            filenames{i} = filename;
+          end
+          
+        end
+      end
+    end
+    
     % [filename,timestamp] = GetFile(obj,file,expi)
     % Get the full path to the file of type file for experiment expi. 
     function [filename,timestamp] = GetFile(obj,file,expi,dowrite)
@@ -1784,6 +1891,11 @@ classdef JLabelData < handle
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
+              [success1,msg1] = obj.GeneratePerFrameFiles(expi);
+              success = success && success1;
+              if ~success1,
+                msg = [msg,'\n',msg1]; %#ok<AGROW>
+              end
           end
         end
       end
@@ -1794,6 +1906,50 @@ classdef JLabelData < handle
       else
         msg = sprintf('%s\n%s',msg,msg1);
       end
+      
+    end
+    
+    function [success,msg] = GeneratePerFrameFiles(obj,expi)
+      success = false; %#ok<NASGU>
+      msg = '';
+      
+      perframedir = obj.GetFile('perframedir',expi);
+      if exist(perframedir,'dir'),
+        res = questdlg('Do you want to overwrite existing files or keep them?',...
+          'Regenerate files?','Overwrite','Keep','Keep');
+        dooverwrite = strcmpi(res,'Overwrite');
+      else
+        dooverwrite = true;
+      end
+      expdir = obj.expdirs{expi};
+      
+      hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
+
+      perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
+        'moviefilestr',obj.GetFileName('movie'),...
+        'perframedir',obj.GetFileName('perframedir'),...
+        'landmark_params',obj.landmark_params,...
+        'perframe_params',obj.perframe_params,...
+        'rootwritedir',obj.rootoutputdir);
+      
+      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
+      
+      for i = 1:numel(obj.perframefns),
+        fn = obj.perframefns{i};
+        file = fullfile(perframedir,[fn,'.mat']);
+        if ~dooverwrite && exist(file,'file'),
+          continue;
+        end
+        hwait = mywaitbar(i/numel(obj.perframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        perframetrx.(fn); %#ok<VUNUS>
+          
+      end
+      
+      if ishandle(hwait),
+        delete(hwait);
+      end
+      
+      success = true;
       
     end
   
@@ -1919,15 +2075,23 @@ classdef JLabelData < handle
         file = obj.filetypes{filei};
         % loop through experiments
         for expi = expis,
-
-          % check for existence of current file(s)
-          [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
-          if iscell(fn),
+          
+          if strcmpi(file,'perframedir'),
+            [fn,timestamps] = obj.GetPerframeFiles(expi);
             obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+            obj.filetimestamps(expi,filei) = max(timestamps);
           else
-            obj.fileexists(expi,filei) = exist(fn,'file');
+          
+            % check for existence of current file(s)
+            [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
+            if iscell(fn),
+              obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+            else
+              obj.fileexists(expi,filei) = exist(fn,'file');
+            end
+            
           end
-                    
+          
         end
       end
 
@@ -2401,6 +2565,33 @@ classdef JLabelData < handle
 
     end
 
+    % x = GetSex1(obj,expi,fly,t)
+    % Returns the sex for the input experiment, SINGLE fly, and
+    % SINGLE frame. 
+    function sex = GetSex1(obj,expi,fly,t)
+
+      if ~obj.hassex,
+        sex = '?';
+        return;
+      end
+            
+      if ~obj.hasperframesex,
+        sex = obj.sex_per_exp{expi}(fly);
+        return;
+      end
+      
+      if expi ~= obj.expi,
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,fly);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+            
+      sex = obj.trx(fly).sex{t + obj.trx(fly).off};
+
+    end
+    
     % x = GetSexFrac(obj,expi,fly)
     % Returns a struct indicating the fraction of frames for which the sex
     % of the fly is M, F
@@ -2552,7 +2743,7 @@ classdef JLabelData < handle
           trxfilename = obj.GetFile('trx',expi);
           
           obj.SetStatus('Loading trx for experiment %s',obj.expnames{expi});
-          
+                    
           % TODO: remove this
           global CACHED_TRX; %#ok<TLEV>
           global CACHED_TRX_EXPNAME; %#ok<TLEV>
@@ -2567,53 +2758,17 @@ classdef JLabelData < handle
           end
           % store trx_info, in case this is the first time these trx have
           % been loaded
-          obj.nflies_per_exp(expi) = numel(obj.trx);
-          obj.firstframes_per_exp{expi} = [obj.trx.firstframe];
-          obj.endframes_per_exp{expi} = [obj.trx.endframe];
-          obj.hassex = obj.hassex || isfield(obj.trx,'sex');
-
-          % store sex info
-          tmp = repmat({nan},[1,numel(obj.trx)]);
-          obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
-          obj.sex_per_exp{expi} = repmat({'?'},[1,numel(obj.trx)]);
-          if isfield(obj.trx,'sex'),
-            if numel(obj.trx) > 1,
-              obj.hasperframesex = iscell(obj.trx(1).sex);
-            end
-            if obj.hasperframesex,
-              for fly = 1:numel(obj.trx),
-                n = numel(obj.trx(fly).sex);
-                nmale = nnz(strcmpi(obj.trx(fly).sex,'M'));
-                nfemale = nnz(strcmpi(obj.trx(fly).sex,'F'));
-                obj.frac_sex_per_exp{expi}(fly).M = nmale/n;
-                obj.frac_sex_per_exp{expi}(fly).F = nfemale/n;
-                if nmale > nfemale,
-                  obj.sex_per_exp{expi}{fly} = 'M';
-                elseif nfemale > nmale,
-                  obj.sex_per_exp{expi}{fly} = 'F';
-                else
-                  obj.sex_per_exp{expi}{fly} = '?';
-                end
-              end
-            else
-              for fly = 1:numel(obj.trx),
-                obj.sex_per_exp{expi}{fly} = obj.trx(fly).sex;
-                if strcmpi(obj.trx(fly).sex,'M'),
-                  obj.frac_sex_per_exp{expi}(fly).M = 1;
-                  obj.frac_sex_per_exp{expi}(fly).F = 0;
-                elseif strcmpi(obj.trx(fly).sex,'F'),
-                  obj.frac_sex_per_exp{expi}(fly).M = 0;
-                  obj.frac_sex_per_exp{expi}(fly).F = 1;
-                end
-              end
-            end
+          [success,msg] = obj.GetTrxInfo(expi,true,obj.trx);
+          if ~success,
+            return;
           end
+          
         catch ME,
           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
-          if ishandle(hwait),
-            delete(hwait);
-            drawnow;
-          end
+%           if ishandle(hwait),
+%             delete(hwait);
+%             drawnow;
+%           end
           return;
         end
  
@@ -2780,7 +2935,14 @@ classdef JLabelData < handle
 %       end
       
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
-        perframedata = obj.perframedata{prop}(t-obj.t0_curr+1);
+        is = t-obj.t0_curr+1;
+        badidx = is > numel(obj.perframedata{prop});
+        if any(badidx),
+          perframedata = nan(size(is));
+          perframedata(~badidx) = obj.perframedata{prop}(is(~badidx));
+        else
+          perframedata = obj.perframedata{prop}(is);
+        end
         return;
       end
       
@@ -3182,8 +3344,8 @@ classdef JLabelData < handle
             tic;
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
             
-            oldBinSize = size(obj.bins,2);
-            newData = size(obj.windowdata.X,1) - size(obj.bins,2);
+            oldBinSize = size(obj.windowdata.bins,2);
+            newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
             if newData>0
               obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
             end
@@ -3549,6 +3711,16 @@ classdef JLabelData < handle
             obj.windowdata.predicted_probs(idxcurr,:)] = ...
             fernsClfApply(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.isvalidprediction(idxcurr) = true;
+
+          s = exp(obj.windowdata.predicted_probs);
+          s = bsxfun(@rdivide,s,sum(s,2));
+          scores = max(s,[],2);
+          idxcurr1 = find(idxcurr);
+          idx0 = obj.windowdata.predicted(idxcurr) == 1;
+          idx1 = obj.windowdata.predicted(idxcurr) > 1;
+          obj.windowdata.scores(idxcurr1(idx1)) = -scores(idx1);
+          obj.windowdata.scores(idxcurr1(idx0)) = scores(idx0);
+          
           obj.ClearStatus();
         case 'boosting',
           obj.SetStatus('Applying boosting classifier to %d windows',nnz(idxcurr));

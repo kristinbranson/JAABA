@@ -60,7 +60,9 @@ end
 addpath(genpath(fullfile(JCtrax_path,'pdollar_toolbox')));
 addpath(fullfile(JCtrax_path,'misc'));
 addpath(fullfile(JCtrax_path,'filehandling'));
-addpath(FlyBowlAnalysis_path);
+jlabelpath = fileparts(which('JLabel'));
+addpath(fullfile(jlabelpath,'compute_perframe_features'));
+%addpath(FlyBowlAnalysis_path);
 
 %% start JLabel
 

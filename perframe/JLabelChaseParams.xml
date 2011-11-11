@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+
+<params>
+  <behaviors 
+      names="Chase"
+      labelcolors=".7,0,0,0,0,.7"
+      />
+  <file 
+      moviefilename="movie.ufmf"
+      trxfilename="registered_trx.mat"
+      labelfilename="labeledchases.mat"
+      perframedir="perframe"
+      windowfilename="windowfeatures.mat"
+      featureparamfilename="C:\Code\Jdetect\perframe\WindowFeatures_SocialLots.xml"
+      rootoutputdir="C:\Data\FlyBowl\Jdetect"
+      />
+  
+  <plot>
+    <trx 
+	colormap="jet"
+	colormap_multiplier=".7"
+	/>
+    <labels 
+	colormap="line"
+	linewidth="3"
+	/>
+  </plot>
+  <learning
+      classifiertype="boosting"
+      />
+
+</params>
