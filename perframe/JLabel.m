@@ -574,10 +574,12 @@ for i = axes,
       t0 = min(T1,max(T0,handles.ts(i)-nprev));
       t1 = min(T1,max(T0,handles.ts(i)+npost));
       for j = 1:handles.data.nbehaviors,
-        set(handles.hlabels(j),'XData',handles.labels_plot.x(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k),...
-          'YData',handles.labels_plot.y(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k));
-        set(handles.hpredicted(j),'XData',handles.labels_plot.predx(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k),...
-          'YData',handles.labels_plot.predy(handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k));
+        xplot = handles.labels_plot.x(:,handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k);
+        yplot = handles.labels_plot.y(:,handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k);
+        set(handles.hlabels(j),'XData',xplot(:),'YData',yplot(:));
+        xpred = handles.labels_plot.predx(:,handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k);
+        ypred = handles.labels_plot.predy(:,handles.labels_plot_off+t0:handles.labels_plot_off+t1,j,k);
+        set(handles.hpredicted(j),'XData',xpred(:),'YData',ypred(:));
       end
       if handles.label_state ~= 0,
         ts = sort([handles.label_t0,handles.ts(1)]);
@@ -837,10 +839,10 @@ handles.labels_plot.suggest_xs = nan;
 handles.labels_plot.error_xs = nan;
 %handles.labels_plot.suggested_im = zeros([1,n,3]);
 %handles.labels_plot.error_im = zeros([1,n,3]);
-handles.labels_plot.x = nan(n,handles.data.nbehaviors,numel(handles.flies));
-handles.labels_plot.y = nan(n,handles.data.nbehaviors,numel(handles.flies));
-handles.labels_plot.predx = nan(n,handles.data.nbehaviors,numel(handles.flies));
-handles.labels_plot.predy = nan(n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.x = nan(2,n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.y = nan(2,n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.predx = nan(2,n,handles.data.nbehaviors,numel(handles.flies));
+handles.labels_plot.predy = nan(2,n,handles.data.nbehaviors,numel(handles.flies));
 handles.labels_plot_off = 1-handles.t0_curr;
 % set([handles.himage_timeline_manual,handles.himage_timeline_auto,...
 %   handles.himage_timeline_error,handles.himage_timeline_suggest],...
@@ -857,12 +859,18 @@ for flyi = 1:numel(flies),
   for behaviori = 1:handles.data.nbehaviors
     % WARNING: accesses labelidx
     % REMOVED!
-    idx = labelidx == behaviori;
-    handles.labels_plot.x(idx,behaviori,flyi) = x(idx);
-    handles.labels_plot.y(idx,behaviori,flyi) = y(idx);
-    idx = predictedidx == behaviori;
-    handles.labels_plot.predx(idx,behaviori,flyi) = x(idx);
-    handles.labels_plot.predy(idx,behaviori,flyi) = y(idx);
+    idx = find(labelidx == behaviori);
+    idx1 = min(idx+1,numel(x));
+    handles.labels_plot.x(1,idx,behaviori,flyi) = x(idx);
+    handles.labels_plot.x(2,idx,behaviori,flyi) = x(idx1);
+    handles.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
+    handles.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
+    idx = find(predictedidx == behaviori);
+    idx1 = min(idx+1,numel(x));
+    handles.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
+    handles.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
+    handles.labels_plot.predy(1,idx,behaviori,flyi) = y(idx);
+    handles.labels_plot.predy(2,idx,behaviori,flyi) = y(idx1);
   end
 end
 handles = UpdateTimelineIms(handles);
@@ -1908,8 +1916,13 @@ function handles = SetLabelPlot(handles,t0,t1,behaviori)
 %   handles.data.Preload(handles.expi,handles.flies);
 % end
 
-handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
-handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+if t1 < t0,
+  tmp = t1;
+  t1 = t0;
+  t0 = tmp;
+end
+handles.labels_plot.x(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.y(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 % handles.data.labelidx(t0+handles.labels_plot_off:t1+handles.labels_plot_off) = 0;
 
 for channel = 1:3,
@@ -1926,11 +1939,11 @@ if behaviori > 0,
     %j0 = t0+off;
     %j2 = t2+off;
     k0 = t0+handles.labels_plot_off;
-    k2 = t1+handles.labels_plot_off;
-    handles.labels_plot.x(k0:k2,behaviori,l) = ...
-      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0:t1);
-    handles.labels_plot.y(k0:k2,behaviori,l) = ...
-      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0:t1);
+    k2 = t1+handles.labels_plot_off+1;
+    xplot = handles.data.GetTrxX1(handles.expi,handles.flies(l),min(t0:t1+1,handles.t1_curr));
+    yplot = handles.data.GetTrxY1(handles.expi,handles.flies(l),min(t0:t1+1,handles.t1_curr));
+    handles.labels_plot.x(:,k0:k2-1,behaviori,l) = [xplot(1:end-1);xplot(2:end)];
+    handles.labels_plot.y(:,k0:k2-1,behaviori,l) = [yplot(1:end-1);yplot(2:end)];      
 
 %     handles.labels_plot.x(k0:k2,behaviori,l) = ...
 %       handles.data.trx(handles.flies(l)).x(j0:j2);
@@ -1963,8 +1976,15 @@ guidata(handles.figure_JLabel,handles);
 
 function handles = SetLabelsPlot(handles,t0,t1,behavioris)
 
-handles.labels_plot.x(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
-handles.labels_plot.y(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+
+if t1 < t0,
+  tmp = t1;
+  t1 = t0;
+  t0 = tmp;
+end
+
+handles.labels_plot.x(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.y(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 
 for channel = 1:3,
   handles.labels_plot.im(1,t0+handles.labels_plot_off:t1+handles.labels_plot_off,channel) = handles.labelunknowncolor(channel);
@@ -1982,10 +2002,12 @@ for behaviori = 1:handles.data.nbehaviors,
   end
   for l = 1:numel(handles.flies),
     ks = t0-1+handles.labels_plot_off+bidx;
-    handles.labels_plot.x(ks,behaviori,l) = ...
-      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
-    handles.labels_plot.y(ks,behaviori,l) = ...
-      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+    xplot0 = handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
+    xplot1 = handles.data.GetTrxX1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    handles.labels_plot.x(:,ks,behaviori,l) = [xplot0;xplot1];
+    yplot0 = handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+    yplot1 = handles.data.GetTrxY1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    handles.labels_plot.y(:,ks,behaviori,l) = [yplot0;yplot1];
   end
   
 end
@@ -2020,8 +2042,8 @@ elseif nargin < 4,
   behavioris = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
 end
 
-handles.labels_plot.predx(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
-handles.labels_plot.predy(t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.predx(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
+handles.labels_plot.predy(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 
 for behaviori = 1:handles.data.nbehaviors,
 
@@ -2031,10 +2053,12 @@ for behaviori = 1:handles.data.nbehaviors,
   end
   for l = 1:numel(handles.flies),
     ks = t0-1+handles.labels_plot_off+bidx;
-    handles.labels_plot.predx(ks,behaviori,l) = ...
-      handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
-    handles.labels_plot.predy(ks,behaviori,l) = ...
-      handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+    xplot0 = handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
+    xplot1 = handles.data.GetTrxX1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    handles.labels_plot.predx(:,ks,behaviori,l) = [xplot0;xplot1];
+    yplot0 = handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
+    yplot1 = handles.data.GetTrxY1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    handles.labels_plot.predy(:,ks,behaviori,l) = [yplot0;yplot1];
   end
   
 end
@@ -2061,6 +2085,18 @@ if get(hObject,'Value'),
 
   set(handles.htimeline_label_curr,'XData',handles.label_t0 + [-.5,-.5,.5,.5,-.5],...
     'FaceColor',handles.labelunknowncolor);
+  
+  UpdatePlots(handles,...
+    'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+    'refresh_timeline_manual',true,...
+    'refresh_timeline_auto',false,...
+    'refresh_timeline_suggest',false,...
+    'refresh_timeline_error',true,...
+    'refresh_timeline_xlim',false,...
+    'refresh_timeline_hcurr',false,...
+    'refresh_timeline_props',false,...
+    'refresh_timeline_selection',false,...
+    'refresh_curr_prop',false);
 
 %   % set everything else to off
 %   for j = 1:handles.data.nbehaviors,
@@ -2088,11 +2124,6 @@ else
   handles.label_state = 0;
   handles.label_t0 = [];
   set(handles.htimeline_label_curr,'XData',nan(1,5));
-  UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false,...
-    'refresh_timeline_auto',false,...
-    'refresh_timeline_xlim',false,...
-    'refresh_timeline_hcurr',false,...
-    'refresh_curr_prop',false);
     
   %handles.data.StoreLabels();
   for j = 1:handles.data.nbehaviors,
