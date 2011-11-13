@@ -276,7 +276,7 @@
        trans_types="none"
   /-->
 </dist2wall>
-<!--dcenter sanitycheck="0"
+<dcenter sanitycheck="0"
 	min_window_radius="0" 
 	max_window_radius="5" 
 	nwindow_radii="3" 
@@ -524,7 +524,7 @@
        window_offsets="0,-1,1"
        trans_types="none"
   />
-</dell2nose-->
+</dell2nose>
 <flipdv_cor sanitycheck="0"
 	min_window_radius="0" 
 	max_window_radius="5" 
