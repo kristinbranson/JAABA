@@ -121,7 +121,7 @@ classdef JLabelData < handle
     configfilename = '';
     
     % constant: files per experiment directory
-    filetypes = {'movie','trx','label','perframedir'};
+    filetypes = {'movie','trx','label','perframedir','clipsdir'};
     
     % config parameters
     
@@ -130,6 +130,7 @@ classdef JLabelData < handle
     trxfilename = 0;
     labelfilename = 0;
     perframedir = 0;
+    clipsdir = 0;
     
     % file containing feature parameters
     featureparamsfilename = 0;
@@ -178,7 +179,7 @@ classdef JLabelData < handle
     classifiervars = {'expdirs','outexpdirs','expnames',...
       'nflies_per_exp','sex_per_exp','frac_sex_per_exp',...
       'firstframes_per_exp','endframes_per_exp',...
-      'moviefilename','trxfilename','labelfilename','perframedir','featureparamsfilename',...
+      'moviefilename','trxfilename','labelfilename','perframedir','clipsdir','featureparamsfilename',...
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params'};%'windowfilename',
     
     % last used path for loading experiment
@@ -246,7 +247,7 @@ classdef JLabelData < handle
     
     % which files should go in the output directory
     function res = IsOutputFile(file)
-      res = ismember(file,{'label'});
+      res = ismember(file,{'label','clipsdir'});
     end
     
     % which files are stored individually per fly (none anymore -- used to
@@ -271,7 +272,7 @@ classdef JLabelData < handle
     % TODO: debug this
     % override stuff set in the config file: 
     %
-    % moviefilename, trxfilename, labelfilename, perframedir: names of
+    % moviefilename, trxfilename, labelfilename, perframedir, clipsdir: names of
     % files within experiment directories: 
     % featureparamsfilename: file containing feature parameters
     % rootoutputdir: in case we don't want to write to the experiment
@@ -352,7 +353,16 @@ classdef JLabelData < handle
           error(msg);
         end
       end
-      
+
+      % clipsdir
+      i = find(strcmpi(s,'clipsdir'),1);
+      if ~isempty(i),
+        [success,msg] = obj.SetClipsDir(v{i});
+        if ~success,
+          error(msg);
+        end
+      end
+
       % featureparamsfilename
       i = find(strcmpi(s,'featureparamsfilename'),1);
       if ~isempty(i),
@@ -460,6 +470,12 @@ classdef JLabelData < handle
         end
         if isfield(configparams.file,'perframedir'),
           [success1,msg] = obj.SetPerFrameDir(configparams.file.perframedir);
+          if ~success1,
+            return;
+          end
+        end
+        if isfield(configparams.file,'clipsdir'),
+          [success1,msg] = obj.SetClipsDir(configparams.file.clipsdir);
           if ~success1,
             return;
           end
@@ -1098,6 +1114,31 @@ classdef JLabelData < handle
       
     end
 
+    % [success,msg] = SetClipsDir(obj,clipsdir)
+    % Sets the clips directory name within the experiment directory.
+    function [success,msg] = SetClipsDir(obj,clipsdir)
+      
+      success = false;
+      msg = '';
+
+      if ischar(clipsdir),
+        for i = 1:numel(obj.expdirs),
+          clipsdircurr = fullfile(obj.expdirs{i},clipsdir);
+          if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
+            mkdir(clipsdircurr);
+          end
+        end
+        if ischar(obj.clipsdir) && strcmp(clipsdir,obj.clipsdir),
+          success = true;
+          return;
+        end
+
+        obj.clipsdir = clipsdir;        
+        [success,msg] = obj.UpdateStatusTable('clipsdir');
+      end
+      
+    end
+
 %{    
 %     function [success,msg] = SetWindowFileName(obj,windowfilename)
 %       
@@ -1222,6 +1263,12 @@ classdef JLabelData < handle
             error(msg);
           end
 
+          % clipsdir
+          [success,msg] = obj.SetClipsDir(loadeddata.clipsdir);
+          if ~success,
+            error(msg);
+          end
+          
           % featureparamsfilename
           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
           if ~success,
@@ -1628,14 +1675,25 @@ classdef JLabelData < handle
       end
       
       % create missing outexpdirs
-      if ~exist(outexpdir,'file'),
+      if ~exist(outexpdir,'dir'),
         [success1,msg1] = mkdir(rootoutputdir,expname);
         if ~success1,
           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
           return;
         end
       end
-            
+
+      % create clips dir
+      clipsdir = obj.GetFileName('clipsdir');
+      outclipsdir = fullfile(outexpdir,clipsdir);
+      if ~exist(outclipsdir,'dir'),
+        [success1,msg1] = mkdir(outexpdir,clipsdir);
+        if ~success1,
+          msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+          return;
+        end
+      end
+
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;
       obj.expdirs{end+1} = expdir;
@@ -1750,8 +1808,10 @@ classdef JLabelData < handle
           res = obj.labelfilename;
 %         case 'window',
 %           res = obj.windowfilename;
-        case 'perframedir',
+        case {'perframedir','perframe'},
           res = obj.perframedir;
+        case {'clipsdir','clips'},
+          res = obj.clipsdir;
         otherwise
           error('Unknown file type %s',file);
       end
