@@ -3931,30 +3931,37 @@ AddBookmark(handles,handles.bookmark_info);
 function handles = AddBookmark(handles,clip)
 
 fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
+flystr = sprintf('%d, ',handles.flies);
+flystr = flystr(1:end-2);
+SetStatus(handles,sprintf('Saving AVI for experiment %s, flies %s, frames %d to %d...',...
+  handles.data.expnames{handles.expi},flystr,clip.t0,clip.t1));
 
-clip.expi = handles.expi;
-clip.flies = handles.flies;
-clip.preview_zoom_mode = handles.preview_zoom_mode;
-axesi = 1;
-clip.xlim = get(handles.axes_previews(axesi),'XLim');
-clip.ylim = get(handles.axes_previews(axesi),'YLim');
-clip.zoom_fly_radius = handles.zoom_fly_radius;
-for i = 1:numel(handles.flies),
-  fly = handles.flies(i);
-  t0 = min(max(clip.t0,handles.t0_curr),handles.t1_curr);
-  t1 = min(max(clip.t1,handles.t0_curr),handles.t1_curr);
-  if t0 <= t1,
-    [xcurr,ycurr,thetacurr,acurr,bcurr] = ...
-      handles.data.GetTrxPos1(handles.expi,fly,t0:t1);
-  end
-  clip.trx(i).x = [nan(1,t0-clip.t0),xcurr,nan(1,clip.t1-t1)];
-  clip.trx(i).y = [nan(1,t0-clip.t0),ycurr,nan(1,clip.t1-t1)];
-  clip.trx(i).a = [nan(1,t0-clip.t0),acurr,nan(1,clip.t1-t1)];
-  clip.trx(i).b = [nan(1,t0-clip.t0),bcurr,nan(1,clip.t1-t1)];
-  clip.trx(i).theta = [nan(1,t0-clip.t0),thetacurr,nan(1,clip.t1-t1)];
-end
- 
-BookmarkedClips(handles.figure_JLabel,handles.data,'clips',clip);
+handles = make_jlabel_results_movie(handles,clip.t0,clip.t1);
+ClearStatus(handles);
+
+% clip.expi = handles.expi;
+% clip.flies = handles.flies;
+% clip.preview_zoom_mode = handles.preview_zoom_mode;
+% axesi = 1;
+% clip.xlim = get(handles.axes_previews(axesi),'XLim');
+% clip.ylim = get(handles.axes_previews(axesi),'YLim');
+% clip.zoom_fly_radius = handles.zoom_fly_radius;
+% for i = 1:numel(handles.flies),
+%   fly = handles.flies(i);
+%   t0 = min(max(clip.t0,handles.t0_curr),handles.t1_curr);
+%   t1 = min(max(clip.t1,handles.t0_curr),handles.t1_curr);
+%   if t0 <= t1,
+%     [xcurr,ycurr,thetacurr,acurr,bcurr] = ...
+%       handles.data.GetTrxPos1(handles.expi,fly,t0:t1);
+%   end
+%   clip.trx(i).x = [nan(1,t0-clip.t0),xcurr,nan(1,clip.t1-t1)];
+%   clip.trx(i).y = [nan(1,t0-clip.t0),ycurr,nan(1,clip.t1-t1)];
+%   clip.trx(i).a = [nan(1,t0-clip.t0),acurr,nan(1,clip.t1-t1)];
+%   clip.trx(i).b = [nan(1,t0-clip.t0),bcurr,nan(1,clip.t1-t1)];
+%   clip.trx(i).theta = [nan(1,t0-clip.t0),thetacurr,nan(1,clip.t1-t1)];
+% end
+%  
+% BookmarkedClips(handles.figure_JLabel,handles.data,'clips',clip);
 
 
 % --------------------------------------------------------------------
