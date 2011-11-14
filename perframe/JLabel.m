@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 28-Oct-2011 16:03:02
+% Last Modified by GUIDE v2.5 13-Nov-2011 20:26:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -543,8 +543,8 @@ for i = axes,
 
   % update trx
   % TODO: remove hard-coded nprev, npost
-  nprev = 25;
-  npost = 25;
+  nprev = handles.traj_nprev;
+  npost = handles.traj_npost;
   if refreshtrx,
     for j = 1:numel(handles.flies),
       fly = handles.flies(j);
@@ -1491,10 +1491,10 @@ end
 
 % play/stop
 handles.hplaying = nan;
-handles.play_FPS = 2;
+%handles.play_FPS = 2;
 
-handles.traj_nprev = 25;
-handles.traj_npost = 25;
+%handles.traj_nprev = 25;
+%handles.traj_npost = 25;
 
 % whether to show trajectories
 set(handles.menu_view_plottracks,'Checked','on');
@@ -1648,7 +1648,49 @@ try
   else
     handles.label_shortcuts = [];
   end
-    
+
+  %output avi options
+  
+  % compression: scheme for compression for output avis
+  if isfield(handles.rc,'outavi_compression'),
+    handles.outavi_compression = handles.rc.outavi_compression;
+  else
+    handles.outavi_compression = 'None';
+  end
+  % outavi_fps: output frames per second
+  if isfield(handles.rc,'outavi_fps'),
+    handles.outavi_fps = handles.rc.outavi_fps;
+  else
+    handles.outavi_fps = 15;
+  end
+  % useVideoWriter: whether to use videowriter class
+  if isfield(handles.rc,'useVideoWriter'),
+    handles.useVideoWriter = handles.rc.useVideoWriter;
+  else
+    handles.useVideoWriter = exist('VideoWriter','file');
+  end
+  
+  % preview options
+  
+  % playback speed
+  if isfield(handles.rc,'play_FPS'),
+    handles.play_FPS = handles.rc.play_FPS;
+  else
+    handles.play_FPS = 2;
+  end
+  
+  if isfield(handles.rc,'traj_nprev'),
+    handles.traj_nprev = handles.rc.traj_nprev;
+  else
+    handles.traj_nprev = 25;
+  end
+  
+  if isfield(handles.rc,'traj_npost'),
+    handles.traj_npost = handles.rc.traj_npost;
+  else
+    handles.traj_npost = 25;
+  end
+  
 catch ME,
   warning('Error loading RC file: %s',getReport(ME));  
 end
@@ -1687,7 +1729,39 @@ try
     rc.label_shortcuts = handles.label_shortcuts;
   end
   
+  
+  %output avi options
+  
+  % compression: scheme for compression for output avis
+  if isfield(handles,'outavi_compression'),
+    rc.outavi_compression = handles.outavi_compression;
+  end
+  % outavi_fps: output frames per second
+  if isfield(handles,'outavi_fps'),
+    rc.outavi_fps = handles.outavi_fps;
+  end
+  % useVideoWriter: whether to use videowriter class
+  if isfield(handles,'useVideoWriter'),
+    rc.useVideoWriter = handles.useVideoWriter;
+  end
+  
+  % preview options
+  
+  % playback speed
+  if isfield(handles,'play_FPS'),
+    rc.play_FPS = handles.play_FPS;
+  end
+  
+  if isfield(handles,'traj_nprev'),
+    rc.traj_nprev = handles.traj_nprev;
+  end
+  
+  if isfield(handles,'traj_npost'),
+    rc.traj_npost = handles.traj_npost;
+  end  
+  
   save(handles.rcfilename,'-struct','rc');
+
 catch ME,
   warning('Error saving RC file: %s',getReport(ME));
 end
@@ -3169,6 +3243,17 @@ while true,
   
 end
 guidata(hObject,handles);
+UpdatePlots(handles,...
+  'refreshim',false,'refreshflies',false,'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',true,...
+     'refresh_timeline_auto',false,...
+     'refresh_timeline_suggest',false,...
+     'refresh_timeline_error',true,...
+     'refresh_timeline_xlim',false,...
+     'refresh_timeline_hcurr',false,...
+     'refresh_timeline_props',false,...
+     'refresh_timeline_selection',false,...
+     'refresh_curr_prop',false);
 
 
 % --- Executes on button press in pushbutton_add_timeline.
@@ -4202,3 +4287,40 @@ UpdatePlots(handles,...
   'refresh_timeline_props',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over timeline_label_manual.
+function timeline_label_manual_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to timeline_label_manual (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over timeline_label_automatic.
+function timeline_label_automatic_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to timeline_label_automatic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
+
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_automatic_overlay_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_automatic_overlay (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
+
+% --------------------------------------------------------------------
+function contextmenu_timeline_manual_overlay_Callback(hObject, eventdata, handles)
+% hObject    handle to contextmenu_timeline_manual_overlay (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);

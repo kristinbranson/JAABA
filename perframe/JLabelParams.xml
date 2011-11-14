@@ -10,6 +10,7 @@
       trxfilename="registered_trx.mat"
       labelfilename="labeledwalks.mat"
       perframedir="perframe"
+      clipsdir="clips"
       windowfilename="windowfeatures.mat"
       featureparamfilename="C:\Code\Jdetect\perframe\WindowFeatures_Lots.xml"
       rootoutputdir="C:\Data\FlyBowl\Jdetect"
