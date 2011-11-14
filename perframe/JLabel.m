@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 13-Nov-2011 20:26:52
+% Last Modified by GUIDE v2.5 14-Nov-2011 07:13:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -2609,8 +2609,34 @@ for i = is,
     %ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
   end
   if ~all(isnan(xs)) && ~all(isnan(ys)),
-    xlim = [max([.5,xs-handles.zoom_fly_radius(1)]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius(1)])];
-    ylim = [max([.5,ys-handles.zoom_fly_radius(2)]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius(2)])];
+    %xlim = [max([.5,xs-handles.zoom_fly_radius(1)]),min([handles.movie_width+.5,xs+handles.zoom_fly_radius(1)])];
+    %ylim = [max([.5,ys-handles.zoom_fly_radius(2)]),min([handles.movie_height+.5,ys+handles.zoom_fly_radius(2)])];
+    x0 = min(xs) - handles.zoom_fly_radius(1);
+    x1 = max(xs) + handles.zoom_fly_radius(1);
+    if x1 - x0 + 1 >= handles.movie_width,
+      xlim = [.5,handles.movie_width+.5];
+    elseif x0 < .5,
+      dx = .5 - x0;
+      xlim = [.5,x1 + dx];
+    elseif x1 > handles.movie_width+.5,
+      dx = x1 - (handles.movie_width+.5);
+      xlim = [x0-dx,handles.movie_width+.5];
+    else
+      xlim = [x0,x1];
+    end
+    y0 = min(ys) - handles.zoom_fly_radius(2);
+    y1 = max(ys) + handles.zoom_fly_radius(2);
+    if y1 - y0 + 1 >= handles.movie_height,
+      ylim = [.5,handles.movie_height+.5];
+    elseif y0 < .5,
+      dy = .5 - y0;
+      ylim = [.5,y1 + dy];
+    elseif y1 > handles.movie_height+.5,
+      dy = y1 - (handles.movie_height+.5);
+      ylim = [y0-dy,handles.movie_height+.5];
+    else
+      ylim = [y0,y1];
+    end    
     set(handles.axes_previews(i),'XLim',xlim,'YLim',ylim);
   end
 end
@@ -3180,7 +3206,26 @@ axes_pos = [handles.guipos.preview_axes_left_border,...
   panel_pos(3) - handles.guipos.preview_axes_left_border - handles.guipos.preview_axes_right_border,...
   panel_pos(4) - handles.guipos.preview_axes_top_border - handles.guipos.preview_axes_bottom_border];
 set(handles.axes_previews(previewi),'Position',axes_pos);
-  
+
+max_ry = min(handles.zoom_fly_radius(1) * axes_pos(4) / axes_pos(3),handles.movie_height/2);
+max_rx = min(handles.zoom_fly_radius(2) * axes_pos(3) / axes_pos(4),handles.movie_width/2);
+ischange = false;
+if max_ry > handles.zoom_fly_radius(2),
+  handles.zoom_fly_radius(2) = max_ry;
+  ischange = true;
+elseif max_rx > handles.zoom_fly_radius(1),
+  handles.zoom_fly_radius(1) = max_rx;
+  ischange = true;
+end
+if ischange,
+  guidata(hObject,handles);
+  if strcmpi(handles.preview_zoom_mode,'center_on_fly'),
+    ZoomInOnFlies(handles,previewi);
+  elseif strcmpi(handles.preview_zoom_mode,'follow_fly'),
+    KeepFliesInView(handles,previewi);
+  end
+end
+
 slider_pos = get(handles.slider_previews(previewi),'Position');
 new_slider_pos = [handles.guipos.preview_slider_left_border,...
   handles.guipos.preview_slider_bottom_border,...
@@ -3539,11 +3584,29 @@ elseif ~isempty(previewi),
   ylim = get(eventdata.Axes,'YLim');
   rx = round((diff(xlim)-1)/2);
   ry = round((diff(ylim)-1)/2);
+  axes_pos = get(eventdata.Axes,'Position');
+  max_ry = min(rx * axes_pos(4) / axes_pos(3),handles.movie_height/2);
+  max_rx = min(ry * axes_pos(3) / axes_pos(4),handles.movie_width/2);
+  ischange = false;
+  if max_ry > ry,
+    ry = max_ry;
+    ischange = true;
+  elseif max_rx > rx,
+    rx = max_rx;
+    ischange = true;
+  end
   if rx ~= handles.zoom_fly_radius(1) || ...
       ry ~= handles.zoom_fly_radius(2),
     handles.zoom_fly_radius = [rx,ry];
     guidata(eventdata.Axes,handles);
   end  
+  if ischange,
+    if strcmpi(handles.preview_zoom_mode,'center_on_fly'),
+      ZoomInOnFlies(handles,previewi);
+    elseif strcmpi(handles.preview_zoom_mode,'follow_fly'),
+      KeepFliesInView(handles,previewi);
+    end
+  end
 end
 
 
@@ -4331,3 +4394,17 @@ function contextmenu_timeline_manual_overlay_Callback(hObject, eventdata, handle
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_show_bookmarked_clips_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_show_bookmarked_clips (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+clipdir = handles.data.GetFile('clipsdir',handles.expi);
+if ispc,
+  winopen(clipdir);
+else
+  web(clipdir,'-browser');
+end
