@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 14-Nov-2011 07:13:08
+% Last Modified by GUIDE v2.5 14-Nov-2011 08:04:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -4408,3 +4408,11 @@ if ispc,
 else
   web(clipdir,'-browser');
 end
+
+
+% --------------------------------------------------------------------
+function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_compression_preferences (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
