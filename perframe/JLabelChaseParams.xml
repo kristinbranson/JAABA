@@ -10,6 +10,7 @@
       trxfilename="registered_trx.mat"
       labelfilename="labeledchases.mat"
       perframedir="perframe"
+      clipsdir="clips"
       windowfilename="windowfeatures.mat"
       featureparamfilename="C:\Code\Jdetect\perframe\WindowFeatures_SocialLots.xml"
       rootoutputdir="C:\Data\FlyBowl\Jdetect"
