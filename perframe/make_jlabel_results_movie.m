@@ -4,6 +4,8 @@ function handles = make_jlabel_results_movie(handles,t0,t1,varargin)
 % outavi_fps: output frames per second
 % useVideoWriter: whether to use videowriter class
 
+hselection_visible = get(handles.hselection,'Visible');
+set(handles.hselection,'Visible','off');
 clipsdir = handles.data.GetFile('clipsdir',handles.expi);
 if ~exist(clipsdir,'dir'),
   mkdir(clipsdir);
@@ -76,3 +78,8 @@ if handles.useVideoWriter,
 else
   aviobj = close(aviobj); %#ok<NASGU>
 end
+
+for i = 1:numel(handles.hselection),
+  set(handles.hselection(i),'Visible',hselection_visible{i});
+end
+
