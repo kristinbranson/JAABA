@@ -3069,6 +3069,9 @@ handles.guipos.rightborder_rightpanels = figpos(3) - (panel_labelbuttons_pos(1) 
 handles.guipos.leftborder_leftpanels = panel_timelines_pos(1);
 handles.guipos.leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
 handles.guipos.topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
+if handles.guipos.topborder_toppanels < 0
+  handles.guipos.topborder_toppanels = 15;
+end
 handles.guipos.bottomborder_bottompanels = panel_timelines_pos(2);
 handles.guipos.bottomborder_previewpanels = panel_previews_pos{end}(2) - (panel_timelines_pos(2)+panel_timelines_pos(4));
 handles.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos{1}(4));
