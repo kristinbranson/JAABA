@@ -26,13 +26,15 @@ wt(negEx) = negWt;
 wt = wt./sum(wt);
 
 modLabels = sign( (labels==1)-0.5);
-
+tt = tic;
 [outScores, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt,binVals,bins);
-obj.SetStatus('%d%% training done.. ',round(1/(numRepeat*6+1)*100)); 
+etime = toc(tt);
+obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
+  round(1/(numRepeat*6+1)*100),round(numRepeat*6*etime)); 
 drawnow();
 
-bagModels =[]; trainDistMat = []; 
-return;
+% bagModels =[]; trainDistMat = []; 
+% return;
 % Do bagging.
 
 
@@ -65,7 +67,8 @@ for numIter = 1:numRepeat
       wt(curTrainLabels==1)=posWt;
       wt(curTrainLabels~=1)=negWt;
       wt = wt./sum(wt);
-
+      
+      tt = tic;
       [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,...
         boostIterations,wt,binVals,bins(:,curTrain{ndx}));
       tScores = myBoostClassify(data(curTrain{3-ndx},:),curModel);
@@ -73,7 +76,9 @@ for numIter = 1:numRepeat
       outOfBag(curTrain{ndx},count)=0;
       bagModels{count} = curModel;
       count = count+1;
-      obj.SetStatus('%d%% training done.. ',round( count/(numRepeat*6+1)*100)); 
+      etime = toc(tt);
+      obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
+        round( count/(numRepeat*6+1)*100), round((numRepeat*6-count+1)*etime)); 
       drawnow();
     end    
   end
