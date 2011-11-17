@@ -1509,6 +1509,17 @@ handles.plot_labels_automatic = false;
 set(handles.menu_view_plot_labels_manual,'Checked','on');
 set(handles.menu_view_plot_labels_automatic,'Checked','off');
 
+buttonNames = {'pushbutton_train','pushbutton_predict',...
+              'togglebutton_select','pushbutton_clearselection',...
+              'pushbutton_playselection','pushbutton_playstop',...
+              'similarFramesButton'};
+  
+for buttonNum = 1:numel(buttonNames)
+  bgColor = get(handles.(buttonNames{buttonNum}),'BackgroundColor');
+  SetButtonImage(handles,buttonNames{buttonNum},bgColor);
+end
+
+
 function SetJumpGoMenuLabels(handles)
 
 set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.nframes_jump_go));
@@ -1558,6 +1569,7 @@ set(handles.togglebutton_label_behavior1,...
   'Position',new_button1_pos,...
   'UserData',1);
 handles.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
+SetButtonImage(handles,'togglebutton_label_behavior1',handles.labelcolors(1,:));
 
 % create the rest of the buttons
 for i = 2:handles.data.nbehaviors,
@@ -1572,6 +1584,8 @@ for i = 2:handles.data.nbehaviors,
     'Parent',handles.panel_labelbuttons,...
     'Tag',sprintf('togglebutton_label_behavior%d',i),...
     'UserData',i);
+SetButtonImage(handles,sprintf('togglebutton_label_behavior%d',i),handles.labelcolors(i,:));
+  
 end
 
 % set props for unknown button
@@ -1580,7 +1594,16 @@ set(handles.togglebutton_label_unknown,...
   'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
   'FontWeight','bold','BackgroundColor',handles.labelunknowncolor,...
   'UserData',-1);
+SetButtonImage(handles,'togglebutton_label_unknown',handles.labelunknowncolor);
 
+function buttonImg = SetButtonImage(handles,buttonName,buttonColor)
+  buttonPos = get(handles.(buttonName),'Position');
+  buttonSz = round(buttonPos([4 3]));
+  buttonImg = shiftdim(repmat(handles.labelunknowncolor,[buttonSz(2) 1 buttonSz(1)]));
+  if ismac
+    set(handles.(buttonName),'CData',buttonImg);
+  end
+  
 function EnableGUI(handles)
 
 % these controls require a movie to currently be open
@@ -3793,6 +3816,9 @@ function handles = play(hObject,handles,t0,t1,doloop)
 
 axi = 1;
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
+bgColor = get(handles.pushbutton_playstop,'BackgroundColor');
+SetButtonImage(handles,pushbutton_playstop,bgColor);
+
 handles.hplaying = hObject;
 guidata(hObject,handles);
 tic;
@@ -3836,6 +3862,8 @@ stop(handles);
 function handles = stop(handles)
 
 set(handles.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
+bgColor = get(handles.pushbutton_playstop,'BackgroundColor');
+SetButtonImage(handles,pushbutton_playstop,bgColor);
 hObject = handles.hplaying;
 handles.hplaying = nan;
 guidata(hObject,handles);
