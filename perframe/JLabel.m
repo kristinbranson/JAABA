@@ -683,9 +683,6 @@ ClearStatus(handles);
 handles.fly_colors = jet(handles.nflies_curr)*.7;
 handles.fly_colors = handles.fly_colors(randperm(handles.nflies_curr),:);
 
-% set flies
-handles = SetCurrentFlies(handles,flies,true,false);
-
 % delete old fly current positions
 if isfield(handles,'hflies'),
   delete(handles.hflies(ishandle(handles.hflies)));
@@ -699,6 +696,7 @@ end
 % update plotted trx handles, as number of flies will change
 handles.hflies = zeros(handles.nflies_curr,numel(handles.axes_previews));
 handles.hfly_markers = zeros(handles.nflies_curr,numel(handles.axes_previews));
+
 for i = 1:numel(handles.axes_previews),
   % fly current positions
   for fly = 1:handles.nflies_curr,
@@ -711,6 +709,9 @@ for i = 1:numel(handles.axes_previews),
       'Visible','off');
   end
 end
+
+% set flies
+handles = SetCurrentFlies(handles,flies,true,false);
 
 % update slider steps, range
 for i = 1:numel(handles.slider_previews),

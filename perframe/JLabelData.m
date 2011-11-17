@@ -246,7 +246,7 @@ classdef JLabelData < handle
     
     % which files should go in the output directory
     function res = IsOutputFile(file)
-      res = ismember(file,{'label'});
+      res = ismember(file,{'label','scores'});
     end
     
     % which files are stored individually per fly (none anymore -- used to
@@ -701,7 +701,7 @@ classdef JLabelData < handle
           fn = obj.perframefns{j};
 
           % get per-frame data
-          if ~isempty(obj.flies) && all(flies == obj.flies),
+          if ~isempty(obj.flies) && all(flies == obj.flies) && (expi==obj.expi),
         
             % use pre-loaded per-frame data
             i11 = min(i1,numel(obj.perframedata{j}));
@@ -1315,6 +1315,22 @@ classdef JLabelData < handle
       
     end
     
+    % Save prediction scores for the whole experiment.
+    % The scores are stored as a cell array.
+    function SaveScores(obj,scores,expi)
+      lfn = GetFile(obj,'scores',expi,true);
+      obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},lfn);
+
+      didbak = false;
+      if exist(lfn,'file'),
+        [didbak,msg] = copyfile(lfn,[lfn,'~']);
+        if ~didbak,
+          warning('Could not create backup of %s: %s',lfn,msg);
+        end
+      end
+%       save(lfn,'scores');
+    end
+    
     % SaveClassifier(obj)
     % This function saves the current classifier to the file
     % ons.classifierfilename. It first constructs a struct representing the
@@ -1476,6 +1492,10 @@ classdef JLabelData < handle
 
     end
 
+    function nflies = GetNumFlies(obj,expi)
+      nflies = obj.nflies_per_exp(expi);
+    end
+    
     % [success,msg] = GetTrxInfo(obj,expi)
     % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
     % for experiment expi. This may require loading in trajectories. 
@@ -3330,7 +3350,11 @@ classdef JLabelData < handle
           obj.PredictLoaded();
           
         case 'boosting',
-          if isempty(obj.classifier)
+          oldNumPts = sum(obj.windowdata.labelidx_old ~= 0);
+          newNumPts = sum(obj.windowdata.labelidx_new ~= 0);
+          newData = newNumPts - oldNumPts;
+
+          if isempty(obj.classifier) || (newData/oldNumPts)>0.3,
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
@@ -3349,6 +3373,7 @@ classdef JLabelData < handle
             if newData>0
               obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
             end
+            
             
             [obj.classifier, outScores] = boostingUpdate(obj.windowdata.X(islabeled,:),...
                                           obj.windowdata.labelidx_new(islabeled),...
@@ -3740,6 +3765,66 @@ classdef JLabelData < handle
       
     end
 
+    
+   function PredictWholeMovie(obj,expi)
+      
+      if isempty(obj.classifier),
+        return;
+      end
+      
+      allScores = {};
+      for flies = 1:obj.GetNumFlies(expi)
+        tStart = obj.GetTrxFirstFrame(expi,flies);
+        tEnd = obj.GetTrxEndFrame(expi,flies);
+
+        scores = nan(1,tEnd);
+        t1 = tStart;
+        while (t1<tEnd)
+          [success1,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(expi,flies,t1,'start');
+          t1 = t1+1;
+
+          if ~success1,
+            warning(msg);
+            return;
+          end
+          switch obj.classifiertype,
+
+            case 'ferns',
+              return;
+              obj.SetStatus('Applying fern classifier to %d windows',nnz(idxcurr));
+              [obj.windowdata.predicted(idxcurr),...
+                obj.windowdata.predicted_probs(idxcurr,:)] = ...
+                fernsClfApply(obj.windowdata.X(idxcurr,:),obj.classifier);
+              obj.windowdata.isvalidprediction(idxcurr) = true;
+
+              s = exp(obj.windowdata.predicted_probs);
+              s = bsxfun(@rdivide,s,sum(s,2));
+              scores = max(s,[],2);
+              idxcurr1 = find(idxcurr);
+              idx0 = obj.windowdata.predicted(idxcurr) == 1;
+              idx1 = obj.windowdata.predicted(idxcurr) > 1;
+              obj.windowdata.scores(idxcurr1(idx1)) = -scores(idx1);
+              obj.windowdata.scores(idxcurr1(idx0)) = scores(idx0);
+
+              obj.ClearStatus();
+            case 'boosting',
+              scores(t0:t1) = myBoostClassify(X,obj.classifier);
+
+          end
+          obj.SetStatus('Prediction for fly %d(%d): %d%% done',flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100));
+
+        end % While loop.      
+        allScores{flies} = scores;
+      end % Fly loop
+      
+      save
+      obj.ClearStatus();
+
+      
+   end
+
+    
+   
     % SetStatus(obj,<sprintf-like arguments>)
     % Update an associated status text according to the input sprintf-like
     % arguments.
