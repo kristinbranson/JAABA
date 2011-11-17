@@ -4,10 +4,19 @@ boostIterations = 100;
 % Learn classifier with all the data.
 numRepeat = 2;
 
+numEx = size(data,1);
 posEx = labels == 1;
 negEx = ~posEx;
 numPos = sum(posEx);
 numNeg = sum(negEx);
+
+if numPos<1 || numNeg<1,
+  allDataModel = struct('dim',1,'error',0.5,'dir',1,'tr',0,'alpha',0);
+  bagModels = {};
+  trainDistMat = zeros(numEx,6*numRepeat*boostIterations);
+  outScores = zeros(1,numEx);
+  return;
+end
 
 wt = ones(length(posEx),1);
 posWt = numNeg/(numPos+numNeg);
@@ -22,11 +31,10 @@ modLabels = sign( (labels==1)-0.5);
 obj.SetStatus('%d%% training done.. ',round(1/(numRepeat*6+1)*100)); 
 drawnow();
 
-% bagModels =[]; trainDistMat = []; 
-% return;
+bagModels =[]; trainDistMat = []; 
+return;
 % Do bagging.
 
-numEx = size(data,1);
 
 count = 1;
 outOfBag = ones(numEx,numRepeat*6);
@@ -58,7 +66,8 @@ for numIter = 1:numRepeat
       wt(curTrainLabels~=1)=negWt;
       wt = wt./sum(wt);
 
-      [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,boostIterations,wt,binVals,bins(:,curTrain{ndx}),obj);
+      [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,...
+        boostIterations,wt,binVals,bins(:,curTrain{ndx}));
       tScores = myBoostClassify(data(curTrain{3-ndx},:),curModel);
 %       outScores(curTrain{3-ndx}) = outScores(curTrain{3-ndx}) + tScores;
       outOfBag(curTrain{ndx},count)=0;

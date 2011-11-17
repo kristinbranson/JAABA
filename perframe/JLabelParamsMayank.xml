@@ -2,16 +2,16 @@
 
 <params>
   <behaviors 
-      names="Walk"
+      names="Sharpturn"
       labelcolors=".7,0,0,0,0,.7"
       />
   <file 
       moviefilename="movie.ufmf"
       trxfilename="registered_trx.mat"
-      labelfilename="labeledwalks.mat"
+      labelfilename="labeledsharpturns.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/WindowFeaturesWalks.xml"
+      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/WindowFeatures_Lots.xml"
       rootoutputdir="/groups/branson/home/kabram/bowlData/out/Jdetect"
       />
   
