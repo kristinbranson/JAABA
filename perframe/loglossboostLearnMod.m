@@ -1,4 +1,4 @@
-function [scores model binVals bins] = loglossboostLearnMod(data,labels,numIters,initWt,binVals,bins,obj)
+function [scores model binVals bins] = loglossboostLearnMod(data,labels,numIters,initWt,binVals,bins)
 
 numEx = size(data,1);
 wt = initWt;
@@ -25,10 +25,6 @@ for itt = 1:numIters
   tt = scores.*labels;
   wt = initWt./(1+exp(tt));
   wt = wt./sum(wt);
-  if(nargin>7 && mod(itt,10)==0)  
-    obj.SetStatus('%d%% training done.. ',round(itt/numIters*100)); 
-    drawnow();
-  end
 end
 end
 
