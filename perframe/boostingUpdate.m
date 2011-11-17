@@ -1,4 +1,4 @@
-function [newModel,scores] = boostingUpdate(data,labels,oldModel,binVals,bins)
+function [newModel,scores] = boostingUpdate(data,labels,oldModel,binVals,bins,numIters)
 
 % Learn classifier with all the data.
 
@@ -6,6 +6,12 @@ posEx = labels == 1;
 negEx = ~posEx;
 numPos = sum(posEx);
 numNeg = sum(negEx);
+
+if numPos<1 || numNeg<1,
+  newModel = struct('dim',1,'error',0.5,'dir',1,'tr',0,'alpha',0);
+  scores = zeros(1,numel(labels));
+  return;
+end
 
 wt = ones(length(posEx),1);
 posWt = numNeg/(numPos+numNeg);
