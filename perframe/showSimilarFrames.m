@@ -456,7 +456,7 @@ function axesH = initAxes(ax,sz)
   axesH.flyPred = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.2 0.2],...
     'Linewidth',2);
   colormap(ax,'gray');
-  axis(ax,'image','off');
+  axis(ax,'off','image');
 
   
 function updatefly(h1,h2,trx,t)

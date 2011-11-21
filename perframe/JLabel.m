@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 14-Nov-2011 08:04:39
+% Last Modified by GUIDE v2.5 18-Nov-2011 10:34:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -552,8 +552,8 @@ for i = axes,
       t0 = handles.data.firstframes_per_exp{handles.expi}(fly);
       t1 = handles.data.endframes_per_exp{handles.expi}(fly);
       ts = max(t0,tmp-nprev):min(t1,tmp+npost);
-      set(handles.htrx(j,i),'XData',handles.data.GetTrxX1(handles.expi,fly,ts),...
-        'YData',handles.data.GetTrxY1(handles.expi,fly,ts));
+      set(handles.htrx(j,i),'XData',handles.data.GetTrxValues('X1',handles.expi,fly,ts),...
+        'YData',handles.data.GetTrxValues('Y1',handles.expi,fly,ts));
       %j0 = max(1,tmp-nprev);
       %j1 = min(handles.data.trx(fly).nframes,tmp+npost);
       %set(handles.htrx(j,i),'XData',handles.data.trx(fly).x(j0:j1),...
@@ -585,8 +585,8 @@ for i = axes,
         ts = sort([handles.label_t0,handles.ts(1)]);
         t0 = max(t0,ts(1));
         t1 = min(t1,ts(2)+1);
-        xdata = handles.data.GetTrxX1(handles.expi,handles.flies(1),t0:t1);
-        ydata = handles.data.GetTrxY1(handles.expi,handles.flies(1),t0:t1);
+        xdata = handles.data.GetTrxValues('X1',handles.expi,handles.flies(1),t0:t1);
+        ydata = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(1),t0:t1);
         set(handles.hlabel_curr(1),'XData',xdata,'YData',ydata);
         if handles.label_state == -1,
           set(handles.hlabel_curr(1),'Color',handles.labelunknowncolor);
@@ -855,8 +855,8 @@ labelidx = handles.data.GetLabelIdx(handles.expi,flies);
 predictedidx = handles.data.GetPredictedIdx(handles.expi,flies);
 for flyi = 1:numel(flies),
   fly = flies(flyi);
-  x = handles.data.GetTrxX1(handles.expi,fly,handles.t0_curr:handles.t1_curr);
-  y = handles.data.GetTrxY1(handles.expi,fly,handles.t0_curr:handles.t1_curr);
+  x = handles.data.GetTrxValues('X1',handles.expi,fly,handles.t0_curr:handles.t1_curr);
+  y = handles.data.GetTrxValues('Y1',handles.expi,fly,handles.t0_curr:handles.t1_curr);
   for behaviori = 1:handles.data.nbehaviors
     % WARNING: accesses labelidx
     % REMOVED!
@@ -1515,8 +1515,7 @@ buttonNames = {'pushbutton_train','pushbutton_predict',...
               'similarFramesButton'};
   
 for buttonNum = 1:numel(buttonNames)
-  bgColor = get(handles.(buttonNames{buttonNum}),'BackgroundColor');
-  SetButtonImage(handles,buttonNames{buttonNum},bgColor);
+  SetButtonImage(handles.(buttonNames{buttonNum}));
 end
 
 
@@ -1569,7 +1568,7 @@ set(handles.togglebutton_label_behavior1,...
   'Position',new_button1_pos,...
   'UserData',1);
 handles.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
-SetButtonImage(handles,'togglebutton_label_behavior1',handles.labelcolors(1,:));
+SetButtonImage(handles.togglebutton_label_behavior1);
 
 % create the rest of the buttons
 for i = 2:handles.data.nbehaviors,
@@ -1584,7 +1583,7 @@ for i = 2:handles.data.nbehaviors,
     'Parent',handles.panel_labelbuttons,...
     'Tag',sprintf('togglebutton_label_behavior%d',i),...
     'UserData',i);
-SetButtonImage(handles,sprintf('togglebutton_label_behavior%d',i),handles.labelcolors(i,:));
+SetButtonImage(handles.togglebutton_label_behaviors(i));
   
 end
 
@@ -1594,15 +1593,8 @@ set(handles.togglebutton_label_unknown,...
   'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
   'FontWeight','bold','BackgroundColor',handles.labelunknowncolor,...
   'UserData',-1);
-SetButtonImage(handles,'togglebutton_label_unknown',handles.labelunknowncolor);
+SetButtonImage(handles.togglebutton_label_unknown);
 
-function buttonImg = SetButtonImage(handles,buttonName,buttonColor)
-  buttonPos = get(handles.(buttonName),'Position');
-  buttonSz = round(buttonPos([4 3]));
-  buttonImg = shiftdim(repmat(handles.labelunknowncolor,[buttonSz(2) 1 buttonSz(1)]));
-  if ismac
-    set(handles.(buttonName),'CData',buttonImg);
-  end
   
 function EnableGUI(handles)
 
@@ -2038,8 +2030,8 @@ if behaviori > 0,
     %j2 = t2+off;
     k0 = t0+handles.labels_plot_off;
     k2 = t1+handles.labels_plot_off+1;
-    xplot = handles.data.GetTrxX1(handles.expi,handles.flies(l),min(t0:t1+1,handles.t1_curr));
-    yplot = handles.data.GetTrxY1(handles.expi,handles.flies(l),min(t0:t1+1,handles.t1_curr));
+    xplot = handles.data.GetTrxValues('X1',handles.expi,handles.flies(l),min(t0:t1+1,handles.t1_curr));
+    yplot = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(l),min(t0:t1+1,handles.t1_curr));
     handles.labels_plot.x(:,k0:k2-1,behaviori,l) = [xplot(1:end-1);xplot(2:end)];
     handles.labels_plot.y(:,k0:k2-1,behaviori,l) = [yplot(1:end-1);yplot(2:end)];      
 
@@ -2100,11 +2092,11 @@ for behaviori = 1:handles.data.nbehaviors,
   end
   for l = 1:numel(handles.flies),
     ks = t0-1+handles.labels_plot_off+bidx;
-    xplot0 = handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
-    xplot1 = handles.data.GetTrxX1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    xplot0 = handles.data.GetTrxValues('X1',handles.expi,handles.flies(l),t0-1+bidx);
+    xplot1 = handles.data.GetTrxValues('X1',handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
     handles.labels_plot.x(:,ks,behaviori,l) = [xplot0;xplot1];
-    yplot0 = handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
-    yplot1 = handles.data.GetTrxY1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    yplot0 = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(l),t0-1+bidx);
+    yplot1 = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
     handles.labels_plot.y(:,ks,behaviori,l) = [yplot0;yplot1];
   end
   
@@ -2151,11 +2143,11 @@ for behaviori = 1:handles.data.nbehaviors,
   end
   for l = 1:numel(handles.flies),
     ks = t0-1+handles.labels_plot_off+bidx;
-    xplot0 = handles.data.GetTrxX1(handles.expi,handles.flies(l),t0-1+bidx);
-    xplot1 = handles.data.GetTrxX1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    xplot0 = handles.data.GetTrxValues('X1',handles.expi,handles.flies(l),t0-1+bidx);
+    xplot1 = handles.data.GetTrxValues('X1',handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
     handles.labels_plot.predx(:,ks,behaviori,l) = [xplot0;xplot1];
-    yplot0 = handles.data.GetTrxY1(handles.expi,handles.flies(l),t0-1+bidx);
-    yplot1 = handles.data.GetTrxY1(handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
+    yplot0 = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(l),t0-1+bidx);
+    yplot1 = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(l),min(t0+bidx,handles.t1_curr));
     handles.labels_plot.predy(:,ks,behaviori,l) = [yplot0;yplot1];
   end
   
@@ -2318,8 +2310,8 @@ for j = 1:numel(handles.flies),
   %off = handles.data.trx(fly).off;
 %   [mindcurr,k] = min( ((handles.data.trx(fly).x(t0+off:t1+off)-xclick)/dx).^2 + ...
 %     ((handles.data.trx(fly).y(t0+off:t1+off)-yclick)/dy).^2 );
-  [mindcurr,k] = min( ((handles.data.GetTrxX1(handles.expi,fly,t0:t1)-xclick)/dx).^2 + ...
-    ((handles.data.GetTrxY1(handles.expi,fly,t0:t1)-yclick)/dy).^2 );
+  [mindcurr,k] = min( ((handles.data.GetTrxValues('X1',handles.expi,fly,t0:t1)-xclick)/dx).^2 + ...
+    ((handles.data.GetTrxValues('Y1',handles.expi,fly,t0:t1)-yclick)/dy).^2 );
   if mindcurr < mind,
     mind = mindcurr;
     mint = k+t0-1;
@@ -2627,8 +2619,8 @@ for i = is,
     if handles.ts(i) < firstframes(j) || handles.ts(i) > endframes(j),
       continue;
     end
-    xs(j) = handles.data.GetTrxX1(handles.expi,handles.flies(j),handles.ts(i));
-    ys(j) = handles.data.GetTrxY1(handles.expi,handles.flies(j),handles.ts(i));
+    xs(j) = handles.data.GetTrxValues('X1',handles.expi,handles.flies(j),handles.ts(i));
+    ys(j) = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(j),handles.ts(i));
     %xs(j) = handles.data.trx(handles.flies(j)).x(inds(j));
     %ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
   end
@@ -2685,8 +2677,8 @@ for i = is,
     if handles.ts(i) < firstframes(j) || handles.ts(i) > endframes(j),
       continue;
     end
-    xs(j) = handles.data.GetTrxX1(handles.expi,handles.flies(j),handles.ts(i));
-    ys(j) = handles.data.GetTrxY1(handles.expi,handles.flies(j),handles.ts(i));
+    xs(j) = handles.data.GetTrxValues('X1',handles.expi,handles.flies(j),handles.ts(i));
+    ys(j) = handles.data.GetTrxValues('Y1',handles.expi,handles.flies(j),handles.ts(i));
     %xs(j) = handles.data.trx(handles.flies(j)).x(inds(j));
     %ys(j) = handles.data.trx(handles.flies(j)).y(inds(j));
   end
@@ -3816,8 +3808,7 @@ function handles = play(hObject,handles,t0,t1,doloop)
 
 axi = 1;
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
-bgColor = get(handles.pushbutton_playstop,'BackgroundColor');
-SetButtonImage(handles,pushbutton_playstop,bgColor);
+SetButtonImage(handles.pushbutton_playstop);
 
 handles.hplaying = hObject;
 guidata(hObject,handles);
@@ -3862,8 +3853,7 @@ stop(handles);
 function handles = stop(handles)
 
 set(handles.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
-bgColor = get(handles.pushbutton_playstop,'BackgroundColor');
-SetButtonImage(handles,pushbutton_playstop,bgColor);
+SetButtonImage(handles.hplaying);
 hObject = handles.hplaying;
 handles.hplaying = nan;
 guidata(hObject,handles);
@@ -4448,3 +4438,34 @@ function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+
+% --------------------------------------------------------------------
+function conf_thresholds_Callback(hObject, eventdata, handles)
+% hObject    handle to conf_thresholds (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.confFig = ConfidenceThresholds;
+ConfidenceThresholds('SetJLabelData',handles.confFig,handles.data,handles);
+for ndx = 1:2
+  curVal = handles.data.GetConfidenceThreshold(ndx);
+  ConfidenceThresholds('SetConfidenceThreshold',handles.confFig,ndx,curVal);
+  ConfidenceThresholds('SetSliderColor',handles.confFig,ndx,handles.labelcolors(ndx,:));
+end
+
+
+% --------------------------------------------------------------------
+function classifier_Callback(hObject, eventdata, handles)
+% hObject    handle to classifier (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function classify_all_Callback(hObject, eventdata, handles)
+% hObject    handle to classify_all (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+for ndx = 1:handles.data.nexps,
+  handles.data.PredictWholeMovie(ndx);
+end

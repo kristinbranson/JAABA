@@ -121,7 +121,7 @@ classdef JLabelData < handle
     configfilename = '';
     
     % constant: files per experiment directory
-    filetypes = {'movie','trx','label','perframedir','clipsdir'};
+    filetypes = {'movie','trx','label','perframedir','clipsdir'};%,'scores'};
     
     % config parameters
     
@@ -131,6 +131,7 @@ classdef JLabelData < handle
     labelfilename = 0;
     perframedir = 0;
     clipsdir = 0;
+    scores = 0;
     
     % file containing feature parameters
     featureparamsfilename = 0;
@@ -653,7 +654,10 @@ classdef JLabelData < handle
     % ComputeWindowFeatures to compute all the window data for that
     % per-frame feature. 
     %
-    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode)
+    % To predict over the whole movie we use forceCalc which
+    % forces the function to recalculate all the features even though they
+    % were calculated before.
+    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
       
       success = false;
       msg = '';
@@ -662,7 +666,11 @@ classdef JLabelData < handle
         mode = 'center';
       end
       
-      % choose frames to compute: 
+      if ~exist('forceCalc','var'),
+        forceCalc = false;
+      end
+      
+      % choose frames to compute:
       
       % bound at start and end frame of these flies
       T0 = max(obj.GetTrxFirstFrame(expi,flies));
@@ -691,7 +699,7 @@ classdef JLabelData < handle
       off = 1-t0;
       n = t1-t0+1;
       docompute = true(1,n);
-      if ~isempty(obj.windowdata.exp),
+      if ~isempty(obj.windowdata.exp) && ~forceCalc,
         tscomputed = obj.windowdata.t(obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2));
         tscomputed = tscomputed(tscomputed >= t0 & tscomputed <= t1);
         docompute(tscomputed+off) = false;
@@ -1365,17 +1373,17 @@ classdef JLabelData < handle
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
     function SaveScores(obj,scores,expi)
-      lfn = GetFile(obj,'scores',expi,true);
-      obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},lfn);
+      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},'scores.mat');
+      obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
 
       didbak = false;
-      if exist(lfn,'file'),
-        [didbak,msg] = copyfile(lfn,[lfn,'~']);
+      if exist(sfn,'file'),
+        [didbak,msg] = copyfile(sfn,[sfn,'~']);
         if ~didbak,
-          warning('Could not create backup of %s: %s',lfn,msg);
+          warning('Could not create backup of %s: %s',sfn,msg);
         end
       end
-%       save(lfn,'scores');
+      save(sfn,'scores');
     end
     
     % SaveClassifier(obj)
@@ -2228,6 +2236,147 @@ classdef JLabelData < handle
       ft = obj.filetimestamps(expi,filei);
     end
 
+    % A generic function that return track info.
+    function out = GetTrxValues(obj,infoType,expi,flies,ts)
+
+      if numel(expi) ~= 1,
+        error('expi must be a scalar');
+      end
+      
+      if expi ~= obj.expi,
+        % TODO: generalize to multiple flies
+        [success,msg] = obj.PreLoad(expi,1);
+        if ~success,
+          error('Error loading trx for experiment %d: %s',expi,msg);
+        end
+      end
+
+      if nargin < 4,     % No flies given
+        switch infoType
+          case 'Trx'
+            out = obj.trx;
+          case 'X'
+            out = {obj.trx.x};
+          case 'Y'
+            out = {obj.trx.y};
+          case 'A'
+            out = {obj.trx.a};
+          case 'B'
+            out = {obj.trx.b};
+          case 'Theta'
+            out = {obj.trx.theta};
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues with less than 4 arguments');
+        end
+        return;
+
+      
+      elseif nargin < 5, % No ts given
+        switch infoType
+          case 'Trx'
+            out = obj.trx(flies);
+          case 'X'
+            out = {obj.trx(flies).x};
+          case 'Y'
+            out = {obj.trx(flies).y};
+          case 'A'
+            out = {obj.trx(flies).a};
+          case 'B'
+            out = {obj.trx(flies).b};
+          case 'Theta'
+            out = {obj.trx(flies).theta};
+          case 'X1'
+            out = [obj.trx(flies).x];
+          case 'Y1'
+            out = [obj.trx(flies).y];
+          case 'A1'
+            out = [obj.trx(flies).a];
+          case 'B1'
+            out = [obj.trx(flies).b];
+          case 'Theta1'
+            out = [obj.trx(flies).theta];
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues');
+        end
+        return
+      else               % Everything is given
+        nflies = numel(flies);
+        fly = flies(1);
+        switch infoType
+          case 'Trx'
+            c = cell(1,nflies);
+            trx = struct('x',c,'y',c,'a',c,'b',c,'theta',c,'ts',c,'firstframe',c,'endframe',c);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              trx(i).x = obj.trx(fly).x(js);
+              trx(i).y = obj.trx(fly).y(js);
+              trx(i).a = obj.trx(fly).a(js);
+              trx(i).b = obj.trx(fly).b(js);
+              trx(i).theta = obj.trx(fly).theta(js);
+              trx(i).ts = js-obj.trx(fly).off;
+              trx(i).firstframe = trx(i).ts(1);
+              trx(i).endframe = trx(i).ts(end);
+            end
+            out = trx;
+          case 'X'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).x(js);
+            end
+            out = x;
+          case 'Y'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).y(js);
+            end
+            out = x;
+          case 'A'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).a(js);
+            end
+            out = x;
+          case 'B'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).b(js);
+            end
+            out = x;
+          case 'Theta'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).theta(js);
+            end
+            out = x;
+          case 'X1'
+            out = obj.trx(fly).x(ts + obj.trx(fly).off);
+          case 'Y1'
+            out = obj.trx(fly).y(ts + obj.trx(fly).off);
+          case 'A1'
+            out = obj.trx(fly).a(ts + obj.trx(fly).off);
+          case 'B1'
+            out = obj.trx(fly).b(ts + obj.trx(fly).off);
+          case 'Theta1'
+            out = obj.trx(fly).theta(ts + obj.trx(fly).off);
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues');
+         end
+      end
+      
+    end
+    
+    %{
     % trx = GetTrx(obj,expi,flies,ts)
     % Returns the trajectories for the input experiment, flies, and frames.
     % If this is the currently preloaded experiment, then the preloaded
@@ -2578,6 +2727,7 @@ classdef JLabelData < handle
       theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
 
     end
+    %}
     
     % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
     % Returns the position for the input experiment, SINGLE fly, and
@@ -3833,22 +3983,23 @@ classdef JLabelData < handle
       end
       
       allScores = {};
-      for flies = 1:obj.GetNumFlies(expi)
+      numFlies = obj.GetNumFlies(expi);
+      for flies = 1:1%numFlies
         tStart = obj.GetTrxFirstFrame(expi,flies);
         tEnd = obj.GetTrxEndFrame(expi,flies);
-
+        
         scores = nan(1,tEnd);
         t1 = tStart;
         while (t1<tEnd)
-          [success1,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(expi,flies,t1,'start');
-          t1 = t1+1;
-
+          cTic = tic;
+          [success1,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(expi,flies,t1,'start',true);
+          
           if ~success1,
             warning(msg);
             return;
           end
           switch obj.classifiertype,
-
+            
             case 'ferns',
               return;
               obj.SetStatus('Applying fern classifier to %d windows',nnz(idxcurr));
@@ -3856,7 +4007,7 @@ classdef JLabelData < handle
                 obj.windowdata.predicted_probs(idxcurr,:)] = ...
                 fernsClfApply(obj.windowdata.X(idxcurr,:),obj.classifier);
               obj.windowdata.isvalidprediction(idxcurr) = true;
-
+              
               s = exp(obj.windowdata.predicted_probs);
               s = bsxfun(@rdivide,s,sum(s,2));
               scores = max(s,[],2);
@@ -3865,19 +4016,27 @@ classdef JLabelData < handle
               idx1 = obj.windowdata.predicted(idxcurr) > 1;
               obj.windowdata.scores(idxcurr1(idx1)) = -scores(idx1);
               obj.windowdata.scores(idxcurr1(idx0)) = scores(idx0);
-
+              
               obj.ClearStatus();
             case 'boosting',
               scores(t0:t1) = myBoostClassify(X,obj.classifier);
-
+              
           end
-          obj.SetStatus('Prediction for fly %d(%d): %d%% done',flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100));
-
-        end % While loop.      
+          
+          t1 = t1+1;
+          tt = toc(cTic);
+          timeRemainingFly = (tEnd-t1)/(t1-t0)*tt;
+          timeRemainingAll = (tEnd-t1)/(t1-t0)*tt + ...
+            (numFlies-flies)*(tEnd-tStart)/(t1-t0)*tt;
+          obj.SetStatus('Prediction for fly %d/%d: %d%% done. Time Remaining: Current Fly:%ds, Current Movie:%ds',...
+            flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100),...
+            round(timeRemainingFly),round(timeRemainingAll));
+          
+        end % While loop.
         allScores{flies} = scores;
       end % Fly loop
       
-      save
+      obj.SaveScores(allScores,expi);
       obj.ClearStatus();
 
       

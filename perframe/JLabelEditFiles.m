@@ -132,6 +132,12 @@ for i = 1:numel(handles.data.filetypes),
   end
 end
 
+buttonNames = {'pushbutton_add','pushbutton_remove','pushbutton_load',...
+              'pushbutton_cancel','pushbutton_done'};
+for buttonNum = 1:length(buttonNames)
+  SetButtonImage(handles.(buttonNames{buttonNum}));
+end
+
 % initialize status table
 UpdateStatusTable(handles);
 
@@ -210,6 +216,7 @@ function listbox_experiment_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+    SetButtonImage(hObject);
 end
 
 % --- Executes on button press in pushbutton_add.
