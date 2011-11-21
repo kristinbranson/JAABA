@@ -84,6 +84,13 @@ curSlider = sprintf('slider%d',sliderNum);
 set(handles.(curSlider),'BackgroundColor',color);
 guidata(hObject,handles);
 
+function SetConfidenceThreshold(hObject,sliderNum,value)
+handles = guidata(hObject);
+curSlider = sprintf('slider%d',sliderNum);
+set(handles.(curSlider),'Value',value);
+guidata(hObject,handles);
+
+
 % --- Executes on slider movement.
 function slider1_Callback(hObject, eventdata, handles)
 % hObject    handle to slider1 (see GCBO)
@@ -141,6 +148,6 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 val1 = get(handles.slider1,'value');
 val2 = get(handles.slider2,'value');
 handles.JLDobj.SetConfidenceThreshold(val1,1);
-handles.JLDobj.SetConfidenceThreshold(val2,1);
+handles.JLDobj.SetConfidenceThreshold(val2,2);
 JLabel('UpdatePrediction',handles.JLabelHandle);
 close(handles.figure1);
