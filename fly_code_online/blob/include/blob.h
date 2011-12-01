@@ -11,7 +11,7 @@
 #include "util.h"
 
 
-#define ADD_DUMMY_BEHAVIORS 0
+#define ADD_DUMMY_BEHAVIORS 2
 
 
 #ifndef INFINITY

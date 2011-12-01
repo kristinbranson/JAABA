@@ -40,7 +40,7 @@
   </perframe>
     
   <learning
-      classifiertype="ferns"
+      classifiertype="boosting"
       />
 
 </params>
