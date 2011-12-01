@@ -1681,9 +1681,9 @@ try
   end
   % useVideoWriter: whether to use videowriter class
   if isfield(handles.rc,'useVideoWriter'),
-    handles.useVideoWriter = handles.rc.useVideoWriter;
+    handles.useVideoWriter = handles.rc.useVideoWriter > 0;
   else
-    handles.useVideoWriter = exist('VideoWriter','file');
+    handles.useVideoWriter = exist('VideoWriter','file') > 0;
   end
   
   % preview options
@@ -4438,6 +4438,7 @@ function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+CompressionPreferences(handles.figure_JLabel);
 
 % --------------------------------------------------------------------
 function conf_thresholds_Callback(hObject, eventdata, handles)
