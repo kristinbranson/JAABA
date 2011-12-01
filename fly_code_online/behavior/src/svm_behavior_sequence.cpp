@@ -1834,6 +1834,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 		// Compare the score computed for y when looping through the bouts in y to the score when evaluating
 		// w*psi(x,y).  If this fails, something is probably wrong with the dynamic programming algorithm with
 		// respect to the extraction of features or bout scores, or something is wrong with the function psi()
+		if(!b->fvec) b->fvec = Psi(x, y).ptr();
 		y_score = w->dot(*b->fvec);
 		assert(my_abs(y_score - y->score) < .01);
 
@@ -2207,7 +2208,7 @@ BehaviorBoutFeatures::BehaviorBoutFeatures() {
 }
 
 BehaviorBoutFeatures::~BehaviorBoutFeatures() {
-  if(memory_buffer) free(memory_buffer);
+  if(features) free(features);
   if(fvec) delete fvec;
   if(partial_label) delete partial_label;
 }

@@ -30,6 +30,7 @@ class SVGPlotter {
   int pad, padAxis, padTitle;
   int axisLabelGap;
   int ticLength;
+  int maxPoints;
 
 public:
   SVGPlotter();
