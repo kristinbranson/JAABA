@@ -1,0 +1,4 @@
+areasmooth_maxfreq,.005
+areasmooth_filterorder,1
+areasmooth_outlierprctile,.1
+mindur,20
