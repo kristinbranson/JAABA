@@ -1,5 +1,7 @@
 %% script demoing how to run JLabel
 
+clear classes;
+
 %% set up path
 
 [~,computername] = system('hostname');

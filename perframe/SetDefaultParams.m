@@ -1,4 +1,5 @@
-function params = SetDefaultParams(params,default_windows,default_trans_types)
+function params = SetDefaultParams(...
+  params,default_windows,default_trans_types,relativeParams)
 
 fns = params(1:2:end-1);
 if ismember('windows',fns) || ...
@@ -13,5 +14,5 @@ end
 if ~ismember('trans_types',fns),
   params(end+1:end+2) = {'trans_types',default_trans_types};
 end
-  
+params(end+1:end+2) = {'relativeParams',relativeParams};
   

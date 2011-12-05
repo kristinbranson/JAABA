@@ -22,7 +22,7 @@ function varargout = showSimilarFrames(varargin)
 
 % Edit the above text to modify the response to help showSimilarFrames
 
-% Last Modified by GUIDE v2.5 05-Oct-2011 14:07:42
+% Last Modified by GUIDE v2.5 23-Nov-2011 09:58:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -631,3 +631,16 @@ function spfSlider_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes when user attempts to close figure_showSimilarFrames.
+function figure_showSimilarFrames_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure_showSimilarFrames (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+
+handles.JLDobj.frameFig = [];
+delete(hObject);
+
