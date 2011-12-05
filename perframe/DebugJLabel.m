@@ -66,6 +66,7 @@ jlabelpath = fileparts(which('JLabel'));
 addpath(fullfile(jlabelpath,'compute_perframe_features'));
 %addpath(FlyBowlAnalysis_path);
 
+matlabpool(8);
 %% start JLabel
 
 hfig = JLabel('configfilename',configfilename); handles = guidata(hfig);
