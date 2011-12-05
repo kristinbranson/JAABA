@@ -127,16 +127,16 @@ bool StructuredSVM::Load(const char *fname, bool loadFull) {
     char str[1000]; strcpy(str, root.get("Training Set", "").asString().c_str()); trainfile = StringCopy(str); 
   }
   if(!Load(root["Custom"])) { Unlock(); return false; }
-    
+     
+  Unlock();
+
   if(loadFull && !root.isMember("Online Data")) {
     
     fprintf(stderr, "Can't load full data from %s\n", fname); //Unlock(); return false; 
   } else if(loadFull) {
     char str[1000]; strcpy(str, root["Online Data"].asString().c_str());
-    if(!LoadOnlineData(str)) { Unlock(); return false; }
+    if(!LoadOnlineData(str)) { return false; }
   }
- 
-  Unlock();
   return true;
 }
 

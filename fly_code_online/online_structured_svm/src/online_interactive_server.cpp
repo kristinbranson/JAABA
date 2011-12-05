@@ -1,4 +1,5 @@
 #include "online_interactive_server.h"
+#include "svgPlotter.h"
 
 #define SESSION_DIR "sessions"
 
@@ -263,11 +264,9 @@ bool StructuredLearnerRpc::SaveCurrentModel(const Json::Value& root, Json::Value
 }
 
 bool StructuredLearnerRpc::GetStatistics(const Json::Value& root, Json::Value& response) {
-  /*if(learner) {
-    char test_train_by_example_plot[1000], error_decomp_by_example_plot[1000], test_train_by_iteration_plot[1000], error_decomp_by_iteration_plot[1000];
+  if(learner) {
+    char test_train_by_example_plot[1000], error_decomp_by_iteration_plot[1000];
     strcpy(test_train_by_example_plot, root.get("test_train_by_example_plot_name", "").asString().c_str());
-    strcpy(error_decomp_by_example_plot, root.get("error_decomp_by_example_plot_name", "").asString().c_str());
-    strcpy(test_train_by_iteration_plot, root.get("test_train_by_iteration_plot_name", "").asString().c_str());
     strcpy(error_decomp_by_iteration_plot, root.get("error_decomp_by_iteration_plot_name", "").asString().c_str());
 
     int width = root.get("width", 0).asInt();
@@ -293,8 +292,9 @@ bool StructuredLearnerRpc::GetStatistics(const Json::Value& root, Json::Value& r
       if((y=root.get("ymin", -100000).asDouble()) != -100000) plotter.SetYMin(y);
       if((x=root.get("xmax", -100000).asDouble()) != -100000) plotter.SetXMax(x);
       if((y=root.get("ymax", -100000).asDouble()) != -100000) plotter.SetYMax(y);
-      sprintf(fname, "%s/%s", session_dir, test_train_by_example_plot);
-      plotter.Save(fname);
+      //sprintf(fname, "%s/%s", session_dir, test_train_by_example_plot);
+      sprintf(fname, "%s", test_train_by_example_plot);
+      StripFileExtension(fname); strcat(fname, ".svg"); plotter.Save(fname);
       StripFileExtension(fname); strcat(fname, ".m"); plotter.Save(fname);
       response["test_train_by_example_plot_name"] = fname;
       free(train_err_buff);  free(test_err_buff);
@@ -307,7 +307,7 @@ bool StructuredLearnerRpc::GetStatistics(const Json::Value& root, Json::Value& r
       if(width && height) plotter.SetSize(width, height);
       learner->GetStatisticsByIteration(window, &t, &tm, &gen_err_buff, &opt_err_buff, &model_err_buff, &reg_err_buff, NULL, NULL, &time_buff);
       plotter.AddPlot(time_buff, gen_err_buff, t, 0, 0, "Test Error", "class1");
-      plotter.AddPlot(time_buff, opt_err_buff, t, 0, 0, "Optimization Error", "class2");
+      plotter.AddPlot(time_buff, opt_err_buff, t, 0, 0, "Train Error", "class2");
       plotter.AddPlot(time_buff, model_err_buff, t, 0, 0, "Model Error", "class3");
       plotter.AddPlot(time_buff, reg_err_buff, t, 0, 0, "Regularization Error", "class4");
       plotter.SetXLabel("Training Time (seconds)");
@@ -318,14 +318,15 @@ bool StructuredLearnerRpc::GetStatistics(const Json::Value& root, Json::Value& r
       if((y=root.get("ymin", -100000).asDouble()) != -100000) plotter.SetYMin(y);
       if((x=root.get("xmax", -100000).asDouble()) != -100000) plotter.SetXMax(x);
       if((y=root.get("ymax", -100000).asDouble()) != -100000) plotter.SetYMax(y);
-      sprintf(fname, "%s/%s", session_dir, error_decomp_by_iteration_plot);
-      plotter.Save(fname);
+      //sprintf(fname, "%s/%s", session_dir, error_decomp_by_iteration_plot);
+      sprintf(fname, "%s", error_decomp_by_iteration_plot);
+      StripFileExtension(fname); strcat(fname, ".svg"); plotter.Save(fname);
       StripFileExtension(fname); strcat(fname, ".m"); plotter.Save(fname);
       response["error_decomp_by_iteration_plot_name"] = fname;
       free(gen_err_buff);  free(opt_err_buff); free(model_err_buff);  free(reg_err_buff); free(time_buff);
     }
   }
-  */
+  
 
   return true;
 }
@@ -519,7 +520,13 @@ void StructuredLearnerRpc::AddMethods() {
     add_example_returns["session_id"] = "A string encoding of the session id.  The client should pass this as a parameter to all future accesses to x";
     server->RegisterMethod(new JsonRpcMethod<StructuredLearnerRpc>(this, &StructuredLearnerRpc::AddNewExample, "add_example", "Add a new training example to the structured learner, which is currently training in online fashion", add_example_parameters, add_example_returns));
 
-    //server->RegisterMethod(new JsonRpcMethod<StructuredLearnerRpc>(*this, &StructuredLearnerRpc::GetStatistics, "plot_stats", get_statistics));
+    Json::Value get_statistics_parameters;
+    add_example_parameters["error_decomp_by_iteration_plot_name"] = "Filename of the error decomposition plot.  Two copies are saved: a .m file, which generates a plot in matlab, and a .svg file, which is a support vector graphics file that is embeddable in a web page";
+    add_example_parameters["window"] = "Optional window size in number of iterations used to smooth the plot (defaults to 200)";
+    add_example_parameters["width"] = "Optional width of the plot in pixels (defaults to 600)";
+    add_example_parameters["height"] = "Optional height of the plot in pixels (defaults to 400)";
+    
+    server->RegisterMethod(new JsonRpcMethod<StructuredLearnerRpc>(this, &StructuredLearnerRpc::GetStatistics, "plot_stats", "Plot a decomposition of the structured SVM test error", get_statistics_parameters));
 
     Json::Value save_parameters;
     save_parameters["filename"] = "The filename defining where to save the file";

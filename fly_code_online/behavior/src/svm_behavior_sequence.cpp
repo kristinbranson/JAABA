@@ -1053,13 +1053,13 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 				}
 			}
 		}
-	} else {
+	} /*else {
 		for(j = 0; j < num; j++) {
 			BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)dataset->examples[j]->x;
 			x->ComputeCaches(this);
 			x->fvec = Psi(dataset->examples[j]->x, dataset->examples[j]->y).ptr();
 		}
-	}
+		}*/
 
 	Unlock();
 
@@ -1834,6 +1834,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 		// Compare the score computed for y when looping through the bouts in y to the score when evaluating
 		// w*psi(x,y).  If this fails, something is probably wrong with the dynamic programming algorithm with
 		// respect to the extraction of features or bout scores, or something is wrong with the function psi()
+		if(!b->fvec) b->fvec = Psi(x, y).ptr();
 		y_score = w->dot(*b->fvec);
 		assert(my_abs(y_score - y->score) < .01);
 
@@ -1973,6 +1974,7 @@ Json::Value SVMBehaviorSequence::Save() {
 		for(i = 0; i < num_classes[beh]; i++) {
 			Json::Value o, tt;
 			o["count"] = class_training_count[beh][i];
+			o["transitions_count"] = class_training_transitions_count[beh][i];
 			for(j = 0; j < class_training_transitions_count[beh][i]; j++) {
 			  tt[j] = class_training_transitions[beh][i][j];
 			}
@@ -2027,6 +2029,7 @@ Json::Value SVMBehaviorSequence::Save() {
 		c["use_end_ave_absolute_diff_haar_features"] = p->use_end_ave_absolute_diff_haar_features;
 		c["use_start_ave_diff_haar_features"] = p->use_start_ave_diff_haar_features;
 		c["use_end_ave_diff_haar_features"] = p->use_end_ave_diff_haar_features;
+		params[i] = c;
 	}
 	root["feature_params"] = params;
 
@@ -2081,19 +2084,6 @@ bool SVMBehaviorSequence::Load(const Json::Value &root) {
 	feature_diff_frames = root["feature_diff_frames"].asInt();
 
 
-	Json::Value tr = root["transitions"];
-	for(beh = 0; beh < behaviors->num; beh++) {
-		Json::Value t = tr[beh];
-		for(i = 0; i < num_classes[beh]; i++) {
-			Json::Value o = t[i]; 
-			Json::Value tt = o["transitions"];
-			class_training_count[beh][i] = o["count"].asInt();
-			for(j = 0; j < class_training_transitions_count[beh][i]; j++) {
-			  class_training_transitions[beh][i][j] = tt[j].asInt();
-			}
-		}
-	}
-
 	class_training_transitions = (int***)malloc(behaviors->num*sizeof(int**));
 	class_training_transitions_count = (int**)malloc(behaviors->num*sizeof(int*));
 	class_training_count = (int**)malloc(behaviors->num*sizeof(int*));
@@ -2101,6 +2091,21 @@ bool SVMBehaviorSequence::Load(const Json::Value &root) {
 		class_training_transitions[beh] = (int**)malloc(num_classes[beh]*sizeof(int*));
 		class_training_transitions_count[beh] = (int*)malloc(num_classes[beh]*sizeof(int));
 		class_training_count[beh] = (int*)malloc(num_classes[beh]*sizeof(int));
+	}
+
+	Json::Value tr = root["transitions"];
+	for(beh = 0; beh < behaviors->num; beh++) {
+		Json::Value t = tr[beh];
+		for(i = 0; i < num_classes[beh]; i++) {
+			class_training_transitions[beh][i] = (int*)malloc(num_classes[beh]*sizeof(int));
+			Json::Value o = t[i]; 
+			Json::Value tt = o["transitions"];
+			class_training_transitions_count[beh][i] = o["transitions_count"].asInt();
+			class_training_count[beh][i] = o["count"].asInt();
+			for(j = 0; j < class_training_transitions_count[beh][i]; j++) {
+			  class_training_transitions[beh][i][j] = tt[j].asInt();
+			}
+		}
 	}
 
 	int num_histogram_bins = 0, num_max_thresholds = 0, num_min_thresholds = 0;
@@ -2190,10 +2195,12 @@ bool SVMBehaviorSequence::Load(const Json::Value &root) {
 		  min_thresholds[i][j] = a[j].asDouble();
 	}
 
-	compactUnaryCosts = (sizePsi) == compactUnarySize(num_features, num_classes[beh]); /* SJB: removed -1.  CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
-	extraUnaryCosts = (sizePsi) == extraUnarySize(num_features, num_classes[beh]); /* SJB: removed -1.  CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+	for(beh = 0; beh < behaviors->num; beh++) {
+	  compactUnaryCosts = (sizePsi) == compactUnarySize(num_features, num_classes[beh]); /* SJB: removed -1.  CSC: true iff unary costs are stored as same transition costs (and no further weights were given) */
+	  extraUnaryCosts = (sizePsi) == extraUnarySize(num_features, num_classes[beh]); /* SJB: removed -1.  CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
 
-	assert(compactUnaryCosts != extraUnaryCosts);
+	  assert(compactUnaryCosts != extraUnaryCosts);
+	}
 
 	return true;
 }
@@ -2207,7 +2214,7 @@ BehaviorBoutFeatures::BehaviorBoutFeatures() {
 }
 
 BehaviorBoutFeatures::~BehaviorBoutFeatures() {
-  if(memory_buffer) free(memory_buffer);
+  if(features) free(features);
   if(fvec) delete fvec;
   if(partial_label) delete partial_label;
 }

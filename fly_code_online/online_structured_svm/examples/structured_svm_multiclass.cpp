@@ -92,28 +92,29 @@ Json::Value MulticlassStructuredSVM::Save() {
   root["Num Classes"] = num_classes;
   root["Num Features"] = num_features;
 
-  if(classConfusionCosts) {
+  //if(classConfusionCosts) {
     Json::Value c;
     int n = 0;
     for(int i = 1; i <= num_classes; i++) {
       for(int j = 1; j <= num_classes; j++) {
-	if(classConfusionCosts[i][j]) {
+	if((!classConfusionCosts && i != j) || (classConfusionCosts && classConfusionCosts[i][j])) {
 	  Json::Value o;
 	  o["c_gt"] = i;
 	  o["c_pred"] = j;
-	  o["loss"] = classConfusionCosts[i][j];
+	  o["loss"] = classConfusionCosts ? classConfusionCosts[i][j] : 1;
 	  c[n++] = o;
 	}
       }
     }
     root["Class Confusion Costs"] = c;
-  }
+  //}
 
   return root;
 }
 
 
 bool MulticlassStructuredSVM::Load(const Json::Value &root) {
+  fprintf(stdout, "loading parameters\n");
   if(strcmp(root.get("version", "").asString().c_str(), VERSION)) {
     fprintf(stderr, "Version of parameter file does not match version of the software"); 
     return false;

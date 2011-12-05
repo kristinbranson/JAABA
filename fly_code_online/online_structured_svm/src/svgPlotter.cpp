@@ -22,6 +22,7 @@ SVGPlotter::SVGPlotter() {
   padTitle = 50;
   axisLabelGap = 50;
   ticLength = 5;
+  maxPoints = 5000;
 }
 
 SVGPlotter::~SVGPlotter() {
@@ -43,20 +44,23 @@ SVGPlotter::~SVGPlotter() {
 
 
 void SVGPlotter::AddPlot(double *x, double *y, int numPts, double xOffset, double xScale, const char *legendName, const char *lineClass, const char *pointClass) {
+  int stride = 1;
+  while(numPts/stride > maxPoints) 
+    stride++;
   plots = (SVGPlot*)realloc(plots, sizeof(SVGPlot)*(numPlots+1));
   plots[numPlots].lineClass = lineClass ? StringCopy(lineClass) : NULL;
   plots[numPlots].pointClass = pointClass ? StringCopy(pointClass) : NULL;
   plots[numPlots].legendName = legendName ? StringCopy(legendName) : NULL;
-  plots[numPlots].x = (double*)malloc(sizeof(double)*numPts);
-  plots[numPlots].y = (double*)malloc(sizeof(double)*numPts);
-  plots[numPlots].numPts = numPts;
-  for(int i = 0; i < numPts; i++) {
-    plots[numPlots].x[i] = x ? x[i] : xOffset+i*xScale;   
-    plots[numPlots].y[i] = y[i]; 
-    if(plots[numPlots].x[i] < xMin) xMin = plots[numPlots].x[i];
-    if(plots[numPlots].x[i] > xMax) xMax = plots[numPlots].x[i];
-    if(plots[numPlots].y[i] < yMin) yMin = plots[numPlots].y[i];
-    if(plots[numPlots].y[i] > yMax) yMax = plots[numPlots].y[i];
+  plots[numPlots].numPts = numPts/stride;
+  plots[numPlots].x = (double*)malloc(sizeof(double)*plots[numPlots].numPts);
+  plots[numPlots].y = (double*)malloc(sizeof(double)*plots[numPlots].numPts);
+  for(int i = 0, j = 0; i < numPts; i += stride, j++) {
+    plots[numPlots].x[j] = x ? x[i] : xOffset+i*xScale;   
+    plots[numPlots].y[j] = y[i]; 
+    if(plots[numPlots].x[j] < xMin) xMin = plots[numPlots].x[j];
+    if(plots[numPlots].x[j] > xMax) xMax = plots[numPlots].x[j];
+    if(plots[numPlots].y[j] < yMin) yMin = plots[numPlots].y[j];
+    if(plots[numPlots].y[j] > yMax) yMax = plots[numPlots].y[j];
   }
   numPlots++;
 }
@@ -190,10 +194,10 @@ bool SVGPlotter::SaveStyles(FILE *fout) {
 bool SVGPlotter::SaveHeaderMatlab(FILE *fout) {
   fprintf(fout, "figure(1); clf; hold on;\n");
   if(title) fprintf(fout, "title('%s');\n", title);
-  if(xLabel) fprintf(fout, "xLabel('%s');\n", xLabel);
-  if(yLabel) fprintf(fout, "yLabel('%s');\n", yLabel);
-  fprintf(fout, "plotStyle = { '--', '-', '-.', '-v', '-p', '-s', '-x', '*', '+' };\n");
-  fprintf(fout, "plotColor = { 'b', 'r', 'g', 'c', 'm', 'y', 'k' };\n");
+  if(xLabel) fprintf(fout, "xlabel('%s');\n", xLabel);
+  if(yLabel) fprintf(fout, "ylabel('%s');\n", yLabel);
+  fprintf(fout, "plotStyle = { '-', '--', '-.', '-v', '-p', '-s', '-x', '*', '+' };\n");
+  fprintf(fout, "plotColor = { 'r', 'b', 'g', 'm', 'c', 'y', 'k' };\n");
   fprintf(fout, "labels = { };\n");
   return true;
 }
