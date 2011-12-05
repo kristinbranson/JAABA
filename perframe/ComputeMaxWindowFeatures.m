@@ -105,6 +105,7 @@ DOCACHE = true;
 % initialize empty cache
 cache = InitializeCache();
 
+relativeParams = [];
 % initialize feature_types already computed to empty
 %feature_types = {};
 
@@ -117,7 +118,8 @@ cache = InitializeCache();
   trans_types,...
   SANITY_CHECK,...
   DOCACHE,...
-  cache...
+  cache,...
+  relativeParams,...
   ] = myparse(varargin,...
   'windows',windows,...
   'window_radii',window_radii,'window_offsets',window_offsets,...
@@ -125,12 +127,13 @@ cache = InitializeCache();
   'trans_types',trans_types,...
   'sanitycheck',SANITY_CHECK,...
   'docache',DOCACHE,...
-  'cache',cache);
+  'cache',cache,...
+  'relativeParams',relativeParams);
 %   'feature_types',feature_types,...
 
 %% whether we've specified to use all trans types by default
 if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip'};
+  trans_types = {'none','abs','flip','relative'};
 end
 
 %% select default windows from various ways of specifying windows
@@ -142,36 +145,55 @@ end
   max_window_radius,nwindow_radii);
 
 %% compute per-frame transformations 
-[x_trans,IDX_ORIG,IDX_ABS,IDX_FLIP,ntrans] = ComputePerFrameTrans(x,trans_types);
+[x_trans,IDX,ntrans] = ComputePerFrameTrans(x,trans_types);
+
+if ismember('relative',trans_types)
+  if DOCACHE && ~isempty(cache.relX)
+    modX = cache.relX;
+  else
+    modX = convertToRelative(x,relativeParams);
+    cache.relX = modX;
+  end
+  x_trans(end+1,:) = modX;
+  IDX.rel = size(x_trans,1);
+  ntrans = size(x_trans,1);
+else
+  IDX.rel = 0;
+end
 
 %% main computation
   
 for radiusi = 1:nradii,
   r = window_radii(radiusi);
-  % no need to do maximum for r == 0 if we've done mean, min
+
+%  no need to do maximum for r == 0 if we've done mean, min
 %   if r == 0 && any(ismember({'mean','min'},feature_types)),
 %     continue;
 %   end
-  w = 2*r+1;
   
+  inCache = false;
   if DOCACHE && ismember(r,cache.max.radii),
     cache_i = find(r == cache.max.radii,1);
-    res = cache.max.data{cache_i};
-  else
+    cIDX = cache.max.idx(cache_i);
     
-    % pad with infs for boundary conditions
-    x_pad = [-inf(ntrans,r),x_trans,-inf(ntrans,r)];
-    % maximum: use imdilate
-    se = strel(ones(1,w));
-    res = imdilate(x_pad,se);
-    
-    % store for future computations
+    if cIDX.orig == IDX.orig && cIDX.abs == IDX.abs && cIDX.flip == IDX.flip && cIDX.rel == IDX.rel,
+      res = cache.max.data{cache_i};
+      inCache = true;
+    else % cache mismatch. Delete everything.
+      cache.max = struct('radii',{[]},'data',{{}},...
+  'idx',{struct('orig',{},'abs',{},'flip',{},'rel',{})});
+    end
+  end
+  
+  if ~inCache,
+    res = MaxWindowCore(x_trans,r);
     if DOCACHE,
       cache.max.radii(end+1) = r;
       cache.max.data{end+1} = res;
+      cache.max.idx(end+1) = IDX;
     end
-    
   end
+  
   % offset
   windowis = find(windowi2radiusi == radiusi);
   for windowi = windowis',
@@ -184,56 +206,51 @@ for radiusi = 1:nradii,
     res1 = padgrab(res,nan,1,ntrans,1+r+off,N+r+off);
     
     if ismember('none',trans_types),
-      
-      y(end+1,:) = res1(IDX_ORIG,:); %#ok<AGROW>
+      y(end+1,:) = res1(IDX.orig,:); %#ok<AGROW>
       feature_names{end+1} = {'stat','max','trans','none','radius',r,'offset',off}; %#ok<AGROW>
-      
-      if SANITY_CHECK,
-        
+    end
+    
+    if IDX.abs > 0,
+      y(end+1,:) = res1(IDX.abs,:); %#ok<AGROW>
+      feature_names{end+1} = {'stat','max','trans','abs','radius',r,'offset',off}; %#ok<AGROW>
+    end
+    
+    if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
+      y(end+1,:) = res1(IDX.orig,:); %#ok<AGROW>
+      y(end,x<0) = res1(IDX.flip,x<0);
+      feature_names{end+1} = {'stat','max','trans','flip','radius',r,'offset',off}; %#ok<AGROW>
+    end
+
+    if IDX.rel > 0,
+      y(end+1,:) = res1(IDX.rel,:); %#ok<AGROW>
+      feature_names{end+1} = {'stat','max','trans','relative','radius',r,'offset',off}; %#ok<AGROW>
+    end
+
+    if SANITY_CHECK,
+      funcType = 'max';  
+      if ismember('none',trans_types),
+        fastY = res1(IDX.orig,:);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
           res_dumb(n_dumb) = nanmax(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
         end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: max, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: max, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-        
+        checkSanity(fastY,res_dumb,r,off,funcType,'none');
       end
       
-    end
     
-    if IDX_ABS > 0,
-      y(end+1,:) = res1(IDX_ABS,:); %#ok<AGROW>
-      feature_names{end+1} = {'stat','max','trans','abs','radius',r,'offset',off}; %#ok<AGROW>
-      
-      if SANITY_CHECK,
-        
+      if IDX.abs > 0,
+        fastY = res1(IDX.abs,:);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
           res_dumb(n_dumb) = nanmax(abs(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
         end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: max, trans = abs, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: max, trans = abs, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-        
+        checkSanity(fastY,res_dumb,r,off,funcType,'abs');
       end
       
       
-    end
-    if IDX_FLIP > 0 && ~( (r == 0) && (off == 0) && (IDX_ABS > 0) ),
-      y(end+1,:) = res1(IDX_ORIG,:); %#ok<AGROW>
-      y(end,x<0) = res1(IDX_FLIP,x<0);
-      feature_names{end+1} = {'stat','max','trans','flip','radius',r,'offset',off}; %#ok<AGROW>
-      
-      
-      if SANITY_CHECK,
-        
+      if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
+        fastY = res1(IDX.orig,:); 
+        fastY(x<0) = res1(IDX.flip,x<0);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
           m_dumb = 1;
@@ -242,13 +259,7 @@ for radiusi = 1:nradii,
           end
           res_dumb(n_dumb) = nanmax(m_dumb*padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
         end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: max, trans = flip, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: max, trans = flip, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-        
+        checkSanity(fastY,res_dumb,r,off,funcType,'flip');
       end
       
     end
