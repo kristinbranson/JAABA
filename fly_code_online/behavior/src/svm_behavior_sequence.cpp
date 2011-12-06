@@ -2,6 +2,7 @@
 #include <string.h>
 #include "svm_behavior_sequence.h"
 
+#define DEBUG 0
 #if DEBUG > 0
 char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
 #endif
@@ -108,7 +109,7 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 	this->behavior = beh;
 	this->feature_diff_frames = 10;
 #ifdef ALLOW_SAME_TRANSITIONS
-	time_approximation = .05;
+	time_approximation = -1;
 #else
 	time_approximation = 0; // CSC: test EVERY Frame, no log time-saving unless optimality may still be guaranteed!
 #endif
@@ -1237,7 +1238,10 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 				durations[num_durations++] = (int)(dur);
 			dur *= (1+time_approximation);
 		}
-	} else {
+	} else if(time_approximation < 0) {
+		for(i = 1; i <= 50; i++) // go only 50 frames back
+			durations[num_durations++] = i;
+	}else {
 		for(i = 1; i <= T; i++)
 			durations[num_durations++] = i;
 	}
@@ -1565,7 +1569,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 						if(restrict_c_p>0 && restrict_c_p != c_p)
 							continue;  // class c_p doesn't agree with a user-supplied partial labeling
 
-						if(t < T || c == 0) {  // t==T,c==0 is a special case to extract the final optimal solution
+						if(t < T || c == 0) {  // t==T,c==0 is a special case to extract the final optimal solution  
 							// if t==T, then there is no "following" bout...
 
 							// Compute classification score as a function of the raw input features and the bout's class,
@@ -2225,7 +2229,7 @@ BehaviorBoutFeatures::~BehaviorBoutFeatures() {
 void BehaviorBoutFeatures::AllocateBuffers(SVMBehaviorSequence *svm) {
 	int i;
 	int T = num_frames;
-	unsigned int cache_features_size = 
+	long int cache_features_size = 
 		num_base_features*sizeof(double*) +        // features
 		num_base_features*T*sizeof(double) +       // features[i]
 		num_base_features*sizeof(double*) +        // integral_features
@@ -2242,6 +2246,8 @@ void BehaviorBoutFeatures::AllocateBuffers(SVMBehaviorSequence *svm) {
 	for(i = 0; i < num_base_features; i++) {
 		SVMFeatureParams *p = &svm->feature_params[i];
 		cache_features_size +=
+			//sizeof(double*)*p->num_histogram_bins + //integral_histogram_features[i]
+			//p->num_histogram_bins*(T+1)*3*sizeof(double)+10000; //integral_histogram_features[i][j]
 			num_base_features*sizeof(double*)*p->num_histogram_bins + //integral_histogram_features[i]
 			num_base_features*p->num_histogram_bins*(T+1)*3*sizeof(double)+10000; //integral_histogram_features[i][j]
 	}
