@@ -1,0 +1,9 @@
+synth_flies_2011111_1.label
+synth_flies_2011111_2.label
+synth_flies_2011111_3.label
+synth_flies_2011111_5.label
+synth_flies_2011111_6.label
+synth_flies_2011111_7.label
+synth_flies_2011111_8.label
+synth_flies_2011111_11.label
+synth_flies_2011111_12.label

@@ -1,0 +1,10 @@
+{"ground_truth":{"score":5.75206,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_13.label"}},"loss":53.1219,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_13.label.pred"}}
+{"ground_truth":{"score":-1.00004,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_14.label"}},"loss":55.3633,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_14.label.pred"}}
+{"ground_truth":{"score":2.36453,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_15.label"}},"loss":57.8869,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_15.label.pred"}}
+{"ground_truth":{"score":4.19774,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_16.label"}},"loss":50.6545,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_16.label.pred"}}
+{"ground_truth":{"score":-6.57549,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_18.label"}},"loss":57.7282,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_18.label.pred"}}
+{"ground_truth":{"score":2.37096,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_19.label"}},"loss":53.6989,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_19.label.pred"}}
+{"ground_truth":{"score":-11.843,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_20.label"}},"loss":74.0156,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_20.label.pred"}}
+{"ground_truth":{"score":-9.40598,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_21.label"}},"loss":64.5056,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_21.label.pred"}}
+{"ground_truth":{"score":2.32591,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_22.label"}},"loss":48.4467,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_22.label.pred"}}
+{"ground_truth":{"score":-2.19506,"y":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_23.label"}},"loss":59.2107,"predicted":{"fname":"Data/synth_flies/TrainingData/synth_flies_2011111_23.label.pred"}}
