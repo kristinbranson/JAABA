@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<params>
+  <behaviors 
+      names="Sharpturn"
+      labelcolors=".7,0,0,0,0,.7"
+      />
+  <file 
+      moviefilename="movie.ufmf"
+      trxfilename="registered_trx.mat"
+      labelfilename="labeledbehavior.mat"
+      perframedir="perframe"
+      windowfilename="windowfeatures.mat"
+      featureparamfilename="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/WindowFeatures_Lots.xml"
+      rootoutputdir="/groups/branson/bransonlab/tracking_data/olympiad/FlyBowl/JLabel_test20110823"
+      />
+  
+  <plot>
+    <trx 
+	colormap="jet"
+	colormap_multiplier=".7"
+	/>
+    <labels 
+	colormap="line"
+	linewidth="3"
+	/>
+  </plot>
+
+</params>

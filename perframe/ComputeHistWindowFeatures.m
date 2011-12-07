@@ -110,6 +110,7 @@ feature_types = {};
 % edges of histogram bins
 hist_edges = [];
 
+relativeParams = [];
 %% parse parameters
 
 [...
@@ -121,7 +122,8 @@ hist_edges = [];
   SANITY_CHECK,...
   DOCACHE,...
   cache,...
-  hist_edges...
+  hist_edges,...
+  relativeParams...
   ] = myparse(varargin,...
   'windows',windows,...
   'window_radii',window_radii,'window_offsets',window_offsets,...
@@ -131,11 +133,12 @@ hist_edges = [];
   'sanitycheck',SANITY_CHECK,...
   'docache',DOCACHE,...
   'cache',cache,...
-  'hist_edges',hist_edges); %#ok<ASGLU>
+  'hist_edges',hist_edges,...
+  'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
 if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip'};
+  trans_types = {'none','abs','flip','relative'};
 end
 
 %% select default windows from various ways of specifying windows
@@ -147,7 +150,25 @@ end
   max_window_radius,nwindow_radii);
 
 %% compute per-frame transformations 
-[x_trans,IDX_ORIG,IDX_ABS,IDX_FLIP,ntrans] = ComputePerFrameTrans(x,trans_types);
+[x_trans,IDX,ntrans] = ComputePerFrameTrans(x,trans_types);
+
+if ismember('relative',trans_types)
+  if DOCACHE && ~isempty(cache.relX)
+    modX = cache.relX;
+  else
+    modX = convertToRelative(x,relativeParams);
+    cache.relX = modX;
+  end
+  x_trans(end+1,:) = modX;
+  IDX.rel = size(x_trans,1);
+  ntrans = size(x_trans,1);
+else
+  IDX.rel = 0;
+end
+
+%% Bin Edges for relative histogram
+
+rel_hist_edges = linspace(0,100,length(hist_edges));
 
 %% main computation
 
@@ -158,7 +179,21 @@ end
 
 % find bin for each value -- notice the transpose
 nbins = numel(hist_edges)-1;
-[~,bin] = histc(x_trans',hist_edges);
+bin = [];
+
+if ismember('none',trans_types)
+  [~,bin(:,IDX.orig)] = histc(x_trans(IDX.orig,:)',hist_edges);
+end
+if IDX.abs>0
+  [~,bin(:,IDX.abs)] = histc(x_trans(IDX.abs,:)',hist_edges);
+end
+if IDX.flip>0
+    [~,bin(:,IDX.flip)] = histc(x_trans(IDX.flip,:)',hist_edges);
+end
+if IDX.rel>0
+  [~,bin(:,IDX.rel)] = histc(x_trans(IDX.rel,:)',rel_hist_edges);
+end
+
 bin(bin > nbins) = nbins;
 
 for radiusi = 1:nradii,
@@ -202,14 +237,39 @@ for radiusi = 1:nradii,
     res1 = padgrab(res,nan,1,nbins,1+r+off,N+r+off,1,ntrans);
     if ismember('none',trans_types),
       
-      y(end+1:end+nbins,:) = res1(:,:,IDX_ORIG);
+      y(end+1:end+nbins,:) = res1(:,:,IDX.orig);
       for bini = 1:nbins,
         feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
       end
+    end
+    
+    if IDX.abs > 0,
+      y(end+1:end+nbins,:) = res1(:,:,IDX.abs);
+      for bini = 1:nbins,
+        feature_names{end+1} = {'stat','hist','trans','abs','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
+      end
+    end
+    
+    if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
+      for bini = 1:nbins,
+        y(end+1,:) = res1(bini,:,IDX.orig);
+        y(end,x<0) = res1(bini,x<0,IDX.flip);
+        feature_names{end+1} = {'stat','hist','trans','flip','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
+      end
+    end
+    
+    if IDX.rel>0,
+      for bini = 1:nbins,
+        y(end+1,:) = res1(bini,:,IDX.rel);
+        feature_names{end+1} = {'stat','hist','trans','relative','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
+      end
+    end
+    
+    if SANITY_CHECK,
       
-      if SANITY_CHECK,
-        
-        res_real = y(end-nbins+1:end,:);
+      if ismember('none',trans_types),
+        fastY = res1(:,:,IDX.orig);
+        res_real = fastY;
         res_dumb = nan(nbins,N);
         for n_dumb = 1:N,
           tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
@@ -223,27 +283,12 @@ for radiusi = 1:nradii,
             res_dumb(:,n_dumb) = tmp;
           end
         end
-        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-          warning('SANITY CHECK: hist, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: hist, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
-        end
-        
+        checkSanity(res_real(:),res_dumb(:),r,off,'hist','none');
       end
       
-    end
-    
-    
-    if IDX_ABS > 0,
-      y(end+1:end+nbins,:) = res1(:,:,IDX_ABS);
-      for bini = 1:nbins,
-        feature_names{end+1} = {'stat','hist','trans','abs','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
-      end
-      
-      
-      if SANITY_CHECK,
-        
-        res_real = y(end-nbins+1:end,:);
+      if IDX.abs > 0,
+        fastY = res1(:,:,IDX.abs);
+        res_real = fastY;
         res_dumb = nan(nbins,N);
         for n_dumb = 1:N,
           tmp = abs(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
@@ -256,25 +301,16 @@ for radiusi = 1:nradii,
             res_dumb(:,n_dumb) = tmp/Z_dumb;
           end
         end
-        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-          fprintf('SANITY CHECK: hist, trans = abs, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: hist, trans = abs, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
+        checkSanity(res_real(:),res_dumb(:),r,off,'hist','abs');        
+      end
+      
+      if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
+        fastY = [];
+        for bini = 1:nbins,
+          fastY(bini,:) = res1(bini,:,IDX.orig);
+          fastY(bini,x<0) = res1(bini,x<0,IDX.flip);
         end
-        
-      end
-      
-    end
-    if IDX_FLIP > 0 && ~( (r == 0) && (off == 0) && (IDX_ABS > 0) ),
-      for bini = 1:nbins,
-        y(end+1,:) = res1(bini,:,IDX_ORIG);
-        y(end,x<0) = res1(bini,x<0,IDX_FLIP);
-        feature_names{end+1} = {'stat','hist','trans','flip','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
-      end
-      
-      if SANITY_CHECK,
-        
-        res_real = y(end-nbins+1:end,:);
+        res_real = fastY;
         res_dumb = nan(nbins,N);
         for n_dumb = 1:N,
           m = 1;
@@ -291,12 +327,7 @@ for radiusi = 1:nradii,
             res_dumb(:,n_dumb) = tmp/Z_dumb;
           end
         end
-        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-          fprintf('SANITY CHECK: hist, trans = flip, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: hist, trans = flip, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
-        end
-        
+        checkSanity(res_real(:),res_dumb(:),r,off,'hist','flip');
       end
       
     end

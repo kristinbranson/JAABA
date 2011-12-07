@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<params>
+<dtheta sanitycheck="0"
+	min_window_radius="0" 
+	max_window_radius="5" 
+	nwindow_radii="3" 
+	window_offsets="0,-1,1" 
+	trans_types="none,relative">
+  <mean min_window_radius="0"
+	max_window_radius="10"
+	nwindow_radii="5"
+	window_offsets="0,-1,1"
+	trans_types="none,relative"
+  />
+  <min min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="5"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+  />
+  <max min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+  />
+  <hist min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+       hist_edges="0,25,50,75,100"
+  />
+  <prctile min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+       prctiles="2.5,25,50,75,97.5"
+  />
+  <change min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+       change_window_radii="0,1"
+  />
+  <std min_window_radius="1"
+	max_window_radius="10"
+	nwindow_radii="3"
+	window_offsets="0,-1,1"
+        trans_types="none,relative"
+  />
+  <harmonic min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+        trans_types="none,relative"
+       num_harmonic="2"
+  />
+  <diff_neighbor_mean min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+  />
+  <diff_neighbor_min min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+  />
+  <diff_neighbor_max min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+  />
+  <zscore_neighbors min_window_radius="1"
+       max_window_radius="10"
+       nwindow_radii="3"
+       window_offsets="0,-1,1"
+       trans_types="none,relative"
+  />
+</dtheta>
+</params>

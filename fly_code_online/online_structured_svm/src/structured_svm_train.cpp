@@ -208,13 +208,13 @@ VFLOAT StructuredSVM::Test(const char *testfile, const char *predictionsFile) {
       pred["score"] = score;
       gt["y"] = testset->examples[i]->y->save(this);
       gt["score"] = score_gt;
-      o["predicted"] = y;
+      o["predicted"] = y->save(this);
       o["ground_truth"] = gt;
       o["loss"] = los;
       Json::FastWriter writer;
       char tmp[100000];
       strcpy(tmp, writer.write(o).c_str());
-      fprintf(stderr, "%s\n", tmp);
+      //fprintf(stderr, "%s\n", tmp);
       strs[i] = StringCopy(tmp);
     }
     delete y;
@@ -229,7 +229,7 @@ VFLOAT StructuredSVM::Test(const char *testfile, const char *predictionsFile) {
   if(predictionsFile) {
     FILE *fout = fopen(predictionsFile, "w");
     for(int i = 0; i < testset->num_examples; i++) {
-      fprintf(fout, "%s\n", strs[i]);
+      fprintf(fout, "%s", strs[i]);
       free(strs[i]);
     }
     fclose(fout);
@@ -821,12 +821,14 @@ bool StructuredSVM::SaveOnlineData(const char *fname) {
 }
 
 bool StructuredSVM::LoadOnlineData(const char *fname) {
-  FILE *fin = fopen(fname, "wb");
+  FILE *fin = fopen(fname, "rb");
   if(!fin) return false;
 
   if(trainfile)
     assert((trainset=LoadDataset(trainfile)) != NULL);
 
+  alloc_n = (trainset->num_examples+1);
+  ex_num_iters = (int*)realloc(ex_num_iters, sizeof(int)*alloc_n);
   bool b = (fread(&curr, sizeof(long), 1, fin) &&
          fread(&minItersBeforeNewExample, sizeof(long), 1, fin) &&
          fread(&M, sizeof(int), 1, fin) &&
@@ -842,7 +844,6 @@ bool StructuredSVM::LoadOnlineData(const char *fname) {
          fread(ex_num_iters, sizeof(int), trainset->num_examples, fin));
   assert(b);
 
-  alloc_n = (trainset->num_examples+1);
   alloc_t = t;
   generalization_errors_by_n = (double*)realloc(generalization_errors_by_n, sizeof(double)*alloc_n);
   optimization_errors_by_n = (double*)realloc(optimization_errors_by_n, sizeof(double)*alloc_n);

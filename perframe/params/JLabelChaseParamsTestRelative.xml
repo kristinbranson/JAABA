@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+
+<params>
+  <behaviors 
+      names="Sharpturn"
+      labelcolors=".7,0,0,0,0,.7"
+      />
+  <file 
+      moviefilename="movie.ufmf"
+      trxfilename="registered_trx.mat"
+      labelfilename="labeledsharpturns.mat"
+      perframedir="perframe"
+      clipsdir="clips"
+      windowfilename="windowfeatures.mat"
+      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/WindowFeaturesTestRelative.xml"
+      rootoutputdir="/groups/branson/home/kabram/bowlData/out/Jdetect"
+      />
+  
+  <plot>
+    <trx 
+	colormap="jet"
+	colormap_multiplier=".7"
+	/>
+    <labels 
+	colormap="line"
+	linewidth="3"
+	/>
+  </plot>
+  <learning
+      classifiertype="boosting"
+      />
+
+</params>

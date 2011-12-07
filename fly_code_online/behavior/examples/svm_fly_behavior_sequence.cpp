@@ -309,6 +309,20 @@ bool FlyBehaviorBoutSequence::load(const char *fname) {
 
 bool FlyBehaviorBoutSequence::save(const char *fname) {
   int len, nbehaviors, i, start_frame, end_frame;
+
+  if(!strlen(moviename)) {
+    char path[1000];
+    version = .1;
+    ExtractPathname(fname, path);
+    int len = strlen(path);  if(len) len++;
+    strcpy(trxname, fname+len); 
+    strcpy(moviename, fname+len); StripFileExtension(moviename); 
+    strcpy(labelname, fname); StripFileExtension(labelname); strcat(labelname, ".label");
+    strcpy(matname, fname); StripFileExtension(matname); strcat(matname, ".mat");
+    nflies = 1;
+    fly_ids[0] = 1;
+  }
+
   FILE *fout = fopen(fname, "wb");
   assert(fout);
   assert(fwrite(&this->version, sizeof(double), 1, fout));

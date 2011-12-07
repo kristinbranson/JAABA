@@ -104,6 +104,8 @@ DOCACHE = true;
 % initialize empty cache
 cache = InitializeCache();
 
+relativeParams = [];
+
 % initialize feature_types already computed to empty
 %feature_types = {};
 
@@ -116,7 +118,8 @@ cache = InitializeCache();
   trans_types,...
   SANITY_CHECK,...
   DOCACHE,...
-  cache...
+  cache,...
+  relativeParams,...
   ] = myparse(varargin,...
   'windows',windows,...
   'window_radii',window_radii,'window_offsets',window_offsets,...
@@ -124,12 +127,13 @@ cache = InitializeCache();
   'trans_types',trans_types,...
   'sanitycheck',SANITY_CHECK,...
   'docache',DOCACHE,...
-  'cache',cache);
+  'cache',cache,...
+  'relativeParams',relativeParams);
 %  'feature_types',feature_types,...
 
 %% whether we've specified to use all trans types by default
 if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip'};
+  trans_types = {'none','abs','flip','relative'};
 end
 
 %% select default windows from various ways of specifying windows
@@ -141,6 +145,15 @@ end
   max_window_radius,nwindow_radii);
 
 %% main computation
+
+if ismember('relative',trans_types)
+  if DOCACHE && ~isempty(cache.relX)
+    modX = cache.relX;
+  else
+    modX = convertToRelative(x,relativeParams);
+    cache.relX = modX;
+  end
+end
 
 % loop over window radii
 for radiusi = 1:nradii,
@@ -158,23 +171,26 @@ for radiusi = 1:nradii,
     cache_i = find(r == cache.mean.radii,1);
     res = cache.mean.data{cache_i};
   else
-    
-    % average
-    fil = ones(1,w);
-    % full: res(t+r) corresponds to frame t
-    res = imfilter(x,fil,'full',0);
-    % normalize
-    res(w:end-w+1) = res(w:end-w+1) / w;
-    % boundary conditions
-    res(1:w-1) = bsxfun(@rdivide,res(1:w-1),1:w-1);
-    res(end-w+2:end) = bsxfun(@rdivide,res(end-w+2:end),w-1:-1:1);
-    
+    res = MeanWindowCore(x,w);
     % store for future computations
     if DOCACHE,
       cache.mean.radii(end+1) = r;
       cache.mean.data{end+1} = res;
     end
-    
+  end
+  
+  if ismember('relative',trans_types)
+    if DOCACHE && ismember(r,cache.meanRel.radii),
+      cache_i = find(r == cache.meanRel.radii,1);
+      resRel = cache.meanRel.data{cache_i};
+    else
+      resRel = MeanWindowCore(modX,w);
+      % store for future computations
+      if DOCACHE,
+        cache.meanRel.radii(end+1) = r;
+        cache.meanRel.data{end+1} = resRel;
+      end
+    end
   end
   
   % all offsets for this radius
@@ -190,52 +206,50 @@ for radiusi = 1:nradii,
     if ismember('none',trans_types),
       y(end+1,:) = res1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','mean','trans','none','radius',r,'offset',off};
-      
-      if SANITY_CHECK,
-        
-        res_dumb = nan(1,N);
-        for n_dumb = 1:N,
-          res_dumb(n_dumb) = nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
-        end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: mean, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: mean, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-        
-      end
-      
     end
     
     if ismember('abs',trans_types),
       y(end+1,:) = abs(res1);
       feature_names{end+1} = {'stat','mean','trans','abs','radius',r,'offset',off};
-      
-      if SANITY_CHECK,
-        
-        res_dumb = nan(1,N);
-        for n_dumb = 1:N,
-          res_dumb(n_dumb) = abs(nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
-        end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: mean, trans = abs, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: mean, trans = abs, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-      end
-      
-      
     end
-    % flip is redundant with abs if r = 0 && off = 0
+    
     if ismember('flip',trans_types) && ~( (r == 0) && (off == 0) && ismember('abs',trans_types) ),
       y(end+1,:) = res1;
       y(end,x<0) = -res1(x<0);
       feature_names{end+1} = {'stat','mean','trans','flip','radius',r,'offset',off};
+    end
+    
+    if ismember('relative',trans_types),
+      resRel1 = padgrab(resRel,nan,1,1,1+r+off,N+r+off);
+      y(end+1,:) = resRel1;
+      feature_names{end+1} = {'stat','mean','trans','relative','radius',r,'offset',off};
+    end
+    
+    if SANITY_CHECK,
+      funcType = 'mean';
       
-      if SANITY_CHECK,
-        
+      if ismember('none',trans_types),
+        fastY = res1;
+        res_dumb = nan(1,N);
+        for n_dumb = 1:N,
+          res_dumb(n_dumb) = nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+        end
+        checkSanity(fastY,res_dumb,r,off,funcType);
+      end  
+      
+      if ismember('abs',trans_types),
+        fastY = abs(res1);
+        res_dumb = nan(1,N);
+        for n_dumb = 1:N,
+          res_dumb(n_dumb) = abs(nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
+        end
+        checkSanity(fastY,res_dumb,r,off,funcType);
+      end
+      
+      % flip is redundant with abs if r = 0 && off = 0
+      if ismember('flip',trans_types) && ~( (r == 0) && (off == 0) && ismember('abs',trans_types) ),
+        fastY = res1;
+        fastY(x<0) = -res1(x<0);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
           res_dumb(n_dumb) = nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
@@ -243,14 +257,10 @@ for radiusi = 1:nradii,
             res_dumb(n_dumb) = -res_dumb(n_dumb);
           end
         end
+        checkSanity(fastY,res_dumb,r,off,funcType);
         
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: mean, trans = flip, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: mean, trans = flip, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
       end
       
-    end
+    end % End Sanity Check
   end
 end
