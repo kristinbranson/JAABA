@@ -15,7 +15,7 @@ switch computername,
     %FlyBowlAnalysis_path = 'E:\Code\FlyBowlAnalysis';
     %rootdatadir = 'E:\Code\Jdetect\larva\fly_data\TrainingData';
     %settingsdir = 'E:\Code\FlyBowlAnalysis\settings';
-    configfilename = 'JLabelParams.xml';
+    configfilename = 'params\JLabelParams.xml';
 
   case 'bransonk-lw2',
 
@@ -23,7 +23,7 @@ switch computername,
     %FlyBowlAnalysis_path = 'C:\Code\FlyBowlAnalysis';
     %rootdatadir = 'C:\Code\Jdetect\larva\fly_data\TrainingData';
     %settingsdir = 'C:\Code\FlyBowlAnalysis\settings';
-    configfilename = 'JLabelParams.xml';
+    configfilename = 'params\JLabelParams.xml';
 
   case 'bransonk-desktop',
 
@@ -31,7 +31,7 @@ switch computername,
     %FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
     %rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     %settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
-    configfilename = 'JLabelParams_bransonk-desktop.xml';
+    configfilename = 'params/JLabelParams_bransonk-desktop.xml';
     
   case 'kabram-ws.janelia.priv',
 
@@ -55,7 +55,7 @@ switch computername,
     %FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
     %rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     %settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
-    configfilename = 'JLabelParams_bransonk-desktop.xml';
+    configfilename = 'params/JLabelParams_bransonk-desktop.xml';
     
 end
 
