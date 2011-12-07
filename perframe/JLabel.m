@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 18-Nov-2011 10:34:16
+% Last Modified by GUIDE v2.5 29-Nov-2011 15:51:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -65,6 +65,10 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 handles.status_bar_text = sprintf('Status: No experiment loaded');
 handles.idlestatuscolor = [0,1,0];
 handles.busystatuscolor = [1,0,1];
+handles.movie_height = 100;
+handles.movie_width = 100;
+set(handles.similarFramesButton,'Enable','off');
+handles.doFastUpdates = true;
 ClearStatus(handles);
 
 % get relative locations of stuffs
@@ -939,14 +943,17 @@ function handles = UpdateTimelineIms(handles)
 
 handles.labels_plot.im(:) = 0;
 labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies);
+
 for behaviori = 1:handles.data.nbehaviors
   idx = labelidx == behaviori;
   for channel = 1:3,
     handles.labels_plot.im(1,idx,channel) = handles.labelcolors(behaviori,channel);
   end
 end
+
 handles.labels_plot.predicted_im(:) = 0;
 [predictedidx,scores]= handles.data.GetPredictedIdx(handles.expi,handles.flies);
+
 for behaviori = 1:handles.data.nbehaviors
   idxScores = (predictedidx == behaviori);
   idxPredict = idxScores & ...
@@ -958,6 +965,7 @@ for behaviori = 1:handles.data.nbehaviors
     handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel);
   end
 end
+
 [error_t0s,error_t1s] = get_interval_ends(labelidx ~= 0 & predictedidx ~= 0 & ...
   labelidx ~= predictedidx);
 error_t0s = error_t0s + handles.t0_curr - 1.5;
@@ -1512,7 +1520,7 @@ set(handles.menu_view_plot_labels_automatic,'Checked','off');
 buttonNames = {'pushbutton_train','pushbutton_predict',...
               'togglebutton_select','pushbutton_clearselection',...
               'pushbutton_playselection','pushbutton_playstop',...
-              'similarFramesButton'};
+              'similarFramesButton','bagButton'};
   
 for buttonNum = 1:numel(buttonNames)
   SetButtonImage(handles.(buttonNames{buttonNum}));
@@ -2390,7 +2398,7 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 
 % store the current labels to windowdata_labeled
 handles.data.StoreLabels();
-handles.data.Train();
+handles.data.Train(handles.doFastUpdates);
 handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
@@ -3763,7 +3771,7 @@ function pushbutton_clearselection_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if handles.hplaying == handles.pushbutton_playselection,
-  handles = stop(handles);
+  handles = stopPlaying(handles);
 end
 
 handles.selected_ts = nan(1,2);
@@ -3781,10 +3789,10 @@ function pushbutton_playstop_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if handles.hplaying == hObject,
-  stop(handles);
+  stopPlaying(handles);
 else
   if ~isnan(handles.hplaying),
-    stop(handles);
+    stopPlaying(handles);
   end
   play(hObject,handles);
 end
@@ -3796,15 +3804,28 @@ function pushbutton_playselection_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if handles.hplaying == hObject,
-  stop(handles);
+  stopPlaying(handles);
 else
   if ~isnan(handles.hplaying),
-    stop(handles);
+    stopPlaying(handles);
   end
   play(hObject,handles,handles.selected_ts(1),handles.selected_ts(2),true);
 end
 
+function predictTimerCallback(obj,event,hObject,framesPerTick)
+  global PLAY_TIMER_DONE CALC_FEATURES;
+  CALC_FEATURES = true;
+  handles = guidata(hObject);
+  t0 = handles.ts(1)+framesPerTick;%+handles.timeline_nframes;
+  handles.data.Predict(handles.expi,handles.flies,t0:(t0+framesPerTick));
+  PLAY_TIMER_DONE = true;
+  
 function handles = play(hObject,handles,t0,t1,doloop)
+
+clear global PLAY_TIME_DONE CALC_FEATURES
+global PLAY_TIMER_DONE CALC_FEATURES;
+PLAY_TIMER_DONE = false;
+CALC_FEATURES = false;
 
 axi = 1;
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
@@ -3812,25 +3833,59 @@ SetButtonImage(handles.pushbutton_playstop);
 
 handles.hplaying = hObject;
 guidata(hObject,handles);
-tic;
+ticker = tic;
 if nargin < 3,
   t0 = handles.ts(axi);
   t1 = handles.nframes;
   doloop = false;
 end
+
+if ~doloop
+  framesPerTick = round(handles.timeline_nframes/4);
+  T = timer('TimerFcn',{@predictTimerCallback,hObject,framesPerTick},...
+        'Period',framesPerTick/handles.play_FPS,...
+        'ExecutionMode','fixedRate',...
+        'Tag','predictTimer');
+  start(T);
+end
+
 while true,
   handles = guidata(hObject);
   if handles.hplaying ~= hObject,
     return;
   end
+  
+  if CALC_FEATURES
+    t0 = handles.ts(axi);
+    CALC_FEATURES = false;
+  end
+  
+  if PLAY_TIMER_DONE
+    ticker = tic;
+    PLAY_TIMER_DONE = false;
+    predictStart = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
+    predictEnd = min(handles.t1_curr,ceil(handles.ts(1)+handles.timeline_nframes/2));
+    handles = SetPredictedPlot(handles,predictStart,predictEnd);
+    handles = UpdateTimelineIms(handles);
+
+    guidata(hObject,handles);
+    UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+      'refreshtrx',true,'refreshlabels',true,...
+      'refresh_timeline_manual',false,...
+      'refresh_timeline_xlim',false,...
+      'refresh_timeline_hcurr',false,...
+      'refresh_timeline_selection',false,...
+      'refresh_curr_prop',false);
+
+  end
   % how long has it been
-  dt_sec = toc;
+  dt_sec = toc(ticker);
   % wait until the next frame should be played
   dt = dt_sec*handles.play_FPS;
   t = ceil(dt)+t0;
   if t > t1,
     if doloop,
-      tic;
+      ticker = tic;
       continue;
     else
       handles.hplaying = nan;
@@ -3839,7 +3894,8 @@ while true,
     end
   end
   SetCurrentFrame(handles,axi,t,hObject);
-  dt_sec = toc;
+  handles = UpdateTimelineIms(handles);
+  dt_sec = toc(ticker);
   pause_time = (t-t0)/handles.play_FPS - dt_sec;
   if pause_time <= 0,
     drawnow;
@@ -3848,12 +3904,16 @@ while true,
   end
 end
 
-stop(handles);
+stopPlaying(handles);
 
-function handles = stop(handles)
+function handles = stopPlaying(handles)
 
+clear global PLAY_TIMER_DONE;
 set(handles.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
 SetButtonImage(handles.hplaying);
+T = timerfind('Tag','predictTimer');
+if ~isempty(T),  stop(T(:)); delete(T(:)); end
+  
 hObject = handles.hplaying;
 handles.hplaying = nan;
 guidata(hObject,handles);
@@ -4441,8 +4501,8 @@ function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
 CompressionPreferences(handles.figure_JLabel);
 
 % --------------------------------------------------------------------
-function conf_thresholds_Callback(hObject, eventdata, handles)
-% hObject    handle to conf_thresholds (see GCBO)
+function menu_classifier_confThresholds_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_confThresholds (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.confFig = ConfidenceThresholds;
@@ -4462,11 +4522,46 @@ function classifier_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function classify_all_Callback(hObject, eventdata, handles)
-% hObject    handle to classify_all (see GCBO)
+function menu_classifier_classifyall_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyall (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 for ndx = 1:handles.data.nexps,
   handles.data.PredictWholeMovie(ndx);
 end
+
+
+% --- Executes on button press in bagButton.
+function bagButton_Callback(hObject, eventdata, handles)
+% hObject    handle to bagButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.data.DoBagging();
+set(handles.similarFramesButton,'Enable','on');
+
+
+% --------------------------------------------------------------------
+function menu_classifier_doFastUpdates_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_doFastUpdates (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+curVal = get(hObject,'Checked');
+if strcmp(curVal,'on')
+  set(hObject,'Checked','off');
+  handles.doFastUpdates = false;
+else
+  set(hObject,'Checked','on');
+  handles.doFastUpdates = true;
+end
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_selFeatures (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+handles.data.ShowSelectFeatures();
+

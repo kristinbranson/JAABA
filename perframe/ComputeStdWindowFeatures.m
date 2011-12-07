@@ -102,6 +102,7 @@ cache = InitializeCache();
 % initialize feature_types already computed to empty
 feature_types = {};
 
+relativeParams = [];
 %% parse parameters
 
 [...
@@ -112,7 +113,8 @@ feature_types = {};
   trans_types,...
   SANITY_CHECK,...
   DOCACHE,...
-  cache...
+  cache,...
+  relativeParams...
   ] = myparse(varargin,...
   'windows',windows,...
   'window_radii',window_radii,'window_offsets',window_offsets,...
@@ -121,11 +123,12 @@ feature_types = {};
   'trans_types',trans_types,...
   'sanitycheck',SANITY_CHECK,...
   'docache',DOCACHE,...
-  'cache',cache); %#ok<ASGLU>
+  'cache',cache,...
+  'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
 if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip'}; %#ok<NASGU>
+  trans_types = {'none','abs','flip','relative'}; %#ok<NASGU>
 end
 
 %% select default windows from various ways of specifying windows
@@ -137,7 +140,15 @@ end
   max_window_radius,nwindow_radii);
 
 %% main computation
-  
+
+if ismember('relative',trans_types)
+  if DOCACHE && ~isempty(cache.relX)
+    modX = cache.relX;
+  else
+    modX = convertToRelative(x,relativeParams);
+    cache.relX = modX;
+  end
+end
 
 for radiusi = 1:nradii,
   r = window_radii(radiusi);
@@ -149,8 +160,6 @@ for radiusi = 1:nradii,
   end
   
   % average
-  fil = ones(1,w);
-  
   
   if DOCACHE && ismember(r,cache.std.radii),
     cache_i = find(r == cache.std.radii,1);
@@ -162,13 +171,16 @@ for radiusi = 1:nradii,
       res_mean = cache.mean.data{cache_i};
     else
       
-      % full: res(t+r) corresponds to frame t
-      res_mean = imfilter(x,fil,'full',0);
-      % normalize
-      res_mean(w:end-w+1) = res_mean(w:end-w+1) / w;
-      % boundary conditions
-      res_mean(1:w-1) = bsxfun(@rdivide,res_mean(1:w-1),1:w-1);
-      res_mean(end-w+2:end) = bsxfun(@rdivide,res_mean(end-w+2:end),w-1:-1:1);
+      res_mean = MeanWindowCore(x,w);
+%{      
+%       % full: res(t+r) corresponds to frame t
+%       res_mean = imfilter(x,fil,'full',0);
+%       % normalize
+%       res_mean(w:end-w+1) = res_mean(w:end-w+1) / w;
+%       % boundary conditions
+%       res_mean(1:w-1) = bsxfun(@rdivide,res_mean(1:w-1),1:w-1);
+%       res_mean(end-w+2:end) = bsxfun(@rdivide,res_mean(end-w+2:end),w-1:-1:1);
+%}
       
       if DOCACHE,
         cache.mean.radii(end+1) = r;
@@ -177,13 +189,15 @@ for radiusi = 1:nradii,
       
     end
     
+    res = MeanWindowCore(x.^2,w);
+%{    
     % full: res(t+r) corresponds to frame t
-    res = imfilter(x.^2,fil,'full',0);
-    res(w:end-w+1) = res(w:end-w+1) / w;
-    % boundary conditions
-    res(1:w-1) = bsxfun(@rdivide,res(1:w-1),1:w-1);
-    res(end-w+2:end) = bsxfun(@rdivide,res(end-w+2:end),w-1:-1:1);
-    
+%     res = imfilter(x.^2,fil,'full',0);
+%     res(w:end-w+1) = res(w:end-w+1) / w;
+%     % boundary conditions
+%     res(1:w-1) = bsxfun(@rdivide,res(1:w-1),1:w-1);
+%     res(end-w+2:end) = bsxfun(@rdivide,res(end-w+2:end),w-1:-1:1);
+%}    
     % combine to get standard deviation
     res = sqrt(res - res_mean.^2);
     
@@ -192,6 +206,36 @@ for radiusi = 1:nradii,
       cache.std.data{end+1} = res;
     end
     
+  end
+
+  if ismember('relative',trans_types),
+    
+    if DOCACHE && ismember(r,cache.stdRel.radii),
+      cache_i = find(r == cache.stdRel.radii,1);
+      resRel = cache.stdRel.data{cache_i};
+    else
+      
+      if DOCACHE && ismember(r,cache.meanRel.radii),
+        cache_i = find(r == cache.meanRel.radii,1);
+        resRel_mean = cache.meanRel.data{cache_i};
+      else
+        resRel_mean = MeanWindowCore(modX,w);
+        if DOCACHE,
+          cache.meanRel.radii(end+1) = r;
+          cache.meanRel.data{end+1} = resRel_mean;
+        end
+      end
+      
+      resRel = MeanWindowCore(modX.^2,w);
+      % combine to get standard deviation
+      resRel = sqrt(resRel - resRel_mean.^2);
+      
+      if DOCACHE,
+        cache.stdRel.radii(end+1) = r;
+        cache.stdRel.data{end+1} = resRel;
+      end
+      
+    end
   end
   
   % all offsets for this radius
@@ -207,19 +251,18 @@ for radiusi = 1:nradii,
     y(end+1,:) = res1; %#ok<*AGROW>
     feature_names{end+1} = {'stat','std','trans','none','radius',r,'offset',off};
     
+    if ismember('relative',trans_types)
+      resRel1 = padgrab(resRel,nan,1,1,1+r+off,N+r+off);
+      y(end+1,:) = resRel1; %#ok<*AGROW>
+      feature_names{end+1} = {'stat','std','trans','relative','radius',r,'offset',off};
+    end
+    
     if SANITY_CHECK,
-      
       res_dumb = nan(1,N);
       for n_dumb = 1:N,
         res_dumb(n_dumb) = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
       end
-      
-      if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-        fprintf('SANITY CHECK: std, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-      else
-        fprintf('SANITY CHECK: std, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-      end
-      
+      checkSanity(y(end,:),res_dumb(:),r,off,'std','none');
     end
     
   end

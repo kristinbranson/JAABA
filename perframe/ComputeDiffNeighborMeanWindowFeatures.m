@@ -27,6 +27,8 @@ cache = InitializeCache();
 % initialize feature_types already computed to empty
 feature_types = {};
 
+relativeParams = [];
+
 %% parse parameters
 
 [...
@@ -37,7 +39,8 @@ feature_types = {};
   trans_types,...
   SANITY_CHECK,...
   DOCACHE,...
-  cache...
+  cache,...
+  relativeParams,...
   ] = myparse(varargin,...
   'windows',windows,...
   'window_radii',window_radii,'window_offsets',window_offsets,...
@@ -46,11 +49,12 @@ feature_types = {};
   'trans_types',trans_types,...
   'sanitycheck',SANITY_CHECK,...
   'docache',DOCACHE,...
-  'cache',cache); %#ok<ASGLU>
+  'cache',cache,...
+  'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
 if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip'};
+  trans_types = {'none','abs','flip','relative'};
 end
 
 %% select default windows from various ways of specifying windows
@@ -63,37 +67,49 @@ end
 
 %% main computation
 
+if ismember('relative',trans_types)
+  if DOCACHE && ~isempty(cache.relX)
+    modX = cache.relX;
+  else
+    modX = convertToRelative(x,relativeParams);
+    cache.relX = modX;
+  end
+end
 
 for radiusi = 1:nradii,
   r = window_radii(radiusi);
+  w = 2*r+1;
   
   % doesn't make sense for r == 0
   if r == 0,
     continue;
   end
   
-  w = 2*r+1;
-  
   if DOCACHE && ismember(r,cache.mean.radii),
     cache_i = find(r == cache.mean.radii,1);
     res = cache.mean.data{cache_i};
   else
-    % average
-    fil = ones(1,w);
-    % full: res(t+r) corresponds to frame t
-    res = imfilter(x,fil,'full',0);
-    % normalize
-    res(w:end-w+1) = res(w:end-w+1) / w;
-    % boundary conditions
-    res(1:w-1) = bsxfun(@rdivide,res(1:w-1),1:w-1);
-    res(end-w+2:end) = bsxfun(@rdivide,res(end-w+2:end),w-1:-1:1);
-    
+    res = MeanWindowCore(x,w);
     if DOCACHE,
       cache.mean.radii(end+1) = r;
       cache.mean.data{end+1} = res;
     end
-    
   end
+  
+  if ismember('relative',trans_types)
+    if DOCACHE && ismember(r,cache.meanRel.radii),
+      cache_i = find(r == cache.meanRel.radii,1);
+      resRel = cache.meanRel.data{cache_i};
+    else
+      resRel = MeanWindowCore(modX,w);
+      % store for future computations
+      if DOCACHE,
+        cache.meanRel.radii(end+1) = r;
+        cache.meanRel.data{end+1} = resRel;
+      end
+    end
+  end
+
   
   % all offsets for this radius
   windowis = find(windowi2radiusi == radiusi);
@@ -107,60 +123,49 @@ for radiusi = 1:nradii,
     res1 = x - padgrab(res,nan,1,1,1+r+off,N+r+off);
 
     if ismember('none',trans_types),
-      
       y(end+1,:) = res1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','diff_neighbor_mean','trans','none','radius',r,'offset',off};
-      
-      if SANITY_CHECK,
-        
+    end
+    
+    if ismember('abs',trans_types),
+      y(end+1,:) = abs(res1);
+      feature_names{end+1} = {'stat','diff_neighbor_mean','trans','abs','radius',r,'offset',off};
+    end
+    
+    if ismember('flip',trans_types),
+      res2 = res1.*sign(x);
+      y(end+1,:) = res2;
+      feature_names{end+1} = {'stat','diff_neighbor_mean','trans','flip','radius',r,'offset',off};
+    end
+    
+    if ismember('relative',trans_types),
+      resRel1 = modX - padgrab(resRel,nan,1,1,1+r+off,N+r+off);
+      y(end+1,:) = resRel1;
+      feature_names{end+1} = {'stat','diff_neighbor_mean','trans','relative','radius',r,'offset',off};
+    end
+    
+    if SANITY_CHECK,
+      funcType = 'DiffNeighborMean';
+      if ismember('none',trans_types),
+        fastY = res1; %#ok<*AGROW>
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
           res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
         end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: diff_neighbor_mean, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: diff_neighbor_mean, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-        
+        checkSanity(fastY,res_dumb,r,off,funcType,'none');
       end
-      
-    end
     
-    if ismember('abs',trans_types),
-      
-      y(end+1,:) = abs(res1);
-      
-      feature_names{end+1} = {'stat','diff_neighbor_mean','trans','abs','radius',r,'offset',off};
-      
-      if SANITY_CHECK,
-        
+      if ismember('abs',trans_types),
+        fastY = abs(res1);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
           res_dumb(n_dumb) = abs(x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
         end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: diff_neighbor_mean, trans = abs, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: diff_neighbor_mean, trans = abs, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-        
+        checkSanity(fastY,res_dumb,r,off,funcType,'abs');
       end
       
-    end
-    
-    if ismember('flip',trans_types),
-      
-      res2 = res1;
-      res2(x<0) = -res2(x<0);
-      y(end+1,:) = res2;
-      
-      feature_names{end+1} = {'stat','diff_neighbor_mean','trans','flip','radius',r,'offset',off};
-      
-      if SANITY_CHECK,
-        
+      if ismember('flip',trans_types),
+        res2 = res1; res2(x<0) = -res2(x<0); fastY = res2;
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
           res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
@@ -168,13 +173,7 @@ for radiusi = 1:nradii,
             res_dumb(n_dumb) = -res_dumb(n_dumb);
           end
         end
-        
-        if any(isnan(y(end,:)) ~= isnan(res_dumb)),
-          fprintf('SANITY CHECK: diff_neighbor_mean, trans = abs, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: diff_neighbor_mean, trans = abs, r = %d, off = %d, max error = %f\n',r,off,max(abs(y(end,:)-res_dumb)));
-        end
-        
+        checkSanity(fastY,res_dumb,r,off,funcType,'flip');
       end
       
     end

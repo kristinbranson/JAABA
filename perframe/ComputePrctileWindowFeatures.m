@@ -111,6 +111,7 @@ cache = InitializeCache();
 % percentiles to compute (other than min, max)
 prctiles = [];
 
+relativeParams = [];
 %% parse parameters
 
 [...
@@ -121,7 +122,8 @@ prctiles = [];
   SANITY_CHECK,...
   DOCACHE,...
   cache,...
-  prctiles...
+  prctiles,...
+  relativeParams,...
   ] = myparse(varargin,...
   'windows',windows,...
   'window_radii',window_radii,'window_offsets',window_offsets,...
@@ -130,12 +132,13 @@ prctiles = [];
   'sanitycheck',SANITY_CHECK,...
   'docache',DOCACHE,...
   'cache',cache,...
-  'prctiles',prctiles); %#ok<ASGLU>
+  'prctiles',prctiles,...
+  'relativeParams',relativeParams); %#ok<ASGLU>
 %   'feature_types',feature_types,...
 
 %% whether we've specified to use all trans types by default
 if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip'};
+  trans_types = {'none','abs','flip','relative'};
 end
 
 %% select default windows from various ways of specifying windows
@@ -151,6 +154,15 @@ end
 if ~any(prctiles),
   warning('prctiles to compute is empty');
   return;
+end
+
+if ismember('relative',trans_types)
+  if DOCACHE && ~isempty(cache.relX)
+    modX = cache.relX;
+  else
+    modX = convertToRelative(x,relativeParams);
+    cache.relX = modX;
+  end
 end
 
 nprctiles = numel(prctiles);
@@ -169,6 +181,13 @@ for radiusi = 1:nradii,
     res(:,n+r) = prctile(x(max(1,n-r):min(N,n+r)),prctiles);
   end
   
+  if ismember('relative',trans_types),
+    resRel = nan(nprctiles,N+2*r);
+    for n = 1-r:N+r,
+      resRel(:,n+r) = prctile(modX(max(1,n-r):min(N,n+r)),prctiles);
+    end
+  end
+  
   % offset
   windowis = find(windowi2radiusi == radiusi);
   for windowi = windowis',
@@ -181,15 +200,37 @@ for radiusi = 1:nradii,
     res1 = padgrab(res,nan,1,nprctiles,1+r+off,N+r+off);
     
     if ismember('none',trans_types),
-      
       y(end+1:end+nprctiles,:) = res1;
       for prctilei = 1:nprctiles,
         feature_names{end+1} = {'stat','prctile','trans','none','radius',r,'offset',off,'prctile',prctiles(prctilei)}; %#ok<*AGROW>
       end
-      
-      if SANITY_CHECK,
-        
-        res_real = y(end-nprctiles+1:end,:);
+    end
+    
+    if ismember('abs',trans_types),
+      y(end+1:end+nprctiles,:) = abs(res1);
+      for prctilei = 1:nprctiles,
+        feature_names{end+1} = {'stat','prctile','trans','abs','radius',r,'offset',off,'prctile',prctiles(prctilei)};
+      end
+    end
+    
+    if ismember('flip',trans_types),
+      for prctilei = 1:nprctiles,
+        y(end+1,:) = res1(prctilei,:).*sign(x);
+        feature_names{end+1} = {'stat','prctile','trans','flip','radius',r,'offset',off,'prctile',prctiles(prctilei)};
+      end
+    end
+    
+    if ismember('relative',trans_types),
+      resRel1 = padgrab(resRel,nan,1,nprctiles,1+r+off,N+r+off);
+      for prctilei = 1:nprctiles,
+        y(end+1,:) = resRel1(prctilei,:).*sign(x);
+        feature_names{end+1} = {'stat','prctile','trans','relative','radius',r,'offset',off,'prctile',prctiles(prctilei)};
+      end
+    end
+    
+    if SANITY_CHECK,
+      if ismember('none',trans_types),
+        res_real = res1;
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
           tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
@@ -199,25 +240,11 @@ for radiusi = 1:nradii,
             res_dumb(:,n_dumb) = prctile(tmp,prctiles);
           end
         end
-        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-          fprintf('SANITY CHECK: prctile, trans = none, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: prctile, trans = none, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
-        end
-        
+        checkSanity(res_real(:),res_dumb(:),r,off,'prctile','none');        
       end
-      
-    end
     
-    if ismember('abs',trans_types),
-      y(end+1:end+nprctiles,:) = abs(res1);
-      for prctilei = 1:nprctiles,
-        feature_names{end+1} = {'stat','prctile','trans','abs','radius',r,'offset',off,'prctile',prctiles(prctilei)};
-      end
-      
-      if SANITY_CHECK,
-        
-        res_real = y(end-nprctiles+1:end,:);
+      if ismember('abs',trans_types),
+        res_real = abs(res1);
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
           tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
@@ -227,26 +254,17 @@ for radiusi = 1:nradii,
             res_dumb(:,n_dumb) = abs(prctile(tmp,prctiles));
           end
         end
-        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-          fprintf('SANITY CHECK: prctile, trans = abs, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: prctile, trans = abs, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
+        checkSanity(res_real(:),res_dumb(:),r,off,'prctile','abs');        
+      end
+      
+    
+      if ismember('flip',trans_types),
+        fastY = [];
+        for prctilei = 1:nprctiles,
+          fastY(end+1,:) = res1(prctilei,:);
+          fastY(end,x<0) = -res1(prctilei,x<0);
         end
-        
-      end
-      
-    end
-    if ismember('flip',trans_types),
-      for prctilei = 1:nprctiles,
-        y(end+1,:) = res1(prctilei,:);
-        y(end,x<0) = -res1(prctilei,x<0);
-        feature_names{end+1} = {'stat','prctile','trans','flip','radius',r,'offset',off,'prctile',prctiles(prctilei)};
-      end
-      
-      
-      if SANITY_CHECK,
-        
-        res_real = y(end-nprctiles+1:end,:);
+        res_real = fastY(end-nprctiles+1:end,:);
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
           tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
@@ -260,14 +278,8 @@ for radiusi = 1:nradii,
             res_dumb(:,n_dumb) = tmp;
           end
         end
-        if any(isnan(res_real(:)) ~= isnan(res_dumb(:))),
-          fprintf('SANITY CHECK: prctile, trans = flip, r = %d, off = %d, nan mismatch\n',r,off);
-        else
-          fprintf('SANITY CHECK: prctile, trans = flip, r = %d, off = %d, max error = %f\n',r,off,max(abs(res_real(:)-res_dumb(:))));
-        end
-        
+        checkSanity(res_real(:),res_dumb(:),r,off,'prctile','flip');        
       end
-      
       
     end
   end

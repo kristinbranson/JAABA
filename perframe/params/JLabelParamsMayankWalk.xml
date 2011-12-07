@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<params>
+  <behaviors 
+      names="Walk"
+      labelcolors=".7,0,0,0,0,.7"
+      />
+  <file 
+      moviefilename="movie.ufmf"
+      trxfilename="registered_trx.mat"
+      labelfilename="labeledwalks.mat"
+      perframedir="perframe"
+      windowfilename="windowfeatures.mat"
+      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/WindowFeaturesWalks.xml"
+      rootoutputdir="/groups/branson/home/kabram/bowlData/out/"
+      />
+  
+  <plot>
+    <trx 
+	colormap="jet"
+	colormap_multiplier=".7"
+	/>
+    <labels 
+	colormap="line"
+	linewidth="3"
+	/>
+  </plot>
+
+</params>
