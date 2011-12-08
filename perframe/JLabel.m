@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 08-Dec-2011 10:25:39
+% Last Modified by GUIDE v2.5 08-Dec-2011 13:47:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1965,6 +1965,10 @@ if get(hObject,'Value'),
      'refresh_timeline_selection',false,...
      'refresh_curr_prop',false);
 
+   set(handles.menu_file,'enable','off');
+   set(handles.menu_edit,'enable','off');
+   set(handles.menu_go,'enable','off');
+   set(handles.menu_classifier,'enable','off');
    
 else % label pen is up.
   
@@ -2001,6 +2005,11 @@ else % label pen is up.
   end
   set(handles.togglebutton_label_unknown,'Value',0,'String','Start Unknown','Enable','on');
   %set(handles.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.data.labelnames{behaviori}));
+
+   set(handles.menu_file,'enable','on');
+   set(handles.menu_edit,'enable','on');
+   set(handles.menu_go,'enable','on');
+   set(handles.menu_classifier,'enable','on');
 
 end
 
@@ -2224,6 +2233,13 @@ if get(hObject,'Value'),
     'refresh_timeline_selection',false,...
     'refresh_curr_prop',false);
 
+  set(handles.menu_file,'enable','off');
+  set(handles.menu_edit,'enable','off');
+  set(handles.menu_go,'enable','off');
+  set(handles.menu_classifier,'enable','off');
+  
+
+  
 %   % set everything else to off
 %   for j = 1:handles.data.nbehaviors,
 %     set(handles.togglebutton_label_behaviors(j),'Value',0,'String',sprintf('Start %s',handles.data.labelnames{j}));
@@ -2260,6 +2276,11 @@ else
 %   handles.label_state = 0;
 %   %handles.data.StoreLabels();
 %   set(handles.togglebutton_label_unknown,'String','Start Unknown');
+  set(handles.menu_file,'enable','on');
+  set(handles.menu_edit,'enable','on');
+  set(handles.menu_go,'enable','on');
+  set(handles.menu_classifier,'enable','on');
+   
 end
 
 guidata(hObject,handles);
@@ -2371,6 +2392,15 @@ if ~strcmpi(get(handles.figure_JLabel,'SelectionType'),'open') || ...
   return;
 end
 
+% Dont switch flies when the label pen is down.
+penDown = false;
+behaviorVals = get(handles.togglebutton_label_behaviors,'Value');
+for ndx = 1:length(behaviorVals)
+  penDown = penDown | behaviorVals{ndx};
+end
+penDown = penDown | get(handles.togglebutton_label_unknown,'Value');
+
+if penDown, return; end
 % check if the user wants to switch to this fly
 % TODO: this directly accesses handles.data.labels -- abstract this
 [ism,j] = ismember(fly,handles.data.labels(handles.expi).flies,'rows');
@@ -4474,26 +4504,6 @@ UpdatePlots(handles,...
   'refresh_curr_prop',false);
 
 
-% --- If Enable == 'on', executes on mouse press in 5 pixel border.
-% --- Otherwise, executes on mouse press in 5 pixel border or over timeline_label_manual.
-function timeline_label_manual_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to timeline_label_manual (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
-
-
-% --- If Enable == 'on', executes on mouse press in 5 pixel border.
-% --- Otherwise, executes on mouse press in 5 pixel border or over timeline_label_automatic.
-function timeline_label_automatic_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to timeline_label_automatic (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
-
-
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_overlay_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_automatic_overlay (see GCBO)
@@ -4548,8 +4558,8 @@ end
 
 
 % --------------------------------------------------------------------
-function classifier_Callback(hObject, eventdata, handles)
-% hObject    handle to classifier (see GCBO)
+function menu_classifier_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -4614,4 +4624,20 @@ function menu_file_loadscores_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.data.nexps,
   handles.data.PredictWholeMovie(ndx);
+end
+
+
+% --- Executes when selected object is changed in uipanel12.
+function uipanel12_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in uipanel12 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+
+if  strcmp(get(eventdata.NewValue,'tag'),'timeline_label_manual')
+  menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
+else
+  menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
 end

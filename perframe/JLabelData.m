@@ -751,7 +751,7 @@ classdef JLabelData < handle
             perframedata = perframedata.data{flies(1)};
           end
           
-          i11 = min(i1,numel(obj.perframedata{j}));
+          i11 = min(i1,numel(perframedata));
           [x_curr,feature_names_curr] = ...
               ComputeWindowFeatures(perframedata,obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
           if i11 < i1,
