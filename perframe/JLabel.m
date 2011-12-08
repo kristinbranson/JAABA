@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 29-Nov-2011 15:51:29
+% Last Modified by GUIDE v2.5 08-Dec-2011 10:25:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -490,7 +490,8 @@ for i = axes,
     elseif handles.plot_labels_manual,
       labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
     elseif handles.plot_labels_automatic,
-      labelidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
+       prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.ts(i),handles.ts(i));
+       labelidx = prediction.predictedidx;
     end
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
@@ -856,7 +857,8 @@ set([handles.himage_timeline_manual,handles.himage_timeline_auto],...
   'XData',[handles.t0_curr,handles.t1_curr]);
 
 labelidx = handles.data.GetLabelIdx(handles.expi,flies);
-predictedidx = handles.data.GetPredictedIdx(handles.expi,flies);
+prediction = handles.data.GetPredictedIdx(handles.expi,flies);
+predictedidx = prediction.predictedidx;
 for flyi = 1:numel(flies),
   fly = flies(flyi);
   x = handles.data.GetTrxValues('X1',handles.expi,fly,handles.t0_curr:handles.t1_curr);
@@ -952,18 +954,34 @@ for behaviori = 1:handles.data.nbehaviors
 end
 
 handles.labels_plot.predicted_im(:) = 0;
-[predictedidx,scores]= handles.data.GetPredictedIdx(handles.expi,handles.flies);
+prediction= handles.data.GetPredictedIdx(handles.expi,handles.flies);
+predictedidx = prediction.predictedidx;
+scores = handles.data.NormalizeScores(prediction.scoresidx);
+latest = prediction.latest;
 
 for behaviori = 1:handles.data.nbehaviors
-  idxScores = (predictedidx == behaviori);
+  
+  idxScores = (predictedidx == behaviori) & latest;
   idxPredict = idxScores & ...
     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
   for channel = 1:3,
     handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
     scoreNdx = ceil(scores(idxScores)*31)+32;
-    handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel);
-    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel);
+    handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
   end
+  
+  idxScores = (predictedidx == behaviori) & (~latest);
+  idxPredict = idxScores & ...
+    (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
+  shiftedColor = shiftColor(handles.labelcolors(behaviori,:));
+  for channel = 1:3,
+    handles.labels_plot.predicted_im(1,idxPredict,channel) = shiftedColor(channel);
+    scoreNdx = ceil(scores(idxScores)*31)+32;
+    handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,2);
+    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,2);
+  end
+  
 end
 
 [error_t0s,error_t1s] = get_interval_ends(labelidx ~= 0 & predictedidx ~= 0 & ...
@@ -1255,8 +1273,8 @@ if ~ischar(filename),
 end
 handles.data.classifierfilename = fullfile(pathname,filename);
 SetStatus(handles,sprintf('Saving classifier to %s',handles.data.classifierfilename));
-handles.data.SaveClassifier();
 handles.data.SaveLabels();
+handles.data.SaveClassifier();
 handles = SetSaved(handles);
 ClearStatus(handles);
 success = true;
@@ -1431,9 +1449,11 @@ for channel = 1:3
   midValue = handles.labelunknowncolor(channel);
   startValue = handles.labelcolors(2,channel);
   endValue = handles.labelcolors(1,channel);
-  handles.scorecolor(1:32,channel) = (midValue-startValue)*(0:31)/31+startValue;
-  handles.scorecolor(32:63,channel) = (endValue-midValue)*(0:31)/31+midValue;
-  
+  handles.scorecolor(1:32,channel,1) = (midValue-startValue)*(0:31)/31+startValue;
+  handles.scorecolor(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
+end
+for ndx = 1:63
+  handles.scorecolor(ndx,:,2) = shiftColor(handles.scorecolor(ndx,:,1));
 end
 
 handles.correctcolor = [0,.7,0];
@@ -1911,8 +1931,10 @@ function togglebutton_label_behavior1_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of togglebutton_label_behavior1
 behaviori = get(hObject,'UserData');
+
 if get(hObject,'Value'),
-  % toggle on
+  % toggle on, label pen is down.
+  
   handles.label_state = behaviori;
   handles.label_t0 = handles.ts(1);
   set(handles.togglebutton_label_behaviors(behaviori),'String',sprintf('*End %s*',handles.data.labelnames{behaviori}));
@@ -1943,7 +1965,10 @@ if get(hObject,'Value'),
      'refresh_timeline_selection',false,...
      'refresh_curr_prop',false);
 
-else
+   
+else % label pen is up.
+  
+  
   if handles.ts(1) <= handles.label_t0,
     t0 = handles.ts(1);
     t1 = handles.label_t0;
@@ -1976,6 +2001,7 @@ else
   end
   set(handles.togglebutton_label_unknown,'Value',0,'String','Start Unknown','Enable','on');
   %set(handles.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.data.labelnames{behaviori}));
+
 end
 
 guidata(hObject,handles);
@@ -2135,9 +2161,11 @@ guidata(handles.figure_JLabel,handles);
 function handles = SetPredictedPlot(handles,t0,t1,behavioris)
 
 if nargin < 2,
-  [behavioris,~,t0,t1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+  [prediction,t0,t1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+  behavioris = prediction.predictedidx;
 elseif nargin < 4,
-  behavioris = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+  prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+  behavioris = prediction.predictedidx;
 end
 
 handles.labels_plot.predx(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
@@ -3974,7 +4002,8 @@ end
 if strcmpi(labeltype,'manual'),
   [labelidx,T0,T1] = handles.data.GetLabelIdx(handles.expi,handles.flies);
 else
-  [labelidx,~,T0,T1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+  [prediction,~,T0,T1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+  labelidx = prediction.predictedidx;
 end
 i = t - T0 + 1;
 i0 = find(labelidx(1:i-1) ~= labelidx(i),1,'last');
@@ -4168,7 +4197,8 @@ if handles.ts(axesi) >= handles.t1_curr,
   return;
 end
 t0 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
-predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,handles.t1_curr);
+prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,handles.t1_curr);
+predictedidx = prediction.predictedidx;
 j = find(predictedidx ~= predictedidx(1),1);
 if isempty(j),
   return;
@@ -4193,7 +4223,8 @@ if handles.t0_curr >= handles.ts(axesi),
   return;
 end
 t1 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
-predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.t0_curr,t1);
+prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.t0_curr,t1);
+predictedidx = prediction.predictedidx;
 j = find(predictedidx ~= predictedidx(end),1,'last');
 if isempty(j),
   return;
@@ -4270,7 +4301,8 @@ function contextmenu_timeline_automatic_bookmark_selection_Callback(hObject, eve
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-labelidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
+prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
+labelidx = prediction.predictedidx;
 handles.bookmark_info.labelidx = unique(labelidx);
 tmp = [{'Unknown'},handles.data.labelnames];
 if numel(handles.bookmark_info.labelidx) == 1,
@@ -4353,7 +4385,8 @@ t1 = handles.bookmark_info.t1;
 
 t0 = min(handles.t1_curr,max(handles.t0_curr,t0));
 t1 = min(handles.t1_curr,max(handles.t0_curr,t1));
-predictedidx = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
+predictedidx = prediction.predictedidx;
 handles = SetLabelsPlot(handles,t0,t1,predictedidx);
 
 UpdatePlots(handles,...
@@ -4565,3 +4598,20 @@ function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 handles.data.ShowSelectFeatures();
 
+function newColor = shiftColor(oldColor)
+  oldSize = size(oldColor);
+  oldColor = reshape(oldColor,[1 1 3]);
+  hh = rgb2hsv(oldColor);
+  hh(1) = mod(hh(1)+0.045,1);
+  newColor = hsv2rgb(hh);
+  newColor = reshape(newColor,oldSize);
+
+
+% --------------------------------------------------------------------
+function menu_file_loadscores_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_loadscores (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+for ndx = 1:handles.data.nexps,
+  handles.data.PredictWholeMovie(ndx);
+end

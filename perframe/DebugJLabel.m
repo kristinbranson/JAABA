@@ -39,7 +39,7 @@ switch computername,
     FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
     rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
-    configfilename = 'JLabelParamsMayank.xml';
+    configfilename = 'params/JLabelParamsMayank.xml';
   
   case 'robiea-ws'
     JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
@@ -66,7 +66,11 @@ jlabelpath = fileparts(which('JLabel'));
 addpath(fullfile(jlabelpath,'compute_perframe_features'));
 %addpath(FlyBowlAnalysis_path);
 
-matlabpool(8);
+%%
+try 
+  matlabpool(8);
+catch
+end
 %% start JLabel
 
 hfig = JLabel('configfilename',configfilename); handles = guidata(hfig);

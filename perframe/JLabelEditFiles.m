@@ -340,7 +340,7 @@ if ~strcmpi(res,'Yes'),
   return;
 end
 
-[filename,pathname] = uigetfile('*.mat','Classifier mat file',handles.classifierfilename);
+[filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
 if ~ischar(filename),
   return;
 end
@@ -353,6 +353,11 @@ if ~success,
   uiwait(waitdlg(msg,'Error loading file list'));
   return;
 end
+
+set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
+% update status table
+UpdateStatusTable(handles);
+
 
 % --- Executes when user attempts to close figure_JLabelEditFiles.
 function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
