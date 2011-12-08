@@ -11,7 +11,7 @@
       labelfilename="labeledsharpturns.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/WindowFeatures_Lots.xml"
+      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"
       rootoutputdir="/groups/branson/home/kabram/bowlData/out/Jdetect"
       />
   
