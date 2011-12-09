@@ -3073,6 +3073,35 @@ classdef JLabelData < handle
       
     end
 
+    function crossError = CrossValidate(obj)
+      [success,msg] = obj.PreLoadLabeledData();
+      
+      if ~success, warning(msg);return;end
+
+      islabeled = obj.windowdata.labelidx_new ~= 0;
+
+      if ~any(islabeled),                        return; end
+      if ~strcmp(obj.classifiertype,'boosting'); return; end
+
+      obj.SetStatus('Cross validating the classifier for %d examples...',nnz(islabeled));
+      
+      oldBinSize = size(obj.windowdata.bins,2);
+      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
+      if newData>0 && ~isempty(obj.windowdata.binVals)
+        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
+      else
+        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+      end
+      
+      crossError =...
+        crossValidate( obj.windowdata.X(islabeled,:), ...
+        obj.windowdata.labelidx_new(islabeled),obj,...
+        obj.windowdata.binVals,...
+        obj.windowdata.bins(:,islabeled));
+      
+      obj.ClearStatus();
+    end
+      
     
     function DoBagging(obj)
       [success,msg] = obj.PreLoadLabeledData();
@@ -3089,7 +3118,7 @@ classdef JLabelData < handle
       
       oldBinSize = size(obj.windowdata.bins,2);
       newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && isempty(obj.windowdata.binVals)
+      if newData>0 && ~isempty(obj.windowdata.binVals)
         obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
       else
         [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);

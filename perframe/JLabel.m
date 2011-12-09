@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 08-Dec-2011 13:47:01
+% Last Modified by GUIDE v2.5 09-Dec-2011 10:04:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -898,6 +898,16 @@ for i = 1:numel(handles.axes_previews),
   for j = 1:numel(handles.flies),
     fly = handles.flies(j);
     set(handles.htrx(j,i),'Color',handles.fly_colors(fly,:));
+  end
+end
+
+% Update colors for all other flies. 
+inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
+  handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
+
+for i = 1:numel(handles.axes_previews),
+  for fly = find(inbounds),
+    set(handles.hflies(fly,i),'Color',handles.fly_colors(fly,:));
   end
 end
 
@@ -2399,8 +2409,8 @@ for ndx = 1:length(behaviorVals)
   penDown = penDown | behaviorVals{ndx};
 end
 penDown = penDown | get(handles.togglebutton_label_unknown,'Value');
-
 if penDown, return; end
+
 % check if the user wants to switch to this fly
 % TODO: this directly accesses handles.data.labels -- abstract this
 [ism,j] = ismember(fly,handles.data.labels(handles.expi).flies,'rows');
@@ -4641,3 +4651,12 @@ if  strcmp(get(eventdata.NewValue,'tag'),'timeline_label_manual')
 else
   menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
 end
+
+
+% --------------------------------------------------------------------
+function crossValidate_Callback(hObject, eventdata, handles)
+% hObject    handle to crossValidate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+crossError = handles.data.CrossValidate();
+helpdlg(sprintf('Cross Validation error is %.2f%%',crossError*100),'Cross Validation error');
