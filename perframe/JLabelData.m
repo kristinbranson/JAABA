@@ -2286,6 +2286,9 @@ classdef JLabelData < handle
             
       if ~obj.hasperframesex,
         sex = obj.sex_per_exp{expi}(fly);
+        if iscell(sex),
+          sex = sex{1};
+        end
         return;
       end
       

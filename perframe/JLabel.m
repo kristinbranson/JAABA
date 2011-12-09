@@ -2359,6 +2359,12 @@ prompt = {sprintf('Switch to fly %d?',fly),...
   sprintf('First frame = %d',firstframe),...
   sprintf('N. bouts labeled: %d',nbouts)};
 
+t = max(handles.t0_curr,handles.ts(1));
+sex = handles.data.GetSex(handles.expi,fly,t);
+if iscell(sex),
+  sex = sex{1};
+end
+
 if handles.data.hassex,
   if handles.data.hasperframesex,
     sexfrac = handles.data.GetSexFrac(handles.expi,fly);
@@ -4564,4 +4570,3 @@ function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 handles.data.ShowSelectFeatures();
-
