@@ -133,7 +133,6 @@ for ndx = 1:numel(pfList)
   end
 end
 
-handles.windowData = windowData;
 
 set(handles.pfTable,'Data',tableData);
 set(handles.pfTable,'ColumnName',{'Features','Select'});
