@@ -3308,10 +3308,10 @@ classdef JLabelData < handle
             t0s = [ts(1);t0s]; %#ok<AGROW>
             t1s = [t1s;ts(end)]; %#ok<AGROW>
             n = numel(t0s);
-            trainingdata.t0s(end+1:end+n,1) = t0s;
-            trainingdata.t1s(end+1:end+n,1) = t1s;
-            trainingdata.names(end+1:end+n,1) = repmat(obj.labelnames(labelidx),[1,n]);
-            trainingdata.flies(end+1:end+n,:) = repmat(flies,[n,1]);
+            trainingdata(expi).t0s(end+1:end+n,1) = t0s;
+            trainingdata(expi).t1s(end+1:end+n,1) = t1s;
+            trainingdata(expi).names(end+1:end+n,1) = repmat(obj.labelnames(labelidx),[1,n]);
+            trainingdata(expi).flies(end+1:end+n,:) = repmat(flies,[n,1]);
           end
         end
       end
