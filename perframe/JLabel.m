@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 09-Dec-2011 10:04:21
+% Last Modified by GUIDE v2.5 09-Dec-2011 10:19:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -2961,20 +2961,11 @@ function menu_go_next_bout_start_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-if handles.ts(axesi) >= handles.t1_curr,
-  return;
-end
-t0 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
-labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,t0,handles.t1_curr);
-j = find(labelidx ~= labelidx(1),1);
-if isempty(j),
-  return;
-end
-k = find(ismember(labelidx(j:end),handles.seek_behaviors_go),1);
-if isempty(k),
-  return;
-end
-t = handles.ts(axesi) + j - 1 + k - 1;
+
+t = NextJump.Manual_bout_start(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+if isempty(t); return; end
+
 SetCurrentFrame(handles,axesi,t,hObject);
 
 % --------------------------------------------------------------------
@@ -2985,20 +2976,11 @@ function menu_go_previous_bout_end_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-if handles.t0_curr >= handles.ts(axesi),
-  return;
-end
-t1 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
-labelidx = handles.data.GetLabelIdx(handles.expi,handles.flies,handles.t0_curr,t1);
-j = find(labelidx ~= labelidx(end),1,'last');
-if isempty(j),
-  return;
-end
-k = find(ismember(labelidx(1:j),handles.seek_behaviors_go),1,'last');
-if isempty(k),
-  return;
-end
-t = handles.t0_curr + k - 1;
+
+t = NextJump.Manual_bout_end(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+if isempty(t); return; end
+
 SetCurrentFrame(handles,axesi,t,hObject);
 
 
@@ -4238,21 +4220,11 @@ function menu_go_next_automatic_bout_start_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-if handles.ts(axesi) >= handles.t1_curr,
-  return;
-end
-t0 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
-prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,handles.t1_curr);
-predictedidx = prediction.predictedidx;
-j = find(predictedidx ~= predictedidx(1),1);
-if isempty(j),
-  return;
-end
-k = find(ismember(predictedidx(j:end),handles.seek_behaviors_go),1);
-if isempty(k),
-  return;
-end
-t = handles.ts(axesi) + j - 1 + k - 1;
+
+t = NextJump.Automatic_bout_start(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+if isempty(t),  return; end
+
 SetCurrentFrame(handles,axesi,t,hObject);
 
 % --------------------------------------------------------------------
@@ -4261,24 +4233,13 @@ function menu_go_previous_automatic_bout_end_Callback(hObject, eventdata, handle
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
 % TODO: make this work with multiple preview axes
 axesi = 1;
-if handles.t0_curr >= handles.ts(axesi),
-  return;
-end
-t1 = min(max(handles.ts(axesi),handles.t0_curr),handles.t1_curr);
-prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,handles.t0_curr,t1);
-predictedidx = prediction.predictedidx;
-j = find(predictedidx ~= predictedidx(end),1,'last');
-if isempty(j),
-  return;
-end
-k = find(ismember(predictedidx(1:j),handles.seek_behaviors_go),1,'last');
-if isempty(k),
-  return;
-end
-t = handles.t0_curr + k - 1;
+
+t = NextJump.Automatic_bout_end(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+if isempty(t); return; end
+
 SetCurrentFrame(handles,axesi,t,hObject);
 
 
