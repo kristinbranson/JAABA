@@ -1281,6 +1281,15 @@ classdef JLabelData < handle
           obj.scoredata.timestamp(end+1:end+sz) = timestamp;
         end
       end
+      obj.UpdatePredictedIdx();
+
+      if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
+        if ~isempty(obj.scoredata.scores)
+          scoreNorm = prctile(abs(obj.scoredata.scores),80);
+          obj.windowdata.scoreNorm = scoreNorm;
+        end
+      end
+
       obj.ClearStatus();
 
     end
@@ -3098,11 +3107,15 @@ classdef JLabelData < handle
         [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
       end
       
-      crossError =...
+      [crossError,crossScores]=...
         crossValidate( obj.windowdata.X(islabeled,:), ...
         obj.windowdata.labelidx_new(islabeled),obj,...
         obj.windowdata.binVals,...
         obj.windowdata.bins(:,islabeled));
+      
+      obj.windowdata.predicted(islabeled) = -sign(crossScores)*0.5+1.5;
+      obj.windowdata.scores(islabeled) = crossScores;
+      obj.windowdata.isvalidprediction(islabeled) = true;
       
       obj.ClearStatus();
     end
@@ -3329,7 +3342,7 @@ classdef JLabelData < handle
           error('Unknown labels %s',sprintf('%s ',tmp{:})); %#ok<SPERR>
         end
         isexp = obj.windowdata.exp == i;
-        for j = 1:numel(trainingdata.t0s),
+        for j = 1:numel(trainingdata(i).t0s),
           t0 = trainingdata(i).t0s(j);
           t1 = trainingdata(i).t1s(j);
           l = labelidx(j);
@@ -3396,9 +3409,6 @@ classdef JLabelData < handle
       obj.predictedidx = zeros(1,n);
       obj.scoresidx = zeros(1,n);
       obj.scoreTS = zeros(1,n);
-      if isempty(obj.windowdata.exp),
-        return;
-      end
       
       % Scores from loaded scores.
       if obj.scoredata.exp,
@@ -3409,7 +3419,11 @@ classdef JLabelData < handle
           obj.scoredata.scores(idxcurr);      
         obj.scoreTS(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
           obj.scoredata.timestamp(idxcurr);      
-      end    
+      end
+      
+      if isempty(obj.windowdata.exp),
+        return;
+      end
       
       % Overwrite by scores from windowdata.
       idxcurr = obj.FlyNdx(obj.expi,obj.flies) & ...
