@@ -1246,7 +1246,8 @@ classdef JLabelData < handle
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
     function SaveScores(obj,allScores,expi)
-      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},'scores.mat');
+      scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
+      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
 
       didbak = false;
@@ -1261,7 +1262,8 @@ classdef JLabelData < handle
     end
     
     function LoadScores(obj,expi)
-      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},'scores.mat');
+      scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
+      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
       obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
 
       if exist(sfn,'file'),
@@ -3053,7 +3055,7 @@ classdef JLabelData < handle
           end
           obj.classifierTS = now();
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
-          
+          obj.windowdata.scoreNorm = [];
           % To later find out where each example came from.
 
           obj.windowdata.predicted = zeros(numel(islabeled),1);
@@ -3500,7 +3502,7 @@ classdef JLabelData < handle
       
     end
     
-   function PredictWholeMovie(obj,expi)
+    function PredictWholeMovie(obj,expi)
       
       if isempty(obj.classifier),
         return;
@@ -3570,7 +3572,7 @@ classdef JLabelData < handle
    
    function scores = NormalizeScores(obj,scores)
 
-     if isempty(obj.windowdata.scoreNorm)
+     if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
        isLabeled = obj.windowdata.labelidx_old~=0;
        wScores = obj.windowdata.scores(isLabeled);
        scoreNorm = prctile(abs(wScores),80);
