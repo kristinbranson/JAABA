@@ -1269,14 +1269,20 @@ classdef JLabelData < handle
       if exist(sfn,'file'),
         load(sfn,'allScores','timestamp');
         for ndx = 1:numel(allScores.scores)
+          if obj.scoredata.exp
+            idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,ndx),2);
+          else
+            idxcurr = [];
+          end
+          if any(idxcurr), continue; end
           tStart = allScores.tStart(ndx);
           tEnd = allScores.tEnd(ndx);
           sz = tEnd-tStart+1;
           curScores = allScores.scores{ndx}(tStart:tEnd);
           obj.scoredata.scores(end+1:end+sz) = curScores;
           obj.scoredata.predicted(end+1:end+sz) = -sign(curScores)*0.5+1.5;
-          obj.scoredata.exp(end+1:end+sz) = expi;
-          obj.scoredata.flies(end+1:end+sz) = ndx;
+          obj.scoredata.exp(end+1:end+sz,1) = expi;
+          obj.scoredata.flies(end+1:end+sz,1) = ndx;
           obj.scoredata.t(end+1:end+sz) = tStart:tEnd;
           obj.scoredata.timestamp(end+1:end+sz) = timestamp;
         end
