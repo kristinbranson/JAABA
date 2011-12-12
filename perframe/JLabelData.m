@@ -114,7 +114,7 @@ classdef JLabelData < handle
     classifier = [];
     
     % Classifiers Time Stamp
-    classifierTS = nan;
+    classifierTS = 0;
     
     % parameters to learning the classifier. struct fields depend on type
     % of classifier.

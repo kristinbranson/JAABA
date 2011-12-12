@@ -3039,6 +3039,7 @@ select_pos = get(handles.panel_select,'Position');
 learn_pos = get(handles.panel_learn,'Position');
 similar_pos = get(handles.panel_similar,'Position');
 info_pos = get(handles.panel_selection_info,'Position');
+
 timeline_select_pos = get(handles.panel_timeline_select,'Position');
 
 width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
@@ -3057,11 +3058,21 @@ preview_pos = [handles.guipos.leftborder_leftpanels,...
   width_leftpanels,height_previews];
 set(handles.panel_previews(1),'Position',preview_pos);
 
-% Position for the auto and manual radio buttons.
 timeline_auto_pos = get(handles.axes_timeline_auto,'Position');
-timeline_label_pos = get(handles.axes_timeline_manual,'Position');
+timeline_manual_pos = get(handles.axes_timeline_manual,'Position');
 auto_radio_pos = get(handles.timeline_label_automatic,'Position');
+manual_radio_pos = get(handles.timeline_label_manual,'Position');
 
+% Position for the auto and manual radio buttons.
+timeline_select_pos(2) = timeline_auto_pos(2);
+timeline_select_pos(4) = timeline_manual_pos(2)-timeline_auto_pos(2)+...
+                            timeline_manual_pos(4);
+set(handles.panel_timeline_select,'Position',timeline_select_pos);
+auto_radio_pos(2) = timeline_auto_pos(4)/2-auto_radio_pos(4)/2;
+set(handles.timeline_label_automatic,'Position',auto_radio_pos);
+manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
+  -manual_radio_pos(4);
+set(handles.timeline_label_manual,'Position',manual_radio_pos);
 
 label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guipos.rightborder_rightpanels,...
   figpos(4) - labelbuttons_pos(4) - handles.guipos.topborder_toppanels,...
