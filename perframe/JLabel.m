@@ -614,7 +614,9 @@ for i = axes,
         perframedata = handles.data.GetPerFrameData1(handles.expi,handles.flies,v,handles.ts(i));
         s = sprintf('%.3f',perframedata);
       end
-      set(handles.text_timeline_props(propi),'String',s);
+      if numel(handles.text_timeline_props) >= propi && ishandle(handles.text_timeline_props(propi)),
+        set(handles.text_timeline_props(propi),'String',s);
+      end
     end
   end
   
