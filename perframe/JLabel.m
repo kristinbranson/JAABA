@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 12-Dec-2011 18:53:05
+% Last Modified by GUIDE v2.5 13-Dec-2011 14:25:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -859,6 +859,7 @@ set([handles.himage_timeline_manual,handles.himage_timeline_auto],...
 labelidx = handles.data.GetLabelIdx(handles.expi,flies);
 prediction = handles.data.GetPredictedIdx(handles.expi,flies);
 predictedidx = prediction.predictedidx;
+scores = handles.data.NormalizeScores(prediction.scoresidx);
 for flyi = 1:numel(flies),
   fly = flies(flyi);
   x = handles.data.GetTrxValues('X1',handles.expi,fly,handles.t0_curr:handles.t1_curr);
@@ -872,7 +873,10 @@ for flyi = 1:numel(flies),
     handles.labels_plot.x(2,idx,behaviori,flyi) = x(idx1);
     handles.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
     handles.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
-    idx = find(predictedidx == behaviori);
+    
+%     idx = find(predictedidx == behaviori);
+    idx = find((predictedidx == behaviori) & ...
+      (abs(scores)>handles.data.GetConfidenceThreshold(behaviori)));
     idx1 = min(idx+1,numel(x));
     handles.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
     handles.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
@@ -2181,18 +2185,18 @@ function handles = SetPredictedPlot(handles,t0,t1,behavioris)
 
 if nargin < 2,
   [prediction,t0,t1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
-  behavioris = prediction.predictedidx;
 elseif nargin < 4,
   prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
-  behavioris = prediction.predictedidx;
 end
-
+behavioris = prediction.predictedidx;
+scores = handles.data.NormalizeScores(prediction.scoresidx);
 handles.labels_plot.predx(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 handles.labels_plot.predy(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 
 for behaviori = 1:handles.data.nbehaviors,
 
-  bidx = find(behaviori == behavioris);
+  bidx = find( (behaviori == behavioris) & ...
+      (abs(scores)>handles.data.GetConfidenceThreshold(behaviori)));
   if isempty(bidx),
     continue;
   end
@@ -3099,7 +3103,12 @@ handles.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumbe
 handles.pushbutton_playstops = findobj(handles.figure_JLabel,'Tag','pushbutton_playstop');
 % all timelines
 handles.axes_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
-handles.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
+% handles.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
+% Regex messes the order which makes it difficult to remove the last data axes.
+handles.labels_timelines(1,1) = handles.timeline_label_prop1;
+handles.labels_timelines(2,1) = handles.timeline_label_automatic;
+handles.labels_timelines(3,1) = handles.timeline_label_manual;
+
 handles.axes_timeline_props = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
 handles.axes_timeline_labels = setdiff(handles.axes_timelines,handles.axes_timeline_props);
 
@@ -3114,14 +3123,17 @@ for i = 1:numel(handles.axes_timelines),
 end
 [~,order] = sort(ys);
 handles.axes_timelines = handles.axes_timelines(order);
-% sort by y-position
-ys = nan(1,numel(handles.labels_timelines));
-for i = 1:numel(handles.labels_timelines),
+% sort by y-position. 
+% Don't touch the last 2 labels that are part of manual and automatic timeline
+% because they are inside a panel and so pos(2) is relative to the panel.
+ys = nan(1,numel(handles.labels_timelines)-2);
+for i = 1:(numel(handles.labels_timelines)-2),
   pos = get(handles.labels_timelines(i),'Position');
   ys(i) = pos(2);
 end
 [~,order] = sort(ys);
-handles.labels_timelines = handles.labels_timelines(order);
+temp = handles.labels_timelines(1:end-2);
+handles.labels_timelines(1:end-2) = temp(order);
 
 handles.text_timeline_props = nan(size(handles.axes_timeline_props));
 handles.text_timelines = nan(size(handles.axes_timelines));
@@ -4670,3 +4682,24 @@ dialogStr{3} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
 
 helpdlg(dialogStr,'Cross Validation error');
 % helpdlg(sprintf('Cross Validation error is %.2f%%',crossError*100),'Cross Validation error');
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyCurrentFly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+t0 = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
+t1 = min(handles.t1_curr,ceil(handles.ts(1)+7*handles.timeline_nframes/2));
+handles.data.Predict(handles.expi,handles.flies,handles.t0_curr:handles.t1_curr);
+handles = SetPredictedPlot(handles,t0,t1);
+
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
