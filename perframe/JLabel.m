@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 09-Dec-2011 10:19:51
+% Last Modified by GUIDE v2.5 12-Dec-2011 14:36:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -986,7 +986,7 @@ for behaviori = 1:handles.data.nbehaviors
   idxScores = (predictedidx == behaviori) & (~latest);
   idxPredict = idxScores & ...
     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
-  shiftedColor = shiftColor(handles.labelcolors(behaviori,:));
+  shiftedColor = shiftColorFwd(handles.labelcolors(behaviori,:));
   for channel = 1:3,
     handles.labels_plot.predicted_im(1,idxPredict,channel) = shiftedColor(channel);
     scoreNdx = ceil(scores(idxScores)*31)+32;
@@ -1465,7 +1465,7 @@ for channel = 1:3
   handles.scorecolor(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
 end
 for ndx = 1:63
-  handles.scorecolor(ndx,:,2) = shiftColor(handles.scorecolor(ndx,:,1));
+  handles.scorecolor(ndx,:,2) = shiftColorFwd(handles.scorecolor(ndx,:,1));
 end
 
 handles.correctcolor = [0,.7,0];
@@ -3042,6 +3042,8 @@ learn_pos = get(handles.panel_learn,'Position');
 similar_pos = get(handles.panel_similar,'Position');
 info_pos = get(handles.panel_selection_info,'Position');
 
+timeline_select_pos = get(handles.panel_timeline_select,'Position');
+
 width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
   handles.guipos.leftborder_rightpanels - handles.guipos.width_rightpanels - ...
   handles.guipos.rightborder_rightpanels;
@@ -3057,6 +3059,22 @@ preview_pos = [handles.guipos.leftborder_leftpanels,...
   figpos(4) - handles.guipos.topborder_toppanels - height_previews,...
   width_leftpanels,height_previews];
 set(handles.panel_previews(1),'Position',preview_pos);
+
+timeline_auto_pos = get(handles.axes_timeline_auto,'Position');
+timeline_manual_pos = get(handles.axes_timeline_manual,'Position');
+auto_radio_pos = get(handles.timeline_label_automatic,'Position');
+manual_radio_pos = get(handles.timeline_label_manual,'Position');
+
+% Position for the auto and manual radio buttons.
+timeline_select_pos(2) = timeline_auto_pos(2);
+timeline_select_pos(4) = timeline_manual_pos(2)-timeline_auto_pos(2)+...
+                            timeline_manual_pos(4);
+set(handles.panel_timeline_select,'Position',timeline_select_pos);
+auto_radio_pos(2) = timeline_auto_pos(4)/2-auto_radio_pos(4)/2;
+set(handles.timeline_label_automatic,'Position',auto_radio_pos);
+manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
+  -manual_radio_pos(4);
+set(handles.timeline_label_manual,'Position',manual_radio_pos);
 
 label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guipos.rightborder_rightpanels,...
   figpos(4) - labelbuttons_pos(4) - handles.guipos.topborder_toppanels,...
@@ -4238,7 +4256,9 @@ function menu_go_previous_automatic_bout_end_Callback(hObject, eventdata, handle
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = NextJump.Automatic_bout_end(handles.data,handles.expi,handles.flies,...
+% t = NextJump.Automatic_bout_end(handles.data,handles.expi,handles.flies,...
+%   handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = NextJump.Error_bout_end(handles.data,handles.expi,handles.flies,...
   handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
 if isempty(t); return; end
 
@@ -4586,11 +4606,11 @@ function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 handles.data.ShowSelectFeatures();
 
-function newColor = shiftColor(oldColor)
+function newColor = shiftColorFwd(oldColor)
   oldSize = size(oldColor);
   oldColor = reshape(oldColor,[1 1 3]);
   hh = rgb2hsv(oldColor);
-  hh(1) = mod(hh(1)+0.045,1);
+  hh(1) = mod(hh(1)+0.035,1);
   newColor = hsv2rgb(hh);
   newColor = reshape(newColor,oldSize);
 
@@ -4601,13 +4621,22 @@ function menu_file_loadscores_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.data.nexps,
-  handles.data.PredictWholeMovie(ndx);
+  handles.data.LoadScores(ndx);
 end
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
-% --- Executes when selected object is changed in uipanel12.
-function uipanel12_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in uipanel12 
+% --- Executes when selected object is changed in panel_timeline_select.
+function panel_timeline_select_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in panel_timeline_select 
 % eventdata  structure with the following fields (see UIBUTTONGROUP)
 %	EventName: string 'SelectionChanged' (read only)
 %	OldValue: handle of the previously selected object or empty if none was selected
@@ -4626,5 +4655,19 @@ function crossValidate_Callback(hObject, eventdata, handles)
 % hObject    handle to crossValidate (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
 crossError = handles.data.CrossValidate();
-helpdlg(sprintf('Cross Validation error is %.2f%%',crossError*100),'Cross Validation error');
+handles = UpdatePrediction(handles);
+dialogStr{1} = sprintf('%25s %10s Predicted  %10s Predicted \n',...
+  '',handles.data.labelnames{2},handles.data.labelnames{1});
+dialogStr{2} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{2},...
+  crossError.numbers(1,1),crossError.frac(1,1),...
+  crossError.numbers(1,2),crossError.frac(1,2));
+dialogStr{3} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{1},...
+  crossError.numbers(2,1),crossError.frac(2,1),...
+  crossError.numbers(2,2),crossError.frac(2,2));
+
+helpdlg(dialogStr,'Cross Validation error');
+% helpdlg(sprintf('Cross Validation error is %.2f%%',crossError*100),'Cross Validation error');
