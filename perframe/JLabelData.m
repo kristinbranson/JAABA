@@ -1179,8 +1179,8 @@ classdef JLabelData < handle
           obj.classifiertype = loadeddata.classifiertype;
           obj.classifierTS = loadeddata.classifierTS;
           obj.classifier_params = loadeddata.classifier_params;
-          obj.windowdata.scoreNorm = loadedata.scoreNorm;
-          obj.confThresholds = loadedata.confThreholds;
+          obj.windowdata.scoreNorm = loadeddata.scoreNorm;
+          obj.confThresholds = loadeddata.confThresholds;
           % predict for all loaded examples
           obj.PredictLoaded();
           
@@ -3395,10 +3395,10 @@ classdef JLabelData < handle
             t0s = [ts(1);t0s];%#ok<AGROW>
             t1s = [t1s;ts(end)+1];%#ok<AGROW>
             n = numel(t0s);
-            trainingdata.t0s(end+1:end+n,1) = t0s;
-            trainingdata.t1s(end+1:end+n,1) = t1s;
-            trainingdata.names(end+1:end+n,1) = repmat(obj.labelnames(labelidx),[1,n]);
-            trainingdata.flies(end+1:end+n,:) = repmat(flies,[n,1]);
+            trainingdata(expi).t0s(end+1:end+n,1) = t0s;
+            trainingdata(expi).t1s(end+1:end+n,1) = t1s;
+            trainingdata(expi).names(end+1:end+n,1) = repmat(obj.labelnames(labelidx),[1,n]);
+            trainingdata(expi).flies(end+1:end+n,:) = repmat(flies,[n,1]);
           end
         end
       end
@@ -3534,7 +3534,7 @@ classdef JLabelData < handle
         return;
       end
       
-      allScores = struct();
+      scoresA = {}; tStartAll = []; tEndAll = [];
       numFlies = obj.GetNumFlies(expi);
       for flies = 1:numFlies
         tStart = obj.GetTrxFirstFrame(expi,flies);
@@ -3545,7 +3545,8 @@ classdef JLabelData < handle
         while (t1<tEnd)
           cTic = tic;
           [success1,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(expi,flies,t1,'start',true);
-          
+ 
+%%{          
           if ~success1,
             warning(msg);
             return;
@@ -3571,11 +3572,12 @@ classdef JLabelData < handle
               
               obj.ClearStatus();
             case 'boosting',
-              scores(t0:t1) = myBoostClassify(X,obj.classifier);
+  %%}
+          scores(t0:t1) = myBoostClassify(X,obj.classifier);
               
           end
           
-          t1 = t1+1;
+           t1 = t1+1;
           tt = toc(cTic);
           timeRemainingFly = (tEnd-t1)/(t1-t0)*tt;
           timeRemainingAll = (tEnd-t1)/(t1-t0)*tt + ...
@@ -3585,11 +3587,11 @@ classdef JLabelData < handle
             round(timeRemainingFly),round(timeRemainingAll));
           
         end % While loop.
-        allScores.scores{flies} = scores;
-        allScores.tStart(flies) = tStart;
-        allScores.tEnd(flies) = tEnd;
+        scoresA{flies} = scores;
+        tStartAll(flies) = tStart;
+        tEndAll(flies) = tEnd;
       end % Fly loop
-      
+      allScores = struct('scores',scoresA,'tStart',tStartAll,'tEnd',tEndAll);      
       obj.SaveScores(allScores,expi);
       obj.ClearStatus();
 
