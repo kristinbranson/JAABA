@@ -189,7 +189,7 @@ classdef JLabelData < handle
       'firstframes_per_exp','endframes_per_exp',...
       'moviefilename','trxfilename','labelfilename','perframedir','clipsdir','featureparamsfilename',...
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
-      'classifierTS'};%'windowfilename',
+      'classifierTS','confThresholds','scoreNorm'};%'windowfilename',
     
     % last used path for loading experiment
     defaultpath = '';
@@ -1179,7 +1179,8 @@ classdef JLabelData < handle
           obj.classifiertype = loadeddata.classifiertype;
           obj.classifierTS = loadeddata.classifierTS;
           obj.classifier_params = loadeddata.classifier_params;
-          
+          obj.windowdata.scoreNorm = loadedata.scoreNorm;
+          obj.confThresholds = loadedata.confThreholds;
           % predict for all loaded examples
           obj.PredictLoaded();
           
