@@ -22,7 +22,7 @@ function varargout = NavigationPreferences(varargin)
 
 % Edit the above text to modify the response to help NavigationPreferences
 
-% Last Modified by GUIDE v2.5 19-Sep-2011 13:55:39
+% Last Modified by GUIDE v2.5 14-Dec-2011 11:20:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,18 +54,22 @@ function NavigationPreferences_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % first input should be the parent figure from JLabel
 handles.figure_JLabel = varargin{1};
+handles.NJObj = varargin{2};
 
 % read current values
 parent_handles = guidata(handles.figure_JLabel);
 handles.nframes_jump_go = parent_handles.nframes_jump_go;
-handles.seek_behaviors_go = parent_handles.seek_behaviors_go;
+handles.seek_behaviors_go = handles.NJObj.GetSeekBehaviorsGo();
 handles.behaviors = [{'Unknown'},parent_handles.data.labelnames];
 
 % set these current values in the GUI
 set(handles.edit_nframes_jump,'String',num2str(handles.nframes_jump_go));
 set(handles.listbox_seek_behavior,'String',handles.behaviors);
 set(handles.listbox_seek_behavior,'Value',handles.seek_behaviors_go+1);
-
+set(handles.jumpToPopUp,'String',handles.NJObj.GetAllTypes());
+set(handles.jumpToPopUp,'Value',...
+  find(strcmp(handles.NJObj.GetCurrentType(),handles.NJObj.GetAllTypes())));
+updateThresholdButtons(handles);
 % Choose default command line output for NavigationPreferences
 handles.output = hObject;
 
@@ -85,7 +89,6 @@ function varargout = NavigationPreferences_OutputFcn(hObject, eventdata, handles
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-
 
 
 function edit_nframes_jump_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
@@ -154,11 +157,7 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-parent_handles = guidata(handles.figure_JLabel);
-parent_handles.nframes_jump_go = handles.nframes_jump_go;
-parent_handles.seek_behaviors_go = handles.seek_behaviors_go;
-guidata(handles.figure_JLabel,parent_handles);
-JLabel('SetJumpGoMenuLabels',parent_handles);
+pushbutton_apply_Callback(hObject,eventdata,handles);
 delete(handles.figure_NavigationPreferences);
 
 % --- Executes on button press in pushbutton_cancel.
@@ -178,5 +177,90 @@ function pushbutton_apply_Callback(hObject, eventdata, handles)
 parent_handles = guidata(handles.figure_JLabel);
 parent_handles.nframes_jump_go = handles.nframes_jump_go;
 parent_handles.seek_behaviors_go = handles.seek_behaviors_go;
+handles.NJObj.SetSeekBehaviorsGo(handles.seek_behaviors_go);
+allJTypes = handles.NJObj.GetAllTypes;
+curJType = allJTypes{get(handles.jumpToPopUp,'Value')};
+handles.NJObj.SetCurrentType(curJType);
 guidata(handles.figure_JLabel,parent_handles);
 JLabel('SetJumpGoMenuLabels',parent_handles);
+
+
+% --- Executes on selection change in thresholdPopup1.
+function thresholdPopup1_Callback(hObject, eventdata, handles)
+% hObject    handle to thresholdPopup1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns thresholdPopup1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from thresholdPopup1
+
+
+% --- Executes during object creation, after setting all properties.
+function thresholdPopup1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thresholdPopup1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function thresholdValue1_Callback(hObject, eventdata, handles)
+% hObject    handle to thresholdValue1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of thresholdValue1 as text
+%        str2double(get(hObject,'String')) returns contents of thresholdValue1 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function thresholdValue1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thresholdValue1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in jumpToPopUp.
+function jumpToPopUp_Callback(hObject, eventdata, handles)
+% hObject    handle to jumpToPopUp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns jumpToPopUp contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from jumpToPopUp
+contents = cellstr(get(hObject,'String'));
+handles.NJObj.SetCurrentType(contents{get(hObject,'Value')});
+updateThresholdButtons(handles);
+
+% --- Executes during object creation, after setting all properties.
+function jumpToPopUp_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to jumpToPopUp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function updateThresholdButtons(handles)
+
+if ~strcmp(handles.NJObj.GetCurrentType,'Thresholds')
+  set(handles.thresholdPopup1,'Enable','off');
+  set(handles.thresholdValue1,'Enable','off');
+else
+  set(handles.thresholdPopup1,'Enable','on');
+  set(handles.thresholdValue1,'Enable','on');
+end

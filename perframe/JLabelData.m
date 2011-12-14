@@ -3591,7 +3591,10 @@ classdef JLabelData < handle
         tStartAll(flies) = tStart;
         tEndAll(flies) = tEnd;
       end % Fly loop
-      allScores = struct('scores',scoresA,'tStart',tStartAll,'tEnd',tEndAll);      
+      allScores = struct;
+      allScores.scores = scoresA;
+      allScores.tStart = tStartAll;
+      allScores.tEnd = tEndAll;
       obj.SaveScores(allScores,expi);
       obj.ClearStatus();
 
