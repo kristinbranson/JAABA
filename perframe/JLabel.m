@@ -1521,11 +1521,12 @@ set([handles.pushbutton_playselection,handles.pushbutton_clearselection],'Enable
 handles.selecting = false;
 set(handles.togglebutton_select,'Value',0);
 
+% initialize nextjump obj;
+handles.NJObj = NextJump();
+handles.NJObj.SetSeekBehaviorsGo(1:handles.data.nbehaviors);
+
 % initialize labels for navigation
 SetJumpGoMenuLabels(handles)
-
-% which behavior we seek to, initialize to all except unknown
-handles.seek_behaviors_go = 1:handles.data.nbehaviors;
 
 % label shortcuts
 if numel(handles.label_shortcuts) ~= handles.data.nbehaviors + 1,
@@ -1565,6 +1566,11 @@ function SetJumpGoMenuLabels(handles)
 
 set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.nframes_jump_go));
 set(handles.menu_go_back_X_frames,'Label',sprintf('Back %d frames (up arrow)',handles.nframes_jump_go));
+jumpType = handles.NJObj.GetCurrentType();
+set(handles.menu_go_next_automatic_bout_start,'Label',...
+  sprintf('Next %s bout start (shift + right arrow)',jumpType));
+set(handles.menu_go_previous_automatic_bout_end,'Label',...
+  sprintf('Next %s bout end (shift + left arrow)',jumpType));
 
 % create buttons for each label
 function handles = CreateLabelButtons(handles)
@@ -2966,8 +2972,8 @@ function menu_go_next_bout_start_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = NextJump.Manual_bout_start(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.Manual_bout_start(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -2981,8 +2987,8 @@ function menu_go_previous_bout_end_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = NextJump.Manual_bout_end(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.Manual_bout_end(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -2997,7 +3003,7 @@ function menu_go_navigation_preferences_Callback(hObject, eventdata, handles)
 if isfield(handles,'figure_NavigationPreferences') && ishandle(handles.figure_NavigationPreferences),
   figure(handles.figure_NavigationPreferences);
 else
-  handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel);
+  handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel,handles.NJObj);
   guidata(hObject,handles);
 end
 
@@ -4252,8 +4258,8 @@ function menu_go_next_automatic_bout_start_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = NextJump.Automatic_bout_start(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.JumpToStart(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t),  return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -4267,10 +4273,8 @@ function menu_go_previous_automatic_bout_end_Callback(hObject, eventdata, handle
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-% t = NextJump.Automatic_bout_end(handles.data,handles.expi,handles.flies,...
-%   handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
-t = NextJump.Error_bout_end(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.JumpToEnd(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -4621,7 +4625,7 @@ function newColor = shiftColorFwd(oldColor)
   oldSize = size(oldColor);
   oldColor = reshape(oldColor,[1 1 3]);
   hh = rgb2hsv(oldColor);
-  hh(1) = mod(hh(1)+0.035,1);
+  hh(1) = mod(hh(1)+0.075,1);
   newColor = hsv2rgb(hh);
   newColor = reshape(newColor,oldSize);
 
