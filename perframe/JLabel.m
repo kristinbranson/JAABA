@@ -454,17 +454,17 @@ for i = axes,
 
     % read in current frame
     %image_cache = getappdata(handles.figure_JLabel,'image_cache');
-    try
+%     try
 %       j = find(handles.ts(i)==image_cache.ts,1);
 %       if isempty(j),
         im = handles.readframe(handles.ts(i));
 %       else
 %         im = image_cache.ims(:,:,:,j);
 %       end
-    catch ME
-      uiwait(warndlg(sprintf('Could not read frame %d from current movie: %s',handles.ts(i),getReport(ME))));
-      return;
-    end
+%     catch ME
+%       uiwait(warndlg(sprintf('Could not read frame %d from current movie: %s',handles.ts(i),getReport(ME))));
+%       return;
+%     end
   
     % update frame
     set(handles.himage_previews(i),'CData',im);
@@ -645,18 +645,18 @@ if isfield(handles,'movie_fid') && ~isempty(fopen(handles.movie_fid)),
 end
 
 % open new movie
-try
+% try
   SetStatus(handles,'Opening movie...');
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
     get_readframe_fcn(moviefilename,'interruptible',false);
   im = handles.readframe(1);
   handles.movie_width = size(im,2);
   handles.movie_height = size(im,1);
-catch ME,
-  uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
-  ClearStatus(handles);
-  return;
-end
+% catch ME,
+%   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
+%   ClearStatus(handles);
+%   return;
+% end
 
 % number of flies
 handles.nflies_curr = handles.data.nflies_per_exp(expi);
@@ -974,17 +974,38 @@ scores = handles.data.NormalizeScores(prediction.scoresidx);
 latest = prediction.latest;
 
 for behaviori = 1:handles.data.nbehaviors
-  
+
   idxScores = (predictedidx == behaviori) & latest;
   idxPredict = idxScores & ...
     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
   for channel = 1:3,
-    handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
-    scoreNdx = ceil(scores(idxScores)*31)+32;
-    handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-  end
-  
+    if ~prediction.isValidated % Different color whether the scores are validated or not
+      handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
+      scoreNdx = ceil(scores(idxScores)*31)+32;
+      handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+      handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+    else
+      idxLabeledPredict = idxPredict & labelidx>0.5;
+      idxUnlabeledPredict = idxPredict & labelidx<0.5;
+      idxLabeledScores = idxScores & labelidx>0.5;
+      idxUnlabeledScores = idxScores & labelidx<0.5;
+
+      shiftedColor = shiftColorBkwd(handles.labelcolors(behaviori,:));
+      handles.labels_plot.predicted_im(1,idxLabeledPredict,channel) = shiftedColor(channel);
+      scoreNdx = ceil(scores(idxLabeledScores)*31)+32;
+      handles.labels_plot.predicted_im(2,idxLabeledScores,channel) = handles.scorecolor(scoreNdx,channel,3);
+      handles.labels_plot.predicted_im(3,idxLabeledScores,channel) = handles.scorecolor(scoreNdx,channel,3);
+    
+      handles.labels_plot.predicted_im(1,idxUnlabeledPredict,channel) = handles.labelcolors(behaviori,channel);
+      scoreNdx = ceil(scores(idxUnlabeledScores)*31)+32;
+      handles.labels_plot.predicted_im(2,idxUnlabeledScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+      handles.labels_plot.predicted_im(3,idxUnlabeledScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+
+    end
+  end    
+    
+    
+  % Old scores loaded from scores files are shown in different color
   idxScores = (predictedidx == behaviori) & (~latest);
   idxPredict = idxScores & ...
     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
@@ -1384,13 +1405,13 @@ while true,
     continue;
   end
     
-  try
+%   try
     handles.configparams = ReadXMLParams(handles.configfilename);
-  catch ME,
-    uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.configfilename,getReport(ME)),'Error reading config file'));
-    havefilename = false;
-    continue;
-  end
+%   catch ME,
+%     uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.configfilename,getReport(ME)),'Error reading config file'));
+%     havefilename = false;
+%     continue;
+%   end
   
   % success -- break
   break;
@@ -1449,12 +1470,12 @@ if isfield(handles.configparams,'behaviors') && ...
     if ~exist(cm,'file'),
       cm = 'lines';
     end
-    try
+%     try
       handles.labelcolors = eval(sprintf('%s(%d)',cm,handles.data.nbehaviors));
-    catch ME,
-      uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
-      handles.labelcolors = lines(handles.data.nbehaviors);
-    end
+%     catch ME,
+%       uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
+%       handles.labelcolors = lines(handles.data.nbehaviors);
+%     end
   end
 end
 handles.labelunknowncolor = [0,0,0];
@@ -1468,6 +1489,7 @@ for channel = 1:3
 end
 for ndx = 1:63
   handles.scorecolor(ndx,:,2) = shiftColorFwd(handles.scorecolor(ndx,:,1));
+  handles.scorecolor(ndx,:,3) = shiftColorBkwd(handles.scorecolor(ndx,:,1));  
 end
 
 handles.correctcolor = [0,.7,0];
@@ -1675,13 +1697,13 @@ function handles = LoadRC(handles)
 handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
 handles.rc = struct;
 if exist(handles.rcfilename,'file'),
-  try
+%   try
     handles.rc = load(handles.rcfilename);
-  catch ME,
-    warning('Error loading rc file %s: %s',handles.rcfilename,getReport(ME));
-  end
+%   catch ME,
+%     warning('Error loading rc file %s: %s',handles.rcfilename,getReport(ME));
+%   end
 end
-try
+% try
   if isfield(handles.rc,'defaultpath'),
     handles.defaultpath = handles.rc.defaultpath;
     if isfield(handles,'data'),
@@ -1755,13 +1777,13 @@ try
     handles.traj_npost = 25;
   end
   
-catch ME,
-  warning('Error loading RC file: %s',getReport(ME));  
-end
+% catch ME,
+%   warning('Error loading RC file: %s',getReport(ME));  
+% end
 
 function handles = SaveRC(handles)
 
-try
+% try
   if ~isfield(handles,'rcfilename'),
     handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
   end
@@ -1826,9 +1848,9 @@ try
   
   save(handles.rcfilename,'-struct','rc');
 
-catch ME,
-  warning('Error saving RC file: %s',getReport(ME));
-end
+% catch ME,
+%   warning('Error saving RC file: %s',getReport(ME));
+% end
 
 
 % --- Executes when user attempts to close figure_JLabel.
@@ -1859,11 +1881,11 @@ if isfield(handles,'movie_fid') && ~isempty(handles.movie_fid) && ...
   fclose(handles.movie_fid);
   handles.movie_fid = [];
 end
-try
+% try
   % turn off zooming
   zoom(handles.figure_JLabel,'off');
-catch %#ok<CTCH>
-end
+% catch %#ok<CTCH>
+% end
 % SWITCH THIS
 if true,
   SaveRC(handles);
@@ -4625,11 +4647,19 @@ function newColor = shiftColorFwd(oldColor)
   oldSize = size(oldColor);
   oldColor = reshape(oldColor,[1 1 3]);
   hh = rgb2hsv(oldColor);
-  hh(1) = mod(hh(1)+0.075,1);
+  hh(1) = mod(hh(1)+0.085,1);
   newColor = hsv2rgb(hh);
   newColor = reshape(newColor,oldSize);
 
+function newColor = shiftColorBkwd(oldColor)
+  oldSize = size(oldColor);
+  oldColor = reshape(oldColor,[1 1 3]);
+  hh = rgb2hsv(oldColor);
+  hh(1) = mod(hh(1)-0.065,1);
+  newColor = hsv2rgb(hh);
+  newColor = reshape(newColor,oldSize);
 
+  
 % --------------------------------------------------------------------
 function menu_file_loadscores_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_loadscores (see GCBO)
