@@ -121,6 +121,9 @@ classdef JLabelData < handle
     % TODO
     classifier_params = struct;
     
+    % Keep track if the scores have been validated.
+    isValidated = false;
+    
     % stuff cached during prediction
     predict_cache = struct;
     
@@ -189,7 +192,7 @@ classdef JLabelData < handle
       'firstframes_per_exp','endframes_per_exp',...
       'moviefilename','trxfilename','labelfilename','perframedir','clipsdir','featureparamsfilename',...
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
-      'classifierTS'};%'windowfilename',
+      'classifierTS','confThresholds','scoreNorm'};%'windowfilename',
     
     % last used path for loading experiment
     defaultpath = '';
@@ -478,12 +481,12 @@ classdef JLabelData < handle
       if ~ischar(configfilename),
         return;
       end
-      try
+%       try
         configparams = ReadXMLParams(configfilename);
-      catch ME,
-        msg = sprintf('Error reading config file %s: %s',configfilename,getReport(ME));
-        return;
-      end
+%       catch ME,
+%         msg = sprintf('Error reading config file %s: %s',configfilename,getReport(ME));
+%         return;
+%       end
       obj.configfilename = configfilename;
       if isfield(configparams,'file'),
         if isfield(configparams.file,'moviefilename'),
@@ -736,7 +739,7 @@ classdef JLabelData < handle
       i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
       i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;
       
-      try
+%       try
 
         % loop through per-frame fields
         for j = 1:numel(obj.perframefns),
@@ -772,10 +775,10 @@ classdef JLabelData < handle
           % add the feature names
           feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
         end
-      catch ME,
-        msg = getReport(ME);
-        return;
-      end
+%       catch ME,
+%         msg = getReport(ME);
+%         return;
+%       end
       
       success = true;
      
@@ -860,7 +863,7 @@ classdef JLabelData < handle
         else
           
           % try reading a frame
-          try
+%           try
             [readframe,~,movie_fid] = ...
               get_readframe_fcn(moviefilename);
             if movie_fid <= 0,
@@ -868,15 +871,15 @@ classdef JLabelData < handle
             end
             readframe(1);
             fclose(movie_fid);
-          catch ME,
-            successes(i) = false;
-            msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
-            if isempty(msg),
-              msg = msg1;
-            else
-              msg = sprintf('%s\n%s',msg,msg1);
-            end
-          end
+%           catch ME,
+%             successes(i) = false;
+%             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
+%             if isempty(msg),
+%               msg = msg1;
+%             else
+%               msg = sprintf('%s\n%s',msg,msg1);
+%             end
+%           end
           
         end
       end
@@ -965,7 +968,7 @@ classdef JLabelData < handle
 
         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
 
-        try
+%         try
           loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
           obj.labels(expi).t0s = loadedlabels.t0s;
           obj.labels(expi).t1s = loadedlabels.t1s;
@@ -975,11 +978,11 @@ classdef JLabelData < handle
           obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
           obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
           obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
-        catch ME,
-          msg = getReport(ME);
-          obj.ClearStatus();
-          return;
-        end
+%         catch ME,
+%           msg = getReport(ME);
+%           obj.ClearStatus();
+%           return;
+%         end
         
         obj.ClearStatus();
         
@@ -1119,7 +1122,7 @@ classdef JLabelData < handle
       
       obj.classifierfilename = classifierfilename;
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
-        try
+%         try
           obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           loadeddata = load(obj.classifierfilename,obj.classifiervars{:});
@@ -1179,7 +1182,8 @@ classdef JLabelData < handle
           obj.classifiertype = loadeddata.classifiertype;
           obj.classifierTS = loadeddata.classifierTS;
           obj.classifier_params = loadeddata.classifier_params;
-          
+          obj.windowdata.scoreNorm = loadeddata.scoreNorm;
+          obj.confThresholds = loadeddata.confThresholds;
           % predict for all loaded examples
           obj.PredictLoaded();
           
@@ -1204,9 +1208,9 @@ classdef JLabelData < handle
           % clear the cached per-frame, trx data
           obj.ClearCachedPerExpData();
           
-        catch ME,
-          errordlg(getReport(ME),'Error loading classifier from file');
-        end
+%         catch ME,
+%           errordlg(getReport(ME),'Error loading classifier from file');
+%         end
         
         obj.ClearStatus();
         
@@ -1311,7 +1315,7 @@ classdef JLabelData < handle
       s = struct;
       s.classifierTS = obj.classifierTS;
       s.trainingdata = obj.SummarizeTrainingData();
-      try
+%       try
         for i = 1:numel(obj.classifiervars),
           fn = obj.classifiervars{i};
           if isfield(s,fn),
@@ -1327,9 +1331,9 @@ classdef JLabelData < handle
             
         end
         save(obj.classifierfilename,'-struct','s');
-      catch ME,
-        errordlg(getReport(ME),'Error saving classifier to file');
-      end      
+%       catch ME,
+%         errordlg(getReport(ME),'Error saving classifier to file');
+%       end      
       
     end
 
@@ -1366,15 +1370,15 @@ classdef JLabelData < handle
         off = obj.labels(i).off; %#ok<NASGU>
         timestamp = obj.labels(i).timestamp; %#ok<NASGU>
         
-        try
+%         try
           save(lfn,'t0s','t1s','names','flies','off','timestamp');
-        catch ME,
-          if didbak,
-            [didundo,msg] = copyfile([lfn,'~'],lfn);
-            if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end
-          end
-          errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
-        end
+%         catch ME,
+%           if didbak,
+%             [didundo,msg] = copyfile([lfn,'~'],lfn);
+%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end
+%           end
+%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
+%         end
       end
       
       [success,msg] = obj.UpdateStatusTable('label');
@@ -1502,7 +1506,7 @@ classdef JLabelData < handle
             elseif canusecache && expi == obj.expi,
               trx = obj.trx;
             else
-              try
+%               try
                 % REMOVE THIS
                 global CACHED_TRX; %#ok<TLEV>
                 global CACHED_TRX_EXPNAME; %#ok<TLEV>
@@ -1517,9 +1521,9 @@ classdef JLabelData < handle
                   fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
                   trx = CACHED_TRX;
                 end
-              catch ME,
-                msg = sprintf('Could not load trx file for experiment %s to count flies: %s',obj.expdirs{expi},getReport(ME));
-              end
+%               catch ME,
+%                 msg = sprintf('Could not load trx file for experiment %s to count flies: %s',obj.expdirs{expi},getReport(ME));
+%               end
             end
           end
         end
@@ -1932,14 +1936,14 @@ classdef JLabelData < handle
         msg = 'Currently, feature params file can only be changed when no experiments are loaded';
         return;
       end
-      try
+%       try
         [windowfeaturesparams,windowfeaturescellparams] = ...
           ReadPerFrameParams(featureparamsfilename); %#ok<PROP>
-      catch ME,
-        msg = sprintf('Error reading feature parameters file %s: %s',...
-          params.featureparamsfilename,getReport(ME));
-        return;
-      end
+%       catch ME,
+%         msg = sprintf('Error reading feature parameters file %s: %s',...
+%           params.featureparamsfilename,getReport(ME));
+%         return;
+%       end
       obj.SetPerframeParams(windowfeaturesparams,windowfeaturescellparams); %#ok<PROP>
       obj.featureparamsfilename = featureparamsfilename;
       obj.perframefns = fieldnames(obj.windowfeaturescellparams);
@@ -2452,7 +2456,7 @@ classdef JLabelData < handle
       if diffexpi,
         
         % load trx
-        try
+%         try
           trxfilename = obj.GetFile('trx',expi);
           
           obj.SetStatus('Loading trx for experiment %s',obj.expnames{expi});
@@ -2476,14 +2480,14 @@ classdef JLabelData < handle
             return;
           end
           
-        catch ME,
-          msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
+%         catch ME,
+%           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
 %           if ishandle(hwait),
 %             delete(hwait);
 %             drawnow;
 %           end
-          return;
-        end
+%           return;
+%         end
  
       end
 
@@ -2502,13 +2506,13 @@ classdef JLabelData < handle
           msg = sprintf('Per-frame data file %s does not exist',file);
           return;
         end
-        try
+%         try
           tmp = load(file);
           obj.perframedata{j} = tmp.data{flies(1)};
           obj.perframeunits{j} = tmp.units;
-        catch ME,
-          msg = getReport(ME);
-        end
+%         catch ME,
+%           msg = getReport(ME);
+%         end
       end
       
       obj.expi = expi;
@@ -2653,14 +2657,16 @@ classdef JLabelData < handle
         if nargin < 4,
           prediction = struct('predictedidx',obj.predictedidx,...
                               'scoresidx', obj.scoresidx,...
-                              'latest', obj.scoreTS>=obj.classifierTS);
+                              'latest', obj.scoreTS>=obj.classifierTS,...
+                              'isValidated', obj.isValidated);
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
           prediction = struct(...
             'predictedidx', obj.predictedidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
             'scoresidx',  obj.scoresidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
-            'latest', obj.scoreTS(T0+obj.labelidx_off:T1+obj.labelidx_off)>=obj.classifierTS);
+            'latest', obj.scoreTS(T0+obj.labelidx_off:T1+obj.labelidx_off)>=obj.classifierTS,...
+            'isValidated', obj.isValidated);          
         end
         return;
       end
@@ -2674,15 +2680,18 @@ classdef JLabelData < handle
       off = 1 - T0;
       prediction = struct('predictedidx', zeros(1,n),...
                          'scoresidx', zeros(1,n),...
-                         'latest', false(1,n));
-
-      idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2);
-      prediction.predictedidx(obj.scoredata.t(idxcurr)+off) = ...
-        obj.scoredata.predicted(idxcurr);
-      prediction.scoresidx(obj.scoredata.t(idxcurr)+off) = ...
-        obj.scoredata.scores(idxcurr);      
-      prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
-        obj.scoredata.timestamp(idxcurr)>=obj.classifierTS;      
+                         'latest', false(1,n),...
+                         'isValidated', obj.isValidated);
+      
+      if ~isempty(obj.scoredata.exp)                 
+        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2);
+        prediction.predictedidx(obj.scoredata.t(idxcurr)+off) = ...
+          obj.scoredata.predicted(idxcurr);
+        prediction.scoresidx(obj.scoredata.t(idxcurr)+off) = ...
+          obj.scoredata.scores(idxcurr);      
+        prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
+          obj.scoredata.timestamp(idxcurr)>=obj.classifierTS;      
+      end
       
       idxcurr = obj.FlyNdx(expi,flies) & ...
         obj.windowdata.t >= T0 & obj.windowdata.t <= T1 & ...
@@ -3031,7 +3040,7 @@ classdef JLabelData < handle
           obj.classifierTS = now();
           obj.windowdata.isvalidprediction(:) = false;
           obj.windowdata.scoreNorm = [];
-
+          obj.isValidated = false;
           % predict for all window data
           obj.PredictLoaded();
           
@@ -3122,7 +3131,7 @@ classdef JLabelData < handle
       obj.windowdata.predicted(islabeled) = -sign(crossScores)*0.5+1.5;
       obj.windowdata.scores(islabeled) = crossScores;
       obj.windowdata.isvalidprediction(islabeled) = true;
-      
+      obj.isValidated = true;
       obj.ClearStatus();
     end
       
@@ -3531,9 +3540,9 @@ classdef JLabelData < handle
         return;
       end
       
-      allScores = struct();
+      scoresA = {}; tStartAll = []; tEndAll = [];
       numFlies = obj.GetNumFlies(expi);
-      for flies = 1:numFlies
+      parfor flies = 1:numFlies
         tStart = obj.GetTrxFirstFrame(expi,flies);
         tEnd = obj.GetTrxEndFrame(expi,flies);
         
@@ -3542,7 +3551,8 @@ classdef JLabelData < handle
         while (t1<tEnd)
           cTic = tic;
           [success1,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(expi,flies,t1,'start',true);
-          
+ 
+%{          
           if ~success1,
             warning(msg);
             return;
@@ -3568,25 +3578,34 @@ classdef JLabelData < handle
               
               obj.ClearStatus();
             case 'boosting',
-              scores(t0:t1) = myBoostClassify(X,obj.classifier);
+%}
+          scores(t0:t1) = myBoostClassify(X,obj.classifier);
               
-          end
-          
-          t1 = t1+1;
+%{
+           end
+%}          
+           t1 = t1+1;
           tt = toc(cTic);
           timeRemainingFly = (tEnd-t1)/(t1-t0)*tt;
           timeRemainingAll = (tEnd-t1)/(t1-t0)*tt + ...
             (numFlies-flies)*(tEnd-tStart)/(t1-t0)*tt;
+          fprintf('Prediction for fly %d/%d: %d%% done. Time Remaining: Current Fly:%ds, Current Movie:%ds\n',...
+            flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100),...
+            round(timeRemainingFly),round(timeRemainingAll));
+%{
           obj.SetStatus('Prediction for fly %d/%d: %d%% done. Time Remaining: Current Fly:%ds, Current Movie:%ds',...
             flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100),...
             round(timeRemainingFly),round(timeRemainingAll));
-          
+%}          
         end % While loop.
-        allScores.scores{flies} = scores;
-        allScores.tStart(flies) = tStart;
-        allScores.tEnd(flies) = tEnd;
+        scoresA{flies} = scores;
+        tStartAll(flies) = tStart;
+        tEndAll(flies) = tEnd;
       end % Fly loop
-      
+      allScores = struct;
+      allScores.scores = scoresA;
+      allScores.tStart = tStartAll;
+      allScores.tEnd = tEndAll;
       obj.SaveScores(allScores,expi);
       obj.ClearStatus();
 
