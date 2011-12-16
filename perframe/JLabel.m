@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 12-Dec-2011 14:36:09
+% Last Modified by GUIDE v2.5 13-Dec-2011 14:25:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -454,17 +454,17 @@ for i = axes,
 
     % read in current frame
     %image_cache = getappdata(handles.figure_JLabel,'image_cache');
-    try
+%     try
 %       j = find(handles.ts(i)==image_cache.ts,1);
 %       if isempty(j),
         im = handles.readframe(handles.ts(i));
 %       else
 %         im = image_cache.ims(:,:,:,j);
 %       end
-    catch ME
-      uiwait(warndlg(sprintf('Could not read frame %d from current movie: %s',handles.ts(i),getReport(ME))));
-      return;
-    end
+%     catch ME
+%       uiwait(warndlg(sprintf('Could not read frame %d from current movie: %s',handles.ts(i),getReport(ME))));
+%       return;
+%     end
   
     % update frame
     set(handles.himage_previews(i),'CData',im);
@@ -647,18 +647,18 @@ if isfield(handles,'movie_fid') && ~isempty(fopen(handles.movie_fid)),
 end
 
 % open new movie
-try
+% try
   SetStatus(handles,'Opening movie...');
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
     get_readframe_fcn(moviefilename,'interruptible',false);
   im = handles.readframe(1);
   handles.movie_width = size(im,2);
   handles.movie_height = size(im,1);
-catch ME,
-  uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
-  ClearStatus(handles);
-  return;
-end
+% catch ME,
+%   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
+%   ClearStatus(handles);
+%   return;
+% end
 
 % number of flies
 handles.nflies_curr = handles.data.nflies_per_exp(expi);
@@ -861,6 +861,7 @@ set([handles.himage_timeline_manual,handles.himage_timeline_auto],...
 labelidx = handles.data.GetLabelIdx(handles.expi,flies);
 prediction = handles.data.GetPredictedIdx(handles.expi,flies);
 predictedidx = prediction.predictedidx;
+scores = handles.data.NormalizeScores(prediction.scoresidx);
 for flyi = 1:numel(flies),
   fly = flies(flyi);
   x = handles.data.GetTrxValues('X1',handles.expi,fly,handles.t0_curr:handles.t1_curr);
@@ -874,7 +875,10 @@ for flyi = 1:numel(flies),
     handles.labels_plot.x(2,idx,behaviori,flyi) = x(idx1);
     handles.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
     handles.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
-    idx = find(predictedidx == behaviori);
+    
+%     idx = find(predictedidx == behaviori);
+    idx = find((predictedidx == behaviori) & ...
+      (abs(scores)>handles.data.GetConfidenceThreshold(behaviori)));
     idx1 = min(idx+1,numel(x));
     handles.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
     handles.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
@@ -972,17 +976,38 @@ scores = handles.data.NormalizeScores(prediction.scoresidx);
 latest = prediction.latest;
 
 for behaviori = 1:handles.data.nbehaviors
-  
+
   idxScores = (predictedidx == behaviori) & latest;
   idxPredict = idxScores & ...
     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
   for channel = 1:3,
-    handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
-    scoreNdx = ceil(scores(idxScores)*31)+32;
-    handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-  end
-  
+    if ~prediction.isValidated % Different color whether the scores are validated or not
+      handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
+      scoreNdx = ceil(scores(idxScores)*31)+32;
+      handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+      handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+    else
+      idxLabeledPredict = idxPredict & labelidx>0.5;
+      idxUnlabeledPredict = idxPredict & labelidx<0.5;
+      idxLabeledScores = idxScores & labelidx>0.5;
+      idxUnlabeledScores = idxScores & labelidx<0.5;
+
+      shiftedColor = shiftColorBkwd(handles.labelcolors(behaviori,:));
+      handles.labels_plot.predicted_im(1,idxLabeledPredict,channel) = shiftedColor(channel);
+      scoreNdx = ceil(scores(idxLabeledScores)*31)+32;
+      handles.labels_plot.predicted_im(2,idxLabeledScores,channel) = handles.scorecolor(scoreNdx,channel,3);
+      handles.labels_plot.predicted_im(3,idxLabeledScores,channel) = handles.scorecolor(scoreNdx,channel,3);
+    
+      handles.labels_plot.predicted_im(1,idxUnlabeledPredict,channel) = handles.labelcolors(behaviori,channel);
+      scoreNdx = ceil(scores(idxUnlabeledScores)*31)+32;
+      handles.labels_plot.predicted_im(2,idxUnlabeledScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+      handles.labels_plot.predicted_im(3,idxUnlabeledScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+
+    end
+  end    
+    
+    
+  % Old scores loaded from scores files are shown in different color
   idxScores = (predictedidx == behaviori) & (~latest);
   idxPredict = idxScores & ...
     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
@@ -1382,13 +1407,13 @@ while true,
     continue;
   end
     
-  try
+%   try
     handles.configparams = ReadXMLParams(handles.configfilename);
-  catch ME,
-    uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.configfilename,getReport(ME)),'Error reading config file'));
-    havefilename = false;
-    continue;
-  end
+%   catch ME,
+%     uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.configfilename,getReport(ME)),'Error reading config file'));
+%     havefilename = false;
+%     continue;
+%   end
   
   % success -- break
   break;
@@ -1447,12 +1472,12 @@ if isfield(handles.configparams,'behaviors') && ...
     if ~exist(cm,'file'),
       cm = 'lines';
     end
-    try
+%     try
       handles.labelcolors = eval(sprintf('%s(%d)',cm,handles.data.nbehaviors));
-    catch ME,
-      uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
-      handles.labelcolors = lines(handles.data.nbehaviors);
-    end
+%     catch ME,
+%       uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
+%       handles.labelcolors = lines(handles.data.nbehaviors);
+%     end
   end
 end
 handles.labelunknowncolor = [0,0,0];
@@ -1466,6 +1491,7 @@ for channel = 1:3
 end
 for ndx = 1:63
   handles.scorecolor(ndx,:,2) = shiftColorFwd(handles.scorecolor(ndx,:,1));
+  handles.scorecolor(ndx,:,3) = shiftColorBkwd(handles.scorecolor(ndx,:,1));  
 end
 
 handles.correctcolor = [0,.7,0];
@@ -1519,11 +1545,12 @@ set([handles.pushbutton_playselection,handles.pushbutton_clearselection],'Enable
 handles.selecting = false;
 set(handles.togglebutton_select,'Value',0);
 
+% initialize nextjump obj;
+handles.NJObj = NextJump();
+handles.NJObj.SetSeekBehaviorsGo(1:handles.data.nbehaviors);
+
 % initialize labels for navigation
 SetJumpGoMenuLabels(handles)
-
-% which behavior we seek to, initialize to all except unknown
-handles.seek_behaviors_go = 1:handles.data.nbehaviors;
 
 % label shortcuts
 if numel(handles.label_shortcuts) ~= handles.data.nbehaviors + 1,
@@ -1563,6 +1590,11 @@ function SetJumpGoMenuLabels(handles)
 
 set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.nframes_jump_go));
 set(handles.menu_go_back_X_frames,'Label',sprintf('Back %d frames (up arrow)',handles.nframes_jump_go));
+jumpType = handles.NJObj.GetCurrentType();
+set(handles.menu_go_next_automatic_bout_start,'Label',...
+  sprintf('Next %s bout start (shift + right arrow)',jumpType));
+set(handles.menu_go_previous_automatic_bout_end,'Label',...
+  sprintf('Next %s bout end (shift + left arrow)',jumpType));
 
 % create buttons for each label
 function handles = CreateLabelButtons(handles)
@@ -1667,13 +1699,13 @@ function handles = LoadRC(handles)
 handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
 handles.rc = struct;
 if exist(handles.rcfilename,'file'),
-  try
+%   try
     handles.rc = load(handles.rcfilename);
-  catch ME,
-    warning('Error loading rc file %s: %s',handles.rcfilename,getReport(ME));
-  end
+%   catch ME,
+%     warning('Error loading rc file %s: %s',handles.rcfilename,getReport(ME));
+%   end
 end
-try
+% try
   if isfield(handles.rc,'defaultpath'),
     handles.defaultpath = handles.rc.defaultpath;
     if isfield(handles,'data'),
@@ -1747,13 +1779,13 @@ try
     handles.traj_npost = 25;
   end
   
-catch ME,
-  warning('Error loading RC file: %s',getReport(ME));  
-end
+% catch ME,
+%   warning('Error loading RC file: %s',getReport(ME));  
+% end
 
 function handles = SaveRC(handles)
 
-try
+% try
   if ~isfield(handles,'rcfilename'),
     handles.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
   end
@@ -1818,9 +1850,9 @@ try
   
   save(handles.rcfilename,'-struct','rc');
 
-catch ME,
-  warning('Error saving RC file: %s',getReport(ME));
-end
+% catch ME,
+%   warning('Error saving RC file: %s',getReport(ME));
+% end
 
 
 % --- Executes when user attempts to close figure_JLabel.
@@ -1851,11 +1883,11 @@ if isfield(handles,'movie_fid') && ~isempty(handles.movie_fid) && ...
   fclose(handles.movie_fid);
   handles.movie_fid = [];
 end
-try
+% try
   % turn off zooming
   zoom(handles.figure_JLabel,'off');
-catch %#ok<CTCH>
-end
+% catch %#ok<CTCH>
+% end
 % SWITCH THIS
 if true,
   SaveRC(handles);
@@ -2183,18 +2215,18 @@ function handles = SetPredictedPlot(handles,t0,t1,behavioris)
 
 if nargin < 2,
   [prediction,t0,t1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
-  behavioris = prediction.predictedidx;
 elseif nargin < 4,
   prediction = handles.data.GetPredictedIdx(handles.expi,handles.flies,t0,t1);
-  behavioris = prediction.predictedidx;
 end
-
+behavioris = prediction.predictedidx;
+scores = handles.data.NormalizeScores(prediction.scoresidx);
 handles.labels_plot.predx(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 handles.labels_plot.predy(:,t0+handles.labels_plot_off:t1+handles.labels_plot_off,:,:) = nan;
 
 for behaviori = 1:handles.data.nbehaviors,
 
-  bidx = find(behaviori == behavioris);
+  bidx = find( (behaviori == behavioris) & ...
+      (abs(scores)>handles.data.GetConfidenceThreshold(behaviori)));
   if isempty(bidx),
     continue;
   end
@@ -2485,7 +2517,7 @@ function handles = UpdatePrediction(handles)
 % update prediction for currently shown timeline
 % TODO: make this work for multiple axes
 t0 = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
-t1 = min(handles.t1_curr,ceil(handles.ts(1)+handles.timeline_nframes/2));
+t1 = min(handles.t1_curr,ceil(handles.ts(1)+7*handles.timeline_nframes/2));
 handles.data.Predict(handles.expi,handles.flies,t0:t1);
 handles = SetPredictedPlot(handles,t0,t1);
 
@@ -2964,8 +2996,8 @@ function menu_go_next_bout_start_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = NextJump.Manual_bout_start(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.Manual_bout_start(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -2979,8 +3011,8 @@ function menu_go_previous_bout_end_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = NextJump.Manual_bout_end(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.Manual_bout_end(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -2995,7 +3027,7 @@ function menu_go_navigation_preferences_Callback(hObject, eventdata, handles)
 if isfield(handles,'figure_NavigationPreferences') && ishandle(handles.figure_NavigationPreferences),
   figure(handles.figure_NavigationPreferences);
 else
-  handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel);
+  handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel,handles.NJObj);
   guidata(hObject,handles);
 end
 
@@ -3042,8 +3074,6 @@ learn_pos = get(handles.panel_learn,'Position');
 similar_pos = get(handles.panel_similar,'Position');
 info_pos = get(handles.panel_selection_info,'Position');
 
-timeline_select_pos = get(handles.panel_timeline_select,'Position');
-
 width_leftpanels = figpos(3) - handles.guipos.leftborder_leftpanels - ...
   handles.guipos.leftborder_rightpanels - handles.guipos.width_rightpanels - ...
   handles.guipos.rightborder_rightpanels;
@@ -3059,22 +3089,6 @@ preview_pos = [handles.guipos.leftborder_leftpanels,...
   figpos(4) - handles.guipos.topborder_toppanels - height_previews,...
   width_leftpanels,height_previews];
 set(handles.panel_previews(1),'Position',preview_pos);
-
-timeline_auto_pos = get(handles.axes_timeline_auto,'Position');
-timeline_manual_pos = get(handles.axes_timeline_manual,'Position');
-auto_radio_pos = get(handles.timeline_label_automatic,'Position');
-manual_radio_pos = get(handles.timeline_label_manual,'Position');
-
-% Position for the auto and manual radio buttons.
-timeline_select_pos(2) = timeline_auto_pos(2);
-timeline_select_pos(4) = timeline_manual_pos(2)-timeline_auto_pos(2)+...
-                            timeline_manual_pos(4);
-set(handles.panel_timeline_select,'Position',timeline_select_pos);
-auto_radio_pos(2) = timeline_auto_pos(4)/2-auto_radio_pos(4)/2;
-set(handles.timeline_label_automatic,'Position',auto_radio_pos);
-manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
-  -manual_radio_pos(4);
-set(handles.timeline_label_manual,'Position',manual_radio_pos);
 
 label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guipos.rightborder_rightpanels,...
   figpos(4) - labelbuttons_pos(4) - handles.guipos.topborder_toppanels,...
@@ -3119,7 +3133,12 @@ handles.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumbe
 handles.pushbutton_playstops = findobj(handles.figure_JLabel,'Tag','pushbutton_playstop');
 % all timelines
 handles.axes_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
-handles.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
+% handles.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
+% Regex messes the order which makes it difficult to remove the last data axes.
+handles.labels_timelines(1,1) = handles.timeline_label_prop1;
+handles.labels_timelines(2,1) = handles.timeline_label_automatic;
+handles.labels_timelines(3,1) = handles.timeline_label_manual;
+
 handles.axes_timeline_props = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
 handles.axes_timeline_labels = setdiff(handles.axes_timelines,handles.axes_timeline_props);
 
@@ -3134,14 +3153,17 @@ for i = 1:numel(handles.axes_timelines),
 end
 [~,order] = sort(ys);
 handles.axes_timelines = handles.axes_timelines(order);
-% sort by y-position
-ys = nan(1,numel(handles.labels_timelines));
-for i = 1:numel(handles.labels_timelines),
+% sort by y-position. 
+% Don't touch the last 2 labels that are part of manual and automatic timeline
+% because they are inside a panel and so pos(2) is relative to the panel.
+ys = nan(1,numel(handles.labels_timelines)-2);
+for i = 1:(numel(handles.labels_timelines)-2),
   pos = get(handles.labels_timelines(i),'Position');
   ys(i) = pos(2);
 end
 [~,order] = sort(ys);
-handles.labels_timelines = handles.labels_timelines(order);
+temp = handles.labels_timelines(1:end-2);
+handles.labels_timelines(1:end-2) = temp(order);
 
 handles.text_timeline_props = nan(size(handles.axes_timeline_props));
 handles.text_timelines = nan(size(handles.axes_timelines));
@@ -3266,6 +3288,25 @@ for i = 1:ntimelines,
   end
   y0 = y0 + axes_pos(4);
 end
+
+timeline_select_pos = get(handles.panel_timeline_select,'Position');
+timeline_manual_pos = get(handles.axes_timelines(end),'Position');
+timeline_auto_pos = get(handles.axes_timelines(end-1),'Position');
+timeline_select_pos(2) = timeline_auto_pos(2);
+timeline_select_pos(4) = timeline_manual_pos(2)-timeline_auto_pos(2)+...
+                            timeline_manual_pos(4);
+set(handles.panel_timeline_select,'Position',timeline_select_pos);
+
+auto_radio_pos = get(handles.timeline_label_automatic,'Position');
+manual_radio_pos = get(handles.timeline_label_manual,'Position');
+% Position for the auto and manual radio buttons.
+auto_radio_pos(2) = timeline_auto_pos(4)/2-auto_radio_pos(4)/2;
+set(handles.timeline_label_automatic,'Position',auto_radio_pos);
+manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
+  -manual_radio_pos(4);
+set(handles.timeline_label_manual,'Position',manual_radio_pos);
+
+
 % axes_manual_pos = [handles.guipos.timeline_xpos,...
 %   panel_pos(4)-handles.guipos.timeline_bordery-h,w,h];
 % set(handles.axes_timeline_manual,'Position',axes_manual_pos);  
@@ -4241,8 +4282,8 @@ function menu_go_next_automatic_bout_start_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = NextJump.Automatic_bout_start(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.JumpToStart(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t),  return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -4256,10 +4297,8 @@ function menu_go_previous_automatic_bout_end_Callback(hObject, eventdata, handle
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-% t = NextJump.Automatic_bout_end(handles.data,handles.expi,handles.flies,...
-%   handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
-t = NextJump.Error_bout_end(handles.data,handles.expi,handles.flies,...
-  handles.ts(axesi),handles.t0_curr,handles.t1_curr,handles.seek_behaviors_go);
+t = handles.NJObj.JumpToEnd(handles.data,handles.expi,handles.flies,...
+  handles.ts(axesi),handles.t0_curr,handles.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -4610,11 +4649,19 @@ function newColor = shiftColorFwd(oldColor)
   oldSize = size(oldColor);
   oldColor = reshape(oldColor,[1 1 3]);
   hh = rgb2hsv(oldColor);
-  hh(1) = mod(hh(1)+0.035,1);
+  hh(1) = mod(hh(1)+0.085,1);
   newColor = hsv2rgb(hh);
   newColor = reshape(newColor,oldSize);
 
+function newColor = shiftColorBkwd(oldColor)
+  oldSize = size(oldColor);
+  oldColor = reshape(oldColor,[1 1 3]);
+  hh = rgb2hsv(oldColor);
+  hh(1) = mod(hh(1)-0.065,1);
+  newColor = hsv2rgb(hh);
+  newColor = reshape(newColor,oldSize);
 
+  
 % --------------------------------------------------------------------
 function menu_file_loadscores_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_loadscores (see GCBO)
@@ -4671,3 +4718,24 @@ dialogStr{3} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
 
 helpdlg(dialogStr,'Cross Validation error');
 % helpdlg(sprintf('Cross Validation error is %.2f%%',crossError*100),'Cross Validation error');
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyCurrentFly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+t0 = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
+t1 = min(handles.t1_curr,ceil(handles.ts(1)+7*handles.timeline_nframes/2));
+handles.data.Predict(handles.expi,handles.flies,handles.t0_curr:handles.t1_curr);
+handles = SetPredictedPlot(handles,t0,t1);
+
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);

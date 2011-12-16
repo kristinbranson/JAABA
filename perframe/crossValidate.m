@@ -1,6 +1,6 @@
 function [crossError scores]= crossValidate(data,labels,obj,binVals,bins)
 
-k = 3;
+k = 7;
 
 boostIterations = 100;
 % Learn classifier with all the data.

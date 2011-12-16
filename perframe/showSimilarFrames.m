@@ -158,7 +158,9 @@ for expNum = exps
       for curBlk = curblockStart:curblockEnd
         idStr = sprintf('%d_%d_%d',expNum,curFly,curBlk);
         if ~isKey(handles.cache,idStr),
-          tSlice = ((curBlk-1)*blk+1):(curBlk*blk);
+          tStart = max((curBlk-1)*blk+1,1);
+          tEnd = min(curBlk*blk,trx(curFly).endframe-trxOffset+1);
+          tSlice = tStart:tEnd;
           trax = [];
           trax.X = trx(curFly).x(tSlice);
           trax.Y = trx(curFly).y(tSlice);
