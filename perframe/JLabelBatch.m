@@ -1,10 +1,7 @@
 function JLabelBatch(expName,classifierfilename,configfilename)
 
 data = JLabelData(configfilename);
-[success,msg] = data.SetClassifierFileName(classifierfilename);
-if ~success,
-  warning(msg);
-end
+data.SetClassifierFileNameBatch(classifierfilename);
 
 existingNdx = find(strcmp(expName,data.expdirs));
 if ~isempty(existingNdx)
