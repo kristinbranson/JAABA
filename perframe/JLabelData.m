@@ -1116,7 +1116,7 @@ classdef JLabelData < handle
     % the previously computed window data and computing the window data for
     % all the labeled frames. 
     function [success,msg] = SetClassifierFileName(obj,classifierfilename)
-
+      
       success = false;
       msg = '';
       
@@ -1218,6 +1218,38 @@ classdef JLabelData < handle
         
       end
 
+    end
+    
+    function SetClassifierFileNameBatch(obj,classifierfilename)
+
+      success = false;
+      msg = '';
+      
+      obj.classifierfilename = classifierfilename;
+      if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
+%         try
+          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
+
+          loadeddata = load(obj.classifierfilename,obj.classifiervars{:});
+
+%{          
+          % remove all experiments
+          obj.RemoveExpDirs(1:obj.nexps);
+          % set experiment directories
+          obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
+            loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
+            loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp); 
+%}
+          [success,msg] = obj.UpdateStatusTable();
+          if ~success, error(msg); end
+                                       
+          obj.classifier = loadeddata.classifier;
+          obj.classifiertype = loadeddata.classifiertype;
+          obj.classifierTS = loadeddata.classifierTS;
+          obj.classifier_params = loadeddata.classifier_params;
+          obj.windowdata.scoreNorm = loadeddata.scoreNorm;
+          obj.confThresholds = loadeddata.confThresholds;
+      end
     end
 
     % [success,msg] = PreLoadLabeledData(obj)

@@ -11,7 +11,7 @@
       labelfilename="labeledbehavior.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/WindowFeatures_Lots.xml"
+      featureparamfilename="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/params/WindowFeatures_Lots.xml"
       rootoutputdir="/groups/branson/bransonlab/tracking_data/olympiad/FlyBowl/JLabel_test20110823"
       />
   
