@@ -2602,6 +2602,9 @@ classdef JLabelData < handle
         for j = find(strcmp(labels_curr.names,obj.labelnames{i})),
           t0 = labels_curr.t0s(j);
           t1 = labels_curr.t1s(j);
+          if t0>T1 || t1<T0; continue;end
+          t0 = max(T0,t0);
+          t1 = min(T1,t1);
           labelidx(t0+off:t1-1+off) = i;
         end
       end
@@ -2716,25 +2719,27 @@ classdef JLabelData < handle
                          'isValidated', obj.isValidated);
       
       if ~isempty(obj.scoredata.exp)                 
-        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2);
+        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2) &...
+          obj.scoredata.t' >= T0 & obj.scoredata.t' <= T1;
         prediction.predictedidx(obj.scoredata.t(idxcurr)+off) = ...
           obj.scoredata.predicted(idxcurr);
         prediction.scoresidx(obj.scoredata.t(idxcurr)+off) = ...
           obj.scoredata.scores(idxcurr);      
-        prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
+        prediction.latest(obj.scoredata.t(idxcurr)+off) = ...
           obj.scoredata.timestamp(idxcurr)>=obj.classifierTS;      
       end
       
-      idxcurr = obj.FlyNdx(expi,flies) & ...
-        obj.windowdata.t >= T0 & obj.windowdata.t <= T1 & ...
-        obj.windowdata.isvalidprediction;
-      prediction.predictedidx(obj.windowdata.t(idxcurr)+off) = ...
-        obj.windowdata.predicted(idxcurr);
-      prediction.scoresidx(obj.windowdata.t(idxcurr)+off) = ...
-        obj.windowdata.scores(idxcurr);
-      prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
-        true;      
-
+      if ~isempty(obj.windowdata.exp)
+        idxcurr = obj.FlyNdx(expi,flies) & ...
+          obj.windowdata.t >= T0 & obj.windowdata.t <= T1 & ...
+          obj.windowdata.isvalidprediction;
+        prediction.predictedidx(obj.windowdata.t(idxcurr)+off) = ...
+          obj.windowdata.predicted(idxcurr);
+        prediction.scoresidx(obj.windowdata.t(idxcurr)+off) = ...
+          obj.windowdata.scores(idxcurr);
+        prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
+          true;
+      end
     end
     
     % [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
@@ -3684,6 +3689,14 @@ classdef JLabelData < handle
       end
     
     end
+    
+    function SetStatusFn(obj,statusfn)
+      obj.setstatusfn = statusfn;
+    end
+    
+    function SetClearStatusFn(obj,clearfn)
+      obj.clearstatusfn = clearfn;
+    end    
     
     function ShowSelectFeatures(obj)
       selHandle = SelectFeatures;

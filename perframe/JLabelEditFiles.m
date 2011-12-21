@@ -66,9 +66,11 @@ else
   handles.data = varargin{1};
 end
 
+handles.data.SetStatusFn( @(s) SetStatusEditFiles(handles.figure_JLabelEditFiles,s));
+handles.data.SetClearStatusFn( @() ClearStatusEditFiles(handles.figure_JLabelEditFiles));
 % initialize listbox
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',numel(handles.data.expdirs));
-
+set(handles.statusMsg,'String','');
 % height of a row in pixels
 handles.table_row_height_px = 22;
 
@@ -379,3 +381,12 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles);
+
+
+function SetStatusEditFiles(hObject,s)
+handles = guidata(hObject);
+set(handles.statusMsg,'String',s);
+
+function ClearStatusEditFiles(hObject)
+handles = guidata(hObject);
+set(handles.statusMsg,'String','');
