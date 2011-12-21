@@ -113,6 +113,7 @@ EnableGUI(handles);
 
 handles.output = handles.figure_JLabel;
 
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -1177,6 +1178,9 @@ else
   oldexpdir = '';
 end
 [handles.data,success] = JLabelEditFiles(params{:});
+handles.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+handles.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+
 handles.defaultpath = handles.data.defaultpath;
 if ~success,
   guidata(hObject,handles);
@@ -1548,6 +1552,7 @@ set(handles.togglebutton_select,'Value',0);
 % initialize nextjump obj;
 handles.NJObj = NextJump();
 handles.NJObj.SetSeekBehaviorsGo(1:handles.data.nbehaviors);
+handles.NJObj.SetPerframefns(handles.data.perframefns);
 
 % initialize labels for navigation
 SetJumpGoMenuLabels(handles)
@@ -2584,6 +2589,7 @@ else
   color = handles.idlestatuscolor;
 end
 set(handles.text_status,'ForegroundColor',color,'String',s);
+
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JLabel Status','modal');
 end
