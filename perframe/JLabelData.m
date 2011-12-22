@@ -1695,6 +1695,13 @@ classdef JLabelData < handle
         return;
       end
 
+      % preload this experiment if this is the first experiment added
+      if obj.nexps == 1,
+        % TODO: make this work with multiple flies
+        obj.PreLoad(obj.nexps,1);
+      end
+      
+      
       % get trxinfo
       if istrxinfo,
         obj.nflies_per_exp(end+1) = nflies_per_exp;
@@ -1702,6 +1709,16 @@ classdef JLabelData < handle
         obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
         obj.firstframes_per_exp{end+1} = firstframes_per_exp;
         obj.endframes_per_exp{end+1} = endframes_per_exp;
+        
+        if obj.nexps == 1 % This will set hassex and hasperframesex.
+          [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
+          if ~success1,
+            msg = sprintf('Error getting basic trx info: %s',msg1);
+            obj.RemoveExpDirs(obj.nexps);
+            return;
+          end
+        end
+        
       else
         obj.nflies_per_exp(end+1) = nan;
         obj.sex_per_exp{end+1} = {};
@@ -1723,11 +1740,6 @@ classdef JLabelData < handle
         return;
       end
       
-      % preload this experiment if this is the first experiment added
-      if obj.nexps == 1,
-        % TODO: make this work with multiple flies
-        obj.PreLoad(obj.nexps,1);
-      end
       
       % save default path
       obj.defaultpath = expdir;

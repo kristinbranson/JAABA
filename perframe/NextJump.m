@@ -60,6 +60,8 @@ classdef NextJump < handle
           t = obj.Lowconf_bout_start(data,expi,flies,ts,t0,t1);
         case 'Thresholds'
           t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
+        case 'High Confidence Errors'
+          t = obj.HighconfError_bout_start(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
       end
@@ -76,6 +78,8 @@ classdef NextJump < handle
           t = obj.Lowconf_bout_end(data,expi,flies,ts,t0,t1);
         case 'Thresholds'
           t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
+        case 'High Confidence Errors'
+          t = obj.HighconfError_bout_end(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
          
@@ -251,7 +255,64 @@ classdef NextJump < handle
       if isempty(j), return; end
       t = t0 + j - 1;
     end
+
+    function t = HighconfError_bout_start(obj,data,expi,flies,ts,t0,t1)
+      t = [];
+      if ts >= t1, return; end
+      t0 = min(max(ts,t0),t1);
+      
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
+      prediction = data.GetPredictedIdx(expi,flies,t0,t1);
+      predictedidx = prediction.predictedidx;
+      erroridx = labelidx ~=predictedidx;
+      scores = data.NormalizeScores(prediction.scoresidx);
+      highconfidx = false(size(scores));
+      
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)>data.GetConfidenceThreshold(behaviori));
+        highconfidx(idxScores) = true;
+      end
+      highconfError = hihgconfidx & erroridx;
+
+      highconfCandidates = highconfError(2:end)~=highconfError(1:end-1) & ...
+              highconfError(2:end)==true;
+      
+      j = find(highconfCandidates,1);
+      if isempty(j), return; end
+
+      t = ts + j;
+    end
     
+    function t = HighconfError_bout_end(obj,data,expi,flies,ts,t0,t1)
+      
+      t = [];
+      if t0 >= ts, return; end
+      t1 = min(max(ts,t0),t1);
+
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
+      prediction = data.GetPredictedIdx(expi,flies,t0,t1);
+      predictedidx = prediction.predictedidx;
+      erroridx = labelidx ~=predictedidx;
+      scores = data.NormalizeScores(prediction.scoresidx);
+      highconfidx = false(size(scores));
+      
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)>data.GetConfidenceThreshold(behaviori));
+        highconfidx(idxScores) = true;
+      end
+      highconfError = hihgconfidx & erroridx;
+      
+      highconfCandidates = highconfError(1:end-1)~=highconfError(2:end) & ...
+                          highconfError(1:end-1)==true;
+      
+      
+      j = find(highconfCandidates,1,'last');
+      if isempty(j), return; end
+      t = t0 + j - 1;
+    end
+
     function t = Threshold_bout_start(obj,data,expi,flies,ts,t0,t1)
       t = [];
       if ts >= t1, return; end
