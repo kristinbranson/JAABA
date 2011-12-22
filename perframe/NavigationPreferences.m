@@ -22,7 +22,7 @@ function varargout = NavigationPreferences(varargin)
 
 % Edit the above text to modify the response to help NavigationPreferences
 
-% Last Modified by GUIDE v2.5 14-Dec-2011 11:20:34
+% Last Modified by GUIDE v2.5 21-Dec-2011 15:54:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -69,6 +69,8 @@ set(handles.listbox_seek_behavior,'Value',handles.seek_behaviors_go+1);
 set(handles.jumpToPopUp,'String',handles.NJObj.GetAllTypes());
 set(handles.jumpToPopUp,'Value',...
   find(strcmp(handles.NJObj.GetCurrentType(),handles.NJObj.GetAllTypes())));
+
+set(handles.thresholdPopup1,'String',[{'Select'}; handles.NJObj.GetPerframefns]);
 updateThresholdButtons(handles);
 % Choose default command line output for NavigationPreferences
 handles.output = hObject;
@@ -184,50 +186,18 @@ handles.NJObj.SetCurrentType(curJType);
 guidata(handles.figure_JLabel,parent_handles);
 JLabel('SetJumpGoMenuLabels',parent_handles);
 
-
-% --- Executes on selection change in thresholdPopup1.
-function thresholdPopup1_Callback(hObject, eventdata, handles)
-% hObject    handle to thresholdPopup1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns thresholdPopup1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from thresholdPopup1
-
-
-% --- Executes during object creation, after setting all properties.
-function thresholdPopup1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to thresholdPopup1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function thresholdValue1_Callback(hObject, eventdata, handles)
-% hObject    handle to thresholdValue1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of thresholdValue1 as text
-%        str2double(get(hObject,'String')) returns contents of thresholdValue1 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function thresholdValue1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to thresholdValue1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+if strcmp(handles.NJObj.GetCurrentType,'Thresholds')
+  selFeatures = get(handles.thresholdPopup1,'Value');
+  if selFeatures==1
+    handles.NJObj.perframeSelFeatures = [];
+    handles.NJObj.perframeSelThresholds = [];
+    handles.NJObj.perframeSelTypes = [];
+  else
+    handles.NJObj.perframeSelFeatures = selFeatures-1;
+    handles.NJObj.perframeSelThresholds = ...
+      str2double(get(handles.thresholdValue1,'String'));
+    handles.NJObj.perframeSelTypes = get(handles.thresholdType1,'Value');
+  end
 end
 
 
@@ -255,12 +225,119 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% --- Executes on selection change in thresholdPopup1.
+function thresholdPopup1_Callback(hObject, eventdata, handles)
+% hObject    handle to thresholdPopup1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns thresholdPopup1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from thresholdPopup1
+handles = guidata(hObject);
+selFeatures = get(hObject,'Value');
+if selFeatures==1
+  handles.NJObj.perframeSelFeatures = [];
+  handles.NJObj.perframeSelThresholds = [];
+  handles.NJObj.perframeSelTypes = [];
+else
+  handles.NJObj.perframeSelFeatures = selFeatures-1;
+  handles.NJObj.perframeSelThresholds = ...
+    str2double(get(handles.thresholdValue1,'Value'));
+  handles.NJObj.perframeSelTypes = get(handles.thresholdType1,'Value');
+end
+   
+   
+ 
+
+% --- Executes during object creation, after setting all properties.
+function thresholdPopup1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thresholdPopup1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function thresholdValue1_Callback(hObject, eventdata, handles)
+% hObject    handle to thresholdValue1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of thresholdValue1 as text
+%        str2double(get(hObject,'String')) returns contents of thresholdValue1 as a double
+handles = guidata(hObject);
+handles.NJObj.perframeSelThresholds = ...
+  str2double(get(hObject,'String'));
+
+
+% --- Executes during object creation, after setting all properties.
+function thresholdValue1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thresholdValue1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
 function updateThresholdButtons(handles)
 
 if ~strcmp(handles.NJObj.GetCurrentType,'Thresholds')
-  set(handles.thresholdPopup1,'Enable','off');
-  set(handles.thresholdValue1,'Enable','off');
+  for ndx = 1
+    set(handles.(sprintf('thresholdPopup%d',ndx)),'Enable','off');
+    set(handles.(sprintf('thresholdType%d',ndx)),'Enable','off');
+    set(handles.(sprintf('thresholdValue%d',ndx)),'Enable','off');
+  end
 else
-  set(handles.thresholdPopup1,'Enable','on');
-  set(handles.thresholdValue1,'Enable','on');
+  if ~isempty(handles.NJObj.perframeSelFeatures)
+    for ndx = 1
+      set(handles.(sprintf('thresholdPopup%d',ndx)),'Enable','on',...
+        'Value',handles.NJObj.perframeSelFeatures(ndx)+1);
+      set(handles.(sprintf('thresholdType%d',ndx)),'Enable','on',...
+        'Value',handles.NJObj.perframeSelTypes(ndx));
+      set(handles.(sprintf('thresholdValue%d',ndx)),'Enable','on',...
+        'Value',handles.NJObj.perframeSelThresholds(ndx));
+    end
+  else
+    for ndx = 1
+      set(handles.(sprintf('thresholdPopup%d',ndx)),'Enable','on',...
+        'Value',1);
+      set(handles.(sprintf('thresholdType%d',ndx)),'Enable','on',...
+        'Value',1);
+      set(handles.(sprintf('thresholdValue%d',ndx)),'Enable','on',...
+        'Value',0);
+    end
+  end    
+end
+
+% --- Executes on selection change in thresholdType1.
+function thresholdType1_Callback(hObject, eventdata, handles)
+% hObject    handle to thresholdType1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns thresholdType1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from thresholdType1
+handles = guidata(hObject);
+handles.NJObj.perframeSelTypes = get(hObject,'Value');
+
+
+% --- Executes during object creation, after setting all properties.
+function thresholdType1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to thresholdType1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
