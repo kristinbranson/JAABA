@@ -5,7 +5,10 @@ classdef NextJump < handle
     allTypes = {'Automatic','Errors','High Confidence Errors',...
         'Low Confidence','Thresholds'};
     seek_behaviors_go = [];
-    
+    perframefns = {};
+    perframeSelFeatures = [];
+    perframeSelThresholds = [];
+    perframeSelTypes = [];
   end
   
   methods (Access = public, Static = true)
@@ -13,7 +16,15 @@ classdef NextJump < handle
   end % End Static methods
   
   methods (Access= public)
-  
+    
+    function SetPerframefns(obj,perframefns)
+      obj.perframefns = perframefns;
+    end
+    
+    function perframefns = GetPerframefns(obj)
+       perframefns = obj.perframefns;
+    end
+    
     function str = GetCurrentType(obj)
       str = obj.curType;
     end
@@ -47,6 +58,10 @@ classdef NextJump < handle
           t = obj.Error_bout_start(data,expi,flies,ts,t0,t1);
         case 'Low Confidence'
           t = obj.Lowconf_bout_start(data,expi,flies,ts,t0,t1);
+        case 'Thresholds'
+          t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
+        case 'High Confidence Errors'
+          t = obj.HighconfError_bout_start(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
       end
@@ -61,6 +76,10 @@ classdef NextJump < handle
           t = obj.Error_bout_end(data,expi,flies,ts,t0,t1);
         case 'Low Confidence'
           t = obj.Lowconf_bout_end(data,expi,flies,ts,t0,t1);
+        case 'Thresholds'
+          t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
+        case 'High Confidence Errors'
+          t = obj.HighconfError_bout_end(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
          
@@ -236,7 +255,130 @@ classdef NextJump < handle
       if isempty(j), return; end
       t = t0 + j - 1;
     end
+
+    function t = HighconfError_bout_start(obj,data,expi,flies,ts,t0,t1)
+      t = [];
+      if ts >= t1, return; end
+      t0 = min(max(ts,t0),t1);
+      
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
+      prediction = data.GetPredictedIdx(expi,flies,t0,t1);
+      predictedidx = prediction.predictedidx;
+      erroridx = labelidx ~=predictedidx;
+      scores = data.NormalizeScores(prediction.scoresidx);
+      highconfidx = false(size(scores));
+      
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)>data.GetConfidenceThreshold(behaviori));
+        highconfidx(idxScores) = true;
+      end
+      highconfError = hihgconfidx & erroridx;
+
+      highconfCandidates = highconfError(2:end)~=highconfError(1:end-1) & ...
+              highconfError(2:end)==true;
+      
+      j = find(highconfCandidates,1);
+      if isempty(j), return; end
+
+      t = ts + j;
+    end
     
+    function t = HighconfError_bout_end(obj,data,expi,flies,ts,t0,t1)
+      
+      t = [];
+      if t0 >= ts, return; end
+      t1 = min(max(ts,t0),t1);
+
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
+      prediction = data.GetPredictedIdx(expi,flies,t0,t1);
+      predictedidx = prediction.predictedidx;
+      erroridx = labelidx ~=predictedidx;
+      scores = data.NormalizeScores(prediction.scoresidx);
+      highconfidx = false(size(scores));
+      
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)>data.GetConfidenceThreshold(behaviori));
+        highconfidx(idxScores) = true;
+      end
+      highconfError = hihgconfidx & erroridx;
+      
+      highconfCandidates = highconfError(1:end-1)~=highconfError(2:end) & ...
+                          highconfError(1:end-1)==true;
+      
+      
+      j = find(highconfCandidates,1,'last');
+      if isempty(j), return; end
+      t = t0 + j - 1;
+    end
+
+    function t = Threshold_bout_start(obj,data,expi,flies,ts,t0,t1)
+      t = [];
+      if ts >= t1, return; end
+      t0 = min(max(ts,t0),t1);
+      
+      valid = [];
+      for ndx = 1:numel(obj.perframeSelFeatures)
+        perframedata = data.GetPerFrameData(expi,flies,...
+          obj.perframeSelFeatures(ndx),t0,t1);
+        if isempty(valid)
+          if obj.perframeSelTypes(ndx) == 1 % Less than.
+            valid = perframedata<obj.perframeSelThresholds(ndx);
+          else
+            valid = perframedata>obj.perframeSelThresholds(ndx);
+          end
+        else
+          if obj.perframeSelTypes(ndx) == 1 % Less than.
+            valid = valid & perframedata < obj.perframeSelThresholds(ndx);
+          else
+            valid = valid & perframedata > obj.perframeSelThresholds(ndx);
+          end
+          
+        end
+      end
+      validCandidates = valid(2:end)~=valid(1:end-1) & ...
+                          valid(2:end)==true;
+      
+      j = find(validCandidates,1);
+      if isempty(j), return; end
+      t = ts + j;
+    end
+    
+    function t = Threshold_bout_end(obj,data,expi,flies,ts,t0,t1)
+      
+      t = [];
+      if t0 >= ts, return; end
+      t1 = min(max(ts,t0),t1);
+
+      valid = [];
+      for ndx = 1:numel(obj.perframeSelFeatures)
+        perframedata = data.GetPerFrameData(expi,flies,...
+          obj.perframeSelFeatures(ndx),t0,t1);
+        if isempty(valid)
+          if obj.perframeSelTypes(ndx) == 1 % Less than.
+            valid = perframedata<obj.perframeSelThresholds(ndx);
+          else
+            valid = perframedata>obj.perframeSelThresholds(ndx);
+          end
+        else
+          if obj.perframeSelTypes(ndx) == 1 % Less than.
+            valid = valid & perframedata < obj.perframeSelThresholds(ndx);
+          else
+            valid = valid & perframedata > obj.perframeSelThresholds(ndx);
+          end
+          
+        end
+      end
+      
+      validCandidates = valid(1:end-1)~=valid(2:end) & ...
+                          valid(1:end-1)==true;
+      
+      
+      j = find(validCandidates,1,'last');
+      if isempty(j), return; end
+      t = t0 + j - 1;
+    end
     
     
   end % End methods
