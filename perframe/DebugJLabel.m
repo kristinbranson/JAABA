@@ -16,6 +16,7 @@ switch computername,
     %rootdatadir = 'E:\Code\Jdetect\larva\fly_data\TrainingData';
     %settingsdir = 'E:\Code\FlyBowlAnalysis\settings';
     configfilename = 'params\JLabelParams.xml';
+    npool = 4;
 
   case 'bransonk-lw2',
 
@@ -23,8 +24,9 @@ switch computername,
     %FlyBowlAnalysis_path = 'C:\Code\FlyBowlAnalysis';
     %rootdatadir = 'C:\Code\Jdetect\larva\fly_data\TrainingData';
     %settingsdir = 'C:\Code\FlyBowlAnalysis\settings';
-    configfilename = 'params\JLabelParams.xml';
-
+    configfilename = 'params\JLabelParamsKristinChase.xml';
+    npool = 4;
+    
   case 'bransonk-desktop',
 
     JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
@@ -32,6 +34,7 @@ switch computername,
     %rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     %settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
     configfilename = 'params/JLabelParams_bransonk-desktop.xml';
+    npool = 8;
     
   case 'kabram-ws.janelia.priv',
 
@@ -40,13 +43,15 @@ switch computername,
     %rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     %settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
     configfilename = 'params/JLabelParamsMayank.xml';
-  
+    npool = 8;
+    
   case 'robiea-ws'
     JCtrax_path = '/groups/branson/home/bransonk/tracking/code/JCtrax';
     %FlyBowlAnalysis_path = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis';
     %rootdatadir = '/groups/sciserv/flyolympiad/Olympiad_Screen/fly_bowl/bowl_data';
     %settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
     configfilename = '/groups/branson/home/robiea/Projects_data/JLabel/JLabelParams.xml';
+    npool = 8;
     
   otherwise
     
@@ -56,6 +61,7 @@ switch computername,
     %rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/larva/fly_data/TrainingData/';
     %settingsdir = '/groups/branson/bransonlab/projects/olympiad/FlyBowlAnalysis/settings';
     configfilename = 'params/JLabelParams_bransonk-desktop.xml';
+    npool = 1;
     
 end
 
@@ -68,8 +74,10 @@ addpath(fullfile(jlabelpath,'compute_perframe_features'));
 
 %%
 try 
-  matlabpool(8);
-catch
+  if npool > 1,
+    matlabpool(npool);
+  end
+catch %#ok<CTCH>
 end
 %% start JLabel
 
