@@ -22,7 +22,7 @@ function varargout = NavigationPreferences(varargin)
 
 % Edit the above text to modify the response to help NavigationPreferences
 
-% Last Modified by GUIDE v2.5 21-Dec-2011 10:52:38
+% Last Modified by GUIDE v2.5 21-Dec-2011 15:54:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -341,4 +341,3 @@ function thresholdType1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
