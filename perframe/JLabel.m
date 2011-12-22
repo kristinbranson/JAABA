@@ -2321,6 +2321,17 @@ else
     set(handles.togglebutton_label_behaviors(j),'Value',0,'String',sprintf('Start %s',handles.data.labelnames{j}),'Enable','on');
   end
   set(handles.togglebutton_label_unknown,'Value',0,'String','Start Unknown','Enable','on');  
+  UpdatePlots(handles,...
+    'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
+    'refresh_timeline_manual',true,...
+    'refresh_timeline_auto',false,...
+    'refresh_timeline_suggest',false,...
+    'refresh_timeline_error',true,...
+    'refresh_timeline_xlim',false,...
+    'refresh_timeline_hcurr',false,...
+    'refresh_timeline_props',false,...
+    'refresh_timeline_selection',false,...
+    'refresh_curr_prop',false);
   
 %   handles.label_state = 0;
 %   %handles.data.StoreLabels();
@@ -2497,7 +2508,7 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 pt = get(hObject,'CurrentPoint');
-t = min(handles.nframes,max(1,round(pt(1,1))));
+t = min(max(handles.t0_curr,round(pt(1,1))),handles.t1_curr);%nframes);
 % TODO: which axes?
 SetCurrentFrame(handles,1,t,hObject);
 
@@ -2948,7 +2959,7 @@ function menu_go_next_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(1,handles.ts(axesi)+1),handles.nframes);
+t = min(max(1,handles.ts(axesi)+1),handles.t1_curr);%handles.nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 
@@ -2960,7 +2971,7 @@ function menu_go_previous_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(1,handles.ts(axesi)-1),handles.nframes);
+t = min(max(handles.t0_curr,handles.ts(axesi)-1),handles.t1_curr);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 
@@ -2974,7 +2985,7 @@ function menu_go_forward_X_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(1,handles.ts(axesi)+handles.nframes_jump_go),handles.nframes);
+t = min(max(handles.t0_curr,handles.ts(axesi)+handles.nframes_jump_go),handles.t1_curr);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 
@@ -2988,7 +2999,7 @@ function menu_go_back_X_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(1,handles.ts(axesi)-handles.nframes_jump_go),handles.nframes);
+t = min(max(handles.t0_curr,handles.ts(axesi)-handles.nframes_jump_go),handles.t1_curr);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 
@@ -3849,7 +3860,14 @@ end
 if ~isnan(handles.selection_t0),
   pt = get(handles.buttondown_axes,'CurrentPoint');
   handles.selection_t1 = round(pt(1,1));
-  handles.selected_ts = sort([handles.selection_t0,handles.selection_t1]);
+  ts = sort([handles.selection_t0,handles.selection_t1]);
+  ts(1) = min(max(ts(1),handles.t0_curr),handles.t1_curr);
+  ts(2) = min(max(ts(2),handles.t0_curr),handles.t1_curr);
+  if ts(1) == ts(2); % outside the range.
+    handles.selected_ts = nan(1,2);
+  else
+    handles.selected_ts = ts;
+  end
   %fprintf('Selected %d to %d\n',handles.selected_ts);
   UpdateSelection(handles);
 end
@@ -3958,7 +3976,7 @@ guidata(hObject,handles);
 ticker = tic;
 if nargin < 3,
   t0 = handles.ts(axi);
-  t1 = handles.nframes;
+  t1 = handles.t1_curr;%nframes;
   doloop = false;
 end
 
@@ -4167,8 +4185,8 @@ function contextmenu_timeline_manual_bookmark_bout_Callback(hObject, eventdata, 
 % handles    structure with handles and user data (see GUIDATA)
 
 clip = handles.bookmark_info;
-clip.t0 = max(1,clip.t0-1);
-clip.t1 = min(handles.nframes,clip.t1+1);
+clip.t0 = max(handles.t0_curr,clip.t0-1);
+clip.t1 = min(clip.t1+1,handles.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
 
 % --------------------------------------------------------------------
@@ -4364,8 +4382,8 @@ function contextmenu_timeline_automatic_bookmark_bout_Callback(hObject, eventdat
 % handles    structure with handles and user data (see GUIDATA)
 
 clip = handles.bookmark_info;
-clip.t0 = max(1,clip.t0-1);
-clip.t1 = min(handles.nframes,clip.t1+1);
+clip.t0 = max(handles.t0_curr,clip.t0-1);
+clip.t1 = min(clip.t1+1,handles.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
 
 % --------------------------------------------------------------------
