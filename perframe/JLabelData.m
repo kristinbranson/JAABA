@@ -2,6 +2,9 @@ classdef JLabelData < handle
   
   properties (Access=public)
 
+    % type of target (mainly used for plotting
+    targettype = 'fly';
+    
     % current selection
     
     % currently selected  experiment
@@ -537,6 +540,11 @@ classdef JLabelData < handle
           end
           if isfield(configparams.perframe,'landmark_params'),
             obj.landmark_params = configparams.perframe.landmark_params;
+          end
+        end
+        if isfield(configparams,'targets'),
+          if isfield(configparams.targets,'type'),
+            obj.targettype = configparams.targets.type;
           end
         end
       end
@@ -2315,7 +2323,9 @@ classdef JLabelData < handle
     % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
     % Returns the position for the input experiment, SINGLE fly, and
     % frames. If ts is not input, then all frames are returned. 
-    function [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
+    function pos = GetTrxPos1(obj,expi,fly,ts)
+
+      pos = struct;
       
       if all(expi ~= obj.expi),
         % TODO: generalize to multiple flies
@@ -2324,22 +2334,42 @@ classdef JLabelData < handle
           error('Error loading trx for experiment %d: %s',expi,msg);
         end
       end
-      
-      if nargin < 4,
-        x = obj.trx(fly).theta;
-        y = obj.trx(fly).y;
-        theta = obj.trx(fly).theta;
-        a = obj.trx(fly).a;
-        b = obj.trx(fly).b;
-        return;
-      end
-      
-      x = obj.trx(fly).x(ts + obj.trx(fly).off);
-      y = obj.trx(fly).y(ts + obj.trx(fly).off);
-      theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
-      a = obj.trx(fly).a(ts + obj.trx(fly).off);
-      b = obj.trx(fly).b(ts + obj.trx(fly).off);
 
+      switch obj.targettype,
+
+        case 'fly',
+
+          if nargin < 4,
+            pos.x = obj.trx(fly).x;
+            pos.y = obj.trx(fly).y;
+            pos.theta = obj.trx(fly).theta;
+            pos.a = obj.trx(fly).a;
+            pos.b = obj.trx(fly).b;
+            return;
+          end
+          
+          pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+          pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+          pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+          pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
+          pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
+         
+        case 'larva',
+          
+          if nargin < 4,
+            pos.x = obj.trx(fly).x;
+            pos.y = obj.trx(fly).y;
+            pos.skeletonx = obj.trx(fly).skeletonx;
+            pos.skeletony = obj.trx(fly).skeletony;
+            return;
+          end
+          
+          pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+          pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+          pos.skeletonx = obj.trx(fly).skeletonx(:,ts + obj.trx(fly).off);
+          pos.skeletony = obj.trx(fly).skeletony(:,ts + obj.trx(fly).off);
+          
+      end
     end
 
     % x = GetSex(obj,expi,fly,ts)

@@ -504,11 +504,9 @@ for i = axes,
       % REMOVED! NOT SO SLOW
 
       t = handles.ts(i);
-      [xcurr,ycurr,thetacurr,acurr,bcurr] = ...
-        handles.data.GetTrxPos1(handles.expi,fly,t);
-      updatefly(handles.hflies(fly,i),...
-        xcurr,ycurr,thetacurr,acurr,bcurr);
-      set(handles.hfly_markers(fly,i),'XData',xcurr,'YData',ycurr);
+      pos = handles.data.GetTrxPos1(handles.expi,fly,t);
+      UpdateTargetPosition(handles.data.targettype,handles.hflies(fly,i),pos);
+      set(handles.hfly_markers(fly,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.data.GetSex1(handles.expi,fly,t);
       if lower(sexcurr(1)) == 'm',
         set(handles.hfly_markers(fly,i),'Visible','on');
