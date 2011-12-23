@@ -82,6 +82,10 @@ classdef JLabelData < handle
     % names of behaviors, corresponding to labelidx
     labelnames = {};
     
+%     % colors for plotting each behavior
+%     labelcolors = [.7,0,0;0,0,.7];
+%     unknowncolor = [0,0,0];
+    
     % number of behaviors, including 'none'
     nbehaviors = 0;
 
@@ -444,7 +448,7 @@ classdef JLabelData < handle
       end
       
       % make sure everything gets set, one way or another
-      requiredfns = {'moviefilename','trxfilename','labelfilename','rootoutputdir'}; % 'windowfilename',
+      requiredfns = {'moviefilename','trxfilename','labelfilename'}; % 'windowfilename',
       for i = 1:numel(requiredfns),
         fn = requiredfns{i};
         if isnumeric(obj.(fn)),
@@ -564,8 +568,20 @@ classdef JLabelData < handle
         else
           obj.labelnames = {'Behavior','None'};
         end
-          
+                  
         obj.nbehaviors = numel(obj.labelnames);
+        
+%         % colors
+%         if isfield(configparams.behaviors,'labelcolors'),
+%           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
+%             obj.labelcolors = configparams.behaviors.labelcolors;
+%           end
+%         end
+%         if isfield(configparams.behaviors,'unknowncolor'),
+%           if numel(configparams.behaviors.unknowncolor) == 3,
+%             obj.unknowncolor = configparams.behaviors.unknowncolor;
+%           end
+%         end
         
         % rearrange so that None is the last label
         nonei = find(strcmpi('None',obj.labelnames),1);
@@ -1651,13 +1667,13 @@ classdef JLabelData < handle
           return;
         end
       elseif ~ischar(obj.rootoutputdir),
-        msg = 'rootoutputdir not yet set';
-        return;
+        outexpdir = expdir;
+        rootoutputdir = 0;
       else
         rootoutputdir = obj.rootoutputdir;        
       end
-
-      if ~isoutexpdir,
+      
+      if ischar(obj.rootoutputdir) && ~isoutexpdir,
         outexpdir = fullfile(rootoutputdir,expname);
       end
       

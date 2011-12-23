@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<params>
+  <targets
+      type="larva"
+  />
+  <behaviors 
+      names="Turn"
+      labelcolors=".7,0,0,0,0,.7"
+      unknowncolor=".7,.7,.7"
+      />
+  <file 
+      moviefilename="JLabel_movie.avi"
+      trxfilename="JLabel_trx.mat"
+      labelfilename="labeledturns.mat"
+      perframedir="perframe"
+      clipsdir="clips"
+      windowfilename="windowfeatures.mat"
+      featureparamfilename="params/WindowFeaturesLarvaeVani.xml"
+      />
+  
+  <plot>
+    <trx 
+	colormap="jet"
+	colormap_multiplier=".7"
+  extra_markersize="8"
+	/>
+    <labels 
+	colormap="line"
+	linewidth="3"
+	/>
+  </plot>
+
+</params>
