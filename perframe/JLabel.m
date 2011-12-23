@@ -156,6 +156,7 @@ end
 
 % fly current positions
 handles.hflies = zeros(handles.nflies_curr,numel(handles.axes_previews));
+handles.hflies_extra = zeros(handles.nflies_curr,numel(handles.axes_previews));
 handles.hfly_markers = zeros(handles.nflies_curr,numel(handles.axes_previews));
 % fly path
 handles.htrx = zeros(handles.nflies_label,numel(handles.axes_previews));
@@ -221,6 +222,10 @@ for i = 1:numel(handles.axes_previews),
   for fly = 1:handles.nflies_curr,
     handles.hflies(fly,i) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
+      'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
+    handles.hflies_extra(fly,i) = plot(handles.axes_previews(i),nan,nan,'o',...
+      'color',handles.fly_colors(fly,:),'markerfacecolor',handles.fly_colors(fly,:),...
+      'MarkerSize',handles.flies_extra_markersize,...
       'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
     handles.hfly_markers(fly,i) = plot(handles.axes_previews(i),nan,nan,'*',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
@@ -497,6 +502,7 @@ for i = axes,
     inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
       handles.data.endframes_per_exp{handles.expi} >= handles.ts(i);
     set(handles.hflies(~inbounds,i),'XData',nan,'YData',nan);
+    set(handles.hflies_extra(~inbounds,i),'XData',nan,'YData',nan);
     set(handles.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
       % WARNING: this accesses handles.data.trx directly -- make sure that
@@ -505,7 +511,7 @@ for i = axes,
 
       t = handles.ts(i);
       pos = handles.data.GetTrxPos1(handles.expi,fly,t);
-      UpdateTargetPosition(handles.data.targettype,handles.hflies(fly,i),pos);
+      UpdateTargetPosition(handles.data.targettype,handles.hflies(fly,i),handles.hflies_extra(fly,i),pos);
       set(handles.hfly_markers(fly,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.data.GetSex1(handles.expi,fly,t);
       if lower(sexcurr(1)) == 'm',
@@ -530,8 +536,11 @@ for i = axes,
         set(handles.hflies(fly,i),'LineWidth',3);
         if labelidx <= 0,
           set(handles.hflies(fly,i),'Color',handles.labelunknowncolor);
+          set(handles.hflies_extra(fly,i),'Color',handles.labelunknowncolor,...
+            'MarkerFaceColor',handles.labelunknowncolor);
         else
-          set(handles.hflies(fly,i),'Color',handles.labelcolors(labelidx,:));
+          set(handles.hflies(fly,i),'Color',handles.labelcolors(labelidx,:),...
+            'MarkerFaceColor',handles.labelcolors(labelidx,:));
         end
       else
         set(handles.hflies(fly,i),'LineWidth',1);
@@ -696,6 +705,10 @@ if isfield(handles,'hflies'),
   delete(handles.hflies(ishandle(handles.hflies)));
   handles.hflies = [];
 end
+if isfield(handles,'hflies_extra'),
+  delete(handles.hflies_extra(ishandle(handles.hflies_extra)));
+  handles.hflies_extra = [];
+end
 if isfield(handles,'hfly_markers'),
   delete(handles.hfly_markers(ishandle(handles.hfly_markers)));
   handles.hfly_markers = [];
@@ -703,6 +716,7 @@ end
 
 % update plotted trx handles, as number of flies will change
 handles.hflies = zeros(handles.nflies_curr,numel(handles.axes_previews));
+handles.hflies_extra = zeros(handles.nflies_curr,numel(handles.axes_previews));
 handles.hfly_markers = zeros(handles.nflies_curr,numel(handles.axes_previews));
 
 for i = 1:numel(handles.axes_previews),
@@ -710,6 +724,10 @@ for i = 1:numel(handles.axes_previews),
   for fly = 1:handles.nflies_curr,
     handles.hflies(fly,i) = plot(handles.axes_previews(i),nan,nan,'-',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
+      'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
+    handles.hflies_extra(fly,i) = plot(handles.axes_previews(i),nan,nan,'o',...
+      'color',handles.fly_colors(fly,:),'MarkerFaceColor',handles.fly_colors(fly,:),...
+      'MarkerSize',handles.flies_extra_markersize,...
       'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
     handles.hfly_markers(fly,i) = plot(handles.axes_previews(i),nan,nan,'*',...
       'color',handles.fly_colors(fly,:),'linewidth',3,...
@@ -769,6 +787,10 @@ handles.nflies_curr = 0;
 if isfield(handles,'hflies'),
   delete(handles.hflies(ishandle(handles.hflies)));
   handles.hflies = [];
+end
+if isfield(handles,'hflies_extra'),
+  delete(handles.hflies_extra(ishandle(handles.hflies_extra)));
+  handles.hflies_extra = [];
 end
 if isfield(handles,'hfly_markers'),
   delete(handles.hfly_markers(ishandle(handles.hfly_markers)));
@@ -913,6 +935,8 @@ inbounds = handles.data.firstframes_per_exp{handles.expi} <= handles.ts(i) & ...
 for i = 1:numel(handles.axes_previews),
   for fly = find(inbounds),
     set(handles.hflies(fly,i),'Color',handles.fly_colors(fly,:));
+    set(handles.hflies_extra(fly,i),'Color',handles.fly_colors(fly,:),...
+      'MarkerFaceColor',handles.fly_colors(fly,:));
   end
 end
 
@@ -1483,6 +1507,21 @@ if isfield(handles.configparams,'behaviors') && ...
   end
 end
 handles.labelunknowncolor = [0,0,0];
+if isfield(handles.configparams,'behaviors') && ...
+    isfield(handles.configparams.behaviors,'unknowncolor'),
+  unknowncolor = handles.configparams.behaviors.unknowncolor;
+  if numel(unknowncolor) >= 3,
+    handles.labelunknowncolor = reshape(unknowncolor(1:3),[1,3]);
+  else
+    uiwait(warndlg('Error parsing unknown color from config file, automatically assigning','Error parsing config unknown colors'));
+  end
+end
+handles.flies_extra_markersize = 12;
+if isfield(handles.configparams,'plot') && ...
+    isfield(handles.configparams.plot,'trx') && ...
+    isfield(handles.configparams.plot.trx,'extra_markersize'),
+  handles.flies_extra_markersize = handles.configparams.plot.trx.extra_markersize(1);
+end
 
 for channel = 1:3
   midValue = handles.labelunknowncolor(channel);
