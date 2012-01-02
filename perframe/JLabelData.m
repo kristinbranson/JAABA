@@ -1322,11 +1322,15 @@ classdef JLabelData < handle
     end
     
     function LoadScores(obj,expi)
+
       scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
       sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
+      if ~exist(sfn,'file')
+        [sfn,~,~] = uigetfile(sfn,'Select scores file');
+      end
       obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
-
-      if exist(sfn,'file'),
+      
+      if sfn,
         load(sfn,'allScores','timestamp');
         for ndx = 1:numel(allScores.scores)
           if obj.scoredata.exp
