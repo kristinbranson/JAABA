@@ -831,6 +831,13 @@ classdef JLabelData < handle
 
     end
   
+    function UpdatePerframeParams(obj,params,cellParams)
+    % Updates the feature params. Called by SelectFeatures
+      obj.ClearWindowFeatures();
+      obj.SetPerframeParams(params,cellParams)
+    end
+    
+    
     % change/set the name of the movie within the experiment directory
     % will fail if movie files don't exist for any of the current
     % experiment directories (checked by CheckMovies)
@@ -1326,7 +1333,9 @@ classdef JLabelData < handle
       scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
       sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
       if ~exist(sfn,'file')
-        [sfn,~,~] = uigetfile(sfn,'Select scores file');
+        tstring = sprintf('Scores file for %s',obj.expnames{expi});
+        [fname,pname,~] = uigetfile(sfn,tstring);
+        sfn = fullfile(pname,fname);
       end
       obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
       
