@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 13-Dec-2011 14:25:09
+% Last Modified by GUIDE v2.5 05-Jan-2012 10:34:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -4723,25 +4723,6 @@ function newColor = shiftColorBkwd(oldColor)
   newColor = reshape(newColor,oldSize);
 
   
-% --------------------------------------------------------------------
-function menu_file_loadscores_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_loadscores (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.data.nexps,
-  handles.data.LoadScores(ndx);
-end
-handles = UpdateTimelineIms(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
-
-
 % --- Executes when selected object is changed in panel_timeline_select.
 function panel_timeline_select_SelectionChangeFcn(hObject, eventdata, handles)
 % hObject    handle to the selected object in panel_timeline_select 
@@ -4800,3 +4781,99 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+
+
+% --------------------------------------------------------------------
+function Untitled_2_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_file_loadscorescurrentexpdefault_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_loadscorescurrentexpdefault (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.data.LoadScoresDefault(handles.data.expi);
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+
+% --------------------------------------------------------------------
+function menu_file_loadscorescurrentexpselect_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_loadscorescurrentexpselect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+tstring = sprintf('Scores file for %s',handles.data.expnames{handles.data.expi});
+[fname,pname,~] = uigetfile('*.mat',tstring);
+if ~fname; return; end;
+sfn = fullfile(pname,fname);
+handles.data.LoadScores(handles.data.expi,sfn);
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+
+% --------------------------------------------------------------------
+function menu_file_loadscoresAlldefault_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_loadscoresAlldefault (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+for ndx = 1:handles.data.nexps,
+  handles.data.LoadScoresDefault(ndx);
+end
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+
+% --------------------------------------------------------------------
+function menu_file_loadscoresAllselect_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_loadscoresAllselect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+tstring = sprintf('Root dir to load scores for all experiments');
+fname = uigetdir('*.mat',tstring);
+if ~fname; return; end;
+scoreFileName = sprintf('scores_%s.mat',handles.data.labelnames{1});
+
+for ndx = 1:handles.data.nexps,
+  sfn = fullfile(fname,handles.data.expnames{ndx},scoreFileName);
+  if ~exist(sfn,'file')
+    warndlg(sprintf('Scores file %s does not exist for exp:%s',...
+      scoreFileName,handles.data.expnames{ndx}));
+    continue; 
+  end
+  handles.data.LoadScores(ndx,sfn);
+end
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+

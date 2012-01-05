@@ -1328,37 +1328,28 @@ classdef JLabelData < handle
       save(sfn,'allScores','timestamp');
     end
     
-    function LoadScores(obj,expi)
-
-      scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
-      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
-      if ~exist(sfn,'file')
-        tstring = sprintf('Scores file for %s',obj.expnames{expi});
-        [fname,pname,~] = uigetfile(sfn,tstring);
-        sfn = fullfile(pname,fname);
-      end
-      obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
+    function LoadScores(obj,expi,sfn)
       
-      if sfn,
-        load(sfn,'allScores','timestamp');
-        for ndx = 1:numel(allScores.scores)
-          if obj.scoredata.exp
-            idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,ndx),2);
-          else
-            idxcurr = [];
-          end
-          if any(idxcurr), continue; end
-          tStart = allScores.tStart(ndx);
-          tEnd = allScores.tEnd(ndx);
-          sz = tEnd-tStart+1;
-          curScores = allScores.scores{ndx}(tStart:tEnd);
-          obj.scoredata.scores(end+1:end+sz) = curScores;
-          obj.scoredata.predicted(end+1:end+sz) = -sign(curScores)*0.5+1.5;
-          obj.scoredata.exp(end+1:end+sz,1) = expi;
-          obj.scoredata.flies(end+1:end+sz,1) = ndx;
-          obj.scoredata.t(end+1:end+sz) = tStart:tEnd;
-          obj.scoredata.timestamp(end+1:end+sz) = timestamp;
+      obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
+      load(sfn,'allScores','timestamp');
+
+      for ndx = 1:numel(allScores.scores)
+        if obj.scoredata.exp
+          idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,ndx),2);
+        else
+          idxcurr = [];
         end
+        if any(idxcurr), continue; end
+        tStart = allScores.tStart(ndx);
+        tEnd = allScores.tEnd(ndx);
+        sz = tEnd-tStart+1;
+        curScores = allScores.scores{ndx}(tStart:tEnd);
+        obj.scoredata.scores(end+1:end+sz) = curScores;
+        obj.scoredata.predicted(end+1:end+sz) = -sign(curScores)*0.5+1.5;
+        obj.scoredata.exp(end+1:end+sz,1) = expi;
+        obj.scoredata.flies(end+1:end+sz,1) = ndx;
+        obj.scoredata.t(end+1:end+sz) = tStart:tEnd;
+        obj.scoredata.timestamp(end+1:end+sz) = timestamp;
       end
       obj.UpdatePredictedIdx();
 
@@ -1372,6 +1363,16 @@ classdef JLabelData < handle
       obj.ClearStatus();
 
     end
+    
+    function LoadScoresDefault(obj,expi)
+      scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
+      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
+      if ~exist(sfn,'file')
+        warndlg(sprintf('No scores file %s at the default location',...
+          scoreFileName));
+      end
+    end
+    
     
     % SaveClassifier(obj)
     % This function saves the current classifier to the file
