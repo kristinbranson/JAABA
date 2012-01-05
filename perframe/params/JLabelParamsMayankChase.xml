@@ -11,7 +11,7 @@
       labelfilename="labeledChases.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/WindowFeaturesChase.xml"
+      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeaturesChase.xml"
       rootoutputdir="/groups/branson/home/kabram/bowlData/out/"
       />
   

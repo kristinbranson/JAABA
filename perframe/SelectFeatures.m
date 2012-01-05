@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 03-Jan-2012 14:11:19
+% Last Modified by GUIDE v2.5 04-Jan-2012 13:48:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -477,11 +477,43 @@ for i1 = 1:numel(fns1),
   cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
 end
 
-function createParamsXML(params)
+
+function docNode = createParamsXML(params)
 docNode = com.mathworks.xml.XMLUtils.createDocument('params');
 toc = docNode.getDocumentElement;
-toc.setAttribute('version','1.0');
+att = fieldnames(params);
+for ndx = 1:numel(att)
+  toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
+end
 
+
+function node = createXMLNode(docNode,name,value)
+
+node = docNode.createElement(name);
+
+fs = fieldnames(value);
+for ndx = 1:numel(fs)
+  curVal = value.(fs{ndx});
+  switch class(curVal)
+    case 'struct'
+      node.appendChild(createXMLNode(docNode,fs{ndx},value.(fs{ndx})));
+    case 'cell'
+      valStr = curVal{1};
+      for vNdx = 2:numel(curVal)
+        valStr = [valStr ',' curVal{vNdx}];
+      end
+      node.setAttribute(fs{ndx},valStr);
+    case 'double'
+      valStr = num2str(curVal(1));
+      for vNdx = 2:numel(curVal)
+        valStr = [valStr ',' num2str(curVal(vNdx))];
+      end      
+      node.setAttribute(fs{ndx},valStr);
+    otherwise
+      fprintf('Unknown type');
+  end
+      
+end
 
 
 function disableWindowTable(handles)
@@ -601,7 +633,6 @@ function WindowStep_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 
 
 function WindowOffsets_Callback(hObject, eventdata, handles)
@@ -746,3 +777,20 @@ function ExtraParams_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in Save.
+function Save_Callback(hObject, eventdata, handles)
+% hObject    handle to Save (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[fName,pName] = uiputfile('./*.xml','Save feature configurations to..');
+if ~fName
+  return;
+end
+
+handles = guidata(hObject);
+[params,~] = convertData(handles);
+docNode = createParamsXML(params);
+xmlwrite(fName,docNode);
