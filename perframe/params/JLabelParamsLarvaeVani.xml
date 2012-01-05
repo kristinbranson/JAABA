@@ -18,6 +18,9 @@
       windowfilename="windowfeatures.mat"
       featureparamfilename="params/WindowFeaturesLarvaeVani.xml"
       />
+    <featureparamlist>
+      <dhead2body/>
+    </featureparamlist>
   
   <plot>
     <trx 

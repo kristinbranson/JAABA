@@ -1555,13 +1555,16 @@ handles.timeline_prop_help_string = '<html><body><i>Help</i></body></html>';
 handles.timeline_prop_options = ...
   {handles.timeline_prop_remove_string,...
   handles.timeline_prop_help_string};
-for i = 1:numel(handles.data.perframefns),
-  handles.timeline_prop_options{end+1} = handles.data.perframefns{i};
+
+if ~isempty(handles.data.perframefns)
+  for i = 1:numel(handles.data.perframefns),
+    handles.timeline_prop_options{end+1} = handles.data.perframefns{i};
+  end
+  handles.d = handles.data.perframefns(1);
+  handles.perframepropis = 1;
+  set(handles.timeline_label_prop1,'String',handles.timeline_prop_options,'Value',3);
+  handles.timeline_data_ylims = nan(2,numel(handles.data.perframefns));
 end
-handles.perframepropfns = handles.data.perframefns(1);
-handles.perframepropis = 1;
-set(handles.timeline_label_prop1,'String',handles.timeline_prop_options,'Value',3);
-handles.timeline_data_ylims = nan(2,numel(handles.data.perframefns));
 
 % maximum distance squared in fraction of axis to change frames when
 % clicking on preview window

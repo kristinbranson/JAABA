@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 04-Jan-2012 13:48:23
+% Last Modified by GUIDE v2.5 05-Jan-2012 17:10:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,13 +71,11 @@ function varargout = SelectFeatures_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-
-function createWindowTable(hObject)
-% Sets values for the window table.
-
+function setJLDobj(hObject,JLDobj)
+% Set the JLabelDataObject.
 handles = guidata(hObject);
+handles.JLDobj = JLDobj;
 
-% Deal with windowTable
 handles.windowComp = {'default','mean','min','max','histogram','prctile',...
    'change','std','harmonic','diff_neighbor_mean',...
    'diff_neighbor_min','diff_neighbor_max','zscore_neighbors'};
@@ -85,7 +83,21 @@ handles.windowComp = {'default','mean','min','max','histogram','prctile',...
 handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
   'trans_types','window_offsets'};
 handles.defaultWinParams = {0,0,0,'',0};
- 
+
+handles.pfList =  handles.JLDobj.perframefns;
+guidata(hObject,handles);
+
+[params,~] = handles.JLDobj.GetPerframeParams();
+initData(hObject,params);
+
+
+
+function createWindowTable(hObject)
+% Sets values for the window table.
+
+handles = guidata(hObject);
+
+% Deal with windowTable
  set(handles.windowTable,'RowName', handles.windowComp,...
     'ColumnName',{'Computation Type','Select'});
  selVals = [true true true true false false false false false false false false false];
@@ -122,7 +134,6 @@ guidata(hObject,handles);
 function createPfTable(hObject)
 % Sets the values for feature table.
 
-initData(hObject);
 handles = guidata(hObject);
 
 pfList = handles.pfList;
@@ -160,12 +171,10 @@ guidata(hObject,handles);
 
 
 % Initialize the data structure.
-function initData(hObject)
+function initData(hObject,params)
 handles = guidata(hObject);
-pfList =  handles.JLDobj.GetAllPerframeFeatures();
-handles.pfList = pfList;
+pfList = handles.pfList;
 data = {};
-[params,~] = handles.JLDobj.GetPerframeParams();
 validPfs = fieldnames(params);
 winParams = handles.winParams;
 for ndx = 1:numel(pfList)
@@ -233,7 +242,8 @@ end
 
 handles.data = data;
 guidata(hObject,handles);
-
+createPfTable(hObject);
+createWindowTable(hObject);
 
 
 function str = findExtraParams(curParam,winComp)
@@ -414,12 +424,6 @@ set(handles.TransAbs,'Value',...
 set(handles.TransRel,'Value',...
   any(strcmp('relative',curParams.values.trans_types)));
 set(handles.ExtraParams,'String',curParams.values.extra);
-
-function setJLDobj(hObject,JLDobj)
-% Set the JLabelDataObject.
-handles = guidata(hObject);
-handles.JLDobj = JLDobj;
-guidata(hObject,handles);
 
 
 function [params, cellparams] = convertData(handles)
@@ -744,6 +748,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+Save_Callback(hObject,eventdata,handles);
 handles = guidata(hObject);
 [params,cellParams] = convertData(handles);
 handles.JLDobj.UpdatePerframeParams(params,cellParams);
@@ -794,3 +799,17 @@ handles = guidata(hObject);
 [params,~] = convertData(handles);
 docNode = createParamsXML(params);
 xmlwrite(fName,docNode);
+
+
+% --- Executes on button press in Load.
+function Load_Callback(hObject, eventdata, handles)
+% hObject    handle to Load (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+[fname,pname]= uigetfile('*.xml');
+featureparamsfilename = fullfile(pname,fname);
+[params,~] = ...
+  ReadPerFrameParams(featureparamsfilename);
+guidata(hObject,handles);
+initData(hObject,params);

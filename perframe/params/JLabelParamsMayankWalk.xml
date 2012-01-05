@@ -11,11 +11,66 @@
       labelfilename="labeledwalks.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeaturesWalks.xml"
       rootoutputdir="/groups/branson/home/kabram/bowlData/out/"
       />
-  
-  <plot>
+      <!-- featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeaturesWalks.xml" -->
+   <featureparamlist>
+     <absangle2wall/>
+     <absanglefrom1to2_anglesub/>
+     <absanglefrom1to2_nose2ell/>
+     <absdangle2wall/>
+     <absdtheta/>
+     <absdv_cor/>
+     <absphidiff_anglesub/>
+     <absphidiff_nose2ell/>
+     <abssmoothdtheta/>
+     <absthetadiff_anglesub/>
+     <absthetadiff_nose2ell/>
+     <absyaw/>
+     <angle2wall/>
+     <anglefrom1to2_anglesub/>
+     <anglefrom1to2_nose2ell/>
+     <anglesub/>
+     <area/>
+     <areasmooth/>
+     <arena_angle/>
+     <arena_r/>
+     <closestfly_anglesub/>
+     <closestfly_center/>
+     <closestfly_ell2nose/>
+     <closestfly_nose2ell/>
+     <corfrac_maj/>
+     <corfrac_min/>
+     <dangle2wall/>
+     <danglesub/>
+     <dcenter/>
+     <ddcenter/>
+     <ddell2nose/>
+     <ddist2wall/>
+     <ddnose2ell/>
+     <dell2nose/>
+     <dist2wall/>
+     <dnose2ell/>
+     <dtheta/>
+     <du_cor/>
+     <du_ctr/>
+     <dv_cor/>
+     <dv_ctr/>
+     <flipdv_cor/>
+     <magveldiff_anglesub/>
+     <magveldiff_nose2ell/>
+     <phi/>
+     <phisideways/>
+     <signdtheta/>
+     <smoothdtheta/>
+     <velmag/>
+     <velmag_ctr/>
+     <veltoward_anglesub/>
+     <veltoward_nose2ell/>
+     <yaw/>
+   </featureparamlist>
+ 
+ <plot>
     <trx 
 	colormap="jet"
 	colormap_multiplier=".7"

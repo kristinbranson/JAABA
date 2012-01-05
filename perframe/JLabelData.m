@@ -532,6 +532,12 @@ classdef JLabelData < handle
             return;
           end
         end
+        if isfield(configparams,'featureparamlist'),
+          [success1,msg] = obj.SetFeatureParamsList(configparams.featureparamlist);
+          if ~success1,
+            return;
+          end
+        end
         if isfield(configparams.file,'featureparamfilename'),
           [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
           if ~success1,
@@ -714,6 +720,14 @@ classdef JLabelData < handle
       
       if ~exist('mode','var'), mode = 'center'; end
       if ~exist('forceCalc','var'), forceCalc = false; end
+      
+      % Check if the features have been configured.
+      if isempty(fieldnames(obj.windowfeaturesparams))
+        obj.ShowSelectFeatures();
+        if isempty(fieldnames(obj.windowfeaturesparams))
+          error('No features selected!');
+        end
+      end
       
       % choose frames to compute:
       
@@ -2001,6 +2015,19 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = SetFeatureParamsList(obj,featurelist)
+      success = false;
+      msg = '';
+      
+      obj.perframefns = fieldnames(featurelist);
+      if isempty(obj.perframefns)
+        msg = 'No perframefns defined';
+        return;
+      end
+      success = true;
+      
+    end
+    
     % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
     % Sets the name of the file describing the features to use to
     % featureparamsfilename. These parameters are read in. Currently, the
@@ -2028,17 +2055,16 @@ classdef JLabelData < handle
 %       end
       obj.SetPerframeParams(windowfeaturesparams,windowfeaturescellparams); %#ok<PROP>
       obj.featureparamsfilename = featureparamsfilename;
-      obj.perframefns = fieldnames(obj.windowfeaturescellparams);
-      if numel(obj.perframedata) ~= numel(obj.perframefns),
-        obj.perframedata = cell(1,numel(obj.perframefns));
-        obj.perframeunits = cell(1,numel(obj.perframefns));
-      end
       success = true;
     end
     
     function SetPerframeParams(obj,windowfeaturesparams,windowfeaturescellparams)
       obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
       obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
+      if numel(obj.perframedata) ~= numel(obj.perframefns),
+        obj.perframedata = cell(1,numel(obj.perframefns));
+        obj.perframeunits = cell(1,numel(obj.perframefns));
+      end
     end  
     
     function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
@@ -2046,22 +2072,6 @@ classdef JLabelData < handle
       windowfeaturescellparams = obj.windowfeaturescellparams; %#ok<PROP>
     end  
     
-    function perframeFeatures = GetAllPerframeFeatures(obj)
-    % Finds all the *.mat in perframe directory. 
-    % TODO: Better way to find the list of all the perframe features
-      
-      if isempty(obj.expi),
-        perframeFeatures = {};
-        return;
-      end
-      
-      pfdir = fullfile(obj.expdirs{1},obj.GetFileName('perframedir'));
-      pfList = dir(fullfile(pfdir,'*.mat'));
-      for ndx = 1:numel(pfList)
-        perframeFeatures{ndx} = pfList(ndx).name(1:end-4);
-      end
-      
-    end
     
     % [filenames,timestamps] = GetPerFrameFiles(obj,file,expi)
     % Get the full path to the per-frame mat files for experiment expi
@@ -3059,21 +3069,6 @@ classdef JLabelData < handle
       
       % load all labeled data
       [success,msg] = obj.PreLoadLabeledData();
-%       success = true;
-%       for expi = 1:obj.nexps,
-%         for i = 1:numel(obj.labels(expi).t0s),
-%           flies = obj.labels(expi).flies(i,:);
-%           ts = [];
-%           for j = 1:numel(obj.labels(expi).t0s{i}),
-%             ts = [ts,obj.labels(expi).t0s{i}(j):obj.labels(expi).t1s{i}(j)]; %#ok<AGROW>
-%           end
-%           ts = unique(ts);
-%           [success,msg] = obj.PreLoadWindowData(expi,flies,ts);
-%           if ~success,
-%             break;
-%           end
-%         end
-%       end
       if ~success,
         warning(msg);
         return;
@@ -3773,8 +3768,6 @@ classdef JLabelData < handle
     function ShowSelectFeatures(obj)
       selHandle = SelectFeatures;
       SelectFeatures('setJLDobj',selHandle,obj);
-      SelectFeatures('createWindowTable',selHandle);
-      SelectFeatures('createPfTable',selHandle);
       uiwait(selHandle);
     end
     
