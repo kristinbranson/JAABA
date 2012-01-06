@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 05-Jan-2012 10:34:35
+% Last Modified by GUIDE v2.5 06-Jan-2012 09:55:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1556,14 +1556,14 @@ handles.timeline_prop_options = ...
   {handles.timeline_prop_remove_string,...
   handles.timeline_prop_help_string};
 
-if ~isempty(handles.data.perframefns)
-  for i = 1:numel(handles.data.perframefns),
-    handles.timeline_prop_options{end+1} = handles.data.perframefns{i};
+if ~isempty(handles.data.allperframefns)
+  for i = 1:numel(handles.data.allperframefns),
+    handles.timeline_prop_options{end+1} = handles.data.allperframefns{i};
   end
-  handles.d = handles.data.perframefns(1);
+  handles.d = handles.data.allperframefns(1);
   handles.perframepropis = 1;
   set(handles.timeline_label_prop1,'String',handles.timeline_prop_options,'Value',3);
-  handles.timeline_data_ylims = nan(2,numel(handles.data.perframefns));
+  handles.timeline_data_ylims = nan(2,numel(handles.data.allperframefns));
 end
 
 % maximum distance squared in fraction of axis to change frames when
@@ -1592,7 +1592,7 @@ set(handles.togglebutton_select,'Value',0);
 % initialize nextjump obj;
 handles.NJObj = NextJump();
 handles.NJObj.SetSeekBehaviorsGo(1:handles.data.nbehaviors);
-handles.NJObj.SetPerframefns(handles.data.perframefns);
+handles.NJObj.SetPerframefns(handles.data.allperframefns);
 
 % initialize labels for navigation
 SetJumpGoMenuLabels(handles)
@@ -2088,7 +2088,7 @@ else % label pen is up.
     'refresh_timeline_selection',false,...
     'refresh_curr_prop',false);
   
-  %handles.data.StoreLabels();
+%   handles.data.StoreLabels();
   for j = 1:handles.data.nbehaviors,
     set(handles.togglebutton_label_behaviors(j),'Value',0,'String',sprintf('Start %s',handles.data.labelnames{j}),'Enable','on');
   end
@@ -3526,7 +3526,7 @@ elseif strcmpi(s,handles.timeline_prop_help_string),
   
   
 else
-  prop = find(strcmpi(s,handles.data.perframefns),1);
+  prop = find(strcmpi(s,handles.data.allperframefns),1);
   handles.perframepropis(propi) = prop;
   handles.perframeprops{propi} = s;
   [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,prop);
@@ -3598,7 +3598,7 @@ handles.guipos.timeline_bottom_borders(axi+1) = [];
 handles.guipos.timeline_heights(axi) = [];
 handles.guipos.timeline_left_borders(axi) = [];
 handles.guipos.timeline_label_middle_offsets(axi) = [];
-handles.perframepropfns(propi) = [];
+% handles.perframepropfns(propi) = [];
 handles.perframepropis(propi) = [];
 
 % show the xticks
@@ -3627,7 +3627,7 @@ function handles = AddPropAxes(handles,prop)
 
 % choose a property
 if nargin < 2,
-  prop = find(~ismember(1:numel(handles.data.perframefns),handles.perframepropis),1);
+  prop = find(~ismember(1:numel(handles.data.allperframefns),handles.perframepropis),1);
   if isempty(prop),
     prop = 1;
   end
@@ -3703,7 +3703,7 @@ handles.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guipos.timeline_height
 handles.guipos.timeline_bottom_borders = handles.guipos.timeline_bottom_borders([1,2,2:numel(handles.guipos.timeline_bottom_borders)]);
 handles.guipos.timeline_left_borders = [pos(1),handles.guipos.timeline_left_borders];
 handles.guipos.timeline_label_middle_offsets = [handles.guipos.timeline_prop_label_middle_offset,handles.guipos.timeline_label_middle_offsets];
-handles.perframepropfns = [handles.data.perframefns(prop),handles.perframepropfns];
+% handles.perframepropfns = [handles.data.allperframefns(prop),handles.perframepropfns];
 handles.perframepropis = [prop,handles.perframepropis];
 
 % add the text box
@@ -4709,6 +4709,8 @@ function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 handles.data.ShowSelectFeatures();
 
+
+
 function newColor = shiftColorFwd(oldColor)
   oldSize = size(oldColor);
   oldColor = reshape(oldColor,[1 1 3]);
@@ -4748,6 +4750,7 @@ function crossValidate_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+handles.data.StoreLabels();
 crossError = handles.data.CrossValidate();
 handles = UpdatePrediction(handles);
 dialogStr{1} = sprintf('%25s %10s Predicted  %10s Predicted \n',...
@@ -4880,3 +4883,24 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
 
+
+% --------------------------------------------------------------------
+function menu_classifier_testnewlabels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_testnewlabels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+newError = handles.data.TestOnNewLabels();
+handles = UpdatePrediction(handles);
+dialogStr{1} = sprintf('%25s %10s Predicted  %10s Predicted \n',...
+  '',handles.data.labelnames{2},handles.data.labelnames{1});
+dialogStr{2} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{2},...
+  newError.numbers(1,1),newError.frac(1,1),...
+  newError.numbers(1,2),newError.frac(1,2));
+dialogStr{3} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{1},...
+  newError.numbers(2,1),newError.frac(2,1),...
+  newError.numbers(2,2),newError.frac(2,2));
+
+helpdlg(dialogStr,'Performance on new labeled data');
