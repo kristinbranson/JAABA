@@ -213,7 +213,8 @@ classdef JLabelData < handle
     windowfeaturescellparams = {};
     
     % per-frame features that are used
-    perframefns = {};
+    allperframefns = {};
+    curperframefns = {};
     perframeunits = {};
 
     % experiment/file management
@@ -780,12 +781,13 @@ classdef JLabelData < handle
 %       try
 
         % loop through per-frame fields
-        for j = 1:numel(obj.perframefns),
-          fn = obj.perframefns{j};
+        for j = 1:numel(obj.curperframefns),
+          fn = obj.curperframefns{j};
 
           % get per-frame data
           if ~isempty(obj.flies) && obj.IsCurFly(expi,flies),
-            perframedata = obj.perframedata{j};
+            ndx = find(strcmp(fn,obj.allperframefns));
+            perframedata = obj.perframedata{ndx};
           else
             perframedir = obj.GetFile('perframedir',expi);
             perframedata = load(fullfile(perframedir,[fn,'.mat']));
@@ -1996,13 +1998,13 @@ classdef JLabelData < handle
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
       
-      for i = 1:numel(obj.perframefns),
-        fn = obj.perframefns{i};
+      for i = 1:numel(obj.allperframefns),
+        fn = obj.allperframefns{i};
         file = fullfile(perframedir,[fn,'.mat']);
         if ~dooverwrite && exist(file,'file'),
           continue;
         end
-        hwait = mywaitbar(i/numel(obj.perframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
         perframetrx.(fn); %#ok<VUNUS>
           
       end
@@ -2019,8 +2021,8 @@ classdef JLabelData < handle
       success = false;
       msg = '';
       
-      obj.perframefns = fieldnames(featurelist);
-      if isempty(obj.perframefns)
+      obj.allperframefns = fieldnames(featurelist);
+      if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
         return;
       end
@@ -2061,10 +2063,7 @@ classdef JLabelData < handle
     function SetPerframeParams(obj,windowfeaturesparams,windowfeaturescellparams)
       obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
       obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
-      if numel(obj.perframedata) ~= numel(obj.perframefns),
-        obj.perframedata = cell(1,numel(obj.perframefns));
-        obj.perframeunits = cell(1,numel(obj.perframefns));
-      end
+      obj.curperframefns = fieldnames(windowfeaturesparams);
     end  
     
     function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
@@ -2092,15 +2091,15 @@ classdef JLabelData < handle
         expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
       end
       
-      filenames = cell(1,numel(obj.perframefns));
-      timestamps = -inf(1,numel(obj.perframefns));
+      filenames = cell(1,numel(obj.allperframefns));
+      timestamps = -inf(1,numel(obj.allperframefns));
       
-      for i = 1:numel(obj.perframefns),
+      for i = 1:numel(obj.allperframefns),
 
         % loop through directories to look in
         for j = 1:numel(expdirs_try),
           expdir = expdirs_try{j};
-          filename = fullfile(expdir,fn,[obj.perframefns{i},'.mat']);
+          filename = fullfile(expdir,fn,[obj.allperframefns{i},'.mat']);
           
           if exist(filename,'file'),
             filenames{i} = filename;
@@ -2613,8 +2612,8 @@ classdef JLabelData < handle
       % load perframedata
       obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(flies));
       perframedir = obj.GetFile('perframedir',expi);
-      for j = 1:numel(obj.perframefns),
-        fn = obj.perframefns{j};
+      for j = 1:numel(obj.allperframefns),
+        fn = obj.allperframefns{j};
         file = fullfile(perframedir,[fn,'.mat']);
         if ~exist(file,'file'),
           msg = sprintf('Per-frame data file %s does not exist',file);
@@ -2721,7 +2720,7 @@ classdef JLabelData < handle
       end
       
       perframedir = obj.GetFile('perframedir',expi);
-      tmp = load(fullfile(perframedir,[obj.perframefns{prop},'.mat']));
+      tmp = load(fullfile(perframedir,[obj.allperframefns{prop},'.mat']));
       if nargin < 5,
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         % TODO: generalize to multi-fly
@@ -2761,7 +2760,7 @@ classdef JLabelData < handle
       end
       
       perframedir = obj.GetFile('perframedir',expi);
-      tmp = load(fullfile(perframedir,[obj.perframefns{prop},'.mat']));
+      tmp = load(fullfile(perframedir,[obj.allperframefns{prop},'.mat']));
       off = 1 - obj.GetTrxFirstFrame(expi,flies);
       perframedata = tmp.data{flies(1)}(t+off);
 
@@ -3239,6 +3238,47 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
       
+    function newError = TestOnNewLabels(obj)
+      obj.StoreLabels();
+      newError = struct;
+      if isempty(obj.classifier); return; end
+      
+      prevLabeled = obj.windowdata.labelidx_old~=0;
+      Nprev = numel(prevLabeled);
+      newLabels = obj.windowdata.labelidx_new ~= 0;
+      tOld = newLabels(1:Nprev);
+      tOld(prevLabeled) = false;
+      newLabels(1:Nprev) = tOld;
+      
+      if ~nnz(newLabels); 
+        fprintf('No new labeled data\n');
+        return;
+      end
+      
+      switch obj.classifiertype,
+        
+        case 'boosting',
+
+          obj.SetStatus('Applying boosting classifier to newly labeled %d frames',nnz(newLabels));
+          scores = myBoostClassify(obj.windowdata.X(newLabels,:),obj.classifier);
+          modLabels = sign( (obj.windowdata.labelidx_new(newLabels)==1)-0.5);
+          newError.numbers = confusionmat( (modLabels>0)+1,(scores>0)+1);
+          if size(newError.numbers,1)<obj.nbehaviors,
+            missingR = (size(newError.numbers,1)+1):obj.nbehaviors;
+            newError.numbers(missingR,:) = 0; 
+          end
+          if size(newError.numbers,2)<obj.nbehaviors,
+            missingC = (size(newError.numbers,2)+1):obj.nbehaviors;
+            newError.numbers(:,missingC) = 0; 
+          end
+          newError.frac = newError.numbers./repmat( sum(newError.numbers,2),[1 2]);
+          
+        case 'ferns',
+          %TODO.
+ 
+      end
+
+    end
     
     function DoBagging(obj)
       [success,msg] = obj.PreLoadLabeledData();
@@ -3625,7 +3665,7 @@ classdef JLabelData < handle
           obj.ClearStatus();
         case 'boosting',
 
-          obj.SetStatus('Applying boosting classifier to %d windows',nnz(idxcurr));
+          obj.SetStatus('Applying boosting classifier to %d frames',nnz(idxcurr));
           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
           obj.windowdata.scores(idxcurr) = scores;

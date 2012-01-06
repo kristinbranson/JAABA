@@ -84,7 +84,7 @@ handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
   'trans_types','window_offsets'};
 handles.defaultWinParams = {0,0,0,'',0};
 
-handles.pfList =  handles.JLDobj.perframefns;
+handles.pfList =  handles.JLDobj.allperframefns;
 guidata(hObject,handles);
 
 [params,~] = handles.JLDobj.GetPerframeParams();
@@ -229,6 +229,7 @@ for ndx = 1:numel(pfList)
           curType = winParams{winParamsNdx};
           data{ndx}.(curFn).values.(curType) = data{ndx}.default.values.(curType);
         end
+        data{ndx}.(curFn).values.extra = '';
         
       end
       
@@ -513,6 +514,15 @@ for ndx = 1:numel(fs)
         valStr = [valStr ',' num2str(curVal(vNdx))];
       end      
       node.setAttribute(fs{ndx},valStr);
+    case 'logical'
+      valStr = num2str(curVal(1));
+      for vNdx = 2:numel(curVal)
+        valStr = [valStr ',' num2str(curVal(vNdx))];
+      end      
+      node.setAttribute(fs{ndx},valStr);
+    case 'char'
+      valStr = curVal;
+      node.setAttribute(fs{ndx},valStr);
     otherwise
       fprintf('Unknown type');
   end
@@ -761,6 +771,20 @@ function pushbutton_applydefault_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_applydefault (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+handles = guidata(hObject);
+winfnNdx = handles.winNdx;
+pfNdx = handles.pfNdx;
+curFn = handles.windowComp{winfnNdx};
+handles.data{pfNdx}.(curFn).valid = true;
+for winParamsNdx = 1:numel(handles.winParams)
+  curType = handles.winParams{winParamsNdx};
+  handles.data{pfNdx}.(curFn).values.(curType) = ...
+    handles.data{pfNdx}.default.values.(curType);
+end
+handles.data{pfNdx}.(curFn).values.extra = '';
+setWinParams(handles,handles.winNdx);
+guidata(hObject,handles);
 
 function ExtraParams_Callback(hObject, eventdata, handles)
 % hObject    handle to ExtraParams (see GCBO)
