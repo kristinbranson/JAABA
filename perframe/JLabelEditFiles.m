@@ -143,6 +143,10 @@ end
 % initialize status table
 UpdateStatusTable(handles);
 
+if handles.data.nexps>0,
+  set(handles.pushbutton_load,'enable','off');
+end
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -278,6 +282,8 @@ if handles.data.filesfixable && ~handles.data.allfilesexist,
   UpdateStatusTable(handles);
 end
 
+set(handles.pushbutton_cancel,'enable','off');
+
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
 file = handles.data.filetypes{row};
@@ -321,6 +327,7 @@ end
 handles.data.RemoveExpDirs(v);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 UpdateStatusTable(handles);
+set(handles.pushbutton_cancel,'enable','off');
 
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
@@ -359,6 +366,8 @@ end
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
 
 
 % --- Executes when user attempts to close figure_JLabelEditFiles.
@@ -367,10 +376,10 @@ function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-res = questdlg('Really ignore all changes?','','Yes','No','Cancel','Yes');
-if ~strcmpi(res,'Yes'),
-  return;
-end
+% res = questdlg('Really ignore all changes?','','Yes','No','Cancel','Yes');
+% if ~strcmpi(res,'Yes'),
+%   return;
+% end
 uiresume(handles.figure_JLabelEditFiles);
 
 
