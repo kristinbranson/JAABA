@@ -20,7 +20,8 @@ classdef JLabelData < handle
     
     % computed and cached window features
     windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
-      'labelidx_old',[],'labelidx_new',[],'featurenames',{{}},...
+      'labelidx_old',[],'labelidx_new',[],'labelidx_imp',[],...
+      'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
       'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',[]);
     
@@ -49,14 +50,14 @@ classdef JLabelData < handle
     % first frame for the trajectory(s) may not be 1.
     % labels(expi).timestamp is the Matlab timestamp at which labels(expi)
     % was last set
-    labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{});
+    labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
     
     % labels for the current experiment and flies, represented as an array
     % such that labelidx(t+labelidx_off) is the index of the behavior for
     % frame t of the movie. labelidx(i) == 0 corresponds to
     % unlabeled/unknown, otherwise labelidx(i) corresponds to behavior
     % labelnames{labelidx{i})
-    labelidx = [];
+    labelidx = struct('val',[],'imp',[]);
     labelidx_off = 0;
     
     % first frame that all flies currently selected are tracked
@@ -637,7 +638,7 @@ classdef JLabelData < handle
 
       % get labels for current flies -- will be used when filling in
       % windowdata
-      [labelidx,t0_labelidx] = obj.GetLabelIdx(expi,flies);
+      [labelidxStruct,t0_labelidx] = obj.GetLabelIdx(expi,flies);
 
       % total number of frames to compute window data for -- used for
       % showing prctage complete. 
@@ -671,7 +672,10 @@ classdef JLabelData < handle
         obj.windowdata.flies(end+1:end+m,:) = repmat(flies,[m,1]);
         obj.windowdata.t(end+1:end+m,1) = tsnew(idxnew);
         obj.windowdata.labelidx_old(end+1:end+m,1) = 0;
-        obj.windowdata.labelidx_new(end+1:end+m,1) = labelidx(t0-t0_labelidx+1:t1-t0_labelidx+1);
+        obj.windowdata.labelidx_new(end+1:end+m,1) = ...
+          labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
+        obj.windowdata.labelidx_imp(end+1:end+m,1) = ...
+          labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
         obj.windowdata.predicted(end+1:end+m,1) = 0;
         obj.windowdata.scores(end+1:end+m,1) = 0;
         obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
@@ -833,6 +837,7 @@ classdef JLabelData < handle
       obj.windowdata.t=[];
       obj.windowdata.labelidx_old=[];
       obj.windowdata.labelidx_new=[];
+      obj.windowdata.labelidx_imp=[];
       obj.windowdata.featurenames={{}};
       obj.windowdata.predicted=[];
       obj.windowdata.predicted_probs=[];
@@ -1025,6 +1030,11 @@ classdef JLabelData < handle
           obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
           obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
           obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
+          if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+            loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+            obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
+            obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
+          end
 %         catch ME,
 %           msg = getReport(ME);
 %           obj.ClearStatus();
@@ -1041,6 +1051,8 @@ classdef JLabelData < handle
         obj.labels(expi).flies = [];
         obj.labels(expi).off = [];
         obj.labels(expi).timestamp = [];
+        obj.labels(expi).imp_t0s = {};
+        obj.labels(expi).imp_t1s = {};
         obj.labelstats(expi).nflies_labeled = 0;
         obj.labelstats(expi).nbouts_labeled = 0;
         obj.labelstats(expi).datestr = 'never';
@@ -1455,9 +1467,11 @@ classdef JLabelData < handle
         flies = obj.labels(i).flies; %#ok<NASGU>
         off = obj.labels(i).off; %#ok<NASGU>
         timestamp = obj.labels(i).timestamp; %#ok<NASGU>
+        imp_t0s = obj.labels(i).imp_t0s; %#ok<NASGU>
+        imp_t1s = obj.labels(i).imp_t1s; %#ok<NASGU>
         
 %         try
-          save(lfn,'t0s','t1s','names','flies','off','timestamp');
+          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s');
 %         catch ME,
 %           if didbak,
 %             [didundo,msg] = copyfile([lfn,'~'],lfn);
@@ -2645,7 +2659,7 @@ classdef JLabelData < handle
       obj.expi = 0;
       obj.flies = nan(size(obj.flies));
       obj.perframedata = {};
-      obj.labelidx = [];
+      obj.labelidx = struct('vals',[],'imp',[]);
       obj.labelidx_off = 0;
       obj.t0_curr = 0;
       obj.t1_curr = 0;
@@ -2666,7 +2680,8 @@ classdef JLabelData < handle
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
-          labelidx = obj.labelidx(T0+obj.labelidx_off:T1+obj.labelidx_off);
+          labelidx.vals = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off);
+          labelidx.imp = obj.labelidx.imp(T0+obj.labelidx_off:T1+obj.labelidx_off);
         end
         return;
       end
@@ -2678,7 +2693,8 @@ classdef JLabelData < handle
       n = T1-T0+1;
       off = 1 - T0;
       labels_curr = obj.GetLabels(expi,flies);
-      labelidx = zeros(1,n);
+      labelidx.vals = zeros(1,n);
+      labelidx.imp = zeros(1,n);
       for i = 1:obj.nbehaviors,
         for j = find(strcmp(labels_curr.names,obj.labelnames{i})),
           t0 = labels_curr.t0s(j);
@@ -2686,8 +2702,12 @@ classdef JLabelData < handle
           if t0>T1 || t1<T0; continue;end
           t0 = max(T0,t0);
           t1 = min(T1,t1);
-          labelidx(t0+off:t1-1+off) = i;
+          labelidx.vals(t0+off:t1-1+off) = i;
         end
+      end
+      for j = 1:numel(labels_curr.imp_t0s)
+        t0 = labels_curr.imp_t0s(j); t1 = labels_curr.imp_t1s(j);
+        labelidx.imp(t0+off:t1-1+off) = 1;
       end
       
     end
@@ -2860,7 +2880,7 @@ classdef JLabelData < handle
     % Returns the labels for the input 
     function labels_curr = GetLabels(obj,expi,flies)
 
-      labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'off',0);
+      labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'off',0,'imp_t0s',[],'imp_t1s',[]);
       
       if nargin < 2 || isempty(expi),
         expi = obj.expi;
@@ -2881,6 +2901,10 @@ classdef JLabelData < handle
         labels_curr.t1s = obj.labels(expi).t1s{fliesi};
         labels_curr.names = obj.labels(expi).names{fliesi};
         labels_curr.off = obj.labels(expi).off(fliesi);
+        if isfield(obj.labels(expi),'imp_t0s')
+          labels_curr.imp_t0s = obj.labels(expi).imp_t0s{fliesi};
+          labels_curr.imp_t1s = obj.labels(expi).imp_t1s{fliesi};
+        end
       else
 %         if expi ~= obj.expi,
 %           error('This should never happen -- only should get new labels for current experiment');
@@ -2898,14 +2922,14 @@ classdef JLabelData < handle
     function StoreLabels(obj)
       
       % flies not yet initialized
-      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx),
+      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
         return;
       end
       
       obj.StoreLabels1(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
             
       % preload labeled window data while we have the per-frame data loaded
-      ts = find(obj.labelidx~=0) - obj.labelidx_off;
+      ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
       [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
       if ~success,
         warning(msg);
@@ -2915,7 +2939,8 @@ classdef JLabelData < handle
       if ~isempty(obj.windowdata.exp),
         idxcurr = obj.windowdata.exp == obj.expi & ...
           all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2);
-        obj.windowdata.labelidx_new(idxcurr) = obj.labelidx(obj.windowdata.t(idxcurr)+obj.labelidx_off);
+        obj.windowdata.labelidx_new(idxcurr) = obj.labelidx.vals(obj.windowdata.t(idxcurr)+obj.labelidx_off);
+        obj.windowdata.labelidx_imp(idxcurr) = obj.labelidx.imp(obj.windowdata.t(idxcurr)+obj.labelidx_off);
       end
       
       %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
@@ -2925,9 +2950,9 @@ classdef JLabelData < handle
     function StoreLabels1(obj,expi,flies,labelidx,labelidx_off)
       
       % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[]);
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'imp_t0s',[],'imp_t1s',[]);
       for j = 1:obj.nbehaviors,
-        [i0s,i1s] = get_interval_ends(labelidx==j);
+        [i0s,i1s] = get_interval_ends(labelidx.vals==j);
         if ~isempty(i0s),
           n = numel(i0s);
           newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
@@ -2935,6 +2960,12 @@ classdef JLabelData < handle
           newlabels.names(end+1:end+n) = repmat(obj.labelnames(j),[1,n]);
         end
       end
+      [i0s,i1s] = get_interval_ends(labelidx.imp);
+      if ~isempty(i0s),
+        newlabels.imp_t0s = i0s - labelidx_off;
+        newlabels.imp_t1s = i1s - labelidx_off;
+      end
+      
       [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
       if ~ism,
         j = size(obj.labels(expi).flies,1)+1;
@@ -2945,6 +2976,8 @@ classdef JLabelData < handle
       obj.labels(expi).flies(j,:) = flies;
       obj.labels(expi).off(j) = labelidx_off;
       obj.labels(expi).timestamp = now;
+      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
+      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
 
       % store labelstats
       obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
@@ -2956,8 +2989,8 @@ classdef JLabelData < handle
     function isstart = IsLabelStart(obj,expi,flies,ts)
       
       if obj.expi == expi && all(flies == obj.flies),
-        isstart = obj.labelidx(ts+obj.labelidx_off) ~= 0 & ...
-          obj.labelidx(ts+obj.labelidx_off-1) ~= obj.labelidx(ts+obj.labelidx_off);
+        isstart = obj.labelidx.vals(ts+obj.labelidx_off) ~= 0 & ...
+          obj.labelidx.vals(ts+obj.labelidx_off-1) ~= obj.labelidx.vals(ts+obj.labelidx_off);
       else
         [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
         if ism,
@@ -2994,6 +3027,8 @@ classdef JLabelData < handle
           obj.labelstats(expi).nflies_labeled = 0;
           obj.labelstats(expi).nbouts_labeled = 0;
           obj.labelstats(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
+          obj.labels(expi).imp_t0s = {};
+          obj.labels(expi).imp_t1s = {};
         end
       else
         if numel(expi) > 1,
@@ -3012,6 +3047,8 @@ classdef JLabelData < handle
           obj.labels(expi).t1s{flyi} = [];
           obj.labels(expi).names{flyi} = {};
           obj.labels(expi).timestamp(flyi) = timestamp;
+          obj.labels(expi).imp_t0s{flyi} = [];
+          obj.labels(expi).imp_t1s{flyi} = [];
           % update stats
           obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
           obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
@@ -3032,6 +3069,7 @@ classdef JLabelData < handle
           idx = obj.windowdata.exp == i & ismember(obj.windowdata.flies,flies,'rows');
         end
         obj.windowdata.labelidx_new(idx) = 0;
+        obj.windowdata.labelidx_imp(idx) = 0;
         obj.UpdateErrorIdx();
       end
       
@@ -3041,13 +3079,15 @@ classdef JLabelData < handle
     % Set label for experiment expi, flies, and frames ts to behaviori. If
     % expi, flies match current expi, flies, then we only set labelidx.
     % Otherwise, we set labels. 
-    function SetLabel(obj,expi,flies,ts,behaviori)
+    function SetLabel(obj,expi,flies,ts,behaviori,important)
       
       if obj.IsCurFly(expi,flies),
-        obj.labelidx(ts+obj.labelidx_off) = behaviori;
+        obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
+        obj.labelidx.imp(ts+obj.labelidx_off) = important;
       else
         [labelidx,T0] = obj.GetLabelIdx(expi,flies);
-        labelidx(ts+1-T0) = behaviori;
+        labelidx.vals(ts+1-T0) = behaviori;
+        labelidx.imp(ts+1-T0) = important;
         obj.StoreLabels1(expi,flies,labelidx,1-T0);        
       end
       
@@ -3261,19 +3301,23 @@ classdef JLabelData < handle
 
           obj.SetStatus('Applying boosting classifier to newly labeled %d frames',nnz(newLabels));
           scores = myBoostClassify(obj.windowdata.X(newLabels,:),obj.classifier);
-          modLabels = sign( (obj.windowdata.labelidx_new(newLabels)==1)-0.5);
-          newError.numbers = confusionmat( (modLabels>0)+1,(scores>0)+1);
-          if size(newError.numbers,1)<obj.nbehaviors,
-            missingR = (size(newError.numbers,1)+1):obj.nbehaviors;
-            newError.numbers(missingR,:) = 0; 
+          prediction = -sign(scores)/2+1.5;
+
+          modLabels = 2*obj.windowdata.labelidx_new(newLabels)-obj.windowdata.labelidx_imp(newLabels);
+          
+          confMat = zeros(2*obj.nbehaviors,2);
+          for ndx = 1:2*obj.nbehaviors
+            curBehavior = ceil(ndx/2);
+            curIdx = modLabels==ndx;
+            confMat(ndx,1) = nnz(prediction(curIdx)~=1);
+            confMat(ndx,2) = nnz(prediction(curIdx)==1);
           end
-          if size(newError.numbers,2)<obj.nbehaviors,
-            missingC = (size(newError.numbers,2)+1):obj.nbehaviors;
-            newError.numbers(:,missingC) = 0; 
-          end
+          newError.numbers = confMat;
           newError.frac = newError.numbers./repmat( sum(newError.numbers,2),[1 2]);
           
         case 'ferns',
+          newError.numbers = zeros(2*obj.nbehaviors,2);
+          newError.frac = zeros(2*obj.nbehaviors,2);
           %TODO.
  
       end
@@ -3609,10 +3653,10 @@ classdef JLabelData < handle
       n = obj.t1_curr - obj.t0_curr + 1;
       obj.erroridx = zeros(1,n);
       obj.suggestedidx = zeros(1,n);
-      idxcurr = obj.predictedidx ~= 0 & obj.labelidx ~= 0;
-      obj.erroridx(idxcurr) = double(obj.predictedidx(idxcurr) ~= obj.labelidx(idxcurr))+1;
+      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals ~= 0;
+      obj.erroridx(idxcurr) = double(obj.predictedidx(idxcurr) ~= obj.labelidx.vals(idxcurr))+1;
       
-      idxcurr = obj.predictedidx ~= 0 & obj.labelidx == 0;
+      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals == 0;
       obj.suggestedidx(idxcurr) = obj.predictedidx(idxcurr);
     end
 
