@@ -146,10 +146,10 @@ classdef NextJump < handle
       t0 = min(max(ts,t0),t1);
 
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
-      j = find(labelidx ~= labelidx(1),1);
+      j = find(labelidx.vals ~= labelidx.vals(1),1);
       if isempty(j), return; end
       
-      k = find(ismember(labelidx(j:end),obj.seek_behaviors_go),1);
+      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go),1);
       if isempty(k),return;end
       
       t = ts + j - 1 + k - 1;
@@ -162,9 +162,9 @@ classdef NextJump < handle
       t1 = min(max(ts,t0),t1);
 
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
-      j = find(labelidx ~= labelidx(end),1,'last');
+      j = find(labelidx.vals ~= labelidx.vals(end),1,'last');
       if isempty(j), return; end
-      k = find(ismember(labelidx(1:j),obj.seek_behaviors_go),1,'last');
+      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go),1,'last');
       if isempty(k), return; end
       t = t0 + k - 1;
     end
@@ -177,12 +177,12 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx ~=predictedidx;
+      erroridx = labelidx.vals ~=predictedidx;
       
       j = find(erroridx ~= erroridx(1),1);
       if isempty(j), return; end
       
-      k = find(ismember(labelidx(j:end),obj.seek_behaviors_go)&erroridx(j:end),1);
+      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go)&erroridx(j:end),1);
       if isempty(k),return;end
       
       t = ts + j - 1 + k - 1;
@@ -197,11 +197,11 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx ~=predictedidx;
+      erroridx = labelidx.vals ~=predictedidx;
       j = find(erroridx~= erroridx(end),1,'last');
       if isempty(j), return; end
       
-      k = find(ismember(labelidx(1:j),obj.seek_behaviors_go)&erroridx(1:j),1,'last');
+      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go)&erroridx(1:j),1,'last');
       if isempty(k), return; end
       t = t0 + k - 1;
     end
@@ -264,7 +264,7 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx ~=predictedidx;
+      erroridx = labelidx.vals ~=predictedidx;
       scores = data.NormalizeScores(prediction.scoresidx);
       highconfidx = false(size(scores));
       
@@ -293,7 +293,7 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx ~=predictedidx;
+      erroridx = labelidx.vals ~=predictedidx;
       scores = data.NormalizeScores(prediction.scoresidx);
       highconfidx = false(size(scores));
       
