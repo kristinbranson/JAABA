@@ -139,7 +139,7 @@ classdef JLabelData < handle
     configfilename = '';
     
     % constant: files per experiment directory
-    filetypes = {'movie','trx','label','perframedir','clipsdir'};%,'scores'};
+    filetypes = {'movie','trx','label','perframedir','clipsdir'};
     
     % config parameters
     
@@ -243,8 +243,10 @@ classdef JLabelData < handle
     frameFig = [];
     distMat = [];
     bagModels = {};
-    binVals = [];
-    bins = [];
+%     binVals = [];
+%     bins = [];
+
+    % Confidence Thresholds
     confThresholds = zeros(1,2);
     
     % Retrain properly
@@ -1034,6 +1036,9 @@ classdef JLabelData < handle
             loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
             obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
             obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
+          else
+            obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+            obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
           end
 %         catch ME,
 %           msg = getReport(ME);
@@ -1226,7 +1231,7 @@ classdef JLabelData < handle
           obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
             loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
             loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp); 
-
+          
           [success,msg] = obj.UpdateStatusTable();
           if ~success, error(msg); end
           
@@ -1758,26 +1763,22 @@ classdef JLabelData < handle
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
         % TODO: make this work with multiple flies
-        obj.PreLoad(obj.nexps,1);
-      end
-      
-      
-      % get trxinfo
-      if istrxinfo,
+        obj.PreLoad(1,1);
+      elseif istrxinfo,
         obj.nflies_per_exp(end+1) = nflies_per_exp;
         obj.sex_per_exp{end+1} = sex_per_exp;
         obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
         obj.firstframes_per_exp{end+1} = firstframes_per_exp;
         obj.endframes_per_exp{end+1} = endframes_per_exp;
         
-        if obj.nexps == 1 % This will set hassex and hasperframesex.
-          [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
-          if ~success1,
-            msg = sprintf('Error getting basic trx info: %s',msg1);
-            obj.RemoveExpDirs(obj.nexps);
-            return;
-          end
-        end
+%         if obj.nexps == 1 % This will set hassex and hasperframesex.
+%           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
+%           if ~success1,
+%             msg = sprintf('Error getting basic trx info: %s',msg1);
+%             obj.RemoveExpDirs(obj.nexps);
+%             return;
+%           end
+%         end
         
       else
         obj.nflies_per_exp(end+1) = nan;
@@ -1820,7 +1821,7 @@ classdef JLabelData < handle
         msg = sprintf('expi = %s must be in the range 1 < expi < nexps = %d',mat2str(expi),obj.nexps);
         return;
       end
-
+      
       obj.expdirs(expi) = [];
       obj.expnames(expi) = [];
       obj.outexpdirs(expi) = [];
@@ -1834,6 +1835,18 @@ classdef JLabelData < handle
       obj.labelstats(expi) = [];
       % TODO: exp2labeloff
 
+      obj.ClearWindowFeatures();
+      
+      idxcurr = ismember(obj.scoredata.exp, expi);
+      obj.scoredata.scores(idxcurr) = [];
+      obj.scoredata.predicted(idxcurr) = [];
+      obj.scoredata.exp(idxcurr) = [];
+      obj.scoredata.flies(idxcurr) = [];
+      obj.scoredata.t(idxcurr) = [];
+      obj.scoredata.timestamp(idxcurr) = [];
+      
+      obj.doUpdate = true;
+
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
         
@@ -1841,15 +1854,14 @@ classdef JLabelData < handle
         % TODO: allow for more than one fly to be selected at once
         obj.expi = 0;
         obj.flies = nan(size(obj.flies));
-        % TODO: may want to save labels somewhere before just overwriting
-        % labelidx
+
         if obj.nexps > 0,
           obj.PreLoad(obj.nexps,1);
         end
 
+      elseif ~isempty(obj.expi) && obj.expi > 0 && ~ismember(obj.expi,expi)
+        obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
       end
-      
-      % TODO: windowdata_labeled, etc
       
       success = true;
       
@@ -3192,7 +3204,7 @@ classdef JLabelData < handle
           newNumPts = sum(obj.windowdata.labelidx_new ~= 0);
           newData = newNumPts - oldNumPts;
 
-          if isempty(obj.classifier) || (newData/oldNumPts)>0.3 || ~doFastUpdates,
+          if isempty(obj.classifier) || (newData/oldNumPts)>0.3 || ~doFastUpdates || isempty(obj.windowdata.binVals),
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);

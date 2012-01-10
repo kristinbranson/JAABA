@@ -22,7 +22,7 @@ function varargout = ConfidenceThresholds(varargin)
 
 % Edit the above text to modify the response to help ConfidenceThresholds
 
-% Last Modified by GUIDE v2.5 07-Nov-2011 10:06:59
+% Last Modified by GUIDE v2.5 10-Jan-2012 17:47:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -88,6 +88,8 @@ function SetConfidenceThreshold(hObject,sliderNum,value)
 handles = guidata(hObject);
 curSlider = sprintf('slider%d',sliderNum);
 set(handles.(curSlider),'Value',value);
+curEdit = sprintf('edit%d',sliderNum);
+set(handles.(curEdit),'String',num2str(value));
 guidata(hObject,handles);
 
 
@@ -100,6 +102,7 @@ function slider1_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 val = get(hObject,'Value');
+set(handles.edit1,'String',num2str(val));
 handles.JLDobj.SetConfidenceThreshold(val,1);
 JLabel('UpdatePrediction',handles.JLabelHandle);
 
@@ -124,6 +127,7 @@ function slider2_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 val = get(hObject,'Value');
+set(handles.edit2,'String',num2str(val));
 handles.JLDobj.SetConfidenceThreshold(val,2);
 JLabel('UpdatePrediction',handles.JLabelHandle);
 
@@ -151,3 +155,66 @@ handles.JLDobj.SetConfidenceThreshold(val1,1);
 handles.JLDobj.SetConfidenceThreshold(val2,2);
 JLabel('UpdatePrediction',handles.JLabelHandle);
 close(handles.figure1);
+
+
+
+function edit1_Callback(hObject, eventdata, handles)
+% hObject    handle to edit1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit1 as text
+%        str2double(get(hObject,'String')) returns contents of edit1 as a double
+val = str2double(get(hObject,'String'));
+if isnan(val)
+  errordlg('Input value between 0 and 1');
+  return;
+end
+set(handles.slider1,'Value',val);
+handles.JLDobj.SetConfidenceThreshold(val,1);
+JLabel('UpdatePrediction',handles.JLabelHandle);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function edit1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit2_Callback(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit2 as text
+%        str2double(get(hObject,'String')) returns contents of edit2 as a double
+val = str2double(get(hObject,'String'));
+if isnan(val)
+  errordlg('Input value between 0 and 1');
+  return;
+end
+set(handles.slider2,'Value',val);
+handles.JLDobj.SetConfidenceThreshold(val,2);
+JLabel('UpdatePrediction',handles.JLabelHandle);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
