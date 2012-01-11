@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 06-Jan-2012 09:55:52
+% Last Modified by GUIDE v2.5 11-Jan-2012 09:45:54
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -2695,18 +2695,10 @@ if ~isempty(h), delete(h(ishandle(h))); end
 
 
 % --------------------------------------------------------------------
-function menu_file_load_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_load (see GCBO)
+function menu_file_load_top_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_load_top (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-filename = handles.data.classifierfilename;
-[filename,pathname] = uigetfile('*.mat','Load classifier',filename);
-if ~ischar(filename),
-  return;
-end
-classifiername = fullfile(pathname,filename);
-handles.data.SetClassifierFileName(classifiername);
 
 
 % --------------------------------------------------------------------
@@ -4928,6 +4920,7 @@ function menu_classifier_testnewlabels_Callback(hObject, eventdata, handles)
 
 newError = handles.data.TestOnNewLabels();
 handles = UpdatePrediction(handles);
+if ~isfield(newError,'numbers'), return; end;
 dialogStr{1} = sprintf('%28s %10s Predicted   %10s Predicted \n',...
   '',handles.data.labelnames{2},handles.data.labelnames{1});
 dialogStr{end+1} = sprintf('%12s Actual Important     %d(%.2f)          %d(%.2f)\n',...
@@ -4948,3 +4941,32 @@ dialogStr{end+1} = sprintf('%12s Actual                 %d(%.2f)          %d(%.2
   newError.numbers(4,2),newError.frac(4,2));
 
 helpdlg(dialogStr,'Performance on new labeled data');
+
+
+% --------------------------------------------------------------------
+function menu_file_load_exps_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_load_exps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+filename = handles.data.classifierfilename;
+[filename,pathname] = uigetfile('*.mat','Load classifier',filename);
+if ~ischar(filename),
+  return;
+end
+classifiername = fullfile(pathname,filename);
+handles.data.SetClassifierFileName(classifiername);
+
+
+% --------------------------------------------------------------------
+function menu_file_load_woexps_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_load_woexps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+filename = handles.data.classifierfilename;
+[filename,pathname] = uigetfile('*.mat','Load classifier',filename);
+if ~ischar(filename),
+  return;
+end
+classifiername = fullfile(pathname,filename);
+handles.data.SetClassifierFileNameWoExp(classifiername);

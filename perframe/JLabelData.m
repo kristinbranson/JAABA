@@ -1284,7 +1284,7 @@ classdef JLabelData < handle
 
     end
     
-    function SetClassifierFileNameBatch(obj,classifierfilename)
+    function SetClassifierFileNameWoExp(obj,classifierfilename)
 
       success = false;
       msg = '';
@@ -1313,6 +1313,7 @@ classdef JLabelData < handle
           obj.classifier_params = loadeddata.classifier_params;
           obj.windowdata.scoreNorm = loadeddata.scoreNorm;
           obj.confThresholds = loadeddata.confThresholds;
+          obj.ClearStatus();
       end
     end
 
@@ -3292,9 +3293,8 @@ classdef JLabelData < handle
       
     function newError = TestOnNewLabels(obj)
       obj.StoreLabels();
-      newError = struct;
-      if isempty(obj.classifier); return; end
-      
+      newError = struct();
+
       prevLabeled = obj.windowdata.labelidx_old~=0;
       Nprev = numel(prevLabeled);
       newLabels = obj.windowdata.labelidx_new ~= 0;
@@ -3307,34 +3307,75 @@ classdef JLabelData < handle
         return;
       end
       
-      switch obj.classifiertype,
-        
-        case 'boosting',
-
-          obj.SetStatus('Applying boosting classifier to newly labeled %d frames',nnz(newLabels));
-          scores = myBoostClassify(obj.windowdata.X(newLabels,:),obj.classifier);
-          prediction = -sign(scores)/2+1.5;
-
-          modLabels = 2*obj.windowdata.labelidx_new(newLabels)-obj.windowdata.labelidx_imp(newLabels);
-          
-          confMat = zeros(2*obj.nbehaviors,2);
-          for ndx = 1:2*obj.nbehaviors
-            curBehavior = ceil(ndx/2);
-            curIdx = modLabels==ndx;
-            confMat(ndx,1) = nnz(prediction(curIdx)~=1);
-            confMat(ndx,2) = nnz(prediction(curIdx)==1);
+      scoreNdx = [];
+      nlexp = obj.windowdata.exp(newLabels);
+      nlflies = obj.windowdata.flies(newLabels);
+      nlt = obj.windowdata.t(newLabels);
+      for curExp = unique(nlexp)
+        curNLexpNdx = nlexp==curExp;
+        for curFly = unique(nlflies(curNLexpNdx));
+          curT = nlt( nlexp==curExp & nlflies == curFly);
+          curScoreNdx = find(obj.scoredata.exp == curExp & obj.scoredata.flies==curFly);
+          scoresT = obj.scoredata.t(curScoreNdx);
+          curValidScoreNdx = ismember(scoresT,curT);
+          if nnz(curValidScoreNdx)~=numel(curT)
+            fprintf('Scores are missing for some labeled data\n');
           end
-          newError.numbers = confMat;
-          newError.frac = newError.numbers./repmat( sum(newError.numbers,2),[1 2]);
-          
-        case 'ferns',
-          newError.numbers = zeros(2*obj.nbehaviors,2);
-          newError.frac = zeros(2*obj.nbehaviors,2);
-          %TODO.
- 
+          scoreNdx = [scoreNdx curScoreNdx(curValidScoreNdx)];
+        end
       end
+      
+      scores = obj.scoredata.scores(scoreNdx);
+      prediction = -sign(scores)/2+1.5;
+      
+      modLabels = 2*obj.windowdata.labelidx_new(newLabels)-obj.windowdata.labelidx_imp(newLabels);
+      
+      confMat = zeros(2*obj.nbehaviors,2);
+      for ndx = 1:2*obj.nbehaviors
+        curIdx = modLabels==ndx;
+        confMat(ndx,1) = nnz(prediction(curIdx)~=1);
+        confMat(ndx,2) = nnz(prediction(curIdx)==1);
+      end
+      newError.numbers = confMat;
+      newError.frac = newError.numbers./repmat( sum(newError.numbers,2),[1 2]);
 
-    end
+      
+    end      
+%{  When testing with the current classifier.    
+%       if isempty(obj.classifier);
+%         warndlg('No Classifier. Either ');
+%         return; 
+%       end
+%       
+%       
+%       switch obj.classifiertype,
+%         
+%         case 'boosting',
+% 
+%           obj.SetStatus('Applying boosting classifier to newly labeled %d frames',nnz(newLabels));
+%           scores = myBoostClassify(obj.windowdata.X(newLabels,:),obj.classifier);
+%           prediction = -sign(scores)/2+1.5;
+% 
+%           modLabels = 2*obj.windowdata.labelidx_new(newLabels)-obj.windowdata.labelidx_imp(newLabels);
+%           
+%           confMat = zeros(2*obj.nbehaviors,2);
+%           for ndx = 1:2*obj.nbehaviors
+%             curBehavior = ceil(ndx/2);
+%             curIdx = modLabels==ndx;
+%             confMat(ndx,1) = nnz(prediction(curIdx)~=1);
+%             confMat(ndx,2) = nnz(prediction(curIdx)==1);
+%           end
+%           newError.numbers = confMat;
+%           newError.frac = newError.numbers./repmat( sum(newError.numbers,2),[1 2]);
+%           
+%         case 'ferns',
+%           newError.numbers = zeros(2*obj.nbehaviors,2);
+%           newError.frac = zeros(2*obj.nbehaviors,2);
+%           %TODO.
+%  
+%       end
+%}
+      
     
     function DoBagging(obj)
       [success,msg] = obj.PreLoadLabeledData();
@@ -3625,7 +3666,7 @@ classdef JLabelData < handle
       obj.scoresidx = zeros(1,n);
       obj.scoreTS = zeros(1,n);
       
-      % Scores from loaded scores.
+      % Scores loaded from files.
       if obj.scoredata.exp,
         idxcurr = obj.scoredata.exp == obj.expi & all(bsxfun(@eq,obj.scoredata.flies,obj.flies),2);
         obj.predictedidx(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
