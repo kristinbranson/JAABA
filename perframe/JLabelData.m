@@ -856,8 +856,11 @@ classdef JLabelData < handle
   
     function UpdatePerframeParams(obj,params,cellParams)
     % Updates the feature params. Called by SelectFeatures
-      obj.ClearWindowFeatures();
       obj.SetPerframeParams(params,cellParams)
+
+      obj.ClearWindowFeatures(); 
+      obj.PreLoadLabeledData();
+      % TODO: remove clearwindow features.
     end
     
     
@@ -1795,6 +1798,14 @@ classdef JLabelData < handle
         end
       end
       
+      [success1,msg1] = obj.PreLoadLabeledData();
+      if ~success1,
+        msg = sprintf('Error Computing Window Data: %s',msg1);
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+
+      
       [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
       if ~success1,
         msg = msg1;
@@ -1836,8 +1847,28 @@ classdef JLabelData < handle
       obj.labelstats(expi) = [];
       % TODO: exp2labeloff
 
-      obj.ClearWindowFeatures();
-      
+      % Clean window features.
+      idxcurr = ismember(obj.windowdata.exp, expi);
+      obj.windowdata.X(idxcurr,:) = [];
+      obj.windowdata.exp(idxcurr) = [];
+      obj.windowdata.flies(idxcurr) =[];
+      obj.windowdata.t(idxcurr) =[];
+      obj.windowdata.labelidx_new(idxcurr) = [];
+      obj.windowdata.labelidx_imp(idxcurr) = [];
+      obj.windowdata.isvalidprediction(...
+        idxcurr(1:numel(obj.windowdata.isvalidprediction))) = [];
+      obj.windowdata.labelidx_old(...
+        idxcurr(1:numel(obj.windowdata.labelidx_old))) = [];
+      obj.windowdata.predicted(...
+        idxcurr(1:numel(obj.windowdata.predicted))) = [];
+      obj.windowdata.predicted_probs(...
+        idxcurr(1:numel(obj.windowdata.predicted_probs))) = [];
+      obj.windowdata.scores(...
+        idxcurr(1:numel(obj.windowdata.scores))) = [];
+      obj.windowdata.distNdx = [];
+      obj.windowdata.binVals=[];
+      obj.windowdata.bins=[];
+
       idxcurr = ismember(obj.scoredata.exp, expi);
       obj.scoredata.scores(idxcurr) = [];
       obj.scoredata.predicted(idxcurr) = [];
@@ -1846,7 +1877,6 @@ classdef JLabelData < handle
       obj.scoredata.t(idxcurr) = [];
       obj.scoredata.timestamp(idxcurr) = [];
       
-      obj.doUpdate = true;
 
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
@@ -3220,7 +3250,6 @@ classdef JLabelData < handle
             obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
             obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
           else
-            tic;
             obj.SetStatus('Updating boosting classifier with %d examples...',newData);
             
             oldBinSize = size(obj.windowdata.bins,2);
@@ -3234,7 +3263,6 @@ classdef JLabelData < handle
                                           obj.windowdata.labelidx_new(islabeled),...
                                           obj.classifier,obj.windowdata.binVals,...
                                           obj.windowdata.bins(:,islabeled));
-            toc;
           end
           obj.classifierTS = now();
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
@@ -3307,32 +3335,45 @@ classdef JLabelData < handle
         return;
       end
       
-      scoreNdx = [];
+      % Find out the index of scores with the same exp, flynum and time as
+      % the newly labeled data.
+      
+      orderedScores = []; orderedLabels = []; orderedLabels_imp = [];
       nlexp = obj.windowdata.exp(newLabels);
       nlflies = obj.windowdata.flies(newLabels);
       nlt = obj.windowdata.t(newLabels);
-      for curExp = unique(nlexp)
+      nlLabels = obj.windowdata.labelidx_new(newLabels);
+      nlLabels_imp = obj.windowdata.labelidx_imp(newLabels);
+      for curExp = unique(nlexp)'
         curNLexpNdx = nlexp==curExp;
-        for curFly = unique(nlflies(curNLexpNdx));
+        for curFly = unique(nlflies(curNLexpNdx))';
           curT = nlt( nlexp==curExp & nlflies == curFly);
+          curLabels = nlLabels(nlexp==curExp & nlflies == curFly);
+          curLabels_imp = nlLabels_imp(nlexp==curExp & nlflies == curFly);
           curScoreNdx = find(obj.scoredata.exp == curExp & obj.scoredata.flies==curFly);
           scoresT = obj.scoredata.t(curScoreNdx);
-          curValidScoreNdx = ismember(scoresT,curT);
+          [curValidScoreNdx,loc] = ismember(scoresT,curT);
           if nnz(curValidScoreNdx)~=numel(curT)
             fprintf('Scores are missing for some labeled data\n');
           end
-          scoreNdx = [scoreNdx curScoreNdx(curValidScoreNdx)];
+          
+          orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
+          orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
+          orderedScores = [orderedScores; obj.scoredata.scores(curScoreNdx(curValidScoreNdx~=0))'];
         end
       end
       
-      scores = obj.scoredata.scores(scoreNdx);
-      prediction = -sign(scores)/2+1.5;
+      prediction = -sign(orderedScores)/2+1.5;
       
-      modLabels = 2*obj.windowdata.labelidx_new(newLabels)-obj.windowdata.labelidx_imp(newLabels);
+      modLabels = 2*orderedLabels-orderedLabels_imp;
       
       confMat = zeros(2*obj.nbehaviors,2);
       for ndx = 1:2*obj.nbehaviors
-        curIdx = modLabels==ndx;
+        if mod(ndx,2)
+          curIdx = modLabels==ndx;
+        else
+          curIdx = modLabels > (ndx-1.5) & modLabels<(ndx+0.5);
+        end
         confMat(ndx,1) = nnz(prediction(curIdx)~=1);
         confMat(ndx,2) = nnz(prediction(curIdx)==1);
       end

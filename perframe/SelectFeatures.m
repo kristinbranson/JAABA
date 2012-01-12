@@ -82,7 +82,7 @@ handles.windowComp = {'default','mean','min','max','histogram','prctile',...
 
 handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
   'trans_types','window_offsets'};
-handles.defaultWinParams = {0,0,0,'',0};
+handles.defaultWinParams = {0,0,0,{'none'},0};
 
 handles.pfList =  handles.JLDobj.allperframefns;
 guidata(hObject,handles);
