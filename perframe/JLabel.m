@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 11-Jan-2012 09:45:54
+% Last Modified by GUIDE v2.5 13-Jan-2012 14:48:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1005,6 +1005,7 @@ handles.labels_plot.predicted_im(:) = 0;
 prediction= handles.data.GetPredictedIdx(handles.expi,handles.flies);
 predictedidx = prediction.predictedidx;
 scores = handles.data.NormalizeScores(prediction.scoresidx);
+scores_old = handles.data.NormalizeScores(prediction.scoresidx_old);
 latest = prediction.latest;
 
 for behaviori = 1:handles.data.nbehaviors
@@ -1017,25 +1018,28 @@ for behaviori = 1:handles.data.nbehaviors
       handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
       scoreNdx = ceil(scores(idxScores)*31)+32;
       handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-      handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
     else
-      idxLabeledPredict = idxPredict & labelidx>0.5;
-      idxUnlabeledPredict = idxPredict & labelidx<0.5;
-      idxLabeledScores = idxScores & labelidx>0.5;
-      idxUnlabeledScores = idxScores & labelidx<0.5;
+      idxLabeledPredict = idxPredict & labelidx.vals>0.5;
+      idxUnlabeledPredict = idxPredict & labelidx.vals<0.5;
+      idxLabeledScores = idxScores & labelidx.vals>0.5;
+      idxUnlabeledScores = idxScores & labelidx.vals<0.5;
 
       shiftedColor = ShiftColor.shiftColorBkwd(handles.labelcolors(behaviori,:));
       handles.labels_plot.predicted_im(1,idxLabeledPredict,channel) = shiftedColor(channel);
       scoreNdx = ceil(scores(idxLabeledScores)*31)+32;
       handles.labels_plot.predicted_im(2,idxLabeledScores,channel) = handles.scorecolor(scoreNdx,channel,3);
-      handles.labels_plot.predicted_im(3,idxLabeledScores,channel) = handles.scorecolor(scoreNdx,channel,3);
     
+      % Color doesn't change for unlabeled data.
       handles.labels_plot.predicted_im(1,idxUnlabeledPredict,channel) = handles.labelcolors(behaviori,channel);
       scoreNdx = ceil(scores(idxUnlabeledScores)*31)+32;
       handles.labels_plot.predicted_im(2,idxUnlabeledScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-      handles.labels_plot.predicted_im(3,idxUnlabeledScores,channel) = handles.scorecolor(scoreNdx,channel,1);
 
     end
+    
+    % Old scores.
+    oldScoreNdx = ceil(scores_old(idxScores)*31)+32;
+    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(oldScoreNdx,channel,1);
+    
   end    
     
     
@@ -2709,11 +2713,12 @@ function menu_go_switch_experiment_Callback(hObject, eventdata, handles)
 
 s = cell(1,handles.data.nexps);
 for i = 1:handles.data.nexps,
+  expStats = handles.data.GetExpStats(i);
   if i == handles.expi,
     s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
-      handles.data.expnames{i},handles.data.nflies_per_exp(i));
+      expStats.name,expStats.nflies);
   else
-    s{i} = sprintf('%s, N flies: %d',handles.data.expnames{i},handles.data.nflies_per_exp(i));
+    s{i} = sprintf('%s, N flies: %d',expStats.name,expStats.nflies);
     if handles.data.hassex,
       nmales = sum([handles.data.frac_sex_per_exp{i}.M]);
       nfemales = sum([handles.data.frac_sex_per_exp{i}.F]);
@@ -2724,9 +2729,17 @@ for i = 1:handles.data.nexps,
       end
     end
     s{i} = [s{i},sprintf(', N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
-      handles.data.labelstats(i).nflies_labeled,...
-      handles.data.labelstats(i).nbouts_labeled,...
-      handles.data.labelstats(i).datestr)];
+      expStats.nlabeledflies,...
+      expStats.nlabeledbouts,...
+      expStats.labeldatestr)];
+    if ~isempty(expStats.nscoreframes)
+      s{i} = [s{i},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d, Classifier used to predict:%s',...
+        handles.data.labelnames{1},...
+        expStats.nscorepos,...
+        expStats.nscoreframes,...
+        expStats.classifierfilename)];
+    end
+    
   end
 end
 [expi,ok] = listdlg('ListString',s,'SelectionMode','single',...
@@ -2753,35 +2766,28 @@ function menu_go_switch_target_Callback(hObject, eventdata, handles)
 nflies = handles.data.nflies_per_exp(handles.expi);
 s = cell(1,nflies);
 for fly = 1:nflies,
-  
-  % TODO: this function directly accesses handles.data.labels, abstract
-  % this
-  [ism,j] = ismember(fly,handles.data.labels(handles.expi).flies,'rows');
-  if ism,
-    nbouts = numel(handles.data.labels(handles.expi).t0s{j});
-  else
-    nbouts = 0;
-  end
-  
   if fly == handles.flies(1),
     s{fly} = sprintf('Target %3d, CURRENTLY SELECTED',fly);
   else
-    endframe = handles.data.endframes_per_exp{handles.expi}(fly);
-    firstframe = handles.data.firstframes_per_exp{handles.expi}(fly);
+    flyStats = handles.data.GetFlyStats(handles.expi,fly);
     s{fly} = sprintf('Target %3d, Trajectory length %5d, First frame %5d, N bouts labeled %2d',...
-      fly,endframe-firstframe+1,...
-      firstframe,...
-      nbouts);
-    if handles.data.hassex,
-      if handles.data.hasperframesex,
-        sexfrac = handles.data.GetSexFrac(handles.expi,fly);
-        s{fly} = [s{fly},sprintf(', Sex: %3d%%M, %3d%%F',round(sexfrac.M*100),round(sexfrac.F*100))];
+      fly,flyStats.trajLength,flyStats.firstframe,flyStats.nbouts);
+    if flyStats.hassex,
+      if ~isempty(flyStats.sexfrac),
+        s{fly} = [s{fly},sprintf(', Sex: %3d%%M, %3d%%F',...
+          round(flyStats.sexfrac.M*100),round(flyStats.sexfrac.F*100))];
       else
-        s{fly} = [s{fly},sprintf(', Sex: %s',sex)];
+        s{fly} = [s{fly},sprintf(', Sex: %s',flyStats.sex)];
       end
+    end
+    if ~isempty(flyStats.nscoreframes)
+      s{fly} = [s{fly},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d',...
+        handles.data.labelnames{1},flyStats.nscorepos,flyStats.nscoreframes)];
     end
   end
 end
+
+
 [fly,ok] = listdlg('ListString',s,'SelectionMode','single',...
   'InitialValue',handles.flies(1),'Name','Switch target',...
   'PromptString','Select experiment:',...
@@ -2984,9 +2990,7 @@ switch eventdata.Key,
     
   case handles.label_shortcuts,
     buttonNum = find(strcmp(eventdata.Key,handles.label_shortcuts),1);
-    buttonNum = buttonNum - 1;
-    behaviori = ceil(buttonNum/2);
-    if buttonNum == 0,
+    if buttonNum > 2*handles.data.nbehaviors,
       if handles.label_state > 0,
         buttonNum = 2*handles.label_state - handles.label_imp;
         set(handles.togglebutton_label_behaviors(buttonNum),'Value',false);
@@ -3132,12 +3136,13 @@ function menu_edit_label_shortcuts_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-prompts{1} = 'Unknown';
+prompts  = {};
 for j = 1:2*handles.data.nbehaviors
   labelStr = handles.data.labelnames{ceil(j/2)};
   if mod(j,2), labelStr = ['Important ' labelStr];end
   prompts{end+1} = labelStr;
 end
+prompts{end+1} = 'Unknown';
 sh = inputdlg(prompts,'Label Shortcuts',1,handles.label_shortcuts);
 if isempty(sh),
   return;
@@ -4780,17 +4785,47 @@ function crossValidate_Callback(hObject, eventdata, handles)
 
 handles.data.StoreLabels();
 crossError = handles.data.CrossValidate();
+handles = SetPredictedPlot(handles);
 handles = UpdatePrediction(handles);
-dialogStr{1} = sprintf('%25s %10s Predicted  %10s Predicted \n',...
+guidata(hObject,handles);
+dialogStr = {};
+dialogStr{end+1} = sprintf('%28s Predicted %10s    Predicted %10s \n',...
   '',handles.data.labelnames{2},handles.data.labelnames{1});
-dialogStr{2} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
-  handles.data.labelnames{2},...
+dialogStr{end+1} = sprintf('Labeled Important %12s      %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{1},...
   crossError.numbers(1,1),crossError.frac(1,1),...
   crossError.numbers(1,2),crossError.frac(1,2));
-dialogStr{3} = sprintf('%10s Actual          %d(%.2f)          %d(%.2f)\n',...
+dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
   handles.data.labelnames{1},...
   crossError.numbers(2,1),crossError.frac(2,1),...
   crossError.numbers(2,2),crossError.frac(2,2));
+dialogStr{end+1} = sprintf('Labeled Important  %12s      %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{2},...
+  crossError.numbers(3,1),crossError.frac(3,1),...
+  crossError.numbers(3,2),crossError.frac(3,2));
+dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{2},...
+  crossError.numbers(4,1),crossError.frac(4,1),...
+  crossError.numbers(4,2),crossError.frac(4,2));
+dialogStr{end+1} = sprintf('----------------- On Old Labels --------------------');
+dialogStr{end+1} = sprintf('%28s Predicted %10s    Predicted %10s \n',...
+  '',handles.data.labelnames{2},handles.data.labelnames{1});
+dialogStr{end+1} = sprintf('Labeled Important %12s      %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{1},...
+  crossError.oldNumbers(1,1),crossError.oldFrac(1,1),...
+  crossError.oldNumbers(1,2),crossError.oldFrac(1,2));
+dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{1},...
+  crossError.oldNumbers(2,1),crossError.oldFrac(2,1),...
+  crossError.oldNumbers(2,2),crossError.oldFrac(2,2));
+dialogStr{end+1} = sprintf('Labeled Important  %12s      %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{2},...
+  crossError.oldNumbers(3,1),crossError.oldFrac(3,1),...
+  crossError.oldNumbers(3,2),crossError.oldFrac(3,2));
+dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
+  handles.data.labelnames{2},...
+  crossError.oldNumbers(4,1),crossError.oldFrac(4,1),...
+  crossError.oldNumbers(4,2),crossError.oldFrac(4,2));
 
 helpdlg(dialogStr,'Cross Validation error');
 % helpdlg(sprintf('Cross Validation error is %.2f%%',crossError*100),'Cross Validation error');
@@ -4818,8 +4853,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function Untitled_2_Callback(hObject, eventdata, handles)
-% hObject    handle to Untitled_2 (see GCBO)
+function menu_file_loadScores_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_loadScores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -4921,21 +4956,25 @@ function menu_classifier_testnewlabels_Callback(hObject, eventdata, handles)
 newError = handles.data.TestOnNewLabels();
 handles = UpdatePrediction(handles);
 if ~isfield(newError,'numbers'), return; end;
-dialogStr{1} = sprintf('%28s %10s Predicted   %10s Predicted \n',...
+dialogStr = {};
+if isfield(newError,'classifierfilename'),
+  dialogStr{end+1} = sprintf('Classifier used to generate scores:%s',newError.classifierfilename);
+end
+dialogStr{end+1} = sprintf('%28s Predicted %10s    Predicted %10s \n',...
   '',handles.data.labelnames{2},handles.data.labelnames{1});
-dialogStr{end+1} = sprintf('%12s Actual Important     %d(%.2f)          %d(%.2f)\n',...
+dialogStr{end+1} = sprintf('Labeled Important %12s      %d(%.2f)          %d(%.2f)\n',...
   handles.data.labelnames{1},...
   newError.numbers(1,1),newError.frac(1,1),...
   newError.numbers(1,2),newError.frac(1,2));
-dialogStr{end+1} = sprintf('%12s Actual                 %d(%.2f)          %d(%.2f)\n',...
+dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
   handles.data.labelnames{1},...
   newError.numbers(2,1),newError.frac(2,1),...
   newError.numbers(2,2),newError.frac(2,2));
-dialogStr{end+1} = sprintf('%12s Actual Important     %d(%.2f)          %d(%.2f)\n',...
+dialogStr{end+1} = sprintf('Labeled Important  %12s      %d(%.2f)          %d(%.2f)\n',...
   handles.data.labelnames{2},...
   newError.numbers(3,1),newError.frac(3,1),...
   newError.numbers(3,2),newError.frac(3,2));
-dialogStr{end+1} = sprintf('%12s Actual                 %d(%.2f)          %d(%.2f)\n',...
+dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
   handles.data.labelnames{2},...
   newError.numbers(4,1),newError.frac(4,1),...
   newError.numbers(4,2),newError.frac(4,2));
@@ -4970,3 +5009,11 @@ if ~ischar(filename),
 end
 classifiername = fullfile(pathname,filename);
 handles.data.SetClassifierFileNameWoExp(classifiername);
+
+
+% --------------------------------------------------------------------
+function menu_classifier_setclassifierparameters_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_setclassifierparameters (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+ClassifierOptions(handles.data);

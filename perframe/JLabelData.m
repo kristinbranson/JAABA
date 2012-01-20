@@ -20,13 +20,15 @@ classdef JLabelData < handle
     
     % computed and cached window features
     windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
-      'labelidx_old',[],'labelidx_new',[],'labelidx_imp',[],...
-      'featurenames',{{}},...
+      'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
+      'labelidx_imp',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',[]);
+      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',[],...
+      'scores_old',[]);
     
     scoredata = struct('scores',[],'predicted',[],...
-          'exp',[],'flies',[],'t',[],'timestamp',[]);
+          'exp',[],'flies',[],'t',[],'timestamp',[],...
+          'classifierfilenames',[]);
     
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
@@ -69,6 +71,7 @@ classdef JLabelData < handle
     % of representation as labelidx
     predictedidx = [];
     scoresidx = [];
+    scoresidx_old = [];
     scoreTS = [];
     
     % whether the predicted label matches the true label. 0 stands for
@@ -120,6 +123,7 @@ classdef JLabelData < handle
     %   .inds     - [NxM] cached indices for original training data
     %   .H        - number classes
     classifier = [];
+    classifier_old = [];
     
     % Classifiers Time Stamp
     classifierTS = 0;
@@ -127,7 +131,9 @@ classdef JLabelData < handle
     % parameters to learning the classifier. struct fields depend on type
     % of classifier.
     % TODO
-    classifier_params = struct;
+    classifier_params = struct('iter',100,'iter_updates',10,...
+      'numSample',2500,'numBins',30,'CVfolds',7,...
+      'baseClassifierTypes',{'Decision Stumps'},'baseClassifierSelected',1);
     
     % Keep track if the scores have been validated.
     isValidated = false;
@@ -303,7 +309,7 @@ classdef JLabelData < handle
   
   methods (Access=public)
 
-    %
+    %{
     % obj = JLabelData(configfilename,...)
     %
     % constructor: first input should be the config file name. All other
@@ -328,7 +334,7 @@ classdef JLabelData < handle
     % clearstatusfn: handle to function that returns the status to the
     % default string
     % classifierfilename: name of classifier file to save/load classifier from
-    %    
+    %}    
     function obj = JLabelData(varargin)
  
       if nargin == 0 || isempty(varargin{1}),
@@ -476,6 +482,7 @@ classdef JLabelData < handle
       val = all(flies == obj.flies) && (expi==obj.expi);
     end
     
+    %{
     % [success,msg] = SetConfigFileName(obj,configfilename)
     % Set and read config file. 
     % Reads the XML config file, then sets all the file names and paths.
@@ -485,6 +492,7 @@ classdef JLabelData < handle
     % labelnames, nbehaviors are also set by the config file. If not
     % included explicitly, the 'None' behavior is added. 'None' is put at
     % the end of the behavior list. 
+    %}
     function [success,msg] = SetConfigFileName(obj,configfilename)
       
       success = false;
@@ -607,6 +615,7 @@ classdef JLabelData < handle
       
     end
     
+    %{
     % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
     % Compute and store the window data for experiment expi, flies flies,
     % and all frames ts. 
@@ -617,6 +626,7 @@ classdef JLabelData < handle
     % ComputeWindowDataChunk. Then, it updates the frames that are missing
     % window data. It proceeds in this loop until there are not frames
     % in the input ts missing window data. 
+    %}
     function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
       
       success = false; msg = '';
@@ -673,7 +683,7 @@ classdef JLabelData < handle
         obj.windowdata.exp(end+1:end+m,1) = expi;
         obj.windowdata.flies(end+1:end+m,:) = repmat(flies,[m,1]);
         obj.windowdata.t(end+1:end+m,1) = tsnew(idxnew);
-        obj.windowdata.labelidx_old(end+1:end+m,1) = 0;
+        obj.windowdata.labelidx_cur(end+1:end+m,1) = 0;
         obj.windowdata.labelidx_new(end+1:end+m,1) = ...
           labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
         obj.windowdata.labelidx_imp(end+1:end+m,1) = ...
@@ -700,6 +710,7 @@ classdef JLabelData < handle
       
     end
 
+    %{
     % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
     % Computes a chunk of windowdata near frame t for experiment expi and
     % flies flies. if mode is 'start', then the chunk will start at t. if
@@ -721,6 +732,7 @@ classdef JLabelData < handle
     % To predict over the whole movie we use forceCalc which
     % forces the function to recalculate all the features even though they
     % were calculated before.
+    %}
     function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
       
       success = false; msg = '';
@@ -837,7 +849,7 @@ classdef JLabelData < handle
       obj.windowdata.exp = [];
       obj.windowdata.flies=[];
       obj.windowdata.t=[];
-      obj.windowdata.labelidx_old=[];
+      obj.windowdata.labelidx_cur=[];
       obj.windowdata.labelidx_new=[];
       obj.windowdata.labelidx_imp=[];
       obj.windowdata.featurenames={{}};
@@ -1240,7 +1252,7 @@ classdef JLabelData < handle
           
           % update cached data
 %           obj.windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
-%             'labelidx_old',[],'labelidx_new',[],'featurenames',{{}},...
+%             'labelidx_cur',[],'labelidx_new',[],'featurenames',{{}},...
 %             'predicted',[],'predicted_probs',[],'isvalidprediction',[]);
           [success,msg] = obj.PreLoadLabeledData();
           if ~success,error(msg);end
@@ -1248,25 +1260,28 @@ classdef JLabelData < handle
           obj.classifier = loadeddata.classifier;
           obj.classifiertype = loadeddata.classifiertype;
           obj.classifierTS = loadeddata.classifierTS;
-          obj.classifier_params = loadeddata.classifier_params;
           obj.windowdata.scoreNorm = loadeddata.scoreNorm;
           obj.confThresholds = loadeddata.confThresholds;
+          paramFields = fieldnames(loadeddata.classifier_params);
+          for ndx = 1:numel(paramFields)
+            obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
+          end
           % predict for all loaded examples
           obj.PredictLoaded();
           
-          % set labelidx_old
+          % set labelidx_cur
           obj.SetTrainingData(loadeddata.trainingdata);
 
-          if strcmp(obj.classifiertype,'boosting'),
-            [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
-          end
+%           if strcmp(obj.classifiertype,'boosting'),
+%             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+%           end
           
           % make sure inds is ordered correctly
           if ~isempty(obj.classifier),
             switch obj.classifiertype,
               
               case 'ferns',
-                waslabeled = obj.windowdata.labelidx_old ~= 0;
+                waslabeled = obj.windowdata.labelidx_cur ~= 0;
                 obj.classifier.inds = obj.predict_cache.last_predicted_inds(waslabeled,:);
             
             end
@@ -1369,7 +1384,13 @@ classdef JLabelData < handle
       
       obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
       load(sfn,'allScores','timestamp');
-
+      if ~isempty(whos('-file',sfn,'classifierfilename'))
+        S = load(sfn,'classifierfilename');
+        obj.scoredata.classifierfilenames{expi} = S.classifierfilename;
+      else
+        obj.scoredata.classifierfilenames{expi} = '';
+      end
+      
       for ndx = 1:numel(allScores.scores)
         if obj.scoredata.exp
           idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,ndx),2);
@@ -1834,6 +1855,15 @@ classdef JLabelData < handle
         return;
       end
       
+      newExpNumbers = [];
+      for ndx = 1:obj.nexps
+        if ismember(ndx,expi);
+          newExpNumbers(ndx,1) = 0;
+        else
+          newExpNumbers(ndx,1) = ndx-nnz(expi<ndx);
+        end
+      end
+      
       obj.expdirs(expi) = [];
       obj.expnames(expi) = [];
       obj.outexpdirs(expi) = [];
@@ -1851,14 +1881,15 @@ classdef JLabelData < handle
       idxcurr = ismember(obj.windowdata.exp, expi);
       obj.windowdata.X(idxcurr,:) = [];
       obj.windowdata.exp(idxcurr) = [];
+      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp);
       obj.windowdata.flies(idxcurr) =[];
       obj.windowdata.t(idxcurr) =[];
       obj.windowdata.labelidx_new(idxcurr) = [];
       obj.windowdata.labelidx_imp(idxcurr) = [];
       obj.windowdata.isvalidprediction(...
         idxcurr(1:numel(obj.windowdata.isvalidprediction))) = [];
-      obj.windowdata.labelidx_old(...
-        idxcurr(1:numel(obj.windowdata.labelidx_old))) = [];
+      obj.windowdata.labelidx_cur(...
+        idxcurr(1:numel(obj.windowdata.labelidx_cur))) = [];
       obj.windowdata.predicted(...
         idxcurr(1:numel(obj.windowdata.predicted))) = [];
       obj.windowdata.predicted_probs(...
@@ -1869,14 +1900,16 @@ classdef JLabelData < handle
       obj.windowdata.binVals=[];
       obj.windowdata.bins=[];
 
-      idxcurr = ismember(obj.scoredata.exp, expi);
-      obj.scoredata.scores(idxcurr) = [];
-      obj.scoredata.predicted(idxcurr) = [];
-      obj.scoredata.exp(idxcurr) = [];
-      obj.scoredata.flies(idxcurr) = [];
-      obj.scoredata.t(idxcurr) = [];
-      obj.scoredata.timestamp(idxcurr) = [];
-      
+      if ~isempty(obj.scoredata.exp)
+        idxcurr = ismember(obj.scoredata.exp, expi);
+        obj.scoredata.scores(idxcurr) = [];
+        obj.scoredata.predicted(idxcurr) = [];
+        obj.scoredata.exp(idxcurr) = [];
+        obj.scoredata.exp = newExpNumbers(obj.scoredata.exp);
+        obj.scoredata.flies(idxcurr) = [];
+        obj.scoredata.t(idxcurr) = [];
+        obj.scoredata.timestamp(idxcurr) = [];
+      end
 
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
@@ -2708,6 +2741,7 @@ classdef JLabelData < handle
       obj.t1_curr = 0;
       obj.predictedidx = [];
       obj.scoresidx = [];
+      obj.scoresidx_old = [];
       obj.erroridx = [];
       obj.suggestedidx = [];
     end
@@ -2836,6 +2870,7 @@ classdef JLabelData < handle
         if nargin < 4,
           prediction = struct('predictedidx',obj.predictedidx,...
                               'scoresidx', obj.scoresidx,...
+                              'scoresidx_old', obj.scoresidx_old,...
                               'latest', obj.scoreTS>=obj.classifierTS,...
                               'isValidated', obj.isValidated);
           T0 = obj.t0_curr;
@@ -2844,6 +2879,7 @@ classdef JLabelData < handle
           prediction = struct(...
             'predictedidx', obj.predictedidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
             'scoresidx',  obj.scoresidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
+            'scoresidx_old',  obj.scoresidx_old(T0+obj.labelidx_off:T1+obj.labelidx_off),...            
             'latest', obj.scoreTS(T0+obj.labelidx_off:T1+obj.labelidx_off)>=obj.classifierTS,...
             'isValidated', obj.isValidated);          
         end
@@ -2859,6 +2895,7 @@ classdef JLabelData < handle
       off = 1 - T0;
       prediction = struct('predictedidx', zeros(1,n),...
                          'scoresidx', zeros(1,n),...
+                         'scoresidx_old', zeros(1,n),...
                          'latest', false(1,n),...
                          'isValidated', obj.isValidated);
       
@@ -2868,6 +2905,8 @@ classdef JLabelData < handle
         prediction.predictedidx(obj.scoredata.t(idxcurr)+off) = ...
           obj.scoredata.predicted(idxcurr);
         prediction.scoresidx(obj.scoredata.t(idxcurr)+off) = ...
+          obj.scoredata.scores(idxcurr);      
+        prediction.scoresidx_old(obj.scoredata.t(idxcurr)+off) = ...
           obj.scoredata.scores(idxcurr);      
         prediction.latest(obj.scoredata.t(idxcurr)+off) = ...
           obj.scoredata.timestamp(idxcurr)>=obj.classifierTS;      
@@ -2881,6 +2920,8 @@ classdef JLabelData < handle
           obj.windowdata.predicted(idxcurr);
         prediction.scoresidx(obj.windowdata.t(idxcurr)+off) = ...
           obj.windowdata.scores(idxcurr);
+        prediction.scoresidx_old(obj.scoredata.t(idxcurr)+off) = ...
+          obj.scoredata.scores_old(idxcurr);      
         prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
           true;
       end
@@ -3171,39 +3212,39 @@ classdef JLabelData < handle
 
             s = struct2paramscell(obj.classifier_params);
             obj.classifier = fernsClfTrain( obj.windowdata.X(islabeled,:), obj.windowdata.labelidx_new(islabeled), s{:} );
-            obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
+            obj.windowdata.labelidx_cur = obj.windowdata.labelidx_new;
                         
           else
             
             % new data added to windowdata at the end, so classifier.inds still
             % matches windowdata(:,1:Nprev)
-            Nprev = numel(obj.windowdata.labelidx_old);
+            Nprev = numel(obj.windowdata.labelidx_cur);
             Ncurr = numel(obj.windowdata.labelidx_new);
-            waslabeled = obj.windowdata.labelidx_old(1:Nprev) ~= 0;
+            waslabeled = obj.windowdata.labelidx_cur(1:Nprev) ~= 0;
             islabeled = obj.windowdata.labelidx_new(1:Nprev) ~= 0;
             
             % replace labels for examples that have been relabeled:
             % islabeled & waslabeled will not change
-            idx_relabel = islabeled & waslabeled & (obj.windowdata.labelidx_new(1:Nprev) ~= obj.windowdata.labelidx_old(1:Nprev));
+            idx_relabel = islabeled & waslabeled & (obj.windowdata.labelidx_new(1:Nprev) ~= obj.windowdata.labelidx_cur(1:Nprev));
             if any(idx_relabel),
               obj.SetStatus('Updating fern classifier for %d relabeled examples...',nnz(idx_relabel));
-              [obj.classifier] = fernsClfRelabelTrainingData( obj.windowdata.labelidx_old(waslabeled), ...
+              [obj.classifier] = fernsClfRelabelTrainingData( obj.windowdata.labelidx_cur(waslabeled), ...
                 obj.windowdata.labelidx_new(waslabeled), obj.classifier );
-              % update labelidx_old
-              obj.windowdata.labelidx_old(idx_relabel) = obj.windowdata.labelidx_new(idx_relabel);
+              % update labelidx_cur
+              obj.windowdata.labelidx_cur(idx_relabel) = obj.windowdata.labelidx_new(idx_relabel);
             end
             
             % remove training examples that were labeled but now aren't
             idx_remove = waslabeled & ~islabeled(1:Nprev);
             if any(idx_remove),
               obj.SetStatus('Removing %d training examples from fern classifier',nnz(idx_remove));
-              [obj.classifier] = fernsClfRemoveTrainingData(obj.windowdata.labelidx_old(waslabeled), idx_remove(waslabeled), obj.classifier );
-              % update labelidx_old
-              obj.windowdata.labelidx_old(idx_remove) = 0;
+              [obj.classifier] = fernsClfRemoveTrainingData(obj.windowdata.labelidx_cur(waslabeled), idx_remove(waslabeled), obj.classifier );
+              % update labelidx_cur
+              obj.windowdata.labelidx_cur(idx_remove) = 0;
             end
             % update islabeled and waslabeled
             islabeled = obj.windowdata.labelidx_new ~= 0;
-            waslabeled = [obj.windowdata.labelidx_old ~= 0;false(Ncurr-Nprev,1)];
+            waslabeled = [obj.windowdata.labelidx_cur ~= 0;false(Ncurr-Nprev,1)];
             % now only examples with islabeled should be in training set
             
             % add training examples that are labeled now but weren't before
@@ -3212,14 +3253,14 @@ classdef JLabelData < handle
               obj.SetStatus('Adding %d new examples to fern classifier...',nnz(idx_add));
               [obj.classifier] = fernsClfAddTrainingData( obj.windowdata.X(islabeled,:), ...
                 obj.windowdata.labelidx_new(islabeled), find(idx_add), obj.classifier );
-              % update labelidx_old
-              obj.windowdata.labelidx_old(~waslabeled&islabeled) = ...
+              % update labelidx_cur
+              obj.windowdata.labelidx_cur(~waslabeled&islabeled) = ...
                 obj.windowdata.labelidx_new(~waslabeled&islabeled);
             end
             
-            % labelidx_old and new should match
-            if ~all(obj.windowdata.labelidx_old == obj.windowdata.labelidx_new),
-              error('Sanity check: labelidx_old and labelidx_new should match');
+            % labelidx_cur and new should match
+            if ~all(obj.windowdata.labelidx_cur == obj.windowdata.labelidx_new),
+              error('Sanity check: labelidx_cur and labelidx_new should match');
             end
           end
           
@@ -3231,24 +3272,21 @@ classdef JLabelData < handle
           obj.PredictLoaded();
           
         case 'boosting',
-          oldNumPts = sum(obj.windowdata.labelidx_old ~= 0);
+          oldNumPts = sum(obj.windowdata.labelidx_cur ~= 0);
           newNumPts = sum(obj.windowdata.labelidx_new ~= 0);
           newData = newNumPts - oldNumPts;
 
           if isempty(obj.classifier) || (newData/oldNumPts)>0.3 || ~doFastUpdates || isempty(obj.windowdata.binVals),
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
-            [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+            obj.classifier_old = obj.classifier;
+            [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
             [obj.classifier, outScores] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
                                  obj.windowdata.binVals,...
-                                 obj.windowdata.bins(:,islabeled));
+                                 obj.windowdata.bins(:,islabeled),obj.classifier_params);
             
-            obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
-            obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
-            obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
-            obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
           else
             obj.SetStatus('Updating boosting classifier with %d examples...',newData);
             
@@ -3258,40 +3296,51 @@ classdef JLabelData < handle
               obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
             end
             
-            
+            obj.classifier_old = obj.classifier;
             [obj.classifier, outScores] = boostingUpdate(obj.windowdata.X(islabeled,:),...
                                           obj.windowdata.labelidx_new(islabeled),...
                                           obj.classifier,obj.windowdata.binVals,...
-                                          obj.windowdata.bins(:,islabeled));
+                                          obj.windowdata.bins(:,islabeled),obj.classifier_params);
           end
           obj.classifierTS = now();
-          obj.windowdata.labelidx_old = obj.windowdata.labelidx_new;
+          obj.windowdata.labelidx_old = obj.windowdata.labelidx_cur;
+          obj.windowdata.labelidx_cur = obj.windowdata.labelidx_new;
+          
           obj.windowdata.scoreNorm = [];
           % To later find out where each example came from.
 
-          obj.windowdata.predicted = zeros(numel(islabeled),1);
-          obj.windowdata.predicted(islabeled) = -sign(outScores)*0.5+1.5;
-          
-          obj.windowdata.scores = zeros(numel(islabeled),1);
-          obj.windowdata.scores(islabeled) = outScores;
-          obj.windowdata.isvalidprediction(islabeled) = true;
-          obj.windowdata.isvalidprediction(~islabeled) = false;
+          obj.windowdata.isvalidprediction = false(numel(islabeled),1);
+          obj.isValidated = false;
           
           obj.PredictLoaded();
       end
 
       obj.ClearStatus();
       
-      % all predictions invalid now
-      
     end
-
+    
+    function errorRates = createConfMat(obj,prediction,modLabels)
+      
+      confMat = zeros(2*obj.nbehaviors,2);
+      for ndx = 1:2*obj.nbehaviors
+        if mod(ndx,2)
+          curIdx = modLabels==ndx;
+        else
+          curIdx = modLabels > (ndx-1.5) & modLabels<(ndx+0.5);
+        end
+        confMat(ndx,1) = nnz(prediction(curIdx)~=1);
+        confMat(ndx,2) = nnz(prediction(curIdx)==1);
+      end
+      errorRates.numbers = confMat;
+      errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 2]);
+    end
+    
     function crossError = CrossValidate(obj)
       [success,msg] = obj.PreLoadLabeledData();
       
       if ~success, warning(msg);return;end
 
-      islabeled = obj.windowdata.labelidx_new ~= 0;
+      islabeled = obj.windowdata.labelidx_cur ~= 0;
 
       if ~any(islabeled),                        return; end
       if ~strcmp(obj.classifiertype,'boosting'); return; end
@@ -3303,14 +3352,29 @@ classdef JLabelData < handle
       if newData>0 && ~isempty(obj.windowdata.binVals)
         obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
       else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
       end
       
-      [crossError,crossScores]=...
+      crossScores=...
         crossValidate( obj.windowdata.X(islabeled,:), ...
-        obj.windowdata.labelidx_new(islabeled),obj,...
+        obj.windowdata.labelidx_cur(islabeled),obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins(:,islabeled));
+        obj.windowdata.bins(:,islabeled),obj.classifier_params);
+            
+      
+      prediction = -sign(crossScores)/2+1.5;
+      modLabels = 2*obj.windowdata.labelidx_cur(islabeled)-obj.windowdata.labelidx_imp(islabeled);
+
+      crossError = obj.createConfMat(prediction,modLabels);
+      
+      waslabeled = false(1,numel(islabeled));
+      waslabeled(1:numel(obj.windowdata.labelidx_old)) = obj.windowdata.labelidx_old~=0;
+      selectScores = waslabeled(islabeled);
+      oldPrediction = -sign(crossScores(selectScores))/2+1.5;
+      oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled) - obj.windowdata.labelidx_imp(waslabeled);
+      oldError = obj.createConfMat(oldPrediction,oldLabels);
+      crossError.oldNumbers = oldError.numbers;
+      crossError.oldFrac = oldError.frac;
       
       obj.windowdata.predicted(islabeled) = -sign(crossScores)*0.5+1.5;
       obj.windowdata.scores(islabeled) = crossScores;
@@ -3323,7 +3387,7 @@ classdef JLabelData < handle
       obj.StoreLabels();
       newError = struct();
 
-      prevLabeled = obj.windowdata.labelidx_old~=0;
+      prevLabeled = obj.windowdata.labelidx_cur~=0;
       Nprev = numel(prevLabeled);
       newLabels = obj.windowdata.labelidx_new ~= 0;
       tOld = newLabels(1:Nprev);
@@ -3344,6 +3408,8 @@ classdef JLabelData < handle
       nlt = obj.windowdata.t(newLabels);
       nlLabels = obj.windowdata.labelidx_new(newLabels);
       nlLabels_imp = obj.windowdata.labelidx_imp(newLabels);
+      
+      classifierfilename = 'None'; setClassifierfilename = 1;
       for curExp = unique(nlexp)'
         curNLexpNdx = nlexp==curExp;
         for curFly = unique(nlflies(curNLexpNdx))';
@@ -3354,35 +3420,36 @@ classdef JLabelData < handle
           scoresT = obj.scoredata.t(curScoreNdx);
           [curValidScoreNdx,loc] = ismember(scoresT,curT);
           if nnz(curValidScoreNdx)~=numel(curT)
-            fprintf('Scores are missing for some labeled data\n');
+            warndlg('Scores are missing for some labeled data');
+            newError = struct();
+            return;
           end
           
           orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
           orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
           orderedScores = [orderedScores; obj.scoredata.scores(curScoreNdx(curValidScoreNdx~=0))'];
         end
+        if setClassifierfilename,
+          classifierfilename = obj.scoredata.classifierfilenames{curExp};
+          setClassifierfilename = 0;
+        elseif strcmp(classifierfilename,'multiple'),
+        elseif ~strcmp(classifierfilename,obj.scoredata.classifierfilename{curExp}),
+          classifierfilename = 'multiple';
+        end
+          
       end
       
       prediction = -sign(orderedScores)/2+1.5;
       
       modLabels = 2*orderedLabels-orderedLabels_imp;
       
-      confMat = zeros(2*obj.nbehaviors,2);
-      for ndx = 1:2*obj.nbehaviors
-        if mod(ndx,2)
-          curIdx = modLabels==ndx;
-        else
-          curIdx = modLabels > (ndx-1.5) & modLabels<(ndx+0.5);
-        end
-        confMat(ndx,1) = nnz(prediction(curIdx)~=1);
-        confMat(ndx,2) = nnz(prediction(curIdx)==1);
-      end
-      newError.numbers = confMat;
-      newError.frac = newError.numbers./repmat( sum(newError.numbers,2),[1 2]);
-
+      newError = obj.createConfMat(prediction,modLabels);
+      newError.classifierfilename = classifierfilename;
       
-    end      
-%{  When testing with the current classifier.    
+    end
+    
+%{ 
+% When testing with the current classifier.
 %       if isempty(obj.classifier);
 %         warndlg('No Classifier. Either ');
 %         return; 
@@ -3417,7 +3484,6 @@ classdef JLabelData < handle
 %       end
 %}
       
-    
     function DoBagging(obj)
       [success,msg] = obj.PreLoadLabeledData();
       
@@ -3616,6 +3682,12 @@ classdef JLabelData < handle
           obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
           obj.windowdata.scores(toPredict) = scores;
           obj.windowdata.isvalidprediction(toPredict) = true;
+          if ~isempty(obj.classifier_old)
+            obj.windowdata.scores_old(toPredict) = ...
+              myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
+          else
+            obj.windowdata.scores_old(toPredict) = obj.windowdata.scores(toPredict);
+          end
           obj.ClearStatus();
           
       end
@@ -3628,7 +3700,7 @@ classdef JLabelData < handle
     end
     
     % SetTrainingData(obj,trainingdata)
-    % Sets the labelidx_old of windowdata based on the input training data.
+    % Sets the labelidx_cur of windowdata based on the input training data.
     % This reflects the set of labels the classifier was last trained on. 
     function SetTrainingData(obj,trainingdata)
 
@@ -3649,19 +3721,19 @@ classdef JLabelData < handle
           if nnz(ist) ~= (t1-t0),
             error('Sanity check: number of training examples does not match windowdata');
           end
-          obj.windowdata.labelidx_old(ist) = l;
+          obj.windowdata.labelidx_cur(ist) = l;
         end
       end
             
     end
 
     % trainingdata = SummarizeTrainingData(obj)
-    % Summarize labelidx_old into trainingdata, which is similar to the
+    % Summarize labelidx_cur into trainingdata, which is similar to the
     % form of labels.
     function trainingdata = SummarizeTrainingData(obj)
       
       trainingdata = struct('t0s',{},'t1s',{},'names',{},'flies',{});
-      waslabeled = obj.windowdata.labelidx_old;
+      waslabeled = obj.windowdata.labelidx_cur;
       for expi = 1:obj.nexps,
         trainingdata(expi) = struct('t0s',[],'t1s',[],'names',{{}},'flies',[]);
         isexp = waslabeled & obj.windowdata.exp == expi;
@@ -3672,10 +3744,10 @@ classdef JLabelData < handle
         for fliesi = 1:size(fliess,1),
           flies = fliess(fliesi,:);
           isflies = isexp & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
-          labelidxs = setdiff(unique(obj.windowdata.labelidx_old(isflies)),0);
+          labelidxs = setdiff(unique(obj.windowdata.labelidx_cur(isflies)),0);
           for labelidxi = 1:numel(labelidxs),
             labelidx = labelidxs(labelidxi);
-            islabel = isflies & labelidx == obj.windowdata.labelidx_old;
+            islabel = isflies & labelidx == obj.windowdata.labelidx_cur;
             ts = sort(obj.windowdata.t(islabel));
             breaks = find(ts(1:end-1)+1~=ts(2:end));
             t1s = ts(breaks)+1;
@@ -3705,14 +3777,17 @@ classdef JLabelData < handle
       n = obj.t1_curr - obj.t0_curr + 1;
       obj.predictedidx = zeros(1,n);
       obj.scoresidx = zeros(1,n);
+      obj.scoresidx_old = zeros(1,n);
       obj.scoreTS = zeros(1,n);
       
       % Scores loaded from files.
-      if obj.scoredata.exp,
+      if ~isempty(obj.scoredata.exp),
         idxcurr = obj.scoredata.exp == obj.expi & all(bsxfun(@eq,obj.scoredata.flies,obj.flies),2);
         obj.predictedidx(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
           obj.scoredata.predicted(idxcurr);
         obj.scoresidx(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
+          obj.scoredata.scores(idxcurr);      
+        obj.scoresidx_old(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
           obj.scoredata.scores(idxcurr);      
         obj.scoreTS(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
           obj.scoredata.timestamp(idxcurr);      
@@ -3729,6 +3804,8 @@ classdef JLabelData < handle
         obj.windowdata.predicted(idxcurr);
       obj.scoresidx(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
         obj.windowdata.scores(idxcurr);      
+      obj.scoresidx_old(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
+        obj.windowdata.scores_old(idxcurr);      
       obj.scoreTS(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
         obj.classifierTS;      
 
@@ -3807,6 +3884,13 @@ classdef JLabelData < handle
           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
           obj.windowdata.scores(idxcurr) = scores;
+          if ~isempty(obj.classifier_old)
+            obj.windowdata.scores_old(idxcurr) = ...
+              myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier_old);
+          else
+            obj.windowdata.scores_old(idxcurr) = obj.windowdata.scores(idxcurr);
+          end
+            
           obj.windowdata.isvalidprediction(idxcurr) = true;
           obj.ClearStatus();
 
@@ -3833,8 +3917,8 @@ classdef JLabelData < handle
         while (t1<tEnd)
           cTic = tic;
           [success1,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(expi,flies,t1,'start',true);
- 
-%{          
+          
+          %{
           if ~success1,
             warning(msg);
             return;
@@ -3860,13 +3944,13 @@ classdef JLabelData < handle
               
               obj.ClearStatus();
             case 'boosting',
-%}
+          %}
           scores(t0:t1) = myBoostClassify(X,obj.classifier);
-              
-%{
+          
+          %{
            end
-%}          
-           t1 = t1+1;
+          %}
+          t1 = t1+1;
           tt = toc(cTic);
           timeRemainingFly = (tEnd-t1)/(t1-t0)*tt;
           timeRemainingAll = (tEnd-t1)/(t1-t0)*tt + ...
@@ -3874,11 +3958,11 @@ classdef JLabelData < handle
           fprintf('Prediction for fly %d/%d: %d%% done. Time Remaining: Current Fly:%ds, Current Movie:%ds\n',...
             flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100),...
             round(timeRemainingFly),round(timeRemainingAll));
-%{
+          %{
           obj.SetStatus('Prediction for fly %d/%d: %d%% done. Time Remaining: Current Fly:%ds, Current Movie:%ds',...
             flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100),...
             round(timeRemainingFly),round(timeRemainingAll));
-%}          
+            %}
         end % While loop.
         scoresA{flies} = scores;
         tStartAll(flies) = tStart;
@@ -3890,25 +3974,97 @@ classdef JLabelData < handle
       allScores.tEnd = tEndAll;
       obj.SaveScores(allScores,expi);
       obj.ClearStatus();
-
       
-   end
-   
-   function scores = NormalizeScores(obj,scores)
+      
+    end
 
-     if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
-       isLabeled = obj.windowdata.labelidx_old~=0;
-       wScores = obj.windowdata.scores(isLabeled);
-       scoreNorm = prctile(abs(wScores),80);
-       obj.windowdata.scoreNorm = scoreNorm;
-     end
-     
-     scoreNorm = obj.windowdata.scoreNorm;
-     scores(scores<-scoreNorm) = -scoreNorm;
-     scores(scores>scoreNorm) = scoreNorm;
-     scores = scores/scoreNorm;
-   end
-   
+    function expStats = GetExpStats(obj,expi)
+      % Calculates statistics such as number of labeled bouts, predicted bouts
+      % and change in scores.
+      
+      expStats.name = obj.expnames{expi};
+      expStats.nflies = obj.nflies_per_exp(expi);
+      expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
+      expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
+      expStats.labeldatestr = obj.labelstats(expi).datestr;
+      
+      
+      if ~isempty(obj.scoredata.exp==expi)
+        expid = obj.scoredata.exp==expi;
+        expStats.nscoreframes = nnz(expid);
+        expStats.nscorepos = nnz(obj.scoredata.scores(expid)>0);
+        expStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
+      else
+        expStats.nscoreframes = [];
+        expStats.nscorefrac = [];
+        expStats.classifierfilename = '';
+      end
+      
+    end
+
+    function flyStats = GetFlyStats(obj,expi,flyNum)
+      % Calculates statistics such as number of labeled bouts, predicted bouts
+      % and change in scores.
+      
+      [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
+      if ism,
+        flyStats.nbouts = numel(obj.labels(expi).t0s{j});
+      else
+        flyStats.nbouts = 0;
+      end
+      
+      flyStats.endframe = obj.endframes_per_exp{expi}(flyNum);
+      flyStats.firstframe = obj.firstframes_per_exp{expi}(flyNum);
+      flyStats.trajLength = flyStats.endframe-flyStats.firstframe+1;
+      if obj.hassex,
+        flyStats.hassex = true;
+        if obj.hasperframesex,
+          flyStats.sexfrac = obj.GetSexFrac(expi,flyNum);
+        else
+          flyStats.sexfrac = [];
+          flyStats.sex = obj.GetSex(expi,flyNum);
+        end
+      else
+        flyStats.hassex = false;
+      end
+      
+      if ~isempty(obj.scoredata.exp==expi)
+        idxcurr = obj.scoredata.exp==expi & obj.scoredata.flies == flyNum;
+        flyStats.nscoreframes = nnz(idxcurr);
+        flyStats.nscorepos = nnz(obj.scoredata.scores(idxcurr)>0);
+      else
+        flyStats.nscoreframes = [];
+        flyStats.nscorepos = [];
+      end
+      
+%       if ~isempty(obj.windowdata.X) 
+%         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
+%         flyStats.npredictframes = nnz(idxcurr);
+%         flyStats.npredictfrac = nnz(obj.windowdata.scores(idxcurr)>0)/flyStats.nscoreframes;
+%           
+%       else
+%         flyStats.npredictframes = [];
+%         flyStats.npredictfrac = [];
+%       end
+      
+    end
+
+    
+    function scores = NormalizeScores(obj,scores)
+      
+      if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
+        isLabeled = obj.windowdata.labelidx_cur~=0;
+        wScores = obj.windowdata.scores(isLabeled);
+        scoreNorm = prctile(abs(wScores),80);
+        obj.windowdata.scoreNorm = scoreNorm;
+      end
+      
+      scoreNorm = obj.windowdata.scoreNorm;
+      scores(scores<-scoreNorm) = -scoreNorm;
+      scores(scores>scoreNorm) = scoreNorm;
+      scores = scores/scoreNorm;
+    end
+    
     % SetStatus(obj,<sprintf-like arguments>)
     % Update an associated status text according to the input sprintf-like
     % arguments.
@@ -4015,23 +4171,23 @@ end
 %       % frames of current experiment and flies that have old labeled data
 %       
 %       % indices into cached data that are for this exp, these flies, have
-%       % labelidx_old
+%       % labelidx_cur
 %       idxcurr1 = idxcurr & obj.labelidx_old_labeled ~= 0;
-%       % which frames for expi, flies that have labelidx_old ~= 0
+%       % which frames for expi, flies that have labelidx_cur ~= 0
 %       tsold = obj.ts_labeled(idxcurr1);
-%       % indices into labels_bin that have labelidx_old ~= 0
+%       % indices into labels_bin that have labelidx_cur ~= 0
 %       idxold = tsold+obj.labels_bin_off;
 %             
-%       % keep/add windowdata if labelidx_old ~= 0 or if labels_bin ~= 0
+%       % keep/add windowdata if labelidx_cur ~= 0 or if labels_bin ~= 0
 %       % indices into labels_bin for which new labelidx_new ~= 0
 %       cacheidx = any(obj.labels_bin,2);
-%       % or labelidx_old ~= 0
+%       % or labelidx_cur ~= 0
 %       cacheidx(idxold) = true;
 %       m = nnz(cacheidx);
 % 
-%       % labelidx_old for these frames
-%       labelidx_old = zeros(1,m);
-%       labelidx_old(idxold) = obj.labelidx_old_labeled(idxcurr1);
+%       % labelidx_cur for these frames
+%       labelidx_cur = zeros(1,m);
+%       labelidx_cur(idxold) = obj.labelidx_old_labeled(idxcurr1);
 %       
 %       % remove all data from the cache for the current exp, flies
 %       obj.windowdata_labeled(:,idxcurr) = [];
@@ -4052,7 +4208,7 @@ end
 %       obj.windowdata_labeled(:,end+1:end+m) = obj.windowdata_curr(:,cacheidx);
 %       obj.exp_labeled(end+1:end+m) = obj.expi;
 %       obj.flies_labeled(end+1:end+m,:) = repmat(obj.flies,[m,1]);
-%       obj.labelidx_old_labeled(end+1:end+m) = labelidx_old;
+%       obj.labelidx_old_labeled(end+1:end+m) = labelidx_cur;
 %       obj.labelidx_new_labeled(end+1:end+m) = labelidx;
 %       obj.ts_labeled(end+1:end+m) = find(cacheidx) + obj.labels_bin_off;
 % 
