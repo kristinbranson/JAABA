@@ -11,3 +11,7 @@ else
   ndx = find(strcmp(expName,data.expdirs));
   data.PredictWholeMovie(ndx);
 end
+
+scoreFileName = sprintf('scores_%s.mat',data.labelnames{1});
+sfn = fullfile(data.rootoutputdir,expName,scoreFileName);
+save(sfn,'classifierfilename','-append');

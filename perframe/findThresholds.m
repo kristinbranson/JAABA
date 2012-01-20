@@ -1,7 +1,9 @@
-function [binVals bins] = findThresholds(data)
+function [binVals bins] = findThresholds(data,params)
 
 numDim = size(data,2);
-prcValues = 2:2:98;
+numBins = params.numBins;
+temp = linspace(0,100,numBins+2);
+prcValues = temp(2:end-1);
 binVals = zeros(length(prcValues),numDim);
 bins = zeros(size(data,2),size(data,1));
 numPts = size(data,1);

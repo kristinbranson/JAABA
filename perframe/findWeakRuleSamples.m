@@ -1,4 +1,4 @@
-function best = findWeakRuleSamples(data,labels,dist,binVals,bins)
+function best = findWeakRuleSamples(data,labels,dist,binVals,bins,params)
 
 numDim = size(data,2);
 
@@ -11,7 +11,7 @@ curBestErr = 0.5*ones(1,numDim);
 binNo = ones(1,numDim);
 bestDir = ones(1,numDim);
 
-numS = 2500;
+numS = params.numSample;
 curSel = zeros(1,numS);
 cumD = cumsum(dist);
 randPts = sort(rand(numS,1),'ascend');

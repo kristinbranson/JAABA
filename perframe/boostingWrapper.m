@@ -1,6 +1,6 @@
-function [allDataModel outScores] = boostingWrapper(data,labels,obj,binVals,bins)
+function [allDataModel outScores] = boostingWrapper(data,labels,obj,binVals,bins,params)
 
-boostIterations = 100;
+boostIterations = params.iter;
 % Learn classifier with all the data.
 numEx = size(data,1);
 posEx = labels == 1;
@@ -17,7 +17,7 @@ end
 modLabels = sign( (labels==1)-0.5);
 wt = getWeights(modLabels);
 
-[outScores, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt,binVals,bins,obj);
+[outScores, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt,binVals,bins,params,obj);
 
 return;
 

@@ -1,6 +1,6 @@
-function [crossError scores]= crossValidate(data,labels,obj,binVals,bins)
+function scores= crossValidate(data,labels,obj,binVals,bins,params)
 
-k = 7;
+k = params.CVfolds;
 
 boostIterations = 100;
 % Learn classifier with all the data.
@@ -36,7 +36,7 @@ for bno = 1:k
   wt = getWeights(curTrainLabels);  
   tt = tic;
   [~,curModel] = loglossboostLearnMod(data(curTrain,:),curTrainLabels,...
-    boostIterations,wt,binVals,bins(:,curTrain));
+    boostIterations,wt,binVals,bins(:,curTrain),params);
   tScores = myBoostClassify(data(curTest,:),curModel);
   scores(curTest) = tScores;
   
@@ -46,5 +46,3 @@ for bno = 1:k
   drawnow();
 end
 
-crossError.numbers = confusionmat( (modLabels>0)+1,(scores>0)+1);
-crossError.frac = crossError.numbers./repmat( sum(crossError.numbers,2),[1 2]);

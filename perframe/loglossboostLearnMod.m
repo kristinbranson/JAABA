@@ -1,4 +1,4 @@
-function [scores model binVals bins] = loglossboostLearnMod(data,labels,numIters,initWt,binVals,bins,obj)
+function [scores model binVals bins] = loglossboostLearnMod(data,labels,numIters,initWt,binVals,bins,params,obj)
 
 numEx = size(data,1);
 wt = initWt;
@@ -7,12 +7,16 @@ scores = zeros(numEx,1);
 
 clk = tic;
 for itt = 1:numIters
-  wkRule = findWeakRuleSamples(data,labels,wt,binVals,bins);
+  wkRule = findWeakRuleSamples(data,labels,wt,binVals,bins,params);
   
   tr = wkRule.tr;
   dir = wkRule.dir;
   dim = wkRule.dim;
-  tt = (((data(:,dim)*dir)> (dir*tr))-0.5)*2;
+  if dir>0,
+    tt = ((data(:,dim)> tr)-0.5)*2;
+  else
+    tt = ((data(:,dim)<= tr)-0.5)*2;
+  end
   curError = sum( (tt.*labels).*wt);
   if(curError<0); 
     curError = - curError;
@@ -27,7 +31,7 @@ for itt = 1:numIters
   wt = initWt./(1+exp(tt));
   wt = wt./sum(wt);
   
-  if( nargin>6 && mod(itt,10)==0)
+  if( nargin>7 && mod(itt,10)==0)
     etime = toc(clk);
     obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
       round(itt/numIters*100),round((numIters-itt)/10*etime));
