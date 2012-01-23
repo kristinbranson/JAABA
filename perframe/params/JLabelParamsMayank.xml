@@ -2,13 +2,13 @@
 
 <params>
   <behaviors 
-      names="Sharpturn"
+      names="Sharpturns"
       labelcolors=".7,0,0,0,0,.7"
       />
   <file 
       moviefilename="movie.ufmf"
       trxfilename="registered_trx.mat"
-      labelfilename="labeledsharpturns.mat"
+      labelfilename="labeledsharpturns1.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"
@@ -81,5 +81,6 @@
 	linewidth="3"
 	/>
   </plot>
+  <JLabelMode mode="basic" />
 
 </params>

@@ -1946,7 +1946,11 @@ classdef JLabelData < handle
         case {'perframedir','perframe'},
           res = obj.perframedir;
         case {'clipsdir','clips'},
-          res = obj.clipsdir;
+          if ischar(obj.clipsdir)
+            res = strtrim(obj.clipsdir);
+          else
+            res = 'clips';
+          end            
         otherwise
           error('Unknown file type %s',file);
       end
