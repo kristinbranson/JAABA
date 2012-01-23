@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 13-Jan-2012 14:48:43
+% Last Modified by GUIDE v2.5 23-Jan-2012 10:52:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,9 +71,6 @@ set(handles.similarFramesButton,'Enable','off');
 handles.doFastUpdates = true;
 ClearStatus(handles);
 
-% get relative locations of stuffs
-handles = GetGUIPositions(handles);
-
 % read configuration
 [handles,success] = LoadConfig(handles);
 if ~success,
@@ -81,6 +78,9 @@ if ~success,
   delete(handles.figure_JLabel);
   return;
 end
+
+% get relative locations of stuffs
+handles = GetGUIPositions(handles);
 
 % initialize data
 handles = InitializeState(handles);
@@ -112,7 +112,6 @@ RecursiveSetKeyPressFcn(handles.figure_JLabel);
 EnableGUI(handles);
 
 handles.output = handles.figure_JLabel;
-
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1448,6 +1447,9 @@ while true,
     
 %   try
     handles.configparams = ReadXMLParams(handles.configfilename);
+    if ~isfield(handles.configparams,'JLabelMode')
+      handles.configparams.JLabelMode.mode = 'basic';
+    end
 %   catch ME,
 %     uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.configfilename,getReport(ME)),'Error reading config file'));
 %     havefilename = false;
@@ -1613,7 +1615,7 @@ SetJumpGoMenuLabels(handles)
 
 % label shortcuts
 if numel(handles.label_shortcuts) ~= 2*handles.data.nbehaviors + 1,
-  handles.label_shortcuts = cellstr(num2str((0:2*handles.data.nbehaviors)'))';
+  handles.label_shortcuts = cellstr(num2str((1:2*handles.data.nbehaviors+1)'))';
 end
 
 % play/stop
@@ -1673,8 +1675,14 @@ button_width = button1_pos(3);
 button_height = button1_pos(4);
 
 % calculate new height for the panel
+
+if strcmp(handles.configparams.JLabelMode.mode,'basic');
+new_panel_height = 2*out_border_y + (handles.data.nbehaviors+1)*button_height + ...
+  handles.data.nbehaviors*in_border_y;
+else
 new_panel_height = 2*out_border_y + (2*handles.data.nbehaviors+1)*button_height + ...
   2*handles.data.nbehaviors*in_border_y;
+end
 % update panel position
 panel_top = panel_pos(2)+panel_pos(4);
 new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
@@ -1691,44 +1699,60 @@ set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 handles.togglebutton_label_behaviors = nan(1,2*handles.data.nbehaviors);
 
 % update first button
-new_button1_pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
-set(handles.togglebutton_label_behavior1,...
-  'String',sprintf('Important %s',handles.data.labelnames{1}),...
-  'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-  'FontWeight','bold','BackgroundColor',ShiftColor.increaseIntensity(handles.labelcolors(1,:)),...
-  'Position',new_button1_pos,...
-  'UserData',1);
-handles.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
-SetButtonImage(handles.togglebutton_label_behavior1);
+if ~strcmp(handles.configparams.JLabelMode.mode,'basic')
+  new_button1_pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
+  set(handles.togglebutton_label_behavior1,...
+    'String',sprintf('Important %s',handles.data.labelnames{1}),...
+    'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+    'FontWeight','bold','BackgroundColor',ShiftColor.increaseIntensity(handles.labelcolors(1,:)),...
+    'Position',new_button1_pos,...
+    'UserData',1);
+  handles.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
+  SetButtonImage(handles.togglebutton_label_behavior1);
+  pos = [out_border_x,new_panel_height-out_border_y-2*button_height-in_border_y,button_width,button_height];
+  handles.togglebutton_label_behaviors(2) = uicontrol('Style','togglebutton',...
+    'String',sprintf('%s',handles.data.labelnames{1}),...
+    'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+    'FontWeight','bold','BackgroundColor',handles.labelcolors(1,:),...
+    'Parent',handles.panel_labelbuttons,...
+    'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
+    'Position',pos,'Tag',sprintf('togglebutton_label_normbehavior1'),...
+    'UserData',2);
+  SetButtonImage(handles.togglebutton_label_behaviors(2));
+else
+  pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
+  set(handles.togglebutton_label_behavior1,...
+    'String',sprintf('%s',handles.data.labelnames{1}),...
+    'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+    'FontWeight','bold','BackgroundColor',handles.labelcolors(1,:),...
+    'Position',pos,...
+    'UserData',2);
+  handles.togglebutton_label_behaviors(2) = handles.togglebutton_label_behavior1;
+end
 
-pos = [out_border_x,new_panel_height-out_border_y-2*button_height-in_border_y,button_width,button_height];
-handles.togglebutton_label_behaviors(2) = uicontrol('Style','togglebutton',...
-  'String',sprintf('%s',handles.data.labelnames{1}),...
-  'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-  'FontWeight','bold','BackgroundColor',handles.labelcolors(1,:),...
-  'Parent',handles.panel_labelbuttons,...
-  'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
-  'Position',pos,'Tag',sprintf('togglebutton_label_normbehavior1'),...
-  'UserData',2);
-SetButtonImage(handles.togglebutton_label_behaviors(2));
+  
 
 % create the rest of the buttons
 for i = 2:handles.data.nbehaviors,
-  pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
-    button_width,button_height];
-  handles.togglebutton_label_behaviors(2*i-1) = ...
-    uicontrol('Style','togglebutton','String',sprintf('Important %s',handles.data.labelnames{i}),...
-    'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-    'FontWeight','bold','BackgroundColor',ShiftColor.increaseIntensity(handles.labelcolors(i,:)),...
-    'Position',pos,...
-    'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
-    'Parent',handles.panel_labelbuttons,...
-    'Tag',sprintf('togglebutton_label_behavior%d',i),...
-    'UserData',2*i-1);
-  SetButtonImage(handles.togglebutton_label_behaviors(2*i-1));
-  
+  if ~strcmp(handles.configparams.JLabelMode.mode,'basic')
+    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
+      button_width,button_height];
+    handles.togglebutton_label_behaviors(2*i-1) = ...
+      uicontrol('Style','togglebutton','String',sprintf('Important %s',handles.data.labelnames{i}),...
+      'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+      'FontWeight','bold','BackgroundColor',ShiftColor.increaseIntensity(handles.labelcolors(i,:)),...
+      'Position',pos,...
+      'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
+      'Parent',handles.panel_labelbuttons,...
+      'Tag',sprintf('togglebutton_label_behavior%d',i),...
+      'UserData',2*i-1);
+    SetButtonImage(handles.togglebutton_label_behaviors(2*i-1));
   pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
     button_width,button_height];
+  else
+  pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
+    button_width,button_height];    
+  end
   handles.togglebutton_label_behaviors(2*i) = ...
     uicontrol('Style','togglebutton','String',sprintf('%s',handles.data.labelnames{i}),...
     'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
@@ -1753,10 +1777,17 @@ SetButtonImage(handles.togglebutton_label_unknown);
 function EnableGUI(handles)
 
 % these controls require a movie to currently be open
-h = [handles.contextmenu_timeline_manual_timeline_options,...
-  handles.togglebutton_label_behaviors(:)',...
-  handles.togglebutton_label_unknown,...
-  handles.menu_view_zoom_options(:)'];
+if strcmp(handles.configparams.JLabelMode.mode,'basic')
+  h = [handles.contextmenu_timeline_manual_timeline_options,...
+    handles.togglebutton_label_behaviors(2:2:end),...
+    handles.togglebutton_label_unknown,...
+    handles.menu_view_zoom_options(:)'];
+else
+  h = [handles.contextmenu_timeline_manual_timeline_options,...
+    handles.togglebutton_label_behaviors(:)',...
+    handles.togglebutton_label_unknown,...
+    handles.menu_view_zoom_options(:)'];
+end
 hp = [handles.panel_previews(:)',...
   handles.panel_timelines,...
   handles.panel_learn];
@@ -2069,7 +2100,7 @@ if get(hObject,'Value'),
   
   % set everything else to off
   for j = 1:2*handles.data.nbehaviors,
-    if j == buttonNum,
+    if j == buttonNum || isnan(handles.togglebutton_label_behaviors(j)),
       continue;
     end
     set(handles.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
@@ -2133,6 +2164,7 @@ else % label pen is up.
   
 %   handles.data.StoreLabels();
   for j = 1:2*handles.data.nbehaviors,
+    if isnan(handles.togglebutton_label_behaviors(j)), continue; end
     set(handles.togglebutton_label_behaviors(j),'Value',0,'Enable','on');
   end
   set(handles.togglebutton_label_unknown,'Value',0,'Enable','on');
@@ -2347,6 +2379,7 @@ if get(hObject,'Value'),
 
   % set everything else to off
   for j = 1:2*handles.data.nbehaviors,
+    if isnan(handles.togglebutton_label_behaviors(j)), continue; end
     set(handles.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
   end
 
@@ -2402,6 +2435,7 @@ else
     
   %handles.data.StoreLabels();
   for j = 1:2*handles.data.nbehaviors,
+    if isnan(handles.togglebutton_label_behaviors(j)), continue; end
     buttonStr = sprintf('%s',handles.data.labelnames{ceil(j/2)});
     if mod(j,2); buttonStr = sprintf('Important %s',buttonStr); end
     set(handles.togglebutton_label_behaviors(j),'Value',0,'String',buttonStr,'Enable','on');
@@ -2470,6 +2504,7 @@ function menu_view_timeline_options_Callback(hObject, eventdata, handles)
 prompts = {'N. frames shown:'};
 answers = {num2str(handles.timeline_nframes)};
 res = inputdlg(prompts,'Timeline view options',numel(prompts),answers);
+if isempty(res); return; end;
 handles.timeline_nframes = str2double(res{1});
 
 xlim = [handles.ts(1)-(handles.timeline_nframes-1)/2,...
@@ -3001,6 +3036,8 @@ switch eventdata.Key,
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
       return;
     else
+      if strcmp(handles.configparams.JLabelMode.mode,'basic') && mod(buttonNum,2); return; end 
+      % Don't do anything when important label keys are pressed in the basic mode
       if handles.label_state == -1,
         set(handles.togglebutton_label_unknown,'Value',false);
         togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
@@ -3137,17 +3174,27 @@ function menu_edit_label_shortcuts_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 prompts  = {};
+allShortcuts = handles.label_shortcuts;
+curShortcuts = {};
 for j = 1:2*handles.data.nbehaviors
+  if strcmp(handles.configparams.JLabelMode.mode,'basic') && mod(j,2); continue; end
   labelStr = handles.data.labelnames{ceil(j/2)};
   if mod(j,2), labelStr = ['Important ' labelStr];end
   prompts{end+1} = labelStr;
+  curShortcuts{end+1} = allShortcuts{j};
 end
 prompts{end+1} = 'Unknown';
-sh = inputdlg(prompts,'Label Shortcuts',1,handles.label_shortcuts);
+curShortcuts{end+1} = allShortcuts{end};
+sh = inputdlg(prompts,'Label Shortcuts',1,curShortcuts);
 if isempty(sh),
   return;
 end
-handles.label_shortcuts = sh;
+if strcmp(handles.configparams.JLabelMode.mode,'basic')
+  handles.label_shortcuts(2:2:2*handles.data.nbehaviors)= sh(1:handles.data.nbehaviors);
+  handles.label_shortcuts(2*handles.data.nbehaviors+1)= sh(handles.data.nbehaviors+1);
+else
+  handles.label_shortcuts = sh;
+end
 guidata(hObject,handles);
 
 
@@ -3205,15 +3252,22 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guipos.rightborder_rightpa
 set(handles.panel_select,'Position',new_select_pos);
 
 %dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
-new_similar_pos = [figpos(3) - similar_pos(3) - handles.guipos.rightborder_rightpanels,...
-  new_select_pos(2) - similar_pos(4) - dy_label_select,...
-  similar_pos(3:4)];
-set(handles.panel_similar,'Position',new_similar_pos);
-
-new_info_pos = [figpos(3) - info_pos(3) - handles.guipos.rightborder_rightpanels,...
-  new_similar_pos(2) - info_pos(4) - dy_label_select,...
-  info_pos(3:4)];
-set(handles.panel_selection_info,'Position',new_info_pos);
+if strcmp(handles.configparams.JLabelMode.mode,'basic')
+  set(handles.panel_similar,'Visible','off');
+  new_info_pos = [figpos(3) - info_pos(3) - handles.guipos.rightborder_rightpanels,...
+    new_select_pos(2) - info_pos(4) - dy_label_select,...
+    info_pos(3:4)];
+  set(handles.panel_selection_info,'Position',new_info_pos);
+else
+  new_similar_pos = [figpos(3) - similar_pos(3) - handles.guipos.rightborder_rightpanels,...
+    new_select_pos(2) - similar_pos(4) - dy_label_select,...
+    similar_pos(3:4)];
+  set(handles.panel_similar,'Position',new_similar_pos);
+  new_info_pos = [figpos(3) - info_pos(3) - handles.guipos.rightborder_rightpanels,...
+    new_similar_pos(2) - info_pos(4) - dy_label_select,...
+    info_pos(3:4)];
+  set(handles.panel_selection_info,'Position',new_info_pos);
+end
 
 
 new_learn_pos = [figpos(3) - learn_pos(3) - handles.guipos.rightborder_rightpanels,...
@@ -4201,7 +4255,7 @@ if strcmpi(labeltype,'manual'),
   [labelidxStruct,T0,T1] = handles.data.GetLabelIdx(handles.expi,handles.flies);
   labelidx = labelidxStruct.vals;
 else
-  [prediction,~,T0,T1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
+  [prediction,T0,T1] = handles.data.GetPredictedIdx(handles.expi,handles.flies);
   labelidx = prediction.predictedidx;
 end
 i = t - T0 + 1;
@@ -4606,6 +4660,8 @@ function menu_view_plot_labels_manual_Callback(hObject, eventdata, handles)
 
 handles.plot_labels_manual = true;
 handles.plot_labels_automatic = false;
+% set(handles.panel_timeline_select,'SelectedObject',handles.timeline_label_manual);
+set(handles.timeline_label_manual,'Value',1);
 UpdatePlotLabels(handles);
 guidata(hObject,handles);
 
@@ -4617,6 +4673,8 @@ function menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles)
 
 handles.plot_labels_manual = false;
 handles.plot_labels_automatic = true;
+% set(handles.panel_timeline_select,'SelectedObject',handles.timeline_label_automatic);
+set(handles.timeline_label_automatic,'Value',1);
 UpdatePlotLabels(handles);
 guidata(hObject,handles);
 
@@ -5017,3 +5075,12 @@ function menu_classifier_setclassifierparameters_Callback(hObject, eventdata, ha
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 ClassifierOptions(handles.data);
+
+
+% --------------------------------------------------------------------
+function menu_classifier_switch_target_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_switch_target (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+changeTargetHandle = ClassifierChange(handles);
+ClassifierChange('initTable',changeTargetHandle);
