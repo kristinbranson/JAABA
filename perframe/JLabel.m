@@ -417,8 +417,8 @@ if refresh_timeline_xlim,
   xlim = [handles.ts(1)-(handles.timeline_nframes-1)/2,...
     handles.ts(1)+(handles.timeline_nframes-1)/2];
   for i = 1:numel(handles.axes_timelines),
-    set(handles.axes_timelines,'XLim',xlim);
-    zoom(handles.axes_timelines(i),'reset');
+    set(handles.axes_timelines(i),'XLim',xlim);
+    %zoom(handles.axes_timelines(i),'reset');
   end
 end
 
@@ -3631,12 +3631,13 @@ else
   handles.perframeprops{propi} = s;
   [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,prop);
   set(handles.htimeline_data(propi),'XData',T0:T1,'YData',perframedata);
-  if isnan(handles.timeline_data_ylims(1,prop)),
-    ylim = [min(perframedata),max(perframedata)];
-  else
-    ylim = handles.timeline_data_ylims(:,prop);
-  end
+  ylim = [min(perframedata),max(perframedata)];
   set(handles.axes_timeline_props(propi),'YLim',ylim);
+  zoom(handles.axes_timeline_props(propi),'reset');
+  if ~isnan(handles.timeline_data_ylims(1,prop)),
+    ylim = handles.timeline_data_ylims(:,prop);
+    set(handles.axes_timeline_props(propi),'YLim',ylim);
+  end
   ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
   set(handles.hselection(propi),'YData',ydata([1,2,2,1,1]));
   guidata(hObject,handles);
