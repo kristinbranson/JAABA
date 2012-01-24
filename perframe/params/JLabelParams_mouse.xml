@@ -48,8 +48,9 @@
   </plot>
   <perframe>
     <params 
-      fov=".141592653589793"
+      fov="3.141592653589793"
       thetafil="0.0625,0.2500,0.3750,0.2500,0.0625"
+      nbodylengths_near="2.5"
     />
     <landmark_params 
       arena_type="rectangle"
