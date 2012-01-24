@@ -5082,5 +5082,5 @@ function menu_classifier_switch_target_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_switch_target (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-changeTargetHandle = ClassifierChange(handles);
+changeTargetHandle = ClassifierChange(hObject);
 ClassifierChange('initTable',changeTargetHandle);
