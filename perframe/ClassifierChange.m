@@ -55,11 +55,12 @@ function ClassifierChange_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for ClassifierChange
 handles.output = hObject;
 
-handles.JLabelhandles = varargin{1};
-handles.JLDObj = varargin{1}.data;
+handles.JLabelhObject = varargin{1};
+JLabelHandles = guidata(handles.JLabelhObject);
+handles.JLDObj = JLabelHandles.data;
 % set(handles.axes1,'axes',off);
-handles.curExp = handles.JLabelhandles.expi;
-handles.curFly = handles.JLabelhandles.flies;
+handles.curExp = JLabelHandles.expi;
+handles.curFly = JLabelHandles.flies;
 
 
 % Initialize the table
@@ -68,11 +69,13 @@ set(handles.table,'ColumnName',...
   'First frame','Bouts labeled','Sex (% male)',...
   sprintf('Frames predicted as %s',handles.JLDObj.labelnames{1}),...
   'number of predicted frames',...
+  sprintf('Frames changed from %s to %s',handles.JLDObj.labelnames{1},handles.JLDObj.labelnames{2}),...
+  sprintf('Frames changed from %s to %s',handles.JLDObj.labelnames{2},handles.JLDObj.labelnames{1}),...
   });
 set(handles.table,'ColumnFormat',...
   {'char','numeric','numeric',...
   'numeric','numeric','numeric',...
-  'numeric','numeric',...
+  'numeric','numeric','char','char'...
   });
 
 
@@ -106,9 +109,17 @@ for selExp = 1:handles.JLDObj.nexps
       tableData{count,7} = NaN;
       tableData{count,8} = NaN;
     end
+    if ~isempty(flyStats.one2two),
+      tableData{count,9} = flyStats.one2two;
+      tableData{count,10} = flyStats.two2one;
+    else
+      tableData{count,9} = NaN;
+      tableData{count,10} = NaN;
+    end
     count = count+1;
   end
 end
+handles.tableData = tableData;
 set(handles.table,'Data',...
   tableData);
 set(handles.table','ColumnWidth','auto');
@@ -157,15 +168,30 @@ varargout{1} = handles.output;
 
 
 function tableSelect(hObject,eventData)
-fprintf('yay');
+
+handles = guidata(hObject);
+jscrollpane = findjobj(handles.table);
+jtable = jscrollpane.getViewport.getView;
+
+if(size(eventData.Indices,1)==1)
+  ndx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
+  handles.curExp = find(strcmp(handles.JLDObj.expnames,handles.tableData{ndx,1}));
+  handles.curFly = handles.tableData{ndx,2};
+end
+
+guidata(hObject,handles);
+
 
 % --- Executes on button press in pushSwitchfly.
 function pushSwitchfly_Callback(hObject, eventdata, handles)
 % hObject    handle to pushSwitchfly (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-JLabel('SetCurrentMovie',handles.JLabelhandles,handles.curExp);
-JLabel('SetCurrentFlies',handles.JLabelhandles,handles.curFly);
+JLabelHandles = guidata(handles.JLabelhObject);
+[JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
+guidata(handles.JLabelhObject,JLabelHandles);
+JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
+guidata(handles.JLabelhObject,JLabelHandles);
 
 
 % --- Executes on button press in pushClose.
