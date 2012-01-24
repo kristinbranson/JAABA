@@ -4036,9 +4036,31 @@ classdef JLabelData < handle
         idxcurr = obj.scoredata.exp==expi & obj.scoredata.flies == flyNum;
         flyStats.nscoreframes = nnz(idxcurr);
         flyStats.nscorepos = nnz(obj.scoredata.scores(idxcurr)>0);
+        if ~isempty(obj.scoredata.classifierfilenames)
+          flyStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
+        else
+          flyStats.classifierfilename = '';
+        end
       else
         flyStats.nscoreframes = [];
         flyStats.nscorepos = [];
+        flyStats.classifierfilename = '';
+      end
+      
+      if ~isempty(obj.classifier_old),
+        curNdx = obj.FlyNdx(expi,flyNum);
+        if nnz(curNdx);
+          flyStats.one2two = nnz(obj.windowdata.scores(curNdx)>0 ...
+            & obj.windowdata.scores_old(curNdx)<0);
+          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)<0 ...
+            & obj.windowdata.scores_old(curNdx)>0);
+        else
+          flyStats.one2two = [];
+          flyStats.two2one = [];
+        end
+      else
+        flyStats.one2two = [];
+        flyStats.two2one = [];
       end
       
 %       if ~isempty(obj.windowdata.X) 
