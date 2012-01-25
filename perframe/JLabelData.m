@@ -690,6 +690,7 @@ classdef JLabelData < handle
           labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
         obj.windowdata.predicted(end+1:end+m,1) = 0;
         obj.windowdata.scores(end+1:end+m,1) = 0;
+        obj.windowdata.scores_old(end+1:end+m,1) = 0;        
         obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
 
         % remove from missingts all ts that were computed in this chunk
@@ -1429,6 +1430,7 @@ classdef JLabelData < handle
         warndlg(sprintf('No scores file %s at the default location',...
           scoreFileName));
       end
+      obj.LoadScores(expi,sfn);
     end
     
     
@@ -1896,6 +1898,8 @@ classdef JLabelData < handle
         idxcurr(1:numel(obj.windowdata.predicted_probs))) = [];
       obj.windowdata.scores(...
         idxcurr(1:numel(obj.windowdata.scores))) = [];
+      obj.windowdata.scores_old(...
+        idxcurr(1:numel(obj.windowdata.scores_old))) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
       obj.windowdata.bins=[];
@@ -2924,8 +2928,8 @@ classdef JLabelData < handle
           obj.windowdata.predicted(idxcurr);
         prediction.scoresidx(obj.windowdata.t(idxcurr)+off) = ...
           obj.windowdata.scores(idxcurr);
-        prediction.scoresidx_old(obj.scoredata.t(idxcurr)+off) = ...
-          obj.scoredata.scores_old(idxcurr);      
+        prediction.scoresidx_old(obj.windowdata.t(idxcurr)+off) = ...
+          obj.windowdatadata.scores_old(idxcurr);      
         prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
           true;
       end
@@ -3386,7 +3390,11 @@ classdef JLabelData < handle
       obj.isValidated = true;
       obj.ClearStatus();
     end
+
+    function ShowROCCurve(obj)
       
+    end
+    
     function newError = TestOnNewLabels(obj)
       obj.StoreLabels();
       newError = struct();
@@ -3506,14 +3514,14 @@ classdef JLabelData < handle
       if newData>0 && ~isempty(obj.windowdata.binVals)
         obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
       else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
       end
       
       [obj.bagModels, obj.distMat] =...
         doBagging( obj.windowdata.X(islabeled,:), ...
         obj.windowdata.labelidx_new(islabeled),obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins(:,islabeled));
+        obj.windowdata.bins(:,islabeled),obj.classifier_params);
       
       obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
       obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
@@ -3912,9 +3920,13 @@ classdef JLabelData < handle
       
       scoresA = {}; tStartAll = []; tEndAll = [];
       numFlies = obj.GetNumFlies(expi);
+      
+      tStartAll = obj.GetTrxFirstFrame(expi);
+      tEndAll = obj.GetTrxEndFrame(expi);
+      
       parfor flies = 1:numFlies
-        tStart = obj.GetTrxFirstFrame(expi,flies);
-        tEnd = obj.GetTrxEndFrame(expi,flies);
+        tStart = tStartAll(flies);
+        tEnd = tEndAll(flies);
         
         scores = nan(1,tEnd);
         t1 = tStart;
@@ -3969,8 +3981,6 @@ classdef JLabelData < handle
             %}
         end % While loop.
         scoresA{flies} = scores;
-        tStartAll(flies) = tStart;
-        tEndAll(flies) = tEnd;
       end % Fly loop
       allScores = struct;
       allScores.scores = scoresA;
@@ -3997,7 +4007,12 @@ classdef JLabelData < handle
         expid = obj.scoredata.exp==expi;
         expStats.nscoreframes = nnz(expid);
         expStats.nscorepos = nnz(obj.scoredata.scores(expid)>0);
-        expStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
+        if ~isempty(obj.scoredata.classifierfilenames) && ...
+            numel(obj.scoredata.classifierfilenames)>=expi
+          expStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
+        else
+          expStats.classifierfilename = '';
+        end
       else
         expStats.nscoreframes = [];
         expStats.nscorefrac = [];
@@ -4075,7 +4090,6 @@ classdef JLabelData < handle
       
     end
 
-    
     function scores = NormalizeScores(obj,scores)
       
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
