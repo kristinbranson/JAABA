@@ -251,6 +251,8 @@ classdef Trx < handle
       m_absphidiff = regexp(fn,'^absphidiff_(.*)$','tokens','once');
       m_anglefrom1to2 = regexp(fn,'^anglefrom1to2_(.*)$','tokens','once');
       m_absanglefrom1to2 = regexp(fn,'^absanglefrom1to2_(.*)$','tokens','once');
+      m_dnose2ellanglerange = regexp(fn,'^dnose2ell_angle_(\w+)to(\w+)$','tokens','once');
+      m_closestfly_nose2ellanglerange = regexp(fn,'^closestfly_nose2ell_angle_(\w+)to(\w+)$','tokens','once');
       if ~isempty(m_magveldiff),
         [data,units] = compute_magveldiff(obj,n,m_magveldiff{1});
       elseif ~isempty(m_veltoward),
@@ -263,12 +265,26 @@ classdef Trx < handle
         [data,units] = compute_anglefrom1to2(obj,n,m_anglefrom1to2{1});
       elseif ~isempty(m_absanglefrom1to2),
         [data,units] = compute_absanglefrom1to2(obj,n,m_absanglefrom1to2{1});
+      elseif ~isempty(m_dnose2ellanglerange),
+        m_dnose2ellanglerange = strrep(m_dnose2ellanglerange,'min','-');
+        v = str2double(m_dnose2ellanglerange);
+        if numel(v) ~= 2 || any(isnan(v)),
+          error('anglerange must be something like min30to30');
+        end
+        v = v*pi/180;
+        [data,units] = compute_dnose2ell_anglerange(obj,n,v);
+      elseif ~isempty(m_closestfly_nose2ellanglerange),
+        [data,units] = compute_closestfly_nose2ell_anglerange(obj,n,str2double(m_closestfly_nose2ellanglerange));
       else
         funname = sprintf('compute_%s',fn);
         [data,units] = feval(funname,obj,n);
       end
       filename = obj.GetPerFrameFile(fn,n);
-      save(filename,'data','units');
+      try
+        save(filename,'data','units');
+      catch ME
+        warning('Could not save to file %s:\n%s',filename,getReport(ME));
+      end
       
     end
 
@@ -301,6 +317,8 @@ classdef Trx < handle
     [varargout] = GetPerFrameData(obj,fn,varargin)
     
     SetPerFrameData(obj,fn,x,varargin)
+    
+    res = PerFrameDataExists(obj,fn,n)
     
     UpdatePerFrameAccessTime(obj,fn)
     

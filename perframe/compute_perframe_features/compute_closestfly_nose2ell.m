@@ -37,7 +37,11 @@ if dosave_d,
   data = mind; %#ok<NASGU>
   units = parseunits('mm'); %#ok<NASGU>
   filename = trx.GetPerFrameFile('dnose2ell',n);
-  save(filename,'data','units');
+  try
+    save(filename,'data','units');
+  catch ME,
+    warning('Could not save file %s:\n%s',filename,getReport(ME));
+  end
   data = angle; %#ok<NASGU>
   units = parseunits('rad'); %#ok<NASGU>
   filename = trx.GetPerFrameFile('angleonclosestfly',n);
