@@ -22,7 +22,7 @@ function varargout = ClassifierChange(varargin)
 
 % Edit the above text to modify the response to help ClassifierChange
 
-% Last Modified by GUIDE v2.5 23-Jan-2012 10:56:08
+% Last Modified by GUIDE v2.5 24-Jan-2012 12:28:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -200,5 +200,3 @@ function pushClose_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 delete(handles.figure1);
-
-
