@@ -1,4 +1,4 @@
-function [bagModels trainDistMat] = doBagging(data,labels,obj,binVals,bins)
+function [bagModels trainDistMat] = doBagging(data,labels,obj,binVals,bins,params)
 
 boostIterations = 100;
 % Learn classifier with all the data.
@@ -51,7 +51,7 @@ for numIter = 1:numRepeat
       
       tt = tic;
       [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,...
-        boostIterations,wt,binVals,bins(:,curTrain{ndx}));
+        boostIterations,wt,binVals,bins(:,curTrain{ndx}),params);
       tScores = myBoostClassify(data(curTrain{3-ndx},:),curModel);
       outOfBag(curTrain{ndx},count)=0;
       bagModels{count} = curModel;
