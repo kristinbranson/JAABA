@@ -24,8 +24,12 @@ if handles.useVideoWriter,
   end
   aviobj = VideoWriter(aviname,profile);
   set(aviobj,'FrameRate',handles.outavi_fps);
-  if ~strcmpi(profile,'Uncompressed AVI'),
-    set(aviobj,'Quality',100);
+  switch lower(handles.outavi_compression),
+    case 'motion jpeg avi',
+      set(aviobj,'Quality',handles.outavi_quality);
+    case {'uncompressed avi','none'},
+    case {'archival','motion jpeg 2000'},
+      set(aviobj,'CompressionRatio',handles.outavi_quality);      
   end
   open(aviobj);
 else

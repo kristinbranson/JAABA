@@ -1596,7 +1596,7 @@ classdef JLabelData < handle
           msg = msg1;
         else
           msg = sprintf('%s\n%s',msg,msg1);
-        end
+        end        
       end
 
     end
@@ -1820,14 +1820,6 @@ classdef JLabelData < handle
           return;
         end
       end
-      
-      [success1,msg1] = obj.PreLoadLabeledData();
-      if ~success1,
-        msg = sprintf('Error Computing Window Data: %s',msg1);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-
       
       [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
       if ~success1,

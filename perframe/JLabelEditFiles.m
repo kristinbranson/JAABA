@@ -274,6 +274,14 @@ if handles.data.filesfixable && ~handles.data.allfilesexist,
       handles.data.RemoveExpDir(handles.data.nexps);
       set(handles.listbox_experiment,'Value',oldv);
     end
+    
+    [success,msg] = handles.data.PreLoadLabeledData();
+    if ~success,
+      uiwait(warndlg(sprintf('Error computing window data for experiment %s: %s. Removing...',expdir,msg),'Error Computing Window Data'));
+      handles.data.RemoveExpDirs(handles.data.nexps);
+      set(handles.listbox_experiment,'Value',oldv);
+    end
+      
   else
     % undo
     handles.data.RemoveExpDirs(handles.data.nexps);
