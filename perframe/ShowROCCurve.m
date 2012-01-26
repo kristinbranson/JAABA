@@ -54,17 +54,13 @@ function ShowROCCurve_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for ShowROCCurve
 handles.output = hObject;
-
-load fisheriris
-x = meas(51:end,1:2);        
-% iris data, 2 classes and 2 features
-y = (1:100)'>50;             
-% versicolor=0, virginica=1
-b = glmfit(x,y,'binomial');  
-% logistic regression
-p = glmval(b,x,'logit');     
-% fit probabilities for scores
-[xdata,ydata,T,AUC] = perfcurve(species(51:end,:),p,'virginica');
+handles.labels = varargin{1};
+handles.scores = varargin{2};
+[xdata,ydata,T,AUC] = perfcurve(handles.labels,handles.scores,1);
+handles.xdata = xdata;
+handles.ydata = ydata;
+handles.T = T;
+handles.AUC = AUC
 
 hLine = plot(handles.axes1,xdata, ydata);
 % First get the figure's data-cursor mode, activate it, and set some of its properties
@@ -90,6 +86,7 @@ set(hDatatip, 'MarkerSize',15, 'MarkerFaceColor','none', ...
 'MarkerEdgeColor','k', 'Marker','.', 'HitTest','off');
 % Move the datatip to the right-most data vertex point
 position = [xdata(end-10),ydata(end-10),1; xdata(end-10),ydata(end-10),-1];
+handles.T1 = T(end-10);
 update(hDatatip, position);
 
 hDatatip2 = cursorMode.createDatatip(hTarget);
@@ -107,9 +104,10 @@ set(hDatatip2, 'MarkerSize',5, 'MarkerFaceColor','none', ...
 'MarkerEdgeColor','k', 'Marker','o', 'HitTest','off');
 % Move the datatip to the right-most data vertex point
 position = [xdata(10),ydata(10),1; xdata(10),ydata(10),-1];
+handles.T2 = T(10);
 update(hDatatip2, position);
 
-
+UpdateText(handles);
 % Update handles structure
 guidata(hObject, handles);
 
@@ -120,13 +118,41 @@ function output_txt = setDataTipTxtFP(~,eventData)
 % handles = guidata(eventData.Target);
 handles = guidata(get(eventData,'Target'));
 position = get(eventData,'Position');
-output_txt = sprintf('FP:%.2f',position(2));
+
+curNdx = min(sum(handles.ydata<=position(2)),sum(handles.xdata<=position(1)));
+handles.T2 = handles.T(curNdx);
+output_txt = sprintf('TP:%.2f',position(2));
+UpdateText(handles);
+guidata(handles.output,handles);
+
 
 function output_txt = setDataTipTxtFN(~,eventData)
 % handles = guidata(eventData.Target);
 handles = guidata(get(eventData,'Target'));
 position = get(eventData,'Position');
-output_txt = sprintf('FN:%.2f',position(1));
+
+curNdx = min(sum(handles.ydata<=position(2)),sum(handles.xdata<=position(1)));
+handles.T1 = handles.T(curNdx);
+output_txt = sprintf('FP:%.2f',position(1));
+UpdateText(handles);
+guidata(handles.output,handles);
+
+function UpdateText(handles)
+pos = handles.labels>0;
+posCorrect = sum(handles.scores(pos)>=handles.T1);
+posIncorrect = sum(handles.scores(pos)<=handles.T2);
+posAbstain = sum(handles.scores(pos)<handles.T1 & handles.scores(pos)>handles.T2);
+negCorrect = sum(handles.scores(~pos)<=handles.T2);
+negIncorrect = sum(handles.scores(~pos)>=handles.T1);
+negAbstain = sum(handles.scores(~pos)<handles.T1 & handles.scores(~pos)>handles.T2);
+textStr = '';
+textStr = sprintf('                      Predicted Positive      Abstained        Predicted Negative\n');
+textStr = sprintf('%s Labeled Pos      %5d                 %5d                %5d      \n',...
+  textStr,posCorrect, posAbstain,posIncorrect);
+textStr = sprintf('%s Labeled Neg      %5d                 %5d                %5d      \n',...
+  textStr,negIncorrect, negAbstain,negCorrect);
+textStr = sprintf('%s,T1:%.2f  T2:%.2f',textStr,handles.T1,handles.T2);
+set(handles.text1,'String',textStr);
 
 % --- Outputs from this function are returned to the command line.
 function varargout = ShowROCCurve_OutputFcn(hObject, eventdata, handles) 

@@ -1,14 +1,14 @@
 classdef NextJump < handle
   
   properties (Access=public)
-    curType = 'Errors';
+    curType = 'Automatic';
     allTypes = {'Automatic','Errors','High Confidence Errors',...
         'Low Confidence','Thresholds'};
     seek_behaviors_go = [];
     perframefns = {};
     perframeSelFeatures = [];
     perframeSelThresholds = [];
-    perframeSelTypes = [];
+    perframeComparisonType = [];
   end
   
   methods (Access = public, Static = true)
@@ -16,6 +16,29 @@ classdef NextJump < handle
   end % End Static methods
   
   methods (Access= public)
+    
+    function state = GetState(obj)
+      state.curType = obj.curType;
+      state.perframeSelFeatures = obj.perframeSelFeatures;
+      state.perframeSelThresholds = obj.perframeSelThresholds;
+      state.perframeComparisonType = obj.perframeComparisonType;
+      
+    end
+    
+    function SetState(obj,state)
+      obj.curType = state.curType;
+      if state.perframeSelFeatures <= numel(obj.perframefns);
+        obj.perframeSelFeatures = state.perframeSelFeatures;
+        obj.perframeSelThresholds = state.perframeSelThresholds;
+        obj.perframeComparisonType = state.perframeComparisonType;
+      else
+        obj.perframeSelFeatures = 1;
+        obj.perframeSelThresholds = 0;
+        obj.perframeComparisonType = 1;
+      end
+    end
+    
+    
     
     function SetPerframefns(obj,perframefns)
       obj.perframefns = perframefns;
@@ -107,7 +130,9 @@ classdef NextJump < handle
       j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
       if isempty(j), return; end
       
-      k = find(ismember(predictedidx(j:end)&~lowconfidx(j:end),obj.seek_behaviors_go),1);
+      toUse = predictedidx(j:end);
+      toUse(lowconfidx(j:end)) = 0;
+      k = find(ismember(toUse,obj.seek_behaviors_go),1);
       if isempty(k), return; end
       
       t = ts + j - 1 + k - 1;
@@ -133,7 +158,9 @@ classdef NextJump < handle
       j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
       if isempty(j), return; end
       
-      k = find(ismember(predictedidx(1:j)&~lowconfidx(1:j),obj.seek_behaviors_go),1,'last');
+      toUse = predictedidx(1:j);
+      toUse(lowconfidx(1:j)) = 0;
+      k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
       if isempty(k), return; end
       
       t = t0 + k - 1;
@@ -323,13 +350,13 @@ classdef NextJump < handle
         perframedata = data.GetPerFrameData(expi,flies,...
           obj.perframeSelFeatures(ndx),t0,t1);
         if isempty(valid)
-          if obj.perframeSelTypes(ndx) == 1 % Less than.
+          if obj.perframeComparisonType(ndx) == 1 % Less than.
             valid = perframedata<obj.perframeSelThresholds(ndx);
           else
             valid = perframedata>obj.perframeSelThresholds(ndx);
           end
         else
-          if obj.perframeSelTypes(ndx) == 1 % Less than.
+          if obj.perframeComparisonType(ndx) == 1 % Less than.
             valid = valid & perframedata < obj.perframeSelThresholds(ndx);
           else
             valid = valid & perframedata > obj.perframeSelThresholds(ndx);
@@ -356,13 +383,13 @@ classdef NextJump < handle
         perframedata = data.GetPerFrameData(expi,flies,...
           obj.perframeSelFeatures(ndx),t0,t1);
         if isempty(valid)
-          if obj.perframeSelTypes(ndx) == 1 % Less than.
+          if obj.perframeComparisonType(ndx) == 1 % Less than.
             valid = perframedata<obj.perframeSelThresholds(ndx);
           else
             valid = perframedata>obj.perframeSelThresholds(ndx);
           end
         else
-          if obj.perframeSelTypes(ndx) == 1 % Less than.
+          if obj.perframeComparisonType(ndx) == 1 % Less than.
             valid = valid & perframedata < obj.perframeSelThresholds(ndx);
           else
             valid = valid & perframedata > obj.perframeSelThresholds(ndx);
