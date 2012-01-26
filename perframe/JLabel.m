@@ -1609,6 +1609,9 @@ set(handles.togglebutton_select,'Value',0);
 handles.NJObj = NextJump();
 handles.NJObj.SetSeekBehaviorsGo(1:handles.data.nbehaviors);
 handles.NJObj.SetPerframefns(handles.data.allperframefns);
+if isfield(handles.rc,'navPreferences')
+  handles.NJObj.SetState(handles.rc.navPreferences);
+end
 
 % initialize labels for navigation
 SetJumpGoMenuLabels(handles)
@@ -1960,6 +1963,9 @@ function handles = SaveRC(handles)
   if isfield(handles,'traj_npost'),
     rc.traj_npost = handles.traj_npost;
   end  
+  
+  % navigation preferences
+  rc.navPreferences = handles.NJObj.GetState();
   
   save(handles.rcfilename,'-struct','rc');
 

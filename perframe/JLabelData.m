@@ -3393,6 +3393,18 @@ classdef JLabelData < handle
 
     function ShowROCCurve(obj)
       
+      if ~obj.isValidated,
+        warndlg('Scores need to cross validated to use ROC');
+        return;
+      end
+      
+      curNdx = obj.windowdata.labelidx_cur~=0;
+      curScores = obj.windowdata.scores(curNdx);
+      curLabels = obj.windowdata.labelidx_cur(curNdx);
+      modLabels = ((curLabels==1)-0.5)*2;
+      ShowROCCurve(modLabels,curScores);
+      
+      
     end
     
     function newError = TestOnNewLabels(obj)
@@ -3445,7 +3457,7 @@ classdef JLabelData < handle
           classifierfilename = obj.scoredata.classifierfilenames{curExp};
           setClassifierfilename = 0;
         elseif strcmp(classifierfilename,'multiple'),
-        elseif ~strcmp(classifierfilename,obj.scoredata.classifierfilename{curExp}),
+        elseif ~strcmp(classifierfilename,obj.scoredata.classifierfilenames{curExp}),
           classifierfilename = 'multiple';
         end
           
@@ -4144,6 +4156,7 @@ classdef JLabelData < handle
       SelectFeatures('setJLDobj',selHandle,obj);
       uiwait(selHandle);
     end
+    
     
   end
     
