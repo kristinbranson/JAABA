@@ -249,7 +249,7 @@ for change_r_i = 1:numel(change_window_radii),
       end
       
       if SANITY_CHECK,
-        extraStr = spritnf('change_r = %d',change_r);
+        extraStr = sprintf('change_r = %d',change_r);
         if ismember('none',trans_types),
           fastY = res1;
         end
