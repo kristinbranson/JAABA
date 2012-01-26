@@ -189,7 +189,7 @@ function varargout = CompressionPreferences_OutputFcn(hObject, eventdata, handle
 % handles    structure with handles and user data (see GUIDATA)
 
 varargout = {};
-delete(handles.figure_CompressionPreferences);
+%delete(handles.figure_CompressionPreferences);
 
 % --- Executes on button press in radiobutton_useVideoWriter.
 function radiobutton_useVideoWriter_Callback(hObject, eventdata, handles) %#ok<*DEFNU>

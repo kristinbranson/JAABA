@@ -17,13 +17,16 @@
       featureparamfilename="params/WindowFeaturesKB_WingGrooming.xml"
       />
     <featureparamlist>
+     <a_mm/>
      <area/>
      <areasmooth/>
+     <b_mm/>
      <corfrac_maj/>
      <corfrac_min/>
      <da/>
      <darea/>
      <db/>
+     <decc/>
      <dphi/>
      <dtheta/>
      <du_cor/>
@@ -32,6 +35,7 @@
      <dv_cor/>
      <dv_ctr/>
      <dv_tail/>
+     <ecc/>
      <phisideways/>
      <smoothdtheta/>
      <velmag/>
