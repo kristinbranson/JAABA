@@ -1867,6 +1867,12 @@ end
   else
     handles.outavi_fps = 15;
   end
+  % outavi_quality: output frames per second
+  if isfield(handles.rc,'outavi_quality'),
+    handles.outavi_quality = handles.rc.outavi_quality;
+  else
+    handles.outavi_quality = 15;
+  end
   % useVideoWriter: whether to use videowriter class
   if isfield(handles.rc,'useVideoWriter'),
     handles.useVideoWriter = handles.rc.useVideoWriter > 0;
@@ -1943,6 +1949,10 @@ function handles = SaveRC(handles)
   % outavi_fps: output frames per second
   if isfield(handles,'outavi_fps'),
     rc.outavi_fps = handles.outavi_fps;
+  end
+  % outavi_quality: output frames per second
+  if isfield(handles,'outavi_quality'),
+    rc.outavi_fps = handles.outavi_quality;
   end
   % useVideoWriter: whether to use videowriter class
   if isfield(handles,'useVideoWriter'),
