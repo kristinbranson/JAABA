@@ -64,8 +64,8 @@ handles.behaviors = [{'Unknown'},parent_handles.data.labelnames];
 
 % set these current values in the GUI
 set(handles.edit_nframes_jump,'String',num2str(handles.nframes_jump_go));
-set(handles.listbox_seek_behavior,'String',handles.behaviors);
-set(handles.listbox_seek_behavior,'Value',handles.seek_behaviors_go+1);
+set(handles.listbox_seek_behavior,'String',handles.behaviors(2:end));
+set(handles.listbox_seek_behavior,'Value',handles.seek_behaviors_go);
 set(handles.jumpToPopUp,'String',handles.NJObj.GetAllTypes());
 set(handles.jumpToPopUp,'Value',...
   find(strcmp(handles.NJObj.GetCurrentType(),handles.NJObj.GetAllTypes())));
@@ -133,9 +133,9 @@ function listbox_seek_behavior_Callback(hObject, eventdata, handles)
 v = get(hObject,'Value');
 if isempty(v),
   warndlg('At least one must behavior must be selected','Bad value');
-  set(hObject,'Value',handles.seek_behaviors_go+1);
+  set(hObject,'Value',handles.seek_behaviors_go);
 else
-  handles.seek_behaviors_go = v-1;
+  handles.seek_behaviors_go = v;
   guidata(hObject,handles);
 end
 
@@ -191,12 +191,12 @@ if strcmp(handles.NJObj.GetCurrentType,'Thresholds')
   if selFeatures==1
     handles.NJObj.perframeSelFeatures = [];
     handles.NJObj.perframeSelThresholds = [];
-    handles.NJObj.perframeSelTypes = [];
+    handles.NJObj.perframeComparisonType = [];
   else
     handles.NJObj.perframeSelFeatures = selFeatures-1;
     handles.NJObj.perframeSelThresholds = ...
       str2double(get(handles.thresholdValue1,'String'));
-    handles.NJObj.perframeSelTypes = get(handles.thresholdType1,'Value');
+    handles.NJObj.perframeComparisonType = get(handles.thresholdType1,'Value');
   end
 end
 
@@ -238,12 +238,12 @@ selFeatures = get(hObject,'Value');
 if selFeatures==1
   handles.NJObj.perframeSelFeatures = [];
   handles.NJObj.perframeSelThresholds = [];
-  handles.NJObj.perframeSelTypes = [];
+  handles.NJObj.perframeComparisonType = [];
 else
   handles.NJObj.perframeSelFeatures = selFeatures-1;
   handles.NJObj.perframeSelThresholds = ...
     str2double(get(handles.thresholdValue1,'Value'));
-  handles.NJObj.perframeSelTypes = get(handles.thresholdType1,'Value');
+  handles.NJObj.perframeComparisonType = get(handles.thresholdType1,'Value');
 end
    
    
@@ -302,9 +302,9 @@ else
       set(handles.(sprintf('thresholdPopup%d',ndx)),'Enable','on',...
         'Value',handles.NJObj.perframeSelFeatures(ndx)+1);
       set(handles.(sprintf('thresholdType%d',ndx)),'Enable','on',...
-        'Value',handles.NJObj.perframeSelTypes(ndx));
+        'Value',handles.NJObj.perframeComparisonType(ndx));
       set(handles.(sprintf('thresholdValue%d',ndx)),'Enable','on',...
-        'Value',handles.NJObj.perframeSelThresholds(ndx));
+        'String',sprintf('%d',handles.NJObj.perframeSelThresholds(ndx)));
     end
   else
     for ndx = 1
@@ -327,7 +327,7 @@ function thresholdType1_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns thresholdType1 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from thresholdType1
 handles = guidata(hObject);
-handles.NJObj.perframeSelTypes = get(hObject,'Value');
+handles.NJObj.perframeComparisonType = get(hObject,'Value');
 
 
 % --- Executes during object creation, after setting all properties.

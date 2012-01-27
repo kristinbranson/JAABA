@@ -822,6 +822,7 @@ end
 handles = guidata(hObject);
 [params,~] = convertData(handles);
 docNode = createParamsXML(params);
+fName = fullfile(pName,fName);
 xmlwrite(fName,docNode);
 
 
