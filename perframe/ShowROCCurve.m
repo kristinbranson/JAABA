@@ -56,59 +56,70 @@ function ShowROCCurve_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 handles.labels = varargin{1};
 handles.scores = varargin{2};
-[xdata,ydata,T,AUC] = perfcurve(handles.labels,handles.scores,1);
-handles.xdata = xdata;
-handles.ydata = ydata;
-handles.T = T;
-handles.AUC = AUC
+% handles.JLDObj = varargin{3};
 
-hLine = plot(handles.axes1,xdata, ydata);
-% First get the figure's data-cursor mode, activate it, and set some of its properties
-cursorMode = datacursormode(hObject);
-set(cursorMode, 'enable','on','NewDataCursorOnClick',false);
-% Note: the optional @setDataTipTxt is used to customize the data-tip's appearance
-% Note: the following code was adapted from %matlabroot%\toolbox\matlab\graphics\datacursormode.m
-% Create a new data tip
-hTarget = handle(hLine);
-hDatatip = cursorMode.createDatatip(hTarget);
-% Create a copy of the context menu for the datatip:
-% set(hDatatip,'UIContextMenu',get(cursorMode,'UIContextMenu'));
-set(hDatatip,'UIContextMenu',[]);
-set(hDatatip,'HandleVisibility','off');
-set(hDatatip,'Host',hTarget);
-set(hDatatip,'ViewStyle','datatip');
-% Set the data-tip orientation to top-right rather than auto
-% set(hDatatip,'OrientationMode','manual');
-set(hDatatip,'Orientation','bottom-right');
-set(hDatatip,'UpdateFcn',@setDataTipTxtFN);
-% Update the datatip marker appearance
-set(hDatatip, 'MarkerSize',15, 'MarkerFaceColor','none', ...
-'MarkerEdgeColor','k', 'Marker','.', 'HitTest','off');
-% Move the datatip to the right-most data vertex point
-position = [xdata(end-10),ydata(end-10),1; xdata(end-10),ydata(end-10),-1];
-handles.T1 = T(end-10);
-update(hDatatip, position);
+pos = handles.labels==1;
+neg = ~pos;
+binEndMax = prctile(handles.scores(pos),95);
+binEndMin = prctile(handles.scores(neg),5);
+histPos = histc(handles.scores(pos),[-inf linspace(binEndMin,binEndMax,10) inf]);
+histNeg = histc(handles.scores(neg),[-inf linspace(binEndMin,binEndMax,10) inf]);
 
-hDatatip2 = cursorMode.createDatatip(hTarget);
-% Create a copy of the context menu for the datatip:
-set(hDatatip2,'UIContextMenu',[]);
-set(hDatatip2,'HandleVisibility','off');
-set(hDatatip2,'Host',hTarget);
-set(hDatatip2,'ViewStyle','datatip');
-% Set the data-tip orientation to top-right rather than auto
-set(hDatatip2,'OrientationMode','manual');
-set(hDatatip2,'Orientation','bottom-right');
-set(hDatatip2,'UpdateFcn',@setDataTipTxtFP);
-% Update the datatip marker appearance
-set(hDatatip2, 'MarkerSize',5, 'MarkerFaceColor','none', ...
-'MarkerEdgeColor','k', 'Marker','o', 'HitTest','off');
-% Move the datatip to the right-most data vertex point
-position = [xdata(10),ydata(10),1; xdata(10),ydata(10),-1];
-handles.T2 = T(10);
-update(hDatatip2, position);
+hBar = bar([histPos histNeg],'BarWidth',2);
 
-UpdateText(handles);
-% Update handles structure
+% [xdata,ydata,T,AUC] = perfcurve(handles.labels,handles.scores,1);
+% handles.xdata = xdata;
+% handles.ydata = ydata;
+% handles.T = T;
+% handles.AUC = AUC;
+% 
+% hLine = plot(handles.axes1,xdata, ydata);
+% % First get the figure's data-cursor mode, activate it, and set some of its properties
+% cursorMode = datacursormode(hObject);
+% set(cursorMode, 'enable','on','NewDataCursorOnClick',false);
+% % Note: the optional @setDataTipTxt is used to customize the data-tip's appearance
+% % Note: the following code was adapted from %matlabroot%\toolbox\matlab\graphics\datacursormode.m
+% % Create a new data tip
+% hTarget = handle(hLine);
+% hDatatip = cursorMode.createDatatip(hTarget);
+% % Create a copy of the context menu for the datatip:
+% % set(hDatatip,'UIContextMenu',get(cursorMode,'UIContextMenu'));
+% set(hDatatip,'UIContextMenu',[]);
+% set(hDatatip,'HandleVisibility','off');
+% set(hDatatip,'Host',hTarget);
+% set(hDatatip,'ViewStyle','datatip');
+% % Set the data-tip orientation to top-right rather than auto
+% % set(hDatatip,'OrientationMode','manual');
+% set(hDatatip,'Orientation','bottom-right');
+% set(hDatatip,'UpdateFcn',@setDataTipTxtFN);
+% % Update the datatip marker appearance
+% set(hDatatip, 'MarkerSize',15, 'MarkerFaceColor','none', ...
+% 'MarkerEdgeColor','k', 'Marker','.', 'HitTest','off');
+% % Move the datatip to the right-most data vertex point
+% position = [xdata(end-10),ydata(end-10),1; xdata(end-10),ydata(end-10),-1];
+% handles.T1 = T(end-10);
+% update(hDatatip, position);
+% 
+% hDatatip2 = cursorMode.createDatatip(hTarget);
+% % Create a copy of the context menu for the datatip:
+% set(hDatatip2,'UIContextMenu',[]);
+% set(hDatatip2,'HandleVisibility','off');
+% set(hDatatip2,'Host',hTarget);
+% set(hDatatip2,'ViewStyle','datatip');
+% % Set the data-tip orientation to top-right rather than auto
+% set(hDatatip2,'OrientationMode','manual');
+% set(hDatatip2,'Orientation','bottom-right');
+% set(hDatatip2,'UpdateFcn',@setDataTipTxtFP);
+% % Update the datatip marker appearance
+% set(hDatatip2, 'MarkerSize',5, 'MarkerFaceColor','none', ...
+% 'MarkerEdgeColor','k', 'Marker','o', 'HitTest','off');
+% % Move the datatip to the right-most data vertex point
+% position = [xdata(10),ydata(10),1; xdata(10),ydata(10),-1];
+% handles.T2 = T(10);
+% update(hDatatip2, position);
+% 
+% UpdateText(handles);
+% % Update handles structure
 guidata(hObject, handles);
 
 % UIWAIT makes ShowROCCurve wait for user response (see UIRESUME)
@@ -151,7 +162,7 @@ textStr = sprintf('%s Labeled Pos      %5d                 %5d                %5
   textStr,posCorrect, posAbstain,posIncorrect);
 textStr = sprintf('%s Labeled Neg      %5d                 %5d                %5d      \n',...
   textStr,negIncorrect, negAbstain,negCorrect);
-textStr = sprintf('%s,T1:%.2f  T2:%.2f',textStr,handles.T1,handles.T2);
+textStr = sprintf('%sAUC:%.4f',textStr,handles.AUC);
 set(handles.text1,'String',textStr);
 
 % --- Outputs from this function are returned to the command line.

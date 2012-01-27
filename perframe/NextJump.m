@@ -300,11 +300,13 @@ classdef NextJump < handle
           (abs(scores)>data.GetConfidenceThreshold(behaviori));
         highconfidx(idxScores) = true;
       end
-      highconfError = hihgconfidx & erroridx;
+      highconfError = highconfidx & erroridx;
+      highconfError(labelidx.vals==0) = 0;
 
       highconfCandidates = highconfError(2:end)~=highconfError(1:end-1) & ...
               highconfError(2:end)==true;
       
+      highconfCandidates(labelidx.vals==0) = false;
       j = find(highconfCandidates,1);
       if isempty(j), return; end
 
@@ -329,7 +331,8 @@ classdef NextJump < handle
           (abs(scores)>data.GetConfidenceThreshold(behaviori));
         highconfidx(idxScores) = true;
       end
-      highconfError = hihgconfidx & erroridx;
+      highconfError = highconfidx & erroridx;
+      highconfError(labelidx.vals==0) = 0;
       
       highconfCandidates = highconfError(1:end-1)~=highconfError(2:end) & ...
                           highconfError(1:end-1)==true;
