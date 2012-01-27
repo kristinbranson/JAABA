@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 05-Jan-2012 17:10:45
+% Last Modified by GUIDE v2.5 27-Jan-2012 15:07:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -169,6 +169,17 @@ set(handles.pfTable,'CellEditCallback',@pfEdit);
 disableWindowTable(handles);
 guidata(hObject,handles);
 
+function createCopyFromMenus(hObject)
+
+handles = guidata(hObject);
+% can copy from any window feature type
+set(handles.popupmenu_copy_windowparams,'String',...
+  [handles.windowComp,{'---'}],...
+  'Value',numel(handles.windowComp)+1);
+% can copy from any per-frame feature
+set(handles.popupmenu_copy_windowtypes,'String',...
+  [handles.pfList;{'---'}],...
+  'Value',numel(handles.pfList)+1);
 
 % Initialize the data structure.
 function initData(hObject,params)
@@ -242,9 +253,12 @@ for ndx = 1:numel(pfList)
 end
 
 handles.data = data;
+handles.pfNdx = [];
+handles.winNdx = [];
 guidata(hObject,handles);
 createPfTable(hObject);
 createWindowTable(hObject);
+createCopyFromMenus(hObject);
 
 
 function str = findExtraParams(curParam,winComp)
@@ -385,6 +399,7 @@ else
   handles.winNdx = ndx;
   if winData{ndx,2},
     setWinParams(handles,handles.winNdx);
+    enableWinParams(handles);
   else
     disableWinParams(handles);
   end
@@ -404,13 +419,14 @@ handles.data{handles.pfNdx}.(curFn).valid = eventData.NewData;
 guidata(hObject,handles);
 if eventData.NewData
   setWinParams(handles,winNdx);
+  enableWinParams(handles);
 else
   disableWinParams(handles);
 end
 
 
 function setWinParams(handles,winNdx)
-enableWinParams(handles);
+
 curFn = handles.windowComp{winNdx};
 curParams = handles.data{handles.pfNdx}.(curFn);
 set(handles.MinWindow,'String',num2str(curParams.values.min_window_radius));
@@ -532,10 +548,12 @@ end
 
 function disableWindowTable(handles)
 set(handles.windowTable,'enable','off');
+set(handles.pushbutton_copy_windowtypes,'enable','off');
 disableWinParams(handles);
 
 function enableWindowTable(handles)
 set(handles.windowTable,'enable','on');
+set(handles.pushbutton_copy_windowtypes,'enable','on');
 
 function disableWinParams(handles)
 set(handles.MinWindow,'enable','off');
@@ -546,6 +564,8 @@ set(handles.TransFlip,'enable','off');
 set(handles.TransAbs,'enable','off');
 set(handles.TransRel,'enable','off');
 set(handles.ExtraParams,'enable','off');
+set(handles.pushbutton_applydefault,'enable','off');
+set(handles.pushbutton_copy_windowparams,'enable','off');
 
 function enableWinParams(handles)
 defBack = get(handles.text5,'BackgroundColor');
@@ -558,6 +578,8 @@ set(handles.ExtraParams,'enable','on');%,'BackgroundColor',defBack,'ForegroundCo
 set(handles.TransFlip,'enable','on');
 set(handles.TransAbs,'enable','on');
 set(handles.TransRel,'enable','on');
+set(handles.pushbutton_applydefault,'enable','on');
+set(handles.pushbutton_copy_windowparams,'enable','on');
 
 function MinWindow_Callback(hObject, eventdata, handles)
 % hObject    handle to MinWindow (see GCBO)
@@ -784,6 +806,7 @@ for winParamsNdx = 1:numel(handles.winParams)
 end
 handles.data{pfNdx}.(curFn).values.extra = '';
 setWinParams(handles,handles.winNdx);
+enableWinParams(handles);
 guidata(hObject,handles);
 
 function ExtraParams_Callback(hObject, eventdata, handles)
@@ -838,3 +861,140 @@ featureparamsfilename = fullfile(pname,fname);
   ReadPerFrameParams(featureparamsfilename);
 guidata(hObject,handles);
 initData(hObject,params);
+
+
+% --- Executes on selection change in popupmenu_copy_windowparams.
+function popupmenu_copy_windowparams_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_copy_windowparams (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_copy_windowparams contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_copy_windowparams
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_copy_windowparams_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_copy_windowparams (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_copy_windowparams.
+function pushbutton_copy_windowparams_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_copy_windowparams (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isempty(handles.pfNdx) || isempty(handles.winNdx),
+  return;
+end
+
+windowComp = handles.windowComp;
+
+% which perframe fn are we on?
+pfNdx = handles.pfNdx;
+
+% which window fn are we copying to?
+winNdxTo = handles.winNdx;
+
+% which windwo fn are we copying from?
+winNdxFrom = get(handles.popupmenu_copy_windowparams,'Value');
+
+% --- selected?
+if winNdxTo > numel(windowComp),
+  return;
+end
+
+handles = CopyWindowParams(handles,pfNdx,winNdxFrom,pfNdx,winNdxTo);
+guidata(hObject,handles);
+
+% --- Executes on selection change in popupmenu_copy_windowtypes.
+function popupmenu_copy_windowtypes_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_copy_windowtypes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_copy_windowtypes contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_copy_windowtypes
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_copy_windowtypes_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_copy_windowtypes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_copy_windowtypes.
+function pushbutton_copy_windowtypes_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_copy_windowtypes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isempty(handles.pfNdx),
+  return;
+end
+
+pfList = handles.pfList;
+windowComp = handles.windowComp;
+
+% which perframe fn are we copying to?
+pfNdxTo = handles.pfNdx;
+if ~handles.data{pfNdxTo}.valid,
+  return;
+end
+
+% which perframe fn are we copying from?
+pfNdxFrom = get(handles.popupmenu_copy_windowtypes,'Value');
+
+% --- selected?
+if pfNdxFrom > numel(pfList),
+  return;
+end
+
+% if ~handles.data{pfNdxFrom}.valid,
+%   return;
+% end
+
+for winfnNdx = 1:numel(windowComp),
+  handles = CopyWindowParams(handles,pfNdxFrom,winfnNdx,pfNdxTo,winfnNdx);
+end
+
+setWindowTable(handles,pfNdxTo);
+
+guidata(hObject,handles);
+
+
+function handles = CopyWindowParams(handles,pfNdxFrom,winfnNdxFrom,pfNdxTo,winfnNdxTo)
+
+curFnFrom = handles.windowComp{winfnNdxFrom};
+% something to copy from?
+if ~isfield(handles.data{pfNdxFrom},curFnFrom),
+  return;
+end
+curFnTo = handles.windowComp{winfnNdxTo};
+handles.data{pfNdxTo}.(curFnTo).valid = handles.data{pfNdxFrom}.(curFnFrom).valid;
+for winParamsNdx = 1:numel(handles.winParams),
+  curType = handles.winParams{winParamsNdx};
+  handles.data{pfNdxTo}.(curFnTo).values.(curType) = ...
+    handles.data{pfNdxFrom}.(curFnFrom).values.(curType);
+end
+handles.data{pfNdxTo}.(curFnTo).values.extra = handles.data{pfNdxFrom}.(curFnFrom).values.extra;
+setWinParams(handles,winfnNdxTo);
+if handles.data{pfNdxTo}.(curFnTo).valid,
+  enableWinParams(handles);
+end
+
