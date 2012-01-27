@@ -3394,7 +3394,7 @@ classdef JLabelData < handle
       curScores = obj.windowdata.scores(curNdx);
       curLabels = obj.windowdata.labelidx_cur(curNdx);
       modLabels = ((curLabels==1)-0.5)*2;
-      ShowROCCurve(modLabels,curScores);
+      ShowROCCurve(modLabels,curScores,obj);
       
       
     end
@@ -3511,7 +3511,7 @@ classdef JLabelData < handle
       if ~strcmp(obj.classifiertype,'boosting'); return; end
       if isempty(obj.classifier), obj.Train;             end
 
-      obj.SetStatus('Bagging the classifier for %d examples...',nnz(islabeled));
+      obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
       oldBinSize = size(obj.windowdata.bins,2);
       newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
