@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 27-Jan-2012 15:07:04
+% Last Modified by GUIDE v2.5 28-Jan-2012 12:24:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -181,6 +181,19 @@ set(handles.popupmenu_copy_windowtypes,'String',...
   [handles.pfList;{'---'}],...
   'Value',numel(handles.pfList)+1);
 
+function createDescriptionPanels(hObject)
+
+handles = guidata(hObject);
+
+% which tab to show
+handles.currentTab = 'description';
+set(handles.togglebutton_tabdescription,'Value',1);
+
+% set visibility
+uipanel_tabs_SelectionChangeFcn(handles.uipanel_tabs, struct('NewValue',handles.togglebutton_tabdescription), handles);
+
+guidata(hObject,handles);
+
 % Initialize the data structure.
 function initData(hObject,params)
 handles = guidata(hObject);
@@ -252,6 +265,17 @@ for ndx = 1:numel(pfList)
   end
 end
 
+% initialize histogramData
+handles.histogramData = struct;
+handles.histogramData.lastPfNdx = nan;
+handles.histogramData.lastType = '';
+handles.histogramData.perframe_idx = [];
+handles.histogramData.hhist = [];
+handles.histogramData.frac = {};
+handles.histogramData.frac_outside = {};
+handles.histogramData.edges = {};
+handles.histogramData.centers_plot = {};
+
 handles.data = data;
 handles.pfNdx = [];
 handles.winNdx = [];
@@ -259,7 +283,7 @@ guidata(hObject,handles);
 createPfTable(hObject);
 createWindowTable(hObject);
 createCopyFromMenus(hObject);
-
+createDescriptionPanels(hObject);
 
 function str = findExtraParams(curParam,winComp)
 % Find feature specific params.
@@ -310,6 +334,7 @@ else
     disableWindowTable(handles);
   end
 end
+handles = UpdateDescriptionPanels(handles);
 
 guidata(hObject,handles);
 
@@ -998,3 +1023,76 @@ if handles.data{pfNdxTo}.(curFnTo).valid,
   enableWinParams(handles);
 end
 
+
+% --- Executes when selected object is changed in uipanel_tabs.
+function uipanel_tabs_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in uipanel_tabs 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+
+if eventdata.NewValue == handles.togglebutton_tabdescription,
+  handles.currentTab = 'description';
+elseif eventdata.NewValue == handles.togglebutton_tabperframehistogram,
+  handles.currentTab = 'perframehistogram';
+end
+
+handles = UpdateDescriptionPanels(handles);
+guidata(hObject,handles);
+
+function handles = UpdateDescriptionPanels(handles)
+
+if isempty(handles.pfNdx),
+  return;
+end
+
+% update visibility
+if strcmpi(handles.currentTab,'description')
+  set(handles.uipanel_description,'Visible','on');
+  set(handles.uipanel_histogram,'Visible','off');
+else
+  set(handles.uipanel_description,'Visible','off');
+  set(handles.uipanel_histogram,'Visible','on');
+end
+
+% histogram if necessary
+if strcmpi(handles.currentTab,'perframehistogram'),
+  if handles.histogramData.lastPfNdx ~= handles.pfNdx || ...
+    ~strcmpi(handles.histogramData.lastType,'perframe'),
+    
+    i = find(handles.histogramData.perframe_idx == handles.pfNdx,1);
+    if isempty(i),
+      i = numel(handles.histogramData.perframe_idx)+1;
+      [handles.histogramData.hhist,...
+        ~,~,hleg,hxlabel,hylabel,...
+        handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
+        handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
+        HistogramPerFrameFeature(handles.JLDobj,handles.pfList{handles.pfNdx},...
+        'axes',handles.axes_histogram,...
+        'unknowncolor','w',...
+        'labelcolors',jet(handles.JLDobj.nbehaviors)*.7);
+      handles.histogramData.perframe_idx(i) = handles.pfNdx;
+    else
+      [handles.histogramData.hhist,...
+        ~,~,hleg,hxlabel,hylabel,...
+        handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
+        handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
+        HistogramPerFrameFeature(handles.JLDobj,handles.pfList{handles.pfNdx},...
+        'axes',handles.axes_histogram,...
+        'edges',handles.histogramData.edges{i},...
+        'frac',handles.histogramData.frac{i},...
+        'frac_outside',handles.histogramData.frac_outside{i},...
+        'unknowncolor','w',...
+        'labelcolors',jet(handles.JLDobj.nbehaviors)*.7);
+    end
+    handles.histogramData.lastPfNdx = handles.pfNdx;
+    handles.histogramData.lastType = 'perframe';
+    textcolor = get(handles.togglebutton_tabdescription,'ForegroundColor');
+    set(handles.axes_histogram,'XColor',textcolor,'YColor',textcolor,'Color','k','Box','off');
+    set(hxlabel,'Color',textcolor);
+    set(hylabel,'Color',textcolor);
+    set(hleg,'Color','k','TextColor',textcolor,'Box','off','Location','Best');
+  end
+end
