@@ -396,8 +396,14 @@ curData = handles.data{pfNdx};
 windowData = {};
 for ndx = 1:length(handles.windowComp)
   curFunc = handles.windowComp{ndx};
-  windowData{ndx,1} = curFunc;
-  windowData{ndx,2} = curData.(curFunc).valid;
+  if ~isfield(curData,curFunc),
+    warning('This error is occurring!');
+    windowData{ndx,1} = curFunc;
+    windowData{ndx,2} = false;
+  else
+    windowData{ndx,1} = curFunc;
+    windowData{ndx,2} = curData.(curFunc).valid;
+  end
 end
 set(handles.windowTable,'Data',windowData);
 
