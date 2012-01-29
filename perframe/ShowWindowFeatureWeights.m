@@ -13,7 +13,11 @@ if numel(hax) < 2,
   if isempty(hfig),
     hfig = figure;
   else
-    clf(hfig);
+    if ~ishandle(hfig),
+      figure(hfig);
+    else
+      clf(hfig);
+    end
   end
   hax = [0,0];
   axes_height = .375;
@@ -59,13 +63,14 @@ axis(hax(2),'xy');
 colormap(hax(2),cm);
 
 print_names = cell(1,nfeatures_show);
-for i = 1:nfeatures_show,
-  print_names{i} = data.windowdata.featurenames{i}{1};
+for ii = 1:nfeatures_show,
+  i = feature_order(ii);
+  print_names{ii} = data.windowdata.featurenames{i}{1};
   for j = 3:2:numel(data.windowdata.featurenames{i}),
     if ischar(data.windowdata.featurenames{i}{j}),
-      print_names{i} = [print_names{i},'_',data.windowdata.featurenames{i}{j}];
+      print_names{ii} = [print_names{ii},'_',data.windowdata.featurenames{i}{j}];
     else
-      print_names{i} = [print_names{i},'_',data.windowdata.featurenames{i}{j-1},num2str(data.windowdata.featurenames{i}{j})];
+      print_names{ii} = [print_names{ii},'_',data.windowdata.featurenames{i}{j-1},num2str(data.windowdata.featurenames{i}{j})];
     end
   end
 end

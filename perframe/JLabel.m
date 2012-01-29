@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 23-Jan-2012 10:52:49
+% Last Modified by GUIDE v2.5 29-Jan-2012 12:07:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -5108,3 +5108,25 @@ function menu_classifier_switch_target_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 changeTargetHandle = ClassifierChange(hObject);
 ClassifierChange('initTable',changeTargetHandle);
+
+
+% --------------------------------------------------------------------
+function menu_classifier_visualize_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_visualize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+SetStatus(handles,'Creating classifier visualization');
+
+[hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
+  sorted_weights,feature_order,bins,scores] = ...
+  ShowWindowFeatureWeights(handles.data,'figpos',...
+  [10,10,1000,800]);
+
+handles.visualizeclassifier = ...
+  struct('sorted_weights',sorted_weights,...
+  'feature_order',feature_order,'bins',bins,...
+  'scores',scores);
+guidata(hObject,handles);
+
+ClearStatus(handles);
