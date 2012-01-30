@@ -3383,12 +3383,12 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
 
-    function ShowROCCurve(obj)
+    function ROCCurve(obj)
       
-      if ~obj.isValidated,
-        warndlg('Scores need to cross validated to use ROC');
-        return;
-      end
+%       if ~obj.isValidated,
+%         warndlg('Scores need to cross validated to use ROC');
+%         return;
+%       end
       
       curNdx = obj.windowdata.labelidx_cur~=0;
       curScores = obj.windowdata.scores(curNdx);
