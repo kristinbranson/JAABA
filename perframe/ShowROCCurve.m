@@ -43,7 +43,6 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-
 % --- Executes just before ShowROCCurve is made visible.
 function ShowROCCurve_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
@@ -56,68 +55,47 @@ function ShowROCCurve_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 handles.labels = varargin{1};
 handles.scores = varargin{2};
-% handles.JLDObj = varargin{3};
+handles.JLDObj = varargin{3};
 
+numBins = 21;
+handles.scoreNorm = handles.JLDObj.windowdata.scoreNorm;
 pos = handles.labels==1;
 neg = ~pos;
-binEndMax = prctile(handles.scores(pos),95);
-binEndMin = prctile(handles.scores(neg),5);
-histPos = histc(handles.scores(pos),[-inf linspace(binEndMin,binEndMax,10) inf]);
-histNeg = histc(handles.scores(neg),[-inf linspace(binEndMin,binEndMax,10) inf]);
+bins = linspace(-handles.scoreNorm,handles.scoreNorm,numBins);
+bins = [-inf bins(2:end-1) inf];
+histPos = histc(handles.scores(pos),bins);
+histNeg = histc(handles.scores(neg),bins);
+histPos(end) = []; histNeg(end) = [];
 
-hBar = bar([histPos histNeg],'BarWidth',2);
+handles.thres1 = round(handles.JLDObj.GetConfidenceThreshold(1)*numBins/2)/(numBins/2);
+handles.thres2 = -round(handles.JLDObj.GetConfidenceThreshold(2)*numBins/2)/(numBins/2);
 
-% [xdata,ydata,T,AUC] = perfcurve(handles.labels,handles.scores,1);
-% handles.xdata = xdata;
-% handles.ydata = ydata;
-% handles.T = T;
-% handles.AUC = AUC;
-% 
-% hLine = plot(handles.axes1,xdata, ydata);
-% % First get the figure's data-cursor mode, activate it, and set some of its properties
-% cursorMode = datacursormode(hObject);
-% set(cursorMode, 'enable','on','NewDataCursorOnClick',false);
-% % Note: the optional @setDataTipTxt is used to customize the data-tip's appearance
-% % Note: the following code was adapted from %matlabroot%\toolbox\matlab\graphics\datacursormode.m
-% % Create a new data tip
-% hTarget = handle(hLine);
-% hDatatip = cursorMode.createDatatip(hTarget);
-% % Create a copy of the context menu for the datatip:
-% % set(hDatatip,'UIContextMenu',get(cursorMode,'UIContextMenu'));
-% set(hDatatip,'UIContextMenu',[]);
-% set(hDatatip,'HandleVisibility','off');
-% set(hDatatip,'Host',hTarget);
-% set(hDatatip,'ViewStyle','datatip');
-% % Set the data-tip orientation to top-right rather than auto
-% % set(hDatatip,'OrientationMode','manual');
-% set(hDatatip,'Orientation','bottom-right');
-% set(hDatatip,'UpdateFcn',@setDataTipTxtFN);
-% % Update the datatip marker appearance
-% set(hDatatip, 'MarkerSize',15, 'MarkerFaceColor','none', ...
-% 'MarkerEdgeColor','k', 'Marker','.', 'HitTest','off');
-% % Move the datatip to the right-most data vertex point
-% position = [xdata(end-10),ydata(end-10),1; xdata(end-10),ydata(end-10),-1];
-% handles.T1 = T(end-10);
-% update(hDatatip, position);
-% 
-% hDatatip2 = cursorMode.createDatatip(hTarget);
-% % Create a copy of the context menu for the datatip:
-% set(hDatatip2,'UIContextMenu',[]);
-% set(hDatatip2,'HandleVisibility','off');
-% set(hDatatip2,'Host',hTarget);
-% set(hDatatip2,'ViewStyle','datatip');
-% % Set the data-tip orientation to top-right rather than auto
-% set(hDatatip2,'OrientationMode','manual');
-% set(hDatatip2,'Orientation','bottom-right');
-% set(hDatatip2,'UpdateFcn',@setDataTipTxtFP);
-% % Update the datatip marker appearance
-% set(hDatatip2, 'MarkerSize',5, 'MarkerFaceColor','none', ...
-% 'MarkerEdgeColor','k', 'Marker','o', 'HitTest','off');
-% % Move the datatip to the right-most data vertex point
-% position = [xdata(10),ydata(10),1; xdata(10),ydata(10),-1];
-% handles.T2 = T(10);
-% update(hDatatip2, position);
-% 
+
+xLocs = linspace(-1+1/(numBins-1),1-1/(numBins-1),numBins-1);
+hBar = bar(handles.axes1, xLocs,[histPos histNeg],'BarWidth',1.5);
+ylim = get(handles.axes1,'ylim');
+set(handles.axes1,'xlim',[-1 1])
+shortylim = ylim;
+shortylim(1) = ylim(1) + 0.001;
+shortylim(2) = ylim(2) - 0.001;
+linepos = imline(handles.axes1,[handles.thres1 handles.thres1],shortylim);
+lineneg = imline(handles.axes1,[handles.thres2 handles.thres2],shortylim);
+setColor(linepos,[0 0 1]);
+setColor(lineneg,[1 0 0]);
+
+possibleXLocs = linspace(-1,1,numBins);
+possibleXLocs = possibleXLocs(2:end-1);
+api = iptgetapi(linepos);
+fcn = GetLineConstraintFcn(get(handles.axes1,'XLim'),...
+   get(handles.axes1,'YLim'),[[handles.thres1 handles.thres1]; ylim],...
+   possibleXLocs);
+api.setPositionConstraintFcn(fcn);
+
+api = iptgetapi(lineneg);
+fcn = GetLineConstraintFcn(get(handles.axes1,'XLim'),...
+   get(handles.axes1,'YLim'),[[handles.thres2 handles.thres2]; ylim],...
+   possibleXLocs);
+api.setPositionConstraintFcn(fcn);
 % UpdateText(handles);
 % % Update handles structure
 guidata(hObject, handles);
@@ -125,28 +103,6 @@ guidata(hObject, handles);
 % UIWAIT makes ShowROCCurve wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
-function output_txt = setDataTipTxtFP(~,eventData)
-% handles = guidata(eventData.Target);
-handles = guidata(get(eventData,'Target'));
-position = get(eventData,'Position');
-
-curNdx = min(sum(handles.ydata<=position(2)),sum(handles.xdata<=position(1)));
-handles.T2 = handles.T(curNdx);
-output_txt = sprintf('TP:%.2f',position(2));
-UpdateText(handles);
-guidata(handles.output,handles);
-
-
-function output_txt = setDataTipTxtFN(~,eventData)
-% handles = guidata(eventData.Target);
-handles = guidata(get(eventData,'Target'));
-position = get(eventData,'Position');
-
-curNdx = min(sum(handles.ydata<=position(2)),sum(handles.xdata<=position(1)));
-handles.T1 = handles.T(curNdx);
-output_txt = sprintf('FP:%.2f',position(1));
-UpdateText(handles);
-guidata(handles.output,handles);
 
 function UpdateText(handles)
 pos = handles.labels>0;
