@@ -69,15 +69,17 @@ set(handles.table,'ColumnName',...
   'First frame','Bouts labeled','Sex (% male)',...
   sprintf('Frames predicted as %s',handles.JLDObj.labelnames{1}),...
   'number of predicted frames',...
+  sprintf('%s errors',handles.JLDObj.labelnames{1}),...
+  sprintf('%s errors',handles.JLDObj.labelnames{2}),...
   sprintf('Frames changed from %s to %s',handles.JLDObj.labelnames{1},handles.JLDObj.labelnames{2}),...
   sprintf('Frames changed from %s to %s',handles.JLDObj.labelnames{2},handles.JLDObj.labelnames{1}),...
   });
 set(handles.table,'ColumnFormat',...
   {'char','numeric','numeric',...
   'numeric','numeric','numeric',...
-  'numeric','numeric','char','char'...
+  'numeric','numeric','numeric','numeric',...
+  'numeric','numeric'...
   });
-
 
 tableData = {};
 count = 1;
@@ -100,21 +102,30 @@ for selExp = 1:handles.JLDObj.nexps
         end
       end
     else
-      tableData{count,6} = NaN;
+      tableData{count,6} = 0;
     end
     if ~isempty(flyStats.nscoreframes),
       tableData{count,7} = flyStats.nscorepos;
       tableData{count,8} = flyStats.nscoreframes;
     else
-      tableData{count,7} = NaN;
-      tableData{count,8} = NaN;
+      tableData{count,7} = 0;
+      tableData{count,8} = 0;
     end
-    if ~isempty(flyStats.one2two),
-      tableData{count,9} = flyStats.one2two;
-      tableData{count,10} = flyStats.two2one;
+    
+    if ~isempty(flyStats.errorsPos),
+      tableData{count,9} = flyStats.errorsPos;
+      tableData{count,10} = flyStats.errorsNeg;
     else
-      tableData{count,9} = NaN;
-      tableData{count,10} = NaN;
+      tableData{count,9} = 0;
+      tableData{count,10} = 0;
+    end
+    
+    if ~isempty(flyStats.one2two),
+      tableData{count,11} = flyStats.one2two;
+      tableData{count,12} = flyStats.two2one;
+    else
+      tableData{count,11} = 0;
+      tableData{count,12} = 0;
     end
     count = count+1;
   end
@@ -122,9 +133,12 @@ end
 handles.tableData = tableData;
 set(handles.table,'Data',...
   tableData);
-set(handles.table','ColumnWidth','auto');
 set(handles.table,'ColumnEditable',false);
 set(handles.table,'CellSelectionCallback',@tableSelect);
+colWidth = repmat({40},1,12);
+colWidth{1} = 200;
+colWidth{end} = 'auto';
+set(handles.table,'ColumnWidth',colWidth);
 
 guidata(hObject, handles);
 % Update handles structure

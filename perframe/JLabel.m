@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 29-Jan-2012 12:07:16
+% Last Modified by GUIDE v2.5 31-Jan-2012 09:49:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -824,7 +824,8 @@ function slider_preview_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 % get slider value
-t = min(max(1,round(get(hObject,'Value'))),handles.nframes);
+% t = min(max(1,round(get(hObject,'Value'))),handles.nframes);
+t = min(max(handles.t0_curr,round(get(hObject,'Value'))),handles.t1_curr);
 
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
@@ -1106,6 +1107,12 @@ if ~exist('doupdateplot','var'),
 end
 
 t = round(t);
+
+if t<handles.t0_curr || t>handles.t1_curr,
+  fprintf('Current frame is out of range for the current fly');
+  t = min(max(handles.t0_curr,round(pt(1,1))),handles.t1_curr);
+end
+
 
 % check for change
 if doforce || handles.ts(i) ~= t,
@@ -2494,7 +2501,12 @@ if isnan(v) || isempty(v),
   set(hObject,'String',num2str(handles.ts(i)));
 else
   v = round(v);
-  handles = SetCurrentFrame(handles,i,v,hObject);
+  if v >= handles.t0_curr && v <= handles.t1_curr
+    handles = SetCurrentFrame(handles,i,v,hObject);
+  else
+    warndlg('Frame number should be within the range for the current fly');
+    set(hObject,'String',num2str(handles.ts(i)));
+  end
   guidata(hObject,handles);
 end
 
@@ -4779,13 +4791,7 @@ function menu_classifier_confThresholds_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_confThresholds (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.confFig = ConfidenceThresholds;
-ConfidenceThresholds('SetJLabelData',handles.confFig,handles.data,handles);
-for ndx = 1:2
-  curVal = handles.data.GetConfidenceThreshold(ndx);
-  ConfidenceThresholds('SetConfidenceThreshold',handles.confFig,ndx,curVal);
-  ConfidenceThresholds('SetSliderColor',handles.confFig,ndx,handles.labelcolors(ndx,:));
-end
+handles.data.ROCCurve(hObject);
 
 
 % --------------------------------------------------------------------
@@ -5134,3 +5140,18 @@ handles.visualizeclassifier = ...
 guidata(hObject,handles);
 
 ClearStatus(handles);
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classify_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classify (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyCurrentMovie_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyCurrentMovie (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+  handles.data.PredictWholeMovie(handles.expi);
