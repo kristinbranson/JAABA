@@ -1821,6 +1821,15 @@ classdef JLabelData < handle
         end
       end
       
+      
+      [success1,msg1] = obj.PreLoadLabeledData();
+      if ~success1,
+        msg = msg1;
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      
       [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
       if ~success1,
         msg = msg1;
@@ -3383,7 +3392,7 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
 
-    function ROCCurve(obj)
+    function ROCCurve(obj,JLabelHandle)
       
 %       if ~obj.isValidated,
 %         warndlg('Scores need to cross validated to use ROC');
@@ -3394,7 +3403,7 @@ classdef JLabelData < handle
       curScores = obj.windowdata.scores(curNdx);
       curLabels = obj.windowdata.labelidx_cur(curNdx);
       modLabels = ((curLabels==1)-0.5)*2;
-      ShowROCCurve(modLabels,curScores,obj);
+      ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
       
       
     end
@@ -4064,6 +4073,21 @@ classdef JLabelData < handle
         flyStats.nscoreframes = [];
         flyStats.nscorepos = [];
         flyStats.classifierfilename = '';
+      end
+      
+      curNdx = obj.FlyNdx(expi,flyNum);
+      if any(curNdx) && ~isempty(obj.classifier)
+        curScores = obj.windowdata.scores(curNdx);
+        curLabels = obj.windowdata.labelidx_cur(curNdx);
+        
+        curPosMistakes = nnz( curScores<0 & curLabels ==1 );
+        curNegMistakes = nnz( curScores>0 & curLabels >1 );
+        
+        flyStats.errorsPos = curPosMistakes;
+        flyStats.errorsNeg = curNegMistakes;
+      else
+        flyStats.errorsPos = [];
+        flyStats.errorsNeg = [];
       end
       
       if ~isempty(obj.classifier_old),

@@ -8,7 +8,7 @@
   <file 
       moviefilename="movie.ufmf"
       trxfilename="registered_trx.mat"
-      labelfilename="labeledsharpturns1.mat"
+      labelfilename="labeledsharpturns.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"
