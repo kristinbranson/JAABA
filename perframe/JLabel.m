@@ -1738,6 +1738,7 @@ else
     'Position',pos,...
     'UserData',2);
   handles.togglebutton_label_behaviors(2) = handles.togglebutton_label_behavior1;
+  SetButtonImage(handles.togglebutton_label_behaviors(2));
 end
 
   
