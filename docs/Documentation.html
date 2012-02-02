@@ -1,0 +1,62 @@
+<center><h2>JAABA - Janelia Automatic Animal Behavior Annotator</h2></center>
+
+
+
+<h3> INSTALLATION </h3>
+
+Download the .zip file and unpack it. Let's call the directory where you unpacked as JAABA_ROOT.
+
+<h3> STARTING UP </h3>
+
+Start matlab and change the directory to JAABA_ROOT/Jdetect/perframe and then run StartJAABA.m script. <br><br>
+<img src="images/EditFiles.png" width="700" height="280"><br><br>
+
+This will bring up a window asking you to add experiment directories. Add the example experiment directory JAABA_ROOT/exampleExperiment. Click "Done" once the experiment is loaded and you should be set to train a walk detector.
+
+<h3> NAVIGATION</h3> 
+After you've clicked "Done", the main JAABA window will appear. <br><br>
+
+<img src="images/JAABA.png" width="743" height="562"><br><br>
+To navigate forward or backward, you can use the <b>Left</b> or <b>Right</b> arrow keys to move by single frame. <b>Up</b> and <b>Down</b> arrow keys move by 30 frames. The scroll-bar below the movie previewer can also be used to move. Clicking on the timelines at the bottom of the window will move to the clicked location. <b>Play</b> button below the movie previewer plays the movie (what else?). 
+
+<h3>CHANGING FLIES and EXPERIMENTS</h3>
+
+You can switch flies by double clicking on the fly. Flies can also be switched by <b> Go -> Switch Target</b>. If you have loaded more than one experiments you can switch experiments by <b> Go -> Switch Experiment </b>.
+
+<h3>VIEWING OPTIONS </h3>
+
+<b>Zoom-in</b>, <b>Zoom-out</b>, and <b>pan</b> buttons above the movie previewer behave as expected (we wouldn't have it any other way). While playing the movie, to keep fly always at the center use <b>View -> Zoom -> Center axes on current target</b>. <b>View -> Zoom -> Keep target in view </b> does not move the axes unless the fly moves outside the preview window, in which case it moves the axes to keep the fly in the view. <b> View -> Zoom -> Static View </b> does not move the axes even if the fly goes outside the preview window.
+
+<h3> LABELING </h3>
+
+To label frames as walk, click the <i>walk</i> button to put the pen down, and then navigate forward or backward to label a bout of walk. Once you reach the end of the bout, click on <i>walk</i> button again to lift up the pen. You can label <i>none</i>'s to label trajectories that are not <i>walk</i>. You can use <i>unknown</i> button to erase labels from trajectories that you are unsure of. 
+
+<h3> TRAINING and REVIEWING </h3>
+
+Once you have labeled few bouts, you can train a classifier by using the <b>Train</b> button. To see the classifier's predictions on frames without predictions, use the <b>Predict</b> button. If you play the movie, the JAABA will predict the behavior for frames as they appear.
+
+<br><br><img src="images/AutomaticTimeline.png" width="700"><br><br>
+
+The automatic timeline has two parts. The top part shows the prediction for a frame while the lower part shows the classifier's score. Classifier's score can roughly corresponds to classifier's confidence. Dark colors close to black indicate low confidence, while brighter colors indicate high confidence.
+
+<h3> RETRAINING </h3>
+
+As you review the predictions, you can label frames that are incorrectly predicted to add these frames to the training set. It's likely that the classifier's predictions are wrong on these frames because there were no or very few such frames in the training set. And adding such frames to the training set improves the classifier's prediction on similar frames.
+
+Once you have added new labels, you can retrain the classifier. 
+
+<br><br><img src="images/AutomaticTimelineRetrain.png" width="700"><br><br>
+
+After retraining the automatic timeline will have 3 parts. The bottom most part shows the scores of the previous classifier to show how the classifier changed when new training examples were added.
+
+<h3> SAVING LABELS and CLASSIFIER </h3>
+
+The labels can be saved by using <b>File -> Save Labels</b>.  The saved labels are automatically loaded in when the experiment is added to a new JAABA session. 
+
+Similarly, <b>File -> Save classifier and labels</b> will save the current classifier and labels. A saved classifier can be loaded using the <b>Load</b> button when starting a new JAABA session.
+
+<h3> CLASSIFYING MOVIE</h3>
+
+After training a classifier the whole trajectory of a fly, whole movie or all the movies can be classified by <b>Classifier -> Classify</b>
+
+
