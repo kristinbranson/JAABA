@@ -7,31 +7,37 @@ boostIterations = 100;
 
 numEx = size(data,1);
 posEx = labels == 1;
+posCum = cumsum(posEx)/nnz(posEx);
 negEx = ~posEx;
+negCum = cumsum(negEx)/nnz(negEx);
 numPos = sum(posEx);
 numNeg = sum(negEx);
 
+scores = zeros(1,numEx);
 if numPos<1 || numNeg<1,
   obj.setStatus('Training set has only one kind of labels');
-  crossError = struct('numbers',zeros(2,2),'frac',zeros(2,2));
   return;
 end
 
 modLabels = sign( (labels==1)-0.5);
 
-rr = 1:numEx;
-splitPt = randi(numEx);
-rr = [rr(splitPt:end) rr(1:splitPt-1)];
-bStarts = round(linspace(1,numEx+1,k+1));
-scores = zeros(1,numEx);
+% rr = 1:numEx;
+% splitPt = randi(numEx);
+% rr = [rr(splitPt:end) rr(1:splitPt-1)];
+% bStarts = round(linspace(1,numEx+1,k+1));
 
 for bno = 1:k
-  curBlock = rr(bStarts(bno):bStarts(bno+1)-1);
-  curTest = ismember(1:numEx,curBlock);
+%   curBlock = rr(bStarts(bno):bStarts(bno+1)-1);
+%   curTest = ismember(1:numEx,curBlock);
+%   curTrain = ~curTest;
+  
+  curPos = (posCum <= (bno/k)) & (posCum > ( (bno-1)/k)) & posEx;
+  curNeg = (negCum <= (bno/k)) & (negCum > ( (bno-1)/k)) & negEx;
+  
+  curTest = curPos | curNeg ;
   curTrain = ~curTest;
   
   curTrainLabels = modLabels(curTrain);
-  curTestLabels = modLabels(curTest);
   
   wt = getWeights(curTrainLabels);  
   tt = tic;
