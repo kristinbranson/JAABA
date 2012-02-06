@@ -199,7 +199,9 @@ for radiusi = 1:nradii,
 %     res(end-w+2:end) = bsxfun(@rdivide,res(end-w+2:end),w-1:-1:1);
 %}    
     % combine to get standard deviation
-    res = sqrt(res - res_mean.^2);
+    diff = res - res_mean.^2;
+    diff(diff<0) = 0;
+    res = sqrt(diff);
     
     if DOCACHE,
       cache.std.radii(end+1) = r;
