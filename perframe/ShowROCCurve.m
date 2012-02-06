@@ -69,7 +69,10 @@ bins = linspace(-handles.scoreNorm,handles.scoreNorm,numBins);
 bins = [-inf bins(2:end-1) inf];
 histPos = histc(handles.scores(pos),bins);
 histNeg = histc(handles.scores(neg),bins);
-histPos(end) = []; histNeg(end) = [];
+if ~isempty(histPos),histPos(end) = []; 
+else histPos = zeros(numBins-1,1);end
+if ~isempty(histNeg),histNeg(end) = []; 
+else histNeg = zeros(numBins-1,1);end
 
 handles.posColor = handles.JLabelHandle.labelcolors(1,:);
 handles.negColor = handles.JLabelHandle.labelcolors(2,:);
