@@ -8,3 +8,5 @@ parfor dim = 1:numDim
   curBins = sum(bsxfun(@gt,curD',curVals))+1;
   bins(dim,:) = curBins;
 end
+
+bins = uint8(bins);

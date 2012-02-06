@@ -32,7 +32,7 @@ curLabels = labels(curSel);
 parfor dim = 1:numDim
   
   numBins = size(binVals,1)+1;
-  binNdx =  curBins(dim,:)+numBins*(curLabels'>0);
+  binNdx =  curBins(dim,:)+uint8(numBins*(curLabels'>0));
   allCount = histc(binNdx,.5:(2*numBins+0.5));
   allCount = allCount/sum(allCount);
   posCount = allCount(numBins+1:end-1);

@@ -22,3 +22,5 @@ parfor dim = 1:numDim
   binVals(:,dim) = curVals;
   bins(dim,:) = curBins;
 end
+
+bins = uint8(bins);

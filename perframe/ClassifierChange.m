@@ -66,13 +66,14 @@ handles.curFly = JLabelHandles.flies;
 % Initialize the table
 set(handles.table,'ColumnName',...
   {'Experiment Name','Fly Number','Trajectory Length',...
-  'First frame','Bouts labeled','Sex (% male)',...
-  sprintf('Frames predicted as %s',handles.JLDObj.labelnames{1}),...
-  'number of predicted frames',...
+  'Start frame','Bouts labeled','Sex (% male)',...
+  sprintf('%s predicted',handles.JLDObj.labelnames{1}),...
+  sprintf('%s predicted',handles.JLDObj.labelnames{2}),...
+  'total predicted frames',...
   sprintf('%s errors',handles.JLDObj.labelnames{1}),...
   sprintf('%s errors',handles.JLDObj.labelnames{2}),...
-  sprintf('Frames changed from %s to %s',handles.JLDObj.labelnames{1},handles.JLDObj.labelnames{2}),...
-  sprintf('Frames changed from %s to %s',handles.JLDObj.labelnames{2},handles.JLDObj.labelnames{1}),...
+  sprintf('%s switched to %s',handles.JLDObj.labelnames{1},handles.JLDObj.labelnames{2}),...
+  sprintf('%s switched to %s',handles.JLDObj.labelnames{2},handles.JLDObj.labelnames{1}),...
   });
 set(handles.table,'ColumnFormat',...
   {'char','numeric','numeric',...
@@ -106,26 +107,28 @@ for selExp = 1:handles.JLDObj.nexps
     end
     if ~isempty(flyStats.nscoreframes),
       tableData{count,7} = flyStats.nscorepos;
-      tableData{count,8} = flyStats.nscoreframes;
+      tableData{count,8} = flyStats.nscoreframes-flyStats.nscorepos;
+      tableData{count,9} = flyStats.nscoreframes;
     else
       tableData{count,7} = 0;
       tableData{count,8} = 0;
+      tableData{count,9} = 0;
     end
     
     if ~isempty(flyStats.errorsPos),
-      tableData{count,9} = flyStats.errorsPos;
-      tableData{count,10} = flyStats.errorsNeg;
+      tableData{count,10} = flyStats.errorsPos;
+      tableData{count,11} = flyStats.errorsNeg;
     else
-      tableData{count,9} = 0;
       tableData{count,10} = 0;
+      tableData{count,11} = 0;
     end
     
     if ~isempty(flyStats.one2two),
-      tableData{count,11} = flyStats.one2two;
-      tableData{count,12} = flyStats.two2one;
+      tableData{count,12} = flyStats.one2two;
+      tableData{count,13} = flyStats.two2one;
     else
-      tableData{count,11} = 0;
       tableData{count,12} = 0;
+      tableData{count,13} = 0;
     end
     count = count+1;
   end
@@ -135,10 +138,9 @@ set(handles.table,'Data',...
   tableData);
 set(handles.table,'ColumnEditable',false);
 set(handles.table,'CellSelectionCallback',@tableSelect);
-colWidth = repmat({40},1,12);
-colWidth{1} = 200;
-colWidth{end} = 'auto';
-set(handles.table,'ColumnWidth',colWidth);
+
+
+
 
 guidata(hObject, handles);
 % Update handles structure
@@ -154,9 +156,12 @@ function initTable(hObject)
 handles = guidata(hObject);
 jscrollpane = findjobj(handles.table);
 jtable = jscrollpane.getViewport.getView;
-jtable.setSortable(true);	
-jtable.setAutoResort(false);
-jtable.setMultiColumnSortable(true);
+jtable.setSortable(false);	
+
+colWidth = repmat({70},1,13);
+colWidth{1} = 300;
+set(handles.table,'ColumnWidth',colWidth);
+
 
 % rowHeaderViewport=jscrollpane.getComponent(4);
 % rowHeader=rowHeaderViewport.getComponent(0);

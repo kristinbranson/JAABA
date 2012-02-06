@@ -156,7 +156,13 @@ function edit_bins_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of edit_bins as a double
 val = str2double(get(hObject,'String'));
 if isempty(val) || double(uint64(val))~=val 
-  warndlg('Enter positive value for number of iterations');
+  warndlg('Enter positive integer value for number of iterations');
+  set(hObject,'String',sprintf('%d',handles.classifier_params.numBins));
+  return;
+end;
+
+if val>255 || val<10
+  warndlg('Maximum number of bins is 255 and minimum number is 10');
   set(hObject,'String',sprintf('%d',handles.classifier_params.numBins));
   return;
 end;
