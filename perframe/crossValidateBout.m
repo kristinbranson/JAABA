@@ -10,6 +10,13 @@ negBouts = ~posBouts;
 numPosBouts = nnz(posBouts);
 numNegBouts = nnz(negBouts);
 
+if numPosBouts<k || numNegBouts<k,
+  warndlg('Too few bouts to do cross validation');
+  scores = zeros(1,size(data,1));
+  scores(labels==0) = [];
+  return;
+end
+
 posBlocks = linspace(0,numPosBouts+1,k+1);
 negBlocks = linspace(0,numNegBouts+1,k+1);
 posCum = cumsum(posBouts);

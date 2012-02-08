@@ -22,7 +22,7 @@ function varargout = ClassifierChange(varargin)
 
 % Edit the above text to modify the response to help ClassifierChange
 
-% Last Modified by GUIDE v2.5 24-Jan-2012 12:28:23
+% Last Modified by GUIDE v2.5 07-Feb-2012 14:32:32
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -97,9 +97,9 @@ for selExp = 1:handles.JLDObj.nexps
         tableData{count,6} = flyStats.sexfrac.M*100;
       else
         if strcmpi(flyStats.sex,'M')
-          tableData{count,6} = 100;
+          tableData{count,6} = 100.00;
         else
-          tableData{count,6} = 0;
+          tableData{count,6} = 0.00;
         end
       end
     else
@@ -139,7 +139,10 @@ set(handles.table,'Data',...
 set(handles.table,'ColumnEditable',false);
 set(handles.table,'CellSelectionCallback',@tableSelect);
 
-
+handles.tablePos = get(handles.table,'Position');
+handles.switchFlyPos = get(handles.pushSwitchfly,'Position');
+handles.closePos = get(handles.pushClose,'Position');
+handles.figurePos = get(handles.figure1,'Position');
 
 
 guidata(hObject, handles);
@@ -219,3 +222,23 @@ function pushClose_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 delete(handles.figure1);
+
+
+% --- Executes when figure1 is resized.
+function figure1_ResizeFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+oldClosePosRight = handles.figurePos(3)-handles.closePos(1);
+guiPos = get(handles.figure1,'Position');
+newClosePos = [guiPos(3)-oldClosePosRight handles.closePos(2:4)];
+set(handles.pushClose,'Position',newClosePos);
+
+oldSwitchPosRight = handles.figurePos(3)-handles.switchFlyPos(1);
+newSwitchFlyPos = [guiPos(3)-oldSwitchPosRight handles.switchFlyPos(2:4)];
+set(handles.pushSwitchfly,'Position',newSwitchFlyPos);
+
+newTableWidth = guiPos(3)- handles.figurePos(3)+handles.tablePos(3);
+newTableHeight = guiPos(4)- handles.figurePos(4)+handles.tablePos(4);
+set(handles.table,'Position',[handles.tablePos(1:2) newTableWidth newTableHeight]);

@@ -81,6 +81,6 @@
 	linewidth="3"
 	/>
   </plot>
-  <JLabelMode mode="basic" />
+  <JLabelMode mode="advanced" />
 
 </params>

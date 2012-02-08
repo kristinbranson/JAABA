@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 31-Jan-2012 09:49:00
+% Last Modified by GUIDE v2.5 08-Feb-2012 13:00:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -945,9 +945,9 @@ end
 % status bar text
 [~,expname] = myfileparts(handles.data.expdirs{handles.expi});
 if numel(handles.flies) == 1,
-  handles.status_bar_text = sprintf('%s, fly %d',expname,handles.flies);
+  handles.status_bar_text = sprintf('%s, %s %d',expname,handles.data.targettype,handles.flies);
 else
-  handles.status_bar_text = [sprintf('%s, flies',expname),sprintf(' %d',handles.flies)];
+  handles.status_bar_text = [sprintf('%s, %d',expname,handles.data.targettype),sprintf(' %d',handles.flies)];
 end
 
 % make sure frame is within bounds
@@ -1005,55 +1005,41 @@ handles.labels_plot.predicted_im(:) = 0;
 prediction= handles.data.GetPredictedIdx(handles.expi,handles.flies);
 predictedidx = prediction.predictedidx;
 scores = handles.data.NormalizeScores(prediction.scoresidx);
-scores_old = handles.data.NormalizeScores(prediction.scoresidx_old);
-latest = prediction.latest;
+
+% Scores for the bottom row.
+switch handles.bottomAutomatic
+  case 'Validated'
+    scores_bottom = handles.data.GetValidatedScores(handles.expi,handles.flies);
+    scores_bottom = handles.data.NormalizeScores(scores_bottom);
+  case 'Loaded'
+    scores_bottom = handles.data.GetLoadedScores(handles.expi,handles.flies);
+    scores_bottom = handles.data.NormalizeScores(scores_bottom);
+  case 'Old'
+    scores_bottom = handles.data.GetOldScores(handles.expi,handles.flies);
+    scores_bottom = handles.data.NormalizeScores(scores_bottom);
+  case 'None'
+    scores_bottom = scores;
+  otherwise
+    warndlg('Undefined scores type to display for the bottom part of the automatic');
+end
 
 for behaviori = 1:handles.data.nbehaviors
 
-  idxScores = (predictedidx == behaviori) & latest;
+  idxScores = predictedidx == behaviori ;
   idxPredict = idxScores & ...
     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
+  idxBottomScores = ~isnan(scores_bottom);
   for channel = 1:3,
-    if ~prediction.isValidated % Different color whether the scores are validated or not
+    
       handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
       scoreNdx = ceil(scores(idxScores)*31)+32;
       handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-    else
-      idxLabeledPredict = idxPredict & labelidx.vals>0.5;
-      idxUnlabeledPredict = idxPredict & labelidx.vals<0.5;
-      idxLabeledScores = idxScores & labelidx.vals>0.5;
-      idxUnlabeledScores = idxScores & labelidx.vals<0.5;
-
-      shiftedColor = ShiftColor.shiftColorBkwd(handles.labelcolors(behaviori,:));
-      handles.labels_plot.predicted_im(1,idxLabeledPredict,channel) = shiftedColor(channel);
-      scoreNdx = ceil(scores(idxLabeledScores)*31)+32;
-      handles.labels_plot.predicted_im(2,idxLabeledScores,channel) = handles.scorecolor(scoreNdx,channel,3);
     
-      % Color doesn't change for unlabeled data.
-      handles.labels_plot.predicted_im(1,idxUnlabeledPredict,channel) = handles.labelcolors(behaviori,channel);
-      scoreNdx = ceil(scores(idxUnlabeledScores)*31)+32;
-      handles.labels_plot.predicted_im(2,idxUnlabeledScores,channel) = handles.scorecolor(scoreNdx,channel,1);
-
-    end
-    
-    % Old scores.
-    oldScoreNdx = ceil(scores_old(idxScores)*31)+32;
-    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(oldScoreNdx,channel,1);
+      % bottom row scores.
+      bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
+      handles.labels_plot.predicted_im(3,idxBottomScores,channel) = handles.scorecolor(bottomScoreNdx,channel,1);
     
   end    
-    
-    
-  % Old scores loaded from scores files are shown in different color
-  idxScores = (predictedidx == behaviori) & (~latest);
-  idxPredict = idxScores & ...
-    (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
-  shiftedColor = ShiftColor.shiftColorFwd(handles.labelcolors(behaviori,:));
-  for channel = 1:3,
-    handles.labels_plot.predicted_im(1,idxPredict,channel) = shiftedColor(channel);
-    scoreNdx = ceil(scores(idxScores)*31)+32;
-    handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,2);
-    handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,2);
-  end
   
 end
 
@@ -1589,6 +1575,14 @@ if ~isempty(handles.data.allperframefns)
   handles.timeline_data_ylims = nan(2,numel(handles.data.allperframefns));
 end
 
+% Setup the popup menu for bottom row of the automatic timeline.
+bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
+set(handles.automaticTimelineBottomRowPopup,'Value', ...
+  find(strcmp(bottomRowTypes,handles.bottomAutomatic)));
+set(handles.automaticTimelinePredictionLabel,'FontSize',10);
+set(handles.automaticTimelineScoresLabel,'FontSize',10);
+set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
+
 % maximum distance squared in fraction of axis to change frames when
 % clicking on preview window
 handles.max_click_dist_preview = .025^2;
@@ -1909,6 +1903,12 @@ end
     handles.traj_npost = 25;
   end
   
+  if isfield(handles.rc,'bottomAutomatic')
+    handles.bottomAutomatic = handles.rc.bottomAutomatic;
+  else
+    handles.bottomAutomatic = 'None';
+  end
+  
 % catch ME,
 %   warning('Error loading RC file: %s',getReport(ME));  
 % end
@@ -1984,7 +1984,7 @@ function handles = SaveRC(handles)
   
   % navigation preferences
   rc.navPreferences = handles.NJObj.GetState();
-  
+  rc.bottomAutomatic = handles.bottomAutomatic;
   save(handles.rcfilename,'-struct','rc');
 
 % catch ME,
@@ -2775,97 +2775,97 @@ function menu_file_load_top_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_go_switch_experiment_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_go_switch_experiment (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-s = cell(1,handles.data.nexps);
-for i = 1:handles.data.nexps,
-  expStats = handles.data.GetExpStats(i);
-  if i == handles.expi,
-    s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
-      expStats.name,expStats.nflies);
-  else
-    s{i} = sprintf('%s, N flies: %d',expStats.name,expStats.nflies);
-    if handles.data.hassex,
-      nmales = sum([handles.data.frac_sex_per_exp{i}.M]);
-      nfemales = sum([handles.data.frac_sex_per_exp{i}.F]);
-      if handles.data.hasperframesex,
-        s{i} = [s{i},sprintf('(%.1f M, %.1f F)',nmales,nfemales)];
-      else
-        s{i} = [s{i},sprintf('(%d M, %d F)',nmales,nfemales)];
-      end
-    end
-    s{i} = [s{i},sprintf(', N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
-      expStats.nlabeledflies,...
-      expStats.nlabeledbouts,...
-      expStats.labeldatestr)];
-    if ~isempty(expStats.nscoreframes)
-      s{i} = [s{i},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d, Classifier used to predict:%s',...
-        handles.data.labelnames{1},...
-        expStats.nscorepos,...
-        expStats.nscoreframes,...
-        expStats.classifierfilename)];
-    end
-    
-  end
-end
-[expi,ok] = listdlg('ListString',s,'SelectionMode','single',...
-  'InitialValue',handles.expi,'Name','Switch experiment',...
-  'PromptString','Select experiment:',...
-  'ListSize',[640,300]);
-if ~ok || expi == handles.expi,
-  return;
-end
-[handles,success] = SetCurrentMovie(handles,expi);
-if ~success,
-  return;
-end
-guidata(hObject,handles);
+% function menu_go_switch_experiment_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_go_switch_experiment (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% s = cell(1,handles.data.nexps);
+% for i = 1:handles.data.nexps,
+%   expStats = handles.data.GetExpStats(i);
+%   if i == handles.expi,
+%     s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
+%       expStats.name,expStats.nflies);
+%   else
+%     s{i} = sprintf('%s, N flies: %d',expStats.name,expStats.nflies);
+%     if handles.data.hassex,
+%       nmales = sum([handles.data.frac_sex_per_exp{i}.M]);
+%       nfemales = sum([handles.data.frac_sex_per_exp{i}.F]);
+%       if handles.data.hasperframesex,
+%         s{i} = [s{i},sprintf('(%.1f M, %.1f F)',nmales,nfemales)];
+%       else
+%         s{i} = [s{i},sprintf('(%d M, %d F)',nmales,nfemales)];
+%       end
+%     end
+%     s{i} = [s{i},sprintf(', N flies labeled: %d, N bouts labeled: %d, last labeled: %s',...
+%       expStats.nlabeledflies,...
+%       expStats.nlabeledbouts,...
+%       expStats.labeldatestr)];
+%     if ~isempty(expStats.nscoreframes)
+%       s{i} = [s{i},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d, Classifier used to predict:%s',...
+%         handles.data.labelnames{1},...
+%         expStats.nscorepos,...
+%         expStats.nscoreframes,...
+%         expStats.classifierfilename)];
+%     end
+%     
+%   end
+% end
+% [expi,ok] = listdlg('ListString',s,'SelectionMode','single',...
+%   'InitialValue',handles.expi,'Name','Switch experiment',...
+%   'PromptString','Select experiment:',...
+%   'ListSize',[640,300]);
+% if ~ok || expi == handles.expi,
+%   return;
+% end
+% [handles,success] = SetCurrentMovie(handles,expi);
+% if ~success,
+%   return;
+% end
+% guidata(hObject,handles);
 
 % --------------------------------------------------------------------
-function menu_go_switch_target_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_go_switch_target (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% TODO: generalize this to multiple flies labeled
-
-nflies = handles.data.nflies_per_exp(handles.expi);
-s = cell(1,nflies);
-for fly = 1:nflies,
-  if fly == handles.flies(1),
-    s{fly} = sprintf('Target %3d, CURRENTLY SELECTED',fly);
-  else
-    flyStats = handles.data.GetFlyStats(handles.expi,fly);
-    s{fly} = sprintf('Target %3d, Trajectory length %5d, First frame %5d, N bouts labeled %2d',...
-      fly,flyStats.trajLength,flyStats.firstframe,flyStats.nbouts);
-    if flyStats.hassex,
-      if ~isempty(flyStats.sexfrac),
-        s{fly} = [s{fly},sprintf(', Sex: %3d%%M, %3d%%F',...
-          round(flyStats.sexfrac.M*100),round(flyStats.sexfrac.F*100))];
-      else
-        s{fly} = [s{fly},sprintf(', Sex: %s',flyStats.sex{1})];
-      end
-    end
-    if ~isempty(flyStats.nscoreframes)
-      s{fly} = [s{fly},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d',...
-        handles.data.labelnames{1},flyStats.nscorepos,flyStats.nscoreframes)];
-    end
-  end
-end
-
-
-[fly,ok] = listdlg('ListString',s,'SelectionMode','single',...
-  'InitialValue',handles.flies(1),'Name','Switch target',...
-  'PromptString','Select experiment:',...
-  'ListSize',[640,300]);
-if ~ok || fly == handles.flies(1),
-  return;
-end
-handles = SetCurrentFlies(handles,fly);
-guidata(hObject,handles);
+% function menu_go_switch_target_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_go_switch_target (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % TODO: generalize this to multiple flies labeled
+% 
+% nflies = handles.data.nflies_per_exp(handles.expi);
+% s = cell(1,nflies);
+% for fly = 1:nflies,
+%   if fly == handles.flies(1),
+%     s{fly} = sprintf('Target %3d, CURRENTLY SELECTED',fly);
+%   else
+%     flyStats = handles.data.GetFlyStats(handles.expi,fly);
+%     s{fly} = sprintf('Target %3d, Trajectory length %5d, First frame %5d, N bouts labeled %2d',...
+%       fly,flyStats.trajLength,flyStats.firstframe,flyStats.nbouts);
+%     if flyStats.hassex,
+%       if ~isempty(flyStats.sexfrac),
+%         s{fly} = [s{fly},sprintf(', Sex: %3d%%M, %3d%%F',...
+%           round(flyStats.sexfrac.M*100),round(flyStats.sexfrac.F*100))];
+%       else
+%         s{fly} = [s{fly},sprintf(', Sex: %s',flyStats.sex{1})];
+%       end
+%     end
+%     if ~isempty(flyStats.nscoreframes)
+%       s{fly} = [s{fly},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d',...
+%         handles.data.labelnames{1},flyStats.nscorepos,flyStats.nscoreframes)];
+%     end
+%   end
+% end
+% 
+% 
+% [fly,ok] = listdlg('ListString',s,'SelectionMode','single',...
+%   'InitialValue',handles.flies(1),'Name','Switch target',...
+%   'PromptString','Select experiment:',...
+%   'ListSize',[640,300]);
+% if ~ok || fly == handles.flies(1),
+%   return;
+% end
+% handles = SetCurrentFlies(handles,fly);
+% guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
@@ -3480,6 +3480,7 @@ for i = 1:ntimelines,
   y0 = y0 + axes_pos(4);
 end
 
+% Position for the auto and manual radio buttons.
 timeline_select_pos = get(handles.panel_timeline_select,'Position');
 timeline_manual_pos = get(handles.axes_timelines(end),'Position');
 timeline_auto_pos = get(handles.axes_timelines(end-1),'Position');
@@ -3490,12 +3491,25 @@ set(handles.panel_timeline_select,'Position',timeline_select_pos);
 
 auto_radio_pos = get(handles.timeline_label_automatic,'Position');
 manual_radio_pos = get(handles.timeline_label_manual,'Position');
-% Position for the auto and manual radio buttons.
 auto_radio_pos(2) = timeline_auto_pos(4)/2-auto_radio_pos(4)/2;
 set(handles.timeline_label_automatic,'Position',auto_radio_pos);
 manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
   -manual_radio_pos(4);
 set(handles.timeline_label_manual,'Position',manual_radio_pos);
+
+% Positions of the automatic timeline's labels
+labelPredictionPos = get(handles.automaticTimelinePredictionLabel,'Position');
+labelScoresPos =     get(handles.automaticTimelineScoresLabel,'Position');
+popupBottomPos =     get(handles.automaticTimelineBottomRowPopup,'Position');
+popupBottomPos(2) = timeline_auto_pos(2) + ...
+  timeline_auto_pos(4)/6 - popupBottomPos(4)/2;
+set(handles.automaticTimelineBottomRowPopup,'Position',popupBottomPos);
+labelScoresPos(2) = timeline_auto_pos(2) + ...
+  timeline_auto_pos(4)/2 - labelScoresPos(4)/2;
+set(handles.automaticTimelineScoresLabel,'Position',labelScoresPos);
+labelPredictionPos(2) = timeline_auto_pos(2) + ...
+  5*timeline_auto_pos(4)/6 - labelPredictionPos(4)/2;
+set(handles.automaticTimelinePredictionLabel,'Position',labelPredictionPos);
 
 %{
 % axes_manual_pos = [handles.guipos.timeline_xpos,...
@@ -4149,6 +4163,9 @@ axi = 1;
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 SetButtonImage(handles.pushbutton_playstop);
 
+handles = UpdatePrediction(handles);
+guidata(hObject,handles);
+
 handles.hplaying = hObject;
 guidata(hObject,handles);
 ticker = tic;
@@ -4181,7 +4198,7 @@ while true,
   if PLAY_TIMER_DONE
     ticker = tic;
     PLAY_TIMER_DONE = false;
-    predictStart = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes/2));
+    predictStart = max(handles.t0_curr,floor(handles.ts(1)-handles.timeline_nframes));
     predictEnd = min(handles.t1_curr,ceil(handles.ts(1)+handles.timeline_nframes/2));
     handles = SetPredictedPlot(handles,predictStart,predictEnd);
     handles = UpdateTimelineIms(handles);
@@ -4399,8 +4416,8 @@ function handles = AddBookmark(handles,clip)
 fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
 flystr = sprintf('%d, ',handles.flies);
 flystr = flystr(1:end-2);
-SetStatus(handles,sprintf('Saving AVI for experiment %s, flies %s, frames %d to %d...',...
-  handles.data.expnames{handles.expi},flystr,clip.t0,clip.t1));
+SetStatus(handles,sprintf('Saving AVI for experiment %s, %s %s, frames %d to %d...',...
+  handles.data.expnames{handles.expi},handles.data.targettype,flystr,clip.t0,clip.t1));
 
 handles = make_jlabel_results_movie(handles,clip.t0,clip.t1);
 ClearStatus(handles);
@@ -4875,9 +4892,17 @@ function crossValidate_Callback(hObject, eventdata, handles)
 
 handles.data.StoreLabels();
 crossError = handles.data.CrossValidate();
+
+contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
+handles.bottomAutomatic = 'Validated';
+set(handles.automaticTimelineBottomRowPopup,'Value',...
+find(strcmp(contents,handles.bottomAutomatic)));
+
 handles = SetPredictedPlot(handles);
 handles = UpdatePrediction(handles);
 guidata(hObject,handles);
+
+
 
 cnames = {sprintf('%s Predicted',handles.data.labelnames{1}),...
           'Not Predicted',...
@@ -4912,7 +4937,7 @@ dat(5,:) = repmat({''},1,3);
 for col = 1:3
   for row = 1:4
     t1 = sprintf('%d ',crossError.oldNumbers(row,col));
-    if isnan(crossError.frac(row,col))
+    if isnan(crossError.oldFrac(row,col))
       t2 = ' (-)';
     else
       t2 = sprintf(' (%.1f%%)',crossError.oldFrac(row,col)*100);
@@ -5003,7 +5028,14 @@ function menu_file_loadscorescurrentexpdefault_Callback(hObject, eventdata, hand
 % hObject    handle to menu_file_loadscorescurrentexpdefault (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
 handles.data.LoadScoresDefault(handles.data.expi);
+
+contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
+handles.bottomAutomatic = 'Loaded';
+set(handles.automaticTimelineBottomRowPopup,'Value',...
+find(strcmp(contents,handles.bottomAutomatic)));
+
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5020,12 +5052,50 @@ function menu_file_loadscorescurrentexpselect_Callback(hObject, eventdata, handl
 % hObject    handle to menu_file_loadscorescurrentexpselect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 tstring = sprintf('Scores file for %s',handles.data.expnames{handles.data.expi});
 [fname,pname,~] = uigetfile('*.mat',tstring);
 if ~fname; return; end;
 sfn = fullfile(pname,fname);
 handles.data.LoadScores(handles.data.expi,sfn);
+
+contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
+handles.bottomAutomatic = 'Loaded';
+set(handles.automaticTimelineBottomRowPopup,'Value',...
+find(strcmp(contents,handles.bottomAutomatic)));
+
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+% --------------------------------------------------------------------
+function menu_file_loadscorescurrentexprootdir_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_loadscorescurrentexprootdir (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+tstring = sprintf('Root dir to load scores for current experiment');
+fname = uigetdir('*.mat',tstring);
+if ~fname; return; end;
+scoreFileName = sprintf('scores_%s.mat',handles.data.labelnames{1});
+
+sfn = fullfile(fname,handles.data.expnames{handles.expi},scoreFileName);
+if ~exist(sfn,'file')
+  warndlg(sprintf('Scores file %s does not exist for exp:%s',...
+    scoreFileName,handles.data.expnames{ndx}));
+  return;
+end
+handles.data.LoadScores(handles.expi,sfn);
+
+contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
+handles.bottomAutomatic = 'Loaded';
+set(handles.automaticTimelineBottomRowPopup,'Value',...
+find(strcmp(contents,handles.bottomAutomatic)));
+
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5045,6 +5115,12 @@ function menu_file_loadscoresAlldefault_Callback(hObject, eventdata, handles)
 for ndx = 1:handles.data.nexps,
   handles.data.LoadScoresDefault(ndx);
 end
+
+contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
+handles.bottomAutomatic = 'Loaded';
+set(handles.automaticTimelineBottomRowPopup,'Value',...
+find(strcmp(contents,handles.bottomAutomatic)));
+
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5061,6 +5137,7 @@ function menu_file_loadscoresAllselect_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_loadscoresAllselect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
 tstring = sprintf('Root dir to load scores for all experiments');
 fname = uigetdir('*.mat',tstring);
 if ~fname; return; end;
@@ -5075,6 +5152,12 @@ for ndx = 1:handles.data.nexps,
   end
   handles.data.LoadScores(ndx,sfn);
 end
+
+contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
+handles.bottomAutomatic = 'Loaded';
+set(handles.automaticTimelineBottomRowPopup,'Value',...
+find(strcmp(contents,handles.bottomAutomatic)));
+
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5159,8 +5242,8 @@ ClassifierOptions(handles.data);
 
 
 % --------------------------------------------------------------------
-function menu_classifier_switch_target_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_switch_target (see GCBO)
+function menu_go_switch_target_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_switch_target (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 changeTargetHandle = ClassifierChange(hObject);
@@ -5206,3 +5289,39 @@ function menu_classifier_classifyCurrentMovie_Callback(hObject, eventdata, handl
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
   handles.data.PredictWholeMovie(handles.expi);
+
+
+% --- Executes on selection change in automaticTimelineBottomRowPopup.
+function automaticTimelineBottomRowPopup_Callback(hObject, eventdata, handles)
+% hObject    handle to automaticTimelineBottomRowPopup (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+contents = cellstr(get(hObject,'String'));
+handles.bottomAutomatic = contents{get(hObject,'Value')};
+set(handles.automaticTimelineBottomRowPopup,'BackgroundColor',[50 50 50]/256);
+handles = UpdateTimelineIms(handles);
+guidata(hObject,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function automaticTimelineBottomRowPopup_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to automaticTimelineBottomRowPopup (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+

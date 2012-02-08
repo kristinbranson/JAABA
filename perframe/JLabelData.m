@@ -24,8 +24,9 @@ classdef JLabelData < handle
       'labelidx_imp',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
       'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',uint8([]),...
-      'scores_old',[]);
+      'scores_old',[],'scores_validated',[]);
     
+    % Score loaded from files.
     scoredata = struct('scores',[],'predicted',[],...
           'exp',[],'flies',[],'t',[],'timestamp',[],...
           'classifierfilenames',[]);
@@ -134,9 +135,6 @@ classdef JLabelData < handle
     classifier_params = struct('iter',100,'iter_updates',10,...
       'numSample',2500,'numBins',30,'CVfolds',7,...
       'baseClassifierTypes',{'Decision Stumps'},'baseClassifierSelected',1);
-    
-    % Keep track if the scores have been validated.
-    isValidated = false;
     
     % stuff cached during prediction
     predict_cache = struct;
@@ -690,7 +688,8 @@ classdef JLabelData < handle
           labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
         obj.windowdata.predicted(end+1:end+m,1) = 0;
         obj.windowdata.scores(end+1:end+m,1) = 0;
-        obj.windowdata.scores_old(end+1:end+m,1) = 0;        
+        obj.windowdata.scores_old(end+1:end+m,1) = 0;   
+        obj.windowdata.scores_validated(end+1:end+m,1) = 0;           
         obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
 
         % remove from missingts all ts that were computed in this chunk
@@ -1633,6 +1632,7 @@ classdef JLabelData < handle
           if ~exist(trxfile,'file'),
             msg = sprintf('Trx file %s does not exist, cannot count flies',trxfile);
             success = false;
+            return;
           else
           
             if isempty(obj.expi) || obj.expi == 0,
@@ -1794,7 +1794,12 @@ classdef JLabelData < handle
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
         % TODO: make this work with multiple flies
-        obj.PreLoad(1,1);
+        [success1,msg1] = obj.PreLoad(1,1);
+        if ~success1,
+          msg = sprintf('Error getting basic trx info: %s',msg1);
+          obj.RemoveExpDirs(obj.nexps);
+          return;
+        end
       elseif istrxinfo,
         obj.nflies_per_exp(end+1) = nflies_per_exp;
         obj.sex_per_exp{end+1} = sex_per_exp;
@@ -1871,17 +1876,17 @@ classdef JLabelData < handle
         end
       end
       
-      obj.expdirs(expi) = [];
-      obj.expnames(expi) = [];
-      obj.outexpdirs(expi) = [];
-      obj.nflies_per_exp(expi) = [];
-      obj.sex_per_exp(expi) = [];
-      obj.frac_sex_per_exp(expi) = [];
-      obj.firstframes_per_exp(expi) = [];
-      obj.endframes_per_exp(expi) = [];
+      if ~numel(obj.expdirs)<expi; obj.expdirs(expi) = []; end
+      if ~numel(obj.expnames)<expi; obj.expnames(expi) = []; end
+      if ~numel(obj.outexpdirs)<expi; obj.outexpdirs(expi) = []; end
+      if ~numel(obj.nflies_per_exp)<expi; obj.nflies_per_exp(expi) = []; end
+      if ~numel(obj.sex_per_exp)<expi; obj.sex_per_exp(expi) = []; end
+      if ~numel(obj.frac_sex_per_exp)<expi; obj.frac_sex_per_exp(expi) = []; end
+      if ~numel(obj.firstframes_per_exp)<expi; obj.firstframes_per_exp(expi) = []; end
+      if ~numel(obj.endframes_per_exp)<expi; obj.endframes_per_exp(expi) = []; end
+      if ~numel(obj.labels)<expi; obj.labels(expi) = []; end
+      if ~numel(obj.labelstats)<expi; obj.labelstats(expi) = []; end
       obj.nexps = obj.nexps - numel(expi);
-      obj.labels(expi) = [];
-      obj.labelstats(expi) = [];
       % TODO: exp2labeloff
 
       % Clean window features.
@@ -1905,6 +1910,8 @@ classdef JLabelData < handle
         idxcurr(1:numel(obj.windowdata.scores))) = [];
       obj.windowdata.scores_old(...
         idxcurr(1:numel(obj.windowdata.scores_old))) = [];
+      obj.windowdata.scores_validated(...
+        idxcurr(1:numel(obj.windowdata.scores_validated))) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
       obj.windowdata.bins=[];
@@ -2674,6 +2681,11 @@ classdef JLabelData < handle
         % load trx
 %         try
           trxfilename = obj.GetFile('trx',expi);
+          if ~exist(trxfilename,'file')
+            msg = sprintf('Trx file %s does not exist',trxfilename);
+            success = false;
+            return;
+          end
           
           obj.SetStatus('Loading trx for experiment %s',obj.expnames{expi});
                     
@@ -2882,19 +2894,13 @@ classdef JLabelData < handle
       if ~isempty(obj.expi) && numel(flies) == numel(obj.flies) && obj.IsCurFly(expi,flies),
         if nargin < 4,
           prediction = struct('predictedidx',obj.predictedidx,...
-                              'scoresidx', obj.scoresidx,...
-                              'scoresidx_old', obj.scoresidx_old,...
-                              'latest', obj.scoreTS>=obj.classifierTS,...
-                              'isValidated', obj.isValidated);
+                              'scoresidx', obj.scoresidx);
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
           prediction = struct(...
             'predictedidx', obj.predictedidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
-            'scoresidx',  obj.scoresidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
-            'scoresidx_old',  obj.scoresidx_old(T0+obj.labelidx_off:T1+obj.labelidx_off),...            
-            'latest', obj.scoreTS(T0+obj.labelidx_off:T1+obj.labelidx_off)>=obj.classifierTS,...
-            'isValidated', obj.isValidated);          
+            'scoresidx',  obj.scoresidx(T0+obj.labelidx_off:T1+obj.labelidx_off));
         end
         return;
       end
@@ -2907,23 +2913,8 @@ classdef JLabelData < handle
       n = T1-T0+1;
       off = 1 - T0;
       prediction = struct('predictedidx', zeros(1,n),...
-                         'scoresidx', zeros(1,n),...
-                         'scoresidx_old', zeros(1,n),...
-                         'latest', false(1,n),...
-                         'isValidated', obj.isValidated);
+                         'scoresidx', zeros(1,n));
       
-      if ~isempty(obj.scoredata.exp)                 
-        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2) &...
-          obj.scoredata.t' >= T0 & obj.scoredata.t' <= T1;
-        prediction.predictedidx(obj.scoredata.t(idxcurr)+off) = ...
-          obj.scoredata.predicted(idxcurr);
-        prediction.scoresidx(obj.scoredata.t(idxcurr)+off) = ...
-          obj.scoredata.scores(idxcurr);      
-        prediction.scoresidx_old(obj.scoredata.t(idxcurr)+off) = ...
-          obj.scoredata.scores(idxcurr);      
-        prediction.latest(obj.scoredata.t(idxcurr)+off) = ...
-          obj.scoredata.timestamp(idxcurr)>=obj.classifierTS;      
-      end
       
       if ~isempty(obj.windowdata.exp)
         idxcurr = obj.FlyNdx(expi,flies) & ...
@@ -2933,11 +2924,60 @@ classdef JLabelData < handle
           obj.windowdata.predicted(idxcurr);
         prediction.scoresidx(obj.windowdata.t(idxcurr)+off) = ...
           obj.windowdata.scores(idxcurr);
-        prediction.scoresidx_old(obj.windowdata.t(idxcurr)+off) = ...
-          obj.windowdata.scores_old(idxcurr);      
-        prediction.latest(obj.windowdata.t(idxcurr)+off) = ...
-          true;
       end
+    end
+    
+    
+    function scores = GetValidatedScores(obj,expi,flies)
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      
+      n = T1-T0+1;
+      off = 1 - T0;
+      scores = zeros(1,n);
+      
+      if ~isempty(obj.windowdata.scores_validated) 
+        idxcurr = obj.FlyNdx(expi,flies);
+        scores(obj.windowdata.t(idxcurr)+off) = ...
+          obj.windowdata.scores_validated(idxcurr);
+      end
+      
+    end
+    
+        
+    function scores = GetLoadedScores(obj,expi,flies)
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      
+      n = T1-T0+1;
+      off = 1 - T0;
+      scores = zeros(1,n);
+
+      if ~isempty(obj.scoredata.exp)                 
+        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2) &...
+          obj.scoredata.t' >= T0 & obj.scoredata.t' <= T1;
+        scores(obj.scoredata.t(idxcurr)+off) = ...
+          obj.scoredata.scores(idxcurr);      
+      end
+      
+    end
+    
+    
+    
+    function scores = GetOldScores(obj,expi,flies)
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      
+      n = T1-T0+1;
+      off = 1 - T0;
+      scores = zeros(1,n);
+      
+      if ~isempty(obj.windowdata.exp) 
+        idxcurr = obj.FlyNdx(expi,flies);
+        scores(obj.windowdata.t(idxcurr)+off) = ...
+          obj.windowdata.scores_old(idxcurr);
+      end
+      
     end
     
     % [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
@@ -3323,8 +3363,6 @@ classdef JLabelData < handle
           % To later find out where each example came from.
 
           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
-          obj.isValidated = false;
-          
           obj.PredictLoaded();
       end
 
@@ -3361,10 +3399,10 @@ classdef JLabelData < handle
       islabeled = obj.windowdata.labelidx_cur ~= 0;
 
       if ~any(islabeled),                        
-        crossError.numbers = zeros(4,2);
-        crossError.frac = zeros(4,2);
-        crossError.oldNumbers = zeros(4,2);
-        crossError.oldFrac = zeros(4,2);
+        crossError.numbers = zeros(4,3);
+        crossError.frac = zeros(4,3);
+        crossError.oldNumbers = zeros(4,3);
+        crossError.oldFrac = zeros(4,3);
         
         return; 
       end
@@ -3401,6 +3439,9 @@ classdef JLabelData < handle
         obj.windowdata.labelidx_cur,bouts,obj,...
         obj.windowdata.binVals,...
         obj.windowdata.bins,obj.classifier_params);
+
+      obj.windowdata.scores_validated = zeros(1,numel(islabeled));
+      obj.windowdata.scores_validated(islabeled) = crossScores;
              
 %       crossScores=...
 %         crossValidate( obj.windowdata.X(islabeled,:), ...
@@ -3421,10 +3462,6 @@ classdef JLabelData < handle
       crossError.oldNumbers = oldError.numbers;
       crossError.oldFrac = oldError.frac;
       
-      obj.windowdata.predicted(islabeled) = -sign(crossScores)*0.5+1.5;
-      obj.windowdata.scores(islabeled) = crossScores;
-      obj.windowdata.isvalidprediction(islabeled) = true;
-      obj.isValidated = true;
       obj.ClearStatus();
     end
 
@@ -3747,7 +3784,7 @@ classdef JLabelData < handle
             obj.windowdata.scores_old(toPredict) = ...
               myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
           else
-            obj.windowdata.scores_old(toPredict) = obj.windowdata.scores(toPredict);
+            obj.windowdata.scores_old(toPredict) = 0;
           end
           obj.ClearStatus();
           
@@ -3841,18 +3878,6 @@ classdef JLabelData < handle
       obj.scoresidx_old = zeros(1,n);
       obj.scoreTS = zeros(1,n);
       
-      % Scores loaded from files.
-      if ~isempty(obj.scoredata.exp),
-        idxcurr = obj.scoredata.exp == obj.expi & all(bsxfun(@eq,obj.scoredata.flies,obj.flies),2);
-        obj.predictedidx(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
-          obj.scoredata.predicted(idxcurr);
-        obj.scoresidx(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
-          obj.scoredata.scores(idxcurr);      
-        obj.scoresidx_old(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
-          obj.scoredata.scores(idxcurr);      
-        obj.scoreTS(obj.scoredata.t(idxcurr)-obj.t0_curr+1) = ...
-          obj.scoredata.timestamp(idxcurr);      
-      end
       
       if isempty(obj.windowdata.exp),
         return;
@@ -3865,8 +3890,6 @@ classdef JLabelData < handle
         obj.windowdata.predicted(idxcurr);
       obj.scoresidx(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
         obj.windowdata.scores(idxcurr);      
-      obj.scoresidx_old(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
-        obj.windowdata.scores_old(idxcurr);      
       obj.scoreTS(obj.windowdata.t(idxcurr)-obj.t0_curr+1) = ...
         obj.classifierTS;      
 
@@ -3945,11 +3968,12 @@ classdef JLabelData < handle
           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
           obj.windowdata.scores(idxcurr) = scores;
+          obj.windowdata.scores_validated(idxcurr) = zeros(size(scores));
           if ~isempty(obj.classifier_old)
             obj.windowdata.scores_old(idxcurr) = ...
               myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier_old);
           else
-            obj.windowdata.scores_old(idxcurr) = obj.windowdata.scores(idxcurr);
+            obj.windowdata.scores_old(idxcurr) = zeros(size(scores));
           end
             
           obj.windowdata.isvalidprediction(idxcurr) = true;
