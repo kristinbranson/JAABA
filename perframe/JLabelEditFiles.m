@@ -259,7 +259,7 @@ UpdateStatusTable(handles);
 if ~handles.data.filesfixable,
   uiwait(warndlg(sprintf('Experiment %s is missing required files that cannot be generated within this interface. Removing...',expdir),'Bad experiment'));
   % undo
-  handles.data.RemoveExpDir(handles.data.nexps);
+  handles.data.RemoveExpDirs(handles.data.nexps);
   set(handles.listbox_experiment,'Value',oldv);
   UpdateStatusTable(handles);  
 end
@@ -271,7 +271,7 @@ if handles.data.filesfixable && ~handles.data.allfilesexist,
     if ~success,
       uiwait(warndlg(sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg),'Error generating files'));
       % undo
-      handles.data.RemoveExpDir(handles.data.nexps);
+      handles.data.RemoveExpDirs(handles.data.nexps);
       set(handles.listbox_experiment,'Value',oldv);
     end
     
