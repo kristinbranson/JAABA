@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 08-Feb-2012 13:00:58
+% Last Modified by GUIDE v2.5 09-Feb-2012 11:12:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -4148,8 +4148,9 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
   handles = guidata(hObject);
-  t0 = handles.ts(1)+framesPerTick;%+handles.timeline_nframes;
-  handles.data.Predict(handles.expi,handles.flies,t0:(t0+framesPerTick));
+  t0 = min(handles.ts(1)+framesPerTick,handles.t1_curr);
+  t1 = min(t0+framesPerTick,handles.t1_curr);
+  handles.data.Predict(handles.expi,handles.flies,t0:t1);
   PLAY_TIMER_DONE = true;
   
 function handles = play(hObject,handles,t0,t1,doloop)
@@ -4223,8 +4224,6 @@ while true,
       ticker = tic;
       continue;
     else
-      handles.hplaying = nan;
-      guidata(hObject,handles);
       break;
     end
   end
@@ -4244,10 +4243,11 @@ stopPlaying(handles);
 function handles = stopPlaying(handles)
 
 clear global PLAY_TIMER_DONE;
-set(handles.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
-SetButtonImage(handles.hplaying);
 T = timerfind('Tag','predictTimer');
 if ~isempty(T),  stop(T(:)); delete(T(:)); end
+if isnan(handles.hplaying), return; end;
+set(handles.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
+SetButtonImage(handles.hplaying);
   
 hObject = handles.hplaying;
 handles.hplaying = nan;
@@ -5288,7 +5288,8 @@ function menu_classifier_classifyCurrentMovie_Callback(hObject, eventdata, handl
 % hObject    handle to menu_classifier_classifyCurrentMovie (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-  handles.data.PredictWholeMovie(handles.expi);
+handles.data.PredictWholeMovie(handles.expi);
+
 
 
 % --- Executes on selection change in automaticTimelineBottomRowPopup.
@@ -5323,5 +5324,3 @@ function automaticTimelineBottomRowPopup_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
