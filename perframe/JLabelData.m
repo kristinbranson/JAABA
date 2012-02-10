@@ -255,6 +255,7 @@ classdef JLabelData < handle
     
     % Retrain properly
     doUpdate = true;
+    
   end
   
   methods (Access=private)
@@ -3991,7 +3992,7 @@ classdef JLabelData < handle
         return;
       end
       
-      scoresA = {}; tStartAll = []; tEndAll = [];
+      scoresA = {}; 
       numFlies = obj.GetNumFlies(expi);
       
       tStartAll = obj.GetTrxFirstFrame(expi);
@@ -4237,7 +4238,6 @@ classdef JLabelData < handle
       SelectFeatures('setJLDobj',selHandle,obj);
       uiwait(selHandle);
     end
-    
     
   end
     

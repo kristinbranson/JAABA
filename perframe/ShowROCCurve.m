@@ -74,6 +74,9 @@ else histPos = zeros(numBins-1,1);end
 if ~isempty(histNeg),histNeg(end) = []; 
 else histNeg = zeros(numBins-1,1);end
 
+normHistPos = histPos./sum(histPos);
+normHistNeg = histNeg./sum(histNeg);
+
 handles.posColor = handles.JLabelHandle.labelcolors(1,:);
 handles.negColor = handles.JLabelHandle.labelcolors(2,:);
 
@@ -81,6 +84,7 @@ handles.thres1 = round(handles.JLDObj.GetConfidenceThreshold(1)*(numBins-1)/2)/(
 handles.thres2 = -round(handles.JLDObj.GetConfidenceThreshold(2)*(numBins-1)/2)/( (numBins-1)/2);
 
 
+% For axis 1
 xLocs = linspace(-1+1/(numBins-1),1-1/(numBins-1),numBins-1);
 hBar = bar(handles.axes1, xLocs,[histPos histNeg],'BarWidth',1.5);
 set(hBar(1),'FaceColor',handles.posColor);
