@@ -22,7 +22,11 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
+<<<<<<< HEAD
 % Last Modified by GUIDE v2.5 09-Feb-2012 11:12:22
+=======
+% Last Modified by GUIDE v2.5 09-Feb-2012 14:30:37
+>>>>>>> 4b4b0bbded52efea1701a134d443101fa3b87052
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,11 +59,13 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % parse optional inputs
 [handles.classifierfilename,...
   handles.configfilename,...
-  handles.defaultpath] = ...
+  handles.defaultpath,...
+  handles.isgroundtruthmode] = ...
   myparse(varargin,...
   'classifierfilename','',...
   'configfilename','',...
-  'defaultpath','');
+  'defaultpath','',...
+  'groundtruthmode',false);
 
 % initialize statusbar
 handles.status_bar_text = sprintf('Status: No experiment loaded');
@@ -250,7 +256,7 @@ timeline_axes_color = get(handles.panel_timelines,'BackgroundColor');
 handles.himage_timeline_manual = image(zeros([1,1,3]),'Parent',handles.axes_timeline_manual);
 set(handles.himage_timeline_manual,'HitTest','off');
 hold(handles.axes_timeline_manual,'on');
-handles.htimeline_manual_starts = plot(handles.axes_timeline_manual,nan,nan,'w-','HitTest','off');
+%handles.htimeline_manual_starts = plot(handles.axes_timeline_manual,nan,nan,'w-','HitTest','off');
 ylim = [.5,1.5];
 ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
 handles.htimeline_label_curr = patch(nan(1,5),ydata([1,2,2,1,1]),'k',...
@@ -272,7 +278,7 @@ handles.himage_timeline_auto = image(zeros([3,1,3]),'Parent',handles.axes_timeli
 set(handles.himage_timeline_auto,'YData',ydata_im);
 set(handles.himage_timeline_auto,'HitTest','off');
 hold(handles.axes_timeline_auto,'on');
-handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','HitTest','off');
+%handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','HitTest','off');
 set(handles.axes_timeline_auto,'YTick',[]);
 setAxesZoomMotion(handles.hzoom,handles.axes_timeline_auto,'horizontal');
 setAllowAxesPan(handles.hpan,handles.axes_timeline_auto,false);
@@ -346,6 +352,9 @@ end
 
 linkaxes(handles.axes_timelines,'x');
 
+handles = UpdateGUIGroundTruthMode(handles);
+
+
 %for i = 1:numel(handles.axes_timelines),
 %  setAxesZoomMotion(handles.hzoom,handles.axes_timelines(i),'horizontal');
 %end
@@ -388,11 +397,11 @@ function UpdatePlots(handles,varargin)
 % update timelines
 if refresh_timeline_manual,
   set(handles.himage_timeline_manual,'CData',handles.labels_plot.im);
-  tmp = find(handles.labels_plot.isstart);
-  nstarts = numel(tmp);
-  tmpx = reshape(cat(1,repmat(tmp,[2,1]),nan(1,nstarts)),[3*nstarts,1]);
-  tmpy = reshape(repmat([.5;1.5;nan],[1,nstarts]),[3*nstarts,1]);
-  set(handles.htimeline_manual_starts,'XData',tmpx,'YData',tmpy);  
+  %tmp = find(handles.labels_plot.isstart);
+  %nstarts = numel(tmp);
+  %tmpx = reshape(cat(1,repmat(tmp,[2,1]),nan(1,nstarts)),[3*nstarts,1]);
+  %tmpy = reshape(repmat([.5;1.5;nan],[1,nstarts]),[3*nstarts,1]);
+  %set(handles.htimeline_manual_starts,'XData',tmpx,'YData',tmpy);  
   if handles.label_state ~= 0,
     ts = sort([handles.label_t0,handles.ts(1)]) + [-.5,.5];
     set(handles.htimeline_label_curr,'XData',ts([1,1,2,2,1]));
@@ -1650,6 +1659,24 @@ for buttonNum = 1:numel(buttonNames)
   SetButtonImage(handles.(buttonNames{buttonNum}));
 end
 
+SetGUIModeMenuChecks(handles);
+
+function SetGUIModeMenuChecks(handles)
+
+% gui mode
+guimode_menus = [handles.menu_edit_guimode_advancedtraining,...
+  handles.menu_edit_guimode_basictraining,...
+  handles.menu_edit_guimode_groundtruthing];
+if handles.isgroundtruthmode,
+  h = handles.menu_edit_guimode_groundtruthing;
+elseif strcmpi(handles.configparams.JLabelMode.mode,'advanced'),
+  h = handles.menu_edit_guimode_advancedtraining;
+else
+  h = handles.menu_edit_guimode_basictraining;
+end
+set(guimode_menus,'Checked','off');
+set(h,'Checked','on');
+
 
 function SetJumpGoMenuLabels(handles)
 
@@ -1777,6 +1804,8 @@ set(handles.togglebutton_label_unknown,...
   'FontWeight','bold','BackgroundColor',handles.labelunknowncolor,...
   'UserData',-1);
 SetButtonImage(handles.togglebutton_label_unknown);
+
+handles.GUIAdvancedMode = handles.configparams.JLabelMode.mode;
 
   
 function EnableGUI(handles)
@@ -3296,7 +3325,7 @@ else
   new_similar_pos = [figpos(3) - similar_pos(3) - handles.guipos.rightborder_rightpanels,...
     new_select_pos(2) - similar_pos(4) - dy_label_select,...
     similar_pos(3:4)];
-  set(handles.panel_similar,'Position',new_similar_pos);
+  set(handles.panel_similar,'Position',new_similar_pos,'Visible','on');
   new_info_pos = [figpos(3) - info_pos(3) - handles.guipos.rightborder_rightpanels,...
     new_similar_pos(2) - info_pos(4) - dy_label_select,...
     info_pos(3:4)];
@@ -4708,7 +4737,7 @@ function menu_view_plot_labels_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_view_plot_labels_manual_Callback(hObject, eventdata, handles)
+function handles = menu_view_plot_labels_manual_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_plot_labels_manual (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -5324,3 +5353,188 @@ function automaticTimelineBottomRowPopup_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+<<<<<<< HEAD
+=======
+
+function handles = UpdateGUIGroundTruthMode(handles)
+
+% things that are invisible in groundtruth-mode
+hinv_gt = [handles.pushbutton_train,handles.pushbutton_predict,...
+  handles.axes_timeline_auto,handles.htimeline_errors,handles.htimeline_suggestions,...
+  handles.automaticTimelinePredictionLabel,...
+  handles.automaticTimelineScoresLabel,...
+  handles.automaticTimelineBottomRowPopup,...
+  handles.timeline_label_automatic];
+
+if handles.isgroundtruthmode,
+  set(hinv_gt,'Visible','off');
+  % go to advanced mode
+  handles.preGroundtruthMode = handles.configparams.JLabelMode.mode;
+  handles.configparams.JLabelMode.mode = 'advanced';
+  handles = menu_view_plot_labels_manual_Callback(handles.panel_timeline_select, [], handles);
+else
+  set(hinv_gt,'Visible','on');
+  % go to basic mode
+  if isfield(handles,'preGroundtruthMode'),
+    handles.configparams.JLabelMode.mode = handles.preGroundtruthMode;
+  else
+    handles.configparams.JLabelMode.mode = 'basic';
+  end
+end
+handles = UpdateGUIAdvancedMode(handles);
+handles.GUIGroundtruthMode = handles.isgroundtruthmode;
+
+function handles = UpdateGUIAdvancedMode(handles)
+
+SetGUIModeMenuChecks(handles);
+
+% in the right mode already?
+if strcmpi(handles.GUIAdvancedMode,handles.configparams.JLabelMode.mode),
+  return;
+end
+
+% get positions of stuff
+set(handles.panel_labelbuttons,'Units','pixels');
+panel_pos = get(handles.panel_labelbuttons,'Position');
+select_pos = get(handles.panel_select,'Position');
+set(handles.togglebutton_label_behavior1,'Units','pixels');
+button1_pos = get(handles.togglebutton_label_behaviors(end),'Position');
+set(handles.togglebutton_label_unknown,'Units','pixels');
+unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
+out_border_y = unknown_button_pos(2);
+out_border_x = unknown_button_pos(1);
+in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
+button_width = button1_pos(3);
+button_height = button1_pos(4);
+
+% calculate new height for the panel
+if strcmp(handles.configparams.JLabelMode.mode,'basic');
+new_panel_height = 2*out_border_y + (handles.data.nbehaviors+1)*button_height + ...
+  handles.data.nbehaviors*in_border_y;
+else
+new_panel_height = 2*out_border_y + (2*handles.data.nbehaviors+1)*button_height + ...
+  2*handles.data.nbehaviors*in_border_y;
+end
+
+% update panel position
+panel_top = panel_pos(2)+panel_pos(4);
+new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
+set(handles.panel_labelbuttons,'Position',new_panel_pos);
+dy_label_select = panel_pos(2) - select_pos(2) - select_pos(4);
+new_select_pos = [select_pos(1),new_panel_pos(2)-select_pos(4)-dy_label_select,select_pos(3:4)];
+set(handles.panel_select,'Position',new_select_pos);
+
+figure_JLabel_ResizeFcn(handles.panel_labelbuttons, [], handles);
+
+% move unknown button to the bottom
+new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
+set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
+
+% create or remove buttons
+if strcmpi(handles.configparams.JLabelMode.mode,'basic'),
+  % delete extra buttons
+  h = handles.togglebutton_label_behaviors(1:2:end-1);
+  h = h(ishandle(h));
+  if ~isempty(h),
+    delete(h);
+  end
+  handles.togglebutton_label_behaviors(1:2:end-1) = nan;
+else
+  % create extra buttons
+  for i = 1:handles.data.nbehaviors,
+    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
+      button_width,button_height];
+    handles.togglebutton_label_behaviors(2*i-1) = ...
+      uicontrol('Style','togglebutton','String',sprintf('Important %s',handles.data.labelnames{i}),...
+      'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+      'FontWeight','bold','BackgroundColor',ShiftColor.increaseIntensity(handles.labelcolors(i,:)),...
+      'Position',pos,...
+      'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
+      'Parent',handles.panel_labelbuttons,...
+      'Tag',sprintf('togglebutton_label_behavior%d',i),...
+      'UserData',2*i-1);
+  end
+end
+
+% update the buttons
+for i = 1:handles.data.nbehaviors,
+  if ~strcmp(handles.configparams.JLabelMode.mode,'basic')
+    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
+      button_width,button_height];
+    set(handles.togglebutton_label_behaviors(2*i-1),...
+      'String',sprintf('Important %s',handles.data.labelnames{i}),...
+      'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+      'FontWeight','bold','BackgroundColor',ShiftColor.increaseIntensity(handles.labelcolors(i,:)),...
+      'Position',pos,...
+      'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
+      'Parent',handles.panel_labelbuttons,...
+      'Tag',sprintf('togglebutton_label_behavior%d',i),...
+      'UserData',2*i-1);
+    SetButtonImage(handles.togglebutton_label_behaviors(2*i-1));
+    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
+      button_width,button_height];
+  else
+    pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
+      button_width,button_height];
+  end
+  set(handles.togglebutton_label_behaviors(2*i),...
+    'String',sprintf('%s',handles.data.labelnames{i}),...
+    'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+    'FontWeight','bold','BackgroundColor',handles.labelcolors(i,:),...
+    'Position',pos,...
+    'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
+    'Parent',handles.panel_labelbuttons,...
+    'Tag',sprintf('togglebutton_label_normbehavior%d',i),...
+    'UserData',2*i);
+  SetButtonImage(handles.togglebutton_label_behaviors(2*i));
+end
+
+% set props for unknown button
+set(handles.togglebutton_label_unknown,...
+  'String','Unknown',...
+  'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+  'FontWeight','bold','BackgroundColor',handles.labelunknowncolor,...
+  'UserData',-1);
+SetButtonImage(handles.togglebutton_label_unknown);
+
+handles.GUIAdvancedMode = handles.configparams.JLabelMode.mode;
+
+% --------------------------------------------------------------------
+function menu_edit_guimode_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_edit_guimode_basictraining_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_basictraining (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.isgroundtruthmode = false;
+handles.preGroundtruthMode = 'basic';
+handles = UpdateGUIGroundTruthMode(handles);
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function menu_edit_guimode_advancedtraining_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_advancedtraining (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.isgroundtruthmode = false;
+handles.preGroundtruthMode = 'advanced';
+handles = UpdateGUIGroundTruthMode(handles);
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function menu_edit_guimode_groundtruthing_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_groundtruthing (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.isgroundtruthmode = true;
+handles = UpdateGUIGroundTruthMode(handles);
+guidata(hObject,handles);
+>>>>>>> 4b4b0bbded52efea1701a134d443101fa3b87052
