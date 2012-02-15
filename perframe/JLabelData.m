@@ -1248,9 +1248,10 @@ classdef JLabelData < handle
           if ~success,error(msg); end
            
           % set experiment directories
-          obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
+          [success,msg] = obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
             loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
             loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
+          if ~success,error(msg); end
           
           [success,msg] = obj.UpdateStatusTable();
           if ~success, error(msg); end
@@ -3251,7 +3252,7 @@ classdef JLabelData < handle
         return;
       end
 
-      islabeled = obj.windowdata.labelidx_new ~= 0;
+      islabeled = (obj.windowdata.labelidx_new ~= 0) & (obj.windowdata.labelidx_imp);
       if ~any(islabeled),
         return;
       end
