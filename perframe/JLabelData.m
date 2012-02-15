@@ -3327,8 +3327,8 @@ classdef JLabelData < handle
           obj.PredictLoaded();
           
         case 'boosting',
-          oldNumPts = sum(obj.windowdata.labelidx_cur ~= 0);
-          newNumPts = sum(obj.windowdata.labelidx_new ~= 0);
+          oldNumPts = nnz(obj.windowdata.labelidx_cur ~= 0 & obj.windowdata.labelidx_imp );
+          newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
           newData = newNumPts - oldNumPts;
 
           if isempty(obj.classifier) || (newData/oldNumPts)>0.3 || ~doFastUpdates || isempty(obj.windowdata.binVals),
