@@ -23,7 +23,7 @@ for i1 = 1:nflies,
   [mind{i1},closesti] = min(d,[],1);
   closestfly{i1} = flies(closesti);
   closestfly{i1}(isnan(mind{i1})) = nan;
-  mind{i1}(isnan(mind{i1})) = inf;
+  mind{i1}(isnan(mind{i1})) = 10000000;
 end
 
 anglerange_deg = round(anglerange*180/pi);
