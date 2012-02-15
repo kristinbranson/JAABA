@@ -35,6 +35,15 @@ classdef ShiftColor < handle
       newColor = reshape(newColor,oldSize);
       
     end
+    
+    function newColor = decreaseIntensity(oldColor)
+      oldSize = size(oldColor);
+      oldColor = reshape(oldColor,[1 1 3]);
+      hh = rgb2hsv(oldColor);
+      hh(3) = min(hh(3)-0.2,1);
+      newColor = hsv2rgb(hh);
+      newColor = reshape(newColor,oldSize);
+    end
 
   end
 end
