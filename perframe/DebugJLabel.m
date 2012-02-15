@@ -1,7 +1,6 @@
 %% script demoing how to run JLabel
 
 clear classes;
-setappdata(0,'UseNativeSystemDialogs',false);
 %% set up path
 
 [~,computername] = system('hostname');

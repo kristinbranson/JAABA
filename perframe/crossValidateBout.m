@@ -24,6 +24,7 @@ negCum = cumsum(negBouts);
 
 modLabels = sign( (labels==1)-0.5);
 scores = zeros(1,size(data,1));
+jboostScores = zeros(1,size(data,1));
 
 for bno = 1:k
   curPosTest = posCum >= posBlocks(bno) & ...

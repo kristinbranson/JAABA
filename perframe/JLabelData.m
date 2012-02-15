@@ -683,10 +683,10 @@ classdef JLabelData < handle
         obj.windowdata.flies(end+1:end+m,:) = repmat(flies,[m,1]);
         obj.windowdata.t(end+1:end+m,1) = tsnew(idxnew);
         obj.windowdata.labelidx_cur(end+1:end+m,1) = 0;
-        obj.windowdata.labelidx_new(end+1:end+m,1) = ...
-          labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
-        obj.windowdata.labelidx_imp(end+1:end+m,1) = ...
-          labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
+        tempLabelsNew = labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
+        obj.windowdata.labelidx_new(end+1:end+m,1) = tempLabelsNew(idxnew);
+        tempLabelsImp = labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
+        obj.windowdata.labelidx_imp(end+1:end+m,1) = tempLabelsImp(idxnew);        
         obj.windowdata.predicted(end+1:end+m,1) = 0;
         obj.windowdata.scores(end+1:end+m,1) = 0;
         obj.windowdata.scores_old(end+1:end+m,1) = 0;   
@@ -1250,7 +1250,7 @@ classdef JLabelData < handle
           % set experiment directories
           obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
             loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
-            loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp); 
+            loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
           
           [success,msg] = obj.UpdateStatusTable();
           if ~success, error(msg); end
