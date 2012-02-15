@@ -230,7 +230,9 @@ for radiusi = 1:nradii,
       
       resRel = MeanWindowCore(modX.^2,w);
       % combine to get standard deviation
-      resRel = sqrt(resRel - resRel_mean.^2);
+      diff = resRel - resRel_mean.^2;
+      diff(diff<0) = 0;
+      resRel = sqrt(diff);
       
       if DOCACHE,
         cache.stdRel.radii(end+1) = r;

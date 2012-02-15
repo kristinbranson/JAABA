@@ -186,7 +186,7 @@ for change_r_i = 1:numel(change_window_radii),
       cache_i = find(change_r == cache.meanRel.radii,1);
       resRel_mean = cache.meanRel.data{cache_i};
     else
-      resRel_mean = MeanWindowCore(modX,w);
+      resRel_mean = MeanWindowCore(modX,change_w);
       % store for future computations
       if DOCACHE,
         cache.meanRel.radii(end+1) = change_r;
