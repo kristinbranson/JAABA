@@ -4988,7 +4988,7 @@ end
         
 f = figure('Position',[200 200 470 200],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
-            'RowName',rnames,'Position',[0 0 470 200]);
+            'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
 % dialogStr = {};
 % dialogStr{end+1} = sprintf('%28s Predicted %-10s     Abstained     Predicted %-10s \n',...
