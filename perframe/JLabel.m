@@ -2496,7 +2496,9 @@ else
   for j = 1:2*handles.data.nbehaviors,
     if isnan(handles.togglebutton_label_behaviors(j)), continue; end
     buttonStr = sprintf('%s',handles.data.labelnames{ceil(j/2)});
-    if mod(j,2); buttonStr = sprintf('Important %s',buttonStr); end
+    if ~strcmp(handles.configparams.JLabelMode.mode,'basic') && mod(j,2); 
+      buttonStr = sprintf('Important %s',buttonStr); 
+    end
     set(handles.togglebutton_label_behaviors(j),'Value',0,'String',buttonStr,'Enable','on');
   end
   set(handles.togglebutton_label_unknown,'Value',0,'String','Unknown','Enable','on');  
@@ -3246,9 +3248,12 @@ prompts  = {};
 allShortcuts = handles.label_shortcuts;
 curShortcuts = {};
 for j = 1:2*handles.data.nbehaviors
-  if strcmp(handles.configparams.JLabelMode.mode,'basic') && mod(j,2); continue; end
+  if strcmp(handles.configparams.JLabelMode.mode,'basic') && ~mod(j,2); continue; end
+  % Don't show unimportant keys for basic mode.
   labelStr = handles.data.labelnames{ceil(j/2)};
-  if mod(j,2), labelStr = ['Important ' labelStr];end
+  if ~strcmp(handles.configparams.JLabelMode.mode,'basic') && mod(j,2), 
+    labelStr = ['Important ' labelStr];
+  end
   prompts{end+1} = labelStr;
   curShortcuts{end+1} = allShortcuts{j};
 end
@@ -3259,7 +3264,7 @@ if isempty(sh),
   return;
 end
 if strcmp(handles.configparams.JLabelMode.mode,'basic')
-  handles.label_shortcuts(2:2:2*handles.data.nbehaviors)= sh(1:handles.data.nbehaviors);
+  handles.label_shortcuts(1:2:2*handles.data.nbehaviors)= sh(1:handles.data.nbehaviors);
   handles.label_shortcuts(2*handles.data.nbehaviors+1)= sh(handles.data.nbehaviors+1);
 else
   handles.label_shortcuts = sh;
@@ -4983,7 +4988,7 @@ end
         
 f = figure('Position',[200 200 470 200],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
-            'RowName',rnames,'Position',[0 0 470 200]);
+            'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
 % dialogStr = {};
 % dialogStr{end+1} = sprintf('%28s Predicted %-10s     Abstained     Predicted %-10s \n',...
@@ -5448,7 +5453,7 @@ if strcmpi(handles.configparams.JLabelMode.mode,'basic'),
   if ~isempty(h),
     delete(h);
   end
-  handles.togglebutton_label_behaviors(2:2:end-1) = nan;
+  handles.togglebutton_label_behaviors(2:2:end) = nan;
 else
   % create extra buttons
   for i = 1:handles.data.nbehaviors,
