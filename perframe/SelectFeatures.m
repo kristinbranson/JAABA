@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 28-Jan-2012 12:24:10
+% Last Modified by GUIDE v2.5 16-Feb-2012 15:34:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,6 +55,14 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for SelectFeatures
 handles.output = hObject;
 
+handles.mode = 'basic';
+curPos = get(handles.figure1,'Position');
+panelPos = get(handles.panelFeatures,'Position');
+reducedWidth = panelPos(1)+panelPos(3) + 20;
+reducedHeight = curPos(4);
+handles.advancedSize = curPos(3:4);
+handles.basicSize = [reducedWidth reducedHeight];
+set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
 % Update handles structure
 guidata(hObject, handles);
 
@@ -1102,3 +1110,79 @@ if strcmpi(handles.currentTab,'perframehistogram'),
     set(hleg,'Color','k','TextColor',textcolor,'Box','off','Location','Best');
   end
 end
+
+
+% --- Executes on button press in checkboxLocomotion.
+function checkboxLocomotion_Callback(hObject, eventdata, handles)
+% hObject    handle to checkboxLocomotion (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkboxLocomotion
+
+
+% --- Executes on button press in checkboxSocial.
+function checkboxSocial_Callback(hObject, eventdata, handles)
+% hObject    handle to checkboxSocial (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkboxSocial
+
+
+% --- Executes on button press in checkboxArena.
+function checkboxArena_Callback(hObject, eventdata, handles)
+% hObject    handle to checkboxArena (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkboxArena
+
+
+
+function editSize_Callback(hObject, eventdata, handles)
+% hObject    handle to editSize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editSize as text
+%        str2double(get(hObject,'String')) returns contents of editSize as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editSize_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editSize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in togglebuttonMode.
+function togglebuttonMode_Callback(hObject, eventdata, handles)
+% hObject    handle to togglebuttonMode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+curLoc = get(handles.figure1,'Position');
+
+if get(hObject,'Value')
+  handles.mode = 'advanced';
+  set(handles.figure1,'Position',[curLoc(1:2) handles.advancedSize]);
+  set(hObject,'String','Basic <');
+else
+  handles.mode = 'basic';
+  set(handles.figure1,'Position',[curLoc(1:2) handles.basicSize]);  
+  set(hObject,'String','Advanced >');
+end
+
+% --- Executes on button press in TransNone.
+function TransNone_Callback(hObject, eventdata, handles)
+% hObject    handle to TransNone (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of TransNone
