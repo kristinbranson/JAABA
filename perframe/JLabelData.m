@@ -2930,16 +2930,19 @@ classdef JLabelData < handle
     end
     
     
-    function scores = GetValidatedScores(obj,expi,flies)
-      T0 = max(obj.GetTrxFirstFrame(expi,flies));
-      T1 = min(obj.GetTrxEndFrame(expi,flies));
+    function scores = GetValidatedScores(obj,expi,flies,T0,T1)
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
       
       n = T1-T0+1;
       off = 1 - T0;
       scores = zeros(1,n);
       
       if ~isempty(obj.windowdata.scores_validated) 
-        idxcurr = obj.FlyNdx(expi,flies);
+        idxcurr = obj.FlyNdx(expi,flies) & ...
+          obj.windowdata.t >= T0 & obj.windowdata.t <= T1;
         scores(obj.windowdata.t(idxcurr)+off) = ...
           obj.windowdata.scores_validated(idxcurr);
       end
@@ -2947,9 +2950,11 @@ classdef JLabelData < handle
     end
     
         
-    function scores = GetLoadedScores(obj,expi,flies)
-      T0 = max(obj.GetTrxFirstFrame(expi,flies));
-      T1 = min(obj.GetTrxEndFrame(expi,flies));
+    function scores = GetLoadedScores(obj,expi,flies,T0,T1)
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
       
       n = T1-T0+1;
       off = 1 - T0;
@@ -3327,8 +3332,8 @@ classdef JLabelData < handle
           obj.PredictLoaded();
           
         case 'boosting',
-          oldNumPts = sum(obj.windowdata.labelidx_cur ~= 0);
-          newNumPts = sum(obj.windowdata.labelidx_new ~= 0);
+          oldNumPts = nnz(obj.windowdata.labelidx_cur ~= 0 & obj.windowdata.labelidx_imp );
+          newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
           newData = newNumPts - oldNumPts;
 
           if isempty(obj.classifier) || (newData/oldNumPts)>0.3 || ~doFastUpdates || isempty(obj.windowdata.binVals),
