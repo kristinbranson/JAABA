@@ -1,4 +1,4 @@
-function [outexpdir] = ConvertQtrx2Trx(experiment_name,rootoutputdir,varargin)
+function [outexpdir] = ConvertQtrax2Trx(experiment_name,rootoutputdir,varargin)
 
 %rootoutputdir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/data/eric';
 %experiment_subdir = 'EH111019';
@@ -7,13 +7,13 @@ function [outexpdir] = ConvertQtrx2Trx(experiment_name,rootoutputdir,varargin)
 %% set parameters
 
 % default parameters
-rootdatadir = '/groups/sciserv/flyolympiad/Olympiad_Screen/aggression';
-experiment_subdir = '';
+rootdatadir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/data/eric';
+experiment_subdir = 0;
 featext = '_1_feat.mat';
 roiext = '_1_roi.mat';
-movieext = '.avi';
+movieext = '.mp4';
 trxfilestr = 'trx.mat';
-moviefilestr = 'movie.avi';
+moviefilestr = 'movie.mp4';
 doflipud = false;
 dofliplr = false;
 rot = 0;
@@ -40,6 +40,8 @@ if isempty(experiment_subdir),
   if ~isempty(m),
     experiment_subdir = m{1};
   end
+elseif ~ischar(experiment_subdir),
+  experiment_subdir = '';
 end
 
 %% names of files
