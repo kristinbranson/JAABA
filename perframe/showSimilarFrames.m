@@ -22,7 +22,7 @@ function varargout = showSimilarFrames(varargin)
 
 % Edit the above text to modify the response to help showSimilarFrames
 
-% Last Modified by GUIDE v2.5 23-Nov-2011 09:58:12
+% Last Modified by GUIDE v2.5 16-Feb-2012 14:56:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -70,14 +70,10 @@ handles.tsize = 500;
 handles.cache = containers.Map('keyType','char','valueType','any');
 
 set(handles.frameSlider,'SliderStep',[1/(2*handles.maxFrames) 3/(2*handles.maxFrames)]);
-set(handles.beforeSlider,'SliderStep',[1/handles.maxFrames 3/handles.maxFrames]);
-set(handles.afterSlider,'SliderStep',[1/handles.maxFrames 3/handles.maxFrames]);
-set(handles.afterSlider,'Value',1-handles.fwdLimit/handles.maxFrames);
-set(handles.beforeSlider,'Value',handles.revLimit/handles.maxFrames);
-set(handles.spfSlider,'Value',(handles.fps-1)/(handles.maxfps-1));
+
+set(handles.frame_range_edit, 'string', '5');
+set(handles.fps_edit, 'string', '5');
 set(handles.FrameText,'String','frame:0');
-set(handles.beforeTxt,'String',num2str(handles.revLimit));
-set(handles.afterTxt,'String',num2str(handles.fwdLimit));
 
 sz = handles.halfSize;
 
@@ -536,57 +532,6 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 
-% --- Executes on slider movement.
-function beforeSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to beforeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-v = get(hObject,'Value');
-handles.revLimit = round(v*handles.maxFrames);
-set(handles.beforeTxt,'String',sprintf('%d',handles.revLimit));
-guidata(hObject,handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function beforeSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to beforeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-% --- Executes on slider movement.
-function afterSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to afterSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-v = get(hObject,'Value');
-handles.fwdLimit = round((1-v)*handles.maxFrames);
-set(handles.afterTxt,'String',sprintf('%d',handles.fwdLimit));
-guidata(hObject,handles);
-
-% --- Executes during object creation, after setting all properties.
-function afterSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to afterSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
 % --- Executes on button press in pushbutton1.
 function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
@@ -611,30 +556,6 @@ else
 end
 
 
-% --- Executes on slider movement.
-function spfSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to spfSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-v = get(hObject,'Value');
-handles.fps = round(v*(handles.maxfps-1))+1;
-guidata(hObject,handles);
-
-% --- Executes during object creation, after setting all properties.
-function spfSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to spfSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
 % --- Executes when user attempts to close figure_showSimilarFrames.
 function figure_showSimilarFrames_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to figure_showSimilarFrames (see GCBO)
@@ -645,4 +566,218 @@ function figure_showSimilarFrames_CloseRequestFcn(hObject, eventdata, handles)
 
 handles.JLDobj.frameFig = [];
 delete(hObject);
+
+
+
+% --- Executes on button press in radiobutton1.
+function radiobutton1_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton1
+
+
+% --- Executes on button press in radiobutton3.
+function radiobutton3_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton3
+
+
+% --- Executes on button press in radiobutton4.
+function radiobutton4_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton4
+
+
+% --- Executes on button press in radiobutton5.
+function radiobutton5_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton5
+
+
+% --- Executes on button press in radiobutton6.
+function radiobutton6_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton6
+
+
+% --- Executes on button press in radiobutton7.
+function radiobutton7_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton7
+
+
+% --- Executes on button press in radiobutton8.
+function radiobutton8_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton8
+
+
+% --- Executes on button press in radiobutton9.
+function radiobutton9_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton9
+
+
+% --- Executes on button press in radiobutton10.
+function radiobutton10_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton10
+
+
+% --- Executes on button press in radiobutton11.
+function radiobutton11_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton11 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton11
+
+
+% --- Executes on button press in radiobutton12.
+function radiobutton12_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton12 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton12
+
+
+% --- Executes on button press in radiobutton13.
+function radiobutton13_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton13 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton13
+
+
+% --- Executes on button press in radiobutton14.
+function radiobutton14_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton14 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton14
+
+
+% --- Executes on button press in radiobutton15.
+function radiobutton15_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton15 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton15
+
+
+
+function fps_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to fps_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of fps_edit as text
+%        str2double(get(hObject,'String')) returns contents of fps_edit as a double
+v = str2num(get(hObject,'String'));
+if (isempty(v))||(v >handles.maxfps|| v < 0)
+    error('frame range requires 1 argument that is a number between 0 and maxfps ');
+end
+
+handles.fps = round(v);
+guidata(hObject,handles);
+
+% --- Executes during object creation, after setting all properties.
+function fps_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to fps_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function frame_range_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to frame_range_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of frame_range_edit as text
+%        str2double(get(hObject,'String')) returns contents of frame_range_edit as a double
+
+frameRanges = str2double(get(hObject,'String'));
+if (isempty(frameRanges))||(frameRanges >handles.maxFrames||frameRanges < 0)
+    error('frame range requires 1 argument that is a number between 0 and maxFrames ');
+end
+
+handles.revLimit = round(frameRanges);
+handles.fwdLimit = handles.revLimit;
+
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function frame_range_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to frame_range_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in popupmenu1.
+function popupmenu1_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
 
