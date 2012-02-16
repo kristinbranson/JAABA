@@ -94,7 +94,7 @@ for selExp = 1:handles.JLDObj.nexps
     tableData{count,5} = flyStats.nbouts;
     if flyStats.hassex
       if ~isempty(flyStats.sexfrac),
-        tableData{count,6} = flyStats.sexfrac.M*100;
+        tableData{count,6} = round(flyStats.sexfrac.M*100);
       else
         if strcmpi(flyStats.sex,'M')
           tableData{count,6} = 100.00;
