@@ -17,11 +17,15 @@ cumD = cumsum(dist);
 randPts = sort(rand(numS,1),'ascend');
 count = 1; ndx = 1;
 while count<=numS
-  if(cumD(ndx)>=randPts(count))
-    curSel(count) = ndx;
-    count = count+1;
+  if count > numel(cumD)
+    curSel(count) = numel(cumD);
   else
-    ndx = ndx+1;
+    if(cumD(ndx)>=randPts(count))
+      curSel(count) = ndx;
+      count = count+1;
+    else
+      ndx = ndx+1;
+    end
   end
 end
 
