@@ -2,7 +2,10 @@ classdef NextJump < handle
   
   properties (Access=public)
     curType = 'Automatic';
-    allTypes = {'Automatic','Errors','High Confidence Errors',...
+    allTypes = {'Current Scores',...
+      'Validated Scores',...
+      'Loaded Scores',...
+      'Errors','High Confidence Errors',...
         'Low Confidence','Thresholds'};
     seek_behaviors_go = [];
     perframefns = {};
@@ -75,8 +78,12 @@ classdef NextJump < handle
     function t = JumpToStart(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
-        case 'Automatic'
+        case 'Automatic - Current Scores'
           t = obj.Automatic_bout_start(data,expi,flies,ts,t0,t1);
+        case 'Automatic - Validated Scores'
+          t = obj.AutomaticValidated_bout_start(data,expi,flies,ts,t0,t1);          
+        case 'Automatic - Loaded Scores'
+          t = obj.AutomaticLoaded_bout_start(data,expi,flies,ts,t0,t1);          
         case 'Errors'
           t = obj.Error_bout_start(data,expi,flies,ts,t0,t1);
         case 'Low Confidence'
@@ -93,8 +100,12 @@ classdef NextJump < handle
     function t = JumpToEnd(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
-        case 'Automatic'
+        case 'Automatic - Current Scores'
           t = obj.Automatic_bout_end(data,expi,flies,ts,t0,t1);
+        case 'Automatic - Validated Scores'
+          t = obj.AutomaticValidated_bout_end(data,expi,flies,ts,t0,t1);          
+        case 'Automatic - Loaded Scores'
+          t = obj.AutomaticLoaded_bout_end(data,expi,flies,ts,t0,t1);          
         case 'Errors'
           t = obj.Error_bout_end(data,expi,flies,ts,t0,t1);
         case 'Low Confidence'
@@ -165,6 +176,125 @@ classdef NextJump < handle
       
       t = t0 + k - 1;
     end
+
+    function t = AutomaticLoaded_bout_start(obj,data,expi,flies,ts,t0,t1)
+      
+      t = [];
+      
+      if ts >= t1, return; end
+      t0 = min(max(ts,t0),t1);
+      
+      scores = data.GetLoadedScores(expi,flies,t0,t1);
+      predictedidx = double(scores~=0);
+      predictedidx(scores>0) = 1;
+      predictedidx(scores<0) = 2;
+
+      lowconfidx = false(size(scores));
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)<data.GetConfidenceThreshold(behaviori));
+        lowconfidx(idxScores) = true;
+      end
+
+      j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
+      if isempty(j), return; end
+      
+      toUse = predictedidx(j:end);
+      toUse(lowconfidx(j:end)) = 0;
+      k = find(ismember(toUse,obj.seek_behaviors_go),1);
+      if isempty(k), return; end
+      
+      t = ts + j - 1 + k - 1;
+    end
+    
+    function t = AutomaticLoaded_bout_end(obj,data,expi,flies,ts,t0,t1)
+
+      t = [];
+      if t0 >= ts, return; end
+
+      t1 = min(max(ts,t0),t1);
+      scores = data.GetLoadedScores(expi,flies,t0,t1);
+      predictedidx = double(scores~=0);
+      predictedidx(scores>0) = 1;
+      predictedidx(scores<0) = 2;
+
+      lowconfidx = false(size(scores));
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)<data.GetConfidenceThreshold(behaviori));
+        lowconfidx(idxScores) = true;
+      end
+      
+      j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
+      if isempty(j), return; end
+      
+      toUse = predictedidx(1:j);
+      toUse(lowconfidx(1:j)) = 0;
+      k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
+      if isempty(k), return; end
+      
+      t = t0 + k - 1;
+    end
+
+    function t = AutomaticValidated_bout_start(obj,data,expi,flies,ts,t0,t1)
+      
+      t = [];
+      
+      if ts >= t1, return; end
+      t0 = min(max(ts,t0),t1);
+      
+      scores = data.GetValidatedScores(expi,flies,t0,t1);
+      predictedidx = double(scores~=0);
+      predictedidx(scores>0) = 1;
+      predictedidx(scores<0) = 2;
+      
+      lowconfidx = false(size(scores));
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)<data.GetConfidenceThreshold(behaviori));
+        lowconfidx(idxScores) = true;
+      end
+
+      j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
+      if isempty(j), return; end
+      
+      toUse = predictedidx(j:end);
+      toUse(lowconfidx(j:end)) = 0;
+      k = find(ismember(toUse,obj.seek_behaviors_go),1);
+      if isempty(k), return; end
+      
+      t = ts + j - 1 + k - 1;
+    end
+    
+    function t = AutomaticValidated_bout_end(obj,data,expi,flies,ts,t0,t1)
+
+      t = [];
+      if t0 >= ts, return; end
+
+      t1 = min(max(ts,t0),t1);
+      scores = data.GetValidatedScores(expi,flies,t0,t1);
+      predictedidx = double(scores~=0);
+      predictedidx(scores>0) = 1;
+      predictedidx(scores<0) = 2;
+
+      lowconfidx = false(size(scores));
+      for behaviori = 1:data.nbehaviors
+        idxScores = (predictedidx == behaviori) & ...
+          (abs(scores)<data.GetConfidenceThreshold(behaviori));
+        lowconfidx(idxScores) = true;
+      end
+      
+      j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
+      if isempty(j), return; end
+      
+      toUse = predictedidx(1:j);
+      toUse(lowconfidx(1:j)) = 0;
+      k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
+      if isempty(k), return; end
+      
+      t = t0 + k - 1;
+    end
+
     
     function t = Manual_bout_start(obj,data,expi,flies,ts,t0,t1)
       
