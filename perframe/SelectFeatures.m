@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 16-Feb-2012 15:34:22
+% Last Modified by GUIDE v2.5 17-Feb-2012 15:12:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,8 +57,8 @@ handles.output = hObject;
 
 handles.mode = 'basic';
 curPos = get(handles.figure1,'Position');
-panelPos = get(handles.panelFeatures,'Position');
-reducedWidth = panelPos(1)+panelPos(3) + 20;
+tablePos = get(handles.tableFeatureClass,'Position');
+reducedWidth = tablePos(1)+tablePos(3) + 20;
 reducedHeight = curPos(4);
 handles.advancedSize = curPos(3:4);
 handles.basicSize = [reducedWidth reducedHeight];
@@ -1147,32 +1147,6 @@ if strcmpi(handles.currentTab,'perframehistogram'),
 end
 
 
-% --- Executes on button press in checkboxLocomotion.
-function checkboxLocomotion_Callback(hObject, eventdata, handles)
-% hObject    handle to checkboxLocomotion (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkboxLocomotion
-
-
-% --- Executes on button press in checkboxSocial.
-function checkboxSocial_Callback(hObject, eventdata, handles)
-% hObject    handle to checkboxSocial (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkboxSocial
-
-
-% --- Executes on button press in checkboxArena.
-function checkboxArena_Callback(hObject, eventdata, handles)
-% hObject    handle to checkboxArena (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkboxArena
-
 
 
 function editSize_Callback(hObject, eventdata, handles)
@@ -1213,4 +1187,3 @@ else
   set(handles.figure1,'Position',[curLoc(1:2) handles.basicSize]);  
   set(hObject,'String','Advanced >');
 end
-
