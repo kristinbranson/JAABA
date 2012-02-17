@@ -17,8 +17,9 @@ cumD = cumsum(dist);
 randPts = sort(rand(numS,1),'ascend');
 count = 1; ndx = 1;
 while count<=numS
-  if count > numel(cumD)
+  if ndx > numel(cumD)
     curSel(count) = numel(cumD);
+    count = count+1;
   else
     if(cumD(ndx)>=randPts(count))
       curSel(count) = ndx;
