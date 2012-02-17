@@ -472,11 +472,12 @@ set(handles.MinWindow,'String',num2str(curParams.values.min_window_radius));
 set(handles.MaxWindow,'String',num2str(curParams.values.max_window_radius));
 set(handles.WindowStep,'String',num2str(curParams.values.nwindow_radii));
 set(handles.WindowOffsets,'String',num2str(curParams.values.window_offsets));
+set(handles.TransNone,'Value',...
+  any(strcmp('none',curParams.values.trans_types)));
 set(handles.TransFlip,'Value',...
   any(strcmp('flip',curParams.values.trans_types)));
 set(handles.TransAbs,'Value',...
   any(strcmp('abs',curParams.values.trans_types)));
-% TODO: For relative trans.
 set(handles.TransRel,'Value',...
   any(strcmp('relative',curParams.values.trans_types)));
 set(handles.ExtraParams,'String',curParams.values.extra);
@@ -599,6 +600,7 @@ set(handles.MinWindow,'enable','off');
 set(handles.MaxWindow,'enable','off');
 set(handles.WindowStep,'enable','off');
 set(handles.WindowOffsets,'enable','off');
+set(handles.TransNone,'enable','off');
 set(handles.TransFlip,'enable','off');
 set(handles.TransAbs,'enable','off');
 set(handles.TransRel,'enable','off');
@@ -614,6 +616,7 @@ set(handles.MaxWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColo
 set(handles.WindowStep,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.WindowOffsets,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.ExtraParams,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
+set(handles.TransNone,'enable','on');
 set(handles.TransFlip,'enable','on');
 set(handles.TransAbs,'enable','on');
 set(handles.TransRel,'enable','on');
@@ -739,6 +742,29 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% --- Executes on button press in TransNone.
+function TransNone_Callback(hObject, eventdata, handles)
+% hObject    handle to TransNone (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of TransNone
+curFn = handles.windowComp{handles.winNdx};
+handles = guidata(hObject);
+curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
+if get(hObject,'Value')
+  if ~any(strcmp('none',curT))
+    handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
+  end
+else
+  allNdx = strcmp('none',curT);
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
+end
+guidata(hObject,handles);
+
 
 % --- Executes on button press in TransFlip.
 function TransFlip_Callback(hObject, eventdata, handles)
@@ -756,7 +782,10 @@ if get(hObject,'Value')
   end
 else
   allNdx = find(strcmp('flip',curT));
-    handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
 end
 guidata(hObject,handles);
 
@@ -778,7 +807,10 @@ if get(hObject,'Value')
   end
 else
   allNdx = find(strcmp('abs',curT));
-    handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
 end
 guidata(hObject,handles);
 
@@ -799,7 +831,10 @@ if get(hObject,'Value')
   end
 else
   allNdx = find(strcmp('relative',curT));
-    handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
 end
 guidata(hObject,handles);
 
@@ -1179,10 +1214,3 @@ else
   set(hObject,'String','Advanced >');
 end
 
-% --- Executes on button press in TransNone.
-function TransNone_Callback(hObject, eventdata, handles)
-% hObject    handle to TransNone (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of TransNone
