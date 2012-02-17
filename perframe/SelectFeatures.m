@@ -605,7 +605,6 @@ set(handles.TransFlip,'enable','off');
 set(handles.TransAbs,'enable','off');
 set(handles.TransRel,'enable','off');
 set(handles.ExtraParams,'enable','off');
-set(handles.pushbutton_applydefault,'enable','off');
 set(handles.pushbutton_copy_windowparams,'enable','off');
 
 function enableWinParams(handles)
@@ -620,7 +619,6 @@ set(handles.TransNone,'enable','on');
 set(handles.TransFlip,'enable','on');
 set(handles.TransAbs,'enable','on');
 set(handles.TransRel,'enable','on');
-set(handles.pushbutton_applydefault,'enable','on');
 set(handles.pushbutton_copy_windowparams,'enable','on');
 
 function MinWindow_Callback(hObject, eventdata, handles)
@@ -862,26 +860,6 @@ uiresume(handles.figure1);
 delete(handles.figure1);
 
 
-% --- Executes on button press in pushbutton_applydefault.
-function pushbutton_applydefault_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_applydefault (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles = guidata(hObject);
-winfnNdx = handles.winNdx;
-pfNdx = handles.pfNdx;
-curFn = handles.windowComp{winfnNdx};
-handles.data{pfNdx}.(curFn).valid = true;
-for winParamsNdx = 1:numel(handles.winParams)
-  curType = handles.winParams{winParamsNdx};
-  handles.data{pfNdx}.(curFn).values.(curType) = ...
-    handles.data{pfNdx}.default.values.(curType);
-end
-handles.data{pfNdx}.(curFn).values.extra = '';
-setWinParams(handles,handles.winNdx);
-enableWinParams(handles);
-guidata(hObject,handles);
 
 function ExtraParams_Callback(hObject, eventdata, handles)
 % hObject    handle to ExtraParams (see GCBO)
