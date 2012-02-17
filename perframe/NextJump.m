@@ -78,11 +78,11 @@ classdef NextJump < handle
     function t = JumpToStart(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
-        case 'Automatic - Current Scores'
+        case 'Current Scores'
           t = obj.Automatic_bout_start(data,expi,flies,ts,t0,t1);
-        case 'Automatic - Validated Scores'
+        case 'Validated Scores'
           t = obj.AutomaticValidated_bout_start(data,expi,flies,ts,t0,t1);          
-        case 'Automatic - Loaded Scores'
+        case 'Loaded Scores'
           t = obj.AutomaticLoaded_bout_start(data,expi,flies,ts,t0,t1);          
         case 'Errors'
           t = obj.Error_bout_start(data,expi,flies,ts,t0,t1);
@@ -100,11 +100,11 @@ classdef NextJump < handle
     function t = JumpToEnd(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
-        case 'Automatic - Current Scores'
+        case 'Current Scores'
           t = obj.Automatic_bout_end(data,expi,flies,ts,t0,t1);
-        case 'Automatic - Validated Scores'
+        case 'Validated Scores'
           t = obj.AutomaticValidated_bout_end(data,expi,flies,ts,t0,t1);          
-        case 'Automatic - Loaded Scores'
+        case 'Loaded Scores'
           t = obj.AutomaticLoaded_bout_end(data,expi,flies,ts,t0,t1);          
         case 'Errors'
           t = obj.Error_bout_end(data,expi,flies,ts,t0,t1);

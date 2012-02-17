@@ -1023,7 +1023,7 @@ switch handles.bottomAutomatic
     scores_bottom = handles.data.GetOldScores(handles.expi,handles.flies);
     scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'None'
-    scores_bottom = scores;
+    scores_bottom = zeros(size(scores));
   otherwise
     warndlg('Undefined scores type to display for the bottom part of the automatic');
 end
