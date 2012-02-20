@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 28-Jan-2012 12:24:10
+% Last Modified by GUIDE v2.5 17-Feb-2012 15:12:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,6 +55,14 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for SelectFeatures
 handles.output = hObject;
 
+handles.mode = 'basic';
+curPos = get(handles.figure1,'Position');
+tablePos = get(handles.tableFeatureClass,'Position');
+reducedWidth = tablePos(1)+tablePos(3) + 20;
+reducedHeight = curPos(4);
+handles.advancedSize = curPos(3:4);
+handles.basicSize = [reducedWidth reducedHeight];
+set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
 % Update handles structure
 guidata(hObject, handles);
 
@@ -464,11 +472,12 @@ set(handles.MinWindow,'String',num2str(curParams.values.min_window_radius));
 set(handles.MaxWindow,'String',num2str(curParams.values.max_window_radius));
 set(handles.WindowStep,'String',num2str(curParams.values.nwindow_radii));
 set(handles.WindowOffsets,'String',num2str(curParams.values.window_offsets));
+set(handles.TransNone,'Value',...
+  any(strcmp('none',curParams.values.trans_types)));
 set(handles.TransFlip,'Value',...
   any(strcmp('flip',curParams.values.trans_types)));
 set(handles.TransAbs,'Value',...
   any(strcmp('abs',curParams.values.trans_types)));
-% TODO: For relative trans.
 set(handles.TransRel,'Value',...
   any(strcmp('relative',curParams.values.trans_types)));
 set(handles.ExtraParams,'String',curParams.values.extra);
@@ -591,11 +600,11 @@ set(handles.MinWindow,'enable','off');
 set(handles.MaxWindow,'enable','off');
 set(handles.WindowStep,'enable','off');
 set(handles.WindowOffsets,'enable','off');
+set(handles.TransNone,'enable','off');
 set(handles.TransFlip,'enable','off');
 set(handles.TransAbs,'enable','off');
 set(handles.TransRel,'enable','off');
 set(handles.ExtraParams,'enable','off');
-set(handles.pushbutton_applydefault,'enable','off');
 set(handles.pushbutton_copy_windowparams,'enable','off');
 
 function enableWinParams(handles)
@@ -606,10 +615,10 @@ set(handles.MaxWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColo
 set(handles.WindowStep,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.WindowOffsets,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.ExtraParams,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
+set(handles.TransNone,'enable','on');
 set(handles.TransFlip,'enable','on');
 set(handles.TransAbs,'enable','on');
 set(handles.TransRel,'enable','on');
-set(handles.pushbutton_applydefault,'enable','on');
 set(handles.pushbutton_copy_windowparams,'enable','on');
 
 function MinWindow_Callback(hObject, eventdata, handles)
@@ -731,6 +740,29 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% --- Executes on button press in TransNone.
+function TransNone_Callback(hObject, eventdata, handles)
+% hObject    handle to TransNone (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of TransNone
+curFn = handles.windowComp{handles.winNdx};
+handles = guidata(hObject);
+curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
+if get(hObject,'Value')
+  if ~any(strcmp('none',curT))
+    handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
+  end
+else
+  allNdx = strcmp('none',curT);
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
+end
+guidata(hObject,handles);
+
 
 % --- Executes on button press in TransFlip.
 function TransFlip_Callback(hObject, eventdata, handles)
@@ -748,7 +780,10 @@ if get(hObject,'Value')
   end
 else
   allNdx = find(strcmp('flip',curT));
-    handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
 end
 guidata(hObject,handles);
 
@@ -770,7 +805,10 @@ if get(hObject,'Value')
   end
 else
   allNdx = find(strcmp('abs',curT));
-    handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
 end
 guidata(hObject,handles);
 
@@ -791,7 +829,10 @@ if get(hObject,'Value')
   end
 else
   allNdx = find(strcmp('relative',curT));
-    handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+    warndlg('Select at least one transformation type');
+  end
 end
 guidata(hObject,handles);
 
@@ -819,26 +860,6 @@ uiresume(handles.figure1);
 delete(handles.figure1);
 
 
-% --- Executes on button press in pushbutton_applydefault.
-function pushbutton_applydefault_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_applydefault (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles = guidata(hObject);
-winfnNdx = handles.winNdx;
-pfNdx = handles.pfNdx;
-curFn = handles.windowComp{winfnNdx};
-handles.data{pfNdx}.(curFn).valid = true;
-for winParamsNdx = 1:numel(handles.winParams)
-  curType = handles.winParams{winParamsNdx};
-  handles.data{pfNdx}.(curFn).values.(curType) = ...
-    handles.data{pfNdx}.default.values.(curType);
-end
-handles.data{pfNdx}.(curFn).values.extra = '';
-setWinParams(handles,handles.winNdx);
-enableWinParams(handles);
-guidata(hObject,handles);
 
 function ExtraParams_Callback(hObject, eventdata, handles)
 % hObject    handle to ExtraParams (see GCBO)
@@ -1101,4 +1122,46 @@ if strcmpi(handles.currentTab,'perframehistogram'),
     set(hylabel,'Color',textcolor);
     set(hleg,'Color','k','TextColor',textcolor,'Box','off','Location','Best');
   end
+end
+
+
+
+
+function editSize_Callback(hObject, eventdata, handles)
+% hObject    handle to editSize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editSize as text
+%        str2double(get(hObject,'String')) returns contents of editSize as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editSize_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editSize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in togglebuttonMode.
+function togglebuttonMode_Callback(hObject, eventdata, handles)
+% hObject    handle to togglebuttonMode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+curLoc = get(handles.figure1,'Position');
+
+if get(hObject,'Value')
+  handles.mode = 'advanced';
+  set(handles.figure1,'Position',[curLoc(1:2) handles.advancedSize]);
+  set(hObject,'String','Basic <');
+else
+  handles.mode = 'basic';
+  set(handles.figure1,'Position',[curLoc(1:2) handles.basicSize]);  
+  set(hObject,'String','Advanced >');
 end

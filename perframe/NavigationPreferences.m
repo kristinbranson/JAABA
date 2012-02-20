@@ -67,8 +67,12 @@ set(handles.edit_nframes_jump,'String',num2str(handles.nframes_jump_go));
 set(handles.listbox_seek_behavior,'String',handles.behaviors(2:end));
 set(handles.listbox_seek_behavior,'Value',handles.seek_behaviors_go);
 set(handles.jumpToPopUp,'String',handles.NJObj.GetAllTypes());
-set(handles.jumpToPopUp,'Value',...
-  find(strcmp(handles.NJObj.GetCurrentType(),handles.NJObj.GetAllTypes())));
+jumptondx = find(strcmp(handles.NJObj.GetCurrentType(),handles.NJObj.GetAllTypes()));
+if numel(jumptondx) ==1
+  set(handles.jumpToPopUp,'Value',jumptondx);
+else
+  set(handles.jumpToPopUp,'Value',1);
+end
 
 set(handles.thresholdPopup1,'String',[{'Select'}; handles.NJObj.GetPerframefns]);
 updateThresholdButtons(handles);
