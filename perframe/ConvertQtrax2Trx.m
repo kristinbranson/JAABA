@@ -14,13 +14,14 @@ roiext = '_1_roi.mat';
 movieext = '.mp4';
 trxfilestr = 'trx.mat';
 moviefilestr = 'movie.mp4';
+perframedirstr = 'perframe';
 doflipud = false;
 dofliplr = false;
 rot = 0;
 %movieinfo = struct('fps',30,'width',144,'height',144);
 movieinfo = [];
 
-[rootdatadir,experiment_subdir,featext,roiext,movieext,trxfilestr,moviefilestr,...
+[rootdatadir,experiment_subdir,featext,roiext,movieext,trxfilestr,moviefilestr,perframedirstr,...
   doflipud,dofliplr,rot,movieinfo] = ...
   myparse(varargin,...
   'rootdatadir',rootdatadir,...
@@ -30,6 +31,7 @@ movieinfo = [];
   'movieext',movieext,...
   'trxfilestr',trxfilestr,...
   'moviefilestr',moviefilestr,...
+  'perframedirstr',perframedirstr,...
   'doflipud',doflipud,...
   'dofliplr',dofliplr,...
   'rot',rot,...
@@ -79,4 +81,63 @@ else
     error('Error copying file %s to %s: %s',moviename,outmoviename,msg);
   end
 end
-  
+
+% save the per-frame features
+perframedir = fullfile(outexpdir,perframedirstr);
+if ~exist(perframedir,'dir'),
+  mkdir(perframedir);
+end
+
+feat = load(featname);
+obj = [feat.fly_feat.obj1,feat.fly_feat.obj2];
+
+% allocate variables that will be saved
+data = cell(1,2);
+units = parseunits('unit');
+
+% frames for which fly is tracked
+firstframes = nan(1,2);
+lastframes = nan(1,2);
+for fly = 1:2,
+  % (x,y) = (0,0) for untracked frames
+  badframes = obj(fly).pos_x == 0 & obj(fly).pos_y == 0;
+  lastframe = find(~badframes,1,'last');
+  firstframe = find(~badframes,1);
+  if isempty(lastframe), 
+    firstframe = 1;
+    lastframe = 0;
+  end
+  firstframes(fly) = firstframe;
+  lastframes(fly) = lastframe;
+end
+
+% joint features
+fns_ignore = {'ind1_count'
+  'ind2_count'
+  'obj1'
+  'obj2'
+  'frame'
+  'time'
+  };
+fns = setdiff(fieldnames(feat.fly_feat),fns_ignore);
+nframesall = numel(feat.fly_feat.frame);
+for i = 1:numel(fns),
+  fn = fns{i};
+  n = numel(feat.fly_feat.(fn));
+  offend = ceil((nframesall-n)/2);
+  offstart = nframesall-n-offend;
+  for fly = 1:2,
+    data{fly} = feat.fly_feat.(fn)(firstframes(fly)+offstart:lastframes(fly)-offend);
+  end
+  save(fullfile(perframedir,[fn,'.mat']),'data','units');
+end
+
+% per-fly features
+fns = fieldnames(obj);
+for i = 1:numel(fns),
+  fn = fns{i};
+  for fly = 1:2,
+    data{fly} = obj(fly).(fn);
+  end
+  save(fullfile(perframedir,[fn,'.mat']),'data','units');
+end
