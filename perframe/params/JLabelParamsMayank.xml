@@ -11,9 +11,9 @@
       labelfilename="labeledsharpturns.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"
       rootoutputdir="/groups/branson/home/kabram/bowlData/out/Jdetect"
       />
+   <!-- featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"-->
 
    <featureparamlist>
      <absangle2wall/>
