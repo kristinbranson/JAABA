@@ -1,4 +1,4 @@
-function [d,angle] = dnose2ell_pair(trx,fly1,fly2)
+function [d,angle] = dnose2ell_pair(trx,fly1,fly2,istry)
 
 nsamples = 20;
 
@@ -29,7 +29,12 @@ theta_mm2 = trx(fly2).theta_mm;
 off1 = trx(fly1).off;
 off2 = trx(fly2).off;
 
-for t = t0:t1,
+if nargin < 4,
+  tstry = t0:t1;
+else
+  tstry = istry(:)' - off1;
+end
+for t = tstry,
   i = t + off1;
   j = t + off2;
   [d(i),~,~,angle(i)] = ellipsedist_hack(x_mm2(j),y_mm2(j),...

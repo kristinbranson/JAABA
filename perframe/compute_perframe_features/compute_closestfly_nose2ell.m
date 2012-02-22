@@ -14,22 +14,33 @@ angle = cell(1,nflies);
 for i1 = 1:nflies,
   fly1 = flies(i1);
   fprintf('fly1 = %d\n',fly1);
+
+  % use dnose2center and major axis length to compute upper and lower bounds on
+  % dnose2ell
+  % fprintf('CHANGE THIS: THIS IS JUST FOR DEBUGGING NOSE2ELL\n');
+  [mindupper,dlower] = dnose2ell_bounds(trx,fly1,flies);
+  %mindupper = zeros(1,trx(fly1).nframes);
+  %dlower = zeros(nflies,trx(fly1).nframes);
+  
   mind{i1} = inf(1,trx(fly1).nframes);
-  closesti = nan(1,trx(fly1).nframes);
+  closesti = ones(1,trx(fly1).nframes);
+  
   %d = nan(nflies,trx(fly1).nframes);
   for i2 = 1:nflies,
     fly2 = flies(i2);
     if i1 == i2,
       continue;
     end
-    [dcurr,anglecurr] = dnose2ell_pair(trx,fly1,fly2);
+    % only try for frames where lower bound is smaller than min upper bound
+    idx1try = find(mindupper >= dlower(fly2,:));
+    [dcurr,anglecurr] = dnose2ell_pair(trx,fly1,fly2,idx1try);
     idx = dcurr < mind{i1};
     mind{i1}(idx) = dcurr(idx);
     closesti(idx) = i2;
     angle{i1}(idx) = anglecurr(idx);
   end
   closestfly{i1} = flies(closesti);
-  closestfly{i1}(isnan(mind{i1})) = nan;
+  closestfly{i1}(isnan(mind{i1}|isinf(mind{i1}))) = nan;
 end
 
 % so that we don't compute dcenter twice
