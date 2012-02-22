@@ -223,8 +223,8 @@ for ndx = 1:numel(pfList)
       if isfield(params.(curPfName),curType)
         data{ndx}.default.values.(curType) = params.(curPfName).(curType);
       else % Fill in the default value
-        % TODO.
-        msgbox(sprintf('%s default window parameters value were not defined',curType));
+        data{pfNdx}.default.values.(curType) = ...
+            handles.defaultWinParams{winParamsNdx};
       end
       data{ndx}.default.valid = true;
       data{ndx}.default.values.extra ='';
@@ -268,8 +268,31 @@ for ndx = 1:numel(pfList)
     end
   
   else % Default values for invalid pf's.
+    
     data{ndx}.valid = false;
     data{ndx}.sanitycheck = false;
+
+    data{ndx}.default.valid = true;
+    for winParamsNdx = 1:numel(handles.winParams)
+      curType = handles.winParams{winParamsNdx};
+      data{ndx}.default.values.(curType) = ...
+        handles.defaultWinParams{winParamsNdx};
+    end
+    data{ndx}.default.values.extra = '';
+    
+    % Copy the default values into the other window params.
+    for winfnNdx = 2:numel(handles.windowComp)
+      curFn = handles.windowComp{winfnNdx};
+      data{ndx}.(curFn).valid = false;
+      for winParamsNdx = 1:numel(handles.winParams)
+        curType = handles.winParams{winParamsNdx};
+        data{ndx}.(curFn).values.(curType) = ...
+          data{ndx}.default.values.(curType);
+      end
+      data{ndx}.(curFn).values.extra = '';
+    end
+
+    
   end
 end
 
@@ -323,6 +346,7 @@ function pfSelect(hObject,eventData)
 
 % When the table is sorted without any cell selected
 fprintf('Start Select\n');
+tic;
 
 if isempty(eventData.Indices)
   return;
@@ -347,6 +371,7 @@ end
 handles = UpdateDescriptionPanels(handles);
 
 guidata(hObject,handles);
+toc;
 fprintf('End Select\n');
 
 
@@ -354,6 +379,7 @@ function pfEdit(hObject,eventData)
 % When a perframe feature is added or removed.
 
 fprintf('Start Edit\n');
+tic;
 handles = guidata(hObject);
 jscrollpane = findjobj(handles.pfTable);
 jtable = jscrollpane.getViewport.getView;
@@ -370,7 +396,7 @@ end
 
 % When it already has values
 if isfield(handles.data{pfNdx},'default')
-  enableWindowTable(handles);
+  setWindowTable(handles,handles.pfNdx);
   return;
 end
 
@@ -397,6 +423,7 @@ for winfnNdx = 2:numel(handles.windowComp)
 end
 guidata(hObject,handles);
 setWindowTable(handles,handles.pfNdx);
+toc;
 fprintf('End Edit\n');
 
 

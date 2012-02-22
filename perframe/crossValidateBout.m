@@ -21,10 +21,12 @@ posBlocks = linspace(0,numPosBouts+1,k+1);
 negBlocks = linspace(0,numNegBouts+1,k+1);
 posCum = cumsum(posBouts);
 negCum = cumsum(negBouts);
+% Randomly permute the bouts.
+posCum = posCum(randperm(numel(posCum)));
+negCum = negCum(randperm(numel(negCum)));
 
 modLabels = sign( (labels==1)-0.5);
 scores = zeros(1,size(data,1));
-jboostScores = zeros(1,size(data,1));
 
 for bno = 1:k
   curPosTest = posCum >= posBlocks(bno) & ...
