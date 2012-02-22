@@ -1,7 +1,7 @@
 classdef NextJump < handle
   
   properties (Access=public)
-    curType = 'Automatic';
+    curType = 'Current Scores';
     allTypes = {'Current Scores',...
       'Validated Scores',...
       'Loaded Scores',...
@@ -436,7 +436,7 @@ classdef NextJump < handle
       highconfCandidates = highconfError(2:end)~=highconfError(1:end-1) & ...
               highconfError(2:end)==true;
       
-      highconfCandidates(labelidx.vals==0) = false;
+      highconfCandidates(labelidx.vals(2:end)==0) = false;
       j = find(highconfCandidates,1);
       if isempty(j), return; end
 
@@ -466,8 +466,8 @@ classdef NextJump < handle
       
       highconfCandidates = highconfError(1:end-1)~=highconfError(2:end) & ...
                           highconfError(1:end-1)==true;
-      
-      
+      highconfCandidates(labelidx.vals(1:end-1)==0) = false;
+    
       j = find(highconfCandidates,1,'last');
       if isempty(j), return; end
       t = t0 + j - 1;
