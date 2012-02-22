@@ -322,6 +322,8 @@ function pfSelect(hObject,eventData)
 % Called when user selects cells in pfTable.
 
 % When the table is sorted without any cell selected
+fprintf('Start Select\n');
+
 if isempty(eventData.Indices)
   return;
 end
@@ -345,11 +347,13 @@ end
 handles = UpdateDescriptionPanels(handles);
 
 guidata(hObject,handles);
+fprintf('End Select\n');
 
 
 function pfEdit(hObject,eventData)
 % When a perframe feature is added or removed.
 
+fprintf('Start Edit\n');
 handles = guidata(hObject);
 jscrollpane = findjobj(handles.pfTable);
 jtable = jscrollpane.getViewport.getView;
@@ -393,6 +397,7 @@ for winfnNdx = 2:numel(handles.windowComp)
 end
 guidata(hObject,handles);
 setWindowTable(handles,handles.pfNdx);
+fprintf('End Edit\n');
 
 
 function setWindowTable(handles,pfNdx)
