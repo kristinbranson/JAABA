@@ -1,4 +1,4 @@
-function d = dell2nose_pair(trx,fly1,fly2)
+function d = dell2nose_pair(trx,fly1,fly2,istry)
 
 nsamples = 20;
 
@@ -28,7 +28,13 @@ theta_mm1 = trx(fly1).theta_mm;
 off1 = trx(fly1).off;
 off2 = trx(fly2).off;
 
-for t = t0:t1,
+if nargin < 4,
+  tstry = t0:t1;
+else
+  tstry = istry(:)' - off1;
+end
+
+for t = tstry,
   i = t + off1;
   j = t + off2;
   d(i) = ellipsedist_hack(x_mm1(i),y_mm1(i),...
