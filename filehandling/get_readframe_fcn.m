@@ -45,6 +45,11 @@ elseif strcmpi(ext,'.ufmf'),
   readframe = ufmf_get_readframe_fcn(headerinfo,varargin{:});
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
+elseif strcmpi(ext,'.mmf'),
+  headerinfo = mmf_read_header(filename);
+  readframe = mmf_get_readframe_fcn(headerinfo,varargin{:});
+  nframes = headerinfo.nframes;
+  fid = headerinfo.fid;
 elseif strcmpi(ext,'.seq'),
   headerinfo = r_readseqinfo(filename);
   if numel(headerinfo.m_aiSeekPos) < headerinfo.m_iNumFrames,
