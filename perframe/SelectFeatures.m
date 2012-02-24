@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 17-Feb-2012 15:12:21
+% Last Modified by GUIDE v2.5 22-Feb-2012 09:39:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,8 +57,8 @@ handles.output = hObject;
 
 handles.mode = 'basic';
 curPos = get(handles.figure1,'Position');
-tablePos = get(handles.tableFeatureClass,'Position');
-reducedWidth = tablePos(1)+tablePos(3) + 20;
+tablePos = get(handles.basicTable,'Position');
+reducedWidth = tablePos(1)+tablePos(3) + 15;
 reducedHeight = curPos(4);
 handles.advancedSize = curPos(3:4);
 handles.basicSize = [reducedWidth reducedHeight];
@@ -90,9 +90,11 @@ handles.windowComp = {'default','mean','min','max','histogram','prctile',...
 
 handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
   'trans_types','window_offsets'};
+
+handles.winextraParams = {'','','','','hist_edges','prctiles','change_window_radii',...
+  '','num_harmonic','','','',''};
 handles.defaultWinParams = {0,0,0,{'none'},0};
 
-handles.pfList =  handles.JLDobj.allperframefns;
 guidata(hObject,handles);
 
 [params,~] = handles.JLDobj.GetPerframeParams();
@@ -149,10 +151,15 @@ tableData = cell(length(pfList),2);
 for ndx = 1:numel(pfList)
   tableData{ndx,1} = pfList{ndx};
   tableData{ndx,2} = handles.data{ndx}.valid;
+  str = sprintf('%s',handles.pftype.(pfList{ndx}){1});
+  for sndx = 2:numel(handles.pftype.(pfList{ndx}))
+    str = sprintf('%s,%s',str,handles.pftype.(pfList{ndx}){sndx});
+  end
+  tableData{ndx,3} = str;
 end
 
 set(handles.pfTable,'Data',tableData);
-set(handles.pfTable,'ColumnName',{'Features','Select'});
+set(handles.pfTable,'ColumnName',{'Features','Select','Type'});
 set(handles.pfTable,'ColumnEditable',[false,true]);
 
 % Make the table sortable. Use underlying java objects to do that. Found
@@ -171,11 +178,53 @@ rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
 height=rowHeader.getHeight;
 rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
 rowHeader.setSize(newWidth,height); 
-set(handles.pfTable,'ColumnWidth',{200,85});
+set(handles.pfTable,'ColumnWidth',{150,85,100});
 set(handles.pfTable,'CellSelectionCallback',@pfSelect);
 set(handles.pfTable,'CellEditCallback',@pfEdit);
 disableWindowTable(handles);
 guidata(hObject,handles);
+
+function createFeatureTable(hObject)
+handles = guidata(hObject);
+
+% Adding drop down menu kind of thing.
+jscrollpane = findjobj(handles.basicTable);
+jtable = jscrollpane.getViewport.getView;
+
+if ~isempty(handles.JLDobj.basicFeatureTable)
+  tableData = handles.JLDobj.basicFeatureTable;
+else
+  tableData = {};
+  for ndx = 1:numel(handles.pftypeList)
+    tableData{ndx,1} = handles.pftypeList{ndx};
+    tableData{ndx,2} = 'Custom';
+    tableData{ndx,3} = 'normal';
+  end
+end
+set(handles.basicTable,'Data',tableData);
+set(handles.basicTable,'ColumnName',{'Categories','Select','Features'});
+set(handles.basicTable,'ColumnFormat',{'char',...
+  {'All' 'None' 'Custom'}, fieldnames(handles.categ)'});
+set(handles.basicTable,'ColumnEditable',[false,true,true]);
+
+
+jtable.setSortable(false);	
+jtable.setAutoResort(false);
+jtable.setMultiColumnSortable(true);
+
+
+% Set the size for the row headers.
+rowHeaderViewport=jscrollpane.getComponent(4);
+rowHeader=rowHeaderViewport.getComponent(0);
+newWidth=0; 
+rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
+height=rowHeader.getHeight;
+rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
+rowHeader.setSize(newWidth,height); 
+set(handles.basicTable,'ColumnWidth',{85,65,75});
+set(handles.basicTable,'CellSelectionCallback',@basicSelect);
+set(handles.basicTable,'CellEditCallback',@basicEdit);
+
 
 function createCopyFromMenus(hObject)
 
@@ -204,8 +253,16 @@ guidata(hObject,handles);
 
 % Initialize the data structure.
 function initData(hObject,params)
+readFeatureConfiguration(hObject);
+createFeatureTable(hObject);
+
 handles = guidata(hObject);
-pfList = handles.pfList;
+if ~isempty(handles.JLDobj.featureWindowSize)
+  set(handles.editSize,'String',num2str(handles.JLDobj.featureWindowSize));
+end
+
+pfList = fieldnames(handles.pftype);
+handles.pfList = pfList;
 data = {};
 validPfs = fieldnames(params);
 winParams = handles.winParams;
@@ -227,7 +284,6 @@ for ndx = 1:numel(pfList)
             handles.defaultWinParams{winParamsNdx};
       end
       data{ndx}.default.valid = true;
-      data{ndx}.default.values.extra ='';
     end
     
     % Fill for different window function type.
@@ -252,7 +308,10 @@ for ndx = 1:numel(pfList)
           end
         end
         
-        data{ndx}.(curFn).values.extra = findExtraParams(curWinFnParams,winParams);
+        if ~isempty(handles.winextraParams{winfnNdx})
+          extraParam = handles.winextraParams{winfnNdx};
+          data{ndx}.(curFn).values.(extraParam) = curWinFnParams.(extraParam);
+        end
         
       else % Values for window comp hasn't been defined.
         
@@ -261,7 +320,10 @@ for ndx = 1:numel(pfList)
           curType = winParams{winParamsNdx};
           data{ndx}.(curFn).values.(curType) = data{ndx}.default.values.(curType);
         end
-        data{ndx}.(curFn).values.extra = '';
+        if ~isempty(handles.winextraParams{winfnNdx})
+          extraParam = handles.winextraParams{winfnNdx};
+          data{ndx}.(curFn).values.(extraParam) = '';
+        end
         
       end
       
@@ -278,7 +340,6 @@ for ndx = 1:numel(pfList)
       data{ndx}.default.values.(curType) = ...
         handles.defaultWinParams{winParamsNdx};
     end
-    data{ndx}.default.values.extra = '';
     
     % Copy the default values into the other window params.
     for winfnNdx = 2:numel(handles.windowComp)
@@ -289,7 +350,10 @@ for ndx = 1:numel(pfList)
         data{ndx}.(curFn).values.(curType) = ...
           data{ndx}.default.values.(curType);
       end
-      data{ndx}.(curFn).values.extra = '';
+        if ~isempty(handles.winextraParams{winfnNdx})
+          extraParam = handles.winextraParams{winfnNdx};
+          data{ndx}.(curFn).values.(extraParam) = '';
+        end
     end
 
     
@@ -316,37 +380,162 @@ createWindowTable(hObject);
 createCopyFromMenus(hObject);
 createDescriptionPanels(hObject);
 
-function str = findExtraParams(curParam,winComp)
-% Find feature specific params.
-allFields = fieldnames(curParam);
-str = '';
-for ndx = 1:numel(allFields)
-  curF = allFields{ndx};
-  if any(strcmp(curF,winComp)); continue;end
-  vals = mat2str(curParam.(curF));
-  str = sprintf('%s%s:%s\n',str,curF,vals);
+
+
+function readFeatureConfiguration(hObject)
+% Reads the configuration file that sets the default parameters.
+
+handles = guidata(hObject);
+
+configfile = handles.JLDobj.featureConfigFile;
+[settings,~] = ReadPerFrameParams(configfile);
+
+% Read the default parameters for different categories.
+categories = fieldnames(settings.defaults);
+for j = 1:numel(categories)
+  curParams = struct;
+  cur = settings.defaults.(categories{j});
+  
+  % Default values.
+  for ndx = 1:numel(handles.winParams)
+    curwinpname = handles.winParams{ndx};
+    curParams.default.values.(curwinpname) = cur.(curwinpname);
+  end
+  curParams.default.valid = true;
+  curParams.default.values.sanitycheck = false;
+
+  % For each defined window computation.
+  for ndx = 2:numel(handles.windowComp)
+    % Copy the default values.
+    curwname = handles.windowComp{ndx};
+    for pndx = 1:numel(handles.winParams)
+      curwinpname = handles.winParams{pndx};
+      curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
+    end
+    
+    % Override the default window params for the current window computation type
+    if isfield(cur,curwname) 
+      curParams.(curwname).valid = true;
+      diffFields = fieldnames(cur.(curwname));
+      for dndx = 1:numel(diffFields)
+        if any(strcmp(handles.winParams,diffFields{dndx}))
+          curwinpname = diffFields{dndx};
+          curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
+        end
+      end
+      
+      if ~isempty(handles.winextraParams{ndx})
+        extraParam = handles.winextraParams{ndx};
+        if isfield(cur.(curwname),extraParam)
+          curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
+        else
+          curParams.(curwname).values.(extraParam) = '';
+        end
+      end
+    else
+      curParams.(curwname).valid = false;
+    end
+  end
+  handles.categ.(categories{j}) = curParams;
 end
 
-function [names vals] = convertStrToExtraParams(str)
-names = {}; vals = {};
-str = strtrim(str);
-if isempty(str); return; end
-s = regexp(str,'\n','split');
-for ndx = 1:numel(s)
-  ss = regexp(strtrim(s{ndx}),':','split');
-  if (numel(ss)~=2)
-    msgbox(sprintf('Invalid syntax in feature specific params:%s',s{ndx}));
+% Now for each different perframe feature read the type default trans_types.
+perframeL = fieldnames(settings.perframe);
+transType = struct;
+pftype = struct;
+pftypeList = {};
+for pfndx = 1:numel(perframeL)
+  curpf = perframeL{pfndx};
+  transType.(curpf) = settings.perframe.(curpf).trans_types;
+  pftype.(curpf)  = settings.perframe.(curpf).type; 
+  for tndx = 1:numel(pftype.(curpf))
+    curT = pftype.(curpf){tndx};
+    if ~any(strcmp(pftypeList,curT))
+      pftypeList{end+1} = curT;
+    end
   end
-  names{ndx} = strtrim(ss{1});
-  vals{ndx} = str2num(ss{2});
 end
+
+handles.transType = transType;
+handles.pftype = pftype;
+handles.pftypeList = pftypeList;
+guidata(hObject,handles);
+set(handles.editSize,'String',...
+  num2str(handles.categ.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
+
+function basicSelect(hObject,eventData)
+
+function basicEdit(hObject,eventData)
+
+% the user selects the category
+if isempty(eventData.Indices); return; end
+
+handles = guidata(hObject);
+if eventData.Indices(2) ==2
+% Select-deselect the whole category.  
+  switch eventData.NewData
+
+    case 'None'
+      basicTable = get(handles.basicTable,'Data');
+      for ndx = 1:numel(handles.pfList)
+        disable = true;
+        for tndx = 1:size(basicTable,1)
+          if ~any(strcmp(handles.pftype.(handles.pfList{ndx}),basicTable{tndx,1}));
+            continue;
+          end
+          if ~strcmp(basicTable{tndx,2},'None'); 
+            disable = false; break; 
+          end
+        end
+        if disable
+          handles.data{ndx}.valid = false;
+        end
+      end
+      guidata(hObject,handles);
+      createPfTable(handles.pfTable);
+    
+    case 'All'
+      handles = applyCategoryType(handles,eventData.Indices(1));
+      guidata(hObject,handles);
+      createPfTable(handles.pfTable);
+  end
+elseif eventData.Indices(2) == 3
+% Choose the category.
+  basicTable = get(handles.basicTable,'Data');
+  if strcmp(basicTable{eventData.Indices(1),2},'All') 
+    handles=applyCategoryType(handles,eventData.Indices(1));
+    guidata(hObject,handles);
+    createPfTable(handles.pfTable);
+  end
+end
+
+function handles = applyCategoryType(handles,basicNdx)
+basicData = get(handles.basicTable,'Data');
+curType = handles.pftypeList{basicNdx};
+% Copy the parameters.
+for ndx = 1:numel(handles.pfList)
+  if any(strcmp(handles.pftype.(handles.pfList{ndx}),curType))
+    handles.data{ndx}.valid = true;
+    for winfnNdx = 1:numel(handles.windowComp)
+      category = basicData{basicNdx,3};
+      curFn = handles.windowComp{winfnNdx};
+      if ~handles.categ.(category).(curFn).valid
+        handles.data{ndx}.(curFn).valid = false;
+        continue;
+      end
+      handles = CopyDefaultWindowParams(handles,...
+        category, ndx,winfnNdx);
+      curFn = handles.windowComp{winfnNdx};
+      handles.data{ndx}.(curFn).values.trans_types = handles.transType.(handles.pfList{ndx});
+    end
+  end
+end
+
 
 function pfSelect(hObject,eventData)
 % Called when user selects cells in pfTable.
 
 % When the table is sorted without any cell selected
-fprintf('Start Select\n');
-tic;
 
 if isempty(eventData.Indices)
   return;
@@ -364,6 +553,17 @@ else
   handles.pfNdx = ndx;
   if(pfData{ndx,2})
     setWindowTable(handles,handles.pfNdx);
+    handles.winNdx = 1;
+    winData = get(handles.windowTable,'Data');
+
+    if winData{handles.winNdx,2},
+      setWinParams(handles,handles.winNdx);
+      enableWinParams(handles);
+    else
+      disableWinParams(handles);
+    end
+
+    setWinParams(handles,handles.winNdx);
   else
     disableWindowTable(handles);
   end
@@ -371,15 +571,11 @@ end
 handles = UpdateDescriptionPanels(handles);
 
 guidata(hObject,handles);
-toc;
-fprintf('End Select\n');
 
 
 function pfEdit(hObject,eventData)
 % When a perframe feature is added or removed.
 
-fprintf('Start Edit\n');
-tic;
 handles = guidata(hObject);
 jscrollpane = findjobj(handles.pfTable);
 jtable = jscrollpane.getViewport.getView;
@@ -387,15 +583,19 @@ pfNdx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
 handles.pfNdx = pfNdx;
 
 handles.data{pfNdx}.valid = eventData.NewData;
+setCategoryToCustom(handles);
 
-% When a feature is unchecked.
+% When a feature is unchecked, disable and return
 if ~eventData.NewData, 
-    disableWindowTable(handles);  
-    return;
+  handles.data{pfNdx}.valid = false;
+  disableWindowTable(handles);  
+  return;
 end
 
+handles.data{pfNdx}.valid = true;
 % When it already has values
 if isfield(handles.data{pfNdx},'default')
+  guidata(hObject,handles);
   setWindowTable(handles,handles.pfNdx);
   return;
 end
@@ -408,7 +608,6 @@ for winParamsNdx = 1:numel(handles.winParams)
   handles.data{pfNdx}.default.values.(curType) = ...
     handles.defaultWinParams{winParamsNdx};
 end
-handles.data{pfNdx}.default.values.extra = '';
 
 % Copy the default values into the other window params.
 for winfnNdx = 2:numel(handles.windowComp)
@@ -419,12 +618,14 @@ for winfnNdx = 2:numel(handles.windowComp)
     handles.data{pfNdx}.(curFn).values.(curType) = ...
       handles.data{pfNdx}.default.values.(curType);
   end
-  handles.data{pfNdx}.(curFn).values.extra = '';
+  if ~isempty(handles.winextraParams{winfnNdx})
+    extraParam = handles.winextraParams{winfnNdx};
+    handles.data{pfNdx}.(curFn).values.(extraParam) = '';
+  end
+  
 end
 guidata(hObject,handles);
 setWindowTable(handles,handles.pfNdx);
-toc;
-fprintf('End Edit\n');
 
 
 function setWindowTable(handles,pfNdx)
@@ -483,6 +684,7 @@ function windowEdit(hObject,eventData)
 % Called when a window function is edited.
 
 handles = guidata(hObject);
+setCategoryToCustom(handles);
 winNdx = eventData.Indices(1);
 handles.winNdx = winNdx;
 curFn = handles.windowComp{winNdx};
@@ -494,6 +696,12 @@ if eventData.NewData
 else
   disableWinParams(handles);
 end
+
+function setCategoryToCustom(handles)
+curTypes = ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx}));
+basicData = get(handles.basicTable,'Data');
+basicData{curTypes,2} = 'Custom';
+set(handles.basicTable,'Data',basicData);
 
 
 function setWinParams(handles,winNdx)
@@ -512,7 +720,15 @@ set(handles.TransAbs,'Value',...
   any(strcmp('abs',curParams.values.trans_types)));
 set(handles.TransRel,'Value',...
   any(strcmp('relative',curParams.values.trans_types)));
-set(handles.ExtraParams,'String',curParams.values.extra);
+if isfield(curParams.values,handles.winextraParams{winNdx})
+  extraParam = handles.winextraParams{winNdx};
+  set(handles.ExtraParams,'String',curParams.values.(extraParam));
+  set(handles.extraParamStatic,'String',extraParam);
+else
+  set(handles.ExtraParams,'Enable','off','String','--');
+  set(handles.extraParamStatic,'String','Feature Specific');
+end
+  
 
 
 function [params, cellparams] = convertData(handles)
@@ -540,9 +756,10 @@ for ndx = 1:numel(handles.pfList)
         params.(curPf).(curFn).(curType) =...
             curD.(curFn).values.(curType);
       end
-      [names vals] = convertStrToExtraParams(curD.(curFn).values.extra);
-      for extraNdx = 1:numel(names)
-        params.(curPf).(curFn).(names{extraNdx}) = vals{extraNdx};
+      if ~isempty(handles.winextraParams{winfnNdx})
+        extraParam = handles.winextraParams{winfnNdx};
+        extraParamVal = curD.(curFn).values.(extraParam);
+        params.(curPf).(curFn).(extraParam) = extraParamVal;
       end
     end
     
@@ -571,9 +788,21 @@ for i1 = 1:numel(fns1),
 end
 
 
-function docNode = createParamsXML(params)
-docNode = com.mathworks.xml.XMLUtils.createDocument('params');
+function docNode = createParamsXML(params,basicData,inFeatureWindowSize)
+docNode = com.mathworks.xml.XMLUtils.createDocument('configuration');
 toc = docNode.getDocumentElement;
+basicStruct = struct;
+for ndx = 1:size(basicData,1)
+  curCat = basicData{ndx,1};
+  basicStruct.(curCat).mode = basicData{ndx,2};
+  basicStruct.(curCat).selection = basicData{ndx,3};
+end
+featureWindowSize = struct;
+featureWindowSize.size = inFeatureWindowSize;
+toc.appendChild(createXMLNode(docNode,'basicParams',basicStruct));
+toc.appendChild(createXMLNode(docNode,'featureWindowSize',featureWindowSize));
+toc.appendChild(createXMLNode(docNode,'params',params));
+
 att = fieldnames(params);
 for ndx = 1:numel(att)
   toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
@@ -646,7 +875,13 @@ set(handles.MinWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColo
 set(handles.MaxWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.WindowStep,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.WindowOffsets,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
-set(handles.ExtraParams,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
+if ~isempty(handles.winextraParams{handles.winNdx})
+  set(handles.ExtraParams,'enable','on');
+  set(handles.extraParamStatic,'String',handles.winextraParams{handles.winNdx});
+else
+  set(handles.ExtraParams,'enable','off');
+  set(handles.extraParamStatic,'String','Feature Specific');
+end
 set(handles.TransNone,'enable','on');
 set(handles.TransFlip,'enable','on');
 set(handles.TransAbs,'enable','on');
@@ -661,13 +896,14 @@ function MinWindow_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of MinWindow as text
 %        str2double(get(hObject,'String')) returns contents of MinWindow as a double
 curVal = str2double(get(hObject,'String'));
-if isnan(curVal)
+if isnan(curVal)||(round(curVal)-curVal)~=0
   msgbox('Enter numerical values');
 end
 handles = guidata(hObject);
 curFn = handles.windowComp{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.min_window_radius = curVal;
 guidata(hObject,handles);
+setCategoryToCustom(handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -691,14 +927,14 @@ function MaxWindow_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of MaxWindow as text
 %        str2double(get(hObject,'String')) returns contents of MaxWindow as a double
 curVal = str2double(get(hObject,'String'));
-if isnan(curVal)
+if isnan(curVal)||(round(curVal)-curVal)~=0
   msgbox('Enter numerical values');
 end
 handles = guidata(hObject);
 curFn = handles.windowComp{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.max_window_radius = curVal;
 guidata(hObject,handles);
-
+setCategoryToCustom(handles);
 
 % --- Executes during object creation, after setting all properties.
 function MaxWindow_CreateFcn(hObject, eventdata, handles)
@@ -721,13 +957,14 @@ function WindowStep_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of WindowStep as text
 %        str2double(get(hObject,'String')) returns contents of WindowStep as a double
 curVal = str2double(get(hObject,'String'));
-if isnan(curVal)
-  msgbox('Enter numerical values');
+if isnan(curVal) || (round(curVal)-curVal)~=0
+  msgbox('Enter an integer value');
 end
 handles = guidata(hObject);
 curFn = handles.windowComp{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.nwindow_radii = curVal;
 guidata(hObject,handles);
+setCategoryToCustom(handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -750,14 +987,15 @@ function WindowOffsets_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of WindowOffsets as text
 %        str2double(get(hObject,'String')) returns contents of WindowOffsets as a double
-curVal = str2num(get(hObject,'String'));
-if isempty(curVal)
+curVal = str2double(get(hObject,'String'));
+if isempty(curVal)||(round(curVal)-curVal)~=0
   msgbox('Enter numerical values. eg: "-1 0 1" (without with quotes)');
 end
 handles = guidata(hObject);
 curFn = handles.windowComp{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.window_offsets = curVal;
 guidata(hObject,handles);
+setCategoryToCustom(handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -794,6 +1032,7 @@ else
   end
 end
 guidata(hObject,handles);
+setCategoryToCustom(handles);
 
 
 % --- Executes on button press in TransFlip.
@@ -818,6 +1057,7 @@ else
   end
 end
 guidata(hObject,handles);
+setCategoryToCustom(handles);
 
 
 % --- Executes on button press in TransAbs.
@@ -843,6 +1083,8 @@ else
   end
 end
 guidata(hObject,handles);
+setCategoryToCustom(handles);
+
 
 % --- Executes on button press in TransRel.
 function TransRel_Callback(hObject, eventdata, handles)
@@ -867,7 +1109,7 @@ else
   end
 end
 guidata(hObject,handles);
-
+setCategoryToCustom(handles);
 
 
 % --- Executes on button press in push_cancel.
@@ -886,8 +1128,10 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 Save_Callback(hObject,eventdata,handles);
 handles = guidata(hObject);
+basicData = get(handles.basicTable,'Data');
+featureWindowSize = str2double(get(handles.editSize,'String'));
 [params,cellParams] = convertData(handles);
-handles.JLDobj.UpdatePerframeParams(params,cellParams);
+handles.JLDobj.UpdatePerframeParams(params,cellParams,basicData,featureWindowSize);
 uiresume(handles.figure1);
 delete(handles.figure1);
 
@@ -900,6 +1144,17 @@ function ExtraParams_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of ExtraParams as text
 %        str2double(get(hObject,'String')) returns contents of ExtraParams as a double
+
+if isempty(handles.winextraParams{handles.winNdx}), return; end
+
+str = get(hObject,'String');
+str = strtrim(str);
+vals = str2num(str);
+extraParam = handles.winextraParams{handles.winNdx};
+curFn = handles.windowComp{handles.winNdx};
+handles.data{handles.pfNdx}.(curFn).values.(extraParam) = vals;
+guidata(hObject,handles);
+setCategoryToCustom(handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -928,7 +1183,9 @@ end
 
 handles = guidata(hObject);
 [params,~] = convertData(handles);
-docNode = createParamsXML(params);
+basicData = get(handles.basicTable,'Data');
+featureWindowSize = round(str2double(get(handles.editSize,'String')));
+docNode = createParamsXML(params,basicData,featureWindowSize);
 fName = fullfile(pName,fName);
 xmlwrite(fName,docNode);
 
@@ -998,6 +1255,8 @@ end
 
 handles = CopyWindowParams(handles,pfNdx,winNdxFrom,pfNdx,winNdxTo);
 guidata(hObject,handles);
+setCategoryToCustom(handles);
+
 
 % --- Executes on selection change in popupmenu_copy_windowtypes.
 function popupmenu_copy_windowtypes_Callback(hObject, eventdata, handles)
@@ -1060,6 +1319,7 @@ end
 setWindowTable(handles,pfNdxTo);
 
 guidata(hObject,handles);
+setCategoryToCustom(handles);
 
 
 function handles = CopyWindowParams(handles,pfNdxFrom,winfnNdxFrom,pfNdxTo,winfnNdxTo)
@@ -1076,13 +1336,40 @@ for winParamsNdx = 1:numel(handles.winParams),
   handles.data{pfNdxTo}.(curFnTo).values.(curType) = ...
     handles.data{pfNdxFrom}.(curFnFrom).values.(curType);
 end
-handles.data{pfNdxTo}.(curFnTo).values.extra = handles.data{pfNdxFrom}.(curFnFrom).values.extra;
+if ~isempty(handles.winextraParams{winfnNdxTo})
+  extraParam = handles.winextraParams{winfnNdxTo};
+  if isfield(handles.data{pfNdxFrom}.(curFnFrom),extraParam)
+    handles.data{pfNdxTo}.(curFnTo).values.(extraParam) = ...
+      handles.data{pfNdxFrom}.(curFnFrom).values.(extraParam);
+  else
+    handles.data{pfNdxTo}.(curFnTo).values.(extraParam) = '';
+  end
+end
 setWinParams(handles,winfnNdxTo);
 if handles.data{pfNdxTo}.(curFnTo).valid,
   enableWinParams(handles);
 end
 
+function handles = CopyDefaultWindowParams(handles,category,pfNdxTo,winfnNdx)
 
+curFn = handles.windowComp{winfnNdx};
+% something to copy from?
+if ~isfield(handles.categ.(category),curFn) &&...
+    isfield(handles.data{pfNdxTo},curFn),
+    handles.data{pfNdxTo}.(curFn).valid = false;
+  return;
+end
+handles.data{pfNdxTo}.(curFn).valid = handles.categ.(category).(curFn).valid;
+for winParamsNdx = 1:numel(handles.winParams),
+  curType = handles.winParams{winParamsNdx};
+  handles.data{pfNdxTo}.(curFn).values.(curType) = ...
+    handles.categ.(category).(curFn).values.(curType);
+end
+if ~isempty(handles.winextraParams{winfnNdx})
+  extraParam = handles.winextraParams{winfnNdx};
+  handles.data{pfNdxTo}.(curFn).values.(extraParam) = ...
+    handles.categ.(category).(curFn).values.(extraParam);
+end
 % --- Executes when selected object is changed in uipanel_tabs.
 function uipanel_tabs_SelectionChangeFcn(hObject, eventdata, handles)
 % hObject    handle to the selected object in uipanel_tabs 
@@ -1166,6 +1453,33 @@ function editSize_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editSize as text
 %        str2double(get(hObject,'String')) returns contents of editSize as a double
+curVal = str2double(get(hObject,'String'));
+if isempty(curVal)||(round(curVal)-curVal)~=0
+  msgbox('Enter numerical values. eg: "-1 0 1" (without with quotes)');
+  return;
+end
+
+% First set the default category values
+
+categories = fieldnames(handles.categ);
+winComp = handles.windowComp;
+
+for cndx = 1:numel(categories)
+  curCat = categories{cndx};
+  for wndx = 1:numel(winComp)
+    if ~isfield(handles.categ.(curCat),winComp{wndx}); continue; end
+    handles.categ.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+  end
+end
+
+% Now copy the default values to the perframe features.
+basicData = get(handles.basicTable,'Data');
+for ndx = 1:size(basicData,1)
+  if ~strcmp(basicData{ndx,2},'All'); continue;end
+  handles = applyCategoryType(handles,ndx);
+end
+guidata(hObject,handles);
+createPfTable(handles.pfTable);
 
 
 % --- Executes during object creation, after setting all properties.

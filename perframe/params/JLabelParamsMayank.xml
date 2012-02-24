@@ -12,10 +12,13 @@
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       rootoutputdir="/groups/branson/home/kabram/bowlData/out/Jdetect"
+      featureparamfilename='test.xml'
       />
-   <!-- featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"-->
+   <!--         featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"
+ -->
 
-   <featureparamlist>
+   <featureconfigfile filename='params/featureConfig.xml'/>
+   <!-- featureparamlist>
      <absangle2wall/>
      <absanglefrom1to2_anglesub/>
      <absanglefrom1to2_nose2ell/>
@@ -69,7 +72,7 @@
      <veltoward_anglesub/>
      <veltoward_nose2ell/>
      <yaw/>
-   </featureparamlist>
+   </featureparamlist -->
   
   <plot>
     <trx 

@@ -1,4 +1,4 @@
-function [params,cellparams] = ReadPerFrameParams(filename)
+function [params,cellparams,basicTable,windowSize] = ReadPerFrameParams(filename)
 
 if ~exist(filename,'file'),
   error('File %s does not exist',filename);
@@ -6,8 +6,18 @@ end
 
 DOMnode= xmlread(filename);
 n = DOMnode.getDocumentElement();
-params = parse(n);
-
+if ~strcmp(n.getNodeName,'params')
+%   basicData = n.
+%   n = params;
+  v = parse(n);
+  basicTable = convertToTable(v.basicParams);
+  windowSize = v.featureWindowSize.size;
+  params = v.params;
+else
+  basicTable = {};
+  windowSize = [];
+  params = parse(n);
+end
 % convert to cell params also
 if nargout > 1,
   cellparams = struct;
@@ -62,3 +72,13 @@ for i = 0:cs.getLength()-1,
   end
 end
     
+
+function outTable = convertToTable(inParams)
+
+types = fieldnames(inParams);
+outTable = cell(numel(types),3);
+for ndx = 1:numel(types)
+  outTable{ndx,1} = types{ndx};
+  outTable{ndx,2} = inParams.(types{ndx}).mode{1};
+  outTable{ndx,3} = inParams.(types{ndx}).selection{1};  
+end
