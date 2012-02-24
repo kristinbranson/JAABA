@@ -2,7 +2,7 @@ function res = PerFrameDataExists(obj,fn,n)
 
 res = 0;
 
-if isfield(obj.datacached{n},fn)
+if ismember(fn,obj.fnscached{n}),
   res = 1;
   return;
 end

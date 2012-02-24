@@ -16,9 +16,8 @@ for i1 = 1:nflies,
   % compute upper and lower bounds on distance
   
   % initialize
-  mindupper = inf(1,trx(fly).nframes);
-  dlower = inf(nflies,trx(fly).nframes);
-  dnose2center = nan(nflies,trx(fly).nframes);
+  mindupper = inf(1,trx(fly1).nframes);
+  dlower = nan(nflies,trx(fly1).nframes);
   
   for i2 = 1:nflies,
     if i1 == i2,
@@ -27,7 +26,7 @@ for i1 = 1:nflies,
     fly2 = flies(i2);
     
     % compute dnose2center, angle from nose to center
-    [dcurr,off10,off11,off20,off21,t0,t1,anglefrom1to2] = dnose2center_pair(trx,fly1,fly2);
+    [dnose2center,off10,off11,off20,off21,t0,t1,anglefrom1to2] = dnose2center_pair(trx,fly1,fly2);
         
     if off10 > off11,
       continue;
@@ -39,9 +38,8 @@ for i1 = 1:nflies,
     idx1 = idx+off10-1;
     idx2 = idx+off20-1;
     
-    mindupper(idx1) = min(mindupper(idx1),dcurr(idx1) + 2*trx(fly2).a_mm(idx2));
-    dlower(i2,idx1) = dcurr(idx1) - 2*trx(fly2).a_mm(idx2);
-    dnose2center(i2,idx1) = dcurr(idx1) - 2*trx(fly2).a_mm(idx2);
+    mindupper(idx1) = min(mindupper(idx1),dnose2center(idx1) + 2*trx(fly2).a_mm(idx2));
+    dlower(i2,idx1) = dnose2center(idx1) - 2*trx(fly2).a_mm(idx2);
   end
   
   d = nan(nflies,trx(fly1).nframes);
