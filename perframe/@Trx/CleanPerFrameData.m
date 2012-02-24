@@ -19,8 +19,10 @@ for i = 1:numel(fns),
     end
     
     % clear from cache
-    if isfield(obj.datacached{n},fn),
-      obj.datacached{n} = rmfield(obj.datacached{n},fn);
+    j = find(strcmp(fn,obj.fnscached{n}),1);
+    if ~isempty(j),
+      obj.datacached{n}(j) = [];
+      obj.fnscached{n}(j) = [];
     end
     
   end

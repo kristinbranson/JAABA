@@ -30,6 +30,9 @@ else
   end  
 end
 
+j = numel(obj.fnscached{n}) + 1;
+obj.fnscached{n}{j} = fn;
+obj.datacached{n}{j} = cell(1,numel(flies));
 for flyidx = 1:numel(flies),
   fly = flies(flyidx);
   % delete data from cache if necessary
@@ -42,7 +45,7 @@ for flyidx = 1:numel(flies),
   obj.FreeDataCache(ndataadd);
 
   % add to cache
-  obj.datacached{n}(fly).(fn) = xcurr;
+  obj.datacached{n}{j}{fly} = xcurr;
   
   % update cache size
   obj.ndatacached = obj.ndatacached + ndataadd;

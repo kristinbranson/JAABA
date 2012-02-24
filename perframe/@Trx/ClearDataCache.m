@@ -7,11 +7,13 @@ end
 for i = ns,
 
   ndatacurr = 0;
-  if isfield(obj.datacached{i},fn),
-    for k = 1:numel(obj.datacached{i}),
-      ndatacurr = ndatacurr + numel(obj.datacached{i}(k).(fn));
+  j = find(strcmp(fn,obj.fnscached{i}),1);
+  if ~isempty(j),
+    for k = 1:numel(obj.datacached{i}{j}),
+      ndatacurr = ndatacurr + numel(obj.datacached{i}{j}{k});
     end
-    obj.datacached{i} = rmfield(obj.datacached{i},fn);
+    obj.datacached{i}(j) = [];
+    obj.fnscached{i}(j) = [];
     obj.ndatacachedperexp(i) = obj.ndatacachedperexp(i) - ndatacurr;
     obj.ndatacached = obj.ndatacached - ndatacurr;
   end

@@ -107,6 +107,7 @@ classdef Trx < handle
     
     % data cached for each experiment
     datacached = {};
+    fnscached = {};
     
     %% video info
     
@@ -283,7 +284,7 @@ classdef Trx < handle
       try
         save(filename,'data','units');
       catch ME
-        warning('Could not save to file %s:\n%s',filename,getReport(ME));
+        warning('Could not save %s data to %s: %s',fn,filename,getReport(ME));
       end
       
     end
@@ -323,6 +324,8 @@ classdef Trx < handle
     UpdatePerFrameAccessTime(obj,fn)
     
     x = LoadPerFrameData(obj,fn,n)
+    
+    labelidx = LoadLabelsFromFile(obj,labelfilestr,varargin)
     
     CleanPerFrameData(obj,fns,varargin)
     

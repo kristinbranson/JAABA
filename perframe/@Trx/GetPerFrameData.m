@@ -48,7 +48,8 @@ for i = 1:numel(ns),
   n = ns(i);
   fly = flies(i);
 
-  if ~isfield(obj.datacached{n},fn)
+  j = find(strcmp(obj.fnscached{n},fn),1);
+  if isempty(j),
     x = obj.LoadPerFrameData(fn,n);
     if iscell(x),
       res{i} = x{fly};
@@ -56,7 +57,7 @@ for i = 1:numel(ns),
       res{i} = x;
     end
   else
-    res{i} = obj.datacached{n}(fly).(fn);
+    res{i} = obj.datacached{n}{j}{fly};
   end
 
 end

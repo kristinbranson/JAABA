@@ -1,4 +1,4 @@
-function d = dnose2ell_anglerange_pair(trx,fly1,fly2,anglerange)
+function d = dnose2ell_anglerange_pair(trx,fly1,fly2,anglerange,idx)
 
 nsamples = 20;
 
@@ -31,14 +31,35 @@ theta1 = trx(fly1).theta_mm(i0:i1);
 x_mm2 = trx(fly2).x_mm(j0:j1);
 y_mm2 = trx(fly2).y_mm(j0:j1);
 
-% anglefrom1to2
-dx2 = x_mm2-xnose1;
-dy2 = y_mm2-ynose1;
-theta2 = atan2(dy2,dx2);
-anglefrom1to2 = modrange(theta2-theta1,anglerange(1),anglerange(1)+2*pi);
+if nargin < 5,
 
-% indices within range
-idx = anglefrom1to2 >= anglerange(1) & anglefrom1to2 <= anglerange(2);
+  % anglefrom1to2
+  dx2 = x_mm2-xnose1;
+  dy2 = y_mm2-ynose1;
+  theta2 = atan2(dy2,dx2);
+  anglefrom1to2 = modrange(theta2-theta1,anglerange(1),anglerange(1)+2*pi);
+  
+  % indices within range
+  idx = find(anglefrom1to2 >= anglerange(1) & anglefrom1to2 <= anglerange(2));
+  
+else
+  
+  idx = idx - i0 + 1;
+
+%   % anglefrom1to2
+%   fprintf('REMOVE THIS! IT IS FOR DEBUGGING\n');
+%   dx2 = x_mm2-xnose1;
+%   dy2 = y_mm2-ynose1;
+%   theta2 = atan2(dy2,dx2);
+%   anglefrom1to2 = modrange(theta2-theta1,anglerange(1),anglerange(1)+2*pi);
+%   
+%   % indices within range
+%   oldidx = find(anglefrom1to2 >= anglerange(1) & anglefrom1to2 <= anglerange(2));
+%   if any(~ismember(idx,oldidx)),
+%     keyboard;
+%   end
+  
+end
 
 if ~any(idx),
   return;
@@ -49,7 +70,7 @@ a_mm2 = trx(fly2).a_mm(j0:j1);
 b_mm2 = trx(fly2).b_mm(j0:j1);
 theta_mm2 = trx(fly2).theta_mm(j0:j1);
 
-for i = find(idx(:)'),
+for i = idx(:)',
   j = i + i0 - 1;
   d(j) = ellipsedist_hack(x_mm2(i),y_mm2(i),...
     2*a_mm2(i),2*b_mm2(i),theta_mm2(i),...
