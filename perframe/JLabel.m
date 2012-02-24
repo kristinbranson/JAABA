@@ -5448,7 +5448,7 @@ set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 % create or remove buttons
 if strcmpi(handles.configparams.JLabelMode.mode,'basic'),
   % delete extra buttons
-  h = handles.togglebutton_label_behaviors(2:2:end-1);
+  h = handles.togglebutton_label_behaviors(2:2:end);
   h = h(ishandle(h));
   if ~isempty(h),
     delete(h);
