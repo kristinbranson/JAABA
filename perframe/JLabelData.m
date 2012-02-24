@@ -158,6 +158,9 @@ classdef JLabelData < handle
     % file containing feature parameters
     featureparamsfilename = 0;
     
+    % feature configuration file
+    featureConfigFile = '';
+    
     % in case we don't want to write to the experiment directory, we will
     % mirror the experiment directory structure in the rootoutput dir
     % this can be the same as the input root directory
@@ -216,6 +219,10 @@ classdef JLabelData < handle
     % parameter name, parameter value, so that it can be input to
     % ComputeWindowFeatures
     windowfeaturescellparams = {};
+    
+    % State of the basic/compact feature table.
+    basicFeatureTable = {};
+    featureWindowSize = [];
     
     % per-frame features that are used
     allperframefns = {};
@@ -543,8 +550,8 @@ classdef JLabelData < handle
             return;
           end
         end
-        if isfield(configparams,'featureparamlist'),
-          [success1,msg] = obj.SetFeatureParamsList(configparams.featureparamlist);
+        if isfield(configparams,'featureconfigfile'),
+          [success1,msg] = obj.SetFeatureConfigFile(configparams.featureconfigfile);
           if ~success1,
             return;
           end
@@ -871,10 +878,13 @@ classdef JLabelData < handle
 
     end
   
-    function UpdatePerframeParams(obj,params,cellParams)
+    function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
     % Updates the feature params. Called by SelectFeatures
       obj.SetPerframeParams(params,cellParams)
-
+      if nargin>2
+        obj.basicFeatureTable = basicFeatureTable;
+        obj.featureWindowSize = featureWindowSize;
+      end
       obj.ClearWindowFeatures(); 
       obj.PreLoadLabeledData();
       % TODO: remove clearwindow features.
@@ -2129,11 +2139,13 @@ classdef JLabelData < handle
       
     end
     
-    function [success,msg] = SetFeatureParamsList(obj,featurelist)
+    function [success,msg] = SetFeatureConfigFile(obj,configfile)
       success = false;
       msg = '';
       
-      obj.allperframefns = fieldnames(featurelist);
+      obj.featureConfigFile = configfile.filename;
+      [settings,~] = ReadPerFrameParams(configfile.filename);
+      obj.allperframefns =  fieldnames(settings.perframe);
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
         return;
@@ -2160,7 +2172,7 @@ classdef JLabelData < handle
         return;
       end
 %       try
-        [windowfeaturesparams,windowfeaturescellparams] = ...
+        [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
           ReadPerFrameParams(featureparamsfilename); %#ok<PROP>
 %       catch ME,
 %         msg = sprintf('Error reading feature parameters file %s: %s',...
@@ -2169,6 +2181,8 @@ classdef JLabelData < handle
 %       end
       obj.SetPerframeParams(windowfeaturesparams,windowfeaturescellparams); %#ok<PROP>
       obj.featureparamsfilename = featureparamsfilename;
+      obj.basicFeatureTable = basicFeatureTable;
+      obj.featureWindowSize = featureWindowSize;
       success = true;
     end
     
@@ -3975,7 +3989,6 @@ classdef JLabelData < handle
           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
           obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
           obj.windowdata.scores(idxcurr) = scores;
-          obj.windowdata.scores_validated(idxcurr) = zeros(size(scores));
           if ~isempty(obj.classifier_old)
             obj.windowdata.scores_old(idxcurr) = ...
               myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier_old);
