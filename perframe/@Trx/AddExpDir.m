@@ -77,7 +77,8 @@ obj.fly2exp(nfliesold+1:obj.nflies) = n;
 
 % initialize data cache
 obj.ndatacachedperexp(n) = 0;
-obj.datacached{n} = struct;
+obj.datacached{n} = {};
+obj.fnscached{n} = {};
 
 % store trajectories
 obj.StoreTrajectories(n,traj,dooverwrite);

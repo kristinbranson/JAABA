@@ -2,7 +2,7 @@ function [d,i0,i1,j0,j1,t0,t1,anglefrom1to2] = dnose2center_pair(trx,fly1,fly2)
 
 % initialize
 d = nan(1,trx(fly1).nframes);
-anglefrom1to2 = nan(1,trx(fly1).nframes);
+anglefrom1to2 = [];
 
 % get start and end frames of overlap
 t0 = max(trx(fly1).firstframe,trx(fly2).firstframe);
@@ -35,6 +35,7 @@ d(i0:i1) = z;
 
 % anglefrom1to2
 if nargout >= 8,
+  theta1 = trx(fly1).theta_mm(i0:i1);
   theta2 = atan2(dy,dx);
-  anglefrom1to2(i0:i1) = modrange(theta2-theta1,anglerange(1),anglerange(1)+2*pi);
+  anglefrom1to2 = modrange(theta2-theta1,-pi,pi);
 end
