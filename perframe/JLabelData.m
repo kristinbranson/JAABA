@@ -4191,6 +4191,28 @@ classdef JLabelData < handle
         flyStats.two2one = [];
       end
       
+      if ~isempty(obj.windowdata.scores_validated),
+        curNdx = obj.FlyNdx(expi,flyNum);
+        if nnz(curNdx);
+          curScores = obj.windowdata.scores_validated(curNdx);
+          curLabels = obj.windowdata.labelidx_cur(curNdx);
+          
+          curPosMistakes = nnz( curScores(:)<0 & curLabels(:) ==1 );
+          curNegMistakes = nnz( curScores(:)>0 & curLabels(:) >1 );
+          
+          flyStats.validatedErrorsPos = curPosMistakes;
+          flyStats.validatedErrorsNeg = curNegMistakes;
+        else
+          flyStats.validatedErrorsPos = [];
+          flyStats.validatedErrorsNeg = [];
+        end
+      else
+        flyStats.validatedErrorsPos = [];
+        flyStats.validatedErrorsNeg = [];
+      end
+      
+      
+      
 %       if ~isempty(obj.windowdata.X) 
 %         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
 %         flyStats.npredictframes = nnz(idxcurr);
