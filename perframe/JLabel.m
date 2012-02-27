@@ -1028,6 +1028,10 @@ switch handles.bottomAutomatic
     warndlg('Undefined scores type to display for the bottom part of the automatic');
 end
 
+prediction_bottom = zeros(size(scores_bottom));
+prediction_bottom(scores_bottom>0) = 1;
+prediction_bottom(scores_bottom<0) = 2;
+
 for behaviori = 1:handles.data.nbehaviors
 
   idxScores = predictedidx == behaviori ;
@@ -1037,12 +1041,16 @@ for behaviori = 1:handles.data.nbehaviors
   for channel = 1:3,
     
       handles.labels_plot.predicted_im(1,idxPredict,channel) = handles.labelcolors(behaviori,channel);
+      handles.labels_plot.predicted_im(2,idxPredict,channel) = handles.labelcolors(behaviori,channel);
       scoreNdx = ceil(scores(idxScores)*31)+32;
-      handles.labels_plot.predicted_im(2,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+      handles.labels_plot.predicted_im(3,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
+      handles.labels_plot.predicted_im(4,idxScores,channel) = handles.scorecolor(scoreNdx,channel,1);
     
       % bottom row scores.
       bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
-      handles.labels_plot.predicted_im(3,idxBottomScores,channel) = handles.scorecolor(bottomScoreNdx,channel,1);
+      handles.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.scorecolor(bottomScoreNdx,channel,1);
+      handles.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
+        handles.labelcolors(behaviori,channel);
     
   end    
   
