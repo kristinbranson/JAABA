@@ -3,7 +3,7 @@ classdef NextJump < handle
   properties (Access=public)
     curType = 'Current Scores';
     allTypes = {'Current Scores',...
-      'Validated Scores',...
+      'Validated Errors',...
       'Loaded Scores',...
       'Errors','High Confidence Errors',...
         'Low Confidence','Thresholds'};
@@ -78,20 +78,20 @@ classdef NextJump < handle
     function t = JumpToStart(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
-        case 'Current Scores'
+        case obj.allTypes{1}
           t = obj.Automatic_bout_start(data,expi,flies,ts,t0,t1);
-        case 'Validated Scores'
+        case obj.allTypes{2}
           t = obj.AutomaticValidated_bout_start(data,expi,flies,ts,t0,t1);          
-        case 'Loaded Scores'
+        case obj.allTypes{3}
           t = obj.AutomaticLoaded_bout_start(data,expi,flies,ts,t0,t1);          
-        case 'Errors'
+        case obj.allTypes{4}
           t = obj.Error_bout_start(data,expi,flies,ts,t0,t1);
-        case 'Low Confidence'
-          t = obj.Lowconf_bout_start(data,expi,flies,ts,t0,t1);
-        case 'Thresholds'
-          t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
-        case 'High Confidence Errors'
+        case obj.allTypes{5}
           t = obj.HighconfError_bout_start(data,expi,flies,ts,t0,t1);
+        case obj.allTypes{6}
+          t = obj.Lowconf_bout_start(data,expi,flies,ts,t0,t1);
+        case obj.allTypes{7}
+          t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
       end
@@ -100,20 +100,20 @@ classdef NextJump < handle
     function t = JumpToEnd(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
-        case 'Current Scores'
+        case obj.allTypes{1}
           t = obj.Automatic_bout_end(data,expi,flies,ts,t0,t1);
-        case 'Validated Scores'
+        case  obj.allTypes{2}
           t = obj.AutomaticValidated_bout_end(data,expi,flies,ts,t0,t1);          
-        case 'Loaded Scores'
+        case  obj.allTypes{3}
           t = obj.AutomaticLoaded_bout_end(data,expi,flies,ts,t0,t1);          
-        case 'Errors'
+        case  obj.allTypes{4}
           t = obj.Error_bout_end(data,expi,flies,ts,t0,t1);
-        case 'Low Confidence'
-          t = obj.Lowconf_bout_end(data,expi,flies,ts,t0,t1);
-        case 'Thresholds'
-          t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
-        case 'High Confidence Errors'
+        case  obj.allTypes{5}
           t = obj.HighconfError_bout_end(data,expi,flies,ts,t0,t1);
+        case  obj.allTypes{6}
+          t = obj.Lowconf_bout_end(data,expi,flies,ts,t0,t1);
+        case  obj.allTypes{7}
+          t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
          
@@ -243,25 +243,19 @@ classdef NextJump < handle
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       scores = data.GetValidatedScores(expi,flies,t0,t1);
       predictedidx = double(scores~=0);
       predictedidx(scores>0) = 1;
       predictedidx(scores<0) = 2;
       
-      lowconfidx = false(size(scores));
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
-
-      j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
+      erroridx = labelidx.vals ~=predictedidx;
+      
+      j = find(erroridx ~= erroridx(1),1);
       if isempty(j), return; end
       
-      toUse = predictedidx(j:end);
-      toUse(lowconfidx(j:end)) = 0;
-      k = find(ismember(toUse,obj.seek_behaviors_go),1);
-      if isempty(k), return; end
+      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go)&erroridx(j:end),1);
+      if isempty(k),return;end
       
       t = ts + j - 1 + k - 1;
     end
@@ -272,26 +266,18 @@ classdef NextJump < handle
       if t0 >= ts, return; end
 
       t1 = min(max(ts,t0),t1);
+
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       scores = data.GetValidatedScores(expi,flies,t0,t1);
       predictedidx = double(scores~=0);
       predictedidx(scores>0) = 1;
       predictedidx(scores<0) = 2;
-
-      lowconfidx = false(size(scores));
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
-      
-      j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
+      erroridx = labelidx.vals ~=predictedidx;
+      j = find(erroridx~= erroridx(end),1,'last');
       if isempty(j), return; end
       
-      toUse = predictedidx(1:j);
-      toUse(lowconfidx(1:j)) = 0;
-      k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
+      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go)&erroridx(1:j),1,'last');
       if isempty(k), return; end
-      
       t = t0 + k - 1;
     end
 
