@@ -711,6 +711,9 @@ classdef JLabelData < handle
         
       end
       
+      % Clean the window data.
+%       obj.CleanWindowData();
+      
       % store feature_names -- these shouldn't really change
       obj.windowdata.featurenames = feature_names;
       
@@ -854,7 +857,39 @@ classdef JLabelData < handle
      
     end
     
-    function ClearWindowFeatures(obj)
+    function CleanWindowData(obj)
+      % Removes window data for unlabeled data to save memory
+      curMem = 8*numel(obj.windowdata.X);
+      if curMem>3e8  % greater than 300MB
+        idxcurr = obj.windowdata.labelidx_new==0;
+        obj.windowdata.X(idxcurr,:) = [];
+        obj.windowdata.exp(idxcurr) = [];
+        obj.windowdata.flies(idxcurr) =[];
+        obj.windowdata.t(idxcurr) =[];
+        obj.windowdata.labelidx_new(idxcurr) = [];
+        obj.windowdata.labelidx_imp(idxcurr) = [];
+        obj.windowdata.isvalidprediction(...
+          idxcurr(1:numel(obj.windowdata.isvalidprediction))) = [];
+        obj.windowdata.labelidx_cur(...
+          idxcurr(1:numel(obj.windowdata.labelidx_cur))) = [];
+        obj.windowdata.predicted(...
+          idxcurr(1:numel(obj.windowdata.predicted))) = [];
+        obj.windowdata.predicted_probs(...
+          idxcurr(1:numel(obj.windowdata.predicted_probs))) = [];
+        obj.windowdata.scores(...
+          idxcurr(1:numel(obj.windowdata.scores))) = [];
+        obj.windowdata.scores_old(...
+          idxcurr(1:numel(obj.windowdata.scores_old))) = [];
+        obj.windowdata.scores_validated(...
+          idxcurr(1:numel(obj.windowdata.scores_validated))) = [];
+        obj.windowdata.distNdx = [];
+        obj.windowdata.binVals=[];
+        obj.windowdata.bins=[];
+
+      end
+    end
+    
+    function ClearWindowData(obj)
       % Clears window features and predictions for a clean start when selecting
       % features.
       obj.windowdata.X = [];
@@ -885,7 +920,9 @@ classdef JLabelData < handle
         obj.basicFeatureTable = basicFeatureTable;
         obj.featureWindowSize = featureWindowSize;
       end
-      obj.ClearWindowFeatures(); 
+      obj.ClearWindowData();
+      obj.classifier = [];
+      obj.classifier_old = [];
       obj.PreLoadLabeledData();
       % TODO: remove clearwindow features.
     end

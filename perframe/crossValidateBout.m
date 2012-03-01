@@ -58,7 +58,7 @@ for bno = 1:k
     params.iter,wt,binVals,bins(:,curTrainNdx),params);
   tScores = myBoostClassify(data(curTestNdx,:),curModel);
   scores(curTestNdx) = tScores;
-  
+
   etime = toc(tt);
   obj.SetStatus('%d%% cross validation done. Time Remaining:%ds ',...
     round( bno/k*100), round((k-bno)*etime));
