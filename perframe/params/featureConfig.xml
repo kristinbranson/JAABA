@@ -63,6 +63,8 @@
   
   <perframe>
     
+    <absanglefrom1to2_nose2ell  trans_types="none" type="social"/>
+
     <absdtheta trans_types="relative" type="locomotion"/>
     
     <absdv_cor trans_types="relative" type="locomotion"/>
