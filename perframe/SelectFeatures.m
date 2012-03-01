@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 22-Feb-2012 09:39:58
+% Last Modified by GUIDE v2.5 01-Mar-2012 09:48:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,6 +66,8 @@ set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
 % Update handles structure
 guidata(hObject, handles);
 
+set(handles.pfTable,'UserData',0);
+
 % UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
 
 
@@ -84,7 +86,7 @@ function setJLDobj(hObject,JLDobj)
 handles = guidata(hObject);
 handles.JLDobj = JLDobj;
 
-handles.windowComp = {'default','mean','min','max','histogram','prctile',...
+handles.windowComp = {'default','mean','min','max','hist','prctile',...
    'change','std','harmonic','diff_neighbor_mean',...
    'diff_neighbor_min','diff_neighbor_max','zscore_neighbors'};
 
@@ -93,6 +95,8 @@ handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
 
 handles.winextraParams = {'','','','','hist_edges','prctiles','change_window_radii',...
   '','num_harmonic','','','',''};
+handles.winextraDefaultParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
+  [],[2],[],[],[],[]};
 handles.defaultWinParams = {0,0,0,{'none'},0};
 
 guidata(hObject,handles);
@@ -166,9 +170,9 @@ set(handles.pfTable,'ColumnEditable',[false,true]);
 % this at http://undocumentedmatlab.com/blog/uitable-sorting/
 jscrollpane = findjobj(handles.pfTable);
 jtable = jscrollpane.getViewport.getView;
-jtable.setSortable(true);	
+jtable.setSortable(false);	
 jtable.setAutoResort(false);
-jtable.setMultiColumnSortable(true);
+jtable.setMultiColumnSortable(false);
 
 % Set the size for the row headers.
 rowHeaderViewport=jscrollpane.getComponent(4);
@@ -313,7 +317,7 @@ for ndx = 1:numel(pfList)
           data{ndx}.(curFn).values.(extraParam) = curWinFnParams.(extraParam);
         end
         
-      else % Values for window comp hasn't been defined.
+      else % Values for window comp haven't been defined.
         
         data{ndx}.(curFn).valid = false;
         for winParamsNdx = 1:numel(winParams)
@@ -322,7 +326,7 @@ for ndx = 1:numel(pfList)
         end
         if ~isempty(handles.winextraParams{winfnNdx})
           extraParam = handles.winextraParams{winfnNdx};
-          data{ndx}.(curFn).values.(extraParam) = '';
+          data{ndx}.(curFn).values.(extraParam) = handles.winextraDefaultParams{winfnNdx};
         end
         
       end
@@ -352,7 +356,7 @@ for ndx = 1:numel(pfList)
       end
         if ~isempty(handles.winextraParams{winfnNdx})
           extraParam = handles.winextraParams{winfnNdx};
-          data{ndx}.(curFn).values.(extraParam) = '';
+          data{ndx}.(curFn).values.(extraParam) = handles.winextraDefaultParams{winfnNdx};
         end
     end
 
@@ -537,19 +541,24 @@ function pfSelect(hObject,eventData)
 
 % When the table is sorted without any cell selected
 
+% while( get(hObject,'UserData')~=0)
+%   pause(0.2);
+% end
+% set(hObject,'UserData',1);
 if isempty(eventData.Indices)
   return;
 end
 
 handles = guidata(hObject);
-jscrollpane = findjobj(handles.pfTable);
-jtable = jscrollpane.getViewport.getView;
+% jscrollpane = findjobj(handles.pfTable);
+% jtable = jscrollpane.getViewport.getView;
 pfData = get(handles.pfTable,'Data');
 
 if(size(eventData.Indices,1)>1)
   disableWindowTable(handles);
 else
-  ndx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
+%   ndx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
+  ndx = eventData.Indices(1,1);
   handles.pfNdx = ndx;
   if(pfData{ndx,2})
     setWindowTable(handles,handles.pfNdx);
@@ -571,15 +580,22 @@ end
 handles = UpdateDescriptionPanels(handles);
 
 guidata(hObject,handles);
+% set(hObject,'UserData',0);
 
 
 function pfEdit(hObject,eventData)
 % When a perframe feature is added or removed.
 
+% while( get(hObject,'UserData')~=0)
+%   pause(0.2);
+% end
+% set(hObject,'UserData',2);
+
 handles = guidata(hObject);
-jscrollpane = findjobj(handles.pfTable);
-jtable = jscrollpane.getViewport.getView;
-pfNdx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
+% jscrollpane = findjobj(handles.pfTable);
+% jtable = jscrollpane.getViewport.getView;
+% pfNdx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
+pfNdx = eventData.Indices(1,1);
 handles.pfNdx = pfNdx;
 
 handles.data{pfNdx}.valid = eventData.NewData;
@@ -589,6 +605,7 @@ setCategoryToCustom(handles);
 if ~eventData.NewData, 
   handles.data{pfNdx}.valid = false;
   disableWindowTable(handles);  
+  guidata(hObject,handles);
   return;
 end
 
@@ -626,6 +643,7 @@ for winfnNdx = 2:numel(handles.windowComp)
 end
 guidata(hObject,handles);
 setWindowTable(handles,handles.pfNdx);
+% set(hObject,'UserData',0);
 
 
 function setWindowTable(handles,pfNdx)
@@ -1198,10 +1216,12 @@ function Load_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 [fname,pname]= uigetfile('*.xml');
 featureparamsfilename = fullfile(pname,fname);
-[params,~] = ...
+[params,~,basicTable,windowSize] = ...
   ReadPerFrameParams(featureparamsfilename);
 guidata(hObject,handles);
 initData(hObject,params);
+set(handles.basicTable,'Data',basicTable);
+set(handles.editSize,'String',num2str(windowSize));
 
 
 % --- Executes on selection change in popupmenu_copy_windowparams.
@@ -1510,4 +1530,55 @@ else
   handles.mode = 'basic';
   set(handles.figure1,'Position',[curLoc(1:2) handles.basicSize]);  
   set(hObject,'String','Advanced >');
+end
+
+
+% --- Executes on button press in pushbutton_hist.
+function pushbutton_hist_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_hist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+prcEdges = [5 15 30 50 70 85 95];
+
+histfnNdx = find(strcmp('hist',handles.windowComp));
+histExtraName = handles.winextraParams{histfnNdx};
+
+for ndx = 1:numel(handles.pfList)
+  curPf = handles.pfList{ndx};
+  
+  if ~handles.data{ndx}.valid || ~handles.data{ndx}.hist.valid; 
+    continue;
+  end
+  
+  allData = [];
+  for expi = 1:handles.JLDobj.nexps,
+    
+    % load per-frame data for this experiment
+    perframedir = handles.JLDobj.GetFile('perframedir',expi);
+    file = fullfile(perframedir,[curPf,'.mat']);
+    if ~exist(file,'file'),
+      warning('Per-frame data file %s does not exist',file);
+      continue;
+    end
+    
+    perframedata = load(file);
+    
+    for fly = 1:handles.JLDobj.nflies_per_exp(expi),
+      
+      x = perframedata.data{fly};
+      allData = [allData ; x(:)];
+    end
+  end
+  bins = prctile(allData,prcEdges);
+  minD = min(allData);
+  maxD = max(allData);
+  binMin = minD - (maxD-minD);
+  binMax = maxD + (maxD-minD);
+  bins = [binMin bins binMax];
+  handles.data{ndx}.hist.values.(histExtraName) = bins;
+end
+guidata(hObject,handles);
+if ~isempty(handles.pfNdx)
+  setWindowTable(handles,handles.pfNdx);
 end
