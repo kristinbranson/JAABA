@@ -555,7 +555,12 @@ classdef JLabelData < handle
           if ~success1,
             return;
           end
+        elseif isfield(configparams,'featureparamlist'),
+          % read allperframefns from config file
+          obj.allperframefns = fieldnames(configparams.featureparamlist);
+          msg = '';
         end
+
         if isfield(configparams.file,'featureparamfilename'),
           [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
           if ~success1,
@@ -2311,8 +2316,13 @@ classdef JLabelData < handle
           
           if strcmpi(file,'perframedir'),
             [fn,timestamps] = obj.GetPerframeFiles(expi);
-            obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
-            obj.filetimestamps(expi,filei) = max(timestamps);
+            if isempty(fn),
+              obj.fileexists(expi,filei) = false;
+              obj.filetimestamps(expi,filei) = -inf;
+            else
+              obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+              obj.filetimestamps(expi,filei) = max(timestamps);
+            end
           else
           
             % check for existence of current file(s)

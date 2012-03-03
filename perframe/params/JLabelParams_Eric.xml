@@ -15,7 +15,7 @@
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       />
-    <featureparamlist>
+  <featureparamlist>
       <FArea/>
       <FLength/>
       <a_mm/>
@@ -67,7 +67,7 @@
       <wingthr/>
       <x_mm/>
       <y_mm/>
-    </featureparamlist>
+  </featureparamlist>
   
   <plot>
     <trx 
