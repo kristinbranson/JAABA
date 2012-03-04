@@ -14,7 +14,10 @@
       labelfilename="LungeLabels.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
+      featureparamfilename="params/WindowFeatures_Eric.xml"
       />
+  <featureconfigfile filename="params/featureConfigEric.xml"
+    />
   <featureparamlist>
       <FArea/>
       <FLength/>
