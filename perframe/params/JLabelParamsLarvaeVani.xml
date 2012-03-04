@@ -27,6 +27,8 @@
 	colormap="jet"
 	colormap_multiplier=".7"
   extra_markersize="8"
+  extra_linestyle="none"
+  extra_marker="o"
 	/>
     <labels 
 	colormap="line"

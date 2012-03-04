@@ -2,16 +2,16 @@
 
 <params>
   <targets
-      type="fly"
+      type="wingedfly"
   />
   <behaviors 
-      names="Lunging"
-      labelcolors=".7,0,0,0,0,.7"
+      names="Lunging,WingExtension"
+      labelcolors=".7,0,0,0,.7,0,0,0,.7"
       />
   <file 
       moviefilename="movie.mp4"
       trxfilename="trx.mat"
-      labelfilename="LungeLabels.mat"
+      labelfilename="AllLabels.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       featureparamfilename="params/WindowFeatures_Eric.xml"
@@ -76,6 +76,8 @@
     <trx 
 	colormap="jet"
 	colormap_multiplier=".7"
+  extra_marker="."
+  extra_linestyle="-"
 	/>
     <labels 
 	colormap="line"
