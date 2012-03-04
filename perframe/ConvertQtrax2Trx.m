@@ -1,8 +1,8 @@
 function [outexpdir] = ConvertQtrax2Trx(experiment_name,rootoutputdir,varargin)
 
-%rootoutputdir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/data/eric';
-%experiment_subdir = 'EH111019';
-%experiment_name = 'Agg_111019_GMR_38G02_AE_01_UAS_dTrpA1_2_0002_G_29_p02';
+% rootoutputdir = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/data/eric';
+% experiment_subdir = 'EH111019';
+% experiment_name = 'Agg_111019_GMR_38G02_AE_01_UAS_dTrpA1_2_0002_G_29_p02';
 
 %% set parameters
 
@@ -51,6 +51,16 @@ end
 featname = fullfile(rootdatadir,experiment_subdir,[experiment_name,featext]);
 roiname = fullfile(rootdatadir,experiment_subdir,[experiment_name,roiext]);
 moviename = fullfile(rootdatadir,experiment_subdir,[experiment_name,movieext]);
+
+if ~exist(featname,'file'),
+  error('Feature file %s does not exist',featname);
+end
+if ~exist(roiname,'file'),
+  error('ROI file %s does not exist',roiname);
+end
+if ~exist(moviename,'file'),
+  error('Movie file %s does not exist',moviename);
+end
 
 % make sure the root output directory exists
 if ~exist(rootoutputdir,'dir'),
