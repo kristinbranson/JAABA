@@ -5,4 +5,6 @@ switch targettype,
   case 'larva',
     set(hfly,'XData',pos.skeletonx,'YData',pos.skeletony);
     set(hfly_extra,'XData',pos.skeletonx(1),'YData',pos.skeletony(1));
+  case 'wingedfly',
+    updatewingedfly(hfly,hfly_extra,pos);
 end
