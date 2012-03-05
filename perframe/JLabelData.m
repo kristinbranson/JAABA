@@ -550,8 +550,8 @@ classdef JLabelData < handle
             return;
           end
         end
-        if isfield(configparams,'featureconfigfile'),
-          [success1,msg] = obj.SetFeatureConfigFile(configparams.featureconfigfile);
+        if isfield(configparams.file,'featureconfigfile'),
+          [success1,msg] = obj.SetFeatureConfigFile(configparams.file.featureconfigfile);
           if ~success1,
             return;
           end
@@ -2180,8 +2180,8 @@ classdef JLabelData < handle
       success = false;
       msg = '';
       
-      obj.featureConfigFile = configfile.filename;
-      [settings,~] = ReadPerFrameParams(configfile.filename);
+      obj.featureConfigFile = configfile;
+      [settings,~] = ReadPerFrameParams(configfile);
       obj.allperframefns =  fieldnames(settings.perframe);
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
@@ -3513,10 +3513,10 @@ classdef JLabelData < handle
       
       waslabeled = false(1,numel(islabeled));
       waslabeled(1:numel(obj.windowdata.labelidx_old)) = obj.windowdata.labelidx_old~=0;
-      selectScores = waslabeled(islabeled);
-      oldPrediction = -sign(crossScores(selectScores))/2+1.5;
+      oldSelect = waslabeled(islabeled);
+      oldScores = crossScores(oldSelect);
       oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled) - obj.windowdata.labelidx_imp(waslabeled);
-      oldError = obj.createConfMat(oldPrediction,oldLabels);
+      oldError = obj.createConfMat(oldScores,oldLabels);
       crossError.oldNumbers = oldError.numbers;
       crossError.oldFrac = oldError.frac;
       
