@@ -258,7 +258,7 @@ classdef JLabelData < handle
 %     bins = [];
 
     % Confidence Thresholds
-    confThresholds = zeros(1,2);
+    confThresholds = zeros(1,0);
     
     % Retrain properly
     doUpdate = true;
@@ -555,7 +555,12 @@ classdef JLabelData < handle
           if ~success1,
             return;
           end
+        elseif isfield(configparams,'featureparamlist'),
+          % read allperframefns from config file
+          obj.allperframefns = fieldnames(configparams.featureparamlist);
+          msg = '';
         end
+
         if isfield(configparams.file,'featureparamfilename'),
           [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
           if ~success1,
@@ -592,9 +597,11 @@ classdef JLabelData < handle
         else
           obj.labelnames = {'Behavior','None'};
         end
-                  
-        obj.nbehaviors = numel(obj.labelnames);
         
+        obj.nbehaviors = numel(obj.labelnames);
+        % allocate configdence thresholds
+        obj.confThresholds = zeros(1,obj.nbehaviors);
+
 %         % colors
 %         if isfield(configparams.behaviors,'labelcolors'),
 %           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
@@ -2311,8 +2318,13 @@ classdef JLabelData < handle
           
           if strcmpi(file,'perframedir'),
             [fn,timestamps] = obj.GetPerframeFiles(expi);
-            obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
-            obj.filetimestamps(expi,filei) = max(timestamps);
+            if isempty(fn),
+              obj.fileexists(expi,filei) = false;
+              obj.filetimestamps(expi,filei) = -inf;
+            else
+              obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+              obj.filetimestamps(expi,filei) = max(timestamps);
+            end
           else
           
             % check for existence of current file(s)
@@ -2525,53 +2537,11 @@ classdef JLabelData < handle
     % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
     % Returns the position for the input experiment, SINGLE fly, and
     % frames. If ts is not input, then all frames are returned. 
-    function pos = GetTrxPos1(obj,expi,fly,ts)
+    function pos = GetTrxPos1(varargin)
 
-      pos = struct;
-      
-      if all(expi ~= obj.expi),
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
+      % moved to separate file so that function could be easily modified
+      pos = JLabelData_GetTrxPos(varargin{:});
 
-      switch obj.targettype,
-
-        case 'fly',
-
-          if nargin < 4,
-            pos.x = obj.trx(fly).x;
-            pos.y = obj.trx(fly).y;
-            pos.theta = obj.trx(fly).theta;
-            pos.a = obj.trx(fly).a;
-            pos.b = obj.trx(fly).b;
-            return;
-          end
-          
-          pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
-          pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
-          pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
-          pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
-          pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
-         
-        case 'larva',
-          
-          if nargin < 4,
-            pos.x = obj.trx(fly).x;
-            pos.y = obj.trx(fly).y;
-            pos.skeletonx = obj.trx(fly).skeletonx;
-            pos.skeletony = obj.trx(fly).skeletony;
-            return;
-          end
-          
-          pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
-          pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
-          pos.skeletonx = obj.trx(fly).skeletonx(:,ts + obj.trx(fly).off);
-          pos.skeletony = obj.trx(fly).skeletony(:,ts + obj.trx(fly).off);
-          
-      end
     end
 
     % x = GetSex(obj,expi,fly,ts)

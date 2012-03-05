@@ -16,6 +16,8 @@
       windowfilename="windowfeatures.mat"
       featureparamfilename="params/WindowFeaturesKB_WingGrooming.xml"
       />
+  <featureconfigfile filename="params/featureConfig.xml"
+    />
     <featureparamlist>
      <a_mm/>
      <area/>
