@@ -155,6 +155,9 @@ classdef JLabelData < handle
     clipsdir = 0;
     scores = 0;
     
+    % whether there is a movie to show
+    ismovie = true;
+    
     % file containing feature parameters
     featureparamsfilename = 0;
     
@@ -949,6 +952,7 @@ classdef JLabelData < handle
         end
         oldmoviefilename = obj.moviefilename;
         obj.moviefilename = moviefilename;
+        obj.ismovie = ~isempty(moviefilename);
         [success1,msg] = obj.CheckMovies();
         if ~success1,
           obj.moviefilename = oldmoviefilename;
@@ -975,6 +979,11 @@ classdef JLabelData < handle
       end
       
       successes = true(1,numel(expis));
+      
+      if ~obj.ismovie,
+        return;
+      end
+      
       for i = 1:numel(expis),
         moviefilename = obj.GetFile('movie',expis(i));
         obj.SetStatus('Checking movie %s...',moviefilename);

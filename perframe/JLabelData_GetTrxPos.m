@@ -71,5 +71,27 @@ switch obj.targettype,
     pos.ywingl = obj.trx(fly).ywingl(ts + obj.trx(fly).off);
     pos.xwingr = obj.trx(fly).xwingr(ts + obj.trx(fly).off);
     pos.ywingr = obj.trx(fly).ywingr(ts + obj.trx(fly).off);
+    
+  case 'larvacontour',
+    
+    
+    if nargin < 4,
+      pos.x = obj.trx(fly).x;
+      pos.y = obj.trx(fly).y;
+      pos.theta = obj.trx(fly).theta;
+      pos.a = obj.trx(fly).a;
+      pos.b = obj.trx(fly).b;
+      pos.xcontour = obj.trx(fly).xcontour;
+      pos.ycontour = obj.trx(fly).ycontour;
+      return;
+    end
+    
+    pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+    pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+    pos.theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
+    pos.a = obj.trx(fly).a(ts + obj.trx(fly).off);
+    pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
+    pos.xcontour = obj.trx(fly).xcontour{ts + obj.trx(fly).off};
+    pos.ycontour = obj.trx(fly).ycontour{ts + obj.trx(fly).off};
 
 end
