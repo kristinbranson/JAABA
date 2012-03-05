@@ -15,9 +15,8 @@
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       featureparamfilename="params/WindowFeaturesKB_WingGrooming.xml"
+      featureconfigfile="params/featureConfig.xml"
       />
-  <featureconfigfile filename="params/featureConfig.xml"
-    />
     <featureparamlist>
      <a_mm/>
      <area/>
