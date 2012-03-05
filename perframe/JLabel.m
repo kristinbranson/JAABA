@@ -462,7 +462,7 @@ end
 
 for i = axes,
   
-  if refreshim,
+  if refreshim && handles.data.ismovie,
 
     % read in current frame
     %image_cache = getappdata(handles.figure_JLabel,'image_cache');
@@ -488,6 +488,9 @@ for i = axes,
 %     end
 %     image_cache.timestamps(j) = now;
 %     setappdata(handles.figure_JLabel,'image_cache',image_cache);
+  else
+    
+    set(handles.himage_previews(i),'Visible','off');
     
   end
   
@@ -650,30 +653,33 @@ if expi == handles.expi,
 end
 
 % check that the current movie exists
-moviefilename = handles.data.GetFile('movie',expi);
-if ~exist(moviefilename,'file'),
-  uiwait(warndlg(sprintf('Movie file %s does not exist.',moviefilename)),'Error setting movie');
-  return;
-end
+if handles.data.ismovie,
+  moviefilename = handles.data.GetFile('movie',expi);
+  if ~exist(moviefilename,'file'),
+    uiwait(warndlg(sprintf('Movie file %s does not exist.',moviefilename)),'Error setting movie');
+    return;
+  end
 
-% close previous movie
-if isfield(handles,'movie_fid') && ~isempty(fopen(handles.movie_fid)),
-  fclose(handles.movie_fid);
-end
+  % close previous movie
+  if isfield(handles,'movie_fid') && ~isempty(fopen(handles.movie_fid)),
+    fclose(handles.movie_fid);
+  end
 
-% open new movie
-% try
+  % open new movie
+  % try
   SetStatus(handles,'Opening movie...');
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
     get_readframe_fcn(moviefilename,'interruptible',false);
   im = handles.readframe(1);
   handles.movie_width = size(im,2);
   handles.movie_height = size(im,1);
-% catch ME,
-%   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
-%   ClearStatus(handles);
-%   return;
-% end
+  % catch ME,
+  %   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
+  %   ClearStatus(handles);
+  %   return;
+  % end
+  
+end
 
 % number of flies
 handles.nflies_curr = handles.data.nflies_per_exp(expi);
@@ -690,6 +696,19 @@ end
 if ~success,
   uiwait(errordlg(sprintf('Error loading data for experiment %d: %s',expi,msg)));
   return;
+end
+
+% if no movie, then set limits
+if ~handles.data.ismovie,
+  maxx = max([handles.data.trx.x]);
+  maxy = max([handles.data.trx.x]);
+  handles.movie_height = maxy;
+  handles.movie_width = maxx;
+  handles.nframes = max([handles.data.trx.endframe]);
+  
+  % set axes colors to be white instead of black
+  set(handles.axes_previews,'Color','w');
+  
 end
 
 % set zoom radius

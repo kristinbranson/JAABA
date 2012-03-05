@@ -30,29 +30,31 @@ else
   obj.outexpdirs{n} = expdir;
 end
 
-moviename = fullfile(obj.expdirs{n},obj.moviefilestr);
-outmoviename = fullfile(obj.outexpdirs{n},obj.moviefilestr);
-if ~exist(moviename,'file') && exist(outmoviename,'file'),
-  moviename = outmoviename;
-end
-obj.movienames{n} = moviename;
-if ~exist(moviename,'file'),
-  error('Movie %s does not exist',moviename);
-end
-[~,nframes,fid,vidinfo] = get_readframe_fcn(moviename);
-if ~isempty(fid) && ~isnan(fid) && fid > 1,
-  fclose(fid);
-end
+if ~isempty(obj.moviefilestr),
+  moviename = fullfile(obj.expdirs{n},obj.moviefilestr);
+  outmoviename = fullfile(obj.outexpdirs{n},obj.moviefilestr);
+  if ~exist(moviename,'file') && exist(outmoviename,'file'),
+    moviename = outmoviename;
+  end
+  obj.movienames{n} = moviename;
+  if ~exist(moviename,'file'),
+    error('Movie %s does not exist',moviename);
+  end
+  [~,nframes,fid,vidinfo] = get_readframe_fcn(moviename);
+  if ~isempty(fid) && ~isnan(fid) && fid > 1,
+    fclose(fid);
+  end
 
-% store video info
-obj.nrs(n) = vidinfo.nr;
-obj.ncs(n) = vidinfo.nc;
-if isfield(vidinfo,'ncolors'),
-  obj.ncolors(n) = vidinfo.ncolors;
-else
-  obj.ncolors(n) = 1;
+  % store video info
+  obj.nrs(n) = vidinfo.nr;
+  obj.ncs(n) = vidinfo.nc;
+  if isfield(vidinfo,'ncolors'),
+    obj.ncolors(n) = vidinfo.ncolors;
+  else
+    obj.ncolors(n) = 1;
+  end
+  obj.movie_nframes(n) = nframes;
 end
-obj.movie_nframes(n) = nframes;
 
 % read trajectories
 trxfilename = fullfile(obj.expdirs{n},obj.trxfilestr);
@@ -65,6 +67,14 @@ if ~exist(obj.trxfiles{n},'file'),
   error('Trajectory file %s does not exist',obj.trxfiles{n});
 end
 traj = load_tracks(obj.trxfiles{n});
+
+% set movie properties when there is no movie
+if isempty(obj.moviefilestr),
+  obj.nrs(n) = max([traj.y]);
+  obj.ncs(n) = max([traj.x]);
+  obj.ncolors(n) = 0;
+  obj.movie_nframes(n) = max([traj.endframe]);
+end
 
 % number of flies
 obj.nfliespermovie(n) = length(traj);
