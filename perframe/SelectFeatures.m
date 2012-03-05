@@ -182,7 +182,7 @@ rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
 height=rowHeader.getHeight;
 rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
 rowHeader.setSize(newWidth,height); 
-set(handles.pfTable,'ColumnWidth',{150,85,100});
+set(handles.pfTable,'ColumnWidth',{190,50,95});
 set(handles.pfTable,'CellSelectionCallback',@pfSelect);
 set(handles.pfTable,'CellEditCallback',@pfEdit);
 disableWindowTable(handles);
