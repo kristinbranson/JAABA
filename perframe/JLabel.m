@@ -4507,7 +4507,7 @@ function similarFramesButton_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of similarFramesButton
 
 curTime = handles.ts(1);
-handles.data.SimilarFrames(curTime);
+handles.data.SimilarFrames(curTime, handles);
 
 function s = GetTargetInfo(handles,fly)
 
