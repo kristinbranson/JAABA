@@ -6,7 +6,8 @@ classdef NextJump < handle
       'Validated Errors',...
       'Loaded Scores',...
       'Errors','High Confidence Errors',...
-        'Low Confidence','Thresholds'};
+        'Low Confidence','Thresholds',...
+        'Ground Truth Suggestions'};
     seek_behaviors_go = [];
     perframefns = {};
     perframeSelFeatures = [];
@@ -92,6 +93,9 @@ classdef NextJump < handle
           t = obj.Lowconf_bout_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{7}
           t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
+        case obj.allTypes{8}
+          t = obj.GT_Suggestion_start(data,expi,flies,ts,t0,t1);
+
         otherwise
           t = ts;
       end
@@ -114,6 +118,8 @@ classdef NextJump < handle
           t = obj.Lowconf_bout_end(data,expi,flies,ts,t0,t1);
         case  obj.allTypes{7}
           t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
+        case obj.allTypes{8}
+          t = obj.GT_Suggestion_end(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
          
@@ -526,6 +532,30 @@ classdef NextJump < handle
       t = t0 + j - 1;
     end
     
+    function t = GT_Suggestion_start(obj,data,expi,flies,ts,t0,t1)
+      t = [];
+      if ts >= t1, return; end
+      t0 = min(max(ts,t0),t1);
+      
+      suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
+      
+      j = find(suggestidx ~= suggestidx(1),1);
+      if isempty(j), return; end
+      
+      t = ts + j -1;
+    end
+    
+    function t = GT_Suggestion_end(obj,data,expi,flies,ts,t0,t1)
+      
+      t = [];
+      if t0 >= ts, return; end
+      t1 = min(max(ts,t0),t1);
+
+      suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
+      j = find(suggestidx ~= suggestidx(end),1,'last');
+      if isempty(j), return; end
+      t = t0 + j - 1;
+    end
     
   end % End methods
 end % End classdef
