@@ -462,7 +462,9 @@ end
 
 for i = axes,
   
-  if refreshim && handles.data.ismovie,
+  if refreshim,
+    
+    if handles.data.ismovie,
 
     % read in current frame
     %image_cache = getappdata(handles.figure_JLabel,'image_cache');
@@ -488,9 +490,10 @@ for i = axes,
 %     end
 %     image_cache.timestamps(j) = now;
 %     setappdata(handles.figure_JLabel,'image_cache',image_cache);
-  else
-    
-    set(handles.himage_previews(i),'Visible','off');
+    else
+      
+      set(handles.himage_previews(i),'Visible','off');
+    end
     
   end
   
