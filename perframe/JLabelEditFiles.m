@@ -22,7 +22,7 @@ function varargout = JLabelEditFiles(varargin)
 
 % Edit the above text to modify the response to help JLabelEditFiles
 
-% Last Modified by GUIDE v2.5 05-Mar-2012 10:57:33
+% Last Modified by GUIDE v2.5 07-Mar-2012 16:50:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -141,7 +141,7 @@ for i = 1:numel(handles.data.filetypes),
 end
 
 buttonNames = {'pushbutton_add','pushbutton_remove','pushbutton_load',...
-              'pushbutton_cancel','pushbutton_done'};
+              'pushbutton_loadwoexp','pushbutton_cancel','pushbutton_done'};
 for buttonNum = 1:length(buttonNames)
   SetButtonImage(handles.(buttonNames{buttonNum}));
 end
@@ -375,11 +375,7 @@ classifierfilename = fullfile(pathname,filename);
 if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
-if ~strcmp(handles.data.labelingMode,'Ground Truthing')
   [success,msg] = handles.data.SetClassifierFileName(classifierfilename);
-else
-  [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
-end
 if ~success,
   uiwait(waitdlg(msg,'Error loading file list'));
   return;
@@ -389,6 +385,39 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 % update status table
 UpdateStatusTable(handles);
 set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+set(handles.popupmode,'enable','off');
+
+% --- Executes on button press in pushbutton_loadwoexp.
+function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_loadwoexp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
+if ~strcmpi(res,'Yes'),
+  return;
+end
+
+[filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
+if ~ischar(filename),
+  return;
+end
+classifierfilename = fullfile(pathname,filename);
+if ~exist(classifierfilename,'file'),
+  uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
+end
+  [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
+if ~success,
+  uiwait(waitdlg(msg,'Error loading file list'));
+  return;
+end
+set(handles.editClassifier,'String',classifierfilename);
+set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
+% update status table
+UpdateStatusTable(handles);
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
 set(handles.pushbutton_cancel,'enable','off');
 set(handles.popupmode,'enable','off');
 
@@ -470,3 +499,5 @@ function popupmode_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
