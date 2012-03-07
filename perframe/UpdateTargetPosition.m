@@ -9,4 +9,6 @@ switch targettype,
     updatewingedfly(hfly,hfly_extra,pos);
   case 'larvacontour',
     updatelarvacontour(hfly,hfly_extra,pos);
+  case 'larvasamuel',
+    updatelarvasamuel(hfly,hfly_extra,pos);
 end

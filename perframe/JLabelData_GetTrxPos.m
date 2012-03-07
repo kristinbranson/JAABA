@@ -93,5 +93,43 @@ switch obj.targettype,
     pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
     pos.xcontour = obj.trx(fly).xcontour{ts + obj.trx(fly).off};
     pos.ycontour = obj.trx(fly).ycontour{ts + obj.trx(fly).off};
-
+    
+  case 'larvasamuel',
+    
+    
+    if nargin < 4,
+      pos.x = obj.trx(fly).x;
+      pos.y = obj.trx(fly).y;
+      pos.theta = obj.trx(fly).theta;
+      pos.a = obj.trx(fly).a;
+      pos.b = obj.trx(fly).b;
+      pos.xcontour = obj.trx(fly).xcontour;
+      pos.ycontour = obj.trx(fly).ycontour;
+      pos.xspine = obj.trx(fly).xspine;
+      pos.yspine = obj.trx(fly).yspine;
+      pos.xhead = obj.trx(fly).xhead;
+      pos.yhead = obj.trx(fly).yhead;
+      pos.xmid = obj.trx(fly).xmid;
+      pos.ymid = obj.trx(fly).ymid;
+      pos.xtail = obj.trx(fly).xtail;
+      pos.ytail = obj.trx(fly).ytail;
+      return;
+    end
+    
+    is = ts + obj.trx(fly).off;
+    pos.x = obj.trx(fly).x(is);
+    pos.y = obj.trx(fly).y(is);
+    pos.theta = obj.trx(fly).theta(is);
+    pos.a = obj.trx(fly).a(is);
+    pos.b = obj.trx(fly).b(is);
+    pos.xcontour = obj.trx(fly).xcontour{is};
+    pos.ycontour = obj.trx(fly).ycontour{is};
+    pos.xspine = obj.trx(fly).xspine(:,is);
+    pos.yspine = obj.trx(fly).yspine(:,is);
+    pos.xhead = obj.trx(fly).xhead(is);
+    pos.yhead = obj.trx(fly).yhead(is);
+    pos.xmid = obj.trx(fly).xmid(is);
+    pos.ymid = obj.trx(fly).ymid(is);
+    pos.xtail = obj.trx(fly).xtail(is);
+    pos.ytail = obj.trx(fly).ytail(is);
 end

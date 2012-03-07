@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+
+<params>
+  <targets
+      type="larvacontour"
+  />
+  <behaviors 
+      names="MyBehavior"
+      labelcolors=".7,0,0,0,0,.7"
+      />
+  <file 
+      moviefilename=""
+      trxfilename="trx.mat"
+      labelfilename="MyBehaviorLabels.mat"
+      perframedir="perframe"
+      featureparamfilename="params/WindowFeaturesKB_WingGrooming.xml"
+      featureconfigfile="params/featureConfigMWTContour.xml"
+      />
+    <perframe>
+      <params 
+        fov="3.141592653589793"
+        thetafil="0.0625,0.2500,0.3750,0.2500,0.0625"
+        nbodylengths_near="2.5"
+      />
+      <landmark_params 
+        arena_type="rectangle"
+        arena_center_mm_x="445.982"
+        arena_center_mm_y="392.643"
+        arena_width_mm="746.078"
+        arena_height_mm="732.210"
+      />
+    </perframe>
+
+  <plot>
+    <trx 
+	colormap="jet"
+	colormap_multiplier=".7"
+	/>
+    <labels 
+	colormap="line"
+	linewidth="3"
+	/>
+  </plot>
+
+</params>
