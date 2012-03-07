@@ -385,7 +385,6 @@ createCopyFromMenus(hObject);
 createDescriptionPanels(hObject);
 
 
-
 function readFeatureConfiguration(hObject)
 % Reads the configuration file that sets the default parameters.
 
@@ -396,51 +395,88 @@ configfile = handles.JLDobj.featureConfigFile;
 
 % Read the default parameters for different categories.
 categories = fieldnames(settings.defaults);
-for j = 1:numel(categories)
+
+if isempty(categories) 
+  % If no default have been specified in the config file.
+  
+  categories{1} = 'default';
   curParams = struct;
-  cur = settings.defaults.(categories{j});
   
   % Default values.
   for ndx = 1:numel(handles.winParams)
     curwinpname = handles.winParams{ndx};
-    curParams.default.values.(curwinpname) = cur.(curwinpname);
+    curParams.default.values.(curwinpname) = handles.defaultWinParams{ndx};
   end
   curParams.default.valid = true;
   curParams.default.values.sanitycheck = false;
-
+  
   % For each defined window computation.
   for ndx = 2:numel(handles.windowComp)
     % Copy the default values.
     curwname = handles.windowComp{ndx};
     for pndx = 1:numel(handles.winParams)
       curwinpname = handles.winParams{pndx};
-      curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
+      curParams.(curwname).values.(curwinpname) = handles.defaultWinParams{pndx};
     end
     
-    % Override the default window params for the current window computation type
-    if isfield(cur,curwname) 
-      curParams.(curwname).valid = true;
-      diffFields = fieldnames(cur.(curwname));
-      for dndx = 1:numel(diffFields)
-        if any(strcmp(handles.winParams,diffFields{dndx}))
-          curwinpname = diffFields{dndx};
-          curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
-        end
+    if ~isempty(handles.winextraParams{ndx})
+      extraParam = handles.winextraParams{ndx};
+      curParams.(curwname).values.(extraParam) = handles.winextraParams{ndx};
+    end
+    curParams.(curwname).valid = false;
+  end
+  handles.categ.(categories{1}) = curParams;
+  
+  
+else
+  % fill the window params for different feature categories.
+  
+  for j = 1:numel(categories)
+    curParams = struct;
+    cur = settings.defaults.(categories{j});
+    
+    % Default values.
+    for ndx = 1:numel(handles.winParams)
+      curwinpname = handles.winParams{ndx};
+      curParams.default.values.(curwinpname) = cur.(curwinpname);
+    end
+    curParams.default.valid = true;
+    curParams.default.values.sanitycheck = false;
+    
+    % For each defined window computation.
+    for ndx = 2:numel(handles.windowComp)
+      % Copy the default values.
+      curwname = handles.windowComp{ndx};
+      for pndx = 1:numel(handles.winParams)
+        curwinpname = handles.winParams{pndx};
+        curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
       end
       
-      if ~isempty(handles.winextraParams{ndx})
-        extraParam = handles.winextraParams{ndx};
-        if isfield(cur.(curwname),extraParam)
-          curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
-        else
-          curParams.(curwname).values.(extraParam) = '';
+      % Override the default window params for the current window computation type
+      if isfield(cur,curwname)
+        curParams.(curwname).valid = true;
+        diffFields = fieldnames(cur.(curwname));
+        for dndx = 1:numel(diffFields)
+          if any(strcmp(handles.winParams,diffFields{dndx}))
+            curwinpname = diffFields{dndx};
+            curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
+          end
         end
+        
+        if ~isempty(handles.winextraParams{ndx})
+          extraParam = handles.winextraParams{ndx};
+          if isfield(cur.(curwname),extraParam)
+            curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
+          else
+            curParams.(curwname).values.(extraParam) = '';
+          end
+        end
+      else
+        curParams.(curwname).valid = false;
       end
-    else
-      curParams.(curwname).valid = false;
     end
+    handles.categ.(categories{j}) = curParams;
   end
-  handles.categ.(categories{j}) = curParams;
 end
 
 % Now for each different perframe feature read the type default trans_types.
