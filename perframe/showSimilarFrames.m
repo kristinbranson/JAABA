@@ -261,8 +261,8 @@ relTrx = getRelTrx(handles,handles.frames{2});
 ptrx = labels.ptrx;
 ntrx = labels.ntrx;
 
-plotTrackInAutoMode(handles);
-poltTrackInManualMode(handles);
+plotPredictionsInAutoMode(handles);
+poltLabelsInManualMode(handles);
 
 %for row 2
 for t = 1:length(ptrx)
@@ -974,7 +974,7 @@ set(handles.text_timeline_prop,'String',s);
 
 guidata(hObject,handles);
 
-function plotTrackInAutoMode(handles)
+function plotPredictionsInAutoMode(handles)
 %for row 2
 
 relTrx = getRelTrx(handles,handles.frames{2});
@@ -1043,7 +1043,7 @@ for row = [1 3]
 end
 
 
-function poltTrackInManualMode(handles)
+function poltLabelsInManualMode(handles)
 
 %for row 2
 relTrx = getRelTrx(handles,handles.frames{2});
