@@ -6,6 +6,9 @@ model = struct('dim',{},'error',{},'dir',{},'tr',{},'alpha',{});
 scores = zeros(numEx,1);
 
 clk = tic;
+etimehist = [];
+etimehistlength = 5;
+nittoutput = 3;
 for itt = 1:numIters
   wkRule = findWeakRuleSamples(data,labels,wt,binVals,bins,params);
   
@@ -31,10 +34,14 @@ for itt = 1:numIters
   wt = initWt./(1+exp(tt));
   wt = wt./sum(wt);
   
-  if( nargin>7 && mod(itt,10)==0)
+  if( nargin>7 && mod(itt,nittoutput)==0)
     etime = toc(clk);
+    etimehist(end+1) = etime;
+    if numel(etimehist) > etimehistlength,
+      etimehist = etimehist(end-etimehistlength+1:end);
+    end
     obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
-      round(itt/numIters*100),round((numIters-itt)/10*etime));
+      round(itt/numIters*100),round((numIters-itt)/nittoutput*mean(etimehist)));
     drawnow();
     clk = tic;
   end
