@@ -22,7 +22,7 @@ function varargout = JLabelEditFiles(varargin)
 
 % Edit the above text to modify the response to help JLabelEditFiles
 
-% Last Modified by GUIDE v2.5 30-Jun-2011 18:40:04
+% Last Modified by GUIDE v2.5 07-Mar-2012 16:50:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -69,8 +69,14 @@ end
 handles.data.SetStatusFn( @(s) SetStatusEditFiles(handles.figure_JLabelEditFiles,s));
 handles.data.SetClearStatusFn( @() ClearStatusEditFiles(handles.figure_JLabelEditFiles));
 % initialize listbox
+set(handles.editClassifier,'String',handles.data.classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',numel(handles.data.expdirs));
 set(handles.statusMsg,'String','');
+set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing'});
+popupNdx = find(strcmp(get(handles.popupmode,'String'),handles.data.labelingMode));
+set(handles.popupmode,'Value',popupNdx);
+
+
 % height of a row in pixels
 handles.table_row_height_px = 22;
 
@@ -135,7 +141,7 @@ for i = 1:numel(handles.data.filetypes),
 end
 
 buttonNames = {'pushbutton_add','pushbutton_remove','pushbutton_load',...
-              'pushbutton_cancel','pushbutton_done'};
+              'pushbutton_loadwoexp','pushbutton_cancel','pushbutton_done'};
 for buttonNum = 1:length(buttonNames)
   SetButtonImage(handles.(buttonNames{buttonNum}));
 end
@@ -171,7 +177,7 @@ for i = 1:nfiles,
   file = handles.data.filetypes{i};
   [file_exists,timestamp] = handles.data.FileExists(file,v);
   if file_exists,
-    timestamp = datestr(timestamp,'yyyymmddTHHMMSS');
+    timestamp = datestr(timestamp);%,'yyyymmddTHHMMSS');
   end
   if JLabelData.IsRequiredFile(file),
     if file_exists,
@@ -187,7 +193,8 @@ for i = 1:nfiles,
     end
   end
 end
-set(handles.uitable_status,'Data',data,'Visible','on');
+tableSize = get(handles.uitable_status,'Position');
+set(handles.uitable_status,'Data',data,'Visible','on','ColumnWidth',{150 tableSize(3)-155});
 
 % --- Outputs from this function are returned to the command line.
 function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles) 
@@ -199,6 +206,7 @@ function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.data;
 varargout{2} = handles.success;
+varargout{3} = handles.data.labelingMode;
 delete(hObject);
 
 
@@ -291,6 +299,8 @@ if handles.data.filesfixable && ~handles.data.allfilesexist,
 end
 
 set(handles.pushbutton_cancel,'enable','off');
+set(handles.popupmode,'enable','off');
+
 
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
@@ -365,17 +375,51 @@ classifierfilename = fullfile(pathname,filename);
 if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
-[success,msg] = handles.data.SetClassifierFileName(classifierfilename);
+  [success,msg] = handles.data.SetClassifierFileName(classifierfilename);
 if ~success,
   uiwait(waitdlg(msg,'Error loading file list'));
   return;
 end
-
+set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
 set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
 set(handles.pushbutton_cancel,'enable','off');
+set(handles.popupmode,'enable','off');
+
+% --- Executes on button press in pushbutton_loadwoexp.
+function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_loadwoexp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
+if ~strcmpi(res,'Yes'),
+  return;
+end
+
+[filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
+if ~ischar(filename),
+  return;
+end
+classifierfilename = fullfile(pathname,filename);
+if ~exist(classifierfilename,'file'),
+  uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
+end
+  [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
+if ~success,
+  uiwait(waitdlg(msg,'Error loading file list'));
+  return;
+end
+set(handles.editClassifier,'String',classifierfilename);
+set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
+% update status table
+UpdateStatusTable(handles);
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+set(handles.popupmode,'enable','off');
 
 
 % --- Executes when user attempts to close figure_JLabelEditFiles.
@@ -407,3 +451,53 @@ set(handles.statusMsg,'String',s);
 function ClearStatusEditFiles(hObject)
 handles = guidata(hObject);
 set(handles.statusMsg,'String','');
+
+
+
+function edit5_Callback(hObject, eventdata, handles)
+% hObject    handle to editClassifier (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editClassifier as text
+%        str2double(get(hObject,'String')) returns contents of editClassifier as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editClassifier_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editClassifier (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in popupmode.
+function popupmode_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmode contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmode
+contents = cellstr(get(hObject,'String'));
+handles.data.labelingMode = contents{get(hObject,'Value')};
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmode_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
