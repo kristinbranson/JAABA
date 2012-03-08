@@ -9,6 +9,7 @@
       moviefilename="movie.ufmf"
       trxfilename="registered_trx.mat"
       labelfilename="labeledsharpturns.mat"
+      gt_labelfilename="gt_labeledsharpturns.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       rootoutputdir="/groups/branson/home/kabram/bowlData/out/Jdetect"
