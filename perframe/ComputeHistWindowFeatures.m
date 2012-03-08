@@ -180,19 +180,22 @@ end
 % find bin for each value -- notice the transpose
 nbins = numel(hist_edges)-1;
 bin = [];
+[~,bin(:,IDX.orig)] = histc(x_trans(IDX.orig,:)',hist_edges);
 
-if ismember('none',trans_types)
-  [~,bin(:,IDX.orig)] = histc(x_trans(IDX.orig,:)',hist_edges);
-end
-if IDX.abs>0
-  [~,bin(:,IDX.abs)] = histc(x_trans(IDX.abs,:)',hist_edges);
-end
-if IDX.flip>0
-    [~,bin(:,IDX.flip)] = histc(x_trans(IDX.flip,:)',hist_edges);
-end
-if IDX.rel>0
-  [~,bin(:,IDX.rel)] = histc(x_trans(IDX.rel,:)',rel_hist_edges);
-end
+% * No abs and flip transforms for hist. * 
+%
+% if ismember('none',trans_types)
+%   [~,bin(:,IDX.orig)] = histc(x_trans(IDX.orig,:)',hist_edges);
+% end
+% if IDX.abs>0
+%   [~,bin(:,IDX.abs)] = histc(x_trans(IDX.abs,:)',hist_edges);
+% end
+% if IDX.flip>0
+%     [~,bin(:,IDX.flip)] = histc(x_trans(IDX.flip,:)',hist_edges);
+% end
+% if IDX.rel>0
+%   [~,bin(:,IDX.rel)] = histc(x_trans(IDX.rel,:)',rel_hist_edges);
+% end
 
 bin(bin > nbins) = nbins;
 
@@ -235,35 +238,40 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = padgrab(res,nan,1,nbins,1+r+off,N+r+off,1,ntrans);
-    if ismember('none',trans_types),
-      
-      y(end+1:end+nbins,:) = res1(:,:,IDX.orig);
-      for bini = 1:nbins,
-        feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
-      end
+    y(end+1:end+nbins,:) = res1(:,:,IDX.orig);
+    for bini = 1:nbins,
+      feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
     end
     
-    if IDX.abs > 0,
-      y(end+1:end+nbins,:) = res1(:,:,IDX.abs);
-      for bini = 1:nbins,
-        feature_names{end+1} = {'stat','hist','trans','abs','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
-      end
-    end
-    
-    if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
-      for bini = 1:nbins,
-        y(end+1,:) = res1(bini,:,IDX.orig);
-        y(end,x<0) = res1(bini,x<0,IDX.flip);
-        feature_names{end+1} = {'stat','hist','trans','flip','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
-      end
-    end
-    
-    if IDX.rel>0,
-      for bini = 1:nbins,
-        y(end+1,:) = res1(bini,:,IDX.rel);
-        feature_names{end+1} = {'stat','hist','trans','relative','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
-      end
-    end
+%     if ismember('none',trans_types),
+%       
+%       y(end+1:end+nbins,:) = res1(:,:,IDX.orig);
+%       for bini = 1:nbins,
+%         feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
+%       end
+%     end
+%     
+%     if IDX.abs > 0,
+%       y(end+1:end+nbins,:) = res1(:,:,IDX.abs);
+%       for bini = 1:nbins,
+%         feature_names{end+1} = {'stat','hist','trans','abs','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
+%       end
+%     end
+%     
+%     if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
+%       for bini = 1:nbins,
+%         y(end+1,:) = res1(bini,:,IDX.orig);
+%         y(end,x<0) = res1(bini,x<0,IDX.flip);
+%         feature_names{end+1} = {'stat','hist','trans','flip','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
+%       end
+%     end
+%     
+%     if IDX.rel>0,
+%       for bini = 1:nbins,
+%         y(end+1,:) = res1(bini,:,IDX.rel);
+%         feature_names{end+1} = {'stat','hist','trans','relative','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)};
+%       end
+%     end
     
     if SANITY_CHECK,
       
@@ -286,49 +294,49 @@ for radiusi = 1:nradii,
         checkSanity(res_real(:),res_dumb(:),r,off,'hist','none');
       end
       
-      if IDX.abs > 0,
-        fastY = res1(:,:,IDX.abs);
-        res_real = fastY;
-        res_dumb = nan(nbins,N);
-        for n_dumb = 1:N,
-          tmp = abs(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
-          Z_dumb = nnz(~isnan(tmp));
-          if all(isnan(tmp)),
-            res_dumb(:,n_dumb) = nan;
-          else
-            tmp = histc(tmp,hist_edges);
-            tmp = [tmp(1:end-2),tmp(end-1)+tmp(end)];
-            res_dumb(:,n_dumb) = tmp/Z_dumb;
-          end
-        end
-        checkSanity(res_real(:),res_dumb(:),r,off,'hist','abs');        
-      end
-      
-      if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
-        fastY = [];
-        for bini = 1:nbins,
-          fastY(bini,:) = res1(bini,:,IDX.orig);
-          fastY(bini,x<0) = res1(bini,x<0,IDX.flip);
-        end
-        res_real = fastY;
-        res_dumb = nan(nbins,N);
-        for n_dumb = 1:N,
-          m = 1;
-          if x(n_dumb) < 0,
-            m = -1;
-          end
-          tmp = m*padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
-          Z_dumb = nnz(~isnan(tmp));
-          if all(isnan(tmp)),
-            res_dumb(:,n_dumb) = nan;
-          else
-            tmp = histc(tmp,hist_edges);
-            tmp = [tmp(1:end-2),tmp(end-1)+tmp(end)];
-            res_dumb(:,n_dumb) = tmp/Z_dumb;
-          end
-        end
-        checkSanity(res_real(:),res_dumb(:),r,off,'hist','flip');
-      end
+%       if IDX.abs > 0,
+%         fastY = res1(:,:,IDX.abs);
+%         res_real = fastY;
+%         res_dumb = nan(nbins,N);
+%         for n_dumb = 1:N,
+%           tmp = abs(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+%           Z_dumb = nnz(~isnan(tmp));
+%           if all(isnan(tmp)),
+%             res_dumb(:,n_dumb) = nan;
+%           else
+%             tmp = histc(tmp,hist_edges);
+%             tmp = [tmp(1:end-2),tmp(end-1)+tmp(end)];
+%             res_dumb(:,n_dumb) = tmp/Z_dumb;
+%           end
+%         end
+%         checkSanity(res_real(:),res_dumb(:),r,off,'hist','abs');        
+%       end
+%       
+%       if IDX.flip > 0 && ~( (r == 0) && (off == 0) && (IDX.abs > 0) ),
+%         fastY = [];
+%         for bini = 1:nbins,
+%           fastY(bini,:) = res1(bini,:,IDX.orig);
+%           fastY(bini,x<0) = res1(bini,x<0,IDX.flip);
+%         end
+%         res_real = fastY;
+%         res_dumb = nan(nbins,N);
+%         for n_dumb = 1:N,
+%           m = 1;
+%           if x(n_dumb) < 0,
+%             m = -1;
+%           end
+%           tmp = m*padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
+%           Z_dumb = nnz(~isnan(tmp));
+%           if all(isnan(tmp)),
+%             res_dumb(:,n_dumb) = nan;
+%           else
+%             tmp = histc(tmp,hist_edges);
+%             tmp = [tmp(1:end-2),tmp(end-1)+tmp(end)];
+%             res_dumb(:,n_dumb) = tmp/Z_dumb;
+%           end
+%         end
+%         checkSanity(res_real(:),res_dumb(:),r,off,'hist','flip');
+%       end
       
     end
   end

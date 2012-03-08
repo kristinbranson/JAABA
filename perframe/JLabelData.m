@@ -54,6 +54,7 @@ classdef JLabelData < handle
     % labels(expi).timestamp is the Matlab timestamp at which labels(expi)
     % was last set
     labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
+    gt_labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
     
     % labels for the current experiment and flies, represented as an array
     % such that labelidx(t+labelidx_off) is the index of the behavior for
@@ -101,6 +102,8 @@ classdef JLabelData < handle
     % labels(expi) was stored. 
     labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
       'datestr',{});
+    gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
+      'datestr',{});
     
     % computing per-frame properties
     perframe_params = {};
@@ -143,7 +146,7 @@ classdef JLabelData < handle
     configfilename = '';
     
     % constant: files per experiment directory
-    filetypes = {'movie','trx','label','perframedir','clipsdir'};
+    filetypes = {'movie','trx','label','perframedir','clipsdir','gt_label'};
     
     % config parameters
     
@@ -151,6 +154,7 @@ classdef JLabelData < handle
     moviefilename = 0;
     trxfilename = 0;
     labelfilename = 0;
+    gt_labelfilename = 0;
     perframedir = 0;
     clipsdir = 0;
     scores = 0;
@@ -208,9 +212,10 @@ classdef JLabelData < handle
     classifiervars = {'expdirs','outexpdirs','expnames',...
       'nflies_per_exp','sex_per_exp','frac_sex_per_exp',...
       'firstframes_per_exp','endframes_per_exp',...
-      'moviefilename','trxfilename','labelfilename','perframedir','clipsdir','featureparamsfilename',...
+      'moviefilename','trxfilename','labelfilename','perframedir','clipsdir',...,'featureparamsfilename',...
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
-      'classifierTS','confThresholds','scoreNorm'};%'windowfilename',
+      'classifierTS','confThresholds','scoreNorm','windowfeaturesparams','windowfeaturescellparams',...
+      'basicFeatureTable','featureWindowSize'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -257,14 +262,20 @@ classdef JLabelData < handle
     frameFig = [];
     distMat = [];
     bagModels = {};
-%     binVals = [];
-%     bins = [];
 
     % Confidence Thresholds
     confThresholds = zeros(1,0);
     
     % Retrain properly
     doUpdate = true;
+    
+    % Ground truthing or not
+    labelingMode = 'Normal';
+    
+    % Ground truthing suggestion
+    randomGTSuggestions = {};
+    thresholdGTSuggestions = [];
+    GTSuggestionMode = '';
     
   end
   
@@ -287,7 +298,7 @@ classdef JLabelData < handle
     
     % which files should go in the output directory
     function res = IsOutputFile(file)
-      res = ismember(file,{'label','clipsdir','scores'});
+      res = ismember(file,{'label','clipsdir','scores','gt_label'});
     end
     
     % which files are stored individually per fly (none anymore -- used to
@@ -318,7 +329,7 @@ classdef JLabelData < handle
   
   methods (Access=public)
 
-    %{
+    function obj = JLabelData(varargin)
     % obj = JLabelData(configfilename,...)
     %
     % constructor: first input should be the config file name. All other
@@ -343,8 +354,6 @@ classdef JLabelData < handle
     % clearstatusfn: handle to function that returns the status to the
     % default string
     % classifierfilename: name of classifier file to save/load classifier from
-    %}    
-    function obj = JLabelData(varargin)
  
       if nargin == 0 || isempty(varargin{1}),
         [filename,pathname] = uigetfile('*.xml','Choose config XML file');
@@ -401,7 +410,7 @@ classdef JLabelData < handle
           error(msg);
         end
       end
-      
+
       % perframedir
       i = find(strcmpi(s,'perframedir'),1);
       if ~isempty(i),
@@ -491,7 +500,7 @@ classdef JLabelData < handle
       val = all(flies == obj.flies) && (expi==obj.expi);
     end
     
-    %{
+    function [success,msg] = SetConfigFileName(obj,configfilename)
     % [success,msg] = SetConfigFileName(obj,configfilename)
     % Set and read config file. 
     % Reads the XML config file, then sets all the file names and paths.
@@ -501,8 +510,6 @@ classdef JLabelData < handle
     % labelnames, nbehaviors are also set by the config file. If not
     % included explicitly, the 'None' behavior is added. 'None' is put at
     % the end of the behavior list. 
-    %}
-    function [success,msg] = SetConfigFileName(obj,configfilename)
       
       success = false;
       msg = '';
@@ -531,6 +538,12 @@ classdef JLabelData < handle
         end
         if isfield(configparams.file,'labelfilename'),
           [success1,msg] = obj.SetLabelFileName(configparams.file.labelfilename);
+          if ~success1,
+            return;
+          end
+        end
+        if isfield(configparams.file,'gt_labelfilename'),
+          [success1,msg] = obj.SetGTLabelFileName(configparams.file.gt_labelfilename);
           if ~success1,
             return;
           end
@@ -631,7 +644,7 @@ classdef JLabelData < handle
       
     end
     
-    %{
+    function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
     % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
     % Compute and store the window data for experiment expi, flies flies,
     % and all frames ts. 
@@ -642,8 +655,6 @@ classdef JLabelData < handle
     % ComputeWindowDataChunk. Then, it updates the frames that are missing
     % window data. It proceeds in this loop until there are not frames
     % in the input ts missing window data. 
-    %}
-    function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
       
       success = false; msg = '';
       obj.CheckExp(expi); obj.CheckFlies(flies);
@@ -731,7 +742,7 @@ classdef JLabelData < handle
       
     end
 
-    %{
+    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
     % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
     % Computes a chunk of windowdata near frame t for experiment expi and
     % flies flies. if mode is 'start', then the chunk will start at t. if
@@ -753,8 +764,6 @@ classdef JLabelData < handle
     % To predict over the whole movie we use forceCalc which
     % forces the function to recalculate all the features even though they
     % were calculated before.
-    %}
-    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
       
       success = false; msg = '';
       
@@ -937,11 +946,10 @@ classdef JLabelData < handle
       % TODO: remove clearwindow features.
     end
     
-    
+    function [success,msg] = SetMovieFileName(obj,moviefilename)
     % change/set the name of the movie within the experiment directory
     % will fail if movie files don't exist for any of the current
     % experiment directories (checked by CheckMovies)
-    function [success,msg] = SetMovieFileName(obj,moviefilename)
 
       success = false; msg = '';
 
@@ -963,10 +971,10 @@ classdef JLabelData < handle
       
     end
     
+    function [successes,msg] = CheckMovies(obj,expis)
     % [successes,msg] = CheckMovies(obj,expis)
     % check that the movie files exist and can be read for the input
     % experiments.
-    function [successes,msg] = CheckMovies(obj,expis)
       
       successes = []; msg = '';
       
@@ -1025,13 +1033,13 @@ classdef JLabelData < handle
       
     end
     
-    % [success,msg] = SetTrxFileName(obj,trxfilename)
+    function [success,msg] = SetTrxFileName(obj,trxfilename)
+      % [success,msg] = SetTrxFileName(obj,trxfilename)
     % set the name of the trx file within the experiment directory. this
     % does not currently check for missing/bad trx files, or replace
     % preloaded trx data, so you really shouldn't call it if expdirs are
     % loaded. (TODO)
-    function [success,msg] = SetTrxFileName(obj,trxfilename)
-      
+
       success = false;
       msg = '';
       if ischar(trxfilename),
@@ -1047,11 +1055,11 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = SetLabelFileName(obj,labelfilename)
     % [success,msg] = SetLabelFileName(obj,labelfilename)
     % set the name of the label file within the experiment directory. this
     % does not currently update labelidx, and probably should not be called
     % once an experiment is open. 
-    function [success,msg] = SetLabelFileName(obj,labelfilename)
       
       success = false;
       msg = '';
@@ -1072,10 +1080,39 @@ classdef JLabelData < handle
         
         obj.labelfilename = labelfilename;
         [success,msg] = obj.UpdateStatusTable('label');   
-        
       end
       
     end
+
+    function [success,msg] = SetGTLabelFileName(obj,gt_labelfilename)
+    % [success,msg] = SetGTLabelFileName(obj,labelfilename)
+    % set the name of the *ground truth* label file within the experiment directory. this
+    % does not currently update labelidx, and probably should not be called
+    % once an experiment is open. 
+
+      success = false;
+      msg = '';
+
+      if ischar(gt_labelfilename),
+        if ischar(obj.gt_labelfilename) && strcmp(gt_labelfilename,obj.gt_labelfilename),
+          success = true;
+          return;
+        end
+
+        % reload labels from file
+        for expi = 1:obj.nexps,
+          [success1,msg] = obj.LoadLabelsFromFile(expi);
+          if ~success1,
+            return;
+          end
+        end
+        
+        obj.gt_labelfilename = gt_labelfilename;
+        [success,msg] = obj.UpdateStatusTable('gt_label');   
+      end
+      
+    end
+
     
     function [success,msg] = SetClassifierType(obj,classifiertype)
 
@@ -1091,43 +1128,42 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = LoadLabelsFromFile(obj,expi)
     % [success,msg] = LoadLabelsFromFile(obj,expi)
     % If the label file exists, this function loads labels for experiment
     % expi into obj.labels. Otherwise, it sets the labels to be empty. This
     % does not currently update the windowdata and labelidx (TODO). 
-    function [success,msg] = LoadLabelsFromFile(obj,expi)
       
-      success = false;
-      msg = '';
-      
+      success = false; msg = '';
       labelfilename = obj.GetFile('label',expi);
+      
       if exist(labelfilename,'file'),
 
         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
-
-%         try
-          loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
-          obj.labels(expi).t0s = loadedlabels.t0s;
-          obj.labels(expi).t1s = loadedlabels.t1s;
-          obj.labels(expi).names = loadedlabels.names;
-          obj.labels(expi).flies = loadedlabels.flies;
-          obj.labels(expi).off = loadedlabels.off;
-          obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-          obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-          obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
-          if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-            loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-            obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
-            obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
-          else
-            obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-            obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
-          end
-%         catch ME,
-%           msg = getReport(ME);
-%           obj.ClearStatus();
-%           return;
-%         end
+        
+        %         try
+        loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+        obj.labels(expi).t0s = loadedlabels.t0s;
+        obj.labels(expi).t1s = loadedlabels.t1s;
+        obj.labels(expi).names = loadedlabels.names;
+        obj.labels(expi).flies = loadedlabels.flies;
+        obj.labels(expi).off = loadedlabels.off;
+        obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+        obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+        obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
+        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+          obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
+          obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
+        else
+          obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+          obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+        end
+        %         catch ME,
+        %           msg = getReport(ME);
+        %           obj.ClearStatus();
+        %           return;
+        %         end
         
         obj.ClearStatus();
         
@@ -1153,22 +1189,83 @@ classdef JLabelData < handle
       
     end
  
-    
-    % [success,msg] = SetPerFrameDir(obj,perframedir)
-    % Sets the per-frame directory name within the experiment directory.
-    % Currently, this does not change the cached per-frame data or check
-    % that all the per-frame files necessary are within the directory
-    % (TODO).
-    function [success,msg] = SetPerFrameDir(obj,perframedir)
+    function [success,msg] = LoadGTLabelsFromFile(obj,expi)
+    % [success,msg] = LoadGTLabelsFromFile(obj,expi)
+    % If the label file exists, this function loads labels for experiment
+    % expi into obj.gt_labels. Otherwise, it sets the gt_labels to be empty. This
+    % does not currently update the windowdata and labelidx (TODO). 
       
       success = false; msg = '';
+      
+      labelfilename = obj.GetFile('gt_label',expi);
 
+      if exist(labelfilename,'file'),
+        
+        obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
+        
+        %         try
+        loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+        obj.gt_labels(expi).t0s = loadedlabels.t0s;
+        obj.gt_labels(expi).t1s = loadedlabels.t1s;
+        obj.gt_labels(expi).names = loadedlabels.names;
+        obj.gt_labels(expi).flies = loadedlabels.flies;
+        obj.gt_labels(expi).off = loadedlabels.off;
+        obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+        obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+        obj.gt_labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
+        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+          obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
+          obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
+        else
+          obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+          obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+        end
+        %         catch ME,
+        %           msg = getReport(ME);
+        %           obj.ClearStatus();
+        %           return;
+        %         end
+        
+        obj.ClearStatus();
+        
+      else
+        
+        obj.gt_labels(expi).t0s = {};
+        obj.gt_labels(expi).t1s = {};
+        obj.gt_labels(expi).names = {};
+        obj.gt_labels(expi).flies = [];
+        obj.gt_labels(expi).off = [];
+        obj.gt_labels(expi).timestamp = [];
+        obj.gt_labels(expi).imp_t0s = {};
+        obj.gt_labels(expi).imp_t1s = {};
+        obj.gt_labelstats(expi).nflies_labeled = 0;
+        obj.gt_labelstats(expi).nbouts_labeled = 0;
+        obj.gt_labelstats(expi).datestr = 'never';
+        
+      end
+      
+      % TODO: update windowdata
+      
+      success = true;
+      
+    end
+    
+    function [success,msg] = SetPerFrameDir(obj,perframedir)
+      % [success,msg] = SetPerFrameDir(obj,perframedir)
+      % Sets the per-frame directory name within the experiment directory.
+      % Currently, this does not change the cached per-frame data or check
+      % that all the per-frame files necessary are within the directory
+      % (TODO).
+      
+      success = false; msg = '';
+      
       if ischar(perframedir),
         if ischar(obj.perframedir) && strcmp(perframedir,obj.perframedir),
           success = true;
           return;
         end
-
+        
         obj.perframedir = perframedir;
         
         % TODO: check per-frame directories are okay, remove bad
@@ -1178,10 +1275,10 @@ classdef JLabelData < handle
       end
       
     end
-
+    
+    function [success,msg] = SetClipsDir(obj,clipsdir)
     % [success,msg] = SetClipsDir(obj,clipsdir)
     % Sets the clips directory name within the experiment directory.
-    function [success,msg] = SetClipsDir(obj,clipsdir)
       
       success = false;
       msg = '';
@@ -1204,10 +1301,10 @@ classdef JLabelData < handle
       
     end
 
+    function [success,msg] = SetDefaultPath(obj,defaultpath)
     % [success,msg] = SetDefaultPath(obj,defaultpath)
     % sets the default path to load experiments from. only checks for
     % existence of the directory.
-    function [success,msg] = SetDefaultPath(obj,defaultpath)
       
       success = false;
       msg = '';
@@ -1225,11 +1322,11 @@ classdef JLabelData < handle
 
     end
     
+    function [success,msg] = SetRootOutputDir(obj,rootoutputdir)
     % [success,msg] = SetRootOutputDir(obj,rootoutputdir)
     % sets the root directory for outputing files. currently, it does not
     % update labels, etc. or recheck for the existence of all the required
     % files. (TODO)
-    function [success,msg] = SetRootOutputDir(obj,rootoutputdir)
       
       success = true;
       msg = '';
@@ -1254,6 +1351,7 @@ classdef JLabelData < handle
       
     end    
     
+    function [success,msg] = SetClassifierFileName(obj,classifierfilename)
     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
     % Sets the name of the classifier file. If the classifier file exists, 
     % it loads the data stored in the file. This involves removing all the
@@ -1262,7 +1360,6 @@ classdef JLabelData < handle
     % experiments to be those listed in the classifier file, clearing all
     % the previously computed window data and computing the window data for
     % all the labeled frames. 
-    function [success,msg] = SetClassifierFileName(obj,classifierfilename)
       
       success = false;
       msg = '';
@@ -1272,7 +1369,7 @@ classdef JLabelData < handle
 %         try
           obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
-          loadeddata = load(obj.classifierfilename,obj.classifiervars{:});
+          loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
 
           % remove all experiments
           obj.RemoveExpDirs(1:obj.nexps);
@@ -1303,8 +1400,16 @@ classdef JLabelData < handle
           if ~success,error(msg);end
           
           % featureparamsfilename
-          [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
-          if ~success,error(msg);end
+%           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
+%           if ~success,error(msg);end
+          % load actual window features params instead of filename.
+          if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
+              'basicFeatureTable','featureWindowSize'}))
+            obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
+              loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
+              loadeddata.featureWindowSize);
+          end
+          
       
           % rootoutputdir
           [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
@@ -1371,7 +1476,7 @@ classdef JLabelData < handle
 
     end
     
-    function SetClassifierFileNameWoExp(obj,classifierfilename)
+    function [success,msg] = SetClassifierFileNameWoExp(obj,classifierfilename)
 
       success = false;
       msg = '';
@@ -1383,31 +1488,74 @@ classdef JLabelData < handle
 
           loadeddata = load(obj.classifierfilename,obj.classifiervars{:});
 
-%{          
           % remove all experiments
           obj.RemoveExpDirs(1:obj.nexps);
-          % set experiment directories
-          obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
-            loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
-            loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp); 
-%}
+
+          % set config file
+          if ~strcmp(obj.configfilename,'configfilename'),
+            obj.SetConfigFileName(loadeddata.configfilename);
+          end
+
+          % set movie
+          [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
+          if ~success,error(msg);end
+
+          % trx
+          [success,msg] = obj.SetTrxFileName(loadeddata.trxfilename);
+          if ~success,error(msg);end
+      
+          % label
+          [success,msg] = obj.SetLabelFileName(loadeddata.labelfilename);
+          if ~success,error(msg);end
+      
+          % perframedir
+          [success,msg] = obj.SetPerFrameDir(loadeddata.perframedir);
+          if ~success,error(msg);end
+
+          % clipsdir
+          [success,msg] = obj.SetClipsDir(loadeddata.clipsdir);
+          if ~success,error(msg);end
+
+          % featureparamsfilename
+%           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
+%           if ~success,error(msg);end
+
+          % load actual window features params instead of filename.
+          if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
+              'basicFeatureTable','featureWindowSize'}))
+            obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
+              loadeddata.windowfeaturescellParams,loadeddata.basicFeatureTable,...
+              loadeddata.featureWindowSize);
+          end
+          
+          % rootoutputdir
+          [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
+          if ~success,error(msg); end
+
           [success,msg] = obj.UpdateStatusTable();
           if ~success, error(msg); end
-                                       
+                         
+
           obj.classifier = loadeddata.classifier;
           obj.classifiertype = loadeddata.classifiertype;
           obj.classifierTS = loadeddata.classifierTS;
           obj.classifier_params = loadeddata.classifier_params;
           obj.windowdata.scoreNorm = loadeddata.scoreNorm;
           obj.confThresholds = loadeddata.confThresholds;
+          obj.classifierfilename = classifierfilename;
+          paramFields = fieldnames(loadeddata.classifier_params);
+          for ndx = 1:numel(paramFields)
+            obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
+          end
+          obj.ClearCachedPerExpData();
           obj.ClearStatus();
       end
     end
 
+    function [success,msg] = PreLoadLabeledData(obj)
     % [success,msg] = PreLoadLabeledData(obj)
     % This function precomputes any missing window data for all labeled
     % training examples by calling PreLoadWindowData on all labeled frames.
-    function [success,msg] = PreLoadLabeledData(obj)
 
       success = false; msg = '';
       
@@ -1431,9 +1579,9 @@ classdef JLabelData < handle
       
     end
     
+    function SaveScores(obj,allScores,expi)
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
-    function SaveScores(obj,allScores,expi)
       scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
       sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
@@ -1501,14 +1649,12 @@ classdef JLabelData < handle
       obj.LoadScores(expi,sfn);
     end
     
-    
+    function SaveClassifier(obj)
     % SaveClassifier(obj)
     % This function saves the current classifier to the file
     % ons.classifierfilename. It first constructs a struct representing the
     % training data last used to train the classifier, then adds all the
-    % data described in obj.classifiervars. 
-    function SaveClassifier(obj)
-      
+    % data described in obj.classifiervars.       
       
       s = struct;
       s.classifierTS = obj.classifierTS;
@@ -1535,12 +1681,14 @@ classdef JLabelData < handle
       
     end
 
+    function SaveLabels(obj,expis)
     % SaveLabels(obj,expis)
     % For each experiment in expis, save the current set of labels to file.
     % A backup of old labels is made if they exist and stored in
     % <labelfilename>~
-    function SaveLabels(obj,expis)
-      
+    
+      if isempty(obj.labels), return; end
+    
       if nargin<2
         expis = 1:obj.nexps;
       end
@@ -1549,6 +1697,7 @@ classdef JLabelData < handle
       obj.StoreLabels();
       
       for i = expis,
+        
         
         lfn = GetFile(obj,'label',i,true);
         obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
@@ -1580,6 +1729,7 @@ classdef JLabelData < handle
 %           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
 %         end
       end
+
       
       [success,msg] = obj.UpdateStatusTable('label');
       if ~success,
@@ -1589,13 +1739,70 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
 
+    function SaveGTLabels(obj,expis)
+    % SaveGTLabels(obj,expis)
+    % For each experiment in expis, save the current set of labels to file.
+    % A backup of old labels is made if they exist and stored in
+    % <labelfilename>~
+
+      if isempty(obj.gt_labels), return; end
+      
+      if nargin<2
+        expis = 1:obj.nexps;
+      end
+      
+      % store labels in labelidx
+      obj.StoreLabels();
+      
+      for i = expis,
+
+        lfn = GetFile(obj,'gt_label',i,true);
+        obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
+
+        didbak = false;
+        if exist(lfn,'file'),
+          [didbak,msg] = copyfile(lfn,[lfn,'~']);
+          if ~didbak,
+            warning('Could not create backup of %s: %s',lfn,msg);
+          end
+        end
+
+        t0s = obj.gt_labels(i).t0s; %#ok<NASGU>
+        t1s = obj.gt_labels(i).t1s; %#ok<NASGU>
+        names = obj.gt_labels(i).names; %#ok<NASGU>
+        flies = obj.gt_labels(i).flies; %#ok<NASGU>
+        off = obj.gt_labels(i).off; %#ok<NASGU>
+        timestamp = obj.gt_labels(i).timestamp; %#ok<NASGU>
+        imp_t0s = obj.gt_labels(i).imp_t0s; %#ok<NASGU>
+        imp_t1s = obj.gt_labels(i).imp_t1s; %#ok<NASGU>
+        
+%         try
+          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s');
+%         catch ME,
+%           if didbak,
+%             [didundo,msg] = copyfile([lfn,'~'],lfn);
+%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end
+%           end
+%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
+%         end
+      end
+
+      
+      [success,msg] = obj.UpdateStatusTable('gt_label');
+      if ~success,
+        error(msg);
+      end
+
+      obj.ClearStatus();
+    end
+    
+    function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
+        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
     % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
     % Changes what experiments are currently being used for this
     % classifier. This function calls RemoveExpDirs to remove all current
     % experiments not in expdirs, then calls AddExpDirs to add the new
     % experiment directories. 
-    function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
-        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
 
       success = false;
       msg = '';
@@ -1673,10 +1880,10 @@ classdef JLabelData < handle
       nflies = obj.nflies_per_exp(expi);
     end
     
+    function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
     % [success,msg] = GetTrxInfo(obj,expi)
     % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
     % for experiment expi. This may require loading in trajectories. 
-    function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
       success = true;
       msg = '';
       if nargin < 3,
@@ -1775,10 +1982,10 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
     % then it will be preloaded. 
-    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
 
       success = false; msg = '';
       
@@ -1855,6 +2062,11 @@ classdef JLabelData < handle
         obj.RemoveExpDirs(obj.nexps);
         return;
       end
+      [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
+      if ~success1,
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
 
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
@@ -1919,11 +2131,11 @@ classdef JLabelData < handle
       
     end
    
-    % [success,msg] = RemoveExpDirs(obj,expi)
+    function [success,msg] = RemoveExpDirs(obj,expi)
+      % [success,msg] = RemoveExpDirs(obj,expi)
     % Removes experiments in expi from the GUI. If the currently loaded
     % experiment is removed, then a different experiment may be preloaded. 
-    function [success,msg] = RemoveExpDirs(obj,expi)
-      
+
       success = false;
       msg = '';
       
@@ -1951,6 +2163,8 @@ classdef JLabelData < handle
       if ~numel(obj.endframes_per_exp)<expi; obj.endframes_per_exp(expi) = []; end
       if ~numel(obj.labels)<expi; obj.labels(expi) = []; end
       if ~numel(obj.labelstats)<expi; obj.labelstats(expi) = []; end
+      if ~numel(obj.gt_labels)<expi; obj.gt_labels(expi) = []; end
+      if ~numel(obj.gt_labelstats)<expi; obj.gt_labelstats(expi) = []; end
       obj.nexps = obj.nexps - numel(expi);
       % TODO: exp2labeloff
 
@@ -1991,6 +2205,10 @@ classdef JLabelData < handle
         obj.scoredata.t(idxcurr) = [];
         obj.scoredata.timestamp(idxcurr) = [];
       end
+      
+      if ~isempty(obj.randomGTSuggestions)
+        obj.randomGTSuggestions(expi) = [];
+      end
 
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
@@ -2012,9 +2230,9 @@ classdef JLabelData < handle
       
     end
 
+    function res = GetFileName(obj,file)
     % res = GetFileName(obj,file)
     % Get base name of file of the input type file.
-    function res = GetFileName(obj,file)
       switch file,
         case 'movie',
           res = obj.moviefilename;
@@ -2022,8 +2240,8 @@ classdef JLabelData < handle
           res = obj.trxfilename;
         case 'label',
           res = obj.labelfilename;
-%         case 'window',
-%           res = obj.windowfilename;
+        case 'gt_label',
+            res = obj.gt_labelfilename;            
         case {'perframedir','perframe'},
           res = obj.perframedir;
         case {'clipsdir','clips'},
@@ -2037,10 +2255,10 @@ classdef JLabelData < handle
       end
     end
     
-    % [filename,timestamp] = GetFile(obj,file,expi)
-    % Get the full path to the file of type file for experiment expi. 
     function [filename,timestamp] = GetFile(obj,file,expi,dowrite)
-      
+        % [filename,timestamp] = GetFile(obj,file,expi)
+    % Get the full path to the file of type file for experiment expi. 
+  
       if nargin < 4,
         dowrite = false;
       end
@@ -2109,10 +2327,10 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = GenerateMissingFiles(obj,expi)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
     % TODO: implement this!
-    function [success,msg] = GenerateMissingFiles(obj,expi)
       
       success = true;
       msg = '';
@@ -2207,12 +2425,13 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
     % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
     % Sets the name of the file describing the features to use to
     % featureparamsfilename. These parameters are read in. Currently, the
     % window data and classifier, predictions are not changed. (TODO)
-    function [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
-      success = false;
+
+    success = false;
       msg = '';
       
       if ischar(obj.featureparamsfilename) && strcmp(featureparamsfilename,obj.featureparamsfilename),
@@ -2250,10 +2469,9 @@ classdef JLabelData < handle
       windowfeaturescellparams = obj.windowfeaturescellparams; %#ok<PROP>
     end  
     
-    
+    function [filenames,timestamps] = GetPerframeFiles(obj,expi,dowrite)
     % [filenames,timestamps] = GetPerFrameFiles(obj,file,expi)
     % Get the full path to the per-frame mat files for experiment expi
-    function [filenames,timestamps] = GetPerframeFiles(obj,expi,dowrite)
       
       if nargin < 3,
         dowrite = false;
@@ -2292,11 +2510,11 @@ classdef JLabelData < handle
       end
     end
     
+    function [success,msg] = UpdateStatusTable(obj,filetypes,expis)
     % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
     % Update the tables of what files exist for what experiments. This
     % returns false if all files were in existence or could be generated
     % and now they are/can not. 
-    function [success,msg] = UpdateStatusTable(obj,filetypes,expis)
 
       msg = '';
       success = false;
@@ -2388,9 +2606,9 @@ classdef JLabelData < handle
       
     end
 
+    function [fe,ft] = FileExists(obj,file,expi)
     % [fe,ft] = FileExists(obj,file,expi)
     % Returns whether the input file exists for the input experiment. 
-    function [fe,ft] = FileExists(obj,file,expi)
       filei = find(strcmpi(file,obj.filetypes),1);
       if isempty(filei),
         error('file type %s does not match any known file type',file);
@@ -2402,8 +2620,8 @@ classdef JLabelData < handle
       ft = obj.filetimestamps(expi,filei);
     end
 
-    % A generic function that return track info.
     function out = GetTrxValues(obj,infoType,expi,flies,ts)
+    % A generic function that return track info.
 
       if numel(expi) ~= 1,
         error('expi must be a scalar');
@@ -2542,21 +2760,20 @@ classdef JLabelData < handle
       
     end
     
-    
+    function pos = GetTrxPos1(varargin)
     % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
     % Returns the position for the input experiment, SINGLE fly, and
     % frames. If ts is not input, then all frames are returned. 
-    function pos = GetTrxPos1(varargin)
 
       % moved to separate file so that function could be easily modified
       pos = JLabelData_GetTrxPos(varargin{:});
 
     end
 
+    function sex = GetSex(obj,expi,fly,ts,fast)
     % x = GetSex(obj,expi,fly,ts)
     % Returns the sex for the input experiment, SINGLE fly, and
     % frames. If ts is not input, then all frames are returned. 
-    function sex = GetSex(obj,expi,fly,ts,fast)
 
       if ~obj.hassex,
         sex = '?';
@@ -2589,10 +2806,10 @@ classdef JLabelData < handle
 
     end
 
+    function sex = GetSex1(obj,expi,fly,t)
     % x = GetSex1(obj,expi,fly,t)
     % Returns the sex for the input experiment, SINGLE fly, and
     % SINGLE frame. 
-    function sex = GetSex1(obj,expi,fly,t)
 
       if ~obj.hassex,
         sex = '?';
@@ -2619,21 +2836,19 @@ classdef JLabelData < handle
 
     end
     
+    function sexfrac = GetSexFrac(obj,expi,fly)
     % x = GetSexFrac(obj,expi,fly)
     % Returns a struct indicating the fraction of frames for which the sex
     % of the fly is M, F
-    function sexfrac = GetSexFrac(obj,expi,fly)
 
       sexfrac = obj.frac_sex_per_exp{expi}(fly);
 
     end
-
     
+    function t0 = GetTrxFirstFrame(obj,expi,flies)
     % t0 = GetTrxFirstFrame(obj,expi,flies)
     % Returns the firstframes for the input experiment and flies. If flies
     % is not input, then all flies are returned. 
-    function t0 = GetTrxFirstFrame(obj,expi,flies)
-
       if numel(expi) ~= 1,
         error('expi must be a scalar');
       end
@@ -2647,10 +2862,10 @@ classdef JLabelData < handle
       
     end
 
+    function t1 = GetTrxEndFrame(obj,expi,flies)
     % t1 = GetTrxEndFrame(obj,expi,flies)
     % Returns the endframes for the input experiment and flies. If flies
     % is not input, then all flies are returned. 
-    function t1 = GetTrxEndFrame(obj,expi,flies)
 
       if numel(expi) ~= 1,
         error('expi must be a scalar');
@@ -2673,6 +2888,7 @@ classdef JLabelData < handle
       thresholds =obj.confThresholds(ndx) ;
     end
     
+    function [success,msg] = PreLoad(obj,expi,flies)
     % [success,msg] = PreLoad(obj,expi,flies)
     % Preloads data associated with the input experiment and flies. If
     % neither the experiment nor flies are changing, then we do nothing. If
@@ -2681,7 +2897,6 @@ classdef JLabelData < handle
     % into labelidx for the new experiment and flies. We load the per-frame
     % data for this experiment and flies. If this is a different
     % experiment, then we load in the trajectories for this experiment.  
-    function [success,msg] = PreLoad(obj,expi,flies)
       
       success = false;
       msg = '';
@@ -2785,9 +3000,9 @@ classdef JLabelData < handle
       
     end
     
+    function ClearCachedPerExpData(obj)
     % ClearCachedPerExpData(obj)
     % Clears all cached data for the currently loaded experiment
-    function ClearCachedPerExpData(obj)
       obj.trx = {};
       obj.expi = 0;
       obj.flies = nan(size(obj.flies));
@@ -2803,10 +3018,10 @@ classdef JLabelData < handle
       obj.suggestedidx = [];
     end
     
+    function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
     % [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies)
     % Returns the labelidx for the input experiment and flies read from
     % labels. 
-    function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
 
       if ~isempty(obj.expi) && numel(flies) == numel(obj.flies) && obj.IsCurFly(expi,flies),
         if nargin < 4,
@@ -2846,10 +3061,10 @@ classdef JLabelData < handle
       
     end
 
+    function [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
     % [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
     % Returns the per-frame data for the input experiment, flies, and
     % property. 
-    function [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
 
       if ischar(prop),
         prop = find(strcmp(prop,handles.perframefn),1);
@@ -2889,10 +3104,10 @@ classdef JLabelData < handle
 
     end
 
+    function perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
     % perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
     % Returns the per-frame data for the input experiment, flies, and
     % property. 
-    function perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
 
 %       if ischar(prop),
 %         prop = find(strcmp(prop,handles.perframefn),1);
@@ -2919,7 +3134,6 @@ classdef JLabelData < handle
       perframedata = tmp.data{flies(1)}(t+off);
 
     end
-
     
     function [prediction,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
 
@@ -2959,7 +3173,6 @@ classdef JLabelData < handle
       end
     end
     
-    
     function scores = GetValidatedScores(obj,expi,flies,T0,T1)
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
@@ -2978,7 +3191,6 @@ classdef JLabelData < handle
       end
       
     end
-    
         
     function scores = GetLoadedScores(obj,expi,flies,T0,T1)
       if nargin<4
@@ -2999,8 +3211,6 @@ classdef JLabelData < handle
       
     end
     
-    
-    
     function scores = GetOldScores(obj,expi,flies)
       T0 = max(obj.GetTrxFirstFrame(expi,flies));
       T1 = min(obj.GetTrxEndFrame(expi,flies));
@@ -3017,11 +3227,11 @@ classdef JLabelData < handle
       
     end
     
+    function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
     % [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
     % Returns whether the behavior is labeled as behaviori for experiment
     % expi, flies from frames T0 to T1. If T0 and T1 are not input, then
     % firstframe to endframe are used. 
-    function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
 
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
         if nargin < 4,
@@ -3050,9 +3260,9 @@ classdef JLabelData < handle
       
     end
 
+    function labels_curr = GetLabels(obj,expi,flies)
     % labels_curr = GetLabels(obj,expi,flies)
     % Returns the labels for the input 
-    function labels_curr = GetLabels(obj,expi,flies)
 
       labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'off',0,'imp_t0s',[],'imp_t1s',[]);
       
@@ -3068,16 +3278,22 @@ classdef JLabelData < handle
       if expi == obj.expi && all(flies == obj.flies),
         obj.StoreLabels();
       end
+      
+      if strcmpi(obj.labelingMode,'Ground Truthing')
+        labelsToUse = obj.gt_labels;
+      else
+        labelsToUse = obj.labels;
+      end
 
-      [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
+      [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
       if ism,
-        labels_curr.t0s = obj.labels(expi).t0s{fliesi};
-        labels_curr.t1s = obj.labels(expi).t1s{fliesi};
-        labels_curr.names = obj.labels(expi).names{fliesi};
-        labels_curr.off = obj.labels(expi).off(fliesi);
-        if isfield(obj.labels(expi),'imp_t0s')
-          labels_curr.imp_t0s = obj.labels(expi).imp_t0s{fliesi};
-          labels_curr.imp_t1s = obj.labels(expi).imp_t1s{fliesi};
+        labels_curr.t0s = labelsToUse(expi).t0s{fliesi};
+        labels_curr.t1s = labelsToUse(expi).t1s{fliesi};
+        labels_curr.names = labelsToUse(expi).names{fliesi};
+        labels_curr.off = labelsToUse(expi).off(fliesi);
+        if isfield(labelsToUse(expi),'imp_t0s')
+          labels_curr.imp_t0s = labelsToUse(expi).imp_t0s{fliesi};
+          labels_curr.imp_t1s = labelsToUse(expi).imp_t1s{fliesi};
         end
       else
 %         if expi ~= obj.expi,
@@ -3090,10 +3306,10 @@ classdef JLabelData < handle
       
     end
 
+    function StoreLabels(obj)
     % Store labels cached in labelidx for the current experiment and flies
     % to labels structure. This is when the timestamp on labels gets
     % updated. 
-    function StoreLabels(obj)
       
       % flies not yet initialized
       if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
@@ -3140,23 +3356,33 @@ classdef JLabelData < handle
         newlabels.imp_t1s = i1s - labelidx_off;
       end
       
-      [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
-      if ~ism,
-        j = size(obj.labels(expi).flies,1)+1;
+      % Store labels according to the mode
+      if strcmpi(obj.labelingMode,'Ground Truthing')
+        labelsToUse = 'gt_labels';
+        labelstatsToUse = 'gt_labelstats';
+      else
+        labelsToUse = 'labels';
+        labelstatsToUse = 'labelstats';
       end
-      obj.labels(expi).t0s{j} = newlabels.t0s;
-      obj.labels(expi).t1s{j} = newlabels.t1s;
-      obj.labels(expi).names{j} = newlabels.names;
-      obj.labels(expi).flies(j,:) = flies;
-      obj.labels(expi).off(j) = labelidx_off;
-      obj.labels(expi).timestamp = now;
-      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
+      
+      [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+      if ~ism,
+        j = size(obj.(labelsToUse)(expi).flies,1)+1;
+      end
+
+      obj.(labelsToUse)(expi).t0s{j} = newlabels.t0s;
+      obj.(labelsToUse)(expi).t1s{j} = newlabels.t1s;
+      obj.(labelsToUse)(expi).names{j} = newlabels.names;
+      obj.(labelsToUse)(expi).flies(j,:) = flies;
+      obj.(labelsToUse)(expi).off(j) = labelidx_off;
+      obj.(labelsToUse)(expi).timestamp = now;
+      obj.(labelsToUse)(expi).imp_t0s{j} = newlabels.imp_t0s;
+      obj.(labelsToUse)(expi).imp_t1s{j} = newlabels.imp_t1s;
 
       % store labelstats
-      obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-      obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
-      obj.labelstats(expi).datestr = datestr(obj.labels(expi).timestamp,'yyyymmddTHHMMSS');
+      obj.(labelstatsToUse)(expi).nflies_labeled = numel(unique(obj.(labelsToUse)(expi).flies));
+      obj.(labelstatsToUse)(expi).nbouts_labeled = numel(newlabels.t1s);
+      obj.(labelstatsToUse)(expi).datestr = datestr(obj.(labelsToUse)(expi).timestamp,'yyyymmddTHHMMSS');
             
     end
 
@@ -3166,9 +3392,16 @@ classdef JLabelData < handle
         isstart = obj.labelidx.vals(ts+obj.labelidx_off) ~= 0 & ...
           obj.labelidx.vals(ts+obj.labelidx_off-1) ~= obj.labelidx.vals(ts+obj.labelidx_off);
       else
-        [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
+        
+        if strcmpi(obj.labelingMode,'Ground Truthing')
+          labelsToUse = 'gt_labels';
+        else
+          labelsToUse = 'labels';
+        end
+
+        [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
         if ism,
-          isstart = ismember(ts,obj.labels(expi).t0s{fliesi});
+          isstart = ismember(ts,obj.(labelsToUse)(expi).t0s{fliesi});
         else
           isstart = false(size(ts));
         end
@@ -3182,6 +3415,14 @@ classdef JLabelData < handle
         return;
       end
       
+      if strcmpi(obj.labelingMode,'Ground Truthing')
+        labelsToUse = 'gt_labels';
+        labelstatsToUse = 'gt_labelstats';
+      else
+        labelsToUse = 'labels';
+        labelstatsToUse = 'labelstats';
+      end
+      
       timestamp = now;
       
       % use all experiments by default
@@ -3192,42 +3433,42 @@ classdef JLabelData < handle
       % delete all flies by default
       if nargin < 3,
         for i = expi(:)',
-          obj.labels(expi).t0s = {};
-          obj.labels(expi).t1s = {};
-          obj.labels(expi).names = {};
-          obj.labels(expi).flies = [];
-          obj.labels(expi).off = [];
-          obj.labels(expi).timestamp = [];
-          obj.labelstats(expi).nflies_labeled = 0;
-          obj.labelstats(expi).nbouts_labeled = 0;
-          obj.labelstats(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
-          obj.labels(expi).imp_t0s = {};
-          obj.labels(expi).imp_t1s = {};
+          obj.(labelsToUse)(expi).t0s = {};
+          obj.(labelsToUse)(expi).t1s = {};
+          obj.(labelsToUse)(expi).names = {};
+          obj.(labelsToUse)(expi).flies = [];
+          obj.(labelsToUse)(expi).off = [];
+          obj.(labelsToUse)(expi).timestamp = [];
+          obj.(labelstatsToUse)(expi).nflies_labeled = 0;
+          obj.(labelstatsToUse)(expi).nbouts_labeled = 0;
+          obj.(labelstatsToUse)(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
+          obj.(labelsToUse)(expi).imp_t0s = {};
+          obj.(labelsToUse)(expi).imp_t1s = {};
         end
       else
         if numel(expi) > 1,
           error('If flies input to ClearLabels, expi must be a single experiment');
         end
         % no labels
-        if numel(obj.labels) < expi,
+        if numel(obj.(labelsToUse)) < expi,
           return;
         end
         % which index of labels
-        [~,flyis] = ismember(obj.labels(expi).flies,flies,'rows');
+        [~,flyis] = ismember(obj.(labelsToUse)(expi).flies,flies,'rows');
         for flyi = flyis(:)',
           % keep track of number of bouts so that we can update stats
-          ncurr = numel(obj.labels(expi).t0s{flyi});
-          obj.labels(expi).t0s{flyi} = [];
-          obj.labels(expi).t1s{flyi} = [];
-          obj.labels(expi).names{flyi} = {};
-          obj.labels(expi).timestamp(flyi) = timestamp;
-          obj.labels(expi).imp_t0s{flyi} = [];
-          obj.labels(expi).imp_t1s{flyi} = [];
+          ncurr = numel(obj.(labelsToUse)(expi).t0s{flyi});
+          obj.(labelsToUse)(expi).t0s{flyi} = [];
+          obj.(labelsToUse)(expi).t1s{flyi} = [];
+          obj.(labelsToUse)(expi).names{flyi} = {};
+          obj.(labelsToUse)(expi).timestamp(flyi) = timestamp;
+          obj.(labelsToUse)(expi).imp_t0s{flyi} = [];
+          obj.(labelsToUse)(expi).imp_t1s{flyi} = [];
           % update stats
-          obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
-          obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
+          obj.(labelstatsToUse)(expi).nflies_labeled = obj.(labelstatsToUse)(expi).nflies_labeled - 1;
+          obj.(labelstatsToUse)(expi).nbouts_labeled = obj.(labelstatsToUse)(expi).nbouts_labeled - ncurr;
         end
-        obj.labelstats(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
+        obj.(labelstatsToUse)(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
       end
       
       % clear labelidx if nec
@@ -3249,11 +3490,11 @@ classdef JLabelData < handle
       
     end
     
+    function SetLabel(obj,expi,flies,ts,behaviori,important)
     % SetLabel(obj,expi,flies,ts,behaviori)
     % Set label for experiment expi, flies, and frames ts to behaviori. If
     % expi, flies match current expi, flies, then we only set labelidx.
     % Otherwise, we set labels. 
-    function SetLabel(obj,expi,flies,ts,behaviori,important)
       
       if obj.IsCurFly(expi,flies),
         obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
@@ -3267,6 +3508,7 @@ classdef JLabelData < handle
       
     end
     
+    function Train(obj,doFastUpdates)
     % Train(obj)
     % Updates the classifier to reflect the current labels. This involves
     % first loading/precomputing the training features. Then, the clasifier
@@ -3278,7 +3520,6 @@ classdef JLabelData < handle
     % which have been removed the training set, and adding new examples for
     % newly labeled frames. If the classifier has not yet been trained, it
     % is trained from scratch. 
-    function Train(obj,doFastUpdates)
       
       % load all labeled data
       [success,msg] = obj.PreLoadLabeledData();
@@ -3425,8 +3666,6 @@ classdef JLabelData < handle
       errorRates.numbers = confMat;
       errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
     end
-    
-    
     
     function crossError = CrossValidate(obj)
       [success,msg] = obj.PreLoadLabeledData();
@@ -3783,9 +4022,9 @@ classdef JLabelData < handle
       showSimilarFrames('setFrames',obj.frameFig,varForSSF);
     end
     
+    function PredictLoaded(obj)
     % PredictLoaded(obj)
     % Runs the classifier on all preloaded window data. 
-    function PredictLoaded(obj)
       
       if isempty(obj.classifier),
         return;
@@ -3834,10 +4073,10 @@ classdef JLabelData < handle
       
     end
     
+    function SetTrainingData(obj,trainingdata)
     % SetTrainingData(obj,trainingdata)
     % Sets the labelidx_cur of windowdata based on the input training data.
     % This reflects the set of labels the classifier was last trained on. 
-    function SetTrainingData(obj,trainingdata)
 
       for i = 1:numel(trainingdata),
         [ism,labelidx] = ismember(trainingdata(i).names,obj.labelnames);
@@ -3862,10 +4101,10 @@ classdef JLabelData < handle
             
     end
 
+    function trainingdata = SummarizeTrainingData(obj)
     % trainingdata = SummarizeTrainingData(obj)
     % Summarize labelidx_cur into trainingdata, which is similar to the
     % form of labels.
-    function trainingdata = SummarizeTrainingData(obj)
       
       trainingdata = struct('t0s',{},'t1s',{},'names',{},'flies',{});
       waslabeled = obj.windowdata.labelidx_cur;
@@ -3900,10 +4139,10 @@ classdef JLabelData < handle
 
     end
 
+    function UpdatePredictedIdx(obj)
     % UpdatePredictedIdx(obj)
     % Updates the stored predictedidx and erroridx fields to reflect
     % windowdata.predicted
-    function UpdatePredictedIdx(obj)
       
       if obj.expi == 0,
         return;
@@ -3934,9 +4173,9 @@ classdef JLabelData < handle
             
     end
     
+    function UpdateErrorIdx(obj)
     % UpdatePredictedIdx(obj)
     % Updates the stored erroridx and suggestedidx from predictedidx
-    function UpdateErrorIdx(obj)
 
       if obj.expi == 0,
         return;
@@ -3952,12 +4191,12 @@ classdef JLabelData < handle
       obj.suggestedidx(idxcurr) = obj.predictedidx(idxcurr);
     end
 
+    function Predict(obj,expi,flies,ts)
     % Predict(obj,expi,flies,ts)
     % Runs the behavior classifier on the input experiment, flies, and
     % frames. This involves first precomputing the window data for these
     % frames, then applying the classifier. 
-    function Predict(obj,expi,flies,ts)
-      
+     
       % TODO: don't store window data just because predicting. 
       
       if isempty(obj.classifier),
@@ -4137,29 +4376,67 @@ classdef JLabelData < handle
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
       if ism,
         flyStats.nbouts = numel(obj.labels(expi).t0s{j});
+        posframes = 0; negframes = 0;
+        for ndx = 1:numel(obj.labels(expi).t0s{j})
+          numFrames = obj.labels(expi).t1s{j}(ndx)-obj.labels(expi).t0s{j}(ndx);
+          if strcmp(obj.labels(expi).names{j}{ndx},obj.labelnames{1}) 
+            posframes = posframes + numFrames;
+          else
+            negframes = negframes + numFrames;
+          end
+        end
+        flyStats.posframes = posframes;
+        flyStats.negframes = negframes;
+        flyStats.totalframes = posframes + negframes;
       else
         flyStats.nbouts = 0;
+        flyStats.posframes = 0;
+        flyStats.negframes = 0;
+        flyStats.totalframes = 0;
+      end
+      
+      [ism,j] = ismember(flyNum,obj.gt_labels(expi).flies,'rows');
+      if ism,
+        flyStats.gt_nbouts = numel(obj.gt_labels(expi).t0s{j});
+        posframes = 0; negframes = 0;
+        for ndx = 1:numel(obj.gt_labels(expi).t0s{j})
+          numFrames = obj.gt_labels(expi).t1s{j}(ndx)-obj.gt_labels(expi).t0s{j}(ndx);
+          if strcmp(obj.gt_labels(expi).names{j}{ndx},obj.labelnames{1}) 
+            posframes = posframes + numFrames;
+          else
+            negframes = negframes + numFrames;
+          end
+        end
+        flyStats.gt_posframes = posframes;
+        flyStats.gt_negframes = negframes;
+        flyStats.gt_totalframes = posframes + negframes;
+      else
+        flyStats.gt_nbouts = 0;
+        flyStats.gt_posframes = 0;
+        flyStats.gt_negframes = 0;
+        flyStats.gt_totalframes = 0;
       end
       
       flyStats.endframe = obj.endframes_per_exp{expi}(flyNum);
       flyStats.firstframe = obj.firstframes_per_exp{expi}(flyNum);
       flyStats.trajLength = flyStats.endframe-flyStats.firstframe+1;
+      
       if obj.hassex,
-        flyStats.hassex = true;
         if obj.hasperframesex,
-          flyStats.sexfrac = obj.GetSexFrac(expi,flyNum);
+          sexfrac = obj.GetSexFrac(expi,flyNum);
+          flyStats.sexfrac = round(100*sexfrac.M);
         else
-          flyStats.sexfrac = [];
-          flyStats.sex = obj.GetSex(expi,flyNum);
+          flyStats.sexfrac = 100*strcmpi(obj.GetSex(expi,flyNum),'M');
         end
       else
-        flyStats.hassex = false;
+        flyStats.sexfrac = [];
       end
       
       if ~isempty(obj.scoredata.exp==expi)
         idxcurr = obj.scoredata.exp==expi & obj.scoredata.flies == flyNum;
         flyStats.nscoreframes = nnz(idxcurr);
         flyStats.nscorepos = nnz(obj.scoredata.scores(idxcurr)>0);
+        flyStats.nscoreneg = nnz(obj.scoredata.scores(idxcurr)<0);
         if ~isempty(obj.scoredata.classifierfilenames)
           flyStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
         else
@@ -4168,6 +4445,7 @@ classdef JLabelData < handle
       else
         flyStats.nscoreframes = [];
         flyStats.nscorepos = [];
+        flyStats.nscoreneg = [];        
         flyStats.classifierfilename = '';
       end
       
@@ -4191,6 +4469,8 @@ classdef JLabelData < handle
         flyStats.errorsNeg = [];
       end
       
+      flyStats.one2two = [];
+      flyStats.two2one = [];
       if ~isempty(obj.classifier_old),
         curNdx = obj.FlyNdx(expi,flyNum);
         if nnz(curNdx);
@@ -4198,15 +4478,11 @@ classdef JLabelData < handle
             & obj.windowdata.scores_old(curNdx)<0);
           flyStats.two2one = nnz(obj.windowdata.scores(curNdx)<0 ...
             & obj.windowdata.scores_old(curNdx)>0);
-        else
-          flyStats.one2two = [];
-          flyStats.two2one = [];
         end
-      else
-        flyStats.one2two = [];
-        flyStats.two2one = [];
       end
       
+      flyStats.validatedErrorsPos = [];
+      flyStats.validatedErrorsNeg = [];
       if ~isempty(obj.windowdata.scores_validated),
         curNdx = obj.FlyNdx(expi,flyNum);
         if nnz(curNdx);
@@ -4218,29 +4494,23 @@ classdef JLabelData < handle
           
           flyStats.validatedErrorsPos = curPosMistakes;
           flyStats.validatedErrorsNeg = curNegMistakes;
-        else
-          flyStats.validatedErrorsPos = [];
-          flyStats.validatedErrorsNeg = [];
         end
-      else
-        flyStats.validatedErrorsPos = [];
-        flyStats.validatedErrorsNeg = [];
       end
       
+      flyStats.gt_suggestion_frames = nnz(obj.GetGTSuggestionIdx(expi,flyNum));
       
-      
-%       if ~isempty(obj.windowdata.X) 
-%         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
-%         flyStats.npredictframes = nnz(idxcurr);
-%         flyStats.npredictfrac = nnz(obj.windowdata.scores(idxcurr)>0)/flyStats.nscoreframes;
-%           
-%       else
-%         flyStats.npredictframes = [];
-%         flyStats.npredictfrac = [];
-%       end
+      %       if ~isempty(obj.windowdata.X)
+      %         idxcurr = obj.windowdata.exp==expi & obj.windowdata.flies == flyNum;
+      %         flyStats.npredictframes = nnz(idxcurr);
+      %         flyStats.npredictfrac = nnz(obj.windowdata.scores(idxcurr)>0)/flyStats.nscoreframes;
+      %
+      %       else
+      %         flyStats.npredictframes = [];
+      %         flyStats.npredictfrac = [];
+      %       end
       
     end
-
+    
     function scores = NormalizeScores(obj,scores)
       
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
@@ -4256,11 +4526,11 @@ classdef JLabelData < handle
       scores = scores/scoreNorm;
     end
     
+    function SetStatus(obj,varargin)
     % SetStatus(obj,<sprintf-like arguments>)
     % Update an associated status text according to the input sprintf-like
     % arguments.
-    function SetStatus(obj,varargin)
-
+      
       if isempty(obj.setstatusfn),
         fprintf(varargin{:});
         fprintf('\n');
@@ -4270,16 +4540,16 @@ classdef JLabelData < handle
       end
       
     end
-
-    % ClearStatus(obj)
-    % Return an associated status text to the default. 
+    
     function ClearStatus(obj)
+    % ClearStatus(obj)
+    % Return an associated status text to the default.
       
       if ~isempty(obj.clearstatusfn),
         obj.clearstatusfn();
         drawnow;
       end
-    
+      
     end
     
     function SetStatusFn(obj,statusfn)
@@ -4288,7 +4558,7 @@ classdef JLabelData < handle
     
     function SetClearStatusFn(obj,clearfn)
       obj.clearstatusfn = clearfn;
-    end    
+    end
     
     function ShowSelectFeatures(obj)
       selHandle = SelectFeatures;
@@ -4296,9 +4566,214 @@ classdef JLabelData < handle
       uiwait(selHandle);
     end
     
-  end
+    function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
+      
+      success = false; msg = '';
+      
+      % Do nothing if we already have suggestions with the same settings for
+      % all the experiments.
+      recompute = false;
+      if numel(obj.randomGTSuggestions)<numel(obj.nflies_per_exp), 
+        recompute = true; 
+      else
+        for endx = 1:obj.nexps
+          prevperexp = 0;
+          
+          for fndx = 1:obj.nflies_per_exp(endx)
+            
+            if isempty(obj.randomGTSuggestions{endx}(fndx).start); continue; end
+            prevperfly = obj.randomGTSuggestions{endx}(fndx).end - ...
+              obj.randomGTSuggestions{endx}(fndx).start+1;
+            if (prevperfly ~= perfly),
+              recompute = true;
+              break;
+            end
+            prevperexp = prevperexp+1;
+          end
+          
+          if prevperexp ~= perexp, recompute = true; end
+          
+        end
+      end
+      if ~recompute;
+        obj.GTSuggestionMode = 'Random';
+        return;
+      end
+      
+      
+      for endx = 1:obj.nexps
+        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,obj.nflies_per_exp);
+        
+        validflies = find( (obj.endframes_per_exp{endx} - ...
+          obj.firstframes_per_exp{endx})>perfly );
+        if numel(validflies)<perexp,
+          msg = sprintf('Experiment %s does not have %d flies with more than %d frames',...
+            obj.expnames{endx},perexp,perfly);
+          success = false;
+          return;
+        end
+        permuteValid = validflies(randperm(numel(validflies)));
+        randFlies = permuteValid(1:perexp);
+        
+        for fndx = randFlies(:)',
+          first = obj.firstframes_per_exp{endx}(fndx);
+          last = obj.endframes_per_exp{endx}(fndx);
+          suggestStart = first + round( (last-first-perfly)*rand(1));
+          obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
+          obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
+        end
+        
+      end
+      success = true;
+      obj.GTSuggestionMode = 'Random';
+      
+    end
     
-end
+    function SuggestThresholdGT(obj,threshold)
+      obj.thresholdGTSuggestions = threshold;
+      obj.GTSuggestionMode = 'Threshold';
+      
+    end
+    
+    function suggestedidx = GetGTSuggestionIdx(obj,expi,flies,T0,T1)
+    % Get the indices of gt suggestion  
+      if nargin<4,
+        T0 = obj.GetTrxFirstFrame(expi,flies);
+        T1 = obj.GetTrxEndFrame(expi,flies);
+      end
+      n = T1-T0+1;
+      off = 1 - T0;
+      
+      if isempty(obj.GTSuggestionMode)
+        suggestedidx = false(1,n);
+        return;
+      end
+      
+      suggestedidx = false(1,n);
+      
+      if strcmpi(obj.GTSuggestionMode,'Random')
+        start = obj.randomGTSuggestions{expi}(flies).start;
+        last = obj.randomGTSuggestions{expi}(flies).end;
+        range = start+off:last+off;
+        selIdx = range(range>0);
+        suggestedidx(selIdx) = true;
+      else
+        if ~isempty(obj.scoredata.scores)
+          idxcurr = obj.scoredata.exp == expi & ...
+            obj.scoredata.flies == flies & ...
+            obj.scoredata.t>=T0 & ...
+            obj.scoredata.t<=T1;
+          suggestedidx( obj.scoredata.t(idxcurr)+off) = ...
+            obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+            -obj.thresholdGTSuggestions;
+        end
+        
+        % Should we give suggestions based on scores not calculated offline? 
+        if ~isempty(obj.windowdata.scores)
+          idxcurr = obj.windowdata.exp == expi & ...
+            obj.windowdata.flies == flies & ...
+            obj.windowdata.t>=T0 & ...
+            obj.windowdata.t<=T1;
+          suggestedidx( obj.windowdata.t(idxcurr)+off) = ...
+            obj.NormalizeScores(obj.windowdata.scores(idxcurr)) > ...
+            -obj.thresholdGTSuggestions;
+        end
+        
+      end
+      
+    end
+    
+    function crossError = GetGTPerformance(obj)
+      % Computes the performance on the GT data.
+      crossError.numbers = zeros(4,3);
+      crossError.frac = zeros(4,3);
+      
+      for expi = 1:obj.nexps,
+        for i = 1:size(obj.gt_labels(expi).flies,1),
+          
+          flies = obj.labels(expi).flies(i,:);
+          labels_curr = obj.GetLabels(expi,flies);
+          ts = [];
+          
+          for j = 1:numel(labels_curr.t0s),
+            ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)]; %#ok<AGROW>
+          end
+          
+          % assumes that if have any loaded score for an experiment we
+          % have scores for all the flies and for every frame.
+          if isempty(obj.scoredata.exp) && ~nnz(obj.scoredata.exp ==expi)
+            [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
+            if ~success1,
+              warndlg(msg);
+              return;
+            end
+          end
+          
+        end
+      end
+      
+      obj.PredictLoaded();
+      
+      gt_scores =[];
+      gt_labels = [];
+      
+      for expi = 1:obj.nexps,
+        for i = 1:size(obj.gt_labels(expi).flies,1),
+          
+          flies = obj.labels(expi).flies(i,:);
+          labels_curr = obj.GetLabels(expi,flies);
+          
+          % Find the importatnt labels
+          labels_imp = [];
+          for j = 1:numel(labels_curr.imp_t0s),
+            t0 = labels_curr.imp_t0s(j);
+            t1 = labels_curr.imp_t1s(j);
+            labels_imp = [labels_imp t0:t1];
+          end
+          
+          for j = 1:numel(labels_curr.t0s),
+            t0 = labels_curr.t0s(j);
+            t1 = labels_curr.t1s(j);
+            
+            curLabel = 2*repmat(find(strcmp(labels_curr.names{j},obj.labelnames)),1,t1-t0);
+            curLabel(ismember(t0:t1-1,labels_imp)) = curLabel(ismember(t0:t1-1,labels_imp)) -1;
+            
+            gt_labels = [gt_labels curLabel];
+            
+            if ~isempty(obj.scoredata.exp) && nnz(obj.scoredata.exp ==expi)
+              idx = obj.scoredata.exp ==expi & obj.scoredata.flies == flies &...
+                obj.scoredata.t>=t0 & obj.scoredata.t<t1;
+              ts = obj.scoredata.t(idx);
+              scores = obj.scoredata.scores(idx);
+              [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
+              if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
+              gt_scores = [gt_scores scores(ndxInLoaded)];
+            else
+              idx = obj.windowdata.exp ==expi & obj.windowdata.flies == flies &...
+                obj.windowdata.t>=t0 & obj.windowdata.t<t1;
+              ts = obj.windowdata.t(idx);
+              scores = obj.windowdata.scores(idx);
+              [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
+              if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
+              gt_scores = [gt_scores; scores(ndxInLoaded)];
+            end
+          end
+          
+        end
+      end
+
+      crossError = obj.createConfMat(gt_scores,gt_labels);
+      
+    
+    end
+    
+    
+  end % End methods
+    
+end % End class
+
+
+
 
 % Old commented functions
 
