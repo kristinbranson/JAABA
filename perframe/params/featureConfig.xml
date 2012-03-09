@@ -109,7 +109,7 @@
     
     <danglesub trans_types="none,abs" type="social"/>
     
-    <!--darea trans_types="none,abs" type="appearance"/-->
+    <darea trans_types="none,abs" type="appearance"/>
     
     <dcenter trans_types="none,relative" type="social"/>
     
