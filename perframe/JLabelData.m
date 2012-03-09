@@ -571,9 +571,11 @@ classdef JLabelData < handle
           if ~success1,
             return;
           end
-        elseif isfield(configparams,'featureparamlist'),
+        end
+        if isfield(configparams,'featureparamlist'),
           % read allperframefns from config file
-          obj.allperframefns = fieldnames(configparams.featureparamlist);
+          obj.allperframefns = intersect(obj.allperframefns,...
+                              fieldnames(configparams.featureparamlist));
           msg = '';
         end
 
