@@ -11,7 +11,8 @@
   <file 
       moviefilename="movie.mp4"
       trxfilename="trx.mat"
-      labelfilename="AllLabels.mat"
+      labelfilename="AllTrainingLabels.mat"
+      gt_labelfilename="AllGroundTruthLabels.mat"
       perframedir="perframe"
       windowfilename="windowfeatures.mat"
       featureparamfilename="params/WindowFeatures_EricFew.xml"
