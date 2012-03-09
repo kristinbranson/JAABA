@@ -116,35 +116,21 @@
     <dtaildir trans_types="abs,none,flip" type="locomotion"/>
     <headdir trans_types="none" type="arena"/>
     <headspeed trans_types="none" type="locomotion"/>
-    <headvelforward_bodydir trans_types="none,abs" type="locomotion"/>
     <headvelforward_headdir trans_types="none,abs" type="locomotion"/>
-    <headvelforward_taildir trans_types="none,abs" type="locomotion"/>
-    <headvelsideways_bodydir trans_types="none,abs" type="locomotion"/>
     <headvelsideways_headdir trans_types="none,abs" type="locomotion"/>
-    <headvelsideways_taildir trans_types="none,abs" type="locomotion"/>
     <lrdtheta trans_types="none,abs" type="unknown"/>
     <midspeed trans_types="none" type="locomotion"/>
-    <midvelforward_bodydir trans_types="none,abs" type="locomotion"/>
     <midvelforward_headdir trans_types="none,abs" type="locomotion"/>
-    <midvelforward_taildir trans_types="none,abs" type="locomotion"/>
-    <midvelsideways_bodydir trans_types="none,abs" type="locomotion"/>
     <midvelsideways_headdir trans_types="none,abs" type="locomotion"/>
-    <midvelsideways_taildir trans_types="none,abs" type="locomotion"/>
     <pathLength trans_types="none" type="distance"/>
     <sarea trans_types="none" type="appearance"/>
     <spinelength trans_types="none" type="appearance"/>
     <taildir trans_types="none" type="arena"/>
     <tailspeed trans_types="none" type="locomotion"/>
-    <tailvelforward_bodydir trans_types="none,abs" type="locomotion"/>
     <tailvelforward_headdir trans_types="none,abs" type="locomotion"/>
-    <tailvelforward_taildir trans_types="none,abs" type="locomotion"/>
-    <tailvelsideways_bodydir trans_types="none,abs" type="locomotion"/>
     <tailvelsideways_headdir trans_types="none,abs" type="locomotion"/>
-    <tailvelsideways_taildir trans_types="none,abs" type="locomotion"/>
     <vel_adjspeed trans_types="none" type="locomotion"/>
     <vel_speed trans_types="none" type="locomotion"/>
-    <vel_theta trans_types="none" type="arena"/>
-    <vel_vnorm trans_types="none,abs" type="unknown"/>
-    
+    <vel_theta trans_types="none" type="arena"/>    
   </perframe>
 </params>
