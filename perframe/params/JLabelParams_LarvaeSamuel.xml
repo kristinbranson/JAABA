@@ -7,6 +7,7 @@
   <behaviors 
       names="MyBehavior"
       labelcolors=".7,0,0,0,0,.7"
+      unknowncolor=".7,.7,.7"
       />
   <file 
       moviefilename="movie.mmf"
