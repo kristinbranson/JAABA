@@ -5720,6 +5720,9 @@ function menu_view_suggest_threshold_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 in = inputdlg({'Threshold for suggestion'});
+if ~ischar(in),
+  return;
+end
 threshold = str2double(in{1});
 if isnan(threshold) || abs(threshold-0.5)>0.5  
   warndlg('Input value between 0 and 1');
