@@ -17,7 +17,7 @@ dotransposeimage = false;
   'perframedirstr',perframedirstr,...
   'debug',DEBUG,...
   'makesoftlink',makesoftlink,...
-  'dotranspose',dotransposeimage); %#ok<ASGLU>
+  'dotranspose',dotransposeimage); 
 
 %% parse experiment directory name
 [rootdatadir,inexperiment_name] = fileparts(inexpdir); %#ok<ASGLU>
@@ -104,32 +104,32 @@ for i = 1:nflies,
   % convert to pixels, as everything else will be for plotting purposes
   loc_px = cat(1,expdata.experiment_1.camcalinfo.r2cX(loc(1,:),loc(2,:)),...
     expdata.experiment_1.camcalinfo.r2cY(loc(1,:),loc(2,:)));
-  trk.x = loc_px(XIND,:);
-  trk.y = loc_px(YIND,:);
+  trk.x = loc_px(XIND,:)+1;
+  trk.y = loc_px(YIND,:)+1;
 
   % midpoint
   xmid_cm = mid(1,:);
   ymid_cm = mid(2,:);
   mid_px = cat(1,expdata.experiment_1.camcalinfo.r2cX(mid(1,:),mid(2,:)),...
     expdata.experiment_1.camcalinfo.r2cY(mid(1,:),mid(2,:)));
-  trk.xmid = mid_px(XIND,:);
-  trk.ymid = mid_px(YIND,:);
+  trk.xmid = mid_px(XIND,:)+1;
+  trk.ymid = mid_px(YIND,:)+1;
 
   % head
   xhead_cm = head(1,:);
   yhead_cm = head(2,:);
   head_px = cat(1,expdata.experiment_1.camcalinfo.r2cX(head(1,:),head(2,:)),...
     expdata.experiment_1.camcalinfo.r2cY(head(1,:),head(2,:)));
-  trk.xhead = head_px(XIND,:);
-  trk.yhead = head_px(YIND,:);
+  trk.xhead = head_px(XIND,:)+1;
+  trk.yhead = head_px(YIND,:)+1;
   
   % tail
   xtail_cm = tail(1,:);
   ytail_cm = tail(2,:);
   tail_px = cat(1,expdata.experiment_1.camcalinfo.r2cX(tail(1,:),tail(2,:)),...
     expdata.experiment_1.camcalinfo.r2cY(tail(1,:),tail(2,:)));
-  trk.xtail = tail_px(XIND,:);
-  trk.ytail = tail_px(YIND,:);
+  trk.xtail = tail_px(XIND,:)+1;
+  trk.ytail = tail_px(YIND,:)+1;
 
   % spine
   nspinepts = max(cellfun(@(x) size(x,2),spine));
@@ -139,22 +139,22 @@ for i = 1:nflies,
   xspine_cm(:,isspine) = cell2mat(cellfun(@(x) double(x(1,:)'),spine(isspine),'UniformOutput',false));
   yspine_cm(:,isspine) = cell2mat(cellfun(@(x) double(x(2,:)'),spine(isspine),'UniformOutput',false));
   if dotransposeimage,
-    trk.xspine = expdata.experiment_1.camcalinfo.r2cX(xspine_cm,yspine_cm);
-    trk.yspine = expdata.experiment_1.camcalinfo.r2cY(xspine_cm,yspine_cm);
+    trk.xspine = expdata.experiment_1.camcalinfo.r2cX(xspine_cm,yspine_cm)+1;
+    trk.yspine = expdata.experiment_1.camcalinfo.r2cY(xspine_cm,yspine_cm)+1;
   else
-    trk.yspine = expdata.experiment_1.camcalinfo.r2cX(xspine_cm,yspine_cm);
-    trk.xspine = expdata.experiment_1.camcalinfo.r2cY(xspine_cm,yspine_cm);
+    trk.yspine = expdata.experiment_1.camcalinfo.r2cX(xspine_cm,yspine_cm)+1;
+    trk.xspine = expdata.experiment_1.camcalinfo.r2cY(xspine_cm,yspine_cm)+1;
   end
   
   % contour
   xcontour_cm = cellfun(@(x) double(x(1,:)),contour,'UniformOutput',false);
   ycontour_cm = cellfun(@(x) double(x(2,:)),contour,'UniformOutput',false);
   if dotransposeimage,
-    trk.xcontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cX(x,y), xcontour_cm,ycontour_cm,'UniformOutput',false);
-    trk.ycontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cY(x,y), xcontour_cm,ycontour_cm,'UniformOutput',false);
+    trk.xcontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cX(x,y)+1, xcontour_cm,ycontour_cm,'UniformOutput',false);
+    trk.ycontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cY(x,y)+1, xcontour_cm,ycontour_cm,'UniformOutput',false);
   else
-    trk.ycontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cX(x,y), xcontour_cm,ycontour_cm,'UniformOutput',false);
-    trk.xcontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cY(x,y), xcontour_cm,ycontour_cm,'UniformOutput',false);
+    trk.ycontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cX(x,y)+1, xcontour_cm,ycontour_cm,'UniformOutput',false);
+    trk.xcontour = cellfun(@(x,y) expdata.experiment_1.camcalinfo.r2cY(x,y)+1, xcontour_cm,ycontour_cm,'UniformOutput',false);
   end
 
   % covariance matrix is already in pixels; use it to get major, minor,
@@ -165,6 +165,8 @@ for i = 1:nflies,
     S = [S(2,2,:),S(2,1,:);S(1,2,:),S(1,1,:)];
   end
   [a,b,theta] = cov2ell(S);
+  % note that we don't worry about the zero-indexin correction because the
+  % difference will cancel out
   thetahead = atan2(trk.yhead-trk.ytail,trk.xhead-trk.xtail);
   thetaflip = modrange(thetahead+modrange(theta-thetahead,-pi/2,pi/2),-pi,pi);
   trk.a = a/2;
@@ -173,15 +175,15 @@ for i = 1:nflies,
   
   % convert a, b, theta to mm
   if dotransposeimage,
-    x1 = trk.x + a.*cos(thetaflip);
-    x2 = trk.x - a.*cos(thetaflip);
-    y1 = trk.y + a.*sin(thetaflip);
-    y2 = trk.y - a.*sin(thetaflip);
+    x1 = trk.x-1 + a.*cos(thetaflip);
+    x2 = trk.x-1 - a.*cos(thetaflip);
+    y1 = trk.y-1 + a.*sin(thetaflip);
+    y2 = trk.y-1 - a.*sin(thetaflip);
   else
-    y1 = trk.x + a.*cos(thetaflip);
-    y2 = trk.x - a.*cos(thetaflip);
-    x1 = trk.y + a.*sin(thetaflip);
-    x2 = trk.y - a.*sin(thetaflip);
+    y1 = trk.x-1 + a.*cos(thetaflip);
+    y2 = trk.x-1 - a.*cos(thetaflip);
+    x1 = trk.y-1 + a.*sin(thetaflip);
+    x2 = trk.y-1 - a.*sin(thetaflip);
   end
   x1_cm = expdata.experiment_1.camcalinfo.c2rX(x1,y1);
   y1_cm = expdata.experiment_1.camcalinfo.c2rY(x1,y1);
@@ -190,15 +192,15 @@ for i = 1:nflies,
   trk.theta_mm = atan2(y2_cm-y1_cm,x2_cm-x1_cm);
   trk.a_mm = sqrt((y2_cm-y1_cm).^2+(x2_cm-x1_cm).^2)/4;
   if dotransposeimage,
-    x1 = trk.x + b.*cos(thetaflip+pi/2);
-    x2 = trk.x - b.*cos(thetaflip+pi/2);
-    y1 = trk.y + b.*sin(thetaflip+pi/2);
-    y2 = trk.y - b.*sin(thetaflip+pi/2);
+    x1 = trk.x-1 + b.*cos(thetaflip+pi/2);
+    x2 = trk.x-1 - b.*cos(thetaflip+pi/2);
+    y1 = trk.y-1 + b.*sin(thetaflip+pi/2);
+    y2 = trk.y-1 - b.*sin(thetaflip+pi/2);
   else
-    y1 = trk.x + b.*cos(thetaflip+pi/2);
-    y2 = trk.x - b.*cos(thetaflip+pi/2);
-    x1 = trk.y + b.*sin(thetaflip+pi/2);
-    x2 = trk.y - b.*sin(thetaflip+pi/2);
+    y1 = trk.x-1 + b.*cos(thetaflip+pi/2);
+    y2 = trk.x-1 - b.*cos(thetaflip+pi/2);
+    x1 = trk.y-1 + b.*sin(thetaflip+pi/2);
+    x2 = trk.y-1 - b.*sin(thetaflip+pi/2);
   end
   x1_cm = expdata.experiment_1.camcalinfo.c2rX(x1,y1);
   y1_cm = expdata.experiment_1.camcalinfo.c2rY(x1,y1);
@@ -305,7 +307,28 @@ for i = 1:nflies,
   
 end
 
+%%
 
+if DEBUG,
+  colors = jet(nflies);
+  readframe = get_readframe_fcn(inmoviefile);
+  t = 100;
+  clf;
+  imagesc(readframe(t));
+  axis image;
+  hold on;
+  for i = 1:nflies,
+    firstframe = double(expdata.experiment_1.track(i).startFrame+1);
+    endframe = trx(i).firstframe+trx(i).nframes-1;
+    off = 1-firstframe;
+    if firstframe > t || endframe < t, continue; end
+    j = t+off;
+    plot(trx(i).xcontour{j}+1,trx(i).ycontour{j}+1,'-','color',colors(i,:))
+    plot(trx(i).xspine(:,j)+1,trx(i).yspine(:,j)+1,'-','color',colors(i,:),'linewidth',2)
+    plot([trx(i).xhead(j),trx(i).xmid(j),trx(i).xtail(j)]+1,[trx(i).yhead(j),trx(i).ymid(j),trx(i).ytail(j)]+1,'.-','color',colors(i,:))
+  end
+  
+end
 
 %% create the trx file
 
