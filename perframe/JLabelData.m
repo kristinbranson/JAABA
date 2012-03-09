@@ -3893,16 +3893,15 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
     
-    function InitSimilarFrames(obj)
+    function InitSimilarFrames(obj, HJLabel)
       obj.frameFig = showSimilarFrames;
-      showSimilarFrames('SetJLabelData',obj.frameFig,obj);
+      showSimilarFrames('SetJLabelData',obj.frameFig,obj,HJLabel);
       showSimilarFrames('CacheTracksLabeled',obj.frameFig);
+      showSimilarFrames('add_prep_list', obj.frameFig);
     end
     
-    function SimilarFrames(obj,curTime)
-
-      
-      if isempty(obj.frameFig), obj.InitSimilarFrames(), end
+    function SimilarFrames(obj,curTime,JLabelHandles)
+      if isempty(obj.frameFig), obj.InitSimilarFrames(JLabelHandles), end
       
       distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
         (obj.windowdata.distNdx.flies == obj.flies) & ...
@@ -3989,14 +3988,14 @@ classdef JLabelData < handle
         isClose = 0;
         if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
            obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
-           abs( (obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5),
+           abs(obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5,
            continue; 
         end
         
         for used = curN(1:count)
           if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
              obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
-             abs( (obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5),
+             abs(obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5,
              isClose = 1; 
              break; 
           end
