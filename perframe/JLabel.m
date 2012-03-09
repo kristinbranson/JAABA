@@ -682,7 +682,7 @@ if handles.data.ismovie,
   % try
   SetStatus(handles,'Opening movie...');
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
-    get_readframe_fcn(moviefilename,'interruptible',false);
+    get_readframe_fcn(moviefilename);
   im = handles.readframe(1);
   handles.movie_width = size(im,2);
   handles.movie_height = size(im,1);
