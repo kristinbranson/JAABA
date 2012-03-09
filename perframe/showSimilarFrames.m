@@ -22,7 +22,7 @@ function varargout = showSimilarFrames(varargin)
 
 % Edit the above text to modify the response to help showSimilarFrames
 
-% Last Modified by GUIDE v2.5 23-Nov-2011 09:58:12
+% Last Modified by GUIDE v2.5 05-Mar-2012 17:05:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -68,29 +68,36 @@ handles.fps = 3;
 handles.maxfps = 10;
 handles.tsize = 500;
 handles.cache = containers.Map('keyType','char','valueType','any');
+handles.display = 'manual';
 
 set(handles.frameSlider,'SliderStep',[1/(2*handles.maxFrames) 3/(2*handles.maxFrames)]);
-set(handles.beforeSlider,'SliderStep',[1/handles.maxFrames 3/handles.maxFrames]);
-set(handles.afterSlider,'SliderStep',[1/handles.maxFrames 3/handles.maxFrames]);
-set(handles.afterSlider,'Value',1-handles.fwdLimit/handles.maxFrames);
-set(handles.beforeSlider,'Value',handles.revLimit/handles.maxFrames);
-set(handles.spfSlider,'Value',(handles.fps-1)/(handles.maxfps-1));
+
+set(handles.frame_range_edit, 'string', '5');
+set(handles.fps_edit, 'string', '5');
 set(handles.FrameText,'String','frame:0');
-set(handles.beforeTxt,'String',num2str(handles.revLimit));
-set(handles.afterTxt,'String',num2str(handles.fwdLimit));
 
 sz = handles.halfSize;
+tlsz = handles.maxFrames;
+
+linkaxesGroup = [];
 
 for ndx = 1:handles.numSimilar
   tName = sprintf('top%d',ndx);
   mName = sprintf('middle%d',ndx);
   bName = sprintf('bottom%d',ndx);
-  handles.hAxes(1,ndx) = initAxes(handles.(tName),sz);
-  handles.hAxes(2,ndx) = initAxes(handles.(mName),sz);
-  handles.hAxes(3,ndx) = initAxes(handles.(bName),sz);
-  
+  handles.hAxes(1,ndx) = initAxes(handles,handles.(tName),sz,1,ndx);
+  handles.hAxes(2,ndx) = initAxes(handles,handles.(mName),sz,2,ndx);
+  handles.hAxes(3,ndx) = initAxes(handles,handles.(bName),sz,3,ndx);
+  handles.hTimeline(1,ndx) = initTimeline(handles.(['tl_',tName]),tlsz,handles.frameNo);
+  handles.hTimeline(2,ndx) = initTimeline(handles.(['tl_',mName]),tlsz,handles.frameNo);
+  handles.hTimeline(3,ndx) = initTimeline(handles.(['tl_',bName]),tlsz,handles.frameNo);
+  linkaxesGroup = [linkaxesGroup, handles.(tName)];
+  linkaxesGroup = [linkaxesGroup, handles.(mName)];
+  linkaxesGroup = [linkaxesGroup, handles.(bName)];
 end
 
+linkaxes(linkaxesGroup,'xy');
+%plot(handles.axes_slider_zero,[0,1],[0,0],'y-','LineWidth',5);
 % Update handles structure
 guidata(hObject, handles);
 
@@ -108,9 +115,10 @@ function varargout = showSimilarFrames_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function SetJLabelData(hObject,obj)
+function SetJLabelData(hObject,obj,HJLabel)
 handles = guidata(hObject);
 handles.JLDobj = obj;
+handles.JLabelHandles = HJLabel;
 guidata(hObject,handles);
 
 %{
@@ -178,6 +186,19 @@ fprintf(' Done loading tracks\n');
 
 guidata(hObject,handles);
 
+function add_prep_list(hObject,exps)
+handles = guidata(hObject);
+if ~isempty(handles.JLDobj.allperframefns)
+  for i = 1:numel(handles.JLDobj.allperframefns),
+    handles.timeline_prop_options{i} = handles.JLDobj.allperframefns{i};
+  end
+  %handles.d = handles.data.allperframefns(1);
+  handles.perframepropis = 1;
+  set(handles.timeline_properties,'String',handles.timeline_prop_options,'Value',1);
+  %handles.timeline_data_ylims = nan(2,numel(handles.data.allperframefns));
+end
+guidata(hObject,handles);
+
 
 function CacheTracks(hObject,expNum,curFly,t0,t1)
 handles = guidata(hObject);
@@ -231,50 +252,145 @@ handles = guidata(hObject);
 updatePlots(hObject,handles,handles.frameNo);
 
 function readFrames(hObject)
-  handles = guidata(hObject);
-  handles.isPlaying = false;
-  guidata(hObject,handles);
-  curImg = getRotatedFrame(handles,handles.frames{2});
-  relTrx = getRelTrx(handles,handles.frames{2});
-  [labels predictions] = getLabels(handles,handles.frames{2});
-  ptrx = labels.ptrx;
-  ntrx = labels.ntrx;
-  for ndx = 1:handles.numSimilar
+handles = guidata(hObject);
+handles.isPlaying = false;
+guidata(hObject,handles);
+curImg = getRotatedFrame(handles,handles.frames{2});
+relTrx = getRelTrx(handles,handles.frames{2});
+[labels predictions] = getLabels(handles,handles.frames{2});
+ptrx = labels.ptrx;
+ntrx = labels.ntrx;
+
+plotPredictionsInAutoMode(handles);
+poltLabelsInManualMode(handles);
+
+%for row 2
+for t = 1:length(ptrx)
+    % tranfer data to image for manual timeline
+    timeline{2}(1,t,:) = [0.2 0.2 0.2];
+    if ~isnan(ptrx(t)); timeline{2}(1,t,:) = [0.7 0.0 0.0]; end
+    if ~isnan(ntrx(t)); timeline{2}(1,t,:) = [0.0 0.0 0.7]; end
+    
+    % tranfer data to image for automatic timeline
+    if isnan(predictions(t)), timeline{2}(2,t,:) = [0.2 0.2 0.2];
+    elseif predictions(t)<1.5, timeline{2}(2,t,:) = [0.7 0.0 0.0];
+    else timeline{2}(2,t,:) = [0.0 0.0 0.7];
+    end
+end
+
+for ndx = 1:handles.numSimilar
     handles.im{2,ndx} = curImg;
     handles.trx{2,ndx} = relTrx;
-    set(handles.hAxes(2,ndx).labelPos,'XData',relTrx.X.*ptrx,'Ydata',relTrx.Y.*ptrx);
-    set(handles.hAxes(2,ndx).labelNeg,'XData',relTrx.X.*ntrx,'Ydata',relTrx.Y.*ntrx);
+    set(handles.hAxes(2,ndx).labelPos,'visible', 'on');
+    set(handles.hAxes(2,ndx).labelNeg,'visible', 'on');
+    set(handles.hAxes(2,ndx).predPos,'visible', 'off');
+    set(handles.hAxes(2,ndx).predNeg,'visible', 'off');
     set(handles.hAxes(2,ndx).trax,'XData',relTrx.X,'YData',relTrx.Y);
-  end
-  
-  for row = [1 3]
+    set(handles.hTimeline(2,ndx).image, 'CData', timeline{2});
+    set(handles.hTimeline(2,ndx).hcurr,'XData',[handles.frameNo,handles.frameNo]);
+end
+
+%create property plot
+%set(handles.axes_timeline_properties,'YLimMode','auto');
+hold(handles.axes_timeline_properties,'on');
+handles.htimeline_propdata{2} = plot(handles.axes_timeline_properties,nan,nan,'.-');
+
+%choose the first property on the popup list 
+s = handles.timeline_prop_options{1};
+prop = find(strcmpi(s,handles.JLDobj.allperframefns),1);
+handles.perframepropis = prop;
+handles.perframeprops = s;
+
+[perframedata,T0,T1] = handles.JLDobj.GetPerFrameData(handles.frames{2}.expNum,handles.frames{2}.flyNum,prop);
+TStart = handles.frames{2}.curTime - handles.maxFrames;
+IStart = TStart - T0 + 1;
+TEnd = handles.frames{2}.curTime + handles.maxFrames;
+IEnd = TEnd - T0 + 1;
+perframedata = perframedata(IStart:IEnd);
+set(handles.htimeline_propdata{2},'XData',-handles.maxFrames:handles.maxFrames,'YData',perframedata,'Color','r');
+
+%update text_timeline_prop
+handles.cur_rb_row = 2;
+handles.cur_rb_col = 1;
+perframedata = handles.JLDobj.GetPerFrameData1(handles.frames{2}.expNum,handles.frames{2}.flyNum,prop,handles.frames{2}.curTime);
+s = sprintf('%.3f',perframedata);
+set(handles.text_timeline_prop,'String',s);
+
+%for row 1 and 3
+for row = [1 3]
     for ndx = 1:handles.numSimilar
-      relTrx = getRelTrx(handles,handles.frames{row}(ndx));
-      handles.im{row,ndx} = getRotatedFrame(handles,handles.frames{row}(ndx));
-      
-      handles.trx{row,ndx} = relTrx;
-      [labels predictions] = getLabels(handles,handles.frames{row}(ndx));
-      ptrx = labels.ptrx;
-      ntrx = labels.ntrx;
-      set(handles.hAxes(row,ndx).labelPos,'XData',relTrx.X.*ptrx,'YData',relTrx.Y.*ptrx);    
-      set(handles.hAxes(row,ndx).labelNeg,'XData',relTrx.X.*ntrx,'YData',relTrx.Y.*ntrx);    
-      set(handles.hAxes(row,ndx).trax,'XData',relTrx.X,'YData',relTrx.Y);
-      fprintf('.');
+        relTrx = getRelTrx(handles,handles.frames{row}(ndx));
+        handles.im{row,ndx} = getRotatedFrame(handles,handles.frames{row}(ndx));
+        
+        handles.trx{row,ndx} = relTrx;
+        [labels predictions] = getLabels(handles,handles.frames{row}(ndx));
+        ptrx = labels.ptrx;
+        ntrx = labels.ntrx;
+        
+        % plot for manual timeline
+        for t = 1:length(ptrx)
+            timeline{row,ndx}(1,t,:) = [0.2 0.2 0.2];
+            if ~isnan(ptrx(t)); timeline{row,ndx}(1,t,:) = [0.7 0.0 0.0]; end
+            if ~isnan(ntrx(t)); timeline{row,ndx}(1,t,:) = [0.0 0.0 0.7]; end
+            
+            % plot for automatic timeline
+            if isnan(predictions(t)), timeline{row,ndx}(2,t,:) = [0.2 0.2 0.2];
+            elseif predictions(t)<1.5, timeline{row,ndx}(2,t,:) = [0.7 0.0 0.0];
+            else timeline{row,ndx}(2,t,:) = [0.0 0.0 0.7];
+            end
+        end
+        
+        set(handles.hAxes(row,ndx).labelPos,'visible', 'on');
+        set(handles.hAxes(row,ndx).labelNeg,'visible', 'on');
+        set(handles.hAxes(row,ndx).predPos,'visible', 'off');
+        set(handles.hAxes(row,ndx).predNeg,'visible', 'off');        
+        
+        set(handles.hAxes(row,ndx).trax,'XData',relTrx.X,'YData',relTrx.Y);
+        set(handles.hTimeline(row,ndx).image, 'CData', timeline{row,ndx});
+        fprintf('.');
+        
+        
+        %create property plots
+        handles.htimeline_propdata{row}(ndx) = plot(handles.axes_timeline_properties,nan,nan,'.-');
+        
+        [perframedata,T0,T1] = handles.JLDobj.GetPerFrameData(handles.frames{row}(ndx).expNum,handles.frames{row}(ndx).flyNum,prop);
+        TStart = handles.frames{row}(ndx).curTime - handles.maxFrames;
+        IStart = TStart - T0 + 1;
+        TEnd = handles.frames{row}(ndx).curTime + handles.maxFrames;
+        IEnd = TEnd - T0 + 1;
+        perframedata = perframedata(IStart:IEnd);
+        set(handles.htimeline_propdata{row}(ndx),'XData',-handles.maxFrames:handles.maxFrames,'YData',perframedata);
     end
     fprintf('\n');
-  end
-  
-  guidata(hObject,handles);
+end
+
+%plot hcurr for axes_timeline_properties
+yLimVal=ylim(handles.axes_timeline_properties);
+frameNo = handles.frameNo - handles.maxFrames - 1;
+handles.hPropOrig= plot(handles.axes_timeline_properties,[frameNo,frameNo],[yLimVal(1),yLimVal(2)],'g--');
+handles.hPropCurr= plot(handles.axes_timeline_properties,[frameNo,frameNo],[yLimVal(1),yLimVal(2)],'k-');
+guidata(hObject,handles);
   
 function updatePlots(hObject,handles,frameNo)
 
   for row = 1:3
     for ndx = 1:handles.numSimilar
       set(handles.hAxes(row,ndx).image,'CData',uint8(handles.im{row,ndx}(:,:,:,frameNo)));
-      updatefly(handles.hAxes(row,ndx).fly,handles.hAxes(row,ndx).flyPred,handles.trx{row,ndx},frameNo);
-      set(handles.FrameText,'String',sprintf('frame:%d',frameNo-handles.maxFrames-1));
+      set(handles.hTimeline(row,ndx).hcurr,'XData', [frameNo,frameNo]);
+      set(handles.hPropCurr,'XData',[frameNo- handles.maxFrames - 1,frameNo- handles.maxFrames - 1]);
+      updatefly(handles.hAxes(row,ndx).fly,handles.hAxes(row,ndx).flyPred,handles.trx{row,ndx},frameNo, handles.display);
     end
+    set(handles.FrameText,'String',sprintf('frame:%d',frameNo-handles.maxFrames-1));
   end
+  
+  %update the text_timeline_prop value
+  curExperiment = handles.frames{handles.cur_rb_row}(handles.cur_rb_col).expNum;
+  curFly = handles.frames{ handles.cur_rb_row}(handles.cur_rb_col).flyNum;
+  curTime = handles.frames{ handles.cur_rb_row}(handles.cur_rb_col).curTime+handles.frameNo-handles.maxFrames-1;
+  curProp= handles.perframepropis;
+  perframedata = handles.JLDobj.GetPerFrameData1(curExperiment,curFly,curProp,curTime);
+  s = sprintf('%.3f',perframedata);
+  set(handles.text_timeline_prop,'String',s);
   
 %   guidata(hObject,handles);
   
@@ -289,6 +405,7 @@ function play(hObject)
     else
       frameNo = frameNo+1;   
     end
+    handles.frameNo = frameNo;
     guidata(hObject,handles);
     tmp = toc(ticLoop);
     if tmp < 1/handles.fps
@@ -302,7 +419,6 @@ function play(hObject)
       handles = guidata(hObject);
     end
   end
-  handles.frameNo = frameNo;
   guidata(hObject,handles);
  
   
@@ -444,14 +560,16 @@ function trx = readCache(handles,expNum,flyNum,curT)
   trx.min = trx.min(off:(off+2*sz));
 
   
-function axesH = initAxes(ax,sz)
+function axesH = initAxes(handles,ax,sz,row,col)
   axesH.image = []; 
   hold(ax,'on');
   set(ax,'XLimMode','manual');  xlim(ax,[1 2*sz+1]);
   set(ax,'YLimMode','manual');  ylim(ax,[1 2*sz+1]);
-  axesH.image = imagesc(zeros(2*sz+1),'Parent',ax,[0,255]);
+  axesH.image = imagesc(zeros(2*sz+1),'ButtonDownFcn',{@displayOnJLabel,handles,row,col},'Parent',ax,[0,255]);
   axesH.labelNeg = plot(ax,nan,nan,'Linestyle','-','Color',[0.0 0.0 0.7],'Linewidth',3);
   axesH.labelPos = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.0 0.0],'Linewidth',3);
+  axesH.predNeg = plot(ax,nan,nan,'Linestyle','-','Color',[0.0 0.0 0.7],'Linewidth',3);
+  axesH.predPos = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.0 0.0],'Linewidth',3);
   axesH.trax = plot(ax,nan,nan,'Linestyle','-','Marker','.',...
     'Color',[0.1 0.1 0.1],'MarkerSize',4,'Linewidth',0.1);
   axesH.fly = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.2 0.2]);
@@ -460,8 +578,18 @@ function axesH = initAxes(ax,sz)
   colormap(ax,'gray');
   axis(ax,'off','image');
 
+function tlH = initTimeline(tl,sz,tcurr)
+  tlH.image = []; 
+  hold(tl,'on');
+  %set(tl,'XLimMode','auto');  xlim(tl,[1 2*sz+1]);
+  %set(tl,'YLimMode','auto');  ylim(tl,[1 2*sz+1]);
+  tlH.image = imagesc(zeros(2,2*sz+1,3),'Parent',tl,[0,255]);
+  tlH.horig = plot(tl,[tcurr,tcurr],[0, 3],'g--','HitTest','off','linewidth',2);
+  tlH.hcurr = plot(tl,[tcurr,tcurr],[0, 3],'y-','HitTest','off','linewidth',2);
+  colormap(tl,'gray');
+  axis(tl,'off','image');
   
-function updatefly(h1,h2,trx,t)
+function updatefly(h1,h2,trx,t,displayChoice)
 % Coped from JCtrax.
 
 % draw an isosceles triangle with center (x,y)
@@ -490,22 +618,24 @@ pts = pts*R;
 pts(:,1) = pts(:,1) + x;
 pts(:,2) = pts(:,2) + y;
 
+switch displayChoice
+    case 'automatic'
+        if isnan(trx.predictions(t)), colr = [0.2 0.2 0.2];
+        elseif trx.predictions(t)<1.5, colr = [0.7 0.0 0.0];
+        else colr = [0.0 0.0 0.7];
+        end
+    case 'manual'
+        colr = [0.2 0.2 0.2];
+        if ~isnan(trx.labels.ptrx(t)); colr = [0.7 0.0 0.0]; end
+        if ~isnan(trx.labels.ntrx(t)); colr = [0.0 0.0 0.7]; end
+    otherwise
+        colr = [0.2 0.2 0.2];
+end
+    
 % plot for labels.
 set(h1,'xdata',pts([1 2],1),'ydata',pts([1 2],2));
-colr = [0.2 0.2 0.2];
-if ~isnan(trx.labels.ptrx(t)); colr = [0.7 0.0 0.0]; end
-if ~isnan(trx.labels.ntrx(t)); colr = [0.0 0.0 0.7]; end
 set(h1,'Color',colr);
-
-% plot for labels
 set(h2,'xdata',pts([2 3 1], 1),'ydata',pts([2 3 1],2));
-
-colr = [0.2 0.2 0.2];
-if isnan(trx.predictions(t)), colr = [0.2 0.2 0.2];
-elseif trx.predictions(t)<1.5, colr = [0.7 0.0 0.0]; 
-else colr = [0.0 0.0 0.7]; 
-end
-
 set(h2,'Color',colr);
 
 
@@ -527,57 +657,6 @@ updatePlots(hObject,handles,handles.frameNo);
 % --- Executes during object creation, after setting all properties.
 function frameSlider_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to frameSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-% --- Executes on slider movement.
-function beforeSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to beforeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-v = get(hObject,'Value');
-handles.revLimit = round(v*handles.maxFrames);
-set(handles.beforeTxt,'String',sprintf('%d',handles.revLimit));
-guidata(hObject,handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function beforeSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to beforeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-% --- Executes on slider movement.
-function afterSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to afterSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-v = get(hObject,'Value');
-handles.fwdLimit = round((1-v)*handles.maxFrames);
-set(handles.afterTxt,'String',sprintf('%d',handles.fwdLimit));
-guidata(hObject,handles);
-
-% --- Executes during object creation, after setting all properties.
-function afterSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to afterSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -611,30 +690,6 @@ else
 end
 
 
-% --- Executes on slider movement.
-function spfSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to spfSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-v = get(hObject,'Value');
-handles.fps = round(v*(handles.maxfps-1))+1;
-guidata(hObject,handles);
-
-% --- Executes during object creation, after setting all properties.
-function spfSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to spfSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
 % --- Executes when user attempts to close figure_showSimilarFrames.
 function figure_showSimilarFrames_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to figure_showSimilarFrames (see GCBO)
@@ -645,4 +700,374 @@ function figure_showSimilarFrames_CloseRequestFcn(hObject, eventdata, handles)
 
 handles.JLDobj.frameFig = [];
 delete(hObject);
+
+
+
+
+function fps_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to fps_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of fps_edit as text
+%        str2double(get(hObject,'String')) returns contents of fps_edit as a double
+v = str2num(get(hObject,'String'));
+if (isempty(v))||(v >handles.maxfps|| v < 0)
+    error('frame range requires 1 argument that is a number between 0 and maxfps ');
+end
+
+handles.fps = round(v);
+guidata(hObject,handles);
+
+% --- Executes during object creation, after setting all properties.
+function fps_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to fps_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function frame_range_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to frame_range_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of frame_range_edit as text
+%        str2double(get(hObject,'String')) returns contents of frame_range_edit as a double
+
+frameRanges = str2double(get(hObject,'String'));
+if (isempty(frameRanges))||(frameRanges >handles.maxFrames||frameRanges < 0)
+    warnStr = sprintf('Frame range requires 1 argument that is a number between 0 and %d, please reinput a value.\n',handles.maxFrames);
+    warndlg(warnStr,'frame range is out of range');
+else
+    
+    handles.revLimit = round(frameRanges);
+    handles.fwdLimit = handles.revLimit;
+    
+    guidata(hObject,handles);
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function frame_range_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to frame_range_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in timeline_properties.
+function timeline_properties_Callback(hObject, eventdata, handles)
+% hObject    handle to timeline_properties (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns timeline_properties contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from
+%        timeline_properties
+
+v = get(hObject,'Value');
+s = handles.timeline_prop_options{v};
+
+prop = find(strcmpi(s,handles.JLDobj.allperframefns),1);
+handles.perframepropis = prop;
+handles.perframeprops = s;
+
+[perframedata,T0,T1] = handles.JLDobj.GetPerFrameData(handles.frames{2}.expNum,handles.frames{2}.flyNum,prop);
+TStart = handles.frames{2}.curTime - handles.maxFrames;
+IStart = TStart - T0 + 1;
+TEnd = handles.frames{2}.curTime + handles.maxFrames;
+IEnd = TEnd - T0 + 1;
+perframedata = perframedata(IStart:IEnd);
+set(handles.htimeline_propdata{2},'XData',-handles.maxFrames:handles.maxFrames,'YData',perframedata);
+
+%reset Ymax and Ymin value for current time and original time
+set(handles.hPropOrig,'YData',[0,0]);
+set(handles.hPropCurr,'XData',[0,0],'YData',[0,0]);
+
+%for row 1 and 3
+for row = [1 3]
+    for ndx = 1:handles.numSimilar
+        [perframedata,T0,T1] = handles.JLDobj.GetPerFrameData(handles.frames{row}(ndx).expNum,handles.frames{row}(ndx).flyNum,prop);
+        TStart = handles.frames{row}(ndx).curTime - handles.maxFrames;
+        IStart = TStart - T0 + 1;
+        TEnd = handles.frames{row}(ndx).curTime + handles.maxFrames;
+        IEnd = TEnd - T0 + 1;
+        perframedata = perframedata(IStart:IEnd);
+        set(handles.htimeline_propdata{row}(ndx),'XData',-handles.maxFrames:handles.maxFrames,'YData',perframedata);
+    end
+    fprintf('\n');
+end
+
+%plot hcurr for axes_timeline_properties
+yLimVal=ylim(handles.axes_timeline_properties);
+frameNo = handles.frameNo - handles.maxFrames - 1;
+set(handles.hPropOrig,'YData',[yLimVal(1),yLimVal(2)]);
+set(handles.hPropCurr,'XData',[frameNo,frameNo],'YData',[yLimVal(1),yLimVal(2)]);
+
+%update the text_timeline_prop value
+curExperiment = handles.frames{handles.cur_rb_row}(handles.cur_rb_col).expNum;
+curFly = handles.frames{ handles.cur_rb_row}(handles.cur_rb_col).flyNum; 
+curTime = handles.frames{ handles.cur_rb_row}(handles.cur_rb_col).curTime+handles.frameNo-handles.maxFrames-1;
+curProp= handles.perframepropis;
+perframedata = handles.JLDobj.GetPerFrameData1(curExperiment,curFly,curProp,curTime);
+s = sprintf('%.3f',perframedata);
+set(handles.text_timeline_prop,'String',s);
+
+guidata(hObject,handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function timeline_properties_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to timeline_properties (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes when selected object is changed in uipanel6.
+function uipanel6_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in uipanel6 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+switch get(eventdata.NewValue,'Tag') % Get Tag of selected object.
+    case 'rb_automatic'
+        for row = 1:3
+            for ndx = 1:handles.numSimilar
+                
+                % Code for when rb_top1 is selected.
+                handles.display = 'automatic';                
+                set(handles.hAxes(row,ndx).predPos,'visible', 'on');
+                set(handles.hAxes(row,ndx).predNeg,'visible', 'on');
+                set(handles.hAxes(row,ndx).labelPos,'visible', 'off');
+                set(handles.hAxes(row,ndx).labelNeg,'visible', 'off');
+
+            end
+        end
+        
+    case 'rb_manual'
+        for row = 1:3
+            for ndx = 1:handles.numSimilar
+                handles.display = 'manual';
+                set(handles.hAxes(row,ndx).labelPos,'visible', 'on');
+                set(handles.hAxes(row,ndx).labelNeg,'visible', 'on');
+                set(handles.hAxes(row,ndx).predPos,'visible', 'off');
+                set(handles.hAxes(row,ndx).predNeg,'visible', 'off');
+            end
+        end
+    otherwise
+        % Code for when there is no match.
+end
+updatePlots(hObject,handles,handles.frameNo);
+guidata(hObject,handles);
+
+
+function displayOnJLabel(obj,eventdata,handles,row,col)
+handles=guidata(obj);
+JLabelHandles = handles.JLabelHandles;
+figure(JLabelHandles.figure_JLabel);
+if row==2
+    JLabelHandles.ts(1) =999; % in order to update plot in SetCurrentFrame
+    handles.curExp = handles.frames{2}.expNum;
+    [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
+    handles.curFly = handles.frames{2}.flyNum;
+    JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
+    handles.curFrame = handles.frames{2}.curTime;
+    JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
+    guiData(obj, handles);
+else
+    handles.curExp = handles.frames{row}(col).expNum;
+    [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
+    handles.curFly = handles.frames{row}(col).flyNum;
+    JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
+    handles.curFrame = handles.frames{row}(col).curTime;
+    JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
+    guiData(obj, handles);
+end
+
+
+
+% --- Executes when selected object is changed in chooseFrame.
+function chooseFrame_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in chooseFrame 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+
+old_rb_row = handles.cur_rb_row;
+old_rb_col = handles.cur_rb_col;
+
+switch get(eventdata.NewValue,'Tag') % Get Tag of selected object.
+    case 'rb_top1'
+        % Code for when rb_top1 is selected.
+        handles.cur_rb_row = 1;
+        handles.cur_rb_col = 1;
+    case 'rb_top2'
+        % Code for when radiobutton2 is selected.
+        handles.cur_rb_row = 1;
+        handles.cur_rb_col = 2;
+    case 'rb_top3'
+        handles.cur_rb_row = 1;
+        handles.cur_rb_col = 3;
+        
+    case 'rb_top4'
+        handles.cur_rb_row = 1;
+        handles.cur_rb_col = 4;
+        
+    case 'rb_middle1'
+        handles.cur_rb_row = 2;
+        handles.cur_rb_col = 1;
+    case 'rb_bottom1'
+        handles.cur_rb_row = 3;
+        handles.cur_rb_col = 1;
+    case 'rb_bottom2'
+        handles.cur_rb_row = 3;
+        handles.cur_rb_col = 2;
+        
+    case 'rb_bottom3'
+        handles.cur_rb_row = 3;
+        handles.cur_rb_col = 3;
+    case 'rb_bottom4'
+        handles.cur_rb_row = 3;
+        handles.cur_rb_col = 4;
+        
+    otherwise
+        % Code for when there is no match.
+end
+
+%change the color of the old lines to blue
+set(handles.htimeline_propdata{old_rb_row}(old_rb_col),'color','b');
+
+%change the color of the new line to red
+set(handles.htimeline_propdata{handles.cur_rb_row}(handles.cur_rb_col),'color','r');
+
+%update the text_timeline_prop value
+curExperiment = handles.frames{handles.cur_rb_row}(handles.cur_rb_col).expNum;
+curFly = handles.frames{ handles.cur_rb_row}(handles.cur_rb_col).flyNum; 
+curTime = handles.frames{ handles.cur_rb_row}(handles.cur_rb_col).curTime+handles.frameNo-handles.maxFrames-1;
+curProp= handles.perframepropis;
+perframedata = handles.JLDobj.GetPerFrameData1(curExperiment,curFly,curProp,curTime);
+s = sprintf('%.3f',perframedata);
+set(handles.text_timeline_prop,'String',s);
+
+guidata(hObject,handles);
+
+function plotPredictionsInAutoMode(handles)
+%for row 2
+
+relTrx = getRelTrx(handles,handles.frames{2});
+[labels predictions] = getLabels(handles,handles.frames{2});
+ptrx = nan(size(predictions));
+ntrx = nan(size(predictions));
+
+for i=1:length(ptrx)
+    if predictions(i)<1.5
+        ptrx(i) = 1;
+    else
+        ntrx(i) = 1;
+    end
+end
+
+%To fill in the gap between the lablePos and labelNeg
+diffPred = diff(predictions);
+changeIdex = find(diffPred);
+
+for i = 1:length(changeIdex)
+    if diffPred(changeIdex(i))<0 %negative -> positive
+        ntrx(changeIdex(i)+1) = 1;
+    else %positive -> negative
+        ptrx(changeIdex(i)+1) = 1;
+    end
+end
+
+for ndx = 1:handles.numSimilar
+    handles.trx{2,ndx} = relTrx;
+    set(handles.hAxes(2,ndx).predPos,'XData',relTrx.X.*ptrx,'Ydata',relTrx.Y.*ptrx);
+    set(handles.hAxes(2,ndx).predNeg,'XData',relTrx.X.*ntrx,'Ydata',relTrx.Y.*ntrx);
+end
+
+%for row 1 and 3
+for row = [1 3]
+    for ndx = 1:handles.numSimilar
+        relTrx = getRelTrx(handles,handles.frames{row}(ndx));
+        handles.trx{row,ndx} = relTrx;
+        [labels predictions] = getLabels(handles,handles.frames{row}(ndx));
+        
+        ptrx = nan(size(predictions));
+        ntrx = nan(size(predictions));
+        
+        for i=1:length(ptrx)
+            if predictions(i)<1.5
+                ptrx(i) = 1;
+            else
+                ntrx(i) = 1;
+            end
+        end
+        
+        diffPred = diff(predictions);
+        changeIdex = find(diffPred);
+        
+        for i = 1:length(changeIdex)
+            if diffPred(changeIdex(i))<0 %negative -> positive
+                ntrx(changeIdex(i)+1) = 1;
+            else %positive -> negative
+                ptrx(changeIdex(i)+1) = 1;
+            end
+        end
+        
+        set(handles.hAxes(row,ndx).predPos,'XData',relTrx.X.*ptrx,'YData',relTrx.Y.*ptrx);
+        set(handles.hAxes(row,ndx).predNeg,'XData',relTrx.X.*ntrx,'YData',relTrx.Y.*ntrx);
+    end
+end
+
+
+function poltLabelsInManualMode(handles)
+
+%for row 2
+relTrx = getRelTrx(handles,handles.frames{2});
+[labels predictions] = getLabels(handles,handles.frames{2});
+ptrx = labels.ptrx;
+ntrx = labels.ntrx;
+
+for ndx = 1:handles.numSimilar
+    handles.trx{2,ndx} = relTrx;
+    set(handles.hAxes(2,ndx).labelPos,'XData',relTrx.X.*ptrx,'Ydata',relTrx.Y.*ptrx);
+    set(handles.hAxes(2,ndx).labelNeg,'XData',relTrx.X.*ntrx,'Ydata',relTrx.Y.*ntrx);
+end
+
+%for row 1 and 3
+for row = [1 3]
+    for ndx = 1:handles.numSimilar
+        relTrx = getRelTrx(handles,handles.frames{row}(ndx));
+        handles.trx{row,ndx} = relTrx;
+        [labels predictions] = getLabels(handles,handles.frames{row}(ndx));
+        ptrx = labels.ptrx;
+        ntrx = labels.ntrx;
+        
+        set(handles.hAxes(row,ndx).labelPos,'XData',relTrx.X.*ptrx,'YData',relTrx.Y.*ptrx);
+        set(handles.hAxes(row,ndx).labelNeg,'XData',relTrx.X.*ntrx,'YData',relTrx.Y.*ntrx);
+    end
+end
 
