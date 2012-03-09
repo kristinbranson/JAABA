@@ -16,10 +16,7 @@
       featureparamfilename='test.xml'
       featureconfigfile='params/featureConfig.xml'
       />
-   <!--         featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/WindowFeatures_Lots.xml"
- -->
-
-   <!-- featureparamlist>
+   <featureparamlist>
      <absangle2wall/>
      <absanglefrom1to2_anglesub/>
      <absanglefrom1to2_nose2ell/>
@@ -48,6 +45,7 @@
      <corfrac_min/>
      <dangle2wall/>
      <danglesub/>
+     <darea/>
      <dcenter/>
      <ddcenter/>
      <ddell2nose/>
@@ -73,7 +71,7 @@
      <veltoward_anglesub/>
      <veltoward_nose2ell/>
      <yaw/>
-   </featureparamlist -->
+   </featureparamlist>
   
   <plot>
     <trx 
