@@ -682,7 +682,7 @@ if handles.data.ismovie,
   % try
   SetStatus(handles,'Opening movie...');
   [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
-    get_readframe_fcn(moviefilename,'interruptible',false);
+    get_readframe_fcn(moviefilename);
   im = handles.readframe(1);
   handles.movie_width = size(im,2);
   handles.movie_height = size(im,1);
@@ -5720,6 +5720,9 @@ function menu_view_suggest_threshold_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 in = inputdlg({'Threshold for suggestion'});
+if ~ischar(in),
+  return;
+end
 threshold = str2double(in{1});
 if isnan(threshold) || abs(threshold-0.5)>0.5  
   warndlg('Input value between 0 and 1');

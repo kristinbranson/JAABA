@@ -7,11 +7,13 @@
   <behaviors 
       names="MyBehavior"
       labelcolors=".7,0,0,0,0,.7"
+      unknowncolor="0,.3,0"
       />
   <file 
-      moviefilename=""
+      moviefilename="movie.mmf"
       trxfilename="trx.mat"
       labelfilename="MyBehaviorLabels.mat"
+      gt_labelfilename="MyGroundTruthingLabels.mat"
       perframedir="perframe"
       featureconfigfile="params/featureConfigLarvaeSamuel.xml"
       featureparamfilename="params/WindowFeatures_LarvaeSamuel.xml"
