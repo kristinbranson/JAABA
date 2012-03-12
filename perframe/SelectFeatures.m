@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 08-Mar-2012 14:13:35
+% Last Modified by GUIDE v2.5 09-Mar-2012 10:29:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -481,7 +481,8 @@ else
 end
 
 % Now for each different perframe feature read the type default trans_types.
-perframeL = fieldnames(settings.perframe);
+perframeL = handles.JLDobj.allperframefns;
+
 transType = struct;
 pftype = struct;
 pftypeList = {};
@@ -1623,5 +1624,5 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_ok (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-pushbutton_done_callback(hObject,eventdata,handles);
-pushbutton_cancel_callback(hObject,eventdata,handles);
+pushbutton_done_Callback(hObject,eventdata,handles);
+push_cancel_Callback(hObject,eventdata,handles);

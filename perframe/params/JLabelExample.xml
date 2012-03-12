@@ -9,11 +9,13 @@
       moviefilename="movie.ufmf"
       trxfilename="registered_trx.mat"
       labelfilename="labeledWalks.mat"
+      gt_labelfilename="labeledWalks_gt.mat"
       perframedir="perframe"
       clipsdir="clips"
       windowfilename="windowfeatures.mat"
       featureparamfilename="params/WindowFeaturesWalks.xml"
-      />
+      featureconfigfile='params/featureConfig.xml'
+  />
   <featureparamlist>
      <absangle2wall/>
      <absanglefrom1to2_anglesub/>
