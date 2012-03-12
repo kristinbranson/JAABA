@@ -14,7 +14,7 @@ switch computername,
   case 'bransonk-lw2',
 
     JCtrax_path = 'C:\Code\JCtrax';
-    magatanalyzer_path = 'C:\Code\MaGATAnalyzed-Matlab-Analysis';
+    magatanalyzer_path = 'C:\Code\MaGATAnalyzer-Matlab-Analysis';
     rootoutputdir = 'C:\Data\larvae_bruno';
     rootdatadir = fullfile(rootoutputdir,'rawdata');
 
@@ -54,4 +54,4 @@ inexpdir = fullfile(rootdatadir,experiment_name);
 
 %% 
 
-[outexpdir] = ConvertLarvaeSamuel2Trx(inexpdir,rootoutputdir,varargin)
+[outexpdir] = ConvertLarvaeSamuel2Trx(inexpdir,rootoutputdir)
