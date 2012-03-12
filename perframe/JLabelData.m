@@ -3612,6 +3612,9 @@ classdef JLabelData < handle
           obj.PredictLoaded();
           
         case 'boosting',
+          if nargin<2
+            doFastUpdates = false;
+          end
 
           if obj.DoFullTraining(doFastUpdates),
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
