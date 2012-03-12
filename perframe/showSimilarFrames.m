@@ -894,7 +894,7 @@ if row==2
     JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
     handles.curFrame = handles.frames{2}.curTime;
     JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
-    guiData(obj, handles);
+    guidata(obj, handles);
 else
     handles.curExp = handles.frames{row}(col).expNum;
     [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
@@ -902,7 +902,7 @@ else
     JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
     handles.curFrame = handles.frames{row}(col).curTime;
     JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
-    guiData(obj, handles);
+    guidata(obj, handles);
 end
 
 

@@ -128,6 +128,7 @@ classdef JLabelData < handle
     %   .H        - number classes
     classifier = [];
     classifier_old = [];
+    lastFullClassifierTrainingSize = 0;
     
     % Classifiers Time Stamp
     classifierTS = 0;
@@ -499,6 +500,7 @@ classdef JLabelData < handle
     function val = IsCurFly(obj,expi,flies)
       val = all(flies == obj.flies) && (expi==obj.expi);
     end
+    
     
     function [success,msg] = SetConfigFileName(obj,configfilename)
     % [success,msg] = SetConfigFileName(obj,configfilename)
@@ -948,6 +950,8 @@ classdef JLabelData < handle
       % TODO: remove clearwindow features.
     end
     
+    
+    
     function [success,msg] = SetMovieFileName(obj,moviefilename)
     % change/set the name of the movie within the experiment directory
     % will fail if movie files don't exist for any of the current
@@ -1114,7 +1118,6 @@ classdef JLabelData < handle
       end
       
     end
-
     
     function [success,msg] = SetClassifierType(obj,classifiertype)
 
@@ -1553,7 +1556,88 @@ classdef JLabelData < handle
           obj.ClearStatus();
       end
     end
+    
+    function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
+        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+    % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
+    % Changes what experiments are currently being used for this
+    % classifier. This function calls RemoveExpDirs to remove all current
+    % experiments not in expdirs, then calls AddExpDirs to add the new
+    % experiment directories. 
 
+      success = false;
+      msg = '';
+      
+      if isnumeric(expdirs),
+        return;
+      end
+      
+      if nargin < 2,
+        error('Usage: obj.SetExpDirs(expdirs,[outexpdirs],[nflies_per_exp])');
+      end
+      
+      isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
+      isnflies = nargin > 3 && ~isempty(nflies_per_exp);
+      issex = nargin > 4 && ~isempty(sex_per_exp);
+      isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
+      isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
+      isendframes = nargin > 7 && ~isempty(endframes_per_exp);
+      
+      % check inputs
+      
+      % sizes must match
+      if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
+        error('expdirs and outexpdirs do not match size');
+      end
+      if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
+        error('expdirs and nflies_per_exp do not match size');
+      end
+      
+      oldexpdirs = obj.expdirs;
+      
+      % remove oldexpdirs
+      
+      [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
+      if ~success1,
+        return;
+      end
+
+      % add new expdirs
+      idx = find(~ismember(expdirs,oldexpdirs));
+      success = true;
+      for i = idx,
+        params = cell(1,nargin-1);
+        params{1} = expdirs{i};
+        if isoutexpdirs,
+          params{2} = outexpdirs{i};
+        end
+        if isnflies,
+          params{3} = nflies_per_exp(i);
+        end
+        if issex,
+          params{4} = sex_per_exp{i};
+        end
+        if isfracsex,
+          params{5} = frac_sex_per_exp{i};
+        end
+        if isfirstframes,
+          params{6} = firstframes_per_exp{i};
+        end
+        if isendframes,
+          params{7} = endframes_per_exp{i};
+        end
+        [success1,msg1] = obj.AddExpDir(params{:});
+        success = success && success1;
+        if isempty(msg),
+          msg = msg1;
+        else
+          msg = sprintf('%s\n%s',msg,msg1);
+        end        
+      end
+
+    end
+    
+    
     function [success,msg] = PreLoadLabeledData(obj)
     % [success,msg] = PreLoadLabeledData(obj)
     % This function precomputes any missing window data for all labeled
@@ -1580,6 +1664,7 @@ classdef JLabelData < handle
       success = true;
       
     end
+    
     
     function SaveScores(obj,allScores,expi)
     % Save prediction scores for the whole experiment.
@@ -1798,85 +1883,6 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
     
-    function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
-        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
-    % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
-    % Changes what experiments are currently being used for this
-    % classifier. This function calls RemoveExpDirs to remove all current
-    % experiments not in expdirs, then calls AddExpDirs to add the new
-    % experiment directories. 
-
-      success = false;
-      msg = '';
-      
-      if isnumeric(expdirs),
-        return;
-      end
-      
-      if nargin < 2,
-        error('Usage: obj.SetExpDirs(expdirs,[outexpdirs],[nflies_per_exp])');
-      end
-      
-      isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
-      isnflies = nargin > 3 && ~isempty(nflies_per_exp);
-      issex = nargin > 4 && ~isempty(sex_per_exp);
-      isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
-      isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
-      isendframes = nargin > 7 && ~isempty(endframes_per_exp);
-      
-      % check inputs
-      
-      % sizes must match
-      if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
-        error('expdirs and outexpdirs do not match size');
-      end
-      if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
-        error('expdirs and nflies_per_exp do not match size');
-      end
-      
-      oldexpdirs = obj.expdirs;
-      
-      % remove oldexpdirs
-      
-      [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
-      if ~success1,
-        return;
-      end
-
-      % add new expdirs
-      idx = find(~ismember(expdirs,oldexpdirs));
-      success = true;
-      for i = idx,
-        params = cell(1,nargin-1);
-        params{1} = expdirs{i};
-        if isoutexpdirs,
-          params{2} = outexpdirs{i};
-        end
-        if isnflies,
-          params{3} = nflies_per_exp(i);
-        end
-        if issex,
-          params{4} = sex_per_exp{i};
-        end
-        if isfracsex,
-          params{5} = frac_sex_per_exp{i};
-        end
-        if isfirstframes,
-          params{6} = firstframes_per_exp{i};
-        end
-        if isendframes,
-          params{7} = endframes_per_exp{i};
-        end
-        [success1,msg1] = obj.AddExpDir(params{:});
-        success = success && success1;
-        if isempty(msg),
-          msg = msg1;
-        else
-          msg = sprintf('%s\n%s',msg,msg1);
-        end        
-      end
-
-    end
 
     function nflies = GetNumFlies(obj,expi)
       nflies = obj.nflies_per_exp(expi);
@@ -3510,6 +3516,7 @@ classdef JLabelData < handle
       
     end
     
+    
     function Train(obj,doFastUpdates)
     % Train(obj)
     % Updates the classifier to reflect the current labels. This involves
@@ -3605,11 +3612,8 @@ classdef JLabelData < handle
           obj.PredictLoaded();
           
         case 'boosting',
-          oldNumPts = nnz(obj.windowdata.labelidx_cur ~= 0 & obj.windowdata.labelidx_imp );
-          newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
-          newData = newNumPts - oldNumPts;
 
-          if isempty(obj.classifier) || (newData/oldNumPts)>0.3 || ~doFastUpdates || isempty(obj.windowdata.binVals),
+          if obj.DoFullTraining(doFastUpdates),
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
             obj.classifier_old = obj.classifier;
@@ -3619,12 +3623,17 @@ classdef JLabelData < handle
                                  obj.windowdata.labelidx_new(islabeled),obj,...
                                  obj.windowdata.binVals,...
                                  obj.windowdata.bins(:,islabeled),obj.classifier_params);
+            obj.lastFullClassifierTrainingSize = nnz(islabeled);
             
           else
+            oldNumPts = nnz(obj.windowdata.labelidx_cur ~= 0 & obj.windowdata.labelidx_imp );
+            newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
+            newData = newNumPts - oldNumPts;
             obj.SetStatus('Updating boosting classifier with %d examples...',newData);
             
             oldBinSize = size(obj.windowdata.bins,2);
             newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
+            
             if newData>0
               obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
             end
@@ -3650,377 +3659,25 @@ classdef JLabelData < handle
       
     end
     
-    function errorRates = createConfMat(obj,scores,modLabels)
+    function res = DoFullTraining(obj,doFastUpdates)
+      % Check if we should do fast updates or not.
+      res = true;
+      if ~doFastUpdates, return; end
+      if isempty(obj.classifier), return; end
+      if isempty(obj.windowdata.binVals), return; end
       
-      confMat = zeros(2*obj.nbehaviors,3);
-      scoreNorm = obj.windowdata.scoreNorm;
-      for ndx = 1:2*obj.nbehaviors
-        if mod(ndx,2)
-          curIdx = modLabels==ndx;
-        else
-          curIdx = modLabels > (ndx-1.5) & modLabels<(ndx+0.5);
-        end
-        confMat(ndx,1) = nnz(scores(curIdx)>=  (obj.confThresholds(1)*scoreNorm));
-        confMat(ndx,2) = nnz(-scores(curIdx)<  (obj.confThresholds(2)*scoreNorm) & ...
-                              scores(curIdx)<  (obj.confThresholds(1)*scoreNorm) );
-        confMat(ndx,3) = nnz(-scores(curIdx)>= (obj.confThresholds(2)*scoreNorm));
-      end
-      errorRates.numbers = confMat;
-      errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
-    end
-    
-    function crossError = CrossValidate(obj)
-      [success,msg] = obj.PreLoadLabeledData();
-      
-      if ~success, warning(msg);return;end
-
-      islabeled = obj.windowdata.labelidx_cur ~= 0;
-
-      if ~any(islabeled),                        
-        crossError.numbers = zeros(4,3);
-        crossError.frac = zeros(4,3);
-        crossError.oldNumbers = zeros(4,3);
-        crossError.oldFrac = zeros(4,3);
-        
-        return; 
-      end
-      if ~strcmp(obj.classifiertype,'boosting'); return; end
-
-      obj.SetStatus('Cross validating the classifier for %d examples...',nnz(islabeled));
-      
-      oldBinSize = size(obj.windowdata.bins,2);
-      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && ~isempty(obj.windowdata.binVals)
-        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-      else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
-      end
-      
-      % Find the bouts from window data.
-      bouts = struct('ndx',[],'label',[]);
-      for expNdx = 1:obj.nexps
-        for flyNdx = 1:obj.nflies_per_exp(expNdx)
-          curLabels = obj.GetLabels(expNdx,flyNdx);
-          for boutNum = 1:numel(curLabels.t0s)
-            bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
-              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
-              obj.windowdata.t < curLabels.t1s(boutNum);
-            bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
-          end
-          
-        end
-      end
-      
-      
-      crossScores=...
-        crossValidateBout( obj.windowdata.X, ...
-        obj.windowdata.labelidx_cur,bouts,obj,...
-        obj.windowdata.binVals,...
-        obj.windowdata.bins,obj.classifier_params);
-
-      obj.windowdata.scores_validated = zeros(1,numel(islabeled));
-      obj.windowdata.scores_validated(islabeled) = crossScores;
-             
-%       crossScores=...
-%         crossValidate( obj.windowdata.X(islabeled,:), ...
-%         obj.windowdata.labelidx_cur(islabeled,:),obj,...
-%         obj.windowdata.binVals,...
-%         obj.windowdata.bins(:,islabeled),obj.classifier_params);
-      
-      modLabels = 2*obj.windowdata.labelidx_cur(islabeled)-obj.windowdata.labelidx_imp(islabeled);
-
-      crossError = obj.createConfMat(crossScores,modLabels);
-      
-      waslabeled = false(1,numel(islabeled));
-      waslabeled(1:numel(obj.windowdata.labelidx_old)) = obj.windowdata.labelidx_old~=0;
-      oldSelect = waslabeled(islabeled);
-      oldScores = crossScores(oldSelect);
-      oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled) - obj.windowdata.labelidx_imp(waslabeled);
-      oldError = obj.createConfMat(oldScores,oldLabels);
-      crossError.oldNumbers = oldError.numbers;
-      crossError.oldFrac = oldError.frac;
-      
-      obj.ClearStatus();
-    end
-
-    function ROCCurve(obj,JLabelHandle)
-      
-%       if ~obj.isValidated,
-%         warndlg('Scores need to cross validated to use ROC');
-%         return;
-%       end
-      
-      curNdx = obj.windowdata.labelidx_cur~=0;
-      curScores = obj.windowdata.scores(curNdx);
-      curLabels = obj.windowdata.labelidx_cur(curNdx);
-      modLabels = ((curLabels==1)-0.5)*2;
-      ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
-      
-      
-    end
-    
-    function newError = TestOnNewLabels(obj)
-      obj.StoreLabels();
-      newError = struct();
-
-      prevLabeled = obj.windowdata.labelidx_cur~=0;
-      Nprev = numel(prevLabeled);
-      newLabels = obj.windowdata.labelidx_new ~= 0;
-      tOld = newLabels(1:Nprev);
-      tOld(prevLabeled) = false;
-      newLabels(1:Nprev) = tOld;
-      
-      if ~nnz(newLabels); 
-        fprintf('No new labeled data\n');
+      if (numel(obj.classifier) - obj.classifier_params.iter)/obj.classifier_params.iter_updates > 4
         return;
       end
       
-      % Find out the index of scores with the same exp, flynum and time as
-      % the newly labeled data.
-      
-      orderedScores = []; orderedLabels = []; orderedLabels_imp = [];
-      nlexp = obj.windowdata.exp(newLabels);
-      nlflies = obj.windowdata.flies(newLabels);
-      nlt = obj.windowdata.t(newLabels);
-      nlLabels = obj.windowdata.labelidx_new(newLabels);
-      nlLabels_imp = obj.windowdata.labelidx_imp(newLabels);
-      
-      classifierfilename = 'None'; setClassifierfilename = 1;
-      for curExp = unique(nlexp)'
-        curNLexpNdx = nlexp==curExp;
-        for curFly = unique(nlflies(curNLexpNdx))';
-          curT = nlt( nlexp==curExp & nlflies == curFly);
-          curLabels = nlLabels(nlexp==curExp & nlflies == curFly);
-          curLabels_imp = nlLabels_imp(nlexp==curExp & nlflies == curFly);
-          curScoreNdx = find(obj.scoredata.exp == curExp & obj.scoredata.flies==curFly);
-          scoresT = obj.scoredata.t(curScoreNdx);
-          [curValidScoreNdx,loc] = ismember(scoresT,curT);
-          if nnz(curValidScoreNdx)~=numel(curT)
-            warndlg('Scores are missing for some labeled data');
-            newError = struct();
-            return;
-          end
-          
-          orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
-          orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
-          orderedScores = [orderedScores; obj.scoredata.scores(curScoreNdx(curValidScoreNdx~=0))'];
-        end
-        if setClassifierfilename,
-          classifierfilename = obj.scoredata.classifierfilenames{curExp};
-          setClassifierfilename = 0;
-        elseif strcmp(classifierfilename,'multiple'),
-        elseif ~strcmp(classifierfilename,obj.scoredata.classifierfilenames{curExp}),
-          classifierfilename = 'multiple';
-        end
-          
-      end
-      
-      prediction = -sign(orderedScores)/2+1.5;
-      
-      modLabels = 2*orderedLabels-orderedLabels_imp;
-      
-      newError = obj.createConfMat(prediction,modLabels);
-      newError.classifierfilename = classifierfilename;
-      
-    end
-    
-%{ 
-% When testing with the current classifier.
-%       if isempty(obj.classifier);
-%         warndlg('No Classifier. Either ');
-%         return; 
-%       end
-%       
-%       
-%       switch obj.classifiertype,
-%         
-%         case 'boosting',
-% 
-%           obj.SetStatus('Applying boosting classifier to newly labeled %d frames',nnz(newLabels));
-%           scores = myBoostClassify(obj.windowdata.X(newLabels,:),obj.classifier);
-%           prediction = -sign(scores)/2+1.5;
-% 
-%           modLabels = 2*obj.windowdata.labelidx_new(newLabels)-obj.windowdata.labelidx_imp(newLabels);
-%           
-%           confMat = zeros(2*obj.nbehaviors,2);
-%           for ndx = 1:2*obj.nbehaviors
-%             curBehavior = ceil(ndx/2);
-%             curIdx = modLabels==ndx;
-%             confMat(ndx,1) = nnz(prediction(curIdx)~=1);
-%             confMat(ndx,2) = nnz(prediction(curIdx)==1);
-%           end
-%           newError.numbers = confMat;
-%           newError.frac = newError.numbers./repmat( sum(newError.numbers,2),[1 2]);
-%           
-%         case 'ferns',
-%           newError.numbers = zeros(2*obj.nbehaviors,2);
-%           newError.frac = zeros(2*obj.nbehaviors,2);
-%           %TODO.
-%  
-%       end
-%}
-      
-    function DoBagging(obj)
-      [success,msg] = obj.PreLoadLabeledData();
-      
-      if ~success, warning(msg);return;end
-
-      islabeled = obj.windowdata.labelidx_new ~= 0;
-
-      if ~any(islabeled),                        return; end
-      if ~strcmp(obj.classifiertype,'boosting'); return; end
-      if isempty(obj.classifier), obj.Train;             end
-
-      obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
-      
-      oldBinSize = size(obj.windowdata.bins,2);
-      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && ~isempty(obj.windowdata.binVals)
-        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-      else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
-      end
-      
-      [obj.bagModels, obj.distMat] =...
-        doBagging( obj.windowdata.X(islabeled,:), ...
-        obj.windowdata.labelidx_new(islabeled),obj,...
-        obj.windowdata.binVals,...
-        obj.windowdata.bins(:,islabeled),obj.classifier_params);
-      
-      obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
-      obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
-      obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
-      obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
-      
-      obj.ClearStatus();
-    end
-    
-    function InitSimilarFrames(obj, HJLabel)
-      obj.frameFig = showSimilarFrames;
-      showSimilarFrames('SetJLabelData',obj.frameFig,obj,HJLabel);
-      showSimilarFrames('CacheTracksLabeled',obj.frameFig);
-      showSimilarFrames('add_prep_list', obj.frameFig);
-    end
-    
-    function SimilarFrames(obj,curTime,JLabelHandles)
-      if isempty(obj.frameFig), obj.InitSimilarFrames(JLabelHandles), end
-      
-      distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
-        (obj.windowdata.distNdx.flies == obj.flies) & ...
-        (obj.windowdata.distNdx.t == curTime) ,1);
-      
-      windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
-        (obj.windowdata.flies == obj.flies) & ...
-        (obj.windowdata.t == curTime) ,1);
-
-
-      if isempty(distNdx) % The example was not part of the training data.
-        outOfTraining = 1;
-        curX = obj.windowdata.X(windowNdx,:);
-        curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
-        count = 1;
-        for bagNo = 1:length(obj.bagModels)
-          curModel = obj.bagModels{bagNo};
-          for j = 1:length(curModel)
-            curWk = curModel(j);
-            dd = curX(curWk.dim)*curWk.dir;
-            tt = curWk.tr*curWk.dir;
-            curD(count) = (dd>tt)*curWk.alpha;
-            count = count+1;
-          end
-        end
-      else
-        outOfTraining = 0;
-        curD = obj.distMat(distNdx,:);
-      end
-
-      % Compute the distance 
-      diffMat = zeros(size(obj.distMat));
-      for ndx = 1:size(diffMat,2);
-        diffMat(:,ndx) = abs(obj.distMat(:,ndx)-curD(ndx));
-      end
-      dist2train = nanmean(diffMat,2)*200;
-      [rr rrNdx] = sort(dist2train,'ascend');
-      
-      if~outOfTraining
-        rr = rr(2:end);
-        curEx = rrNdx(1); rrNdx = rrNdx(2:end);
-      else
-        curEx = [];
-      end
-      
-      % Find 5 closest pos and neg examples.
-      % This looks complicated then it should be.
-      % DEBUG: find values of actual labels 
-     
-      trainLabels =  obj.windowdata.distNdx.labels;
-      allPos = rrNdx(trainLabels(rrNdx)>1.5);
-      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
+      oldNumPts = obj.lastFullClassifierTrainingSize;
+      newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
+      newData = newNumPts - oldNumPts;
+      if (newData/oldNumPts)>0.25, return; end
       
       
-      curP = zeros(1,5);
-      curN = zeros(1,5);
-      count = 0;
-      for ex = allPos'
-        if count>4; break; end;
-        isClose = 0;
-        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
-           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
-           abs( obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex) )<5,
-           continue; 
-        end
-        
-        for used = curP(1:count)
-          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
-             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
-             abs( obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex) )<5,
-             isClose = 1; 
-             break; 
-          end
-        end
-        
-        if isClose; continue; end;
-        count = count+1;
-        curP(count) = ex;
-      end
       
-      count = 0;
-      for ex = allNeg'
-        if count>4; break; end;
-        isClose = 0;
-        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
-           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
-           abs(obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5,
-           continue; 
-        end
-        
-        for used = curN(1:count)
-          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
-             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
-             abs(obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5,
-             isClose = 1; 
-             break; 
-          end
-        end
-        
-        if isClose; continue; end;
-        count = count+1;
-        curN(count) = ex;
-      end
-      
-      varForSSF.curFrame.expNum = obj.windowdata.exp(windowNdx);
-      varForSSF.curFrame.flyNum = obj.windowdata.flies(windowNdx);
-      varForSSF.curFrame.curTime = obj.windowdata.t(windowNdx);
-      
-      for k = 1:4
-        varForSSF.posFrames(k).expNum = obj.windowdata.distNdx.exp(curP(k));
-        varForSSF.posFrames(k).flyNum = obj.windowdata.distNdx.flies(curP(k));
-        varForSSF.posFrames(k).curTime = obj.windowdata.distNdx.t(curP(k));
-        varForSSF.negFrames(k).expNum = obj.windowdata.distNdx.exp(curN(k));
-        varForSSF.negFrames(k).flyNum = obj.windowdata.distNdx.flies(curN(k));
-        varForSSF.negFrames(k).curTime = obj.windowdata.distNdx.t(curN(k));
-      end
-      showSimilarFrames('setFrames',obj.frameFig,varForSSF);
+      res = false;
     end
     
     function PredictLoaded(obj)
@@ -4340,7 +3997,347 @@ classdef JLabelData < handle
       
       
     end
+    
+    
+    function errorRates = createConfMat(obj,scores,modLabels)
+      
+      confMat = zeros(2*obj.nbehaviors,3);
+      scoreNorm = obj.windowdata.scoreNorm;
+      for ndx = 1:2*obj.nbehaviors
+        if mod(ndx,2)
+          curIdx = modLabels==ndx;
+        else
+          curIdx = modLabels > (ndx-1.5) & modLabels<(ndx+0.5);
+        end
+        confMat(ndx,1) = nnz(scores(curIdx)>=  (obj.confThresholds(1)*scoreNorm));
+        confMat(ndx,2) = nnz(-scores(curIdx)<  (obj.confThresholds(2)*scoreNorm) & ...
+                              scores(curIdx)<  (obj.confThresholds(1)*scoreNorm) );
+        confMat(ndx,3) = nnz(-scores(curIdx)>= (obj.confThresholds(2)*scoreNorm));
+      end
+      errorRates.numbers = confMat;
+      errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
+    end
+    
+    function crossError = CrossValidate(obj)
+      [success,msg] = obj.PreLoadLabeledData();
+      
+      if ~success, warning(msg);return;end
 
+      islabeled = obj.windowdata.labelidx_cur ~= 0;
+
+      if ~any(islabeled),                        
+        crossError.numbers = zeros(4,3);
+        crossError.frac = zeros(4,3);
+        crossError.oldNumbers = zeros(4,3);
+        crossError.oldFrac = zeros(4,3);
+        
+        return; 
+      end
+      if ~strcmp(obj.classifiertype,'boosting'); return; end
+
+      obj.SetStatus('Cross validating the classifier for %d examples...',nnz(islabeled));
+      
+      oldBinSize = size(obj.windowdata.bins,2);
+      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
+      if newData>0 && ~isempty(obj.windowdata.binVals)
+        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
+      else
+        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
+      end
+      
+      % Find the bouts from window data.
+      bouts = struct('ndx',[],'label',[]);
+      for expNdx = 1:obj.nexps
+        for flyNdx = 1:obj.nflies_per_exp(expNdx)
+          curLabels = obj.GetLabels(expNdx,flyNdx);
+          for boutNum = 1:numel(curLabels.t0s)
+            bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
+              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
+              obj.windowdata.t < curLabels.t1s(boutNum);
+            bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
+          end
+          
+        end
+      end
+      
+      
+      crossScores=...
+        crossValidateBout( obj.windowdata.X, ...
+        obj.windowdata.labelidx_cur,bouts,obj,...
+        obj.windowdata.binVals,...
+        obj.windowdata.bins,obj.classifier_params);
+
+      obj.windowdata.scores_validated = zeros(1,numel(islabeled));
+      obj.windowdata.scores_validated(islabeled) = crossScores;
+             
+%       crossScores=...
+%         crossValidate( obj.windowdata.X(islabeled,:), ...
+%         obj.windowdata.labelidx_cur(islabeled,:),obj,...
+%         obj.windowdata.binVals,...
+%         obj.windowdata.bins(:,islabeled),obj.classifier_params);
+      
+      modLabels = 2*obj.windowdata.labelidx_cur(islabeled)-obj.windowdata.labelidx_imp(islabeled);
+
+      crossError = obj.createConfMat(crossScores,modLabels);
+      
+      waslabeled = false(1,numel(islabeled));
+      waslabeled(1:numel(obj.windowdata.labelidx_old)) = obj.windowdata.labelidx_old~=0;
+      oldSelect = waslabeled(islabeled);
+      oldScores = crossScores(oldSelect);
+      oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled) - obj.windowdata.labelidx_imp(waslabeled);
+      oldError = obj.createConfMat(oldScores,oldLabels);
+      crossError.oldNumbers = oldError.numbers;
+      crossError.oldFrac = oldError.frac;
+      
+      obj.ClearStatus();
+    end
+
+    function ROCCurve(obj,JLabelHandle)
+      
+%       if ~obj.isValidated,
+%         warndlg('Scores need to cross validated to use ROC');
+%         return;
+%       end
+      
+      curNdx = obj.windowdata.labelidx_cur~=0;
+      curScores = obj.windowdata.scores(curNdx);
+      curLabels = obj.windowdata.labelidx_cur(curNdx);
+      modLabels = ((curLabels==1)-0.5)*2;
+      ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
+      
+      
+    end
+    
+    function newError = TestOnNewLabels(obj)
+      obj.StoreLabels();
+      newError = struct();
+
+      prevLabeled = obj.windowdata.labelidx_cur~=0;
+      Nprev = numel(prevLabeled);
+      newLabels = obj.windowdata.labelidx_new ~= 0;
+      tOld = newLabels(1:Nprev);
+      tOld(prevLabeled) = false;
+      newLabels(1:Nprev) = tOld;
+      
+      if ~nnz(newLabels); 
+        fprintf('No new labeled data\n');
+        return;
+      end
+      
+      % Find out the index of scores with the same exp, flynum and time as
+      % the newly labeled data.
+      
+      orderedScores = []; orderedLabels = []; orderedLabels_imp = [];
+      nlexp = obj.windowdata.exp(newLabels);
+      nlflies = obj.windowdata.flies(newLabels);
+      nlt = obj.windowdata.t(newLabels);
+      nlLabels = obj.windowdata.labelidx_new(newLabels);
+      nlLabels_imp = obj.windowdata.labelidx_imp(newLabels);
+      
+      classifierfilename = 'None'; setClassifierfilename = 1;
+      for curExp = unique(nlexp)'
+        curNLexpNdx = nlexp==curExp;
+        for curFly = unique(nlflies(curNLexpNdx))';
+          curT = nlt( nlexp==curExp & nlflies == curFly);
+          curLabels = nlLabels(nlexp==curExp & nlflies == curFly);
+          curLabels_imp = nlLabels_imp(nlexp==curExp & nlflies == curFly);
+          curScoreNdx = find(obj.scoredata.exp == curExp & obj.scoredata.flies==curFly);
+          scoresT = obj.scoredata.t(curScoreNdx);
+          [curValidScoreNdx,loc] = ismember(scoresT,curT);
+          if nnz(curValidScoreNdx)~=numel(curT)
+            warndlg('Scores are missing for some labeled data');
+            newError = struct();
+            return;
+          end
+          
+          orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
+          orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
+          orderedScores = [orderedScores; obj.scoredata.scores(curScoreNdx(curValidScoreNdx~=0))'];
+        end
+        if setClassifierfilename,
+          classifierfilename = obj.scoredata.classifierfilenames{curExp};
+          setClassifierfilename = 0;
+        elseif strcmp(classifierfilename,'multiple'),
+        elseif ~strcmp(classifierfilename,obj.scoredata.classifierfilenames{curExp}),
+          classifierfilename = 'multiple';
+        end
+          
+      end
+      
+      prediction = -sign(orderedScores)/2+1.5;
+      
+      modLabels = 2*orderedLabels-orderedLabels_imp;
+      
+      newError = obj.createConfMat(prediction,modLabels);
+      newError.classifierfilename = classifierfilename;
+      
+    end
+    
+    
+    function DoBagging(obj)
+      [success,msg] = obj.PreLoadLabeledData();
+      
+      if ~success, warning(msg);return;end
+
+      islabeled = obj.windowdata.labelidx_new ~= 0;
+
+      if ~any(islabeled),                        return; end
+      if ~strcmp(obj.classifiertype,'boosting'); return; end
+      if isempty(obj.classifier), obj.Train;             end
+
+      obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
+      
+      oldBinSize = size(obj.windowdata.bins,2);
+      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
+      if newData>0 && ~isempty(obj.windowdata.binVals)
+        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
+      else
+        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
+      end
+      
+      [obj.bagModels, obj.distMat] =...
+        doBagging( obj.windowdata.X(islabeled,:), ...
+        obj.windowdata.labelidx_new(islabeled),obj,...
+        obj.windowdata.binVals,...
+        obj.windowdata.bins(:,islabeled),obj.classifier_params);
+      
+      obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
+      obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
+      obj.windowdata.distNdx.t = obj.windowdata.t(islabeled);
+      obj.windowdata.distNdx.labels = obj.windowdata.labelidx_new(islabeled);
+      
+      obj.ClearStatus();
+    end
+    
+    function InitSimilarFrames(obj, HJLabel)
+      obj.frameFig = showSimilarFrames;
+      showSimilarFrames('SetJLabelData',obj.frameFig,obj,HJLabel);
+      showSimilarFrames('CacheTracksLabeled',obj.frameFig);
+      showSimilarFrames('add_prep_list', obj.frameFig);
+    end
+    
+    function SimilarFrames(obj,curTime,JLabelHandles)
+      if isempty(obj.frameFig), obj.InitSimilarFrames(JLabelHandles), end
+      
+      distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
+        (obj.windowdata.distNdx.flies == obj.flies) & ...
+        (obj.windowdata.distNdx.t == curTime) ,1);
+      
+      windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
+        (obj.windowdata.flies == obj.flies) & ...
+        (obj.windowdata.t == curTime) ,1);
+
+
+      if isempty(distNdx) % The example was not part of the training data.
+        outOfTraining = 1;
+        curX = obj.windowdata.X(windowNdx,:);
+        curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
+        count = 1;
+        for bagNo = 1:length(obj.bagModels)
+          curModel = obj.bagModels{bagNo};
+          for j = 1:length(curModel)
+            curWk = curModel(j);
+            dd = curX(curWk.dim)*curWk.dir;
+            tt = curWk.tr*curWk.dir;
+            curD(count) = (dd>tt)*curWk.alpha;
+            count = count+1;
+          end
+        end
+      else
+        outOfTraining = 0;
+        curD = obj.distMat(distNdx,:);
+      end
+
+      % Compute the distance 
+      diffMat = zeros(size(obj.distMat));
+      for ndx = 1:size(diffMat,2);
+        diffMat(:,ndx) = abs(obj.distMat(:,ndx)-curD(ndx));
+      end
+      dist2train = nanmean(diffMat,2)*200;
+      [rr rrNdx] = sort(dist2train,'ascend');
+      
+      if~outOfTraining
+        rr = rr(2:end);
+        curEx = rrNdx(1); rrNdx = rrNdx(2:end);
+      else
+        curEx = [];
+      end
+      
+      % Find 5 closest pos and neg examples.
+      % This looks complicated then it should be.
+      % DEBUG: find values of actual labels 
+     
+      trainLabels =  obj.windowdata.distNdx.labels;
+      allPos = rrNdx(trainLabels(rrNdx)>1.5);
+      allNeg = rrNdx(trainLabels(rrNdx)<1.5);
+      
+      
+      curP = zeros(1,5);
+      curN = zeros(1,5);
+      count = 0;
+      for ex = allPos'
+        if count>4; break; end;
+        isClose = 0;
+        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
+           abs( obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex) )<5,
+           continue; 
+        end
+        
+        for used = curP(1:count)
+          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
+             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
+             abs( obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex) )<5,
+             isClose = 1; 
+             break; 
+          end
+        end
+        
+        if isClose; continue; end;
+        count = count+1;
+        curP(count) = ex;
+      end
+      
+      count = 0;
+      for ex = allNeg'
+        if count>4; break; end;
+        isClose = 0;
+        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+           obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
+           abs(obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5,
+           continue; 
+        end
+        
+        for used = curN(1:count)
+          if obj.windowdata.distNdx.exp(used) == obj.windowdata.distNdx.exp(ex) &&...
+             obj.windowdata.distNdx.flies(used) == obj.windowdata.distNdx.flies(ex) && ...
+             abs(obj.windowdata.distNdx.t(used) - obj.windowdata.distNdx.t(ex))<5,
+             isClose = 1; 
+             break; 
+          end
+        end
+        
+        if isClose; continue; end;
+        count = count+1;
+        curN(count) = ex;
+      end
+      
+      varForSSF.curFrame.expNum = obj.windowdata.exp(windowNdx);
+      varForSSF.curFrame.flyNum = obj.windowdata.flies(windowNdx);
+      varForSSF.curFrame.curTime = obj.windowdata.t(windowNdx);
+      
+      for k = 1:4
+        varForSSF.posFrames(k).expNum = obj.windowdata.distNdx.exp(curP(k));
+        varForSSF.posFrames(k).flyNum = obj.windowdata.distNdx.flies(curP(k));
+        varForSSF.posFrames(k).curTime = obj.windowdata.distNdx.t(curP(k));
+        varForSSF.negFrames(k).expNum = obj.windowdata.distNdx.exp(curN(k));
+        varForSSF.negFrames(k).flyNum = obj.windowdata.distNdx.flies(curN(k));
+        varForSSF.negFrames(k).curTime = obj.windowdata.distNdx.t(curN(k));
+      end
+      showSimilarFrames('setFrames',obj.frameFig,varForSSF);
+    end
+    
+    
     function expStats = GetExpStats(obj,expi)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
@@ -4527,6 +4524,7 @@ classdef JLabelData < handle
       scores = scores/scoreNorm;
     end
     
+    
     function SetStatus(obj,varargin)
     % SetStatus(obj,<sprintf-like arguments>)
     % Update an associated status text according to the input sprintf-like
@@ -4561,11 +4559,13 @@ classdef JLabelData < handle
       obj.clearstatusfn = clearfn;
     end
     
+    
     function ShowSelectFeatures(obj)
       selHandle = SelectFeatures;
       SelectFeatures('setJLDobj',selHandle,obj);
       uiwait(selHandle);
     end
+    
     
     function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
       
