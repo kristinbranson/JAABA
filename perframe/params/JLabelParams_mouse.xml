@@ -9,11 +9,12 @@
       moviefilename="movie.seq"
       trxfilename="trx.mat"
       labelfilename="labeledbehavior.mat"
+      gt_labelfilename="labeledbehavior_gt.mat"
       perframedir="perframe"
       clipsdir="clips"
       windowfilename="windowfeatures.mat"
-      featureparamfilename="C:\Code\Jdetect\perframe\params\WindowFeatures_Mice.xml"
-      rootoutputdir="C:\Data\roian"
+      featureparamfilename="params/WindowFeatures_Mice.xml"
+      featureconfigfile="params/
       />
     <featureparamlist>
       <a_mm/>
@@ -28,7 +29,6 @@
       <phi/>
       <signdtheta/>
       <theta_mm/>
-      <timestamps/>
       <velmag/>
       <velmag_ctr/>
       <x_mm/>
