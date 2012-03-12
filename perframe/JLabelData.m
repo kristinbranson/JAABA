@@ -147,7 +147,7 @@ classdef JLabelData < handle
     configfilename = '';
     
     % constant: files per experiment directory
-    filetypes = {'movie','trx','label','perframedir','clipsdir','gt_label'};
+    filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir'};
     
     % config parameters
     
@@ -2595,7 +2595,7 @@ classdef JLabelData < handle
               % if furthermore file can't be generated, then not fixable
               if ~JLabelData.CanGenerateFile(file),
                 obj.filesfixable = false;                
-                msg1 = sprintf('%s missing and cannot be generated.',fn);
+                msg1 = sprintf('%s missing and cannot be generated.',file);
                 if isempty(msg),
                   msg = msg1;
                 else
