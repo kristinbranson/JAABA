@@ -739,6 +739,8 @@ classdef JLabelData < handle
       obj.windowdata.scores_old(idx2remove,:) = [];
       obj.windowdata.scores_validated(idx2remove,:) = [];
       obj.windowdata.isvalidprediction(idx2remove,:) = [];
+      obj.windowdata.binVals = [];
+      obj.windowdata.bins = [];
 
       
     end
