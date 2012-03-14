@@ -63,6 +63,8 @@
   
   <perframe>
     
+    <a_mm trans_types="none,abs" type="appearance"/>
+    
     <absanglefrom1to2_nose2ell  trans_types="none" type="social"/>
 
     <absdtheta trans_types="relative" type="locomotion"/>
@@ -93,6 +95,8 @@
     
     <arena_r trans_types="none" type="arena,position"/>
     
+    <b_mm trans_types="none,abs" type="appearance"/>
+    
     <closestfly_anglesub trans_types="none" type="identity"/>
     
     <closestfly_center  trans_types="none" type="identity"/>
@@ -111,11 +115,17 @@
     
     <darea trans_types="none,abs" type="appearance"/>
     
+    <da trans_types="none,abs" type="appearance"/>
+    
+    <db trans_types="none,abs" type="appearance"/>
+
     <dcenter trans_types="none,relative" type="social"/>
     
     <ddcenter trans_types="none,abs" type="social"/>
     
     <ddist2wall trans_types="none" type="arena"/>
+    
+    <decc trans_types="none,abs" type="appearance"/>
     
     <dell2nose trans_types="none,relative" type="social"/>
     
@@ -131,15 +141,23 @@
     
     <dnose2tail trans_types="none,relative" type="social"/>
     
+    <dphi trans_types="none,abs" type="position,locomotion"/>
+    
     <dtheta trans_types="flip,abs" type="locomotion"/>
     
     <du_cor trans_types="none,abs,relative" type="locomotion"/>
     
     <du_ctr trans_types="none,abs,relative" type="locomotion"/>
     
+    <du_tail trans_types="none,abs,relative" type="locomotion"/>
+    
     <dv_cor trans_types="flip,abs" type="locomotion"/>
     
     <dv_ctr trans_types="flip,abs" type="locomotion"/>
+    
+    <dv_tail trans_types="flip,abs" type="locomotion"/>
+    
+    <ecc trans_types="none,abs" type="appearance"/>
     
     <flipdv_cor trans_types="relative" type="locomotion"/>
     
@@ -151,9 +169,15 @@
     
     <phi trans_types="none" type="position"/>
     
+    <phisideways trans_types="none" type="locomotion"/>
+    
     <velmag trans_types="none,relative" type="locomotion"/>
     
     <velmag_ctr trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_nose trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_tail trans_types="none,relative" type="locomotion"/>
     
     <veltoward_anglesub trans_types="none,relative" type="social"/>
     
