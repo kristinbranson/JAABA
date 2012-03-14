@@ -394,10 +394,6 @@ function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_loadwoexp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
-if ~strcmpi(res,'Yes'),
-  return;
-end
 
 [filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
 if ~ischar(filename),

@@ -4258,9 +4258,12 @@ else
 end
 
 function predictTimerCallback(obj,event,hObject,framesPerTick)
+  handles = guidata(hObject);
+  if handles.isgroundtruthmode
+    return;
+  end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
-  handles = guidata(hObject);
   t0 = min(handles.ts(1)+framesPerTick,handles.t1_curr);
   t1 = min(t0+framesPerTick,handles.t1_curr);
   handles.data.Predict(handles.expi,handles.flies,t0:t1);
@@ -4277,8 +4280,10 @@ axi = 1;
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 SetButtonImage(handles.pushbutton_playstop);
 
-handles = UpdatePrediction(handles);
-guidata(hObject,handles);
+if ~handles.isgroundtruthmode
+  handles = UpdatePrediction(handles);
+  guidata(hObject,handles);
+end
 
 handles.hplaying = hObject;
 guidata(hObject,handles);
