@@ -119,6 +119,8 @@ function SetJLabelData(hObject,obj,HJLabel)
 handles = guidata(hObject);
 handles.JLDobj = obj;
 handles.JLabelHandles = HJLabel;
+handles.imgX = HJLabel.movie_width;
+handles.imgY = HJLabel.movie_height;
 guidata(hObject,handles);
 
 %{
@@ -501,7 +503,7 @@ function im = getRotatedFrame(handles,curFrame)
   curTrx = readCache(handles,curExp,curFly,curTime);
   curX = round(curTrx.X(handles.maxFrames+1));
   curY = round(curTrx.Y(handles.maxFrames+1));
-  curA = curTrx.theta(handles.maxFrames+1);
+  curA = double(curTrx.theta(handles.maxFrames+1));
   tt = zeros(handles.imgY+2*sz,handles.imgX+2*sz,1);
   im = zeros(2*sz+1,2*sz+1,1,2*handles.maxFrames+1);
   bBoxX = (curX-2*sz:curX+2*sz)+sz;
@@ -527,7 +529,9 @@ function im = getRotatedFrame(handles,curFrame)
     im(:,:,:,offset+handles.maxFrames+1) = rotI(sz+1:end-sz,sz+1:end-sz,:);
   end
   
-  fclose(pointer.movie_fid);
+  if pointer.movie_fid,
+    fclose(pointer.movie_fid);
+  end
 
   
 function trx = readCache(handles,expNum,flyNum,curT)
@@ -894,7 +898,7 @@ if row==2
     JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
     handles.curFrame = handles.frames{2}.curTime;
     JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
-    guiData(obj, handles);
+    guidata(obj, handles);
 else
     handles.curExp = handles.frames{row}(col).expNum;
     [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
@@ -902,7 +906,7 @@ else
     JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
     handles.curFrame = handles.frames{row}(col).curTime;
     JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
-    guiData(obj, handles);
+    guidata(obj, handles);
 end
 
 
