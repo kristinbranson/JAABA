@@ -53,6 +53,7 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to SelectFeatures (see VARARGIN)
 
 % Choose default command line output for SelectFeatures
+set(hObject,'Visible','off');
 handles.output = hObject;
 
 handles.mode = 'basic';
@@ -104,7 +105,7 @@ guidata(hObject,handles);
 
 [params,~] = handles.JLDobj.GetPerframeParams();
 initData(hObject,params);
-
+set(hObject,'visible','on');
 
 
 function createWindowTable(hObject)
@@ -1247,6 +1248,8 @@ function Load_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 [fname,pname]= uigetfile('*.xml');
+if ~fname; return; end;
+
 featureparamsfilename = fullfile(pname,fname);
 [params,~,basicTable,windowSize] = ...
   ReadPerFrameParams(featureparamsfilename);
