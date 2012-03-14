@@ -1,7 +1,7 @@
 % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
 % Returns the position for the input experiment, SINGLE fly, and
 % frames. If ts is not input, then all frames are returned.
-function pos = GetTrxPos1(obj,expi,fly,ts)
+function pos = JLabelData_GetTrxPos(obj,expi,fly,ts)
 
 pos = struct;
 
@@ -132,4 +132,31 @@ switch obj.targettype,
     pos.ymid = obj.trx(fly).ymid(is);
     pos.xtail = obj.trx(fly).xtail(is);
     pos.ytail = obj.trx(fly).ytail(is);
+    
+  case 'larvaspecies',
+    
+    if nargin < 4,
+      pos.x = obj.trx(fly).x;
+      pos.y = obj.trx(fly).y;
+      pos.theta = obj.trx(fly).theta;
+      pos.a = obj.trx(fly).a;
+      pos.b = obj.trx(fly).b;
+      pos.xcontour = obj.trx(fly).xcontour;
+      pos.ycontour = obj.trx(fly).ycontour;
+      pos.xspine = obj.trx(fly).xspine;
+      pos.yspine = obj.trx(fly).yspine;
+      return;
+    end
+    
+    is = ts + obj.trx(fly).off;
+    pos.x = obj.trx(fly).x(is);
+    pos.y = obj.trx(fly).y(is);
+    pos.theta = obj.trx(fly).theta(is);
+    pos.a = obj.trx(fly).a(is);
+    pos.b = obj.trx(fly).b(is);
+    pos.xcontour = obj.trx(fly).xcontour{is};
+    pos.ycontour = obj.trx(fly).ycontour{is};
+    pos.xspine = obj.trx(fly).xspine(:,is);
+    pos.yspine = obj.trx(fly).yspine(:,is);
+    
 end
