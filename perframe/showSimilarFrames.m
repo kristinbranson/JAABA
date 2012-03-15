@@ -22,7 +22,7 @@ function varargout = showSimilarFrames(varargin)
 
 % Edit the above text to modify the response to help showSimilarFrames
 
-% Last Modified by GUIDE v2.5 15-Mar-2012 11:26:27
+% Last Modified by GUIDE v2.5 15-Mar-2012 16:36:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -575,8 +575,9 @@ function trx = readCache(handles,expNum,flyNum,curT)
 function axesH = initAxes(handles,ax,sz,row,col)
   axesH.image = []; 
   hold(ax,'on');
-  set(ax,'XLimMode','manual');  xlim(ax,[1 2*sz+1]);
-  set(ax,'YLimMode','manual');  ylim(ax,[1 2*sz+1]);
+%   set(ax,'XLimMode','manual');  xlim(ax,[1 2*sz+1]);
+%   set(ax,'YLimMode','manual');  ylim(ax,[1 2*sz+1]);
+
 %   set(ax,'XLimMode','manual');  xlim(ax,[1 sz/5*2+1]);
 %   set(ax,'YLimMode','manual');  ylim(ax,[1 sz/5*2+1]);
   axesH.image = imagesc(zeros(2*sz+1),'ButtonDownFcn',{@displayOnJLabel,handles,row,col},'Parent',ax,[0,255]);
@@ -1164,3 +1165,37 @@ function figure_showSimilarFrames_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+
+
+% --------------------------------------------------------------------
+function zoomOut_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to zoomOut (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+oldLimVal = get(handles.middle1,'xLim');
+mag = (oldLimVal(2) - oldLimVal(1))/(handles.halfSize*0.4);
+
+if mag<=4
+    mag = mag +1;
+else
+    mag=5;
+end
+limVal = [handles.halfSize*(1-mag/5), handles.halfSize*(1+mag/5)];
+set(handles.middle1,'xLim',limVal,'yLim',limVal);
+
+
+% --------------------------------------------------------------------
+function zoomIn_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to zoomIn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+oldLimVal = get(handles.middle1,'xLim');
+mag = (oldLimVal(2) - oldLimVal(1))/(handles.halfSize*0.4);
+
+if mag>=2
+    mag = mag-1;
+else
+    mag=1;
+end
+limVal = [handles.halfSize*(1-mag/5), handles.halfSize*(1+mag/5)];
+set(handles.middle1,'xLim',limVal,'yLim',limVal);
