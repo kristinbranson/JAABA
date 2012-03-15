@@ -50,7 +50,7 @@ for numIter = 1:numRepeat
       wt = wt./sum(wt);
       
       tt = tic;
-      [scores curModel] = loglossboostLearnMod(data(curTrain{ndx},:),curTrainLabels,...
+      [scores curModel] = loglossboostLearnRandomFeatures(data(curTrain{ndx},:),curTrainLabels,...
         boostIterations,wt,binVals,bins(:,curTrain{ndx}),params);
       tScores = myBoostClassify(data(curTrain{3-ndx},:),curModel);
       outOfBag(curTrain{ndx},count)=0;
