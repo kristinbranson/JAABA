@@ -5,7 +5,8 @@ numBins = params.numBins;
 temp = linspace(0,100,numBins+2);
 prcValues = temp(2:end-1);
 binVals = zeros(length(prcValues),numDim);
-bins = zeros(size(data,2),size(data,1));
+binVals3 = zeros(1,numDim,length(prcValues));
+% bins = zeros(size(data,2),size(data,1));
 numPts = size(data,1);
 if numPts>4000
   sampleSize = 4000;
@@ -18,9 +19,10 @@ parfor dim = 1:numDim
   rrand = randperm(numPts);
   sel = curD(rrand(1:sampleSize));
   curVals = prctile(sel,prcValues);
-  curBins = sum(bsxfun(@gt,curD',curVals'))+1;
   binVals(:,dim) = curVals;
-  bins(dim,:) = curBins;
+  binVals3(1,dim,:) = curVals;
+%   curBins = sum(bsxfun(@gt,curD,curVals),2)+1;
+%   bins(dim,:) = curBins;
 end
-
-bins = uint8(bins);
+tbins = sum(bsxfun(@gt,data,binVals3),3)+1;
+bins = uint8(tbins');
