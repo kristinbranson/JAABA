@@ -11,7 +11,8 @@ etimehistlength = 5;
 nittoutput = 3;
 origbins = bins; origdata = data; origbinVals = binVals;
 for itt = 1:numIters
-  if mod(itt,10)==1
+  if ceil(itt*10/numIters)-ceil( (itt-1)*10/numIters) > 0.5
+    % every 1/10th iterations select features to train on.
     selFeatures = rand(1,size(origbins,1))>0.3;
     feature_map = find(~selFeatures);
     bins = origbins;

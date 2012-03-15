@@ -4575,10 +4575,10 @@ classdef JLabelData < handle
       if ~isempty(obj.classifier_old),
         curNdx = obj.FlyNdx(expi,flyNum);
         if nnz(curNdx);
-          flyStats.one2two = nnz(obj.windowdata.scores(curNdx)>0 ...
-            & obj.windowdata.scores_old(curNdx)<0);
-          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)<0 ...
+          flyStats.one2two = nnz(obj.windowdata.scores(curNdx)<0 ...
             & obj.windowdata.scores_old(curNdx)>0);
+          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)<0 ...
+            & obj.windowdata.scores_old(curNdx)<0);
         end
       end
       
