@@ -516,10 +516,10 @@ function im = getRotatedFrame(handles,curFrame)
   curX = round(curTrx.X(handles.maxFrames+1));
   curY = round(curTrx.Y(handles.maxFrames+1));
   curA = double(curTrx.theta(handles.maxFrames+1));
-  tt = zeros(handles.imgY+2*sz,handles.imgX+2*sz,1);
+  tt = zeros(handles.imgY+4*sz,handles.imgX+4*sz,1);
   im = zeros(2*sz+1,2*sz+1,1,2*handles.maxFrames+1);
-  bBoxX = (curX-2*sz:curX+2*sz)+sz;
-  bBoxY = (curY-2*sz:curY+2*sz)+sz;
+  bBoxX = (curX-2*sz:curX+2*sz)+2*sz;
+  bBoxY = (curY-2*sz:curY+2*sz)+2*sz;
   
   pointer = [];
   curMovie = handles.JLDobj.GetFile('movie',curExp);
@@ -530,10 +530,10 @@ function im = getRotatedFrame(handles,curFrame)
   for offset = -handles.maxFrames:handles.maxFrames
     if curTime+offset<handles.firstframe{curExp}(curFly) || ...
         curTime+offset>handles.endframe{curExp}(curFly)
-      tt(sz+1:end-sz,sz+1:end-sz,1) = ...
+      tt(2*sz+1:end-2*sz,2*sz+1:end-2*sz,1) = ...
         zeros(pointer.movieheaderinfo.nr,pointer.movieheaderinfo.nc);
     else
-      tt(sz+1:end-sz,sz+1:end-sz,1) = ...
+      tt(2*sz+1:end-2*sz,2*sz+1:end-2*sz,1) = ...
         pointer.readframe(curTime+offset);
     end
     timg = tt(bBoxY,bBoxX,:);

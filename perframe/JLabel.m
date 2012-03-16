@@ -5737,7 +5737,7 @@ function menu_view_suggest_threshold_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 in = inputdlg({'Threshold for suggestion'});
-if ~ischar(in),
+if isempty(in) || ~ischar(in{1}) ,
   return;
 end
 threshold = str2double(in{1});
