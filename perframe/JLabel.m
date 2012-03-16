@@ -3166,6 +3166,16 @@ switch eventdata.Key,
     
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
+
+  case 't'
+    if strcmpi(eventdata.Modifier,'control') && ~handles.isgroundtruthmode,
+      pushbutton_train_Callback(hObject,eventdata,handles);
+    end
+    
+  case 'p'
+    if strcmpi(eventdata.Modifier,'control'),
+      pushbutton_predict_Callback(hObject,eventdata,handles);
+    end
     
   case handles.label_shortcuts,
     buttonNum = find(strcmp(eventdata.Key,handles.label_shortcuts),1);
