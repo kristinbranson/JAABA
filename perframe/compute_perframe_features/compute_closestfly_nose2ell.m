@@ -13,7 +13,7 @@ angle = cell(1,nflies);
 
 for i1 = 1:nflies,
   fly1 = flies(i1);
-  fprintf('fly1 = %d\n',fly1);
+  fprintf('target 1 = %d\n',fly1);
 
   % use dnose2center and major axis length to compute upper and lower bounds on
   % dnose2ell
@@ -40,7 +40,7 @@ for i1 = 1:nflies,
     angle{i1}(idx) = anglecurr(idx);
   end
   closestfly{i1} = flies(closesti);
-  closestfly{i1}(isnan(mind{i1}|isinf(mind{i1}))) = nan;
+  closestfly{i1}(isnan(mind{i1})|isinf(mind{i1})) = nan;
 end
 
 % so that we don't compute dcenter twice
