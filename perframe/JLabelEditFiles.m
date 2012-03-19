@@ -22,7 +22,7 @@ function varargout = JLabelEditFiles(varargin)
 
 % Edit the above text to modify the response to help JLabelEditFiles
 
-% Last Modified by GUIDE v2.5 07-Mar-2012 16:50:38
+% Last Modified by GUIDE v2.5 19-Mar-2012 10:59:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -86,6 +86,7 @@ handles.generate_button_border_x_px = 5;
 handles.generate_button_width_px = 100;
 handles.generate_button_height_px = handles.table_row_height_px - handles.generate_button_border_y_px;
 
+%{
 % % status table fields: these should be defined in order so that earlier
 % % files do not depend on later files
 % handles.status_files = struct('name',{},'file',{},'required',{},'cangenerate',{},'perfly',{},'isoutput',{});
@@ -119,6 +120,7 @@ handles.generate_button_height_px = handles.table_row_height_px - handles.genera
 % handles.status_files(end).cangenerate = true;
 % handles.status_files(end).perfly = true;
 % handles.status_files(end).isoutput = true;
+%}
 
 % buttons for generating the files
 pos_table = get(handles.uitable_status,'Position');
@@ -497,3 +499,45 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on button press in pushbutton_editbehavior.
+function pushbutton_editbehavior_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_editbehavior (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on selection change in listbox_behavior.
+function listbox_behavior_Callback(hObject, eventdata, handles)
+% hObject    handle to listbox_behavior (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns listbox_behavior contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listbox_behavior
+
+
+% --- Executes during object creation, after setting all properties.
+function listbox_behavior_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listbox_behavior (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_addbehavior.
+function pushbutton_addbehavior_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_addbehavior (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton_removebehavior.
+function pushbutton_removebehavior_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_removebehavior (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

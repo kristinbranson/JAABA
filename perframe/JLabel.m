@@ -69,8 +69,6 @@ handles.idlestatuscolor = [0,1,0];
 handles.busystatuscolor = [1,0,1];
 handles.movie_height = 100;
 handles.movie_width = 100;
-set(handles.similarFramesButton,'Enable','off');
-handles.doFastUpdates = true;
 ClearStatus(handles);
 
 % read configuration
@@ -1731,6 +1729,9 @@ buttonNames = {'pushbutton_train','pushbutton_predict',...
 for buttonNum = 1:numel(buttonNames)
   SetButtonImage(handles.(buttonNames{buttonNum}));
 end
+
+set(handles.similarFramesButton,'Enable','off');
+handles.doFastUpdates = true;
 
 SetGUIModeMenuChecks(handles);
 

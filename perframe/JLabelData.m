@@ -4664,8 +4664,7 @@ classdef JLabelData < handle
     
     
     function ShowSelectFeatures(obj)
-      selHandle = SelectFeatures;
-      SelectFeatures('setJLDobj',selHandle,obj);
+      selHandle = SelectFeatures(obj);
       uiwait(selHandle);
     end
     
@@ -4832,7 +4831,7 @@ classdef JLabelData < handle
           for j = 1:numel(labels_curr.imp_t0s),
             t0 = labels_curr.imp_t0s(j);
             t1 = labels_curr.imp_t1s(j);
-            labels_imp = [labels_imp t0:t1];
+            labels_imp = [labels_imp t0:t1-1];
           end
           
           for j = 1:numel(labels_curr.t0s),
