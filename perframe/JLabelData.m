@@ -808,6 +808,7 @@ classdef JLabelData < handle
         tsnew = t0:t1;
         idxnew = ~ismember(tsnew,tscurr);
         m = nnz(idxnew);
+        if m==0; return; end
 
         % add to windowdata
         obj.windowdata.X(end+1:end+m,:) = X(idxnew,:);
@@ -942,6 +943,20 @@ classdef JLabelData < handle
       windowfeaturescellparams = obj.windowfeaturescellparams;
       
       % loop through per-frame fields
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        perframefile = fullfile(perframedir,[fn,'.mat']);
+        if ~exist(perframefile,'file'),
+          expdir = obj.expdirs{expi};
+          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+          if strcmpi(res,'Yes'),
+            obj.GenerateMissingFiles(expi);
+          else
+            msg = sprintf('Experiment %s is missing required files, cannot compute window data.',expdir);
+            return;
+          end
+        end
+      end
       
       parfor j = 1:numel(curperframefns),
         fn = curperframefns{j};
@@ -951,7 +966,12 @@ classdef JLabelData < handle
           ndx = find(strcmp(fn,allperframefns));
           perframedata = perframedata_all{ndx};
         else
-          perframedata = load(fullfile(perframedir,[fn,'.mat']));
+          perframefile = fullfile(perframedir,[fn,'.mat']);
+          if ~exist(perframefile,'file'),
+            obj.GenerateMissingFiles(expi);
+          end
+          
+          perframedata = load(perframefile);
           perframedata = perframedata.data{flies(1)};
         end
         
@@ -2251,7 +2271,7 @@ classdef JLabelData < handle
       end
       
       
-      [success1,msg1] = obj.PreLoadLabeledData();
+      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
       if ~success1,
         msg = msg1;
         obj.RemoveExpDirs(obj.nexps);
@@ -2259,7 +2279,7 @@ classdef JLabelData < handle
       end
       
       
-      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
+      [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
         msg = msg1;
         obj.RemoveExpDirs(obj.nexps);
@@ -2537,7 +2557,7 @@ classdef JLabelData < handle
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
       
       for i = 1:numel(obj.curperframefns),
-        fn = obj.allperframefns{i};
+        fn = obj.curperframefns{i};
         file = fullfile(perframedir,[fn,'.mat']);
         if ~dooverwrite && exist(file,'file'),
           continue;

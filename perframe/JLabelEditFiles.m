@@ -55,7 +55,115 @@ function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<
 % have not pushed the done button yet
 handles.success = false;
 
+%{
+[behaviorParamsFile, ...
+  disableBehavior, ...
+  configfile,...
+  JLabelHandle] = ...
+  myparse(varargin,...
+  'behaviorParamsFile',fullfile('params','BehaviorList.xml'),...
+  'disableBehavior',false,...
+  'configfile','',...
+  'JLabelHandle',[]);
+
+if disableBehavior,
+  % Simply edit files, not editing the behavior part
+  DisableBehaviorGui(handles);
+  InitExperimentsGui(hObject,handles,configfile);
+  handles.needJLableInit = false;
+  
+else
+  
+  handles.JLabelHandle = JLabelHandle;
+  handles.needJLableInit = true;
+  handles.defaultConfig = GetDefaultConfig();
+  handles.behaviorParamsFile = behaviorParamsFile;
+  if exist(behaviorParamsFile,'file'),
+    behaviorparams.behaviors = ReadXMLParams(behaviorParamsFile);
+  else
+    behaviorparams.behaviors = struct;
+  end
+  handles.behaviorparams = behaviorparams;
+  behaviorList = fieldnames(behaviorparams.behaviors);
+  handles.behaviorList = behaviorList;
+  
+  for ndx = 1:numel(behaviorList)
+    behaviorName = behaviorList{ndx};
+    handles.config{ndx} = ReadXMLParams(handles.behaviorparams.behaviors.(behaviorName).configFile);
+  end
+  
+  set(handles.listbox_behavior,'String',behaviorList);
+  
+  
+  if numel(behaviorList)>0,
+    handles.curbehavior = 1;
+    set(handles.listbox_behavior,'Value',handles.curbehavior);
+  else
+    handles.curbehavior = [];
+  end
+  guidata(hObject,handles);
+  updateConfigParams(handles)
+  
+end
+% UIWAIT makes JLabelEditFiles wait for user response (see UIRESUME)
+uiwait(handles.figure_JLabelEditFiles);
+
+
+function DisableBehaviorGui(handles)
+set(handles.listbox_behavior,'enable','off');
+set(handles.config_table,'enable','off');
+set(handles.pushbutton_addbehavior,'enable','off');
+set(handles.pushbutton_removebehavior,'enable','off');
+set(handles.pushbutton_editbehavior,'enable','off');
+
+function defaultConfig = GetDefaultConfig(name)
+if nargin<1
+  name = 'default';
+end
+defaultConfig.behaviors = struct('names',name,'labelcolors','0.7,0,0,0,0,0.7');
+defaultConfig.file = struct('moviefilename','movie.ufmf',...
+      'trxfilename','registered_trx.mat',...
+      'labelfilename',sprintf('labeled%s.mat',name),...
+      'gt_labelfilename',sprintf('gt_labeled%s.mat',name),...
+      'scorefilename',sprintf('scores_%s.mat',name),...
+      'perframedir','perframe',...
+      'windowfilename','windowfeatures.mat',...
+      'rootoutputdir','',...
+      'featureparamfilename','test.xml',...
+      'featureconfigfile',fullfile('params','featureConfig.xml'));
+defaultConfig.plot.trx = struct('colormap','jet',...
+	'colormap_multiplier','.7');
+defaultConfig.plot.labels = struct('colormap','line',...
+	'linewidth','3');
+
+
+function SaveBehaviorState(handles)
+% Writes all the behavior and params file.
+writeConfigFile(handles.behaviorParamsFile,...
+handles.behaviorparams.behaviors,'behaviors');
+for ndx = 1:numel(handles.behaviorList)
+  behaviorName = handles.behaviorList{ndx};
+  writeConfigFile(handles.behaviorparams.behaviors.(behaviorName).configFile,...
+    handles.config{ndx},'params');
+end
+
+
+function InitJLabelGui(handles)
+% Initializes the JLabel gui once the user selects the behavior.
+JLabelHandle = handles.JLabelHandle;
+JLabelHandle = JLabel('GetGuiPositions',JLabelHandle);
+JLabelHandle = JLabel('InitializeState',JLabelHandle);
+JLabelHandle = JLabel('InitializePlots',JLabelHandle);
+
+function InitExperimentsGui(hObject,handles,varargin)
+%}
+% Remove behavior related parts.
+boxpos = get(handles.listbox_behavior,'Position');
+guipos = get(hObject,'Position');
+set(hObject,'Position',[guipos(1:3) boxpos(2)-5]);
+
 % parse inputs, set defaults
+%
 if isempty(varargin),
   error('Usage: JLabelEditFiles(configfilename,...)');
 end
@@ -133,12 +241,14 @@ for i = 1:numel(handles.data.filetypes),
       handles.generate_button_height_px - handles.generate_button_border_y_px/2,...
       handles.generate_button_width_px,...
       handles.generate_button_height_px];
+    buttonColor = get(handles.figure_JLabelEditFiles,'Color');
     handles.pushbutton_generate = uicontrol('Style','pushbutton','Units','Pixels',...
       'Parent',handles.figure_JLabelEditFiles,...
       'String','Generate','Position',pos,...
       'FontUnits','pixels','FontSize',14,...
       'tag',sprintf('pushbutton_generate_%d',i),...
-      'Callback',@(hObject,eventdata) JLabelEditFiles('pushbutton_generate_Callback',hObject,eventdata,guidata(hObject),i));
+      'Callback',@(hObject,eventdata) JLabelEditFiles('pushbutton_generate_Callback',hObject,eventdata,guidata(hObject),i),...
+      'Backgroundcolor',buttonColor);
   end
 end
 
@@ -157,9 +267,8 @@ end
 
 % Update handles structure
 guidata(hObject, handles);
-
-% UIWAIT makes JLabelEditFiles wait for user response (see UIRESUME)
 uiwait(handles.figure_JLabelEditFiles);
+
 
 function UpdateStatusTable(handles)
 
@@ -240,6 +349,11 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_add (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% For behavior --
+% DisableBehaviorGui(handles);
+% SaveBehaviorState(handles);
+% End for behavior --
 
 oldv = get(handles.listbox_experiment,'Value');
 
@@ -364,6 +478,12 @@ function pushbutton_load_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% For behavior --
+% DisableBehaviorGui(handles);
+% SaveBehaviorState(handles);
+% End for behavior --
+
+
 res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
 if ~strcmpi(res,'Yes'),
   return;
@@ -396,6 +516,12 @@ function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_loadwoexp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% For behavior --
+% DisableBehaviorGui(handles);
+% SaveBehaviorState(handles);
+% End for behavior --
+
 
 [filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
 if ~ischar(filename),
@@ -515,6 +641,9 @@ function listbox_behavior_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox_behavior contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox_behavior
 
+handles.curbehavior = get(hObject,'Value');
+guidata(hObject,handles);
+updateConfigParams(handles);
 
 % --- Executes during object creation, after setting all properties.
 function listbox_behavior_CreateFcn(hObject, eventdata, handles)
@@ -534,10 +663,91 @@ function pushbutton_addbehavior_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addbehavior (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+in = inputdlg('Name of the new behavior');
+if numel(in)<1 || isempty(in{1}),
+  return;
+end
+newName = in{1};
+if isfield(handles.behaviorparams.behaviors,newName)
+  warndlg('A behavior has already been defined with that name');
+  return;
+end
+configFile = fullfile('params',[newName '_params.xml']);
+handles.behaviorparams.behaviors.(newName).configFile = configFile;
+handles.behaviorList{end+1} = newName;
+handles.curbehavior = numel(handles.behaviorList);
+set(handles.listbox_behavior,'String',handles.behaviorList,'Value',handles.curbehavior);
+handles.config{handles.curbehavior} = GetDefaultConfig(newName);
+set(handles.listbox_behavior,'Value',handles.curbehavior);
+guidata(hObject,handles);
+updateConfigParams(handles);
 
 % --- Executes on button press in pushbutton_removebehavior.
 function pushbutton_removebehavior_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_removebehavior (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+function updateConfigParams(handles)
+if isempty(handles.curbehavior); return; end
+configparams = handles.config{handles.curbehavior};
+set(handles.config_table,'Data',addToList(configparams,{}));
+
+function list = addToList(curStruct,list)
+if isempty(fieldnames(curStruct)), return; end
+fnames = fieldnames(curStruct);
+for ndx = 1:numel(fnames)
+  if isstruct(curStruct.(fnames{ndx})), 
+    list = addToList(curStruct.(fnames{ndx}),list);
+  else
+    list{end+1,1} = fnames{ndx};
+    list{end,2} = curStruct.(fnames{ndx});
+  end
+end
+
+function writeConfigFile(fname,topNode,topNodeName)
+docNode = com.mathworks.xml.XMLUtils.createDocument(topNodeName);
+toc = docNode.getDocumentElement;
+att = fieldnames(topNode);
+for ndx = 1:numel(att)
+  toc.appendChild(createXMLNode(docNode,att{ndx},topNode.(att{ndx})));
+end
+xmlwrite(fname,docNode);
+
+function node = createXMLNode(docNode,name,value)
+
+node = docNode.createElement(name);
+
+fs = fieldnames(value);
+for ndx = 1:numel(fs)
+  curVal = value.(fs{ndx});
+  switch class(curVal)
+    case 'struct'
+      node.appendChild(createXMLNode(docNode,fs{ndx},value.(fs{ndx})));
+    case 'cell'
+      valStr = curVal{1};
+      for vNdx = 2:numel(curVal)
+        valStr = [valStr ',' curVal{vNdx}];
+      end
+      node.setAttribute(fs{ndx},valStr);
+    case 'double'
+      valStr = num2str(curVal(1));
+      for vNdx = 2:numel(curVal)
+        valStr = [valStr ',' num2str(curVal(vNdx))];
+      end      
+      node.setAttribute(fs{ndx},valStr);
+    case 'logical'
+      valStr = num2str(curVal(1));
+      for vNdx = 2:numel(curVal)
+        valStr = [valStr ',' num2str(curVal(vNdx))];
+      end      
+      node.setAttribute(fs{ndx},valStr);
+    case 'char'
+      valStr = curVal;
+      node.setAttribute(fs{ndx},valStr);
+    otherwise
+      fprintf('Unknown type');
+  end
+      
+end
