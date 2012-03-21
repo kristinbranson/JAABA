@@ -71,6 +71,8 @@ handles.movie_height = 100;
 handles.movie_width = 100;
 ClearStatus(handles);
 
+% JLabelEditFiles('JLabelHandle',handles);
+
 % read configuration
 [handles,success] = LoadConfig(handles);
 if ~success,
@@ -404,7 +406,10 @@ if refresh_timeline_manual,
   %tmpy = reshape(repmat([.5;1.5;nan],[1,nstarts]),[3*nstarts,1]);
   %set(handles.htimeline_manual_starts,'XData',tmpx,'YData',tmpy);  
   if handles.label_state ~= 0,
-    ts = sort([handles.label_t0,handles.ts(1)]) + [-.5,.5];
+    ts = sort([handles.label_t0,handles.ts(1)]);
+    ts(1) = max(ts(1),handles.ts(1)-(handles.timeline_nframes-1)/2);
+    ts(2) = min(ts(2),handles.ts(1)+(handles.timeline_nframes-1)/2);
+    ts = ts + [-.5,.5];
     set(handles.htimeline_label_curr,'XData',ts([1,1,2,2,1]));
   end
 end
@@ -3168,6 +3173,8 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
+  case 'space'
+    pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
   case 't'
     if strcmpi(eventdata.Modifier,'control') && ~handles.isgroundtruthmode,
       pushbutton_train_Callback(hObject,eventdata,handles);
@@ -3410,7 +3417,7 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guipos.rightborder_rightpa
 set(handles.panel_select,'Position',new_select_pos);
 
 %dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
-if strcmp(handles.configparams.JLabelMode.mode,'Normal')
+if strcmp(handles.configparams.JLabelMode.mode,'Normal') || handles.isgroundtruthmode
   set(handles.panel_similar,'Visible','off');
   new_info_pos = [figpos(3) - info_pos(3) - handles.guipos.rightborder_rightpanels,...
     new_select_pos(2) - info_pos(4) - dy_label_select,...
@@ -5467,9 +5474,7 @@ hinv_gt = [handles.pushbutton_train,...
   handles.automaticTimelineBottomRowPopup,...
   handles.timeline_label_automatic,...
   handles.menu_edit_guimode,...
-  handles.htimeline_gt_suggestions,...
-  handles.panel_similar,handles.bagButton,...
-  handles.similarFramesButton];
+  handles.htimeline_gt_suggestions];
 hvisible_gt = [handles.menu_view_showPredictions, ...
   handles.menu_view_suggest,...
   handles.menu_classifier_gt_performance];
@@ -5499,6 +5504,13 @@ function handles = UpdateGUIAdvancedMode(handles)
 SetGUIModeMenuChecks(handles);
 
 % in the right mode already?
+
+if strcmp(handles.configparams.JLabelMode.mode,'Normal') || handles.isgroundtruthmode,
+  set(handles.panel_similar,'Visible','off');
+else
+  set(handles.panel_similar,'Visible','on');
+end
+
 if strcmpi(handles.GUIAdvancedMode,handles.configparams.JLabelMode.mode),
   return;
 end
