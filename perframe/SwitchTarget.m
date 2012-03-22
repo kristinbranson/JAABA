@@ -66,7 +66,7 @@ handles.curFly = JLabelHandles.flies;
 % Initialize the table
 
 fieldList = {};
-if ~strcmpi(handles.JLDObj.labelingMode,'Ground Truthing'),
+if ~handles.JLDObj.IsGTMode(),
   fieldList(end+1,:) = {  'trajLength','Trajectory| Length'};
   fieldList(end+1,:) = {  'firstframe','Start frame'};
   fieldList(end+1,:) = {  'nbouts','Bouts|labeled'};
@@ -86,6 +86,7 @@ if ~strcmpi(handles.JLDObj.labelingMode,'Ground Truthing'),
 else
   fieldList(end+1,:) = {  'trajLength','Trajectory| Length'};
   fieldList(end+1,:) = {  'firstframe','Start frame'};
+  fieldList(end+1,:) = {  'sexfrac','Sex|(% male)'};
   fieldList(end+1,:) = {  'gt_nbouts','Ground Truthing|Bouts|labeled'};
   fieldList(end+1,:) = {  'gt_totalframes','Ground Truthing|Frames|labeled'};
   fieldList(end+1,:) = {  'gt_posframes',sprintf('Ground Truthing|Frames|labeled|%s',handles.JLDObj.labelnames{1})};
