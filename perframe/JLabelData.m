@@ -944,7 +944,31 @@ classdef JLabelData < handle
       feature_names_all = cell(1,numel(curperframefns));
       windowfeaturescellparams = obj.windowfeaturescellparams;
       
-      % loop through per-frame fields
+      % loop through per-frame fields to check that they exist.
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        
+        % get per-frame data
+        ndx = find(strcmp(fn,allperframefns));
+        if ~exist(perframefile{ndx},'file'),
+          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+          if strcmpi(res,'Yes'),
+            [success1,msg1] = obj.GenerateMissingFiles(expi);
+            if ~success1,
+              success = success1; msg = msg1;
+              return;
+            end
+            
+          else
+            success = false;
+            msg = sprintf('Cannot compute window data for %s ',expdir);
+            return;
+          end
+
+          
+        end
+        
+      end
       
       parfor j = 1:numel(curperframefns),
         fn = curperframefns{j};
