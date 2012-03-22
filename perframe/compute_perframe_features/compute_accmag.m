@@ -8,8 +8,8 @@ for i = 1:nflies,
   fly = flies(i);
   
   % change in center position
-  dx = diff(trx(fly).x_mm);
-  dy = diff(trx(fly).y_mm);
+  dx = diff(trx(fly).x_mm,1,2);
+  dy = diff(trx(fly).y_mm,1,2);
   
   % acceleration magnitude
   if trx(fly).nframes < 2,
@@ -18,7 +18,7 @@ for i = 1:nflies,
     data{i} = 0;
   else
     % speed from frame 1 to 2 minus speed from 2 to 3 / time from 2 to 3
-    tmp = sqrt(diff(dx./trx(fly).dt).^2 + diff(dy./trx(fly).dt).^2)./trx(fly).dt(2:end);
+    tmp = sqrt(diff(dx./trx(fly).dt,1,2).^2 + diff(dy./trx(fly).dt,1,2).^2)./trx(fly).dt(2:end);
     data{i} = [0,tmp];
   end
 
