@@ -326,7 +326,7 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx.vals ~=predictedidx & labelidx.vals;
+      erroridx = (labelidx.vals ~=predictedidx) & labelidx.vals;
       
       j = find(erroridx ~= erroridx(1),1);
       if isempty(j), return; end
@@ -346,7 +346,7 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx.vals ~=predictedidx & labelidx.vals;
+      erroridx = (labelidx.vals ~=predictedidx) & labelidx.vals;
       j = find(erroridx~= erroridx(end),1,'last');
       if isempty(j), return; end
       

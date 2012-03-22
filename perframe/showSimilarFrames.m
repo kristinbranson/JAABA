@@ -22,7 +22,7 @@ function varargout = showSimilarFrames(varargin)
 
 % Edit the above text to modify the response to help showSimilarFrames
 
-% Last Modified by GUIDE v2.5 05-Mar-2012 17:05:08
+% Last Modified by GUIDE v2.5 15-Mar-2012 16:36:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,7 +57,7 @@ handles.output = hObject;
 
 handles.maxFrames = 20;
 handles.numSimilar = 4;
-handles.halfSize = 30;
+handles.halfSize = 30*5;
 handles.imgX = 1024;
 handles.imgY = 1024;
 handles.frameNo = handles.maxFrames+1;
@@ -253,6 +253,11 @@ readFrames(hObject);
 handles = guidata(hObject);
 updatePlots(hObject,handles,handles.frameNo);
 
+%zoom to the center  
+limVal = [handles.halfSize*0.8, handles.halfSize*1.2];
+set(handles.middle1,'xLim',limVal,'yLim',limVal);
+
+
 function readFrames(hObject)
 handles = guidata(hObject);
 handles.isPlaying = false;
@@ -309,7 +314,7 @@ IStart = TStart - T0 + 1;
 TEnd = handles.frames{2}.curTime + handles.maxFrames;
 IEnd = TEnd - T0 + 1;
 perframedata = perframedata(IStart:IEnd);
-set(handles.htimeline_propdata{2},'XData',-handles.maxFrames:handles.maxFrames,'YData',perframedata,'Color','r');
+set(handles.htimeline_propdata{2},'XData',-handles.maxFrames:handles.maxFrames,'YData',perframedata,'Color','k', 'LineWidth', 2);
 
 %update text_timeline_prop
 handles.cur_rb_row = 2;
@@ -353,7 +358,14 @@ for row = [1 3]
         
         
         %create property plots
-        handles.htimeline_propdata{row}(ndx) = plot(handles.axes_timeline_properties,nan,nan,'.-');
+        if row == 1
+            propColor = 'b';
+        else
+            propColor = 'r';
+        end
+        
+        
+        handles.htimeline_propdata{row}(ndx) = plot(handles.axes_timeline_properties,nan,nan,'.-','color', propColor);
         
         [perframedata,T0,T1] = handles.JLDobj.GetPerFrameData(handles.frames{row}(ndx).expNum,handles.frames{row}(ndx).flyNum,prop);
         TStart = handles.frames{row}(ndx).curTime - handles.maxFrames;
@@ -393,7 +405,7 @@ function updatePlots(hObject,handles,frameNo)
   perframedata = handles.JLDobj.GetPerFrameData1(curExperiment,curFly,curProp,curTime);
   s = sprintf('%.3f',perframedata);
   set(handles.text_timeline_prop,'String',s);
-  
+
 %   guidata(hObject,handles);
   
 function play(hObject)
@@ -504,10 +516,10 @@ function im = getRotatedFrame(handles,curFrame)
   curX = round(curTrx.X(handles.maxFrames+1));
   curY = round(curTrx.Y(handles.maxFrames+1));
   curA = double(curTrx.theta(handles.maxFrames+1));
-  tt = zeros(handles.imgY+2*sz,handles.imgX+2*sz,1);
+  tt = zeros(handles.imgY+4*sz,handles.imgX+4*sz,1);
   im = zeros(2*sz+1,2*sz+1,1,2*handles.maxFrames+1);
-  bBoxX = (curX-2*sz:curX+2*sz)+sz;
-  bBoxY = (curY-2*sz:curY+2*sz)+sz;
+  bBoxX = (curX-2*sz:curX+2*sz)+2*sz;
+  bBoxY = (curY-2*sz:curY+2*sz)+2*sz;
   
   pointer = [];
   curMovie = handles.JLDobj.GetFile('movie',curExp);
@@ -518,10 +530,10 @@ function im = getRotatedFrame(handles,curFrame)
   for offset = -handles.maxFrames:handles.maxFrames
     if curTime+offset<handles.firstframe{curExp}(curFly) || ...
         curTime+offset>handles.endframe{curExp}(curFly)
-      tt(sz+1:end-sz,sz+1:end-sz,1) = ...
+      tt(2*sz+1:end-2*sz,2*sz+1:end-2*sz,1) = ...
         zeros(pointer.movieheaderinfo.nr,pointer.movieheaderinfo.nc);
     else
-      tt(sz+1:end-sz,sz+1:end-sz,1) = ...
+      tt(2*sz+1:end-2*sz,2*sz+1:end-2*sz,1) = ...
         pointer.readframe(curTime+offset);
     end
     timg = tt(bBoxY,bBoxX,:);
@@ -567,8 +579,11 @@ function trx = readCache(handles,expNum,flyNum,curT)
 function axesH = initAxes(handles,ax,sz,row,col)
   axesH.image = []; 
   hold(ax,'on');
-  set(ax,'XLimMode','manual');  xlim(ax,[1 2*sz+1]);
-  set(ax,'YLimMode','manual');  ylim(ax,[1 2*sz+1]);
+%   set(ax,'XLimMode','manual');  xlim(ax,[1 2*sz+1]);
+%   set(ax,'YLimMode','manual');  ylim(ax,[1 2*sz+1]);
+
+%   set(ax,'XLimMode','manual');  xlim(ax,[1 sz/5*2+1]);
+%   set(ax,'YLimMode','manual');  ylim(ax,[1 sz/5*2+1]);
   axesH.image = imagesc(zeros(2*sz+1),'ButtonDownFcn',{@displayOnJLabel,handles,row,col},'Parent',ax,[0,255]);
   axesH.labelNeg = plot(ax,nan,nan,'Linestyle','-','Color',[0.0 0.0 0.7],'Linewidth',3);
   axesH.labelPos = plot(ax,nan,nan,'Linestyle','-','Color',[0.7 0.0 0.0],'Linewidth',3);
@@ -887,29 +902,40 @@ guidata(hObject,handles);
 
 
 function displayOnJLabel(obj,eventdata,handles,row,col)
-handles=guidata(obj);
-JLabelHandles = handles.JLabelHandles;
-figure(JLabelHandles.figure_JLabel);
-if row==2
-    JLabelHandles.ts(1) =999; % in order to update plot in SetCurrentFrame
-    handles.curExp = handles.frames{2}.expNum;
-    [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
-    handles.curFly = handles.frames{2}.flyNum;
-    JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
-    handles.curFrame = handles.frames{2}.curTime;
-    JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
-    guidata(obj, handles);
-else
-    handles.curExp = handles.frames{row}(col).expNum;
-    [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
-    handles.curFly = handles.frames{row}(col).flyNum;
-    JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
-    handles.curFrame = handles.frames{row}(col).curTime;
-    JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
-    guidata(obj, handles);
+
+switch get(gcf,'selectiontype')
+    case 'normal'
+        % LEFT CLICK
+    case 'extend'
+        % SHIFT-CLICK LEFT (or L/R simultaneous)
+    case 'alt'
+        % CTRL-CLICK LEFT (or RIGHT-CLICK)
+    case 'open'
+        % DOUBLE-CLICK
+        
+        handles=guidata(obj);
+        JLabelHandles = handles.JLabelHandles;
+        figure(JLabelHandles.figure_JLabel);
+        if row==2
+            JLabelHandles.ts(1) =999; % in order to update plot in SetCurrentFrame
+            handles.curExp = handles.frames{2}.expNum;
+            [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
+            handles.curFly = handles.frames{2}.flyNum;
+            JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
+            handles.curFrame = handles.frames{2}.curTime;
+            JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
+            guidata(obj, handles);
+        else
+            handles.curExp = handles.frames{row}(col).expNum;
+            [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
+            handles.curFly = handles.frames{row}(col).flyNum;
+            JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
+            handles.curFrame = handles.frames{row}(col).curTime;
+            JLabelHandles = JLabel('SetCurrentFrame',JLabelHandles,1,handles.curFrame,obj);
+            guidata(obj, handles);
+        end
+        
 end
-
-
 
 % --- Executes when selected object is changed in chooseFrame.
 function chooseFrame_SelectionChangeFcn(hObject, eventdata, handles)
@@ -962,10 +988,10 @@ switch get(eventdata.NewValue,'Tag') % Get Tag of selected object.
 end
 
 %change the color of the old lines to blue
-set(handles.htimeline_propdata{old_rb_row}(old_rb_col),'color','b');
+set(handles.htimeline_propdata{old_rb_row}(old_rb_col),'LineWidth',0.5);
 
 %change the color of the new line to red
-set(handles.htimeline_propdata{handles.cur_rb_row}(handles.cur_rb_col),'color','r');
+set(handles.htimeline_propdata{handles.cur_rb_row}(handles.cur_rb_col),'LineWidth',2);
 
 %update the text_timeline_prop value
 curExperiment = handles.frames{handles.cur_rb_row}(handles.cur_rb_col).expNum;
@@ -1075,3 +1101,105 @@ for row = [1 3]
     end
 end
 
+
+
+% --- Executes on key press with focus on figure_showSimilarFrames and none of its controls.
+function figure_showSimilarFrames_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure_showSimilarFrames (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+switch eventdata.Key,
+  
+  case 'leftarrow',
+      go_previous_frame(hObject, handles);
+     
+  case 'rightarrow',
+      go_next_frame(hObject, handles);
+      
+end
+
+function go_next_frame(hObject, handles)
+% hObject    handle to menu_go_next_frame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% TODO: make this work with multiple preview axes
+
+frameNo = handles.frameNo;
+if(frameNo-handles.maxFrames>handles.fwdLimit)
+    frameNo = handles.maxFrames+1-handles.revLimit;
+else
+    frameNo = frameNo+1;
+end
+
+handles.frameNo = frameNo;
+
+updatePlots(hObject,handles,frameNo);
+set(handles.frameSlider,'Value', frameNo/(2*handles.maxFrames+1));
+
+guidata(hObject,handles);
+
+% --------------------------------------------------------------------
+function go_previous_frame(hObject, handles)
+% hObject    handle to menu_go_previous_frame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+frameNo = handles.frameNo;
+if(handles.maxFrames - frameNo>= handles.revLimit - 1)
+    frameNo = handles.maxFrames + handles.fwdLimit + 1;
+else
+    frameNo = frameNo-1;
+end
+
+handles.frameNo = frameNo;
+
+updatePlots(hObject,handles,frameNo);
+set(handles.frameSlider,'Value', frameNo/(2*handles.maxFrames+1));
+
+guidata(hObject,handles);
+
+
+% --- Executes on mouse press over figure background.
+function figure_showSimilarFrames_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to figure_showSimilarFrames (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+% --------------------------------------------------------------------
+function zoomOut_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to zoomOut (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+oldLimVal = get(handles.middle1,'xLim');
+mag = (oldLimVal(2) - oldLimVal(1))/(handles.halfSize*0.4);
+
+if mag<=4
+    mag = mag +1;
+else
+    mag=5;
+end
+limVal = [handles.halfSize*(1-mag/5), handles.halfSize*(1+mag/5)];
+set(handles.middle1,'xLim',limVal,'yLim',limVal);
+
+
+% --------------------------------------------------------------------
+function zoomIn_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to zoomIn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+oldLimVal = get(handles.middle1,'xLim');
+mag = (oldLimVal(2) - oldLimVal(1))/(handles.halfSize*0.4);
+
+if mag>=2
+    mag = mag-1;
+else
+    mag=1;
+end
+limVal = [handles.halfSize*(1-mag/5), handles.halfSize*(1+mag/5)];
+set(handles.middle1,'xLim',limVal,'yLim',limVal);
