@@ -9,6 +9,9 @@ nflies = numel(flies);
 closestfly = cell(1,nflies);
 mind = cell(1,nflies);
 
+anglerange1 = anglerange(1);
+anglerange2 = modrange(anglerange(2),anglerange(1),anglerange(1)+2*pi);
+
 for i1 = 1:nflies,
   fly1 = flies(i1);
   fprintf('fly1 = %d\n',fly1);
@@ -33,8 +36,8 @@ for i1 = 1:nflies,
     end
     
     % frames within the angle range
-    anglefrom1to2 = modrange(anglefrom1to2,anglerange(1),anglerange(1)+2*pi);
-    idx = find(anglefrom1to2 >= anglerange(1) & anglefrom1to2 <= anglerange(2));
+    anglefrom1to2 = modrange(anglefrom1to2,anglerange1,anglerange1+2*pi);
+    idx = find(anglefrom1to2 >= anglerange1 & anglefrom1to2 <= anglerange2);
     idx1 = idx+off10-1;
     idx2 = idx+off20-1;
     
