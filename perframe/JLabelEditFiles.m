@@ -167,6 +167,7 @@ set(hObject,'Position',[guipos(1:3) boxpos(2)-5]);
 if isempty(varargin),
   error('Usage: JLabelEditFiles(configfilename,...)');
 end
+
 if ischar(varargin{1}),
   configfilename = varargin{1};
   handles.data = JLabelData(configfilename,varargin{2:end});
@@ -181,9 +182,18 @@ set(handles.editClassifier,'String',handles.data.classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',numel(handles.data.expdirs));
 set(handles.statusMsg,'String','');
 set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing'});
-popupNdx = find(strcmp(get(handles.popupmode,'String'),handles.data.labelingMode));
-set(handles.popupmode,'Value',popupNdx);
 
+if handles.data.IsGTMode(),
+  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
+elseif handles.data.IsAdvancedMode(),
+  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Advanced'));
+else
+  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Normal'));
+end
+set(handles.popupmode,'Value',popupNdx);
+if handles.data.IsModeSet(),
+  set(handles.popupmode,'Enable','off');
+end
 
 % height of a row in pixels
 handles.table_row_height_px = 22;
@@ -317,7 +327,6 @@ function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.data;
 varargout{2} = handles.success;
-varargout{3} = handles.data.labelingMode;
 delete(hObject);
 
 
@@ -415,7 +424,7 @@ if handles.data.filesfixable && ~handles.data.allfilesexist,
 end
 
 set(handles.pushbutton_cancel,'enable','off');
-set(handles.popupmode,'enable','off');
+SetLabelingMode(handles);
 
 
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
@@ -468,6 +477,7 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+SetLabelingMode(handles);
 handles.success = true;
 guidata(hObject,handles);
 uiresume(handles.figure_JLabelEditFiles);
@@ -509,7 +519,7 @@ UpdateStatusTable(handles);
 set(handles.pushbutton_load,'enable','off');
 set(handles.pushbutton_loadwoexp,'enable','off');
 set(handles.pushbutton_cancel,'enable','off');
-set(handles.popupmode,'enable','off');
+SetLabelingMode(handles);
 
 % --- Executes on button press in pushbutton_loadwoexp.
 function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
@@ -544,6 +554,7 @@ set(handles.pushbutton_load,'enable','off');
 set(handles.pushbutton_loadwoexp,'enable','off');
 set(handles.pushbutton_cancel,'enable','off');
 set(handles.popupmode,'enable','off');
+SetLabelingMode(handles);
 
 
 % --- Executes when user attempts to close figure_JLabelEditFiles.
@@ -608,8 +619,6 @@ function popupmode_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmode contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmode
-contents = cellstr(get(hObject,'String'));
-handles.data.labelingMode = contents{get(hObject,'Value')};
 
 
 % --- Executes during object creation, after setting all properties.
@@ -751,3 +760,20 @@ for ndx = 1:numel(fs)
   end
       
 end
+
+function SetLabelingMode(handles)
+contents = cellstr(get(handles.popupmode,'String'));
+curStr = contents{get(handles.popupmode,'Value')};
+switch curStr,
+  case 'Advanced',
+    handles.data.SetAdvancedMode(true);
+    handles.data.SetGTMode(false);
+  case 'Normal'
+    handles.data.SetAdvancedMode(false);
+    handles.data.SetGTMode(false);
+  case 'Ground Truthing',
+    handles.data.SetGTMode(true);
+end
+ 
+handles.data.SetMode();
+set(handles.popupmode,'enable','off');
