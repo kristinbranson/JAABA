@@ -3098,7 +3098,7 @@ classdef JLabelData < handle
       file = obj.GetPerframeFiles(expi);
       for j = 1:numel(obj.allperframefns),
         if ~exist(file{j},'file'),
-          msg = sprintf('Per-frame data file %s does not exist',file);
+          msg = sprintf('Per-frame data file %s does not exist',file{j});
           return;
         end
 %         try
