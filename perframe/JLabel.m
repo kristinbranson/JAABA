@@ -4614,13 +4614,16 @@ function s = GetTargetInfo(handles,fly)
   s{i} = sprintf('Target: %d',fly);
   i = i + 1;
   if handles.data.hassex,
-    t = max(handles.t0_curr,handles.ts(1));
-    sex = handles.data.GetSex(handles.expi,fly,t);
-    if iscell(sex),
-      sex = sex{1};
+    %t = max(handles.t0_curr,handles.ts(1));
+    sexfrac = handles.data.GetSexFrac(handles.expi,fly);
+    if sexfrac.M > sexfrac.F,
+      sex = 'M';
+    elseif sexfrac.M < sexfrac.F,
+      sex = 'F';
+    else
+      sex = '?';
     end
     if handles.data.hasperframesex,
-      sexfrac = handles.data.GetSexFrac(handles.expi,fly);
       s{i} = sprintf('Sex: %s (%d%%M, %d%%F)',sex,round(sexfrac.M*100),round(sexfrac.F*100));
     else
       s{i} = sprintf('Sex: %s',sex);
