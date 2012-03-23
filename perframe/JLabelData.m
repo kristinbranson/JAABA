@@ -950,13 +950,21 @@ classdef JLabelData < handle
         
         % get per-frame data
         ndx = find(strcmp(fn,allperframefns));
+        if isempty(ndx),
+          success = false;
+          msg = 'Window features config file has a perframe feature that is not defined in params file';
+          return;
+        end
+        
         if ~exist(perframefile{ndx},'file'),
           res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
           if strcmpi(res,'Yes'),
-            [success1,msg1] = obj.GenerateMissingFiles(expi);
-            if ~success1,
-              success = success1; msg = msg1;
-              return;
+            for ndx = 1:obj.nexps  
+              [success1,msg1] = obj.GenerateMissingFiles(ndx);
+              if ~success1,
+                success = success1; msg = msg1;
+                return;
+              end
             end
             
           else
@@ -4576,7 +4584,7 @@ classdef JLabelData < handle
         if nnz(curNdx);
           flyStats.one2two = nnz(obj.windowdata.scores(curNdx)<0 ...
             & obj.windowdata.scores_old(curNdx)>0);
-          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)<0 ...
+          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)>0 ...
             & obj.windowdata.scores_old(curNdx)<0);
         end
       end
