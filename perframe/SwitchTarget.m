@@ -22,7 +22,7 @@ function varargout = SwitchTarget(varargin)
 
 % Edit the above text to modify the response to help SwitchTarget
 
-% Last Modified by GUIDE v2.5 08-Mar-2012 09:56:56
+% Last Modified by GUIDE v2.5 26-Mar-2012 10:55:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,11 +59,20 @@ handles.JLabelhObject = varargin{1};
 JLabelHandles = guidata(handles.JLabelhObject);
 handles.JLDObj = JLabelHandles.data;
 % set(handles.axes1,'axes',off);
-handles.curExp = JLabelHandles.expi;
-handles.curFly = JLabelHandles.flies;
+handles.tablePos = get(handles.table,'Position');
+handles.switchFlyPos = get(handles.pushSwitchfly,'Position');
+handles.updatePos = get(handles.pushbutton_update,'Position');
+handles.closePos = get(handles.pushClose,'Position');
+handles.figurePos = get(handles.figure1,'Position');
+handles = updateTable(handles);
+guidata(hObject,handles);
 
 
+function handles = updateTable(handles)
 % Initialize the table
+
+handles.curExp = handles.JLDObj.GetExp();
+handles.curFly = handles.JLDObj.GetFlies();
 
 fieldList = {};
 if ~handles.JLDObj.IsGTMode(),
@@ -123,13 +132,7 @@ set(handles.table,'Data',...
 set(handles.table,'ColumnEditable',false);
 set(handles.table,'CellSelectionCallback',@tableSelect);
 
-handles.tablePos = get(handles.table,'Position');
-handles.switchFlyPos = get(handles.pushSwitchfly,'Position');
-handles.closePos = get(handles.pushClose,'Position');
-handles.figurePos = get(handles.figure1,'Position');
 
-
-guidata(hObject, handles);
 % Update handles structure
 
 % UIWAIT makes SwitchTarget wait for user response (see UIRESUME)
@@ -223,6 +226,19 @@ oldSwitchPosRight = handles.figurePos(3)-handles.switchFlyPos(1);
 newSwitchFlyPos = [guiPos(3)-oldSwitchPosRight handles.switchFlyPos(2:4)];
 set(handles.pushSwitchfly,'Position',newSwitchFlyPos);
 
+oldUpdatePosRight = handles.figurePos(3)-handles.updatePos(1);
+newUpdatePos = [guiPos(3)-oldUpdatePosRight handles.updatePos(2:4)];
+set(handles.pushbutton_update,'Position',newUpdatePos);
+
 newTableWidth = guiPos(3)- handles.figurePos(3)+handles.tablePos(3);
 newTableHeight = guiPos(4)- handles.figurePos(4)+handles.tablePos(4);
 set(handles.table,'Position',[handles.tablePos(1:2) newTableWidth newTableHeight]);
+
+
+% --- Executes on button press in pushbutton_update.
+function pushbutton_update_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_update (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = updateTable(handles);
+guidata(hObject,handles);
