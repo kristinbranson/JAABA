@@ -591,12 +591,10 @@ classdef NextJump < handle
       
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
       
-      j = find(suggestidx ~= suggestidx(1),1);
+      j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1)+1;
       if isempty(j), return; end
       
-      k = find(suggestidx(j:end));
-      
-      t = ts + j -1 + k-1;
+      t = ts + j -1;
     end
     
     function t = GT_Suggestion_end(obj,data,expi,flies,ts,t0,t1)
@@ -606,12 +604,10 @@ classdef NextJump < handle
       t1 = min(max(ts,t0),t1);
 
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
-      j = find(suggestidx ~= suggestidx(end),1,'last');
+      j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1,'last')+1;
       if isempty(j), return; end
       
-      k = find(suggestidx(1:j),'last');
-      
-      t = t0 + k - 1;
+      t = t0 + j - 1;
     end
     
   end % End methods

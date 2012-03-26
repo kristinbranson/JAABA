@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 07-Mar-2012 10:46:34
+% Last Modified by GUIDE v2.5 26-Mar-2012 09:22:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -3164,14 +3164,15 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
-  case 'space'
+  case 'space',
     pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
-  case 't'
+    
+  case 't',
     if strcmpi(eventdata.Modifier,'control') && ~handles.data.IsGTMode(),
       pushbutton_train_Callback(hObject,eventdata,handles);
     end
     
-  case 'p'
+  case 'p',
     if strcmpi(eventdata.Modifier,'control'),
       pushbutton_predict_Callback(hObject,eventdata,handles);
     end
@@ -4241,6 +4242,8 @@ function pushbutton_playstop_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_playstop (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% fprintf('In playstop\n');
 
 if handles.hplaying == hObject,
   stopPlaying(handles);
@@ -5672,6 +5675,7 @@ handles.data.SuggestRandomGT(perfly,perexp);
 
 set(handles.menu_view_suggest_random,'Checked','on');
 set(handles.menu_view_suggest_threshold,'Checked','off');
+sset(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
@@ -5705,7 +5709,8 @@ handles.data.SuggestThresholdGT(threshold);
 
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','on');
-set(handles.menu_view_suggest_none,'Checked','off');
+sset(handles.menu_view_suggest_file,'Checked','off');
+et(handles.menu_view_suggest_none,'Checked','off');
 set(handles.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
@@ -5725,8 +5730,37 @@ function menu_view_suggest_none_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','off');
+sset(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','on');
 set(handles.htimeline_gt_suggestions,'Visible','off');
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+% --------------------------------------------------------------------
+function menu_view_suggest_file_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[filename,pathname] = uigetfile('*.txt',...
+  sprintf('Choose ground truth suggestion file config file for experiment %s',handles.data.expnames{handles.expi}) ,...
+  handles.data.expdirs{handles.expi});
+if ~filename, return, end;
+
+handles.data.SuggestLoadedGT(handles.expi,fullfile(pathname,filename));
+
+set(handles.menu_view_suggest_random,'Checked','off');
+set(handles.menu_view_suggest_threshold,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','on');
+set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5771,3 +5805,5 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
+
+
