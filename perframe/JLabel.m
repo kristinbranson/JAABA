@@ -354,6 +354,8 @@ end
 
 linkaxes(handles.axes_timelines,'x');
 
+set(handles.htimeline_gt_suggestions,'Visible','off');
+
 handles = UpdateGUIGroundTruthMode(handles);
 
 
@@ -5426,11 +5428,11 @@ hinv_gt = [handles.pushbutton_train,...
   handles.automaticTimelineScoresLabel,...
   handles.automaticTimelineBottomRowPopup,...
   handles.timeline_label_automatic,...
-  handles.menu_edit_guimode,...
-  handles.htimeline_gt_suggestions];
+  handles.menu_edit_guimode];
 hvisible_gt = [handles.menu_view_showPredictions, ...
   handles.menu_view_suggest,...
   handles.menu_classifier_gt_performance];
+
 
 if handles.data.IsGTMode()
   set(hinv_gt,'Visible','off');
@@ -5730,9 +5732,10 @@ function menu_view_suggest_none_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','off');
-sset(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','on');
 set(handles.htimeline_gt_suggestions,'Visible','off');
+
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
