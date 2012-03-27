@@ -1,17 +1,38 @@
 function JLabelBatch(expName,classifierfilename,configfilename)
 
 data = JLabelData(configfilename);
-data.SetClassifierFileNameBatch(classifierfilename);
+data.SetClassifierFileNameWoExp(classifierfilename);
 
 existingNdx = find(strcmp(expName,data.expdirs));
 if ~isempty(existingNdx)
   data.PredictWholeMovie(existingNdx);
+  ndx = existingNdx;
 else
-  data.AddExpDir(expName);
+  [success,msg] = data.AddExpDir(expName);
+  if ~success, fprintf(msg), return, end
+  
+  if ~data.filesfixable,
+    fprintf('Experiment %s is missing required files that cannot be generated within this interface.',expName); 
+    return;
+  end
+
+  if data.filesfixable && ~data.allfilesexist,
+    [success,msg] = data.GenerateMissingFiles(data.nexps,false);
+    if ~success,
+      fprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
+      return;
+    end
+    
+    [success,msg] = data.PreLoadLabeledData();
+    if ~success,
+      fprintf('Error computing window data for experiment %s: %s. Removing...',expdir,msg);
+      return;
+    end
+  end
+  
   ndx = find(strcmp(expName,data.expdirs));
-  data.PredictWholeMovie(ndx);
 end
 
-scoreFileName = sprintf('scores_%s.mat',data.labelnames{1});
-sfn = fullfile(data.rootoutputdir,expName,scoreFileName);
+data.PredictWholeMovie(ndx);
+sfn = data.GetFile('scores',ndx);
 save(sfn,'classifierfilename','-append');
