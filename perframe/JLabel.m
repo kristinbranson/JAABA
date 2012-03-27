@@ -355,6 +355,9 @@ end
 linkaxes(handles.axes_timelines,'x');
 
 set(handles.htimeline_gt_suggestions,'Visible','off');
+if handles.data.IsGTMode(),
+  set(handles.menu_view_plot_labels_automatic,'Visible','off');
+end
 
 handles = UpdateGUIGroundTruthMode(handles);
 
@@ -5644,6 +5647,9 @@ else
   set(hObject,'Label','Show Predictions');
   set(h_prediction,'Visible','off');  
 end
+
+set(handles.menu_view_plot_labels_automatic,'Visible','on');
+
 
 
 % --------------------------------------------------------------------
