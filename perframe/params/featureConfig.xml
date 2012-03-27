@@ -63,7 +63,7 @@
   
   <perframe>
     
-    <a_mm trans_types="none,abs" type="appearance"/>
+    <!--a_mm trans_types="none,abs" type="appearance"/-->
     
     <absanglefrom1to2_nose2ell  trans_types="none" type="social"/>
 
@@ -95,7 +95,7 @@
     
     <arena_r trans_types="none" type="arena,position"/>
     
-    <b_mm trans_types="none,abs" type="appearance"/>
+    <!-- b_mm trans_types="none,abs" type="appearance"/-->
     
     <closestfly_anglesub trans_types="none" type="identity"/>
     
