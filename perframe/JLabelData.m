@@ -253,6 +253,12 @@ classdef JLabelData < handle
     % whether we can generate any missing files
     filesfixable = true;
     
+    % whether user has given permission to generate the perframe files
+    perframeGenerate = [];
+    
+    % to overwrite or keep the perframe files.
+    perframeOverwrite = [];
+    
     % functions for writing text to a status bar
     setstatusfn = '';
     clearstatusfn = '';
@@ -323,7 +329,7 @@ classdef JLabelData < handle
     end      
 
     function [X,feature_names] = ...
-        ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturescellparams,t0,t1)
+        ComputeWindowDataChunkStatic(perframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
       
     %function [X,feature_names] = ...
     %    ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturecellparams,t0,t1)
@@ -343,7 +349,9 @@ classdef JLabelData < handle
     
     for j = 1:numel(perframefns),
       fn = perframefns{j};
-      perframedata = load(fullfile(perframedir,[fn,'.mat']));
+      ndx = find(strcmp(fn,perframefns));
+
+      perframedata = load(perframefile{ndx});
       perframedata = perframedata.data{flies(1)};
       
       t11 = min(t1,numel(perframedata));
@@ -1683,9 +1691,9 @@ classdef JLabelData < handle
           % obj.RemoveExpDirs(1:obj.nexps);
 
           % set config file
-          if ~strcmp(obj.configfilename,'configfilename'),
-            obj.SetConfigFileName(loadeddata.configfilename);
-          end
+%           if ~strcmp(obj.configfilename,'configfilename'),
+%             obj.SetConfigFileName(loadeddata.configfilename);
+%           end
 
           % set movie
           [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
@@ -1855,7 +1863,7 @@ classdef JLabelData < handle
     function SaveScores(obj,allScores,expi)
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
-      sfn = obj.GetFile('scores',expi);
+      sfn = obj.GetFile('scores',expi,true);
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
 
       didbak = false;
@@ -2503,7 +2511,15 @@ classdef JLabelData < handle
       
     end
     
-    function [success,msg] = GenerateMissingFiles(obj,expi)
+    function SetGenerateMissingFiles(obj)
+      obj.perframeGenerate = true;
+    end
+    
+    function perframeGenerate = GetGenerateMissingFiles(obj)
+      perframeGenerate = obj.perframeGenerate;
+    end
+    
+    function [success,msg] = GenerateMissingFiles(obj,expi,varargin)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
     % TODO: implement this!
@@ -2524,7 +2540,7 @@ classdef JLabelData < handle
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
-              [success1,msg1] = obj.GeneratePerFrameFiles(expi);
+              [success1,msg1] = obj.GeneratePerFrameFiles(expi,varargin{:});
               success = success && success1;
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
@@ -2542,18 +2558,35 @@ classdef JLabelData < handle
       
     end
     
-    function [success,msg] = GeneratePerFrameFiles(obj,expi)
+    function [success,msg] = GeneratePerFrameFiles(obj,expi,varargin)
       success = false; %#ok<NASGU>
       msg = '';
+
+      if isempty(varargin)
+        doAsk = true;
+      else
+        doAsk = varargin{1};
+      end
       
       perframedir = obj.GetFile('perframedir',expi);
-      if exist(perframedir,'dir'),
+      
+      if ~doAsk,
+        dooverwrite = false;
+      elseif ~isempty(obj.perframeOverwrite) 
+        if obj.perframeOverwrite
+          dooverwrite = true;
+        else
+          dooverwrite = false;
+        end
+      elseif exist(perframedir,'dir'),
         res = questdlg('Do you want to overwrite existing files or keep them?',...
           'Regenerate files?','Overwrite','Keep','Keep');
         dooverwrite = strcmpi(res,'Overwrite');
+        obj.perframeOverwrite = dooverwrite;
       else
         dooverwrite = true;
       end
+      
       expdir = obj.expdirs{expi};
       
       hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
@@ -3525,7 +3558,7 @@ classdef JLabelData < handle
         tt = [0 labelidx.timestamp 0];
         xx = tt(2:end)~=tt(1:end-1);
         i0s =  find( xx(1:end-1)  & ll);
-        i1s =  find( xx(2:end  )  & ll);
+        i1s =  find( xx(2:end  )  & ll) + 1;
         
 %         [i0s,i1s] = get_interval_ends(labelidx.vals==j);
         if ~isempty(i0s),
@@ -4112,7 +4145,7 @@ classdef JLabelData < handle
       
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
-      perframedir = obj.GetFile('perframedir',expi);
+      perframefile = obj.GetPerframeFiles(expi);
       windowfeaturescellparams = obj.windowfeaturescellparams;
       perframefns = obj.curperframefns;
       classifier = obj.classifier;
@@ -4126,7 +4159,7 @@ classdef JLabelData < handle
         scores = nan(1,tEnd);
         
         X = JLabelData.ComputeWindowDataChunkStatic(...
-          perframefns,perframedir,flies,windowfeaturescellparams,1,tEnd-tStart+1);
+          perframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
         
         scores(tStart:tEnd) = myBoostClassify(X,classifier);
         scoresA{flies} = scores;
