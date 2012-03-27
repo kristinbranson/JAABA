@@ -377,6 +377,9 @@ if ismember(expdir,handles.data.expdirs),
   return;
 end
 
+set(handles.pushbutton_cancel,'enable','off');
+SetLabelingMode(handles);
+
 [success,msg] = handles.data.AddExpDir(expdir);
 if ~success,
   uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
@@ -423,8 +426,6 @@ if handles.data.filesfixable && ~handles.data.allfilesexist,
   UpdateStatusTable(handles);
 end
 
-set(handles.pushbutton_cancel,'enable','off');
-SetLabelingMode(handles);
 
 
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
@@ -507,7 +508,13 @@ classifierfilename = fullfile(pathname,filename);
 if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
-  [success,msg] = handles.data.SetClassifierFileName(classifierfilename);
+
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+SetLabelingMode(handles);
+
+[success,msg] = handles.data.SetClassifierFileName(classifierfilename);
 if ~success,
   uiwait(waitdlg(msg,'Error loading file list'));
   return;
@@ -516,10 +523,6 @@ set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
-set(handles.pushbutton_load,'enable','off');
-set(handles.pushbutton_loadwoexp,'enable','off');
-set(handles.pushbutton_cancel,'enable','off');
-SetLabelingMode(handles);
 
 % --- Executes on button press in pushbutton_loadwoexp.
 function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
@@ -541,7 +544,14 @@ classifierfilename = fullfile(pathname,filename);
 if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
-  [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
+
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+set(handles.popupmode,'enable','off');
+SetLabelingMode(handles);
+
+[success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
 if ~success,
   uiwait(waitdlg(msg,'Error loading file list'));
   return;
@@ -550,11 +560,6 @@ set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
-set(handles.pushbutton_load,'enable','off');
-set(handles.pushbutton_loadwoexp,'enable','off');
-set(handles.pushbutton_cancel,'enable','off');
-set(handles.popupmode,'enable','off');
-SetLabelingMode(handles);
 
 
 % --- Executes when user attempts to close figure_JLabelEditFiles.
