@@ -329,7 +329,7 @@ classdef JLabelData < handle
     end      
 
     function [X,feature_names] = ...
-        ComputeWindowDataChunkStatic(perframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
+        ComputeWindowDataChunkStatic(curperframefns,allperframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
       
     %function [X,feature_names] = ...
     %    ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturecellparams,t0,t1)
@@ -347,9 +347,9 @@ classdef JLabelData < handle
     X = [];
     feature_names = {};
     
-    for j = 1:numel(perframefns),
-      fn = perframefns{j};
-      ndx = find(strcmp(fn,perframefns));
+    for j = 1:numel(curperframefns),
+      fn = curperframefns{j};
+      ndx = find(strcmp(fn,allperframefns));
 
       perframedata = load(perframefile{ndx});
       perframedata = perframedata.data{flies(1)};
@@ -4147,19 +4147,20 @@ classdef JLabelData < handle
       tEndAll = obj.GetTrxEndFrame(expi);
       perframefile = obj.GetPerframeFiles(expi);
       windowfeaturescellparams = obj.windowfeaturescellparams;
-      perframefns = obj.curperframefns;
+      curperframefns = obj.curperframefns;
+      allperframefns = obj.allperframefns;
       classifier = obj.classifier;
       
       obj.SetStatus('Classifying current movie..');
       
-      parfor flies = 1:numFlies
+      for flies = 1:numFlies
         tStart = tStartAll(flies);
         tEnd = tEndAll(flies);
         
         scores = nan(1,tEnd);
         
-        X = JLabelData.ComputeWindowDataChunkStatic(...
-          perframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
+        X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+          allperframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
         
         scores(tStart:tEnd) = myBoostClassify(X,classifier);
         scoresA{flies} = scores;
