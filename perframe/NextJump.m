@@ -2,12 +2,15 @@ classdef NextJump < handle
   
   properties (Access=public)
     curType = 'Current Scores';
-    allTypes = {'Current Scores',...
-      'Validated Errors',...
-      'Loaded Scores',...
-      'Errors','High Confidence Errors',...
-        'Low Confidence','Thresholds',...
-        'Ground Truth Suggestions'};
+    allTypes = {'Bouts in current scores',...
+      'Bouts in loaded scores',...
+      'Errors in current scores',...
+      'Errors in validated scores',...
+      'Errors in loaded scores',...      
+      'High Confidence Errors',...
+      'Low Confidence',...
+      'Thresholds on perframe values',...
+      'Ground Truth Suggestions'};
     seek_behaviors_go = [];
     perframefns = {};
     perframeSelFeatures = [];
@@ -82,18 +85,20 @@ classdef NextJump < handle
         case obj.allTypes{1}
           t = obj.Automatic_bout_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{2}
-          t = obj.AutomaticValidated_bout_start(data,expi,flies,ts,t0,t1);          
-        case obj.allTypes{3}
           t = obj.AutomaticLoaded_bout_start(data,expi,flies,ts,t0,t1);          
-        case obj.allTypes{4}
+        case obj.allTypes{3}
           t = obj.Error_bout_start(data,expi,flies,ts,t0,t1);
+        case obj.allTypes{4}
+          t = obj.AutomaticValidated_error_start(data,expi,flies,ts,t0,t1);          
         case obj.allTypes{5}
-          t = obj.HighconfError_bout_start(data,expi,flies,ts,t0,t1);
+          t = obj.Loaded_error_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{6}
-          t = obj.Lowconf_bout_start(data,expi,flies,ts,t0,t1);
+          t = obj.HighconfError_bout_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{7}
-          t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
+          t = obj.Lowconf_bout_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{8}
+          t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
+        case obj.allTypes{9}
           t = obj.GT_Suggestion_start(data,expi,flies,ts,t0,t1);
 
         otherwise
@@ -107,18 +112,20 @@ classdef NextJump < handle
         case obj.allTypes{1}
           t = obj.Automatic_bout_end(data,expi,flies,ts,t0,t1);
         case  obj.allTypes{2}
-          t = obj.AutomaticValidated_bout_end(data,expi,flies,ts,t0,t1);          
-        case  obj.allTypes{3}
           t = obj.AutomaticLoaded_bout_end(data,expi,flies,ts,t0,t1);          
-        case  obj.allTypes{4}
+        case  obj.allTypes{3}
           t = obj.Error_bout_end(data,expi,flies,ts,t0,t1);
-        case  obj.allTypes{5}
-          t = obj.HighconfError_bout_end(data,expi,flies,ts,t0,t1);
+        case  obj.allTypes{4}
+          t = obj.AutomaticValidated_error_end(data,expi,flies,ts,t0,t1);          
+        case obj.allTypes{5}
+          t = obj.Loaded_error_end(data,expi,flies,ts,t0,t1);
         case  obj.allTypes{6}
-          t = obj.Lowconf_bout_end(data,expi,flies,ts,t0,t1);
+          t = obj.HighconfError_bout_end(data,expi,flies,ts,t0,t1);
         case  obj.allTypes{7}
+          t = obj.Lowconf_bout_end(data,expi,flies,ts,t0,t1);
+        case  obj.allTypes{8}
           t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
-        case obj.allTypes{8}
+        case obj.allTypes{9}
           t = obj.GT_Suggestion_end(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
@@ -242,7 +249,7 @@ classdef NextJump < handle
       t = t0 + k - 1;
     end
 
-    function t = AutomaticValidated_bout_start(obj,data,expi,flies,ts,t0,t1)
+    function t = AutomaticValidated_error_start(obj,data,expi,flies,ts,t0,t1)
       
       t = [];
       
@@ -266,7 +273,7 @@ classdef NextJump < handle
       t = ts + j - 1 + k - 1;
     end
     
-    function t = AutomaticValidated_bout_end(obj,data,expi,flies,ts,t0,t1)
+    function t = AutomaticValidated_error_end(obj,data,expi,flies,ts,t0,t1)
 
       t = [];
       if t0 >= ts, return; end
@@ -286,8 +293,53 @@ classdef NextJump < handle
       if isempty(k), return; end
       t = t0 + k - 1;
     end
-
     
+    function t = Loaded_error_start(obj,data,expi,flies,ts,t0,t1)
+      
+      t = [];
+      
+      if ts >= t1, return; end
+      t0 = min(max(ts,t0),t1);
+      
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
+      scores = data.GetLoadedScores(expi,flies,t0,t1);
+      predictedidx = double(scores~=0);
+      predictedidx(scores>0) = 1;
+      predictedidx(scores<0) = 2;
+      
+      erroridx = labelidx.vals ~=predictedidx;
+      
+      j = find(erroridx ~= erroridx(1),1);
+      if isempty(j), return; end
+      
+      k = find(ismember(labelidx.vals(j:end),obj.seek_behaviors_go)&erroridx(j:end),1);
+      if isempty(k),return;end
+      
+      t = ts + j - 1 + k - 1;
+    end
+    
+    function t = Loaded_error_end(obj,data,expi,flies,ts,t0,t1)
+
+      t = [];
+      if t0 >= ts, return; end
+
+      t1 = min(max(ts,t0),t1);
+
+      labelidx = data.GetLabelIdx(expi,flies,t0,t1);
+      scores = data.GetLoadedScores(expi,flies,t0,t1);
+      predictedidx = double(scores~=0);
+      predictedidx(scores>0) = 1;
+      predictedidx(scores<0) = 2;
+      erroridx = labelidx.vals ~=predictedidx;
+      j = find(erroridx~= erroridx(end),1,'last');
+      if isempty(j), return; end
+      
+      k = find(ismember(labelidx.vals(1:j),obj.seek_behaviors_go)&erroridx(1:j),1,'last');
+      if isempty(k), return; end
+      t = t0 + k - 1;
+    end
+
+
     function t = Manual_bout_start(obj,data,expi,flies,ts,t0,t1)
       
       t = [];
@@ -326,7 +378,7 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx.vals ~=predictedidx & labelidx.vals;
+      erroridx = (labelidx.vals ~=predictedidx) & labelidx.vals;
       
       j = find(erroridx ~= erroridx(1),1);
       if isempty(j), return; end
@@ -346,7 +398,7 @@ classdef NextJump < handle
       labelidx = data.GetLabelIdx(expi,flies,t0,t1);
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       predictedidx = prediction.predictedidx;
-      erroridx = labelidx.vals ~=predictedidx & labelidx.vals;
+      erroridx = (labelidx.vals ~=predictedidx) & labelidx.vals;
       j = find(erroridx~= erroridx(end),1,'last');
       if isempty(j), return; end
       
@@ -539,7 +591,7 @@ classdef NextJump < handle
       
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
       
-      j = find(suggestidx ~= suggestidx(1),1);
+      j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1)+1;
       if isempty(j), return; end
       
       t = ts + j -1;
@@ -552,8 +604,9 @@ classdef NextJump < handle
       t1 = min(max(ts,t0),t1);
 
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
-      j = find(suggestidx ~= suggestidx(end),1,'last');
+      j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1,'last')+1;
       if isempty(j), return; end
+      
       t = t0 + j - 1;
     end
     

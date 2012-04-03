@@ -17,7 +17,7 @@ end
 modLabels = sign( (labels==1)-0.5);
 wt = getWeights(modLabels);
 
-[outScores, allDataModel] = loglossboostLearnMod(data,modLabels,boostIterations,wt,binVals,bins,params,obj);
+[outScores, allDataModel] = loglossboostLearnRandomFeatures(data,modLabels,boostIterations,wt,binVals,bins,params,obj);
 
 return;
 

@@ -54,11 +54,16 @@ for bno = 1:k
   
   wt = getWeights(curTrainLabels);  
   tt = tic;
-  [~,curModel] = loglossboostLearnMod(data(curTrainNdx,:),curTrainLabels,...
+%   [~,curModel] = loglossboostLearnMod(data(curTrainNdx,:),curTrainLabels,...
+%     params.iter,wt,binVals,bins(:,curTrainNdx),params);
+  [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
     params.iter,wt,binVals,bins(:,curTrainNdx),params);
   tScores = myBoostClassify(data(curTestNdx,:),curModel);
   scores(curTestNdx) = tScores;
 
+%   tScores = myBoostClassify(data(curTestNdx,:),curModel);
+%   diff_scores(curTestNdx) = tScores;
+  
   etime = toc(tt);
   obj.SetStatus('%d%% cross validation done. Time Remaining:%ds ',...
     round( bno/k*100), round((k-bno)*etime));

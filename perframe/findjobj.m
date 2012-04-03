@@ -84,6 +84,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin)
 %    Please send to Yair Altman (altmany at gmail dot com)
 %
 % Change log:
+%    2011-12-07: Fixed 'File is empty' messages in compiled apps
 %    2011-11-22: Fix suggested by Ward
 %    2011-02-01: Fixes for R2011a
 %    2010-06-13: Fixes for R2010b; fixed download (m-file => zip-file)
@@ -124,7 +125,7 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin)
 % referenced and attributed as such. The original author maintains the right to be solely associated with this work.
 
 % Programmed and Copyright by Yair M. Altman: altmany(at)gmail.com
-% $Revision: 1.30 $  $Date: 2011/11/22 22:16:29 $
+% $Revision: 1.31 $  $Date: 2011/12/07 17:33:31 $
 
     % Ensure Java AWT is enabled
     error(javachk('awt'));
@@ -489,8 +490,13 @@ function [handles,levels,parentIdx,listing] = findjobj(container,varargin)
 
         % ...and yet another type of child traversal...
         try
-            for child = 1 : jcontainer.java.getChildCount
-                traverseContainer(jcontainer.java.getChildAt(child-1),level+1,parentId);
+            if ~isdeployed  % prevent 'File is empty' messages in compiled apps
+                jc = jcontainer.java;
+            else
+                jc = jcontainer;
+            end
+            for child = 1 : jc.getChildCount
+                traverseContainer(jc.getChildAt(child-1),level+1,parentId);
             end
         catch
             % do nothing - probably not a container
