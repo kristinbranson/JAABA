@@ -53,6 +53,8 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to SelectFeatures (see VARARGIN)
 
 % Choose default command line output for SelectFeatures
+set(hObject,'Visible','off');
+JLDobj = varargin{1};
 handles.output = hObject;
 
 handles.mode = 'basic';
@@ -67,7 +69,9 @@ set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
 guidata(hObject, handles);
 
 set(handles.pfTable,'UserData',0);
-
+setJLDobj(hObject,JLDobj);
+set(hObject,'Visible','on');
+removeRowHeaders(hObject);
 % UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
 
 
@@ -106,7 +110,6 @@ guidata(hObject,handles);
 initData(hObject,params);
 
 
-
 function createWindowTable(hObject)
 % Sets values for the window table.
 
@@ -127,21 +130,6 @@ set(handles.windowTable','ColumnWidth',{135 'auto'});
 set(handles.windowTable,'ColumnEditable',[false,true]);
 set(handles.windowTable,'CellSelectionCallback',@windowSelect);
 set(handles.windowTable,'CellEditCallback',@windowEdit);
-
-% Use java objects to tweak the table. Found this online at 
-% http://www.mathworks.com/matlabcentral/newsreader/view_thread/298335
-
-jscroll=findjobj(handles.windowTable);
-rowHeaderViewport=jscroll.getComponent(4);
-rowHeader=rowHeaderViewport.getComponent(0);
-rowHeader.setSize(80,360);
-
-%resize the row header
-newWidth=0; %100 pixels.
-rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
-height=rowHeader.getHeight;
-rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
-rowHeader.setSize(newWidth,height); 
 
 guidata(hObject,handles);
 
@@ -167,22 +155,6 @@ set(handles.pfTable,'Data',tableData);
 set(handles.pfTable,'ColumnName',{'Features','Select','Type'});
 set(handles.pfTable,'ColumnEditable',[false,true]);
 
-% Make the table sortable. Use underlying java objects to do that. Found
-% this at http://undocumentedmatlab.com/blog/uitable-sorting/
-jscrollpane = findjobj(handles.pfTable);
-jtable = jscrollpane.getViewport.getView;
-jtable.setSortable(false);	
-jtable.setAutoResort(false);
-jtable.setMultiColumnSortable(false);
-
-% Set the size for the row headers.
-rowHeaderViewport=jscrollpane.getComponent(4);
-rowHeader=rowHeaderViewport.getComponent(0);
-newWidth=0; 
-rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
-height=rowHeader.getHeight;
-rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
-rowHeader.setSize(newWidth,height); 
 set(handles.pfTable,'ColumnWidth',{190,50,95});
 set(handles.pfTable,'CellSelectionCallback',@pfSelect);
 set(handles.pfTable,'CellEditCallback',@pfEdit);
@@ -193,8 +165,6 @@ function createFeatureTable(hObject)
 handles = guidata(hObject);
 
 % Adding drop down menu kind of thing.
-jscrollpane = findjobj(handles.basicTable);
-jtable = jscrollpane.getViewport.getView;
 
 if ~isempty(handles.JLDobj.basicFeatureTable)
   tableData = handles.JLDobj.basicFeatureTable;
@@ -212,11 +182,22 @@ set(handles.basicTable,'ColumnFormat',{'char',...
   {'All' 'None' 'Custom'}, fieldnames(handles.categ)'});
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
 
+set(handles.basicTable,'ColumnWidth',{85,65,75});
+set(handles.basicTable,'CellSelectionCallback',@basicSelect);
+set(handles.basicTable,'CellEditCallback',@basicEdit);
 
+function removeRowHeaders(hObject)
+% Tweaking the table. Use underlying java objects to do that. Found
+% this at http://undocumentedmatlab.com/blog/uitable-sorting/
+
+handles = guidata(hObject);
+
+% Basic Table
+jscrollpane = findjobj(handles.basicTable);
+jtable = jscrollpane.getViewport.getView;
 jtable.setSortable(false);	
 jtable.setAutoResort(false);
 jtable.setMultiColumnSortable(true);
-
 
 % Set the size for the row headers.
 rowHeaderViewport=jscrollpane.getComponent(4);
@@ -226,9 +207,35 @@ rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
 height=rowHeader.getHeight;
 rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
 rowHeader.setSize(newWidth,height); 
-set(handles.basicTable,'ColumnWidth',{85,65,75});
-set(handles.basicTable,'CellSelectionCallback',@basicSelect);
-set(handles.basicTable,'CellEditCallback',@basicEdit);
+
+% Pf Table.
+jscrollpane = findjobj(handles.pfTable);
+jtable = jscrollpane.getViewport.getView;
+jtable.setSortable(false);	
+jtable.setAutoResort(false);
+jtable.setMultiColumnSortable(false);
+
+% Set the size for the row headers.
+rowHeaderViewport=jscrollpane.getComponent(4);
+rowHeader=rowHeaderViewport.getComponent(0);
+newWidth=0; 
+rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
+height=rowHeader.getHeight;
+rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
+rowHeader.setSize(newWidth,height); 
+
+% Window Table.
+jscroll=findjobj(handles.windowTable);
+rowHeaderViewport=jscroll.getComponent(4);
+rowHeader=rowHeaderViewport.getComponent(0);
+rowHeader.setSize(80,360);
+
+%resize the row header
+newWidth=0; %100 pixels.
+rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
+height=rowHeader.getHeight;
+rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
+rowHeader.setSize(newWidth,height); 
 
 
 function createCopyFromMenus(hObject)
@@ -1247,6 +1254,8 @@ function Load_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 [fname,pname]= uigetfile('*.xml');
+if ~fname; return; end;
+
 featureparamsfilename = fullfile(pname,fname);
 [params,~,basicTable,windowSize] = ...
   ReadPerFrameParams(featureparamsfilename);

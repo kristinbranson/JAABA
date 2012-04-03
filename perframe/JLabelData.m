@@ -61,7 +61,7 @@ classdef JLabelData < handle
     % frame t of the movie. labelidx(i) == 0 corresponds to
     % unlabeled/unknown, otherwise labelidx(i) corresponds to behavior
     % labelnames{labelidx{i})
-    labelidx = struct('val',[],'imp',[]);
+    labelidx = struct('val',[],'imp',[],'timestamp',[]);
     labelidx_off = 0;
     
     % first frame that all flies currently selected are tracked
@@ -98,12 +98,9 @@ classdef JLabelData < handle
     % statistics of labeled data per experiment
     % labelstats(expi).nflies_labeled is the total number of flies labeled,
     % labelstats(expi).nbouts_labeled is the total number of bouts of
-    % behaviors labeled, labelstats(expi).datestr is the last time
-    % labels(expi) was stored. 
-    labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
-      'datestr',{});
-    gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
-      'datestr',{});
+    % behaviors labeled, labelstats(expi).
+    labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+    gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
     
     % computing per-frame properties
     perframe_params = {};
@@ -147,7 +144,7 @@ classdef JLabelData < handle
     configfilename = '';
     
     % constant: files per experiment directory
-    filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir'};
+    filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir','scores'};
     
     % config parameters
     
@@ -156,6 +153,7 @@ classdef JLabelData < handle
     trxfilename = 0;
     labelfilename = 0;
     gt_labelfilename = 0;
+    scorefilename = 0;
     perframedir = 0;
     clipsdir = 0;
     scores = 0;
@@ -255,6 +253,12 @@ classdef JLabelData < handle
     % whether we can generate any missing files
     filesfixable = true;
     
+    % whether user has given permission to generate the perframe files
+    perframeGenerate = [];
+    
+    % to overwrite or keep the perframe files.
+    perframeOverwrite = [];
+    
     % functions for writing text to a status bar
     setstatusfn = '';
     clearstatusfn = '';
@@ -271,11 +275,14 @@ classdef JLabelData < handle
     doUpdate = true;
     
     % Ground truthing or not
-    labelingMode = 'Normal';
+    gtMode = false;
+    advancedMode = false;
+    modeSet = false;
     
     % Ground truthing suggestion
     randomGTSuggestions = {};
     thresholdGTSuggestions = [];
+    loadedGTSuggestions = {};
     GTSuggestionMode = '';
     
   end
@@ -302,11 +309,6 @@ classdef JLabelData < handle
       res = ismember(file,{'label','clipsdir','scores','gt_label'});
     end
     
-    % which files are stored individually per fly (none anymore -- used to
-    % be window files)
-    function res = IsPerFlyFile(file)
-      res = ismember(file,{});
-    end
     
     function valid = CheckExp(expi)
       if numel(expi) ~= 1,
@@ -326,6 +328,58 @@ classdef JLabelData < handle
       end
     end      
 
+    function [X,feature_names] = ...
+        ComputeWindowDataChunkStatic(curperframefns,allperframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
+      
+    %function [X,feature_names] = ...
+    %    ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturecellparams,t0,t1)
+    %
+    % Computes a chunk of windowdata between frames t0 and t1 for flies
+    % flies. 
+    %
+    % X is the nframes x nfeatures window data, feature_names is a cell array
+    % of length nfeatures containing the names of each feature. 
+    %
+    % It then loops through all the per-frame features, and calls
+    % ComputeWindowFeatures to compute all the window data for that
+    % per-frame feature.
+    
+    X = [];
+    feature_names = {};
+    
+    for j = 1:numel(curperframefns),
+      fn = curperframefns{j};
+      ndx = find(strcmp(fn,allperframefns));
+
+      perframedata = load(perframefile{ndx});
+      perframedata = perframedata.data{flies(1)};
+      
+      t11 = min(t1,numel(perframedata));
+      [x_curr,feature_names_curr] = ...
+        ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',t0,'t1',t11);
+      
+      if t11 < t1,
+        x_curr(:,end+1:end+t1-t11) = nan;
+      end
+      
+      % add the window data for this per-frame feature to X
+      nold = size(X,1);
+      nnew = size(x_curr,2);
+      if nold > nnew,
+        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+        x_curr(:,end+1:end+nold-nnew) = nan;
+      elseif nnew > nold && ~isempty(X),
+        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+        X(end+1:end+nnew-nold,:) = nan;
+      end
+      X = [X,x_curr']; %#ok<AGROW>
+      % add the feature names
+      feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
+    end
+    X = single(X);
+    
+    end
+    
   end
   
   methods (Access=public)
@@ -501,30 +555,75 @@ classdef JLabelData < handle
       val = all(flies == obj.flies) && (expi==obj.expi);
     end
     
+    function expi = GetExp(obj)
+      expi = obj.expi;
+    end
+    
+    function flies = GetFlies(obj)
+      flies = obj.flies;
+    end
     
     function [success,msg] = SetConfigFileName(obj,configfilename)
-    % [success,msg] = SetConfigFileName(obj,configfilename)
-    % Set and read config file. 
-    % Reads the XML config file, then sets all the file names and paths.
-    % I think this currently needs to be called before experiments, labels
-    % are loaded in, as locations of files, behaviors can be modified by
-    % this step. 
-    % labelnames, nbehaviors are also set by the config file. If not
-    % included explicitly, the 'None' behavior is added. 'None' is put at
-    % the end of the behavior list. 
+      % [success,msg] = SetConfigFileName(obj,configfilename)
+      % Set and read config file.
+      % Reads the XML config file, then sets all the file names and paths.
+      % I think this currently needs to be called before experiments, labels
+      % are loaded in, as locations of files, behaviors can be modified by
+      % this step.
+      % labelnames, nbehaviors are also set by the config file. If not
+      % included explicitly, the 'None' behavior is added. 'None' is put at
+      % the end of the behavior list.
       
       success = false;
       msg = '';
       if ~ischar(configfilename),
         return;
       end
-%       try
-        configparams = ReadXMLParams(configfilename);
-%       catch ME,
-%         msg = sprintf('Error reading config file %s: %s',configfilename,getReport(ME));
-%         return;
-%       end
+      %       try
+      configparams = ReadXMLParams(configfilename);
+      %       catch ME,
+      %         msg = sprintf('Error reading config file %s: %s',configfilename,getReport(ME));
+      %         return;
+      %       end
       obj.configfilename = configfilename;
+      if isfield(configparams,'behaviors'),
+        
+        % read in behavior names
+        if isfield(configparams.behaviors,'names'),
+          obj.labelnames = configparams.behaviors.names;
+          if ~iscell(obj.labelnames),
+            obj.labelnames = {obj.labelnames};
+          end
+          % add none label
+          if ~ismember('none',lower(obj.labelnames)),
+            obj.labelnames{end+1} = 'None';
+          end
+        else
+          obj.labelnames = {'Behavior','None'};
+        end
+        
+        obj.nbehaviors = numel(obj.labelnames);
+        % allocate configdence thresholds
+        obj.confThresholds = zeros(1,obj.nbehaviors);
+
+%         % colors
+%         if isfield(configparams.behaviors,'labelcolors'),
+%           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
+%             obj.labelcolors = configparams.behaviors.labelcolors;
+%           end
+%         end
+%         if isfield(configparams.behaviors,'unknowncolor'),
+%           if numel(configparams.behaviors.unknowncolor) == 3,
+%             obj.unknowncolor = configparams.behaviors.unknowncolor;
+%           end
+%         end
+        
+        % rearrange so that None is the last label
+        nonei = find(strcmpi('None',obj.labelnames),1);
+        obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
+        
+      end
+
       if isfield(configparams,'file'),
         if isfield(configparams.file,'moviefilename'),
           [success1,msg] = obj.SetMovieFileName(configparams.file.moviefilename);
@@ -550,6 +649,16 @@ classdef JLabelData < handle
             return;
           end
         end
+        if isfield(configparams.file,'scorefilename'),
+          scorefilename = configparams.file.scorefilename;
+        else
+          scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
+        end
+        [success1,msg] = obj.SetScoresFileName(scorefilename);
+        if ~success1,
+          return;
+        end
+        
         if isfield(configparams.file,'perframedir'),
           [success1,msg] = obj.SetPerFrameDir(configparams.file.perframedir);
           if ~success1,
@@ -602,43 +711,6 @@ classdef JLabelData < handle
         end
       end
       
-      if isfield(configparams,'behaviors'),
-        
-        % read in behavior names
-        if isfield(configparams.behaviors,'names'),
-          obj.labelnames = configparams.behaviors.names;
-          if ~iscell(obj.labelnames),
-            obj.labelnames = {obj.labelnames};
-          end
-          % add none label
-          if ~ismember('none',lower(obj.labelnames)),
-            obj.labelnames{end+1} = 'None';
-          end
-        else
-          obj.labelnames = {'Behavior','None'};
-        end
-        
-        obj.nbehaviors = numel(obj.labelnames);
-        % allocate configdence thresholds
-        obj.confThresholds = zeros(1,obj.nbehaviors);
-
-%         % colors
-%         if isfield(configparams.behaviors,'labelcolors'),
-%           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
-%             obj.labelcolors = configparams.behaviors.labelcolors;
-%           end
-%         end
-%         if isfield(configparams.behaviors,'unknowncolor'),
-%           if numel(configparams.behaviors.unknowncolor) == 3,
-%             obj.unknowncolor = configparams.behaviors.unknowncolor;
-%           end
-%         end
-        
-        % rearrange so that None is the last label
-        nonei = find(strcmpi('None',obj.labelnames),1);
-        obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
-        
-      end
       
       if isfield(configparams,'learning'),
         if isfield(configparams.learning,'classifiertype'),
@@ -646,7 +718,48 @@ classdef JLabelData < handle
         end
       end
       
+      if isfield(configparams,'JLabelMode') && ...
+          strcmpi(configparams.JLabelMode.mode,'advanced')
+        obj.SetAdvancedMode(true);
+      end
+      
     end
+    
+    function TrimWindowData(obj)
+      % If the size of windowdata is too large, removes windowdata for
+      % unlabeled examples.
+      sizeLimit = 8e9; % 5GB.
+      classSize = 4;
+      ratioLimit = 0.2;
+      
+      numUnlabeled = nnz(obj.windowdata.labelidx_new==0);
+      numLabeled = nnz(obj.windowdata.labelidx_new);
+      
+      if numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit;
+        return;
+      end
+      
+      idx2remove = obj.windowdata.labelidx_new==0 & ...
+        ~obj.FlyNdx(obj.expi,obj.flies);
+      if ~any(idx2remove); return; end
+      obj.windowdata.X(idx2remove,:) = [];
+      obj.windowdata.exp(idx2remove,:) = [];
+      obj.windowdata.flies(idx2remove,:) = [];
+      obj.windowdata.t(idx2remove,:) = [];
+      obj.windowdata.labelidx_cur(idx2remove,:) = [];
+      obj.windowdata.labelidx_new(idx2remove,:) = [];
+      obj.windowdata.labelidx_imp(idx2remove,:) = [];
+      obj.windowdata.predicted(idx2remove,:) = [];
+      obj.windowdata.scores(idx2remove,:) = [];
+      obj.windowdata.scores_old(idx2remove,:) = [];
+      obj.windowdata.scores_validated(idx2remove,:) = [];
+      obj.windowdata.isvalidprediction(idx2remove,:) = [];
+      obj.windowdata.binVals = [];
+      obj.windowdata.bins = [];
+
+      
+    end
+     
     
     function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
     % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
@@ -662,6 +775,8 @@ classdef JLabelData < handle
       
       success = false; msg = '';
       obj.CheckExp(expi); obj.CheckFlies(flies);
+      
+      obj.TrimWindowData();
       
       % which frames don't have window data yet
       if isempty(obj.windowdata.exp),
@@ -708,6 +823,7 @@ classdef JLabelData < handle
         tsnew = t0:t1;
         idxnew = ~ismember(tsnew,tscurr);
         m = nnz(idxnew);
+        if m==0; return; end
 
         % add to windowdata
         obj.windowdata.X(end+1:end+m,:) = X(idxnew,:);
@@ -830,51 +946,101 @@ classdef JLabelData < handle
       i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
       i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;
       
-%       try
-
-        % loop through per-frame fields
-        for j = 1:numel(obj.curperframefns),
-          fn = obj.curperframefns{j};
-
-          % get per-frame data
-          if ~isempty(obj.flies) && obj.IsCurFly(expi,flies),
-            ndx = find(strcmp(fn,obj.allperframefns));
-            perframedata = obj.perframedata{ndx};
-          else
-            perframedir = obj.GetFile('perframedir',expi);
-            perframedata = load(fullfile(perframedir,[fn,'.mat']));
-            perframedata = perframedata.data{flies(1)};
-          end
-          
-          i11 = min(i1,numel(perframedata));
-          [x_curr,feature_names_curr] = ...
-              ComputeWindowFeatures(perframedata,obj.windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
-          if any(imag(x_curr(:)))
-            fprintf('Feature values are complex, check input\n');
-          end
-            
-          if i11 < i1,
-            x_curr(:,end+1:end+i1-i11) = nan;
-          end
-            
-          % add the window data for this per-frame feature to X
-          nold = size(X,1);
-          nnew = size(x_curr,2);
-          if nold > nnew,
-            warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
-            x_curr(:,end+1:end+nold-nnew) = nan;
-          elseif nnew > nold && ~isempty(X),
-            warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
-            X(end+1:end+nnew-nold,:) = nan;
-          end
-          X = [X,x_curr']; %#ok<AGROW>
-          % add the feature names
-          feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
+      %       try
+      
+      curperframefns = obj.curperframefns;
+      allperframefns = obj.allperframefns;
+      perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
+      perframedata_all = obj.perframedata;
+      perframefile = obj.GetPerframeFiles(expi);
+      x_curr_all = cell(1,numel(curperframefns));
+      feature_names_all = cell(1,numel(curperframefns));
+      windowfeaturescellparams = obj.windowfeaturescellparams;
+      
+      % loop through per-frame fields to check that they exist.
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        
+        % get per-frame data
+        ndx = find(strcmp(fn,allperframefns));
+        if isempty(ndx),
+          success = false;
+          msg = 'Window features config file has a perframe feature that is not defined in params file';
+          return;
         end
-%       catch ME,
-%         msg = getReport(ME);
-%         return;
-%       end
+        
+        if ~exist(perframefile{ndx},'file'),
+          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+          if strcmpi(res,'Yes'),
+            for ndx = 1:obj.nexps  
+              [success1,msg1] = obj.GenerateMissingFiles(ndx);
+              if ~success1,
+                success = success1; msg = msg1;
+                return;
+              end
+            end
+            
+          else
+            success = false;
+            msg = sprintf('Cannot compute window data for %s ',expdir);
+            return;
+          end
+
+          
+        end
+        
+      end
+      
+      parfor j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        
+        % get per-frame data
+        ndx = find(strcmp(fn,allperframefns));
+        if perframeInMemory,
+          perframedata = perframedata_all{ndx};
+        else
+          perframedata = load(perframefile{ndx});
+          perframedata = perframedata.data{flies(1)};
+        end
+        
+        i11 = min(i1,numel(perframedata));
+        [x_curr,feature_names_curr] = ...
+          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
+        if any(imag(x_curr(:)))
+          fprintf('Feature values are complex, check input\n');
+        end
+        
+        if i11 < i1,
+          x_curr(:,end+1:end+i1-i11) = nan;
+        end
+        
+        x_curr_all{j} = x_curr;
+        feature_names_all{j} = feature_names_curr;
+        
+      end
+      
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        x_curr = x_curr_all{j};
+        feature_names_curr = feature_names_all{j};
+        % add the window data for this per-frame feature to X
+        nold = size(X,1);
+        nnew = size(x_curr,2);
+        if nold > nnew,
+          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          x_curr(:,end+1:end+nold-nnew) = nan;
+        elseif nnew > nold && ~isempty(X),
+          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          X(end+1:end+nnew-nold,:) = nan;
+        end
+        X = [X,x_curr']; %#ok<AGROW>
+        % add the feature names
+        feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
+      end
+      %       catch ME,
+      %         msg = getReport(ME);
+      %         return;
+      %       end
       X = single(X);
       success = true;
      
@@ -1119,6 +1285,21 @@ classdef JLabelData < handle
       
     end
     
+    
+    function [success,msg] = SetScoresFileName(obj,scorefilename)
+    % [success,msg] = SetGTLabelFileName(obj,labelfilename)
+    % set the name of the *ground truth* label file within the experiment directory. this
+    % does not currently update labelidx, and probably should not be called
+    % once an experiment is open. 
+
+      success = false;
+      msg = '';
+
+      obj.scorefilename = scorefilename;
+      [success,msg] = obj.UpdateStatusTable('scores');
+      
+    end
+
     function [success,msg] = SetClassifierType(obj,classifiertype)
 
       success = true;
@@ -1155,7 +1336,14 @@ classdef JLabelData < handle
         obj.labels(expi).off = loadedlabels.off;
         obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
         obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-        obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
+        if iscell(loadedlabels.timestamp)
+          obj.labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+          end
+        end
         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
           obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
@@ -1179,12 +1367,11 @@ classdef JLabelData < handle
         obj.labels(expi).names = {};
         obj.labels(expi).flies = [];
         obj.labels(expi).off = [];
-        obj.labels(expi).timestamp = [];
+        obj.labels(expi).timestamp = {};
         obj.labels(expi).imp_t0s = {};
         obj.labels(expi).imp_t1s = {};
         obj.labelstats(expi).nflies_labeled = 0;
         obj.labelstats(expi).nbouts_labeled = 0;
-        obj.labelstats(expi).datestr = 'never';
 
       end
       
@@ -1217,7 +1404,16 @@ classdef JLabelData < handle
         obj.gt_labels(expi).off = loadedlabels.off;
         obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
         obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-        obj.gt_labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
+
+        if iscell(loadedlabels.timestamp)
+          obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+          end
+        end
+        
         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
           obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
@@ -1241,13 +1437,11 @@ classdef JLabelData < handle
         obj.gt_labels(expi).names = {};
         obj.gt_labels(expi).flies = [];
         obj.gt_labels(expi).off = [];
-        obj.gt_labels(expi).timestamp = [];
+        obj.gt_labels(expi).timestamp = {};
         obj.gt_labels(expi).imp_t0s = {};
         obj.gt_labels(expi).imp_t1s = {};
         obj.gt_labelstats(expi).nflies_labeled = 0;
         obj.gt_labelstats(expi).nbouts_labeled = 0;
-        obj.gt_labelstats(expi).datestr = 'never';
-        
       end
       
       % TODO: update windowdata
@@ -1417,8 +1611,8 @@ classdef JLabelData < handle
           
       
           % rootoutputdir
-          [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
-          if ~success,error(msg); end
+%           [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
+%           if ~success,error(msg); end
            
           % set experiment directories
           [success,msg] = obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
@@ -1494,12 +1688,12 @@ classdef JLabelData < handle
           loadeddata = load(obj.classifierfilename,obj.classifiervars{:});
 
           % remove all experiments
-          obj.RemoveExpDirs(1:obj.nexps);
+          % obj.RemoveExpDirs(1:obj.nexps);
 
           % set config file
-          if ~strcmp(obj.configfilename,'configfilename'),
-            obj.SetConfigFileName(loadeddata.configfilename);
-          end
+%           if ~strcmp(obj.configfilename,'configfilename'),
+%             obj.SetConfigFileName(loadeddata.configfilename);
+%           end
 
           % set movie
           [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
@@ -1529,13 +1723,13 @@ classdef JLabelData < handle
           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
               'basicFeatureTable','featureWindowSize'}))
             obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
-              loadeddata.windowfeaturescellParams,loadeddata.basicFeatureTable,...
+              loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
               loadeddata.featureWindowSize);
           end
           
           % rootoutputdir
-          [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
-          if ~success,error(msg); end
+%           [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
+%           if ~success,error(msg); end
 
           [success,msg] = obj.UpdateStatusTable();
           if ~success, error(msg); end
@@ -1653,7 +1847,7 @@ classdef JLabelData < handle
           ts = [];
           
           for j = 1:numel(labels_curr.t0s),
-            ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)]; %#ok<AGROW>
+            ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
           end
           
           [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
@@ -1669,8 +1863,7 @@ classdef JLabelData < handle
     function SaveScores(obj,allScores,expi)
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
-      scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
-      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
+      sfn = obj.GetFile('scores',expi,true);
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
 
       didbak = false;
@@ -1687,6 +1880,10 @@ classdef JLabelData < handle
     function LoadScores(obj,expi,sfn)
       
       obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
+      if ~exist(sfn,'file')
+        warndlg('Score file %s does not exist. Not loading scores',sfn);
+        return;
+      end
       load(sfn,'allScores','timestamp');
       if ~isempty(whos('-file',sfn,'classifierfilename'))
         S = load(sfn,'classifierfilename');
@@ -1701,7 +1898,14 @@ classdef JLabelData < handle
         else
           idxcurr = [];
         end
-        if any(idxcurr), continue; end
+        if any(idxcurr), 
+          obj.scoredata.scores(idxcurr) = [];
+          obj.scoredata.predicted(idxcurr) = [];
+          obj.scoredata.exp(idxcurr,:) = [];
+          obj.scoredata.flies(idxcurr,:) = [];
+          obj.scoredata.t(idxcurr) = [];
+          obj.scoredata.timestamp(idxcurr) = [];
+        end
         tStart = allScores.tStart(ndx);
         tEnd = allScores.tEnd(ndx);
         sz = tEnd-tStart+1;
@@ -1727,8 +1931,7 @@ classdef JLabelData < handle
     end
     
     function LoadScoresDefault(obj,expi)
-      scoreFileName = sprintf('scores_%s.mat',obj.labelnames{1});
-      sfn = fullfile(obj.rootoutputdir,obj.expnames{expi},scoreFileName);
+      sfn = obj.GetFile('scores',expi);
       if ~exist(sfn,'file')
         warndlg(sprintf('No scores file %s at the default location',...
           scoreFileName));
@@ -2022,10 +2225,10 @@ classdef JLabelData < handle
           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
           return;
         end
-        if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
-          msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
-          return;
-        end
+%         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
+%           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+%           return;
+%         end
       elseif ~ischar(obj.rootoutputdir),
         outexpdir = expdir;
         rootoutputdir = 0;
@@ -2061,7 +2264,7 @@ classdef JLabelData < handle
       obj.nexps = obj.nexps + 1;
       obj.expdirs{end+1} = expdir;
       obj.expnames{end+1} = expname;
-      obj.rootoutputdir = rootoutputdir;
+      %obj.rootoutputdir = rootoutputdir;
       obj.outexpdirs{end+1} = outexpdir;
       
       % load labels for this experiment
@@ -2116,7 +2319,7 @@ classdef JLabelData < handle
       end
       
       
-      [success1,msg1] = obj.PreLoadLabeledData();
+      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
       if ~success1,
         msg = msg1;
         obj.RemoveExpDirs(obj.nexps);
@@ -2124,7 +2327,7 @@ classdef JLabelData < handle
       end
       
       
-      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
+      [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
         msg = msg1;
         obj.RemoveExpDirs(obj.nexps);
@@ -2217,6 +2420,10 @@ classdef JLabelData < handle
       if ~isempty(obj.randomGTSuggestions)
         obj.randomGTSuggestions(expi) = [];
       end
+      
+      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi
+        obj.loadedGTSuggestions(expi) = [];
+      end
 
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
@@ -2258,6 +2465,8 @@ classdef JLabelData < handle
           else
             res = 'clips';
           end            
+        case 'scores',
+          res = obj.scorefilename;
         otherwise
           error('Unknown file type %s',file);
       end
@@ -2290,58 +2499,37 @@ classdef JLabelData < handle
       for j = 1:numel(expdirs_try),
         expdir = expdirs_try{j}; 
         
-        % are there per-fly files?
-        if JLabelData.IsPerFlyFile(file),
-          
-          % if per-fly, then there will be one file per fly
-          filename = cell(1,obj.nflies_per_exp(expi));
-          [~,name,ext] = fileparts(fn);
-          file_exists = true;
-          for fly = 1:obj.nflies_per_exp(expi),
-            filename{fly} = fullfile(expdir,sprintf('%s_fly%02d%s',name,fly,ext));
-          end
-          
-          % check this directory, get timestamp
-          timestamp = -inf;
-          for fly = 1:obj.nflies_per_exp(expi),
-            % doesn't exist? then just return timestamp = -inf
-            if ~exist(filename{fly},'file');
-              file_exists = false;
-              timestamp = -inf;
-              break;
-            end
-            tmp = dir(filename{fly});
-            timestamp = max(tmp.datenum,timestamp);
-          end
-          
-          % file exists? then don't search next directory
-          if file_exists,
-            break;
-          end
-          
-        else
-          
-          % just one file to look for
-          filename = fullfile(expdir,fn);
-          if exist(filename,'file'),
-            tmp = dir(filename);
-            timestamp = tmp.datenum;
-            break;
-          end
-          
+        % just one file to look for
+        filename = fullfile(expdir,fn);
+        if exist(filename,'file'),
+          tmp = dir(filename);
+          timestamp = tmp.datenum;
+          break;
         end
         
       end
       
     end
     
-    function [success,msg] = GenerateMissingFiles(obj,expi)
+    function SetGenerateMissingFiles(obj)
+      obj.perframeGenerate = true;
+    end
+    
+    function perframeGenerate = GetGenerateMissingFiles(obj)
+      perframeGenerate = obj.perframeGenerate;
+    end
+    
+    function [success,msg] = GenerateMissingFiles(obj,expi,isInteractive)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
     % TODO: implement this!
       
       success = true;
       msg = '';
+      
+      if nargin<3
+        isInteractive = true;
+      end
       
       for i = 1:numel(obj.filetypes),
         file = obj.filetypes{i};
@@ -2356,7 +2544,7 @@ classdef JLabelData < handle
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
-              [success1,msg1] = obj.GeneratePerFrameFiles(expi);
+              [success1,msg1] = obj.GeneratePerFrameFiles(expi,isInteractive);
               success = success && success1;
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
@@ -2374,22 +2562,37 @@ classdef JLabelData < handle
       
     end
     
-    function [success,msg] = GeneratePerFrameFiles(obj,expi)
+    function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
-      
+
       perframedir = obj.GetFile('perframedir',expi);
-      if exist(perframedir,'dir'),
+      
+      if ~isInteractive,
+        dooverwrite = false;
+      elseif ~isempty(obj.perframeOverwrite) 
+        if obj.perframeOverwrite
+          dooverwrite = true;
+        else
+          dooverwrite = false;
+        end
+      elseif exist(perframedir,'dir'),
         res = questdlg('Do you want to overwrite existing files or keep them?',...
           'Regenerate files?','Overwrite','Keep','Keep');
         dooverwrite = strcmpi(res,'Overwrite');
+        obj.perframeOverwrite = dooverwrite;
       else
-        dooverwrite = true;
+        dooverwrite = true;x
       end
+      
       expdir = obj.expdirs{expi};
       
-      hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
-
+      if isInteractive
+        hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
+      else
+        fprintf('Initializing perframe directory for %s\n',expdir);
+      end
+      
       perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
         'moviefilestr',obj.GetFileName('movie'),...
         'perframedir',obj.GetFileName('perframedir'),...
@@ -2399,18 +2602,24 @@ classdef JLabelData < handle
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
       
-      for i = 1:numel(obj.allperframefns),
-        fn = obj.allperframefns{i};
-        file = fullfile(perframedir,[fn,'.mat']);
+      perframefiles = obj.GetPerframeFiles(expi);
+      for i = 1:numel(obj.curperframefns),
+        fn = obj.curperframefns{i};
+        ndx = find(strcmp(fn,obj.allperframefns));
+        file = perframefiles{ndx};
         if ~dooverwrite && exist(file,'file'),
           continue;
         end
-        hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        if isInteractive
+          hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        else
+          fprintf('Computing %s and saving to file %s\n',fn,file);
+        end
         perframetrx.(fn); %#ok<VUNUS>
           
       end
       
-      if ishandle(hwait),
+      if isInteractive && ishandle(hwait),
         delete(hwait);
       end
       
@@ -2981,16 +3190,14 @@ classdef JLabelData < handle
       
       % load perframedata
       obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(flies));
-      perframedir = obj.GetFile('perframedir',expi);
+      file = obj.GetPerframeFiles(expi);
       for j = 1:numel(obj.allperframefns),
-        fn = obj.allperframefns{j};
-        file = fullfile(perframedir,[fn,'.mat']);
-        if ~exist(file,'file'),
-          msg = sprintf('Per-frame data file %s does not exist',file);
+        if ~exist(file{j},'file'),
+          msg = sprintf('Per-frame data file %s does not exist',file{j});
           return;
         end
 %         try
-          tmp = load(file);
+          tmp = load(file{j});
           obj.perframedata{j} = tmp.data{flies(1)};
           obj.perframeunits{j} = tmp.units;
 %         catch ME,
@@ -3015,7 +3222,7 @@ classdef JLabelData < handle
       obj.expi = 0;
       obj.flies = nan(size(obj.flies));
       obj.perframedata = {};
-      obj.labelidx = struct('vals',[],'imp',[]);
+      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
       obj.labelidx_off = 0;
       obj.t0_curr = 0;
       obj.t1_curr = 0;
@@ -3039,6 +3246,7 @@ classdef JLabelData < handle
         else
           labelidx.vals = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off);
           labelidx.imp = obj.labelidx.imp(T0+obj.labelidx_off:T1+obj.labelidx_off);
+          labelidx.timestamp = obj.labelidx.timestamp(T0+obj.labelidx_off:T1+obj.labelidx_off);
         end
         return;
       end
@@ -3052,6 +3260,8 @@ classdef JLabelData < handle
       labels_curr = obj.GetLabels(expi,flies);
       labelidx.vals = zeros(1,n);
       labelidx.imp = zeros(1,n);
+      labelidx.timestamp = zeros(1,n);
+      
       for i = 1:obj.nbehaviors,
         for j = find(strcmp(labels_curr.names,obj.labelnames{i})),
           t0 = labels_curr.t0s(j);
@@ -3060,6 +3270,7 @@ classdef JLabelData < handle
           t0 = max(T0,t0);
           t1 = min(T1,t1);
           labelidx.vals(t0+off:t1-1+off) = i;
+          labelidx.timestamp(t0+off:t1-1+off) = labels_curr.timestamp(j); 
         end
       end
       for j = 1:numel(labels_curr.imp_t0s)
@@ -3243,11 +3454,11 @@ classdef JLabelData < handle
 
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
         if nargin < 4,
-          idx = obj.labelidx == behaviori;
+          idx = obj.labelidx.vals == behaviori;
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
-          idx = obj.labelidx(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
+          idx = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
         end
         return;
       end
@@ -3272,7 +3483,7 @@ classdef JLabelData < handle
     % labels_curr = GetLabels(obj,expi,flies)
     % Returns the labels for the input 
 
-      labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'off',0,'imp_t0s',[],'imp_t1s',[]);
+      labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'timestamp',[],'off',0,'imp_t0s',[],'imp_t1s',[]);
       
       if nargin < 2 || isempty(expi),
         expi = obj.expi;
@@ -3287,7 +3498,7 @@ classdef JLabelData < handle
         obj.StoreLabels();
       end
       
-      if strcmpi(obj.labelingMode,'Ground Truthing')
+      if obj.IsGTMode()
         labelsToUse = obj.gt_labels;
       else
         labelsToUse = obj.labels;
@@ -3303,6 +3514,7 @@ classdef JLabelData < handle
           labels_curr.imp_t0s = labelsToUse(expi).imp_t0s{fliesi};
           labels_curr.imp_t1s = labelsToUse(expi).imp_t1s{fliesi};
         end
+        labels_curr.timestamp = labelsToUse(expi).timestamp{fliesi};
       else
 %         if expi ~= obj.expi,
 %           error('This should never happen -- only should get new labels for current experiment');
@@ -3348,16 +3560,24 @@ classdef JLabelData < handle
     function StoreLabels1(obj,expi,flies,labelidx,labelidx_off)
       
       % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'imp_t0s',[],'imp_t1s',[]);
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
       for j = 1:obj.nbehaviors,
-        [i0s,i1s] = get_interval_ends(labelidx.vals==j);
+        ll = labelidx.vals==j;
+        tt = [0 labelidx.timestamp 0];
+        xx = tt(2:end)~=tt(1:end-1);
+        i0s =  find( xx(1:end-1)  & ll);
+        i1s =  find( xx(2:end  )  & ll) + 1;
+        
+%         [i0s,i1s] = get_interval_ends(labelidx.vals==j);
         if ~isempty(i0s),
           n = numel(i0s);
           newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
           newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
           newlabels.names(end+1:end+n) = repmat(obj.labelnames(j),[1,n]);
+          newlabels.timestamp(end+1:end+n) = labelidx.timestamp(i0s);
         end
       end
+      
       [i0s,i1s] = get_interval_ends(labelidx.imp);
       if ~isempty(i0s),
         newlabels.imp_t0s = i0s - labelidx_off;
@@ -3365,7 +3585,7 @@ classdef JLabelData < handle
       end
       
       % Store labels according to the mode
-      if strcmpi(obj.labelingMode,'Ground Truthing')
+      if obj.IsGTMode(),
         labelsToUse = 'gt_labels';
         labelstatsToUse = 'gt_labelstats';
       else
@@ -3383,14 +3603,13 @@ classdef JLabelData < handle
       obj.(labelsToUse)(expi).names{j} = newlabels.names;
       obj.(labelsToUse)(expi).flies(j,:) = flies;
       obj.(labelsToUse)(expi).off(j) = labelidx_off;
-      obj.(labelsToUse)(expi).timestamp = now;
+      obj.(labelsToUse)(expi).timestamp{j} = newlabels.timestamp;
       obj.(labelsToUse)(expi).imp_t0s{j} = newlabels.imp_t0s;
       obj.(labelsToUse)(expi).imp_t1s{j} = newlabels.imp_t1s;
 
       % store labelstats
       obj.(labelstatsToUse)(expi).nflies_labeled = numel(unique(obj.(labelsToUse)(expi).flies));
       obj.(labelstatsToUse)(expi).nbouts_labeled = numel(newlabels.t1s);
-      obj.(labelstatsToUse)(expi).datestr = datestr(obj.(labelsToUse)(expi).timestamp,'yyyymmddTHHMMSS');
             
     end
 
@@ -3401,7 +3620,7 @@ classdef JLabelData < handle
           obj.labelidx.vals(ts+obj.labelidx_off-1) ~= obj.labelidx.vals(ts+obj.labelidx_off);
       else
         
-        if strcmpi(obj.labelingMode,'Ground Truthing')
+        if obj.IsGTMode(),
           labelsToUse = 'gt_labels';
         else
           labelsToUse = 'labels';
@@ -3423,7 +3642,7 @@ classdef JLabelData < handle
         return;
       end
       
-      if strcmpi(obj.labelingMode,'Ground Truthing')
+      if obj.IsGTMode()
         labelsToUse = 'gt_labels';
         labelstatsToUse = 'gt_labelstats';
       else
@@ -3446,10 +3665,9 @@ classdef JLabelData < handle
           obj.(labelsToUse)(expi).names = {};
           obj.(labelsToUse)(expi).flies = [];
           obj.(labelsToUse)(expi).off = [];
-          obj.(labelsToUse)(expi).timestamp = [];
+          obj.(labelsToUse)(expi).timestamp = {};
           obj.(labelstatsToUse)(expi).nflies_labeled = 0;
           obj.(labelstatsToUse)(expi).nbouts_labeled = 0;
-          obj.(labelstatsToUse)(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
           obj.(labelsToUse)(expi).imp_t0s = {};
           obj.(labelsToUse)(expi).imp_t1s = {};
         end
@@ -3469,19 +3687,20 @@ classdef JLabelData < handle
           obj.(labelsToUse)(expi).t0s{flyi} = [];
           obj.(labelsToUse)(expi).t1s{flyi} = [];
           obj.(labelsToUse)(expi).names{flyi} = {};
-          obj.(labelsToUse)(expi).timestamp(flyi) = timestamp;
+          obj.(labelsToUse)(expi).timestamp{flyi} = [];
           obj.(labelsToUse)(expi).imp_t0s{flyi} = [];
           obj.(labelsToUse)(expi).imp_t1s{flyi} = [];
           % update stats
           obj.(labelstatsToUse)(expi).nflies_labeled = obj.(labelstatsToUse)(expi).nflies_labeled - 1;
           obj.(labelstatsToUse)(expi).nbouts_labeled = obj.(labelstatsToUse)(expi).nbouts_labeled - ncurr;
         end
-        obj.(labelstatsToUse)(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
       end
       
       % clear labelidx if nec
       if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
-        obj.labelidx(:) = 0;
+        obj.labelidx.vals(:) = 0;
+        obj.labelidx.imp(:) = 0;
+        obj.labelidx.timestamp(:) = 0;
       end
       
       % clear windowdata labelidx_new
@@ -3507,10 +3726,12 @@ classdef JLabelData < handle
       if obj.IsCurFly(expi,flies),
         obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
         obj.labelidx.imp(ts+obj.labelidx_off) = important;
+        obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
       else
         [labelidx,T0] = obj.GetLabelIdx(expi,flies);
         labelidx.vals(ts+1-T0) = behaviori;
         labelidx.imp(ts+1-T0) = important;
+        labelidx.timestamp(ts+1-T0) = now;
         obj.StoreLabels1(expi,flies,labelidx,1-T0);        
       end
       
@@ -3927,77 +4148,40 @@ classdef JLabelData < handle
         return;
       end
       
-      scoresA = {}; 
       numFlies = obj.GetNumFlies(expi);
+      scoresA = cell(1,numFlies); 
       
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
+      perframefile = obj.GetPerframeFiles(expi);
+      windowfeaturescellparams = obj.windowfeaturescellparams;
+      curperframefns = obj.curperframefns;
+      allperframefns = obj.allperframefns;
+      classifier = obj.classifier;
       
-      parfor flies = 1:numFlies
+      obj.SetStatus('Classifying current movie..');
+      
+      for flies = 1:numFlies
         tStart = tStartAll(flies);
         tEnd = tEndAll(flies);
         
         scores = nan(1,tEnd);
-        t1 = tStart;
-        while (t1<tEnd)
-          cTic = tic;
-          [success1,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(expi,flies,t1,'start',true);
-          
-          %{
-          if ~success1,
-            warning(msg);
-            return;
-          end
-          switch obj.classifiertype,
-            
-            case 'ferns',
-              return;
-              obj.SetStatus('Applying fern classifier to %d windows',nnz(idxcurr));
-              [obj.windowdata.predicted(idxcurr),...
-                obj.windowdata.predicted_probs(idxcurr,:)] = ...
-                fernsClfApply(obj.windowdata.X(idxcurr,:),obj.classifier);
-              obj.windowdata.isvalidprediction(idxcurr) = true;
-              
-              s = exp(obj.windowdata.predicted_probs);
-              s = bsxfun(@rdivide,s,sum(s,2));
-              scores = max(s,[],2);
-              idxcurr1 = find(idxcurr);
-              idx0 = obj.windowdata.predicted(idxcurr) == 1;
-              idx1 = obj.windowdata.predicted(idxcurr) > 1;
-              obj.windowdata.scores(idxcurr1(idx1)) = -scores(idx1);
-              obj.windowdata.scores(idxcurr1(idx0)) = scores(idx0);
-              
-              obj.ClearStatus();
-            case 'boosting',
-          %}
-          scores(t0:t1) = myBoostClassify(X,obj.classifier);
-          
-          %{
-           end
-          %}
-          t1 = t1+1;
-          tt = toc(cTic);
-          timeRemainingFly = (tEnd-t1)/(t1-t0)*tt;
-          timeRemainingAll = (tEnd-t1)/(t1-t0)*tt + ...
-            (numFlies-flies)*(tEnd-tStart)/(t1-t0)*tt;
-          fprintf('Prediction for fly %d/%d: %d%% done. Time Remaining: Current Fly:%ds, Current Movie:%ds\n',...
-            flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100),...
-            round(timeRemainingFly),round(timeRemainingAll));
-          %{
-          obj.SetStatus('Prediction for fly %d/%d: %d%% done. Time Remaining: Current Fly:%ds, Current Movie:%ds',...
-            flies,numFlies,round( (t1-tStart)/(tEnd-tStart)*100),...
-            round(timeRemainingFly),round(timeRemainingAll));
-            %}
-        end % While loop.
+        
+        X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+          allperframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
+        
+        scores(tStart:tEnd) = myBoostClassify(X,classifier);
         scoresA{flies} = scores;
-      end % Fly loop
+        fprintf('Prediction done for flynum:%d, total number of flies:%d\n',flies,numFlies);
+      end
+      
       allScores = struct;
       allScores.scores = scoresA;
       allScores.tStart = tStartAll;
       allScores.tEnd = tEndAll;
       obj.SaveScores(allScores,expi);
+      obj.LoadScores(expi,obj.GetFile('scores',expi));
       obj.ClearStatus();
-      
       
     end
     
@@ -4349,7 +4533,6 @@ classdef JLabelData < handle
       expStats.nflies = obj.nflies_per_exp(expi);
       expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
-      expStats.labeldatestr = obj.labelstats(expi).datestr;
       
       
       if ~isempty(obj.scoredata.exp==expi)
@@ -4374,6 +4557,7 @@ classdef JLabelData < handle
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
       
+      obj.StoreLabels();
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
       if ism,
         flyStats.nbouts = numel(obj.labels(expi).t0s{j});
@@ -4438,16 +4622,16 @@ classdef JLabelData < handle
         flyStats.nscoreframes = nnz(idxcurr);
         flyStats.nscorepos = nnz(obj.scoredata.scores(idxcurr)>0);
         flyStats.nscoreneg = nnz(obj.scoredata.scores(idxcurr)<0);
-        if ~isempty(obj.scoredata.classifierfilenames)
-          flyStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
-        else
-          flyStats.classifierfilename = '';
-        end
+%         if ~isempty(obj.scoredata.classifierfilenames)
+%           flyStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
+%         else
+%           flyStats.classifierfilename = '';
+%         end
       else
         flyStats.nscoreframes = [];
         flyStats.nscorepos = [];
         flyStats.nscoreneg = [];        
-        flyStats.classifierfilename = '';
+%         flyStats.classifierfilename = '';
       end
       
       if ~isempty(obj.windowdata.exp)
@@ -4475,10 +4659,10 @@ classdef JLabelData < handle
       if ~isempty(obj.classifier_old),
         curNdx = obj.FlyNdx(expi,flyNum);
         if nnz(curNdx);
-          flyStats.one2two = nnz(obj.windowdata.scores(curNdx)>0 ...
-            & obj.windowdata.scores_old(curNdx)<0);
-          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)<0 ...
+          flyStats.one2two = nnz(obj.windowdata.scores(curNdx)<0 ...
             & obj.windowdata.scores_old(curNdx)>0);
+          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)>0 ...
+            & obj.windowdata.scores_old(curNdx)<0);
         end
       end
       
@@ -4564,8 +4748,7 @@ classdef JLabelData < handle
     
     
     function ShowSelectFeatures(obj)
-      selHandle = SelectFeatures;
-      SelectFeatures('setJLDobj',selHandle,obj);
+      selHandle = SelectFeatures(obj);
       uiwait(selHandle);
     end
     
@@ -4633,6 +4816,24 @@ classdef JLabelData < handle
       
     end
     
+    function SuggestLoadedGT(obj,expi,filename)
+      fid = fopen(filename);
+      dat = textscan(fid,'fly:%d,start:%d,end:%d');
+      fclose(fid);
+      fly = dat{1}; t0s = dat{2}; t1s = dat{3};
+      for ndx = 1:obj.nflies_per_exp(expi)
+        [ism, loc] = ismember(ndx,fly);
+        if ~ism, 
+          obj.loadedGTSuggestions{expi}(ndx).start = 1;
+          obj.loadedGTSuggestions{expi}(ndx).end = 0;
+        else
+          obj.loadedGTSuggestions{expi}(fly(loc)).start = t0s(loc);
+          obj.loadedGTSuggestions{expi}(fly(loc)).end = t1s(loc);
+        end
+      end
+      obj.GTSuggestionMode = 'Loaded';
+    end
+    
     function SuggestThresholdGT(obj,threshold)
       obj.thresholdGTSuggestions = threshold;
       obj.GTSuggestionMode = 'Threshold';
@@ -4661,12 +4862,25 @@ classdef JLabelData < handle
         range = start+off:last+off;
         selIdx = range(range>0);
         suggestedidx(selIdx) = true;
-      else
+        
+      elseif strcmpi(obj.GTSuggestionMode,'Loaded')
+        if numel(obj.loadedGTSuggestions)<expi || isempty(obj.loadedGTSuggestions{expi}),
+          suggestedidx = false(1,n);
+          return;
+        end
+        suggestedidx = false(1,n);
+        start = obj.loadedGTSuggestions{expi}(flies).start;
+        last = obj.loadedGTSuggestions{expi}(flies).end;
+        range = start+off:last+off;
+        selIdx = range(range>0);
+        suggestedidx(selIdx) = true;
+
+      elseif strcmpi(obj.GTSuggestionMode,'Threshold')
         if ~isempty(obj.scoredata.scores)
-          idxcurr = obj.scoredata.exp == expi & ...
-            obj.scoredata.flies == flies & ...
-            obj.scoredata.t>=T0 & ...
-            obj.scoredata.t<=T1;
+          idxcurr = obj.scoredata.exp(:) == expi & ...
+            obj.scoredata.flies(:) == flies & ...
+            obj.scoredata.t(:) >=T0 & ...
+            obj.scoredata.t(:) <=T1;
           suggestedidx( obj.scoredata.t(idxcurr)+off) = ...
             obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
             -obj.thresholdGTSuggestions;
@@ -4674,15 +4888,14 @@ classdef JLabelData < handle
         
         % Should we give suggestions based on scores not calculated offline? 
         if ~isempty(obj.windowdata.scores)
-          idxcurr = obj.windowdata.exp == expi & ...
-            obj.windowdata.flies == flies & ...
-            obj.windowdata.t>=T0 & ...
-            obj.windowdata.t<=T1;
+          idxcurr = obj.windowdata.exp(:) == expi & ...
+            obj.windowdata.flies(:) == flies & ...
+            obj.windowdata.t(:) >=T0 & ...
+            obj.windowdata.t(:) <=T1;
           suggestedidx( obj.windowdata.t(idxcurr)+off) = ...
             obj.NormalizeScores(obj.windowdata.scores(idxcurr)) > ...
             -obj.thresholdGTSuggestions;
         end
-        
       end
       
     end
@@ -4695,7 +4908,7 @@ classdef JLabelData < handle
       for expi = 1:obj.nexps,
         for i = 1:size(obj.gt_labels(expi).flies,1),
           
-          flies = obj.labels(expi).flies(i,:);
+          flies = obj.gt_labels(expi).flies(i,:);
           labels_curr = obj.GetLabels(expi,flies);
           ts = [];
           
@@ -4724,7 +4937,7 @@ classdef JLabelData < handle
       for expi = 1:obj.nexps,
         for i = 1:size(obj.gt_labels(expi).flies,1),
           
-          flies = obj.labels(expi).flies(i,:);
+          flies = obj.gt_labels(expi).flies(i,:);
           labels_curr = obj.GetLabels(expi,flies);
           
           % Find the importatnt labels
@@ -4732,7 +4945,7 @@ classdef JLabelData < handle
           for j = 1:numel(labels_curr.imp_t0s),
             t0 = labels_curr.imp_t0s(j);
             t1 = labels_curr.imp_t1s(j);
-            labels_imp = [labels_imp t0:t1];
+            labels_imp = [labels_imp t0:t1-1];
           end
           
           for j = 1:numel(labels_curr.t0s),
@@ -4771,6 +4984,28 @@ classdef JLabelData < handle
     
     end
     
+    function gtMode =  IsGTMode(obj)
+      gtMode = obj.gtMode;
+    end
+    
+    function advancedMode = IsAdvancedMode(obj)
+      advancedMode = obj.advancedMode;
+    end
+    
+    function modeSet = IsModeSet(obj)
+      modeSet = obj.modeSet;
+    end
+    
+    function SetGTMode(obj,val)
+      obj.gtMode = val;
+    end
+    
+    function SetAdvancedMode(obj,val)
+      obj.advancedMode = val;
+    end
+    function SetMode(obj)
+      obj.modeSet = true;
+    end
     
   end % End methods
     
