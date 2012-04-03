@@ -133,6 +133,12 @@ if ischar(trans_types) && strcmpi(trans_types,'all'),
   trans_types = {'none','abs','flip','relative'};
 end
 
+trans_types_int=uint8(0);
+if(ismember('none',trans_types))       trans_types_int=bitor(1,trans_types_int);  end
+if(ismember('abs',trans_types))        trans_types_int=bitor(2,trans_types_int);  end
+if(ismember('flip',trans_types))       trans_types_int=bitor(4,trans_types_int);  end
+if(ismember('relative',trans_types))   trans_types_int=bitor(8,trans_types_int);  end
+
 %% select default windows from various ways of specifying windows
 
 [windows,window_radii,windowi2radiusi,nradii] = ...
@@ -144,7 +150,8 @@ end
 %% compute per-frame transformations 
 [x_trans,IDX,ntrans] = ComputePerFrameTrans(x,trans_types);
 
-if ismember('relative',trans_types)
+%if ismember('relative',trans_types)
+if bitand(8,trans_types_int)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -200,7 +207,8 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = padgrab(res,nan,1,ntrans,1+r+off,N+r+off);
-    if ismember('none',trans_types),
+%    if ismember('none',trans_types),
+    if bitand(1,trans_types_int),
       y(end+1,:) = res1(IDX.orig,:); %#ok<*AGROW>
       feature_names{end+1} = {'stat','min','trans','none','radius',r,'offset',off};
     end
@@ -224,7 +232,8 @@ for radiusi = 1:nradii,
     
     if SANITY_CHECK,
         
-      if ismember('none',trans_types),
+%      if ismember('none',trans_types),
+      if bitand(1,trans_types_int),
         fastY = res1(IDX.orig,:);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
