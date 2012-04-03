@@ -136,6 +136,12 @@ if ischar(trans_types) && strcmpi(trans_types,'all'),
   trans_types = {'none','abs','flip','relative'};
 end
 
+trans_types_int=uint8(0);
+if(ismember('none',trans_types))       trans_types_int=bitor(1,trans_types_int);  end
+if(ismember('abs',trans_types))        trans_types_int=bitor(2,trans_types_int);  end
+if(ismember('flip',trans_types))       trans_types_int=bitor(4,trans_types_int);  end
+if(ismember('relative',trans_types))   trans_types_int=bitor(8,trans_types_int);  end
+
 %% select default windows from various ways of specifying windows
 
 [windows,window_radii,windowi2radiusi,nradii] = ...
@@ -146,7 +152,8 @@ end
 
 %% main computation
 
-if ismember('relative',trans_types)
+%if ismember('relative',trans_types)
+if bitand(8,trans_types_int)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -179,7 +186,8 @@ for radiusi = 1:nradii,
     end
   end
   
-  if ismember('relative',trans_types)
+%  if ismember('relative',trans_types)
+  if bitand(8,trans_types_int)
     if DOCACHE && ismember(r,cache.meanRel.radii),
       cache_i = find(r == cache.meanRel.radii,1);
       resRel = cache.meanRel.data{cache_i};
@@ -203,23 +211,27 @@ for radiusi = 1:nradii,
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
     res1 = padgrab(res,nan,1,1,1+r+off,N+r+off);
-    if ismember('none',trans_types),
+%    if ismember('none',trans_types),
+    if bitand(1,trans_types_int),
       y(end+1,:) = res1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','mean','trans','none','radius',r,'offset',off};
     end
     
-    if ismember('abs',trans_types),
+%    if ismember('abs',trans_types),
+    if bitand(2,trans_types_int),
       y(end+1,:) = abs(res1);
       feature_names{end+1} = {'stat','mean','trans','abs','radius',r,'offset',off};
     end
     
-    if ismember('flip',trans_types) && ~( (r == 0) && (off == 0) && ismember('abs',trans_types) ),
+%    if ismember('flip',trans_types) && ~( (r == 0) && (off == 0) && ismember('abs',trans_types) ),
+    if bitand(4,trans_types_int) && ~( (r == 0) && (off == 0) && bitand(2,trans_types_int) ),
       y(end+1,:) = res1;
       y(end,x<0) = -res1(x<0);
       feature_names{end+1} = {'stat','mean','trans','flip','radius',r,'offset',off};
     end
     
-    if ismember('relative',trans_types),
+%    if ismember('relative',trans_types),
+    if bitand(8,trans_types_int),
       resRel1 = padgrab(resRel,nan,1,1,1+r+off,N+r+off);
       y(end+1,:) = resRel1;
       feature_names{end+1} = {'stat','mean','trans','relative','radius',r,'offset',off};
@@ -228,7 +240,8 @@ for radiusi = 1:nradii,
     if SANITY_CHECK,
       funcType = 'mean';
       
-      if ismember('none',trans_types),
+%      if ismember('none',trans_types),
+      if bitand(1,trans_types_int),
         fastY = res1;
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
@@ -237,7 +250,8 @@ for radiusi = 1:nradii,
         checkSanity(fastY,res_dumb,r,off,funcType);
       end  
       
-      if ismember('abs',trans_types),
+%      if ismember('abs',trans_types),
+      if bitand(2,trans_types_int),
         fastY = abs(res1);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
@@ -247,7 +261,8 @@ for radiusi = 1:nradii,
       end
       
       % flip is redundant with abs if r = 0 && off = 0
-      if ismember('flip',trans_types) && ~( (r == 0) && (off == 0) && ismember('abs',trans_types) ),
+%      if ismember('flip',trans_types) && ~( (r == 0) && (off == 0) && ismember('abs',trans_types) ),
+      if bitand(4,trans_types_int) && ~( (r == 0) && (off == 0) && bitand(2,trans_types_int) ),
         fastY = res1;
         fastY(x<0) = -res1(x<0);
         res_dumb = nan(1,N);
