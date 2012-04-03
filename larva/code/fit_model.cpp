@@ -7,6 +7,8 @@
 #include <ml.h>  
 
 #define SCALE 20
+#define STANDALONE
+#define DEBUG_FIT_MODEL 1
 
 extern int g_debug;
 IplConvKernel * fix_contour_se = NULL;
@@ -42,7 +44,6 @@ typedef struct {
 
 DPCache *new_dp_cache(Blob *b, FitParams *params);
 void free_dp_cache(DPCache *d);
-
 
 // Simple function to fit the entire sequence frame by frame, either using temporal info greedily or not using temporal info at all
 double fit_model_simple(BlobSequence *s, FitParams *params, double *costs, bool use_temporal_info, bool free_memory,
@@ -654,9 +655,11 @@ void flip_spine_sequence(BlobSequence *blob, FitParams *params) {
   for(i = 0; i < blob->num_frames; i++) {
     flip_spine(&blob->frames[i], params);
 
-    if(blob->frames[i].features)
-      compute_features(&blob->frames[i],  i > 0 ? &blob->frames[i] : NULL, 
+    if(blob->frames[i].features){
+      // KB: changed prev from &blob->frames[i] to &blob->frames[i-1]
+      compute_features(&blob->frames[i],  i > 0 ? &blob->frames[i-1] : NULL, 
 		       i ? (1/(blob->frames[i].frame_time-blob->frames[i-1].frame_time)) : 0, params, 0);
+    }
   }
 }
 
@@ -1098,21 +1101,103 @@ FitParams default_parameters() {
   return params;
 }
 
+int save_spine_sequence(BlobSequence* s, char* filename, FitParams* params){
+
+  FILE *fout = fopen(filename, "w");
+  int success = 0;
+  int n; // which spine point
+  int t; // which frame
+  int i; // which feature
+
+  // features computed
+  const char *names[F_NUM_FEATURES] = { "width", "head_length", "tail_length", "head_symmetry", "tail_symmetry", 
+					"head_geo_symmetry", "tail_geo_symmetry", "head_percent_outliers", 
+					"tail_percent_outliers", "head_geometry", "tail_geometry", "width_velocity", 
+					"forward_velocity", "sideways_velocity",
+					"angular_velocity", "", "percent_outliers", "width_change", "angle_change", 
+					"length", "left_parallel", "left_orthogonal", "right_parallel", "right_orthogonal", 
+					"symmetry", "geometry1", "geometry2", "segment_angular_velocity", "length_velocity" };
+  bool is_head[F_NUM_FEATURES] =     { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  bool is_tail[F_NUM_FEATURES] =     { 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  bool is_temporal[F_NUM_FEATURES] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 };
+  bool is_invalid[F_NUM_FEATURES]  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  bool is_pairwise[F_NUM_FEATURES] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+
+  // open the file for writing
+  if(fout <= 0){
+    fprintf(stderr,"Could not open file %s for writing.\n",filename);
+    return(success);
+  }
+
+  // print header
+  fprintf(fout,"frame\tnpoints");
+  for(n = 0; n < s->frames[0].num_model_pts; n++) {
+    fprintf(fout,"\tx_%02d\ty_%02d\torientation_%02d\twidth_%02d\td3_%02d\td4_%02d",n,n,n,n,n,n);
+    for(i = 0; i < F_NUM_FEATURES; i++) {
+      if(!is_invalid[i] && (n == 0 || !is_head[i]) && 
+	 (n == params->num_spine_lines || !is_tail[i]) && 
+	 (n > 0 || !is_pairwise[i])){
+	fprintf(fout, "\t%s_%02d", names[i], n);
+      }
+    }
+  }
+  fprintf(fout,"\n");
+
+  // output the spines, one frame per line, tab separated
+  // for each point, we output x, y, orientation, width, d3, d4
+  for(t = 0; t < s->num_frames; t++) {
+    fprintf(fout,"%d\t%d",t,s->frames[t].num_model_pts);
+    for(n = 0; n < s->frames[t].num_model_pts; n++) {
+      // x, y, orientation, width, d3, d4
+      fprintf(fout,"\t%f\t%f\t%f\t%f\t%f\t%f",s->frames[t].model_pts[n].x,
+	      s->frames[t].model_pts[n].y,
+	      params->orientations[s->frames[t].model_pts[n].orientation],
+	      s->frames[t].model_pts[n].width,
+	      s->frames[t].model_pts[n].d3,
+	      s->frames[t].model_pts[n].d4);
+
+      for(i = 0; i < F_NUM_FEATURES; i++) {
+	if(!is_invalid[i] && (n == 0 || !is_head[i]) && 
+	   (n == params->num_spine_lines || !is_tail[i]) && 
+	   (n > 0 || !is_pairwise[i]))
+	  if(t==0 && is_temporal[i]){
+	    fprintf(fout,"\tnan");
+	  }
+	  else{
+	    fprintf(fout, "\t%f", s->frames[t].features[i]);
+	  }
+      }
+    }
+    fprintf(fout,"\n");
+  }
+  fclose(fout);
+
+  success = 1;
+  return(success);
+
+}
+
+
 
 #ifdef STANDALONE
 int main(int argc, char **argv) {
   FitParams params;
   BlobSequence *s;
   char blob_file[400];
+  char spine_file[400];
   int i;
+  int num_spine_lines;
+  int keep_going = 1;
+  int j;
 
   if(argc < 2) { 
     fprintf(stderr, "USAGE: ./fit_model file.outline <num_spine_lines>\n");
     return -1;
   }
   strcpy(blob_file, argv[1]);
+  num_spine_lines = atoi(argv[2]);
 
-  s = import_blob_sequence(blob_file);
+  s = import_blob_sequence(blob_file,num_spine_lines);
   if(!s || s->num_frames <= 0) {
     fprintf(stderr, "Couldn't read blob file %s. Aborting...\n", blob_file);
     return -1;
@@ -1120,8 +1205,28 @@ int main(int argc, char **argv) {
 
   params = default_parameters();
   params.world_to_pixel_scale = guess_world_to_pixel_scale(s->frames[0].contour, s->frames[0].num_pts);
+  params.num_spine_lines = num_spine_lines;
 
-  fit_model(s, &params);
+  fit_model(s, &params, DEBUG_FIT_MODEL, NULL, &keep_going);
+
+  // create the spine file name
+  j = -1;
+  for(i = strlen(blob_file)-1; i >= 0; i--){
+    if(blob_file[i] == '.'){
+      j = i;
+      break;
+    }
+  }
+  if(j<0){
+    j = strlen(blob_file)-1;
+  }
+  strncpy(spine_file,blob_file,j+1);
+  strcat(spine_file,"spine");
+
+  // save to spine file
+  if(save_spine_sequence(s,spine_file,&params) == 0){
+    fprintf(stderr,"Failed to save spine sequence to %s\n",spine_file);
+  }
 
   free_blob_sequence(s);
   free(params.orientations);
