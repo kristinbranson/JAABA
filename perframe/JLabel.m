@@ -63,7 +63,9 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
   'defaultpath','',...
   'groundtruthmode',false);
 
+handles.output = handles.figure_JLabel;
 % initialize statusbar
+
 handles.status_bar_text = sprintf('Status: No experiment loaded');
 handles.idlestatuscolor = [0,1,0];
 handles.busystatuscolor = [1,0,1];
@@ -71,49 +73,64 @@ handles.movie_height = 100;
 handles.movie_width = 100;
 ClearStatus(handles);
 
-% JLabelEditFiles('JLabelHandle',handles);
+[handles,success] = JLabelEditFiles('JLabelHandle',handles);
+
+if ~success,
+  guidata(hObject,handles);
+  delete(hObject);
+  return;
+end
+
+handles.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+handles.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
 
 % read configuration
 [handles,success] = LoadConfig(handles);
 if ~success,
   guidata(hObject,handles);
-  delete(handles.figure_JLabel);
+  delete(hObject);
   return;
 end
 
 % get relative locations of stuffs
-handles = GetGUIPositions(handles);
+% handles = GetGUIPositions(handles);
+% 
+% % initialize data
+% handles = InitializeState(handles);
+% 
+% % initialize plot handles
+% handles = InitializePlots(handles);
+% 
+% % load classifier
+% if ~isempty(handles.classifierfilename),
+%   if exist(handles.classifierfilename,'file'),
+%     [success,msg] = handles.data.SetClassifierFileName(handles.classifierfilename);
+%     if ~success,
+%       warning(msg);
+%       SetStatus(handles,'Error loading classifier from file');
+%     end
+%   end
+% end
+% 
+% if isempty(handles.data.expdirs),
+%   guidata(hObject,handles);
+%   menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
+%   handles = guidata(hObject);
+% end
 
-% initialize data
-handles = InitializeState(handles);
-
-% initialize plot handles
-handles = InitializePlots(handles);
-
-% load classifier
-if ~isempty(handles.classifierfilename),
-  if exist(handles.classifierfilename,'file'),
-    [success,msg] = handles.data.SetClassifierFileName(handles.classifierfilename);
-    if ~success,
-      warning(msg);
-      SetStatus(handles,'Error loading classifier from file');
-    end
-  end
+if handles.data.nexps > 0 && handles.data.expi == 0,
+  handles = SetCurrentMovie(handles,1);
+else
+  handles = SetCurrentMovie(handles,handles.data.expi);
 end
 
-if isempty(handles.data.expdirs),
-  guidata(hObject,handles);
-  menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
-  handles = guidata(hObject);
-end
+handles = UpdateGUIGroundTruthMode(handles);
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 % enable gui
 EnableGUI(handles);
-
-handles.output = handles.figure_JLabel;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -130,7 +147,7 @@ function varargout = JLabel_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.figure_JLabel;
+varargout{1} = hObject;
 % UNCOMMENT
 % if isfield(handles,'data'),
 %   varargout{1} = handles.data;
@@ -1260,25 +1277,26 @@ function menu_file_editfiles_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_editfiles (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isfield(handles,'data'),
-%   [success,msg] = handles.data.UpdateStatusTable();
-%   if ~success,
-%     error(msg);
+% if isfield(handles,'data'),
+% %   [success,msg] = handles.data.UpdateStatusTable();
+% %   if ~success,
+% %     error(msg);
+% %   end
+%   params = {handles.data};
+% else
+%   params = {handles.configfilename};
+%   if isfield(handles,'defaultpath'),
+%     params(end+1:end+2) = {'defaultpath',handles.defaultpath};
 %   end
-  params = {handles.data};
-else
-  params = {handles.configfilename};
-  if isfield(handles,'defaultpath'),
-    params(end+1:end+2) = {'defaultpath',handles.defaultpath};
-  end
-end
+% end
 if ~isempty(handles.expi) && handles.expi > 0,
   oldexpdir = handles.data.expdirs{handles.expi};
 else
   oldexpdir = '';
 end
-[handles.data,success] = ...
-  JLabelEditFiles(params{:});
+
+[handles,success] = ...
+  JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
 
 handles.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
 handles.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
@@ -1394,7 +1412,9 @@ end
 handles = UpdateGUIGroundTruthMode(handles);
 
 guidata(hObject,handles);
-  
+
+function handles = UpdateMovies(handles)
+
 function handles = SetNeedSave(handles)
 
 handles.needsave = true;
