@@ -99,6 +99,7 @@ else
   else
     behaviorparams.behaviors = struct;
   end
+  
   handles.behaviorparams = behaviorparams;
   behaviorList = fieldnames(behaviorparams.behaviors);
   handles.behaviorList = behaviorList;
@@ -118,15 +119,39 @@ else
   
   set(handles.listbox_behavior,'String',behaviorList);
   
-  
-  if numel(behaviorList)>0,
-    handles.curbehavior = 1;
-    set(handles.listbox_behavior,'Value',handles.curbehavior);
+  if ~isempty(handles.JLabelHandle.configfilename)
+    foundConfig = false;
+    for fndx = 1:numel(handles.behaviorList)
+      if strcmp(handles.JLabelHandle.configfilename,  ...
+          handles.behaviorparams.behaviors.(handles.behaviorList{fndx}).configFile),
+        handles.curbehavior = fndx;
+        set(handles.listbox_behavior,'Value',handles.curbehavior);
+        foundConfig = true;
+        break;
+      end
+    end
+    if ~foundConfig
+      dlgStr = sprintf('%s\n%s\n%s','A project has not been defined for the configfile',...
+        'To add a new project for this configfile enter the name below.',... 
+        'To cancel, close this window');
+      in = inputdlg(dlgStr);
+      if numel(in)<1 || isempty(in{1}),
+        return;
+      end
+      newName = in{1};
+      addBehavior(hObject,handles,newName,handles.JLabelHandle.configfilename);
+      handles = guidata(hObject);
+    end
   else
-    handles.curbehavior = [];
+    if numel(behaviorList)>0,
+      handles.curbehavior = 1;
+      set(handles.listbox_behavior,'Value',handles.curbehavior);
+    else
+      handles.curbehavior = [];
+    end
   end
   guidata(hObject,handles);
-  updateConfigParams(handles)
+  updateConfigParams(handles);
 end
 
 
@@ -145,7 +170,8 @@ function defaultConfig = GetDefaultConfig(name)
 if nargin<1
   name = 'default';
 end
-defaultConfig.behaviors = struct('names',name,'labelcolors',[0.7,0,0,0,0,0.7]);
+defaultConfig.targets = struct('type','fly');
+defaultConfig.behaviors = struct('names',name,'labelcolors',[0.7,0,0,0,0,0.7],'unknowncolor',[0,0,0]);
 defaultConfig.file = struct('moviefilename','movie.ufmf',...
       'trxfilename','registered_trx.mat',...
       'labelfilename',sprintf('labeled%s.mat',name),...
@@ -160,6 +186,10 @@ defaultConfig.plot.trx = struct('colormap','jet',...
 	'colormap_multiplier','.7');
 defaultConfig.plot.labels = struct('colormap','line',...
 	'linewidth','3');
+defaultConfig.perframe.params = struct('fov',3.1416,'nbodylengths_near',2.5,...
+  'thetafil',[0.0625,0.25,0.375,0.25,0.0625]);
+defaultConfig.perframe.landmark_params = struct(...
+  'arena_center_mm_x',0,'arena_center_mm_y',0,'arena_radius_mm',60,'arena_type','circle');
 
 
 function SaveBehaviorState(handles)
@@ -720,25 +750,66 @@ function pushbutton_addbehavior_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addbehavior (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-in = inputdlg('Name of the new behavior');
+in = inputdlg({'Name of the new project','Config file name','Use default params from'});
 if numel(in)<1 || isempty(in{1}),
   return;
 end
 newName = in{1};
+
+if numel(in)<2 || isempty(in{2}),
+  configFile = fullfile('params',[newName '_params.xml']);
+else
+  configFile = in{2};  
+end
+
+if numel(in)<3 || isempty(in{3}),
+  defaultConfigFile = '';
+else
+  defaultConfigFile = in{3};  
+end
+
 if isfield(handles.behaviorparams.behaviors,newName)
-  warndlg('A behavior has already been defined with that name');
+  warndlg('A project has already been defined with that name');
   return;
 end
-configFile = fullfile('params',[newName '_params.xml']);
+
+addBehavior(hObject,handles,newName,configFile,defaultConfigFile);
+
+function addBehavior(hObject,handles,newName,configFile,defaultConfigFile)
+
+if nargin <4,
+  defaultConfigFile = '';
+end
+
 handles.behaviorparams.behaviors.(newName).configFile = configFile;
 handles.behaviorList{end+1} = newName;
 handles.curbehavior = numel(handles.behaviorList);
 set(handles.listbox_behavior,'String',handles.behaviorList,'Value',handles.curbehavior);
-handles.config{handles.curbehavior} = GetDefaultConfig(newName);
-handles.featureList{handles.curbehavior} = [];
+
+fileToRead = '';
+
+if exist(configFile,'file')
+  fileToRead = configFile;
+elseif ~isempty(defaultConfigFile) && exist(defaultConfigFile,'file')
+  fileToRead = defaultConfigFile;
+end
+
+if ~isempty(fileToRead)
+  curparams = ReadXMLParams(fileToRead);
+  if isfield(curparams,'featureparamlist'),
+    handles.featureList{handles.curbehavior} = curparams.featureparamlist;
+    curparams = rmfield(curparams,'featureparamlist');
+  end
+  handles.config{handles.curbehavior} = curparams;
+else
+    handles.config{handles.curbehavior} = GetDefaultConfig(newName);
+    handles.featureList{handles.curbehavior} = [];
+end
+
 set(handles.listbox_behavior,'Value',handles.curbehavior);
 guidata(hObject,handles);
 updateConfigParams(handles);
+
 
 % --- Executes on button press in pushbutton_removebehavior.
 function pushbutton_removebehavior_Callback(hObject, eventdata, handles)
