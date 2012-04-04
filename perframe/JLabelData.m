@@ -2590,7 +2590,7 @@ classdef JLabelData < handle
         dooverwrite = strcmpi(res,'Overwrite');
         obj.perframeOverwrite = dooverwrite;
       else
-        dooverwrite = true;x
+        dooverwrite = true;
       end
       
       expdir = obj.expdirs{expi};
@@ -2608,13 +2608,13 @@ classdef JLabelData < handle
         'perframe_params',obj.perframe_params,...
         'rootwritedir',obj.rootoutputdir);
       
-      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
+      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
       perframefiles = obj.GetPerframeFiles(expi);
-      for i = 1:numel(obj.curperframefns),
-        fn = obj.curperframefns{i};
-        ndx = find(strcmp(fn,obj.allperframefns));
-        file = perframefiles{ndx};
+      for i = 1:numel(obj.allperframefns),
+        fn = obj.allperframefns{i};
+        %ndx = find(strcmp(fn,obj.allperframefns));
+        file = perframefiles{i};
         if ~dooverwrite && exist(file,'file'),
           continue;
         end

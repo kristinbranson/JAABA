@@ -72,7 +72,7 @@ for expdiri = 1:numel(labelmatnames),
   
   trx = Trx('analysis_protocol',analysis_protocol,...
     'settingsdir',settingsdir);
-  trx.AddExpDir(expdir);
+  trx.AddExpDir(expdir,'openmovie',false);
 
   % start of labeled sequence, relative to video
   video_labelstart = labeldata.t0tolabelcurr;
