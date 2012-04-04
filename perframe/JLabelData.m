@@ -329,7 +329,7 @@ classdef JLabelData < handle
     end      
 
     function [X,feature_names] = ...
-        ComputeWindowDataChunkStatic(perframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
+        ComputeWindowDataChunkStatic(curperframefns,allperframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
       
     %function [X,feature_names] = ...
     %    ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturecellparams,t0,t1)
@@ -347,9 +347,9 @@ classdef JLabelData < handle
     X = [];
     feature_names = {};
     
-    for j = 1:numel(perframefns),
-      fn = perframefns{j};
-      ndx = find(strcmp(fn,perframefns));
+    for j = 1:numel(curperframefns),
+      fn = curperframefns{j};
+      ndx = find(strcmp(fn,allperframefns));
 
       perframedata = load(perframefile{ndx});
       perframedata = perframedata.data{flies(1)};
@@ -2527,13 +2527,17 @@ classdef JLabelData < handle
       perframeGenerate = obj.perframeGenerate;
     end
     
-    function [success,msg] = GenerateMissingFiles(obj,expi,varargin)
+    function [success,msg] = GenerateMissingFiles(obj,expi,isInteractive)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
     % TODO: implement this!
       
       success = true;
       msg = '';
+      
+      if nargin<3
+        isInteractive = true;
+      end
       
       for i = 1:numel(obj.filetypes),
         file = obj.filetypes{i};
@@ -2548,7 +2552,7 @@ classdef JLabelData < handle
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
-              [success1,msg1] = obj.GeneratePerFrameFiles(expi,varargin{:});
+              [success1,msg1] = obj.GeneratePerFrameFiles(expi,isInteractive);
               success = success && success1;
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
@@ -2566,19 +2570,13 @@ classdef JLabelData < handle
       
     end
     
-    function [success,msg] = GeneratePerFrameFiles(obj,expi,varargin)
+    function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
 
-      if isempty(varargin)
-        doAsk = true;
-      else
-        doAsk = varargin{1};
-      end
-      
       perframedir = obj.GetFile('perframedir',expi);
       
-      if ~doAsk,
+      if ~isInteractive,
         dooverwrite = false;
       elseif ~isempty(obj.perframeOverwrite) 
         if obj.perframeOverwrite
@@ -2592,13 +2590,17 @@ classdef JLabelData < handle
         dooverwrite = strcmpi(res,'Overwrite');
         obj.perframeOverwrite = dooverwrite;
       else
-        dooverwrite = true;
+        dooverwrite = true;x
       end
       
       expdir = obj.expdirs{expi};
       
-      hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
-
+      if isInteractive
+        hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
+      else
+        fprintf('Initializing perframe directory for %s\n',expdir);
+      end
+      
       perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
         'moviefilestr',obj.GetFileName('movie'),...
         'perframedir',obj.GetFileName('perframedir'),...
@@ -2608,18 +2610,24 @@ classdef JLabelData < handle
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
       
+      perframefiles = obj.GetPerframeFiles(expi);
       for i = 1:numel(obj.curperframefns),
         fn = obj.curperframefns{i};
-        file = fullfile(perframedir,[fn,'.mat']);
+        ndx = find(strcmp(fn,obj.allperframefns));
+        file = perframefiles{ndx};
         if ~dooverwrite && exist(file,'file'),
           continue;
         end
-        hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        if isInteractive
+          hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        else
+          fprintf('Computing %s and saving to file %s\n',fn,file);
+        end
         perframetrx.(fn); %#ok<VUNUS>
           
       end
       
-      if ishandle(hwait),
+      if isInteractive && ishandle(hwait),
         delete(hwait);
       end
       
@@ -4155,19 +4163,20 @@ classdef JLabelData < handle
       tEndAll = obj.GetTrxEndFrame(expi);
       perframefile = obj.GetPerframeFiles(expi);
       windowfeaturescellparams = obj.windowfeaturescellparams;
-      perframefns = obj.curperframefns;
+      curperframefns = obj.curperframefns;
+      allperframefns = obj.allperframefns;
       classifier = obj.classifier;
       
       obj.SetStatus('Classifying current movie..');
       
-      parfor flies = 1:numFlies
+      for flies = 1:numFlies
         tStart = tStartAll(flies);
         tEnd = tEndAll(flies);
         
         scores = nan(1,tEnd);
         
-        X = JLabelData.ComputeWindowDataChunkStatic(...
-          perframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
+        X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+          allperframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
         
         scores(tStart:tEnd) = myBoostClassify(X,classifier);
         scoresA{flies} = scores;
