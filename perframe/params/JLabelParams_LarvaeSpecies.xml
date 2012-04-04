@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+
+<params>
+  <targets
+      type="larvaspecies"
+  />
+  <behaviors 
+      names="MyBehavior"
+      labelcolors=".7,0,0,0,0,.7"
+      unknowncolor="0,0,0"
+      />
+  <file 
+      moviefilename="movie.wmv"
+      trxfilename="trx.mat"
+      labelfilename="MyBehaviorLabels.mat"
+      gt_labelfilename="MyGroundTruthingLabels.mat"
+      perframedir="perframe"
+      featureconfigfile="params/featureConfig.xml"
+  />
+  <featureparamlist>
+    <a_mm/>
+    <area/>
+    <areasmooth/>
+    <b_mm/>
+    <corfrac_maj/>
+    <corfrac_min/>
+        <da/>
+        <darea/>
+        <db/>
+        <decc/>
+        <dphi/>
+        <dtheta/>
+        <du_cor/>
+        <du_ctr/>
+        <du_tail/>
+        <dv_cor/>
+        <dv_ctr/>
+        <dv_tail/>
+        <ecc/>
+        <phisideways/>
+        <smoothdtheta/>
+        <velmag/>
+        <velmag_ctr/>
+        <velmag_nose/>
+        <velmag_tail/>
+        <yaw/>
+  </featureparamlist>
+      
+      
+    <perframe>
+      <params 
+        fov="3.141592653589793"
+        thetafil="0.0625,0.2500,0.3750,0.2500,0.0625"
+        nbodylengths_near="2.5"
+      />
+      <landmark_params 
+        arena_type="circle"
+        arena_center_mm_x="0"
+        arena_center_mm_y="0"
+        arena_radius_mm="60"
+      />
+    </perframe>
+
+  <plot>
+    <trx 
+	colormap="jet"
+	colormap_multiplier=".7"
+  extra_marker="o"
+  extra_linestyle="none"
+      extra_markersize="6"
+    />
+    <labels 
+	colormap="line"
+	linewidth="3"
+	/>
+  </plot>
+
+</params>

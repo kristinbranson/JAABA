@@ -689,8 +689,17 @@ if handles.data.ismovie,
   % open new movie
   % try
   SetStatus(handles,'Opening movie...');
-  [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
-    get_readframe_fcn(moviefilename);
+  if 1,
+    [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
+      get_readframe_fcn(moviefilename);
+  else
+    fprintf('DEBUG!!!! USING GLOBAL VARIABLE WITH MOVIE READFRAME !!!DEBUG\n');
+    global JLABEL__READFRAME;
+    handles.readframe = JLABEL__READFRAME.readframe;
+    handles.nframes = JLABEL__READFRAME.nframes;
+    handles.movie_fid = JLABEL__READFRAME.movie_fid;
+    handles.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
+  end
   im = handles.readframe(1);
   handles.movie_width = size(im,2);
   handles.movie_height = size(im,1);
