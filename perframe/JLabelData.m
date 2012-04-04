@@ -665,13 +665,13 @@ classdef JLabelData < handle
             return;
           end
         end
-        if isfield(configparams.file,'clipsdir'),
+        if isfield(configparams.file,'clipsdir') && ~isempty(configparams.file.clipsdir),
           [success1,msg] = obj.SetClipsDir(configparams.file.clipsdir);
           if ~success1,
             return;
           end
         end
-        if isfield(configparams.file,'rootoutputdir'),
+        if isfield(configparams.file,'rootoutputdir') && ~isempty(configparams.file.rootoutputdir),
           [success1,msg] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
           if ~success1,
             return;
@@ -690,7 +690,7 @@ classdef JLabelData < handle
           msg = '';
         end
 
-        if isfield(configparams.file,'featureparamfilename'),
+        if isfield(configparams.file,'featureparamfilename') && ~isempty(configparams.file.featureparamfilename),
           [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
           if ~success1,
             return;
@@ -1341,7 +1341,11 @@ classdef JLabelData < handle
         else
           for ndx = 1:numel(loadedlabels.flies)
             nBouts = numel(loadedlabels.t0s{ndx});
-            obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            if isempty(loadedlabels.timestamp)
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
           end
         end
         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
@@ -1410,7 +1414,11 @@ classdef JLabelData < handle
         else
           for ndx = 1:numel(loadedlabels.flies)
             nBouts = numel(loadedlabels.t0s{ndx});
-            obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            if isempty(loadedlabels.timestamp)
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
           end
         end
         
@@ -1746,7 +1754,7 @@ classdef JLabelData < handle
           for ndx = 1:numel(paramFields)
             obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
           end
-          obj.ClearCachedPerExpData();
+          % obj.ClearCachedPerExpData();
           obj.ClearStatus();
       end
     end
@@ -4949,16 +4957,16 @@ classdef JLabelData < handle
             gt_labels = [gt_labels curLabel];
             
             if ~isempty(obj.scoredata.exp) && nnz(obj.scoredata.exp ==expi)
-              idx = obj.scoredata.exp ==expi & obj.scoredata.flies == flies &...
-                obj.scoredata.t>=t0 & obj.scoredata.t<t1;
+              idx = obj.scoredata.exp(:) ==expi & obj.scoredata.flies(:) == flies &...
+                obj.scoredata.t(:) >=t0 & obj.scoredata.t(:) <t1;
               ts = obj.scoredata.t(idx);
               scores = obj.scoredata.scores(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];
             else
-              idx = obj.windowdata.exp ==expi & obj.windowdata.flies == flies &...
-                obj.windowdata.t>=t0 & obj.windowdata.t<t1;
+              idx = obj.windowdata.exp(:) ==expi & obj.windowdata.flies(:) == flies &...
+                obj.windowdata.t(:)>=t0 & obj.windowdata.t(:)<t1;
               ts = obj.windowdata.t(idx);
               scores = obj.windowdata.scores(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
