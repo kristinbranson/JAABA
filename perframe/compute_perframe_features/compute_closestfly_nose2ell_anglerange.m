@@ -1,5 +1,9 @@
 function [data,units,mind] = compute_closestfly_nose2ell_anglerange(trx,n,anglerange,dosave_d)
 
+MAXVALUE = trx.perframe_params.max_dnose2ell_anglerange;
+logmaxvalue = log(MAXVALUE);
+issmooth = ~isinf(MAXVALUE);
+
 if nargin < 4,
   dosave_d = true;
 end
@@ -21,6 +25,7 @@ for i1 = 1:nflies,
   % initialize
   mindupper = inf(1,trx(fly1).nframes);
   dlower = nan(nflies,trx(fly1).nframes);
+  weights = nan(nflies,trx(fly1).nframes);
   
   for i2 = 1:nflies,
     if i1 == i2,
@@ -34,15 +39,28 @@ for i1 = 1:nflies,
     if off10 > off11,
       continue;
     end
-    
-    % frames within the angle range
+
     anglefrom1to2 = modrange(anglefrom1to2,anglerange1,anglerange1+2*pi);
-    idx = find(anglefrom1to2 >= anglerange1 & anglefrom1to2 <= anglerange2);
-    idx1 = idx+off10-1;
-    idx2 = idx+off20-1;
+    % frames within the angle range
+    idx = anglefrom1to2 >= anglerange1 & anglefrom1to2 <= anglerange2;
+    idx1in = find(idx)+off10-1;
+    idx2in = find(idx)+off20-1;
     
-    mindupper(idx1) = min(mindupper(idx1),dnose2center(idx1) + 2*trx(fly2).a_mm(idx2));
-    dlower(i2,idx1) = dnose2center(idx1) - 2*trx(fly2).a_mm(idx2);
+    if issmooth,
+      
+      u = zeros(size(anglefrom1to2));
+      u(~idx) = min( abs(modrange(anglefrom1to2(~idx)-anglerange1,-pi,pi)),...
+        abs(modrange(anglefrom1to2(~idx)-anglerange2,-pi,pi)) )/pi;
+      w = exp(logmaxvalue.*u);
+      mindupper(off10:off11) = min(mindupper(off10:off11),w.*(dnose2center(off10:off11) + 2*trx(fly2).a_mm(off20:off21)));
+      dlower(i2,off10:off11) = w.*(dnose2center(off10:off11) - 2*trx(fly2).a_mm(off20:off21));
+      weights(i2,off10:off11) = w;
+    else
+    
+      mindupper(idx1in) = min(mindupper(idx1in),dnose2center(idx1in) + 2*trx(fly2).a_mm(idx2in));
+      dlower(i2,idx1in) = dnose2center(idx1in) - 2*trx(fly2).a_mm(idx2in);
+      
+    end
   end
   
   d = nan(nflies,trx(fly1).nframes);
@@ -53,12 +71,12 @@ for i1 = 1:nflies,
     fly2 = flies(i2);
     % this will only be true for flies in angle range
     istry = find(dlower(i2,:) <= mindupper);
-    d(i2,:) = dnose2ell_anglerange_pair(trx,fly1,fly2,anglerange,istry);
+    d(i2,:) = weights(i2,:).*dnose2ell_anglerange_pair(trx,fly1,fly2,anglerange,istry);
   end
   [mind{i1},closesti] = min(d,[],1);
   closestfly{i1} = flies(closesti);
   closestfly{i1}(isnan(mind{i1})) = nan;
-  mind{i1}(isnan(mind{i1})) = 10000000;
+  mind{i1}(isnan(mind{i1})) = MAXVALUE;
 end
 
 anglerange_deg = round(anglerange*180/pi);
