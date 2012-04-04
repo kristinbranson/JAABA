@@ -2,7 +2,7 @@
 % Adds data associated with experiment expdir to the data represented by obj.
 function AddExpDir(obj,expdir,varargin)
 
-[dooverwrite] = myparse(varargin,'dooverwrite',true);
+[dooverwrite,openmovie] = myparse(varargin,'dooverwrite',true,'openmovie',true);
 
 % remove trailing /
 if expdir(end) == '/' || (ispc && expdir(end) == '\'),
@@ -30,7 +30,7 @@ else
   obj.outexpdirs{n} = expdir;
 end
 
-if ~isempty(obj.moviefilestr),
+if openmovie && ~isempty(obj.moviefilestr),
   moviename = fullfile(obj.expdirs{n},obj.moviefilestr);
   outmoviename = fullfile(obj.outexpdirs{n},obj.moviefilestr);
   if ~exist(moviename,'file') && exist(outmoviename,'file'),
@@ -69,7 +69,7 @@ end
 traj = load_tracks(obj.trxfiles{n});
 
 % set movie properties when there is no movie
-if isempty(obj.moviefilestr),
+if ~openmovie || isempty(obj.moviefilestr),
   obj.nrs(n) = max([traj.y]);
   obj.ncs(n) = max([traj.x]);
   obj.ncolors(n) = 0;
