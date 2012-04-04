@@ -22,6 +22,8 @@ int g_debug = 0;
     diff = d2;								\
   }
 
+// increment num for each contour point between p1 and p3 that is outside of the box 
+// with two end points at p1 and p2 and height ||p3 - pt||
 #define COUNT_ENDPOINT_OUTLIERS(p1, p3, dir, p2, p4)			\
   i = p1;								\
   while(i != p3) {							\
