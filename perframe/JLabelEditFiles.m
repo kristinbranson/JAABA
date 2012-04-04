@@ -968,6 +968,14 @@ else
   curperframe = fieldnames(handles.featureList{curbehavior});
   for ndx = 1:numel(curperframe)
     allndx = find(strcmp(curperframe{ndx},allperframe));
+    if isempty(allndx)
+      wstr = sprintf('Perframe feature %s is defined in config file%s\n%s',...
+        curperframe{ndx},...
+        'but is not defined in featureConfig.',...
+        'Ignoring it.');
+        uiwait(warndlg(wstr));
+      continue;
+    end
     data{allndx,2} = true;
   end
 end
