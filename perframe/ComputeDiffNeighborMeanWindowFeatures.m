@@ -123,7 +123,7 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = x - padgrab(res,nan,1,1,1+r+off,N+r+off);
+    res1 = x - padgrab2(res,nan,1,1,1+r+off,N+r+off);
 
 %    if ismember('none',trans_types),
     if bitand(1,trans_types),
@@ -146,7 +146,7 @@ for radiusi = 1:nradii,
     
 %    if ismember('relative',trans_types),
     if bitand(8,trans_types),
-      resRel1 = modX - padgrab(resRel,nan,1,1,1+r+off,N+r+off);
+      resRel1 = modX - padgrab2(resRel,nan,1,1,1+r+off,N+r+off);
       y(end+1,:) = resRel1;
       feature_names{end+1} = {'stat','diff_neighbor_mean','trans','relative','radius',r,'offset',off};
     end
@@ -158,7 +158,7 @@ for radiusi = 1:nradii,
         fastY = res1; %#ok<*AGROW>
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
         end
         checkSanity(fastY,res_dumb,r,off,funcType,'none');
       end
@@ -168,7 +168,7 @@ for radiusi = 1:nradii,
         fastY = abs(res1);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = abs(x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
+          res_dumb(n_dumb) = abs(x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
         end
         checkSanity(fastY,res_dumb,r,off,funcType,'abs');
       end
@@ -178,7 +178,7 @@ for radiusi = 1:nradii,
         res2 = res1; res2(x<0) = -res2(x<0); fastY = res2;
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
           if x(n_dumb) < 0,
             res_dumb(n_dumb) = -res_dumb(n_dumb);
           end
