@@ -96,7 +96,8 @@ feature_names = {};
   SetDefaultWindowParameters();
 
 % use all transformation types by default
-trans_types = 'all';
+%trans_types = 'all';
+trans_types = uint8(15);
 
 % for debugging purposes
 SANITY_CHECK = true;
@@ -140,15 +141,9 @@ relativeParams = [];
 %   'feature_types',feature_types,...
 
 %% whether we've specified to use all trans types by default
-if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip','relative'};
-end
-
-trans_types_int=uint8(0);
-if(ismember('none',trans_types))       trans_types_int=bitor(1,trans_types_int);  end
-if(ismember('abs',trans_types))        trans_types_int=bitor(2,trans_types_int);  end
-if(ismember('flip',trans_types))       trans_types_int=bitor(4,trans_types_int);  end
-if(ismember('relative',trans_types))   trans_types_int=bitor(8,trans_types_int);  end
+%if ischar(trans_types) && strcmpi(trans_types,'all'),
+%  trans_types = {'none','abs','flip','relative'};
+%end
 
 %% select default windows from various ways of specifying windows
 
@@ -161,7 +156,7 @@ if(ismember('relative',trans_types))   trans_types_int=bitor(8,trans_types_int);
 %% main computation
 
 %if ismember('relative',trans_types)
-if bitand(8,trans_types_int)
+if bitand(8,trans_types)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -189,7 +184,7 @@ for change_r_i = 1:numel(change_window_radii),
   end
   
 %  if ismember('relative',trans_types)
-  if bitand(8,trans_types_int)
+  if bitand(8,trans_types)
     if DOCACHE && ismember(change_r,cache.meanRel.radii),
       cache_i = find(change_r == cache.meanRel.radii,1);
       resRel_mean = cache.meanRel.data{cache_i};
@@ -220,7 +215,7 @@ for change_r_i = 1:numel(change_window_radii),
     res = res_mean(w:end) - res_mean(1:end-w+1);
 
 %    if ismember('relative',trans_types),
-    if bitand(8,trans_types_int),
+    if bitand(8,trans_types),
       resRel = resRel_mean(w:end) - resRel_mean(1:end-w+1);
     end
     
@@ -235,19 +230,19 @@ for change_r_i = 1:numel(change_window_radii),
       res1 = padgrab(res,nan,1,1,1+off-r+change_r,N+off-r+change_r)/r;
       
 %      if ismember('none',trans_types),
-      if bitand(1,trans_types_int),
+      if bitand(1,trans_types),
         y(end+1,:) = res1;
         feature_names{end+1} = {'stat','change','trans','none','radius',r,'offset',off,'change_window_radius',change_r}; %#ok<*AGROW>
       end
       
 %      if ismember('abs',trans_types),
-      if bitand(2,trans_types_int),
+      if bitand(2,trans_types),
           y(end+1,:) = abs(res1);
           feature_names{end+1} = {'stat','change','trans','abs','radius',r,'offset',off,'change_window_radius',change_r};
       end
       
 %      if ismember('flip',trans_types)
-      if bitand(4,trans_types_int)
+      if bitand(4,trans_types)
         res2 = res1;
         res2(x<0) = -res2(x<0);
         y(end+1,:) = res2;
@@ -255,7 +250,7 @@ for change_r_i = 1:numel(change_window_radii),
       end
       
 %      if ismember('relative',trans_types),
-      if bitand(8,trans_types_int),
+      if bitand(8,trans_types),
         resRel1 = padgrab(resRel,nan,1,1,1+off-r+change_r,N+off-r+change_r)/r;
         y(end+1,:) = resRel1;
         feature_names{end+1} = {'stat','change','trans','relative','radius',r,'offset',off,'change_window_radius',change_r}; %#ok<*AGROW>
@@ -264,7 +259,7 @@ for change_r_i = 1:numel(change_window_radii),
       if SANITY_CHECK,
         extraStr = sprintf('change_r = %d',change_r);
 %        if ismember('none',trans_types),
-        if bitand(1,trans_types_int),
+        if bitand(1,trans_types),
           fastY = res1;
         end
         res_dumb = nan(1,N);
@@ -276,7 +271,7 @@ for change_r_i = 1:numel(change_window_radii),
         checkSanity(fastY,res_dumb,r,off,'change','none',extraStr);
       
 %        if ismember('abs',trans_types),
-        if bitand(2,trans_types_int),
+        if bitand(2,trans_types),
           fastY = abs(res1);
           res_dumb = nan(1,N);
           for n_dumb = 1:N,
@@ -288,7 +283,7 @@ for change_r_i = 1:numel(change_window_radii),
         end
         
 %        if ismember('flip',trans_types)
-        if bitand(4,trans_types_int)
+        if bitand(4,trans_types)
           res2 = res1;
           res2(x<0) = -res2(x<0);
           fastY = res2;

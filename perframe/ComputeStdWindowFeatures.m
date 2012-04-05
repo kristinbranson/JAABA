@@ -88,7 +88,8 @@ feature_names = {};
   SetDefaultWindowParameters();
 
 % use all transformation types by default
-trans_types = 'all';
+%trans_types = 'all';
+trans_types = uint8(15);
 
 % for debugging purposes
 SANITY_CHECK = true;
@@ -127,15 +128,9 @@ relativeParams = [];
   'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
-if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip','relative'}; %#ok<NASGU>
-end
-
-trans_types_int=uint8(0);
-if(ismember('none',trans_types))       trans_types_int=bitor(1,trans_types_int);  end
-if(ismember('abs',trans_types))        trans_types_int=bitor(2,trans_types_int);  end
-if(ismember('flip',trans_types))       trans_types_int=bitor(4,trans_types_int);  end
-if(ismember('relative',trans_types))   trans_types_int=bitor(8,trans_types_int);  end
+%if ischar(trans_types) && strcmpi(trans_types,'all'),
+%  trans_types = {'none','abs','flip','relative'}; %#ok<NASGU>
+%end
 
 %% select default windows from various ways of specifying windows
 
@@ -148,7 +143,7 @@ if(ismember('relative',trans_types))   trans_types_int=bitor(8,trans_types_int);
 %% main computation
 
 %if ismember('relative',trans_types)
-if bitand(8,trans_types_int)
+if bitand(8,trans_types)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -218,7 +213,7 @@ for radiusi = 1:nradii,
   end
 
 %  if ismember('relative',trans_types),
-  if bitand(8,trans_types_int),
+  if bitand(8,trans_types),
     
     if DOCACHE && ismember(r,cache.stdRel.radii),
       cache_i = find(r == cache.stdRel.radii,1);
@@ -264,7 +259,7 @@ for radiusi = 1:nradii,
     feature_names{end+1} = {'stat','std','trans','none','radius',r,'offset',off};
     
 %    if ismember('relative',trans_types)
-    if bitand(8,trans_types_int)
+    if bitand(8,trans_types)
       resRel1 = padgrab(resRel,nan,1,1,1+r+off,N+r+off);
       y(end+1,:) = resRel1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','std','trans','relative','radius',r,'offset',off};

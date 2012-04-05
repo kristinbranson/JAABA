@@ -148,7 +148,8 @@ feature_types_computed = {};
 
 % use all features, transformation types by default
 feature_types = 'all';
-default_trans_types = 'all';
+%default_trans_types = 'all';
+default_trans_types = uint8(15);
 
 % per-feature parameters
 mean_params = {};
@@ -171,6 +172,36 @@ SANITY_CHECK = false;
 DOCACHE = true;
 
 %% parse parameters
+
+% BJA: convert slow descriptive trans_types to 2x faster bitmasks
+for(j=1:2:length(varargin)-1)
+  if(strcmpi(varargin{j},'trans_types'))
+    tmp=uint8(0);
+    for(i=1:length(varargin{j+1}))
+      if(strcmpi('none',varargin{j+1}(i)))      tmp=bitor(1,tmp);  end
+      if(strcmpi('abs',varargin{j+1}(i)))       tmp=bitor(2,tmp);  end
+      if(strcmpi('flip',varargin{j+1}(i)))      tmp=bitor(4,tmp);  end
+      if(strcmpi('relative',varargin{j+1}(i)))  tmp=bitor(8,tmp);  end
+    end
+    varargin{j+1}=tmp;
+  end
+end
+for(k=2:2:length(varargin))
+  if(iscell(varargin{k}))
+    for(j=1:2:length(varargin{k})-1)
+      if(strcmpi(varargin{k}{j},'trans_types'))
+        tmp=uint8(0);
+        for(i=1:length(varargin{k}{j+1}))
+          if(strcmpi('none',varargin{k}{j+1}(i)))      tmp=bitor(1,tmp);  end
+          if(strcmpi('abs',varargin{k}{j+1}(i)))       tmp=bitor(2,tmp);  end
+          if(strcmpi('flip',varargin{k}{j+1}(i)))      tmp=bitor(4,tmp);  end
+          if(strcmpi('relative',varargin{k}{j+1}(i)))  tmp=bitor(8,tmp);  end
+        end
+        varargin{k}{j+1}=tmp;
+      end
+    end
+  end
+end
 
 %   change_window_radii,...
 %   num_harmonic,...

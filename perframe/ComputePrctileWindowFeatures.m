@@ -94,7 +94,8 @@ feature_names = {};
   SetDefaultWindowParameters();
 
 % use all transformation types by default
-trans_types = 'all';
+%trans_types = 'all';
+trans_types = uint8(15);
 
 % for debugging purposes
 SANITY_CHECK = true;
@@ -137,9 +138,9 @@ relativeParams = [];
 %   'feature_types',feature_types,...
 
 %% whether we've specified to use all trans types by default
-if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip','relative'};
-end
+%if ischar(trans_types) && strcmpi(trans_types,'all'),
+%  trans_types = {'none','abs','flip','relative'};
+%end
 
 %% select default windows from various ways of specifying windows
 
@@ -156,7 +157,8 @@ if ~any(prctiles),
   return;
 end
 
-if ismember('relative',trans_types)
+%if ismember('relative',trans_types)
+if bitand(8,trans_types)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -181,7 +183,8 @@ for radiusi = 1:nradii,
     res(:,n+r) = prctile(x(max(1,n-r):min(N,n+r)),prctiles);
   end
   
-  if ismember('relative',trans_types),
+  %if ismember('relative',trans_types),
+  if bitand(8,trans_types),
     resRel = nan(nprctiles,N+2*r);
     for n = 1-r:N+r,
       resRel(:,n+r) = prctile(modX(max(1,n-r):min(N,n+r)),prctiles);
@@ -199,28 +202,32 @@ for radiusi = 1:nradii,
     % so we want to grab for 1+r+off through N+r+off
     res1 = padgrab(res,nan,1,nprctiles,1+r+off,N+r+off);
     
-    if ismember('none',trans_types),
+    %if ismember('none',trans_types),
+    if bitand(1,trans_types),
       y(end+1:end+nprctiles,:) = res1;
       for prctilei = 1:nprctiles,
         feature_names{end+1} = {'stat','prctile','trans','none','radius',r,'offset',off,'prctile',prctiles(prctilei)}; %#ok<*AGROW>
       end
     end
     
-    if ismember('abs',trans_types),
+    %if ismember('abs',trans_types),
+    if bitand(2,trans_types),
       y(end+1:end+nprctiles,:) = abs(res1);
       for prctilei = 1:nprctiles,
         feature_names{end+1} = {'stat','prctile','trans','abs','radius',r,'offset',off,'prctile',prctiles(prctilei)};
       end
     end
     
-    if ismember('flip',trans_types),
+    %if ismember('flip',trans_types),
+    if bitand(4,trans_types),
       for prctilei = 1:nprctiles,
         y(end+1,:) = res1(prctilei,:).*sign(x);
         feature_names{end+1} = {'stat','prctile','trans','flip','radius',r,'offset',off,'prctile',prctiles(prctilei)};
       end
     end
     
-    if ismember('relative',trans_types),
+    %if ismember('relative',trans_types),
+    if bitand(8,trans_types),
       resRel1 = padgrab(resRel,nan,1,nprctiles,1+r+off,N+r+off);
       for prctilei = 1:nprctiles,
         y(end+1,:) = resRel1(prctilei,:).*sign(x);
@@ -229,7 +236,8 @@ for radiusi = 1:nradii,
     end
     
     if SANITY_CHECK,
-      if ismember('none',trans_types),
+      %if ismember('none',trans_types),
+      if bitand(1,trans_types),
         res_real = res1;
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
@@ -243,7 +251,8 @@ for radiusi = 1:nradii,
         checkSanity(res_real(:),res_dumb(:),r,off,'prctile','none');        
       end
     
-      if ismember('abs',trans_types),
+      %if ismember('abs',trans_types),
+      if bitand(2,trans_types),
         res_real = abs(res1);
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
@@ -258,7 +267,8 @@ for radiusi = 1:nradii,
       end
       
     
-      if ismember('flip',trans_types),
+      %if ismember('flip',trans_types),
+      if bitand(4,trans_types),
         fastY = [];
         for prctilei = 1:nprctiles,
           fastY(end+1,:) = res1(prctilei,:);
