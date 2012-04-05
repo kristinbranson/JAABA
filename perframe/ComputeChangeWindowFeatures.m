@@ -227,7 +227,7 @@ for change_r_i = 1:numel(change_window_radii),
       % res(t-r+change_r) corresponds to frame t,
       % and we want to grab from [1+off,N+off] which is
       % [1+off-r+change_r,N+off-r+change_r], relative to res
-      res1 = padgrab(res,nan,1,1,1+off-r+change_r,N+off-r+change_r)/r;
+      res1 = padgrab2(res,nan,1,1,1+off-r+change_r,N+off-r+change_r)/r;
       
 %      if ismember('none',trans_types),
       if bitand(1,trans_types),
@@ -251,7 +251,7 @@ for change_r_i = 1:numel(change_window_radii),
       
 %      if ismember('relative',trans_types),
       if bitand(8,trans_types),
-        resRel1 = padgrab(resRel,nan,1,1,1+off-r+change_r,N+off-r+change_r)/r;
+        resRel1 = padgrab2(resRel,nan,1,1,1+off-r+change_r,N+off-r+change_r)/r;
         y(end+1,:) = resRel1;
         feature_names{end+1} = {'stat','change','trans','relative','radius',r,'offset',off,'change_window_radius',change_r}; %#ok<*AGROW>
       end
@@ -264,8 +264,8 @@ for change_r_i = 1:numel(change_window_radii),
         end
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          tmp1 = padgrab(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
-          tmp2 = padgrab(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
+          tmp1 = padgrab2(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
+          tmp2 = padgrab2(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
           res_dumb(n_dumb) = (nanmean(tmp2) - nanmean(tmp1))/r;
         end
         checkSanity(fastY,res_dumb,r,off,'change','none',extraStr);
@@ -275,8 +275,8 @@ for change_r_i = 1:numel(change_window_radii),
           fastY = abs(res1);
           res_dumb = nan(1,N);
           for n_dumb = 1:N,
-            tmp1 = padgrab(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
-            tmp2 = padgrab(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
+            tmp1 = padgrab2(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
+            tmp2 = padgrab2(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
             res_dumb(n_dumb) = abs(nanmean(tmp2) - nanmean(tmp1))/r;
           end
           checkSanity(fastY,res_dumb,r,off,'change','abs',extraStr);
@@ -289,8 +289,8 @@ for change_r_i = 1:numel(change_window_radii),
           fastY = res2;
           res_dumb = nan(1,N);
           for n_dumb = 1:N,
-            tmp1 = padgrab(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
-            tmp2 = padgrab(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
+            tmp1 = padgrab2(x,nan,1,1,n_dumb+off-r-change_r,n_dumb+off-r+change_r);
+            tmp2 = padgrab2(x,nan,1,1,n_dumb+off+r-change_r,n_dumb+off+r+change_r);
             res_dumb(n_dumb) = (nanmean(tmp2) - nanmean(tmp1))/r;
             if x(n_dumb) < 0,
               res_dumb(n_dumb) = -res_dumb(n_dumb);

@@ -105,7 +105,7 @@ for radiusi = 1:nradii,
     windowis = find(windowi2radiusi == radiusi);
     for windowi = windowis',
       off = windows(windowi,2);
-      res1 = padgrab(res,nan,1,1,1+off,N+off);
+      res1 = padgrab2(res,nan,1,1,1+off,N+off);
       
       %if ismember('none',trans_types),
       if bitand(1,trans_types),
@@ -121,7 +121,7 @@ for radiusi = 1:nradii,
       
       %if ismember('relative',trans_types),
       if bitand(8,trans_types),
-        resRel1 = padgrab(resRel,nan,1,1,1+off,N+off);
+        resRel1 = padgrab2(resRel,nan,1,1,1+off,N+off);
         y(end+1,:) = resRel1;
         feature_names{end+1} = {'stat','harmonic','trans','relative','radius',r,'offset',off,'num_harmonic',num_harmonic_curr};
       end
