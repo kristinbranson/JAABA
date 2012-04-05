@@ -270,6 +270,7 @@ default_windows = SetWindowParameters(...
 
 %% set all parameters, putting in default windows, trans as necessary
 
+% BJA:  these calls to SetDefaultParams() account for ~20% of the compute time in ComputeWindowFeatures()
 mean_params = SetDefaultParams(mean_params,default_windows,default_trans_types,relativeParams);
 min_params = SetDefaultParams(min_params,default_windows,default_trans_types,relativeParams);
 max_params = SetDefaultParams(max_params,default_windows,default_trans_types,relativeParams);

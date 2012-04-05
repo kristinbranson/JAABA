@@ -200,7 +200,7 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = padgrab(res,nan,1,nprctiles,1+r+off,N+r+off);
+    res1 = padgrab2(res,nan,1,nprctiles,1+r+off,N+r+off);
     
     %if ismember('none',trans_types),
     if bitand(1,trans_types),
@@ -228,7 +228,7 @@ for radiusi = 1:nradii,
     
     %if ismember('relative',trans_types),
     if bitand(8,trans_types),
-      resRel1 = padgrab(resRel,nan,1,nprctiles,1+r+off,N+r+off);
+      resRel1 = padgrab2(resRel,nan,1,nprctiles,1+r+off,N+r+off);
       for prctilei = 1:nprctiles,
         y(end+1,:) = resRel1(prctilei,:).*sign(x);
         feature_names{end+1} = {'stat','prctile','trans','relative','radius',r,'offset',off,'prctile',prctiles(prctilei)};
@@ -241,7 +241,7 @@ for radiusi = 1:nradii,
         res_real = res1;
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
-          tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
+          tmp = padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
           if all(isnan(tmp)),
             res_dumb(:,n_dumb) = nan;
           else
@@ -256,7 +256,7 @@ for radiusi = 1:nradii,
         res_real = abs(res1);
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
-          tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
+          tmp = padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
           if all(isnan(tmp)),
             res_dumb(:,n_dumb) = nan;
           else
@@ -277,7 +277,7 @@ for radiusi = 1:nradii,
         res_real = fastY(end-nprctiles+1:end,:);
         res_dumb = nan(nprctiles,N);
         for n_dumb = 1:N,
-          tmp = padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
+          tmp = padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off);
           if all(isnan(tmp)),
             res_dumb(:,n_dumb) = nan;
           else

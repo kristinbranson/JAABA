@@ -254,13 +254,13 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = padgrab(res,nan,1,1,1+r+off,N+r+off);
+    res1 = padgrab2(res,nan,1,1,1+r+off,N+r+off);
     y(end+1,:) = res1; %#ok<*AGROW>
     feature_names{end+1} = {'stat','std','trans','none','radius',r,'offset',off};
     
 %    if ismember('relative',trans_types)
     if bitand(8,trans_types)
-      resRel1 = padgrab(resRel,nan,1,1,1+r+off,N+r+off);
+      resRel1 = padgrab2(resRel,nan,1,1,1+r+off,N+r+off);
       y(end+1,:) = resRel1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','std','trans','relative','radius',r,'offset',off};
     end
@@ -268,7 +268,7 @@ for radiusi = 1:nradii,
     if SANITY_CHECK,
       res_dumb = nan(1,N);
       for n_dumb = 1:N,
-        res_dumb(n_dumb) = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
+        res_dumb(n_dumb) = nanstd(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
       end
       checkSanity(y(end,:),res_dumb(:),r,off,'std','none');
     end

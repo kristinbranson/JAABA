@@ -205,7 +205,7 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = padgrab(res,nan,1,ntrans,1+r+off,N+r+off);
+    res1 = padgrab2(res,nan,1,ntrans,1+r+off,N+r+off);
     
     %if ismember('none',trans_types),
     if bitand(1,trans_types),
@@ -236,7 +236,7 @@ for radiusi = 1:nradii,
         fastY = res1(IDX.orig,:);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = nanmax(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+          res_dumb(n_dumb) = nanmax(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
         end
         checkSanity(fastY,res_dumb,r,off,funcType,'none');
       end
@@ -246,7 +246,7 @@ for radiusi = 1:nradii,
         fastY = res1(IDX.abs,:);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = nanmax(abs(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
+          res_dumb(n_dumb) = nanmax(abs(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
         end
         checkSanity(fastY,res_dumb,r,off,funcType,'abs');
       end
@@ -261,7 +261,7 @@ for radiusi = 1:nradii,
           if sign(x(n_dumb)) < 0,
             m_dumb = -1;
           end
-          res_dumb(n_dumb) = nanmax(m_dumb*padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+          res_dumb(n_dumb) = nanmax(m_dumb*padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
         end
         checkSanity(fastY,res_dumb,r,off,funcType,'flip');
       end

@@ -153,7 +153,7 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = (x - padgrab(res_mean,nan,1,1,1+r+off,N+r+off))./padgrab(res_std,nan,1,1,1+r+off,N+r+off);
+    res1 = (x - padgrab2(res_mean,nan,1,1,1+r+off,N+r+off))./padgrab2(res_std,nan,1,1,1+r+off,N+r+off);
     
     %if ismember('none',trans_types),
     if bitand(1,trans_types),
@@ -177,7 +177,7 @@ for radiusi = 1:nradii,
     
     %if ismember('relative',trans_types),
     if bitand(8,trans_types),
-      resRel1 = (modX - padgrab(resRel_mean,nan,1,1,1+r+off,N+r+off))./padgrab(resRel_std,nan,1,1,1+r+off,N+r+off);
+      resRel1 = (modX - padgrab2(resRel_mean,nan,1,1,1+r+off,N+r+off))./padgrab2(resRel_std,nan,1,1,1+r+off,N+r+off);
       y(end+1,:) = resRel1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','zscore_neighbors','trans','relative','radius',r,'offset',off};
     end
@@ -189,9 +189,9 @@ for radiusi = 1:nradii,
         fastY = res1; %#ok<*AGROW>
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          s = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
+          s = nanstd(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
           if s == 0, s = 1; end
-          res_dumb(n_dumb) = (x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
+          res_dumb(n_dumb) = (x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
         end
         checkSanity(fastY,res_dumb,r,off,'zscore_neighbor','none');        
       end
@@ -201,9 +201,9 @@ for radiusi = 1:nradii,
         fastY = abs(res1);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          s = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
+          s = nanstd(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
           if s == 0, s = 1; end
-          res_dumb(n_dumb) = abs(x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
+          res_dumb(n_dumb) = abs(x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
         end
         checkSanity(fastY,res_dumb,r,off,'zscore_neighbor','abs');
       end
@@ -215,9 +215,9 @@ for radiusi = 1:nradii,
         fastY = res2;
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          s = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
+          s = nanstd(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
           if s == 0,s = 1;end
-          res_dumb(n_dumb) = (x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
+          res_dumb(n_dumb) = (x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)))/s;
           if x(n_dumb) < 0,
             res_dumb(n_dumb) = -res_dumb(n_dumb);
           end
