@@ -3946,7 +3946,7 @@ classdef JLabelData < handle
           obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
           obj.windowdata.scores(toPredict) = scores;
           obj.windowdata.isvalidprediction(toPredict) = true;
-          if ~isempty(obj.classifier_old)
+          if ~isempty(obj.classifier_old),
             obj.windowdata.scores_old(toPredict) = ...
               myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
           else
@@ -4169,7 +4169,7 @@ classdef JLabelData < handle
       
       obj.SetStatus('Classifying current movie..');
       
-      for flies = 1:numFlies
+      parfor flies = 1:numFlies
         tStart = tStartAll(flies);
         tEnd = tEndAll(flies);
         
