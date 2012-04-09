@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+
+  <absangchvsangtc trans_types="none" type="abs_appearance"/>
+  <angchvsangtc trans_types="abs,flip" type="appearance"/>
+  <area trans_types="none,relative" type="appearance"/>
+  <centralheadang trans_types="none" type="position"/>
+  <centralheadmag trans_types="none" type="appearance"/>
+  <ratioarealength trans_types="none" type="appearance"/>
+  <spinelength trans_types="none" type="appearance"/>
+  <tailcentralang trans_types="none" type="position"/>
+  <tailcentralmag trans_types="none" type="appearance"/>
+  <tailheadang trans_types="none" type="position"/>
+  <tailheadmag trans_types="none" type="appearance"/>
+  <velang trans_types="none" type="locomotion_global"/>
+  <velch trans_types="none" type="locomotion"/>
+  <velmag trans_types="none" type="locomotion"/>
+  <velperch trans_types="abs,flip" type="locomotion"/>
+  <vx_cm trans_types="none" type="locomotion_global"/>
+  <vy_cm trans_types="none" type="locomotion_global"/>
+  <xcentral_mm trans_types="none" type="position"/>
+  <x_cm trans_types="none" type="position"/>
+  <xhead_mm trans_types="none" type="position"/>
+  <xtail_mm trans_types="none" type="position"/>
+  <ycentral_mm trans_types="none" type="position"/>
+  <y_cm trans_types="none" type="position"/>
+  <yhead_mm trans_types="none" type="position"/>
+  <ytail_mm trans_types="none" type="position"/>
+
+</perframe>
+</params>
