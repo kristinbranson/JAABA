@@ -3246,7 +3246,8 @@ switch eventdata.Key,
       set(handles.togglebutton_label_unknown,'Value',0);
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
     else
-      for behaviori = 1:handles.data.nbehaviors,
+      for behaviori = 1:2*handles.data.nbehaviors,
+        if isnan(handles.togglebutton_label_behaviors(behaviori)), continue; end
         if get(handles.togglebutton_label_behaviors(behaviori),'Value') ~= 0,
           set(handles.togglebutton_label_behaviors(behaviori),'Value',0);
           togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);

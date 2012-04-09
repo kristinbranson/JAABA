@@ -1,10 +1,10 @@
 % [y,npadl,npadu] = padgrab(x,padv,l1,u1,l2,u2,...)
 %function [y,npadl,npadu] = padgrab(x,padv,varargin)
 %BJA: hard-coded for 6 args to get rid of slow varargin cell array
-function [y,npadl,npadu] = padgrab(x,padv,l1,u1,l2,u2)
+function [y,npadl,npadu] = padgrab2(x,padv,l1,u1,l2,u2)
 
 % parse arguments
-usagestring = 'Usage: padgrab(x,padv,l1,u1,l2,u2,...)';
+usagestring = 'Usage: padgrab2(x,padv,l1,u1,l2,u2,...)';
 nd1 = ndims(x);
 %if mod(numel(varargin),2) ~= 0 || isempty(varargin),
 %  error(usagestring);

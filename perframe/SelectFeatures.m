@@ -775,18 +775,18 @@ set(handles.MinWindow,'String',num2str(curParams.values.min_window_radius));
 set(handles.MaxWindow,'String',num2str(curParams.values.max_window_radius));
 set(handles.WindowStep,'String',num2str(curParams.values.nwindow_radii));
 set(handles.WindowOffsets,'String',num2str(curParams.values.window_offsets));
-  %any(strcmp('none',curParams.values.trans_types)));
 set(handles.TransNone,'Value',...
-  bitand(1,curParams.values.trans_types));
-  %any(strcmp('flip',curParams.values.trans_types)));
+  any(strcmp('none',curParams.values.trans_types)));
+  %bitand(1,curParams.values.trans_types));
 set(handles.TransFlip,'Value',...
-  bitand(4,curParams.values.trans_types));
-  %any(strcmp('abs',curParams.values.trans_types)));
+  any(strcmp('flip',curParams.values.trans_types)));
+  %bitand(4,curParams.values.trans_types));
 set(handles.TransAbs,'Value',...
-  bitand(2,curParams.values.trans_types));
-  %any(strcmp('relative',curParams.values.trans_types)));
+  any(strcmp('abs',curParams.values.trans_types)));
+  %bitand(2,curParams.values.trans_types));
 set(handles.TransRel,'Value',...
-  bitand(8,curParams.values.trans_types));
+  any(strcmp('relative',curParams.values.trans_types)));
+  %bitand(8,curParams.values.trans_types));
 if isfield(curParams.values,handles.winextraParams{winNdx})
   extraParam = handles.winextraParams{winNdx};
   set(handles.ExtraParams,'String',curParams.values.(extraParam));
@@ -1085,16 +1085,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('none',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
-  %end
+  %curT=bitor(1,curT);
+  if ~any(strcmp('none',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = strcmp('none',curT);
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = strcmp('none',curT);
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1113,16 +1113,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('flip',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'flip';
-  %end
+%   curT=bitor(1,curT);
+  if ~any(strcmp('flip',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'flip';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = find(strcmp('flip',curT));
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = find(strcmp('flip',curT));
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1142,16 +1142,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('abs',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'abs';
-  %end
+%   curT=bitor(1,curT);
+  if ~any(strcmp('abs',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'abs';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = find(strcmp('abs',curT));
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = find(strcmp('abs',curT));
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1171,16 +1171,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('relative',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'relative';
-  %end
+%   curT=bitor(1,curT);
+  if ~any(strcmp('relative',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'relative';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = find(strcmp('relative',curT));
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = find(strcmp('relative',curT));
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end

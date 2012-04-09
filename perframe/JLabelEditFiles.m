@@ -67,6 +67,7 @@ handles.success = false;
 handles.behaviorXMLeditFile = 'xml_edit_tools/behaviorConfigDefaults.xml';
 set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing'});
 
+handles.disableBehavior = disableBehavior;
 if disableBehavior,
   handles.success = true;
   % Simply edit files, not editing the behavior part
@@ -445,8 +446,8 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 
 oldv = get(handles.listbox_experiment,'Value');
 
-if isempty(handles.curbehavior), 
-  uiwait(warndlg('Add and select a project before adding an experiment'));
+if ~handles.disableBehavior && isempty(handles.curbehavior), 
+  uiwait(warndlg('Select a project before adding an experiment'));
   return
 end
 
@@ -1039,8 +1040,8 @@ if strcmp(get(hObject,'String'),'Done')
       editfileshandle.featureList{curbehavior}.(data{ndx,1}) = struct;
     end
   end
+  editfileshandle.needSave(curbehavior) = true;
   guidata(editfileshandle.figure_JLabelEditFiles,editfileshandle);
-  
 end
 
 delete(handles.fig);
