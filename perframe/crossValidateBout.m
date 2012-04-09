@@ -17,6 +17,7 @@ if numPosBouts<k || numNegBouts<k,
   warndlg('Too few bouts to do cross validation');
   scores = zeros(1,size(data,1));
   scores(labels==0) = [];
+  tlabels = {};
   return;
 end
 

@@ -3561,7 +3561,7 @@ classdef JLabelData < handle
         end
         
         if ~exist(perframefile{ndx},'file'),
-          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',obj.expnames{expi}),'Generate missing files?','Yes','Cancel','Yes');
           if strcmpi(res,'Yes'),
             for ndx = 1:obj.nexps  
               [success1,msg1] = obj.GenerateMissingFiles(ndx);
@@ -4296,6 +4296,7 @@ classdef JLabelData < handle
         crossError.frac = zeros(4,3);
         crossError.oldNumbers = zeros(4,3);
         crossError.oldFrac = zeros(4,3);
+        tlabels = {};
         return; 
       end
       

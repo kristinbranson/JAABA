@@ -239,7 +239,7 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = padgrab2(res,nan,1,nbins,1+r+off,N+r+off,1,ntrans);
+    res1 = padgrab(res,nan,1,nbins,1+r+off,N+r+off,1,ntrans);
     y(end+1:end+nbins,:) = res1(:,:,IDX.orig);
     for bini = 1:nbins,
       feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
