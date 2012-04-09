@@ -103,6 +103,7 @@ else
   handles.behaviorparams = behaviorparams;
   behaviorList = fieldnames(behaviorparams.behaviors);
   handles.behaviorList = behaviorList;
+  handles.needSave = false(1,numel(behaviorList));
   
   handles.config = cell(1,numel(behaviorList));
   handles.featureList = cell(1,numel(behaviorList));  
@@ -131,16 +132,23 @@ else
       end
     end
     if ~foundConfig
-      dlgStr = sprintf('%s\n%s\n%s','A project has not been defined for the configfile',...
-        'To add a new project for this configfile enter the name below.',... 
-        'To cancel, close this window');
-      in = inputdlg(dlgStr);
-      if numel(in)<1 || isempty(in{1}),
-        return;
+      while true
+        dlgStr = sprintf('%s\n%s\n%s','A project has not been defined for the configfile',...
+          'To add a new project for this configfile enter the name below.',... 
+          'To cancel, close this window');
+        in = inputdlg(dlgStr);
+        if numel(in)<1 || isempty(in{1}),
+          break;
+        end
+        newName = in{1};
+        if any(strcmp(newName,handles.behaviorList)),
+          uiwait(warndlg('A project already exists with that name'));
+        else
+          addBehavior(hObject,handles,newName,handles.JLabelHandle.configfilename);
+          handles = guidata(hObject);
+          break
+        end
       end
-      newName = in{1};
-      addBehavior(hObject,handles,newName,handles.JLabelHandle.configfilename);
-      handles = guidata(hObject);
     end
   else
     if numel(behaviorList)>0,
@@ -197,6 +205,7 @@ function SaveBehaviorState(handles)
 writeConfigFile(handles.behaviorParamsFile,...
 handles.behaviorparams.behaviors,'behaviors',[]);
 for ndx = 1:numel(handles.behaviorList)
+  if ~handles.needSave(ndx), continue, end;
   behaviorName = handles.behaviorList{ndx};
   writeConfigFile(handles.behaviorparams.behaviors.(behaviorName).configFile,...
     handles.config{ndx},'params',handles.featureList{ndx});
@@ -435,6 +444,11 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 
 
 oldv = get(handles.listbox_experiment,'Value');
+
+if isempty(handles.curbehavior), 
+  uiwait(warndlg('Add and select a project before adding an experiment'));
+  return
+end
 
 InitJLabelGui(handles);
 handles = guidata(hObject);
@@ -750,26 +764,9 @@ function pushbutton_addbehavior_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addbehavior (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-in = inputdlg({'Name of the new project','Config file name','Use default params from'});
-if numel(in)<1 || isempty(in{1}),
-  return;
-end
-newName = in{1};
 
-if numel(in)<2 || isempty(in{2}),
-  configFile = fullfile('params',[newName '_params.xml']);
-else
-  configFile = in{2};  
-end
-
-if numel(in)<3 || isempty(in{3}),
-  defaultConfigFile = '';
-else
-  defaultConfigFile = in{3};  
-end
-
-if isfield(handles.behaviorparams.behaviors,newName)
-  warndlg('A project has already been defined with that name');
+[~,newName,configFile,defaultConfigFile] = NewProjectSettings(handles.behaviorList);
+if isempty(newName),
   return;
 end
 
@@ -783,6 +780,7 @@ end
 
 handles.behaviorparams.behaviors.(newName).configFile = configFile;
 handles.behaviorList{end+1} = newName;
+handles.needSave(end+1) = true;
 handles.curbehavior = numel(handles.behaviorList);
 set(handles.listbox_behavior,'String',handles.behaviorList,'Value',handles.curbehavior);
 
@@ -790,6 +788,7 @@ fileToRead = '';
 
 if exist(configFile,'file')
   fileToRead = configFile;
+  handles.needSave(handles.curbehavior) = false;
 elseif ~isempty(defaultConfigFile) && exist(defaultConfigFile,'file')
   fileToRead = defaultConfigFile;
 end
@@ -799,16 +798,22 @@ if ~isempty(fileToRead)
   if isfield(curparams,'featureparamlist'),
     handles.featureList{handles.curbehavior} = curparams.featureparamlist;
     curparams = rmfield(curparams,'featureparamlist');
+  else
+    handles.featureList{handles.curbehavior} = [];    
   end
   handles.config{handles.curbehavior} = curparams;
 else
     handles.config{handles.curbehavior} = GetDefaultConfig(newName);
     handles.featureList{handles.curbehavior} = [];
+    handles.needSave(handles.curbehavior) = true;
 end
 
 set(handles.listbox_behavior,'Value',handles.curbehavior);
 guidata(hObject,handles);
-updateConfigParams(handles);
+if ~updateConfigParams(handles)
+  pushbutton_removebehavior_Callback(...
+    handles.pushbutton_removebehavior,[],handles);
+end
 
 
 % --- Executes on button press in pushbutton_removebehavior.
@@ -819,10 +824,13 @@ function pushbutton_removebehavior_Callback(hObject, eventdata, handles)
 
 curname = handles.behaviorList{handles.curbehavior};
 handles.behaviorList(handles.curbehavior) = [];
+handles.needSave(handles.curbehavior) = [];
 handles.behaviorparams.behaviors = rmfield(handles.behaviorparams.behaviors,curname);
 handles.config(handles.curbehavior) = [];
 handles.featureList(handles.curbehavior) = [];
-handles.curbehavior = handles.curbehavior -1;
+if numel(handles.featureList)<handles.curbehavior,
+  handles.curbehavior = handles.curbehavior -1;
+end
 if handles.curbehavior==0 && numel(handles.behaviorList)>0,
   handles.curbehavior = 1;
 end
@@ -833,13 +841,20 @@ updateConfigParams(handles);
 
 guidata(hObject,handles);
 
-function updateConfigParams(handles)
+function success = updateConfigParams(handles)
+success = true;
 if isempty(handles.curbehavior); 
   set(handles.config_table,'Data',{});
   return; 
 end
 configparams = handles.config{handles.curbehavior};
-set(handles.config_table,'Data',addToList(configparams,{},''));
+curDat = addToList(configparams,{},'');
+if any(cellfun(@iscell,curDat(:,2))),
+  uiwait(warndlg('Configuration file is out of whack!'));
+  success = false;
+  return;
+end
+set(handles.config_table,'Data',curDat);
 
 function list = addToList(curStruct,list,pathTillNow)
 if isempty(fieldnames(curStruct)), return; end
@@ -946,6 +961,7 @@ data = get(handles.config_table,'Data');
 ndx = eventdata.Indices(1);
 eval(sprintf('handles.config{handles.curbehavior}.%s = data{ndx,2};',...
     data{ndx,1}));
+handles.needSave(handles.curbehavior) = true;
 guidata(hObject,handles);
 
 
