@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 07-Mar-2012 10:46:34
+% Last Modified by GUIDE v2.5 26-Mar-2012 09:22:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,7 +63,9 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
   'defaultpath','',...
   'groundtruthmode',false);
 
+handles.output = handles.figure_JLabel;
 % initialize statusbar
+
 handles.status_bar_text = sprintf('Status: No experiment loaded');
 handles.idlestatuscolor = [0,1,0];
 handles.busystatuscolor = [1,0,1];
@@ -71,49 +73,64 @@ handles.movie_height = 100;
 handles.movie_width = 100;
 ClearStatus(handles);
 
-% JLabelEditFiles('JLabelHandle',handles);
+[handles,success] = JLabelEditFiles('JLabelHandle',handles);
+
+if ~success,
+  guidata(hObject,handles);
+  delete(hObject);
+  return;
+end
+
+handles.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+handles.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
 
 % read configuration
 [handles,success] = LoadConfig(handles);
 if ~success,
   guidata(hObject,handles);
-  delete(handles.figure_JLabel);
+  delete(hObject);
   return;
 end
 
 % get relative locations of stuffs
-handles = GetGUIPositions(handles);
+% handles = GetGUIPositions(handles);
+% 
+% % initialize data
+% handles = InitializeState(handles);
+% 
+% % initialize plot handles
+% handles = InitializePlots(handles);
+% 
+% % load classifier
+% if ~isempty(handles.classifierfilename),
+%   if exist(handles.classifierfilename,'file'),
+%     [success,msg] = handles.data.SetClassifierFileName(handles.classifierfilename);
+%     if ~success,
+%       warning(msg);
+%       SetStatus(handles,'Error loading classifier from file');
+%     end
+%   end
+% end
+% 
+% if isempty(handles.data.expdirs),
+%   guidata(hObject,handles);
+%   menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
+%   handles = guidata(hObject);
+% end
 
-% initialize data
-handles = InitializeState(handles);
-
-% initialize plot handles
-handles = InitializePlots(handles);
-
-% load classifier
-if ~isempty(handles.classifierfilename),
-  if exist(handles.classifierfilename,'file'),
-    [success,msg] = handles.data.SetClassifierFileName(handles.classifierfilename);
-    if ~success,
-      warning(msg);
-      SetStatus(handles,'Error loading classifier from file');
-    end
-  end
+if handles.data.nexps > 0 && handles.data.expi == 0,
+  handles = SetCurrentMovie(handles,1);
+else
+  handles = SetCurrentMovie(handles,handles.data.expi);
 end
 
-if isempty(handles.data.expdirs),
-  guidata(hObject,handles);
-  menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
-  handles = guidata(hObject);
-end
+handles = UpdateGUIGroundTruthMode(handles);
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 % enable gui
 EnableGUI(handles);
-
-handles.output = handles.figure_JLabel;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -130,7 +147,7 @@ function varargout = JLabel_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.figure_JLabel;
+varargout{1} = hObject;
 % UNCOMMENT
 % if isfield(handles,'data'),
 %   varargout{1} = handles.data;
@@ -353,6 +370,11 @@ for i = 2:numel(handles.axes_timelines),
 end
 
 linkaxes(handles.axes_timelines,'x');
+
+set(handles.htimeline_gt_suggestions,'Visible','off');
+if handles.data.IsGTMode(),
+  set(handles.menu_view_plot_labels_automatic,'Visible','off');
+end
 
 handles = UpdateGUIGroundTruthMode(handles);
 
@@ -684,8 +706,17 @@ if handles.data.ismovie,
   % open new movie
   % try
   SetStatus(handles,'Opening movie...');
-  [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
-    get_readframe_fcn(moviefilename);
+  if 1,
+    [handles.readframe,handles.nframes,handles.movie_fid,handles.movieheaderinfo] = ...
+      get_readframe_fcn(moviefilename);
+  else
+    fprintf('DEBUG!!!! USING GLOBAL VARIABLE WITH MOVIE READFRAME !!!DEBUG\n');
+    global JLABEL__READFRAME;
+    handles.readframe = JLABEL__READFRAME.readframe;
+    handles.nframes = JLABEL__READFRAME.nframes;
+    handles.movie_fid = JLABEL__READFRAME.movie_fid;
+    handles.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
+  end
   im = handles.readframe(1);
   handles.movie_width = size(im,2);
   handles.movie_height = size(im,1);
@@ -1246,25 +1277,26 @@ function menu_file_editfiles_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_editfiles (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isfield(handles,'data'),
-%   [success,msg] = handles.data.UpdateStatusTable();
-%   if ~success,
-%     error(msg);
+% if isfield(handles,'data'),
+% %   [success,msg] = handles.data.UpdateStatusTable();
+% %   if ~success,
+% %     error(msg);
+% %   end
+%   params = {handles.data};
+% else
+%   params = {handles.configfilename};
+%   if isfield(handles,'defaultpath'),
+%     params(end+1:end+2) = {'defaultpath',handles.defaultpath};
 %   end
-  params = {handles.data};
-else
-  params = {handles.configfilename};
-  if isfield(handles,'defaultpath'),
-    params(end+1:end+2) = {'defaultpath',handles.defaultpath};
-  end
-end
+% end
 if ~isempty(handles.expi) && handles.expi > 0,
   oldexpdir = handles.data.expdirs{handles.expi};
 else
   oldexpdir = '';
 end
-[handles.data,success] = ...
-  JLabelEditFiles(params{:});
+
+[handles,success] = ...
+  JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
 
 handles.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
 handles.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
@@ -1380,7 +1412,9 @@ end
 handles = UpdateGUIGroundTruthMode(handles);
 
 guidata(hObject,handles);
-  
+
+function handles = UpdateMovies(handles)
+
 function handles = SetNeedSave(handles)
 
 handles.needsave = true;
@@ -3164,14 +3198,15 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
-  case 'space'
+  case 'space',
     pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
-  case 't'
+    
+  case 't',
     if strcmpi(eventdata.Modifier,'control') && ~handles.data.IsGTMode(),
       pushbutton_train_Callback(hObject,eventdata,handles);
     end
     
-  case 'p'
+  case 'p',
     if strcmpi(eventdata.Modifier,'control'),
       pushbutton_predict_Callback(hObject,eventdata,handles);
     end
@@ -3211,7 +3246,8 @@ switch eventdata.Key,
       set(handles.togglebutton_label_unknown,'Value',0);
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
     else
-      for behaviori = 1:handles.data.nbehaviors,
+      for behaviori = 1:2*handles.data.nbehaviors,
+        if isnan(handles.togglebutton_label_behaviors(behaviori)), continue; end
         if get(handles.togglebutton_label_behaviors(behaviori),'Value') ~= 0,
           set(handles.togglebutton_label_behaviors(behaviori),'Value',0);
           togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);
@@ -3802,7 +3838,7 @@ else
   [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,prop);
   set(handles.htimeline_data(propi),'XData',T0:T1,'YData',perframedata);
   ylim = [min(perframedata),max(perframedata)];
-  if ylim(1) == ylim(2)
+  if ylim(1) >= ylim(2)
     ylim(2) = ylim(1)+0.001;
   end
   set(handles.axes_timeline_props(propi),'YLim',ylim);
@@ -4241,6 +4277,8 @@ function pushbutton_playstop_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_playstop (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% fprintf('In playstop\n');
 
 if handles.hplaying == hObject,
   stopPlaying(handles);
@@ -5022,7 +5060,7 @@ function crossValidate_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.data.StoreLabels();
-crossError = handles.data.CrossValidate();
+[crossError tlabels] = handles.data.CrossValidate();
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.bottomAutomatic = 'Validated';
@@ -5040,24 +5078,24 @@ cnames = {sprintf('%s|Predicted',handles.data.labelnames{1}),...
           sprintf('%s|Predicted',handles.data.labelnames{2}),...
           };
 rnames = {sprintf('%s Important ',handles.data.labelnames{1}),...
-          sprintf('%s ',handles.data.labelnames{1}),...
+          sprintf('%s All',handles.data.labelnames{1}),...
           sprintf('%s Important ',handles.data.labelnames{2}),...
-          sprintf('%s ',handles.data.labelnames{2}),...
+          sprintf('%s All',handles.data.labelnames{2}),...
           '',...
           sprintf('Old %s Important',handles.data.labelnames{1}),...
-          sprintf('Old %s ',handles.data.labelnames{1}),...
+          sprintf('Old %s All',handles.data.labelnames{1}),...
           sprintf('Old %s Important',handles.data.labelnames{2}),...
-          sprintf('Old %s ',handles.data.labelnames{2})...
+          sprintf('Old %s All',handles.data.labelnames{2})...
           };
 
 dat = {};
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError.numbers(row,col));
-    if isnan(crossError.frac(row,col))
+    t1 = sprintf('%d ',crossError(1).numbers(row,col));
+    if isnan(crossError(1).frac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError.frac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError(1).frac(row,col)*100);
     end
     dat{row,col} = sprintf('%s%s',t1,t2);
   end
@@ -5067,11 +5105,11 @@ dat(5,:) = repmat({''},1,3);
 
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError.oldNumbers(row,col));
-    if isnan(crossError.oldFrac(row,col))
+    t1 = sprintf('%d ',crossError(1).oldNumbers(row,col));
+    if isnan(crossError(1).oldFrac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError.oldFrac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError(1).oldFrac(row,col)*100);
     end
     dat{5+row,col} = sprintf('%s%s',t1,t2);
   end
@@ -5081,6 +5119,21 @@ f = figure('Position',[200 200 500 200],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
+for tndx = 1:numel(crossError)
+   errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);
+   errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);
+end
+totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
+totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
+
+errorAll = errorAll/totExamplesAll;
+errorImp = errorImp/totExamplesImp;
+
+f = figure('Name','Cross Validation Error with time');
+ax = plot([errorAll errorImp]);
+legend(ax,{'All', 'Important'});         
+set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
+title(gca,'Cross Validation Error with time');
 
 % --------------------------------------------------------------------
 function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles)
@@ -5423,11 +5476,11 @@ hinv_gt = [handles.pushbutton_train,...
   handles.automaticTimelineScoresLabel,...
   handles.automaticTimelineBottomRowPopup,...
   handles.timeline_label_automatic,...
-  handles.menu_edit_guimode,...
-  handles.htimeline_gt_suggestions];
+  handles.menu_edit_guimode];
 hvisible_gt = [handles.menu_view_showPredictions, ...
   handles.menu_view_suggest,...
   handles.menu_classifier_gt_performance];
+
 
 if handles.data.IsGTMode()
   set(hinv_gt,'Visible','off');
@@ -5640,6 +5693,9 @@ else
   set(h_prediction,'Visible','off');  
 end
 
+set(handles.menu_view_plot_labels_automatic,'Visible','on');
+
+
 
 % --------------------------------------------------------------------
 function menu_view_suggest_Callback(hObject, eventdata, handles)
@@ -5672,6 +5728,7 @@ handles.data.SuggestRandomGT(perfly,perexp);
 
 set(handles.menu_view_suggest_random,'Checked','on');
 set(handles.menu_view_suggest_threshold,'Checked','off');
+sset(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
@@ -5705,7 +5762,8 @@ handles.data.SuggestThresholdGT(threshold);
 
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','on');
-set(handles.menu_view_suggest_none,'Checked','off');
+sset(handles.menu_view_suggest_file,'Checked','off');
+et(handles.menu_view_suggest_none,'Checked','off');
 set(handles.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
@@ -5725,8 +5783,38 @@ function menu_view_suggest_none_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','on');
 set(handles.htimeline_gt_suggestions,'Visible','off');
+
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
+
+% --------------------------------------------------------------------
+function menu_view_suggest_file_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[filename,pathname] = uigetfile('*.txt',...
+  sprintf('Choose ground truth suggestion file config file for experiment %s',handles.data.expnames{handles.expi}) ,...
+  handles.data.expdirs{handles.expi});
+if ~filename, return, end;
+
+handles.data.SuggestLoadedGT(handles.expi,fullfile(pathname,filename));
+
+set(handles.menu_view_suggest_random,'Checked','off');
+set(handles.menu_view_suggest_threshold,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','on');
+set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5771,3 +5859,5 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
+
+
