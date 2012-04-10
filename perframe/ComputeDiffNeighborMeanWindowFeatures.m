@@ -13,7 +13,8 @@ feature_names = {};
   SetDefaultWindowParameters();
 
 % use all transformation types by default
-trans_types = 'all';
+%trans_types = 'all';
+trans_types = uint8(15);
 
 % for debugging purposes
 SANITY_CHECK = true;
@@ -53,9 +54,9 @@ relativeParams = [];
   'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
-if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip','relative'};
-end
+%if ischar(trans_types) && strcmpi(trans_types,'all'),
+%  trans_types = {'none','abs','flip','relative'};
+%end
 
 %% select default windows from various ways of specifying windows
 
@@ -67,7 +68,8 @@ end
 
 %% main computation
 
-if ismember('relative',trans_types)
+%if ismember('relative',trans_types)
+if bitand(8,trans_types)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -96,7 +98,8 @@ for radiusi = 1:nradii,
     end
   end
   
-  if ismember('relative',trans_types)
+%  if ismember('relative',trans_types)
+  if bitand(8,trans_types)
     if DOCACHE && ismember(r,cache.meanRel.radii),
       cache_i = find(r == cache.meanRel.radii,1);
       resRel = cache.meanRel.data{cache_i};
@@ -120,55 +123,62 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = x - padgrab(res,nan,1,1,1+r+off,N+r+off);
+    res1 = x - padgrab2(res,nan,1,1,1+r+off,N+r+off);
 
-    if ismember('none',trans_types),
+%    if ismember('none',trans_types),
+    if bitand(1,trans_types),
       y(end+1,:) = res1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','diff_neighbor_mean','trans','none','radius',r,'offset',off};
     end
     
-    if ismember('abs',trans_types),
+%    if ismember('abs',trans_types),
+    if bitand(2,trans_types),
       y(end+1,:) = abs(res1);
       feature_names{end+1} = {'stat','diff_neighbor_mean','trans','abs','radius',r,'offset',off};
     end
     
-    if ismember('flip',trans_types),
+%    if ismember('flip',trans_types),
+    if bitand(4,trans_types),
       res2 = res1.*sign(x);
       y(end+1,:) = res2;
       feature_names{end+1} = {'stat','diff_neighbor_mean','trans','flip','radius',r,'offset',off};
     end
     
-    if ismember('relative',trans_types),
-      resRel1 = modX - padgrab(resRel,nan,1,1,1+r+off,N+r+off);
+%    if ismember('relative',trans_types),
+    if bitand(8,trans_types),
+      resRel1 = modX - padgrab2(resRel,nan,1,1,1+r+off,N+r+off);
       y(end+1,:) = resRel1;
       feature_names{end+1} = {'stat','diff_neighbor_mean','trans','relative','radius',r,'offset',off};
     end
     
     if SANITY_CHECK,
       funcType = 'DiffNeighborMean';
-      if ismember('none',trans_types),
+%      if ismember('none',trans_types),
+      if bitand(1,trans_types),
         fastY = res1; %#ok<*AGROW>
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
         end
         checkSanity(fastY,res_dumb,r,off,funcType,'none');
       end
     
-      if ismember('abs',trans_types),
+%      if ismember('abs',trans_types),
+      if bitand(2,trans_types),
         fastY = abs(res1);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = abs(x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
+          res_dumb(n_dumb) = abs(x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)));
         end
         checkSanity(fastY,res_dumb,r,off,funcType,'abs');
       end
       
-      if ismember('flip',trans_types),
+%      if ismember('flip',trans_types),
+      if bitand(4,trans_types),
         res2 = res1; res2(x<0) = -res2(x<0); fastY = res2;
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
+          res_dumb(n_dumb) = x(n_dumb) - nanmean(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off));
           if x(n_dumb) < 0,
             res_dumb(n_dumb) = -res_dumb(n_dumb);
           end

@@ -19,17 +19,26 @@ for i = 1:2:length(params),
   if ~ischar(params{i}),
     error('Input %d is not a string.',i);
   end
-  if ~any(strcmpi(params{i},names)),
+
+  %BJA:  6x faster than that below
+  idx=find(strcmpi(params{i},names));
+  if(isempty(idx))
     warning('myparse:unknownParameterName','Unknown parameter name: %s, ignoring\n',params{i});
+  else
+    varargout{idx} = params{i+1};
   end
-  
-  for j = 1:length(names),
 
-    % set value
-    if strcmpi(params{i},names{j}),
-      varargout{j} = params{i+1};
-    end;
-
-  end;
+%  if ~any(strcmpi(params{i},names)),
+%    warning('myparse:unknownParameterName','Unknown parameter name: %s, ignoring\n',params{i});
+%  end
+%  
+%  for j = 1:length(names),
+%
+%    % set value
+%    if strcmpi(params{i},names{j}),
+%      varargout{j} = params{i+1};
+%    end;
+%
+%  end;
   
 end;

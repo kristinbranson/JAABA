@@ -61,7 +61,7 @@ classdef JLabelData < handle
     % frame t of the movie. labelidx(i) == 0 corresponds to
     % unlabeled/unknown, otherwise labelidx(i) corresponds to behavior
     % labelnames{labelidx{i})
-    labelidx = struct('val',[],'imp',[]);
+    labelidx = struct('val',[],'imp',[],'timestamp',[]);
     labelidx_off = 0;
     
     % first frame that all flies currently selected are tracked
@@ -98,12 +98,9 @@ classdef JLabelData < handle
     % statistics of labeled data per experiment
     % labelstats(expi).nflies_labeled is the total number of flies labeled,
     % labelstats(expi).nbouts_labeled is the total number of bouts of
-    % behaviors labeled, labelstats(expi).datestr is the last time
-    % labels(expi) was stored. 
-    labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
-      'datestr',{});
-    gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{},...
-      'datestr',{});
+    % behaviors labeled, labelstats(expi).
+    labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+    gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
     
     % computing per-frame properties
     perframe_params = {};
@@ -256,6 +253,12 @@ classdef JLabelData < handle
     % whether we can generate any missing files
     filesfixable = true;
     
+    % whether user has given permission to generate the perframe files
+    perframeGenerate = [];
+    
+    % to overwrite or keep the perframe files.
+    perframeOverwrite = [];
+    
     % functions for writing text to a status bar
     setstatusfn = '';
     clearstatusfn = '';
@@ -279,6 +282,7 @@ classdef JLabelData < handle
     % Ground truthing suggestion
     randomGTSuggestions = {};
     thresholdGTSuggestions = [];
+    loadedGTSuggestions = {};
     GTSuggestionMode = '';
     
   end
@@ -325,7 +329,7 @@ classdef JLabelData < handle
     end      
 
     function [X,feature_names] = ...
-        ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturescellparams,t0,t1)
+        ComputeWindowDataChunkStatic(curperframefns,allperframefns,perframefile,flies,windowfeaturescellparams,t0,t1)
       
     %function [X,feature_names] = ...
     %    ComputeWindowDataChunkStatic(perframefns,perframedir,flies,windowfeaturecellparams,t0,t1)
@@ -343,9 +347,11 @@ classdef JLabelData < handle
     X = [];
     feature_names = {};
     
-    for j = 1:numel(perframefns),
-      fn = perframefns{j};
-      perframedata = load(fullfile(perframedir,[fn,'.mat']));
+    for j = 1:numel(curperframefns),
+      fn = curperframefns{j};
+      ndx = find(strcmp(fn,allperframefns));
+
+      perframedata = load(perframefile{ndx});
       perframedata = perframedata.data{flies(1)};
       
       t11 = min(t1,numel(perframedata));
@@ -377,6 +383,10 @@ classdef JLabelData < handle
   end
   
   methods (Access=public)
+
+
+% Constructor
+
 
     function obj = JLabelData(varargin)
     % obj = JLabelData(configfilename,...)
@@ -541,6 +551,10 @@ classdef JLabelData < handle
       
     end
 
+    
+% Some helper functions.
+
+
     function idx = FlyNdx(obj,expi,flies)
       idx = obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
     end
@@ -549,7 +563,22 @@ classdef JLabelData < handle
       val = all(flies == obj.flies) && (expi==obj.expi);
     end
     
+    function expi = GetExp(obj)
+      expi = obj.expi;
+    end
     
+    function flies = GetFlies(obj)
+      flies = obj.flies;
+    end
+     
+    function nflies = GetNumFlies(obj,expi)
+      nflies = obj.nflies_per_exp(expi);
+    end
+    
+    
+% Configuration settings.
+
+
     function [success,msg] = SetConfigFileName(obj,configfilename)
       % [success,msg] = SetConfigFileName(obj,configfilename)
       % Set and read config file.
@@ -652,13 +681,13 @@ classdef JLabelData < handle
             return;
           end
         end
-        if isfield(configparams.file,'clipsdir'),
+        if isfield(configparams.file,'clipsdir') && ~isempty(configparams.file.clipsdir),
           [success1,msg] = obj.SetClipsDir(configparams.file.clipsdir);
           if ~success1,
             return;
           end
         end
-        if isfield(configparams.file,'rootoutputdir'),
+        if isfield(configparams.file,'rootoutputdir') && ~isempty(configparams.file.rootoutputdir),
           [success1,msg] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
           if ~success1,
             return;
@@ -677,7 +706,7 @@ classdef JLabelData < handle
           msg = '';
         end
 
-        if isfield(configparams.file,'featureparamfilename'),
+        if isfield(configparams.file,'featureparamfilename') && ~isempty(configparams.file.featureparamfilename),
           [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
           if ~success1,
             return;
@@ -711,367 +740,6 @@ classdef JLabelData < handle
       end
       
     end
-    
-    function TrimWindowData(obj)
-      % If the size of windowdata is too large, removes windowdata for
-      % unlabeled examples.
-      sizeLimit = 8e9; % 5GB.
-      classSize = 4;
-      ratioLimit = 0.2;
-      
-      numUnlabeled = nnz(obj.windowdata.labelidx_new==0);
-      numLabeled = nnz(obj.windowdata.labelidx_new);
-      
-      if numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit;
-        return;
-      end
-      
-      idx2remove = obj.windowdata.labelidx_new==0 & ...
-        ~obj.FlyNdx(obj.expi,obj.flies);
-      if ~any(idx2remove); return; end
-      obj.windowdata.X(idx2remove,:) = [];
-      obj.windowdata.exp(idx2remove,:) = [];
-      obj.windowdata.flies(idx2remove,:) = [];
-      obj.windowdata.t(idx2remove,:) = [];
-      obj.windowdata.labelidx_cur(idx2remove,:) = [];
-      obj.windowdata.labelidx_new(idx2remove,:) = [];
-      obj.windowdata.labelidx_imp(idx2remove,:) = [];
-      obj.windowdata.predicted(idx2remove,:) = [];
-      obj.windowdata.scores(idx2remove,:) = [];
-      obj.windowdata.scores_old(idx2remove,:) = [];
-      obj.windowdata.scores_validated(idx2remove,:) = [];
-      obj.windowdata.isvalidprediction(idx2remove,:) = [];
-      obj.windowdata.binVals = [];
-      obj.windowdata.bins = [];
-
-      
-    end
-     
-    
-    function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
-    % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
-    % Compute and store the window data for experiment expi, flies flies,
-    % and all frames ts. 
-    % This function finds all frames that currently do not have window data
-    % cached. In a loop, it finds the first frame that is missing window
-    % data, and computes window data for all frames in a chunk of size
-    % 2*obj.windowdatachunk_radius + 1 after this frame using the function
-    % ComputeWindowDataChunk. Then, it updates the frames that are missing
-    % window data. It proceeds in this loop until there are not frames
-    % in the input ts missing window data. 
-      
-      success = false; msg = '';
-      obj.CheckExp(expi); obj.CheckFlies(flies);
-      
-      obj.TrimWindowData();
-      
-      % which frames don't have window data yet
-      if isempty(obj.windowdata.exp),
-        missingts = ts;
-        tscurr = [];
-      else      
-        idxcurr = obj.FlyNdx(expi,flies);
-        tscurr = obj.windowdata.t(idxcurr);
-        missingts = setdiff(ts,tscurr);
-      end
-        
-      % no frames missing data?
-      if isempty(missingts),
-        success = true;
-        return;
-      end
-
-      % get labels for current flies -- will be used when filling in
-      % windowdata
-      [labelidxStruct,t0_labelidx] = obj.GetLabelIdx(expi,flies);
-
-      % total number of frames to compute window data for -- used for
-      % showing prctage complete. 
-      nts0 = numel(missingts);
-      
-      while true,
-
-        % choose a frame missing window data
-        %t = missingts(1);
-        t = median(missingts);
-        if ~ismember(t,missingts),
-          t = missingts(argmin(abs(t-missingts)));
-        end
-        
-        % update the status
-        obj.SetStatus('Computing window data for exp %s, fly%s: %d%% done...',...
-          obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
-
-        % compute window data for a chunk starting at t
-        [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
-        if ~success1, warning(msg); return; end
-        
-        % only store window data that isn't already cached
-        tsnew = t0:t1;
-        idxnew = ~ismember(tsnew,tscurr);
-        m = nnz(idxnew);
-        if m==0; return; end
-
-        % add to windowdata
-        obj.windowdata.X(end+1:end+m,:) = X(idxnew,:);
-        obj.windowdata.exp(end+1:end+m,1) = expi;
-        obj.windowdata.flies(end+1:end+m,:) = repmat(flies,[m,1]);
-        obj.windowdata.t(end+1:end+m,1) = tsnew(idxnew);
-        obj.windowdata.labelidx_cur(end+1:end+m,1) = 0;
-        tempLabelsNew = labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
-        obj.windowdata.labelidx_new(end+1:end+m,1) = tempLabelsNew(idxnew);
-        tempLabelsImp = labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
-        obj.windowdata.labelidx_imp(end+1:end+m,1) = tempLabelsImp(idxnew);        
-        obj.windowdata.predicted(end+1:end+m,1) = 0;
-        obj.windowdata.scores(end+1:end+m,1) = 0;
-        obj.windowdata.scores_old(end+1:end+m,1) = 0;   
-        obj.windowdata.scores_validated(end+1:end+m,1) = 0;           
-        obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
-
-        % remove from missingts all ts that were computed in this chunk
-        missingts(missingts >= t0 & missingts <= t1) = [];
-
-        % stop if we're done
-        if isempty(missingts),
-          obj.ClearStatus();
-          break;
-        end
-        
-      end
-      
-      % Clean the window data.
-%       obj.CleanWindowData();
-      
-      % store feature_names -- these shouldn't really change
-      obj.windowdata.featurenames = feature_names;
-      
-      success = true;
-      
-    end
-
-    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
-    % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
-    % Computes a chunk of windowdata near frame t for experiment expi and
-    % flies flies. if mode is 'start', then the chunk will start at t. if
-    % it is 'center', the chunk will be centered at t. if mode is 'end',
-    % the chunk will end at t. by default, mode is 'center'. 
-    % t0 and t1 define the bounds of the chunk of window data computed. X
-    % is the nframes x nfeatures window data, feature_names is a cell array
-    % of length nfeatures containing the names of each feature. 
-    %
-    % This function first chooses an interval of frames around t, depending 
-    % on the mode. it then chooses a subinterval of this interval that
-    % covers all frames in this interval that do not have window data. This
-    % defines t0 and t1. 
-    % 
-    % It then loops through all the per-frame features, and calls
-    % ComputeWindowFeatures to compute all the window data for that
-    % per-frame feature. 
-    %
-    % To predict over the whole movie we use forceCalc which
-    % forces the function to recalculate all the features even though they
-    % were calculated before.
-      
-      success = false; msg = '';
-      
-      if ~exist('mode','var'), mode = 'center'; end
-      if ~exist('forceCalc','var'), forceCalc = false; end
-      
-      % Check if the features have been configured.
-      if isempty(fieldnames(obj.windowfeaturesparams))
-        obj.ShowSelectFeatures();
-        if isempty(fieldnames(obj.windowfeaturesparams))
-          error('No features selected!');
-        end
-      end
-      
-      % choose frames to compute:
-      
-      % bound at start and end frame of these flies
-      T0 = max(obj.GetTrxFirstFrame(expi,flies));
-      T1 = min(obj.GetTrxEndFrame(expi,flies));
-      
-      switch lower(mode),
-        case 'center',
-          % go forward r to find the end of the chunk
-          t1 = min(t+obj.windowdatachunk_radius,T1);
-          % go backward 2*r to find the start of the chunk
-          t0 = max(t1-2*obj.windowdatachunk_radius,T0);
-          % go forward 2*r again to find the end of the chunk
-          t1 = min(t0+2*obj.windowdatachunk_radius,T1);
-        case 'start',
-          t0 = max(t,T0);
-          t1 = min(t0+2*obj.windowdatachunk_radius,T1);
-        case 'end',
-          t1 = min(t,T1);
-          t0 = max(t1-2*obj.windowdatachunk_radius,T0);
-        otherwise
-          error('Unknown mode %s',mode);
-      end
-      
-      % find a continuous interval that covers all uncomputed ts between t0
-      % and t1
-      off = 1-t0;
-      n = t1-t0+1;
-      docompute = true(1,n);
-      if ~isempty(obj.windowdata.exp) && ~forceCalc,
-        tscomputed = obj.windowdata.t(obj.FlyNdx(expi,flies));
-        tscomputed = tscomputed(tscomputed >= t0 & tscomputed <= t1);
-        docompute(tscomputed+off) = false;
-      end
-      
-      X = [];
-      feature_names = {};
-      if ~any(docompute),
-        t1 = t0-1;
-        success = true;
-        return;
-      end
-      
-      t0 = find(docompute,1,'first') - off;
-      t1 = find(docompute,1,'last') - off;
-      i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
-      i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;
-      
-      %       try
-      
-      curperframefns = obj.curperframefns;
-      allperframefns = obj.allperframefns;
-      perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
-      perframedata_all = obj.perframedata;
-      perframefile = obj.GetPerframeFiles(expi);
-      x_curr_all = cell(1,numel(curperframefns));
-      feature_names_all = cell(1,numel(curperframefns));
-      windowfeaturescellparams = obj.windowfeaturescellparams;
-      
-      % loop through per-frame fields
-      
-      parfor j = 1:numel(curperframefns),
-        fn = curperframefns{j};
-        
-        % get per-frame data
-        ndx = find(strcmp(fn,allperframefns));
-        if perframeInMemory,
-          perframedata = perframedata_all{ndx};
-        else
-          perframedata = load(perframefile{ndx});
-          perframedata = perframedata.data{flies(1)};
-        end
-        
-        i11 = min(i1,numel(perframedata));
-        [x_curr,feature_names_curr] = ...
-          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
-        if any(imag(x_curr(:)))
-          fprintf('Feature values are complex, check input\n');
-        end
-        
-        if i11 < i1,
-          x_curr(:,end+1:end+i1-i11) = nan;
-        end
-        
-        x_curr_all{j} = x_curr;
-        feature_names_all{j} = feature_names_curr;
-        
-      end
-      
-      for j = 1:numel(curperframefns),
-        fn = curperframefns{j};
-        x_curr = x_curr_all{j};
-        feature_names_curr = feature_names_all{j};
-        % add the window data for this per-frame feature to X
-        nold = size(X,1);
-        nnew = size(x_curr,2);
-        if nold > nnew,
-          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
-          x_curr(:,end+1:end+nold-nnew) = nan;
-        elseif nnew > nold && ~isempty(X),
-          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
-          X(end+1:end+nnew-nold,:) = nan;
-        end
-        X = [X,x_curr']; %#ok<AGROW>
-        % add the feature names
-        feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
-      end
-      %       catch ME,
-      %         msg = getReport(ME);
-      %         return;
-      %       end
-      X = single(X);
-      success = true;
-     
-    end
-    
-    function CleanWindowData(obj)
-      % Removes window data for unlabeled data to save memory
-      curMem = 8*numel(obj.windowdata.X);
-      if curMem>3e8  % greater than 300MB
-        idxcurr = obj.windowdata.labelidx_new==0;
-        obj.windowdata.X(idxcurr,:) = [];
-        obj.windowdata.exp(idxcurr) = [];
-        obj.windowdata.flies(idxcurr) =[];
-        obj.windowdata.t(idxcurr) =[];
-        obj.windowdata.labelidx_new(idxcurr) = [];
-        obj.windowdata.labelidx_imp(idxcurr) = [];
-        obj.windowdata.isvalidprediction(...
-          idxcurr(1:numel(obj.windowdata.isvalidprediction))) = [];
-        obj.windowdata.labelidx_cur(...
-          idxcurr(1:numel(obj.windowdata.labelidx_cur))) = [];
-        obj.windowdata.predicted(...
-          idxcurr(1:numel(obj.windowdata.predicted))) = [];
-        obj.windowdata.predicted_probs(...
-          idxcurr(1:numel(obj.windowdata.predicted_probs))) = [];
-        obj.windowdata.scores(...
-          idxcurr(1:numel(obj.windowdata.scores))) = [];
-        obj.windowdata.scores_old(...
-          idxcurr(1:numel(obj.windowdata.scores_old))) = [];
-        obj.windowdata.scores_validated(...
-          idxcurr(1:numel(obj.windowdata.scores_validated))) = [];
-        obj.windowdata.distNdx = [];
-        obj.windowdata.binVals=[];
-        obj.windowdata.bins=[];
-
-      end
-    end
-    
-    function ClearWindowData(obj)
-      % Clears window features and predictions for a clean start when selecting
-      % features.
-      obj.windowdata.X = [];
-      obj.windowdata.exp = [];
-      obj.windowdata.flies=[];
-      obj.windowdata.t=[];
-      obj.windowdata.labelidx_cur=[];
-      obj.windowdata.labelidx_new=[];
-      obj.windowdata.labelidx_imp=[];
-      obj.windowdata.featurenames={{}};
-      obj.windowdata.predicted=[];
-      obj.windowdata.predicted_probs=[];
-      obj.windowdata.isvalidprediction=[];
-      obj.windowdata.distNdx=[];
-      obj.windowdata.scores=[];
-      obj.windowdata.scoreNorm=[];
-      obj.windowdata.binVals=[];
-      obj.windowdata.bins=[];
-      
-      obj.UpdatePredictedIdx();
-
-    end
-  
-    function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
-    % Updates the feature params. Called by SelectFeatures
-      obj.SetPerframeParams(params,cellParams)
-      if nargin>2
-        obj.basicFeatureTable = basicFeatureTable;
-        obj.featureWindowSize = featureWindowSize;
-      end
-      obj.ClearWindowData();
-      obj.classifier = [];
-      obj.classifier_old = [];
-      obj.PreLoadLabeledData();
-      % TODO: remove clearwindow features.
-    end
-    
-    
     
     function [success,msg] = SetMovieFileName(obj,moviefilename)
     % change/set the name of the movie within the experiment directory
@@ -1240,7 +908,6 @@ classdef JLabelData < handle
       
     end
     
-    
     function [success,msg] = SetScoresFileName(obj,scorefilename)
     % [success,msg] = SetGTLabelFileName(obj,labelfilename)
     % set the name of the *ground truth* label file within the experiment directory. this
@@ -1291,7 +958,18 @@ classdef JLabelData < handle
         obj.labels(expi).off = loadedlabels.off;
         obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
         obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-        obj.labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
+        if iscell(loadedlabels.timestamp)
+          obj.labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            if isempty(loadedlabels.timestamp)
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
+          end
+        end
         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
           obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
@@ -1315,12 +993,11 @@ classdef JLabelData < handle
         obj.labels(expi).names = {};
         obj.labels(expi).flies = [];
         obj.labels(expi).off = [];
-        obj.labels(expi).timestamp = [];
+        obj.labels(expi).timestamp = {};
         obj.labels(expi).imp_t0s = {};
         obj.labels(expi).imp_t1s = {};
         obj.labelstats(expi).nflies_labeled = 0;
         obj.labelstats(expi).nbouts_labeled = 0;
-        obj.labelstats(expi).datestr = 'never';
 
       end
       
@@ -1353,7 +1030,20 @@ classdef JLabelData < handle
         obj.gt_labels(expi).off = loadedlabels.off;
         obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
         obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-        obj.gt_labelstats(expi).datestr = datestr(loadedlabels.timestamp,'yyyymmddTHHMMSS');
+
+        if iscell(loadedlabels.timestamp)
+          obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            if isempty(loadedlabels.timestamp)
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
+          end
+        end
+        
         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
           obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
@@ -1377,13 +1067,11 @@ classdef JLabelData < handle
         obj.gt_labels(expi).names = {};
         obj.gt_labels(expi).flies = [];
         obj.gt_labels(expi).off = [];
-        obj.gt_labels(expi).timestamp = [];
+        obj.gt_labels(expi).timestamp = {};
         obj.gt_labels(expi).imp_t0s = {};
         obj.gt_labels(expi).imp_t1s = {};
         obj.gt_labelstats(expi).nflies_labeled = 0;
         obj.gt_labelstats(expi).nbouts_labeled = 0;
-        obj.gt_labelstats(expi).datestr = 'never';
-        
       end
       
       % TODO: update windowdata
@@ -1633,9 +1321,9 @@ classdef JLabelData < handle
           % obj.RemoveExpDirs(1:obj.nexps);
 
           % set config file
-          if ~strcmp(obj.configfilename,'configfilename'),
-            obj.SetConfigFileName(loadeddata.configfilename);
-          end
+%           if ~strcmp(obj.configfilename,'configfilename'),
+%             obj.SetConfigFileName(loadeddata.configfilename);
+%           end
 
           % set movie
           [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
@@ -1688,7 +1376,7 @@ classdef JLabelData < handle
           for ndx = 1:numel(paramFields)
             obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
           end
-          obj.ClearCachedPerExpData();
+          % obj.ClearCachedPerExpData();
           obj.ClearStatus();
       end
     end
@@ -1772,40 +1460,15 @@ classdef JLabelData < handle
       end
 
     end
-    
-    
-    function [success,msg] = PreLoadLabeledData(obj)
-    % [success,msg] = PreLoadLabeledData(obj)
-    % This function precomputes any missing window data for all labeled
-    % training examples by calling PreLoadWindowData on all labeled frames.
 
-      success = false; msg = '';
-      
-      for expi = 1:obj.nexps,
-        for i = 1:size(obj.labels(expi).flies,1),
-          
-          flies = obj.labels(expi).flies(i,:);
-          labels_curr = obj.GetLabels(expi,flies);
-          ts = [];
-          
-          for j = 1:numel(labels_curr.t0s),
-            ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
-          end
-          
-          [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
-          if ~success1,return;end            
-          
-        end
-      end
-      success = true;
-      
-    end
     
-    
+% Saving and loading    
+
+
     function SaveScores(obj,allScores,expi)
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
-      sfn = obj.GetFile('scores',expi);
+      sfn = obj.GetFile('scores',expi,true);
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
 
       didbak = false;
@@ -2027,114 +1690,11 @@ classdef JLabelData < handle
 
       obj.ClearStatus();
     end
-    
 
-    function nflies = GetNumFlies(obj,expi)
-      nflies = obj.nflies_per_exp(expi);
-    end
     
-    function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
-    % [success,msg] = GetTrxInfo(obj,expi)
-    % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
-    % for experiment expi. This may require loading in trajectories. 
-      success = true;
-      msg = '';
-      if nargin < 3,
-        canusecache = true;
-      end
-      istrxinput = nargin >= 4;
-      
-      obj.SetStatus('Reading trx info for experiment %s',obj.expdirs{expi});
-      if numel(obj.nflies_per_exp) < expi || ...
-          numel(obj.sex_per_exp) < expi || ...
-          numel(obj.frac_sex_per_exp) < expi || ...
-          numel(obj.firstframes_per_exp) < expi || ...
-          numel(obj.endframes_per_exp) < expi || ...
-          isnan(obj.nflies_per_exp(expi)),
-        if ~istrxinput,
+% Experiment handling
 
-          trxfile = fullfile(obj.expdirs{expi},obj.GetFileName('trx'));
-          if ~exist(trxfile,'file'),
-            msg = sprintf('Trx file %s does not exist, cannot count flies',trxfile);
-            success = false;
-            return;
-          else
-          
-            if isempty(obj.expi) || obj.expi == 0,
-              % TODO: make this work for multiple flies
-              obj.PreLoad(expi,1);
-              trx = obj.trx;
-            elseif canusecache && expi == obj.expi,
-              trx = obj.trx;
-            else
-%               try
-                % REMOVE THIS
-                global CACHED_TRX; %#ok<TLEV>
-                global CACHED_TRX_EXPNAME; %#ok<TLEV>
-                if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-                    ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',obj.expnames{expi}),'interpreter','none');
-                  trx = load_tracks(trxfile);
-                  if ishandle(hwait), delete(hwait); end
-                  CACHED_TRX = trx;
-                  CACHED_TRX_EXPNAME = obj.expnames{expi};
-                else
-                  fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-                  trx = CACHED_TRX;
-                end
-%               catch ME,
-%                 msg = sprintf('Could not load trx file for experiment %s to count flies: %s',obj.expdirs{expi},getReport(ME));
-%               end
-            end
-          end
-        end
-        obj.nflies_per_exp(expi) = numel(trx);
-        obj.firstframes_per_exp{expi} = [trx.firstframe];
-        obj.endframes_per_exp{expi} = [trx.endframe];
 
-        obj.hassex = obj.hassex || isfield(trx,'sex');
-        
-        % store sex info
-        tmp = repmat({nan},[1,numel(trx)]);
-        obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
-        obj.sex_per_exp{expi} = repmat({'?'},[1,numel(trx)]);
-        if isfield(trx,'sex'),
-          if numel(trx) > 1,
-            obj.hasperframesex = iscell(trx(1).sex);
-          end
-          if obj.hasperframesex,
-            for fly = 1:numel(trx),
-              n = numel(trx(fly).sex);
-              nmale = nnz(strcmpi(trx(fly).sex,'M'));
-              nfemale = nnz(strcmpi(trx(fly).sex,'F'));
-              obj.frac_sex_per_exp{expi}(fly).M = nmale/n;
-              obj.frac_sex_per_exp{expi}(fly).F = nfemale/n;
-              if nmale > nfemale,
-                obj.sex_per_exp{expi}{fly} = 'M';
-              elseif nfemale > nmale,
-                obj.sex_per_exp{expi}{fly} = 'F';
-              else
-                obj.sex_per_exp{expi}{fly} = '?';
-              end
-            end
-          else
-            for fly = 1:numel(trx),
-              obj.sex_per_exp{expi}{fly} = trx(fly).sex;
-              if strcmpi(trx(fly).sex,'M'),
-                obj.frac_sex_per_exp{expi}(fly).M = 1;
-                obj.frac_sex_per_exp{expi}(fly).F = 0;
-              elseif strcmpi(trx(fly).sex,'F'),
-                obj.frac_sex_per_exp{expi}(fly).M = 0;
-                obj.frac_sex_per_exp{expi}(fly).F = 1;
-              end
-            end
-          end
-        end
-      end
-      obj.ClearStatus();
-      
-    end
-    
     function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
@@ -2362,6 +1922,10 @@ classdef JLabelData < handle
       if ~isempty(obj.randomGTSuggestions)
         obj.randomGTSuggestions(expi) = [];
       end
+      
+      if ~isempty(obj.loadedGTSuggestions) && numel(obj.loadedGTSuggestions)>=expi
+        obj.loadedGTSuggestions(expi) = [];
+      end
 
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
@@ -2382,6 +1946,10 @@ classdef JLabelData < handle
       success = true;
       
     end
+
+    
+% File Handling 
+    
 
     function res = GetFileName(obj,file)
     % res = GetFileName(obj,file)
@@ -2449,13 +2017,25 @@ classdef JLabelData < handle
       
     end
     
-    function [success,msg] = GenerateMissingFiles(obj,expi)
+    function SetGenerateMissingFiles(obj)
+      obj.perframeGenerate = true;
+    end
+    
+    function perframeGenerate = GetGenerateMissingFiles(obj)
+      perframeGenerate = obj.perframeGenerate;
+    end
+    
+    function [success,msg] = GenerateMissingFiles(obj,expi,isInteractive)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
     % TODO: implement this!
       
       success = true;
       msg = '';
+      
+      if nargin<3
+        isInteractive = true;
+      end
       
       for i = 1:numel(obj.filetypes),
         file = obj.filetypes{i};
@@ -2470,7 +2050,7 @@ classdef JLabelData < handle
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
-              [success1,msg1] = obj.GeneratePerFrameFiles(expi);
+              [success1,msg1] = obj.GeneratePerFrameFiles(expi,isInteractive);
               success = success && success1;
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
@@ -2488,22 +2068,37 @@ classdef JLabelData < handle
       
     end
     
-    function [success,msg] = GeneratePerFrameFiles(obj,expi)
+    function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
-      
+
       perframedir = obj.GetFile('perframedir',expi);
-      if exist(perframedir,'dir'),
+      
+      if ~isInteractive,
+        dooverwrite = false;
+      elseif ~isempty(obj.perframeOverwrite) 
+        if obj.perframeOverwrite
+          dooverwrite = true;
+        else
+          dooverwrite = false;
+        end
+      elseif exist(perframedir,'dir'),
         res = questdlg('Do you want to overwrite existing files or keep them?',...
           'Regenerate files?','Overwrite','Keep','Keep');
         dooverwrite = strcmpi(res,'Overwrite');
+        obj.perframeOverwrite = dooverwrite;
       else
         dooverwrite = true;
       end
+      
       expdir = obj.expdirs{expi};
       
-      hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
-
+      if isInteractive
+        hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
+      else
+        fprintf('Initializing perframe directory for %s\n',expdir);
+      end
+      
       perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
         'moviefilestr',obj.GetFileName('movie'),...
         'perframedir',obj.GetFileName('perframedir'),...
@@ -2511,20 +2106,26 @@ classdef JLabelData < handle
         'perframe_params',obj.perframe_params,...
         'rootwritedir',obj.rootoutputdir);
       
-      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite);
+      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
-      for i = 1:numel(obj.curperframefns),
-        fn = obj.curperframefns{i};
-        file = fullfile(perframedir,[fn,'.mat']);
+      perframefiles = obj.GetPerframeFiles(expi);
+      for i = 1:numel(obj.allperframefns),
+        fn = obj.allperframefns{i};
+        %ndx = find(strcmp(fn,obj.allperframefns));
+        file = perframefiles{i};
         if ~dooverwrite && exist(file,'file'),
           continue;
         end
-        hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        if isInteractive
+          hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+        else
+          fprintf('Computing %s and saving to file %s\n',fn,file);
+        end
         perframetrx.(fn); %#ok<VUNUS>
           
       end
       
-      if ishandle(hwait),
+      if isInteractive && ishandle(hwait),
         delete(hwait);
       end
       
@@ -2740,6 +2341,112 @@ classdef JLabelData < handle
       end
       fe = obj.fileexists(expi,filei);
       ft = obj.filetimestamps(expi,filei);
+    end
+    
+    
+% Tracking information
+
+
+    function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
+    % [success,msg] = GetTrxInfo(obj,expi)
+    % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
+    % for experiment expi. This may require loading in trajectories. 
+      success = true;
+      msg = '';
+      if nargin < 3,
+        canusecache = true;
+      end
+      istrxinput = nargin >= 4;
+      
+      obj.SetStatus('Reading trx info for experiment %s',obj.expdirs{expi});
+      if numel(obj.nflies_per_exp) < expi || ...
+          numel(obj.sex_per_exp) < expi || ...
+          numel(obj.frac_sex_per_exp) < expi || ...
+          numel(obj.firstframes_per_exp) < expi || ...
+          numel(obj.endframes_per_exp) < expi || ...
+          isnan(obj.nflies_per_exp(expi)),
+        if ~istrxinput,
+
+          trxfile = fullfile(obj.expdirs{expi},obj.GetFileName('trx'));
+          if ~exist(trxfile,'file'),
+            msg = sprintf('Trx file %s does not exist, cannot count flies',trxfile);
+            success = false;
+            return;
+          else
+          
+            if isempty(obj.expi) || obj.expi == 0,
+              % TODO: make this work for multiple flies
+              obj.PreLoad(expi,1);
+              trx = obj.trx;
+            elseif canusecache && expi == obj.expi,
+              trx = obj.trx;
+            else
+%               try
+                % REMOVE THIS
+                global CACHED_TRX; %#ok<TLEV>
+                global CACHED_TRX_EXPNAME; %#ok<TLEV>
+                if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
+                    ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
+                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',obj.expnames{expi}),'interpreter','none');
+                  trx = load_tracks(trxfile);
+                  if ishandle(hwait), delete(hwait); end
+                  CACHED_TRX = trx;
+                  CACHED_TRX_EXPNAME = obj.expnames{expi};
+                else
+                  fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
+                  trx = CACHED_TRX;
+                end
+%               catch ME,
+%                 msg = sprintf('Could not load trx file for experiment %s to count flies: %s',obj.expdirs{expi},getReport(ME));
+%               end
+            end
+          end
+        end
+        obj.nflies_per_exp(expi) = numel(trx);
+        obj.firstframes_per_exp{expi} = [trx.firstframe];
+        obj.endframes_per_exp{expi} = [trx.endframe];
+
+        obj.hassex = obj.hassex || isfield(trx,'sex');
+        
+        % store sex info
+        tmp = repmat({nan},[1,numel(trx)]);
+        obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
+        obj.sex_per_exp{expi} = repmat({'?'},[1,numel(trx)]);
+        if isfield(trx,'sex'),
+          if numel(trx) > 1,
+            obj.hasperframesex = iscell(trx(1).sex);
+          end
+          if obj.hasperframesex,
+            for fly = 1:numel(trx),
+              n = numel(trx(fly).sex);
+              nmale = nnz(strcmpi(trx(fly).sex,'M'));
+              nfemale = nnz(strcmpi(trx(fly).sex,'F'));
+              obj.frac_sex_per_exp{expi}(fly).M = nmale/n;
+              obj.frac_sex_per_exp{expi}(fly).F = nfemale/n;
+              if nmale > nfemale,
+                obj.sex_per_exp{expi}{fly} = 'M';
+              elseif nfemale > nmale,
+                obj.sex_per_exp{expi}{fly} = 'F';
+              else
+                obj.sex_per_exp{expi}{fly} = '?';
+              end
+            end
+          else
+            for fly = 1:numel(trx),
+              obj.sex_per_exp{expi}{fly} = trx(fly).sex;
+              if strcmpi(trx(fly).sex,'M'),
+                obj.frac_sex_per_exp{expi}(fly).M = 1;
+                obj.frac_sex_per_exp{expi}(fly).F = 0;
+              elseif strcmpi(trx(fly).sex,'F'),
+                obj.frac_sex_per_exp{expi}(fly).M = 0;
+                obj.frac_sex_per_exp{expi}(fly).F = 1;
+              end
+            end
+          end
+        end
+      end
+      obj.ClearStatus();
+      
     end
 
     function out = GetTrxValues(obj,infoType,expi,flies,ts)
@@ -3010,6 +2717,10 @@ classdef JLabelData < handle
       thresholds =obj.confThresholds(ndx) ;
     end
     
+    
+% Labels and predictions    
+    
+
     function [success,msg] = PreLoad(obj,expi,flies)
     % [success,msg] = PreLoad(obj,expi,flies)
     % Preloads data associated with the input experiment and flies. If
@@ -3098,7 +2809,7 @@ classdef JLabelData < handle
       file = obj.GetPerframeFiles(expi);
       for j = 1:numel(obj.allperframefns),
         if ~exist(file{j},'file'),
-          msg = sprintf('Per-frame data file %s does not exist',file);
+          msg = sprintf('Per-frame data file %s does not exist',file{j});
           return;
         end
 %         try
@@ -3127,7 +2838,7 @@ classdef JLabelData < handle
       obj.expi = 0;
       obj.flies = nan(size(obj.flies));
       obj.perframedata = {};
-      obj.labelidx = struct('vals',[],'imp',[]);
+      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
       obj.labelidx_off = 0;
       obj.t0_curr = 0;
       obj.t1_curr = 0;
@@ -3151,6 +2862,7 @@ classdef JLabelData < handle
         else
           labelidx.vals = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off);
           labelidx.imp = obj.labelidx.imp(T0+obj.labelidx_off:T1+obj.labelidx_off);
+          labelidx.timestamp = obj.labelidx.timestamp(T0+obj.labelidx_off:T1+obj.labelidx_off);
         end
         return;
       end
@@ -3164,6 +2876,8 @@ classdef JLabelData < handle
       labels_curr = obj.GetLabels(expi,flies);
       labelidx.vals = zeros(1,n);
       labelidx.imp = zeros(1,n);
+      labelidx.timestamp = zeros(1,n);
+      
       for i = 1:obj.nbehaviors,
         for j = find(strcmp(labels_curr.names,obj.labelnames{i})),
           t0 = labels_curr.t0s(j);
@@ -3172,6 +2886,7 @@ classdef JLabelData < handle
           t0 = max(T0,t0);
           t1 = min(T1,t1);
           labelidx.vals(t0+off:t1-1+off) = i;
+          labelidx.timestamp(t0+off:t1-1+off) = labels_curr.timestamp(j); 
         end
       end
       for j = 1:numel(labels_curr.imp_t0s)
@@ -3355,11 +3070,11 @@ classdef JLabelData < handle
 
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
         if nargin < 4,
-          idx = obj.labelidx == behaviori;
+          idx = obj.labelidx.vals == behaviori;
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
-          idx = obj.labelidx(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
+          idx = obj.labelidx.vals(T0+obj.labelidx_off:T1+obj.labelidx_off) == behaviori;
         end
         return;
       end
@@ -3384,7 +3099,7 @@ classdef JLabelData < handle
     % labels_curr = GetLabels(obj,expi,flies)
     % Returns the labels for the input 
 
-      labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'off',0,'imp_t0s',[],'imp_t1s',[]);
+      labels_curr = struct('t0s',[],'t1s',[],'names',{{}},'timestamp',[],'off',0,'imp_t0s',[],'imp_t1s',[]);
       
       if nargin < 2 || isempty(expi),
         expi = obj.expi;
@@ -3415,6 +3130,7 @@ classdef JLabelData < handle
           labels_curr.imp_t0s = labelsToUse(expi).imp_t0s{fliesi};
           labels_curr.imp_t1s = labelsToUse(expi).imp_t1s{fliesi};
         end
+        labels_curr.timestamp = labelsToUse(expi).timestamp{fliesi};
       else
 %         if expi ~= obj.expi,
 %           error('This should never happen -- only should get new labels for current experiment');
@@ -3460,16 +3176,19 @@ classdef JLabelData < handle
     function StoreLabels1(obj,expi,flies,labelidx,labelidx_off)
       
       % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'imp_t0s',[],'imp_t1s',[]);
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
       for j = 1:obj.nbehaviors,
         [i0s,i1s] = get_interval_ends(labelidx.vals==j);
+        
         if ~isempty(i0s),
           n = numel(i0s);
           newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
           newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
           newlabels.names(end+1:end+n) = repmat(obj.labelnames(j),[1,n]);
+          newlabels.timestamp(end+1:end+n) = labelidx.timestamp(i0s);
         end
       end
+      
       [i0s,i1s] = get_interval_ends(labelidx.imp);
       if ~isempty(i0s),
         newlabels.imp_t0s = i0s - labelidx_off;
@@ -3495,14 +3214,13 @@ classdef JLabelData < handle
       obj.(labelsToUse)(expi).names{j} = newlabels.names;
       obj.(labelsToUse)(expi).flies(j,:) = flies;
       obj.(labelsToUse)(expi).off(j) = labelidx_off;
-      obj.(labelsToUse)(expi).timestamp = now;
+      obj.(labelsToUse)(expi).timestamp{j} = newlabels.timestamp;
       obj.(labelsToUse)(expi).imp_t0s{j} = newlabels.imp_t0s;
       obj.(labelsToUse)(expi).imp_t1s{j} = newlabels.imp_t1s;
 
       % store labelstats
       obj.(labelstatsToUse)(expi).nflies_labeled = numel(unique(obj.(labelsToUse)(expi).flies));
       obj.(labelstatsToUse)(expi).nbouts_labeled = numel(newlabels.t1s);
-      obj.(labelstatsToUse)(expi).datestr = datestr(obj.(labelsToUse)(expi).timestamp,'yyyymmddTHHMMSS');
             
     end
 
@@ -3558,10 +3276,9 @@ classdef JLabelData < handle
           obj.(labelsToUse)(expi).names = {};
           obj.(labelsToUse)(expi).flies = [];
           obj.(labelsToUse)(expi).off = [];
-          obj.(labelsToUse)(expi).timestamp = [];
+          obj.(labelsToUse)(expi).timestamp = {};
           obj.(labelstatsToUse)(expi).nflies_labeled = 0;
           obj.(labelstatsToUse)(expi).nbouts_labeled = 0;
-          obj.(labelstatsToUse)(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
           obj.(labelsToUse)(expi).imp_t0s = {};
           obj.(labelsToUse)(expi).imp_t1s = {};
         end
@@ -3581,19 +3298,20 @@ classdef JLabelData < handle
           obj.(labelsToUse)(expi).t0s{flyi} = [];
           obj.(labelsToUse)(expi).t1s{flyi} = [];
           obj.(labelsToUse)(expi).names{flyi} = {};
-          obj.(labelsToUse)(expi).timestamp(flyi) = timestamp;
+          obj.(labelsToUse)(expi).timestamp{flyi} = [];
           obj.(labelsToUse)(expi).imp_t0s{flyi} = [];
           obj.(labelsToUse)(expi).imp_t1s{flyi} = [];
           % update stats
           obj.(labelstatsToUse)(expi).nflies_labeled = obj.(labelstatsToUse)(expi).nflies_labeled - 1;
           obj.(labelstatsToUse)(expi).nbouts_labeled = obj.(labelstatsToUse)(expi).nbouts_labeled - ncurr;
         end
-        obj.(labelstatsToUse)(expi).datestr = datestr(timestamp,'yyyymmddTHHMMSS');
       end
       
       % clear labelidx if nec
       if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
-        obj.labelidx(:) = 0;
+        obj.labelidx.vals(:) = 0;
+        obj.labelidx.imp(:) = 0;
+        obj.labelidx.timestamp(:) = 0;
       end
       
       % clear windowdata labelidx_new
@@ -3619,16 +3337,458 @@ classdef JLabelData < handle
       if obj.IsCurFly(expi,flies),
         obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
         obj.labelidx.imp(ts+obj.labelidx_off) = important;
+        obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
       else
         [labelidx,T0] = obj.GetLabelIdx(expi,flies);
         labelidx.vals(ts+1-T0) = behaviori;
         labelidx.imp(ts+1-T0) = important;
+        labelidx.timestamp(ts+1-T0) = now;
         obj.StoreLabels1(expi,flies,labelidx,1-T0);        
       end
       
     end
     
     
+% Window data computation.
+    
+
+    function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
+    % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
+    % Compute and store the window data for experiment expi, flies flies,
+    % and all frames ts. 
+    % This function finds all frames that currently do not have window data
+    % cached. In a loop, it finds the first frame that is missing window
+    % data, and computes window data for all frames in a chunk of size
+    % 2*obj.windowdatachunk_radius + 1 after this frame using the function
+    % ComputeWindowDataChunk. Then, it updates the frames that are missing
+    % window data. It proceeds in this loop until there are not frames
+    % in the input ts missing window data. 
+      
+      success = false; msg = '';
+      obj.CheckExp(expi); obj.CheckFlies(flies);
+      
+      obj.TrimWindowData();
+      
+      % which frames don't have window data yet
+      if isempty(obj.windowdata.exp),
+        missingts = ts;
+        tscurr = [];
+      else      
+        idxcurr = obj.FlyNdx(expi,flies);
+        tscurr = obj.windowdata.t(idxcurr);
+        missingts = setdiff(ts,tscurr);
+      end
+        
+      % no frames missing data?
+      if isempty(missingts),
+        success = true;
+        return;
+      end
+
+      % get labels for current flies -- will be used when filling in
+      % windowdata
+      [labelidxStruct,t0_labelidx] = obj.GetLabelIdx(expi,flies);
+
+      % total number of frames to compute window data for -- used for
+      % showing prctage complete. 
+      nts0 = numel(missingts);
+      
+      while true,
+
+        % choose a frame missing window data
+        %t = missingts(1);
+        t = median(missingts);
+        if ~ismember(t,missingts),
+          t = missingts(argmin(abs(t-missingts)));
+        end
+        
+        % update the status
+        obj.SetStatus('Computing window data for exp %s, fly%s: %d%% done...',...
+          obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
+
+        % compute window data for a chunk starting at t
+        [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
+        if ~success1, warning(msg); return; end
+        
+        % only store window data that isn't already cached
+        tsnew = t0:t1;
+        idxnew = ~ismember(tsnew,tscurr);
+        m = nnz(idxnew);
+        if m==0; return; end
+
+        % add to windowdata
+        obj.windowdata.X(end+1:end+m,:) = X(idxnew,:);
+        obj.windowdata.exp(end+1:end+m,1) = expi;
+        obj.windowdata.flies(end+1:end+m,:) = repmat(flies,[m,1]);
+        obj.windowdata.t(end+1:end+m,1) = tsnew(idxnew);
+        obj.windowdata.labelidx_cur(end+1:end+m,1) = 0;
+        tempLabelsNew = labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
+        obj.windowdata.labelidx_new(end+1:end+m,1) = tempLabelsNew(idxnew);
+        tempLabelsImp = labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
+        obj.windowdata.labelidx_imp(end+1:end+m,1) = tempLabelsImp(idxnew);        
+        obj.windowdata.predicted(end+1:end+m,1) = 0;
+        obj.windowdata.scores(end+1:end+m,1) = 0;
+        obj.windowdata.scores_old(end+1:end+m,1) = 0;   
+        obj.windowdata.scores_validated(end+1:end+m,1) = 0;           
+        obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
+
+        % remove from missingts all ts that were computed in this chunk
+        missingts(missingts >= t0 & missingts <= t1) = [];
+
+        % stop if we're done
+        if isempty(missingts),
+          obj.ClearStatus();
+          break;
+        end
+        
+      end
+      
+      % Clean the window data.
+%       obj.CleanWindowData();
+      
+      % store feature_names -- these shouldn't really change
+      obj.windowdata.featurenames = feature_names;
+      
+      success = true;
+      
+    end
+
+    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
+    % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
+    % Computes a chunk of windowdata near frame t for experiment expi and
+    % flies flies. if mode is 'start', then the chunk will start at t. if
+    % it is 'center', the chunk will be centered at t. if mode is 'end',
+    % the chunk will end at t. by default, mode is 'center'. 
+    % t0 and t1 define the bounds of the chunk of window data computed. X
+    % is the nframes x nfeatures window data, feature_names is a cell array
+    % of length nfeatures containing the names of each feature. 
+    %
+    % This function first chooses an interval of frames around t, depending 
+    % on the mode. it then chooses a subinterval of this interval that
+    % covers all frames in this interval that do not have window data. This
+    % defines t0 and t1. 
+    % 
+    % It then loops through all the per-frame features, and calls
+    % ComputeWindowFeatures to compute all the window data for that
+    % per-frame feature. 
+    %
+    % To predict over the whole movie we use forceCalc which
+    % forces the function to recalculate all the features even though they
+    % were calculated before.
+      
+      success = false; msg = '';
+      
+      if ~exist('mode','var'), mode = 'center'; end
+      if ~exist('forceCalc','var'), forceCalc = false; end
+      
+      % Check if the features have been configured.
+      if isempty(fieldnames(obj.windowfeaturesparams))
+        obj.ShowSelectFeatures();
+        if isempty(fieldnames(obj.windowfeaturesparams))
+          error('No features selected!');
+        end
+      end
+      
+      % choose frames to compute:
+      
+      % bound at start and end frame of these flies
+      T0 = max(obj.GetTrxFirstFrame(expi,flies));
+      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      
+      switch lower(mode),
+        case 'center',
+          % go forward r to find the end of the chunk
+          t1 = min(t+obj.windowdatachunk_radius,T1);
+          % go backward 2*r to find the start of the chunk
+          t0 = max(t1-2*obj.windowdatachunk_radius,T0);
+          % go forward 2*r again to find the end of the chunk
+          t1 = min(t0+2*obj.windowdatachunk_radius,T1);
+        case 'start',
+          t0 = max(t,T0);
+          t1 = min(t0+2*obj.windowdatachunk_radius,T1);
+        case 'end',
+          t1 = min(t,T1);
+          t0 = max(t1-2*obj.windowdatachunk_radius,T0);
+        otherwise
+          error('Unknown mode %s',mode);
+      end
+      
+      % find a continuous interval that covers all uncomputed ts between t0
+      % and t1
+      off = 1-t0;
+      n = t1-t0+1;
+      docompute = true(1,n);
+      if ~isempty(obj.windowdata.exp) && ~forceCalc,
+        tscomputed = obj.windowdata.t(obj.FlyNdx(expi,flies));
+        tscomputed = tscomputed(tscomputed >= t0 & tscomputed <= t1);
+        docompute(tscomputed+off) = false;
+      end
+      
+      X = [];
+      feature_names = {};
+      if ~any(docompute),
+        t1 = t0-1;
+        success = true;
+        return;
+      end
+      
+      t0 = find(docompute,1,'first') - off;
+      t1 = find(docompute,1,'last') - off;
+      i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
+      i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;
+      
+      %       try
+      
+      curperframefns = obj.curperframefns;
+      allperframefns = obj.allperframefns;
+      perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
+      perframedata_all = obj.perframedata;
+      perframefile = obj.GetPerframeFiles(expi);
+      x_curr_all = cell(1,numel(curperframefns));
+      feature_names_all = cell(1,numel(curperframefns));
+      windowfeaturescellparams = obj.windowfeaturescellparams;
+      
+      % loop through per-frame fields to check that they exist.
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        
+        % get per-frame data
+        ndx = find(strcmp(fn,allperframefns));
+        if isempty(ndx),
+          success = false;
+          msg = 'Window features config file has a perframe feature that is not defined in params file';
+          return;
+        end
+        
+        if ~exist(perframefile{ndx},'file'),
+          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',obj.expnames{expi}),'Generate missing files?','Yes','Cancel','Yes');
+          if strcmpi(res,'Yes'),
+            for ndx = 1:obj.nexps  
+              [success1,msg1] = obj.GenerateMissingFiles(ndx);
+              if ~success1,
+                success = success1; msg = msg1;
+                return;
+              end
+            end
+            
+          else
+            success = false;
+            msg = sprintf('Cannot compute window data for %s ',expdir);
+            return;
+          end
+
+          
+        end
+        
+      end
+      
+      parfor j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        
+        % get per-frame data
+        ndx = find(strcmp(fn,allperframefns));
+        if perframeInMemory,
+          perframedata = perframedata_all{ndx};
+        else
+          perframedata = load(perframefile{ndx});
+          perframedata = perframedata.data{flies(1)};
+        end
+        
+        i11 = min(i1,numel(perframedata));
+        [x_curr,feature_names_curr] = ...
+          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
+        if any(imag(x_curr(:)))
+          fprintf('Feature values are complex, check input\n');
+        end
+        
+        if i11 < i1,
+          x_curr(:,end+1:end+i1-i11) = nan;
+        end
+        
+        x_curr_all{j} = x_curr;
+        feature_names_all{j} = feature_names_curr;
+        
+      end
+      
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        x_curr = x_curr_all{j};
+        feature_names_curr = feature_names_all{j};
+        % add the window data for this per-frame feature to X
+        nold = size(X,1);
+        nnew = size(x_curr,2);
+        if nold > nnew,
+          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          x_curr(:,end+1:end+nold-nnew) = nan;
+        elseif nnew > nold && ~isempty(X),
+          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          X(end+1:end+nnew-nold,:) = nan;
+        end
+        X = [X,x_curr']; %#ok<AGROW>
+        % add the feature names
+        feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
+      end
+      %       catch ME,
+      %         msg = getReport(ME);
+      %         return;
+      %       end
+      X = single(X);
+      success = true;
+     
+    end
+    
+    function CleanWindowData(obj)
+      % Removes window data for unlabeled data to save memory
+      curMem = 8*numel(obj.windowdata.X);
+      if curMem>3e8  % greater than 300MB
+        idxcurr = obj.windowdata.labelidx_new==0;
+        obj.windowdata.X(idxcurr,:) = [];
+        obj.windowdata.exp(idxcurr) = [];
+        obj.windowdata.flies(idxcurr) =[];
+        obj.windowdata.t(idxcurr) =[];
+        obj.windowdata.labelidx_new(idxcurr) = [];
+        obj.windowdata.labelidx_imp(idxcurr) = [];
+        obj.windowdata.isvalidprediction(...
+          idxcurr(1:numel(obj.windowdata.isvalidprediction))) = [];
+        obj.windowdata.labelidx_cur(...
+          idxcurr(1:numel(obj.windowdata.labelidx_cur))) = [];
+        obj.windowdata.predicted(...
+          idxcurr(1:numel(obj.windowdata.predicted))) = [];
+        obj.windowdata.predicted_probs(...
+          idxcurr(1:numel(obj.windowdata.predicted_probs))) = [];
+        obj.windowdata.scores(...
+          idxcurr(1:numel(obj.windowdata.scores))) = [];
+        obj.windowdata.scores_old(...
+          idxcurr(1:numel(obj.windowdata.scores_old))) = [];
+        obj.windowdata.scores_validated(...
+          idxcurr(1:numel(obj.windowdata.scores_validated))) = [];
+        obj.windowdata.distNdx = [];
+        obj.windowdata.binVals=[];
+        obj.windowdata.bins=[];
+
+      end
+    end
+    
+    function ClearWindowData(obj)
+      % Clears window features and predictions for a clean start when selecting
+      % features.
+      obj.windowdata.X = [];
+      obj.windowdata.exp = [];
+      obj.windowdata.flies=[];
+      obj.windowdata.t=[];
+      obj.windowdata.labelidx_cur=[];
+      obj.windowdata.labelidx_new=[];
+      obj.windowdata.labelidx_imp=[];
+      obj.windowdata.featurenames={{}};
+      obj.windowdata.predicted=[];
+      obj.windowdata.predicted_probs=[];
+      obj.windowdata.isvalidprediction=[];
+      obj.windowdata.distNdx=[];
+      obj.windowdata.scores=[];
+      obj.windowdata.scoreNorm=[];
+      obj.windowdata.binVals=[];
+      obj.windowdata.bins=[];
+      
+      obj.UpdatePredictedIdx();
+
+    end
+  
+    function TrimWindowData(obj)
+      % If the size of windowdata is too large, removes windowdata for
+      % unlabeled examples.
+      sizeLimit = 8e9; % 5GB.
+      classSize = 4;
+      ratioLimit = 0.2;
+      
+      numUnlabeled = nnz(obj.windowdata.labelidx_new==0);
+      numLabeled = nnz(obj.windowdata.labelidx_new);
+      
+      if numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit;
+        return;
+      end
+      
+      idx2remove = obj.windowdata.labelidx_new==0 & ...
+        ~obj.FlyNdx(obj.expi,obj.flies);
+      if ~any(idx2remove); return; end
+      obj.windowdata.X(idx2remove,:) = [];
+      obj.windowdata.exp(idx2remove,:) = [];
+      obj.windowdata.flies(idx2remove,:) = [];
+      obj.windowdata.t(idx2remove,:) = [];
+      obj.windowdata.labelidx_cur(idx2remove,:) = [];
+      obj.windowdata.labelidx_new(idx2remove,:) = [];
+      obj.windowdata.labelidx_imp(idx2remove,:) = [];
+      obj.windowdata.predicted(idx2remove,:) = [];
+      obj.windowdata.scores(idx2remove,:) = [];
+      obj.windowdata.scores_old(idx2remove,:) = [];
+      obj.windowdata.scores_validated(idx2remove,:) = [];
+      obj.windowdata.isvalidprediction(idx2remove,:) = [];
+      obj.windowdata.binVals = [];
+      obj.windowdata.bins = [];
+
+      
+    end
+    
+    function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
+    % Updates the feature params. Called by SelectFeatures
+      obj.SetPerframeParams(params,cellParams)
+      if nargin>2
+        obj.basicFeatureTable = basicFeatureTable;
+        obj.featureWindowSize = featureWindowSize;
+      end
+      obj.ClearWindowData();
+      obj.classifier = [];
+      obj.classifier_old = [];
+      obj.PreLoadLabeledData();
+      % TODO: remove clearwindow features.
+    end
+    
+    function [success,msg] = PreLoadLabeledData(obj)
+    % [success,msg] = PreLoadLabeledData(obj)
+    % This function precomputes any missing window data for all labeled
+    % training examples by calling PreLoadWindowData on all labeled frames.
+
+      success = false; msg = '';
+      
+      for expi = 1:obj.nexps,
+        for i = 1:size(obj.labels(expi).flies,1),
+          
+          flies = obj.labels(expi).flies(i,:);
+          labels_curr = obj.GetLabels(expi,flies);
+          ts = [];
+          
+          for j = 1:numel(labels_curr.t0s),
+            ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
+          end
+          
+          [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
+          if ~success1,return;end            
+          
+        end
+      end
+      success = true;
+      
+    end
+    
+    function ShowSelectFeatures(obj)
+      selHandle = SelectFeatures(obj);
+      uiwait(selHandle);
+    end
+
+    function UpdateBoostingBins(obj)
+      
+      oldBinSize = size(obj.windowdata.bins,2);
+      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
+      if newData>0 && ~isempty(obj.windowdata.binVals)
+        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
+      else
+        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
+      end
+      
+    end
+
+% Training and prediction.    
+    
+
     function Train(obj,doFastUpdates)
     % Train(obj)
     % Updates the classifier to reflect the current labels. This involves
@@ -3829,7 +3989,7 @@ classdef JLabelData < handle
           obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
           obj.windowdata.scores(toPredict) = scores;
           obj.windowdata.isvalidprediction(toPredict) = true;
-          if ~isempty(obj.classifier_old)
+          if ~isempty(obj.classifier_old),
             obj.windowdata.scores_old(toPredict) = ...
               myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
           else
@@ -4044,9 +4204,10 @@ classdef JLabelData < handle
       
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
-      perframedir = obj.GetFile('perframedir',expi);
+      perframefile = obj.GetPerframeFiles(expi);
       windowfeaturescellparams = obj.windowfeaturescellparams;
-      perframefns = obj.curperframefns;
+      curperframefns = obj.curperframefns;
+      allperframefns = obj.allperframefns;
       classifier = obj.classifier;
       
       obj.SetStatus('Classifying current movie..');
@@ -4057,8 +4218,8 @@ classdef JLabelData < handle
         
         scores = nan(1,tEnd);
         
-        X = JLabelData.ComputeWindowDataChunkStatic(...
-          perframefns,perframedir,flies,windowfeaturescellparams,1,tEnd-tStart+1);
+        X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+          allperframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
         
         scores(tStart:tEnd) = myBoostClassify(X,classifier);
         scoresA{flies} = scores;
@@ -4069,13 +4230,21 @@ classdef JLabelData < handle
       allScores.scores = scoresA;
       allScores.tStart = tStartAll;
       allScores.tEnd = tEndAll;
+      for flies = 1:numFlies
+        [i0s i1s] = get_interval_ends(allScores.scores{flies}>0);
+        allScores.t0s{flies} = i0s;
+        allScores.t1s{flies} = i1s;
+      end
       obj.SaveScores(allScores,expi);
       obj.LoadScores(expi,obj.GetFile('scores',expi));
       obj.ClearStatus();
       
     end
+
     
+% Evaluating performance
     
+
     function errorRates = createConfMat(obj,scores,modLabels)
       
       confMat = zeros(2*obj.nbehaviors,3);
@@ -4095,35 +4264,10 @@ classdef JLabelData < handle
       errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
     end
     
-    function crossError = CrossValidate(obj)
-      [success,msg] = obj.PreLoadLabeledData();
-      
-      if ~success, warning(msg);return;end
+    function bouts = getLabeledBouts(obj)
+    % Find the bouts from window data.
 
-      islabeled = obj.windowdata.labelidx_cur ~= 0;
-
-      if ~any(islabeled),                        
-        crossError.numbers = zeros(4,3);
-        crossError.frac = zeros(4,3);
-        crossError.oldNumbers = zeros(4,3);
-        crossError.oldFrac = zeros(4,3);
-        
-        return; 
-      end
-      if ~strcmp(obj.classifiertype,'boosting'); return; end
-
-      obj.SetStatus('Cross validating the classifier for %d examples...',nnz(islabeled));
-      
-      oldBinSize = size(obj.windowdata.bins,2);
-      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && ~isempty(obj.windowdata.binVals)
-        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-      else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
-      end
-      
-      % Find the bouts from window data.
-      bouts = struct('ndx',[],'label',[]);
+    bouts = struct('ndx',[],'label',[],'timestamp',[]);
       for expNdx = 1:obj.nexps
         for flyNdx = 1:obj.nflies_per_exp(expNdx)
           curLabels = obj.GetLabels(expNdx,flyNdx);
@@ -4132,30 +4276,60 @@ classdef JLabelData < handle
               obj.windowdata.t >= curLabels.t0s(boutNum) & ...
               obj.windowdata.t < curLabels.t1s(boutNum);
             bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
+            bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
           end
           
         end
       end
       
+    end
+    
+    function [crossError,tlabels] = CrossValidate(obj)
+    % Cross validate on bouts.
+    
+      [success,msg] = obj.PreLoadLabeledData();
+      if ~success, warning(msg);return;end
+
+      islabeled = obj.windowdata.labelidx_cur ~= 0;
+      if ~any(islabeled),                        
+        crossError.numbers = zeros(4,3);
+        crossError.frac = zeros(4,3);
+        crossError.oldNumbers = zeros(4,3);
+        crossError.oldFrac = zeros(4,3);
+        tlabels = {};
+        return; 
+      end
       
-      crossScores=...
+      if ~strcmp(obj.classifiertype,'boosting'); return; end
+
+      obj.SetStatus('Cross validating the classifier for %d examples...',nnz(islabeled));
+
+      obj.UpdateBoostingBins();
+
+      bouts = obj.getLabeledBouts();
+      
+      [crossScores, tlabels]=...
         crossValidateBout( obj.windowdata.X, ...
         obj.windowdata.labelidx_cur,bouts,obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins,obj.classifier_params);
+        obj.windowdata.bins,obj.classifier_params,true);
 
-      obj.windowdata.scores_validated = zeros(1,numel(islabeled));
-      obj.windowdata.scores_validated(islabeled) = crossScores;
-             
+%{      
 %       crossScores=...
 %         crossValidate( obj.windowdata.X(islabeled,:), ...
 %         obj.windowdata.labelidx_cur(islabeled,:),obj,...
 %         obj.windowdata.binVals,...
 %         obj.windowdata.bins(:,islabeled),obj.classifier_params);
+%}
       
+      obj.windowdata.scores_validated = zeros(1,numel(islabeled));
+      obj.windowdata.scores_validated(islabeled) = crossScores(1,:);
+
       modLabels = 2*obj.windowdata.labelidx_cur(islabeled)-obj.windowdata.labelidx_imp(islabeled);
 
-      crossError = obj.createConfMat(crossScores,modLabels);
+      for tndx = 1:size(crossScores,1)
+        crossError(tndx) = obj.createConfMat(crossScores(tndx,:),modLabels);
+      end
       
       waslabeled = false(1,numel(islabeled));
       waslabeled(1:numel(obj.windowdata.labelidx_old)) = obj.windowdata.labelidx_old~=0;
@@ -4163,25 +4337,21 @@ classdef JLabelData < handle
       oldScores = crossScores(oldSelect);
       oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled) - obj.windowdata.labelidx_imp(waslabeled);
       oldError = obj.createConfMat(oldScores,oldLabels);
-      crossError.oldNumbers = oldError.numbers;
-      crossError.oldFrac = oldError.frac;
+      crossError(1).oldNumbers = oldError.numbers;
+      crossError(1).oldFrac = oldError.frac;
       
       obj.ClearStatus();
     end
 
+    
     function ROCCurve(obj,JLabelHandle)
-      
-%       if ~obj.isValidated,
-%         warndlg('Scores need to cross validated to use ROC');
-%         return;
-%       end
-      
+    % This now shows histogram, apt naming be damned.
+    
       curNdx = obj.windowdata.labelidx_cur~=0;
       curScores = obj.windowdata.scores(curNdx);
       curLabels = obj.windowdata.labelidx_cur(curNdx);
       modLabels = ((curLabels==1)-0.5)*2;
       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
-      
       
     end
     
@@ -4251,6 +4421,9 @@ classdef JLabelData < handle
     end
     
     
+% Show similar frames
+    
+
     function DoBagging(obj)
       [success,msg] = obj.PreLoadLabeledData();
       
@@ -4415,6 +4588,9 @@ classdef JLabelData < handle
     end
     
     
+% Fly and exp statistics
+    
+
     function expStats = GetExpStats(obj,expi)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
@@ -4423,7 +4599,6 @@ classdef JLabelData < handle
       expStats.nflies = obj.nflies_per_exp(expi);
       expStats.nlabeledbouts = obj.labelstats(expi).nbouts_labeled;
       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
-      expStats.labeldatestr = obj.labelstats(expi).datestr;
       
       
       if ~isempty(obj.scoredata.exp==expi)
@@ -4552,7 +4727,7 @@ classdef JLabelData < handle
         if nnz(curNdx);
           flyStats.one2two = nnz(obj.windowdata.scores(curNdx)<0 ...
             & obj.windowdata.scores_old(curNdx)>0);
-          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)<0 ...
+          flyStats.two2one = nnz(obj.windowdata.scores(curNdx)>0 ...
             & obj.windowdata.scores_old(curNdx)<0);
         end
       end
@@ -4603,6 +4778,9 @@ classdef JLabelData < handle
     end
     
     
+% Status display
+    
+
     function SetStatus(obj,varargin)
     % SetStatus(obj,<sprintf-like arguments>)
     % Update an associated status text according to the input sprintf-like
@@ -4636,14 +4814,11 @@ classdef JLabelData < handle
     function SetClearStatusFn(obj,clearfn)
       obj.clearstatusfn = clearfn;
     end
+
     
-    
-    function ShowSelectFeatures(obj)
-      selHandle = SelectFeatures(obj);
-      uiwait(selHandle);
-    end
-    
-    
+% Ground truthing functions.    
+
+
     function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
       
       success = false; msg = '';
@@ -4707,6 +4882,24 @@ classdef JLabelData < handle
       
     end
     
+    function SuggestLoadedGT(obj,expi,filename)
+      fid = fopen(filename);
+      dat = textscan(fid,'fly:%d,start:%d,end:%d');
+      fclose(fid);
+      fly = dat{1}; t0s = dat{2}; t1s = dat{3};
+      for ndx = 1:obj.nflies_per_exp(expi)
+        [ism, loc] = ismember(ndx,fly);
+        if ~ism, 
+          obj.loadedGTSuggestions{expi}(ndx).start = 1;
+          obj.loadedGTSuggestions{expi}(ndx).end = 0;
+        else
+          obj.loadedGTSuggestions{expi}(fly(loc)).start = t0s(loc);
+          obj.loadedGTSuggestions{expi}(fly(loc)).end = t1s(loc);
+        end
+      end
+      obj.GTSuggestionMode = 'Loaded';
+    end
+    
     function SuggestThresholdGT(obj,threshold)
       obj.thresholdGTSuggestions = threshold;
       obj.GTSuggestionMode = 'Threshold';
@@ -4735,7 +4928,20 @@ classdef JLabelData < handle
         range = start+off:last+off;
         selIdx = range(range>0);
         suggestedidx(selIdx) = true;
-      else
+        
+      elseif strcmpi(obj.GTSuggestionMode,'Loaded')
+        if numel(obj.loadedGTSuggestions)<expi || isempty(obj.loadedGTSuggestions{expi}),
+          suggestedidx = false(1,n);
+          return;
+        end
+        suggestedidx = false(1,n);
+        start = obj.loadedGTSuggestions{expi}(flies).start;
+        last = obj.loadedGTSuggestions{expi}(flies).end;
+        range = start+off:last+off;
+        selIdx = range(range>0);
+        suggestedidx(selIdx) = true;
+
+      elseif strcmpi(obj.GTSuggestionMode,'Threshold')
         if ~isempty(obj.scoredata.scores)
           idxcurr = obj.scoredata.exp(:) == expi & ...
             obj.scoredata.flies(:) == flies & ...
@@ -4756,7 +4962,6 @@ classdef JLabelData < handle
             obj.NormalizeScores(obj.windowdata.scores(idxcurr)) > ...
             -obj.thresholdGTSuggestions;
         end
-        
       end
       
     end
@@ -4819,16 +5024,16 @@ classdef JLabelData < handle
             gt_labels = [gt_labels curLabel];
             
             if ~isempty(obj.scoredata.exp) && nnz(obj.scoredata.exp ==expi)
-              idx = obj.scoredata.exp ==expi & obj.scoredata.flies == flies &...
-                obj.scoredata.t>=t0 & obj.scoredata.t<t1;
+              idx = obj.scoredata.exp(:) ==expi & obj.scoredata.flies(:) == flies &...
+                obj.scoredata.t(:) >=t0 & obj.scoredata.t(:) <t1;
               ts = obj.scoredata.t(idx);
               scores = obj.scoredata.scores(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];
             else
-              idx = obj.windowdata.exp ==expi & obj.windowdata.flies == flies &...
-                obj.windowdata.t>=t0 & obj.windowdata.t<t1;
+              idx = obj.windowdata.exp(:) ==expi & obj.windowdata.flies(:) == flies &...
+                obj.windowdata.t(:)>=t0 & obj.windowdata.t(:)<t1;
               ts = obj.windowdata.t(idx);
               scores = obj.windowdata.scores(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
@@ -4844,23 +5049,23 @@ classdef JLabelData < handle
       
     
     end
+
     
+% Mode functions
+    
+
     function gtMode =  IsGTMode(obj)
       gtMode = obj.gtMode;
     end
-    
     function advancedMode = IsAdvancedMode(obj)
       advancedMode = obj.advancedMode;
     end
-    
     function modeSet = IsModeSet(obj)
       modeSet = obj.modeSet;
     end
-    
     function SetGTMode(obj,val)
       obj.gtMode = val;
     end
-    
     function SetAdvancedMode(obj,val)
       obj.advancedMode = val;
     end
