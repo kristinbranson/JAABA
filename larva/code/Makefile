@@ -55,7 +55,6 @@ train.o: train.cpp fit_model.h blob.h spine_features.h train.h common.h
 
 common.o: common.h
 	$(CC) $(CFLAGS) -c common.cpp
-	
 
 libbehaviors.a: $(O_FILES)
 	ar rcs libbehaviors.a $(O_FILES)
@@ -71,3 +70,6 @@ svm_struct_classify: libsvmstructmulti.a libbehaviors.a svm/svm_struct/svm_struc
 
 svm_struct_learn: libsvmstructmulti.a libbehaviors.a svm/svm_struct/svm_struct/svm_struct_main.o 
 	$(LD) $(LFLAGS) -o svm_struct_learn svm/svm_struct/svm_struct/svm_struct_main.o svm/svm_struct/libsvmstructmulti.a libbehaviors.a
+
+fit_model: fit_model.o blob.o spine_features.o train.o common.o libsvmstructmulti.a libbehaviors.a 
+	$(CC) $(LFLAGS) $(WX_LIBS) -o fit_model fit_model.o blob.o spine_features.o train.o common.o svm/svm_struct/libsvmstructmulti.a 
