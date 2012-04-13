@@ -799,6 +799,8 @@ if ~isempty(fileToRead)
   if isfield(curparams,'featureparamlist'),
     handles.featureList{handles.curbehavior} = curparams.featureparamlist;
     curparams = rmfield(curparams,'featureparamlist');
+  else
+    handles.featureList{handles.curbehavior} = [];
   end
   handles.config{handles.curbehavior} = curparams;
 else

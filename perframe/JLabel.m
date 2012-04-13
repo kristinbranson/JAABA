@@ -700,7 +700,9 @@ if handles.data.ismovie,
 
   % close previous movie
   if isfield(handles,'movie_fid') && ~isempty(fopen(handles.movie_fid)),
-    fclose(handles.movie_fid);
+    if ~isempty(handles.movie_fid) && handles.movie_fid > 0,
+      fclose(handles.movie_fid);
+    end
   end
 
   % open new movie
@@ -3837,7 +3839,7 @@ else
   [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.expi,handles.flies,prop);
   set(handles.htimeline_data(propi),'XData',T0:T1,'YData',perframedata);
   ylim = [min(perframedata),max(perframedata)];
-  if ylim(1) == ylim(2)
+  if ylim(1) >= ylim(2)
     ylim(2) = ylim(1)+0.001;
   end
   set(handles.axes_timeline_props(propi),'YLim',ylim);
