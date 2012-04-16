@@ -71,7 +71,8 @@ guidata(hObject, handles);
 set(handles.pfTable,'UserData',0);
 setJLDobj(hObject,JLDobj);
 set(hObject,'Visible','on');
-removeRowHeaders(hObject);
+removeRowHeaders(hObject); pause(0.5);
+% uiwait(hObject);
 % UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
 
 
