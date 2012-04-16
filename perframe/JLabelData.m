@@ -1903,7 +1903,7 @@ classdef JLabelData < handle
       obj.windowdata.scores_old(...
         idxcurr(1:numel(obj.windowdata.scores_old))) = [];
       obj.windowdata.scores_validated(...
-        idxcurr(1:numel(obj.windowdata.scores_validated))) = [];
+        idxcurr(1:numel(obj.windowdata.scores_validated)),:) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
       obj.windowdata.bins=[];
@@ -3426,6 +3426,7 @@ classdef JLabelData < handle
         obj.windowdata.labelidx_new(end+1:end+m,1) = tempLabelsNew(idxnew);
         tempLabelsImp = labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
         obj.windowdata.labelidx_imp(end+1:end+m,1) = tempLabelsImp(idxnew);        
+        obj.windowdata.labelidx_old(end+1:end+m,1) = 0;
         obj.windowdata.predicted(end+1:end+m,1) = 0;
         obj.windowdata.scores(end+1:end+m,1) = 0;
         obj.windowdata.scores_old(end+1:end+m,1) = 0;   
@@ -3637,38 +3638,6 @@ classdef JLabelData < handle
      
     end
     
-    function CleanWindowData(obj)
-      % Removes window data for unlabeled data to save memory
-      curMem = 8*numel(obj.windowdata.X);
-      if curMem>3e8  % greater than 300MB
-        idxcurr = obj.windowdata.labelidx_new==0;
-        obj.windowdata.X(idxcurr,:) = [];
-        obj.windowdata.exp(idxcurr) = [];
-        obj.windowdata.flies(idxcurr) =[];
-        obj.windowdata.t(idxcurr) =[];
-        obj.windowdata.labelidx_new(idxcurr) = [];
-        obj.windowdata.labelidx_imp(idxcurr) = [];
-        obj.windowdata.isvalidprediction(...
-          idxcurr(1:numel(obj.windowdata.isvalidprediction))) = [];
-        obj.windowdata.labelidx_cur(...
-          idxcurr(1:numel(obj.windowdata.labelidx_cur))) = [];
-        obj.windowdata.predicted(...
-          idxcurr(1:numel(obj.windowdata.predicted))) = [];
-        obj.windowdata.predicted_probs(...
-          idxcurr(1:numel(obj.windowdata.predicted_probs))) = [];
-        obj.windowdata.scores(...
-          idxcurr(1:numel(obj.windowdata.scores))) = [];
-        obj.windowdata.scores_old(...
-          idxcurr(1:numel(obj.windowdata.scores_old))) = [];
-        obj.windowdata.scores_validated(...
-          idxcurr(1:numel(obj.windowdata.scores_validated))) = [];
-        obj.windowdata.distNdx = [];
-        obj.windowdata.binVals=[];
-        obj.windowdata.bins=[];
-
-      end
-    end
-    
     function ClearWindowData(obj)
       % Clears window features and predictions for a clean start when selecting
       % features.
@@ -3679,12 +3648,15 @@ classdef JLabelData < handle
       obj.windowdata.labelidx_cur=[];
       obj.windowdata.labelidx_new=[];
       obj.windowdata.labelidx_imp=[];
+      obj.windowdata.labelidx_old=[];      
       obj.windowdata.featurenames={{}};
       obj.windowdata.predicted=[];
       obj.windowdata.predicted_probs=[];
       obj.windowdata.isvalidprediction=[];
       obj.windowdata.distNdx=[];
       obj.windowdata.scores=[];
+      obj.windowdata.scores_old=[];
+      obj.windowdata.scores_validated=[];
       obj.windowdata.scoreNorm=[];
       obj.windowdata.binVals=[];
       obj.windowdata.bins=[];
@@ -3717,6 +3689,7 @@ classdef JLabelData < handle
       obj.windowdata.labelidx_cur(idx2remove,:) = [];
       obj.windowdata.labelidx_new(idx2remove,:) = [];
       obj.windowdata.labelidx_imp(idx2remove,:) = [];
+      obj.windowdata.labelidx_old(idx2remove,:) = [];
       obj.windowdata.predicted(idx2remove,:) = [];
       obj.windowdata.scores(idx2remove,:) = [];
       obj.windowdata.scores_old(idx2remove,:) = [];
@@ -3724,7 +3697,6 @@ classdef JLabelData < handle
       obj.windowdata.isvalidprediction(idx2remove,:) = [];
       obj.windowdata.binVals = [];
       obj.windowdata.bins = [];
-
       
     end
     
@@ -4312,7 +4284,7 @@ classdef JLabelData < handle
         crossValidateBout( obj.windowdata.X, ...
         obj.windowdata.labelidx_cur,bouts,obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins,obj.classifier_params,true);
+        obj.windowdata.bins,obj.classifier_params);%,true);
 
 %{      
 %       crossScores=...
@@ -4322,7 +4294,7 @@ classdef JLabelData < handle
 %         obj.windowdata.bins(:,islabeled),obj.classifier_params);
 %}
       
-      obj.windowdata.scores_validated = zeros(1,numel(islabeled));
+      obj.windowdata.scores_validated = zeros(numel(islabeled),1);
       obj.windowdata.scores_validated(islabeled) = crossScores(1,:);
 
       modLabels = 2*obj.windowdata.labelidx_cur(islabeled)-obj.windowdata.labelidx_imp(islabeled);
