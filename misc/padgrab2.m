@@ -68,6 +68,8 @@ if any(idxhigh),
   npadl(idxhigh) = 0;
 end
 
+% BJA: in my hands npad*==0 when size(y,1)>0
+%   if not, replace with ones(size(y,1),...
 if any(npadl > 0),
   %y = padarray(y,npadl,padv,'pre');
   y = [ones(1,npadl(2)).*padv y];
