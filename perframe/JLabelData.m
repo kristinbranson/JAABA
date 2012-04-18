@@ -4185,15 +4185,19 @@ classdef JLabelData < handle
       obj.SetStatus('Classifying current movie..');
       
       parfor flies = 1:numFlies
+        blockSize = 5000;
         tStart = tStartAll(flies);
         tEnd = tEndAll(flies);
         
         scores = nan(1,tEnd);
         
-        X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-          allperframefns,perframefile,flies,windowfeaturescellparams,1,tEnd-tStart+1);
+        for curt0 = tStart:blockSize:tEnd
+          curt1 = min(tStart+blockSize-1,tEnd);
+          X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+            allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
         
-        scores(tStart:tEnd) = myBoostClassify(X,classifier);
+          scores(curt0:curt1) = myBoostClassify(X,classifier);
+        end
         scoresA{flies} = scores;
         fprintf('Prediction done for flynum:%d, total number of flies:%d\n',flies,numFlies);
       end

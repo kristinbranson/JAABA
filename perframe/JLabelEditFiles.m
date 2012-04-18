@@ -22,7 +22,7 @@ function varargout = JLabelEditFiles(varargin)
 
 % Edit the above text to modify the response to help JLabelEditFiles
 
-% Last Modified by GUIDE v2.5 02-Apr-2012 13:23:16
+% Last Modified by GUIDE v2.5 16-Apr-2012 17:02:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,8 +66,8 @@ handles.success = false;
 
 handles.behaviorXMLeditFile = 'xml_edit_tools/behaviorConfigDefaults.xml';
 set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing'});
-
 handles.disableBehavior = disableBehavior;
+
 if disableBehavior,
   handles.success = true;
   % Simply edit files, not editing the behavior part
@@ -163,7 +163,6 @@ else
   updateConfigParams(handles);
 end
 
-
 % UIWAIT makes JLabelEditFiles wait for user response (see UIRESUME)
 uiwait(handles.figure_JLabelEditFiles);
 
@@ -189,7 +188,7 @@ defaultConfig.file = struct('moviefilename','movie.ufmf',...
       'perframedir','perframe',...
       'windowfilename','windowfeatures.mat',...
       'rootoutputdir','',...
-      'featureparamfilename','',...test.xml',...
+      'featureparamfilename','',...
       'featureconfigfile',fullfile('params','featureConfig.xml'));
 defaultConfig.plot.trx = struct('colormap','jet',...
 	'colormap_multiplier','.7');
@@ -960,8 +959,22 @@ function config_table_CellEditCallback(hObject, eventdata, handles)
 if isempty(eventdata.Indices); return; end
 data = get(handles.config_table,'Data');
 ndx = eventdata.Indices(1);
-eval(sprintf('handles.config{handles.curbehavior}.%s = data{ndx,2};',...
-    data{ndx,1}));
+if eventdata.Indices(2) == 2
+  eval(sprintf('handles.config{handles.curbehavior}.%s = data{ndx,2};',...
+      data{ndx,1}));
+else
+  [fpath,lastfield] = splitext(eventdata.PreviousData);
+  if isempty(lastfield)
+    handles.config{curbehavior} = rmfield(handles.config{curbehavior},fpath);
+  else
+    eval(sprintf('handles.config{handles.curbehavior}.%s = rmfield(handles.config{handles.curbehavior}.%s,lastfield(2:end));',...
+      fpath,fpath));  
+  end
+  eval(sprintf('handles.config{handles.curbehavior}.%s = data{ndx,2};',...
+      eventdata.NewData));
+  
+end
+
 handles.needSave(handles.curbehavior) = true;
 guidata(hObject,handles);
 
@@ -1045,3 +1058,51 @@ if strcmp(get(hObject,'String'),'Done')
 end
 
 delete(handles.fig);
+
+
+% --- Executes on button press in pushbutton_addconfigparam.
+function pushbutton_addconfigparam_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_addconfigparam (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+in = inputdlg({'Configuration Parameter Name','Configuration Parameter Value'});
+if isempty(in) || numel(in) < 2
+  return;
+end
+
+curbehavior = handles.curbehavior;
+if isfield(handles.config{curbehavior},in{1}),
+  uiwait(warndlg(sprintf('Configuration Parameter named %s already exists',in{1})));
+  return;
+end
+
+eval(sprintf('handles.config{curbehavior}.%s=in{2};',in{1}));
+handles.needSave(curbehavior) = true;
+guidata(hObject,handles);
+updateConfigParams(handles);
+
+% --- Executes on button press in pushbutton_removeconfigparam.
+function pushbutton_removeconfigparam_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_removeconfigparam (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+data = get(handles.config_table,'Data');
+
+jUIScrollPane = findjobj(handles.config_table);
+jUITable = jUIScrollPane.getViewport.getView;
+allndx = jUITable.getSelectedRows + 1;
+if numel(allndx)==1 && allndx <1, return, end
+curbehavior = handles.curbehavior;
+
+for ndx = allndx(:)'
+  [fpath,lastfield] = splitext(data{ndx,1});
+  if isempty(lastfield)
+    handles.config{curbehavior} = rmfield(handles.config{curbehavior},fpath);
+  else
+    handles.config{curbehavior}.(fpath) = rmfield(handles.config{curbehavior}.(fpath),lastfield(2:end));  
+  end
+end
+handles.needSave(curbehavior) = true;
+guidata(hObject,handles);
+updateConfigParams(handles);
