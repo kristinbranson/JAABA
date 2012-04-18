@@ -1250,12 +1250,12 @@ function Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fName,pName] = uiputfile('./*.xml','Save feature configurations to..');
+configfile = handles.JLDobj.configfilename;
+[fName,pName] = uiputfile(configfile,'Save feature configurations to..');
 if ~fName
   return;
 end
 
-handles = guidata(hObject);
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
@@ -1650,5 +1650,13 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_ok (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+configfile = handles.JLDobj.configfilename;
+[params,~] = convertData(handles);
+basicData = get(handles.basicTable,'Data');
+featureWindowSize = round(str2double(get(handles.editSize,'String')));
+docNode = createParamsXML(params,basicData,featureWindowSize);
+xmlwrite(configfile,docNode);
+
 pushbutton_done_Callback(hObject,eventdata,handles);
 push_cancel_Callback(hObject,eventdata,handles);
