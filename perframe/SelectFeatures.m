@@ -1652,11 +1652,24 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 configfile = handles.JLDobj.configfilename;
+configparams = ReadXMLParams(configfile);
+featureconfigfile = configparams.file.featureparamfilename;
+
+if isempty(featureconfigfile)
+  behaviorname = configparams.behaviors.names;
+  defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+  [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
+  if isempty(fname),return, end
+  featureconfigfile = fullfile(fpath,fname);
+  configparams.file.featureparamfilename = featureconfigfile;
+  % TODO! save config params.
+end
+
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
 docNode = createParamsXML(params,basicData,featureWindowSize);
-xmlwrite(configfile,docNode);
+xmlwrite(featureconfigfile,docNode);
 
 pushbutton_done_Callback(hObject,eventdata,handles);
 push_cancel_Callback(hObject,eventdata,handles);
