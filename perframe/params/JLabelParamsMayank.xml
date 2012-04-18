@@ -15,8 +15,10 @@
       <absdtheta/>
       <absdv_cor/>
       <area/>
+      <closestfly_ell2nose/>
       <corfrac_maj/>
       <corfrac_min/>
+      <dell2nose/>
       <dtheta/>
       <du_cor/>
       <du_ctr/>
