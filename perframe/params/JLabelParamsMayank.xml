@@ -2,7 +2,7 @@
 <params>
    <targets type="fly"/>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Jump" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="" gt_labelfilename="gt_labeledImpJumps.mat" labelfilename="labeledImpJumps.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_test2.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="/groups/branson/home/kabram/Jdetect/perframe/params/delete.xml" gt_labelfilename="gt_labeledImpJumps.mat" labelfilename="labeledImpJumps.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_test2.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
       <labels colormap="line" linewidth="3"/>
