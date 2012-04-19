@@ -271,18 +271,34 @@ default_windows = SetWindowParameters(...
 %% set all parameters, putting in default windows, trans as necessary
 
 % BJA:  these calls to SetDefaultParams() account for ~20% of the compute time in ComputeWindowFeatures()
-mean_params = SetDefaultParams(mean_params,default_windows,default_trans_types,relativeParams);
-min_params = SetDefaultParams(min_params,default_windows,default_trans_types,relativeParams);
-max_params = SetDefaultParams(max_params,default_windows,default_trans_types,relativeParams);
-hist_params = SetDefaultParams(hist_params,default_windows,default_trans_types,relativeParams);
-prctile_params = SetDefaultParams(prctile_params,default_windows,default_trans_types,relativeParams);
-change_params = SetDefaultParams(change_params,default_windows,default_trans_types,relativeParams);
-std_params = SetDefaultParams(std_params,default_windows,default_trans_types,relativeParams);
-harmonic_params = SetDefaultParams(harmonic_params,default_windows,default_trans_types,relativeParams);
-diff_neighbor_mean_params = SetDefaultParams(diff_neighbor_mean_params,default_windows,default_trans_types,relativeParams);
-diff_neighbor_min_params = SetDefaultParams(diff_neighbor_min_params,default_windows,default_trans_types,relativeParams);
-diff_neighbor_max_params = SetDefaultParams(diff_neighbor_max_params,default_windows,default_trans_types,relativeParams);
-zscore_neighbors_params = SetDefaultParams(zscore_neighbors_params,default_windows,default_trans_types,relativeParams);
+% mean_params = SetDefaultParams(mean_params,default_windows,default_trans_types,relativeParams);
+% min_params = SetDefaultParams(min_params,default_windows,default_trans_types,relativeParams);
+% max_params = SetDefaultParams(max_params,default_windows,default_trans_types,relativeParams);
+% hist_params = SetDefaultParams(hist_params,default_windows,default_trans_types,relativeParams);
+% prctile_params = SetDefaultParams(prctile_params,default_windows,default_trans_types,relativeParams);
+% change_params = SetDefaultParams(change_params,default_windows,default_trans_types,relativeParams);
+% std_params = SetDefaultParams(std_params,default_windows,default_trans_types,relativeParams);
+% harmonic_params = SetDefaultParams(harmonic_params,default_windows,default_trans_types,relativeParams);
+% diff_neighbor_mean_params = SetDefaultParams(diff_neighbor_mean_params,default_windows,default_trans_types,relativeParams);
+% diff_neighbor_min_params = SetDefaultParams(diff_neighbor_min_params,default_windows,default_trans_types,relativeParams);
+% diff_neighbor_max_params = SetDefaultParams(diff_neighbor_max_params,default_windows,default_trans_types,relativeParams);
+% zscore_neighbors_params = SetDefaultParams(zscore_neighbors_params,default_windows,default_trans_types,relativeParams);
+
+% MK: When the params are set using Select features, we don't need
+% SetDefaultParams anymore. But we do need relative params which were
+% being added there.
+mean_params = addRelativeParams(mean_params,relativeParams);
+min_params =  addRelativeParams(min_params,relativeParams);
+max_params = addRelativeParams(max_params,relativeParams );
+hist_params = addRelativeParams(hist_params,relativeParams );
+prctile_params = addRelativeParams(prctile_params ,relativeParams);
+change_params = addRelativeParams(change_params ,relativeParams);
+std_params = addRelativeParams(std_params ,relativeParams);
+harmonic_params = addRelativeParams(harmonic_params ,relativeParams);
+diff_neighbor_mean_params = addRelativeParams(diff_neighbor_mean_params ,relativeParams);
+diff_neighbor_min_params = addRelativeParams(diff_neighbor_min_params ,relativeParams);
+diff_neighbor_max_params = addRelativeParams(diff_neighbor_max_params ,relativeParams);
+zscore_neighbors_params = addRelativeParams(zscore_neighbors_params ,relativeParams);
 
 common_params = {'sanitycheck',SANITY_CHECK,...
   'docache',DOCACHE};
@@ -348,6 +364,12 @@ pad1 = OFF1-t1;
 y = y(:,1+pad0:end-pad1);
 
 % return;
+
+%% Add relative params.
+function params = addRelativeParams(params,relativeParams)
+if ~isempty(params), 
+  params(end+1:end+2) = {'relativeParams',relativeParams};
+end
 %% Old feature computation code.
 % %% window mean
 % 
@@ -361,7 +383,7 @@ y = y(:,1+pad0:end-pad1);
 %   feature_types_computed{end+1} = 'mean';
 % end
 % 
-% %% window minimum
+% %% window minimumd
 % 
 % if useallfeatures || ismember('min',feature_types),
 %   [y_new,feature_names_new,cache] = ...
