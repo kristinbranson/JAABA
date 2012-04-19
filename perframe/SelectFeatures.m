@@ -1662,7 +1662,13 @@ if isempty(featureconfigfile)
   if isempty(fname),return, end
   featureconfigfile = fullfile(fpath,fname);
   configparams.file.featureparamfilename = featureconfigfile;
-  % TODO! save config params.
+  docNode = com.mathworks.xml.XMLUtils.createDocument('params');
+  toc = docNode.getDocumentElement;
+  fnames = fieldnames(configparams);
+  for ndx = 1:numel(fnames)
+    toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
+  end
+  xmlwrite(configfile,docNode);
 end
 
 [params,~] = convertData(handles);

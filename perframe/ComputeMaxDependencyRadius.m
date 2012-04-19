@@ -3,6 +3,7 @@ function MAXDEPENDENCYRADIUS = ComputeMaxDependencyRadius(varargin)
 MAXDEPENDENCYRADIUS = 0;
 for i = 1:numel(varargin),
   paramscurr = varargin{i};
+  if isempty(paramscurr), continue, end;
   j = find(strcmp('windows',paramscurr(1:2:end-1)),1);
   if isempty(j),
     j = find(strcmp('max_window_radius',paramscurr(1:2:end-1)),1);
