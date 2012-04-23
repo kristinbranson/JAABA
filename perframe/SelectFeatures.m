@@ -71,7 +71,8 @@ guidata(hObject, handles);
 set(handles.pfTable,'UserData',0);
 setJLDobj(hObject,JLDobj);
 set(hObject,'Visible','on');
-removeRowHeaders(hObject);
+removeRowHeaders(hObject); pause(0.5);
+% uiwait(hObject);
 % UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
 
 
@@ -777,12 +778,16 @@ set(handles.WindowStep,'String',num2str(curParams.values.nwindow_radii));
 set(handles.WindowOffsets,'String',num2str(curParams.values.window_offsets));
 set(handles.TransNone,'Value',...
   any(strcmp('none',curParams.values.trans_types)));
+  %bitand(1,curParams.values.trans_types));
 set(handles.TransFlip,'Value',...
   any(strcmp('flip',curParams.values.trans_types)));
+  %bitand(4,curParams.values.trans_types));
 set(handles.TransAbs,'Value',...
   any(strcmp('abs',curParams.values.trans_types)));
+  %bitand(2,curParams.values.trans_types));
 set(handles.TransRel,'Value',...
   any(strcmp('relative',curParams.values.trans_types)));
+  %bitand(8,curParams.values.trans_types));
 if isfield(curParams.values,handles.winextraParams{winNdx})
   extraParam = handles.winextraParams{winNdx};
   set(handles.ExtraParams,'String',curParams.values.(extraParam));
@@ -1081,13 +1086,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
+  %curT=bitor(1,curT);
   if ~any(strcmp('none',curT))
-    handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
   end
 else
+%   curT=bitand(14,curT);
   allNdx = strcmp('none',curT);
   handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
   if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1106,13 +1114,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
+%   curT=bitor(1,curT);
   if ~any(strcmp('flip',curT))
-    handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'flip';
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'flip';
   end
 else
+%   curT=bitand(14,curT);
   allNdx = find(strcmp('flip',curT));
   handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
   if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1132,13 +1143,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
+%   curT=bitor(1,curT);
   if ~any(strcmp('abs',curT))
-    handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'abs';
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'abs';
   end
 else
+%   curT=bitand(14,curT);
   allNdx = find(strcmp('abs',curT));
   handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
   if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1158,13 +1172,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
+%   curT=bitor(1,curT);
   if ~any(strcmp('relative',curT))
-    handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'relative';
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'relative';
   end
 else
+%   curT=bitand(14,curT);
   allNdx = find(strcmp('relative',curT));
   handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
   if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1233,12 +1250,12 @@ function Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fName,pName] = uiputfile('./*.xml','Save feature configurations to..');
+configfile = handles.JLDobj.configfilename;
+[fName,pName] = uiputfile(configfile,'Save feature configurations to..');
 if ~fName
   return;
 end
 
-handles = guidata(hObject);
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
@@ -1633,5 +1650,32 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_ok (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+configfile = handles.JLDobj.configfilename;
+configparams = ReadXMLParams(configfile);
+featureconfigfile = configparams.file.featureparamfilename;
+
+if isempty(featureconfigfile)
+  behaviorname = configparams.behaviors.names;
+  defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+  [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
+  if isempty(fname),return, end
+  featureconfigfile = fullfile(fpath,fname);
+  configparams.file.featureparamfilename = featureconfigfile;
+  docNode = com.mathworks.xml.XMLUtils.createDocument('params');
+  toc = docNode.getDocumentElement;
+  fnames = fieldnames(configparams);
+  for ndx = 1:numel(fnames)
+    toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
+  end
+  xmlwrite(configfile,docNode);
+end
+
+[params,~] = convertData(handles);
+basicData = get(handles.basicTable,'Data');
+featureWindowSize = round(str2double(get(handles.editSize,'String')));
+docNode = createParamsXML(params,basicData,featureWindowSize);
+xmlwrite(featureconfigfile,docNode);
+
 pushbutton_done_Callback(hObject,eventdata,handles);
 push_cancel_Callback(hObject,eventdata,handles);
