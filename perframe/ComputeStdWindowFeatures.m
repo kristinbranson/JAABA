@@ -88,7 +88,8 @@ feature_names = {};
   SetDefaultWindowParameters();
 
 % use all transformation types by default
-trans_types = 'all';
+%trans_types = 'all';
+trans_types = uint8(15);
 
 % for debugging purposes
 SANITY_CHECK = true;
@@ -127,9 +128,9 @@ relativeParams = [];
   'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
-if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip','relative'}; %#ok<NASGU>
-end
+%if ischar(trans_types) && strcmpi(trans_types,'all'),
+%  trans_types = {'none','abs','flip','relative'}; %#ok<NASGU>
+%end
 
 %% select default windows from various ways of specifying windows
 
@@ -141,7 +142,8 @@ end
 
 %% main computation
 
-if ismember('relative',trans_types)
+%if ismember('relative',trans_types)
+if bitand(8,trans_types)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -210,7 +212,8 @@ for radiusi = 1:nradii,
     
   end
 
-  if ismember('relative',trans_types),
+%  if ismember('relative',trans_types),
+  if bitand(8,trans_types),
     
     if DOCACHE && ismember(r,cache.stdRel.radii),
       cache_i = find(r == cache.stdRel.radii,1);
@@ -251,12 +254,13 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = padgrab(res,nan,1,1,1+r+off,N+r+off);
+    res1 = padgrab2(res,nan,1,1,1+r+off,N+r+off);
     y(end+1,:) = res1; %#ok<*AGROW>
     feature_names{end+1} = {'stat','std','trans','none','radius',r,'offset',off};
     
-    if ismember('relative',trans_types)
-      resRel1 = padgrab(resRel,nan,1,1,1+r+off,N+r+off);
+%    if ismember('relative',trans_types)
+    if bitand(8,trans_types)
+      resRel1 = padgrab2(resRel,nan,1,1,1+r+off,N+r+off);
       y(end+1,:) = resRel1; %#ok<*AGROW>
       feature_names{end+1} = {'stat','std','trans','relative','radius',r,'offset',off};
     end
@@ -264,7 +268,7 @@ for radiusi = 1:nradii,
     if SANITY_CHECK,
       res_dumb = nan(1,N);
       for n_dumb = 1:N,
-        res_dumb(n_dumb) = nanstd(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
+        res_dumb(n_dumb) = nanstd(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off),1);
       end
       checkSanity(y(end,:),res_dumb(:),r,off,'std','none');
     end

@@ -7,8 +7,5 @@ addpath(fullfile(baseDir,'filehandling'));
 jlabelpath = fileparts(which('JLabel'));
 addpath(fullfile(jlabelpath,'compute_perframe_features'));
 
-% Set the configuration file.
-configfilename = 'params/JLabelExample.xml';
-
 % Start JAABA.
-JLabel('configfilename',configfilename);
+JLabel();

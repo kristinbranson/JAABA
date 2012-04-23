@@ -1,28 +1,36 @@
 % [y,npadl,npadu] = padgrab(x,padv,l1,u1,l2,u2,...)
-function [y,npadl,npadu] = padgrab(x,padv,varargin)
+%function [y,npadl,npadu] = padgrab(x,padv,varargin)
+%BJA: hard-coded for 6 args to get rid of slow varargin cell array
+function [y,npadl,npadu] = padgrab2(x,padv,l1,u1,l2,u2)
 
 % parse arguments
-usagestring = 'Usage: padgrab(x,padv,l1,u1,l2,u2,...)';
+usagestring = 'Usage: padgrab2(x,padv,l1,u1,l2,u2,...)';
 nd1 = ndims(x);
-if mod(numel(varargin),2) ~= 0 || isempty(varargin),
-  error(usagestring);
-end
-isones = cellfun(@(x) x == 1, varargin(1:2:end-1)) & cellfun(@(x) x == 1, varargin(2:2:end));
+%if mod(numel(varargin),2) ~= 0 || isempty(varargin),
+%  error(usagestring);
+%end
+
+%isones = cellfun(@(x) x == 1, varargin(1:2:end-1)) & cellfun(@(x) x == 1, varargin(2:2:end));
+isones = ([l1 l2]==1) & ([u1 u2]==1);
 nd = find(~isones,1,'last');
 if isempty(nd),
   nd = 1;
 end
-varargin = varargin(1:2*nd);
-isrowvec = nd == 1 && nd1 == 2 && size(x,1) == 1;
-if isrowvec,
-  varargin = [{1,1},varargin];
-  nd = 2;
-end
+%varargin = varargin(1:2*nd);
 if mod(nd,1) ~= 0 || nd > nd1,
   error(usagestring);
 end
-l = cell2mat(varargin(1:2:end));
-u = cell2mat(varargin(2:2:end));
+%l = cell2mat(varargin(1:2:end));
+%u = cell2mat(varargin(2:2:end));
+l=[l1 l2];
+u=[u1 u2];
+isrowvec = nd == 1 && nd1 == 2 && size(x,1) == 1;
+if isrowvec,
+%  varargin = [{1,1},varargin];
+  l=[1 l];
+  u=[1 u];
+  nd = 2;
+end
 %if any(u < l),
 %  error(usagestring);
 %end

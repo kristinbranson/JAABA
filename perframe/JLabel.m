@@ -3248,7 +3248,8 @@ switch eventdata.Key,
       set(handles.togglebutton_label_unknown,'Value',0);
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
     else
-      for behaviori = 1:handles.data.nbehaviors,
+      for behaviori = 1:2*handles.data.nbehaviors,
+        if isnan(handles.togglebutton_label_behaviors(behaviori)), continue; end
         if get(handles.togglebutton_label_behaviors(behaviori),'Value') ~= 0,
           set(handles.togglebutton_label_behaviors(behaviori),'Value',0);
           togglebutton_label_behavior1_Callback(handles.togglebutton_label_behaviors(behaviori), eventdata, handles);
@@ -5061,7 +5062,7 @@ function crossValidate_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.data.StoreLabels();
-crossError = handles.data.CrossValidate();
+[crossError tlabels] = handles.data.CrossValidate();
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.bottomAutomatic = 'Validated';
@@ -5079,24 +5080,24 @@ cnames = {sprintf('%s|Predicted',handles.data.labelnames{1}),...
           sprintf('%s|Predicted',handles.data.labelnames{2}),...
           };
 rnames = {sprintf('%s Important ',handles.data.labelnames{1}),...
-          sprintf('%s ',handles.data.labelnames{1}),...
+          sprintf('%s All',handles.data.labelnames{1}),...
           sprintf('%s Important ',handles.data.labelnames{2}),...
-          sprintf('%s ',handles.data.labelnames{2}),...
+          sprintf('%s All',handles.data.labelnames{2}),...
           '',...
           sprintf('Old %s Important',handles.data.labelnames{1}),...
-          sprintf('Old %s ',handles.data.labelnames{1}),...
+          sprintf('Old %s All',handles.data.labelnames{1}),...
           sprintf('Old %s Important',handles.data.labelnames{2}),...
-          sprintf('Old %s ',handles.data.labelnames{2})...
+          sprintf('Old %s All',handles.data.labelnames{2})...
           };
 
 dat = {};
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError.numbers(row,col));
-    if isnan(crossError.frac(row,col))
+    t1 = sprintf('%d ',crossError(1).numbers(row,col));
+    if isnan(crossError(1).frac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError.frac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError(1).frac(row,col)*100);
     end
     dat{row,col} = sprintf('%s%s',t1,t2);
   end
@@ -5106,11 +5107,11 @@ dat(5,:) = repmat({''},1,3);
 
 for col = 1:3
   for row = 1:4
-    t1 = sprintf('%d ',crossError.oldNumbers(row,col));
-    if isnan(crossError.oldFrac(row,col))
+    t1 = sprintf('%d ',crossError(1).oldNumbers(row,col));
+    if isnan(crossError(1).oldFrac(row,col))
       t2 = ' (-)';
     else
-      t2 = sprintf(' (%.1f%%)',crossError.oldFrac(row,col)*100);
+      t2 = sprintf(' (%.1f%%)',crossError(1).oldFrac(row,col)*100);
     end
     dat{5+row,col} = sprintf('%s%s',t1,t2);
   end
@@ -5120,6 +5121,21 @@ f = figure('Position',[200 200 500 200],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
+for tndx = 1:numel(crossError)
+   errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);
+   errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);
+end
+totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
+totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
+
+errorAll = errorAll/totExamplesAll;
+errorImp = errorImp/totExamplesImp;
+
+f = figure('Name','Cross Validation Error with time');
+ax = plot([errorAll errorImp]);
+legend(ax,{'All', 'Important'});         
+set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
+title(gca,'Cross Validation Error with time');
 
 % --------------------------------------------------------------------
 function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles)
