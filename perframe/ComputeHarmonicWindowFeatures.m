@@ -13,7 +13,8 @@ feature_names = {};
   SetDefaultWindowParameters();
 
 % use all transformation types by default
-trans_types = 'all';
+%trans_types = 'all';
+trans_types = uint8(15);
 
 % for debugging purposes
 SANITY_CHECK = true;
@@ -58,9 +59,9 @@ relativeParams = [];
   'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
-if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip','relative'};
-end
+%if ischar(trans_types) && strcmpi(trans_types,'all'),
+%  trans_types = {'none','abs','flip','relative'};
+%end
 
 %% select default windows from various ways of specifying windows
 
@@ -72,7 +73,8 @@ end
 
 %% main computation
 
-if ismember('relative',trans_types)
+%if ismember('relative',trans_types)
+if bitand(8,trans_types)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -94,7 +96,8 @@ for radiusi = 1:nradii,
     
     res = HarmonicWindowCore(x,w,num_harmonic_curr);
     
-    if ismember('relative',trans_types),
+    %if ismember('relative',trans_types),
+    if bitand(8,trans_types),
        resRel = HarmonicWindowCore(modX,w,num_harmonic_curr);
     end
     
@@ -102,20 +105,23 @@ for radiusi = 1:nradii,
     windowis = find(windowi2radiusi == radiusi);
     for windowi = windowis',
       off = windows(windowi,2);
-      res1 = padgrab(res,nan,1,1,1+off,N+off);
+      res1 = padgrab2(res,nan,1,1,1+off,N+off);
       
-      if ismember('none',trans_types),
+      %if ismember('none',trans_types),
+      if bitand(1,trans_types),
         y(end+1,:) = res1; %#ok<*AGROW>
         feature_names{end+1} = {'stat','harmonic','trans','none','radius',r,'offset',off,'num_harmonic',num_harmonic_curr};
       end
    
-      if ismember('abs',trans_types),
+      %if ismember('abs',trans_types),
+      if bitand(2,trans_types),
         y(end+1,:) = abs(res1);
         feature_names{end+1} = {'stat','harmonic','trans','abs','radius',r,'offset',off,'num_harmonic',num_harmonic_curr};
       end
       
-      if ismember('relative',trans_types),
-        resRel1 = padgrab(resRel,nan,1,1,1+off,N+off);
+      %if ismember('relative',trans_types),
+      if bitand(8,trans_types),
+        resRel1 = padgrab2(resRel,nan,1,1,1+off,N+off);
         y(end+1,:) = resRel1;
         feature_names{end+1} = {'stat','harmonic','trans','relative','radius',r,'offset',off,'num_harmonic',num_harmonic_curr};
       end
@@ -124,7 +130,8 @@ for radiusi = 1:nradii,
         extraStr = sprintf('num_harmonic = %d ',num_harmonic_curr);
         funcType = 'harmonic';   
         
-        if ismember('none',trans_types),
+        %if ismember('none',trans_types),
+        if bitand(1,trans_types),
           fastY = res1; %#ok<*AGROW>
           res_dumb = nan(1,N);
           for n_dumb = 1:N,
@@ -139,7 +146,8 @@ for radiusi = 1:nradii,
           checkSanity(fastY,res1,r,off,funcType,'none',extraStr);
         end
         
-        if ismember('abs',trans_types),
+        %if ismember('abs',trans_types),
+        if bitand(2,trans_types),
           fastY = abs(res1);
           res_dumb = nan(1,N);
           for n_dumb = 1:N,

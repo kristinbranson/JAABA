@@ -13,7 +13,8 @@ feature_names = {};
   SetDefaultWindowParameters();
 
 % use all transformation types by default
-trans_types = 'all';
+%trans_types = 'all';
+trans_types = uint8(15);
 
 % for debugging purposes
 SANITY_CHECK = true;
@@ -51,9 +52,9 @@ relativeParams = [];
   'relativeParams',relativeParams); %#ok<ASGLU>
 
 %% whether we've specified to use all trans types by default
-if ischar(trans_types) && strcmpi(trans_types,'all'),
-  trans_types = {'none','abs','flip','relative'};
-end
+%if ischar(trans_types) && strcmpi(trans_types,'all'),
+%  trans_types = {'none','abs','flip','relative'};
+%end
 
 %% select default windows from various ways of specifying windows
 
@@ -66,7 +67,8 @@ end
 %% compute per-frame transformations 
 [x_trans,IDX,ntrans] = ComputePerFrameTrans(x,trans_types);
 
-if ismember('relative',trans_types)
+%if ismember('relative',trans_types)
+if bitand(8,trans_types)
   if DOCACHE && ~isempty(cache.relX)
     modX = cache.relX;
   else
@@ -122,9 +124,10 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = padgrab(res,nan,1,ntrans,1+r+off,N+r+off) - x_trans;
+    res1 = padgrab2(res,nan,1,ntrans,1+r+off,N+r+off) - x_trans;
     
-    if ismember('none',trans_types),
+    %if ismember('none',trans_types),
+    if bitand(1,trans_types),
       y(end+1,:) = res1(IDX.orig,:); %#ok<*AGROW>
       feature_names{end+1} = {'stat','diff_neighbor_max','trans','none','radius',r,'offset',off};
     end      
@@ -148,11 +151,12 @@ for radiusi = 1:nradii,
     
     if SANITY_CHECK,
       funcName = 'DiffNeighborMax';
-      if ismember('none',trans_types),
+      %if ismember('none',trans_types),
+      if bitand(1,trans_types),
         fastY = res1(IDX_ORIG,:); %#ok<*AGROW>
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = max(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)) - x(n_dumb);
+          res_dumb(n_dumb) = max(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)) - x(n_dumb);
         end
         checkSanity(fastY,res_dumb,r,off,funcName,'none');
       end
@@ -161,7 +165,7 @@ for radiusi = 1:nradii,
         fastY = res1(IDX.abs,:);
         res_dumb = nan(1,N);
         for n_dumb = 1:N,
-          res_dumb(n_dumb) = nanmax(abs(padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off))) - abs(x(n_dumb));
+          res_dumb(n_dumb) = nanmax(abs(padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off))) - abs(x(n_dumb));
         end
         checkSanity(fastY,res_dumb,r,off,funcName,'abs');
       end
@@ -176,7 +180,7 @@ for radiusi = 1:nradii,
           if sign(x(n_dumb)) < 0,
             m_dumb = -1;
           end
-          res_dumb(n_dumb) = nanmax(m_dumb*padgrab(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)) - abs(x(n_dumb));
+          res_dumb(n_dumb) = nanmax(m_dumb*padgrab2(x,nan,1,1,n_dumb-r+off,n_dumb+r+off)) - abs(x(n_dumb));
         end
         checkSanity(fastY,res_dumb,r,off,funcName,'abs');
       end
