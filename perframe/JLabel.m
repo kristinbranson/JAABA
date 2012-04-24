@@ -178,8 +178,14 @@ end
 for i = 1:numel(handles.guidata.slider_previews),
   fcn = get(handles.guidata.slider_previews(i),'Callback');
   %set(handles.guidata.slider_previews(i),'Callback','');
-  handles.guidata.hslider_listeners(i) = handle.listener(handles.guidata.slider_previews(i),...
-    'ActionEvent',fcn);
+  if i == 1,
+    handles.guidata.hslider_listeners = handle.listener(handles.guidata.slider_previews(i),...
+      'ActionEvent',fcn);
+  else
+    handles.guidata.hslider_listeners(i) = handle.listener(handles.guidata.slider_previews(i),...
+      'ActionEvent',fcn);
+  end
+
 end
 
 % fly current positions
@@ -709,7 +715,7 @@ if handles.guidata.data.ismovie,
   end
 
   % close previous movie
-  if isfield(handles,'movie_fid') && ~isempty(fopen(handles.guidata.movie_fid)),
+  if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)),
     if ~isempty(handles.guidata.movie_fid) && handles.guidata.movie_fid > 0,
       fclose(handles.guidata.movie_fid);
     end
@@ -786,15 +792,15 @@ handles.guidata.fly_colors = jet(handles.guidata.nflies_curr)*.7;
 handles.guidata.fly_colors = handles.guidata.fly_colors(randperm(handles.guidata.nflies_curr),:);
 
 % delete old fly current positions
-if isfield(handles,'hflies'),
+if ~isempty(handles.guidata.hflies),
   delete(handles.guidata.hflies(ishandle(handles.guidata.hflies)));
   handles.guidata.hflies = [];
 end
-if isfield(handles,'hflies_extra'),
+if ~isempty(handles.guidata.hflies_extra),
   delete(handles.guidata.hflies_extra(ishandle(handles.guidata.hflies_extra)));
   handles.guidata.hflies_extra = [];
 end
-if isfield(handles,'hfly_markers'),
+if ~isempty(handles.guidata.hfly_markers),
   delete(handles.guidata.hfly_markers(ishandle(handles.guidata.hfly_markers)));
   handles.guidata.hfly_markers = [];
 end
@@ -861,7 +867,7 @@ success = true;
 function handles = UnsetCurrentMovie(handles)
 
 % close previous movie
-if isfield(handles,'movie_fid') && ~isempty(fopen(handles.guidata.movie_fid)),
+if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)),
   fclose(handles.guidata.movie_fid);
 end
 
@@ -872,15 +878,15 @@ handles.guidata.label_state = 0;
 handles.guidata.label_imp = [];
 handles.guidata.nflies_curr = 0;
 % delete old fly current positions
-if isfield(handles,'hflies'),
+if ~isempty(handles.guidata.hflies),
   delete(handles.guidata.hflies(ishandle(handles.guidata.hflies)));
   handles.guidata.hflies = [];
 end
-if isfield(handles,'hflies_extra'),
+if ~isempty(handles.guidata.hflies_extra),
   delete(handles.guidata.hflies_extra(ishandle(handles.guidata.hflies_extra)));
   handles.guidata.hflies_extra = [];
 end
-if isfield(handles,'hfly_markers'),
+if ~isempty(handles.guidata.hfly_markers),
   delete(handles.guidata.hfly_markers(ishandle(handles.guidata.hfly_markers)));
   handles.guidata.hfly_markers = [];
 end
@@ -1976,7 +1982,7 @@ end
 % try
   if isfield(handles.guidata.rc,'defaultpath'),
     handles.guidata.defaultpath = handles.guidata.rc.defaultpath;
-    if isfield(handles,'data'),
+    if ~isempty(handles.guidata.data),
       handles.guidata.data.SetDefaultPath(handles.guidata.defaultpath);
     end
   end
@@ -2066,34 +2072,26 @@ end
 function handles = SaveRC(handles)
 
 % try
-  if ~isfield(handles,'rcfilename'),
+  if isempty(handles.guidata.rcfilename),
     handles.guidata.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
   end
   
-  if isfield(handles,'rc'),
-    rc = handles.guidata.rc;
-  else
-    rc = struct;
-  end
+  rc = handles.guidata.rc;
   
-  if isfield(handles,'data'),
+  if ~isempty(handles.guidata.data),
     rc.defaultpath = handles.guidata.data.defaultpath;
-  elseif isfield(handles,'defaultpath'),
+  elseif ~isempty(handles.guidata.defaultpath),
     rc.defaultpath = handles.guidata.defaultpath;
   end
-  if isfield(handles,'timeline_nframes'),
-    rc.timeline_nframes = handles.guidata.timeline_nframes;
-  end
+  rc.timeline_nframes = handles.guidata.timeline_nframes;
   
   set(handles.figure_JLabel,'Units','pixels');
   rc.figure_JLabel_Position_px = get(handles.figure_JLabel,'Position');
   
-  if isfield(handles,'nframes_jump_go'),
-    rc.nframes_jump_go = handles.guidata.nframes_jump_go;
-  end
+  rc.nframes_jump_go = handles.guidata.nframes_jump_go;
   
   % label shortcuts
-  if isfield(handles,'label_shortcuts'),
+  if ~isempty(handles.guidata.label_shortcuts),
     rc.label_shortcuts = handles.guidata.label_shortcuts;
   end
   
@@ -2101,36 +2099,21 @@ function handles = SaveRC(handles)
   %output avi options
   
   % compression: scheme for compression for output avis
-  if isfield(handles,'outavi_compression'),
-    rc.outavi_compression = handles.guidata.outavi_compression;
-  end
+  rc.outavi_compression = handles.guidata.outavi_compression;
   % outavi_fps: output frames per second
-  if isfield(handles,'outavi_fps'),
-    rc.outavi_fps = handles.guidata.outavi_fps;
-  end
+  rc.outavi_fps = handles.guidata.outavi_fps;
   % outavi_quality: output frames per second
-  if isfield(handles,'outavi_quality'),
-    rc.outavi_fps = handles.guidata.outavi_quality;
-  end
+  rc.outavi_quality = handles.guidata.outavi_quality;
   % useVideoWriter: whether to use videowriter class
-  if isfield(handles,'useVideoWriter'),
-    rc.useVideoWriter = handles.guidata.useVideoWriter;
-  end
+  rc.useVideoWriter = handles.guidata.useVideoWriter;
   
   % preview options
   
   % playback speed
-  if isfield(handles,'play_FPS'),
-    rc.play_FPS = handles.guidata.play_FPS;
-  end
+  rc.play_FPS = handles.guidata.play_FPS;
   
-  if isfield(handles,'traj_nprev'),
-    rc.traj_nprev = handles.guidata.traj_nprev;
-  end
-  
-  if isfield(handles,'traj_npost'),
-    rc.traj_npost = handles.guidata.traj_npost;
-  end  
+  rc.traj_nprev = handles.guidata.traj_nprev;
+  rc.traj_npost = handles.guidata.traj_npost;
   
   % navigation preferences
   rc.navPreferences = handles.guidata.NJObj.GetState();
@@ -2165,7 +2148,7 @@ if handles.guidata.needsave,
   end
 end
 
-if isfield(handles,'movie_fid') && ~isempty(handles.guidata.movie_fid) && ...
+if ~isempty(handles.guidata.movie_fid) && ...
     handles.guidata.movie_fid > 1 && ~isempty(fopen(handles.guidata.movie_fid)),
   fclose(handles.guidata.movie_fid);
   handles.guidata.movie_fid = [];
@@ -3408,7 +3391,7 @@ function figure_JLabel_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isfield(handles,'guipos'),
+if ~isfield(handles.guidata.guipos,'leftborder_leftpanels'),
   return;
 end
 
@@ -3621,7 +3604,7 @@ function panel_timelines_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isfield(handles,'axes_timelines'),
+if isempty(handles.guidata.axes_timelines),
   return;
 end
 panel_pos = get(handles.panel_timelines,'Position');
@@ -3709,7 +3692,7 @@ function panel_axes1_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isfield(handles,'panel_previews'),
+if isempty(handles.guidata.panel_previews),
   return;
 end
 previewi = find(handles.guidata.panel_previews==hObject,1);
