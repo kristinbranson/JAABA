@@ -140,12 +140,12 @@
   <velpertc trans_types="abs,flip" type="locomotion"/>
   <velth trans_types="none,relative" type="locomotion"/>
   <velperth trans_types="abs,flip" type="locomotion"/>
-  <sumpinerelangle trans_types="none,abs,relative" type="appearance"/>
-  <sumpinerelanglehc trans_types="none,abs,relative" type="appearance"/>
-  <sumpinerelanglect trans_types="none,abs,relative" type="appearance"/>
-  <dsumpinerelangle trans_types="none,abs,relative" type="locomotion"/>
-  <dsumpinerelanglehc trans_types="none,abs,relative" type="locomotion"/>
-  <dsumpinerelanglect trans_types="none,abs,relative" type="locomotion"/>
+  <sumspinerelangle trans_types="none,abs,relative" type="appearance"/>
+  <sumspinerelanglehc trans_types="none,abs,relative" type="appearance"/>
+  <sumspinerelanglect trans_types="none,abs,relative" type="appearance"/>
+  <dsumspinerelangle trans_types="none,abs,relative" type="locomotion"/>
+  <dsumspinerelanglehc trans_types="none,abs,relative" type="locomotion"/>
+  <dsumspinerelanglect trans_types="none,abs,relative" type="locomotion"/>
   <tailinflang trans_types="none" type="position"/>
   <tailinflmag trans_types="none,relative" type="appearance"/>
   <inflheadang trans_types="none" type="position"/>

@@ -2,7 +2,7 @@
 <params>
    <targets type="larvaspecies"/>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Crawling" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params/featureConfigLarvae.xml" gt_labelfilename="CrawlingGroundTruthingLabels.mat" labelfilename="CrawlingLabels.mat" moviefilename="movie.mov" perframedir="perframe" trxfilename="trx.mat"/>
+   <file featureconfigfile="params/featureConfigLarvae.xml" featureparamfilename="/groups/visitors/home/albam/Desktop/Jdetect/perframe/WindowFeatures_Crawling.xml" gt_labelfilename="CrawlingGroundTruthingLabels.mat" labelfilename="CrawlingLabels.mat" moviefilename="movie.mov" perframedir="perframe" trxfilename="trx.mat"/>
    <perframe>
       <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
       <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="30" arena_type="circle"/>
