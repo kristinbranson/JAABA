@@ -67,16 +67,16 @@
   <angchvsangtc trans_types="abs,flip" type="appearance"/>
   <area trans_types="none,relative" type="appearance"/>
   <centralheadang trans_types="none" type="position"/>
-  <centralheadmag trans_types="none" type="appearance"/>
-  <ratioarealength trans_types="none" type="appearance"/>
-  <spinelength trans_types="none" type="appearance"/>
+  <centralheadmag trans_types="none,relative" type="appearance"/>
+  <ratioarealength trans_types="none,relative" type="appearance"/>
+  <spinelength trans_types="none,relative" type="appearance"/>
   <tailcentralang trans_types="none" type="position"/>
-  <tailcentralmag trans_types="none" type="appearance"/>
+  <tailcentralmag trans_types="none,relative" type="appearance"/>
   <tailheadang trans_types="none" type="position"/>
-  <tailheadmag trans_types="none" type="appearance"/>
+  <tailheadmag trans_types="none,relative" type="appearance"/>
   <velang trans_types="none" type="locomotion_global"/>
-  <velch trans_types="none" type="locomotion"/>
-  <velmag trans_types="none" type="locomotion"/>
+  <velch trans_types="none,relative" type="locomotion"/>
+  <velmag trans_types="none,relative" type="locomotion"/>
   <velperch trans_types="abs,flip" type="locomotion"/>
   <vx_cm trans_types="none" type="locomotion_global"/>
   <vy_cm trans_types="none" type="locomotion_global"/>
@@ -104,5 +104,61 @@
   <darea trans_types="none,abs,relative" type="locomotion"/>
   <dratioarealength trans_types="none,abs,relative" type="locomotion"/>
   <dangchvsangtc trans_types="abs,flip" type="locomotion"/>
+  <theta trans_types="none" type="position"/>
+  <a_mm trans_types="none,relative" type="appearance"/>
+  <b_mm trans_types="none,relative" type="appearance"/>
+  <ecc trans_types="none,relative" type="appearance"/>
+  <da_mm trans_types="none,relative" type="locomotion_global"/>
+  <db_mm trans_types="none,relative" type="locomotion_global"/>
+  <decc trans_types="none,relative" type="locomotion_global"/>
+  <dtheta trans_types="none" type="locomotion_global"/>
+  <velmaghead trans_types="none,relative" type="locomotion"/>
+  <velmagcentral trans_types="none,relative" type="locomotion"/>
+  <velmagtail trans_types="none,relative" type="locomotion"/>
+  <velanghead trans_types="none,abs,relative" type="locomotion_global"/>
+  <velangcentral trans_types="none,abs,relative" type="locomotion_global"/>
+  <velangtail trans_types="none,abs,relative" type="locomotion_global"/>
+  <velheadch trans_types="none,relative" type="locomotion"/>
+  <velcentralch trans_types="none,relative" type="locomotion"/>
+  <veltailch trans_types="none,relative" type="locomotion"/>
+  <velheadperch trans_types="none,relative" type="locomotion"/>
+  <velcentralperch trans_types="none,relative" type="locomotion"/>
+  <veltailperch trans_types="none,relative" type="locomotion"/>
+  <velheadtc trans_types="none,relative" type="locomotion"/>
+  <velcentraltc trans_types="none,relative" type="locomotion"/>
+  <veltailtc trans_types="none,relative" type="locomotion"/>
+  <velheadpertc trans_types="none,relative" type="locomotion"/>
+  <velcentralpertc trans_types="none,relative" type="locomotion"/>
+  <veltailpertc trans_types="none,relative" type="locomotion"/>
+  <velheadth trans_types="none,relative" type="locomotion"/>
+  <velcentralth trans_types="none,relative" type="locomotion"/>
+  <veltailth trans_types="none,relative" type="locomotion"/>
+  <velheadperth trans_types="none,relative" type="locomotion"/>
+  <velcentralperth trans_types="none,relative" type="locomotion"/>
+  <veltailperth trans_types="none,relative" type="locomotion"/>  
+  <veltc trans_types="none,relative" type="locomotion"/>
+  <velpertc trans_types="abs,flip" type="locomotion"/>
+  <velth trans_types="none,relative" type="locomotion"/>
+  <velperth trans_types="abs,flip" type="locomotion"/>
+  <sumpinerelangle trans_types="none,abs,relative" type="appearance"/>
+  <sumpinerelanglehc trans_types="none,abs,relative" type="appearance"/>
+  <sumpinerelanglect trans_types="none,abs,relative" type="appearance"/>
+  <dsumpinerelangle trans_types="none,abs,relative" type="locomotion"/>
+  <dsumpinerelanglehc trans_types="none,abs,relative" type="locomotion"/>
+  <dsumpinerelanglect trans_types="none,abs,relative" type="locomotion"/>
+  <tailinflang trans_types="none" type="position"/>
+  <tailinflmag trans_types="none,relative" type="appearance"/>
+  <inflheadang trans_types="none" type="position"/>
+  <inflheadmag trans_types="none,relative" type="appearance"/>
+  <angihvsangti trans_types="abs,flip" type="appearance"/>
+  <dangihvsangti trans_types="abs,flip" type="locomotion"/>
+  <xinflection_mm trans_types="none" type="position"/>
+  <yinflection_mm trans_types="none" type="position"/>
+  <dxinflection_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dyinflection_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dtailinflmag trans_types="none,abs,relative" type="locomotion"/>
+  <dtailinflang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dinflheadmag trans_types="none,abs,relative" type="locomotion"/>
+  <dinflheadang trans_types="none,abs,relative" type="locomotion_global"/>
 </perframe>
 </params>
