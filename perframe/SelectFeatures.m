@@ -874,44 +874,6 @@ for ndx = 1:numel(att)
 end
 
 
-function node = createXMLNode(docNode,name,value)
-
-node = docNode.createElement(name);
-
-fs = fieldnames(value);
-for ndx = 1:numel(fs)
-  curVal = value.(fs{ndx});
-  switch class(curVal)
-    case 'struct'
-      node.appendChild(createXMLNode(docNode,fs{ndx},value.(fs{ndx})));
-    case 'cell'
-      valStr = curVal{1};
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' curVal{vNdx}];
-      end
-      node.setAttribute(fs{ndx},valStr);
-    case 'double'
-      valStr = num2str(curVal(1));
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' num2str(curVal(vNdx))];
-      end      
-      node.setAttribute(fs{ndx},valStr);
-    case 'logical'
-      valStr = num2str(curVal(1));
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' num2str(curVal(vNdx))];
-      end      
-      node.setAttribute(fs{ndx},valStr);
-    case 'char'
-      valStr = curVal;
-      node.setAttribute(fs{ndx},valStr);
-    otherwise
-      fprintf('Unknown type');
-  end
-      
-end
-
-
 function disableWindowTable(handles)
 set(handles.windowTable,'enable','off');
 set(handles.pushbutton_copy_windowtypes,'enable','off');
@@ -1207,6 +1169,7 @@ handles = guidata(hObject);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = str2double(get(handles.editSize,'String'));
 [params,cellParams] = convertData(handles);
+set(handles.output,'Visible','off');
 handles.JLDobj.UpdatePerframeParams(params,cellParams,basicData,featureWindowSize);
 
 
@@ -1653,9 +1616,8 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 
 configfile = handles.JLDobj.configfilename;
 configparams = ReadXMLParams(configfile);
-featureconfigfile = configparams.file.featureparamfilename;
 
-if isempty(featureconfigfile)
+if ~isfield(configparams.file,'featureparamfilename') || isempty(featureconfigfile)
   behaviorname = configparams.behaviors.names;
   defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
@@ -1671,6 +1633,7 @@ if isempty(featureconfigfile)
   xmlwrite(configfile,docNode);
 end
 
+featureconfigfile = configparams.file.featureparamfilename;
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
