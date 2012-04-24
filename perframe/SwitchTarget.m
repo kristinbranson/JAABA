@@ -57,7 +57,7 @@ handles.output = hObject;
 
 handles.JLabelhObject = varargin{1};
 JLabelHandles = guidata(handles.JLabelhObject);
-handles.JLDObj = JLabelHandles.data;
+handles.JLDObj = JLabelHandles.guidata.data;
 % set(handles.axes1,'axes',off);
 handles.tablePos = get(handles.table,'Position');
 handles.switchFlyPos = get(handles.pushSwitchfly,'Position');
