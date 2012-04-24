@@ -57,10 +57,10 @@ handles.output = hObject;
 
 handles.JLabelhObject = varargin{1};
 JLabelHandles = guidata(handles.JLabelhObject);
-handles.JLDObj = JLabelHandles.data;
+handles.JLDObj = JLabelHandles.guidata.data;
 % set(handles.axes1,'axes',off);
-handles.curExp = JLabelHandles.expi;
-handles.curFly = JLabelHandles.flies;
+handles.curExp = JLabelHandles.guidata.expi;
+handles.curFly = JLabelHandles.guidata.flies;
 
 
 % Initialize the table
