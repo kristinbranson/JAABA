@@ -1617,7 +1617,13 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 configfile = handles.JLDobj.configfilename;
 configparams = ReadXMLParams(configfile);
 
-if ~isfield(configparams.file,'featureparamfilename') || isempty(featureconfigfile)
+if isfield(configparams.file,'featureparamfilename'),
+  featureconfigfile = configparams.file.featureparamfilename;
+else
+  featureconfigfile = '';
+end
+
+if isempty(featureconfigfile)
   behaviorname = configparams.behaviors.names;
   defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
@@ -1633,7 +1639,6 @@ if ~isfield(configparams.file,'featureparamfilename') || isempty(featureconfigfi
   xmlwrite(configfile,docNode);
 end
 
-featureconfigfile = configparams.file.featureparamfilename;
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
