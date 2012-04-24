@@ -54,6 +54,10 @@ classdef ProjectManager < handle
 
     end
     
+    function doesExist = checkExist(obj,projname)
+      doesExist = any(strcmp(projname,{obj.projparams(:).name}));
+    end
+    
     function defaultConfig = SetDefaultConfig(obj,projnum,behaviorname)
       % TODO: 
       if nargin<3
