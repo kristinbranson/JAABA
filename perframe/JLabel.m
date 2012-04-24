@@ -3774,6 +3774,7 @@ while true,
   defaults = {num2str(handles.play_FPS),num2str(handles.traj_nprev),...
     num2str(handles.traj_npost)};
   res = inputdlg(prompts,'Preview Options',1,defaults);
+  if isempty(res), return, end;
   errs = {};
   play_FPS = str2double(res{1});
   if isnan(play_FPS) || play_FPS <= 0,
