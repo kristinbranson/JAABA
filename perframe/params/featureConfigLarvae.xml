@@ -4,8 +4,8 @@
   <normal
     sanitycheck="0"
     min_window_radius="1" 
-    max_window_radius="10" 
-    nwindow_radii="3" 
+    max_window_radius="30" 
+    nwindow_radii="5" 
     window_offsets="0,-1,1" 
     trans_types="none"  >
     <mean min_window_radius="0"/>
@@ -23,8 +23,8 @@
   <more
     sanitycheck="0"
     min_window_radius="1" 
-    max_window_radius="10" 
-    nwindow_radii="5" 
+    max_window_radius="30" 
+    nwindow_radii="9" 
     window_offsets="0,0.5,-0.5,-1,1" 
     trans_types="none"  >
     <mean min_window_radius="0"/>
@@ -43,8 +43,8 @@
   <less
     sanitycheck="0"
     min_window_radius="1" 
-    max_window_radius="10" 
-    nwindow_radii="2" 
+    max_window_radius="30" 
+    nwindow_radii="3" 
     window_offsets="0,-1,1" 
     trans_types="none"  >
     <mean min_window_radius="0"/>
@@ -88,6 +88,21 @@
   <y_cm trans_types="none" type="position"/>
   <yhead_mm trans_types="none" type="position"/>
   <ytail_mm trans_types="none" type="position"/>
-
+  <dtailheadmag trans_types="none,abs,relative" type="locomotion"/>
+  <dtailcentralmag trans_types="none,abs,relative" type="locomotion"/>
+  <dcentralheadmag trans_types="none,abs,relative" type="locomotion"/>
+  <dtailheadang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dtailcentralang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dcentralheadang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxhead_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dyhead_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxcentral_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dycentral_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxtail_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dytail_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dspinelength trans_types="none,abs,relative" type="locomotion"/>
+  <darea trans_types="none,abs,relative" type="locomotion"/>
+  <dratioarealength trans_types="none,abs,relative" type="locomotion"/>
+  <dangchvsangtc trans_types="abs,flip" type="locomotion"/>
 </perframe>
 </params>

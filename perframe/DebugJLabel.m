@@ -64,7 +64,6 @@ switch computername,
     
 end
 
-addpath(genpath(fullfile(JCtrax_path,'pdollar_toolbox')));
 addpath(fullfile(JCtrax_path,'misc'));
 addpath(fullfile(JCtrax_path,'filehandling'));
 jlabelpath = fileparts(which('JLabel'));

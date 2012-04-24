@@ -700,7 +700,9 @@ if handles.data.ismovie,
 
   % close previous movie
   if isfield(handles,'movie_fid') && ~isempty(fopen(handles.movie_fid)),
-    fclose(handles.movie_fid);
+    if ~isempty(handles.movie_fid) && handles.movie_fid > 0,
+      fclose(handles.movie_fid);
+    end
   end
 
   % open new movie
