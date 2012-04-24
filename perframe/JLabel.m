@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 26-Mar-2012 09:22:48
+% Last Modified by GUIDE v2.5 24-Apr-2012 12:41:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -118,6 +118,8 @@ end
 %   handles = guidata(hObject);
 % end
 
+handles = InitSelectionCallbacks(handles);
+
 if handles.data.nexps > 0 && handles.data.expi == 0,
   handles = SetCurrentMovie(handles,1);
 else
@@ -138,6 +140,12 @@ guidata(hObject, handles);
 % UIWAIT makes JLabel wait for user response (see UIRESUME)
 % UNCOMMENT
 %uiwait(handles.figure_JLabel);
+
+function handles = InitSelectionCallbacks(handles)
+
+handles.callbacks = struct;
+handles.callbacks.figure_WindowButtonMotionFcn = get(handles.figure_JLabel,'WindowButtonMotionFcn');
+set(handles.figure_JLabel,'WindowButtonMotionFcn','');
 
 % --- Outputs from this function are returned to the command line.
 function varargout = JLabel_OutputFcn(hObject, eventdata, handles) 
@@ -4247,11 +4255,15 @@ function togglebutton_select_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of togglebutton_select
 if get(hObject,'Value'),
-  handles.selecting = true;
-  handles.selected_ts = handles.ts(1)+[0,0];
-  handles.buttondown_axes = nan;
-  UpdateSelection(handles);
+  
+  set(handles.figure_JLabel,'WindowButtonMotionFcn',handles.callbacks.figure_WindowButtonMotionFcn);
+
+%   handles.selecting = true;
+%   handles.selected_ts = handles.ts(1)+[0,0];
+%   handles.buttondown_axes = nan;
+%   UpdateSelection(handles);
 else
+  set(handles.figure_JLabel,'WindowButtonMotionFcn','');
   handles.selecting = false;
 end
 guidata(hObject,handles);
@@ -5861,5 +5873,3 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
-
-
