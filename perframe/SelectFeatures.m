@@ -1653,7 +1653,11 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 
 configfile = handles.JLDobj.configfilename;
 configparams = ReadXMLParams(configfile);
-featureconfigfile = configparams.file.featureparamfilename;
+if isfield(configparams.file,'featureparamfilename'),
+  featureconfigfile = configparams.file.featureparamfilename;
+else
+  featureconfigfile = '';
+end
 
 if isempty(featureconfigfile)
   behaviorname = configparams.behaviors.names;
