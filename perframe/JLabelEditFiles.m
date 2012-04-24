@@ -72,7 +72,7 @@ if disableBehavior,
   handles.success = true;
   % Simply edit files, not editing the behavior part
   handles.JLabelHandle = JLabelHandle;
-  handles.data = JLabelHandle.data;
+  handles.data = JLabelHandle.guidata.data;
   if handles.data.IsGTMode()
     set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing')));
   elseif handles.data.IsAdvancedMode()
@@ -81,7 +81,7 @@ if disableBehavior,
     set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Normal')));
   end
   DisableBehaviorGui(handles);
-  InitExperimentsGui(hObject,handles,JLabelHandle.data);
+  InitExperimentsGui(hObject,handles,JLabelHandle.guidata.data);
   handles.needJLabelInit = false;
   boxpos = get(handles.uipanelBehavior,'Position');
   guipos = get(hObject,'Position');
@@ -121,10 +121,10 @@ else
   
   set(handles.listbox_behavior,'String',behaviorList);
   
-  if ~isempty(handles.JLabelHandle.configfilename)
+  if ~isempty(handles.JLabelHandle.guidata.configfilename)
     foundConfig = false;
     for fndx = 1:numel(handles.behaviorList)
-      if strcmp(handles.JLabelHandle.configfilename,  ...
+      if strcmp(handles.JLabelHandle.guidata.configfilename,  ...
           handles.behaviorparams.behaviors.(handles.behaviorList{fndx}).configFile),
         handles.curbehavior = fndx;
         set(handles.listbox_behavior,'Value',handles.curbehavior);
@@ -145,7 +145,7 @@ else
         if any(strcmp(newName,handles.behaviorList)),
           uiwait(warndlg('A project already exists with that name'));
         else
-          addBehavior(hObject,handles,newName,handles.JLabelHandle.configfilename);
+          addBehavior(hObject,handles,newName,handles.JLabelHandle.guidata.configfilename);
           handles = guidata(hObject);
           break
         end
@@ -225,13 +225,13 @@ handles.success = true;
 
 % Initializes the JLabel gui once the user selects the behavior.
 JLabelHandle = handles.JLabelHandle;
-JLabelHandle.configparams = handles.config{handles.curbehavior};
+JLabelHandle.guidata.configparams = handles.config{handles.curbehavior};
 behaviorName = handles.behaviorList{handles.curbehavior};
-JLabelHandle.configfilename = handles.behaviorparams.behaviors.(behaviorName).configFile;
+JLabelHandle.guidata.configfilename = handles.behaviorparams.behaviors.(behaviorName).configFile;
 JLabelHandle = JLabel('GetGUIPositions',JLabelHandle);
 JLabelHandle = JLabel('InitializeState',JLabelHandle);
 JLabelHandle = JLabel('InitializePlots',JLabelHandle);
-handles.data = JLabelHandle.data;
+handles.data = JLabelHandle.guidata.data;
 SetLabelingMode(handles);
 handles.JLabelHandle = JLabelHandle;
 guidata(handles.figure_JLabelEditFiles,handles);
