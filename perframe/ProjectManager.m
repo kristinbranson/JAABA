@@ -20,7 +20,7 @@ classdef ProjectManager < handle
       for ndx = 1:numel(projs),
         obj.projparams(ndx).name = projs{ndx};
         obj.projparams(ndx).configfile = in.(projs{ndx}).configfile;
-        obj.projparams(ndx).needSave = false;
+        obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
           uiwait(warndlg('Config file %s does not exist for project %s\n Removing the project',...
@@ -30,8 +30,10 @@ classdef ProjectManager < handle
         
         curparams = ReadXMLParams(obj.projparams(ndx).configfile);
         if isfield(curparams,'featureparamlist'),
-          obj.projparams(ndx).pfList = curparams.featureparamlist;
+          obj.projparams(ndx).pfList = fieldnames(curparams.featureparamlist);
           curparams = rmfield(curparams,'featureparamlist');
+        else
+          obj.projparams(ndx).pfList = [];
         end
         obj.projparams(ndx).config = curparams;
       end
@@ -115,7 +117,7 @@ classdef ProjectManager < handle
       
       if exist(configFile,'file')
         fileToRead = configFile;
-        obj.projparams(end).needSave = false;
+        obj.projparams(end).save = false;
       elseif ~isempty(copyconfigFile) && exist(copyconfigFile,'file')
         fileToRead = copyconfigFile;
       end
@@ -226,16 +228,45 @@ classdef ProjectManager < handle
       eval(eval_str);
       obj.RemoveConfig(oldName);
       obj.AddConfig(newName,value);
+      obj.projparams(obj.curproj).save = true;
     end
-    
     
     function EditConfigValue(obj,name,value)
       eval_str = sprintf(...
         'obj.projparams(obj.curparams).config.%s = value;',...
         name);
       eval(eval_str);
+      obj.projparams(obj.curproj).save = true;
     end
-
+    
+    function SetPerframeList(obj,pfList)
+      obj.projparams(obj.curproj).pfList = pfList;
+      obj.projparams(obj.curproj).save = true;
+    end
+    
+    function pfList = GetPerframeList(obj)
+      pfList = obj.projparams(obj.curproj).pfList;
+    end
+    
+    function [allPfList selected missing]= GetAllPerframeList(obj)
+      featureconfigfile = obj.projparams(obj.curproj).config.file.featureconfigfile;
+      params = ReadXMLParams(featureconfigfile);
+      allPfList = fieldnames(params.perframe);
+      selected = true(numel(allpfList),1);
+      curpf = obj.projparams(obj.curproj).pfList;
+      if ~isempty(curpf),
+        missing = {};
+        for ndx = 1:numel(curpf),
+          allndx = find(strcmp(curpf{ndx},allPfList));
+          if isempty(allndx)
+            missing{end+1} = curpf{ndx};
+          else
+            selected(allndx) = true;
+          end
+        end
+      end
+      
+    end
     
     function SaveConfig(obj,projnum)
       
@@ -246,10 +277,22 @@ classdef ProjectManager < handle
         toc.appendChild(createXMLNode(docNode,att{ndx},topNode.(att{ndx})));
       end
       if ~isempty(obj.projparams(projnum).pfList),
-        toc.appendChild(createXMLNode(docNode,'featureparamlist',obj.projparams(projnum).pfList));
+        pfStruct = struct;
+        for ndx = 1:numel(obj.projparams(projnum).pfList)
+          pfStruct.(obj.projparams(projnum).pfList) = struct;
+        end
+        toc.appendChild(createXMLNode(docNode,'featureparamlist',pfStruct));
       end
       xmlwrite(obj.projparams(projnum).configfile,docNode);
       
+    end
+    
+    function SaveAllConfig(obj)
+      for pno = 1:numel(obj.projparams)
+        if obj.projparams(pno).save
+          obj.SaveConfig(pno);
+        end
+      end
     end
     
     function AddClassifier(obj,name)
