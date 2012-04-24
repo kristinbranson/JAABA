@@ -235,7 +235,7 @@ handles.data = JLabelHandle.guidata.data;
 SetLabelingMode(handles);
 handles.JLabelHandle = JLabelHandle;
 guidata(handles.figure_JLabelEditFiles,handles);
-guidata(JLabelHandle.guidata.figure_JLabel,JLabelHandle);
+guidata(JLabelHandle.figure_JLabel,JLabelHandle);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
 
 
