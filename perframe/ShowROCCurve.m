@@ -77,8 +77,8 @@ else histNeg = zeros(numBins-1,1);end
 normHistPos = histPos./sum(histPos);
 normHistNeg = histNeg./sum(histNeg);
 
-handles.posColor = handles.JLabelHandle.labelcolors(1,:);
-handles.negColor = handles.JLabelHandle.labelcolors(2,:);
+handles.posColor = handles.JLabelHandle.guidata.labelcolors(1,:);
+handles.negColor = handles.JLabelHandle.guidata.labelcolors(2,:);
 
 handles.thres1 = round(handles.JLDObj.GetConfidenceThreshold(1)*(numBins-1)/2)/( (numBins-1)/2);
 handles.thres2 = -round(handles.JLDObj.GetConfidenceThreshold(2)*(numBins-1)/2)/( (numBins-1)/2);
