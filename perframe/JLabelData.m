@@ -3583,7 +3583,7 @@ classdef JLabelData < handle
         
       end
       
-      parfor j = 1:numel(curperframefns),
+      for j = 1:numel(curperframefns),
         fn = curperframefns{j};
         
         % get per-frame data
