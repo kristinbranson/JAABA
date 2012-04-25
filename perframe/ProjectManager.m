@@ -201,7 +201,16 @@ classdef ProjectManager < handle
       end
     end
       
-    function AddConfig(obj,name,value)
+    function success  = AddConfig(obj,name,value)
+      
+      [fpath,lastfield] = splitext(name);
+      if isempty(lastfield)
+        fexist = isfield(obj.projparams(obj.curproj).config,fpath);
+      else
+        eval_str = sprintf('fexist = isfield(obj.projparams(obj.curproj).config.%s,lastfield);',fpath);
+        eval(eval_str);
+      end
+      if fexist, success = false; return; end
       eval(sprintf('obj.projparams(obj.curproj).config.%s = value;',name));
       obj.projparams(obj.curproj).save = true;
     end
