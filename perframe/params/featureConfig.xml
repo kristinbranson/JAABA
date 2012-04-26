@@ -185,5 +185,7 @@
     
     <yaw trans_types="flip,abs" type="locomotion"/>
     
+    <absyaw trans_types="none" type="compatbility"/>
+    
   </perframe>
 </params>

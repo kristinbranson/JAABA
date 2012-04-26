@@ -186,6 +186,7 @@ handles.needJLabelInit = false;
 
 % For behavior --
 DisableBehaviorGui(handles);
+handles.projmanager.WriteProjectManager();
 handles.projmanager.SaveAllConfig();
 handles.success = true;
 % End for behavior --
@@ -750,17 +751,17 @@ function pushbutton_chooseperframe_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if handles.projmanager.GetCurrentProj(), return; end;
+if ~handles.projmanager.GetCurrentProject(), return; end;
 [allpf selected missing] = handles.projmanager.GetAllPerframeList();
 data = {}; data(:,1) = allpf; data(:,2) = num2cell(selected);
 if ~isempty(missing)
   list = missing{1};
   for ndx = 2:numel(missing)
-    list = sprintf('%s %s ',list,missing{2});
+    list = sprintf('%s %s ',list,missing{ndx});
   end
   wstr = sprintf('Perframe feature(s) %s are defined in config file%s\n%s',...
         list,...
-        'but is not defined in featureConfig.',...
+        ' but is not defined in featureConfig.',...
         'Ignoring them.');
   uiwait(warndlg(wstr));
 end
