@@ -58,9 +58,9 @@ handles.NJObj = varargin{2};
 
 % read current values
 parent_handles = guidata(handles.figure_JLabel);
-handles.nframes_jump_go = parent_handles.nframes_jump_go;
+handles.nframes_jump_go = parent_handles.guidata.nframes_jump_go;
 handles.seek_behaviors_go = handles.NJObj.GetSeekBehaviorsGo();
-handles.behaviors = [{'Unknown'},parent_handles.data.labelnames];
+handles.behaviors = [{'Unknown'},parent_handles.guidata.data.labelnames];
 
 % set these current values in the GUI
 set(handles.edit_nframes_jump,'String',num2str(handles.nframes_jump_go));
@@ -181,13 +181,12 @@ function pushbutton_apply_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 parent_handles = guidata(handles.figure_JLabel);
-parent_handles.nframes_jump_go = handles.nframes_jump_go;
-parent_handles.seek_behaviors_go = handles.seek_behaviors_go;
+parent_handles.guidata.nframes_jump_go = handles.nframes_jump_go;
+parent_handles.guidata.seek_behaviors_go = handles.seek_behaviors_go;
 handles.NJObj.SetSeekBehaviorsGo(handles.seek_behaviors_go);
 allJTypes = handles.NJObj.GetAllTypes;
 curJType = allJTypes{get(handles.jumpToPopUp,'Value')};
 handles.NJObj.SetCurrentType(curJType);
-guidata(handles.figure_JLabel,parent_handles);
 JLabel('SetJumpGoMenuLabels',parent_handles);
 
 if strcmp(handles.NJObj.GetCurrentType,'Thresholds')
