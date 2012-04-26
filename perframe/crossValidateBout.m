@@ -30,7 +30,7 @@ posCum = posCum(randperm(numel(posCum)));
 negCum = negCum(randperm(numel(negCum)));
 
 modLabels = sign( (labels==1)-0.5);
-
+tlabels = {};
 if timed,
   tpoints(1) = max(bouts.timestamp);
   tlabels{1} = datestr(tpoints(1));
