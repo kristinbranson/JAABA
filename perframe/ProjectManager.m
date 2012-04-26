@@ -19,7 +19,7 @@ classdef ProjectManager < handle
       projs = fieldnames(in);
       for ndx = 1:numel(projs),
         obj.projparams(ndx).name = projs{ndx};
-        obj.projparams(ndx).configfile = in.(projs{ndx}).configFile;
+        obj.projparams(ndx).configfile = in.(projs{ndx}).configfile;
         obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
@@ -91,7 +91,11 @@ classdef ProjectManager < handle
     end
     
     function projlist = GetProjectList(obj)
-      projlist = {obj.projparams(:).name};
+      if numel(obj.projparams)>0  
+        projlist = {obj.projparams(:).name};
+      else
+        projlist = {};
+      end
     end
     
     function projname = GetCurProjName(obj)
@@ -162,7 +166,7 @@ classdef ProjectManager < handle
     end
     
     function WriteProjectManager(obj)
-      docNode = com.mathworks.xml.XMLUtils.createDocument(topNodeName);
+      docNode = com.mathworks.xml.XMLUtils.createDocument('behaviors');
       toc = docNode.getDocumentElement;
       for ndx = 1:numel(obj.projparams)
         curN.configfile = obj.projparams(ndx).configfile;
@@ -285,7 +289,7 @@ classdef ProjectManager < handle
       featureconfigfile = obj.projparams(obj.curproj).config.file.featureconfigfile;
       params = ReadXMLParams(featureconfigfile);
       allPfList = fieldnames(params.perframe);
-      selected = true(numel(allpfList),1);
+      selected = true(numel(allPfList),1);
       curpf = obj.projparams(obj.curproj).pfList;
       if ~isempty(curpf),
         missing = {};
