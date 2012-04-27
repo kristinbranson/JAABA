@@ -15,11 +15,16 @@ classdef ProjectManager < handle
       end
       obj.projfile = projfile;
       
-      in =  ReadXMLParams(obj.projfile);
-      projs = fieldnames(in);
+      if ~exist(obj.projfile,'file'),
+        projs = {};
+      else
+        in =  ReadXMLParams(obj.projfile);
+        projs = fieldnames(in);
+      end
+      
       for ndx = 1:numel(projs),
         obj.projparams(ndx).name = projs{ndx};
-        obj.projparams(ndx).configfile = in.(projs{ndx}).configfile;
+        obj.projparams(ndx).configfile = in.(projs{ndx}).configFile;
         obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
@@ -60,13 +65,13 @@ classdef ProjectManager < handle
       doesExist = any(strcmp(projname,{obj.projparams(:).name}));
     end
     
-    function defaultConfig = SetDefaultConfig(obj,projnum,behaviorname)
+    function defaultConfig = DefaultConfig(obj,name)
       % TODO: 
       if nargin<3
-        behaviorname = 'default';
+        name = 'default';
       end
       defaultConfig.targets = struct('type','fly');
-      defaultConfig.behaviors = struct('names',behaviorname,...
+      defaultConfig.behaviors = struct('names',name,...
          'labelcolors',[0.7,0,0,0,0,0.7],...
          'unknowncolor',[0,0,0]);
       defaultConfig.file = struct('moviefilename','movie.ufmf',...
@@ -121,7 +126,7 @@ classdef ProjectManager < handle
       end
       
       obj.projparams(end+1).name = name;
-      obj.projparams(end).configfile = configFile;
+      obj.projparams(end).configFile = configFile;
       obj.projparams(end).save = true;
       obj.curproj = numel(obj.projparams);
       
@@ -144,7 +149,7 @@ classdef ProjectManager < handle
         end
         obj.projparams(end).config = curparams;
       else
-        obj.projparams(end).config = GetDefaultConfig(newName);
+        obj.projparams(end).config = obj.DefaultConfig(name);
         obj.projparams(end).pfList = [];
         obj.projparams(end).save = true;
       end
