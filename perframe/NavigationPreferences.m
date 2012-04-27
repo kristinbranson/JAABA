@@ -182,7 +182,7 @@ function pushbutton_apply_Callback(hObject, eventdata, handles)
 
 parent_handles = guidata(handles.figure_JLabel);
 parent_handles.guidata.nframes_jump_go = handles.nframes_jump_go;
-parent_handles.guidata.seek_behaviors_go = handles.seek_behaviors_go;
+% parent_handles.guidata.seek_behaviors_go = handles.seek_behaviors_go;
 handles.NJObj.SetSeekBehaviorsGo(handles.seek_behaviors_go);
 allJTypes = handles.NJObj.GetAllTypes;
 curJType = allJTypes{get(handles.jumpToPopUp,'Value')};
