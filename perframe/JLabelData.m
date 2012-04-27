@@ -4192,7 +4192,7 @@ classdef JLabelData < handle
         scores = nan(1,tEnd);
         
         for curt0 = tStart:blockSize:tEnd
-          curt1 = min(tStart+blockSize-1,tEnd);
+          curt1 = min(curt0+blockSize-1,tEnd);
           X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
             allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
         
