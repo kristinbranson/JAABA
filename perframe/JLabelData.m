@@ -2121,7 +2121,12 @@ classdef JLabelData < handle
         else
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
-        perframetrx.(fn); %#ok<VUNUS>
+        
+        if ~strcmpi('scores_',fn(1:7))
+          perframetrx.(fn); %#ok<VUNUS>
+        else
+          obj.ScoresToPerframe(expi,fn);
+        end
           
       end
       
@@ -2131,6 +2136,22 @@ classdef JLabelData < handle
       
       success = true;
       
+    end
+    
+    function ScoresToPerframe(obj,expi,fn)
+      outdir = obj.outexpdirs{expi};
+      scoresFileIn = fullfile(outdir,fn);
+      scoresFileOut = fullfile(outdir,obj.GetFileName('perframe'),fn);
+      Q = load(scoresFileIn);
+      OUT = struct();
+      OUT.units = struct(); OUT.units.num = {'scores'};
+      OUT.units.den = {''};
+      for ndx = 1:numel(Q.allScores.scores)
+        t0 = Q.allScores.tStart{ndx};
+        t1 = Q.allScores.tEnd{ndx}-1;
+        OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
+      end
+      save(scoresFileOut,'-struct','OUT');
     end
     
     function [success,msg] = SetFeatureConfigFile(obj,configfile)
