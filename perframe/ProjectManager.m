@@ -289,7 +289,7 @@ classdef ProjectManager < handle
       featureconfigfile = obj.projparams(obj.curproj).config.file.featureconfigfile;
       params = ReadXMLParams(featureconfigfile);
       allPfList = fieldnames(params.perframe);
-      selected = true(numel(allPfList),1);
+      selected = false(numel(allPfList),1);
       curpf = obj.projparams(obj.curproj).pfList;
       if ~isempty(curpf),
         missing = {};
@@ -301,6 +301,8 @@ classdef ProjectManager < handle
             selected(allndx) = true;
           end
         end
+      else
+        selected = true(numel(allPfList,1));
       end
       
     end
