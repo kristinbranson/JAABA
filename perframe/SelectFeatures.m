@@ -1638,7 +1638,7 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 configfile = handles.JLDobj.configfilename;
 configparams = ReadXMLParams(configfile);
 
-if ~isfield(configparams.file,'featureparamfilename') 
+if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
   behaviorname = configparams.behaviors.names;
   defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
