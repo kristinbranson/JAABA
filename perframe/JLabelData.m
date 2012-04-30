@@ -2122,10 +2122,10 @@ classdef JLabelData < handle
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
         
-        if ~strcmpi('scores_',fn(1:7))
-          perframetrx.(fn); %#ok<VUNUS>
-        else
+        if numel(fn)>7 && strcmpi('scores_',fn(1:7))
           obj.ScoresToPerframe(expi,fn);
+        else
+          perframetrx.(fn); %#ok<VUNUS>
         end
           
       end
@@ -2142,13 +2142,13 @@ classdef JLabelData < handle
       outdir = obj.outexpdirs{expi};
       scoresFileIn = fullfile(outdir,fn);
       scoresFileOut = fullfile(outdir,obj.GetFileName('perframe'),fn);
-      Q = load(scoresFileIn);
+      Q = load([scoresFileIn '.mat']);
       OUT = struct();
       OUT.units = struct(); OUT.units.num = {'scores'};
       OUT.units.den = {''};
       for ndx = 1:numel(Q.allScores.scores)
-        t0 = Q.allScores.tStart{ndx};
-        t1 = Q.allScores.tEnd{ndx}-1;
+        t0 = Q.allScores.tStart(ndx);
+        t1 = Q.allScores.tEnd(ndx);
         OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
       end
       save(scoresFileOut,'-struct','OUT');
