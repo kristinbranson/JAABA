@@ -400,7 +400,7 @@ function readFeatureConfiguration(hObject)
 handles = guidata(hObject);
 
 configfile = handles.JLDobj.featureConfigFile;
-[settings,~] = ReadPerFrameParams(configfile);
+settings = ReadXMLParams(configfile);
 
 % Read the default parameters for different categories.
 categories = fieldnames(settings.defaults);
@@ -493,18 +493,39 @@ perframeL = handles.JLDobj.allperframefns;
 
 transType = struct;
 pftype = struct;
-pftypeList = {};
+
+% perframeL might not contain all the perframe features.
 for pfndx = 1:numel(perframeL)
   curpf = perframeL{pfndx};
   transType.(curpf) = settings.perframe.(curpf).trans_types;
-  pftype.(curpf)  = settings.perframe.(curpf).type; 
-  for tndx = 1:numel(pftype.(curpf))
-    curT = pftype.(curpf){tndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    pftype.(curpf)  = {curtypes}; 
+  else    
+    pftype.(curpf)  = curtypes; 
+  end
+end
+
+fallpf = fieldnames(settings.perframe);
+pftypeList = {};
+for pfndx = 1:numel(fallpf)
+  curpf = fallpf{pfndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    curT = curtypes;
     if ~any(strcmp(pftypeList,curT))
       pftypeList{end+1} = curT;
     end
+  else    
+    for tndx = 1:numel(curtypes)
+      curT = curtypes{tndx};
+      if ~any(strcmp(pftypeList,curT))
+        pftypeList{end+1} = curT;
+      end
+    end
   end
 end
+
 
 handles.transType = transType;
 handles.pftype = pftype;
