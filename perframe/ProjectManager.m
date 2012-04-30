@@ -24,7 +24,7 @@ classdef ProjectManager < handle
       
       for ndx = 1:numel(projs),
         obj.projparams(ndx).name = projs{ndx};
-        obj.projparams(ndx).configfile = in.(projs{ndx}).configFile;
+        obj.projparams(ndx).configfile = in.(projs{ndx}).configfile;
         obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
