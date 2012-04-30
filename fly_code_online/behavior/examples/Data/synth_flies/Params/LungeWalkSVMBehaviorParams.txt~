@@ -1,0 +1,5 @@
+9 1
+*LungeWalk 0 1
+none    none    0       0x747474
+walk	walk	0	0x007400
+lunge	lunge	0	0x740000
