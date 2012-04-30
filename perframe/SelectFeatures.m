@@ -868,10 +868,10 @@ toc.appendChild(createXMLNode(docNode,'basicParams',basicStruct));
 toc.appendChild(createXMLNode(docNode,'featureWindowSize',featureWindowSize));
 toc.appendChild(createXMLNode(docNode,'params',params));
 
-att = fieldnames(params);
-for ndx = 1:numel(att)
-  toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
-end
+% att = fieldnames(params);
+% for ndx = 1:numel(att)
+%   toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
+% end
 
 
 function disableWindowTable(handles)
@@ -1213,8 +1213,8 @@ function Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-configfile = handles.JLDobj.configfilename;
-[fName,pName] = uiputfile(configfile,'Save feature configurations to..');
+% Use project name.
+[fName,pName] = uiputfile('params/*.xml','Save feature configurations to..');
 if ~fName
   return;
 end
