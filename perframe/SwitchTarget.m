@@ -83,9 +83,12 @@ if ~handles.JLDObj.IsGTMode(),
   fieldList(end+1,:) = {  'posframes',sprintf('Frames|labeled|%s',handles.JLDObj.labelnames{1})};
   fieldList(end+1,:) = {  'negframes',sprintf('Frames|labeled|%s',handles.JLDObj.labelnames{2})};
   fieldList(end+1,:) = {  'sexfrac','Sex|(% male)'};
-  fieldList(end+1,:) = {  'nscorepos',  sprintf('%s| predicted',handles.JLDObj.labelnames{1})};
-  fieldList(end+1,:) = {  'nscoreneg',  sprintf('%s| predicted',handles.JLDObj.labelnames{2})};
-  fieldList(end+1,:) = {  'nscoreframes',  'total|predicted | frames'};
+  fieldList(end+1,:) = {  'nscorepos',  sprintf('%s| predicted | (current)',handles.JLDObj.labelnames{1})};
+  fieldList(end+1,:) = {  'nscoreneg',  sprintf('%s| predicted | (current)',handles.JLDObj.labelnames{2})};
+  fieldList(end+1,:) = {  'nscoreframes',  'total|predicted | frames | (current)'};
+  fieldList(end+1,:) = {  'nscorepos_loaded',  sprintf('%s| predicted | (loaded)',handles.JLDObj.labelnames{1})};
+  fieldList(end+1,:) = {  'nscoreneg_loaded',  sprintf('%s| predicted | (loaded)',handles.JLDObj.labelnames{2})};
+  fieldList(end+1,:) = {  'nscoreframes_loaded',  'total|predicted | frames | (loaded)'};
   fieldList(end+1,:) = {  'errorsPos',  sprintf('%s|errors',handles.JLDObj.labelnames{1})};
   fieldList(end+1,:) = {  'errorsNeg',  sprintf('%s|errors',handles.JLDObj.labelnames{2})};
   fieldList(end+1,:) = {  'validatedErrorsPos',  sprintf('%s|validation|errors',handles.JLDObj.labelnames{1})};

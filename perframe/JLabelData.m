@@ -4682,18 +4682,18 @@ classdef JLabelData < handle
       
       if ~isempty(obj.scoredata.exp==expi)
         idxcurr = obj.scoredata.exp==expi & obj.scoredata.flies == flyNum;
-        flyStats.nscoreframes = nnz(idxcurr);
-        flyStats.nscorepos = nnz(obj.scoredata.scores(idxcurr)>0);
-        flyStats.nscoreneg = nnz(obj.scoredata.scores(idxcurr)<0);
+        flyStats.nscoreframes_loaded = nnz(idxcurr);
+        flyStats.nscorepos_loaded = nnz(obj.scoredata.scores(idxcurr)>0);
+        flyStats.nscoreneg_loaded = nnz(obj.scoredata.scores(idxcurr)<0);
 %         if ~isempty(obj.scoredata.classifierfilenames)
 %           flyStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
 %         else
 %           flyStats.classifierfilename = '';
 %         end
       else
-        flyStats.nscoreframes = [];
-        flyStats.nscorepos = [];
-        flyStats.nscoreneg = [];        
+        flyStats.nscoreframes_loaded = [];
+        flyStats.nscorepos_loaded = [];
+        flyStats.nscoreneg_loaded = [];        
 %         flyStats.classifierfilename = '';
       end
       
@@ -4709,10 +4709,16 @@ classdef JLabelData < handle
         
         curPosMistakes = nnz( curScores<0 & curLabels ==1 );
         curNegMistakes = nnz( curScores>0 & curLabels >1 );
-        
+
+        flyStats.nscoreframes = nnz(curNdx);
+        flyStats.nscorepos = nnz(curScores>0);
+        flyStats.nscoreneg = nnz(curScores<0);
         flyStats.errorsPos = curPosMistakes;
         flyStats.errorsNeg = curNegMistakes;
       else
+        flyStats.nscoreframes = [];
+        flyStats.nscorepos = [];
+        flyStats.nscoreneg = [];
         flyStats.errorsPos = [];
         flyStats.errorsNeg = [];
       end
