@@ -7,7 +7,7 @@ classdef JCache < handles
     % last frame that all flies currently selected are tracked
     t1_curr = 0;
 
-    expi = [];
+    expH = [];
     target = [];
     scores = [];
     labels = [];
@@ -48,29 +48,21 @@ classdef JCache < handles
   
   methods (Access = public)
     
-    function SetCurTarget(obj,target)
-      obj.target = target;
-      %TODO Read data ..
+    function res = IsCached(obj,expH,target)
+      res = obj.expH == expH & obj.target ==target;
     end
     
-    function val = IsCurFly(obj,expi,flies)
-      val = all(flies == obj.flies) && (expi==obj.expi);
-    end
-
-    function res = IsCached(obj,expi,target)
-      res = obj.expi == expi & obj.target ==target;
-    end
-    
-    function expi = obj.GetExp(obj)
-      expi = obj.expi;
+    function expH = obj.GetExp(obj)
+      expH = obj.expH;
     end
     
     function target = obj.GetTarget(obj)
       target = obj.target;
     end
     
-    function labels = GetLabels(obj)
+    function [labels, labels_off] = GetLabels(obj)
       labels = obj.labels;
+      labels_off = obj.labels_off;
     end
     
     function scores = GetScores(obj,type)
@@ -87,15 +79,16 @@ classdef JCache < handles
       end
     end
     
-    function [success,msg] = PreLoad(obj,flies)
-    % [success,msg] = PreLoad(obj,expi,flies)
-    % Preloads data associated with the input experiment and flies. If
-    % neither the experiment nor flies are changing, then we do nothing. If
-    % there is currently a preloaded experiment, then we store the labels
-    % in labelidx into labels using StoreLabels. We then load from labels
-    % into labelidx for the new experiment and flies. We load the per-frame
-    % data for this experiment and flies. If this is a different
-    % experiment, then we load in the trajectories for this experiment.  
+    function [success,msg] = PreLoad(obj,expH,target)
+      %%%% FIXED %%%%
+      % [success,msg] = PreLoad(obj,expi,flies)
+      % Preloads data associated with the input experiment and flies. If
+      % neither the experiment nor flies are changing, then we do nothing. If
+      % there is currently a preloaded experiment, then we store the labels
+      % in labelidx into labels using StoreLabels. We then load from labels
+      % into labelidx for the new experiment and flies. We load the per-frame
+      % data for this experiment and flies. If this is a different
+      % experiment, then we load in the trajectories for this experiment.
       
       success = false;
       msg = '';
@@ -109,24 +102,24 @@ classdef JCache < handles
         return;
       end
       
-      diffexpi = isempty(obj.expi) || expi ~= obj.expi;
-      diffflies = diffexpi || numel(flies) ~= numel(obj.flies) || ~all(flies == obj.flies);
+      diffexpi = isempty(obj.expH) || expH ~= obj.expH;
+      diffflies = diffexpi || numel(target) ~= numel(obj.target) || ~all(target == obj.target);
       % nothing to do
       if ~diffflies,
         success = true;
         return;
       end
 
-      if ~isempty(obj.expi) && obj.expi > 0,
+      if ~isempty(obj.expH) ,
         % store labels currently in labelidx to labels
-        obj.StoreLabels();
+        expH.StoreLabels(obj);
       end
       
       if diffexpi,
         
         % load trx
-%         try
-          trxfilename = obj.GetFile('trx',expi);
+        try
+          trxfilename = obj.data.projconf.GetFile('trx',expH);
           if ~exist(trxfilename,'file')
             msg = sprintf('Trx file %s does not exist',trxfilename);
             success = false;
@@ -149,46 +142,47 @@ classdef JCache < handles
           end
           % store trx_info, in case this is the first time these trx have
           % been loaded
-          [success,msg] = obj.GetTrxInfo(expi,true,obj.trx);
+          [success,msg] = expH.GetTrxInfo(obj.trx);
           if ~success,
             return;
           end
           
-%         catch ME,
-%           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
-%           if ishandle(hwait),
-%             delete(hwait);
-%             drawnow;
-%           end
-%           return;
-%         end
+        catch ME,
+          msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
+          if ishandle(hwait),
+            delete(hwait);
+            drawnow;
+          end
+          return;
+        end
  
       end
 
       % set labelidx from labels
-      obj.SetStatus('Caching labels for experiment %s, flies%s',obj.expnames{expi},sprintf(' %d',flies));
-      [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
+      obj.SetStatus('Caching labels for experiment %s, target %s',expH.GetName,sprintf(' %d',target));
+      [obj.labelidx,obj.t0_curr,obj.t1_curr] = expH.GetLabelIdx(target);
       obj.labelidx_off = 1 - obj.t0_curr;
       
       % load perframedata
-      obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(flies));
-      file = obj.GetPerframeFiles(expi);
-      for j = 1:numel(obj.allperframefns),
+      obj.SetStatus('Loading per-frame data for %s, target %s',expH.GetName,mat2str(target));
+      file = obj.data.projconf.GetPerframeFiles(expH);
+      for j = 1:numel(file),
         if ~exist(file{j},'file'),
           msg = sprintf('Per-frame data file %s does not exist',file{j});
           return;
         end
-%         try
+        try
           tmp = load(file{j});
           obj.perframedata{j} = tmp.data{flies(1)};
           obj.perframeunits{j} = tmp.units;
-%         catch ME,
-%           msg = getReport(ME);
-%         end
+        catch ME,
+          msg = getReport(ME);
+          return;
+        end
       end
       
-      obj.expi = expi;
-      obj.flies = flies;
+      obj.expH = expH;
+      obj.target = target;
 
       obj.UpdatePredictedIdx();
       obj.ClearStatus();

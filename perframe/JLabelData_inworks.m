@@ -1,11 +1,12 @@
-classdef JLabelData < handle
+classdef JLabelData_inworks < handle
   
   properties (Access=public)
 
-    % total number of experiments
-    nexps = 0;
+    % Array of experiments.
+    exps = [];
     
-    
+    Projconf = [];
+    Cache = [];
     % statistics of labeled data per experiment
     % labelstats(expi).nflies_labeled is the total number of flies labeled,
     % labelstats(expi).nbouts_labeled is the total number of bouts of
@@ -24,8 +25,6 @@ classdef JLabelData < handle
     % name of classifier file to save/load classifier from
     classifierfilename = '';
     
-    % Array of experiments.
-    exps = [];
 
     % last used path for loading experiment
     defaultpath = '';
@@ -65,7 +64,7 @@ classdef JLabelData < handle
 % Constructor
 
 
-    function obj = JLabelData(varargin)
+    function obj = JLabelData_inworks(varargin)
     % obj = JLabelData(configfilename,...)
     %
     % constructor: first input should be the config file name. All other
@@ -228,8 +227,8 @@ classdef JLabelData < handle
       
     end
     
+    
 % Configuration settings.
-
 
     
     function [success,msg] = SetDefaultPath(obj,defaultpath)
@@ -253,6 +252,13 @@ classdef JLabelData < handle
 
     end
     
+    function defaultpath = GetDefaultPath(obj)
+      defaultpath = obj.defaultpath;
+    end
+    
+    function exps = GetExps(obj)
+      exps = obj.exps;
+    end
     
     function [success,msg] = SetClassifierFileName(obj,classifierfilename)
     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
@@ -461,19 +467,11 @@ classdef JLabelData < handle
     end
 
     
-% Saving and loading    
-
-
-    
-    
-
-
-    
 % Experiment handling
 
 
-    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
-    % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
+    function [success,msg] = AddExpDir(obj,expdir)
+    % [success,msg] = AddExpDir(obj,expdir)
     % Add a new experiment to the GUI. If this is the first experiment,
     % then it will be preloaded. 
 
@@ -482,126 +480,34 @@ classdef JLabelData < handle
       if isnumeric(expdir), return; end
       
       if nargin < 2,
-        error('Usage: obj.AddExpDirs(expdir,[outexpdir],[nflies_per_exp])');
-      end
-
-      % make sure directory exists
-      if ~exist(expdir,'file'),
-        msg = sprintf('expdir %s does not exist',expdir);
-        return;
+        error('Usage: obj.AddExpDirs(expdir)');
       end
       
-      isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
-      istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
-
-      % base name
-      [~,expname] = myfileparts(expdir);
+      newexp = JExperiments();
+      [success,msg] = newexp.SetExpir(expdir,obj.Projconf);
+      if ~success, return; end;
       
-      % expnames and rootoutputdir must match
-      if isoutexpdir,
-        [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
-        if ~strcmp(expname,outname),
-          msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-          return;
-        end
-%         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
-%           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
-%           return;
-%         end
-      elseif ~ischar(obj.rootoutputdir),
-        outexpdir = expdir;
-        rootoutputdir = 0;
-      else
-        rootoutputdir = obj.rootoutputdir;        
-      end
-      
-      if ischar(obj.rootoutputdir) && ~isoutexpdir,
-        outexpdir = fullfile(rootoutputdir,expname);
-      end
-      
-      % create missing outexpdirs
-      if ~exist(outexpdir,'dir'),
-        [success1,msg1] = mkdir(rootoutputdir,expname);
-        if ~success1,
-          msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
-          return;
-        end
-      end
-
-      % create clips dir
-      clipsdir = obj.GetFileName('clipsdir');
-      outclipsdir = fullfile(outexpdir,clipsdir);
-      if ~exist(outclipsdir,'dir'),
-        [success1,msg1] = mkdir(outexpdir,clipsdir);
-        if ~success1,
-          msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
-          return;
-        end
-      end
-
-      % okay, checks succeeded, start storing stuff
-      obj.nexps = obj.nexps + 1;
-      obj.expdirs{end+1} = expdir;
-      obj.expnames{end+1} = expname;
-      %obj.rootoutputdir = rootoutputdir;
-      obj.outexpdirs{end+1} = outexpdir;
-      
-      % load labels for this experiment
-      [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-
       % preload this experiment if this is the first experiment added
-      if obj.nexps == 1,
+      if numel(obj.exps) == 1,
+        Cache.PreLoad(1,newexp,1);
         % TODO: make this work with multiple flies
         [success1,msg1] = obj.PreLoad(1,1);
         if ~success1,
           msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.RemoveExpDirs(obj.nexps);
           return;
         end
-      elseif istrxinfo,
-        obj.nflies_per_exp(end+1) = nflies_per_exp;
-        obj.sex_per_exp{end+1} = sex_per_exp;
-        obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
-        obj.firstframes_per_exp{end+1} = firstframes_per_exp;
-        obj.endframes_per_exp{end+1} = endframes_per_exp;
-        
-%         if obj.nexps == 1 % This will set hassex and hasperframesex.
-%           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
-%           if ~success1,
-%             msg = sprintf('Error getting basic trx info: %s',msg1);
-%             obj.RemoveExpDirs(obj.nexps);
-%             return;
-%           end
-%         end
         
       else
-        obj.nflies_per_exp(end+1) = nan;
-        obj.sex_per_exp{end+1} = {};
-        obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
-        obj.firstframes_per_exp{end+1} = [];
-        obj.endframes_per_exp{end+1} = [];
-        [success1,msg1] = obj.GetTrxInfo(obj.nexps);
+        [success1,msg1] = newexp.GetTrxInfo();
         if ~success1,
           msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.RemoveExpDirs(obj.nexps);
-          return;
         end
       end
       
       
-      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
+      [success1,msg1] = obj.projconf.UpdateStatusTable('',expH);
       if ~success1,
         msg = msg1;
-        obj.RemoveExpDirs(obj.nexps);
         return;
       end
       
@@ -614,6 +520,7 @@ classdef JLabelData < handle
       end
       
       
+      obj.exps(end+1) = newexp;
       % save default path
       obj.defaultpath = expdir;
       
