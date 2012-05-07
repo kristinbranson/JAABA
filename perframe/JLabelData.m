@@ -2159,7 +2159,7 @@ classdef JLabelData < handle
       msg = '';
       
       obj.featureConfigFile = configfile;
-      [settings,~] = ReadPerFrameParams(configfile);
+      settings = ReadXMLParams(configfile);
       obj.allperframefns =  fieldnames(settings.perframe);
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
@@ -2189,7 +2189,7 @@ classdef JLabelData < handle
       end
 %       try
         [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
-          ReadPerFrameParams(featureparamsfilename); %#ok<PROP>
+          ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
 %       catch ME,
 %         msg = sprintf('Error reading feature parameters file %s: %s',...
 %           params.featureparamsfilename,getReport(ME));
