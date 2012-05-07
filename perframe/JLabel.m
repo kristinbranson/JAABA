@@ -395,7 +395,7 @@ end
 % for faster refreshing
 set(handles.axes_preview,'BusyAction','cancel');
 set(handles.guidata.hflies,'EraseMode','none');
-if ~isempty(handles.hflies_extra),
+if ~isempty(handles.guidata.hflies_extra),
   set(handles.guidata.hflies_extra,'EraseMode','none');
 end
 set(handles.guidata.htrx,'EraseMode','none');
