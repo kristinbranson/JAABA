@@ -392,6 +392,15 @@ if handles.guidata.data.IsGTMode(),
   set(handles.menu_view_plot_labels_automatic,'Visible','off');
 end
 
+% for faster refreshing
+set(handles.axes_preview,'BusyAction','cancel');
+set(handles.guidata.hflies,'EraseMode','none');
+if ~isempty(handles.hflies_extra),
+  set(handles.guidata.hflies_extra,'EraseMode','none');
+end
+set(handles.guidata.htrx,'EraseMode','none');
+set(handles.guidata.hfly_markers,'EraseMode','none');
+
 handles = UpdateGUIGroundTruthMode(handles);
 
 
@@ -3391,7 +3400,7 @@ function figure_JLabel_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isfield(handles.guidata.guipos,'leftborder_leftpanels'),
+if ~isfield(handles,'guidata') || ~isfield(handles.guidata.guipos,'leftborder_leftpanels'),
   return;
 end
 
@@ -4159,7 +4168,7 @@ function figure_JLabel_WindowButtonMotionFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~ishandle(handles.guidata.buttondown_axes),
+if ~isfield(handles,'guidata') || ~ishandle(handles.guidata.buttondown_axes),
   return;
 end
 if ~isnan(handles.guidata.buttondown_t0) && isnan(handles.guidata.selection_t0) && ...
