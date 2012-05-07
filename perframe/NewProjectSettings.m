@@ -173,7 +173,7 @@ function pushbuttonConfig_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 configfile = handles.configfile;
-[fname,pname] = uigetfile(configfile,'Select configuration file..');
+[fname,pname] = uiputfile('*.xml','Select configuration file..',configfile);
 if ~fname, return; end
 handles.configfile = fullfile(pname,fname);
 set(handles.editconfig,'String',handles.configfile);
@@ -184,7 +184,7 @@ function pushbuttonDefault_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbuttonDefault (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[fname,pname] = uigetfile('params/*.xml','Copy configuration settings from..');
+[fname,pname] = uigetfile('*.xml','Copy configuration settings from..','params');
 if ~fname, return; end
 handles.defaultConfigfile = fullfile(pname,fname);
 set(handles.editdefaultconfig,'String',handles.defaultConfigfile);

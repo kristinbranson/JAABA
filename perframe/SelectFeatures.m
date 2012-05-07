@@ -71,7 +71,8 @@ guidata(hObject, handles);
 set(handles.pfTable,'UserData',0);
 setJLDobj(hObject,JLDobj);
 set(hObject,'Visible','on');
-removeRowHeaders(hObject);
+removeRowHeaders(hObject); pause(0.5);
+% uiwait(hObject);
 % UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
 
 
@@ -399,7 +400,7 @@ function readFeatureConfiguration(hObject)
 handles = guidata(hObject);
 
 configfile = handles.JLDobj.featureConfigFile;
-[settings,~] = ReadPerFrameParams(configfile);
+settings = ReadXMLParams(configfile);
 
 % Read the default parameters for different categories.
 categories = fieldnames(settings.defaults);
@@ -492,18 +493,39 @@ perframeL = handles.JLDobj.allperframefns;
 
 transType = struct;
 pftype = struct;
-pftypeList = {};
+
+% perframeL might not contain all the perframe features.
 for pfndx = 1:numel(perframeL)
   curpf = perframeL{pfndx};
   transType.(curpf) = settings.perframe.(curpf).trans_types;
-  pftype.(curpf)  = settings.perframe.(curpf).type; 
-  for tndx = 1:numel(pftype.(curpf))
-    curT = pftype.(curpf){tndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    pftype.(curpf)  = {curtypes}; 
+  else    
+    pftype.(curpf)  = curtypes; 
+  end
+end
+
+fallpf = fieldnames(settings.perframe);
+pftypeList = {};
+for pfndx = 1:numel(fallpf)
+  curpf = fallpf{pfndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    curT = curtypes;
     if ~any(strcmp(pftypeList,curT))
       pftypeList{end+1} = curT;
     end
+  else    
+    for tndx = 1:numel(curtypes)
+      curT = curtypes{tndx};
+      if ~any(strcmp(pftypeList,curT))
+        pftypeList{end+1} = curT;
+      end
+    end
   end
 end
+
 
 handles.transType = transType;
 handles.pftype = pftype;
@@ -867,48 +889,10 @@ toc.appendChild(createXMLNode(docNode,'basicParams',basicStruct));
 toc.appendChild(createXMLNode(docNode,'featureWindowSize',featureWindowSize));
 toc.appendChild(createXMLNode(docNode,'params',params));
 
-att = fieldnames(params);
-for ndx = 1:numel(att)
-  toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
-end
-
-
-function node = createXMLNode(docNode,name,value)
-
-node = docNode.createElement(name);
-
-fs = fieldnames(value);
-for ndx = 1:numel(fs)
-  curVal = value.(fs{ndx});
-  switch class(curVal)
-    case 'struct'
-      node.appendChild(createXMLNode(docNode,fs{ndx},value.(fs{ndx})));
-    case 'cell'
-      valStr = curVal{1};
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' curVal{vNdx}];
-      end
-      node.setAttribute(fs{ndx},valStr);
-    case 'double'
-      valStr = num2str(curVal(1));
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' num2str(curVal(vNdx))];
-      end      
-      node.setAttribute(fs{ndx},valStr);
-    case 'logical'
-      valStr = num2str(curVal(1));
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' num2str(curVal(vNdx))];
-      end      
-      node.setAttribute(fs{ndx},valStr);
-    case 'char'
-      valStr = curVal;
-      node.setAttribute(fs{ndx},valStr);
-    otherwise
-      fprintf('Unknown type');
-  end
-      
-end
+% att = fieldnames(params);
+% for ndx = 1:numel(att)
+%   toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
+% end
 
 
 function disableWindowTable(handles)
@@ -1206,6 +1190,7 @@ handles = guidata(hObject);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = str2double(get(handles.editSize,'String'));
 [params,cellParams] = convertData(handles);
+set(handles.output,'Visible','off');
 handles.JLDobj.UpdatePerframeParams(params,cellParams,basicData,featureWindowSize);
 
 
@@ -1249,12 +1234,12 @@ function Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fName,pName] = uiputfile('./*.xml','Save feature configurations to..');
+% Use project name.
+[fName,pName] = uiputfile('params/*.xml','Save feature configurations to..');
 if ~fName
   return;
 end
 
-handles = guidata(hObject);
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
@@ -1649,5 +1634,32 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_ok (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+configfile = handles.JLDobj.configfilename;
+configparams = ReadXMLParams(configfile);
+
+if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
+  behaviorname = configparams.behaviors.names;
+  defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+  [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
+  if isempty(fname),return, end
+  featureconfigfile = fullfile(fpath,fname);
+  configparams.file.featureparamfilename = featureconfigfile;
+  docNode = com.mathworks.xml.XMLUtils.createDocument('params');
+  toc = docNode.getDocumentElement;
+  fnames = fieldnames(configparams);
+  for ndx = 1:numel(fnames)
+    toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
+  end
+  xmlwrite(configfile,docNode);
+end
+
+featureconfigfile = configparams.file.featureparamfilename;
+[params,~] = convertData(handles);
+basicData = get(handles.basicTable,'Data');
+featureWindowSize = round(str2double(get(handles.editSize,'String')));
+docNode = createParamsXML(params,basicData,featureWindowSize);
+xmlwrite(featureconfigfile,docNode);
+
 pushbutton_done_Callback(hObject,eventdata,handles);
 push_cancel_Callback(hObject,eventdata,handles);
