@@ -400,7 +400,7 @@ function readFeatureConfiguration(hObject)
 handles = guidata(hObject);
 
 configfile = handles.JLDobj.featureConfigFile;
-[settings,~] = ReadPerFrameParams(configfile);
+settings = ReadXMLParams(configfile);
 
 % Read the default parameters for different categories.
 categories = fieldnames(settings.defaults);
@@ -493,18 +493,39 @@ perframeL = handles.JLDobj.allperframefns;
 
 transType = struct;
 pftype = struct;
-pftypeList = {};
+
+% perframeL might not contain all the perframe features.
 for pfndx = 1:numel(perframeL)
   curpf = perframeL{pfndx};
   transType.(curpf) = settings.perframe.(curpf).trans_types;
-  pftype.(curpf)  = settings.perframe.(curpf).type; 
-  for tndx = 1:numel(pftype.(curpf))
-    curT = pftype.(curpf){tndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    pftype.(curpf)  = {curtypes}; 
+  else    
+    pftype.(curpf)  = curtypes; 
+  end
+end
+
+fallpf = fieldnames(settings.perframe);
+pftypeList = {};
+for pfndx = 1:numel(fallpf)
+  curpf = fallpf{pfndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    curT = curtypes;
     if ~any(strcmp(pftypeList,curT))
       pftypeList{end+1} = curT;
     end
+  else    
+    for tndx = 1:numel(curtypes)
+      curT = curtypes{tndx};
+      if ~any(strcmp(pftypeList,curT))
+        pftypeList{end+1} = curT;
+      end
+    end
   end
 end
+
 
 handles.transType = transType;
 handles.pftype = pftype;
@@ -868,10 +889,10 @@ toc.appendChild(createXMLNode(docNode,'basicParams',basicStruct));
 toc.appendChild(createXMLNode(docNode,'featureWindowSize',featureWindowSize));
 toc.appendChild(createXMLNode(docNode,'params',params));
 
-att = fieldnames(params);
-for ndx = 1:numel(att)
-  toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
-end
+% att = fieldnames(params);
+% for ndx = 1:numel(att)
+%   toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
+% end
 
 
 function disableWindowTable(handles)
@@ -1213,8 +1234,8 @@ function Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-configfile = handles.JLDobj.configfilename;
-[fName,pName] = uiputfile(configfile,'Save feature configurations to..');
+% Use project name.
+[fName,pName] = uiputfile('params/*.xml','Save feature configurations to..');
 if ~fName
   return;
 end
