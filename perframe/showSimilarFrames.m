@@ -917,7 +917,7 @@ switch get(gcf,'selectiontype')
         JLabelHandles = handles.JLabelHandles;
         figure(JLabelHandles.figure_JLabel);
         if row==2
-            JLabelHandles.ts(1) =999; % in order to update plot in SetCurrentFrame
+            JLabelHandles.guidata.ts(1) =999; % in order to update plot in SetCurrentFrame
             handles.curExp = handles.frames{2}.expNum;
             [JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
             handles.curFly = handles.frames{2}.flyNum;
