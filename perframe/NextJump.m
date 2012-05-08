@@ -604,7 +604,7 @@ classdef NextJump < handle
       t1 = min(max(ts,t0),t1);
 
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
-      j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1,'last')+1;
+      j = find(suggestidx(2:end-1) & ~suggestidx(1:end-2),1,'last')+1;
       if isempty(j), return; end
       
       t = t0 + j - 1;
