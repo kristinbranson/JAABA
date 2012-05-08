@@ -5785,8 +5785,8 @@ handles.guidata.data.SuggestThresholdGT(threshold);
 
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','on');
-sset(handles.menu_view_suggest_file,'Checked','off');
-et(handles.menu_view_suggest_none,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
