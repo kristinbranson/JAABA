@@ -1,0 +1,7 @@
+9 1
+*BoyMeetsBoy 0 1
+none	none	0	0x747474
+touch	touch	0	0x000074
+lunge	lunge	0	0x740000
+wing_threat	wing_threat	0	0x747400
+wing_extension	wing_extension	0	0x007400
