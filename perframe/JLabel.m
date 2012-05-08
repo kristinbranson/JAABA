@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 24-Apr-2012 12:41:25
+% Last Modified by GUIDE v2.5 07-May-2012 20:16:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -3126,6 +3126,18 @@ for i = is,
   end
 end
 
+function ShowWholeVideo(handles,is)
+
+if nargin < 2,
+  is = 1:numel(handles.guidata.axes_previews);
+end
+
+for i = is,
+  newxlim = [.5,handles.guidata.movie_width+.5];
+  newylim = [.5,handles.guidata.movie_height+.5];
+  set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);  
+end
+
 % --------------------------------------------------------------------
 function menu_file_save_labels_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save_labels (see GCBO)
@@ -4733,7 +4745,7 @@ function menu_view_zoom_static_Callback(hObject, eventdata, handles)
 
 handles.guidata.preview_zoom_mode = 'static';
 set(setdiff(handles.guidata.menu_view_zoom_options,hObject),'Checked','off');
-set(hObject,'Checked','on');
+set(handles.menu_view_zoom_static,'Checked','on');
 guidata(hObject,handles);
 
 
@@ -5870,3 +5882,14 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
+
+
+% --------------------------------------------------------------------
+function menu_view_zoom_showwholevideo_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_zoom_showwholevideo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% set to static view
+menu_view_zoom_static_Callback(hObject, eventdata, handles);
+ShowWholeVideo(handles);
