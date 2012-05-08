@@ -5047,6 +5047,7 @@ classdef JLabelData < handle
     
     function crossError = GetGTPerformance(obj)
       % Computes the performance on the GT data.
+      obj.StoreLabels();
       crossError.numbers = zeros(4,3);
       crossError.frac = zeros(4,3);
       
