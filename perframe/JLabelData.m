@@ -4924,7 +4924,7 @@ classdef JLabelData < handle
         end
       end
       
-      intlocs = rand(1)/numint+(0:numint-1)/numint;
+      intlocs = rand(1,numint); %/numint+(0:numint-1)/numint;
       cumwt = cumsum(int.wt)/sum(int.wt);
       obj.balancedGTSuggestions = [];
       for ndx = 1:numint
@@ -5035,6 +5035,8 @@ classdef JLabelData < handle
             end
             start = obj.balancedGTSuggestions(ndx).start;
             last = obj.balancedGTSuggestions(ndx).end;
+            if start>T1 || last <T0, continue ;end
+            start = max(start,T0); last = min(last,T1);
             range = start+off:last+off;
             selIdx = range(range>0);
             suggestedidx(selIdx) = true;
