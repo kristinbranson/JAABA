@@ -283,6 +283,7 @@ classdef JLabelData < handle
     randomGTSuggestions = {};
     thresholdGTSuggestions = [];
     loadedGTSuggestions = {};
+    balancedGTSuggestions = {};
     GTSuggestionMode = '';
     
   end
@@ -4885,6 +4886,64 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
+      success = true; msg = '';
+      
+      if isempty(obj.scoredata.exp),
+        msg = 'No Scores have been loaded, cannot suggest intervals for ground truthing\n';
+        success = false;
+        return;
+      end
+      
+      numpos = nnz(obj.scoredata.scores>0);
+      numneg = nnz(obj.scoredata.scores<0);
+      poswt = numneg/(numneg+numpos);
+      negwt = numpos/(numneg+numpos);
+      
+      int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
+      obj.balancedGTSuggestions = {};
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
+          curt = obj.scoredata.t(curidx);
+          if any(curt(2:end)-curt(1:end-1) ~= 1)
+            msg = 'Scores are not in order'; 
+            success = false; 
+            return;
+          end
+          numT = nnz(curidx)-intsize+1;
+          int.exp(1,end+1:end+numT) = endx;
+          int.flies(1,end+1:end+numT) = flies;
+          int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
+          curwt = (obj.scoredata.scores(curidx)<0)*negwt +(obj.scoredata.scores(curidx)>0)*poswt ;
+          cumwt = cumsum(curwt);
+          sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
+          sumwt = [cumwt(intsize) sumwt];
+          int.wt(1,end+1:end+numT) = sumwt;
+          
+        end
+      end
+      
+      intlocs = rand(1)/numint+(0:numint-1)/numint;
+      cumwt = cumsum(int.wt)/sum(int.wt);
+      obj.balancedGTSuggestions = [];
+      for ndx = 1:numint
+        locsSel = find(cumwt<=intlocs(ndx),1,'last');
+        expi = int.exp(locsSel);
+        flies = int.flies(locsSel);
+        tStart = int.tStart(locsSel);
+        obj.balancedGTSuggestions(ndx).start = tStart;
+        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
+        obj.balancedGTSuggestions(ndx).exp = expi;
+        obj.balancedGTSuggestions(ndx).flies = flies;
+      end
+      
+      success = true;
+      obj.GTSuggestionMode = 'Balanced';
+      
+    end
+    
+    
     function SuggestLoadedGT(obj,expi,filename)
       fid = fopen(filename);
       dat = textscan(fid,'fly:%d,start:%d,end:%d');
@@ -4925,46 +4984,61 @@ classdef JLabelData < handle
       
       suggestedidx = false(1,n);
       
-      if strcmpi(obj.GTSuggestionMode,'Random')
-        start = obj.randomGTSuggestions{expi}(flies).start;
-        last = obj.randomGTSuggestions{expi}(flies).end;
-        range = start+off:last+off;
-        selIdx = range(range>0);
-        suggestedidx(selIdx) = true;
+      switch obj.GTSuggestionMode,
+        case 'Random'
+          start = obj.randomGTSuggestions{expi}(flies).start;
+          last = obj.randomGTSuggestions{expi}(flies).end;
+          range = start+off:last+off;
+          selIdx = range(range>0);
+          suggestedidx(selIdx) = true;
         
-      elseif strcmpi(obj.GTSuggestionMode,'Loaded')
-        if numel(obj.loadedGTSuggestions)<expi || isempty(obj.loadedGTSuggestions{expi}),
+        case 'Loaded'
+          if numel(obj.loadedGTSuggestions)<expi || isempty(obj.loadedGTSuggestions{expi}),
+            suggestedidx = false(1,n);
+            return;
+          end
           suggestedidx = false(1,n);
-          return;
-        end
-        suggestedidx = false(1,n);
-        start = obj.loadedGTSuggestions{expi}(flies).start;
-        last = obj.loadedGTSuggestions{expi}(flies).end;
-        range = start+off:last+off;
-        selIdx = range(range>0);
-        suggestedidx(selIdx) = true;
+          start = obj.loadedGTSuggestions{expi}(flies).start;
+          last = obj.loadedGTSuggestions{expi}(flies).end;
+          range = start+off:last+off;
+          selIdx = range(range>0);
+          suggestedidx(selIdx) = true;
 
-      elseif strcmpi(obj.GTSuggestionMode,'Threshold')
-        if ~isempty(obj.scoredata.scores)
-          idxcurr = obj.scoredata.exp(:) == expi & ...
-            obj.scoredata.flies(:) == flies & ...
-            obj.scoredata.t(:) >=T0 & ...
-            obj.scoredata.t(:) <=T1;
-          suggestedidx( obj.scoredata.t(idxcurr)+off) = ...
-            obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
-            -obj.thresholdGTSuggestions;
-        end
-        
-        % Should we give suggestions based on scores not calculated offline? 
-        if ~isempty(obj.windowdata.scores)
-          idxcurr = obj.windowdata.exp(:) == expi & ...
-            obj.windowdata.flies(:) == flies & ...
-            obj.windowdata.t(:) >=T0 & ...
-            obj.windowdata.t(:) <=T1;
-          suggestedidx( obj.windowdata.t(idxcurr)+off) = ...
-            obj.NormalizeScores(obj.windowdata.scores(idxcurr)) > ...
-            -obj.thresholdGTSuggestions;
-        end
+        case 'Threshold'
+          if ~isempty(obj.scoredata.scores)
+            idxcurr = obj.scoredata.exp(:) == expi & ...
+              obj.scoredata.flies(:) == flies & ...
+              obj.scoredata.t(:) >=T0 & ...
+              obj.scoredata.t(:) <=T1;
+            suggestedidx( obj.scoredata.t(idxcurr)+off) = ...
+              obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+              -obj.thresholdGTSuggestions;
+          end
+
+          % Should we give suggestions based on scores not calculated offline? 
+          if ~isempty(obj.windowdata.scores)
+            idxcurr = obj.windowdata.exp(:) == expi & ...
+              obj.windowdata.flies(:) == flies & ...
+              obj.windowdata.t(:) >=T0 & ...
+              obj.windowdata.t(:) <=T1;
+            suggestedidx( obj.windowdata.t(idxcurr)+off) = ...
+              obj.NormalizeScores(obj.windowdata.scores(idxcurr)) > ...
+              -obj.thresholdGTSuggestions;
+          end
+          
+        case 'Balanced'
+          suggestedidx = false(1,n);
+          for ndx = 1:numel(obj.balancedGTSuggestions)
+            if obj.balancedGTSuggestions(ndx).exp ~= expi ||...
+              obj.balancedGTSuggestions(ndx).flies ~= flies
+              continue;
+            end
+            start = obj.balancedGTSuggestions(ndx).start;
+            last = obj.balancedGTSuggestions(ndx).end;
+            range = start+off:last+off;
+            selIdx = range(range>0);
+            suggestedidx(selIdx) = true;
+          end
       end
       
     end

@@ -1,12 +1,12 @@
 classdef JCache < handles
   
   properties (Access = public)
-
+    
     % first frame that all flies currently selected are tracked
     t0_curr = 0;
     % last frame that all flies currently selected are tracked
     t1_curr = 0;
-
+    
     expH = [];
     target = [];
     scores = [];
@@ -34,7 +34,7 @@ classdef JCache < handles
     scoresidx = [];
     scoresidx_old = [];
     scoreTS = [];
-
+    
     % whether the predicted label matches the true label. 0 stands for
     % either not predicted or not labeled, 1 for matching, 2 for not
     % matching. this has the same representation as labelidx.
@@ -43,23 +43,27 @@ classdef JCache < handles
     % TODO: remove this
     % predictedidx for unlabeled data, same representation as labelidx
     suggestedidx = [];
-
+    
   end
   
   methods (Access = public)
     
+    %%%% FIXED %%%%
     function res = IsCached(obj,expH,target)
       res = obj.expH == expH & obj.target ==target;
     end
     
+    %%%% FIXED %%%%
     function expH = obj.GetExp(obj)
       expH = obj.expH;
     end
     
+    %%%% FIXED %%%%
     function target = obj.GetTarget(obj)
       target = obj.target;
     end
     
+    %%%% FIXED %%%%
     function [labels, labels_off] = GetLabels(obj)
       labels = obj.labels;
       labels_off = obj.labels_off;
@@ -79,8 +83,8 @@ classdef JCache < handles
       end
     end
     
+    %%%% FIXED %%%%
     function [success,msg] = PreLoad(obj,expH,target)
-      %%%% FIXED %%%%
       % [success,msg] = PreLoad(obj,expi,flies)
       % Preloads data associated with the input experiment and flies. If
       % neither the experiment nor flies are changing, then we do nothing. If
@@ -96,7 +100,7 @@ classdef JCache < handles
       if numel(expi) ~= 1,
         error('expi must be a scalar');
       end
-
+      
       if numel(unique(flies)) ~= numel(flies),
         msg = 'flies must all be unique';
         return;
@@ -109,7 +113,7 @@ classdef JCache < handles
         success = true;
         return;
       end
-
+      
       if ~isempty(obj.expH) ,
         % store labels currently in labelidx to labels
         expH.StoreLabels(obj);
@@ -127,7 +131,7 @@ classdef JCache < handles
           end
           
           obj.SetStatus('Loading trx for experiment %s',obj.expnames{expi});
-                    
+          
           % TODO: remove this
           global CACHED_TRX; %#ok<TLEV>
           global CACHED_TRX_EXPNAME; %#ok<TLEV>
@@ -142,11 +146,8 @@ classdef JCache < handles
           end
           % store trx_info, in case this is the first time these trx have
           % been loaded
-          [success,msg] = expH.GetTrxInfo(obj.trx);
-          if ~success,
-            return;
-          end
-          
+          expH.StoreTrxInfo(obj.trx);
+
         catch ME,
           msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
           if ishandle(hwait),
@@ -155,9 +156,9 @@ classdef JCache < handles
           end
           return;
         end
- 
+        
       end
-
+      
       % set labelidx from labels
       obj.SetStatus('Caching labels for experiment %s, target %s',expH.GetName,sprintf(' %d',target));
       [obj.labelidx,obj.t0_curr,obj.t1_curr] = expH.GetLabelIdx(target);
@@ -183,17 +184,17 @@ classdef JCache < handles
       
       obj.expH = expH;
       obj.target = target;
-
+      
       obj.UpdatePredictedIdx();
       obj.ClearStatus();
-           
+      
       success = true;
       
     end
     
     function ClearCachedPerExpData(obj)
-    % ClearCachedPerExpData(obj)
-    % Clears all cached data for the currently loaded experiment
+      % ClearCachedPerExpData(obj)
+      % Clears all cached data for the currently loaded experiment
       obj.trx = {};
       obj.expi = 0;
       obj.flies = nan(size(obj.flies));
@@ -208,109 +209,215 @@ classdef JCache < handles
       obj.erroridx = [];
       obj.suggestedidx = [];
     end
-
-    function SetLabel(obj,expi,flies,ts,behaviori,important)
-    % SetLabel(obj,expi,flies,ts,behaviori)
-    % Set label for experiment expi, flies, and frames ts to behaviori. If
-    % expi, flies match current expi, flies, then we only set labelidx.
-    % Otherwise, we set labels. 
+    
+    %%% FIXED %%%%
+    function SetLabel(obj,expH,flies,ts,behaviori,important)
+      % SetLabel(obj,expi,flies,ts,behaviori)
+      % Set label for experiment expi, flies, and frames ts to behaviori. If
+      % expi, flies match current expi, flies, then we only set labelidx.
+      % Otherwise, we set labels.
       
-      if obj.IsCurFly(expi,flies),
+      if obj.expH == expH && obj.flies == flies
         obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
         obj.labelidx.imp(ts+obj.labelidx_off) = important;
         obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
       else
-        [labelidx,T0] = obj.GetLabelIdx(expi,flies);
+        [labelidx,T0] = expH.GetLabelIdx(flies);
         labelidx.vals(ts+1-T0) = behaviori;
         labelidx.imp(ts+1-T0) = important;
         labelidx.timestamp(ts+1-T0) = now;
-        obj.StoreLabels1(expi,flies,labelidx,1-T0);        
+        expH.StoreLabels1(flies,labelidx,1-T0);
       end
       
     end
     
+    %%%% FIXED %%%%
     function StoreLabels(obj)
-    % Store labels cached in labelidx for the current experiment and flies
-    % to labels structure. This is when the timestamp on labels gets
-    % updated. 
-      
-      % flies not yet initialized
-      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
-        return;
-      end
-      
-      obj.StoreLabels1(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
-            
-      % preload labeled window data while we have the per-frame data loaded
-      ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
-      [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
-      if ~success,
-        warning(msg);
-      end
-
-      % update windowdata's labelidx_new
-      if ~isempty(obj.windowdata.exp),
-        idxcurr = obj.windowdata.exp == obj.expi & ...
-          all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2);
-        obj.windowdata.labelidx_new(idxcurr) = obj.labelidx.vals(obj.windowdata.t(idxcurr)+obj.labelidx_off);
-        obj.windowdata.labelidx_imp(idxcurr) = obj.labelidx.imp(obj.windowdata.t(idxcurr)+obj.labelidx_off);
-      end
-      
-      %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
-      
+      expH.StoreLabels();
     end
-
-    function StoreLabels1(obj,expi,flies,labelidx,labelidx_off)
+    
+    %%%% FIXED %%%%
+    function out = GetTrxValues(obj,infoType,flies,ts)
+      % A generic function that return track info.
       
-      % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
-      for j = 1:obj.nbehaviors,
-        [i0s,i1s] = get_interval_ends(labelidx.vals==j);
+      if nargin < 3,     % No flies given
+        switch infoType
+          case 'Trx'
+            out = obj.trx;
+          case 'X'
+            out = {obj.trx.x};
+          case 'Y'
+            out = {obj.trx.y};
+          case 'A'
+            out = {obj.trx.a};
+          case 'B'
+            out = {obj.trx.b};
+          case 'Theta'
+            out = {obj.trx.theta};
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues with less than 4 arguments');
+        end
+        return;
         
-        if ~isempty(i0s),
-          n = numel(i0s);
-          newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
-          newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
-          newlabels.names(end+1:end+n) = repmat(obj.labelnames(j),[1,n]);
-          newlabels.timestamp(end+1:end+n) = labelidx.timestamp(i0s);
+        
+      elseif nargin < 4, % No ts given
+        switch infoType
+          case 'Trx'
+            out = obj.trx(flies);
+          case 'X'
+            out = {obj.trx(flies).x};
+          case 'Y'
+            out = {obj.trx(flies).y};
+          case 'A'
+            out = {obj.trx(flies).a};
+          case 'B'
+            out = {obj.trx(flies).b};
+          case 'Theta'
+            out = {obj.trx(flies).theta};
+          case 'X1'
+            out = [obj.trx(flies).x];
+          case 'Y1'
+            out = [obj.trx(flies).y];
+          case 'A1'
+            out = [obj.trx(flies).a];
+          case 'B1'
+            out = [obj.trx(flies).b];
+          case 'Theta1'
+            out = [obj.trx(flies).theta];
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues');
+        end
+        return
+      else               % Everything is given
+        nflies = numel(flies);
+        fly = flies(1);
+        switch infoType
+          case 'Trx'
+            c = cell(1,nflies);
+            trx = struct('x',c,'y',c,'a',c,'b',c,'theta',c,'ts',c,'firstframe',c,'endframe',c);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              trx(i).x = obj.trx(fly).x(js);
+              trx(i).y = obj.trx(fly).y(js);
+              trx(i).a = obj.trx(fly).a(js);
+              trx(i).b = obj.trx(fly).b(js);
+              trx(i).theta = obj.trx(fly).theta(js);
+              trx(i).ts = js-obj.trx(fly).off;
+              trx(i).firstframe = trx(i).ts(1);
+              trx(i).endframe = trx(i).ts(end);
+            end
+            out = trx;
+          case 'X'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).x(js);
+            end
+            out = x;
+          case 'Y'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).y(js);
+            end
+            out = x;
+          case 'A'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).a(js);
+            end
+            out = x;
+          case 'B'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).b(js);
+            end
+            out = x;
+          case 'Theta'
+            x = cell(1,nflies);
+            for i = 1:numel(flies),
+              fly = flies(i);
+              js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
+              x{i} = obj.trx(fly).theta(js);
+            end
+            out = x;
+          case 'X1'
+            out = obj.trx(fly).x(ts + obj.trx(fly).off);
+          case 'Y1'
+            out = obj.trx(fly).y(ts + obj.trx(fly).off);
+          case 'A1'
+            out = obj.trx(fly).a(ts + obj.trx(fly).off);
+          case 'B1'
+            out = obj.trx(fly).b(ts + obj.trx(fly).off);
+          case 'Theta1'
+            out = obj.trx(fly).theta(ts + obj.trx(fly).off);
+          otherwise
+            error('Incorrect infotype requested from GetTrxValues');
         end
       end
       
-      [i0s,i1s] = get_interval_ends(labelidx.imp);
-      if ~isempty(i0s),
-        newlabels.imp_t0s = i0s - labelidx_off;
-        newlabels.imp_t1s = i1s - labelidx_off;
-      end
-      
-      % Store labels according to the mode
-      if obj.IsGTMode(),
-        labelsToUse = 'gt_labels';
-        labelstatsToUse = 'gt_labelstats';
-      else
-        labelsToUse = 'labels';
-        labelstatsToUse = 'labelstats';
-      end
-      
-      [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
-      if ~ism,
-        j = size(obj.(labelsToUse)(expi).flies,1)+1;
-      end
-
-      obj.(labelsToUse)(expi).t0s{j} = newlabels.t0s;
-      obj.(labelsToUse)(expi).t1s{j} = newlabels.t1s;
-      obj.(labelsToUse)(expi).names{j} = newlabels.names;
-      obj.(labelsToUse)(expi).flies(j,:) = flies;
-      obj.(labelsToUse)(expi).off(j) = labelidx_off;
-      obj.(labelsToUse)(expi).timestamp{j} = newlabels.timestamp;
-      obj.(labelsToUse)(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.(labelsToUse)(expi).imp_t1s{j} = newlabels.imp_t1s;
-
-      % store labelstats
-      obj.(labelstatsToUse)(expi).nflies_labeled = numel(unique(obj.(labelsToUse)(expi).flies));
-      obj.(labelstatsToUse)(expi).nbouts_labeled = numel(newlabels.t1s);
-            
     end
-
+    
+    %%%% FIXED %%%%
+    function sex = GetSex(obj,fly,ts,fast)
+      % x = GetSex(obj,expi,fly,ts)
+      % Returns the sex for the input experiment, SINGLE fly, and
+      % frames. If ts is not input, then all frames are returned.
+      
+      if ~obj.expH.hassex,
+        sex = '?';
+        return;
+      end
+      
+      if nargin < 4,
+        fast = false;
+      end
+      
+      if ~obj.expH.hasperframesex || fast,
+        sex = obj.expH.sex(fly);
+        return;
+      end
+      
+      if nargin < 3,
+        sex = obj.trx(fly).sex;
+        return;
+      end
+      
+      sex = obj.trx(fly).sex(ts + obj.trx(fly).off);
+      
+    end
+    
+    %%%% FIXED %%%%
+    function sex = GetSex1(obj,fly,t)
+      % x = GetSex1(obj,expi,fly,t)
+      % Returns the sex for the input experiment, SINGLE fly, and
+      % SINGLE frame.
+      
+      if ~obj.expH.hassex,
+        sex = '?';
+        return;
+      end
+      
+      if ~obj.expH.hasperframesex,
+        sex = obj.sex(fly);
+        if iscell(sex),
+          sex = sex{1};
+        end
+        return;
+      end
+      
+      sex = obj.trx(fly).sex{t + obj.trx(fly).off};
+      
+    end
+    
+    
   end
   
 end
