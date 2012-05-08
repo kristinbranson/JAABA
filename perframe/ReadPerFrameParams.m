@@ -9,9 +9,21 @@ n = DOMnode.getDocumentElement();
 %   basicData = n.
 %   n = params;
 v = parse(n);
-basicTable = convertToTable(v.basicParams,featureconfigfile);
-windowSize = v.featureWindowSize.size;
-params = v.params;
+if isfield(v,'basicParams')
+    basicTable = convertToTable(v.basicParams,featureconfigfile);
+else
+    basicTable = convertToTable(struct(),featureconfigfile);
+end
+if isfield(v,'featureWindowSize')
+    windowSize = v.featureWindowSize.size;
+else
+    windowSize = 10;
+end
+if isfield(v,'params')
+    params = v.params;  
+else
+    params = v;
+end
 % convert to cell params also
 if nargout > 1,
   cellparams = struct;
