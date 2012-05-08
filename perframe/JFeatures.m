@@ -94,7 +94,7 @@ classdef JFeatures < handles
   
   methods (Access = public)
     
-    
+    %%%% FIXED %%%%
     function [success,msg] = SetFeatureConfigFile(obj,configfile)
       success = false;
       msg = '';
@@ -110,10 +110,12 @@ classdef JFeatures < handles
       
     end
     
+    %%%% FIXED %%%%
     function allpf = GetAllperframefns(obj)
       allpf = obj.allpf;
     end
     
+    %%%% FIXED %%%%
     function curpf = GetCurperframefns(obj)
       curpf = obj.curpf;
     end
@@ -335,18 +337,17 @@ classdef JFeatures < handles
       save(scoresFileOut,'-struct','OUT');
     end
     
-    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
+    %%%% FIXED %%%%
+    function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expH,flies,t,tscomputed)
       % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
       % Computes a chunk of windowdata near frame t for experiment expi and
-      % flies flies. if mode is 'start', then the chunk will start at t. if
-      % it is 'center', the chunk will be centered at t. if mode is 'end',
-      % the chunk will end at t. by default, mode is 'center'.
+      % flies flies. the chunk is centered at t. 
       % t0 and t1 define the bounds of the chunk of window data computed. X
       % is the nframes x nfeatures window data, feature_names is a cell array
       % of length nfeatures containing the names of each feature.
       %
-      % This function first chooses an interval of frames around t, depending
-      % on the mode. it then chooses a subinterval of this interval that
+      % This function first chooses an interval of frames around t, 
+      % It then chooses a subinterval of this interval that
       % covers all frames in this interval that do not have window data. This
       % defines t0 and t1.
       %
@@ -360,9 +361,6 @@ classdef JFeatures < handles
       
       success = false; msg = '';
       
-      if ~exist('mode','var'), mode = 'center'; end
-      if ~exist('forceCalc','var'), forceCalc = false; end
-      
       % Check if the features have been configured.
       if isempty(fieldnames(obj.windowfeaturesparams))
         obj.ShowSelectFeatures();
@@ -374,26 +372,15 @@ classdef JFeatures < handles
       % choose frames to compute:
       
       % bound at start and end frame of these flies
-      T0 = max(obj.GetTrxFirstFrame(expi,flies));
-      T1 = min(obj.GetTrxEndFrame(expi,flies));
+      T0 = max(expH.GetTrxFirstFrame(flies));
+      T1 = min(expH.GetTrxEndFrame(flies));
       
-      switch lower(mode),
-        case 'center',
-          % go forward r to find the end of the chunk
-          t1 = min(t+obj.windowdatachunk_radius,T1);
-          % go backward 2*r to find the start of the chunk
-          t0 = max(t1-2*obj.windowdatachunk_radius,T0);
-          % go forward 2*r again to find the end of the chunk
-          t1 = min(t0+2*obj.windowdatachunk_radius,T1);
-        case 'start',
-          t0 = max(t,T0);
-          t1 = min(t0+2*obj.windowdatachunk_radius,T1);
-        case 'end',
-          t1 = min(t,T1);
-          t0 = max(t1-2*obj.windowdatachunk_radius,T0);
-        otherwise
-          error('Unknown mode %s',mode);
-      end
+      % go forward r to find the end of the chunk
+      t1 = min(t+obj.windowdatachunk_radius,T1);
+      % go backward 2*r to find the start of the chunk
+      t0 = max(t1-2*obj.windowdatachunk_radius,T0);
+      % go forward 2*r again to find the end of the chunk
+      t1 = min(t0+2*obj.windowdatachunk_radius,T1);
       
       % find a continuous interval that covers all uncomputed ts between t0
       % and t1
@@ -401,7 +388,6 @@ classdef JFeatures < handles
       n = t1-t0+1;
       docompute = true(1,n);
       if ~isempty(obj.windowdata.exp) && ~forceCalc,
-        tscomputed = obj.windowdata.t(obj.FlyNdx(expi,flies));
         tscomputed = tscomputed(tscomputed >= t0 & tscomputed <= t1);
         docompute(tscomputed+off) = false;
       end
@@ -423,9 +409,7 @@ classdef JFeatures < handles
       
       curperframefns = obj.curperframefns;
       allperframefns = obj.allperframefns;
-      perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
-      perframedata_all = obj.perframedata;
-      perframefile = obj.GetPerframeFiles(expi);
+      perframefile = expH.GetPerframeFiles();
       x_curr_all = cell(1,numel(curperframefns));
       feature_names_all = cell(1,numel(curperframefns));
       windowfeaturescellparams = obj.windowfeaturescellparams;
@@ -443,25 +427,11 @@ classdef JFeatures < handles
         end
         
         if ~exist(perframefile{ndx},'file'),
-          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',obj.expnames{expi}),'Generate missing files?','Yes','Cancel','Yes');
-          if strcmpi(res,'Yes'),
-            for ndx = 1:obj.nexps
-              [success1,msg1] = obj.GenerateMissingFiles(ndx);
-              if ~success1,
-                success = success1; msg = msg1;
-                return;
-              end
-            end
-            
-          else
-            success = false;
-            msg = sprintf('Cannot compute window data for %s ',expdir);
-            return;
-          end
-          
-          
+          res = warndlg(sprintf('Experiment %s is missing some perframe files.',expH.GetName() ));
+          success = false;
+          msg = sprintf('Cannot compute window data for %s ',expdir);
+          return;
         end
-        
       end
       
       parfor j = 1:numel(curperframefns),
@@ -469,12 +439,8 @@ classdef JFeatures < handles
         
         % get per-frame data
         ndx = find(strcmp(fn,allperframefns));
-        if perframeInMemory,
-          perframedata = perframedata_all{ndx};
-        else
-          perframedata = load(perframefile{ndx});
-          perframedata = perframedata.data{flies(1)};
-        end
+        perframedata_all = load(perframefile{ndx});
+        perframedata = perframedata_all.data{flies(1)};
         
         i11 = min(i1,numel(perframedata));
         [x_curr,feature_names_curr] = ...
@@ -518,7 +484,8 @@ classdef JFeatures < handles
       success = true;
       
     end
-        function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
+    
+    function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
     % Updates the feature params. Called by SelectFeatures
       obj.SetPerframeParams(params,cellParams)
       if nargin>2
