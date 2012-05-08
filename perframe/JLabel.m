@@ -5244,12 +5244,12 @@ function menu_file_loadscorescurrentexprootdir_Callback(hObject, eventdata, hand
 tstring = sprintf('Root dir to load scores for current experiment');
 fname = uigetdir('*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = sprintf('scores_%s.mat',handles.guidata.data.labelnames{1});
-
-sfn = fullfile(fname,handles.guidata.data.expnames{handles.guidata.expi},scoreFileName);
+scoreFileName = handles.guidata.data.GetFile('scores',handles.guidata.expi);
+[~, scoreFileName, ext] = myfileparts(scoreFileName);
+sfn = fullfile(fname,handles.guidata.data.expnames{handles.guidata.expi},[scoreFileName ext]);
 if ~exist(sfn,'file')
   warndlg(sprintf('Scores file %s does not exist for exp:%s',...
-    scoreFileName,handles.guidata.data.expnames{ndx}));
+    scoreFileName,handles.guidata.data.expnames{handles.guidata.expi}));
   return;
 end
 handles.guidata.data.LoadScores(handles.guidata.expi,sfn);
@@ -5304,7 +5304,9 @@ function menu_file_loadscoresAllselect_Callback(hObject, eventdata, handles)
 tstring = sprintf('Root dir to load scores for all experiments');
 fname = uigetdir('*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = sprintf('scores_%s.mat',handles.guidata.data.labelnames{1});
+scoreFileName = handles.guidata.data.GetFile('scores',handles.guidata.expi);
+[~, scoreFileName, ext] = myfileparts(scoreFileName);
+scoreFileName = [scoreFileName ext];
 
 for ndx = 1:handles.guidata.data.nexps,
   sfn = fullfile(fname,handles.guidata.data.expnames{ndx},scoreFileName);
@@ -5751,7 +5753,8 @@ handles.guidata.data.SuggestRandomGT(perfly,perexp);
 
 set(handles.menu_view_suggest_random,'Checked','on');
 set(handles.menu_view_suggest_threshold,'Checked','off');
-sset(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_balanced,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
@@ -5785,6 +5788,7 @@ handles.guidata.data.SuggestThresholdGT(threshold);
 
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','on');
+set(handles.menu_view_suggest_balanced,'Checked','off');
 set(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
@@ -5807,6 +5811,7 @@ function menu_view_suggest_none_Callback(hObject, eventdata, handles)
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','off');
 set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_balanced,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','on');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
 
@@ -5819,6 +5824,34 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+
+
+% --------------------------------------------------------------------
+function menu_view_suggest_balanced_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_balanced (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+in = inputdlg({'Number of frames per labeling bout','Number of intervals'});
+intsize = str2double(in{1});
+numint = str2double(in{2});
+if isnan(intsize) || (round(intsize)-intsize)~=0 || ...
+    isnan(numint) || (round(numint)-numint)~=0 
+  warndlg('Input error: enter integer values');
+  return;
+end
+
+[success,msg ] = handles.guidata.data.SuggestBalancedGT(intsize,numint);
+if ~success, warndlg(msg); return; end
+
+set(handles.menu_view_suggest_random,'Checked','off');
+set(handles.menu_view_suggest_threshold,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_balanced,'Checked','on');
+set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+
+
 
 % --------------------------------------------------------------------
 function menu_view_suggest_file_Callback(hObject, eventdata, handles)
@@ -5838,6 +5871,7 @@ set(handles.menu_view_suggest_threshold,'Checked','off');
 set(handles.menu_view_suggest_file,'Checked','on');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+set(handles.menu_view_suggest_balanced,'Checked','off');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
