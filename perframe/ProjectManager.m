@@ -119,21 +119,21 @@ classdef ProjectManager < handle
       curproj = obj.curproj;
     end
     
-    function AddProject(obj,name,configFile,copyconfigFile)
+    function AddProject(obj,name,configfile,copyconfigFile)
       
       if nargin <4,
         defaultConfigFile = '';
       end
       
       obj.projparams(end+1).name = name;
-      obj.projparams(end).configFile = configFile;
+      obj.projparams(end).configfile = configfile;
       obj.projparams(end).save = true;
       obj.curproj = numel(obj.projparams);
       
       fileToRead = '';
       
-      if exist(configFile,'file')
-        fileToRead = configFile;
+      if exist(configfile,'file')
+        fileToRead = configfile;
         obj.projparams(end).save = false;
       elseif ~isempty(copyconfigFile) && exist(copyconfigFile,'file')
         fileToRead = copyconfigFile;

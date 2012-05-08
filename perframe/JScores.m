@@ -1,7 +1,7 @@
 classdef JScores < handles
   
   properties (Access = public)
-    scores = [];
+    scores = {};
     flies = [];
     t = [];
     timestamp = [];
@@ -10,13 +10,15 @@ classdef JScores < handles
   
   methods ( Access = public)
     
-    function GetScores()
+    function scores = GetScores(obj,flies)
+      scores = obj.scores{flies};
     end
     
-    function SetScores()
+    function SetScores(obj,flies,scores)
+      obj.scores{flies} = scores;
     end
     
-      function scores = NormalizeScores(obj,scores)
+    function scores = NormalizeScores(obj,scores)
       
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
         isLabeled = obj.windowdata.labelidx_cur~=0;
@@ -30,12 +32,13 @@ classdef JScores < handles
       scores(scores>scoreNorm) = scoreNorm;
       scores = scores/scoreNorm;
     end
-      function SaveScores(obj,allScores,expi)
-    % Save prediction scores for the whole experiment.
-    % The scores are stored as a cell array.
+    
+    function SaveScores(obj,allScores,expi)
+      % Save prediction scores for the whole experiment.
+      % The scores are stored as a cell array.
       sfn = obj.GetFile('scores',expi,true);
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
-
+      
       didbak = false;
       if exist(sfn,'file'),
         [didbak,msg] = copyfile(sfn,[sfn,'~']);
@@ -68,7 +71,7 @@ classdef JScores < handles
         else
           idxcurr = [];
         end
-        if any(idxcurr), 
+        if any(idxcurr),
           obj.scoredata.scores(idxcurr) = [];
           obj.scoredata.predicted(idxcurr) = [];
           obj.scoredata.exp(idxcurr,:) = [];
@@ -88,18 +91,18 @@ classdef JScores < handles
         obj.scoredata.timestamp(end+1:end+sz) = timestamp;
       end
       obj.UpdatePredictedIdx();
-
+      
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
         if ~isempty(obj.scoredata.scores)
           scoreNorm = prctile(abs(obj.scoredata.scores),80);
           obj.windowdata.scoreNorm = scoreNorm;
         end
       end
-
+      
       obj.ClearStatus();
-
+      
     end
-
+    
   end
   
 end

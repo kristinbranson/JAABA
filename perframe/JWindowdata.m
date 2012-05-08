@@ -5,7 +5,11 @@ classdef JWindowdata < handles
     flies = [];
     bins = [];
     t = [];
-    labelidx_cur=[];
+    
+    % Cur is if the labels were used in currently trained classifier.
+    % new is it will be used to train the old classifier.
+    % old are the labels used to the previous classifier.
+    labelidx_cur=[];  
     labelidx_new=[];
     labelidx_old=[];
     labelidx_imp=[];
@@ -18,6 +22,8 @@ classdef JWindowdata < handles
     scores_old=[];
     scores_validated=[];
     expH = [];
+    features = [];
+    feature_names = {};
   end
   
   methods (Access = public)
@@ -26,29 +32,134 @@ classdef JWindowdata < handles
       
     end
     
-    function AddMissingTs(fly)
-      %% Stopped here.. offsets.. augh..
-      [labelidxStruct,labelidx_off] = expH.GetLabelIdx(fly);
-      ts = find(labelidxStruct.vals ~=0);
-      missingts = obj.GetMissingTs(target,ts);
+    %%%% FIXED %%%%
+    function [success,msg ] = AddTs(obj,flies,ts)
+      
+      success = true; msg = '';
+      
+      tscurr = obj.GetT(flies);
+      missingts = obj.GetMissingTs(flies,ts);
+      
+      [labelidxStruct,t0_labelidx] = obj.expH.GetLabelIdx(flies);
 
-    end
-    
-    function AddX(obj)
+      while true,
+        curt = median(missingts);
+        if ~ismember(curt,missingts),
+          curt = missingts(argmin(abs(curt-missingts)));
+        end
+        
+        [success,msg,t0,t1,curX,cur_feature_names] = obj.features.ComputeWindowDataChunk(...
+          obj.expH,flies,curt,tscurr);
+        
+        if ~success, warndlg(msg); return; end
+        
+        if isempty(obj.feature_names),
+          obj.feature_names = cur_feature_names;
+        end
+
+        tsnew = t0:t1;
+        idxnew = ~ismember(tsnew,tscurr);
+        m = nnz(idxnew);
+        if m==0; return; end
+
+        obj.X(end+1:end+m,:) = curX(idxnew,:);
+        obj.flies(end+1:end+m,:) = repmat(flies,[m,1]);
+        obj.t(end+1:end+m,1) = tsnew(idxnew);
+        obj.labelidx_cur(end+1:end+m,1) = 0;
+        tempLabelsNew = labelidxStruct.vals(t0-t0_labelidx+1:t1-t0_labelidx+1);
+        obj.labelidx_new(end+1:end+m,1) = tempLabelsNew(idxnew);
+        tempLabelsImp = labelidxStruct.imp(t0-t0_labelidx+1:t1-t0_labelidx+1);        
+        obj.labelidx_imp(end+1:end+m,1) = tempLabelsImp(idxnew);        
+        obj.labelidx_old(end+1:end+m,1) = 0;
+        obj.predicted(end+1:end+m,1) = 0;
+        obj.scores(end+1:end+m,1) = 0;
+        obj.scores_old(end+1:end+m,1) = 0;   
+        obj.scores_validated(end+1:end+m,1) = 0;           
+        
+        missingts(missingts >= t0 & missingts <= t1) = [];
+        
+        % stop if we're done
+        if isempty(missingts),
+          obj.ClearStatus();
+          break;
+        end
+
+      end
       
     end
     
+    %%%% FIXED %%%%
+    function UpdateLabels(obj,fliesin)
+      if nargin<1,
+        fliesin = 1:obj.expH.GetNumFlies();
+      end
+      
+      for fly = fliesin(:)'
+        idxcurr = obj.FlyNdx(fly);
+        if isempty(idxcurr), return; end
+        [labelidx,labelidx_off] = obj.expH.GetLabelIdx(fly);
+        obj.labelidx_new(idxcurr) = labelidx.vals(obj.t(idxcurr)+labelidx_off);
+        obj.labelidx_imp(idxcurr) = labelidx.imp(obj.t(idxcurr)+labelidx_off);
+      end
+    end
+    
+    %%%% FIXED %%%%
     function idx = FlyNdx(obj,fly)
       idx = obj.flies == fly;
     end
     
+    %%%% FIXED %%%%
     function ts = GetT(obj,fly)
       ts = obj.t(obj.FlyNdx(fly));
     end
     
+    %%%% FIXED %%%%
     function ts = GetMissingTs(obj,fly,ts)
       ts = setdiff(ts,obj.GetT(obj,fly));
     end
+    
+    %%%% FIXED %%%%
+    function ts = GetTs(obj,fly)
+      idx = obj.FlyNdx(fly);
+      ts = obj.t(idx);
+    end
+    
+    %%%% FIXED %%%%
+    function scores = GetScores(obj,fly)
+      idx = obj.FlyNdx(fly);
+      scores = obj.windowdata.scores(idx);
+    end
+    
+    %%%% FIXED %%%%
+    function scores = GetScoresOld(obj,fly)
+      idx = obj.FlyNdx(fly);
+      scores = obj.windowdata.scores_old(idx);
+    end
+    
+    %%%% FIXED %%%%
+    function scores = GetScoresValidated(obj,fly)
+      idx = obj.FlyNdx(fly);
+      scores = obj.windowdata.scores_validated(idx);
+    end
+    
+    %%%% FIXED %%%%
+    function labels = GetLabelsNew(obj,fly)
+      idx = obj.FlyNdx(fly);
+      labels = obj.windowdata.labelidx_new(idx);
+    end
+    
+    %%%% FIXED %%%%
+    function labels = GetLabelsCur(obj,fly)
+      idx = obj.FlyNdx(fly);
+      labels = obj.windowdata.labelidx_cur(idx);
+    end
+    
+    %%%% FIXED %%%%
+    function labels = GetLabelsOld(obj,fly)
+      idx = obj.FlyNdx(fly);
+      labels = obj.windowdata.labelidx_old(idx);
+    end
+    
     
     function ClearWindowData(obj)
       % Clears window features and predictions for a clean start when selecting
