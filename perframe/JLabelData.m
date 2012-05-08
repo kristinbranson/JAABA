@@ -3689,7 +3689,7 @@ classdef JLabelData < handle
     function TrimWindowData(obj)
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
-      sizeLimit = 8e9; % 5GB.
+      sizeLimit = 5e9; % 5GB.
       classSize = 4;
       ratioLimit = 0.2;
       
