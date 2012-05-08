@@ -44,8 +44,8 @@ function label = readLabels(labelname)
     trxname = freadstring(fid);
     nflies = double(fread(fid,1,'int'));
     flies = double(fread(fid,nflies,'int'));
-    t0 = double(fread(fid,1,'int'))+1;
-    t1 = double(fread(fid,1,'int'))+1;
+    t0 = double(fread(fid,1,'int'));
+    t1 = double(fread(fid,1,'int'));
     nbehaviors = double(fread(fid,1,'int'));
 
     % behaviors

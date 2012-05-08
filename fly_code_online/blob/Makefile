@@ -1,6 +1,6 @@
 CC = g++
 INCDIR = -Iinclude -I../online_structured_svm/include -I../online_structured_svm/json 
-CFLAGS=$(INCDIR) -fopenmp -I/usr/include/opencv
+CFLAGS=$(INCDIR) -fopenmp -I/usr/include/opencv 
 CFLAGS_DEBUG= -g -Wall
 CFLAGS_RELEASE= -O2 -fomit-frame-pointer -ffast-math
 CFLAGS_SHARED= -fPIC

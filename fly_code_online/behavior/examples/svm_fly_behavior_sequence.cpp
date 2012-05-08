@@ -171,6 +171,7 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
 	 fread(&lastframe, sizeof(int), 1, fin) &&
 	 fread(&sex, sizeof(char), 1, fin) && fread(&fps, sizeof(double), 1, fin) &&
 	 fread(&nfields, sizeof(int), 1, fin) && nfields < MAX_BASE_FEATURES+1);
+
   if(fly) {
     fly->sex = sex;
     fly->fps = fps;
@@ -198,6 +199,11 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
     } else {
       assert(!strcmp(d.name, ((SVMFlyBehaviorSequence*)svm)->GetFeatureDefs()[i-1].name));
       memcpy(features[i-1], buff, sizeof(double)*num_frames);
+      // use the log of certain features: vel, accel, ang_vel, ang_accel, axis_ratio_vel, vel_to_other, accel_to_other, vel_ang_between, accel_ang_between
+//       if(strcmp(d.name,"vel") | strcmp(d.name,"accel") | strcmp(d.name,"ang_vel") | strcmp(d.name,"ang_accel") | strcmp(d.name,"axis_ratio_vel") | strcmp(d.name,"vel_to_other") | strcmp(d.name,"accel_to_other") | strcmp(d.name,"vel_ang_between") | strcmp(d.name,"accel_ang_between")) {
+// 	for(int f=0; f<num_frames; f++)
+// 		features[i-1][f] = log(abs(features[i-1][f])+0.00001);
+//       }
     }
   }
   free(buff);
@@ -263,6 +269,7 @@ bool FlyBehaviorBoutSequence::load(const char *fname) {
   assert(fread(&this->firstframe, sizeof(int), 1, fin) && this->firstframe >= 0 &&
 	 fread(&this->lastframe, sizeof(int), 1, fin) && this->lastframe >= this->firstframe);
   assert(fread(&nbehaviors, sizeof(int), 1, fin) && nbehaviors+ADD_DUMMY_BEHAVIORS == behaviors->behaviors[0].num_values);
+
   
   int ind = 0; // assume for now all behaviors are mutually exclusive
   
@@ -297,10 +304,11 @@ bool FlyBehaviorBoutSequence::load(const char *fname) {
     this->bouts[ind][this->num_bouts[ind]].behavior = behavior;
     this->num_bouts[ind]++;
   }
-  for(i = 0; i < this->num_bouts[ind]; i++) {
-    this->bouts[ind][i].start_frame -= this->firstframe;
-    this->bouts[ind][i].end_frame -= this->firstframe;
-  }
+  // EYRUN: since my bouts always start on 0, this is not needed
+  // for(i = 0; i < this->num_bouts[ind]; i++) {
+  //   this->bouts[ind][i].start_frame -= this->firstframe;
+  //   this->bouts[ind][i].end_frame -= this->firstframe;
+  // }
   fclose(fin);
 
   return true;
@@ -354,8 +362,10 @@ bool FlyBehaviorBoutSequence::save(const char *fname) {
     
   assert(fwrite(&this->num_bouts[ind], sizeof(int), 1, fout) && this->num_bouts[ind] >= 0);
   for(i = 0; i < this->num_bouts[ind]; i++) {
-    start_frame = this->firstframe + this->bouts[ind][i].start_frame;
-    end_frame = this->firstframe + this->bouts[ind][i].end_frame;
+    //start_frame = this->firstframe + this->bouts[ind][i].start_frame;   // EYRUN
+    //end_frame = this->firstframe + this->bouts[ind][i].end_frame;	  
+    start_frame = this->bouts[ind][i].start_frame;
+    end_frame = this->bouts[ind][i].end_frame;
     assert(fwrite(&start_frame, sizeof(int), 1, fout));
     assert(fwrite(&end_frame, sizeof(int), 1, fout) && end_frame >= start_frame);
     assert(fwrite(&this->bouts[ind][i].behavior, sizeof(int), 1, fout)); 

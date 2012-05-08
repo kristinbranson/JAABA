@@ -179,6 +179,7 @@ public:
    * @param y_gt The ground truth label of x, which is used only during training when finding the most violated label
    * @return The score of the predicted label (which includes the loss for option 2)
    */
+  virtual void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true){}
   virtual double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, 
 			   StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL) = 0;
 

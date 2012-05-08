@@ -3,7 +3,7 @@ INCDIR = -I../include -I../../online_structured_svm/json -I../../online_structur
 
 
 CC=g++
-CFLAGS= $(INCDIR) -fopenmp -DUSE_OPENMP
+CFLAGS= $(INCDIR) -fopenmp -DUSE_OPENMP 
 CFLAGS_DEBUG= -g -Wall
 CFLAGS_RELEASE= -O2 -fomit-frame-pointer -ffast-math
 CFLAGS_SHARED= -fPIC
