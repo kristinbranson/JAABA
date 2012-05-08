@@ -103,7 +103,7 @@ handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
 
 handles.winextraDefaultParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
   [],[2],[],[],[],[]};
-handles.defaultWinParams = {1,10,3,{'none'},0};
+handles.defaultWinParams = {10,1,3,{'none'},0};
 
 guidata(hObject,handles);
 
@@ -677,37 +677,58 @@ if ~eventData.NewData,
 end
 
 handles.data{pfNdx}.valid = true;
-% When it already has values
-if isfield(handles.data{pfNdx},'default')
-  guidata(hObject,handles);
-  setWindowTable(handles,handles.pfNdx);
-  return;
-end
-
-% Else fill in the default values.
-handles.data{pfNdx}.sanitycheck = false;
-handles.data{pfNdx}.default.valid = true;
-for winParamsNdx = 1:numel(handles.winParams)
-  curType = handles.winParams{winParamsNdx};
-  handles.data{pfNdx}.default.values.(curType) = ...
-    handles.defaultWinParams{winParamsNdx};
-end
-
-% Copy the default values into the other window params.
-for winfnNdx = 2:numel(handles.windowComp)
+curType = handles.pftype.(handles.pfList{pfNdx}){1};
+basicNdx = find(strcmp(handles.pftypeList,curType));
+basicData = get(handles.basicTable,'Data');
+handles.data{pfNdx}.valid = true;
+for winfnNdx = 1:numel(handles.windowComp)
+  category = basicData{basicNdx,3};
   curFn = handles.windowComp{winfnNdx};
-  handles.data{pfNdx}.(curFn).valid = false;
-  for winParamsNdx = 1:numel(handles.winParams)
-    curType = handles.winParams{winParamsNdx};
-    handles.data{pfNdx}.(curFn).values.(curType) = ...
-      handles.data{pfNdx}.default.values.(curType);
+  if ~handles.categ.(category).(curFn).valid
+    handles.data{pfNdx}.(curFn).valid = false;
+    continue;
   end
-  if ~isempty(handles.winextraParams{winfnNdx})
-    extraParam = handles.winextraParams{winfnNdx};
-    handles.data{pfNdx}.(curFn).values.(extraParam) = '';
-  end
-  
+  handles = CopyDefaultWindowParams(handles,...
+    category, pfNdx,winfnNdx);
+  curFn = handles.windowComp{winfnNdx};
+  handles.data{pfNdx}.(curFn).values.trans_types = handles.transType.(handles.pfList{pfNdx});
 end
+
+
+% 
+% % When it already has values
+% if isfield(handles.data{pfNdx},'default')
+%   guidata(hObject,handles);
+%   setWindowTable(handles,handles.pfNdx);
+%   return;
+% end
+% 
+% % Else fill in the default values.
+% handles.data{pfNdx}.sanitycheck = false;
+% handles.data{pfNdx}.default.valid = true;
+% for winParamsNdx = 1:numel(handles.winParams)
+%   curType = handles.winParams{winParamsNdx};
+%   handles.data{pfNdx}.default.values.(curType) = ...
+%     handles.defaultWinParams{winParamsNdx};
+% end
+% 
+% % Copy the default values into the other window params.
+% for winfnNdx = 2:numel(handles.windowComp)
+%   curFn = handles.windowComp{winfnNdx};
+%   handles.data{pfNdx}.(curFn).valid = false;
+%   for winParamsNdx = 1:numel(handles.winParams)
+%     curType = handles.winParams{winParamsNdx};
+%     handles.data{pfNdx}.(curFn).values.(curType) = ...
+%       handles.data{pfNdx}.default.values.(curType);
+%   end
+%   if ~isempty(handles.winextraParams{winfnNdx})
+%     extraParam = handles.winextraParams{winfnNdx};
+%     handles.data{pfNdx}.(curFn).values.(extraParam) = '';
+%   end
+%   
+% end
+
+
 guidata(hObject,handles);
 setWindowTable(handles,handles.pfNdx);
 % set(hObject,'UserData',0);
@@ -783,9 +804,11 @@ else
 end
 
 function setCategoryToCustom(handles)
-curTypes = ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx}));
+curTypes = find(ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx})));
 basicData = get(handles.basicTable,'Data');
-basicData{curTypes,2} = 'Custom';
+for ndx = 1:numel(curTypes)
+  basicData{curTypes(ndx),2} = 'Custom';
+end
 set(handles.basicTable,'Data',basicData);
 
 
