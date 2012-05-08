@@ -23,6 +23,7 @@ void StructuredSVM::Train(const char *modelout, bool saveFull) {
   runForever = saveFull;
   if(!trainset) trainset = new StructuredDataset;
 
+  //C = 100.0; // EYRUN: try a smaller lambda
   lambda = 1.0/C;
   cache_old_examples = method == SPO_DUAL_UPDATE_WITH_CACHE ||
                        method == SPO_DUAL_MULTI_SAMPLE_UPDATE_WITH_CACHE;
@@ -35,6 +36,11 @@ void StructuredSVM::Train(const char *modelout, bool saveFull) {
 
   if(!sum_w)
     sum_w = new SparseVector;
+
+  //window = trainset->num_examples;  //EYRUN: try to use different window size
+  //if (num_thr > trainset->num_examples)
+  //	num_thr = 2;
+  //	//num_thr = trainset->num_examples;
 
   /* some training information */
   if(debugLevel > 0) {
@@ -49,6 +55,7 @@ void StructuredSVM::Train(const char *modelout, bool saveFull) {
   #pragma omp parallel num_threads(num_thr)
   {
     int tid = omp_get_thread_num();
+    //printf("tid = %d\n", tid);
     if(tid > 0 || !cache_old_examples) {
       // Worker threads, continuously call ybar=find_most_violated_constraint and then use ybar to update the current weights
       int i = -1;
@@ -88,10 +95,14 @@ void StructuredSVM::Train(const char *modelout, bool saveFull) {
         Unlock();
 
         if(debugLevel > 2) {
-	  VFLOAT score = score_loss-lossval;      // <w_t,psi(x_i,y)>
+	  //VFLOAT score = score_loss-lossval;      // <w_t,psi(x_i,y)>
+	  VFLOAT score = w->dot(ybar_psi)*featureScale;
 	  VFLOAT score_gt = w->dot(y_psi)*featureScale;   // <w_t,psi(x_i,y_i)>
-          printf("Example %d: m=%d slack=%f->%f score=%f score_gt=%f loss=%f alpha=%f\n",
-                 i, ex_num_iters[i], (VFLOAT)(score_loss-score_gt), (VFLOAT)e, (VFLOAT)(score), (VFLOAT)(score_gt), (VFLOAT)lossval, (VFLOAT)set->samples[0].alpha);
+	  VFLOAT loss_inference = (VFLOAT)(score_loss-score);
+	  //if(abs(loss_inference - (VFLOAT)lossval) > 1)
+	  //	printf("Score is off...!");
+          printf("Example %d: m=%d slack=%f->%f score=%f score_gt=%f loss=%f loss_inference=%f alpha=%f\n",
+                 i, ex_num_iters[i], (VFLOAT)(score_loss-score_gt), (VFLOAT)e, (VFLOAT)(score), (VFLOAT)(score_gt), (VFLOAT)lossval, loss_inference, (VFLOAT)set->samples[0].alpha);
 	}
 
         // Cleanup
@@ -145,16 +156,20 @@ void StructuredSVM::Train(const char *modelout, bool saveFull) {
  *   3) Otherwise, prefer processing an example that has been iterated over the fewest times
  */
 int StructuredSVM::ChooseNextExample() {
-  if(!trainset->num_examples) return -1;
+  if(!trainset->num_examples) {
+	return -1;
+  }
 
   // Choose the examples in order, selecting the one that has been processed the fewest number of times
   int it = currMinIterByExample;
   while(it <= M && examples_by_iteration_number[it] < 0)
     it++;
-  if(hasConverged && it == M)
+  if(hasConverged && it == M) {
     return -1;
-  if(it > M || examples_by_iteration_number[it] < 0)
+  }
+  if(it > M || examples_by_iteration_number[it] < 0) {
     return -1;
+  }
 
   if(it < minItersBeforeNewExample) {
     // For better estimation of generalization error, we can process each example minItersBeforeNewExample times before moving onto the next example
@@ -185,6 +200,8 @@ VFLOAT StructuredSVM::Test(const char *testfile, const char *predictionsFile) {
 
   StructuredDataset *testset = LoadDataset(testfile);
 
+  saveBoutFeatures(testset, "test_bout_feat.txt", true, false);
+
   Lock();
   double sum_los = 0;
   char **strs;
@@ -198,7 +215,7 @@ VFLOAT StructuredSVM::Test(const char *testfile, const char *predictionsFile) {
 #pragma omp parallel for
   for(int i = 0; i < testset->num_examples; i++) {
     StructuredLabel *y = NewStructuredLabel(testset->examples[i]->x);
-    double score = Inference(testset->examples[i]->x, y, w);
+    double score = Inference(testset->examples[i]->x, y, w); 
     double los = Loss(testset->examples[i]->y, y);
 
     if(predictionsFile) {
@@ -217,13 +234,16 @@ VFLOAT StructuredSVM::Test(const char *testfile, const char *predictionsFile) {
       //fprintf(stderr, "%s\n", tmp);
       strs[i] = StringCopy(tmp);
     }
-    delete y;
+    testset->examples[i]->y = y;
+    //delete y;
 
     omp_set_lock(&l_lock);
     sum_los += los;
     omp_unset_lock(&l_lock);
   }
   printf("Average loss was %f\n", (VFLOAT)(sum_los/testset->num_examples));
+
+  saveBoutFeatures(testset, "test_bout_feat_pred.txt", true, false);
 
   omp_destroy_lock(&l_lock);
   if(predictionsFile) {
@@ -246,6 +266,7 @@ VFLOAT StructuredSVM::Test(const char *testfile, const char *predictionsFile) {
 double StructuredSVM::UpdateWeights(SVM_cached_sample_set *ex, int iterInd) {
   long tt = t;
   double e = sum_w->dot(*ex->samples[0].dpsi)*featureScale/(lambda*(t+1)) + ex->samples[0].loss;
+  //printf("<w,x> = %.2f,  loss = %.2f,  e = %.2f\n", sum_w->dot(*ex->samples[0].dpsi)*featureScale/(lambda*(t+1)), ex->samples[0].loss, e);
 
   if(iterInd == -1) 
     tt = UpdateWeightsAddStatisticsBefore(ex, iterInd, e);
@@ -271,6 +292,7 @@ double StructuredSVM::UpdateWeights(SVM_cached_sample_set *ex, int iterInd) {
         // Take a step in the direction of psi(ybar,x)-psi(y_i,x), where the chosen step size maximizes the dual objective
         assert(ex->num_samples == 1);
         SVM_cached_sample_optimize_dual(&ex->samples[0], sum_w, lambda, t, featureScale);
+	//printf("Updated w\n");
         break;
 
       case SPO_DUAL_MULTI_SAMPLE_UPDATE:
@@ -286,9 +308,11 @@ double StructuredSVM::UpdateWeights(SVM_cached_sample_set *ex, int iterInd) {
   }
 
   e = sum_w->dot(*ex->samples[0].dpsi)*featureScale/(lambda*t) + ex->samples[0].loss;
+  //printf("<w,x> = %.2f,  loss = %.2f,  e = %.2f,  hasConverged = %d\n", sum_w->dot(*ex->samples[0].dpsi)*featureScale/(lambda*t), ex->samples[0].loss, e, hasConverged);
   UpdateWeightsAddStatisticsAfter(ex, iterInd, e, tt);
 
-  return my_max(e, 0);
+  //return my_max(e, 0);
+  return e;
 }
 
 
@@ -324,6 +348,8 @@ long StructuredSVM::UpdateWeightsAddStatisticsBefore(SVM_cached_sample_set *ex, 
   losses_by_t[t] = ex->samples[0].loss;
   elapsed_time_by_t[t] = (double)GetElapsedTime();
 
+  //printf("t=%d: iter_error_by_t = %.1f, constraint_errors_by_t = %.1f, e = %.1f\n", t, iter_errors_by_t[t], constraint_errors_by_t[t], e);
+
   ex_num_iters[ex->i]++;
   if(ex_num_iters[ex->i] > M) {
     assert(M == ex_num_iters[ex->i]-1);
@@ -344,7 +370,6 @@ long StructuredSVM::UpdateWeightsAddStatisticsBefore(SVM_cached_sample_set *ex, 
     examples_by_iteration_number[ex_num_iters[ex->i]] = ex->i;
   }
 
-
   long tt = t++;
   if(cache_old_examples) {
     cached_examples = (SVM_cached_sample_set**)realloc(cached_examples, (t)*sizeof(SVM_cached_sample_set*));
@@ -364,13 +389,14 @@ void StructuredSVM::UpdateWeightsAddStatisticsAfter(SVM_cached_sample_set *ex, i
     sum_model_error += my_max(e,0);
     regularization_errors_by_t[tt] = regularization_errors_by_n[ex->i] =
       regularization_error = sum_w->dot(*sum_w, regularize)/SQR(lambda*t)*lambda/2;
-    if(debugLevel > 2 || (debugLevel > 1 && tt%10000==9999))
-      printf("t=%d, n=%d: Average Training Error=%f (Model error=%f, Optimization error=%f, Regularization error=%f), Out of sample error=%f\n",
-             (int)t, (int)n, (VFLOAT)(sum_iter_error/t)+(VFLOAT)regularization_error, (VFLOAT)(sum_model_error/t), (VFLOAT)((sum_iter_error-sum_model_error)/t), (VFLOAT)regularization_error, (VFLOAT)(sum_generalization_error/n));
+//    if(debugLevel > 2 || (debugLevel > 1 && tt%10000==9999))
+//      printf("t=%d, n=%d: Average Training Error=%f (Model error=%f, Optimization error=%f, Regularization error=%f), Out of sample error=%f\n",
+//             (int)t, (int)n, (VFLOAT)(sum_iter_error/t)+(VFLOAT)regularization_error, (VFLOAT)(sum_model_error/t), (VFLOAT)((sum_iter_error-sum_model_error)/t), (VFLOAT)regularization_error, (VFLOAT)(sum_generalization_error/n));
 
 
     // Error measured over last set of examples of size window
     int ttt = my_min(tt+1,window), nnn = my_min(n,window);
+    //printf("tt=%d: iter_error_by_t = %.1f, constraint_errors_by_t = %.1f, e = %1.f\n", tt, iter_errors_by_t[tt], constraint_errors_by_t[tt], e);
     if(tt >= window) {
       sum_iter_error_window -= iter_errors_by_t[tt-window];
       sum_model_error_window -= constraint_errors_by_t[tt-window];
@@ -380,10 +406,12 @@ void StructuredSVM::UpdateWeightsAddStatisticsAfter(SVM_cached_sample_set *ex, i
 
     double eps_empirical_measured = (sum_iter_error_window-sum_model_error_window) / ttt;
     double eps_generalization_measured = (sum_generalization_error_window) / nnn - sum_model_error_window / ttt;
-    
+
+    //printf("sum_iter_error_window = %.2f, sum_model_error_window = %.2f, eps_empirical_measured = %.2f, eps = %.2f\n", sum_iter_error_window, sum_model_error_window, eps_empirical_measured, eps);
+
     if(debugLevel > 2 || (debugLevel > 1 && tt%10000==9999))
-      printf("Last %d iters: Average Training Error=%f (Model error=%f, Optimization error=%f, Regularization error=%f), Out of sample error=%f\n",
-             (int)ttt, (float)(sum_iter_error_window/ttt)+(float)regularization_error, (float)(sum_model_error_window/ttt), (float)((sum_iter_error_window-sum_model_error_window)/ttt), (float)regularization_error, (float)(sum_generalization_error_window/nnn));
+//      printf("Last %d iters: Average Training Error=%f (Model error=%f, Optimization error=%f, Regularization error=%f), Out of sample error=%f\n",
+//             (int)ttt, (float)(sum_iter_error_window/ttt)+(float)regularization_error, (float)(sum_model_error_window/ttt), (float)((sum_iter_error_window-sum_model_error_window)/ttt), (float)regularization_error, (float)(sum_generalization_error_window/nnn));
 
     if(!hasConverged && eps && eps_empirical_measured < eps && !finished) {
       if(t > window) {

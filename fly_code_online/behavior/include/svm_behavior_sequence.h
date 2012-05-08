@@ -24,6 +24,8 @@ extern const char *bout_feature_names[]; // initialized in svm_struct_api_behavi
 //extern const char *g_feature_names[MAX_FEATURES];
 #endif
 
+#define NUMFEAT 20
+
 #define FEATURE_SAMPLE_SMOOTHNESS_WINDOW 1
 #define NUM_TEMPORAL_LEVELS 2
 #define NUM_BOUT_MAX_THRESHOLDS 3
@@ -111,6 +113,7 @@ typedef struct _BehaviorBout {
   double transition_score;  /**< the component of the bout score due to transitioning from the previous behavior class to the class of this bout */
   double loss_fn;  /**< the loss associated with missing detection of some behavior bout(s) that overlap with this bout */
   double loss_fp;  /**< the loss associated with predicting this bout incorrectly */
+  double extreme_vals[2][NUMFEAT];
 } BehaviorBout;
 
 
@@ -303,12 +306,13 @@ class SVMBehaviorSequence : public StructuredSVM {
   void print_features(FILE *fout, double *feat);
   void print_features(const char *fname, StructuredDataset *dataset, bool normalized);
   void print_weights(FILE *fout, double *w);
-  void print_weights(const char *fname, double *w);
+  void print_weights(const char *fname, double *w); 
   void set_feature_name(int feature_ind, int base_feature_ind, const char *name);
   double loss2(StructuredLabel *y_gt,  StructuredLabel *y_pred, int beh, int debug);
 
 
-  double      *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, bool fast_update=false);
+  double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, bool fast_update=false, double extreme_vals[2][NUMFEAT]=NULL, int start_prev = 0, int end_prev = 0);
+  void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true); 
   void compute_feature_mean_variance_median_statistics(StructuredDataset *dataset);
   int compute_feature_space_size();
   StructuredExample *read_struct_example(const char *label_fname, const char *features_fname, bool computeFeatures);

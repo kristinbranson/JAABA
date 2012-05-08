@@ -3,6 +3,7 @@
 #include "svm_behavior_sequence.h"
 
 #define DEBUG 0
+//#define ALLOW_SAME_TRANSITIONS 0
 #if DEBUG > 0
 char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
 #endif
@@ -19,11 +20,12 @@ char *g_currFile; // CSC 20110420: hack to pass current filename for debug purpo
 #define getPsiSize(p_features, p_classes) extraUnarySize(p_features, p_classes)
 #endif
 */
+/*
 #ifdef ALLOW_SAME_TRANSITIONS  //SJB
 #define getPsiSize(p_features, p_classes) extraUnarySize(p_features, p_classes)
-#else
+#else */
 #define getPsiSize(p_features, p_classes) compactUnarySize(p_features, p_classes)
-#endif
+// #endif
 
 #if DEBUG > 0
 const char *bout_feature_names[] = {"feature_sample_smoothness_window", "num_temporal_levels", "num_bout_max_thresholds", 
@@ -143,7 +145,7 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 		// It is assumed here that the label 0 is the unknown label.  The user could define custom
 		// class-specific values for these constants .
 		// In the future, we could implement this with a per class-pair confusion cost
-		false_negative_cost[bh][0] = 0;
+		false_negative_cost[bh][0] = 1;
 		false_positive_cost[bh][0] = 1; // CSC: Move FP/FN costs to Params/BehaviorParams.txt? or to Model/Model.txt?
 		for(i = 1; i < num_classes[bh]; i++) {
 			false_negative_cost[bh][i] = 1;
@@ -229,6 +231,73 @@ SVMFeatureParams SVMBehaviorSequence::DefaultParams() {
 
 int cmp_double(const void * a, const void * b) { double d = *(double*)a - *(double*)b;  return (d < 0 ? -1 : (d > 0 ? 1 : 0)); }
 
+void SVMBehaviorSequence::saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered, bool addRandBouts) {
+	// EYRUN: Store normalized bout features of training set in a txt file (want to verify that bout features are good enough to separate the classes)
+	// Count the total number of bouts in the training set
+	int num_bouts = 0;
+	int num_rand_factor = 5;
+	StructuredExample **ex = dataset->examples;
+	BehaviorBoutSequence *y;
+	BehaviorBoutFeatures *x;
+	double *tmp_features = (double*)malloc(sizeof(double)*num_features);
+
+	int num_bouts_extra = 0;
+	for(int n = 0; n < dataset->num_examples; n++) {
+		for(int beh = 0; beh < behaviors->num; beh++) {
+			if(behavior < 0 || beh == behavior) {
+				num_bouts += ((BehaviorBoutSequence*)ex[n]->y)->num_bouts[beh];
+			}
+		}
+		num_bouts_extra += floor(((BehaviorBoutFeatures*)ex[n]->x)->num_frames/30);
+	}
+
+	if(addRandBouts)
+		num_bouts = num_bouts * (num_rand_factor+1); //num_bouts = num_bouts + num_bouts_extra;
+
+	FILE *featureFile, *featureFileUnsphered;
+	featureFile = fopen(filename,"w");
+	fprintf(featureFile, "num_features = %d\nnum_bouts = %d", num_features, num_bouts);
+	for(int n = 0; n < dataset->num_examples; n++) {
+		y = ((BehaviorBoutSequence*)ex[n]->y);
+		x = ((BehaviorBoutFeatures*)ex[n]->x);
+		for(int beh = 0; beh < behaviors->num; beh++) {
+			if(behavior < 0 || beh == behavior) {
+				for(int j = 0; j < y->num_bouts[beh]; j++) {
+					psi_bout(x, y->bouts[beh][j].start_frame, y->bouts[beh][j].end_frame, beh, y->bouts[beh][j].behavior, tmp_features, sphered, false);
+					fprintf(featureFile, "\n%d %d %d %d ", n, y->bouts[beh][j].start_frame, y->bouts[beh][j].end_frame, y->bouts[beh][j].behavior);
+					for(int i = 0; i < num_features; i++) {
+						fprintf(featureFile, "%f ", tmp_features[i]);
+					}
+				}
+			}
+		}
+		if(addRandBouts) {
+			// Generate random intervals and calculate the bout-features for those
+			int num_rand = y->num_bouts[0] * num_rand_factor;
+			//num_rand = floor(x->num_frames/30);
+			for(int r = 0; r<num_rand; r++) {
+				int f_start, f_dur, f_end;
+				// generate random start frame between 0 and x->num_frames - 5
+				f_start = rand() % (x->num_frames - 5);
+				// generate random duration between 4 and 50 (the number of frames we go back)
+				f_dur = rand() % 47 + 4;
+				f_end = my_min(f_start + f_dur - 1, x->num_frames - 1);
+
+				//f_start = r*30;
+				//f_end = (r+1)*30-1;
+
+				// calculate bout score for that interval
+				psi_bout(x, f_start, f_end, 0, -1, tmp_features, sphered, false);
+				fprintf(featureFile, "\n%d %d %d %d ", n, f_start, f_end, -1);
+				for(int i = 0; i < num_features; i++) {
+					fprintf(featureFile, "%f ", tmp_features[i]);
+				}
+			}	
+		}	
+	}
+	fclose(featureFile);
+}
+
 /*
 * Compute mean, variance and median statistics on the base features over the training set.
 * the mean and variance are used to normalize each feature.  The median statistics are used to
@@ -272,6 +341,8 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 							assert(k >= 0);  // CSC 20110324
 							mean += x->features[i][k];
 						}
+						if (y->bouts[beh][j].end_frame == y->bouts[beh][j].start_frame)
+							printf("Warning: bout has 0 frames!");
 						mean /= (y->bouts[beh][j].end_frame-y->bouts[beh][j].start_frame);
 						feat[i][curr++] = mean;
 					}
@@ -305,6 +376,7 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 			w = 1-(target-ind);
 			while(j && ind < num_bouts && feat[i][ind] == histogram_thresholds[i][j-1]) ind++;
 			histogram_thresholds[i][j] = feat[i][my_min(ind,num_bouts-1)]*w + feat[i][my_min(ind+1,num_bouts-1)]*(1-w);
+			assert(!isnan(histogram_thresholds[i][j]));
 		}
 	}
 
@@ -427,6 +499,9 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 		features_gamma[i] = features_gamma[i] ? 1.0/sqrt(features_gamma[i]/num_bouts) : 0;
 	}
 
+	saveBoutFeatures(dataset, "train_bout_feat.txt", true, true);
+	saveBoutFeatures(dataset, "train_bout_feat_unsphered.txt", false, true);
+
 	free(feat);
 	free(tmp_features);
 }
@@ -451,7 +526,7 @@ int g_csc_ind;
 #define ADD_FEATURE(feat, ind, val, feature_id, feature2_id, feature3_id)	{ (feat)[(ind)] = (val); ind++; }
 #endif
 
-/*
+/* 
 * Compute bout-level features for a bout of class c on frames t_start to t_end.  This function
 * supports several different kinds of expansions of frame-level features (e.g. tracker output or appearance
 * features) into bout-level features (e.g. bout average, bout sum, histogram responses, temporal haar-features,
@@ -461,8 +536,12 @@ int g_csc_ind;
 * If the parameter feat is non-NULL, these are stored into feat, otherwise the features
 * are dynamically allocated.
 */
-double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize, bool fast_update) {
+double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize, bool fast_update, double extreme_vals[2][NUMFEAT], int start_prev, int end_prev) {
 	if(!feat) feat = (double*)malloc(num_features*sizeof(double));
+
+	// Eyrun: temporary fix
+	if(t_start == t_end)
+		t_end += 1;
 
 	int i, j, k, l, ind = 0, td, beg;
 	double start, temporal_grid_size[MAX_TEMPORAL_LEVELS], harmonic_grid_size[MAX_HARMONIC_LEVELS+1], sum, f, t, ave, sum_sqr;
@@ -470,13 +549,36 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 	double dur = t_end-t_start;
 	double inv = dur ? 1/dur : 0;
 
-	if(!fast_update)
-		b->bout_start = b->bout_end = -1;
-	else
-		assert(b->bout_end == t_end);
+	double max_vals[NUMFEAT], min_vals[NUMFEAT];
 
-	b->UpdateCaches(t_start, t_end, c);
+	p = &feature_params[0];
+	if(p->use_bout_max_feature | p->use_bout_min_feature) { // Eyrun: only update cache if needed (note this assumes that all feature stats are the same as for 0)		
+		if(!fast_update)
+			b->bout_start = b->bout_end = -1;
+		else
+			assert(b->bout_end == t_end);
 
+		if(extreme_vals) {
+			if (end_prev >= t_end)
+				printf("something's wrong...");
+			b->UpdateCaches(end_prev, t_end, c);
+			for(i=0; i<num_base_features; i++) {
+				max_vals[i] = my_max(extreme_vals[0][i],b->bout_max_feature_responses[i]);
+				min_vals[i] = my_min(extreme_vals[1][i],b->bout_min_feature_responses[i]);
+			}	
+		}
+		else {
+			b->UpdateCaches(t_start, t_end, c);
+			for(i=0; i<num_base_features; i++) {
+				max_vals[i] = b->bout_max_feature_responses[i];
+				min_vals[i] = b->bout_min_feature_responses[i];
+			}
+		}
+	}
+
+	assert(dur > 0);
+	double log_dur = log10(dur);
+	//ADD_FEATURE(feat, ind, log_dur, true, -1, 0);
 	for(i = 0; i < MAX_TEMPORAL_LEVELS; i++) 
 		temporal_grid_size[i] = (t_end-t_start) / ((double)(1<<i));
 	for(i = 0; i < MAX_HARMONIC_LEVELS+1; i++) 
@@ -503,6 +605,18 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 				if(p->use_bout_ave_features) ADD_FEATURE(feat, ind, f*inv, USE_BOUT_AVE_FEATURES, i, j);
 				if(p->use_bout_sum_absolute_features) ADD_FEATURE(feat, ind, my_abs(f), USE_BOUT_SUM_ABSOLUTE_FEATURES, i, j);
 				if(p->use_bout_ave_absolute_features) ADD_FEATURE(feat, ind, my_abs(f)*inv, USE_BOUT_AVE_ABSOLUTE_FEATURES, i, j);
+
+// 				// Add max and min feature responses over the temporal region
+// 				double min = INFINITY;
+// 				double max = -INFINITY;
+// 				int f_end = my_min((int)(start+temporal_grid_size[j]),t_end);
+// 				int f_start = my_max((int)(start),t_start);
+// 				for (int ff=f_start; ff<=f_end; ff++) {
+// 					min = my_min(min,b->smoothed_features[i][ff]);
+// 					max = my_max(max,b->smoothed_features[i][ff]);
+// 				}
+// 				if(p->use_bout_max_feature) ADD_FEATURE(feat, ind, max, USE_BOUT_MAX_FEATURES, i, j);
+// 				if(p->use_bout_min_feature) ADD_FEATURE(feat, ind, min, USE_BOUT_MIN_FEATURES, i, j);
 			}
 		}
 
@@ -517,9 +631,9 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 
 		// Add features for the min/max feature response in the current bout, or thresholded versions of the min/max values
 		if(p->use_bout_max_feature) 
-			ADD_FEATURE(feat, ind, b->bout_max_feature_responses[i], USE_BOUT_MAX_FEATURE, i, j);
+			ADD_FEATURE(feat, ind, max_vals[i], USE_BOUT_MAX_FEATURE, i, j);
 		if(p->use_bout_min_feature) 
-			ADD_FEATURE(feat, ind, b->bout_min_feature_responses[i], USE_BOUT_MIN_FEATURE, i, j);
+			ADD_FEATURE(feat, ind, min_vals[i], USE_BOUT_MIN_FEATURE, i, j);
 		for(l = 0; l < p->num_bout_max_thresholds; l++) 
 			ADD_FEATURE(feat, ind, b->bout_max_feature_responses[i] > max_thresholds[i][l] ? 1 : 0, NUM_BOUT_MAX_THRESHOLDS, i, j);
 		for(l = 0; l < p->num_bout_min_thresholds; l++) 
@@ -629,16 +743,22 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 	assert(ind == num_features);
 
 	// Normalize each feature to have mean 0 and standard deviation 1 (as determined by the training set)
+	//normalize = false;
 	if(normalize) {
 		for(i = 0; i < ind; i++)  {
-			if(isnan(feat[i])) {
-				printf("Upcoming error...\n");
+			if(!(abs(feat[i]) <100000000) & isnan(feat[i])){   // EYRUN: inrcreased to 100,000,000 from 10,000,000
+				printf("trouble...");
 			}
 			assert(!isnan(feat[i]));
-			assert(abs(feat[i]) < 10000000);
+			assert(abs(feat[i]) < 100000000);
 			feat[i] = (feat[i]-features_mu[i])*features_gamma[i];
+			//double div = my_max(b->max_feature_responses[i],-b->min_feature_responses[i]);
+			//feat[i] = feat[i]/(div < 0.001 ? 1 : div);
+			if(!(abs(feat[i]) <100000000) | isnan(feat[i])){
+				printf("trouble...");
+			}
 			assert(!isnan(feat[i]));
-			assert(abs(feat[i]) < 10000000);
+			assert(abs(feat[i]) < 100000000);
 		}
 	}
 
@@ -648,6 +768,10 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 			if(!restrict_behavior_features[beh][c][i])
 				feat[i] = 0;
 	}
+
+// 	//EYRUN: test (weigh the bout feature with the duration of the interval)
+// 	for (i=0; i<num_features; i++)
+// 		feat[i] = feat[i] * dur / 20000.0;
 
 	return feat;
 }
@@ -671,10 +795,12 @@ void BehaviorBoutFeatures::UpdateCaches(int t_start, int t_end, int c) {
 	int i, j;
 
 	if(t_end == bout_end) {
-		if(t_start >= bout_start) {
+		if(t_start > bout_start) {
 			printf("Upcoming Error...\n");
+			//reset = true;
+			//bout_start = t_end;
 		}
-		assert(t_start < bout_start);
+		assert(t_start <= bout_start);
 	} else {
 		reset = true;
 		bout_start = bout_end = t_end;
@@ -696,12 +822,13 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
 	BehaviorBoutSequence *y = (BehaviorBoutSequence*)yy;
 	BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x;
 	int i, j, beh;
-	double *tmp_features = (double*)malloc(sizeof(double)*(sizePsi+num_features+20));
+	double *tmp_features = (double*)malloc(sizeof(double)*(sizePsi+num_features+NUMFEAT));
 	double *all_features = tmp_features+num_features+10;
 	double *ptr = all_features, *class_features, *class_transitions;
+/*
 #ifdef ALLOW_SAME_TRANSITIONS
 	double *class_unary;
-#endif
+#endif */
 
 	for(i = 0; i < sizePsi; i++)
 		ptr[i] = 0;
@@ -714,10 +841,10 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
 		class_features = ptr; ptr += num_features*num_classes[beh];        // line 1
 		class_transitions = ptr; ptr += num_classes[beh]*num_classes[beh]; // line 2
 #ifdef ALLOW_SAME_TRANSITIONS
-		class_unary = ptr; ptr += num_classes[beh];                        // line 3: these 3 lines have to correspond to getPsiSize
-
-		for(i = 0; i < num_classes[beh]; i++)
-			class_unary[i] = 0;
+// 		class_unary = ptr; ptr += num_classes[beh];                        // line 3: these 3 lines have to correspond to getPsiSize
+// 
+// 		for(i = 0; i < num_classes[beh]; i++)
+// 			class_unary[i] = 0;
 #endif
 
 		for(i = 0; i < num_classes[beh]*num_features; i++) 
@@ -728,25 +855,36 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
 
 		for(i = 0; i < y->num_bouts[beh]; i++) {
 /* BEGIN BLOCK */
-			// Count of the number transitions from class C1 to C2, for all pairs (C1,C2), C!=C2
-			if(i)
-				class_transitions[y->bouts[beh][i-1].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++;
+// 			// Count of the number transitions from class C1 to C2, for all pairs (C1,C2), C!=C2
+// 			if(i)
+// 				class_transitions[y->bouts[beh][i-1].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++;
+// 
+// #ifdef ALLOW_SAME_TRANSITIONS
+// 			class_unary[y->bouts[beh][i].behavior]++;
+// 			/* Note: Same class transition weights were already computed above and are simply NOT OVERWRITTEN by unary costs */
+// #ifndef SOLVE_UNARY_COST
+// 				; // transition diagonal still counts same class transitions; transition diagonal not used when classifying with this option
+// #elif SOLVE_UNARY_COST_CONFLICT == 1
+// 				class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior] = 0; // transition diagonal is added to unary costs when classifying with this option
+// #elif SOLVE_UNARY_COST_CONFLICT == 0
+// 				; // transition diagonal still counts same class transitions; unary costs not used when classifying with this option
+// 				//class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; // transition diagonal is overwritten by unary costs
+// #endif
+// #else // old compact format using diagonal of transition matrix
+// 			// Count of the number of bouts for each class C
+// 			class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; // transition diagonal is overwritten by unary costs
+// #endif
 
-#ifdef ALLOW_SAME_TRANSITIONS
-			class_unary[y->bouts[beh][i].behavior]++;
-			/* Note: Same class transition weights were already computed above and are simply NOT OVERWRITTEN by unary costs */
-#ifndef SOLVE_UNARY_COST
-				; // transition diagonal still counts same class transitions; transition diagonal not used when classifying with this option
-#elif SOLVE_UNARY_COST_CONFLICT == 1
-				class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior] = 0; // transition diagonal is added to unary costs when classifying with this option
-#elif SOLVE_UNARY_COST_CONFLICT == 0
-				; // transition diagonal still counts same class transitions; unary costs not used when classifying with this option
-				//class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; // transition diagonal is overwritten by unary costs
-#endif
-#else // old compact format using diagonal of transition matrix
-			// Count of the number of bouts for each class C
-			class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; // transition diagonal is overwritten by unary costs
-#endif
+			if (i) {
+				// make sure that we don't add transitions for self_transitions
+				if (y->bouts[beh][i-1].behavior != y->bouts[beh][i].behavior) {
+					class_transitions[y->bouts[beh][i-1].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; // increase the transition cost
+					class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++;   // increase the unary cost
+				}
+			}
+			else
+				class_transitions[y->bouts[beh][i].behavior*num_classes[beh] + y->bouts[beh][i].behavior]++; 
+
 /* END BLOCK */
 
 
@@ -776,10 +914,6 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
 */
 
 
-
-
-
-
 			// The main appearance features used to compute the score of a bout for a given class.
 			// Since the total score is the sum of the scores over bouts, we can simply add together
 			// the features of the bouts with the same class label
@@ -790,7 +924,6 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
 		}
 
 	}
-
 	
 	SparseVector retval = SparseVector(all_features, sizePsi);
 	free(tmp_features);
@@ -899,6 +1032,8 @@ int SVMBehaviorSequence::compute_feature_space_size() {
 
 	// Compute the total number of features used
 	num_features = 0;
+	//sprintf(str,"log duration");
+	//set_feature_name(num_features++,-1,str);
 	for(i = 0; i < num_base_features; i++) {
 		p = &feature_params[i];
 		curr = num_features;
@@ -909,6 +1044,8 @@ int SVMBehaviorSequence::compute_feature_space_size() {
 				if(p->use_bout_ave_features) { sprintf(str, "bout_average_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
 				if(p->use_bout_sum_absolute_features) { sprintf(str, "bout_sum_abs_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
 				if(p->use_bout_ave_absolute_features) { sprintf(str, "bout_average_abs_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
+// 				if(p->use_bout_max_feature) { sprintf(str, "bout_max_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
+// 				if(p->use_bout_min_feature) { sprintf(str, "bout_min_%.3f<=t<%.3f", k/(float)(1<<j), (k+1)/(float)(1<<j)); set_feature_name(num_features++, i, str); }
 			}
 		}
 		if(p->use_sum_variance) set_feature_name(num_features++, i, "sum_variance"); 
@@ -1205,7 +1342,12 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x;
 	int T = b->num_frames, beh, num_durations = 0, last_gt, last_partial;
 	int tt, t, c, t_p, c_p, i, j, cc, restrict_c, restrict_c_p, next_duration;
+	int first_frames[num_classes[0]];
+	int idx_max=8, idx_min=9, num_stats=18;
+	double extreme_vals[num_classes[0]][2][NUMFEAT];
 	double *tmp_features = (double*)malloc((num_features+1)*sizeof(double));
+	double *tmp_features_ = (double*)malloc((num_features+1)*sizeof(double));
+	//double cached_bout_scores[T][num_classes[0]];
 	double **class_weights;
 	double **transition_weights;
 	double dur, inter;
@@ -1223,14 +1365,25 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	double bout_scores[1000];
 	bool bad_label = false;
 	int *old_class_transition_counts = NULL, *old_class_training_counts;
-	bool is_first;
+	bool is_first, go_back;
 	double *ww = w->non_sparse<double>(sizePsi);
 	Json::FastWriter writer;
 
 	sprintf(ybar->fname, "%s.pred", b->fname);
-
+/*
+	double total_bouts = 0;
+	for (int i=0; i<num_classes[0]; i++)
+		total_bouts += class_training_count[0][i];
+	for (int i=0; i<num_classes[0]; i++) {
+		false_negative_cost[0][i] = total_bouts/class_training_count[0][i];
+		false_positive_cost[0][i] = total_bouts/class_training_count[0][i];
+	}
+*/
 	// For speed, we may optionally choose to use a geometrically increasing series of bout durations instead
 	// of searching through the entire space exhaustively
+	//time_approximation = 0;
+	if(T < 50) 
+		time_approximation = 0;
 	if(time_approximation > 0) {
 		dur = min_bout_duration;
 		while(dur <= T*(1+time_approximation)) {
@@ -1363,6 +1516,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 			class_weights[i] = ptr;
 		for(i = 0; i < num_classes[beh]; i++, ptr += num_classes[beh]) 
 			transition_weights[i] = ptr; // treat unary costs differently here?
+/* BLOCK BEGIN // EYRUN: comment this out since we're not using predefined unary costs, even with transitions allowed
 #ifdef ALLOW_SAME_TRANSITIONS
 		double *unary_costs = (double*)malloc(num_classes[beh]*sizeof(double));
 			for(i = 0; i < num_classes[beh]; i++, ptr++) {
@@ -1387,6 +1541,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 #endif
 		// else: nothing to do (don't allow same transitions, no extra unary costs read)
 #endif
+BLOCK END */
 
 		// Setup dynamic programming cache tables.  table[t][c] stores the maximal score for any sub-solution
 		// to frames 1...t in which a bout of class c begins at time t
@@ -1411,14 +1566,27 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 
 		// Base case: initialize scores to max_fn_cost
 		for(c = 0; c < num_classes[beh]; c++) {
-			table[0][c] = max_fn_cost;
+			table[0][c] = 0;//max_fn_cost;
 			states[0][c].start_frame = states[0][c].end_frame = states[0][c].behavior = -1;
+			for(i=0; i<NUMFEAT; i++){
+				states[0][c].extreme_vals[0][i] = -INFINITY;
+				states[0][c].extreme_vals[1][i] = INFINITY;
+			}
 		}
 
 		gt_bout[0] = 0;
 		partial_label_bout[0] = 0;
 		for(t = 1; t <= T; t++) { // looping through all possible bout ends // T .. length of annotation window
 
+			//if(t%1000 == 0)
+			//	printf("t = %d\n",t);
+
+			//// Initialize cache for all possible bouts ending at time t
+			//for (t_p=0; t_p<t; t_p++) { // possible start times
+			//	for (c=0; c<num_classes[0]; c++) { // possible bout types
+			//		cached_bout_scores[t_p][c] = -INFINITY;
+			//	}
+			//}
 
 			for(c = 0; c < num_classes[beh]; c++) { // initialize for all classes
 				table[t][c] = -INFINITY;
@@ -1462,21 +1630,23 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 				next_duration = 1;
 				t_p = t-durations[tt];
 				// BEGIN squeeze in partial duration that is not in traversed durations (some durations are skipped, durations increase geometrically)
-				if(y && (t_p < 0 ? -1 : gt_bout[t_p]) != last_gt && t_p != y->bouts[beh][last_gt].start_frame) {
-					t_p = y->bouts[beh][last_gt].start_frame;
-					next_duration = 0;
-				}
-				if(b->partial_label && b->partial_label->num_bouts[beh] && 
-					(t_p < 0 ? -1 : partial_label_bout[t_p]) != last_partial && t_p != b->partial_label->bouts[beh][last_partial].start_frame) {
-						t_p = b->partial_label->bouts[beh][last_partial].start_frame;
-						next_duration = 0;
-				}
+// 				if(y && (t_p < 0 ? -1 : gt_bout[t_p]) != last_gt && t_p != y->bouts[beh][last_gt].start_frame) {
+// 					t_p = y->bouts[beh][last_gt].start_frame;
+// 					next_duration = 0;
+// 				}
+// 				if(b->partial_label && b->partial_label->num_bouts[beh] && 
+// 					(t_p < 0 ? -1 : partial_label_bout[t_p]) != last_partial && t_p != b->partial_label->bouts[beh][last_partial].start_frame) {
+// 						t_p = b->partial_label->bouts[beh][last_partial].start_frame;
+// 						next_duration = 0;
+// 				}
 				// END squeeze
 				tt += next_duration;
 				if(t_p <= 0) {
 					t_p = 0;
 					next_duration = -1;
 				}
+				if(t_p >=t | t_p< 0)
+					printf("Upcoming Error...\n");
 				assert(t_p < t && t_p >= 0);
 
 				restrict_c_p = restrict_c = -1;
@@ -1517,6 +1687,32 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 
 				is_first = false;
 				for(c = 0; c < num_classes[beh]; c++) {
+					if((t == T && c != 0) || (t < T && (!class_training_count[beh][c])))
+						continue;  // class c doesn't appear in the training set					
+
+					go_back = false;
+					first_frames[c] = t_p;
+#ifdef ALLOW_SAME_TRANSITIONS
+					if(states[t_p][c].behavior == c) {
+						first_frames[c] = states[t_p][c].start_frame;
+						//if(cached_bout_scores[first_frames[c]][c] > -INFINITY) {
+						//	bout_scores[c] = cached_bout_scores[first_frames[c]][c];
+						//	continue;
+						//}
+						psi_bout(b, first_frames[c], t, beh, -1, tmp_features_, true, !is_first, states[t_p][c].extreme_vals, states[t_p][c].start_frame, states[t_p][c].end_frame);
+						for(i=0; i<num_base_features; i++) {
+							extreme_vals[c][0][i] = my_max(states[t_p][c].extreme_vals[0][i],b->bout_max_feature_responses[i]);
+							extreme_vals[c][1][i] = my_min(states[t_p][c].extreme_vals[1][i],b->bout_min_feature_responses[i]);
+						}
+						go_back = true;
+					}
+					else {
+						for(i=0; i<num_base_features; i++) {
+							extreme_vals[c][0][i] = b->bout_max_feature_responses[i];
+							extreme_vals[c][1][i] = b->bout_min_feature_responses[i];
+						}
+					}
+#endif
 					if(class_training_count[beh][c] && (restrict_c_p<=0 || c == restrict_c_p)) {
 						if(restrict_behavior_features[beh] && restrict_behavior_features[beh][c]) {
 							printf("restrict_behavior_features currently not used\n");
@@ -1524,20 +1720,28 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 							// untested
 							bout_scores[c] = 0;
 							for(int k = 0; k < num_features; k++) 
-							  if(!restrict_behavior_features[beh][c][k]) 
-							    bout_scores[c] += class_weights[c][k]*tmp_features[k];
+							  if(!restrict_behavior_features[beh][c][k]) {
+							    if(go_back)
+							      bout_scores[c] += class_weights[c][k]*tmp_features_[k];
+						            else
+						              bout_scores[c] += class_weights[c][k]*tmp_features[k];
+							  }
 						}
 						else {
 							bout_scores[c] = 0;
-							for(int k = 0; k < num_features; k++) 
-							  bout_scores[c] += class_weights[c][k]*tmp_features[k];
+							for(int k = 0; k < num_features; k++) {
+						          if(go_back)
+							    bout_scores[c] += class_weights[c][k]*tmp_features_[k];
+						          else
+							    bout_scores[c] += class_weights[c][k]*tmp_features[k];
+							}
 							// function f_b(x,s,e) (8), which is summed to compute f(x,y) (7)
 						}
 					}
+					//cached_bout_scores[first_frames[c]][c] = bout_scores[c];
 				}
 
 				for(c = 0; c < num_classes[beh]; c++) { // iterate through all classes (starting at t-next_duration, ending at t)
-
 
 					if((t == T && c != 0) || (t < T && (!class_training_count[beh][c])))
 						continue;  // class c doesn't appear in the training set
@@ -1559,13 +1763,14 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 							// Consider only class transition pairs that occur in the training set
 							c_p = (t == T ? cc : class_training_transitions[beh][c][cc]); 
 						// end if (cc == -1) in #ifdef ALLOW_SAME_TRANSITION
-
 #ifdef ALLOW_SAME_TRANSITIONS
 						}
 						if(c_p == c && cc != -1)
 							continue; // already computed that at iteration -1, don't compute it again
 #endif
-
+						if(!class_training_count[beh][c_p])
+							continue;
+						t_p = first_frames[c_p];
 						if(restrict_c_p>0 && restrict_c_p != c_p)
 							continue;  // class c_p doesn't agree with a user-supplied partial labeling
 
@@ -1590,13 +1795,13 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 //							transition_score += transition_weights[c_p][c_p]; // adding "unary" cost (class specific appearance cost)
 //#endif
 // This block is replaced by getTransitionScore END
-#ifdef ALLOW_SAME_TRANSITIONS
-							//getTransitionScore(transition_score, transition_weights[c_p][c_p], unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0)
-                            getTransitionScore(transition_score, unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0);  // SJB
-#else
-							//getTransitionScore(transition_score, transition_weights[c_p][c_p], 1, t != T ? transition_weights[c_p][c] : 0)
-							getTransitionScore(transition_score, transition_weights[c_p][c_p], 1, t != T ? transition_weights[c_p][c] : 0)
-#endif
+
+// #ifdef ALLOW_SAME_TRANSITIONS
+// 							//getTransitionScore(transition_score, transition_weights[c_p][c_p], unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0)
+//                             				getTransitionScore(transition_score, unary_costs[c_p], 1, t != T ? transition_weights[c_p][c] : 0);  // SJB
+// #else
+							getTransitionScore(transition_score, transition_weights[c_p][c_p], 1, t != T ? transition_weights[c_p][c] : 0);
+//#endif
 
 
 							if(y) { // if invoked in LEARNING mode
@@ -1612,12 +1817,16 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 									// Loop through all ground truth bouts intersecting with ybar_i
 									inter = (b->frame_times[my_min(my_min(y->bouts[beh][j].end_frame,t),T-1)] - 
 										b->frame_times[my_max(y->bouts[beh][j].start_frame,t_p)]);
-									if(c_p == y->bouts[beh][j].behavior && inter > 0) {
-										loss_fn -= fn[j]*inter/dur_gt[j]; // loss_fm is a negative number (initialized 0, then subtracting), 
+									if(inter <= 0) continue;
+									if(c_p == y->bouts[beh][j].behavior) {
+										//loss_fn -= fn[j]*inter/dur_gt[j]; // loss_fm is a negative number (initialized 0, then subtracting), 
 										// the absolute false negative cost is not used but rather the relative FN cost, 
 										// where the "common shared" constant is left out, 
 										// but since we are only interested in the maximum, that doesn't matter
 										loss_fp -= fp*inter/dur; // ... and subtract agreeing frames from that maximum
+									}
+									else{
+										loss_fn += fn[j]*inter/dur_gt[j];
 									}
 								}
 								loss_score = loss_fn + loss_fp;
@@ -1627,7 +1836,6 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 							// begin a bout of class c at time t
 							f = table[t_p][c_p] + bout_score + transition_score + loss_score;
 							assert(!isnan(f));
-
 
 							if(f > table[t][c]) {  
 								table[t][c] = f;						
@@ -1639,6 +1847,10 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 								states[t][c].transition_score = transition_score;
 								states[t][c].loss_fn = loss_fn;
 								states[t][c].loss_fp = loss_fp;
+								for(i=0; i<num_base_features; i++) {
+									states[t][c].extreme_vals[0][i] = extreme_vals[c_p][0][i];
+									states[t][c].extreme_vals[1][i] = extreme_vals[c_p][1][i];
+								}
 							} // end if(f > table[t][c]) {  
 #if DEBUG > 1
 							if(!y) { // do this in classification mode only
@@ -1734,7 +1946,8 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 		// Backtrack one more time to actually store that solution
 		t = T; c = 0; 
 		ybar->scores[beh] = 0; 
-		ybar->losses[beh] = max_fn_cost;
+		//ybar->losses[beh] = max_fn_cost;
+		ybar->losses[beh] = 0;
 		i = ybar->num_bouts[beh]-1;
 		while(t >= 0 && states[t][c].start_frame >= 0) { // start at T, determine label and start_frame, check at states[start_frame], ...
 			ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score;
@@ -1747,7 +1960,6 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 		}
 		ybar->score += ybar->scores[beh];
 		assert(my_abs(ybar->scores[beh] + ybar->losses[beh] - table[T][0]) <= .01); // sanity check for dynamic programming
-
 
 		if(b->partial_label) {
 			// Restore modified transition tables, if necessary
@@ -1771,6 +1983,29 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 			// with the computation of the loss during dynamic programming or with the function loss2()
 			double l = loss2(y_gt, y_bar, beh, 1);
 			assert(my_abs(ybar->losses[beh] - l) < .01);
+			SparseVector ybar_psi = Psi(b, ybar);
+			double real_score = w->dot(ybar_psi);
+			if(my_abs(ybar->score - real_score) >= .1){
+				printf("trouble...");
+// 				double ybar_bout_score = 0;
+// 				double ybar_trans_score = 0;
+// 				for(int ibout=0; ibout < ybar->num_bouts[0]; ibout++) {
+// 					ybar_bout_score += ybar->bouts[0][ibout].bout_score;
+// 					ybar_trans_score += ybar->bouts[0][ibout].transition_score;
+// 				}
+// 				double ybar_bout_score_real = 0;
+// 				double ybar_trans_score_real = 0;
+// 				double* w_ns = w->non_sparse<double>(1830);
+// 				double* psi_ns = ybar_psi.non_sparse<double>(1830);
+// 				for(int i_w=0; i_w<1800; i_w++){
+// 					ybar_bout_score_real += w_ns[i_w] * psi_ns[i_w];
+// 				}
+// 				for(int i_w=1800; i_w<1825; i_w++){
+// 					ybar_trans_score_real += w_ns[i_w] * psi_ns[i_w];
+// 				}
+// 				int bla = 0;
+			}
+			//assert(my_abs(ybar->score - real_score) < 1);
 #endif
 
 			// Compute the scores for the ground truth label y.  The cache tables in dynamic programming should always have
@@ -1785,12 +2020,11 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 				y->bouts[beh][i].bout_score = 0;
 				for(int k = 0; k < num_features; k++) 
 				  y->bouts[beh][i].bout_score += class_weights[y->bouts[beh][i].behavior][k]*tmp_features[k];
-				
-#ifdef ALLOW_SAME_TRANSITIONS
-				getTransitionScore(y->bouts[beh][i].transition_score,                                   unary_costs[y->bouts[beh][i].behavior], i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior]); // unary costs added, same-transition costs added whenever same transition     is used (y->bouts[beh][i].behavior and y->bouts[beh][i+1].behavior MAY BE the SAME behavior)
-#else
+// #ifdef ALLOW_SAME_TRANSITIONS
+// 				getTransitionScore(y->bouts[beh][i].transition_score, unary_costs[y->bouts[beh][i].behavior], i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior]); // unary costs added, same-transition costs added whenever same transition     is used (y->bouts[beh][i].behavior and y->bouts[beh][i+1].behavior MAY BE the SAME behavior)
+// #else
 				getTransitionScore(y->bouts[beh][i].transition_score, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior], i < y->num_bouts[beh]-1, transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior]); // unary costs stored in same transition costs;            same transitions never used (y->bouts[beh][i].behavior and y->bouts[beh][i+1].behavior are ALWAYS DIFFERENT behaviors)
-#endif
+//#endif
 //				y->bouts[beh][i].transition_score = transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i].behavior];
 //				if(i < y->num_bouts[beh]-1) 
 //					y->bouts[beh][i].transition_score += transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior];
@@ -1798,6 +2032,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 				y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score;
 
 #if DEBUG > 0
+				// Making sure that ybar_score + ybar_loss >= y_score, so far
 				if(y->scores[beh] > (i < y->num_bouts[beh]-1 ? table[y->bouts[beh][i+1].start_frame][y->bouts[beh][i+1].behavior] : table[T][0])) {
 					// Something went wrong, it might be informative for debugging (break here using gdb) to test the same dynamic 
 					// programming problem but without using loss, then compare y_max to y
@@ -1808,6 +2043,9 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 			}
 			y->score += y->scores[beh];
 #if DEBUG > 0
+			if(ybar->score+ybar->loss < y->score) {
+				printf("trouble...");
+			}
 			assert(ybar->score+ybar->loss >= y->score);
 #endif
 		}
@@ -1821,9 +2059,11 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 #endif
 
 		free(class_weights);
+/*
 #ifdef ALLOW_SAME_TRANSITIONS
 		free(unary_costs);
 #endif
+*/
 		free(table);
 		free(states);
 		if(fn) free(fn);
@@ -1840,16 +2080,17 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 		// respect to the extraction of features or bout scores, or something is wrong with the function psi()
 		if(!b->fvec) b->fvec = Psi(x, y).ptr();
 		y_score = w->dot(*b->fvec);
-		assert(my_abs(y_score - y->score) < .01);
+		assert(my_abs(y_score - y->score) < 0.1);
 
 		// Further sanity checks that are probably redundant with earlier ones
 		ybar->slack -= y->score;
-		assert(ybar->slack >= -0.01);
+		//assert(ybar->slack >= -0.01);
+		assert(ybar->slack >= -1);
 		//y_max = classify_struct_example(*x, sm, sparm);
 		//assert(((BehaviorBoutSequence*)y_max.data)->score >= y->score);
 		fvec = Psi(x, y_bar).ptr();
 		double ybar_score = w->dot(*fvec);
-		assert(my_abs(ybar->score - ybar_score) < .1);
+		assert(my_abs(ybar->score - ybar_score) < 1);
 		delete fvec;
 
 #if DEBUG > 2
@@ -1865,6 +2106,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 #endif
 
 	free(tmp_features);
+	free(tmp_features_);
 	free(durations);
 	free(ww);
 
@@ -1900,6 +2142,12 @@ double      SVMBehaviorSequence::Loss(StructuredLabel *y_gt,  StructuredLabel *y
 	BehaviorBoutFeatures *b = y->features;
 	int T = b->num_frames;
 	double cl, l_fn = 0, l_fn2 = 0;
+
+// 	// TEMP EYRUN
+// 	l = 0;
+// 	for(curr_ybar = 0; curr_ybar < ybar->num_bouts[0]; curr_ybar++)
+// 		l += ybar->bouts[0][curr_ybar].loss_fp + ybar->bouts[0][curr_ybar].loss_fn;
+// 	return l;
 
 	while(curr_y < y->num_bouts[beh] || curr_ybar < ybar->num_bouts[beh]) {
 		if(curr_y < y->num_bouts[beh] && curr_ybar < ybar->num_bouts[beh]) {
@@ -1940,7 +2188,7 @@ double      SVMBehaviorSequence::Loss(StructuredLabel *y_gt,  StructuredLabel *y
 				fprintf(stderr, "ybar[%d]->%f %f\n", curr_ybar, cl, l);
 			if(debug) {
 				assert(my_abs(cl - ybar->bouts[beh][curr_ybar].loss_fp) < .00001);
-				assert(my_abs(l_fn - ybar->bouts[beh][curr_ybar].loss_fn) < .00001);
+				assert(my_abs(l_fn2 - ybar->bouts[beh][curr_ybar].loss_fn) < .00001);
 			}
 			ybar->bouts[beh][curr_ybar].loss_fn = l_fn2;
 			ybar->bouts[beh][curr_ybar].loss_fp = cl;

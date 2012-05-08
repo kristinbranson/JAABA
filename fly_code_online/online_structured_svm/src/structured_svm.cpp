@@ -149,7 +149,7 @@ StructuredSVM::StructuredSVM() {
   C = 0;
   sizePsi = 0;
   featureScale = 1;
-  debugLevel = 2;
+  debugLevel = 1;
   t = 0;
   sum_w = NULL;
  
@@ -279,3 +279,4 @@ void StructuredDataset::Randomize() {
   examples = examples_new;
   free(perm);
 }
+
