@@ -4906,6 +4906,7 @@ classdef JLabelData < handle
         for flies = 1:obj.nflies_per_exp(endx)
           curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
           curt = obj.scoredata.t(curidx);
+          if numel(curt)<intsize; continue; end
           if any(curt(2:end)-curt(1:end-1) ~= 1)
             msg = 'Scores are not in order'; 
             success = false; 
@@ -4929,6 +4930,7 @@ classdef JLabelData < handle
       obj.balancedGTSuggestions = [];
       for ndx = 1:numint
         locsSel = find(cumwt<=intlocs(ndx),1,'last');
+        if isempty(locsSel), locsSel = numel(cumwt); end
         expi = int.exp(locsSel);
         flies = int.flies(locsSel);
         tStart = int.tStart(locsSel);
