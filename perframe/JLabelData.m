@@ -2013,7 +2013,21 @@ classdef JLabelData < handle
           timestamp = tmp.datenum;
           break;
         end
-        
+        % check for lnk files
+        if ispc && exist([filename,'.lnk'],'file'),
+          try
+            x = java.io.File([filename,'.lnk']);
+            y = sun.awt.shell.ShellFolder.getShellFolder(x);
+            actualfilename = y.getLinkLocation();
+            if exist(actualfilename,'file'),
+              filename = actualfilename;
+              tmp = dir(filename);
+              timestamp = tmp.datenum;
+              break;
+            end
+          catch  %#ok<CTCH>
+          end
+        end
       end
       
     end
