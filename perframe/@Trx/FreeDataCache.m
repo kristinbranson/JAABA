@@ -5,7 +5,9 @@ while true,
   if obj.ndatacached + ndataadd <= obj.maxdatacached || obj.ndatacached == 0,
     break;
   end
-
+  if isempty(obj.perframehistory),
+    break;
+  end
   [~,j] = max(cell2mat(obj.perframehistory(:,2)));
   fn = obj.perframehistory{j,1};
   ClearDataCache(obj,fn);

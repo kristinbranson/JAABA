@@ -2019,6 +2019,7 @@ classdef JLabelData < handle
             x = java.io.File([filename,'.lnk']);
             y = sun.awt.shell.ShellFolder.getShellFolder(x);
             actualfilename = y.getLinkLocation();
+            actualfilename = char(actualfilename);
             if exist(actualfilename,'file'),
               filename = actualfilename;
               tmp = dir(filename);
@@ -2255,7 +2256,20 @@ classdef JLabelData < handle
         % loop through directories to look in
         for j = 1:numel(expdirs_try),
           expdir = expdirs_try{j};
-          filename = fullfile(expdir,fn,[obj.allperframefns{i},'.mat']);
+          perframedir = fullfile(expdir,fn);
+          if ispc && ~exist(perframedir,'dir'),
+            [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
+            if didfind,
+              perframedir = actualperframedir;
+            end
+          end
+          filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);
+          if ispc && ~exist(filename,'file'),
+            [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+            if didfind,
+              filename = actualfilename;
+            end
+          end
           
           if exist(filename,'file'),
             filenames{i} = filename;
@@ -3598,7 +3612,7 @@ classdef JLabelData < handle
         end
         
         if ~exist(perframefile{ndx},'file'),
-          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',obj.expnames{expi}),'Generate missing files?','Yes','Cancel','Yes');
+          res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
           if strcmpi(res,'Yes'),
             for ndx = 1:obj.nexps  
               [success1,msg1] = obj.GenerateMissingFiles(ndx);

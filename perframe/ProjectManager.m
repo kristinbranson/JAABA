@@ -295,9 +295,9 @@ classdef ProjectManager < handle
       params = ReadXMLParams(featureconfigfile);
       allPfList = fieldnames(params.perframe);
       selected = false(numel(allPfList),1);
+      missing = {};
       curpf = obj.projparams(obj.curproj).pfList;
       if ~isempty(curpf),
-        missing = {};
         for ndx = 1:numel(curpf),
           allndx = find(strcmp(curpf{ndx},allPfList));
           if isempty(allndx)
