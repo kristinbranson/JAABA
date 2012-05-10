@@ -4932,7 +4932,8 @@ classdef JLabelData < handle
         while true
             intlocs = rand;
             locsSel = find(cumwt<=intlocs,1,'last');
-            if any(abs(locsSel-prevlocs)<= intsize  ), continue ;end
+            if any( abs(locsSel-prevlocs) <= intsize) , continue ;end
+            prevlocs(end+1) = locsSel;
             if isempty(locsSel), locsSel = numel(cumwt); end
             expi = int.exp(locsSel);
             flies = int.flies(locsSel);
