@@ -106,6 +106,7 @@ classdef Trx < handle
     ndatacachedperexp = [];
     
     % data cached for each experiment
+    nfnscached = [];
     datacached = {};
     fnscached = {};
     
@@ -168,6 +169,7 @@ classdef Trx < handle
       obj.perframehistory = cell(0,2);
       obj.ndatacached = 0;
       obj.datacached = {};
+      obj.nfnscached = [];
       
     end
     
