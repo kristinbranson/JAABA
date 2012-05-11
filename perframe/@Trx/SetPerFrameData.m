@@ -30,21 +30,32 @@ else
   end  
 end
 
-j = numel(obj.fnscached{n}) + 1;
+if iscell(x),
+  ndataadd = sum(cellfun(@numel,x(1:numel(flies))));
+else
+  ndataadd = numel(x);
+end
+obj.FreeDataCache(ndataadd);
+
+obj.nfnscached(n) = obj.nfnscached(n) + 1;
+j = obj.nfnscached;
+%fprintf('Incremented nfnscached(%d) to %d for %s\n',n,obj.nfnscached(n),fn);
 obj.fnscached{n}{j} = fn;
 obj.datacached{n}{j} = cell(1,numel(flies));
+
 for flyidx = 1:numel(flies),
   fly = flies(flyidx);
-  % delete data from cache if necessary
   if iscell(x),
     xcurr = x{flyidx};
   else
     xcurr = x;
   end
-  ndataadd = numel(xcurr);
-  obj.FreeDataCache(ndataadd);
+%   % delete data from cache if necessary
+%   ndataadd = numel(xcurr);
+%   obj.FreeDataCache(ndataadd);
 
   % add to cache
+  %fprintf('Adding %s to data cache for fly %d at idx %d\n',fn,fly,j);
   obj.datacached{n}{j}{fly} = xcurr;
   
   % update cache size
