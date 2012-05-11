@@ -2695,7 +2695,7 @@ function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % that we've preloaded the right experiment and flies. 
 % REMOVED!
 if handles.expi ~= handles.data.expi,
-  handles.data.Preload(handles.expi,handles.flies);
+  handles.data.PreLoad(handles.expi,handles.flies);
 end
 
 % which preview panel is this
@@ -5728,7 +5728,7 @@ handles.data.SuggestRandomGT(perfly,perexp);
 
 set(handles.menu_view_suggest_random,'Checked','on');
 set(handles.menu_view_suggest_threshold,'Checked','off');
-sset(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
