@@ -96,7 +96,7 @@ curBestErr = curBestErr'; binNo = binNo';
 bestDir = dir(sub2ind([numDim,numBins],1:numDim,binNo));
 
 [minError minDim] = min(curBestErr);
-best.error = gather(minError);
+best.error = gather(minError);  % BJA:  off by Z now, but not used i think.
 best.dim = gather(minDim); 
 best.dir = gather(bestDir(minDim));
 best.tr = gather(binVals(binNo(minDim),minDim));
