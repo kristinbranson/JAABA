@@ -208,7 +208,7 @@ for radiusi = 1:nradii,
         checkSanity(fastY,res_dumb,r,off,'zscore_neighbor','abs');
       end
     
-      %if ismember('flip',trans_types),   %%%  no relative here as above?
+      %if ismember('flip',trans_types),   %%%% no relative here, as above?
       if bitand(4,trans_types),
         res2 = res1;
         res2(x<0) = -res2(x<0);

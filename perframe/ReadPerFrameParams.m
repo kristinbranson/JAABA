@@ -1,4 +1,4 @@
-function [params,cellparams,basicTable,windowSize] = ReadPerFrameParams(filename)
+function [params,cellparams,basicTable,windowSize] = ReadPerFrameParams(filename,featureconfigfile)
 
 if ~exist(filename,'file'),
   error('File %s does not exist',filename);
@@ -6,17 +6,23 @@ end
 
 DOMnode= xmlread(filename);
 n = DOMnode.getDocumentElement();
-if ~strcmp(n.getNodeName,'params')
 %   basicData = n.
 %   n = params;
-  v = parse(n);
-  basicTable = convertToTable(v.basicParams);
-  windowSize = v.featureWindowSize.size;
-  params = v.params;
+v = parse(n);
+if isfield(v,'basicParams')
+    basicTable = convertToTable(v.basicParams,featureconfigfile);
 else
-  basicTable = {};
-  windowSize = [];
-  params = parse(n);
+    basicTable = convertToTable(struct(),featureconfigfile);
+end
+if isfield(v,'featureWindowSize')
+    windowSize = v.featureWindowSize.size;
+else
+    windowSize = 10;
+end
+if isfield(v,'params')
+    params = v.params;  
+else
+    params = v;
 end
 % convert to cell params also
 if nargout > 1,
@@ -73,12 +79,43 @@ for i = 0:cs.getLength()-1,
 end
     
 
-function outTable = convertToTable(inParams)
+function outTable = convertToTable(inParams,featureconfigfile)
+% allpf is required in case a new "type" of feature is defined.
+
+settings = ReadXMLParams(featureconfigfile);
+allpf = fieldnames(settings.perframe);
+pftypeList = {};
+for pfndx = 1:numel(allpf)
+  curpf = allpf{pfndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    curT = curtypes;
+    if ~any(strcmp(pftypeList,curT))
+      pftypeList{end+1} = curT;
+    end
+  else    
+    for tndx = 1:numel(curtypes)
+      curT = curtypes{tndx};
+      if ~any(strcmp(pftypeList,curT))
+        pftypeList{end+1} = curT;
+      end
+    end
+  end
+end
 
 types = fieldnames(inParams);
-outTable = cell(numel(types),3);
-for ndx = 1:numel(types)
-  outTable{ndx,1} = types{ndx};
-  outTable{ndx,2} = inParams.(types{ndx}).mode{1};
-  outTable{ndx,3} = inParams.(types{ndx}).selection{1};  
+outTable = cell(numel(pftypeList),3);
+for ndx = 1:numel(pftypeList)
+  matches = strcmp(types,pftypeList{ndx});
+  if any(matches)
+    mndx = find(matches,1);
+    outTable{ndx,1} = types{mndx};
+    outTable{ndx,2} = inParams.(types{mndx}).mode{1};
+    outTable{ndx,3} = inParams.(types{mndx}).selection{1};  
+  else
+    outTable{ndx,1} = pftypeList{ndx};
+    outTable{ndx,2} = 'None';
+    outTable{ndx,3} = 'normal';  
+  end
 end
+
