@@ -103,7 +103,7 @@ handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
 
 handles.winextraDefaultParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
   [],[2],[],[],[],[]};
-handles.defaultWinParams = {1,10,3,{'none'},0};
+handles.defaultWinParams = {10,1,3,{'none'},0};
 
 guidata(hObject,handles);
 
@@ -400,7 +400,7 @@ function readFeatureConfiguration(hObject)
 handles = guidata(hObject);
 
 configfile = handles.JLDobj.featureConfigFile;
-[settings,~] = ReadPerFrameParams(configfile);
+settings = ReadXMLParams(configfile);
 
 % Read the default parameters for different categories.
 categories = fieldnames(settings.defaults);
@@ -493,18 +493,39 @@ perframeL = handles.JLDobj.allperframefns;
 
 transType = struct;
 pftype = struct;
-pftypeList = {};
+
+% perframeL might not contain all the perframe features.
 for pfndx = 1:numel(perframeL)
   curpf = perframeL{pfndx};
   transType.(curpf) = settings.perframe.(curpf).trans_types;
-  pftype.(curpf)  = settings.perframe.(curpf).type; 
-  for tndx = 1:numel(pftype.(curpf))
-    curT = pftype.(curpf){tndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    pftype.(curpf)  = {curtypes}; 
+  else    
+    pftype.(curpf)  = curtypes; 
+  end
+end
+
+fallpf = fieldnames(settings.perframe);
+pftypeList = {};
+for pfndx = 1:numel(fallpf)
+  curpf = fallpf{pfndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    curT = curtypes;
     if ~any(strcmp(pftypeList,curT))
       pftypeList{end+1} = curT;
     end
+  else    
+    for tndx = 1:numel(curtypes)
+      curT = curtypes{tndx};
+      if ~any(strcmp(pftypeList,curT))
+        pftypeList{end+1} = curT;
+      end
+    end
   end
 end
+
 
 handles.transType = transType;
 handles.pftype = pftype;
@@ -656,37 +677,58 @@ if ~eventData.NewData,
 end
 
 handles.data{pfNdx}.valid = true;
-% When it already has values
-if isfield(handles.data{pfNdx},'default')
-  guidata(hObject,handles);
-  setWindowTable(handles,handles.pfNdx);
-  return;
-end
-
-% Else fill in the default values.
-handles.data{pfNdx}.sanitycheck = false;
-handles.data{pfNdx}.default.valid = true;
-for winParamsNdx = 1:numel(handles.winParams)
-  curType = handles.winParams{winParamsNdx};
-  handles.data{pfNdx}.default.values.(curType) = ...
-    handles.defaultWinParams{winParamsNdx};
-end
-
-% Copy the default values into the other window params.
-for winfnNdx = 2:numel(handles.windowComp)
+curType = handles.pftype.(handles.pfList{pfNdx}){1};
+basicNdx = find(strcmp(handles.pftypeList,curType));
+basicData = get(handles.basicTable,'Data');
+handles.data{pfNdx}.valid = true;
+for winfnNdx = 1:numel(handles.windowComp)
+  category = basicData{basicNdx,3};
   curFn = handles.windowComp{winfnNdx};
-  handles.data{pfNdx}.(curFn).valid = false;
-  for winParamsNdx = 1:numel(handles.winParams)
-    curType = handles.winParams{winParamsNdx};
-    handles.data{pfNdx}.(curFn).values.(curType) = ...
-      handles.data{pfNdx}.default.values.(curType);
+  if ~handles.categ.(category).(curFn).valid
+    handles.data{pfNdx}.(curFn).valid = false;
+    continue;
   end
-  if ~isempty(handles.winextraParams{winfnNdx})
-    extraParam = handles.winextraParams{winfnNdx};
-    handles.data{pfNdx}.(curFn).values.(extraParam) = '';
-  end
-  
+  handles = CopyDefaultWindowParams(handles,...
+    category, pfNdx,winfnNdx);
+  curFn = handles.windowComp{winfnNdx};
+  handles.data{pfNdx}.(curFn).values.trans_types = handles.transType.(handles.pfList{pfNdx});
 end
+
+
+% 
+% % When it already has values
+% if isfield(handles.data{pfNdx},'default')
+%   guidata(hObject,handles);
+%   setWindowTable(handles,handles.pfNdx);
+%   return;
+% end
+% 
+% % Else fill in the default values.
+% handles.data{pfNdx}.sanitycheck = false;
+% handles.data{pfNdx}.default.valid = true;
+% for winParamsNdx = 1:numel(handles.winParams)
+%   curType = handles.winParams{winParamsNdx};
+%   handles.data{pfNdx}.default.values.(curType) = ...
+%     handles.defaultWinParams{winParamsNdx};
+% end
+% 
+% % Copy the default values into the other window params.
+% for winfnNdx = 2:numel(handles.windowComp)
+%   curFn = handles.windowComp{winfnNdx};
+%   handles.data{pfNdx}.(curFn).valid = false;
+%   for winParamsNdx = 1:numel(handles.winParams)
+%     curType = handles.winParams{winParamsNdx};
+%     handles.data{pfNdx}.(curFn).values.(curType) = ...
+%       handles.data{pfNdx}.default.values.(curType);
+%   end
+%   if ~isempty(handles.winextraParams{winfnNdx})
+%     extraParam = handles.winextraParams{winfnNdx};
+%     handles.data{pfNdx}.(curFn).values.(extraParam) = '';
+%   end
+%   
+% end
+
+
 guidata(hObject,handles);
 setWindowTable(handles,handles.pfNdx);
 % set(hObject,'UserData',0);
@@ -762,9 +804,11 @@ else
 end
 
 function setCategoryToCustom(handles)
-curTypes = ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx}));
+curTypes = find(ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx})));
 basicData = get(handles.basicTable,'Data');
-basicData{curTypes,2} = 'Custom';
+for ndx = 1:numel(curTypes)
+  basicData{curTypes(ndx),2} = 'Custom';
+end
 set(handles.basicTable,'Data',basicData);
 
 
@@ -868,10 +912,10 @@ toc.appendChild(createXMLNode(docNode,'basicParams',basicStruct));
 toc.appendChild(createXMLNode(docNode,'featureWindowSize',featureWindowSize));
 toc.appendChild(createXMLNode(docNode,'params',params));
 
-att = fieldnames(params);
-for ndx = 1:numel(att)
-  toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
-end
+% att = fieldnames(params);
+% for ndx = 1:numel(att)
+%   toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
+% end
 
 
 function disableWindowTable(handles)
@@ -1213,8 +1257,8 @@ function Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-configfile = handles.JLDobj.configfilename;
-[fName,pName] = uiputfile(configfile,'Save feature configurations to..');
+% Use project name.
+[fName,pName] = uiputfile('params/*.xml','Save feature configurations to..');
 if ~fName
   return;
 end
@@ -1617,13 +1661,7 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 configfile = handles.JLDobj.configfilename;
 configparams = ReadXMLParams(configfile);
 
-if isfield(configparams.file,'featureparamfilename'),
-  featureconfigfile = configparams.file.featureparamfilename;
-else
-  featureconfigfile = '';
-end
-
-if isempty(featureconfigfile)
+if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
   behaviorname = configparams.behaviors.names;
   defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
@@ -1639,6 +1677,7 @@ if isempty(featureconfigfile)
   xmlwrite(configfile,docNode);
 end
 
+featureconfigfile = configparams.file.featureparamfilename;
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
