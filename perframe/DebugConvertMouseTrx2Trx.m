@@ -3,14 +3,14 @@
 %% data locations
 
 % path to root directory containing the input data
-indatadir = '/groups/egnor/egnorlab/for kristin';
+inmoviedir = 'Y:\popcage_enriched\mousetrack_18';
+intrxdir = 'Y:\adam\mousetrack_18\Results\Tracks';
 % base name of the input experiment
-inexpname = 'b6_popcage_16_110405_09.58.30.268.216000_324000';
-% input .seq file name; this will be used for all intervals of frames
-inexpname_seq = 'b6_popcage_16_110405_09.58.30.268.seq';
+inmovieexpname = 'b6_popcage_18_09.15.11_10.56.24.135';
+intrxexpname = 'b6_popcage_18_2011.09.15_10.56.24.135';
 
 % path to root directory to hold the output data
-outdatadir = '/groups/branson/home/bransonk/behavioranalysis/data/roian';
+outdatadir = 'C:\Workspace\data';
 
 %% parameters
 
@@ -19,11 +19,29 @@ mperpx = 0.00098387;
 pxpermm = 1/(1000*mperpx);
 
 % i assigned this arbitrarily for now
-sex = {'F','F','M','M'};
+sex = {'F','M','M','F'};
 
 % whether to make links or to copy
 makelinks = true;
 
+% frame interval length
+frameintervallength = 108000;
+
+% read in length of movie
+inseqfile = fullfile(inmoviedir,[inmovieexpname,'.seq']);
+headerinfo = r_readseqinfo(inseqfile);
+nframes = headerinfo.m_iNumFrames;
+
+
 %% main function call
 
-ConvertMouseTrx2Trx(indatadir,outdatadir,inexpname,inexpname_seq,pxpermm,sex,'makelinks',makelinks);
+for intervalstart = 1:frameintervallength:nframes,
+  intervalend = intervalstart + frameintervallength - 1;
+  if intervalend > nframes,
+    break;
+  end
+  frameinterval = [intervalstart,intervalend];
+  fprintf('Creating experiment for frames %d to %d...\n',intervalstart,intervalend);
+  ConvertMouseTrx2Trx(inmoviedir,intrxdir,outdatadir,inmovieexpname,intrxexpname,...
+    pxpermm,sex,'frameinterval',frameinterval,'makelinks',makelinks);
+end
