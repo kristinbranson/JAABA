@@ -5,7 +5,12 @@ if matlabpool('size')<1
   matlabpool open;
 end
 % Start JAABA.
-cd(getenv('JAABA_RUNDIR'));
+
+if ismac,
+  cd(getenv('JAABA_RUNDIR'));
+%else
+%  warndlg(sprintf('Starting JAABA in %s, ctfroot is %s, mfilename is %s',pwd,ctfroot,mfilename('fullpath')));
+end
 try
   JLabel();
 catch ME,

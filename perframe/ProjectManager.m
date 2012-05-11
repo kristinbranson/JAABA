@@ -28,8 +28,8 @@ classdef ProjectManager < handle
         obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
-          uiwait(warndlg('Config file %s does not exist for project %s\n Removing the project',...
-            obj.projparams{ndx}.configfile,obj.projparams{ndx}.name));
+          uiwait(warndlg(sprintf('Config file %s does not exist for project %s\n Removing the project',...
+            obj.projparams(ndx).configfile,obj.projparams(ndx).name)));
           obj.projparams(ndx) = [];
         end
         
