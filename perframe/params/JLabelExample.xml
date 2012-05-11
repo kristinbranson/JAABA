@@ -1,85 +1,33 @@
-<?xml version="1.0"?>
-
+<?xml version="1.0" encoding="utf-8"?>
 <params>
-  <behaviors 
-      names="Walk"
-      labelcolors=".7,0,0,0,0,.7"
-      />
-  <file 
-      moviefilename="movie.ufmf"
-      trxfilename="registered_trx.mat"
-      labelfilename="labeledWalks.mat"
-      gt_labelfilename="labeledWalks_gt.mat"
-      perframedir="perframe"
-      clipsdir="clips"
-      windowfilename="windowfeatures.mat"
-      featureparamfilename="params/WindowFeaturesWalks.xml"
-      featureconfigfile='params/featureConfig.xml'
-  />
-  <featureparamlist>
-     <absangle2wall/>
-     <absanglefrom1to2_anglesub/>
-     <absanglefrom1to2_nose2ell/>
-     <absdangle2wall/>
-     <absdtheta/>
-     <absdv_cor/>
-     <absphidiff_anglesub/>
-     <absphidiff_nose2ell/>
-     <abssmoothdtheta/>
-     <absthetadiff_anglesub/>
-     <absthetadiff_nose2ell/>
-     <angle2wall/>
-     <anglefrom1to2_anglesub/>
-     <anglefrom1to2_nose2ell/>
-     <anglesub/>
-     <area/>
-     <areasmooth/>
-     <arena_angle/>
-     <arena_r/>
-     <closestfly_anglesub/>
-     <closestfly_center/>
-     <closestfly_ell2nose/>
-     <closestfly_nose2ell/>
-     <corfrac_maj/>
-     <corfrac_min/>
-     <dangle2wall/>
-     <danglesub/>
-     <dcenter/>
-     <ddcenter/>
-     <ddell2nose/>
-     <ddist2wall/>
-     <ddnose2ell/>
-     <dell2nose/>
-     <dist2wall/>
-     <dnose2ell/>
-     <dtheta/>
-     <du_cor/>
-     <du_ctr/>
-     <dv_cor/>
-     <dv_ctr/>
-     <flipdv_cor/>
-     <magveldiff_anglesub/>
-     <magveldiff_nose2ell/>
-     <phi/>
-     <phisideways/>
-     <signdtheta/>
-     <smoothdtheta/>
-     <velmag/>
-     <velmag_ctr/>
-     <veltoward_anglesub/>
-     <veltoward_nose2ell/>
-     <yaw/>
+   <targets type="fly"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Walk" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="" gt_labelfilename="gt_walk.mat" labelfilename="walk.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_walk.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <plot>
+      <trx colormap="jet" colormap_multiplier="0.7"/>
+      <labels colormap="line" linewidth="3"/>
+   </plot>
+   <perframe>
+      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
+   </perframe>
+   <featureparamlist>
+      <absdtheta/>
+      <absdv_cor/>
+      <area/>
+      <closestfly_ell2nose/>
+      <corfrac_maj/>
+      <corfrac_min/>
+      <dell2nose/>
+      <dtheta/>
+      <du_cor/>
+      <du_ctr/>
+      <dv_cor/>
+      <dv_ctr/>
+      <flipdv_cor/>
+      <phisideways/>
+      <velmag/>
+      <velmag_ctr/>
+      <yaw/>
    </featureparamlist>
-  
-  <plot>
-    <trx 
-	colormap="jet"
-	colormap_multiplier=".7"
-	/>
-    <labels 
-	colormap="line"
-	linewidth="3"
-	/>
-  </plot>
-
 </params>

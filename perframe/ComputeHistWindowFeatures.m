@@ -151,7 +151,8 @@ relativeParams = [];
   max_window_radius,nwindow_radii);
 
 %% compute per-frame transformations 
-[x_trans,IDX,ntrans] = ComputePerFrameTrans(x,trans_types);
+% No abs or flip transforms for histogram.
+[x_trans,IDX,ntrans] = ComputePerFrameTrans(x,1);
 
 %if ismember('relative',trans_types)
 if bitand(8,trans_types)
@@ -195,9 +196,10 @@ bin = [];
 % if IDX.flip>0
 %     [~,bin(:,IDX.flip)] = histc(x_trans(IDX.flip,:)',hist_edges);
 % end
-% if IDX.rel>0
-%   [~,bin(:,IDX.rel)] = histc(x_trans(IDX.rel,:)',rel_hist_edges);
-% end
+
+if IDX.rel>0
+  [~,bin(:,IDX.rel)] = histc(x_trans(IDX.rel,:)',rel_hist_edges);
+end
 
 bin(bin > nbins) = nbins;
 

@@ -283,6 +283,7 @@ classdef JLabelData < handle
     randomGTSuggestions = {};
     thresholdGTSuggestions = [];
     loadedGTSuggestions = {};
+    balancedGTSuggestions = {};
     GTSuggestionMode = '';
     
   end
@@ -2012,7 +2013,22 @@ classdef JLabelData < handle
           timestamp = tmp.datenum;
           break;
         end
-        
+        % check for lnk files
+        if ispc && exist([filename,'.lnk'],'file'),
+          try
+            x = java.io.File([filename,'.lnk']);
+            y = sun.awt.shell.ShellFolder.getShellFolder(x);
+            actualfilename = y.getLinkLocation();
+            actualfilename = char(actualfilename);
+            if exist(actualfilename,'file'),
+              filename = actualfilename;
+              tmp = dir(filename);
+              timestamp = tmp.datenum;
+              break;
+            end
+          catch  %#ok<CTCH>
+          end
+        end
       end
       
     end
@@ -2121,7 +2137,12 @@ classdef JLabelData < handle
         else
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
-        perframetrx.(fn); %#ok<VUNUS>
+        
+        if numel(fn)>7 && strcmpi('scores_',fn(1:7))
+          obj.ScoresToPerframe(expi,fn);
+        else
+          perframetrx.(fn); %#ok<VUNUS>
+        end
           
       end
       
@@ -2133,12 +2154,28 @@ classdef JLabelData < handle
       
     end
     
+    function ScoresToPerframe(obj,expi,fn)
+      outdir = obj.outexpdirs{expi};
+      scoresFileIn = fullfile(outdir,fn);
+      scoresFileOut = fullfile(outdir,obj.GetFileName('perframe'),fn);
+      Q = load([scoresFileIn '.mat']);
+      OUT = struct();
+      OUT.units = struct(); OUT.units.num = {'scores'};
+      OUT.units.den = {''};
+      for ndx = 1:numel(Q.allScores.scores)
+        t0 = Q.allScores.tStart(ndx);
+        t1 = Q.allScores.tEnd(ndx);
+        OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
+      end
+      save(scoresFileOut,'-struct','OUT');
+    end
+    
     function [success,msg] = SetFeatureConfigFile(obj,configfile)
       success = false;
       msg = '';
       
       obj.featureConfigFile = configfile;
-      [settings,~] = ReadPerFrameParams(configfile);
+      settings = ReadXMLParams(configfile);
       obj.allperframefns =  fieldnames(settings.perframe);
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
@@ -2168,7 +2205,7 @@ classdef JLabelData < handle
       end
 %       try
         [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
-          ReadPerFrameParams(featureparamsfilename); %#ok<PROP>
+          ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
 %       catch ME,
 %         msg = sprintf('Error reading feature parameters file %s: %s',...
 %           params.featureparamsfilename,getReport(ME));
@@ -2219,7 +2256,20 @@ classdef JLabelData < handle
         % loop through directories to look in
         for j = 1:numel(expdirs_try),
           expdir = expdirs_try{j};
-          filename = fullfile(expdir,fn,[obj.allperframefns{i},'.mat']);
+          perframedir = fullfile(expdir,fn);
+          if ispc && ~exist(perframedir,'dir'),
+            [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
+            if didfind,
+              perframedir = actualperframedir;
+            end
+          end
+          filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);
+          if ispc && ~exist(filename,'file'),
+            [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+            if didfind,
+              filename = actualfilename;
+            end
+          end
           
           if exist(filename,'file'),
             filenames{i} = filename;
@@ -3562,7 +3612,7 @@ classdef JLabelData < handle
         end
         
         if ~exist(perframefile{ndx},'file'),
-          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',obj.expnames{expi}),'Generate missing files?','Yes','Cancel','Yes');
+          res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
           if strcmpi(res,'Yes'),
             for ndx = 1:obj.nexps  
               [success1,msg1] = obj.GenerateMissingFiles(ndx);
@@ -3668,7 +3718,7 @@ classdef JLabelData < handle
     function TrimWindowData(obj)
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
-      sizeLimit = 8e9; % 5GB.
+      sizeLimit = 5e9; % 5GB.
       classSize = 4;
       ratioLimit = 0.2;
       
@@ -4185,13 +4235,13 @@ classdef JLabelData < handle
       obj.SetStatus('Classifying current movie..');
       
       parfor flies = 1:numFlies
-
-        blockSize = 1000;
+        blockSize = 5000;
         tStart = tStartAll(flies);
         tEnd = tEndAll(flies);
+        
         scores = nan(1,tEnd);
         
-        for curt0=tStart:blockSize:tEnd
+        for curt0 = tStart:blockSize:tEnd
           curt1 = min(curt0+blockSize-1,tEnd);
           X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
             allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
@@ -4661,18 +4711,18 @@ classdef JLabelData < handle
       
       if ~isempty(obj.scoredata.exp==expi)
         idxcurr = obj.scoredata.exp==expi & obj.scoredata.flies == flyNum;
-        flyStats.nscoreframes = nnz(idxcurr);
-        flyStats.nscorepos = nnz(obj.scoredata.scores(idxcurr)>0);
-        flyStats.nscoreneg = nnz(obj.scoredata.scores(idxcurr)<0);
+        flyStats.nscoreframes_loaded = nnz(idxcurr);
+        flyStats.nscorepos_loaded = nnz(obj.scoredata.scores(idxcurr)>0);
+        flyStats.nscoreneg_loaded = nnz(obj.scoredata.scores(idxcurr)<0);
 %         if ~isempty(obj.scoredata.classifierfilenames)
 %           flyStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
 %         else
 %           flyStats.classifierfilename = '';
 %         end
       else
-        flyStats.nscoreframes = [];
-        flyStats.nscorepos = [];
-        flyStats.nscoreneg = [];        
+        flyStats.nscoreframes_loaded = [];
+        flyStats.nscorepos_loaded = [];
+        flyStats.nscoreneg_loaded = [];        
 %         flyStats.classifierfilename = '';
       end
       
@@ -4688,10 +4738,16 @@ classdef JLabelData < handle
         
         curPosMistakes = nnz( curScores<0 & curLabels ==1 );
         curNegMistakes = nnz( curScores>0 & curLabels >1 );
-        
+
+        flyStats.nscoreframes = nnz(curNdx);
+        flyStats.nscorepos = nnz(curScores>0);
+        flyStats.nscoreneg = nnz(curScores<0);
         flyStats.errorsPos = curPosMistakes;
         flyStats.errorsNeg = curNegMistakes;
       else
+        flyStats.nscoreframes = [];
+        flyStats.nscorepos = [];
+        flyStats.nscoreneg = [];
         flyStats.errorsPos = [];
         flyStats.errorsNeg = [];
       end
@@ -4858,6 +4914,72 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
+      success = true; msg = '';
+      
+      if isempty(obj.scoredata.exp),
+        msg = 'No Scores have been loaded, cannot suggest intervals for ground truthing\n';
+        success = false;
+        return;
+      end
+      
+      numpos = nnz(obj.scoredata.scores>0);
+      numneg = nnz(obj.scoredata.scores<0);
+      poswt = numneg/(numneg+numpos);
+      negwt = numpos/(numneg+numpos);
+      
+      int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
+      obj.balancedGTSuggestions = {};
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
+          curt = obj.scoredata.t(curidx);
+          if numel(curt)<intsize; continue; end
+          if any(curt(2:end)-curt(1:end-1) ~= 1)
+            msg = 'Scores are not in order'; 
+            success = false; 
+            return;
+          end
+          numT = nnz(curidx)-intsize+1;
+          int.exp(1,end+1:end+numT) = endx;
+          int.flies(1,end+1:end+numT) = flies;
+          int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
+          curwt = (obj.scoredata.scores(curidx)<0)*negwt +(obj.scoredata.scores(curidx)>0)*poswt ;
+          cumwt = cumsum(curwt);
+          sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
+          sumwt = [cumwt(intsize) sumwt];
+          int.wt(1,end+1:end+numT) = sumwt;
+          
+        end
+      end
+      
+      cumwt = cumsum(int.wt)/sum(int.wt);
+      obj.balancedGTSuggestions = [];
+      prevlocs = [];
+      for ndx = 1:numint
+        while true
+            intlocs = rand;
+            locsSel = find(cumwt<=intlocs,1,'last');
+            if any( abs(locsSel-prevlocs) <= intsize) , continue ;end
+            prevlocs(end+1) = locsSel;
+            if isempty(locsSel), locsSel = numel(cumwt); end
+            expi = int.exp(locsSel);
+            flies = int.flies(locsSel);
+            tStart = int.tStart(locsSel);
+            obj.balancedGTSuggestions(ndx).start = tStart;
+            obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
+            obj.balancedGTSuggestions(ndx).exp = expi;
+            obj.balancedGTSuggestions(ndx).flies = flies;
+            break;
+        end
+      end
+      
+      success = true;
+      obj.GTSuggestionMode = 'Balanced';
+      
+    end
+    
+    
     function SuggestLoadedGT(obj,expi,filename)
       fid = fopen(filename);
       dat = textscan(fid,'fly:%d,start:%d,end:%d');
@@ -4898,52 +5020,70 @@ classdef JLabelData < handle
       
       suggestedidx = false(1,n);
       
-      if strcmpi(obj.GTSuggestionMode,'Random')
-        start = obj.randomGTSuggestions{expi}(flies).start;
-        last = obj.randomGTSuggestions{expi}(flies).end;
-        range = start+off:last+off;
-        selIdx = range(range>0);
-        suggestedidx(selIdx) = true;
+      switch obj.GTSuggestionMode,
+        case 'Random'
+          start = obj.randomGTSuggestions{expi}(flies).start;
+          last = obj.randomGTSuggestions{expi}(flies).end;
+          range = start+off:last+off;
+          selIdx = range(range>0);
+          suggestedidx(selIdx) = true;
         
-      elseif strcmpi(obj.GTSuggestionMode,'Loaded')
-        if numel(obj.loadedGTSuggestions)<expi || isempty(obj.loadedGTSuggestions{expi}),
+        case 'Loaded'
+          if numel(obj.loadedGTSuggestions)<expi || isempty(obj.loadedGTSuggestions{expi}),
+            suggestedidx = false(1,n);
+            return;
+          end
           suggestedidx = false(1,n);
-          return;
-        end
-        suggestedidx = false(1,n);
-        start = obj.loadedGTSuggestions{expi}(flies).start;
-        last = obj.loadedGTSuggestions{expi}(flies).end;
-        range = start+off:last+off;
-        selIdx = range(range>0);
-        suggestedidx(selIdx) = true;
+          start = obj.loadedGTSuggestions{expi}(flies).start;
+          last = obj.loadedGTSuggestions{expi}(flies).end;
+          range = start+off:last+off;
+          selIdx = range(range>0);
+          suggestedidx(selIdx) = true;
 
-      elseif strcmpi(obj.GTSuggestionMode,'Threshold')
-        if ~isempty(obj.scoredata.scores)
-          idxcurr = obj.scoredata.exp(:) == expi & ...
-            obj.scoredata.flies(:) == flies & ...
-            obj.scoredata.t(:) >=T0 & ...
-            obj.scoredata.t(:) <=T1;
-          suggestedidx( obj.scoredata.t(idxcurr)+off) = ...
-            obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
-            -obj.thresholdGTSuggestions;
-        end
-        
-        % Should we give suggestions based on scores not calculated offline? 
-        if ~isempty(obj.windowdata.scores)
-          idxcurr = obj.windowdata.exp(:) == expi & ...
-            obj.windowdata.flies(:) == flies & ...
-            obj.windowdata.t(:) >=T0 & ...
-            obj.windowdata.t(:) <=T1;
-          suggestedidx( obj.windowdata.t(idxcurr)+off) = ...
-            obj.NormalizeScores(obj.windowdata.scores(idxcurr)) > ...
-            -obj.thresholdGTSuggestions;
-        end
+        case 'Threshold'
+          if ~isempty(obj.scoredata.scores)
+            idxcurr = obj.scoredata.exp(:) == expi & ...
+              obj.scoredata.flies(:) == flies & ...
+              obj.scoredata.t(:) >=T0 & ...
+              obj.scoredata.t(:) <=T1;
+            suggestedidx( obj.scoredata.t(idxcurr)+off) = ...
+              obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+              -obj.thresholdGTSuggestions;
+          end
+
+          % Should we give suggestions based on scores not calculated offline? 
+          if ~isempty(obj.windowdata.scores)
+            idxcurr = obj.windowdata.exp(:) == expi & ...
+              obj.windowdata.flies(:) == flies & ...
+              obj.windowdata.t(:) >=T0 & ...
+              obj.windowdata.t(:) <=T1;
+            suggestedidx( obj.windowdata.t(idxcurr)+off) = ...
+              obj.NormalizeScores(obj.windowdata.scores(idxcurr)) > ...
+              -obj.thresholdGTSuggestions;
+          end
+          
+        case 'Balanced'
+          suggestedidx = false(1,n);
+          for ndx = 1:numel(obj.balancedGTSuggestions)
+            if obj.balancedGTSuggestions(ndx).exp ~= expi ||...
+              obj.balancedGTSuggestions(ndx).flies ~= flies
+              continue;
+            end
+            start = obj.balancedGTSuggestions(ndx).start;
+            last = obj.balancedGTSuggestions(ndx).end;
+            if start>T1 || last <T0, continue ;end
+            start = max(start,T0); last = min(last,T1);
+            range = start+off:last+off;
+            selIdx = range(range>0);
+            suggestedidx(selIdx) = true;
+          end
       end
       
     end
     
     function crossError = GetGTPerformance(obj)
       % Computes the performance on the GT data.
+      obj.StoreLabels();
       crossError.numbers = zeros(4,3);
       crossError.frac = zeros(4,3);
       
