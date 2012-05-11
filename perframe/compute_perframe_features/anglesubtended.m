@@ -178,11 +178,11 @@ function [psi1,psi2] = computetangentpoints(c,d,a,b,theta)
   end;
   
   % four possible choices for phi
-  cosphi = (-B + D)/(2*A);
+  cosphi = max(-1,min(1,(-B + D)/(2*A)));
   possiblephi(3) = acos(cosphi);
   possiblephi(4) = -possiblephi(3);
   
-  cosphi = (-B - D)/(2*A);
+  cosphi = max(-1,min(1,(-B - D)/(2*A)));
   possiblephi(5) = acos(cosphi);
   possiblephi(6) = -possiblephi(5);
   
