@@ -69,6 +69,7 @@ set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing'});
 handles.disableBehavior = disableBehavior;
 
 if disableBehavior,
+
   handles.success = true;
   % Simply edit files, not editing the behavior part
   handles.JLabelHandle = JLabelHandle;
@@ -94,45 +95,17 @@ else
   handles.JLabelHandle = JLabelHandle;
   handles.needJLabelInit = true;
   handles.defaultConfig = GetDefaultConfig();
-  handles.behaviorParamsFile = behaviorParamsFile;
-  if exist(behaviorParamsFile,'file'),
-    behaviorparams.behaviors = ReadXMLParams(behaviorParamsFile);
-  else
-    behaviorparams.behaviors = struct;
-  end
+  handles.projmanager = ProjectManager(behaviorParamsFile);
+
+  set(handles.listbox_behavior,'String',handles.projmanager.GetProjectList());
   
-  handles.behaviorparams = behaviorparams;
-  behaviorList = fieldnames(behaviorparams.behaviors);
-  handles.behaviorList = behaviorList;
-  handles.needSave = false(1,numel(behaviorList));
-  
-  handles.config = cell(1,numel(behaviorList));
-  handles.featureList = cell(1,numel(behaviorList));  
-  
-  for ndx = 1:numel(behaviorList)
-    behaviorName = behaviorList{ndx};
-    curparams = ReadXMLParams(handles.behaviorparams.behaviors.(behaviorName).configFile);
-    if isfield(curparams,'featureparamlist'),
-      handles.featureList{ndx} = curparams.featureparamlist;
-      curparams = rmfield(curparams,'featureparamlist');
-    end
-    handles.config{ndx} = curparams;
-  end
-  
-  set(handles.listbox_behavior,'String',behaviorList);
-  
+  % If the user supplied a configuration file.
   if ~isempty(handles.JLabelHandle.guidata.configfilename)
-    foundConfig = false;
-    for fndx = 1:numel(handles.behaviorList)
-      if strcmp(handles.JLabelHandle.guidata.configfilename,  ...
-          handles.behaviorparams.behaviors.(handles.behaviorList{fndx}).configFile),
-        handles.curbehavior = fndx;
-        set(handles.listbox_behavior,'Value',handles.curbehavior);
-        foundConfig = true;
-        break;
-      end
-    end
-    if ~foundConfig
+    projNum = handles.projmanager.FindProjFromConfigfile(handles.JLabelHandle.guidata.configfilename);
+    if ~isempty(projNum),
+      set(handles.listbox_behavior,'Value',projNum);
+      handles.projmanager.SetCurrentProject(projNum);
+    else
       while true
         dlgStr = sprintf('%s\n%s\n%s','A project has not been defined for the configfile',...
           'To add a new project for this configfile enter the name below.',... 
@@ -142,25 +115,31 @@ else
           break;
         end
         newName = in{1};
-        if any(strcmp(newName,handles.behaviorList)),
+        if handles.projmanager.checkExist(newName),
           uiwait(warndlg('A project already exists with that name'));
         else
-          addBehavior(hObject,handles,newName,handles.JLabelHandle.guidata.configfilename);
+          handles.projmanager.AddProject(newName,handles.JLabelHandle.guidata.configfilename);
           handles = guidata(hObject);
           break
         end
       end
     end
-  else
-    if numel(behaviorList)>0,
-      handles.curbehavior = 1;
-      set(handles.listbox_behavior,'Value',handles.curbehavior);
-    else
-      handles.curbehavior = [];
-    end
+  end
+  
+  projNum = handles.projmanager.GetCurrentProject();
+  if ~isempty(projNum)
+    set(handles.listbox_behavior,'Value',projNum);
   end
   guidata(hObject,handles);
   updateConfigParams(handles);
+end
+
+
+% Add color for mac's.
+buttonNames = {'pushbutton_add','pushbutton_remove','pushbutton_load',...
+              'pushbutton_loadwoexp','pushbutton_cancel','pushbutton_done'};
+for buttonNum = 1:length(buttonNames)
+  SetButtonImage(handles.(buttonNames{buttonNum}));
 end
 
 % UIWAIT makes JLabelEditFiles wait for user response (see UIRESUME)
@@ -200,18 +179,6 @@ defaultConfig.perframe.landmark_params = struct(...
   'arena_center_mm_x',0,'arena_center_mm_y',0,'arena_radius_mm',60,'arena_type','circle');
 
 
-function SaveBehaviorState(handles)
-% Writes all the behavior and params file.
-writeConfigFile(handles.behaviorParamsFile,...
-handles.behaviorparams.behaviors,'behaviors',[]);
-for ndx = 1:numel(handles.behaviorList)
-  if ~handles.needSave(ndx), continue, end;
-  behaviorName = handles.behaviorList{ndx};
-  writeConfigFile(handles.behaviorparams.behaviors.(behaviorName).configFile,...
-    handles.config{ndx},'params',handles.featureList{ndx});
-end
-
-
 function InitJLabelGui(handles)
 
 if ~handles.needJLabelInit, return; end
@@ -219,15 +186,15 @@ handles.needJLabelInit = false;
 
 % For behavior --
 DisableBehaviorGui(handles);
-SaveBehaviorState(handles);
+handles.projmanager.WriteProjectManager();
+handles.projmanager.SaveAllConfig();
 handles.success = true;
 % End for behavior --
 
 % Initializes the JLabel gui once the user selects the behavior.
 JLabelHandle = handles.JLabelHandle;
-JLabelHandle.guidata.configparams = handles.config{handles.curbehavior};
-behaviorName = handles.behaviorList{handles.curbehavior};
-JLabelHandle.guidata.configfilename = handles.behaviorparams.behaviors.(behaviorName).configFile;
+JLabelHandle.guidata.configparams = handles.projmanager.GetProjConfig();
+JLabelHandle.guidata.configfilename = handles.projmanager.GetCurProjConfigfile();
 JLabelHandle = JLabel('GetGUIPositions',JLabelHandle);
 JLabelHandle = JLabel('InitializeState',JLabelHandle);
 JLabelHandle = JLabel('InitializePlots',JLabelHandle);
@@ -288,42 +255,6 @@ handles.generate_button_border_x_px = 5;
 handles.generate_button_width_px = 100;
 handles.generate_button_height_px = handles.table_row_height_px - handles.generate_button_border_y_px;
 
-%{
-% % status table fields: these should be defined in order so that earlier
-% % files do not depend on later files
-% handles.status_files = struct('name',{},'file',{},'required',{},'cangenerate',{},'perfly',{},'isoutput',{});
-% handles.status_files(end+1).name = 'movie';
-% handles.status_files(end).file = params.moviefilename;
-% handles.status_files(end).required = true;
-% handles.status_files(end).cangenerate = false;
-% handles.status_files(end).perfly = false;
-% handles.status_files(end).isoutput = false;
-% handles.status_files(end+1).name = 'trx';
-% handles.status_files(end).file = params.trxfilename;
-% handles.status_files(end).required = true;
-% handles.status_files(end).cangenerate = false;
-% handles.status_files(end).perfly = false;
-% handles.status_files(end).isoutput = false;
-% handles.status_files(end+1).name = 'label';
-% handles.status_files(end).file = params.labelfilename;
-% handles.status_files(end).required = false;
-% handles.status_files(end).cangenerate = false;
-% handles.status_files(end).perfly = false;
-% handles.status_files(end).isoutput = true;
-% handles.status_files(end+1).name = 'perframedir';
-% handles.status_files(end).file = params.perframedir;
-% handles.status_files(end).required = true;
-% handles.status_files(end).cangenerate = true;
-% handles.status_files(end).perfly = false;
-% handles.status_files(end).isoutput = false;
-% handles.status_files(end+1).name = 'window';
-% handles.status_files(end).file = params.windowfilename;
-% handles.status_files(end).required = true;
-% handles.status_files(end).cangenerate = true;
-% handles.status_files(end).perfly = true;
-% handles.status_files(end).isoutput = true;
-%}
-
 % buttons for generating the files
 pos_table = get(handles.uitable_status,'Position');
 top_table = pos_table(2)+pos_table(4);
@@ -344,12 +275,6 @@ for i = 1:numel(handles.data.filetypes),
       'Callback',@(hObject,eventdata) JLabelEditFiles('pushbutton_generate_Callback',hObject,eventdata,guidata(hObject),i),...
       'Backgroundcolor',buttonColor);
   end
-end
-
-buttonNames = {'pushbutton_add','pushbutton_remove','pushbutton_load',...
-              'pushbutton_loadwoexp','pushbutton_cancel','pushbutton_done'};
-for buttonNum = 1:length(buttonNames)
-  SetButtonImage(handles.(buttonNames{buttonNum}));
 end
 
 % initialize status table
@@ -445,7 +370,7 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 
 oldv = get(handles.listbox_experiment,'Value');
 
-if ~handles.disableBehavior && isempty(handles.curbehavior), 
+if ~handles.disableBehavior && isempty(handles.projmanager.GetCurrentProject()), 
   uiwait(warndlg('Select a project before adding an experiment'));
   return
 end
@@ -712,27 +637,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in pushbutton_editbehavior.
-function list = getPathAndValue(list,pathTillNow,name,param)
-  if isstruct(param)
-    fnames = fieldnames(param);
-    for ndx = 1:numel(fnames)
-      list = getPathAndValue(list,[pathTillNow  name '.'],fnames{ndx},param.(fnames{ndx}));
-    end
-  else
-    list{end+1,1} = [pathTillNow name];
-    if isnumeric(param)
-      q = num2str(param(1));
-      for jj = 2:numel(param)
-        q = [q ',' num2str(param(jj))];
-      end
-      list{end,2} = q;
-    else
-      list{end,2} = param;
-    end
-  end
-
-
 % --- Executes on selection change in listbox_behavior.
 function listbox_behavior_Callback(hObject, eventdata, handles)
 % hObject    handle to listbox_behavior (see GCBO)
@@ -742,8 +646,7 @@ function listbox_behavior_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox_behavior contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox_behavior
 
-handles.curbehavior = get(hObject,'Value');
-guidata(hObject,handles);
+handles.projmanager.SetCurrentProject(get(hObject,'Value'));
 updateConfigParams(handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -765,56 +668,20 @@ function pushbutton_addbehavior_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[~,newName,configFile,defaultConfigFile] = NewProjectSettings(handles.behaviorList);
+[~,newName,configFile,defaultConfigFile] = NewProjectSettings(handles.projmanager.GetProjectList);
 if isempty(newName),
   return;
 end
 
-addBehavior(hObject,handles,newName,configFile,defaultConfigFile);
+handles.projmanager.AddProject(newName,configFile,defaultConfigFile);
 
-function addBehavior(hObject,handles,newName,configFile,defaultConfigFile)
-
-if nargin <4,
-  defaultConfigFile = '';
-end
-
-handles.behaviorparams.behaviors.(newName).configFile = configFile;
-handles.behaviorList{end+1} = newName;
-handles.needSave(end+1) = true;
-handles.curbehavior = numel(handles.behaviorList);
-set(handles.listbox_behavior,'String',handles.behaviorList,'Value',handles.curbehavior);
-
-fileToRead = '';
-
-if exist(configFile,'file')
-  fileToRead = configFile;
-  handles.needSave(handles.curbehavior) = false;
-elseif ~isempty(defaultConfigFile) && exist(defaultConfigFile,'file')
-  fileToRead = defaultConfigFile;
-end
-
-if ~isempty(fileToRead)
-  curparams = ReadXMLParams(fileToRead);
-  if isfield(curparams,'featureparamlist'),
-    handles.featureList{handles.curbehavior} = curparams.featureparamlist;
-    curparams = rmfield(curparams,'featureparamlist');
-  else
-    handles.featureList{handles.curbehavior} = [];
-  end
-  handles.config{handles.curbehavior} = curparams;
-else
-    handles.config{handles.curbehavior} = GetDefaultConfig(newName);
-    handles.featureList{handles.curbehavior} = [];
-    handles.needSave(handles.curbehavior) = true;
-end
-
-set(handles.listbox_behavior,'Value',handles.curbehavior);
-guidata(hObject,handles);
 if ~updateConfigParams(handles)
-  pushbutton_removebehavior_Callback(...
-    handles.pushbutton_removebehavior,[],handles);
+  handles.projmanager.RemoveProject(handles.projmanager.GetCurrentProject());
 end
 
+set(handles.listbox_behavior,'String',handles.projmanager.GetProjectList());
+set(handles.listbox_behavior,'Value',handles.projmanager.GetCurrentProject());
+updateConfigParams(handles);
 
 % --- Executes on button press in pushbutton_removebehavior.
 function pushbutton_removebehavior_Callback(hObject, eventdata, handles)
@@ -822,72 +689,20 @@ function pushbutton_removebehavior_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-curname = handles.behaviorList{handles.curbehavior};
-handles.behaviorList(handles.curbehavior) = [];
-handles.needSave(handles.curbehavior) = [];
-handles.behaviorparams.behaviors = rmfield(handles.behaviorparams.behaviors,curname);
-handles.config(handles.curbehavior) = [];
-handles.featureList(handles.curbehavior) = [];
-if numel(handles.featureList)<handles.curbehavior,
-  handles.curbehavior = handles.curbehavior -1;
-end
-if handles.curbehavior==0 && numel(handles.behaviorList)>0,
-  handles.curbehavior = 1;
-end
-if ~handles.curbehavior, handles.curbehavior =[]; end
-set(handles.listbox_behavior,'String',handles.behaviorList,'Value',handles.curbehavior);
-guidata(hObject,handles);
+handles.projmanager.RemoveBehavior(handles.projmanager.GetCurrentProject());
+
+set(handles.listbox_behavior,'String',handles.projmanager.GetProjectList());
+set(handles.listbox_behavior,'Value',handles.projmanager.GetCurrentProject());
 updateConfigParams(handles);
 
-guidata(hObject,handles);
 
 function success = updateConfigParams(handles)
-success = true;
-if isempty(handles.curbehavior); 
-  set(handles.config_table,'Data',{});
-  return; 
-end
-configparams = handles.config{handles.curbehavior};
-curDat = addToList(configparams,{},'');
-if any(cellfun(@iscell,curDat(:,2))),
+[data, success] = handles.projmanager.GetConfigAsTable();
+if success
+  set(handles.config_table,'Data',data);
+else
   uiwait(warndlg('Configuration file is out of whack!'));
-  success = false;
-  return;
 end
-set(handles.config_table,'Data',curDat);
-
-function list = addToList(curStruct,list,pathTillNow)
-if isempty(fieldnames(curStruct)), return; end
-fnames = fieldnames(curStruct);
-for ndx = 1:numel(fnames)
-  if isstruct(curStruct.(fnames{ndx})), 
-    list = addToList(curStruct.(fnames{ndx}),list,[pathTillNow fnames{ndx} '.']);
-  else
-    list{end+1,1} = [pathTillNow fnames{ndx}];
-    param = curStruct.(fnames{ndx});
-    if isnumeric(param)
-      q = num2str(param(1));
-      for jj = 2:numel(param)
-        q = [q ',' num2str(param(jj))];
-      end
-      list{end,2} = q;
-    else
-      list{end,2} = param;
-    end
-  end
-end
-
-function writeConfigFile(fname,topNode,topNodeName,featureList)
-docNode = com.mathworks.xml.XMLUtils.createDocument(topNodeName);
-toc = docNode.getDocumentElement;
-att = fieldnames(topNode);
-for ndx = 1:numel(att)
-  toc.appendChild(createXMLNode(docNode,att{ndx},topNode.(att{ndx})));
-end
-if ~isempty(featureList),
-  toc.appendChild(createXMLNode(docNode,'featureparamlist',featureList));
-end
-xmlwrite(fname,docNode);
 
 
 function SetLabelingMode(handles)
@@ -923,23 +738,11 @@ if isempty(eventdata.Indices); return; end
 data = get(handles.config_table,'Data');
 ndx = eventdata.Indices(1);
 if eventdata.Indices(2) == 2
-  eval(sprintf('handles.config{handles.curbehavior}.%s = data{ndx,2};',...
-      data{ndx,1}));
+  handles.projmanager.EditConfigValue(data{ndx,1},data{ndx,2});
 else
-  [fpath,lastfield] = splitext(eventdata.PreviousData);
-  if isempty(lastfield)
-    handles.config{curbehavior} = rmfield(handles.config{curbehavior},fpath);
-  else
-    eval(sprintf('handles.config{handles.curbehavior}.%s = rmfield(handles.config{handles.curbehavior}.%s,lastfield(2:end));',...
-      fpath,fpath));  
-  end
-  eval(sprintf('handles.config{handles.curbehavior}.%s = data{ndx,2};',...
-      eventdata.NewData));
-  
+  handles.projmanager.EditConfigName(eventdata.PreviousData,eventdata.NewData);
 end
 
-handles.needSave(handles.curbehavior) = true;
-guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_chooseperframe.
@@ -948,29 +751,19 @@ function pushbutton_chooseperframe_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.curbehavior), return; end;
-curbehavior = handles.curbehavior;
-featureConfig = ReadXMLParams(handles.config{curbehavior}.file.featureconfigfile);
-allperframe = fieldnames(featureConfig.perframe);
-data = {};
-data(:,1) = allperframe;
-if isempty(handles.featureList{curbehavior})
-  data(:,2) = {true};
-else
-  data(:,2) = {false};
-  curperframe = fieldnames(handles.featureList{curbehavior});
-  for ndx = 1:numel(curperframe)
-    allndx = find(strcmp(curperframe{ndx},allperframe));
-    if isempty(allndx)
-      wstr = sprintf('Perframe feature %s is defined in config file%s\n%s',...
-        curperframe{ndx},...
-        'but is not defined in featureConfig.',...
-        'Ignoring it.');
-        uiwait(warndlg(wstr));
-      continue;
-    end
-    data{allndx,2} = true;
+if ~handles.projmanager.GetCurrentProject(), return; end;
+[allpf selected missing] = handles.projmanager.GetAllPerframeList();
+data = {}; data(:,1) = allpf; data(:,2) = num2cell(selected);
+if ~isempty(missing)
+  list = missing{1};
+  for ndx = 2:numel(missing)
+    list = sprintf('%s %s ',list,missing{ndx});
   end
+  wstr = sprintf('Perframe feature(s) %s are defined in config file%s\n%s',...
+        list,...
+        ' but is not defined in featureConfig.',...
+        'Ignoring them.');
+  uiwait(warndlg(wstr));
 end
 
 curFigPos = get(handles.figure_JLabelEditFiles,'Position');
@@ -1009,15 +802,13 @@ handles = guidata(hObject);
 if strcmp(get(hObject,'String'),'Done') 
   editfileshandle = handles.editfileshandle;
   data = get(handles.t,'Data');
-  curbehavior = editfileshandle.curbehavior;
-  editfileshandle.featureList{curbehavior} = struct;
+  curpf = {};
   for ndx = 1:size(data,1)
     if data{ndx,2}
-      editfileshandle.featureList{curbehavior}.(data{ndx,1}) = struct;
+      curpf{end+1} = data{ndx,1};
     end
   end
-  editfileshandle.needSave(curbehavior) = true;
-  guidata(editfileshandle.figure_JLabelEditFiles,editfileshandle);
+  editfileshandle.projmanager.SetPerframeList(curpf);
 end
 
 delete(handles.fig);
@@ -1033,15 +824,11 @@ if isempty(in) || numel(in) < 2
   return;
 end
 
-curbehavior = handles.curbehavior;
-if isfield(handles.config{curbehavior},in{1}),
+if ~handles.projmanager.AddConfig(in{1},in{2})
   uiwait(warndlg(sprintf('Configuration Parameter named %s already exists',in{1})));
   return;
 end
 
-eval(sprintf('handles.config{curbehavior}.%s=in{2};',in{1}));
-handles.needSave(curbehavior) = true;
-guidata(hObject,handles);
 updateConfigParams(handles);
 
 % --- Executes on button press in pushbutton_removeconfigparam.
@@ -1056,16 +843,8 @@ jUIScrollPane = findjobj(handles.config_table);
 jUITable = jUIScrollPane.getViewport.getView;
 allndx = jUITable.getSelectedRows + 1;
 if numel(allndx)==1 && allndx <1, return, end
-curbehavior = handles.curbehavior;
 
 for ndx = allndx(:)'
-  [fpath,lastfield] = splitext(data{ndx,1});
-  if isempty(lastfield)
-    handles.config{curbehavior} = rmfield(handles.config{curbehavior},fpath);
-  else
-    handles.config{curbehavior}.(fpath) = rmfield(handles.config{curbehavior}.(fpath),lastfield(2:end));  
-  end
+  handles.projmanager.RemoveConfig(data{ndx,1});
 end
-handles.needSave(curbehavior) = true;
-guidata(hObject,handles);
 updateConfigParams(handles);

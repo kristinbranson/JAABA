@@ -15,8 +15,13 @@ classdef ProjectManager < handle
       end
       obj.projfile = projfile;
       
-      in =  ReadXMLParams(obj.projfile);
-      projs = fieldnames(in);
+      if ~exist(obj.projfile,'file'),
+        projs = {};
+      else
+        in =  ReadXMLParams(obj.projfile);
+        projs = fieldnames(in);
+      end
+      
       for ndx = 1:numel(projs),
         obj.projparams(ndx).name = projs{ndx};
         obj.projparams(ndx).configfile = in.(projs{ndx}).configfile;
@@ -60,13 +65,13 @@ classdef ProjectManager < handle
       doesExist = any(strcmp(projname,{obj.projparams(:).name}));
     end
     
-    function defaultConfig = SetDefaultConfig(obj,projnum,behaviorname)
+    function defaultConfig = DefaultConfig(obj,name)
       % TODO: 
       if nargin<3
-        behaviorname = 'default';
+        name = 'default';
       end
       defaultConfig.targets = struct('type','fly');
-      defaultConfig.behaviors = struct('names',behaviorname,...
+      defaultConfig.behaviors = struct('names',name,...
          'labelcolors',[0.7,0,0,0,0,0.7],...
          'unknowncolor',[0,0,0]);
       defaultConfig.file = struct('moviefilename','movie.ufmf',...
@@ -91,7 +96,19 @@ classdef ProjectManager < handle
     end
     
     function projlist = GetProjectList(obj)
-      projlist = {obj.projparams(:).name};
+      if numel(obj.projparams)>0  
+        projlist = {obj.projparams(:).name};
+      else
+        projlist = {};
+      end
+    end
+    
+    function projname = GetCurProjName(obj)
+      projname = obj.projparams(obj.curproj).name;
+    end
+    
+    function configfile = GetCurProjConfigfile(obj)
+      configfile = obj.projparams(obj.curproj).configfile;
     end
     
     function SetCurrentProject(obj,curproj)
@@ -102,21 +119,21 @@ classdef ProjectManager < handle
       curproj = obj.curproj;
     end
     
-    function AddProject(obj,name,configFile,copyconfigFile)
+    function AddProject(obj,name,configfile,copyconfigFile)
       
       if nargin <4,
         defaultConfigFile = '';
       end
       
       obj.projparams(end+1).name = name;
-      obj.projparams(end).configFile = configFile;
+      obj.projparams(end).configfile = configfile;
       obj.projparams(end).save = true;
       obj.curproj = numel(obj.projparams);
       
       fileToRead = '';
       
-      if exist(configFile,'file')
-        fileToRead = configFile;
+      if exist(configfile,'file')
+        fileToRead = configfile;
         obj.projparams(end).save = false;
       elseif ~isempty(copyconfigFile) && exist(copyconfigFile,'file')
         fileToRead = copyconfigFile;
@@ -125,14 +142,14 @@ classdef ProjectManager < handle
       if ~isempty(fileToRead)
         curparams = ReadXMLParams(fileToRead);
         if isfield(curparams,'featureparamlist'),
-          obj.projparams(end).pfList = curparams.featureparamlist;
+          obj.projparams(end).pfList = fieldnames(curparams.featureparamlist);
           curparams = rmfield(curparams,'featureparamlist');
         else
           obj.projparams(end).pfList = [];
         end
         obj.projparams(end).config = curparams;
       else
-        obj.projparams(end).config = GetDefaultConfig(newName);
+        obj.projparams(end).config = obj.DefaultConfig(name);
         obj.projparams(end).pfList = [];
         obj.projparams(end).save = true;
       end
@@ -154,7 +171,7 @@ classdef ProjectManager < handle
     end
     
     function WriteProjectManager(obj)
-      docNode = com.mathworks.xml.XMLUtils.createDocument(topNodeName);
+      docNode = com.mathworks.xml.XMLUtils.createDocument('behaviors');
       toc = docNode.getDocumentElement;
       for ndx = 1:numel(obj.projparams)
         curN.configfile = obj.projparams(ndx).configfile;
@@ -164,6 +181,13 @@ classdef ProjectManager < handle
       xmlwrite(obj.projfile,docNode);
     end
     
+    function config = GetProjConfig(obj,projnum)
+      if nargin<2
+        projnum = obj.curproj;
+      end
+      config = obj.projparams(projnum).config;
+    end
+    
     function [data,success] = GetConfigAsTable(obj)
       success = true;
       if isempty(obj.curproj);
@@ -171,7 +195,7 @@ classdef ProjectManager < handle
         return;
       end
       configparams = obj.projparams(obj.curproj).config;
-      data = addToList(configparams,{},'');
+      data = obj.addToList(configparams,{},'');
       if any(cellfun(@iscell,data(:,2))),
         data = {}; success = false;
         return;
@@ -179,12 +203,12 @@ classdef ProjectManager < handle
       
     end
     
-    function list = addToList(curStruct,list,pathTillNow)
+    function list = addToList(obj,curStruct,list,pathTillNow)
       if isempty(fieldnames(curStruct)), return; end
       fnames = fieldnames(curStruct);
       for ndx = 1:numel(fnames)
         if isstruct(curStruct.(fnames{ndx})),
-          list = addToList(curStruct.(fnames{ndx}),list,[pathTillNow fnames{ndx} '.']);
+          list = obj.addToList(curStruct.(fnames{ndx}),list,[pathTillNow fnames{ndx} '.']);
         else
           list{end+1,1} = [pathTillNow fnames{ndx}];
           param = curStruct.(fnames{ndx});
@@ -201,7 +225,25 @@ classdef ProjectManager < handle
       end
     end
       
-    function AddConfig(obj,name,value)
+    function success  = AddConfig(obj,name,value)
+      
+      success = true;
+      
+      iname = fliplr(name);
+      curstruct = obj.projparams(obj.curproj).config;
+      while true
+        [iname,lastfield] = splitext(iname);
+        if isempty(lastfield)
+          fexist = isfield(curstruct,fpath);
+          break;
+        else
+          fexist = isfield(curstruct,fliplr(iname(2:end)));
+          if ~fexist, break; end
+          curstruct = curstruct.(fliplir(iname(2:end)));
+        end
+        if fexist, success = false; return; end
+      end
+      
       eval(sprintf('obj.projparams(obj.curproj).config.%s = value;',name));
       obj.projparams(obj.curproj).save = true;
     end
@@ -223,7 +265,7 @@ classdef ProjectManager < handle
     
     function EditConfigName(obj,oldName,newName)
       eval_str = sprintf(...
-        'value = obj.projparams(obj.curparams).config.%s;',...
+        'value = obj.projparams(obj.curproj).config.%s;',...
         oldName);
       eval(eval_str);
       obj.RemoveConfig(oldName);
@@ -233,7 +275,7 @@ classdef ProjectManager < handle
     
     function EditConfigValue(obj,name,value)
       eval_str = sprintf(...
-        'obj.projparams(obj.curparams).config.%s = value;',...
+        'obj.projparams(obj.curproj).config.%s = value;',...
         name);
       eval(eval_str);
       obj.projparams(obj.curproj).save = true;
@@ -252,10 +294,10 @@ classdef ProjectManager < handle
       featureconfigfile = obj.projparams(obj.curproj).config.file.featureconfigfile;
       params = ReadXMLParams(featureconfigfile);
       allPfList = fieldnames(params.perframe);
-      selected = true(numel(allpfList),1);
+      selected = false(numel(allPfList),1);
+      missing = {};
       curpf = obj.projparams(obj.curproj).pfList;
       if ~isempty(curpf),
-        missing = {};
         for ndx = 1:numel(curpf),
           allndx = find(strcmp(curpf{ndx},allPfList));
           if isempty(allndx)
@@ -264,6 +306,8 @@ classdef ProjectManager < handle
             selected(allndx) = true;
           end
         end
+      else
+        selected = true(numel(allPfList,1));
       end
       
     end
@@ -272,14 +316,15 @@ classdef ProjectManager < handle
       
       docNode = com.mathworks.xml.XMLUtils.createDocument('params');
       toc = docNode.getDocumentElement;
-      att = fieldnames(obj.projparams(projnum).config);
+      topNode = obj.projparams(projnum).config;
+      att = fieldnames(topNode);
       for ndx = 1:numel(att)
         toc.appendChild(createXMLNode(docNode,att{ndx},topNode.(att{ndx})));
       end
       if ~isempty(obj.projparams(projnum).pfList),
         pfStruct = struct;
         for ndx = 1:numel(obj.projparams(projnum).pfList)
-          pfStruct.(obj.projparams(projnum).pfList) = struct;
+          pfStruct.(obj.projparams(projnum).pfList{ndx}) = struct;
         end
         toc.appendChild(createXMLNode(docNode,'featureparamlist',pfStruct));
       end
@@ -300,6 +345,7 @@ classdef ProjectManager < handle
     
     function GetClassifier(obj,name)
     end
+    
   end
   
 end

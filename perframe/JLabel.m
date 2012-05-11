@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 24-Apr-2012 12:41:25
+% Last Modified by GUIDE v2.5 07-May-2012 20:54:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -391,6 +391,15 @@ set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
 if handles.guidata.data.IsGTMode(),
   set(handles.menu_view_plot_labels_automatic,'Visible','off');
 end
+
+% for faster refreshing
+set(handles.axes_preview,'BusyAction','cancel');
+set(handles.guidata.hflies,'EraseMode','none');
+if ~isempty(handles.guidata.hflies_extra),
+  set(handles.guidata.hflies_extra,'EraseMode','none');
+end
+set(handles.guidata.htrx,'EraseMode','none');
+set(handles.guidata.hfly_markers,'EraseMode','none');
 
 handles = UpdateGUIGroundTruthMode(handles);
 
@@ -3117,6 +3126,18 @@ for i = is,
   end
 end
 
+function ShowWholeVideo(handles,is)
+
+if nargin < 2,
+  is = 1:numel(handles.guidata.axes_previews);
+end
+
+for i = is,
+  newxlim = [.5,handles.guidata.movie_width+.5];
+  newylim = [.5,handles.guidata.movie_height+.5];
+  set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);  
+end
+
 % --------------------------------------------------------------------
 function menu_file_save_labels_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save_labels (see GCBO)
@@ -3391,7 +3412,7 @@ function figure_JLabel_ResizeFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isfield(handles.guidata.guipos,'leftborder_leftpanels'),
+if ~isfield(handles,'guidata') || ~isfield(handles.guidata.guipos,'leftborder_leftpanels'),
   return;
 end
 
@@ -4159,7 +4180,7 @@ function figure_JLabel_WindowButtonMotionFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~ishandle(handles.guidata.buttondown_axes),
+if ~isfield(handles,'guidata') || ~ishandle(handles.guidata.buttondown_axes),
   return;
 end
 if ~isnan(handles.guidata.buttondown_t0) && isnan(handles.guidata.selection_t0) && ...
@@ -4724,7 +4745,7 @@ function menu_view_zoom_static_Callback(hObject, eventdata, handles)
 
 handles.guidata.preview_zoom_mode = 'static';
 set(setdiff(handles.guidata.menu_view_zoom_options,hObject),'Checked','off');
-set(hObject,'Checked','on');
+set(handles.menu_view_zoom_static,'Checked','on');
 guidata(hObject,handles);
 
 
@@ -5119,21 +5140,23 @@ f = figure('Position',[200 200 500 200],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
-for tndx = 1:numel(crossError)
-   errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);
-   errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);
+if numel(crossError)>1
+  for tndx = 1:numel(crossError)
+    errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);
+    errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);
+  end
+  totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
+  totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
+
+  errorAll = errorAll/totExamplesAll;
+  errorImp = errorImp/totExamplesImp;
+
+  f = figure('Name','Cross Validation Error with time');
+  ax = plot([errorAll errorImp]);
+  legend(ax,{'All', 'Important'});
+  set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
+  title(gca,'Cross Validation Error with time');
 end
-totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
-totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
-
-errorAll = errorAll/totExamplesAll;
-errorImp = errorImp/totExamplesImp;
-
-f = figure('Name','Cross Validation Error with time');
-ax = plot([errorAll errorImp]);
-legend(ax,{'All', 'Important'});         
-set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
-title(gca,'Cross Validation Error with time');
 
 % --------------------------------------------------------------------
 function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles)
@@ -5221,12 +5244,12 @@ function menu_file_loadscorescurrentexprootdir_Callback(hObject, eventdata, hand
 tstring = sprintf('Root dir to load scores for current experiment');
 fname = uigetdir('*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = sprintf('scores_%s.mat',handles.guidata.data.labelnames{1});
-
-sfn = fullfile(fname,handles.guidata.data.expnames{handles.guidata.expi},scoreFileName);
+scoreFileName = handles.guidata.data.GetFile('scores',handles.guidata.expi);
+[~, scoreFileName, ext] = myfileparts(scoreFileName);
+sfn = fullfile(fname,handles.guidata.data.expnames{handles.guidata.expi},[scoreFileName ext]);
 if ~exist(sfn,'file')
   warndlg(sprintf('Scores file %s does not exist for exp:%s',...
-    scoreFileName,handles.guidata.data.expnames{ndx}));
+    scoreFileName,handles.guidata.data.expnames{handles.guidata.expi}));
   return;
 end
 handles.guidata.data.LoadScores(handles.guidata.expi,sfn);
@@ -5281,7 +5304,9 @@ function menu_file_loadscoresAllselect_Callback(hObject, eventdata, handles)
 tstring = sprintf('Root dir to load scores for all experiments');
 fname = uigetdir('*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = sprintf('scores_%s.mat',handles.guidata.data.labelnames{1});
+scoreFileName = handles.guidata.data.GetFile('scores',handles.guidata.expi);
+[~, scoreFileName, ext] = myfileparts(scoreFileName);
+scoreFileName = [scoreFileName ext];
 
 for ndx = 1:handles.guidata.data.nexps,
   sfn = fullfile(fname,handles.guidata.data.expnames{ndx},scoreFileName);
@@ -5728,7 +5753,8 @@ handles.guidata.data.SuggestRandomGT(perfly,perexp);
 
 set(handles.menu_view_suggest_random,'Checked','on');
 set(handles.menu_view_suggest_threshold,'Checked','off');
-sset(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_balanced,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
@@ -5762,8 +5788,9 @@ handles.guidata.data.SuggestThresholdGT(threshold);
 
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','on');
-sset(handles.menu_view_suggest_file,'Checked','off');
-et(handles.menu_view_suggest_none,'Checked','off');
+set(handles.menu_view_suggest_balanced,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
@@ -5784,6 +5811,7 @@ function menu_view_suggest_none_Callback(hObject, eventdata, handles)
 set(handles.menu_view_suggest_random,'Checked','off');
 set(handles.menu_view_suggest_threshold,'Checked','off');
 set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_balanced,'Checked','off');
 set(handles.menu_view_suggest_none,'Checked','on');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
 
@@ -5796,6 +5824,34 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+
+
+% --------------------------------------------------------------------
+function menu_view_suggest_balanced_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_balanced (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+in = inputdlg({'Number of frames per labeling bout','Number of intervals'});
+intsize = str2double(in{1});
+numint = str2double(in{2});
+if isnan(intsize) || (round(intsize)-intsize)~=0 || ...
+    isnan(numint) || (round(numint)-numint)~=0 
+  warndlg('Input error: enter integer values');
+  return;
+end
+
+[success,msg ] = handles.guidata.data.SuggestBalancedGT(intsize,numint);
+if ~success, warndlg(msg); return; end
+
+set(handles.menu_view_suggest_random,'Checked','off');
+set(handles.menu_view_suggest_threshold,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_balanced,'Checked','on');
+set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+
+
 
 % --------------------------------------------------------------------
 function menu_view_suggest_file_Callback(hObject, eventdata, handles)
@@ -5815,6 +5871,7 @@ set(handles.menu_view_suggest_threshold,'Checked','off');
 set(handles.menu_view_suggest_file,'Checked','on');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+set(handles.menu_view_suggest_balanced,'Checked','off');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5859,3 +5916,14 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
+
+
+% --------------------------------------------------------------------
+function menu_view_zoom_showwholevideo_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_zoom_showwholevideo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% set to static view
+menu_view_zoom_static_Callback(hObject, eventdata, handles);
+ShowWholeVideo(handles);
