@@ -4953,19 +4953,25 @@ classdef JLabelData < handle
         end
       end
       
-      intlocs = rand(1,numint); %/numint+(0:numint-1)/numint;
       cumwt = cumsum(int.wt)/sum(int.wt);
       obj.balancedGTSuggestions = [];
+      prevlocs = [];
       for ndx = 1:numint
-        locsSel = find(cumwt<=intlocs(ndx),1,'last');
-        if isempty(locsSel), locsSel = numel(cumwt); end
-        expi = int.exp(locsSel);
-        flies = int.flies(locsSel);
-        tStart = int.tStart(locsSel);
-        obj.balancedGTSuggestions(ndx).start = tStart;
-        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
-        obj.balancedGTSuggestions(ndx).exp = expi;
-        obj.balancedGTSuggestions(ndx).flies = flies;
+        while true
+            intlocs = rand;
+            locsSel = find(cumwt<=intlocs,1,'last');
+            if any( abs(locsSel-prevlocs) <= intsize) , continue ;end
+            prevlocs(end+1) = locsSel;
+            if isempty(locsSel), locsSel = numel(cumwt); end
+            expi = int.exp(locsSel);
+            flies = int.flies(locsSel);
+            tStart = int.tStart(locsSel);
+            obj.balancedGTSuggestions(ndx).start = tStart;
+            obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
+            obj.balancedGTSuggestions(ndx).exp = expi;
+            obj.balancedGTSuggestions(ndx).flies = flies;
+            break;
+        end
       end
       
       success = true;

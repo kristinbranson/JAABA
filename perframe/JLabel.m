@@ -557,8 +557,6 @@ for i = axes,
     
   end
   
-  % TODO: change hard-coded linewidths, nprev, npost
-  
   % update current position
   if refreshflies,
     if handles.guidata.ts(i) < handles.guidata.t0_curr || handles.guidata.ts(i) > handles.guidata.t1_curr,
