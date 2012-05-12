@@ -28,8 +28,8 @@ classdef ProjectManager < handle
         obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
-          uiwait(warndlg('Config file %s does not exist for project %s\n Removing the project',...
-            obj.projparams{ndx}.configfile,obj.projparams{ndx}.name));
+          uiwait(warndlg(sprintf('Config file %s does not exist for project %s\n Removing the project',...
+            obj.projparams(ndx).configfile,obj.projparams(ndx).name)));
           obj.projparams(ndx) = [];
         end
         
@@ -163,7 +163,7 @@ classdef ProjectManager < handle
       
       obj.projparams(projnum) = [];
       if obj.curproj > numel(obj.projparams)
-        obj.curproj = obj.curpoj -1;
+        obj.curproj = obj.curproj -1;
         if obj.curproj < 1
           obj.curproj = [];
         end
@@ -234,7 +234,7 @@ classdef ProjectManager < handle
       while true
         [iname,lastfield] = splitext(iname);
         if isempty(lastfield)
-          fexist = isfield(curstruct,fpath);
+          fexist = isfield(curstruct,iname);
           break;
         else
           fexist = isfield(curstruct,fliplr(iname(2:end)));
@@ -307,6 +307,7 @@ classdef ProjectManager < handle
           end
         end
       else
+        missing = {};
         selected = true(numel(allPfList,1));
       end
       
