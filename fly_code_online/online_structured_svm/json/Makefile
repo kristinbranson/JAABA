@@ -10,7 +10,7 @@ AR=ar
 ARFLAGS=rcs
 
 
-CONFIGURATION=debug_static
+CONFIGURATION=release_static
 
 CPP_FILES := $(wildcard src/*.cpp)
 HEADER_FILES := $(wildcard json/json/*.h)
@@ -44,10 +44,10 @@ obj/debug_shared/%.o: src/%.cpp $(HEADER_FILES)
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_SHARED) -c $< -o $@
 
 obj/release_static/%.o: src/%.cpp $(HEADER_FILES) 
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) -c $< -o $@
 
 obj/release_shared/%.o: src/%.cpp $(HEADER_FILES) 
-	$(CC) $(CFLAGS) $(CFLAGS_SHARED) -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) $(CFLAGS_SHARED) -c $< -o $@
 
 
 lib/libjson.so:  $(OBJ_FILES)

@@ -1,6 +1,7 @@
 #ifndef JSON_CONFIG_H_INCLUDED
 # define JSON_CONFIG_H_INCLUDED
 
+
 /// If defined, indicates that json library is embedded in CppTL library.
 //# define JSON_IN_CPPTL 1
 

@@ -1,6 +1,7 @@
 #ifndef __UTIL_H
 #define __UTIL_H
 
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,7 +19,9 @@
  * @brief Miscellaneous helper routines 
  */
 
-//#define DEBUG_MEMORY_LEAKS
+// Define this to run in memory leak check mode on Windows.  Could also include <vld.h> in test application instead.
+// In linux, can leak check a program by just running as valgrind ./program.out
+//#define DEBUG_MEMORY_LEAKS  
 
 #ifndef WIN32
 #undef DEBUG_MEMORY_LEAKS
@@ -30,62 +33,69 @@
 #include <crtdbg.h>
 #endif
 
+
+
 #ifndef M_E
-#define M_E 2.7182818284590452354
+#define M_E 2.7182818284590452354   /**< The constant e: ln(x)=log_e(x) */
 #endif
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846 /**< The constant PI */
 #endif
 
 #ifndef INFINITY
-#define INFINITY HUGE_VAL
+#define INFINITY HUGE_VAL  /**< The constant used to represent infinity */
 #endif
 
 
-#define my_max(x,y) ((x) > (y) ? (x) : (y))
-#define my_min(x,y) ((x) < (y) ? (x) : (y))
-#define my_abs(x) ((x) < 0 ? -(x) : (x))
-#define my_round(x) (x < 0 ? ((int)(x-.5f)) : ((int)(x+.5f)))
+#define my_max(x,y) ((x) > (y) ? (x) : (y)) /**< Take the max over two numbers x and y */
+#define my_min(x,y) ((x) < (y) ? (x) : (y)) /**< Take the min over two numbers x and y */
+#define my_abs(x) ((x) < 0 ? -(x) : (x)) /**< Take the absolute value of x */
+#define my_round(x) (x < 0 ? ((int)(x-.5f)) : ((int)(x+.5f))) /**< Round a real number to the nearest integer */
 
-#define SAFE(x, mi, ma) (my_min(ma,my_max(mi,x)))
-#define SQR(x) ((x)*(x))
-#define LOG2(x) (log((double)x)/log(2.0))
-#define LOG_E(x) (log((double)x)/log(M_E))
-#define LOG_B(x,b) (log((double)x)/log((double)b))
+#define SAFE(x, mi, ma) (my_min(ma,my_max(mi,x)))  /**< Bound x to be within the interval [mi,ma] */
+#define SQR(x) ((x)*(x)) /**< Take the square of x */
+#define LOG2(x) (log((double)x)/log(2.0))  /**< log_2(x) */
+#define LOG_E(x) (log((double)x)/log(M_E))  /**< ln(x) */
+#define LOG_B(x,b) (log((double)x)/log((double)b))  /**< log_b(x) */
 
-#define IN_RANGE(v, lower, upper) my_min(upper, my_max(v, lower))
+#define RAND_FLOAT (((float)rand())/RAND_MAX)  /**< Generate a random floating point between 0 and 1 */
+#define RAND_DOUBLE (((double)rand())/RAND_MAX) /**< Generate a random double between 0 and 1 */
+#define RAND_GAUSSIAN (sqrt(-2*LOG_E(RAND_DOUBLE))*cos(2*M_PI*RAND_DOUBLE)) /**< Generate a random number from a Gaussian distribution with mean 0 and standard deviation 1 */
 
-#define RAND_FLOAT (((float)rand())/RAND_MAX)
-#define RAND_DOUBLE (((double)rand())/RAND_MAX)
-#define RAND_GAUSSIAN (sqrt(-2*LOG_E(RAND_DOUBLE))*cos(2*M_PI*RAND_DOUBLE))
-
-#define SIGMOID2(t) (1.0f/(1+exp(-t)))
+#define SIGMOID2(t) (1.0f/(1+exp(-t)))  /**< Sigmoid function of t */
 
 #ifndef isnan
-#define isnan(x) ((x) != (x))
+#define isnan(x) ((x) != (x))  /**< check if something is not a number */
 #endif
 
 #ifdef WIN32
-#define SLEEP(us) Sleep(us/1000)
+#define SLEEP(us) Sleep(us/1000)  /**< Sleep for us microseconds */
 #else
-#define SLEEP(us) usleep(us)
+#define SLEEP(us) usleep(us) /**< Sleep for us microseconds */
 #endif
 
 #ifndef WIN32
+/// @cond
   #define stricmp strcasecmp
   #define strnicmp strncasecmp
+/// @endcond
 #endif
 
 
 #ifdef WIN32
 #include <winsock2.h>
 #include <windows.h>
-#include "jsonrpc/stdint.h"
+#include "json/stdint.h"
 #else
 #include <stdint.h>
 #endif
 
+
+/**
+ * @brief Remove trailing spaces or carriage returns from a string
+ * @param str The string (modified by this function)
+ */
 inline void chomp(char *str) { 
 	int i = (int)strlen(str)-1; 
 	while(i >= 0 && isspace(str[i])) {
@@ -93,6 +103,10 @@ inline void chomp(char *str) {
 	}
 }
 
+/**
+ * @brief Remove preceding spaces or carriage returns from a string
+ * @param str The string (modified by this function)
+ */
 inline void pre_chomp(char *str) { 
   int i = 0, n = 0;
   while(isspace(str[i])) i++;
@@ -106,6 +120,13 @@ inline void pre_chomp(char *str) {
 }
 
 
+/**
+ * @brief Iteratively tokenize a string
+ * @param str The input string (gets modified by this function)
+ * @param delim An array of character delimeters used to tokenize the string
+ * @param next A pointer to a string that is set by this function and should be passed to the subsequent call to my_strtok()
+ * @return The extracted token
+ */
 inline char *my_strtok(char *str, const char *delim, char **next) {
   char *str2 = str ? str : *next;
   if(!str2) return NULL;
@@ -124,31 +145,44 @@ inline char *my_strtok(char *str, const char *delim, char **next) {
 }
 
 
-inline void tolower_str(char *str) { 
-  for(int i = 0; i < (int)strlen(str); i++)
-    str[i] = tolower(str[i]);
-}
-
-inline void toupper_str(char *str) { 
-  for(int i = 0; i < (int)strlen(str); i++)
-    str[i] = toupper(str[i]);
-}
-
+/**
+ * @brief Return a dynamically allocated copy of a string
+ * @param str The string 
+ * @return The copy of the string (it should be freed using StringFree()
+ */
 inline char *StringCopy(const char *str) { char *retval = (char*)malloc((strlen(str)+1)*sizeof(char)); strcpy(retval, str); return retval; }
+
+/**
+ * @brief Free a string created using StringCopy()
+ * @param str The string 
+ */
 inline void StringFree(char *str) { free(str); }
 
+/**
+ * @brief Convert a string to upper case
+ * @param str The string (modified by this function)
+ */
 inline void StringToUpperCase(char *str) {
   for(int i = 0; i < (int)strlen(str); i++)
     str[i] = toupper(str[i]);
 }
 
+/**
+ * @brief Convert a string to lower case
+ * @param str The string (modified by this function)
+ */
 inline void StringToLowerCase(char *str) {
   for(int i = 0; i < (int)strlen(str); i++)
     str[i] = tolower(str[i]);
 }
 
-// Given a file path f1 from the current directory, get the relative path to 
-// f1 if we are in the folder f2 instead of in the current directory
+/**
+ * @brief Given a file path f1 from the current directory, get the relative path to f1 if we are in the folder f2 instead of in the current directory
+ * @param f1 the source file path
+ * @param f2 the alternate current path
+ * @param out string into which the computed relative path is stored
+ * @return out
+ */
 inline char *GetRelativePath(const char *f1, const char *f2, char *out) {
   int i;
   strcpy(out, "");
@@ -161,13 +195,12 @@ inline char *GetRelativePath(const char *f1, const char *f2, char *out) {
   char rels[1000]; strcpy(rels, "");
   i = 0;
   bool isEq = true;
-  int lastEq = -1, lastDirEq=0;
+  int lastDirEq=0;
   while(f2[i]) {
     if(isEq && f1[i] != f2[i]) {
       isEq = false;
-      lastEq = i-1;
     }
-    if(f2[i] == '/') {
+    if(f2[i] == '/' && f2[i-1] != '/') {
       if(!isEq) strcat(rels, "../");
       else lastDirEq = i;
     }
@@ -181,6 +214,13 @@ inline char *GetRelativePath(const char *f1, const char *f2, char *out) {
   return out;
 }
 
+/**
+ * @brief Convert a relative path to a full path
+ * @param relativePath The relative path
+ * @param currDir The full path of the current directory
+ * @param fullPath The full path that is set by this function
+ * @return fullPath
+ */
 inline char *GetFullPath(const char *relativePath, const char *currDir, char *fullPath) {
   if(relativePath[0] == '/' || (relativePath[1] == ':' && 
 				(relativePath[2] == '/' || relativePath[2] == '\\'))) {
@@ -192,6 +232,11 @@ inline char *GetFullPath(const char *relativePath, const char *currDir, char *fu
 }
 
 
+/**
+ * @brief Extract the filename from a path (ignoring directories) 
+ * @param str The path
+ * @param fname The extracted filename
+ */
 inline void ExtractFilename(const char *str, char *fname) {
   int i = (int)strlen(str)-1;
   while(i >= 0 && str[i] != '/' && str[i] != '\\')
@@ -200,6 +245,12 @@ inline void ExtractFilename(const char *str, char *fname) {
 }
 
 
+/**
+ * @brief Extract the folder and filename from a path 
+ * @param str The path
+ * @param folder The extracted folder
+ * @param fname The extracted filename
+ */
 inline void ExtractFolderAndFileName(const char *str, char *folder, char *fname) {
   int i = (int)strlen(str)-1;
   while(i >= 0 && str[i] != '/' && str[i] != '\\')
@@ -216,15 +267,25 @@ inline void ExtractFolderAndFileName(const char *str, char *folder, char *fname)
   folder[num] = '\0';
 }
 
-inline void ExtractPathname(const char *str, char *fname) {
+
+/**
+ * @brief Extract the filename from a path (ignoring directories) 
+ * @param str The path
+ * @param path The extracted path
+ */
+inline void ExtractPathname(const char *str, char *path) {
   int i = (int)strlen(str);
   while(i > 0 && str[i] != '/' && str[i] != '\\') {
     i--;
   }
-  strcpy(fname, str);
-  fname[i] = '\0';
+  strcpy(path, str);
+  path[i] = '\0';
 }
 
+/**
+ * @brief Remove the file extension from a file name
+ * @param str file name (modified by this function)
+ */
 inline void StripFileExtension(char *str) {
   int i = (int)strlen(str);
   while(i >= 0) {
@@ -236,6 +297,11 @@ inline void StripFileExtension(char *str) {
   }
 }
 
+/**
+ * @brief Get the file extension from a file name (the stuff after the '.')
+ * @param str file name 
+ * @return the file extension
+ */
 inline const char *GetFileExtension(const char *str) {
   int i = (int)strlen(str);
   while(i >= 0) {
@@ -248,12 +314,25 @@ inline const char *GetFileExtension(const char *str) {
   return NULL;
 }
 
+/**
+ * @brief Replace all instances of a character in a string with another character
+ * @param str The string (modified by this function)
+ * @param c The character to be replaced
+ * @param c2 The character that will replace all isntances of c
+ */
 inline void StringReplaceChar(char *str, char c, char c2) {
   for(int i = 0; i < (int)strlen(str); i++)
     if(str[i] == c)
       str[i] = c2;
 }
 
+/**
+ * @brief Tokenize a string
+ * @param str The input string (gets modified by this function)
+ * @param d An array of character delimeters used to tokenize the string
+ * @param toks An array of strings into which the extracted tokens are stored (it is assumed that the array is allocated and of sufficient size before this function is called)
+ * @return The number of extracted tokens in toks
+ */
 inline int SplitString(char *str, char **toks, const char *d) {
   int num = 0;
   char *ptr;
@@ -264,35 +343,36 @@ inline int SplitString(char *str, char **toks, const char *d) {
   return num;
 }
 
+/**
+ * @brief Check if a file name is safe, such that it should be safe to write to even if the filename was specified by a client over the web
+ * @param fname the filename
+ * @return true if the file name is safe
+ */
 inline bool IsSafeFileName(const char *fname) { 
   return !strstr(fname, "/") && !strstr(fname, "\\") && !strstr(fname, "~"); 
 }
 
+/**
+ * @brief Check if a file exists
+ * @param fname the filename
+ * @return true if the file exists
+ */
 inline bool FileExists(const char *fname) {
   FILE *fin = fopen(fname, "r");
   if(fin) fclose(fin);
   return fin != NULL;
 }
 
-template <typename T>
-inline T L2Norm(T *v1, T *v2, int sz) {
-  T sum = 0, d;
-
-  for(int i = 0; i < sz; i++) {
-    d = v1[i]-v2[i];
-    sum += SQR(d);
-  }
-  return sqrt(sum);
-}
-
-inline float mod_2pi(float x, float d=2*M_PI)
-{
-  while(x < 0) x += d;
-  while(x > (float)(2*M_PI)) x -= d;
-  return x;
-}
 
 
+
+/**
+ * @brief Iteratively read the next line from a multi-line string
+ * @param buf the input string (modified by this function
+ * @param n the maximum number of characters in the line
+ * @param source a pointer to a string that is set by this function.  This should be passed to the subsequent call to sgets()
+ * @return the extracted line
+ */
 inline char *sgets(char *buf, int n, char **source) {
   int k = 0;
   //fprintf(stderr, "sgets %s\n", *source);
@@ -317,45 +397,24 @@ inline char *sgets(char *buf, int n, char **source) {
 }
 
 
-inline char *LoadTextFile(const char *fname) {
-  FILE *fin = fopen(fname, "r");
-  if(!fin) return NULL;
 
-  char line[1000];
-  char *retval = (char*)malloc(4);
-  int len = 50000; 
-  *(int*)retval = 0;
-  int num = 0;
-  while(fgets(line, 999, fin)) {
-    chomp(line);
-    retval = (char*)realloc(retval, len+strlen(line)+100);
-    ((int*)retval)[1+num] = len;
-    strcpy(retval+len, line);
-    len += (int)strlen(line)+1;
-    *(int*)retval = num++;
-  }
-  
-  fclose(fin);
-  return retval;
-}
-
-inline bool HasString(const char *files, const char *str) {
-  int num = *((int*)files);
-  for(int i = 0; i < num; i++) {
-    if(!strcmp(files + ((int*)files)[i+1], str))
-      return true;
-  }
-  return false;
-}
-
+/**
+ * @brief Read the entire contents of a file into a dynamically allocated string
+ * @param fname the file name
+ * @return the contents of the file
+ */
 inline char *ReadStringFile(const char *fname) {
   int len = 0;
   char *retval = NULL;
   FILE *fin = fopen(fname, "r");
   if(!fin) return NULL;
   char line[30000];
+  int alloc = 0;
   while(fgets(line, 29999, fin)) {
-    retval = (char*)realloc(retval, len + strlen(line) + 1024);
+    if(len + ((int)strlen(line))+1 >= alloc) {
+	  alloc = (int)(alloc*1.1 + strlen(line) + 1024);
+      retval = (char*)realloc(retval, alloc);
+	}
     strcpy(retval + len, line);
     len += (int)strlen(line);
   }
@@ -363,6 +422,12 @@ inline char *ReadStringFile(const char *fname) {
   return retval;
 }
 
+/**
+ * @brief Read the entire contents of a file into a dynamically allocated buffer
+ * @param fname the file name
+ * @param len the number of bytes (the size of the returned array, set by this function)
+ * @return the contents of the file
+ */
 inline unsigned char *ReadBinaryFile(const char *fname, int *len) {
   *len = 0;
   FILE *fin = fopen(fname, "rb");
@@ -377,102 +442,13 @@ inline unsigned char *ReadBinaryFile(const char *fname, int *len) {
   return retval;
 }
 
-inline bool SaveText(const char *str, const char *fname) {
-  FILE *fout = fopen(fname, "w");
-  if(fout) {
-    fprintf(fout, "%s", str);
-    fclose(fout);
-    return true;
-  }
-  return false;
-}
 
 
-char *http_post_request(const char* hostname, const char* api, const char* parameters, int *err);
-
-
-//  gamma.cpp -- computation of gamma function.
-//      Algorithms and coefficient values from "Computation of Special
-//      Functions", Zhang and Jin, John Wiley and Sons, 1996.
-//
-//  (C) 2003, C. Bond. All rights reserved.
-//
-// Returns gamma function of argument 'x'.
-//
-// NOTE: Returns 1e308 if argument is a negative integer or 0,
-//      or if argument exceeds 171.
-//
-inline double gamma(double x)
-{
-    int i,k,m;
-    double ga,gr,r,z;
-
-    static double g[] = {
-        1.0,
-        0.5772156649015329,
-       -0.6558780715202538,
-       -0.420026350340952e-1,
-        0.1665386113822915,
-       -0.421977345555443e-1,
-       -0.9621971527877e-2,
-        0.7218943246663e-2,
-       -0.11651675918591e-2,
-       -0.2152416741149e-3,
-        0.1280502823882e-3,
-       -0.201348547807e-4,
-       -0.12504934821e-5,
-        0.1133027232e-5,
-       -0.2056338417e-6,
-        0.6116095e-8,
-        0.50020075e-8,
-       -0.11812746e-8,
-        0.1043427e-9,
-        0.77823e-11,
-       -0.36968e-11,
-        0.51e-12,
-       -0.206e-13,
-       -0.54e-14,
-        0.14e-14};
-
-    if (x > 171.0) return 1e308;    // This value is an overflow flag.
-    if (x == (int)x) {
-        if (x > 0.0) {
-            ga = 1.0;               // use factorial
-            for (i=2;i<x;i++) {
-               ga *= i;
-            }
-         }
-         else
-            ga = 1e308;
-     }
-     else {
-        if (fabs(x) > 1.0) {
-            z = fabs(x);
-            m = (int)z;
-            r = 1.0;
-            for (k=1;k<=m;k++) {
-                r *= (z-k);
-            }
-            z -= m;
-        }
-        else
-            z = x;
-        gr = g[24];
-        for (k=23;k>=0;k--) {
-            gr = gr*z+g[k];
-        }
-        ga = 1.0/(gr*z);
-        if (fabs(x) > 1.0) {
-            ga *= r;
-            if (x < 0.0) {
-                ga = -M_PI/(x*ga*sin(M_PI*x));
-            }
-        }
-    }
-    return ga;
-}
-
-// Returns an array of size num that contains a random permutation of the numbers 0:(num-1)
+/**
+ * @brief Compute a random permutation of the numbers between 0 and num-1
+ * @param num The number of elements in the random permutation
+ * @return An allocated array of the random permutation
+ */
 inline int *RandPerm(int num) {
   int i, ind, tmp;
   int *a = (int*)malloc(num*sizeof(int));
@@ -487,6 +463,12 @@ inline int *RandPerm(int num) {
   return a;
 }
 
+/**
+ * @brief Compute a random split of numTotal elements, such that num0 elements are  assigned to 0 and numTotal-num0 elements are assigned 1
+ * @param num0 The number of elements in the random split that are assigned 0
+ * @param numTotal The total number of elements in the random split 
+ * @return An allocated array of size numTotal, where each element is either 0 or 1
+ */
 inline int *RandSplit(int num0, int numTotal) {
   int *perm = RandPerm(numTotal);
   int *retval = (int*)malloc(numTotal*sizeof(int));
@@ -500,6 +482,11 @@ inline int *RandSplit(int num0, int numTotal) {
 }
 
 
+/**
+ * @brief Dynamically allocate a 1d array (it should be freed using free())
+ * @param r The number of elements in the array
+ * @return An allocated array
+ */
 template <typename T>
 inline T *Create1DArray(int r) {
   T *retval = (T*)malloc(sizeof(T)*r);
@@ -508,6 +495,12 @@ inline T *Create1DArray(int r) {
   return retval;
 }
 
+/**
+ * @brief Dynamically allocate a 2d rXc array (it should be freed using free())
+ * @param r The number of rows in the array
+ * @param c The number of columns in the array
+ * @return An allocated array
+ */
 template <typename T>
 inline T **Create2DArray(int r, int c) {
   T **retval = (T**)malloc((sizeof(T*)+sizeof(T)*c)*r);
@@ -520,6 +513,13 @@ inline T **Create2DArray(int r, int c) {
   return retval;
 }
 
+/**
+ * @brief Dynamically allocate a 3d d1Xd2xd3 array (it should be freed using free())
+ * @param d1 the 1st dimension size
+ * @param d2 the 2nd dimension size
+ * @param d3 the 3rd dimension size
+ * @return An allocated array
+ */
 template <typename T>
 inline T ***Create3DArray(int d1, int d2, int d3) {
   T ***retval = (T***)malloc((sizeof(T**)+(sizeof(T*)+sizeof(T)*d3)*d2)*d1);
@@ -536,6 +536,14 @@ inline T ***Create3DArray(int d1, int d2, int d3) {
   return retval;
 }
 
+/**
+ * @brief Dynamically allocate a 4d d1Xd2xd3xd4 array (it should be freed using free())
+ * @param d1 the 1st dimension size
+ * @param d2 the 2nd dimension size
+ * @param d3 the 3rd dimension size
+ * @param d4 the 4th dimension size
+ * @return An allocated array
+ */
 template <typename T>
 inline T ****Create4DArray(int d1, int d2, int d3, int d4) {
   T ****retval = (T****)malloc((sizeof(T***)+(sizeof(T**)+(sizeof(T*)+sizeof(T)*d4)*d3)*d2)*d1);
@@ -556,6 +564,15 @@ inline T ****Create4DArray(int d1, int d2, int d3, int d4) {
   return retval;
 }
 
+/**
+ * @brief Write a 1d array to file
+ * @param m an array of size d1
+ * @param fout the file handle
+ * @param d1 The number of elements in the array
+ * @param name a string identifier of the array, to be stored along with the data
+ * @param header an additional string to be stored along with the data
+ * @return true on success
+ */
 template <typename T>
 inline bool Save1DArray(FILE *fout, T *m, int d1, const char *name, const char *header) {
   int n = 1, c = sizeof(T), l = strlen(name), l2 = strlen(header);
@@ -569,6 +586,16 @@ inline bool Save1DArray(FILE *fout, T *m, int d1, const char *name, const char *
     fwrite(m, sizeof(T), d1, fout);
 }
 
+/**
+ * @brief Write a 2d array to file
+ * @param m an array of size d1Xd2
+ * @param fout the file handle
+ * @param d1 the 1st dimension size
+ * @param d2 the 2nd dimension size
+ * @param name a string identifier of the array, to be stored along with the data
+ * @param header an additional string to be stored along with the data
+ * @return true on success
+ */
 template <typename T>
 inline bool Save2DArray(FILE *fout, T **m, int d1, int d2, const char *name, const char *header) {
   int n = 2, c = sizeof(T), l = strlen(name), l2 = strlen(header);
@@ -587,6 +614,17 @@ inline bool Save2DArray(FILE *fout, T **m, int d1, int d2, const char *name, con
   return true;
 }
 
+/**
+ * @brief Write a 3d array to file
+ * @param m an array of size d1Xd2Xd3
+ * @param fout the file handle
+ * @param d1 the 1st dimension size
+ * @param d2 the 2nd dimension size
+ * @param d3 the 3rd dimension size
+ * @param name a string identifier of the array, to be stored along with the data
+ * @param header an additional string to be stored along with the data
+ * @return true on success
+ */
 template <typename T>
 inline bool Save3DArray(FILE *fout, T ***m, int d1, int d2, int d3, const char *name, const char *header) {
   int n = 3, c = sizeof(T), l = strlen(name), l2 = strlen(header);
@@ -608,6 +646,18 @@ inline bool Save3DArray(FILE *fout, T ***m, int d1, int d2, int d3, const char *
 }
 
 
+/**
+ * @brief Write a 4d array to file
+ * @param m an array of size d1Xd2Xd3Xd4
+ * @param fout the file handle
+ * @param d1 the 1st dimension size
+ * @param d2 the 2nd dimension size
+ * @param d3 the 3rd dimension size
+ * @param d4 the 4th dimension size
+ * @param name a string identifier of the array, to be stored along with the data
+ * @param header an additional string to be stored along with the data
+ * @return true on success
+ */
 template <typename T>
 inline bool Save4DArray(FILE *fout, T ****m, int d1, int d2, int d3, int d4, const char *name, const char *header) {
   int n = 4, c = sizeof(T), l = strlen(name), l2 = strlen(header);
@@ -630,6 +680,10 @@ inline bool Save4DArray(FILE *fout, T ****m, int d1, int d2, int d3, int d4, con
   return true;
 }
 
+/**
+ * @brief Write a matlab script to file, which is capable of reading a file generated using a set of sequential calls to SaveXDArray()
+ * @param fname the filename
+ */
 inline void SaveMatlabImport(const char *fname) {
   char fname2[1000];
   ExtractFilename(fname, fname2);
@@ -659,6 +713,11 @@ inline void SaveMatlabImport(const char *fname) {
   fclose(fout);
 }
 
+/**
+ * @brief Create a directory if it doesn't exist already
+ * @param dirName The directory name
+ * @param permissions if non-zero the permissions given to the created directory
+ */
 inline void CreateDirectoryIfNecessary(const char *dirName, int permissions=0) {
 #ifndef WIN32
   char str[400];
@@ -674,8 +733,14 @@ inline void CreateDirectoryIfNecessary(const char *dirName, int permissions=0) {
 }
 
 
+/**
+ * @brief List all files in a directory whose file name contain a specified string
+ * @param dirName The directory name
+ * @param match The string we are searching for.  A '|' character can be used to specify multiple search strings (e.g., ".jpg|.png" will find all jpg or png files in a directory)
+ * @param outName The list of files is written to a text file specified by outName
+ */ 
 inline void ScanDir(const char *dirName, const char *match, const char *outName) {
-  char matches[100][400], str[400];
+  char str[400];
   char tmpMatch[1000];
   char *ptr;
   int numMatches=0;
@@ -685,7 +750,6 @@ inline void ScanDir(const char *dirName, const char *match, const char *outName)
     if(numMatches) sprintf(str, "ls %s/*%s >> %s", dirName, ptr, outName);
     else sprintf(str, "ls %s/*%s > %s", dirName, ptr, outName);
     if(system(str) < 0) fprintf(stderr, "ScanDir failed\n");
-    strcpy(matches[numMatches++], ptr);
   }
 }
 

@@ -1,5 +1,10 @@
 CC = g++
-INCDIR = -Iinclude -Ijson
+
+#EXTRA_CFLAGS= -DHAVE_SVM_STRUCT   # uncomment if linking SVM^struct 
+#EXTRA_OBJ_FILES=svm_struct/*.o    # uncomment if linking SVM^struct
+
+
+INCDIR = -Iinclude -Ijson $(EXTRA_CFLAGS)
 CFLAGS=$(INCDIR) -fopenmp
 CFLAGS_DEBUG= -g -Wall
 CFLAGS_RELEASE= -O2 -fomit-frame-pointer -ffast-math
@@ -10,7 +15,7 @@ AR=ar
 ARFLAGS=rcs
 
 
-CONFIGURATION=debug_static
+CONFIGURATION=release_static
 
 CPP_FILES := $(wildcard src/*.cpp)
 HEADER_FILES := $(wildcard include/*.h) $(wildcard json/json/*.h) 
@@ -56,22 +61,22 @@ obj/debug_shared/%.o: src/%.cpp $(HEADER_FILES)
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_SHARED) -Ijson -c $< -o $@
 
 obj/release_static/%.o: src/%.cpp $(HEADER_FILES) 
-	$(CC) $(CFLAGS) -Ijson -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) -Ijson -c $< -o $@
 
 obj/release_shared/%.o: src/%.cpp $(HEADER_FILES) 
-	$(CC) $(CFLAGS) $(CFLAGS_SHARED) -Ijson -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) $(CFLAGS_SHARED) -Ijson -c $< -o $@
 
 
-lib/libonline_structured_svm.so: $(OBJ_FILES) 
-	$(LD) $(LDFLAGS) $(OBJ_FILES) -o lib/libonline_structured_svm.so
+lib/libonline_structured_svm.so: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+	$(LD) $(LDFLAGS) $(OBJ_FILES) $(EXTRA_OBJ_FILES) -o lib/libonline_structured_svm.so
 
-lib/libonline_structured_svm.a: $(OBJ_FILES) 
-	$(AR) $(ARFLAGS) lib/libonline_structured_svm.a $(OBJ_FILES) 
+lib/libonline_structured_svm.a: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+	$(AR) $(ARFLAGS) lib/libonline_structured_svm.a $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
 
-lib/libdonline_structured_svm.so: $(OBJ_FILES) 
-	$(LD) $(LDFLAGS) $(OBJ_FILES) -o lib/libdonline_structured_svm.so
+lib/libdonline_structured_svm.so: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+	$(LD) $(LDFLAGS) $(OBJ_FILES) $(EXTRA_OBJ_FILES) -o lib/libdonline_structured_svm.so
 
-lib/libdonline_structured_svm.a: $(OBJ_FILES) 
-	$(AR) $(ARFLAGS) lib/libdonline_structured_svm.a $(OBJ_FILES) 
+lib/libdonline_structured_svm.a: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+	$(AR) $(ARFLAGS) lib/libdonline_structured_svm.a $(OBJ_FILES) $(EXTRA_OBJ_FILES)
 
 

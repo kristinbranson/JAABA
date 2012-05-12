@@ -3,7 +3,13 @@
 
 #include "structured_svm.h"
 
-#define VERSION       "V0.0"
+#define VERSION       "V0.0"  /**< Software version that is saved to parameter definition files */
+
+/**
+ * @file structured_svm_multiclass.h
+ * @brief Simple example of how to use this structured SVM package: implements routines for loss-sensitive multiclass SVM training and classification
+ */
+
 
 /**
  * @class MulticlassStructuredSVM
@@ -15,10 +21,21 @@ class MulticlassStructuredSVM : public StructuredSVM {
   bool Load(const Json::Value &root);
   Json::Value Save();
   SparseVector Psi(StructuredData *x, StructuredLabel *y);
-  double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL);
+  double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL, double w_scale=1);
   double Loss(StructuredLabel *y_gt, StructuredLabel *y_pred);
+  double ImportanceSample(StructuredData *x, SparseVector *w, StructuredLabel *y_gt, struct _SVM_cached_sample_set *set, double w_scale=1);
+  void MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExample *ex, int R);
 
+  /**
+   * @brief returns a new MulticlassStructuredLabel label
+   * @param x aMulticlassStructuredData  object associated with this label
+   */
   StructuredLabel *NewStructuredLabel(StructuredData *x);
+
+  
+  /**
+   * @brief returns a new MulticlassStructuredData label
+   */
   StructuredData *NewStructuredData();
 
   StructuredDataset *LoadDataset(const char *fname);
@@ -43,6 +60,12 @@ class MulticlassStructuredSVM : public StructuredSVM {
   int num_classes;   /**< The number of possible classes */
   int num_features;  /**< The number of features in the original feature space.  The dimenisionality of the structured featurespace Psi(x,y) is num_classes*num_features */ 
   double **classConfusionCosts;  /**< A num_classesXnum_classes matrix storing the confusion cost for each pair of classes */
+
+  double **alphas;
+  int alphas_alloc_size;
+
+  void ExportModel(const char *fname);
+  void CreateSamples(struct _SVM_cached_sample_set *set, StructuredData *x, StructuredLabel *y_gt);
 };
 
 /**
@@ -93,6 +116,10 @@ class MulticlassStructuredLabel : public StructuredLabel {
   friend class MulticlassStructuredSVM;
 
 public:
+  /**
+   * @brief Create a new MulticlassStructuredLabel
+   * @param x the MulticlassStructuredData this label is associated with
+   */
   MulticlassStructuredLabel(StructuredData *x) : StructuredLabel(x) {}
 
   bool load(const Json::Value &y, StructuredSVM *s) {

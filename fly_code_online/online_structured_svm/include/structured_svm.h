@@ -6,9 +6,18 @@
 #include <omp.h>
 #include <time.h>
 
+/**
+ * @file structured_svm.h
+ * @brief Implements an abstract class that should be extended to define one's own customstructured learner
+ */
 
+/**
+ * @enum StructuredPredictionOptimizationMethod
+ * @brief Optimization method used for structured learning
+ */
 typedef enum {
   SPO_CUTTING_PLANE,   /**< SVM^struct */
+  SPO_CUTTING_PLANE_SMALL_BATCH_SIZE,   /**< SVM^struct with batch size of 1% of the dataset */
 
   // Online Algorithms, which process one training example i per iteration:
   SPO_SGD,             /**< stochastic gradient descent: w^t = w^{t-1} - step_size*(w^{t-1} + grad_i(w^{t-1})),   step_size=1/(lambda*t) */
@@ -17,6 +26,10 @@ typedef enum {
   SPO_DUAL_UPDATE_WITH_CACHE,     /**< Same as SPO_DUAL_UPDATE, but also run dual update steps in a background process on labels from earlier iterations */
   SPO_DUAL_MULTI_SAMPLE_UPDATE,   /**< Sample multiple labels per iteration (instead of just getting the "most violated constraint"), then optimize parameters jointly */
   SPO_DUAL_MULTI_SAMPLE_UPDATE_WITH_CACHE,  /**< Same as SPO_DUAL_MULTI_SAMPLE_UPDATE, but also run multi-sample dual update steps in a background process  */
+
+  SPO_MAP_TO_BINARY,    /**< Map into a binary classification problem, by randomly selecting samples for negative examples */
+  SPO_MAP_TO_BINARY_MINE_HARD_NEGATIVES,    /**< Map into a series of binary classification problems, at each round randomly selecting hard negative examples using the current classifier */
+  SPO_FIXED_SAMPLE_SET  /**< Train using a fixed pre-determined sample set, without ever calling Inference() or ImportanceSample() */
 } StructuredPredictionOptimizationMethod;
 
 
@@ -26,6 +39,85 @@ class StructuredSVM;
 struct _SVM_cached_sample;
 struct _SVM_cached_sample_set;
 
+///@cond
+#define MAX_DRIFT_BITS 10.0
+
+inline double get_runtime() { 
+  return ((double)clock()/(double)CLOCKS_PER_SEC); 
+}
+
+inline void OptimizationMethodToString(StructuredPredictionOptimizationMethod method, char *str) {
+  switch(method) {
+  case SPO_CUTTING_PLANE: strcpy(str, "cutting_plane"); break;
+  case SPO_CUTTING_PLANE_SMALL_BATCH_SIZE: strcpy(str, "cutting_plane_small_batch_size"); break;
+  case SPO_SGD: strcpy(str, "SGD"); break;
+  case SPO_SGD_PEGASOS: strcpy(str, "SGD_pegasos"); break;
+  case SPO_DUAL_UPDATE: strcpy(str, "online_dual_ascent"); break;
+  case SPO_DUAL_UPDATE_WITH_CACHE: strcpy(str, "online_dual_ascent_with_cache"); break;
+  case SPO_DUAL_MULTI_SAMPLE_UPDATE: strcpy(str, "multi_sample"); break;
+  case SPO_DUAL_MULTI_SAMPLE_UPDATE_WITH_CACHE: strcpy(str, "multi_sample_with_cache"); break;
+  case SPO_MAP_TO_BINARY: strcpy(str, "binary_classification"); break;
+  case SPO_MAP_TO_BINARY_MINE_HARD_NEGATIVES: strcpy(str, "mine_hard_negatives"); break;
+  case SPO_FIXED_SAMPLE_SET: strcpy(str, "fixed_sample_set"); break;
+  default:  strcpy(str, "unknown"); break;
+  }
+}
+inline StructuredPredictionOptimizationMethod OptimizationMethodFromString(const char *str) {
+  if(!strcmp(str, "cutting_plane")) return SPO_CUTTING_PLANE; 
+  else if(!strcmp(str, "cutting_plane_small_batch_size")) return SPO_CUTTING_PLANE_SMALL_BATCH_SIZE; 
+  else if(!strcmp(str, "SGD")) return SPO_SGD; 
+  else if(!strcmp(str, "SGD_pegasos")) return SPO_SGD_PEGASOS; 
+  else if(!strcmp(str, "online_dual_ascent")) return SPO_DUAL_UPDATE; 
+  else if(!strcmp(str, "online_dual_ascent_with_cache")) return SPO_DUAL_UPDATE_WITH_CACHE; 
+  else if(!strcmp(str, "multi_sample")) return SPO_DUAL_MULTI_SAMPLE_UPDATE; 
+  else if(!strcmp(str, "multi_sample_with_cache")) return SPO_DUAL_MULTI_SAMPLE_UPDATE_WITH_CACHE; 
+  else if(!strcmp(str, "binary_classification")) return SPO_MAP_TO_BINARY; 
+  else if(!strcmp(str, "mine_hard_negatives")) return SPO_MAP_TO_BINARY_MINE_HARD_NEGATIVES; 
+  else if(!strcmp(str, "fixed_sample_set")) return SPO_FIXED_SAMPLE_SET; 
+  else return (StructuredPredictionOptimizationMethod)-1;
+}
+
+///@endcond
+
+/** @mainpage Online Structured SVM Optimizer
+ *
+ * This software package implements an optimizer for training max-margin structured prediction algorithms (structured SVMs)
+ * using online subgradient methods.  The goal is to train a function 
+ * \f[ g : X \to Y \f]
+ * using training examples \f$ (X_1,Y_1), ..., (X_n,Y_n) \f$, where \f$ Y \f$ can be some multi-dimensional structured output.
+ * It has a network interface such that annotators can add new training examples in online
+ * fashion as it trains.  It also supports active labeling (using the current learned model to accelerate labeling of a new
+ * example) via the same network interface.  The worst case time complexity is 
+ * \f$ O(\frac{R^2 T}{\lambda \epsilon} + T n) \f$, which is an improvement over the worst case time complexity 
+ * for SVM^struct \f$ O(n \frac{R^2 T}{\lambda \epsilon} ) \f$.  Here \f$ \epsilon \f$ is the approximation level from
+ * the minimal achievable training error, \f$ \lambda \f$ is a regularization constant, \f$ T \f$ is the amount of time
+ * needed to solve an inference problem, and \f$ R \f$ is a bound on the magnitude of the feature space.  This optimization 
+ * package currently only supports linear kernels.  
+ * 
+ * At test time, the predicted label is 
+ * \f[ g(X;\mathbf{w}) = \arg\max_{Y} \langle \mathbf{w}, \Psi(X,Y) \rangle \f]
+ * where \f$ \mathbf{w} \f$ is a vector of model parameters, and \f$ \Psi(X,Y) \f$ is a vector of features extracted
+ * from input \f$ X \f$ with respect to a candidate label \f$ Y \f$.  For example, for sliding window object detection
+ * \f$ X \f$ is an image and  \f$ \Psi(X,Y) \f$ extracts features from a bounding box defined by \f$ Y \f$.  Training
+ * solves for the value of \f$ \mathbf{w} \f$ that minimizes the training error
+ * \f[ f(\mathbf{w}) = \frac{\lambda}{2} \|\mathbf{w}\|^2 + \frac{1}{n} \sum_{i=1}^n \max_{\bar{Y}_i} \left( \langle \mathbf{w}, \Psi(X_i,\bar{Y}_i) \rangle + \Delta(\bar{Y}_i,Y_i) \right) - \langle \mathbf{w}, \Psi(X_i,Y_i) \rangle, \f]
+ * which is a convex upper bound on \f$ \Delta(\bar{Y}_i,Y_i) \f$, a customizable function defining the loss associated with predicting \f$ \bar{Y}_i \f$ 
+ * when the true label is \f$ Y_i \f$.  
+ * 
+ * The main thing a person implementing a customized structured SVM learning method needs to implement is an algorithm that efficiently solves
+ * \f[ \bar{Y}_i = \arg\max_{Y} \left( \langle \mathbf{w}, \Psi(X_i,Y) \rangle + \Delta(Y,Y_i) \right) \f]
+ * Specifically, one should use the following procedure (see Examples tab for examples):
+ *  -# Create your own class StructuredLabelCustom which inherits from StructuredLabel.  This is
+ *     used to read and write labels y from file and store any custom data for a structured label
+ *  -# Create your own class StructuredDataCustom which inherits from StructuredData.  This is
+ *     used to read and examples x from file and store any custom data 
+ *  -# Create your own class StructuredSVMCustom which inherits from StructuredSVM and defines the
+ *     methods Psi(), Inference(), Loss(), Load(), Save(), NewStructuredLabel(), NewStructuredData()
+ *  -# Optionally, to allow interactive classification of new test examples and dynamically adding
+ *     training examples while training is in progress via commands over the network
+ *     (see StructuredLearnerRpc for info on the network protocol), add code 
+ *     - int main(int argc, char **argv) { StructuredLearnerRpc v(new StructuredSVMCustom); v.main(argc, argv); }    
+ */
 
 /**
  * @class StructuredData
@@ -59,7 +151,6 @@ public:
    *
    * This method will be called either 
    *   -# when saving a dataset to a file, or
-   * @param str String where the encoding of the StructuredData object will be written
    * @param s A StructuredSVM object defining the structural model parameters
    * @return A JSON encoding of the StructuredData object
    */
@@ -77,35 +168,40 @@ public:
  */
 class StructuredLabel {
  protected:
-  StructuredData *x;
+  StructuredData *x;  /**< A pointer to the data associated with this label */
 public:
+
+  /**
+   * @brief Create a new structured label
+   * @param x A pointer to the data associated with this label
+   */
   StructuredLabel(StructuredData *x) { this->x = x; };
+
+  /**
+   * @brief Get a pointer to the data associated with this label
+   */
   StructuredData *GetData() { return x; }
+
   virtual ~StructuredLabel() {};
 
   /**
-   * @brief Reads a StructuredLabel object from a string encoding of the data.  
+   * @brief Reads a StructuredLabel object from a JSON encoding of the data.  
    *
    * This method will be called either 
    *   -# when reading a dataset from file, or
    *   -# when adding a new training example via requests over the network.  
-   * @param str String storing the encoding of the StructuredLabel object
+   * @param x A JSON encoding of this StructuredLabel
    * @param s A StructuredSVM object defining the structural model parameters
-   * @return A pointer to a location in str coming after the last parsed character
-   *  in str.  This is used when multiple StructuredData or StructuredLabel objects
-   *  are encoded sequentially into the same string.
+   * @return True if this label was parsed correctly
    */
   virtual bool load(const Json::Value &x, StructuredSVM *s) = 0;
 
   /**
-   * @brief Writes a StructuredLabel object into a string encoding of the data
+   * @brief Writes a StructuredLabel object into a JSON encoding of the data
    * This method will be called either 1) when saving a dataset to a file, or
    *   2) when sending this example to a client via requests over the network
-   * @param str String where the encoding of the StructuredLabel object will be written
    * @param s A StructuredSVM object defining the structural model parameters
-   * @return A pointer to a location in str coming after the last written character
-   *  in str.  This is used when multiple StructuredData or StructuredLabel objects
-   *  are encoded sequentially into the same string.
+   * @return a JSON encoding of the data
    */
   virtual Json::Value save(StructuredSVM *s) = 0;
 };
@@ -155,20 +251,20 @@ public:
    * -# A regular inference or classification problem selects the highest scoring label:
    *   Inference(x, ybar, w) solves
    *   \f[ 
-   *      \bar{y} = \arg\max_y w \cdot \Psi(x,y) 
+   *      \bar{Y} = \arg\max_Y \mathbf{w} \cdot \Psi(X,Y) 
    *   \f]
    * -# During training, the label that is the most violated contraint is
    *   Inference(x, ybar, w, NULL, y_gt) solves
    *   \f[ 
-   *      \bar{y} = \arg\max_y w \cdot \Psi(x,y) + Loss(y_{gt},y)
+   *      \bar{Y} = \arg\max_Y \mathbf{w} \cdot \Psi(X,Y) + \Delta(Y,Y_{\textrm{gt}})
    *   \f]
    * -# During interactive labeling
    *   Inference(x, ybar, w, y_partial) solves
    *   \f[ 
-   * \bar{y} = \arg\max_y w \cdot \Psi(x,y)\\
+   * \bar{Y} = \arg\max_Y \mathbf{w} \cdot \Psi(X,Y)\\
    *   \f]
    *   \f[ 
-   *    \ \ \ \mathrm{s.t.\ }y\mathrm{\ is\ consistent\ with\ } y_{partial}
+   *    \ \ \ \mathrm{s.t.\ }Y\mathrm{\ is\ consistent\ with\ } Y_{\textrm{partial}}
    *   \f]
    *   where y_partial is a user-specified assignment to some of the variables in ybar
    * 
@@ -179,9 +275,20 @@ public:
    * @param y_gt The ground truth label of x, which is used only during training when finding the most violated label
    * @return The score of the predicted label (which includes the loss for option 2)
    */
-  virtual void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true){}
   virtual double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, 
-			   StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL) = 0;
+			   StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL, double w_scale = 1) = 0;
+
+
+  /**
+   * @param x The data for this training example
+   * @param w A vector of model weights
+   * @param y_gt The ground truth label of x, which is used only during training when finding the most violated label
+   * @param psi_y_gt The features extracted at the ground truth label of x
+   * @param set A set of samples that should be extracted by this function.  For correctness, it should include
+   *            the same ybar sample found by Inference(x, ybar, w, NULL, y_gt)
+   * @return The score of the predicted label (which includes the loss for option 2)
+   */
+  virtual double ImportanceSample(StructuredData *x, SparseVector *w, StructuredLabel *y_gt, struct _SVM_cached_sample_set *set, double w_scale = 1);
 
   /**
    * @brief Computes the loss associated with predicting y_pred when the true label is y_gt
@@ -231,7 +338,7 @@ public:
 
   /**
    * @brief Load a dataset of examples from file.  By default, this assumes each line in the file will correspond
-   *   to one example in the format "<x> <y>", where <x> and <y> are in the same format as StructuredData::read()
+   *   to one example in the format "x y", where x and y are in the same format as StructuredData::read()
    *   and StructuredLabel::read(), but the API user can optionally override this function
    * @param fname The filename from which to read the dataset
    */
@@ -239,7 +346,7 @@ public:
 
   /**
    * @brief Save a dataset of examples to file.  By default, this assumes each line in the file will correspond
-   *   to one example in the format "<x> <y>", where <x> and <y> are in the same format as StructuredData::read()
+   *   to one example in the format "x y", where x and y are in the same format as StructuredData::read()
    *   and StructuredLabel::read(), but the API user can optionally override this function
    * @param d The dataset to save
    * @param fname The filename in which to save the dataset
@@ -268,6 +375,21 @@ public:
   virtual bool Save(const char *fname, bool saveFull=false);
 
   
+  /**
+   * @brief the number of columns for HTML visualizations of a dataset, where each column contains one training example
+   */
+  virtual int NumHTMLColumns() { return 4; }
+  
+  /**
+   * @brief Create an HTML visualization of this training example
+   * @param htmlDir A directory where html for the dataset visualization is stored.  One can save things like images into this directory, which can be referenced by the returned html code
+   * @param extraInfo custom info associated with this label (e.g., the classification score)
+   * @return a string allocated using malloc containing html code to visualize this label
+   */
+  virtual char *VisualizeExample(const char *htmlDir, StructuredExample *ex, const char *extraInfo=NULL);
+
+  virtual void OnFinishedPassThroughTrainset() {} 
+
   /************************** Routines used for training **************************/
 public:
 
@@ -278,17 +400,19 @@ public:
    * @param runForever If true, keep training running forever (because the client might add more
    * training examples).  Otherwise, stop training once the optimization error is below eps
    */
-  void Train(const char *modelfile=NULL, bool runForever=false);  
+  void Train(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL);  
 
   /**
    * @brief Evaluate the structured model on a testset
    * @param testfile The filename of the dataset, in the format of LoadDataset()
    * @param predictionsFile A file where the predicted labels will be written, with lines in the format:
-   *   - <y_predicted> <y_ground_truth> <loss> <score_prediction> <score_ground_truth>
-   *  where <y_predicted> and <y_ground_truth> are in the format of StructuredLabel::read()
+\htmlonly <div style="padding: 0.5em 1em; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; background-color: #eaeafa;">
+y_predicted y_ground_truth loss score_prediction score_ground_truth
+</div> \endhtmlonly
+   *  where y_predicted and y_ground_truth are in the format of StructuredLabel::read()
    * @return The average classification loss
    */
-  VFLOAT Test(const char *testfile, const char *predictionsFile=NULL);
+  VFLOAT Test(const char *testfile, const char *predictionsFile=NULL, const char *htmlDir=NULL, double *svm_err=NULL);
 
   /**
    * @brief Add a new training example.  The data is copied (as opposed to storing pointers)
@@ -345,25 +469,15 @@ public:
   void SetC(double c, int num_iter=0) { SetLambda(1.0/c, num_iter); }
 
   /**
-   * @brief Change the featureScale parameter, which is a constant used to scale Psi(x,y) and should
-   * typically be left at 1.  This can be called as Train()
-   * is in progress if the optimization method is one of the _WITH_CACHE methods.
-   * @param fs The parameter featureScale
-   * @param num_iter Number of times to iterate over the cache set to adjust the learned model parameters 
-   * with the new featureScale taken into account
-   */
-  void SetFeatureScale(double fs, int num_iter=0);
-
-  /**
    * @brief Set the optimization method used for training
    * @param m The optimization method.  Options are:
-   *  - SPO_SGD: stochastic gradient descent: w^t = w^{t-1} - step_size*(w^{t-1} + grad_i(w^{t-1})),   step_size=1/(lambda*t)
-   *  - SPO_SGD_PEGASOS: do SGD step, then ensure that ||w^t||^2 <= 1/lambda   (downscale w^t if this doesn't hold)
-   *  - SPO_DUAL_UPDATE: w^t = w^{t-1}(t-1)/t - alpha*grad_i(w^{t-1}),   where alpha is chosen to maximize dual objective
+   *  - SPO_SGD: stochastic gradient descent: \f$ \mathbf{w}^t = \mathbf{w}^{t-1} - \gamma (\lambda \mathbf{w}^{t-1} + \nabla \ell_i(\mathbf{w}^{t-1})) \f$,   \f$ \gamma=\frac{1}{\lambda*t} \f$
+   *  - SPO_SGD_PEGASOS: do SGD step, then ensure that \f$ \|\mathbf{w}^t\|^2 \le \frac{1}{\lambda} \f$   (downscale \f$ \mathbf{w}^t \f$ if this doesn't hold) 
+   *  - SPO_DUAL_UPDATE: \f$ \mathbf{w}^t = \frac{t-1}{t} \mathbf{w}^{t-1} - \alpha \nabla \ell_i(\mathbf{w}^{t-1}) \f$,   where \f$ \alpha=\min \left(1,\max \left(0,\frac{\lambda (t-1)\ \langle \mathbf{w}^{t-1}, \mathbf{v}_t^{\bar{Y}_t} \rangle  + \lambda t \ \Delta(\bar{Y}_t,Y_t)}{\| \mathbf{v}_t^{\bar{Y}_t} \|^2  }\right) \right) \f$ is chosen to maximize dual objective
    *  - SPO_DUAL_UPDATE_WITH_CACHE: Same as SPO_DUAL_UPDATE, but also run dual update steps in a background process on labels from earlier iterations
    *  - SPO_DUAL_MULTI_SAMPLE_UPDATE: Sample multiple labels per iteration (instead of just getting the "most violated constraint"), then optimize parameters jointly
    *  - SPO_DUAL_MULTI_SAMPLE_UPDATE_WITH_CACHE: Same as SPO_DUAL_MULTI_SAMPLE_UPDATE, but also run multi-sample dual update steps in a background process
-   */
+   */ 
   void SetMethod(StructuredPredictionOptimizationMethod m) { method = m; }
 
   /**
@@ -381,11 +495,6 @@ public:
    */
   double GetLambda() { return lambda; }
 
-  /**
-   * @brief Get the featureScale parameter, which is a constant used to scale Psi(x,y) and should
-   * typically be left at 1.  
-   */
-  double GetFeatureScale() { return featureScale; }
 
   /**
    * @brief Save the training set to the same location read by LoadTrainset()
@@ -398,52 +507,133 @@ public:
    * @brief Get statistics useful for plotting the progression of different types of 
    * training error as a function of training computation time
    */
-  void GetStatisticsByIteration(int ave, long *tt, long *tm, double **gen_err_buff, double **opt_err_buff, double **model_err_buff, 
-				double **reg_err_buff, double **train_err_buff, double **test_err_buff, double **time_buff);
+  void GetStatisticsByIteration(int ave, long *tt, double **gen_err_buff, double **emp_err_buff, double **model_err_buff, 
+				double **reg_err_buff, double **loss_buff, double **time_buff);
 
   /**
    * @brief Get statistics useful for plotting the progression of different types of 
    * training error as a function of number of training examples
    */
-  void GetStatisticsByExample(int ave, long *nn, double **gen_err_buff, double **opt_err_buff, double **model_err_buff, 
-			      double **reg_err_buff, double **train_err_buff, double **test_err_buff);
+  void GetStatisticsByExample(int ave, long *nn, double **gen_err_buff, double **emp_err_buff, double **model_err_buff, 
+			      double **reg_err_buff, double **loss_buff);
 
   /**
    * @brief Get the dimensionality of the structured feature space Psi(x,y)
    */
   int GetSizePsi() { return sizePsi; }
 
-  StructuredExample *CopyExample(StructuredData *x, StructuredLabel *y);
+  /**
+   * @brief Create a new example.  It allocates and copies a new version of x and y, rather than storing a pointer to those objects
+   * @param x the data
+   * @param y the label
+   */
+  StructuredExample *CopyExample(StructuredData *x, StructuredLabel *y, StructuredLabel *y_latent=NULL);
 
+  /**
+   * @brief get a pointer to the training set object
+   */
   StructuredDataset *GetTrainset() { return trainset; }
 
+  /**
+   * @brief set the training set object
+   */
+  void SetTrainset(StructuredDataset *t);
+
+  /**
+   * @brief Set whether or not to train in a multi-threaded algorithm
+   * @param r if non-zero, train using a multi-threaded algorithm where r is the number of threads (or setting to -1 auto-detects the number of CPU cores)
+   */
+  void RunMultiThreaded(int r) { runMultiThreaded = r; }
+
+  /**
+   * @brief Set verbosity controlling how much debug information is outputted
+   * @param level The verbosity level
+   */
+  void SetVerbosity(int level) { debugLevel = level; }
+
+  /**
+   * @brief Get the elapsed training time
+   */
+  double GetElapsedTime() { double t = (get_runtime() - start_time + base_time); if(num_thr > 1) { t /= num_thr; } return t; }
+
+  /**
+   * @brief Get the number of training iterations
+   */
+  long GetNumIterations() { return t; }
+
+  /**
+   * @brief Get the number of training examples
+   */
+  long GetNumExamples() { return n; }
+
+  const char *GetModelFile() { return modelfile; }
+  void SetValidationFile(const char *v) { validationfile = StringCopy(v); }
+  void SetSumWScale(double sum_w_scale_new);
+
+  void DumpModelIfNecessary(const char *modelfile, bool force=false);
+  void DumpWeights(double start, double factor) { dumpModelStartTime=start;  dumpModelFactor=factor; }
+
+  void SetWindow(int w) { window = w; }
+  void SetMinItersBeforeNewExample(int m) { minItersBeforeNewExample = m; }
+  void VisualizeDataset(StructuredDataset *dataset, const char *htmlDir, int maxExamples=-1);
+  void SetWeights(double *d) { if (sum_w) { delete sum_w; } sum_w = new SparseVector(d, sizePsi, true);  *sum_w *= sum_w_scale; }
+  void InferLatentValues(StructuredDataset *d);
+
+  void SaveCachedExamples(const char *output_name, bool saveFull=true);
+  void LoadCachedExamples(const char *fname, bool loadFull=true);
  protected:
 
   SparseVector *sum_w; /**< the unnormalized learned model weights w^t = sum_w*(t*lambda) */ 
   int sizePsi;         /**< maximum number of weights in w */
   double eps;          /**< precision for which to solve optimization problem */
   double C;            /**< regularization parameter */
-  double featureScale; /**< factor in which to scale all features */
-  StructuredPredictionOptimizationMethod method;  /* optimization method */
-  int window;
+  StructuredPredictionOptimizationMethod method;  /**< optimization method */
+  int window;  /**< default window size used for computing statistics for decomposing the test error */
 
   bool *regularize;  /**< if non-null, a sizePsi array where a value of true means we regularize this weight entry */
   bool *learnWeights;  /**< if non-null, a sizePsi array where a value of true means we learn this weight entry */
   int *weightConstraints;  /**< if non-null, a sizePsi array where a value of 1 means a weight must be >= 0, -1 means <= 0, 0 means anything */
+  bool canScaleW;   /**< If true, Inference() should support scaling w.  This results in a speed improvement for some models, by avoiding normalizing w */
+
+  VFLOAT lambda;       /**< regularization constant */
+  double sum_dual;  /**< The dual objective D_t(alpha_1,...alpha_t) over each training iteration */
+  double sum_alpha_loss;
+  double sum_w_sqr; /**< (lambda*t*w)^2 */
+  double regularization_error;      /**< Current regularization error  */ 
+  double sum_w_scale;
+  int maxIters;
+
+  int numMineHardNegativesRound;
+  int mineHardNegativesRound;
+  int numHardNegativesPerExample;
+  bool useFixedSampleSet;
+  bool mergeSamples;
+  bool updateFromCacheThread;
+  int numCacheUpdatesPerIteration;
+  double maxLoss;
+  int numMultiSampleIterations;
+  int maxCachedSamplesPerExample;
 
 protected:
-  int debugLevel;
+  int debugLevel; /**< debug level defining how many print statements are outputted by the learner */ 
   long t;  /**< number of iterations run so far */ 
   long n;  /**< number of examples that have been processed in at least one iteration */ 
+  char *modelfile;   /**< name of the file to save the model to */ 
+  char *trainfile;   /**< name of the file for the training set */ 
+  char *validationfile;   
+  int runMultiThreaded;  /**< if non-zero, train using a multi-threaded algorithm where runMultiThreaded is the number of threads (or setting to -1 auto-detects the number of CPU cores) */ 
+  int max_samples;
 
+
+  virtual void MultiSampleUpdate(struct _SVM_cached_sample_set *set, StructuredExample *ex, int R=1);
 
  private:
   omp_lock_t my_lock;
-  VFLOAT lambda;       /**< regularization constant */
   
 
   
   /************************ Variables used for online learning ******************************/
+  double *u_i_buff;     // memory buffer used for a non-sparse version of u_i, u_i = \sum_y alpha_{i,y} (psi(x_i,ybar)-psi(x_i,y_i))
   StructuredDataset *trainset;
   bool runForever;
   bool hasConverged;
@@ -453,27 +643,27 @@ protected:
   bool finished;  /**< If set to true, then the Train() threads will all finish up after the next iteration */ 
   int num_thr;    /**< number of threads */ 
 
+  bool isMultiSample;
+  double dumpModelStartTime;
+  double dumpModelFactor;
+  int numModelDumps;
+  bool trainLatent;
 
   int alloc_n, alloc_t;
   bool cache_old_examples;
-  struct _SVM_cached_sample_set **cached_examples; // an array of 't' cached examples, one per iteration of the optimization algorithm */ 
   int *ex_num_iters;  // an array of size sample.n, where each entry stores the number of iterations each training example has been processed */ 
+  int *ex_first_iter; /**<  an array of size sample.n, where each entry stores the iteration (value of t) when each training example was first iterated over; */
+  int last_example;  /**< The index of the last training example iterated over during training */
 
-  double sum_generalization_error;  /**< Total error measured on unseen examples as they are streamed in */ 
-  double sum_iter_error;            /**< Total error measured on unseen labels.  This is different than sum_generalization_error if we have *
+  double sum_generalization_error;  /**< Total error measured on new examples as we stream them in and before processing them. */
+  double sum_iter_error;            /**< Total error measured on unseen labels.  This is different than sum_generalization_error if we have 
 				      processed each example more than once (it is effectively the sum loss associated with each call 
-				      to find_most_violated_constraint()  */ 
-  double sum_model_error;            /**< Approximate lower-bound for model error.  This is measured by computing the error  
-				      on ybar after each call to find_most_violated_constraint(), but after the model has been updated
-				      with respect to ybar  */ 
-  double sum_generalization_error_window, sum_iter_error_window, sum_model_error_window;
-  double regularization_error;      /**< Current regularization error  */ 
-  double *generalization_errors_by_n, *optimization_errors_by_n, *model_errors_by_n, *regularization_errors_by_n, *losses_by_n;
-  double *generalization_errors_by_t, *iter_errors_by_t, *model_errors_by_t, *constraint_errors_by_t, *regularization_errors_by_t, *losses_by_t, *elapsed_time_by_t;
+				      to Inference(x_i, ybar_i, w_t, NULL, y_i) */
+  double sum_iter_error_window, sum_generalization_error_window;
+  double *generalization_errors_by_n;
+  double *generalization_errors_by_t, *iter_errors_by_t, *sum_dual_by_t, *regularization_errors_by_t, *losses_by_t, *elapsed_time_by_t;
   long *iter_examples;
-  long base_time, start_time;
-  char *modelfile;
-  char *trainfile;
+  double base_time, start_time;
   
   int *examples_by_iteration_number; /**< An array of size M, where each entry stores an index to the start of a linked list (implemented in 
 					examples_by_iteration_next_ind).  Each linked list stores the indices of all examples that have been iterated over
@@ -486,17 +676,30 @@ protected:
   int currMinIterByExample;
 
  private:
-  long GetElapsedTime() { return (long)(time(NULL) - start_time + base_time); }
 
   int ChooseNextExample();
-  double UpdateWeights(struct _SVM_cached_sample_set *ex, int iterInd);
-  long UpdateWeightsAddStatisticsBefore(struct _SVM_cached_sample_set *ex, int iterInd, double e);
-  void UpdateWeightsAddStatisticsAfter(struct _SVM_cached_sample_set *ex, int iterInd, double e, long tt);
-  void RecomputeWeights();
+  void UpdateWeights(struct _SVM_cached_sample_set *ex, int iterInd);
+  void UpdateStatistics(struct _SVM_cached_sample_set *set, int iter);
+  void UpdateExampleIterationQueue(struct _SVM_cached_sample_set *set, int iter);
+  void CheckConvergence();
+
+  long UpdateWeightsAddStatisticsBefore(struct _SVM_cached_sample_set *ex, int iterInd);
+  void UpdateWeightsAddStatisticsAfter(struct _SVM_cached_sample_set *ex, int iterInd, long tt);
+  void RecomputeWeights(bool full=true);
   void OptimizeAllConstraints(int num_iter);
   bool SaveOnlineData(const char *fname);
   bool LoadOnlineData(const char *fname);
   void CreateTrainingExampleQueues(int ind);
+  void SingleSampleUpdate(struct _SVM_cached_sample_set *set, bool useSmartStepSize);
+  VFLOAT Test(StructuredDataset *testset, const char *predictionsFile, const char *htmlDir, double *svm_err, bool getLock);
+
+  void ExtractSampleSet(int num_samples, bool augment);
+  void ConvertCachedExamplesToBinaryTrainingSet();
+  void SVM_cached_sample_set_compute_features(struct _SVM_cached_sample_set *set, StructuredExample *ex);
+  void CondenseSamples(struct _SVM_cached_sample_set *set);
+  void UpdateFromCache(bool lock=true, int *num=NULL, int i=-1);
+  void TrainMain(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL); 
+  void TrainBinary(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL); 
 };
 
 
@@ -509,6 +712,10 @@ class StructuredExample {
  public:
   StructuredData *x;   /**< The data for this example */
   StructuredLabel *y;  /**< The label for this example */
+
+  StructuredLabel *y_latent;  /**< The label for this example, without latent values filled.  If this is non-null, y will be modified over time, such that at any instant it will have been assigned a particular value for all latent variables */
+
+  struct _SVM_cached_sample_set *set;   /**< For some optimization methods, cache the set of extracted samples for this example */
 
   StructuredExample();
   ~StructuredExample(); 
@@ -532,6 +739,10 @@ class StructuredDataset {
    * @param e The example to be added.  This function does not copy e; it just stores a pointer
    */
   void AddExample(StructuredExample *e); 
+
+  /**
+   * @brief Randomly permute all examples in this dataset
+   */
   void Randomize();
 };
 
@@ -539,47 +750,67 @@ class StructuredDataset {
 /**
  * @struct _SVM_cached_sample
  *
- * @brief Helper struct used by StructuredSVMOnlineLearner.  Encodes data associated with a call to find_most_violated_constraint()
+ * @brief Helper struct used by StructuredSVMOnlineLearner.  Encodes data associated with a call to Inference(x_i, ybar_i, w_t, NULL, y_i) 
  */
 typedef struct _SVM_cached_sample {
-  StructuredLabel *ybar;       /**< label */
-  SparseVector *dpsi;    /**< gradient w.r.t. ith example at ybar: psi(ybar,h,x)-psi(y_i,h,x) */
-  VFLOAT loss;       /**< loss(y_i,ybar) */
-  VFLOAT alpha;      /**< dual parameter alpha_i^{ybar} for this sample */
-  VFLOAT sqr;        /**< ||dpsi||^2 */
-  VFLOAT slack;      /**< slack <w_t, psi(ybar,h,x)-psi(y_i,h,x)> + loss */
-  VFLOAT slack_orig; /**< slack <w_i, psi(ybar,h,x)-psi(y_i,h,x)> + loss */
+  StructuredLabel *ybar;       /**< the label \f$ \bar{Y}_i \f$ */
+  SparseVector *psi;    /**< feature vector of the ith example at ybar: \f$ \Psi(X,\bar{Y}_i) \f$ */
+  VFLOAT loss;       /**< the loss: \f$ \Delta(\bar{Y}_i, Y_i) \f$ */
+  VFLOAT alpha;      /**< dual parameter: \f$ \alpha_i^{\bar{Y}_i} \f$ for this sample */
+  VFLOAT sqr;        /**< Squared version of dpsi: \f$ \| \Psi(X,\bar{Y}_i) - \Psi(X,Y_i) \|^2 \f$ */
+  VFLOAT slack;      /**< \f$ \langle w, \Psi(X,\bar{Y}_i) - \Psi(X,Y_i) \rangle + \Delta(\bar{Y}_i, Y_i) \f$ */
+  VFLOAT dot_psi_gt_psi;  /**< \f$ \langle \Psi(X,Y_i), \Psi(X,\bar{Y}_i) \rangle \f$ */
+  VFLOAT dot_w;      /**< \f$ \langle w, \Psi(X,\bar{Y}_i) - \Psi(X,Y_i) \rangle  \f$ */
 } SVM_cached_sample;
 
 /**
- * @struct _SVM_cached_sample
+ * @struct _SVM_cached_sample_set
  *
- * @brief Helper struct used by StructuredSVMOnlineLearner.  Encodes data associated with a call to find_most_violated_constraint(). When
- * sparm->method==SPO_DUAL_MULTI_SAMPLE_..., this may include a set of L labels that we want to jointly optimize over.  Otherwise,
- * it will just contain a single label
- * when
+ * @brief Holds a set of sample labels for the same example
+ *
+ * Helper struct used by StructuredSVMOnlineLearner.  Encodes data associated with a call to Inference(x_i, ybar_i, w_t, NULL, y_i). 
  */
 typedef struct _SVM_cached_sample_set {
-  SVM_cached_sample *samples;  /**< ybar_i^1...ybar_i^1^L */
+  SVM_cached_sample *samples;  /**< A set of samples: \f$ \bar{Y}_i^1,...,\bar{Y}_i^L \f$ */
   int num_samples;             /**< Number of samples L */
   int i;                       /**< training example index (index into sample.examples) */
+  double alpha;                /**< sum_i(samples[i].alpha) */
+  double loss;                 /**< sum_i(samples[i].alpha*samples[i].loss) */
+  double slack_before;         /**< (<w_{t-1},samples[0].dpsi>) + loss */
+  double slack_after;          /**< sum_i(samples[i].alpha*(<w_t,samples[i].dpsi>) + loss*/
+  double score_gt;             /**< (<w_{t-1},y_i>) */
+  SparseVector *psi_gt;        /**< Psi(x_i,y_i) */
+  double psi_gt_sqr;           /**< |Psi(x_i,y_i)|^2 */
+  StructuredLabel *ybar;
+  double dot_sum_w_psi_gt;
+  double *alphas;
+
+  SparseVector *u_i;           /**< u_i = \sum_ybar alpha_{i,ybar} Psi(x_i,ybar) */
+  VFLOAT D_i;                  /**< D_i = \sum_ybar alpha_{i,ybar} loss(y_i,ybar) */
+  VFLOAT dot_u_psi_gt;         /**< dot_u_psi_gt = <u_i,y_i> */
+  double u_i_sqr;              /**< u_i_sqr = <u_i,u_i> */
+  double drift_bits;           /**< Used to figure out how frequently to recompute u_i_sqr to avoid numerical precision errors */
+  bool lock;
+  int numIters;
+  double sumSlack;
 } SVM_cached_sample_set;
 
 
+///@cond
 void free_SVM_cached_sample(SVM_cached_sample *s);
-void read_SVM_cached_sample(SVM_cached_sample *s, FILE *fin, StructuredSVM *svm);
-void write_SVM_cached_sample(SVM_cached_sample *s, FILE *fout, StructuredSVM *svm);
-SVM_cached_sample_set *new_SVM_cached_sample_set(int i);
+void read_SVM_cached_sample(SVM_cached_sample *s, FILE *fin, StructuredSVM *svm, bool readFull);
+void write_SVM_cached_sample(SVM_cached_sample *s, FILE *fout, StructuredSVM *svm, bool writeFull);
+SVM_cached_sample_set *new_SVM_cached_sample_set(int i, SparseVector *psi_gt=NULL);
 void free_SVM_cached_sample_set(SVM_cached_sample_set *s);
-SVM_cached_sample_set *read_SVM_cached_sample_set(FILE *fin, StructuredSVM *svm);
+SVM_cached_sample_set *read_SVM_cached_sample_set(FILE *fin, StructuredSVM *svm, StructuredData *x, bool readFull);
 void write_SVM_cached_sample_set(SVM_cached_sample_set *s, FILE *fout, StructuredSVM *svm);
-void write_SVM_cached_sample_set(SVM_cached_sample_set *s, FILE *fout, StructuredSVM *svm);
-SVM_cached_sample *SVM_cached_sample_set_add_sample(SVM_cached_sample_set *s, StructuredLabel *ybar, SparseVector *dpsi, VFLOAT l, bool *regularize);
-void SVM_cached_sample_set_update_parameters(SVM_cached_sample *c, SparseVector *sum_w, VFLOAT s, VFLOAT d, VFLOAT lambda, long t, VFLOAT featureScale,
-                                             SVM_cached_sample_set *set, SparseVector *w_i, VFLOAT *sum_alpha, VFLOAT *L_i);
-void SVM_cached_sample_optimize_dual(SVM_cached_sample *s, SparseVector *sum_w, VFLOAT lambda, long t, VFLOAT featureScale,
-                                     SVM_cached_sample_set *set=NULL, SparseVector *w_i=NULL, VFLOAT *sum_alpha=NULL, VFLOAT *L_i=NULL);
-void SVM_cached_sample_set_optimize_dual(SVM_cached_sample_set *s, SparseVector *sum_w, VFLOAT lambda, long t, VFLOAT featureScale, int R, bool *regularize);
+void write_SVM_cached_sample_set(SVM_cached_sample_set *s, FILE *fout, StructuredSVM *svm, bool writeFull);
+SVM_cached_sample *SVM_cached_sample_set_add_sample(SVM_cached_sample_set *s, StructuredLabel *ybar);
+void clear_SVM_cached_sample(SVM_cached_sample *s);
+int SVM_cached_sample_cmp(const void * a, const void * b);
+int SVM_cached_sample_set_alpha_cmp(const void *a, const void *b);
+int SVM_cached_sample_set_ave_slack_cmp(const void *a, const void *b);
+///@endcond
 
 
 

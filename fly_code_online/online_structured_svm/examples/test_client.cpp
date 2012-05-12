@@ -2,25 +2,32 @@
 #include <cstdlib>
 
 /**
- * @file test_client.cpp
  * @example test_client.cpp
  *
- * Simple client program for simulated interactive training.  The server can be started
+ * Simple client program for simulated online interactive training.  It is used only to give an example of
+ * how the network protocol works and is otherwise not useful.  The server can be started
  * initially with no training examples.  This client will connect into the server over
  * a network socket, and incrementally add new training examples.  Before adding a new
  * example, the client asks the server to predict its label using the current learned
  * model, and we record the average loss
  *
  * Example usage:
- *   Start the server: ./online_interactive_server.out -p data/params.txt -P 8098
- *   Start the client: ./test_client.out data/train.txt data/train.txt 8098
+ *   - Start the server: 
+\htmlonly <div style="padding: 0.5em 1em; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; background-color: #eaeafa;">
+$ examples/bin/release_static/structured_svm_multiclass.out -p classes.txt -P 8096
+</div> \endhtmlonly
+ *   - Start the client: 
+\htmlonly <div style="padding: 0.5em 1em; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; background-color: #eaeafa;">
+$ examples/bin/release_static/test_client.out train.txt 8096
+</div> \endhtmlonly
+ *
  */
 
 #include "structured_svm_multiclass.h"
 #include "jsonrpc.h"
 
-#define IP "127.0.0.1"   // localhost
-#define TARGET_TIME 100  // Make the simulated training/labeling session last about 100 seconds
+#define IP "127.0.0.1"   /**< localhost */
+#define TARGET_TIME 100  /**< Make the simulated training/labeling session last about 100 seconds */
 
 
 int main(int argc, char** argv)

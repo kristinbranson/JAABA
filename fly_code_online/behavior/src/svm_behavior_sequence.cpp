@@ -100,9 +100,12 @@ SVMBehaviorSequence::SVMBehaviorSequence(struct _BehaviorGroups *behaviors, int 
 void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams) {
         eps = .05;
 	C = 10.0;
-	featureScale = 1;
-	method = SPO_DUAL_UPDATE_WITH_CACHE;
+	method = SPO_DUAL_MULTI_SAMPLE_UPDATE_WITH_CACHE;// SPO_DUAL_UPDATE_WITH_CACHE;
 	debugLevel = 3;
+
+	numCacheUpdatesPerIteration = 50;
+	maxCachedSamplesPerExample = 1000;
+	numMultiSampleIterations = 10;
 
 	strcpy(debugdir, "");
 	debug_predictions = debug_weights = debug_features = debug_model = false;
@@ -932,7 +935,6 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
 }
 
 
-
 void SVMBehaviorSequence::set_feature_name(int feature_ind, int base_feature_ind, const char *name) {
 	char str[1000];
 	if(feature_names) {
@@ -1236,7 +1238,7 @@ void SVMBehaviorSequence::OnFinishedIteration(StructuredData *x, StructuredLabel
 		if(strlen(debugdir) && debug_weights) {
 			sprintf(fname, "%s/weights_%d.txt", debugdir, iter_num);
 			SparseVector *w = GetCurrentWeights();
-			double *ww = w->non_sparse<double>(sizePsi);
+			double *ww = w->get_non_sparse<double>(sizePsi);
 			print_weights(fname, ww);
 			delete [] ww;
 			delete w;
@@ -1336,7 +1338,7 @@ char *getFilenameWithoutPath(char *filepath) {
 *
 */
 double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar, SparseVector *w, 
-				      StructuredLabel *y_partial, StructuredLabel *y_gt) {
+				      StructuredLabel *y_partial, StructuredLabel *y_gt, double w_scale) {
 	BehaviorBoutSequence *ybar = (BehaviorBoutSequence*)(y_bar);
 	BehaviorBoutSequence *y = (BehaviorBoutSequence*)(y_gt);
 	BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x;
@@ -1366,7 +1368,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	bool bad_label = false;
 	int *old_class_transition_counts = NULL, *old_class_training_counts;
 	bool is_first, go_back;
-	double *ww = w->non_sparse<double>(sizePsi);
+	double *ww = w->get_non_sparse<double>(sizePsi);
 	Json::FastWriter writer;
 
 	sprintf(ybar->fname, "%s.pred", b->fname);

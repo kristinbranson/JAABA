@@ -10,8 +10,8 @@ SVGPlotter::SVGPlotter() {
   width = 600;
   height = 400;
   cssFile = title = xLabel = yLabel = NULL;
-  xMin = yMin = HUGE_VAL;
-  xMax = yMax = -HUGE_VAL;
+  xMin = yMin = 100000000.0;
+  xMax = yMax = -100000000.0;
   sx = sy = 1;
   plots = NULL;
   numPlots = 0;
@@ -23,6 +23,7 @@ SVGPlotter::SVGPlotter() {
   axisLabelGap = 50;
   ticLength = 5;
   maxPoints = 5000;
+  cssFile = NULL;
 }
 
 SVGPlotter::~SVGPlotter() {
@@ -51,9 +52,10 @@ void SVGPlotter::AddPlot(double *x, double *y, int numPts, double xOffset, doubl
   plots[numPlots].lineClass = lineClass ? StringCopy(lineClass) : NULL;
   plots[numPlots].pointClass = pointClass ? StringCopy(pointClass) : NULL;
   plots[numPlots].legendName = legendName ? StringCopy(legendName) : NULL;
-  plots[numPlots].numPts = numPts/stride;
-  plots[numPlots].x = (double*)malloc(sizeof(double)*plots[numPlots].numPts);
-  plots[numPlots].y = (double*)malloc(sizeof(double)*plots[numPlots].numPts);
+  plots[numPlots].numPts = 0;
+  int num = numPts/stride+1;
+  plots[numPlots].x = (double*)malloc(sizeof(double)*num);
+  plots[numPlots].y = (double*)malloc(sizeof(double)*num);
   for(int i = 0, j = 0; i < numPts; i += stride, j++) {
     plots[numPlots].x[j] = x ? x[i] : xOffset+i*xScale;   
     plots[numPlots].y[j] = y[i]; 
@@ -61,6 +63,7 @@ void SVGPlotter::AddPlot(double *x, double *y, int numPts, double xOffset, doubl
     if(plots[numPlots].x[j] > xMax) xMax = plots[numPlots].x[j];
     if(plots[numPlots].y[j] < yMin) yMin = plots[numPlots].y[j];
     if(plots[numPlots].y[j] > yMax) yMax = plots[numPlots].y[j];
+    plots[numPlots].numPts++;
   }
   numPlots++;
 }
@@ -99,7 +102,7 @@ bool SVGPlotter::DrawAxis(FILE *fout) {
   char text[1000], format[1000];
   fprintf(fout, "\n  <rect class=\"axis\" x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" />\n", width, height);
 
-  int xd = (int)(LOG_B((xMax-xMin), 10));
+  int xd = (int)(LOG_B((xMax-xMin), 10.0));
   float xTicSpacing = pow(10.0f, xd);
   if((xMax-xMin) / xTicSpacing < 5) { xd--; xTicSpacing /= 2; }
   float x = ceil(xMin/xTicSpacing)*xTicSpacing;
@@ -112,7 +115,7 @@ bool SVGPlotter::DrawAxis(FILE *fout) {
   }
   fprintf(fout, "\n");
 
-  int yd = (int)(LOG_B((yMax-yMin), 10));
+  int yd = (int)(LOG_B((yMax-yMin), 10.0));
   float yTicSpacing = pow(10.0f, yd);
   if((yMax-yMin) / yTicSpacing < 5) { yd--; yTicSpacing /= 2; }
   float y = ceil(yMin/yTicSpacing)*yTicSpacing;
@@ -132,11 +135,19 @@ bool SVGPlotter::DrawAxis(FILE *fout) {
   return true;
 }
 bool SVGPlotter::DrawLegend(FILE *fout) {
-  fprintf(fout, "\n<g id=\"legend\">\n  <rect id=\"legend_rect\" class=\"legend\" />\n");
-  for(int i = 0; i < numPlots; i++)
+  bool first = true;
+  for(int i = 0; i < numPlots; i++) {
+    if(plots[i].legendName) {
+		if(first) {
+			first = false;
+			fprintf(fout, "\n<g id=\"legend\">\n  <rect id=\"legend_rect\" class=\"legend\" />\n");
+		}
     fprintf(fout, "  <polyline id=\"legend_line%d\" class=\"%s\" points=\"%d,%d %d,%d\"/> <text id=\"legend_text%d\" class=\"legend\" text-anchor=\"start\" x=\"%d\" y=\"%d\" >%s</text>\n", 
             i, plots[i].lineClass, 5, i*20+5, 25, i*20+5, i, 30, i*20+5, plots[i].legendName);
-  fprintf(fout, "</g>\n");
+	}
+  }
+  if(!first)
+    fprintf(fout, "</g>\n");
   return true;
 }
 
@@ -181,8 +192,10 @@ bool SVGPlotter::SaveFooter(FILE *fout) {
   return fprintf(fout, "</svg>\n");
 }
 bool SVGPlotter::SaveStyles(FILE *fout) {
-  char line[1000];
+  //if(!cssFile) return true;
+  char line[10000];
   FILE *fin = fopen(cssFile ? cssFile : "plot.css", "r");
+  if(!fin) return true;
   assert(fin);
   while(fgets(line, 999, fin))
     fprintf(fout, "%s", line);

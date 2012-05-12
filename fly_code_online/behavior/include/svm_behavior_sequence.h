@@ -274,7 +274,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   virtual bool Load(const Json::Value &root);
   virtual Json::Value Save();
   SparseVector Psi(StructuredData *x, StructuredLabel *y);
-  double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL);
+  double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL, double w_scale=1);
   double Loss(StructuredLabel *y_gt, StructuredLabel *y_pred);
   void OnFinishedIteration(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar);
 
