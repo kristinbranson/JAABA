@@ -2013,7 +2013,22 @@ classdef JLabelData < handle
           timestamp = tmp.datenum;
           break;
         end
-        
+        % check for lnk files
+        if ispc && exist([filename,'.lnk'],'file'),
+          try
+            x = java.io.File([filename,'.lnk']);
+            y = sun.awt.shell.ShellFolder.getShellFolder(x);
+            actualfilename = y.getLinkLocation();
+            actualfilename = char(actualfilename);
+            if exist(actualfilename,'file'),
+              filename = actualfilename;
+              tmp = dir(filename);
+              timestamp = tmp.datenum;
+              break;
+            end
+          catch  %#ok<CTCH>
+          end
+        end
       end
       
     end
@@ -2241,7 +2256,20 @@ classdef JLabelData < handle
         % loop through directories to look in
         for j = 1:numel(expdirs_try),
           expdir = expdirs_try{j};
-          filename = fullfile(expdir,fn,[obj.allperframefns{i},'.mat']);
+          perframedir = fullfile(expdir,fn);
+          if ispc && ~exist(perframedir,'dir'),
+            [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
+            if didfind,
+              perframedir = actualperframedir;
+            end
+          end
+          filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);
+          if ispc && ~exist(filename,'file'),
+            [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+            if didfind,
+              filename = actualfilename;
+            end
+          end
           
           if exist(filename,'file'),
             filenames{i} = filename;
@@ -3585,7 +3613,7 @@ classdef JLabelData < handle
         end
         
         if ~exist(perframefile{ndx},'file'),
-          res = questdlg(sprintf('Experiment %s is missing some perframe files. Generate now?',obj.expnames{expi}),'Generate missing files?','Yes','Cancel','Yes');
+          res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
           if strcmpi(res,'Yes'),
             for ndx = 1:obj.nexps  
               [success1,msg1] = obj.GenerateMissingFiles(ndx);
@@ -4926,19 +4954,25 @@ classdef JLabelData < handle
         end
       end
       
-      intlocs = rand(1,numint); %/numint+(0:numint-1)/numint;
       cumwt = cumsum(int.wt)/sum(int.wt);
       obj.balancedGTSuggestions = [];
+      prevlocs = [];
       for ndx = 1:numint
-        locsSel = find(cumwt<=intlocs(ndx),1,'last');
-        if isempty(locsSel), locsSel = numel(cumwt); end
-        expi = int.exp(locsSel);
-        flies = int.flies(locsSel);
-        tStart = int.tStart(locsSel);
-        obj.balancedGTSuggestions(ndx).start = tStart;
-        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
-        obj.balancedGTSuggestions(ndx).exp = expi;
-        obj.balancedGTSuggestions(ndx).flies = flies;
+        while true
+            intlocs = rand;
+            locsSel = find(cumwt<=intlocs,1,'last');
+            if any( abs(locsSel-prevlocs) <= intsize) , continue ;end
+            prevlocs(end+1) = locsSel;
+            if isempty(locsSel), locsSel = numel(cumwt); end
+            expi = int.exp(locsSel);
+            flies = int.flies(locsSel);
+            tStart = int.tStart(locsSel);
+            obj.balancedGTSuggestions(ndx).start = tStart;
+            obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
+            obj.balancedGTSuggestions(ndx).exp = expi;
+            obj.balancedGTSuggestions(ndx).flies = flies;
+            break;
+        end
       end
       
       success = true;
