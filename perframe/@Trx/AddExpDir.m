@@ -59,9 +59,23 @@ end
 % read trajectories
 trxfilename = fullfile(obj.expdirs{n},obj.trxfilestr);
 outtrxfilename = fullfile(obj.outexpdirs{n},obj.trxfilestr);
+% deal with windows shortcuts
+if ispc && ~exist(trxfilename,'file'),
+  [actualfilename,didfind] = GetPCShortcutFileActualPath(trxfilename);
+  if didfind,
+    trxfilename = actualfilename;
+  end
+end
 if ~exist(trxfilename,'file') && exist(outtrxfilename,'file'),
   trxfilename = outtrxfilename;
 end
+if ispc && ~exist(trxfilename,'file') && ~exist(outtrxfilename,'file'),
+  [actualfilename,didfind] = GetPCShortcutFileActualPath(outtrxfilename);
+  if didfind,
+    trxfilename = actualfilename;
+  end
+end
+
 obj.trxfiles{n} = trxfilename;
 if ~exist(obj.trxfiles{n},'file'),
   error('Trajectory file %s does not exist',obj.trxfiles{n});
@@ -89,6 +103,7 @@ obj.fly2exp(nfliesold+1:obj.nflies) = n;
 obj.ndatacachedperexp(n) = 0;
 obj.datacached{n} = {};
 obj.fnscached{n} = {};
+obj.nfnscached(n) = 0;
 
 % store trajectories
 obj.StoreTrajectories(n,traj,dooverwrite);
