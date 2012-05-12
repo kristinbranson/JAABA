@@ -689,7 +689,7 @@ function pushbutton_removebehavior_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.projmanager.RemoveBehavior(handles.projmanager.GetCurrentProject());
+handles.projmanager.RemoveProject(handles.projmanager.GetCurrentProject());
 
 set(handles.listbox_behavior,'String',handles.projmanager.GetProjectList());
 set(handles.listbox_behavior,'Value',handles.projmanager.GetCurrentProject());
