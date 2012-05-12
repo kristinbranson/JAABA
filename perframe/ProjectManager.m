@@ -28,8 +28,8 @@ classdef ProjectManager < handle
         obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
-          uiwait(warndlg('Config file %s does not exist for project %s\n Removing the project',...
-            obj.projparams{ndx}.configfile,obj.projparams{ndx}.name));
+          uiwait(warndlg(sprintf('Config file %s does not exist for project %s\n Removing the project',...
+            obj.projparams(ndx).configfile,obj.projparams(ndx).name)));
           obj.projparams(ndx) = [];
         end
         
@@ -295,9 +295,9 @@ classdef ProjectManager < handle
       params = ReadXMLParams(featureconfigfile);
       allPfList = fieldnames(params.perframe);
       selected = false(numel(allPfList),1);
+      missing = {};
       curpf = obj.projparams(obj.curproj).pfList;
       if ~isempty(curpf),
-        missing = {};
         for ndx = 1:numel(curpf),
           allndx = find(strcmp(curpf{ndx},allPfList));
           if isempty(allndx)
