@@ -576,9 +576,6 @@ for i = axes,
     set(handles.guidata.hflies_extra(~inbounds,i),'XData',nan,'YData',nan);
     set(handles.guidata.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
-      % WARNING: this accesses handles.guidata.data.trx directly -- make sure that
-      % handles.guidata.data.trx is loaded for the correct movie
-      % REMOVED! NOT SO SLOW
 
       t = handles.guidata.ts(i);
       pos = handles.guidata.data.GetTrxPos1(handles.guidata.expi,fly,t);
@@ -3189,7 +3186,7 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 switch eventdata.Key,
   
   case 'leftarrow',
-    if strcmpi(eventdata.Modifier,'control'),
+    if any(strcmpi(eventdata.Modifier,{'control','command'})),
       menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
@@ -3198,7 +3195,7 @@ switch eventdata.Key,
     end
      
   case 'rightarrow',
-    if strcmpi(eventdata.Modifier,'control'),
+    if any(strcmpi(eventdata.Modifier,{'control','command'})),
       menu_go_next_bout_start_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);

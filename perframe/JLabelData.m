@@ -689,9 +689,9 @@ classdef JLabelData < handle
           end
         end
         if isfield(configparams.file,'rootoutputdir') && ~isempty(configparams.file.rootoutputdir),
-          [success1,msg] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
+          [success1,msg1] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
           if ~success1,
-            return;
+            uiwait(warndlg(msg1));
           end
         end
         if isfield(configparams.file,'featureconfigfile'),
@@ -1166,7 +1166,7 @@ classdef JLabelData < handle
           return;
         end
         if ~exist(rootoutputdir,'file'),
-          msg = sprintf('root output directory %s does not exist',rootoutputdir);
+          msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',rootoutputdir);
           success = false;
           return;
         end
@@ -2831,6 +2831,7 @@ classdef JLabelData < handle
       file = obj.GetPerframeFiles(expi);
       for j = 1:numel(obj.allperframefns),
         if ~exist(file{j},'file'),
+          success = false;
           msg = sprintf('Per-frame data file %s does not exist',file{j});
           return;
         end
