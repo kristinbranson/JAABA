@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<deployment-project>
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA_win" location="C:\Code\Jdetect\compiled" file="C:\Code\Jdetect\compiled\JAABA_win.prj" preferred-package-type="package.type.zip" build-checksum="1642181262" preferred-package-location="C:\Code\Jdetect\compiled">
+<deployment-project plugin="plugin.deploytool" plugin-version="1.0">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA_win" location="C:\Code\Jdetect\compiled" file="C:\Code\Jdetect\compiled\JAABA_win.prj" preferred-package-type="package.type.zip" build-checksum="2269620973" preferred-package-location="C:\Code\Jdetect\compiled">
     <param.project.name>C:\Code\Jdetect\compiled\JAABA_win.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA_win</param.appname>
@@ -29,8 +29,8 @@
     <param.share.mcr>false</param.share.mcr>
     <param.disable.jvm>false</param.disable.jvm>
     <param.disable.display>false</param.disable.display>
-    <param.create.log>false</param.create.log>
-    <param.log.file>C:\Users\bransonk\Desktop\JAABALog.txt</param.log.file>
+    <param.create.log>true</param.create.log>
+    <param.log.file>JAABALog.txt</param.log.file>
     <param.user.defined.mcr.options />
     <unset>
       <param.project.name />
@@ -53,13 +53,13 @@
       <param.share.mcr />
       <param.disable.jvm />
       <param.disable.display />
-      <param.create.log />
       <param.user.defined.mcr.options />
     </unset>
     <fileset.main>
       <file>C:\Code\Jdetect\perframe\StartJAABA_compiled.m</file>
     </fileset.main>
     <fileset.resources>
+      <file>${PROJECT_ROOT}\ParallelComputingConfiguration_Local_Win4.settings</file>
       <file>C:\Code\Jdetect\filehandling</file>
       <file>C:\Code\Jdetect\misc</file>
       <file>C:\Code\Jdetect\perframe\@Trx</file>
@@ -82,6 +82,7 @@
       <file>C:\Code\Jdetect\perframe\ComputeZscoreNeighborsWindowFeatures.m</file>
     </fileset.resources>
     <fileset.package>
+      <file>${PROJECT_ROOT}\ParallelComputingConfiguration_Local_Win4.settings</file>
       <file special-file="file.mcr" reference-mode="direct">${MATLAB_ROOT}\toolbox\compiler\deploy\win64\MCRInstaller.exe</file>
     </fileset.package>
     <build-deliverables>
@@ -90,11 +91,8 @@
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>C:\Program Files\MATLAB\R2011b</root>
+      <root>C:\Program Files\MATLAB\R2012a</root>
       <path>
-        <directory>C:\Code\Jdetect\perframe\compute_perframe_features</directory>
-        <directory>C:\Code\Jdetect\filehandling</directory>
-        <directory>C:\Code\Jdetect\misc</directory>
         <directory>C:\Users\bransonk\Documents\MATLAB</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>
@@ -129,8 +127,7 @@
         <directory>${MATLAB_ROOT}\toolbox\matlab\hds</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\guide</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\datamanager</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\simulink</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\instrument</directory>
+        <directory>${MATLAB_ROOT}\toolbox\matlab\optimfun</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\audiovideo</directory>
         <directory>${MATLAB_ROOT}\toolbox\bioinfo\bioinfo</directory>
         <directory>${MATLAB_ROOT}\toolbox\bioinfo\biolearning</directory>
@@ -176,6 +173,7 @@
         <directory>${MATLAB_ROOT}\toolbox\imaq\imaqblks\imaqmasks</directory>
         <directory>${MATLAB_ROOT}\toolbox\imaq\imaqblks\imaqmex</directory>
         <directory>${MATLAB_ROOT}\toolbox\imaq\imaqdemos</directory>
+        <directory>${MATLAB_ROOT}\toolbox\shared\instrument</directory>
         <directory>${MATLAB_ROOT}\toolbox\sam\m3i</directory>
         <directory>${MATLAB_ROOT}\toolbox\nnet</directory>
         <directory>${MATLAB_ROOT}\toolbox\nnet\nncontrol</directory>
@@ -208,12 +206,14 @@
         <directory>${MATLAB_ROOT}\toolbox\optim\optim</directory>
         <directory>${MATLAB_ROOT}\toolbox\optim\optimdemos</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\asynciolib</directory>
+        <directory>${MATLAB_ROOT}\toolbox\shared\coder\coder</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\controllib\general</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\controllib\graphics</directory>
+        <directory>${MATLAB_ROOT}\toolbox\shared\controllib\graphics\utils</directory>
+        <directory>${MATLAB_ROOT}\toolbox\shared\controllib\graphics\plotoptions</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\dastudio</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\dspblks\dspblks</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\dspblks\dspmex</directory>
-        <directory>${MATLAB_ROOT}\toolbox\shared\eml\eml</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\filterdesignlib</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\imageslib</directory>
         <directory>${MATLAB_ROOT}\toolbox\shared\imaqlib</directory>
@@ -229,11 +229,13 @@
         <directory>${MATLAB_ROOT}\toolbox\signal\sigtools</directory>
         <directory>${MATLAB_ROOT}\toolbox\signal\sptoolgui</directory>
         <directory>${MATLAB_ROOT}\toolbox\signal\sigdemos</directory>
+        <directory>${MATLAB_ROOT}\toolbox\shared\simulink</directory>
         <directory>${MATLAB_ROOT}\toolbox\stats\stats</directory>
         <directory>${MATLAB_ROOT}\toolbox\stats\classreg</directory>
         <directory>${MATLAB_ROOT}\toolbox\stats\statsdemos</directory>
         <directory>${MATLAB_ROOT}\toolbox\symbolic\symbolic</directory>
         <directory>${MATLAB_ROOT}\toolbox\symbolic\symbolicdemos</directory>
+        <directory>${MATLAB_ROOT}\toolbox\matlab\system</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\timeseries</directory>
       </path>
     </matlab>
