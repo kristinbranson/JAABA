@@ -788,7 +788,6 @@ if isnan(handles.guidata.zoom_fly_radius(1)),
   handles.guidata.zoom_fly_radius = nanmean([handles.guidata.data.trx.a])*20 + [0,0];
 end
 
-
 handles.guidata.expi = expi;
 
 ClearStatus(handles);
@@ -861,6 +860,7 @@ end
 
 % update plot
 UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
+ZoomInOnFlies(handles);
 
 for h = handles.guidata.axes_timeline_labels,
   zoom(h,'reset');
@@ -1722,11 +1722,11 @@ set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 handles.guidata.max_click_dist_preview = .025^2;
 
 % zoom state
-handles.guidata.preview_zoom_mode = 'center_on_fly';
+handles.guidata.preview_zoom_mode = 'follow_fly';
 handles.guidata.zoom_fly_radius = nan(1,2);
-handles.guidata.menu_view_zoom_options = findall(handles.menu_view_zoom,'Type','menu');
+handles.guidata.menu_view_zoom_options = findall(handles.menu_view_zoom,'Type','uimenu');
 set(handles.guidata.menu_view_zoom_options,'Checked','off');
-set(handles.menu_view_zoom_in_on_fly,'Checked','on');
+set(handles.menu_view_zoom_keep_target_in_view,'Checked','on');
 
 % last clicked object
 handles.guidata.selection_t0 = nan;
