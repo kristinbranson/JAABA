@@ -1540,7 +1540,7 @@ classdef JLabelData < handle
       sfn = obj.GetFile('scores',expi);
       if ~exist(sfn,'file')
         warndlg(sprintf('No scores file %s at the default location',...
-          scoreFileName));
+          sfn));
       end
       obj.LoadScores(expi,sfn);
     end
@@ -4235,6 +4235,7 @@ classdef JLabelData < handle
       
       obj.SetStatus('Classifying current movie..');
       
+      warnfig = warndlg(sprintf('Classifying movie %s',obj.expnames{expi}),'Classifying movie','replace');
       parfor flies = 1:numFlies
         blockSize = 5000;
         tStart = tStartAll(flies);
@@ -4250,9 +4251,11 @@ classdef JLabelData < handle
           scores(curt0:curt1) = myBoostClassify(X,classifier);
         end
         scoresA{flies} = scores;
-        fprintf('Prediction done for flynum:%d, total number of flies:%d\n',flies,numFlies);
+        warnstr = sprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
+        warndlg(warnstr,'Classifying movie','replace');
       end
       
+      if ishandle(warnfig), delete(warnfig); end
       allScores = struct;
       allScores.scores = scoresA;
       allScores.tStart = tStartAll;
