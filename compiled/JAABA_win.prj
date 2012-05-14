@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA_win" location="C:\Code\Jdetect\compiled" file="C:\Code\Jdetect\compiled\JAABA_win.prj" preferred-package-type="package.type.zip" build-checksum="2269620973" preferred-package-location="C:\Code\Jdetect\compiled">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA_win" location="C:\Code\Jdetect\compiled" file="C:\Code\Jdetect\compiled\JAABA_win.prj" preferred-package-type="package.type.zip" build-checksum="3880708833" preferred-package-location="C:\Code\Jdetect\compiled">
     <param.project.name>C:\Code\Jdetect\compiled\JAABA_win.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA_win</param.appname>
@@ -80,10 +80,13 @@
       <file>C:\Code\Jdetect\perframe\ComputeStdWindowFeatures.m</file>
       <file>C:\Code\Jdetect\perframe\ComputeWindowFeatures.m</file>
       <file>C:\Code\Jdetect\perframe\ComputeZscoreNeighborsWindowFeatures.m</file>
+      <file>C:\Code\Jdetect\perframe\JAABASplashScreen.fig</file>
+      <file>C:\Code\Jdetect\perframe\janelia_logo.png</file>
+      <file>C:\Code\Jdetect\perframe\version.txt</file>
     </fileset.resources>
     <fileset.package>
       <file>${PROJECT_ROOT}\ParallelComputingConfiguration_Local_Win4.settings</file>
-      <file special-file="file.mcr" reference-mode="direct">${MATLAB_ROOT}\toolbox\compiler\deploy\win64\MCRInstaller.exe</file>
+      <file>${PROJECT_ROOT}\params</file>
     </fileset.package>
     <build-deliverables>
       <file name="JAABA_win.exe" location="${PROJECT_ROOT}\JAABA_win\distrib" optional="false">C:\Code\Jdetect\compiled\JAABA_win\distrib\JAABA_win.exe</file>
@@ -93,6 +96,9 @@
     <matlab>
       <root>C:\Program Files\MATLAB\R2012a</root>
       <path>
+        <directory>C:\Code\Jdetect\perframe\compute_perframe_features</directory>
+        <directory>C:\Code\Jdetect\filehandling</directory>
+        <directory>C:\Code\Jdetect\misc</directory>
         <directory>C:\Users\bransonk\Documents\MATLAB</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>
