@@ -4999,6 +4999,55 @@ classdef JLabelData < handle
       obj.GTSuggestionMode = 'Loaded';
     end
     
+    function SaveSuggestionGT(obj,expi,filename)
+      fid = fopen(filename,'w');
+      switch obj.GTSuggestionMode
+        
+        case 'Random'
+          start = obj.randomGTSuggestions{expi}(fly).start;
+          last = obj.randomGTSuggestions{expi}(fly).end;
+          for fly = 1:obj.nflies_per_exp(expi)
+            fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,start,last);
+          end
+          
+        case 'Threshold'
+          if ~isempty(obj.scoredata.scores)
+            for fly = 1:obj.nflies_per_exp(expi)
+              idxcurr = obj.scoredata.exp(:) == expi & ...
+                obj.scoredata.flies(:) == fly & ...
+                obj.scoredata.t(:) >=T0 & ...
+                obj.scoredata.t(:) <=T1;
+              T0 = obj.GetTrxFirstFrame(expi,fly);
+              T1 = obj.GetTrxEndFrame(expi,fly);
+              suggestedidx = zeros(1,T1);
+              suggestedidx( obj.scoredata.t(idxcurr)) = ...
+                obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+                -obj.thresholdGTSuggestions;
+              [t0s t1s] = get_interval_ends(suggestedidx);
+              for ndx = 1:numel(t0s)
+                if t1s(ndx)< T0, continue ; end
+                fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,t0s(ndx),t1s(ndx));
+              end
+            end
+          end
+          
+          
+        case 'Balanced'
+
+          for ndx = 1:numel(obj.balancedGTSuggestions)
+            if obj.balancedGTSuggestions(ndx).exp ~= expi
+              continue;
+            end
+            start = obj.balancedGTSuggestions(ndx).start;
+            last = obj.balancedGTSuggestions(ndx).end;
+            fprintf(fid,'fly:%d,start:%d,end:%d\n',...
+              obj.balancedGTSuggestions(ndx).flies,start,last);
+          end
+          
+      end
+      fclose(fid);
+    end
+    
     function SuggestThresholdGT(obj,threshold)
       obj.thresholdGTSuggestions = threshold;
       obj.GTSuggestionMode = 'Threshold';
