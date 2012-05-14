@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 07-May-2012 20:54:33
+% Last Modified by GUIDE v2.5 13-May-2012 14:08:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -43,6 +43,13 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+function SetSplashStatus(hsplashstatus,varargin)
+
+if ishandle(hsplashstatus),
+  set(hsplashstatus,'String',sprintf(varargin{:}));
+else
+  fprintf([varargin{1},'\n'],varargin{2:end});
+end
 
 % --- Executes just before JLabel is made visible.
 function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
@@ -58,12 +65,21 @@ handles.guidata = JLabelGUIData();
 [handles.guidata.classifierfilename,...
   handles.guidata.configfilename,...
   handles.guidata.defaultpath,...
-  handles.guidata.isgroundtruthmode] = ...
+  handles.guidata.isgroundtruthmode,...
+  handles.guidata.hsplash,...
+  handles.guidata.hsplashstatus] = ...
   myparse(varargin,...
   'classifierfilename','',...
   'configfilename','',...
   'defaultpath','',...
-  'groundtruthmode',false);
+  'groundtruthmode',false,...
+  'hsplash',[],...
+  'hsplashstatus',[]);
+
+if isempty(handles.guidata.hsplash),
+  [handles.guidata.hsplash,handles.guidata.hsplashstatus] = JAABASplashScreen();
+end
+SetSplashStatus(handles.guidata.hsplashstatus,'Initializing Edit Files GUI...');
 
 handles.output = handles.figure_JLabel;
 % initialize statusbar
@@ -75,7 +91,8 @@ handles.guidata.movie_height = 100;
 handles.guidata.movie_width = 100;
 ClearStatus(handles);
 
-[handles,success] = JLabelEditFiles('JLabelHandle',handles);
+[handles,success] = JLabelEditFiles('JLabelHandle',handles,...
+  'JLabelSplashHandle',handles.guidata.hsplash);
 
 if ~success,
   guidata(hObject,handles);
@@ -5925,3 +5942,95 @@ function menu_view_zoom_showwholevideo_Callback(hObject, eventdata, handles)
 % set to static view
 menu_view_zoom_static_Callback(hObject, eventdata, handles);
 ShowWholeVideo(handles);
+
+
+% --------------------------------------------------------------------
+function menu_file_package_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_package_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isempty(handles.guidata.data.expdirs),
+  uiwait(warndlg('No label data to package'));
+  return;
+end
+
+inlabelfilenames = {};
+outlabelfilestrs = {};
+labelfilestr = handles.guidata.data.GetFileName('label');
+gtlabelfilestr = handles.guidata.data.GetFileName('gt_label');
+for i = 1:handles.guidata.data.nexps,
+  [~,expname] = myfileparts(handles.guidata.data.expdirs{i});
+  inlabelfilename = handles.guidata.data.GetFile('label',i);
+  if exist(inlabelfilename,'file')
+    inlabelfilenames{end+1} = inlabelfilename; %#ok<AGROW>
+    outlabelfilestrs{end+1} = sprintf('%s_%s',expname,labelfilestr); %#ok<AGROW>
+  end
+  inlabelfilename = handles.guidata.data.GetFile('gt_label',i);
+  if exist(inlabelfilename,'file')
+    inlabelfilenames{end+1} = inlabelfilename; %#ok<AGROW>
+    outlabelfilestrs{end+1} = sprintf('%s_%s',expname,gtlabelfilestr); %#ok<AGROW>
+  end
+end
+
+if isempty(inlabelfilenames),
+  uiwait(warndlg('No label data to package'));
+  return;
+end
+
+% choose an output directory
+if ~isempty(handles.guidata.packageoutputdir),
+  [outparentdir,packagename] = myfileparts(handles.guidata.packageoutputdir);
+else
+  if ~isempty(handles.guidata.expi) && handles.guidata.expi > 0,
+    outparentdir = myfileparts(handles.guidata.data.expdirs{handles.guidata.expi});
+  else
+    outparentdir = myfileparts(handles.guidata.data.expdirs{1});
+  end
+  packagename = sprintf('LastName_FirstName_%s_%s',handles.guidata.configparams.behaviors.names,datestr(now,'yyyymmddTHHMMSS'));
+end
+outparentdir = uigetdir(outparentdir,'Choose parent directory to output label package to');
+if ~ischar(outparentdir),
+  return;
+end
+if ~exist(outparentdir,'dir'),
+  try
+    [success,msg] = mkdir(outparentdir);
+    if ~success,
+      error(msg);
+    end
+  catch ME,
+    errordlg(sprintf('Error making directory %s: %s',outparentdir,getReport(ME)));
+    return;
+  end
+end
+options.Resize='on';
+res = inputdlg({'Package name'},'Choose a name for the package directory',1,{packagename},options);
+if isempty(res),
+  return;
+end
+packagename = res{1};
+outdir = fullfile(outparentdir,packagename);
+if ~exist(outdir,'dir'),
+  try
+    [success,msg] = mkdir(outdir);
+    if ~success,
+      error(msg);
+    end
+  catch ME,
+    errordlg(sprintf('Error making directory %s: %s',outdir,getReport(ME)));
+    return;
+  end
+end
+
+for i = 1:numel(inlabelfilenames),
+  try
+    [success,msg] = copyfile(inlabelfilenames{i},fullfile(outdir,outlabelfilestrs{i}));
+    if ~success,
+      error(msg);
+    end
+  catch ME,
+    errordlg(sprintf('Error copying file %s to %s: %s',inlabelfilenames{i},fullfile(outdir,outlabelfilestrs{i})),getReport(ME));
+  end
+end
+handles.guidata.packageoutputdir = outdir;

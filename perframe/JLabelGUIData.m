@@ -5,6 +5,7 @@ classdef JLabelGUIData < handle
     classifierfilename = '';
     configfilename = '';
     defaultpath = '';
+    packageoutputdir = '';
     
     isgroundtruthmode = false;
     
@@ -28,6 +29,9 @@ classdef JLabelGUIData < handle
     axes_timeline_labels = [];
     text_timeline_props = [];
     text_timelines = [];
+    
+    hsplash = [];
+    hsplashstatus = [];
 
     guipos = struct;
 
