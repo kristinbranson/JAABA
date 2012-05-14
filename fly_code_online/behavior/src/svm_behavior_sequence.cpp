@@ -1063,7 +1063,7 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 				for(i = 0; i < y->num_bouts[beh]; i++) {
 					class_training_count[beh][y->bouts[beh][i].behavior]++;
 					if(i)
-						class_training_transitions[beh][y->bouts[beh][i].behavior][y->bouts[beh][i-1].behavior]++;
+						class_training_transitions[beh][y->bouts[beh][i-1].behavior][y->bouts[beh][i].behavior]++;
 				}
 			}	 
 		} 
@@ -1301,11 +1301,11 @@ void SVMBehaviorSequence::update_transition_counts_with_partial_label(int beh, B
       if(!class_training_count[beh][c])
         class_training_count[beh][c]++;
       if(c >= 0 && c_p >= 0) {
-        for(j = 0; j < class_training_transitions_count[beh][c]; j++)
-          if(class_training_transitions[beh][c][j] == c_p)
+        for(j = 0; j < class_training_transitions_count[beh][c_p]; j++)
+          if(class_training_transitions[beh][c_p][j] == c)
             break;
-        if(j == class_training_transitions_count[beh][c])
-          class_training_transitions[beh][c][class_training_transitions_count[beh][c]++] = c_p;
+        if(j == class_training_transitions_count[beh][c_p])
+          class_training_transitions[beh][c_p][class_training_transitions_count[beh][c_p]++] = c;
       }
     }
   }

@@ -115,7 +115,7 @@ typedef struct _BehaviorBout {
   double transition_score;  /**< the component of the bout score due to transitioning from the previous behavior class to the class of this bout */
   double loss_fn;  /**< the loss associated with missing detection of some behavior bout(s) that overlap with this bout */
   double loss_fp;  /**< the loss associated with predicting this bout incorrectly */
-  double extreme_vals[2][NUMFEAT];
+  //double extreme_vals[2][NUMFEAT];
 } BehaviorBout;
 
 
