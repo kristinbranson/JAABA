@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 13-May-2012 14:08:59
+% Last Modified by GUIDE v2.5 14-May-2012 09:27:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -419,7 +419,6 @@ set(handles.guidata.htrx,'EraseMode','none');
 set(handles.guidata.hfly_markers,'EraseMode','none');
 
 handles = UpdateGUIGroundTruthMode(handles);
-
 
 %for i = 1:numel(handles.guidata.axes_timelines),
 %  setAxesZoomMotion(handles.guidata.hzoom,handles.guidata.axes_timelines(i),'horizontal');
@@ -1337,8 +1336,10 @@ else
   oldexpdir = '';
 end
 
+DisableGUI(handles);
 [handles,success] = ...
   JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
+ReEnableGUI(handles);
 
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
@@ -2312,6 +2313,7 @@ if get(hObject,'Value'),
    set(handles.menu_edit,'enable','off');
    set(handles.menu_go,'enable','off');
    set(handles.menu_classifier,'enable','off');
+   set(handles.pushbutton_train,'Enable','off');
    
 else % label pen is up.
   
@@ -2351,10 +2353,12 @@ else % label pen is up.
   set(handles.togglebutton_label_unknown,'Value',0,'Enable','on');
   %set(handles.guidata.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.guidata.data.labelnames{behaviori}));
 
-   set(handles.menu_file,'enable','on');
-   set(handles.menu_edit,'enable','on');
-   set(handles.menu_go,'enable','on');
-   set(handles.menu_classifier,'enable','on');
+  set(handles.menu_file,'enable','on');
+  set(handles.menu_edit,'enable','on');
+  set(handles.menu_go,'enable','on');
+  set(handles.menu_classifier,'enable','on');
+  set(handles.pushbutton_train,'Enable','on');
+
 
 end
 
@@ -2713,6 +2717,11 @@ function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % WARNING: this function directly accesses handles.guidata.data.trx make sure
 % that we've preloaded the right experiment and flies. 
 % REMOVED!
+
+if ~handles.guidata.enabled,
+  return;
+end
+
 if handles.guidata.expi ~= handles.guidata.data.expi,
   handles.guidata.data.Preload(handles.guidata.expi,handles.guidata.flies);
 end
@@ -2752,6 +2761,10 @@ guidata(hObject,handles);
 function fly_ButtonDownFcn(hObject, eventdata, handles, fly, i)
 
 % TODO: figure out how to do this when multiple flies define a behavior
+
+if ~handles.guidata.enabled,
+  return;
+end
 
 % check for double click
 if ~strcmpi(get(handles.figure_JLabel,'SelectionType'),'open') || ...
@@ -2820,6 +2833,10 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to axes_timeline_manual (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if ~handles.guidata.enabled,
+  return;
+end
 
 pt = get(hObject,'CurrentPoint');
 t = min(max(handles.guidata.t0_curr,round(pt(1,1))),handles.guidata.t1_curr);%nframes);
@@ -3202,6 +3219,10 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 %	Character: character interpretation of the key(s) that was pressed
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
+
+if ~handles.guidata.enabled,
+  return;
+end
 
 switch eventdata.Key,
   
@@ -4158,6 +4179,10 @@ function figure_JLabel_WindowButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if ~handles.guidata.enabled,
+  return;
+end
 
 hchil = gco;
 if ismember(hchil,handles.guidata.axes_timelines),
@@ -6034,3 +6059,14 @@ for i = 1:numel(inlabelfilenames),
   end
 end
 handles.guidata.packageoutputdir = outdir;
+
+function DisableGUI(handles)
+
+handles.guidata.henabled = findall(handles.figure_JLabel,'Enable','on');
+handles.guidata.enabled = false;
+set(handles.guidata.henabled,'Enable','off');
+
+function ReEnableGUI(handles)
+
+handles.guidata.enabled = true;
+set(handles.guidata.henabled,'Enable','on');
