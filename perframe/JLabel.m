@@ -4130,13 +4130,11 @@ function PostZoomCallback(hObject,eventdata,handles)
 timelinei = find(eventdata.Axes == handles.guidata.axes_timelines,1);
 previewi = find(eventdata.Axes == handles.guidata.axes_previews,1);
 if ~isempty(timelinei),
-  for propj = 1:numel(handles.guidata.perframepropis),
-    prop = handles.guidata.perframepropis(propj);
-    ylim = get(eventdata.Axes,'YLim');
-    handles.guidata.timeline_data_ylims(:,prop) = ylim;
-    ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
-    set(handles.guidata.hselection(propj),'YData',ydata([1,2,2,1,1]));
-  end
+  prop = handles.guidata.perframepropis(timelinei);
+  ylim = get(eventdata.Axes,'YLim');
+  handles.guidata.timeline_data_ylims(:,prop) = ylim;
+  ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
+  set(handles.guidata.hselection(timelinei),'YData',ydata([1,2,2,1,1]));
   guidata(eventdata.Axes,handles);
 elseif ismember(eventdata.Axes,handles.guidata.axes_timeline_labels),
   xlim = get(eventdata.Axes,'XLim');
