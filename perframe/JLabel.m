@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 14-May-2012 11:40:49
+% Last Modified by GUIDE v2.5 14-May-2012 16:16:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -3210,6 +3210,19 @@ for i = 1:numel(hchil),
 end
 set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
 
+% --- Executes on key release with focus on figure_JLabel and none of its controls.
+function figure_JLabel_KeyReleaseFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was released, in lower case
+%	Character: character interpretation of the key(s) that was released
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
+% handles    structure with handles and user data (see GUIDATA)
+switch eventdata.Key,
+  case 'space',
+    pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
+end
+
 % --- Executes on key press with focus on figure_JLabel and none of its controls.
 function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -3249,9 +3262,6 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
-  case 'space',
-    pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
-    
   case 't',
     if strcmpi(eventdata.Modifier,'control') && ~handles.guidata.data.IsGTMode(),
       pushbutton_train_Callback(hObject,eventdata,handles);
@@ -6088,3 +6098,5 @@ outfile = fullfile(expdir,'GTSuggestions.txt');
 if isempty(fname), return; end;
 outfile = fullfile(pname,fname);
 handles.guidata.data.SaveSuggestionGT(expi,outfile);
+
+
