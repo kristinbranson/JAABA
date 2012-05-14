@@ -689,9 +689,9 @@ classdef JLabelData < handle
           end
         end
         if isfield(configparams.file,'rootoutputdir') && ~isempty(configparams.file.rootoutputdir),
-          [success1,msg] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
+          [success1,msg1] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
           if ~success1,
-            return;
+            uiwait(warndlg(msg1));
           end
         end
         if isfield(configparams.file,'featureconfigfile'),
@@ -1166,7 +1166,7 @@ classdef JLabelData < handle
           return;
         end
         if ~exist(rootoutputdir,'file'),
-          msg = sprintf('root output directory %s does not exist',rootoutputdir);
+          msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',rootoutputdir);
           success = false;
           return;
         end
@@ -1540,7 +1540,7 @@ classdef JLabelData < handle
       sfn = obj.GetFile('scores',expi);
       if ~exist(sfn,'file')
         warndlg(sprintf('No scores file %s at the default location',...
-          scoreFileName));
+          sfn));
       end
       obj.LoadScores(expi,sfn);
     end
@@ -2859,6 +2859,7 @@ classdef JLabelData < handle
       file = obj.GetPerframeFiles(expi);
       for j = 1:numel(obj.allperframefns),
         if ~exist(file{j},'file'),
+          success = false;
           msg = sprintf('Per-frame data file %s does not exist',file{j});
           return;
         end
@@ -4234,6 +4235,7 @@ classdef JLabelData < handle
       
       obj.SetStatus('Classifying current movie..');
       
+      warnfig = warndlg(sprintf('Classifying movie %s',obj.expnames{expi}),'Classifying movie','replace');
       parfor flies = 1:numFlies
         blockSize = 5000;
         tStart = tStartAll(flies);
@@ -4249,9 +4251,11 @@ classdef JLabelData < handle
           scores(curt0:curt1) = myBoostClassify(X,classifier);
         end
         scoresA{flies} = scores;
-        fprintf('Prediction done for flynum:%d, total number of flies:%d\n',flies,numFlies);
+        warnstr = sprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
+        warndlg(warnstr,'Classifying movie','replace');
       end
       
+      if ishandle(warnfig), delete(warnfig); end
       allScores = struct;
       allScores.scores = scoresA;
       allScores.tStart = tStartAll;
@@ -4996,6 +5000,55 @@ classdef JLabelData < handle
         end
       end
       obj.GTSuggestionMode = 'Loaded';
+    end
+    
+    function SaveSuggestionGT(obj,expi,filename)
+      fid = fopen(filename,'w');
+      switch obj.GTSuggestionMode
+        
+        case 'Random'
+          start = obj.randomGTSuggestions{expi}(fly).start;
+          last = obj.randomGTSuggestions{expi}(fly).end;
+          for fly = 1:obj.nflies_per_exp(expi)
+            fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,start,last);
+          end
+          
+        case 'Threshold'
+          if ~isempty(obj.scoredata.scores)
+            for fly = 1:obj.nflies_per_exp(expi)
+              idxcurr = obj.scoredata.exp(:) == expi & ...
+                obj.scoredata.flies(:) == fly & ...
+                obj.scoredata.t(:) >=T0 & ...
+                obj.scoredata.t(:) <=T1;
+              T0 = obj.GetTrxFirstFrame(expi,fly);
+              T1 = obj.GetTrxEndFrame(expi,fly);
+              suggestedidx = zeros(1,T1);
+              suggestedidx( obj.scoredata.t(idxcurr)) = ...
+                obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+                -obj.thresholdGTSuggestions;
+              [t0s t1s] = get_interval_ends(suggestedidx);
+              for ndx = 1:numel(t0s)
+                if t1s(ndx)< T0, continue ; end
+                fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,t0s(ndx),t1s(ndx));
+              end
+            end
+          end
+          
+          
+        case 'Balanced'
+
+          for ndx = 1:numel(obj.balancedGTSuggestions)
+            if obj.balancedGTSuggestions(ndx).exp ~= expi
+              continue;
+            end
+            start = obj.balancedGTSuggestions(ndx).start;
+            last = obj.balancedGTSuggestions(ndx).end;
+            fprintf(fid,'fly:%d,start:%d,end:%d\n',...
+              obj.balancedGTSuggestions(ndx).flies,start,last);
+          end
+          
+      end
+      fclose(fid);
     end
     
     function SuggestThresholdGT(obj,threshold)

@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 14-May-2012 09:27:28
+% Last Modified by GUIDE v2.5 14-May-2012 16:16:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -592,9 +592,6 @@ for i = axes,
     set(handles.guidata.hflies_extra(~inbounds,i),'XData',nan,'YData',nan);
     set(handles.guidata.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
-      % WARNING: this accesses handles.guidata.data.trx directly -- make sure that
-      % handles.guidata.data.trx is loaded for the correct movie
-      % REMOVED! NOT SO SLOW
 
       t = handles.guidata.ts(i);
       pos = handles.guidata.data.GetTrxPos1(handles.guidata.expi,fly,t);
@@ -2587,6 +2584,7 @@ if get(hObject,'Value'),
   set(handles.menu_edit,'enable','off');
   set(handles.menu_go,'enable','off');
   set(handles.menu_classifier,'enable','off');
+  set(handles.pushbutton_train,'Enable','off');
   
 
   
@@ -2647,6 +2645,7 @@ else
   set(handles.menu_edit,'enable','on');
   set(handles.menu_go,'enable','on');
   set(handles.menu_classifier,'enable','on');
+  set(handles.pushbutton_train,'Enable','off');
    
 end
 
@@ -3211,6 +3210,19 @@ for i = 1:numel(hchil),
 end
 set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
 
+% --- Executes on key release with focus on figure_JLabel and none of its controls.
+function figure_JLabel_KeyReleaseFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was released, in lower case
+%	Character: character interpretation of the key(s) that was released
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
+% handles    structure with handles and user data (see GUIDATA)
+switch eventdata.Key,
+  case 'space',
+    pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
+end
+
 % --- Executes on key press with focus on figure_JLabel and none of its controls.
 function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -3227,7 +3239,7 @@ end
 switch eventdata.Key,
   
   case 'leftarrow',
-    if strcmpi(eventdata.Modifier,'control'),
+    if ~isempty(eventdata.Modifier) && any(strcmpi(eventdata.Modifier,{'control','command'})),
       menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
@@ -3236,7 +3248,7 @@ switch eventdata.Key,
     end
      
   case 'rightarrow',
-    if strcmpi(eventdata.Modifier,'control'),
+    if ~isempty(eventdata.Modifier) && any(strcmpi(eventdata.Modifier,{'control','command'})),
       menu_go_next_bout_start_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
@@ -3250,9 +3262,6 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
-  case 'space',
-    pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
-    
   case 't',
     if strcmpi(eventdata.Modifier,'control') && ~handles.guidata.data.IsGTMode(),
       pushbutton_train_Callback(hObject,eventdata,handles);
@@ -5888,6 +5897,13 @@ set(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_balanced,'Checked','on');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
 
@@ -6068,3 +6084,19 @@ function ReEnableGUI(handles)
 
 handles.guidata.enabled = true;
 set(handles.guidata.henabled,'Enable','on');
+
+
+% --------------------------------------------------------------------
+function menu_file_save_suggestions_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_suggestions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+expi = handles.guidata.expi;
+expdir = handles.guidata.data.expdirs{expi};
+outfile = fullfile(expdir,'GTSuggestions.txt');
+[fname,pname] = uiputfile('*.txt','Save Ground Truth Suggestions',outfile);
+if isempty(fname), return; end;
+outfile = fullfile(pname,fname);
+handles.guidata.data.SaveSuggestionGT(expi,outfile);
+
+
