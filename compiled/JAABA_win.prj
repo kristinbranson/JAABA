@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA_win" location="C:\Code\Jdetect\compiled" file="C:\Code\Jdetect\compiled\JAABA_win.prj" preferred-package-type="package.type.zip" build-checksum="2792206289" preferred-package-location="C:\Code\Jdetect\compiled">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA_win" location="C:\Code\Jdetect\compiled" file="C:\Code\Jdetect\compiled\JAABA_win.prj" preferred-package-type="package.type.zip" build-checksum="3880708833" preferred-package-location="C:\Code\Jdetect\compiled">
     <param.project.name>C:\Code\Jdetect\compiled\JAABA_win.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA_win</param.appname>
