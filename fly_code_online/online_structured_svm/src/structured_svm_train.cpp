@@ -170,6 +170,8 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
   if(cache_old_examples) {
     n = trainset->num_examples;
     SetSumWScale(lambda*n);
+    if(initial_sample_set)
+      OptimizeAllConstraints(10);
   }
   //window = n;
 
@@ -833,8 +835,8 @@ void StructuredSVM::RecomputeWeights(bool full) {
 void StructuredSVM::OptimizeAllConstraints(int num_iter) {
   for(int i = 0; i < num_iter; i++) {
     for(int j = 0; j < n; j++)
-      UpdateWeights(trainset->examples[i]->set, j);
-    RecomputeWeights();
+      UpdateWeights(trainset->examples[j]->set, j);
+    //RecomputeWeights();
   }
 }
 void StructuredSVM::SetLambda(double l, int num_iter) {
@@ -1605,12 +1607,16 @@ void StructuredSVM::LoadCachedExamples(const char *fname, bool loadFull) {
   if(fin) {
     long n2;
     int b = fread(&n2, sizeof(long), 1, fin); assert(b);
+    if(!n) n = n2;
     assert(n2 == n);
     for(i = 0; i < n; i++) {
       bool b;
       fread(&b, sizeof(bool), 1, fin);
-      if(b)
+      if(b) {
 	trainset->examples[i]->set = read_SVM_cached_sample_set(fin, this, trainset->examples[i]->x, loadFull);
+	SVM_cached_sample_set_compute_features(trainset->examples[i]->set, trainset->examples[i]);
+	OnFinishedIteration(trainset->examples[i]->x, trainset->examples[i]->y);
+      }
     }
     fclose(fin);
   }

@@ -65,6 +65,8 @@ extern const char *bout_feature_names[]; // initialized in svm_struct_api_behavi
 #define USE_END_AVE_ABSOLUTE_DIFF_HAAR_FEATURES 37
 #define USE_START_AVE_DIFF_HAAR_FEATURES 38
 #define USE_END_AVE_DIFF_HAAR_FEATURES 39
+#define USE_UNARY_FEATURE 40
+#define USE_BOUT_DURATIONS 41
 
 
 struct _BehaviorGroups;
@@ -236,9 +238,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   double **max_thresholds;  /**< A num_base_featuresXfeature_params[i]->num_histogram_bins defining a set of thresholds for checking if the max of a given feature is below a given threshold */
   int min_bout_duration;  /**< The minimum length (in frames of a behavior bout) */
   bool **restrict_behavior_features[MAX_BEHAVIOR_GROUPS];  /**< Untested: A behaviors->numXnum_classes[i]Xnum_features defining which bout-level features to use on a per-behavior basis.  Intended to allow different features to be used for different behaviors. */
-  
-  bool compactUnaryCosts; /* CSC: true iff case Unary costs are stored as same transition costs (and no further weights are given) */
-  bool extraUnaryCosts; /* CSC: true iff case Unary costs are given in addition to same transition costs; equals !compactUnaryCosts but explicitely given for sanity checks (CHECK THE ASSIGNMENT WHENEVER ADDITIONAL WEIGHTS (other than feature & transition weights) ARE ADDED) */
+  int max_inference_learning_frames;   // Speeds up Inference() during train-time.  Only consider starting and ending bouts at max_inference_learning_frames randomly chosen time frames
 
   char debugdir[400];
   bool debug_predictions, debug_weights, debug_features, debug_model;
@@ -311,7 +311,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   double loss2(StructuredLabel *y_gt,  StructuredLabel *y_pred, int beh, int debug);
 
 
-  double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, bool fast_update=false, double extreme_vals[2][NUMFEAT]=NULL, int start_prev = 0, int end_prev = 0);
+  double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, bool fast_update=false);
   void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true); 
   void compute_feature_mean_variance_median_statistics(StructuredDataset *dataset);
   int compute_feature_space_size();
@@ -330,6 +330,17 @@ class SVMBehaviorSequence : public StructuredSVM {
 
   friend class BehaviorBoutFeatures;
   friend class BehaviorBoutSequence;
+
+ private:
+  void init_bout_label(BehaviorBoutSequence *ybar, BehaviorBoutSequence *y);
+  double compute_updated_bout_loss(BehaviorBoutFeatures *b, BehaviorBoutSequence *y, int beh, int T, int t_p, int t, int c_prev, double *fn, int *gt_bout, double *dur_gt, double &loss_fp, double &loss_fn);
+  void update_transition_counts_with_partial_label(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
+  void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, double *unary_weights, int T);
+  bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev, int &restrict_c_next);
+  void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double loss_fn, double loss_fp);
+  void restore_transition_counts(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
+  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
+  bool *get_allowable_frame_times(BehaviorBoutSequence *y_gt, BehaviorBoutSequence *y_partial, int T);
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);

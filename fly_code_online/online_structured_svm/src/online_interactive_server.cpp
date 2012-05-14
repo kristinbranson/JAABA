@@ -539,7 +539,7 @@ int StructuredLearnerRpc::main(int argc, const  char **argv) {
   int retval = -1;
   if(!runServer) {
     if(strlen(trainfile)) {  
-      learner->Train(strlen(outfile) ? outfile : NULL, false);
+      learner->Train(strlen(outfile) ? outfile : NULL, false, strlen(initial_sample_set) ? initial_sample_set : NULL);
       if(strlen(plotfile)) {
 	Json::Value params, response;
 	params["plot_name"] = plotfile;
