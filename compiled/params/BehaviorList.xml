@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <behaviors>
-   <FlyBowl_Chase configfile="params\FlyBowl_Chase_params.xml"/>
+   <FlyBowl_Chase configfile="params/FlyBowl_Chase_params.xml"/>
 </behaviors>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Chase"/>
-   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params\WindowFeatures_Chase.xml" gt_labelfilename="labeledChases_gt.mat" labelfilename="labeledChases.mat" moviefilename="movie.ufmf" perframedir="perframe" scorefilename="scoresChase.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_Chase.xml" gt_labelfilename="labeledChases_gt.mat" labelfilename="labeledChases.mat" moviefilename="movie.ufmf" perframedir="perframe" scorefilename="scoresChase.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <JLabelMode mode="advanced"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
