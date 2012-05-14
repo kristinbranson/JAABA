@@ -32,6 +32,9 @@ classdef JLabelGUIData < handle
     
     hsplash = [];
     hsplashstatus = [];
+    henabled = [];
+    
+    enabled = true;
 
     guipos = struct;
 
