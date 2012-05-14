@@ -1227,9 +1227,7 @@ void SVMBehaviorSequence::init_bout_label(BehaviorBoutSequence *ybar, BehaviorBo
   if(y) {
     ybar->features = y->features;
     ybar->behaviors = y->behaviors;
-#if DEBUG > 0
     y->score = 0;
-#endif
   }
 }
 
