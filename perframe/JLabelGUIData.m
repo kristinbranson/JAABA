@@ -162,6 +162,8 @@ classdef JLabelGUIData < handle
 
     current_interval = [];
     didclearselection = false;
+    
+    open_peripherals = [];
         
   end
      
