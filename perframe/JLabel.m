@@ -2181,6 +2181,12 @@ end
 % catch %#ok<CTCH>
 % end
 % SWITCH THIS
+for ndx = 1:numel(handles.guidata.open_peripherals)
+  if ishandle(handles.guidata.open_peripherals(ndx)),
+    delete(handles.guidata.open_peripherals(ndx));
+  end
+end
+
 if true,
   SaveRC(handles);
   delete(handles.figure_JLabel);
@@ -2645,7 +2651,7 @@ else
   set(handles.menu_edit,'enable','on');
   set(handles.menu_go,'enable','on');
   set(handles.menu_classifier,'enable','on');
-  set(handles.pushbutton_train,'Enable','off');
+  set(handles.pushbutton_train,'Enable','on');
    
 end
 
@@ -2932,13 +2938,13 @@ end
 set(handles.text_status,'ForegroundColor',color,'String',s);
 
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
-  msgbox(s,'JLabel Status','modal');
+  msgbox(s,'JAABA Status','modal');
 end
 
 function ClearStatus(handles)
 
 set(handles.text_status,'ForegroundColor',handles.guidata.idlestatuscolor,'String',handles.guidata.status_bar_text);
-h = findall(0,'Type','figure','Name','JLabel Status');
+h = findall(0,'Type','figure','Name','JAABA Status');
 if ~isempty(h), delete(h(ishandle(h))); end
 
 
@@ -3413,6 +3419,7 @@ if isfield(handles,'figure_NavigationPreferences') && ishandle(handles.figure_Na
   figure(handles.figure_NavigationPreferences);
 else
   handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel,handles.guidata.NJObj);
+  handles.guidata.open_peripherals(end+1) = handles.figure_NavigationPreferences;
   guidata(hObject,handles);
 end
 
@@ -5128,7 +5135,9 @@ function crossValidate_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.data.StoreLabels();
-[crossError tlabels] = handles.guidata.data.CrossValidate();
+[success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
+
+if ~success, warndlg(ms); return; end;
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
@@ -5183,10 +5192,12 @@ for col = 1:3
   end
 end
         
-f = figure('Position',[200 200 500 200],'Name','Cross Validation Error');
+f = figure('Position',[200 200 550 240],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
+            'ColumnWidth',{100},...
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
+handles.guidata.open_peripherals(end+1) = f;          
 if numel(crossError)>1
   for tndx = 1:numel(crossError)
     errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);
@@ -5203,6 +5214,7 @@ if numel(crossError)>1
   legend(ax,{'All', 'Important'});
   set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
   title(gca,'Cross Validation Error with time');
+  handles.guidata.open_peripherals(end+1) = f;          
 end
 
 % --------------------------------------------------------------------
@@ -5450,8 +5462,8 @@ function menu_classifier_setclassifierparameters_Callback(hObject, eventdata, ha
 % hObject    handle to menu_classifier_setclassifierparameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-ClassifierOptions(handles.guidata.data);
-
+cohandles = ClassifierOptions(handles.guidata.data);
+handles.guidata.open_peripherals(end+1) = cohandles;
 
 % --------------------------------------------------------------------
 function menu_go_switch_target_Callback(hObject, eventdata, handles)
@@ -5460,6 +5472,7 @@ function menu_go_switch_target_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 changeTargetHandle = SwitchTarget(hObject);
 SwitchTarget('initTable',changeTargetHandle);
+handles.guidata.open_peripherals(end+1) = changeTargetHandle;
 
 
 % --------------------------------------------------------------------
@@ -5482,6 +5495,8 @@ handles.visualizeclassifier = ...
   struct('sorted_weights',sorted_weights,...
   'feature_order',feature_order,'bins',bins,...
   'scores',scores);
+
+handles.guidata.open_peripherals(end+1) = handles.visualizeclassifier;
 
 guidata(hObject,handles);
 
