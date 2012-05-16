@@ -64,6 +64,9 @@ handles.switchFlyPos = get(handles.pushSwitchfly,'Position');
 handles.updatePos = get(handles.pushbutton_update,'Position');
 handles.closePos = get(handles.pushClose,'Position');
 handles.figurePos = get(handles.figure1,'Position');
+% added an extra guidata here, as sometimes I was getting an error that
+% figurePos wasn't getting set
+guidata(hObject,handles);
 handles = updateTable(handles);
 guidata(hObject,handles);
 
