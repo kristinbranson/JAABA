@@ -23,7 +23,7 @@ classdef JLabelData < handle
       'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
       'labelidx_imp',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',uint8([]),...
+      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
       'scores_old',[],'scores_validated',[]);
     
     % Score loaded from files.
@@ -1782,6 +1782,37 @@ classdef JLabelData < handle
         return;
       end
 
+      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
+      if ~success1,
+        msg = msg1;
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      % check for existence of necessary files in this directory
+      if ~obj.filesfixable,
+        msg = sprintf('Experiment %s is missing required files that cannot be generated within this interface. Removing...',expdir);
+        success = false;
+        % undo
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      if obj.filesfixable && ~obj.allfilesexist,
+        res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+        if strcmpi(res,'Yes'),
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          if ~success,
+            msg = sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
+            obj.RemoveExpDirs(obj.nexps);
+            return;
+          end
+          
+        else
+          obj.RemoveExpDirs(obj.nexps);
+        end
+      end
+      
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
         % TODO: make this work with multiple flies
@@ -1820,15 +1851,6 @@ classdef JLabelData < handle
           return;
         end
       end
-      
-      
-      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
-      if ~success1,
-        msg = msg1;
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
       
       [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
@@ -1907,7 +1929,6 @@ classdef JLabelData < handle
         idxcurr(1:numel(obj.windowdata.scores_validated)),:) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
-      obj.windowdata.bins=[];
 
       if ~isempty(obj.scoredata.exp)
         idxcurr = ismember(obj.scoredata.exp, expi);
@@ -3710,7 +3731,6 @@ classdef JLabelData < handle
       obj.windowdata.scores_validated=[];
       obj.windowdata.scoreNorm=[];
       obj.windowdata.binVals=[];
-      obj.windowdata.bins=[];
       
       obj.UpdatePredictedIdx();
 
@@ -3747,7 +3767,6 @@ classdef JLabelData < handle
       obj.windowdata.scores_validated(idx2remove,:) = [];
       obj.windowdata.isvalidprediction(idx2remove,:) = [];
       obj.windowdata.binVals = [];
-      obj.windowdata.bins = [];
       
     end
     
@@ -3799,14 +3818,8 @@ classdef JLabelData < handle
 
     function UpdateBoostingBins(obj)
       
-      oldBinSize = size(obj.windowdata.bins,2);
-      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && ~isempty(obj.windowdata.binVals)
-        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-      else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
-      end
-      
+      islabeled = obj.windowdata.labelidx_cur ~= 0;
+      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
     end
 
 % Training and prediction.    
@@ -3915,12 +3928,13 @@ classdef JLabelData < handle
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
             obj.classifier_old = obj.classifier;
-            [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
+            [obj.windowdata.binVals] = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
+            bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             [obj.classifier, ~] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
                                  obj.windowdata.binVals,...
-                                 obj.windowdata.bins(:,islabeled),obj.classifier_params);
+                                 bins,obj.classifier_params);
             obj.lastFullClassifierTrainingSize = nnz(islabeled);
             
           else
@@ -3929,18 +3943,13 @@ classdef JLabelData < handle
             newData = newNumPts - oldNumPts;
             obj.SetStatus('Updating boosting classifier with %d examples...',newData);
             
-            oldBinSize = size(obj.windowdata.bins,2);
-            newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-            
-            if newData>0
-              obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-            end
+            bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             
             obj.classifier_old = obj.classifier;
             [obj.classifier, ~] = boostingUpdate(obj.windowdata.X(islabeled,:),...
                                           obj.windowdata.labelidx_new(islabeled),...
                                           obj.classifier,obj.windowdata.binVals,...
-                                          obj.windowdata.bins(:,islabeled),obj.classifier_params);
+                                          bins,obj.classifier_params);
           end
           obj.classifierTS = now();
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_cur;
@@ -4314,11 +4323,13 @@ classdef JLabelData < handle
       
     end
     
-    function [crossError,tlabels] = CrossValidate(obj)
+    function [success,msg,crossError,tlabels] = CrossValidate(obj)
     % Cross validate on bouts.
     
       [success,msg] = obj.PreLoadLabeledData();
-      if ~success, warning(msg);return;end
+      if ~success, 
+        return;
+      end
 
       islabeled = obj.windowdata.labelidx_cur ~= 0;
       if ~any(islabeled),                        
@@ -4327,6 +4338,8 @@ classdef JLabelData < handle
         crossError.oldNumbers = zeros(4,3);
         crossError.oldFrac = zeros(4,3);
         tlabels = {};
+        success = false;
+        msg = 'No Labeled Data';
         return; 
       end
       
@@ -4338,11 +4351,13 @@ classdef JLabelData < handle
 
       bouts = obj.getLabeledBouts();
       
-      [crossScores, tlabels]=...
+      [success,msg,crossScores, tlabels]=...
         crossValidateBout( obj.windowdata.X, ...
         obj.windowdata.labelidx_cur,bouts,obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins,obj.classifier_params);%,true);
+        obj.classifier_params);%,true);
+      
+      if ~success, return, end;
 
 %{      
 %       crossScores=...
@@ -4467,19 +4482,14 @@ classdef JLabelData < handle
 
       obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
-      oldBinSize = size(obj.windowdata.bins,2);
-      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && ~isempty(obj.windowdata.binVals)
-        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-      else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
-      end
+      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
+      bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
       
       [obj.bagModels, obj.distMat] =...
         doBagging( obj.windowdata.X(islabeled,:), ...
         obj.windowdata.labelidx_new(islabeled),obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins(:,islabeled),obj.classifier_params);
+        bins,obj.classifier_params);
       
       obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
       obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);

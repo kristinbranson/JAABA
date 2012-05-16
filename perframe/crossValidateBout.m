@@ -1,5 +1,6 @@
-function [scores,tlabels] = crossValidateBout(data,labels,bouts,obj,binVals,bins,params,timed)
+function [success,msg,scores,tlabels] = crossValidateBout(data,labels,bouts,obj,binVals,params,timed)
 
+success = true; msg = '';
 k = params.CVfolds;
 
 % Learn classifier with all the data.
@@ -14,10 +15,18 @@ numPosBouts = nnz(posBouts);
 numNegBouts = nnz(negBouts);
 
 if numPosBouts<k || numNegBouts<k,
-  warndlg('Too few bouts to do cross validation');
   scores = zeros(1,size(data,1));
   scores(labels==0) = [];
   tlabels = {};
+  success = false;
+  
+  if numPosBouts<k
+    msg = 'Too few bouts of behavior to do cross validation';
+  end
+  if numNegBouts <k
+    msg = 'Too few bouts of not behavior to do cross validation';
+  end
+  
   return;
 end
 
@@ -88,6 +97,7 @@ end
 
 
 scores = zeros(numel(tpoints),size(data,1));
+bins = findThresholdBins(data(labels~=0,:),binVals);
 
 for bno = 1:k
   curPosTest = posCum >= posBlocks(bno) & ...
@@ -107,6 +117,7 @@ for bno = 1:k
     curTestNdx = curTestNdx | bouts.ndx(negNdx,:);
   end
   
+  
   for tndx = 1:numel(tpoints)
   
     curPosTrain = find(~curPosTest & posBouts & bouts.timestamp<=tpoints(tndx));
@@ -125,7 +136,7 @@ for bno = 1:k
     wt = getWeights(curTrainLabels);  
     tt = tic;
     [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
-      params.iter,wt,binVals,bins(:,curTrainNdx),params);
+      params.iter,wt,binVals,bins,params);
     tScores = myBoostClassify(data(curTestNdx,:),curModel);
     scores(tndx,curTestNdx) = tScores;
     etime = toc(tt);

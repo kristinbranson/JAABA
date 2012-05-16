@@ -409,42 +409,6 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 % update status table
 UpdateStatusTable(handles);
 
-% check for existence of necessary files in this directory
-if ~handles.data.filesfixable,
-  uiwait(warndlg(sprintf('Experiment %s is missing required files that cannot be generated within this interface. Removing...',expdir),'Bad experiment'));
-  % undo
-  handles.data.RemoveExpDirs(handles.data.nexps);
-  set(handles.listbox_experiment,'Value',oldv);
-  UpdateStatusTable(handles);  
-end
-
-if handles.data.filesfixable && ~handles.data.allfilesexist,
-  res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
-  if strcmpi(res,'Yes'),
-    [success,msg] = handles.data.GenerateMissingFiles(handles.data.nexps);
-    if ~success,
-      uiwait(warndlg(sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg),'Error generating files'));
-      % undo
-      handles.data.RemoveExpDirs(handles.data.nexps);
-      set(handles.listbox_experiment,'Value',oldv);
-    end
-    
-    [success,msg] = handles.data.PreLoadLabeledData();
-    if ~success,
-      uiwait(warndlg(sprintf('Error computing window data for experiment %s: %s. Removing...',expdir,msg),'Error Computing Window Data'));
-      handles.data.RemoveExpDirs(handles.data.nexps);
-      set(handles.listbox_experiment,'Value',oldv);
-    end
-      
-  else
-    % undo
-    handles.data.RemoveExpDirs(handles.data.nexps);
-    set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',oldv);
-  end
-  UpdateStatusTable(handles);
-end
-
-
 
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
