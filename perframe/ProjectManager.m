@@ -196,6 +196,18 @@ classdef ProjectManager < handle
       end
       configparams = obj.projparams(obj.curproj).config;
       data = obj.addToList(configparams,{},'');
+      idx = cellfun(@iscell,data(:,2));
+      if any(idx),
+        for i = find(idx(:)'),
+          if all(cellfun(@ischar,data{i,2})),
+            data{i,2} = sprintf('%s,',data{i,2}{:});
+            if data{i,2}(end) == ',',
+              data{i,2} = data{i,2}(1:end-1);
+            end
+          end
+        end
+      end
+        
       if any(cellfun(@iscell,data(:,2))),
         data = {}; success = false;
         return;
