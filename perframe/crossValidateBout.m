@@ -135,8 +135,9 @@ for bno = 1:k
 
     wt = getWeights(curTrainLabels);  
     tt = tic;
+    curbins = curTrainNdx(labels~=0);
     [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
-      params.iter,wt,binVals,bins,params);
+      params.iter,wt,binVals,bins(:,curbins),params);
     tScores = myBoostClassify(data(curTestNdx,:),curModel);
     scores(tndx,curTestNdx) = tScores;
     etime = toc(tt);
