@@ -4357,11 +4357,12 @@ classdef JLabelData < handle
         crossError(tndx) = obj.createConfMat(crossScores(tndx,:),modLabels);
       end
       
-      waslabeled = false(1,numel(islabeled));
+      waslabeled = false(numel(islabeled),1);
       waslabeled(1:numel(obj.windowdata.labelidx_old)) = obj.windowdata.labelidx_old~=0;
       oldSelect = waslabeled(islabeled);
       oldScores = crossScores(oldSelect);
-      oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled) - obj.windowdata.labelidx_imp(waslabeled);
+      oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled(:)&islabeled(:)) - ...
+          obj.windowdata.labelidx_imp(waslabeled(:)&islabeled(:));
       oldError = obj.createConfMat(oldScores,oldLabels);
       crossError(1).oldNumbers = oldError.numbers;
       crossError(1).oldFrac = oldError.frac;
