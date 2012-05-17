@@ -4325,7 +4325,9 @@ classdef JLabelData < handle
     
     function [success,msg,crossError,tlabels] = CrossValidate(obj)
     % Cross validate on bouts.
-    
+      
+      obj.StoreLabels();
+      
       [success,msg] = obj.PreLoadLabeledData();
       if ~success, 
         return;
