@@ -4477,8 +4477,9 @@ classdef JLabelData < handle
     
 
     function DoBagging(obj)
+
+      obj.StoreLabels();
       [success,msg] = obj.PreLoadLabeledData();
-      
       if ~success, warning(msg);return;end
 
       islabeled = obj.windowdata.labelidx_new ~= 0;
