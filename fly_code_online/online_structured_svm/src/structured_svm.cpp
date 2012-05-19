@@ -89,6 +89,12 @@ bool StructuredSVM::Save(const char *fname, bool saveFull) {
   if(modelfile) free(modelfile);
   modelfile = StringCopy(fname);
   if(sum_w) root["Sum w"] = sum_w->save();
+  if(useWeights) {
+    Json::Value a(Json::arrayValue);
+    for(int i = 0; i < sizePsi; i++)
+      a[i] = useWeights[i];
+    root["Use Weights"] = a;
+  }
   root["Regularization (C)"] = C;
   root["Training accuracy (epsilon)"] = eps;
   root["T"] = (int)t;
@@ -128,7 +134,17 @@ bool StructuredSVM::Load(const char *fname, bool loadFull) {
     fprintf(stderr, "Couldn't read JSON file %s\n", fname); Unlock(); return false; 
   }
 
-  if(root.isMember("Sum w")) { if(!sum_w) sum_w = new SparseVector; sum_w->load(root["Sum w"]); }
+  if(root.isMember("Sum w")) { 
+    if(!sum_w) sum_w = new SparseVector; 
+    sum_w->load(root["Sum w"]); 
+  }
+  if(root.isMember("Use Weights")) {
+    Json::Value a = root["Use Weights"];
+    useWeights = (bool*)malloc(sizeof(bool)*a.size());
+    for(int i = 0; i < (int)a.size(); i++)
+      useWeights[i] = a[i].asBool();
+  }
+
   if(root.isMember("Regularization (C)")) {
     C = root.get("Regularization (C)", 0).asDouble();
     lambda = 1/C;
@@ -218,6 +234,7 @@ StructuredSVM::StructuredSVM() {
 
   regularize = NULL;
   learnWeights = NULL;
+  useWeights = NULL;
   weightConstraints = NULL;
   regularization_error = 0;
   sum_dual = 0;
@@ -245,6 +262,8 @@ StructuredSVM::~StructuredSVM() {
     free(regularize);
   if(learnWeights)
     free(learnWeights);
+  if(useWeights)
+    free(useWeights);
   if(weightConstraints)
     free(weightConstraints);
 

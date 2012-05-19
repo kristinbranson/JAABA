@@ -212,7 +212,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
         SVM_cached_sample_set *set = trainset->examples[i]->set;
         if(!set) {
           set = new_SVM_cached_sample_set(i, Psi(ex->x, ex->y).ptr());
-          set->psi_gt_sqr = set->psi_gt->dot(*set->psi_gt);
+          set->psi_gt_sqr = set->psi_gt->dot(*set->psi_gt, useWeights);
         } 
         set->lock = true;
         if(cache_old_examples && !useFixedSampleSet && numCacheUpdatesPerIteration && t) {
@@ -625,6 +625,7 @@ void StructuredSVM::UpdateStatistics(SVM_cached_sample_set *ex, int iter) {
 
   // Error measured over last set of examples/iterations of size window
   int curr_window_t = my_min(t,window), curr_window_n = my_min(n,window);
+  if(cache_old_examples) curr_window_t = my_min(curr_window_t,n);
   if(iter >= window) 
     sum_iter_error_window += iter_errors_by_t[iter] - iter_errors_by_t[iter-window];
   else
@@ -803,14 +804,14 @@ void StructuredSVM::RecomputeWeights(bool full) {
       for(i = 0; i < n; i++) {
 	if(trainset->examples[i]->set) {
 	  if(trainset->examples[i]->set->alpha) 
-	    *sum_w_new += (*trainset->examples[i]->set->psi_gt*trainset->examples[i]->set->alpha);
+	    *sum_w_new += trainset->examples[i]->set->psi_gt->mult_scalar(trainset->examples[i]->set->alpha, useWeights);
 	  if(trainset->examples[i]->set->u_i) {
-	    *sum_w_new -= *trainset->examples[i]->set->u_i;
+	    *sum_w_new -= !useWeights ? *trainset->examples[i]->set->u_i : trainset->examples[i]->set->u_i->mult_scalar(1, useWeights);
 	    sum_alpha_loss += trainset->examples[i]->set->D_i;
 	  } else {
 	    for(int j = 0; j < trainset->examples[i]->set->num_samples; j++) {
 	      if(trainset->examples[i]->set->samples[j].alpha)
-		*sum_w_new -= (*trainset->examples[i]->set->samples[j].psi * trainset->examples[i]->set->samples[j].alpha);
+		*sum_w_new -= trainset->examples[i]->set->samples[j].psi->mult_scalar(trainset->examples[i]->set->samples[j].alpha, useWeights);
 	      sum_alpha_loss += trainset->examples[i]->set->samples[j].alpha * trainset->examples[i]->set->samples[j].loss;
 	    }
 	  }
@@ -827,16 +828,21 @@ void StructuredSVM::RecomputeWeights(bool full) {
   sum_iter_error_window = 0;
   for(i = my_max(0,t-window); i < t; i++) 
     sum_iter_error_window += iter_errors_by_t[i];
-  sum_w_sqr = sum_w->dot(*sum_w, regularize);
+  sum_w_sqr = sum_w->dot(*sum_w, useWeights);
   regularization_error = sum_w_sqr/SQR(sum_w_scale)*lambda/2;
   sum_dual = -sum_w_sqr/(2*sum_w_scale) + sum_alpha_loss;
 }
 
 void StructuredSVM::OptimizeAllConstraints(int num_iter) {
-  for(int i = 0; i < num_iter; i++) {
+  double iter_dual = 0;
+  int i = 0;
+  while(i < num_iter || sum_dual/n-iter_dual/(i+1) > eps) {
     for(int j = 0; j < n; j++)
       UpdateWeights(trainset->examples[j]->set, j);
     //RecomputeWeights();
+    iter_dual += sum_dual/n;
+    fprintf(stderr, "OptimizeAllConstraints i=%d dual=%lf e=%lf\n", i, sum_dual/n, sum_dual/n-iter_dual/(i+2));
+    i++;
   }
 }
 void StructuredSVM::SetLambda(double l, int num_iter) {
@@ -935,7 +941,7 @@ void StructuredSVM::GetStatisticsByIteration(int ave, long *tt, double **gen_err
 
 SparseVector *StructuredSVM::GetCurrentWeights(bool lock) {
   if(lock) Lock();
-  SparseVector *retval = sum_w->mult_scalar(sum_w_scale ? 1.0/(sum_w_scale) : 0, regularize);
+  SparseVector *retval = sum_w->mult_scalar(sum_w_scale ? 1.0/(sum_w_scale) : 0, NULL).ptr();
   if(lock) Unlock();
   return retval;
 }
@@ -1071,8 +1077,8 @@ SVM_cached_sample_set *read_SVM_cached_sample_set(FILE *fin, StructuredSVM *svm,
     }
     if(!readFull)
       clear_SVM_cached_sample_set(s);
-    s->psi_gt_sqr = s->psi_gt->dot(*s->psi_gt);
   }
+  s->psi_gt_sqr = s->psi_gt->dot(*s->psi_gt, svm->GetUseWeights());
   return s;
 }
 
@@ -1133,9 +1139,9 @@ void StructuredSVM::SVM_cached_sample_set_compute_features(SVM_cached_sample_set
     if(!set->samples[j].psi) {
       set->samples[j].psi = Psi(ex->x, set->samples[j].ybar).ptr();
       set->samples[j].loss = Loss(ex->y, set->samples[j].ybar);
-      set->samples[j].dot_psi_gt_psi = set->psi_gt->dot(*set->samples[j].psi);
-      set->samples[j].sqr = set->psi_gt_sqr - 2*set->samples[j].dot_psi_gt_psi + set->samples[j].psi->dot(*set->samples[j].psi);
-      set->samples[j].dot_psi_gt_psi = set->psi_gt->dot(*set->samples[j].psi);
+      set->samples[j].dot_psi_gt_psi = set->psi_gt->dot(*set->samples[j].psi, useWeights);
+      set->samples[j].sqr = set->psi_gt_sqr - 2*set->samples[j].dot_psi_gt_psi + set->samples[j].psi->dot(*set->samples[j].psi, useWeights);
+      set->samples[j].dot_psi_gt_psi = set->psi_gt->dot(*set->samples[j].psi, useWeights);
       set->samples[j].dot_w = sum_w ? sum_w->dot(*set->samples[j].psi) - set->score_gt*sum_w_scale : NULL;
       assert(!isnan(set->samples[j].sqr));
       //set->samples[j].slack =
@@ -1185,7 +1191,7 @@ void StructuredSVM::SingleSampleUpdate(SVM_cached_sample_set *set, bool useSmart
   if(dalpha != 0) {
     // Take a step of size dalpha the direction of the sub-gradient psi(ybar,x)-psi(y_i,x)
     // (lambda*t)*w_t = (lambda*(t-1))*w_{t-1} - dalpha*(psi(ybar,x)-psi(y_i,x))
-    *sum_w -= (dpsi * (dalpha));
+    *sum_w -= dpsi.mult_scalar(dalpha, useWeights);
       
     // Keep track of the change in the dual objective, regularization_error, and w^2
     s->alpha += dalpha;
@@ -1254,8 +1260,8 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
   SparseVector *u_i_scaled = set->u_i;
   if(set->alpha || runMultiThreaded) {
     if(set->alpha) {
-      *sum_w_without_u_i += *set->u_i;
-      *sum_w_without_u_i -= (*set->psi_gt*set->alpha);
+      *sum_w_without_u_i += !useWeights ? *set->u_i : set->u_i->mult_scalar(1, useWeights);
+      *sum_w_without_u_i -= set->psi_gt->mult_scalar(set->alpha, useWeights);
     }
     double score_gt_without_u = sum_w_without_u_i->dot(*set->psi_gt);
     for(j = 0; j < set->num_samples; j++) 
@@ -1282,9 +1288,9 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
       // To avoid numerical precision issues, recompute set->u_i_sqr, set->dot_u_psi_gt
       set->drift_bits = 0;
       *set->u_i *= s_u;
-      double d_u_gt = set->u_i->dot(*set->psi_gt);
+      double d_u_gt = set->u_i->dot(*set->psi_gt, useWeights);
       set->dot_u_psi_gt = d_u_gt - set->alpha*set->psi_gt_sqr;
-      set->u_i_sqr = set->u_i->dot(*set->u_i) - 2*set->alpha*d_u_gt + SQR(set->alpha)*set->psi_gt_sqr;
+      set->u_i_sqr = set->u_i->dot(*set->u_i, useWeights) - 2*set->alpha*d_u_gt + SQR(set->alpha)*set->psi_gt_sqr;
       for(int jj = 0; jj < set->num_samples; jj++)
         set->samples[jj].alpha *= s_u;
       s_u = 1;
@@ -1296,13 +1302,13 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
     for(j = 0; j < set->num_samples; j++) {
       SVM_cached_sample *s = &set->samples[j];
 
-      VFLOAT dot_u_v = u_i_scaled->dot(*s->psi)*s_u - set->dot_u_psi_gt - set->alpha*s->dot_psi_gt_psi;  // <u_i,v>
+      VFLOAT dot_u_v = u_i_scaled->dot(*s->psi, useWeights)*s_u - set->dot_u_psi_gt - set->alpha*s->dot_psi_gt_psi;  // <u_i,v>
       VFLOAT dot = s->dot_w - dot_u_v;   // (lambda*t)<w,v>
 
 #ifdef DEBUG_MULTI_SAMPLE_UPDATE
-      SparseVector w_sum_new = *sum_w + (*set->psi_gt*set->alpha) - (*u_i_scaled*s_u);
+      SparseVector w_sum_new = *sum_w + set->psi_gt->mult_scalar(set->alpha, useWeights) - u_i_scaled->mult_scalar(s_u, useWeights);
       SparseVector u_new = *u_i_scaled*s_u - (*set->psi_gt*set->alpha);
-      double dot_u_v_real = u_new.dot(*s->psi - *set->psi_gt);
+      double dot_u_v_real = u_new.dot(*s->psi - *set->psi_gt, useWeights);
       double dot_real = w_sum_new.dot(*s->psi - *set->psi_gt);
       fprintf(stderr, "t=%d, i=%d, j=%d, dot_u_v=%lg:%lg, dot=%lg:%lg\n", (int)t, set->i, j, dot_u_v_real, dot_u_v, dot_real, dot);
       assert(!dot_u_v || (dot_u_v_real/dot_u_v > .999999999 && dot_u_v_real/dot_u_v < 1.00000001));
@@ -1348,13 +1354,13 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
 	  set->drift_bits = 0;
 	  u_i_scaled->make_non_sparse(false, -1, false, u_i_buff);
 	  *u_i_scaled *= s_u;
-	  double d_u_gt = u_i_scaled->dot(*set->psi_gt), alpha = set->alpha*scale;
+	  double d_u_gt = u_i_scaled->dot(*set->psi_gt, useWeights), alpha = set->alpha*scale;
 	  set->dot_u_psi_gt = d_u_gt - alpha*set->psi_gt_sqr;
-	  set->u_i_sqr = u_i_scaled->dot(*u_i_scaled) - 2*alpha*d_u_gt + SQR(alpha)*set->psi_gt_sqr;
+	  set->u_i_sqr = u_i_scaled->dot(*u_i_scaled, useWeights) - 2*alpha*d_u_gt + SQR(alpha)*set->psi_gt_sqr;
 	  set->D_i = scale*set->D_i;
 	  dot_u_w_without_u = sum_w_without_u_i->dot(*u_i_scaled-(*set->psi_gt*alpha))/(sum_w_scale);
 	  dot_w_u = dot_u_w_without_u - set->u_i_sqr/(sum_w_scale);
-	  dot_u_v = u_i_scaled->dot(*s->psi) - set->dot_u_psi_gt - alpha*s->dot_psi_gt_psi; 
+	  dot_u_v = u_i_scaled->dot(*s->psi, useWeights) - set->dot_u_psi_gt - alpha*s->dot_psi_gt_psi; 
 	  dot = s->dot_w - dot_u_v;
 	  for(int jj = 0; jj < set->num_samples; jj++)
 	    set->samples[jj].alpha *= s_u;
@@ -1376,11 +1382,11 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
 	L_i = dot_w_u + set->D_i;
 	assert(!isnan(L_i));
 #ifdef DEBUG_MULTI_SAMPLE_UPDATE
-	SparseVector w_sum_new = *sum_w + (*set->psi_gt*set->alpha) - (*u_i_scaled*s_u);
+	SparseVector w_sum_new = *sum_w + set->psi_gt->mult_scalar(set->alpha, useWeights) - u_i_scaled->mult_scalar(s_u, useWeights);
 	SparseVector u_new = *u_i_scaled*s_u - (*set->psi_gt*set->alpha);
 	double dot_w_u_real = w_sum_new.dot(u_new)/(sum_w_scale);
-	double dot_u_psi_gt_real = u_new.dot(*set->psi_gt);
-	double u_i_sqr_real = u_new.dot(u_new);
+	double dot_u_psi_gt_real = u_new.dot(*set->psi_gt, useWeights);
+	double u_i_sqr_real = u_new.dot(u_new, useWeights);
 	double dot_u_w_without_u_real = sum_w->dot(u_new)/(sum_w_scale);
 	fprintf(stderr, "t=%d, i=%d, j=%d, scale=%f, dalpha=%f, s_u=%f, dot_w_u=%lg:%lg, dot_u_psi_gt=%lg:%lg, u_i_sqr=%lg:%lg\n", (int)t, set->i, j, (float)scale, (float)dalpha, (float)s_u, dot_w_u_real, dot_w_u,  dot_u_psi_gt_real, set->dot_u_psi_gt,  u_i_sqr_real, set->u_i_sqr);
 	assert(dot_w_u_real/dot_w_u > .999999999 && dot_w_u_real/dot_w_u < 1.00000001);
@@ -1396,8 +1402,8 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
   // Update sum_w, sum_dual, sum_w_sqr, and regularization_error, taking into account the new value of u_i
   set->u_i->make_non_sparse(false, -1, false, u_i_buff);
   *set->u_i *= s_u;
-  *sum_w -= *set->u_i;   // Add u_i back into (lambda*t)w
-  *sum_w += (*set->psi_gt*set->alpha);
+  *sum_w -= !useWeights ? *set->u_i : set->u_i->mult_scalar(1, useWeights);   // Add u_i back into (lambda*t)w
+  *sum_w += set->psi_gt->mult_scalar(set->alpha, useWeights);
   double d_sum_w_sqr = 2*(dot_w_u_orig-dot_u_w_without_u)*sum_w_scale + set->u_i_sqr + u_i_sqr_orig;
   sum_dual += -d_sum_w_sqr/(2*sum_w_scale) + set->D_i - D_i_orig;
   sum_alpha_loss += set->D_i - D_i_orig;
@@ -1409,7 +1415,7 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
   
 
 #ifdef DEBUG_MULTI_SAMPLE_UPDATE
-  double sum_w_sqr_real = sum_w->dot(*sum_w);
+  double sum_w_sqr_real = sum_w->dot(*sum_w, useWeights);
   fprintf(stderr, "t=%d, i=%d, sum_w_sqr=%lg:%lg\n", (int)t, set->i, sum_w_sqr_real, sum_w_sqr);
   assert(sum_w_sqr_real/sum_w_sqr > .99999 && sum_w_sqr_real/sum_w_sqr < 1.0001);
 #endif
@@ -1565,7 +1571,7 @@ void StructuredSVM::ExtractSampleSet(int num_per_negative, bool augment) {
       // Sample negative examples randomly
       assert(!trainset->examples[i]->set);
       trainset->examples[i]->set = new_SVM_cached_sample_set(i, Psi(train->examples[i]->x, train->examples[i]->y).ptr());
-      trainset->examples[i]->set->psi_gt_sqr = trainset->examples[i]->set->psi_gt->dot(*trainset->examples[i]->set->psi_gt);
+      trainset->examples[i]->set->psi_gt_sqr = trainset->examples[i]->set->psi_gt->dot(*trainset->examples[i]->set->psi_gt, useWeights);
     }
     num++;
     assert(trainset->examples[i]->set);

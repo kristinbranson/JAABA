@@ -115,7 +115,7 @@ typedef struct _BehaviorBout {
   double transition_score;  /**< the component of the bout score due to transitioning from the previous behavior class to the class of this bout */
   double loss_fn;  /**< the loss associated with missing detection of some behavior bout(s) that overlap with this bout */
   double loss_fp;  /**< the loss associated with predicting this bout incorrectly */
-  //double extreme_vals[2][NUMFEAT];
+  double extreme_vals[2][NUMFEAT];
 } BehaviorBout;
 
 
@@ -311,7 +311,8 @@ class SVMBehaviorSequence : public StructuredSVM {
   double loss2(StructuredLabel *y_gt,  StructuredLabel *y_pred, int beh, int debug);
 
 
-  double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, bool fast_update=false);
+  double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, 
+		   bool fast_update=false, double get_extreme_vals[2][NUMFEAT]=NULL, double use_extreme_vals[2][NUMFEAT]=NULL);
   void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true); 
   void compute_feature_mean_variance_median_statistics(StructuredDataset *dataset);
   int compute_feature_space_size();
@@ -337,7 +338,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   void update_transition_counts_with_partial_label(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
   void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, double *unary_weights, int T);
   bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev, int &restrict_c_next);
-  void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double loss_fn, double loss_fp);
+  void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT]);
   void restore_transition_counts(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
   void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
   bool *get_allowable_frame_times(BehaviorBoutSequence *y_gt, BehaviorBoutSequence *y_partial, int T);

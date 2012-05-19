@@ -587,20 +587,53 @@ public:
   /**
    * @brief Return a copy of this vector scaled by f
    */
-  SparseVector *mult_scalar(VFLOAT f, bool *use) {
-    assert(shiftAmount < 0);
-    SparseVector *retval = new SparseVector(*this);
+  SparseVector mult_scalar(VFLOAT f, bool *use) {
+    SparseVector retval;
     if(non_sparse) {
-      for(int i = 0; i < maxIndex+1; i++)
-	if(!use || use[i]) 
-	  retval->non_sparse[i] *= f;
+      assert(shiftAmount < 0);
+      if(used_inds) {
+	qsort(used_inds, numUsed, sizeof(int), int_compare);
+	retval.numAlloc = numUsed;
+	retval.numNonZero = 0;
+	retval.maxIndex = maxIndex;
+	retval.elements = (SparseVectorElement*)malloc(sizeof(SparseVectorElement)*retval.numAlloc);
+	for(int i = 0; i < numUsed; i++) {
+	  if((!i || used_inds[i] != used_inds[i-1]) && (!use || use[used_inds[i]])) {
+	    retval.elements[retval.numNonZero].ind = used_inds[i];
+	    retval.elements[retval.numNonZero++].val = non_sparse[used_inds[i]]*f;
+	  }
+	}
+      } else {
+	retval.non_sparse = get_non_sparse<double>(Length());
+	retval.maxIndex = maxIndex;
+	for(int i = 0; i < maxIndex+1; i++) {
+	  if(!use || use[i]) 
+	    retval.non_sparse[i] *= f;
+	  else
+	    retval.non_sparse[i] *= f;
+	}
+      }
     } else {
-      for(int i = 0; i < numNonZero; i++)
-	if(!use || use[retval->elements[i].ind]) 
-	  retval->elements[i].val *= f;
+      retval.numAlloc = retval.numNonZero = numNonZero;
+      retval.maxIndex = maxIndex;
+      if(shiftAmount >= 0) {
+	retval.elements = elements;
+	retval.multiplier = multiplier*f;
+	retval.shiftAmount = shiftAmount;
+      } else {
+	retval.elements = (SparseVectorElement*)malloc(sizeof(SparseVectorElement)*retval.numAlloc);
+	retval.numNonZero = 0;
+	for(int i = 0; i < numNonZero; i++) {
+	  if(!use || use[retval.elements[i].ind]) {
+	    retval.elements[retval.numNonZero].val = elements[i].val*f;
+	    retval.elements[retval.numNonZero++].ind = elements[i].ind;
+	  }
+	}
+      }
     }
     return retval;
   }
+
 
   /**
    * @brief Return a vector that is a component-wise multiplication of this vector and v

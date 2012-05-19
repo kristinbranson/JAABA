@@ -522,6 +522,8 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
    */
   int GetSizePsi() { return sizePsi; }
 
+  bool *GetUseWeights() { return useWeights; }
+
   /**
    * @brief Create a new example.  It allocates and copies a new version of x and y, rather than storing a pointer to those objects
    * @param x the data
@@ -593,6 +595,7 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
   bool *regularize;  /**< if non-null, a sizePsi array where a value of true means we regularize this weight entry */
   bool *learnWeights;  /**< if non-null, a sizePsi array where a value of true means we learn this weight entry */
   int *weightConstraints;  /**< if non-null, a sizePsi array where a value of 1 means a weight must be >= 0, -1 means <= 0, 0 means anything */
+  bool *useWeights;
   bool canScaleW;   /**< If true, Inference() should support scaling w.  This results in a speed improvement for some models, by avoiding normalizing w */
 
   VFLOAT lambda;       /**< regularization constant */
