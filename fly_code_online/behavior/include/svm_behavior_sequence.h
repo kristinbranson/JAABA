@@ -229,6 +229,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   int ***class_training_transitions;  /**< A behaviors->numXnum_classes[i]Xclass_training_transitions_count[i][j] array of indices specifying indices of behavior classes that are allowed to proceed a given behavior class */
   int **class_training_transitions_count;  /**< A behaviors->numXnum_classes[i] array specifying the number of behavior classes that are allowed to proceed a given behavior class */
   int **class_training_count; /**< A behaviors->numXnum_classes[i] array specifying the number of times each class occurs in the training set */
+  double search_all_bout_durations_up_to;
   double time_approximation; /**< When searching for behavior bouts, for computational purposes, the duration of bouts (in terms of # of frames) considered is a geometrically increasing series of size time_approximation,time_approximation^2,time_approximation^3...*/
   SVMFeatureParams feature_params[MAX_BASE_FEATURES];  /**< For each frame feature, a set of parameters defining how frame-level features are expanded into bout-level features */
   double *features_mu;  /**< A num_features array defining the mean of each bout-level feature (used to normalize all features to be roughly on the same scale) */
@@ -337,11 +338,12 @@ class SVMBehaviorSequence : public StructuredSVM {
   double compute_updated_bout_loss(BehaviorBoutFeatures *b, BehaviorBoutSequence *y, int beh, int T, int t_p, int t, int c_prev, double *fn, int *gt_bout, double *dur_gt, double &loss_fp, double &loss_fn);
   void update_transition_counts_with_partial_label(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
   void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, double *unary_weights, int T);
-  bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev, int &restrict_c_next);
+  bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev);
   void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT]);
   void restore_transition_counts(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
   void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
   bool *get_allowable_frame_times(BehaviorBoutSequence *y_gt, BehaviorBoutSequence *y_partial, int T);
+  int get_bout_start_time(int beh, int *duration, int &tt, int t_p, int t, int &next_duration, int &last_gt, int &last_partial, int *gt_bout, int *partial_label_bout, BehaviorBoutSequence *y, BehaviorBoutSequence *y_partial, int &restrict_c_prev, int &restrict_c_next);
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);

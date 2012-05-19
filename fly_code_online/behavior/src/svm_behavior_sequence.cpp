@@ -94,9 +94,10 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 
 	// Speed up inference, only searching over bout durations of size time_approximation^k, for some integer k.
 	// However, do consider merging bouts of the same class, such that we can still predict bouts of any length
-	//time_approximation = 1.1;
 	// time_approximation = 0;   // disable approximate inference
-	time_approximation = -50; // Search bout durations only from 1 to 50, without using a geometrically increasing series
+	time_approximation = 1.2;
+	//time_approximation = -1; 
+	search_all_bout_durations_up_to = 50; // Search all bout durations from 1 to 50.  Can be combined with time_approximation
 
 	runMultiThreaded = 1;
 
@@ -551,7 +552,7 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
 
   //p = &feature_params[0];
   //if(p->use_bout_max_feature | p->use_bout_min_feature) { // Eyrun: only update cache if needed (note this assumes that all feature stats are the same as for 0)
-    if(!fast_update)
+    if(!fast_update && !use_extreme_vals)
       b->bout_start = b->bout_end = -1;
     else
       assert(b->bout_end == t_end);
@@ -1341,13 +1342,28 @@ void SVMBehaviorSequence::update_transition_counts_with_partial_label(int beh, B
   }
 }
 
-bool SVMBehaviorSequence::check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t,
-				        int *partial_label_bout, int &restrict_c_prev, int &restrict_c_next) {
+int SVMBehaviorSequence::get_bout_start_time(int beh, int *durations, int &tt, int t_p, int t, int &next_duration, 
+					     int &last_gt, int &last_partial, int *gt_bout, int *partial_label_bout, 
+					     BehaviorBoutSequence *y, BehaviorBoutSequence *y_partial, 
+					     int &restrict_c_prev, int &restrict_c_next) {
+  bool isFirst = t_p == t;
+  next_duration = 1;
+
+  if(y) {
+    // When given a groundtruth label y, stores the index of the bout corresponding to this timestep
+    // in y->bouts[beh]
+    if(isFirst)
+      last_gt = gt_bout[t] = y->bouts[beh][gt_bout[t-1]].end_frame < t ? gt_bout[t-1]+1 : gt_bout[t-1]; 
+
+    if(y && (last_gt >= y->num_bouts[beh] || t_p == y->bouts[beh][last_gt].start_frame))
+      last_gt--;
+  }
+
   if(y_partial) {
-    if(t_p == t-1) {
+    if(isFirst) {
       // Invoked the first time the dynamic programming algorithm gets to frame t.
       // Cache the index of the bout in the partial label that contains timestep t
-      partial_label_bout[t] = partial_label_bout[t-1] < y_partial->num_bouts[beh] && 
+      last_partial = partial_label_bout[t] = partial_label_bout[t-1] < y_partial->num_bouts[beh] && 
         y_partial->bouts[beh][partial_label_bout[t-1]].end_frame <= t ? 
         partial_label_bout[t-1]+1 : partial_label_bout[t-1];
 
@@ -1358,6 +1374,36 @@ bool SVMBehaviorSequence::check_agreement_with_partial_label(BehaviorBoutSequenc
         restrict_c_prev = restrict_c_next = y_partial->bouts[beh][partial_label_bout[t]].behavior;
     }
 
+    if(y_partial->num_bouts[beh] && 
+       (last_partial >= y_partial->num_bouts[beh] || t_p == y_partial->bouts[beh][last_partial].start_frame))
+      last_partial--;
+  }
+
+  t_p = t-durations[tt];
+  
+  // We may choose to add extra durations to make sure we explore the solutions
+  // contained in y or b->partial_label
+  if(y && last_gt >= 0 && (t_p < 0 ? -1 : gt_bout[t_p]) != last_gt && t_p != y->bouts[beh][last_gt].start_frame) {
+    t_p = y->bouts[beh][last_gt].start_frame;
+    next_duration = 0;
+  }
+  if(y_partial && y_partial->num_bouts[beh] &&
+     (t_p < 0 ? -1 : partial_label_bout[t_p]) != last_partial && t_p != y_partial->bouts[beh][last_partial].start_frame) {
+    t_p = y_partial->bouts[beh][last_partial].start_frame;
+    next_duration = 0;
+  }
+
+  tt += next_duration;
+  if(t_p <= 0) {
+    t_p = 0;
+    next_duration = -1;
+  }
+  return t_p;
+}
+
+bool SVMBehaviorSequence::check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t,
+							     int *partial_label_bout, int &restrict_c_prev) {
+  if(y_partial) {
     // If the partial label contains a bout of a particular label at frame t_p, then it must be the case
     // the bout we are predicting also has a class c_prev of that behavior.  So set restrict_c_prev
     if(y_partial) {
@@ -1571,7 +1617,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
   int *gt_bout = (int*)malloc(sizeof(int)*(T+1)*2);
   int *partial_label_bout = gt_bout + (T+1);
   bool *allowable_time_frames = get_allowable_frame_times(y, y_partial, T);
-  int time_approx = time_approximation;
+  double time_approx = time_approximation;
 
   // Initialize ybar
   if(y_gt) {
@@ -1588,17 +1634,18 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
   // During approximate inference, we can restrict searches over bout length to a subset of durations
   int *durations = (int*)malloc(sizeof(int)*(T+1)*4);
   int num_durations = 0;
-  if(time_approximation > 0) {
-    // geometrically increasing series, where duration[k]= time_approximation^{k-1}
-    double dur = min_bout_duration;
-    while(dur <= T*(1+time_approximation)) {
-      if(!num_durations || (int)(dur) != durations[num_durations-1])
-	durations[num_durations++] = (int)(dur);
-      dur *= (1+time_approximation);
-    }
-  } else if(time_approximation < 0) {
-    for(int i = 1; i <= -time_approximation; i++) // go only -time_approximation frames back
+  if(time_approximation) {
+    for(int i = 1; i <= search_all_bout_durations_up_to; i++) // go only -time_approximation frames back
       durations[num_durations++] = i;
+    if(time_approximation > 0) {
+      // geometrically increasing series, where durations[k]= time_approximation^{k-1}
+      double dur = search_all_bout_durations_up_to;
+      while(dur <= T*(1+time_approximation)) {
+	if(!num_durations || (int)(dur) != durations[num_durations-1])
+	  durations[num_durations++] = (int)(dur);
+	dur *= time_approximation;
+      }
+    }
   } else {
     for(int i = 1; i <= T; i++)
       durations[num_durations++] = i;
@@ -1687,11 +1734,6 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 
       for(int c = 0; c < num_classes[beh]; c++) 
         table[t][c] = -INFINITY;
-
-      // When given a groundtruth label y, stores the index of the bout corresponding to this timestep
-      // in y->bouts[beh]
-      if(y) 
-        gt_bout[t] = y->bouts[beh][gt_bout[t-1]].end_frame < t ? gt_bout[t-1]+1 : gt_bout[t-1]; 
     
       // When given a manually supplied partial labelling, store the index of the bout corresponding to 
       // this timestep in b->partial_label->bouts[beh]
@@ -1706,23 +1748,23 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
       // Looping through all possible times t_p when this bout begins (the bout we are considering
       // begins at t_p and ends at t
       bool is_first = true;
-      //for(int t_p = t-1; t_p >= 0; t_p--) { 
-      for(int tt = 0; tt < num_durations; tt++) { 
-	int t_p = t-durations[tt];
-	if(t_p < 0)
-	  break;
-
-        // allowable_time_frames is a computational time saving trick, where we only allow bouts 
-        // to start or end at a subset of allowable time frames
-        if(allowable_time_frames && !allowable_time_frames[t_p])
-          continue; 
+      int tt = 0, next_duration = 1, t_p = t;
+      int last_partial, last_gt;
+      while(next_duration >= 0 && tt < num_durations) {
+	t_p = get_bout_start_time(beh, durations, tt, t_p, t, next_duration, last_gt, last_partial, gt_bout, 
+				  partial_label_bout, y, y_partial, restrict_c_prev, restrict_c_next);
 
         // We can quickly discard all solutions where a candidate bout (t_p,t) overlaps a region in the partial
         // label in which there are multiple bouts of different classes.  Furthermore, we can compute
         // restrict_c_prev and restrict_c_next, which are restrictions on the possible labels of
         // c_prev and c_next, respectively
-        if(!check_agreement_with_partial_label(y_partial, beh, t_p, t, partial_label_bout, restrict_c_prev, restrict_c_next))
+        if(!check_agreement_with_partial_label(y_partial, beh, t_p, t, partial_label_bout, restrict_c_prev))
           break;
+
+        // allowable_time_frames is a computational time saving trick, where we only allow bouts 
+        // to start or end at a subset of allowable time frames
+        if(allowable_time_frames && !allowable_time_frames[t_p])
+          continue; 
 
         // Compute bout-level features for the bout between t_p and t
         // For speed, CURRENTLY ASSUMING ALL CLASSES HAVE THE SAME BASIC FEATURE SPACE.  To get rid of this
@@ -1815,9 +1857,10 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	  } // if(time_approx != 0 && t_p)
 
         } // for(int c_next = 0; ...)
-      } // for(int tt; ...),  t_p = ...
 
-      is_first = false;
+	is_first = false;
+
+      } // for(int tt; ...),  t_p = ...
     } // for(int t = 0; ...)
 
 
