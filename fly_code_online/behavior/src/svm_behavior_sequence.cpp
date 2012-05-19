@@ -98,9 +98,10 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 	// time_approximation = 0;   // disable approximate inference
 	time_approximation = -50; // Search bout durations only from 1 to 50, without using a geometrically increasing series
 
+	runMultiThreaded = 1;
 
 	numCacheUpdatesPerIteration = 50;
-	maxCachedSamplesPerExample = 100;
+	maxCachedSamplesPerExample = 500;
 	numMultiSampleIterations = 10;
 
 	strcpy(debugdir, "");
@@ -1573,9 +1574,13 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
   int time_approx = time_approximation;
 
   // Initialize ybar
-  if(y_gt)
+  if(y_gt) {
     sprintf(ybar->fname, "%s.pred.%d", b->fname, (int)this->t);
-  else
+    int i = 1;
+    while(FileExists(ybar->fname)) {
+      sprintf(ybar->fname, "%s.pred.%d.%d", b->fname, (int)this->t, i++);
+    }
+  } else
     sprintf(ybar->fname, "%s.pred", b->fname);
   init_bout_label(ybar, y);
 
