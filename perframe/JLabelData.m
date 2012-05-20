@@ -4339,6 +4339,10 @@ classdef JLabelData < handle
         for flyNdx = 1:obj.nflies_per_exp(expNdx)
           curLabels = obj.GetLabels(expNdx,flyNdx);
           for boutNum = 1:numel(curLabels.t0s)
+            idx =  obj.FlyNdx(expNdx,flyNdx) & ...
+              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
+              obj.windowdata.t < curLabels.t1s(boutNum);
+            if ~all(obj.windowdata.labelidx_cur(idx)), continue; end
             bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
               obj.windowdata.t >= curLabels.t0s(boutNum) & ...
               obj.windowdata.t < curLabels.t1s(boutNum);
@@ -4501,8 +4505,9 @@ classdef JLabelData < handle
     
 
     function DoBagging(obj)
+
+      obj.StoreLabels();
       [success,msg] = obj.PreLoadLabeledData();
-      
       if ~success, warning(msg);return;end
 
       islabeled = obj.windowdata.labelidx_new ~= 0;
