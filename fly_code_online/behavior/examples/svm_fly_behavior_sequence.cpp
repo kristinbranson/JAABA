@@ -189,7 +189,7 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   num_base_features = nfields-1;
   assert(num_base_features == svm->NumBaseFeatures());
 
-  AllocateBuffers(svm);
+  AllocateBuffers(svm, false);
   double *buff = (double*)malloc(sizeof(double)*num_frames);
   for(i = 0; i < nfields; i++) {
     assert(((SVMFlyBehaviorSequence*)svm)->read_features(fin, &d, buff, num_frames));

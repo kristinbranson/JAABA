@@ -637,7 +637,6 @@ protected:
   
   /************************ Variables used for online learning ******************************/
   double *u_i_buff;     // memory buffer used for a non-sparse version of u_i, u_i = \sum_y alpha_{i,y} (psi(x_i,ybar)-psi(x_i,y_i))
-  StructuredDataset *trainset;
   bool runForever;
   bool hasConverged;
   long curr;  /**< the next example to process */ 
@@ -678,6 +677,11 @@ protected:
   long minItersBeforeNewExample;
   int currMinIterByExample;
 
+ protected:
+  StructuredDataset *trainset;
+  
+  void SVM_cached_sample_set_compute_features(struct _SVM_cached_sample_set *set, StructuredExample *ex);
+
  private:
 
   int ChooseNextExample();
@@ -698,7 +702,6 @@ protected:
 
   void ExtractSampleSet(int num_samples, bool augment);
   void ConvertCachedExamplesToBinaryTrainingSet();
-  void SVM_cached_sample_set_compute_features(struct _SVM_cached_sample_set *set, StructuredExample *ex);
   void CondenseSamples(struct _SVM_cached_sample_set *set);
   void UpdateFromCache(bool lock=true, int *num=NULL, int i=-1);
   void TrainMain(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL); 

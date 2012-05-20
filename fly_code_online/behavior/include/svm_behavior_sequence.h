@@ -194,9 +194,10 @@ protected:
 
   void SetFileName(const char *fn) { strcpy(fname, fn); }
   const char *GetFileName() { return fname; }
-  void AllocateBuffers(SVMBehaviorSequence *svm);
+  void AllocateBuffers(SVMBehaviorSequence *svm, bool full=true);
   void ComputeCaches(SVMBehaviorSequence *svm);
   void UpdateCaches(int t_start, int t_end, int c);
+  void Clear();
 
   friend class SVMBehaviorSequence;
   friend class BehaviorBoutSequence;
@@ -230,6 +231,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   int **class_training_transitions_count;  /**< A behaviors->numXnum_classes[i] array specifying the number of behavior classes that are allowed to proceed a given behavior class */
   int **class_training_count; /**< A behaviors->numXnum_classes[i] array specifying the number of times each class occurs in the training set */
   double search_all_bout_durations_up_to;
+  int importance_sample_interval_size;
   double time_approximation; /**< When searching for behavior bouts, for computational purposes, the duration of bouts (in terms of # of frames) considered is a geometrically increasing series of size time_approximation,time_approximation^2,time_approximation^3...*/
   SVMFeatureParams feature_params[MAX_BASE_FEATURES];  /**< For each frame feature, a set of parameters defining how frame-level features are expanded into bout-level features */
   double *features_mu;  /**< A num_features array defining the mean of each bout-level feature (used to normalize all features to be roughly on the same scale) */
@@ -278,6 +280,8 @@ class SVMBehaviorSequence : public StructuredSVM {
   double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL, double w_scale=1);
   double Loss(StructuredLabel *y_gt, StructuredLabel *y_pred);
   void OnFinishedIteration(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar);
+  double ImportanceSample(StructuredData *x, SparseVector *w, StructuredLabel *y_gt, struct _SVM_cached_sample_set *set, double w_scale=1);
+  void OnFinishedIteration(StructuredData *x, StructuredLabel *y);
 
   virtual StructuredLabel *NewStructuredLabel(StructuredData *x) = 0;
   virtual StructuredData *NewStructuredData() = 0;
@@ -344,6 +348,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
   bool *get_allowable_frame_times(BehaviorBoutSequence *y_gt, BehaviorBoutSequence *y_partial, int T);
   int get_bout_start_time(int beh, int *duration, int &tt, int t_p, int t, int &next_duration, int &last_gt, int &last_partial, int *gt_bout, int *partial_label_bout, BehaviorBoutSequence *y, BehaviorBoutSequence *y_partial, int &restrict_c_prev, int &restrict_c_next);
+  BehaviorBoutSequence *bout_sequence_remove_section(BehaviorBoutSequence *y_src, int t_start, int t_end);
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);
