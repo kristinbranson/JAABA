@@ -178,7 +178,7 @@ end
 
 hfig = 200;
 plotall_perframefns = {'velmag_ctr','dnose2ell'};
-for fnii = 2:numel(plotall_perframefns),
+for fnii = 1:numel(plotall_perframefns),
   fignum = 1;
   pfn = plotall_perframefns{fnii};
   fni = find(strcmp(perframefns1,pfn),1);
@@ -195,7 +195,7 @@ for fnii = 2:numel(plotall_perframefns),
       tmp(2:2:end) = cellfun(@num2str,tmp(2:2:end),'UniformOutput',false);
       wfn = [sprintf('%s_%s',feature_names_all{fni}{j}{2},feature_names_all{fni}{j}{4}),...
         sprintf('_%s%s',tmp{:})];
-      plot(hax(j-i+1),trx(fly).timestamps(i0:i1)-T0,x_curr_all{fni}(i,:),'k-');
+      plot(hax(j-i+1),trx(fly).timestamps(i0:i1)-T0,x_curr_all{fni}(j,:),'k-');
       axisalmosttight([],hax(j-i+1));
       set(hax(j-i+1),'XLim',[trx(fly).timestamps(i0-1)-T0,trx(fly).timestamps(i1-1)-T0],'Box','off');
       if mod(j-i,naxr) ~= naxr-1,
@@ -204,7 +204,7 @@ for fnii = 2:numel(plotall_perframefns),
       %ylabel(hax(j-i+1),pfn,'Interpreter','none');
       xlabel(hax(j-i+1),wfn,'Interpreter','none');
     end
-    pause(.5);
+    pause(1);
     SaveFigLotsOfWays(hfig,fullfile(outfigdir,sprintf('ExampleWindowFeatures_%s_%s_fly%02d_%d',pfn,experiment_name,fly,fignum)));
     hfig = hfig + 1;
     fignum = fignum+1;
