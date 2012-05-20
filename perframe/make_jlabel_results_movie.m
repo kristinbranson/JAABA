@@ -12,7 +12,13 @@ if ~exist(clipsdir,'dir'),
 end
 flystr = sprintf('%02d_',handles.guidata.flies);
 flystr = flystr(1:end-1);
-avibasename = sprintf('Target%s_Frames%05dto%05d.avi',flystr,t0,t1);
+if iscell(handles.guidata.configparams.behaviors.names),
+  behaviorname = sprintf('%s',handles.guidata.configparams.behaviors.names{:});
+else
+  behaviorname = handles.guidata.configparams.behaviors.names;
+end
+
+avibasename = sprintf('%s_Target%s_Frames%05dto%05d.avi',behaviorname,flystr,t0,t1);
 aviname = fullfile(clipsdir,avibasename);
 
 % open avi file for writing
