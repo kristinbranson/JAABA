@@ -2920,6 +2920,29 @@ classdef JLabelData < handle
       obj.erroridx = [];
       obj.suggestedidx = [];
     end
+
+    function timestamp = GetLabelTimestamps(obj,expis,flies,ts)
+      
+      timestamp = nan(size(ts));      
+      for expi = 1:obj.nexps,
+        expidx = expis == expi;
+        if ~any(expidx),
+          continue;
+        end
+        % TODO: extend to multiple flies
+        for fly = 1:obj.nflies_per_exp(expi),
+          flyidx = expidx & flies == fly;
+          if ~any(flyidx),
+            continue;
+          end
+          [labelidx,T0] = obj.GetLabelIdx(expi,fly);
+          timestamp(flyidx) = labelidx.timestamp(ts(flyidx)-T0+1);
+        end
+        
+        
+      end
+      
+    end
     
     function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
     % [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies)
@@ -3825,7 +3848,7 @@ classdef JLabelData < handle
 % Training and prediction.    
     
 
-    function Train(obj,doFastUpdates)
+    function Train(obj,doFastUpdates,timerange)
     % Train(obj)
     % Updates the classifier to reflect the current labels. This involves
     % first loading/precomputing the training features. Then, the clasifier
@@ -3844,8 +3867,13 @@ classdef JLabelData < handle
         warning(msg);
         return;
       end
-
+      
       islabeled = (obj.windowdata.labelidx_new ~= 0) & (obj.windowdata.labelidx_imp);
+      if nargin >= 3 && ~isempty(timerange),
+        label_timestamp = obj.GetLabelTimestamps(obj.windowdata.exp(islabeled),obj.windowdata.flies(islabeled,:),obj.windowdata.t(islabeled));
+        islabeled(islabeled) = label_timestamp >= timerange(1) & label_timestamp < timerange(2);
+      end
+
       if ~any(islabeled),
         return;
       end
