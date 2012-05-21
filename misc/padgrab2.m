@@ -4,7 +4,7 @@
 function [y,npadl,npadu] = padgrab2(x,padv,l1,u1,l2,u2)
 
 % parse arguments
-usagestring = 'Usage: padgrab(x,padv,l1,u1,l2,u2,...)';
+usagestring = 'Usage: padgrab2(x,padv,l1,u1,l2,u2,...)';
 nd1 = ndims(x);
 %if mod(numel(varargin),2) ~= 0 || isempty(varargin),
 %  error(usagestring);
