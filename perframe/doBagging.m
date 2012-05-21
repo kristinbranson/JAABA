@@ -57,9 +57,11 @@ for numIter = 1:numRepeat
       bagModels{count} = curModel;
       count = count+1;
       etime = toc(tt);
-      obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
-        round( count/(numRepeat*6+1)*100), round((numRepeat*6-count+1)*etime)); 
-      drawnow();
+      if ~isempty(obj)
+        obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
+          round( count/(numRepeat*6+1)*100), round((numRepeat*6-count+1)*etime)); 
+        drawnow();
+      end
     end    
   end
   

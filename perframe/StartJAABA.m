@@ -7,8 +7,10 @@ addpath(fullfile(baseDir,'filehandling'));
 jlabelpath = fileparts(which('JLabel'));
 addpath(fullfile(jlabelpath,'compute_perframe_features'));
 
-if matlabpool('size')<1
-  matlabpool open;
+try
+  if matlabpool('size')<1
+    matlabpool open;
+  end
 end
 % Start JAABA.
 JLabel();
