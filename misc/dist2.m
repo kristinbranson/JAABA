@@ -25,3 +25,4 @@ function n2 = dist2(x, c)
 %   		2.*(x*(c'));
 
 n2 = bsxfun(@plus,sum(x.^2,2),bsxfun(@plus,sum((c.^2)',1),-2*x*c'));
+n2(n2<=0)=0;

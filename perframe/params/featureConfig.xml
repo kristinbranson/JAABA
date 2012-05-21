@@ -115,7 +115,7 @@
     
     <darea trans_types="none,abs" type="appearance"/>
     
-    <da trans_types="none,abs" type="appearance"/>
+    <da trans_types="none,abs" type="scores"/>
     
     <db trans_types="none,abs" type="appearance"/>
 
@@ -184,6 +184,8 @@
     <veltoward_nose2ell trans_types="none,relative" type="social"/>
     
     <yaw trans_types="flip,abs" type="locomotion"/>
+    
+    <absyaw trans_types="none" type="compatbility"/>
     
   </perframe>
 </params>
