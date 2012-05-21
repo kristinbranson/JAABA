@@ -4044,18 +4044,20 @@ classdef JLabelData < handle
         case 'boosting',
           
           toPredict = ~obj.windowdata.isvalidprediction;
-          obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
-          scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
-          obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
-          obj.windowdata.scores(toPredict) = scores;
-          obj.windowdata.isvalidprediction(toPredict) = true;
-          if ~isempty(obj.classifier_old),
-            obj.windowdata.scores_old(toPredict) = ...
-              myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
-          else
-            obj.windowdata.scores_old(toPredict) = 0;
+          if any(toPredict),
+            obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
+            scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
+            obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
+            obj.windowdata.scores(toPredict) = scores;
+            obj.windowdata.isvalidprediction(toPredict) = true;
+            if ~isempty(obj.classifier_old),
+              obj.windowdata.scores_old(toPredict) = ...
+                myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
+            else
+              obj.windowdata.scores_old(toPredict) = 0;
+            end
+            obj.ClearStatus();
           end
-          obj.ClearStatus();
           
       end
             
