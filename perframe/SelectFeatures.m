@@ -71,7 +71,8 @@ guidata(hObject, handles);
 set(handles.pfTable,'UserData',0);
 setJLDobj(hObject,JLDobj);
 set(hObject,'Visible','on');
-removeRowHeaders(hObject);
+removeRowHeaders(hObject); pause(0.5);
+% uiwait(hObject);
 % UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
 
 
@@ -102,7 +103,7 @@ handles.winParams = {'max_window_radius','min_window_radius','nwindow_radii',...
 
 handles.winextraDefaultParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
   [],[2],[],[],[],[]};
-handles.defaultWinParams = {1,10,3,{'none'},0};
+handles.defaultWinParams = {10,1,3,{'none'},0};
 
 guidata(hObject,handles);
 
@@ -399,7 +400,7 @@ function readFeatureConfiguration(hObject)
 handles = guidata(hObject);
 
 configfile = handles.JLDobj.featureConfigFile;
-[settings,~] = ReadPerFrameParams(configfile);
+settings = ReadXMLParams(configfile);
 
 % Read the default parameters for different categories.
 categories = fieldnames(settings.defaults);
@@ -492,18 +493,39 @@ perframeL = handles.JLDobj.allperframefns;
 
 transType = struct;
 pftype = struct;
-pftypeList = {};
+
+% perframeL might not contain all the perframe features.
 for pfndx = 1:numel(perframeL)
   curpf = perframeL{pfndx};
   transType.(curpf) = settings.perframe.(curpf).trans_types;
-  pftype.(curpf)  = settings.perframe.(curpf).type; 
-  for tndx = 1:numel(pftype.(curpf))
-    curT = pftype.(curpf){tndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    pftype.(curpf)  = {curtypes}; 
+  else    
+    pftype.(curpf)  = curtypes; 
+  end
+end
+
+fallpf = fieldnames(settings.perframe);
+pftypeList = {};
+for pfndx = 1:numel(fallpf)
+  curpf = fallpf{pfndx};
+  curtypes  = settings.perframe.(curpf).type; 
+  if ischar(curtypes)
+    curT = curtypes;
     if ~any(strcmp(pftypeList,curT))
       pftypeList{end+1} = curT;
     end
+  else    
+    for tndx = 1:numel(curtypes)
+      curT = curtypes{tndx};
+      if ~any(strcmp(pftypeList,curT))
+        pftypeList{end+1} = curT;
+      end
+    end
   end
 end
+
 
 handles.transType = transType;
 handles.pftype = pftype;
@@ -655,37 +677,58 @@ if ~eventData.NewData,
 end
 
 handles.data{pfNdx}.valid = true;
-% When it already has values
-if isfield(handles.data{pfNdx},'default')
-  guidata(hObject,handles);
-  setWindowTable(handles,handles.pfNdx);
-  return;
-end
-
-% Else fill in the default values.
-handles.data{pfNdx}.sanitycheck = false;
-handles.data{pfNdx}.default.valid = true;
-for winParamsNdx = 1:numel(handles.winParams)
-  curType = handles.winParams{winParamsNdx};
-  handles.data{pfNdx}.default.values.(curType) = ...
-    handles.defaultWinParams{winParamsNdx};
-end
-
-% Copy the default values into the other window params.
-for winfnNdx = 2:numel(handles.windowComp)
+curType = handles.pftype.(handles.pfList{pfNdx}){1};
+basicNdx = find(strcmp(handles.pftypeList,curType));
+basicData = get(handles.basicTable,'Data');
+handles.data{pfNdx}.valid = true;
+for winfnNdx = 1:numel(handles.windowComp)
+  category = basicData{basicNdx,3};
   curFn = handles.windowComp{winfnNdx};
-  handles.data{pfNdx}.(curFn).valid = false;
-  for winParamsNdx = 1:numel(handles.winParams)
-    curType = handles.winParams{winParamsNdx};
-    handles.data{pfNdx}.(curFn).values.(curType) = ...
-      handles.data{pfNdx}.default.values.(curType);
+  if ~handles.categ.(category).(curFn).valid
+    handles.data{pfNdx}.(curFn).valid = false;
+    continue;
   end
-  if ~isempty(handles.winextraParams{winfnNdx})
-    extraParam = handles.winextraParams{winfnNdx};
-    handles.data{pfNdx}.(curFn).values.(extraParam) = '';
-  end
-  
+  handles = CopyDefaultWindowParams(handles,...
+    category, pfNdx,winfnNdx);
+  curFn = handles.windowComp{winfnNdx};
+  handles.data{pfNdx}.(curFn).values.trans_types = handles.transType.(handles.pfList{pfNdx});
 end
+
+
+% 
+% % When it already has values
+% if isfield(handles.data{pfNdx},'default')
+%   guidata(hObject,handles);
+%   setWindowTable(handles,handles.pfNdx);
+%   return;
+% end
+% 
+% % Else fill in the default values.
+% handles.data{pfNdx}.sanitycheck = false;
+% handles.data{pfNdx}.default.valid = true;
+% for winParamsNdx = 1:numel(handles.winParams)
+%   curType = handles.winParams{winParamsNdx};
+%   handles.data{pfNdx}.default.values.(curType) = ...
+%     handles.defaultWinParams{winParamsNdx};
+% end
+% 
+% % Copy the default values into the other window params.
+% for winfnNdx = 2:numel(handles.windowComp)
+%   curFn = handles.windowComp{winfnNdx};
+%   handles.data{pfNdx}.(curFn).valid = false;
+%   for winParamsNdx = 1:numel(handles.winParams)
+%     curType = handles.winParams{winParamsNdx};
+%     handles.data{pfNdx}.(curFn).values.(curType) = ...
+%       handles.data{pfNdx}.default.values.(curType);
+%   end
+%   if ~isempty(handles.winextraParams{winfnNdx})
+%     extraParam = handles.winextraParams{winfnNdx};
+%     handles.data{pfNdx}.(curFn).values.(extraParam) = '';
+%   end
+%   
+% end
+
+
 guidata(hObject,handles);
 setWindowTable(handles,handles.pfNdx);
 % set(hObject,'UserData',0);
@@ -761,9 +804,11 @@ else
 end
 
 function setCategoryToCustom(handles)
-curTypes = ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx}));
+curTypes = find(ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx})));
 basicData = get(handles.basicTable,'Data');
-basicData{curTypes,2} = 'Custom';
+for ndx = 1:numel(curTypes)
+  basicData{curTypes(ndx),2} = 'Custom';
+end
 set(handles.basicTable,'Data',basicData);
 
 
@@ -775,18 +820,18 @@ set(handles.MinWindow,'String',num2str(curParams.values.min_window_radius));
 set(handles.MaxWindow,'String',num2str(curParams.values.max_window_radius));
 set(handles.WindowStep,'String',num2str(curParams.values.nwindow_radii));
 set(handles.WindowOffsets,'String',num2str(curParams.values.window_offsets));
-  %any(strcmp('none',curParams.values.trans_types)));
 set(handles.TransNone,'Value',...
-  bitand(1,curParams.values.trans_types));
-  %any(strcmp('flip',curParams.values.trans_types)));
+  any(strcmp('none',curParams.values.trans_types)));
+  %bitand(1,curParams.values.trans_types));
 set(handles.TransFlip,'Value',...
-  bitand(4,curParams.values.trans_types));
-  %any(strcmp('abs',curParams.values.trans_types)));
+  any(strcmp('flip',curParams.values.trans_types)));
+  %bitand(4,curParams.values.trans_types));
 set(handles.TransAbs,'Value',...
-  bitand(2,curParams.values.trans_types));
-  %any(strcmp('relative',curParams.values.trans_types)));
+  any(strcmp('abs',curParams.values.trans_types)));
+  %bitand(2,curParams.values.trans_types));
 set(handles.TransRel,'Value',...
-  bitand(8,curParams.values.trans_types));
+  any(strcmp('relative',curParams.values.trans_types)));
+  %bitand(8,curParams.values.trans_types));
 if isfield(curParams.values,handles.winextraParams{winNdx})
   extraParam = handles.winextraParams{winNdx};
   set(handles.ExtraParams,'String',curParams.values.(extraParam));
@@ -867,48 +912,10 @@ toc.appendChild(createXMLNode(docNode,'basicParams',basicStruct));
 toc.appendChild(createXMLNode(docNode,'featureWindowSize',featureWindowSize));
 toc.appendChild(createXMLNode(docNode,'params',params));
 
-att = fieldnames(params);
-for ndx = 1:numel(att)
-  toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
-end
-
-
-function node = createXMLNode(docNode,name,value)
-
-node = docNode.createElement(name);
-
-fs = fieldnames(value);
-for ndx = 1:numel(fs)
-  curVal = value.(fs{ndx});
-  switch class(curVal)
-    case 'struct'
-      node.appendChild(createXMLNode(docNode,fs{ndx},value.(fs{ndx})));
-    case 'cell'
-      valStr = curVal{1};
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' curVal{vNdx}];
-      end
-      node.setAttribute(fs{ndx},valStr);
-    case 'double'
-      valStr = num2str(curVal(1));
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' num2str(curVal(vNdx))];
-      end      
-      node.setAttribute(fs{ndx},valStr);
-    case 'logical'
-      valStr = num2str(curVal(1));
-      for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' num2str(curVal(vNdx))];
-      end      
-      node.setAttribute(fs{ndx},valStr);
-    case 'char'
-      valStr = curVal;
-      node.setAttribute(fs{ndx},valStr);
-    otherwise
-      fprintf('Unknown type');
-  end
-      
-end
+% att = fieldnames(params);
+% for ndx = 1:numel(att)
+%   toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
+% end
 
 
 function disableWindowTable(handles)
@@ -1085,16 +1092,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('none',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
-  %end
+  %curT=bitor(1,curT);
+  if ~any(strcmp('none',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'none';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = strcmp('none',curT);
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = strcmp('none',curT);
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1113,16 +1120,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('flip',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'flip';
-  %end
+%   curT=bitor(1,curT);
+  if ~any(strcmp('flip',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'flip';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = find(strcmp('flip',curT));
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = find(strcmp('flip',curT));
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1142,16 +1149,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('abs',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'abs';
-  %end
+%   curT=bitor(1,curT);
+  if ~any(strcmp('abs',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'abs';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = find(strcmp('abs',curT));
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = find(strcmp('abs',curT));
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1171,16 +1178,16 @@ curFn = handles.windowComp{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
-  curT=bitor(1,curT);
-  %if ~any(strcmp('relative',curT))
-  %  handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'relative';
-  %end
+%   curT=bitor(1,curT);
+  if ~any(strcmp('relative',curT))
+   handles.data{handles.pfNdx}.(curFn).values.trans_types{end+1} = 'relative';
+  end
 else
-  curT=bitand(14,curT);
-  %allNdx = find(strcmp('relative',curT));
-  %handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
-  %if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
-  if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
+%   curT=bitand(14,curT);
+  allNdx = find(strcmp('relative',curT));
+  handles.data{handles.pfNdx}.(curFn).values.trans_types(allNdx) = [];
+  if isempty(handles.data{handles.pfNdx}.(curFn).values.trans_types),
+%   if handles.data{handles.pfNdx}.(curFn).values.trans_types==0,
     warndlg('Select at least one transformation type');
   end
 end
@@ -1206,6 +1213,7 @@ handles = guidata(hObject);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = str2double(get(handles.editSize,'String'));
 [params,cellParams] = convertData(handles);
+set(handles.output,'Visible','off');
 handles.JLDobj.UpdatePerframeParams(params,cellParams,basicData,featureWindowSize);
 
 
@@ -1249,12 +1257,12 @@ function Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fName,pName] = uiputfile('./*.xml','Save feature configurations to..');
+% Use project name.
+[fName,pName] = uiputfile('params/*.xml','Save feature configurations to..');
 if ~fName
   return;
 end
 
-handles = guidata(hObject);
 [params,~] = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
@@ -1649,5 +1657,32 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_ok (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+configfile = handles.JLDobj.configfilename;
+configparams = ReadXMLParams(configfile);
+
+if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
+  behaviorname = configparams.behaviors.names;
+  defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+  [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
+  if isempty(fname),return, end
+  featureconfigfile = fullfile(fpath,fname);
+  configparams.file.featureparamfilename = featureconfigfile;
+  docNode = com.mathworks.xml.XMLUtils.createDocument('params');
+  toc = docNode.getDocumentElement;
+  fnames = fieldnames(configparams);
+  for ndx = 1:numel(fnames)
+    toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
+  end
+  xmlwrite(configfile,docNode);
+end
+
+featureconfigfile = configparams.file.featureparamfilename;
+[params,~] = convertData(handles);
+basicData = get(handles.basicTable,'Data');
+featureWindowSize = round(str2double(get(handles.editSize,'String')));
+docNode = createParamsXML(params,basicData,featureWindowSize);
+xmlwrite(featureconfigfile,docNode);
+
 pushbutton_done_Callback(hObject,eventdata,handles);
 push_cancel_Callback(hObject,eventdata,handles);

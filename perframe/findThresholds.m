@@ -24,5 +24,16 @@ parfor dim = 1:numDim
 %   curBins = sum(bsxfun(@gt,curD,curVals),2)+1;
 %   bins(dim,:) = curBins;
 end
-tbins = sum(bsxfun(@gt,data,binVals3),3)+1;
-bins = uint8(tbins');
+
+bins = uint8(ones(size(data,2),size(data,1)));
+
+blockSize = 50000;
+numBlocks = ceil(size(data,1)/blockSize);
+
+for ndx = 1:numBlocks
+   curb = (blockSize*(ndx-1)+1):(min(blockSize*ndx,size(data,1)));
+   bins(:,curb) = sum(bsxfun(@gt,data(curb,:),binVals3),3)'+1;
+end
+
+% tbins = sum(bsxfun(@gt,data,binVals3),3)+1;
+% bins = uint8(tbins');
