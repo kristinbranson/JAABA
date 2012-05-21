@@ -1663,7 +1663,11 @@ configparams = ReadXMLParams(configfile);
 
 if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
   behaviorname = configparams.behaviors.names;
-  defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+  if iscell(behaviorname),
+    defaultname = sprintf('WindowFeatures_%s.xml',behaviorname{1});
+  else
+    defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+  end
   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
   if isempty(fname),return, end
   featureconfigfile = fullfile(fpath,fname);
