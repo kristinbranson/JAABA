@@ -1162,12 +1162,14 @@ prediction_bottom = zeros(size(scores_bottom));
 prediction_bottom(scores_bottom>0) = 1;
 prediction_bottom(scores_bottom<0) = 2;
 
+idxBottomScores = ~isnan(scores_bottom);
+bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
+
 for behaviori = 1:handles.guidata.data.nbehaviors
 
   idxScores = predictedidx == behaviori ;
   idxPredict = idxScores & ...
     (abs(scores)>handles.guidata.data.GetConfidenceThreshold(behaviori));
-  idxBottomScores = ~isnan(scores_bottom);
   for channel = 1:3,
     
       handles.guidata.labels_plot.predicted_im(1,idxPredict,channel) = handles.guidata.labelcolors(behaviori,channel);
@@ -1177,7 +1179,6 @@ for behaviori = 1:handles.guidata.data.nbehaviors
       handles.guidata.labels_plot.predicted_im(4,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
     
       % bottom row scores.
-      bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
       handles.guidata.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.guidata.scorecolor(bottomScoreNdx,channel,1);
       handles.guidata.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
         handles.guidata.labelcolors(behaviori,channel);
