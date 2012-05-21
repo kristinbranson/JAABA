@@ -4425,6 +4425,7 @@ if ~doloop
   start(T);
 end
 
+if(0)  % test framerate
 while true,
   handles = guidata(hObject);
   if handles.guidata.hplaying ~= hObject,
@@ -4477,6 +4478,60 @@ while true,
     pause(pause_time);
   end
 end
+
+else  % test framerate
+
+%t_last=t0;
+t=t0;
+while true,
+  handles = guidata(hObject);
+  if handles.guidata.hplaying ~= hObject,
+    return;
+  end
+  
+  if CALC_FEATURES
+    t0 = handles.guidata.ts(axi);
+    CALC_FEATURES = false;
+  end
+  
+  if PLAY_TIMER_DONE
+    ticker = tic;
+    PLAY_TIMER_DONE = false;
+    predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
+    predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
+    handles = SetPredictedPlot(handles,predictStart,predictEnd);
+    handles = UpdateTimelineIms(handles);
+
+    guidata(hObject,handles);
+    UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+      'refreshtrx',true,'refreshlabels',true,...
+      'refresh_timeline_manual',false,...
+      'refresh_timeline_xlim',false,...
+      'refresh_timeline_hcurr',false,...
+      'refresh_timeline_selection',false,...
+      'refresh_curr_prop',false);
+
+  end
+  if t > t1,
+    if doloop,
+      ticker = tic;
+      continue;
+    else
+      break;
+    end
+  end
+  SetCurrentFrame(handles,axi,t,hObject);
+  handles = UpdateTimelineIms(handles);
+  drawnow;
+if(exist('tocker'))  disp([num2str(1/toc(tocker),2)]);  end
+tocker=tic;
+%if(t-t_last>1)  disp(['skip ' num2str(t-t_last) ' @ ' num2str(t)]);  end
+%if(t==t_last)  disp(['repeat @ ' num2str(t)]);  end
+%t_last=t;
+  t=t+1;
+end
+
+end  % test framerate
 
 stopPlaying(handles);
 
