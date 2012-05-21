@@ -542,12 +542,26 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
+      image_cache = getappdata(handles.figure_JLabel,'image_cache');
+      if(isempty(image_cache))
+        image_cache.ims=cell(1,1000);
+        image_cache.ts=zeros(1,1000);
+        image_cache.lastused=zeros(1,1000);
+      end
+
+      j = find(handles.guidata.ts(i)==image_cache.ts,1);
+      if isempty(j),
+        im = handles.guidata.readframe(handles.guidata.ts(i));
+      else
+        im = image_cache.ims{j};
+      end
+
     % read in current frame
     %image_cache = getappdata(handles.figure_JLabel,'image_cache');
 %     try
 %       j = find(handles.guidata.ts(i)==image_cache.ts,1);
 %       if isempty(j),
-        im = handles.guidata.readframe(handles.guidata.ts(i));
+%       im = handles.guidata.readframe(handles.guidata.ts(i));
 %       else
 %         im = image_cache.ims(:,:,:,j);
 %       end
@@ -558,6 +572,14 @@ for i = axes,
   
     % update frame
     set(handles.guidata.himage_previews(i),'CData',im);
+
+      if isempty(j),
+        j = argmin(image_cache.lastused);
+        image_cache.ims{j} = im;
+        image_cache.ts(j) = handles.guidata.ts(i);
+      end
+      image_cache.lastused(j) = now;
+      setappdata(handles.figure_JLabel,'image_cache',image_cache);
 
 %     if isempty(j),
 %       j = argmin(image_cache.timestamps);
