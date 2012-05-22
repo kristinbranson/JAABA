@@ -3759,7 +3759,7 @@ classdef JLabelData < handle
 
     end
   
-    function TrimWindowData(obj)
+    function TrimWindowData(obj,doforce)
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
       sizeLimit = 5e9; % 5GB.
@@ -3769,7 +3769,7 @@ classdef JLabelData < handle
       numUnlabeled = nnz(obj.windowdata.labelidx_new==0);
       numLabeled = nnz(obj.windowdata.labelidx_new);
       
-      if numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit;
+      if (nargin < 2 || ~doforce) && (numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit);
         return;
       end
       
