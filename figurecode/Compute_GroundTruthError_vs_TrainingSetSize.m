@@ -34,6 +34,8 @@ for i = 1:numel(train_expdirs),
   Jtrain.AddExpDir(train_expdirs{i});
 end
 
+Jtrain.TrimWindowData(true);
+
 %% set groundtruthing data
 
 Jgt = JLabelData(configfilename,...
@@ -42,6 +44,7 @@ Jgt.SetGTMode(true);
 for i = 1:numel(groundtruth_expdirs),
   Jgt.AddExpDir(groundtruth_expdirs{i});
 end
+%Jgt.TrimWindowData(true);
 
 %% train on increasing amounts of training data
 
