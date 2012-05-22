@@ -1322,11 +1322,11 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
 	// and then scale all set->samples[:].alpha (the value of 'dalpha' and 'scale' 
 	// that maximizes the increase in the dual objective). 
 	dalpha = my_min(1-set->alpha, my_max(-s->alpha*s_u,dalpha));
-	if(set->u_i_sqr && set->alpha) {
+	/*if(set->u_i_sqr && set->alpha) {
 	  scale = 1 + (L_i*sum_w_scale - dalpha*dot_u_v) / set->u_i_sqr;
 	  scale = my_min((1-dalpha)/set->alpha, my_max(0, scale));
 	  if(s->alpha*s_u*scale+dalpha < 0) dalpha = -s->alpha*s_u*scale;
-	}
+	  }*/
 	new_alpha = set->alpha*scale + dalpha;
       } else {
 	// alpha swap: solve for the optimal amount 'dalpha' to increase s->alpha

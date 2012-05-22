@@ -113,6 +113,7 @@ typedef struct _BehaviorBout {
   int behavior;   /**< the index of the behavior */
   double bout_score;  /**< the score of the bout (the dot product <w_bout,f_bout>) */
   double transition_score;  /**< the component of the bout score due to transitioning from the previous behavior class to the class of this bout */
+  double unary_score;
   double loss_fn;  /**< the loss associated with missing detection of some behavior bout(s) that overlap with this bout */
   double loss_fp;  /**< the loss associated with predicting this bout incorrectly */
   double extreme_vals[2][NUMFEAT];
@@ -136,6 +137,7 @@ protected:
   double slack;  /**< The error associated with the behavior predictions (score+loss-score_gt) */
   double *scores;  /**< A behaviors->num array of scores for each behavior group */
   double *losses;  /**< A behaviors->num array of losses for each behavior group */
+  bool disable_checks;
 
 public:
   BehaviorBoutSequence(BehaviorBoutFeatures *x, SVMBehaviorSequence *svm);
@@ -340,15 +342,17 @@ class SVMBehaviorSequence : public StructuredSVM {
  private:
   void init_bout_label(BehaviorBoutSequence *ybar, BehaviorBoutSequence *y);
   double compute_updated_bout_loss(BehaviorBoutFeatures *b, BehaviorBoutSequence *y, int beh, int T, int t_p, int t, int c_prev, double *fn, int *gt_bout, double *dur_gt, double &loss_fp, double &loss_fn);
-  void update_transition_counts_with_partial_label(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
-  void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, double *unary_weights, int T);
+  void update_transition_counts_with_partial_label(int beh, BehaviorBoutSequence *y_partial, int** &old_class_transitions, int* &old_class_transition_counts, int* &old_class_training_counts);
+  void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, int T);
   bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev);
-  void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT]);
-  void restore_transition_counts(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
+  void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double unary_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT]);
+  void restore_transition_counts(int beh, BehaviorBoutSequence *y_partial, int** &old_class_transitions, int* &old_class_transition_counts, int* &old_class_training_counts);
   void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
   bool *get_allowable_frame_times(BehaviorBoutSequence *y_gt, BehaviorBoutSequence *y_partial, int T);
-  int get_bout_start_time(int beh, int *duration, int &tt, int t_p, int t, int &next_duration, int &last_gt, int &last_partial, int *gt_bout, int *partial_label_bout, BehaviorBoutSequence *y, BehaviorBoutSequence *y_partial, int &restrict_c_prev, int &restrict_c_next);
+  int get_bout_start_time(int beh, int *duration, int &tt, int t_p, int t, int &next_duration, int &last_gt, int &last_partial, int *gt_bout, int *partial_label_bout, BehaviorBoutSequence *y, BehaviorBoutSequence *y_partial, int &restrict_c_prev, int &restrict_c_next, bool *allowable_time_frames);
   BehaviorBoutSequence *bout_sequence_remove_section(BehaviorBoutSequence *y_src, int t_start, int t_end);
+  void print_bout_sequence_scores(BehaviorBoutSequence *y, int beh);
+  void recompute_bout_sequence_scores(SparseVector *w, BehaviorBoutFeatures *b, BehaviorBoutSequence *y);
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);

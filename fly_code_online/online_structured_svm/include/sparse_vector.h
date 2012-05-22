@@ -130,7 +130,7 @@ public:
       non_sparse = (double*)malloc(sizeof(double)*(v.maxIndex+1));
       memcpy(non_sparse, v.non_sparse, sizeof(double)*(v.maxIndex+1));
       if(v.used_inds) {
-	used_inds = (int*)malloc(sizeof(int)*(v.maxIndex+1));
+	used_inds = (int*)malloc(sizeof(int)*(3*v.maxIndex+1));
 	memcpy(used_inds, v.used_inds, sizeof(int)*(v.maxIndex+1));
       }
     }
@@ -171,7 +171,7 @@ public:
 	non_sparse = (double*)malloc(sizeof(double)*v.Length());
 	memcpy(non_sparse, v.non_sparse, sizeof(double)*v.Length());
 	if(v.used_inds) {
-	  used_inds = (int*)malloc(sizeof(int)*(v.Length()));
+	  used_inds = (int*)malloc(sizeof(int)*(3*v.Length()));
 	  memcpy(used_inds, v.used_inds, sizeof(int)*v.numUsed);
 	}
       }
@@ -232,7 +232,7 @@ public:
       non_sparse = get_non_sparse<double>(sz == -1 ? Length() : sz, non_sparse_mem);
       numUsed = 0;
       if(track_used_inds) {
-	used_inds = (int*)malloc(sizeof(int)*my_max(sz,Length()));
+	used_inds = (int*)malloc(sizeof(int)*3*my_max(sz,Length()));
 	for(int i = 0; i < numNonZero; i++) 
 	  if(elements[i].val)
 	    used_inds[numUsed++] = elements[i].ind;
@@ -426,7 +426,7 @@ public:
       non_sparse = (double*)malloc(sizeof(double)*(v.maxIndex+1));
       memcpy(non_sparse, v.non_sparse, sizeof(double)*(v.maxIndex+1));
       if(v.used_inds) {
-	used_inds = (int*)malloc(sizeof(int)*(v.maxIndex+1));
+	used_inds = (int*)malloc(sizeof(int)*(3*v.maxIndex+1));
 	memcpy(used_inds, v.used_inds, sizeof(double)*v.numUsed);
       }
     }
@@ -682,7 +682,7 @@ public:
     SparseVector retval;
     if(non_sparse) {
       retval.non_sparse = get_non_sparse<double>(my_max(Length(),v.maxIndex+1));
-      retval.used_inds = (int*)malloc(sizeof(int)*Length());
+      retval.used_inds = (int*)malloc(3*sizeof(int)*Length());
       if(v.non_sparse) {
 	for(int i = 0; i < my_min(v.maxIndex,maxIndex)+1; i++) {
 	  if(!retval.non_sparse[i] && v.non_sparse[i]) retval.used_inds[retval.numUsed++] = i;
@@ -729,7 +729,7 @@ public:
     if(non_sparse) {
       assert(shiftAmount < 0 && v.shiftAmount < 0);
       retval.non_sparse = get_non_sparse<double>(my_max(Length(),v.maxIndex+1));
-      retval.used_inds = (int*)malloc(sizeof(int)*Length());
+      retval.used_inds = (int*)malloc(3*sizeof(int)*Length());
       if(v.non_sparse) {
 	for(int i = 0; i < my_min(v.maxIndex,maxIndex)+1; i++) {
 	  if(!retval.non_sparse[i] && v.non_sparse[i]) retval.used_inds[retval.numUsed++] = i;
