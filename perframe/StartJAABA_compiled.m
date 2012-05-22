@@ -10,6 +10,10 @@
 % end
 
 [hsplash,hstatustext] = JAABASplashScreen();
+% 
+% fprintf('Current directory: %s\n',pwd);
+% fprintf('JAABA location: %s\n',mfilename('fullpath'));
+% fprintf('ctfroot -> %s\n',ctfroot);
 
 try
   if ishandle(hstatustext),
