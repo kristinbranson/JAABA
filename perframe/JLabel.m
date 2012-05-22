@@ -431,7 +431,51 @@ handles = UpdateGUIGroundTruthMode(handles);
 % end
 
 
+
+function cache_thread(N,HW,movieheaderinfo,readframe)
+
+Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
+Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HW 'x'},  'Repeat', N, 'Offset', 2*N*8);
+disp(readframe);
+
+movieheaderinfo.fid=fopen(movieheaderinfo.filename,'rb','ieee-le');
+
+idx=1;
+while true
+  if(Mlastused.Data(idx)==inf)
+    Mims.Data(idx).x = ufmf_read_frame(movieheaderinfo,Mts.Data(idx));
+    Mlastused.Data(idx) = now;
+  end
+  idx=1+mod(idx,N);
+  if(idx==1)  pause(1);  end
+end
+
+
 function UpdatePlots(handles,varargin)
+
+persistent Mts Mlastused Mims
+
+if(isempty(Mts))
+  N=200;  % cache size
+  HW = [handles.guidata.movieheaderinfo.max_height handles.guidata.movieheaderinfo.max_width];
+
+  %if(exist('cache.dat')~=2)
+  if(1)
+    fid=fopen('cache.dat','w');
+    fwrite(fid,zeros(1,N),'double');
+    fwrite(fid,zeros(1,N),'double');
+    fwrite(fid,zeros(1,N*prod(HW)),'uint8');  % need to make this work for other formats
+    fclose(fid);
+  end
+  Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
+  Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+  Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HW 'x'},  'Repeat', N, 'Offset', 2*N*8);
+
+  handles.guidata.cache_thread=batch(@cache_thread,0,...
+    {N,HW,handles.guidata.movieheaderinfo,handles.guidata.readframe},...
+    'CaptureDiary',true,'additionalpaths',{'../filehandling','../misc'});
+end
 
 % WARNING: we directly access handles.guidata.data.trx for speed here -- 
 % REMOVED! NOT SO SLOW
@@ -542,52 +586,29 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
-      image_cache = getappdata(handles.figure_JLabel,'image_cache');
-      if(isempty(image_cache))
-        image_cache.ims=cell(1,1000);
-        image_cache.ts=zeros(1,1000);
-        image_cache.lastused=zeros(1,1000);
-      end
-
-      j = find(handles.guidata.ts(i)==image_cache.ts,1);
+      j = find((Mts.Data==handles.guidata.ts(i)) & (Mlastused.Data~=inf));
       if isempty(j),
         im = handles.guidata.readframe(handles.guidata.ts(i));
+        j = argmin(Mlastused.Data);
+        Mims.Data(j).x = im;
+        Mts.Data(j) = handles.guidata.ts(i);
       else
-        im = image_cache.ims{j};
+        im = Mims.Data(j).x;
+      end
+      Mlastused.Data(j) = now;
+
+      % update frame
+      set(handles.guidata.himage_previews(i),'CData',im);
+
+      tmp=handles.guidata.nframes_jump_go;
+      j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mts.Data);
+      j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));
+      for k=1:length(j)
+        kk = argmin(Mlastused.Data);
+        Mlastused.Data(kk) = inf;
+        Mts.Data(kk) = j(k);
       end
 
-    % read in current frame
-    %image_cache = getappdata(handles.figure_JLabel,'image_cache');
-%     try
-%       j = find(handles.guidata.ts(i)==image_cache.ts,1);
-%       if isempty(j),
-%       im = handles.guidata.readframe(handles.guidata.ts(i));
-%       else
-%         im = image_cache.ims(:,:,:,j);
-%       end
-%     catch ME
-%       uiwait(warndlg(sprintf('Could not read frame %d from current movie: %s',handles.guidata.ts(i),getReport(ME))));
-%       return;
-%     end
-  
-    % update frame
-    set(handles.guidata.himage_previews(i),'CData',im);
-
-      if isempty(j),
-        j = argmin(image_cache.lastused);
-        image_cache.ims{j} = im;
-        image_cache.ts(j) = handles.guidata.ts(i);
-      end
-      image_cache.lastused(j) = now;
-      setappdata(handles.figure_JLabel,'image_cache',image_cache);
-
-%     if isempty(j),
-%       j = argmin(image_cache.timestamps);
-%       image_cache.ims(:,:,:,j) = im;
-%       image_cache.ts(j) = handles.guidata.ts(i);
-%     end
-%     image_cache.timestamps(j) = now;
-%     setappdata(handles.figure_JLabel,'image_cache',image_cache);
     else
       
       set(handles.guidata.himage_previews(i),'Visible','off');
@@ -1516,6 +1537,7 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+delete(handles.guidata.cache_thread);
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
 
 % --------------------------------------------------------------------
