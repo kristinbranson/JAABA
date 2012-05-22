@@ -249,7 +249,7 @@ void SVMBehaviorSequence::saveBoutFeatures(StructuredDataset *dataset, const cha
 				num_bouts += ((BehaviorBoutSequence*)ex[n]->y)->num_bouts[beh];
 			}
 		}
-		num_bouts_extra += floor(((BehaviorBoutFeatures*)ex[n]->x)->num_frames/30);
+		num_bouts_extra += floor(((BehaviorBoutFeatures*)ex[n]->x)->num_frames/30.0);
 	}
 
 	if(addRandBouts)
@@ -2109,7 +2109,7 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
   // Now run the full exhaustive Inference() procedure to find the most violated constraint
   set->score_gt = w_curr->dot(*set->psi_gt);
   StructuredLabel *ybar = NewStructuredLabel(x);
-  double retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
+  retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
   SVM_cached_sample_set_add_sample(set, ybar);
   if(set->num_samples) {
     SVM_cached_sample s = set->samples[0];
