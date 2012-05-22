@@ -164,6 +164,8 @@ classdef JLabelGUIData < handle
     didclearselection = false;
     
     open_peripherals = [];
+
+    cache_thread = [];
         
   end
      
