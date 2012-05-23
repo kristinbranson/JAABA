@@ -269,8 +269,11 @@ bool StructuredLearnerRpc::SaveCurrentModel(const Json::Value& root, Json::Value
     response["t"] = (int)learner->GetNumIterations();
     response["n"] = (int)learner->GetNumExamples();
     char cache_name[1000]; strcpy(cache_name, root.get("saveCache", "").asString().c_str());
-    if(strlen(cache_name))
+    if(strlen(cache_name)) {
+      learner->Lock();
       learner->SaveCachedExamples(cache_name, root.get("saveCacheFull", false).asBool());
+      learner->Unlock();
+    }
     return true;
   } else
     return false;

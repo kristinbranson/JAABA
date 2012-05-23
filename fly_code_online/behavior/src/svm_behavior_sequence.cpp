@@ -302,6 +302,7 @@ void SVMBehaviorSequence::saveBoutFeatures(StructuredDataset *dataset, const cha
 #endif	
 	}
 	fclose(featureFile);
+	free(tmp_features);
 }
 
 /*
@@ -926,6 +927,7 @@ void SVMBehaviorSequence::print_features(const char *fname, StructuredDataset *d
 		}
 	}
 	fclose(fout);
+	free(tmp_features);
 }
 
 
@@ -2005,6 +2007,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
     free(states);
     free(class_weights);
     free(bout_scores);
+    if(fn) free(fn);
 
   } // for(int beh = 0; ...)
 
@@ -2012,6 +2015,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
   free(tmp_features);
   free(ww);
   free(gt_bout);
+  free(durations);
   if(allowable_time_frames)
     free(allowable_time_frames);
 
