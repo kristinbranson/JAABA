@@ -1,7 +1,7 @@
 classdef NextJump < handle
   
   properties (Access=public)
-    curType = 'Current Scores';
+    curType = 'Bouts in current scores';
     allTypes = {'Bouts in current scores',...
       'Bouts in loaded scores',...
       'Errors in current scores',...
@@ -33,7 +33,9 @@ classdef NextJump < handle
     end
     
     function SetState(obj,state)
-      obj.curType = state.curType;
+      if any(strcmp(state.curType,obj.curType)),
+        obj.curType = state.curType;
+      end
       if state.perframeSelFeatures <= numel(obj.perframefns);
         obj.perframeSelFeatures = state.perframeSelFeatures;
         obj.perframeSelThresholds = state.perframeSelThresholds;

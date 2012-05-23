@@ -186,6 +186,8 @@
     <yaw trans_types="flip,abs" type="locomotion"/>
     
     <absyaw trans_types="none" type="compatbility"/>
+
+    <scores_Jump trans_types="none" type="Scores"/>
     
   </perframe>
 </params>
