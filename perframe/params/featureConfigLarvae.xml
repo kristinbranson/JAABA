@@ -160,5 +160,22 @@
   <dtailinflang trans_types="none,abs,relative" type="locomotion_global"/>
   <dinflheadmag trans_types="none,abs,relative" type="locomotion"/>
   <dinflheadang trans_types="none,abs,relative" type="locomotion_global"/>
+  <xheadsm_mm trans_types="none" type="position"/>
+  <xtailsm_mm trans_types="none" type="position"/>
+  <yheadsm_mm trans_types="none" type="position"/>
+  <ytailsm_mm trans_types="none" type="position"/>
+  <dxheadsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dyheadsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxtailsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dytailsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <centralheadsmang trans_types="none" type="position"/>
+  <velchsm trans_types="none,relative" type="locomotion"/>
+  <tailsmcentralang trans_types="none" type="position"/>
+  <veltsmc trans_types="none,relative" type="locomotion"/>
+  <tailsmheadsmang trans_types="none" type="position"/>
+  <veltsmhsm trans_types="none,relative" type="locomotion"/>
+  <tailsminflang trans_types="none" type="position"/>
+  <inflheadsmang trans_types="none" type="position"/>
+  <angihsmvsangtsmi trans_types="abs,flip" type="appearance"/>
 </perframe>
 </params>
