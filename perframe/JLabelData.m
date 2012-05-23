@@ -3085,6 +3085,9 @@ classdef JLabelData < handle
       end
       for j = 1:numel(labels_curr.imp_t0s)
         t0 = labels_curr.imp_t0s(j); t1 = labels_curr.imp_t1s(j);
+        if t0>T1 || t1<T0; continue;end
+        t0 = max(T0,t0);
+        t1 = min(T1,t1);
         labelidx.imp(t0+off:t1-1+off) = 1;
       end
       
