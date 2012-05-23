@@ -2111,11 +2111,11 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
   }
 
   // Now run the full exhaustive Inference() procedure to find the most violated constraint
-  set->score_gt = w_curr->dot(*set->psi_gt);
+  /*set->score_gt = w_curr->dot(*set->psi_gt);
   StructuredLabel *ybar = NewStructuredLabel(x);
   retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
   SVM_cached_sample_set_add_sample(set, ybar);
-  if(set->num_samples) {
+  */if(set->num_samples) {
     SVM_cached_sample s = set->samples[0];
     set->samples[0] = set->samples[set->num_samples-1];
     set->samples[set->num_samples-1] = s;
