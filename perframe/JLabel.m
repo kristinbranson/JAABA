@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 07-May-2012 20:54:33
+% Last Modified by GUIDE v2.5 14-May-2012 16:16:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -43,6 +43,13 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+function SetSplashStatus(hsplashstatus,varargin)
+
+if ishandle(hsplashstatus),
+  set(hsplashstatus,'String',sprintf(varargin{:}));
+else
+  fprintf([varargin{1},'\n'],varargin{2:end});
+end
 
 % --- Executes just before JLabel is made visible.
 function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
@@ -58,12 +65,21 @@ handles.guidata = JLabelGUIData();
 [handles.guidata.classifierfilename,...
   handles.guidata.configfilename,...
   handles.guidata.defaultpath,...
-  handles.guidata.isgroundtruthmode] = ...
+  handles.guidata.isgroundtruthmode,...
+  handles.guidata.hsplash,...
+  handles.guidata.hsplashstatus] = ...
   myparse(varargin,...
   'classifierfilename','',...
   'configfilename','',...
   'defaultpath','',...
-  'groundtruthmode',false);
+  'groundtruthmode',false,...
+  'hsplash',[],...
+  'hsplashstatus',[]);
+
+if isempty(handles.guidata.hsplash),
+  [handles.guidata.hsplash,handles.guidata.hsplashstatus] = JAABASplashScreen();
+end
+SetSplashStatus(handles.guidata.hsplashstatus,'Initializing Edit Files GUI...');
 
 handles.output = handles.figure_JLabel;
 % initialize statusbar
@@ -75,7 +91,8 @@ handles.guidata.movie_height = 100;
 handles.guidata.movie_width = 100;
 ClearStatus(handles);
 
-[handles,success] = JLabelEditFiles('JLabelHandle',handles);
+[handles,success] = JLabelEditFiles('JLabelHandle',handles,...
+  'JLabelSplashHandle',handles.guidata.hsplash);
 
 if ~success,
   guidata(hObject,handles);
@@ -403,7 +420,6 @@ set(handles.guidata.hfly_markers,'EraseMode','none');
 
 handles = UpdateGUIGroundTruthMode(handles);
 
-
 %for i = 1:numel(handles.guidata.axes_timelines),
 %  setAxesZoomMotion(handles.guidata.hzoom,handles.guidata.axes_timelines(i),'horizontal');
 %end
@@ -557,8 +573,6 @@ for i = axes,
     
   end
   
-  % TODO: change hard-coded linewidths, nprev, npost
-  
   % update current position
   if refreshflies,
     if handles.guidata.ts(i) < handles.guidata.t0_curr || handles.guidata.ts(i) > handles.guidata.t1_curr,
@@ -578,9 +592,6 @@ for i = axes,
     set(handles.guidata.hflies_extra(~inbounds,i),'XData',nan,'YData',nan);
     set(handles.guidata.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
     for fly = find(inbounds),
-      % WARNING: this accesses handles.guidata.data.trx directly -- make sure that
-      % handles.guidata.data.trx is loaded for the correct movie
-      % REMOVED! NOT SO SLOW
 
       t = handles.guidata.ts(i);
       pos = handles.guidata.data.GetTrxPos1(handles.guidata.expi,fly,t);
@@ -790,7 +801,6 @@ if isnan(handles.guidata.zoom_fly_radius(1)),
   handles.guidata.zoom_fly_radius = nanmean([handles.guidata.data.trx.a])*20 + [0,0];
 end
 
-
 handles.guidata.expi = expi;
 
 ClearStatus(handles);
@@ -863,6 +873,7 @@ end
 
 % update plot
 UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
+ZoomInOnFlies(handles);
 
 for h = handles.guidata.axes_timeline_labels,
   zoom(h,'reset');
@@ -1322,8 +1333,10 @@ else
   oldexpdir = '';
 end
 
+DisableGUI(handles);
 [handles,success] = ...
   JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
+ReEnableGUI(handles);
 
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
@@ -1724,11 +1737,11 @@ set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 handles.guidata.max_click_dist_preview = .025^2;
 
 % zoom state
-handles.guidata.preview_zoom_mode = 'center_on_fly';
+handles.guidata.preview_zoom_mode = 'follow_fly';
 handles.guidata.zoom_fly_radius = nan(1,2);
-handles.guidata.menu_view_zoom_options = findall(handles.menu_view_zoom,'Type','menu');
+handles.guidata.menu_view_zoom_options = findall(handles.menu_view_zoom,'Type','uimenu');
 set(handles.guidata.menu_view_zoom_options,'Checked','off');
-set(handles.menu_view_zoom_in_on_fly,'Checked','on');
+set(handles.menu_view_zoom_keep_target_in_view,'Checked','on');
 
 % last clicked object
 handles.guidata.selection_t0 = nan;
@@ -2168,6 +2181,12 @@ end
 % catch %#ok<CTCH>
 % end
 % SWITCH THIS
+for ndx = 1:numel(handles.guidata.open_peripherals)
+  if ishandle(handles.guidata.open_peripherals(ndx)),
+    delete(handles.guidata.open_peripherals(ndx));
+  end
+end
+
 if true,
   SaveRC(handles);
   delete(handles.figure_JLabel);
@@ -2297,6 +2316,7 @@ if get(hObject,'Value'),
    set(handles.menu_edit,'enable','off');
    set(handles.menu_go,'enable','off');
    set(handles.menu_classifier,'enable','off');
+   set(handles.pushbutton_train,'Enable','off');
    
 else % label pen is up.
   
@@ -2336,10 +2356,12 @@ else % label pen is up.
   set(handles.togglebutton_label_unknown,'Value',0,'Enable','on');
   %set(handles.guidata.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.guidata.data.labelnames{behaviori}));
 
-   set(handles.menu_file,'enable','on');
-   set(handles.menu_edit,'enable','on');
-   set(handles.menu_go,'enable','on');
-   set(handles.menu_classifier,'enable','on');
+  set(handles.menu_file,'enable','on');
+  set(handles.menu_edit,'enable','on');
+  set(handles.menu_go,'enable','on');
+  set(handles.menu_classifier,'enable','on');
+  set(handles.pushbutton_train,'Enable','on');
+
 
 end
 
@@ -2568,6 +2590,7 @@ if get(hObject,'Value'),
   set(handles.menu_edit,'enable','off');
   set(handles.menu_go,'enable','off');
   set(handles.menu_classifier,'enable','off');
+  set(handles.pushbutton_train,'Enable','off');
   
 
   
@@ -2628,6 +2651,7 @@ else
   set(handles.menu_edit,'enable','on');
   set(handles.menu_go,'enable','on');
   set(handles.menu_classifier,'enable','on');
+  set(handles.pushbutton_train,'Enable','on');
    
 end
 
@@ -2698,6 +2722,11 @@ function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % WARNING: this function directly accesses handles.guidata.data.trx make sure
 % that we've preloaded the right experiment and flies. 
 % REMOVED!
+
+if ~handles.guidata.enabled,
+  return;
+end
+
 if handles.guidata.expi ~= handles.guidata.data.expi,
   handles.guidata.data.Preload(handles.guidata.expi,handles.guidata.flies);
 end
@@ -2737,6 +2766,10 @@ guidata(hObject,handles);
 function fly_ButtonDownFcn(hObject, eventdata, handles, fly, i)
 
 % TODO: figure out how to do this when multiple flies define a behavior
+
+if ~handles.guidata.enabled,
+  return;
+end
 
 % check for double click
 if ~strcmpi(get(handles.figure_JLabel,'SelectionType'),'open') || ...
@@ -2805,6 +2838,10 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to axes_timeline_manual (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if ~handles.guidata.enabled,
+  return;
+end
 
 pt = get(hObject,'CurrentPoint');
 t = min(max(handles.guidata.t0_curr,round(pt(1,1))),handles.guidata.t1_curr);%nframes);
@@ -2901,13 +2938,13 @@ end
 set(handles.text_status,'ForegroundColor',color,'String',s);
 
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
-  msgbox(s,'JLabel Status','modal');
+  msgbox(s,'JAABA Status','modal');
 end
 
 function ClearStatus(handles)
 
 set(handles.text_status,'ForegroundColor',handles.guidata.idlestatuscolor,'String',handles.guidata.status_bar_text);
-h = findall(0,'Type','figure','Name','JLabel Status');
+h = findall(0,'Type','figure','Name','JAABA Status');
 if ~isempty(h), delete(h(ishandle(h))); end
 
 
@@ -3179,6 +3216,19 @@ for i = 1:numel(hchil),
 end
 set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
 
+% --- Executes on key release with focus on figure_JLabel and none of its controls.
+function figure_JLabel_KeyReleaseFcn(hObject, eventdata, handles)
+% hObject    handle to figure_JLabel (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was released, in lower case
+%	Character: character interpretation of the key(s) that was released
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
+% handles    structure with handles and user data (see GUIDATA)
+switch eventdata.Key,
+  case 'space',
+    pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
+end
+
 % --- Executes on key press with focus on figure_JLabel and none of its controls.
 function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -3188,10 +3238,14 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
+if ~handles.guidata.enabled,
+  return;
+end
+
 switch eventdata.Key,
   
   case 'leftarrow',
-    if strcmpi(eventdata.Modifier,'control'),
+    if ~isempty(eventdata.Modifier) && any(strcmpi(eventdata.Modifier,{'control','command'})),
       menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
@@ -3200,7 +3254,7 @@ switch eventdata.Key,
     end
      
   case 'rightarrow',
-    if strcmpi(eventdata.Modifier,'control'),
+    if ~isempty(eventdata.Modifier) && any(strcmpi(eventdata.Modifier,{'control','command'})),
       menu_go_next_bout_start_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
@@ -3214,9 +3268,6 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
-  case 'space',
-    pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
-    
   case 't',
     if strcmpi(eventdata.Modifier,'control') && ~handles.guidata.data.IsGTMode(),
       pushbutton_train_Callback(hObject,eventdata,handles);
@@ -3368,6 +3419,7 @@ if isfield(handles,'figure_NavigationPreferences') && ishandle(handles.figure_Na
   figure(handles.figure_NavigationPreferences);
 else
   handles.figure_NavigationPreferences = NavigationPreferences(handles.figure_JLabel,handles.guidata.NJObj);
+  handles.guidata.open_peripherals(end+1) = handles.figure_NavigationPreferences;
   guidata(hObject,handles);
 end
 
@@ -4094,13 +4146,11 @@ function PostZoomCallback(hObject,eventdata,handles)
 timelinei = find(eventdata.Axes == handles.guidata.axes_timelines,1);
 previewi = find(eventdata.Axes == handles.guidata.axes_previews,1);
 if ~isempty(timelinei),
-  for propj = 1:numel(handles.guidata.perframepropis),
-    prop = handles.guidata.perframepropis(propj);
-    ylim = get(eventdata.Axes,'YLim');
-    handles.guidata.timeline_data_ylims(:,prop) = ylim;
-    ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
-    set(handles.guidata.hselection(propj),'YData',ydata([1,2,2,1,1]));
-  end
+  prop = handles.guidata.perframepropis(timelinei);
+  ylim = get(eventdata.Axes,'YLim');
+  handles.guidata.timeline_data_ylims(:,prop) = ylim;
+  ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
+  set(handles.guidata.hselection(timelinei),'YData',ydata([1,2,2,1,1]));
   guidata(eventdata.Axes,handles);
 elseif ismember(eventdata.Axes,handles.guidata.axes_timeline_labels),
   xlim = get(eventdata.Axes,'XLim');
@@ -4143,6 +4193,10 @@ function figure_JLabel_WindowButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if ~handles.guidata.enabled,
+  return;
+end
 
 hchil = gco;
 if ismember(hchil,handles.guidata.axes_timelines),
@@ -5081,7 +5135,9 @@ function crossValidate_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.data.StoreLabels();
-[crossError tlabels] = handles.guidata.data.CrossValidate();
+[success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
+
+if ~success, warndlg(ms); return; end;
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
@@ -5136,10 +5192,12 @@ for col = 1:3
   end
 end
         
-f = figure('Position',[200 200 500 200],'Name','Cross Validation Error');
+f = figure('Position',[200 200 550 240],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
+            'ColumnWidth',{100},...
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
+handles.guidata.open_peripherals(end+1) = f;          
 if numel(crossError)>1
   for tndx = 1:numel(crossError)
     errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);
@@ -5156,6 +5214,7 @@ if numel(crossError)>1
   legend(ax,{'All', 'Important'});
   set(gca,'XTick',1:numel(errorAll),'XTickLabel',tlabels,'XDir','reverse');
   title(gca,'Cross Validation Error with time');
+  handles.guidata.open_peripherals(end+1) = f;          
 end
 
 % --------------------------------------------------------------------
@@ -5403,8 +5462,8 @@ function menu_classifier_setclassifierparameters_Callback(hObject, eventdata, ha
 % hObject    handle to menu_classifier_setclassifierparameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-ClassifierOptions(handles.guidata.data);
-
+cohandles = ClassifierOptions(handles.guidata.data);
+handles.guidata.open_peripherals(end+1) = cohandles;
 
 % --------------------------------------------------------------------
 function menu_go_switch_target_Callback(hObject, eventdata, handles)
@@ -5413,6 +5472,7 @@ function menu_go_switch_target_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 changeTargetHandle = SwitchTarget(hObject);
 SwitchTarget('initTable',changeTargetHandle);
+handles.guidata.open_peripherals(end+1) = changeTargetHandle;
 
 
 % --------------------------------------------------------------------
@@ -5435,6 +5495,8 @@ handles.visualizeclassifier = ...
   struct('sorted_weights',sorted_weights,...
   'feature_order',feature_order,'bins',bins,...
   'scores',scores);
+
+handles.guidata.open_peripherals(end+1) = handles.visualizeclassifier;
 
 guidata(hObject,handles);
 
@@ -5850,6 +5912,13 @@ set(handles.menu_view_suggest_file,'Checked','off');
 set(handles.menu_view_suggest_balanced,'Checked','on');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
 
@@ -5927,3 +5996,122 @@ function menu_view_zoom_showwholevideo_Callback(hObject, eventdata, handles)
 % set to static view
 menu_view_zoom_static_Callback(hObject, eventdata, handles);
 ShowWholeVideo(handles);
+
+
+% --------------------------------------------------------------------
+function menu_file_package_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_package_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isempty(handles.guidata.data.expdirs),
+  uiwait(warndlg('No label data to package'));
+  return;
+end
+
+inlabelfilenames = {};
+outlabelfilestrs = {};
+labelfilestr = handles.guidata.data.GetFileName('label');
+gtlabelfilestr = handles.guidata.data.GetFileName('gt_label');
+for i = 1:handles.guidata.data.nexps,
+  [~,expname] = myfileparts(handles.guidata.data.expdirs{i});
+  inlabelfilename = handles.guidata.data.GetFile('label',i);
+  if exist(inlabelfilename,'file')
+    inlabelfilenames{end+1} = inlabelfilename; %#ok<AGROW>
+    outlabelfilestrs{end+1} = sprintf('%s_%s',expname,labelfilestr); %#ok<AGROW>
+  end
+  inlabelfilename = handles.guidata.data.GetFile('gt_label',i);
+  if exist(inlabelfilename,'file')
+    inlabelfilenames{end+1} = inlabelfilename; %#ok<AGROW>
+    outlabelfilestrs{end+1} = sprintf('%s_%s',expname,gtlabelfilestr); %#ok<AGROW>
+  end
+end
+
+if isempty(inlabelfilenames),
+  uiwait(warndlg('No label data to package'));
+  return;
+end
+
+% choose an output directory
+if ~isempty(handles.guidata.packageoutputdir),
+  [outparentdir,packagename] = myfileparts(handles.guidata.packageoutputdir);
+else
+  if ~isempty(handles.guidata.expi) && handles.guidata.expi > 0,
+    outparentdir = myfileparts(handles.guidata.data.expdirs{handles.guidata.expi});
+  else
+    outparentdir = myfileparts(handles.guidata.data.expdirs{1});
+  end
+  packagename = sprintf('LastName_FirstName_%s_%s',handles.guidata.configparams.behaviors.names,datestr(now,'yyyymmddTHHMMSS'));
+end
+outparentdir = uigetdir(outparentdir,'Choose parent directory to output label package to');
+if ~ischar(outparentdir),
+  return;
+end
+if ~exist(outparentdir,'dir'),
+  try
+    [success,msg] = mkdir(outparentdir);
+    if ~success,
+      error(msg);
+    end
+  catch ME,
+    errordlg(sprintf('Error making directory %s: %s',outparentdir,getReport(ME)));
+    return;
+  end
+end
+options.Resize='on';
+res = inputdlg({'Package name'},'Choose a name for the package directory',1,{packagename},options);
+if isempty(res),
+  return;
+end
+packagename = res{1};
+outdir = fullfile(outparentdir,packagename);
+if ~exist(outdir,'dir'),
+  try
+    [success,msg] = mkdir(outdir);
+    if ~success,
+      error(msg);
+    end
+  catch ME,
+    errordlg(sprintf('Error making directory %s: %s',outdir,getReport(ME)));
+    return;
+  end
+end
+
+for i = 1:numel(inlabelfilenames),
+  try
+    [success,msg] = copyfile(inlabelfilenames{i},fullfile(outdir,outlabelfilestrs{i}));
+    if ~success,
+      error(msg);
+    end
+  catch ME,
+    errordlg(sprintf('Error copying file %s to %s: %s',inlabelfilenames{i},fullfile(outdir,outlabelfilestrs{i})),getReport(ME));
+  end
+end
+handles.guidata.packageoutputdir = outdir;
+
+function DisableGUI(handles)
+
+handles.guidata.henabled = findall(handles.figure_JLabel,'Enable','on');
+handles.guidata.enabled = false;
+set(handles.guidata.henabled,'Enable','off');
+
+function ReEnableGUI(handles)
+
+handles.guidata.enabled = true;
+set(handles.guidata.henabled,'Enable','on');
+
+
+% --------------------------------------------------------------------
+function menu_file_save_suggestions_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_suggestions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+expi = handles.guidata.expi;
+expdir = handles.guidata.data.expdirs{expi};
+outfile = fullfile(expdir,'GTSuggestions.txt');
+[fname,pname] = uiputfile('*.txt','Save Ground Truth Suggestions',outfile);
+if isempty(fname), return; end;
+outfile = fullfile(pname,fname);
+handles.guidata.data.SaveSuggestionGT(expi,outfile);
+
+
