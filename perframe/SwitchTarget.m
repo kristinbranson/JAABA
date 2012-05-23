@@ -22,7 +22,7 @@ function varargout = SwitchTarget(varargin)
 
 % Edit the above text to modify the response to help SwitchTarget
 
-% Last Modified by GUIDE v2.5 11-May-2012 15:28:54
+% Last Modified by GUIDE v2.5 23-May-2012 10:45:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,6 +56,8 @@ function SwitchTarget_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 handles.JLabelhObject = varargin{1};
+[handles.ntargets_per_page] = myparse(varargin(2:end),'ntargets_per_page',100);
+
 JLabelHandles = guidata(handles.JLabelhObject);
 handles.JLDObj = JLabelHandles.guidata.data;
 % set(handles.axes1,'axes',off);
@@ -64,18 +66,88 @@ handles.switchFlyPos = get(handles.pushSwitchfly,'Position');
 handles.updatePos = get(handles.pushbutton_update,'Position');
 handles.closePos = get(handles.pushClose,'Position');
 handles.figurePos = get(handles.figure1,'Position');
+handles.pagePos = get(handles.popupmenu_Page,'Position');
+
+% initialize page number
+handles.page_number = [];
+
 % added an extra guidata here, as sometimes I was getting an error that
 % figurePos wasn't getting set
 guidata(hObject,handles);
 handles = updateTable(handles);
 guidata(hObject,handles);
 
+function [exp,target] = GlobalTarget2LocalTarget(handles,globaltarget)
+
+exp = find(handles.cs_ntargets >= globaltarget,1,'first');
+if exp == 1,
+  target = globaltarget;
+else
+  target = globaltarget - handles.cs_ntargets(exp-1);
+end
+
+function [globaltarget] = LocalTarget2GlobalTarget(handles,exp,target)
+
+if exp == 1,
+  globaltarget = target;
+else
+  globaltarget = handles.cs_ntargets(exp-1)+target;
+end
+
+function [page,row] = GlobalTarget2PageRow(handles,globaltarget)
+
+page = ceil(globaltarget/handles.ntargets_per_page);
+row = globaltarget - (page-1)*handles.ntargets_per_page;
+
+function [globaltarget] = PageRow2GlobalTarget(handles,page,row)
+
+globaltarget = handles.ntargets_per_page*(page-1)+row;
+
+function [exp,target] = PageRow2LocalTarget(handles,page,row)
+
+[exp,target] = GlobalTarget2LocalTarget(handles,PageRow2GlobalTarget(handles,page,row));
 
 function handles = updateTable(handles)
 % Initialize the table
 
 handles.curExp = handles.JLDObj.GetExp();
 handles.curFly = handles.JLDObj.GetFlies();
+
+% which fly out of all flies
+handles.cs_ntargets = cumsum(handles.JLDObj.nflies_per_exp);
+handles.curFlyGlobal = LocalTarget2GlobalTarget(handles,handles.curExp,handles.curFly);
+
+% which page, row
+[handles.current_target_page_number,handles.current_target_row] = GlobalTarget2PageRow(handles,handles.curFlyGlobal);
+
+% set page number if not already set
+if isempty(handles.page_number),
+  handles.page_number = handles.current_target_page_number;
+end
+
+% set page number options
+handles.npages = ceil(handles.cs_ntargets(end)/handles.ntargets_per_page);
+handles.pagestrs = cell(1,handles.npages);
+for i = 1:handles.npages,
+  exp1 = PageRow2LocalTarget(handles,i,1);
+  tmp = min(PageRow2GlobalTarget(handles,i,handles.ntargets_per_page),handles.cs_ntargets(end));
+  exp2 = GlobalTarget2LocalTarget(handles,tmp);
+  if exp1 >= exp2,
+    handles.pagestrs{i} = sprintf('%d (Exp %d)',i,exp1);
+  else
+    handles.pagestrs{i} = sprintf('%d (Exps %d-%d)',i,exp1,exp2);
+  end
+  if i == handles.current_target_page_number,
+    handles.pagestrs{i} = ['* ',handles.pagestrs{i},' *'];
+  end
+  
+end
+
+if handles.page_number > handles.npages,
+  handles.page_number = handles.npages;
+end
+
+set(handles.popupmenu_Page,'String',handles.pagestrs,'Value',handles.page_number);
 
 fieldList = {};
 if ~handles.JLDObj.IsGTMode(),
@@ -118,21 +190,75 @@ for ndx = 1:size(fieldList,1)
 end
 set(handles.table,'ColumnFormat',colFormat);
 
+% reorganize cached data
+newCachedTableData = cell(handles.cs_ntargets(end),size(fieldList,1)+2);
+newCachedDataExpi = zeros(1,handles.cs_ntargets(end));
+newCachedExpDirs = handles.JLDObj.expdirs;
+
+if isfield(handles,'cachedTableData'),
+
+  % reindexing for experiments
+  [ism,old2newexpi] = ismember(handles.cachedExpDirs,newCachedExpDirs);
+  
+  % move data from old to new
+  for oldexpi = find(ism(:)'),
+    newexpi = old2newexpi(oldexpi);
+    oldidx1 = find(handles.cachedDataExpi == oldexpi,1);
+    if isempty(oldidx1),
+      continue;
+    end
+    ntargets_curr = handles.JLDObj.nflies_per_exp(newexpi);
+    oldidx = oldidx1:oldidx1+ntargets_curr-1;
+    isdata = handles.cachedDataExpi(oldidx) ~= 0;
+    newidx = LocalTarget2GlobalTarget(handles,newexpi,1):LocalTarget2GlobalTarget(handles,newexpi,ntargets_curr);
+    newCachedTableData(newidx,:) = handles.cachedTableData(oldidx,:);
+    newCachedDataExpi(newidx(isdata)) = newexpi;
+  end
+  
+end
+  
+% overwrite
+handles.cachedTableData = newCachedTableData;
+handles.cachedDataExpi = newCachedDataExpi;
+handles.cachedExpDirs = newCachedExpDirs;
+
 tableData = {};
+tableExpi = [];
 count = 1;
 
-for selExp = 1:handles.JLDObj.nexps
-  for flyNum = 1:handles.JLDObj.nflies_per_exp(selExp)
+[exp_start,target_start] = PageRow2LocalTarget(handles,handles.page_number,1);
+tmp = min(PageRow2GlobalTarget(handles,handles.page_number,handles.ntargets_per_page),handles.cs_ntargets(end));
+[exp_end,target_end] = GlobalTarget2LocalTarget(handles,tmp);
+
+for selExp = exp_start:exp_end,
+  if selExp == exp_start,
+    startcurr = target_start;
+  else
+    startcurr = 1;
+  end
+  endcurr = handles.JLDObj.nflies_per_exp(selExp);
+  if selExp == exp_end,
+    endcurr = min(endcurr,target_end);
+  end
+  for flyNum = startcurr:endcurr,
     flyStats = handles.JLDObj.GetFlyStats(selExp,flyNum);
     tableData{count,1} = handles.JLDObj.expnames{selExp};
     tableData{count,2} = flyNum;
     for ndx = 1:size(fieldList,1)
       tableData{count,2+ndx} = flyStats.(fieldList{ndx,1});
-    end    
+    end
+    tableExpi(count) = selExp;
     count = count+1;
   end
 end
 handles.tableData = tableData;
+
+% store in global cache
+start_target = PageRow2GlobalTarget(handles,handles.page_number,1);
+end_target = start_target + numel(tableExpi) - 1;
+handles.cachedTableData(start_target:end_target,:) = tableData;
+handles.cachedDataExpi(start_target:end_target) = tableExpi;
+
 set(handles.table,'Data',...
   tableData);
 set(handles.table,'ColumnEditable',false);
@@ -248,3 +374,36 @@ function pushbutton_update_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = updateTable(handles);
 guidata(hObject,handles);
+
+
+% --- Executes on selection change in popupmenu_Page.
+function popupmenu_Page_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Page (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_Page contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_Page
+
+handles.page_number = get(hObject,'Value');
+start_target = PageRow2GlobalTarget(handles,handles.page_number,1);
+end_target = min(handles.cs_ntargets(end),start_target+handles.ntargets_per_page-1);
+if all(handles.cachedDataExpi(start_target:end_target) ~= 0),
+  tableData = handles.cachedTableData(start_target:end_target,:);  
+  set(handles.table,'Data',tableData);
+else
+  handles = updateTable(handles);
+end
+guidata(hObject,handles);
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_Page_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Page (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
