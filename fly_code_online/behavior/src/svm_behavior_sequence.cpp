@@ -2513,10 +2513,10 @@ void BehaviorBoutFeatures::AllocateBuffers(SVMBehaviorSequence *svm, bool full) 
 	  for(i = 0; i < num_base_features; i++) {
 		SVMFeatureParams *p = &svm->feature_params[i];
 		cache_features_size +=
-			//sizeof(double*)*p->num_histogram_bins + //integral_histogram_features[i]
-			//p->num_histogram_bins*(T+1)*3*sizeof(double)+10000; //integral_histogram_features[i][j]
-			num_base_features*sizeof(double*)*p->num_histogram_bins + //integral_histogram_features[i]
-			num_base_features*p->num_histogram_bins*(T+1)*3*sizeof(double)+10000; //integral_histogram_features[i][j]
+			sizeof(double*)*p->num_histogram_bins + //integral_histogram_features[i]
+			p->num_histogram_bins*(T+1)*3*sizeof(double); //integral_histogram_features[i][j]
+			//num_base_features*sizeof(double*)*p->num_histogram_bins + //integral_histogram_features[i]
+			//num_base_features*p->num_histogram_bins*(T+1)*3*sizeof(double)+10000; //integral_histogram_features[i][j]
 	  }
 	  this->memory_buffer = (unsigned char*)malloc(cache_features_size);
 	}

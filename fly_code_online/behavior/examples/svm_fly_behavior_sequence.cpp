@@ -22,15 +22,20 @@ bool SVMFlyBehaviorSequence::read_features(FILE *fin,  FlyBehaviorFeatures *f, d
 
   if(!fread(&len, sizeof(int), 1, fin))
     return false;
-  assert(len < 1000 && len > 0 && (int)fread(f->name, sizeof(char), len, fin)==len); f->name[len] = '\0';
-  assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && (int)fread(f->units_numer, sizeof(char), len, fin)==len); 
+  assert(len < 1000 && len > 0);
+  int n = fread(f->name, sizeof(char), len, fin);   assert(n==len); 
+  f->name[len] = '\0';
+  n = fread(&len, sizeof(int), 1, fin); assert(n && len < 1000 && len > 0);
+  n = fread(f->units_numer, sizeof(char), len, fin);  assert(n==len); 
   f->units_numer[len] = '\0';
-  assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && (int)fread(f->units_denom, sizeof(char), len, fin)==len); 
+  n=fread(&len, sizeof(int), 1, fin);  assert(n && len < 1000 && len > 0);
+  n = fread(f->units_denom, sizeof(char), len, fin);  assert(n==len); 
   f->units_denom[len] = '\0';
 
-  if(frames && num_frames)
-    assert(fread(frames, sizeof(double), num_frames, fin));
- 
+  if(frames && num_frames) {
+    n = fread(frames, sizeof(double), num_frames, fin);
+	assert(n);
+  }
   return true;
 }
 
@@ -74,7 +79,7 @@ int SVMFlyBehaviorSequence::ReadFeatureParams(const char *fname, SVMFeatureParam
 
 	strcpy(base_feature_names[num], feature_defs[num].name);
 
-	assert(ReadFeatureParam(fin, &p[num++]));
+	int n = ReadFeatureParam(fin, &p[num++]);   assert(n);
   }
   assert(num);
   fclose(fin);
@@ -151,26 +156,28 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   strcat(fname2, ".trx");
   FILE *fin = fopen(fname2, "rb");
   assert(fin);
-  assert(fread(&version, sizeof(double), 1, fin));
-  assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && 
-	 (int)fread(movie, sizeof(char), len, fin)==len);
+  int n = fread(&version, sizeof(double), 1, fin);   assert(n);
+  n = fread(&len, sizeof(int), 1, fin);   assert(n && len < 1000 && len > 0);
+  n = fread(movie, sizeof(char), len, fin);   assert(n==len);
   movie[len] = '\0';
-  assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && 
-	 (int)fread(mat, sizeof(char), len, fin)==len);
+  n = fread(&len, sizeof(int), 1, fin);   assert(n && len < 1000 && len > 0);
+  n = fread(mat, sizeof(char), len, fin);   assert(n==len);
   mat[len] = '\0';
-  assert(fread(&nflies, sizeof(int), 1, fin));
+  n = fread(&nflies, sizeof(int), 1, fin);   assert(n);
   for(i = 0; i < nflies; i++) {
-    if(!fly)
-      assert(fread(&fly_id, sizeof(int), 1, fin));
-    else if(fly->is_labeled)
-      assert(fread(&fly_id, sizeof(int), 1, fin) && fly_id == fly->fly_ids[i]);
-    else
-      assert(fread(&fly->fly_ids[i], sizeof(int), 1, fin));
+    if(!fly) {
+      n = fread(&fly_id, sizeof(int), 1, fin);   assert(n);
+	} else if(fly->is_labeled) {
+      n = fread(&fly_id, sizeof(int), 1, fin);   assert(n && fly_id == fly->fly_ids[i]);
+    } else {
+      n = fread(&fly->fly_ids[i], sizeof(int), 1, fin);  assert(n);
+	}
   }
-  assert(fread(&firstframe, sizeof(int), 1, fin) &&
-	 fread(&lastframe, sizeof(int), 1, fin) &&
-	 fread(&sex, sizeof(char), 1, fin) && fread(&fps, sizeof(double), 1, fin) &&
-	 fread(&nfields, sizeof(int), 1, fin) && nfields < MAX_BASE_FEATURES+1);
+  n = fread(&firstframe, sizeof(int), 1, fin);  assert(n);
+  n = fread(&lastframe, sizeof(int), 1, fin);  assert(n);
+  n = fread(&sex, sizeof(char), 1, fin);  assert(n);  
+  n = fread(&fps, sizeof(double), 1, fin);  assert(n);
+  n = fread(&nfields, sizeof(int), 1, fin);  assert(n && nfields < MAX_BASE_FEATURES+1);
 
   if(fly) {
     fly->sex = sex;
@@ -192,7 +199,7 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   AllocateBuffers(svm, false);
   double *buff = (double*)malloc(sizeof(double)*num_frames);
   for(i = 0; i < nfields; i++) {
-    assert(((SVMFlyBehaviorSequence*)svm)->read_features(fin, &d, buff, num_frames));
+    bool bb = ((SVMFlyBehaviorSequence*)svm)->read_features(fin, &d, buff, num_frames);  assert(bb);
     if(i == 0) assert(!strcmp(d.name, "timestamp"));
     if(!strcmp(d.name, "timestamp")) {
       memcpy(frame_times, buff, sizeof(double)*num_frames);
@@ -252,42 +259,44 @@ bool FlyBehaviorBoutSequence::load(const char *fname) {
   int len, nbehaviors, i, start_frame, end_frame, num, behavior;
   FILE *fin = fopen(fname, "rb");
   assert(fin);
-  assert(fread(&this->version, sizeof(double), 1, fin));
-  assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && 
-	 (int)fread(this->moviename, sizeof(char), len, fin)==len);
+  int n = fread(&this->version, sizeof(double), 1, fin);   assert(n);
+  n = fread(&len, sizeof(int), 1, fin);   assert(n && len < 1000 && len > 0);
+  n = fread(this->moviename, sizeof(char), len, fin);    assert(n==len);
   this->moviename[len] = '\0';
-  assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && 
-	 (int)fread(this->matname, sizeof(char), len, fin)==len);
+  n = fread(&len, sizeof(int), 1, fin);  assert(n && len < 1000 && len > 0); 
+  n = fread(this->matname, sizeof(char), len, fin);   assert(n==len);
   this->matname[len] = '\0';
-  assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && 
-	 (int)fread(this->trxname, sizeof(char), len, fin)==len);
+  n = fread(&len, sizeof(int), 1, fin);  assert(n && len < 1000 && len > 0); 
+  n = fread(this->trxname, sizeof(char), len, fin);   assert(n==len);
   this->trxname[len] = '\0';
-  assert(fread(&this->nflies, sizeof(int), 1, fin) && this->nflies > 0 && this->nflies < 100);
-  for(int i = 0; i < this->nflies; i++)
-    assert(fread(&this->fly_ids[i], sizeof(int), 1, fin));
-  
-  assert(fread(&this->firstframe, sizeof(int), 1, fin) && this->firstframe >= 0 &&
-	 fread(&this->lastframe, sizeof(int), 1, fin) && this->lastframe >= this->firstframe);
-  assert(fread(&nbehaviors, sizeof(int), 1, fin) && nbehaviors+ADD_DUMMY_BEHAVIORS == behaviors->behaviors[0].num_values);
+  n = fread(&this->nflies, sizeof(int), 1, fin);   assert(n && this->nflies > 0 && this->nflies < 100);
+  for(int i = 0; i < this->nflies; i++) {
+    n = fread(&this->fly_ids[i], sizeof(int), 1, fin); 
+	assert(n);
+  }
+
+  n = fread(&this->firstframe, sizeof(int), 1, fin);  assert(n && this->firstframe >= 0);
+  n = fread(&this->lastframe, sizeof(int), 1, fin);  assert(n && this->lastframe >= this->firstframe);
+  n = fread(&nbehaviors, sizeof(int), 1, fin);  assert(n && nbehaviors+ADD_DUMMY_BEHAVIORS == behaviors->behaviors[0].num_values);
 
   
   int ind = 0; // assume for now all behaviors are mutually exclusive
   
   for(i = 0; i < nbehaviors; i++) {
-    assert(fread(&len, sizeof(int), 1, fin) && len < 1000 && len > 0 && 
-	   (int)fread(behname, sizeof(char), len, fin)==len);
+    int n = fread(&len, sizeof(int), 1, fin);  assert(n && len < 1000 && len > 0);
+	n = fread(behname, sizeof(char), len, fin);   assert(n==len);
     behname[len] = '\0';
     assert(!strcmp(behname, behaviors->behaviors[ind].values[i+ADD_DUMMY_BEHAVIORS].name));
   }
     
-  assert(fread(&num, sizeof(int), 1, fin) && this->num_bouts[ind] >= 0);
+  n = fread(&num, sizeof(int), 1, fin);  assert(n && this->num_bouts[ind] >= 0);
   this->bouts[ind] = (BehaviorBout*)malloc(sizeof(BehaviorBout)*(num));
   this->num_bouts[ind] = 0;
   int num_added = 0, lastframe = 0;
   for(i = 0; i < num; i++) {
-    assert(fread(&start_frame, sizeof(int), 1, fin));
-    assert(fread(&end_frame, sizeof(int), 1, fin) && end_frame >= start_frame);
-    assert(fread(&behavior, sizeof(int), 1, fin)); 
+    n = fread(&start_frame, sizeof(int), 1, fin);   assert(n);
+    n = fread(&end_frame, sizeof(int), 1, fin);   assert(n && end_frame >= start_frame);
+    n = fread(&behavior, sizeof(int), 1, fin);  assert(n); 
     assert(behavior >= 0 && behavior < behaviors->behaviors[ind].num_values); 
     assert(start_frame >= lastframe);
     if(start_frame > lastframe && i > 0) {
@@ -333,42 +342,45 @@ bool FlyBehaviorBoutSequence::save(const char *fname) {
 
   FILE *fout = fopen(fname, "wb");
   assert(fout);
-  assert(fwrite(&this->version, sizeof(double), 1, fout));
+  int n = fwrite(&this->version, sizeof(double), 1, fout);   assert(n);
   len = strlen(this->moviename);
-  assert(fwrite(&len, sizeof(int), 1, fout) && len < 1000 && 
-	 (int)fwrite(this->moviename, sizeof(char), len, fout)==len);
+  n = fwrite(&len, sizeof(int), 1, fout);  assert(n && len < 1000); 
+  n = fwrite(this->moviename, sizeof(char), len, fout);   assert(n==len);
   len = strlen(this->matname);
-  assert(fwrite(&len, sizeof(int), 1, fout) && len < 1000 && 
-	 (int)fwrite(this->matname, sizeof(char), len, fout)==len);
+  n = fwrite(&len, sizeof(int), 1, fout);   assert(n && len < 1000); 
+  n = fwrite(this->matname, sizeof(char), len, fout);  assert(n==len);
   len = strlen(this->trxname);
-  assert(fwrite(&len, sizeof(int), 1, fout) && len < 1000 && 
-	 (int)fwrite(this->trxname, sizeof(char), len, fout)==len);
-  assert(fwrite(&this->nflies, sizeof(int), 1, fout) && this->nflies < 100);
-  for(int i = 0; i < this->nflies; i++)
-    assert(fwrite(&this->fly_ids[i], sizeof(int), 1, fout));
+  n = fwrite(&len, sizeof(int), 1, fout);   assert(n && len < 1000); 
+  n = fwrite(this->trxname, sizeof(char), len, fout);  assert(n==len);
+  n = fwrite(&this->nflies, sizeof(int), 1, fout);   assert(n && this->nflies < 100);
+  for(int i = 0; i < this->nflies; i++) {
+    n = fwrite(&this->fly_ids[i], sizeof(int), 1, fout);
+	assert(n);
+  }
   
-  assert(fwrite(&this->firstframe, sizeof(int), 1, fout) && this->firstframe >= 0 &&
-	 fwrite(&this->lastframe, sizeof(int), 1, fout) && this->lastframe >= this->firstframe);
+  n = fwrite(&this->firstframe, sizeof(int), 1, fout);
+  assert(n && this->firstframe >= 0);
+  n = fwrite(&this->lastframe, sizeof(int), 1, fout);   assert(n && this->lastframe >= this->firstframe);
   nbehaviors = behaviors->behaviors[0].num_values-ADD_DUMMY_BEHAVIORS;
-  assert(fwrite(&nbehaviors, sizeof(int), 1, fout));
+  n = fwrite(&nbehaviors, sizeof(int), 1, fout);  assert(n);
   
   int ind = 0; // assume for now all behaviors are mutually exclusive
   
   for(i = 0; i < nbehaviors; i++) {
     len = strlen(behaviors->behaviors[ind].values[i+ADD_DUMMY_BEHAVIORS].name);
-    assert(fwrite(&len, sizeof(int), 1, fout) && len < 1000 && len > 0 && 
-	   (int)fwrite(behaviors->behaviors[ind].values[i+ADD_DUMMY_BEHAVIORS].name, sizeof(char), len, fout)==len);
+    int n = fwrite(&len, sizeof(int), 1, fout);  assert(n && len < 1000 && len > 0);
+	n = fwrite(behaviors->behaviors[ind].values[i+ADD_DUMMY_BEHAVIORS].name, sizeof(char), len, fout);  assert(n==len);
   }
     
-  assert(fwrite(&this->num_bouts[ind], sizeof(int), 1, fout) && this->num_bouts[ind] >= 0);
+  n=fwrite(&this->num_bouts[ind], sizeof(int), 1, fout);  assert(n && this->num_bouts[ind] >= 0);
   for(i = 0; i < this->num_bouts[ind]; i++) {
     //start_frame = this->firstframe + this->bouts[ind][i].start_frame;   // EYRUN
     //end_frame = this->firstframe + this->bouts[ind][i].end_frame;	  
     start_frame = this->bouts[ind][i].start_frame;
     end_frame = this->bouts[ind][i].end_frame;
-    assert(fwrite(&start_frame, sizeof(int), 1, fout));
-    assert(fwrite(&end_frame, sizeof(int), 1, fout) && end_frame >= start_frame);
-    assert(fwrite(&this->bouts[ind][i].behavior, sizeof(int), 1, fout)); 
+    n=fwrite(&start_frame, sizeof(int), 1, fout);   assert(n);
+    n=fwrite(&end_frame, sizeof(int), 1, fout);   assert(n && end_frame >= start_frame);
+    n=fwrite(&this->bouts[ind][i].behavior, sizeof(int), 1, fout);    assert(n); 
   }
   fclose(fout);
 
