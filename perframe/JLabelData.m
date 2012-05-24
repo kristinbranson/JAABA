@@ -937,6 +937,97 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = LoadLabelsFromExternalFile(obj,expdir,labelfilename)
+      
+      success = false; msg = '';
+      if ~exist(labelfilename,'file'),
+        msg = sprintf('Label file %s does not exist',labelfilename);
+        return;
+      end
+      expi = find(strcmp(expdir,obj.expdirs),1);
+      if isempty(expi),
+        msg = sprintf('Experiment %s not loaded in',expdir);
+        return;
+      end
+
+      obj.SetStatus('Loading labels for %s from %s',obj.expdirs{expi},labelfilename);
+      
+      %         try
+      loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+      
+      if obj.IsGTMode(),
+        obj.gt_labels(expi).t0s = loadedlabels.t0s;
+        obj.gt_labels(expi).t1s = loadedlabels.t1s;
+        obj.gt_labels(expi).names = loadedlabels.names;
+        obj.gt_labels(expi).flies = loadedlabels.flies;
+        obj.gt_labels(expi).off = loadedlabels.off;
+        obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+        obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+        
+        if iscell(loadedlabels.timestamp)
+          obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            if isempty(loadedlabels.timestamp)
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
+          end
+        end
+        
+        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+          obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
+          obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
+        else
+          obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+          obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+        end
+        
+      else
+        
+        obj.labels(expi).t0s = loadedlabels.t0s;
+        obj.labels(expi).t1s = loadedlabels.t1s;
+        obj.labels(expi).names = loadedlabels.names;
+        obj.labels(expi).flies = loadedlabels.flies;
+        obj.labels(expi).off = loadedlabels.off;
+        obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+        obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+        if iscell(loadedlabels.timestamp)
+          obj.labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            if isempty(loadedlabels.timestamp)
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
+          end
+        end
+        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+          obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
+          obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
+        else
+          obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+          obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+        end
+        
+      end
+        %         catch ME,
+        %           msg = getReport(ME);
+        %           obj.ClearStatus();
+        %           return;
+        %         end
+      
+      obj.ClearStatus();
+      success = true;
+      
+    end
+    
     function [success,msg] = LoadLabelsFromFile(obj,expi)
     % [success,msg] = LoadLabelsFromFile(obj,expi)
     % If the label file exists, this function loads labels for experiment
@@ -1799,7 +1890,11 @@ classdef JLabelData < handle
       end
       
       if obj.filesfixable && ~obj.allfilesexist,
-        res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+        if ~isdeployed
+          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+        else
+          res = 'Yes';
+        end
         if strcmpi(res,'Yes'),
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
@@ -2070,8 +2165,12 @@ classdef JLabelData < handle
       success = true;
       msg = '';
       
-      if nargin<3
-        isInteractive = true;
+      if nargin< 3
+        if isdeployed 
+          isInteractive = false;
+        else
+          isInteractive = true;
+        end
       end
       
       for i = 1:numel(obj.filetypes),
@@ -2986,6 +3085,9 @@ classdef JLabelData < handle
       end
       for j = 1:numel(labels_curr.imp_t0s)
         t0 = labels_curr.imp_t0s(j); t1 = labels_curr.imp_t1s(j);
+        if t0>T1 || t1<T0; continue;end
+        t0 = max(T0,t0);
+        t1 = min(T1,t1);
         labelidx.imp(t0+off:t1-1+off) = 1;
       end
       
@@ -3657,7 +3759,12 @@ classdef JLabelData < handle
         end
         
         if ~exist(perframefile{ndx},'file'),
-          res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+          if ~isdeployed
+            res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+          else
+            res = 'Yes';
+          end
+          
           if strcmpi(res,'Yes'),
             for ndx = 1:obj.nexps  
               [success1,msg1] = obj.GenerateMissingFiles(ndx);
@@ -3815,9 +3922,13 @@ classdef JLabelData < handle
       success = false; msg = '';
       
       for expi = 1:obj.nexps,
-        for i = 1:size(obj.labels(expi).flies,1),
-          
-          flies = obj.labels(expi).flies(i,:);
+        if obj.IsGTMode(),
+          flies_curr = obj.gt_labels(expi).flies;
+        else
+          flies_curr = obj.labels(expi).flies;
+        end
+        for i = 1:size(flies_curr,1),
+          flies = flies_curr(i,:);
           labels_curr = obj.GetLabels(expi,flies);
           ts = [];
           
@@ -4274,7 +4385,6 @@ classdef JLabelData < handle
       
       obj.SetStatus('Classifying current movie..');
       
-      warnfig = warndlg(sprintf('Classifying movie %s',obj.expnames{expi}),'Classifying movie','replace');
       parfor flies = 1:numFlies
         blockSize = 5000;
         tStart = tStartAll(flies);
@@ -4290,11 +4400,9 @@ classdef JLabelData < handle
           scores(curt0:curt1) = myBoostClassify(X,classifier);
         end
         scoresA{flies} = scores;
-        warnstr = sprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
-        warndlg(warnstr,'Classifying movie','replace');
+        fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
       end
       
-      if ishandle(warnfig), delete(warnfig); end
       allScores = struct;
       allScores.scores = scoresA;
       allScores.tStart = tStartAll;
