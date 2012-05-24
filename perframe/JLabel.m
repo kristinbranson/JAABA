@@ -432,11 +432,11 @@ handles = UpdateGUIGroundTruthMode(handles);
 
 
 
-function cache_thread(N,HW,movieheaderinfo,readframe)
+function cache_thread(N,HWD,movieheaderinfo,readframe)
 
 Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
 Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HW 'x'},  'Repeat', N, 'Offset', 2*N*8);
+Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 disp(readframe);
 
 movieheaderinfo.fid=fopen(movieheaderinfo.filename,'rb','ieee-le');
@@ -458,22 +458,22 @@ persistent Mts Mlastused Mims
 
 if(isempty(Mts))
   N=200;  % cache size
-  HW = [handles.guidata.movieheaderinfo.max_height handles.guidata.movieheaderinfo.max_width];
+  HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
 
   %if(exist('cache.dat')~=2)
   if(1)
     fid=fopen('cache.dat','w');
     fwrite(fid,zeros(1,N),'double');
     fwrite(fid,zeros(1,N),'double');
-    fwrite(fid,zeros(1,N*prod(HW)),'uint8');  % need to make this work for other formats
+    fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
     fclose(fid);
   end
   Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
   Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-  Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HW 'x'},  'Repeat', N, 'Offset', 2*N*8);
+  Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
   handles.guidata.cache_thread=batch(@cache_thread,0,...
-    {N,HW,handles.guidata.movieheaderinfo,handles.guidata.readframe},...
+    {N,HWD,handles.guidata.movieheaderinfo,handles.guidata.readframe},...
     'CaptureDiary',true,'additionalpaths',{'../filehandling','../misc'});
 end
 
@@ -799,6 +799,7 @@ if handles.guidata.data.ismovie,
     handles.guidata.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
   end
   im = handles.guidata.readframe(1);
+  handles.guidata.movie_depth = size(im,3);
   handles.guidata.movie_width = size(im,2);
   handles.guidata.movie_height = size(im,1);
   % catch ME,
