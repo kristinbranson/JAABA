@@ -13,6 +13,7 @@ classdef JLabelGUIData < handle
     idlestatuscolor = [0,1,0];
     busystatuscolor = [1,0,1];
 
+    movie_depth = 1;
     movie_height = 100;
     movie_width = 100;
     
@@ -164,6 +165,8 @@ classdef JLabelGUIData < handle
     didclearselection = false;
     
     open_peripherals = [];
+
+    cache_thread = [];
         
   end
      
