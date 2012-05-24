@@ -119,8 +119,8 @@ function SetJLabelData(hObject,obj,HJLabel)
 handles = guidata(hObject);
 handles.JLDobj = obj;
 handles.JLabelHandles = HJLabel;
-handles.imgX = HJLabel.movie_width;
-handles.imgY = HJLabel.movie_height;
+handles.imgX = HJLabel.guidata.movie_width;
+handles.imgY = HJLabel.guidata.movie_height;
 guidata(hObject,handles);
 
 %{
