@@ -28,8 +28,8 @@ classdef ProjectManager < handle
         obj.projparams(ndx).save = false;
         
         if ~exist(obj.projparams(ndx).configfile,'file'),
-          uiwait(warndlg('Config file %s does not exist for project %s\n Removing the project',...
-            obj.projparams{ndx}.configfile,obj.projparams{ndx}.name));
+          uiwait(warndlg(sprintf('Config file %s does not exist for project %s\n Removing the project',...
+            obj.projparams(ndx).configfile,obj.projparams(ndx).name)));
           obj.projparams(ndx) = [];
         end
         
@@ -196,6 +196,18 @@ classdef ProjectManager < handle
       end
       configparams = obj.projparams(obj.curproj).config;
       data = obj.addToList(configparams,{},'');
+      idx = cellfun(@iscell,data(:,2));
+      if any(idx),
+        for i = find(idx(:)'),
+          if all(cellfun(@ischar,data{i,2})),
+            data{i,2} = sprintf('%s,',data{i,2}{:});
+            if data{i,2}(end) == ',',
+              data{i,2} = data{i,2}(1:end-1);
+            end
+          end
+        end
+      end
+        
       if any(cellfun(@iscell,data(:,2))),
         data = {}; success = false;
         return;

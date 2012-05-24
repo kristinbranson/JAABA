@@ -23,7 +23,7 @@ classdef JLabelData < handle
       'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
       'labelidx_imp',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],'bins',uint8([]),...
+      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
       'scores_old',[],'scores_validated',[]);
     
     % Score loaded from files.
@@ -689,9 +689,9 @@ classdef JLabelData < handle
           end
         end
         if isfield(configparams.file,'rootoutputdir') && ~isempty(configparams.file.rootoutputdir),
-          [success1,msg] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
+          [success1,msg1] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
           if ~success1,
-            return;
+            uiwait(warndlg(msg1));
           end
         end
         if isfield(configparams.file,'featureconfigfile'),
@@ -937,6 +937,97 @@ classdef JLabelData < handle
       
     end
     
+    function [success,msg] = LoadLabelsFromExternalFile(obj,expdir,labelfilename)
+      
+      success = false; msg = '';
+      if ~exist(labelfilename,'file'),
+        msg = sprintf('Label file %s does not exist',labelfilename);
+        return;
+      end
+      expi = find(strcmp(expdir,obj.expdirs),1);
+      if isempty(expi),
+        msg = sprintf('Experiment %s not loaded in',expdir);
+        return;
+      end
+
+      obj.SetStatus('Loading labels for %s from %s',obj.expdirs{expi},labelfilename);
+      
+      %         try
+      loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+      
+      if obj.IsGTMode(),
+        obj.gt_labels(expi).t0s = loadedlabels.t0s;
+        obj.gt_labels(expi).t1s = loadedlabels.t1s;
+        obj.gt_labels(expi).names = loadedlabels.names;
+        obj.gt_labels(expi).flies = loadedlabels.flies;
+        obj.gt_labels(expi).off = loadedlabels.off;
+        obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+        obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+        
+        if iscell(loadedlabels.timestamp)
+          obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            if isempty(loadedlabels.timestamp)
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
+          end
+        end
+        
+        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+          obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
+          obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
+        else
+          obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+          obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+        end
+        
+      else
+        
+        obj.labels(expi).t0s = loadedlabels.t0s;
+        obj.labels(expi).t1s = loadedlabels.t1s;
+        obj.labels(expi).names = loadedlabels.names;
+        obj.labels(expi).flies = loadedlabels.flies;
+        obj.labels(expi).off = loadedlabels.off;
+        obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+        obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+        if iscell(loadedlabels.timestamp)
+          obj.labels(expi).timestamp = loadedlabels.timestamp;
+        else
+          for ndx = 1:numel(loadedlabels.flies)
+            nBouts = numel(loadedlabels.t0s{ndx});
+            if isempty(loadedlabels.timestamp)
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
+            else
+              obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+            end
+          end
+        end
+        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+          obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
+          obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
+        else
+          obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+          obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+        end
+        
+      end
+        %         catch ME,
+        %           msg = getReport(ME);
+        %           obj.ClearStatus();
+        %           return;
+        %         end
+      
+      obj.ClearStatus();
+      success = true;
+      
+    end
+    
     function [success,msg] = LoadLabelsFromFile(obj,expi)
     % [success,msg] = LoadLabelsFromFile(obj,expi)
     % If the label file exists, this function loads labels for experiment
@@ -1166,7 +1257,7 @@ classdef JLabelData < handle
           return;
         end
         if ~exist(rootoutputdir,'file'),
-          msg = sprintf('root output directory %s does not exist',rootoutputdir);
+          msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',rootoutputdir);
           success = false;
           return;
         end
@@ -1540,7 +1631,7 @@ classdef JLabelData < handle
       sfn = obj.GetFile('scores',expi);
       if ~exist(sfn,'file')
         warndlg(sprintf('No scores file %s at the default location',...
-          scoreFileName));
+          sfn));
       end
       obj.LoadScores(expi,sfn);
     end
@@ -1782,6 +1873,41 @@ classdef JLabelData < handle
         return;
       end
 
+      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
+      if ~success1,
+        msg = msg1;
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      % check for existence of necessary files in this directory
+      if ~obj.filesfixable,
+        msg = sprintf('Experiment %s is missing required files that cannot be generated within this interface. Removing...',expdir);
+        success = false;
+        % undo
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      if obj.filesfixable && ~obj.allfilesexist,
+        if ~isdeployed
+          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+        else
+          res = 'Yes';
+        end
+        if strcmpi(res,'Yes'),
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          if ~success,
+            msg = sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
+            obj.RemoveExpDirs(obj.nexps);
+            return;
+          end
+          
+        else
+          obj.RemoveExpDirs(obj.nexps);
+        end
+      end
+      
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
         % TODO: make this work with multiple flies
@@ -1820,15 +1946,6 @@ classdef JLabelData < handle
           return;
         end
       end
-      
-      
-      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
-      if ~success1,
-        msg = msg1;
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
       
       [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
@@ -1907,7 +2024,6 @@ classdef JLabelData < handle
         idxcurr(1:numel(obj.windowdata.scores_validated)),:) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
-      obj.windowdata.bins=[];
 
       if ~isempty(obj.scoredata.exp)
         idxcurr = ismember(obj.scoredata.exp, expi);
@@ -2049,8 +2165,12 @@ classdef JLabelData < handle
       success = true;
       msg = '';
       
-      if nargin<3
-        isInteractive = true;
+      if nargin< 3
+        if isdeployed 
+          isInteractive = false;
+        else
+          isInteractive = true;
+        end
       end
       
       for i = 1:numel(obj.filetypes),
@@ -2859,6 +2979,7 @@ classdef JLabelData < handle
       file = obj.GetPerframeFiles(expi);
       for j = 1:numel(obj.allperframefns),
         if ~exist(file{j},'file'),
+          success = false;
           msg = sprintf('Per-frame data file %s does not exist',file{j});
           return;
         end
@@ -2897,6 +3018,29 @@ classdef JLabelData < handle
       obj.scoresidx_old = [];
       obj.erroridx = [];
       obj.suggestedidx = [];
+    end
+
+    function timestamp = GetLabelTimestamps(obj,expis,flies,ts)
+      
+      timestamp = nan(size(ts));      
+      for expi = 1:obj.nexps,
+        expidx = expis == expi;
+        if ~any(expidx),
+          continue;
+        end
+        % TODO: extend to multiple flies
+        for fly = 1:obj.nflies_per_exp(expi),
+          flyidx = expidx & flies == fly;
+          if ~any(flyidx),
+            continue;
+          end
+          [labelidx,T0] = obj.GetLabelIdx(expi,fly);
+          timestamp(flyidx) = labelidx.timestamp(ts(flyidx)-T0+1);
+        end
+        
+        
+      end
+      
     end
     
     function [labelidx,T0,T1] = GetLabelIdx(obj,expi,flies,T0,T1)
@@ -2941,6 +3085,9 @@ classdef JLabelData < handle
       end
       for j = 1:numel(labels_curr.imp_t0s)
         t0 = labels_curr.imp_t0s(j); t1 = labels_curr.imp_t1s(j);
+        if t0>T1 || t1<T0; continue;end
+        t0 = max(T0,t0);
+        t1 = min(T1,t1);
         labelidx.imp(t0+off:t1-1+off) = 1;
       end
       
@@ -3612,7 +3759,12 @@ classdef JLabelData < handle
         end
         
         if ~exist(perframefile{ndx},'file'),
-          res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+          if ~isdeployed
+            res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+          else
+            res = 'Yes';
+          end
+          
           if strcmpi(res,'Yes'),
             for ndx = 1:obj.nexps  
               [success1,msg1] = obj.GenerateMissingFiles(ndx);
@@ -3709,13 +3861,12 @@ classdef JLabelData < handle
       obj.windowdata.scores_validated=[];
       obj.windowdata.scoreNorm=[];
       obj.windowdata.binVals=[];
-      obj.windowdata.bins=[];
       
       obj.UpdatePredictedIdx();
 
     end
   
-    function TrimWindowData(obj)
+    function TrimWindowData(obj,doforce)
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
       sizeLimit = 5e9; % 5GB.
@@ -3725,7 +3876,7 @@ classdef JLabelData < handle
       numUnlabeled = nnz(obj.windowdata.labelidx_new==0);
       numLabeled = nnz(obj.windowdata.labelidx_new);
       
-      if numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit;
+      if (nargin < 2 || ~doforce) && (numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit);
         return;
       end
       
@@ -3746,7 +3897,6 @@ classdef JLabelData < handle
       obj.windowdata.scores_validated(idx2remove,:) = [];
       obj.windowdata.isvalidprediction(idx2remove,:) = [];
       obj.windowdata.binVals = [];
-      obj.windowdata.bins = [];
       
     end
     
@@ -3772,9 +3922,13 @@ classdef JLabelData < handle
       success = false; msg = '';
       
       for expi = 1:obj.nexps,
-        for i = 1:size(obj.labels(expi).flies,1),
-          
-          flies = obj.labels(expi).flies(i,:);
+        if obj.IsGTMode(),
+          flies_curr = obj.gt_labels(expi).flies;
+        else
+          flies_curr = obj.labels(expi).flies;
+        end
+        for i = 1:size(flies_curr,1),
+          flies = flies_curr(i,:);
           labels_curr = obj.GetLabels(expi,flies);
           ts = [];
           
@@ -3798,20 +3952,14 @@ classdef JLabelData < handle
 
     function UpdateBoostingBins(obj)
       
-      oldBinSize = size(obj.windowdata.bins,2);
-      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && ~isempty(obj.windowdata.binVals)
-        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-      else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
-      end
-      
+      islabeled = obj.windowdata.labelidx_cur ~= 0;
+      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
     end
 
 % Training and prediction.    
     
 
-    function Train(obj,doFastUpdates)
+    function Train(obj,doFastUpdates,timerange)
     % Train(obj)
     % Updates the classifier to reflect the current labels. This involves
     % first loading/precomputing the training features. Then, the clasifier
@@ -3830,8 +3978,13 @@ classdef JLabelData < handle
         warning(msg);
         return;
       end
-
+      
       islabeled = (obj.windowdata.labelidx_new ~= 0) & (obj.windowdata.labelidx_imp);
+      if nargin >= 3 && ~isempty(timerange),
+        label_timestamp = obj.GetLabelTimestamps(obj.windowdata.exp(islabeled),obj.windowdata.flies(islabeled,:),obj.windowdata.t(islabeled));
+        islabeled(islabeled) = label_timestamp >= timerange(1) & label_timestamp < timerange(2);
+      end
+
       if ~any(islabeled),
         return;
       end
@@ -3914,12 +4067,13 @@ classdef JLabelData < handle
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
             obj.classifier_old = obj.classifier;
-            [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
+            [obj.windowdata.binVals] = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
+            bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             [obj.classifier, ~] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
                                  obj.windowdata.binVals,...
-                                 obj.windowdata.bins(:,islabeled),obj.classifier_params);
+                                 bins,obj.classifier_params);
             obj.lastFullClassifierTrainingSize = nnz(islabeled);
             
           else
@@ -3928,18 +4082,13 @@ classdef JLabelData < handle
             newData = newNumPts - oldNumPts;
             obj.SetStatus('Updating boosting classifier with %d examples...',newData);
             
-            oldBinSize = size(obj.windowdata.bins,2);
-            newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-            
-            if newData>0
-              obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-            end
+            bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             
             obj.classifier_old = obj.classifier;
             [obj.classifier, ~] = boostingUpdate(obj.windowdata.X(islabeled,:),...
                                           obj.windowdata.labelidx_new(islabeled),...
                                           obj.classifier,obj.windowdata.binVals,...
-                                          obj.windowdata.bins(:,islabeled),obj.classifier_params);
+                                          bins,obj.classifier_params);
           end
           obj.classifierTS = now();
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_cur;
@@ -4006,18 +4155,20 @@ classdef JLabelData < handle
         case 'boosting',
           
           toPredict = ~obj.windowdata.isvalidprediction;
-          obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
-          scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
-          obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
-          obj.windowdata.scores(toPredict) = scores;
-          obj.windowdata.isvalidprediction(toPredict) = true;
-          if ~isempty(obj.classifier_old),
-            obj.windowdata.scores_old(toPredict) = ...
-              myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
-          else
-            obj.windowdata.scores_old(toPredict) = 0;
+          if any(toPredict),
+            obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
+            scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
+            obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
+            obj.windowdata.scores(toPredict) = scores;
+            obj.windowdata.isvalidprediction(toPredict) = true;
+            if ~isempty(obj.classifier_old),
+              obj.windowdata.scores_old(toPredict) = ...
+                myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
+            else
+              obj.windowdata.scores_old(toPredict) = 0;
+            end
+            obj.ClearStatus();
           end
-          obj.ClearStatus();
           
       end
             
@@ -4249,7 +4400,7 @@ classdef JLabelData < handle
           scores(curt0:curt1) = myBoostClassify(X,classifier);
         end
         scoresA{flies} = scores;
-        fprintf('Prediction done for flynum:%d, total number of flies:%d\n',flies,numFlies);
+        fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
       end
       
       allScores = struct;
@@ -4298,6 +4449,10 @@ classdef JLabelData < handle
         for flyNdx = 1:obj.nflies_per_exp(expNdx)
           curLabels = obj.GetLabels(expNdx,flyNdx);
           for boutNum = 1:numel(curLabels.t0s)
+            idx =  obj.FlyNdx(expNdx,flyNdx) & ...
+              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
+              obj.windowdata.t < curLabels.t1s(boutNum);
+            if ~all(obj.windowdata.labelidx_cur(idx)), continue; end
             bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
               obj.windowdata.t >= curLabels.t0s(boutNum) & ...
               obj.windowdata.t < curLabels.t1s(boutNum);
@@ -4310,11 +4465,15 @@ classdef JLabelData < handle
       
     end
     
-    function [crossError,tlabels] = CrossValidate(obj)
+    function [success,msg,crossError,tlabels] = CrossValidate(obj)
     % Cross validate on bouts.
-    
+      
+      obj.StoreLabels();
+      
       [success,msg] = obj.PreLoadLabeledData();
-      if ~success, warning(msg);return;end
+      if ~success, 
+        return;
+      end
 
       islabeled = obj.windowdata.labelidx_cur ~= 0;
       if ~any(islabeled),                        
@@ -4323,6 +4482,8 @@ classdef JLabelData < handle
         crossError.oldNumbers = zeros(4,3);
         crossError.oldFrac = zeros(4,3);
         tlabels = {};
+        success = false;
+        msg = 'No Labeled Data';
         return; 
       end
       
@@ -4334,11 +4495,13 @@ classdef JLabelData < handle
 
       bouts = obj.getLabeledBouts();
       
-      [crossScores, tlabels]=...
+      [success,msg,crossScores, tlabels]=...
         crossValidateBout( obj.windowdata.X, ...
         obj.windowdata.labelidx_cur,bouts,obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins,obj.classifier_params);%,true);
+        obj.classifier_params);%,true);
+      
+      if ~success, return, end;
 
 %{      
 %       crossScores=...
@@ -4452,8 +4615,9 @@ classdef JLabelData < handle
     
 
     function DoBagging(obj)
+
+      obj.StoreLabels();
       [success,msg] = obj.PreLoadLabeledData();
-      
       if ~success, warning(msg);return;end
 
       islabeled = obj.windowdata.labelidx_new ~= 0;
@@ -4464,19 +4628,14 @@ classdef JLabelData < handle
 
       obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
-      oldBinSize = size(obj.windowdata.bins,2);
-      newData = size(obj.windowdata.X,1) - size(obj.windowdata.bins,2);
-      if newData>0 && ~isempty(obj.windowdata.binVals)
-        obj.windowdata.bins(:,end+1:end+newData) = findThresholdBins(obj.windowdata.X(oldBinSize+1:end,:),obj.windowdata.binVals);
-      else
-        [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X,obj.classifier_params);
-      end
+      obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
+      bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
       
       [obj.bagModels, obj.distMat] =...
         doBagging( obj.windowdata.X(islabeled,:), ...
         obj.windowdata.labelidx_new(islabeled),obj,...
         obj.windowdata.binVals,...
-        obj.windowdata.bins(:,islabeled),obj.classifier_params);
+        bins,obj.classifier_params);
       
       obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
       obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);
@@ -4999,6 +5158,55 @@ classdef JLabelData < handle
         end
       end
       obj.GTSuggestionMode = 'Loaded';
+    end
+    
+    function SaveSuggestionGT(obj,expi,filename)
+      fid = fopen(filename,'w');
+      switch obj.GTSuggestionMode
+        
+        case 'Random'
+          start = obj.randomGTSuggestions{expi}(fly).start;
+          last = obj.randomGTSuggestions{expi}(fly).end;
+          for fly = 1:obj.nflies_per_exp(expi)
+            fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,start,last);
+          end
+          
+        case 'Threshold'
+          if ~isempty(obj.scoredata.scores)
+            for fly = 1:obj.nflies_per_exp(expi)
+              idxcurr = obj.scoredata.exp(:) == expi & ...
+                obj.scoredata.flies(:) == fly & ...
+                obj.scoredata.t(:) >=T0 & ...
+                obj.scoredata.t(:) <=T1;
+              T0 = obj.GetTrxFirstFrame(expi,fly);
+              T1 = obj.GetTrxEndFrame(expi,fly);
+              suggestedidx = zeros(1,T1);
+              suggestedidx( obj.scoredata.t(idxcurr)) = ...
+                obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+                -obj.thresholdGTSuggestions;
+              [t0s t1s] = get_interval_ends(suggestedidx);
+              for ndx = 1:numel(t0s)
+                if t1s(ndx)< T0, continue ; end
+                fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,t0s(ndx),t1s(ndx));
+              end
+            end
+          end
+          
+          
+        case 'Balanced'
+
+          for ndx = 1:numel(obj.balancedGTSuggestions)
+            if obj.balancedGTSuggestions(ndx).exp ~= expi
+              continue;
+            end
+            start = obj.balancedGTSuggestions(ndx).start;
+            last = obj.balancedGTSuggestions(ndx).end;
+            fprintf(fid,'fly:%d,start:%d,end:%d\n',...
+              obj.balancedGTSuggestions(ndx).flies,start,last);
+          end
+          
+      end
+      fclose(fid);
     end
     
     function SuggestThresholdGT(obj,threshold)
