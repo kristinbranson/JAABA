@@ -631,9 +631,9 @@ for i = axes,
     end
     inbounds = handles.guidata.data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
       handles.guidata.data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
-    set(handles.guidata.hflies(~inbounds,i),'XData',nan,'YData',nan);
-    set(handles.guidata.hflies_extra(~inbounds,i),'XData',nan,'YData',nan);
-    set(handles.guidata.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
+    set(handles.guidata.hflies(~inbounds,i),'Visible','off');
+    set(handles.guidata.hflies_extra(~inbounds,i),'Visible','off');
+    set(handles.guidata.hfly_markers(~inbounds,i),'Visible','off');
     for fly = find(inbounds),
 
       t = handles.guidata.ts(i);
