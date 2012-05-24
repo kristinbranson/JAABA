@@ -4653,7 +4653,9 @@ classdef JLabelData < handle
     end
     
     function SimilarFrames(obj,curTime,JLabelHandles)
-      if isempty(obj.frameFig), obj.InitSimilarFrames(JLabelHandles), end
+      if isempty(obj.frameFig) || ~ishandle(obj.frameFig),
+          obj.InitSimilarFrames(JLabelHandles), 
+      end
       
       distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
         (obj.windowdata.distNdx.flies == obj.flies) & ...
