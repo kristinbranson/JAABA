@@ -6,6 +6,7 @@ addpath ../perframe;
 addpath ../perframe/compute_perframe_features;
 addpath ../misc;
 addpath ../filehandling;
+addpath C:\Code\Ctrax\trunk\matlab\netlab;
 outfigdir = 'C:/Code/Jdetect/figures/AccuracyOut';
 if ~exist(outfigdir,'dir'),
   mkdir(outfigdir);
@@ -304,15 +305,31 @@ scoresfilestr = 'scoresChasev7.mat';
 rootdatadir = 'C:/Data/JAABA/FlyBowl';
 experiment_name = 'pBDPGAL4U_TrpA_Rig1Plate15BowlB_20110922T145928';
 configfilename = '../perframe/params/JLabelParams_FlyBowl_Chase.xml';
-mainfly = 1;
-otherflies = [];
+annfilestr = 'movie.ufmf.ann';
+mainfly = 20;
+otherflies = [12];
 ts_sample = 12390:4:12406;
-ts_overlay = ts_sample;
+ts_overlay = [6440,6461,6470,6480,6490];
 %ts = round(linspace(15370,15407,6));
 border = 16;
 colorpos = [.7,0,0];
 colorneg = [0,0,.7];
 outfigdir = 'C:/Code/Jdetect/figures/AccuracyOut';
+
+%% load the data
+
+trx = Trx('trxfilestr','registered_trx.mat','moviefilestr','movie.ufmf','perframedir','perframe');
+expdir = fullfile(rootdatadir,experiment_name);
+trx.AddExpDir(expdir);
+moviename = trx.movienames{1};
+annfilename = fullfile(rootdatadir,experiment_name,annfilestr);
+[bkgdim,fg_thresh,fg_thresh_low] = read_ann(annfilename,'background_center','n_bg_std_thresh','n_bg_std_thresh_low');
+[readframe,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
+bkgdim = reshape(bkgdim,[headerinfo.nc,headerinfo.nr])'/255;
+scoresdata = load(fullfile(expdir,scoresfilestr));
+predictions = cellfun(@(x) x > 0,scoresdata.allScores.scores,'UniformOutput',false);
+bg_thresh = 10;
+sigma_bkgd = (fg_thresh-bg_thresh)/3;
 
 
 %% parameters
