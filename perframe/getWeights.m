@@ -6,5 +6,5 @@ wt = zeros(length(labels),1);
 negWt = numPos/(numNeg+numPos);
 posWt = numNeg/(numPos+numNeg);
 wt(labels>0)=posWt;
-wt(labels<1)=negWt;
+wt(labels<0)=negWt;
 wt = wt./sum(wt);
