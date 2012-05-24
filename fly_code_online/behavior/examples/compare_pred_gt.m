@@ -2,7 +2,7 @@
 %DIR = 'Data/synth_flies/TrainingData/';
 DIR = 'Data/midres_flies/TrainingData_morebehs/';
 %file containing the list of file that were tested
-gt_filelist = 'traindata_5.txt';
+gt_filelist = 'traindata_3.txt';
 %file containing behaviors used for this experiment
 beh_file = 'Data/midres_flies/Params/BoyMeetsBoySVMBehaviorParams_morebehs.txt';
 %beh_file = 'Data/synth_flies/Params/LungeWalkSVMBehaviorParams.txt';
@@ -26,7 +26,7 @@ gt_frames = cell(1,num_tracks);   % frameswise labels per track
 for i=1:num_tracks
     filename = [strtok(gt_files{i},'.'),'.label']; % in case file ends with .trx rather than .label
     label = readLabels([DIR filename]);
-    gt_frames{i} = zeros(1,label.t1);
+    gt_frames{i} = zeros(1,label.t1-label.t0);
     for j=1:numel(label.segends)
         for b=1:num_behs
             if strcmp(label.labels{j},behs{b})
@@ -46,7 +46,8 @@ for i=1:num_tracks
     for j=1:numel(label.segends)
         for b=1:num_behs
             if strcmp(label.labels{j},behs{b})
-                pred_frames{i}(((label.segstarts(j)+1):label.segends(j))) = b-1;
+                e = min(label.segends(j),numel(gt_frames{i}));
+                pred_frames{i}(((label.segstarts(j)+1):e)) = b-1;
                 break
             end
         end
@@ -107,7 +108,7 @@ for i=1:num_tracks
     
     % New frame order
     frames_reorder = [frames_other frames_nonother];
-    [~, idx] = sort(frames_reorder);
+    [ignore, idx] = sort(frames_reorder);
     
     for b=1:num_behs
 %         if strcmp(behs{b},'none') || strcmp(behs{b},'other')

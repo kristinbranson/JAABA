@@ -167,11 +167,11 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   for(i = 0; i < nflies; i++) {
     if(!fly) {
       n = fread(&fly_id, sizeof(int), 1, fin);   assert(n);
-	} else if(fly->is_labeled) {
+    } else if(fly->is_labeled) {
       n = fread(&fly_id, sizeof(int), 1, fin);   assert(n && fly_id == fly->fly_ids[i]);
     } else {
       n = fread(&fly->fly_ids[i], sizeof(int), 1, fin);  assert(n);
-	}
+    }
   }
   n = fread(&firstframe, sizeof(int), 1, fin);  assert(n);
   n = fread(&lastframe, sizeof(int), 1, fin);  assert(n);
@@ -184,7 +184,7 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
     fly->fps = fps;
     if(fly->is_labeled) {
       assert(!strcmp(movie, fly->moviename) && !strcmp(mat, fly->matname) && nflies == fly->nflies && 
-	   firstframe == fly->firstframe && lastframe == fly->lastframe);
+	     firstframe == fly->firstframe && lastframe == fly->lastframe);
     } else {
       fly->version = version;
       strcpy(fly->moviename, movie); strcpy(fly->matname, mat); fly->nflies = nflies;
@@ -195,7 +195,7 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   num_frames = lastframe-firstframe+1;
   num_base_features = nfields-1;
   assert(num_base_features == svm->NumBaseFeatures());
-
+  
   AllocateBuffers(svm, false);
   double *buff = (double*)malloc(sizeof(double)*num_frames);
   for(i = 0; i < nfields; i++) {
@@ -215,7 +215,7 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   }
   free(buff);
 
-  ComputeCaches(svm);
+  //ComputeCaches(svm);
 
   fclose(fin);
 
@@ -272,7 +272,7 @@ bool FlyBehaviorBoutSequence::load(const char *fname) {
   n = fread(&this->nflies, sizeof(int), 1, fin);   assert(n && this->nflies > 0 && this->nflies < 100);
   for(int i = 0; i < this->nflies; i++) {
     n = fread(&this->fly_ids[i], sizeof(int), 1, fin); 
-	assert(n);
+    assert(n);
   }
 
   n = fread(&this->firstframe, sizeof(int), 1, fin);  assert(n && this->firstframe >= 0);
@@ -355,7 +355,7 @@ bool FlyBehaviorBoutSequence::save(const char *fname) {
   n = fwrite(&this->nflies, sizeof(int), 1, fout);   assert(n && this->nflies < 100);
   for(int i = 0; i < this->nflies; i++) {
     n = fwrite(&this->fly_ids[i], sizeof(int), 1, fout);
-	assert(n);
+    assert(n);
   }
   
   n = fwrite(&this->firstframe, sizeof(int), 1, fout);

@@ -512,8 +512,8 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 		features_gamma[i] = features_gamma[i] ? 1.0/sqrt(features_gamma[i]/num_bouts) : 0;
 	}
 
-	saveBoutFeatures(dataset, "train_bout_feat.txt", true, true);
-	saveBoutFeatures(dataset, "train_bout_feat_unsphered.txt", false, true);
+	//saveBoutFeatures(dataset, "train_bout_feat.txt", true, true);
+	//saveBoutFeatures(dataset, "train_bout_feat_unsphered.txt", false, true);
 
 	free(feat);
 	free(tmp_features);
@@ -841,7 +841,7 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
   BehaviorBoutSequence *y = (BehaviorBoutSequence*)yy;
   BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x;
   int i, j, beh;
-  double *tmp_features = (double*)malloc(sizeof(double)*(sizePsi+num_features+NUMFEAT));
+  double *tmp_features = (double*)malloc(sizeof(double)*(sizePsi+num_features+10));
   double *all_features = tmp_features+num_features+10;
   double *ptr = all_features, *class_features, *class_transitions, *class_counts;
   
@@ -1114,6 +1114,10 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 				}
 			}	 
 		} 
+		// Temporary fix, ground truth segmentations should have bouts that span all the way to b->num_frames
+		int T = ((BehaviorBoutFeatures*)ex->x)->num_frames;
+		if(y->num_bouts && y->num_bouts[0] && y->bouts[0][y->num_bouts[0]-1].end_frame==T-1)
+		  y->bouts[0][y->num_bouts[0]-1].end_frame = T;
 	}
 	if(computeClassTransitions) {
 		printf("Training examples %d behavior sequences\n", (int)num);
@@ -1671,7 +1675,7 @@ bool *SVMBehaviorSequence::get_allowable_frame_times(BehaviorBoutSequence *y_gt,
   if(!y_partial && (!y_gt || max_inference_learning_frames < 0 || T <= max_inference_learning_frames)) 
     return NULL;  // don't do approximate inference
   else {
-    bool *allowable_time_frames = (bool*)malloc(sizeof(bool)*T);
+    bool *allowable_time_frames = (bool*)malloc(sizeof(bool)*(T+1));
     memset(allowable_time_frames, max_inference_learning_frames < 0 ? true : false, sizeof(bool)*(T+1));
     allowable_time_frames[T] = true;
     
@@ -1746,10 +1750,6 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
     while(FileExists(ybar->fname)) {
       sprintf(ybar->fname, "%s.pred.%d.%d", b->fname, (int)this->t, i++);
     }
-
-    // Temporary fix, ground truth segmentations should have bouts that span all the way to b->num_frames
-    if(y->num_bouts && y->num_bouts[0] && y->bouts[0][y->num_bouts[0]-1].end_frame < T)
-      y->bouts[0][y->num_bouts[0]-1].end_frame = T;
   } else
     sprintf(ybar->fname, "%s.pred", b->fname);
   init_bout_label(ybar, y);
@@ -2523,7 +2523,8 @@ void BehaviorBoutFeatures::AllocateBuffers(SVMBehaviorSequence *svm, bool full) 
 
 	if(!features) {
 	  // Extract regular raw features
-	  this->features = (double**)malloc(num_base_features*(sizeof(double*)+(num_base_features+1)*T*sizeof(double)));
+	  //this->features = (double**)malloc(num_base_features*(sizeof(double*)+(num_base_features+1)*T*sizeof(double)));
+	  this->features = (double**)malloc((num_base_features+1)*(sizeof(double*)+(T+1)*sizeof(double)));
 	  double *ptr = (double*)(this->features+num_base_features);
 	  for(i = 0; i < num_base_features; i++) {
 	    this->features[i] = ptr;

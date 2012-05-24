@@ -668,6 +668,7 @@ void StructuredSVM::DumpModelIfNecessary(const char *modelfile, bool force) {
 
 void StructuredSVM::CheckConvergence() {
   int curr_window_t = my_min(t,window), curr_window_n = my_min(n,window);
+  if(cache_old_examples) curr_window_t = my_min(curr_window_t,n);
   double nn = (double)(cache_old_examples ? n : t);
   double eps_empirical_measured = (sum_iter_error_window) / curr_window_t - sum_dual/nn + regularization_error;
   double eps_generalization_measured = sum_generalization_error_window / curr_window_n - sum_dual/nn;
@@ -838,7 +839,8 @@ void StructuredSVM::OptimizeAllConstraints(int num_iter) {
   int i = 0;
   while(i < num_iter || sum_dual/n-iter_dual/(i+1) > eps) {
     for(int j = 0; j < n; j++)
-      UpdateWeights(trainset->examples[j]->set, j);
+      if(trainset->examples[j]->set)
+	UpdateWeights(trainset->examples[j]->set, j);
     //RecomputeWeights();
     iter_dual += sum_dual/n;
     fprintf(stderr, "OptimizeAllConstraints i=%d dual=%lf e=%lf\n", i, sum_dual/n, sum_dual/n-iter_dual/(i+2));
@@ -1594,10 +1596,19 @@ void StructuredSVM::SaveCachedExamples(const char *output_name, bool saveFull) {
   FILE *fout = fopen(output_name, "wb");
   fwrite(&n, sizeof(long), 1, fout);
   for(int i = 0; i < n; i++) {
+    while(trainset->examples[i]->set && trainset->examples[i]->set->lock) {
+      Unlock();
+      usleep(100000);
+      Lock();
+    }
+    if(trainset->examples[i]->set)
+      trainset->examples[i]->set->lock = true;
     bool b = trainset->examples[i]->set ? true : false;
     fwrite(&b, sizeof(bool), 1, fout);
     if(b)
       write_SVM_cached_sample_set(trainset->examples[i]->set, fout, this, saveFull);
+    if(trainset->examples[i]->set)
+      trainset->examples[i]->set->lock = false;
   }
   fclose(fout);
 }
