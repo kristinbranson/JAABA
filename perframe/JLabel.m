@@ -443,7 +443,7 @@ readframe=get_readframe_fcn(filename);
 
 idx=1;
 while true
-  if(Mlastused.Data(idx)==inf)
+  if(isinf(Mlastused.Data(idx)))
     Mims.Data(idx).x = readframe(Mts.Data(idx));
     Mlastused.Data(idx) = now;
   end
@@ -471,7 +471,7 @@ if(isempty(Mts))
 
   handles.guidata.cache_thread=batch(@cache_thread,0,...
     {N,HWD,handles.guidata.movie_filename},...
-    'CaptureDiary',true,'additionalpaths',{'../filehandling','../misc'});
+    'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
 end
 
 % WARNING: we directly access handles.guidata.data.trx for speed here -- 
@@ -586,6 +586,7 @@ for i = axes,
       j = find((Mts.Data==handles.guidata.ts(i)) & (Mlastused.Data~=inf));
       if(numel(j)>1)  j=j(1);  end
       if isempty(j),
+        %disp('not cached');
         j = argmin(Mlastused.Data);
         Mims.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
         Mts.Data(j) = handles.guidata.ts(i);
@@ -1533,6 +1534,7 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+delete('cache.dat');
 delete(handles.guidata.cache_thread);
 clear functions  % BJA: need to clear persistent vars in UpdatePlots
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
@@ -4467,7 +4469,7 @@ if ~doloop
   start(T);
 end
 
-if(0)  % test framerate
+if(1)  % test framerate
 while true,
   handles = guidata(hObject);
   if handles.guidata.hplaying ~= hObject,
