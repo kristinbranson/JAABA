@@ -7,12 +7,11 @@ extern char *g_currFile; // CSC 20110420: hack to pass current filename for debu
 #define __SVM_STRUCT_API_BEHAVIOR_SEQUENCE__
 
 
-
 #include "blob.h"
 #include "structured_svm.h"
 
 
-
+#define USE_DURATION_COST 1
 #define ALLOW_SAME_TRANSITIONS
 #define DEBUG 1
 #define MAX_FILENAME 1000
@@ -24,7 +23,7 @@ extern const char *bout_feature_names[]; // initialized in svm_struct_api_behavi
 //extern const char *g_feature_names[MAX_FEATURES];
 #endif
 
-#define NUMFEAT 20
+#define NUMFEAT 36
 
 #define FEATURE_SAMPLE_SMOOTHNESS_WINDOW 1
 #define NUM_TEMPORAL_LEVELS 2
@@ -113,6 +112,9 @@ typedef struct _BehaviorBout {
   int behavior;   /**< the index of the behavior */
   double bout_score;  /**< the score of the bout (the dot product <w_bout,f_bout>) */
   double transition_score;  /**< the component of the bout score due to transitioning from the previous behavior class to the class of this bout */
+#if USE_DURATION_COST > 0
+  double duration_score;  /** the compoenent of the bout score due to duration variying from the ideal duration for the behavior class of this bout */
+#endif
   double loss_fn;  /**< the loss associated with missing detection of some behavior bout(s) that overlap with this bout */
   double loss_fp;  /**< the loss associated with predicting this bout incorrectly */
   double extreme_vals[2][NUMFEAT];
@@ -226,6 +228,10 @@ class SVMBehaviorSequence : public StructuredSVM {
   int behavior;   /**< If not -1, only run the model on one behavior group */
   double *false_negative_cost[MAX_BEHAVIOR_GROUPS];   /**< A behaviors->num X num_classes[i] array of costs for missing detection of a given behavior class */
   double *false_positive_cost[MAX_BEHAVIOR_GROUPS];  /**< A behaviors->num X num_classes[i] array of costs for incorrectly detecting a given behavior class */
+#if USE_DURATION_COST > 0
+  double *min_frame_duration[MAX_BEHAVIOR_GROUPS];   /** shortest duration of each behavior class bout in the training set */
+  double *max_frame_duration[MAX_BEHAVIOR_GROUPS];   /** longest duration of each behavior class bout in the training set */
+#endif
   int ***class_training_transitions;  /**< A behaviors->numXnum_classes[i]Xclass_training_transitions_count[i][j] array of indices specifying indices of behavior classes that are allowed to proceed a given behavior class */
   int **class_training_transitions_count;  /**< A behaviors->numXnum_classes[i] array specifying the number of behavior classes that are allowed to proceed a given behavior class */
   int **class_training_count; /**< A behaviors->numXnum_classes[i] array specifying the number of times each class occurs in the training set */
@@ -337,11 +343,15 @@ class SVMBehaviorSequence : public StructuredSVM {
   void init_bout_label(BehaviorBoutSequence *ybar, BehaviorBoutSequence *y);
   double compute_updated_bout_loss(BehaviorBoutFeatures *b, BehaviorBoutSequence *y, int beh, int T, int t_p, int t, int c_prev, double *fn, int *gt_bout, double *dur_gt, double &loss_fp, double &loss_fn);
   void update_transition_counts_with_partial_label(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
-  void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, double *unary_weights, int T);
+#if USE_DURATION_COST > 0
+  void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, double *unary_weights, double *duration_weights, int T);
+  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double *duration_weights, double **table, BehaviorBout **states, int T);
+#else
+  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
+#endif
   bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev);
   void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT]);
   void restore_transition_counts(int beh, BehaviorBoutSequence *y_partial, int* &old_class_transition_counts, int* &old_class_training_counts);
-  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
   bool *get_allowable_frame_times(BehaviorBoutSequence *y_gt, BehaviorBoutSequence *y_partial, int T);
   int get_bout_start_time(int beh, int *duration, int &tt, int t_p, int t, int &next_duration, int &last_gt, int &last_partial, int *gt_bout, int *partial_label_bout, BehaviorBoutSequence *y, BehaviorBoutSequence *y_partial, int &restrict_c_prev, int &restrict_c_next);
 };
