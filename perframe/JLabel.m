@@ -89,6 +89,7 @@ handles.guidata.idlestatuscolor = [0,1,0];
 handles.guidata.busystatuscolor = [1,0,1];
 handles.guidata.movie_height = 100;
 handles.guidata.movie_width = 100;
+handles.guidata.movie_depth = 1;
 ClearStatus(handles);
 
 [handles,success] = JLabelEditFiles('JLabelHandle',handles,...
@@ -432,19 +433,18 @@ handles = UpdateGUIGroundTruthMode(handles);
 
 
 
-function cache_thread(N,HWD,movieheaderinfo,readframe)
+function cache_thread(N,HWD,filename)
 
 Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
 Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
 Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
-disp(readframe);
 
-movieheaderinfo.fid=fopen(movieheaderinfo.filename,'rb','ieee-le');
+readframe=get_readframe_fcn(filename);
 
 idx=1;
 while true
   if(Mlastused.Data(idx)==inf)
-    Mims.Data(idx).x = ufmf_read_frame(movieheaderinfo,Mts.Data(idx));
+    Mims.Data(idx).x = readframe(Mts.Data(idx));
     Mlastused.Data(idx) = now;
   end
   idx=1+mod(idx,N);
@@ -460,20 +460,17 @@ if(isempty(Mts))
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
 
-  %if(exist('cache.dat')~=2)
-  if(1)
-    fid=fopen('cache.dat','w');
-    fwrite(fid,zeros(1,N),'double');
-    fwrite(fid,zeros(1,N),'double');
-    fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
-    fclose(fid);
-  end
+  fid=fopen('cache.dat','w');
+  fwrite(fid,zeros(1,N),'double');
+  fwrite(fid,zeros(1,N),'double');
+  fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
+  fclose(fid);
   Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
   Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
   Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
   handles.guidata.cache_thread=batch(@cache_thread,0,...
-    {N,HWD,handles.guidata.movieheaderinfo,handles.guidata.readframe},...
+    {N,HWD,handles.guidata.movie_filename},...
     'CaptureDiary',true,'additionalpaths',{'../filehandling','../misc'});
 end
 
@@ -587,18 +584,15 @@ for i = axes,
     if handles.guidata.data.ismovie,
 
       j = find((Mts.Data==handles.guidata.ts(i)) & (Mlastused.Data~=inf));
+      if(numel(j)>1)  j=j(1);  end
       if isempty(j),
-        im = handles.guidata.readframe(handles.guidata.ts(i));
         j = argmin(Mlastused.Data);
-        Mims.Data(j).x = im;
+        Mims.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
         Mts.Data(j) = handles.guidata.ts(i);
-      else
-        im = Mims.Data(j).x;
       end
-      Mlastused.Data(j) = now;
 
-      % update frame
-      set(handles.guidata.himage_previews(i),'CData',im);
+      Mlastused.Data(j) = now;
+      set(handles.guidata.himage_previews(i),'CData',Mims.Data(j).x);
 
       tmp=handles.guidata.nframes_jump_go;
       j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mts.Data);
@@ -802,6 +796,7 @@ if handles.guidata.data.ismovie,
   handles.guidata.movie_depth = size(im,3);
   handles.guidata.movie_width = size(im,2);
   handles.guidata.movie_height = size(im,1);
+  handles.guidata.movie_filename = moviefilename;
   % catch ME,
   %   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
   %   ClearStatus(handles);
@@ -1539,6 +1534,7 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 delete(handles.guidata.cache_thread);
+clear functions  % BJA: need to clear persistent vars in UpdatePlots
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
 
 % --------------------------------------------------------------------
