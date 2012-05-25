@@ -1,6 +1,6 @@
 function outfilenames = SaveFigLotsOfWays(hfig,basename)
 
-formats = {'pdf','tiff','svg','ai'};
+formats = {'pdf','tiff','svg','fig'};
 [path,basename] = myfileparts(basename);
 
 
@@ -18,7 +18,14 @@ if ismember('ai',formats),
   outfilenames{end+1} = fullfile(path,filename);
 end
 formats = setdiff(formats,{'ai'});
-  
+
+if ismember('fig',formats),
+  filename = [basename,'.fig'];
+  saveas(hfig,fullfile(path,filename),'fig');
+  outfilenames{end+1} = fullfile(path,filename);
+end
+formats = setdiff(formats,{'fig'});
+
 for i = 1:numel(formats),
   filename = [basename,'.',formats{i}];
   savefig(filename,hfig,formats{i});
