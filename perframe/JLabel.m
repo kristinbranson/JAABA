@@ -4804,7 +4804,6 @@ function similarFramesButton_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of similarFramesButton
 
 handles = UpdatePrediction(handles);
-guidata(hObject,handles);
 curTime = handles.guidata.ts(1);
 handles.guidata.data.SimilarFrames(curTime, handles);
 

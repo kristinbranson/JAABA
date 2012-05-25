@@ -1962,7 +1962,7 @@ for i=length(axchild):-1:1
         end
         if exist(fullfile(current_path,filename),'file')
             lastwarn('');
-            delete(filename);
+            delete(fullfile(current_path,filename));
             if strcmp(lastwarn,'File not found or permission denied.')
                 error('Cannot write image file. Make sure that no image is opened in an other program.')    
             end
