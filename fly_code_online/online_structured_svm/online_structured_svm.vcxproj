@@ -111,7 +111,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(ProjectDir)\json;$(ProjectDir)\include;</IncludePath>
-    <OutDir>$(SolutionDir)\lib\amd64</OutDir>
+    <OutDir>$(SolutionDir)\lib\$(Platform)\</OutDir>
     <IntDir>obj\debug_static\</IntDir>
     <TargetExt>.lib</TargetExt>
     <TargetName>$(ProjectName)d</TargetName>
@@ -124,7 +124,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;$(ProjectDir)\include;$(ProjectDir)\json;</IncludePath>
-    <OutDir>$(SolutionDir)\lib\amd64</OutDir>
+    <OutDir>$(SolutionDir)\lib\$(Platform)\</OutDir>
     <IntDir>obj\release_static\</IntDir>
     <TargetExt>.lib</TargetExt>
   </PropertyGroup>

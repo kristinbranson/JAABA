@@ -414,7 +414,8 @@ BlobSequence *load_blob_sequence(const char *fname, BehaviorGroups *behaviors) {
     } else if(line[0] == 'F')
       continue;
     b->frames = (Blob*)realloc(b->frames, sizeof(Blob)*(b->num_frames+1));
-    assert(load_blob(line, behaviors, &b->frames[b->num_frames]));
+    char *str = load_blob(line, behaviors, &b->frames[b->num_frames]);
+	assert(str);
 
     b->num_frames++;
   }
@@ -517,7 +518,8 @@ BehaviorGroups *load_behaviors(const char *fname, const char *classifier_dir) {
       behs->behaviors = (BehaviorGroup*)realloc(behs->behaviors, sizeof(BehaviorGroup)*(behs->num+1));
       b = behs->behaviors + behs->num++;
       memset(b, 0, sizeof(BehaviorGroup));
-      assert(sscanf(line+1, "%s %d %d", b->name, &b->classifier_method, &b->is_multiclass) == 3);
+      int n = sscanf(line+1, "%s %d %d", b->name, &b->classifier_method, &b->is_multiclass);
+	  assert(n == 3);
       if(b->classifier_method) {
 	get_classifier_name(classifier_name, classifier_dir, b->name, b->classifier_method);
 	if(FileExists(classifier_name)) {
@@ -542,13 +544,14 @@ BehaviorGroups *load_behaviors(const char *fname, const char *classifier_dir) {
     else {
       b->values = (BehaviorValue*)realloc(b->values, (b->num_values+1)*sizeof(BehaviorValue)); 
       memset(&b->values[b->num_values], 0, sizeof(BehaviorValue));
-      assert((ptr = strtok(line, "\t")) != NULL);
-      assert((ptr2 = strtok(NULL, "\t")) != NULL);
+      ptr = strtok(line, "\t");  assert(ptr != NULL);
+      ptr2 = strtok(NULL, "\t"); assert(ptr2 != NULL);
       strcpy(b->values[b->num_values].name, ptr);
       strcpy(b->values[b->num_values].abbreviation, ptr2);   
       chomp(b->values[b->num_values].abbreviation);
 
-      assert((ptr2 = strtok(NULL, "\t")) != NULL && sscanf(ptr2, "%d", &b->values[b->num_values].classifier_method));
+      ptr2 = strtok(NULL, "\t"); assert(ptr2 != NULL);
+	  int n = sscanf(ptr2, "%d", &b->values[b->num_values].classifier_method);  assert(n);
       if(b->values[b->num_values].classifier_method) {
 	sprintf(classifier_name, "%s/%s_%s.%s", classifier_dir, b->name, b->values[b->num_values].name, 
 		g_classifer_extensions[b->values[b->num_values].classifier_method]);

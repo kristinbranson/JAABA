@@ -51,7 +51,8 @@ for i=1:num_tracks
     for j=1:numel(label.segends)
         for b=1:num_behs
             if strcmp(label.labels{j},behs{b})
-                pred_frames{i}(((label.segstarts(j)+1):label.segends(j))) = b-1;
+                e = min(label.segends(j),numel(gt_frames{i}));
+                pred_frames{i}(((label.segstarts(j)+1):e)) = b-1;
                 break
             end
         end
@@ -134,7 +135,7 @@ orient landscape
 %         plot(idx(frames),ones(1,numel(frames))*i+0.2,['.' colors{b}]);        
 %     end
 %     % plot baselines that span track's duration
-%     plot([0 numel(gt_frames{i})],[i i],'-k')
+%     plot([-2 numel(gt_frames{i})],[i i],'-k')
 %     plot([0 numel(pred_frames{i})],[i+0.2 i+0.2],'-','Color',[.5,.5,.5])
 % end
 % %legend(handles,behs)
