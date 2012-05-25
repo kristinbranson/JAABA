@@ -2,7 +2,7 @@
 #include <string.h>
 #include "svm_behavior_sequence.h"
 
-#define DEBUG 0
+//#define DEBUG 0
 //#define ALLOW_SAME_TRANSITIONS 0
 #if DEBUG > 0
 char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
@@ -854,18 +854,14 @@ SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
   int i, j, beh;
   double *tmp_features = (double*)malloc(sizeof(double)*(sizePsi+num_features+10));
   double *all_features = tmp_features+num_features+10;
-<<<<<<< HEAD
   double *ptr = all_features, *class_features, *class_transitions, *class_counts; 
 #if USE_DURATION_COST > 0
   double *class_durations;
   double duration, duration_diff;
 #endif
-=======
-  double *ptr = all_features, *class_features, *class_transitions, *class_counts;
   
   if(!b->memory_buffer)
     b->ComputeCaches(this);
->>>>>>> e8611299c949e0f6a8636591c8bda4f48f98d495
 
   for(i = 0; i < sizePsi; i++)
     ptr[i] = 0;
@@ -1539,15 +1535,11 @@ void SVMBehaviorSequence::restore_transition_counts(int beh, BehaviorBoutSequenc
 // through its cache tables
 #if USE_DURATION_COST > 0
 void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, 
-						     BehaviorBout **states, double *unary_weights, double *duration_weights, int T) {
+						     BehaviorBout **states, double *duration_weights, int T) {
 #else
 void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, 
-<<<<<<< HEAD
-						     BehaviorBout **states, double *unary_weights, int T) {
-#endif
-=======
 						     BehaviorBout **states, int T) {
->>>>>>> e8611299c949e0f6a8636591c8bda4f48f98d495
+#endif
   // First backtrack to count the number of bouts in the optimal solution  
   int t = T, c = 0; 
   ybar->num_bouts[beh] = 0;
@@ -1565,8 +1557,7 @@ void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar,
   ybar->losses[beh] = 0;
   int i = ybar->num_bouts[beh]-1;
   while(t >= 0 && states[t][c].start_frame >= 0) { 
-<<<<<<< HEAD
-    ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score + unary_weights[states[t][c].behavior];
+    ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score + states[t][c].unary_score;
 #if USE_DURATION_COST > 0
     int duration = states[t][c].end_frame-states[t][c].start_frame; 
     double duration_diff = 0;
@@ -1579,9 +1570,7 @@ void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar,
     double duration_score = duration_weights[behavior] * duration_diff;
     ybar->scores[beh] += duration_score;
 #endif
-=======
-    ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score + states[t][c].unary_score;
->>>>>>> e8611299c949e0f6a8636591c8bda4f48f98d495
+    
     ybar->losses[beh] += states[t][c].loss_fn + states[t][c].loss_fp;
     ybar->bouts[beh][i] = states[t][c];
     int tt = states[t][c].start_frame;
@@ -1661,8 +1650,7 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
   double score = 0;
   double loss = 0;
   for(int i = 0; i < ybar->num_bouts[beh]; i++) {
-<<<<<<< HEAD
-    score += ybar->bouts[beh][i].bout_score + ybar->bouts[beh][i].transition_score + unary_weights[ybar->bouts[beh][i].behavior];
+    score += ybar->bouts[beh][i].bout_score + ybar->bouts[beh][i].transition_score + ybar->bouts[beh][i].unary_score;
 #if USE_DURATION_COST > 0
     int duration = ybar->bouts[beh][i].end_frame-ybar->bouts[beh][i].start_frame; 
     double duration_diff = 0;
@@ -1675,9 +1663,6 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
     double duration_score = duration_weights[c] * duration_diff;
     score += duration_score;
 #endif
-=======
-    score += ybar->bouts[beh][i].bout_score + ybar->bouts[beh][i].transition_score + ybar->bouts[beh][i].unary_score;
->>>>>>> e8611299c949e0f6a8636591c8bda4f48f98d495
     loss += ybar->bouts[beh][i].loss_fn + ybar->bouts[beh][i].loss_fp;
     
     // If this check fails, there is a problem with the basic dynamic programming algorithm
@@ -1727,8 +1712,7 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
       y->bouts[beh][i].unary_score = unary_weights[y->bouts[beh][i].behavior];
 
       y->bouts[beh][i].loss_fn = y->bouts[beh][i].loss_fp = 0;
-<<<<<<< HEAD
-      y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score + unary_weights[y->bouts[beh][i].behavior];
+      y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score + y->bouts[beh][i].unary_score;
 #if USE_DURATION_COST > 0
       int duration = y->bouts[beh][i].end_frame-y->bouts[beh][i].start_frame; 
       double duration_diff = 0;
@@ -1741,9 +1725,6 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
       double duration_score = duration_weights[c] * duration_diff;
       y->scores[beh] += duration_score;
 #endif
-=======
-      y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score + y->bouts[beh][i].unary_score;
->>>>>>> e8611299c949e0f6a8636591c8bda4f48f98d495
 
       // Making sure that ybar_score + ybar_loss >= y_score, so far
       if(!y->disable_checks && y->scores[beh] > .01+(i < y->num_bouts[beh]-1 ? table[y->bouts[beh][i+1].start_frame][y->bouts[beh][i+1].behavior] : table[T][0])) {
@@ -2033,17 +2014,10 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
           // Iterate through all classes c_prev, where we are transitioning from a bout of class c_prev to a
           // bout of class c_next, which is beginning at frame t.  Don't even consider class transition pairs from
           // c_prev to c_next that never occur in the training set
-<<<<<<< HEAD
-          for(int c_ind = 0; c_ind < (t == T ? 1 : class_training_transitions_count[beh][c_next]); c_ind++) { 
-            int c_prev = (t == T ? 0 : class_training_transitions[beh][c_next][c_ind]); 
-            if(t < T && (!class_training_count[beh][c_prev] ||     // class c_prev doesn't appear in the training set
-			 (restrict_c_prev >= 0 && c_prev != restrict_c_prev)))  // class c_prev disagrees with the partial label
-=======
           for(int c_ind = 0; c_ind < (t == T ? num_classes[beh] : class_training_transitions_count[beh][c_next]); c_ind++) { 
             int c_prev = (t == T ? c_ind : class_training_transitions[beh][c_next][c_ind]); 
             if(!class_training_count[beh][c_prev] ||     // class c_prev doesn't appear in the training set
 			 (restrict_c_prev >= 0 && c_prev != restrict_c_prev))  // class c_prev disagrees with the partial label
->>>>>>> e8611299c949e0f6a8636591c8bda4f48f98d495
               continue; 
           
             // Compute the score attributed to the proposed bout between (t_p,t) of label c_prev and transitioning to a 
@@ -2091,13 +2065,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	  if(time_approx != 0 && t_p) {
 	    int c_prev = states[t_p][c_next].behavior;
 	    int t_p_p = states[t_p][c_next].start_frame;
-<<<<<<< HEAD
-            if(c_prev >= 0) {
-	      if (states[t_p][c_next].end_frame != t_p)
-		  int a = 1;
-=======
             if(c_prev >= 0 && table[t_p][c_next] > -INFINITY && (restrict_c_prev < 0 || (restrict_c_prev == c_prev && restrict_c_prev == c_next))) {
->>>>>>> e8611299c949e0f6a8636591c8bda4f48f98d495
 	      assert(states[t_p][c_next].end_frame == t_p);
 	      for(int i=0; i<num_base_features; i++) {
 		// Compute the updated min/max of each bout feature as the min/max over precomputed min/max values
@@ -2145,7 +2113,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 
 #if USE_DURATION_COST > 0
     // Backtrack through table and states to extract the optimal solution
-    backtrack_optimal_solution(ybar, beh, table, states, unary_weights, duration_weights, T);
+    backtrack_optimal_solution(ybar, beh, table, states, duration_weights, T);
     sanity_check_dynamic_programming_solution(beh, b, ybar, y, w, class_weights, transition_weights, unary_weights, duration_weights, table, states, T);
 #else
     // Backtrack through table and states to extract the optimal solution
@@ -2396,18 +2364,21 @@ Json::Value SVMBehaviorSequence::Save() {
 	for(beh = 0; beh < behaviors->num; beh++) {
 		Json::Value t;
 		for(i = 0; i < num_classes[beh]; i++) {
-			Json::Value o, tt, limits;
+			Json::Value o, tt;
 			o["count"] = class_training_count[beh][i];
 			o["transitions_count"] = class_training_transitions_count[beh][i];
 			for(j = 0; j < class_training_transitions_count[beh][i]; j++) {
 			  tt[j] = class_training_transitions[beh][i][j];
 			}
 			o["transitions"] = tt;
+#if USE_DURATION_COST > 0
+			Json::Value limits;
 			int idx = 0;
 			limits[idx] = (int)min_frame_duration[beh][i];
 			idx = 1;
 			limits[idx] = (int)max_frame_duration[beh][i];
 			o["limits"] = limits;
+#endif
 			t[i] = o;
 		}
 		tr[beh] = t;
@@ -2534,11 +2505,13 @@ bool SVMBehaviorSequence::Load(const Json::Value &root) {
 			for(j = 0; j < class_training_transitions_count[beh][i]; j++) {
 			  class_training_transitions[beh][i][j] = tt[j].asInt();
 			}
+#if USE_DURATION_COST > 0
 			Json::Value limits = o["limits"];
 			int idx = 0;
 			min_frame_duration[beh][i] = limits[idx].asInt();
 			idx = 1;
 			max_frame_duration[beh][i] = limits[idx].asInt();
+#endif
 		}
 	}
 
