@@ -141,8 +141,8 @@ switch obj.targettype,
       pos.theta = obj.trx(fly).theta;
       pos.a = obj.trx(fly).a;
       pos.b = obj.trx(fly).b;
-      pos.xcontour = obj.trx(fly).xcontour;
-      pos.ycontour = obj.trx(fly).ycontour;
+      %pos.xcontour = obj.trx(fly).xcontour;
+      %pos.ycontour = obj.trx(fly).ycontour;
       pos.xspine = obj.trx(fly).xspine;
       pos.yspine = obj.trx(fly).yspine;
       return;
@@ -154,8 +154,8 @@ switch obj.targettype,
     pos.theta = obj.trx(fly).theta(is);
     pos.a = obj.trx(fly).a(is);
     pos.b = obj.trx(fly).b(is);
-    pos.xcontour = obj.trx(fly).xcontour{is};
-    pos.ycontour = obj.trx(fly).ycontour{is};
+    %pos.xcontour = obj.trx(fly).xcontour{is};
+    %pos.ycontour = obj.trx(fly).ycontour{is};
     pos.xspine = obj.trx(fly).xspine(:,is);
     pos.yspine = obj.trx(fly).yspine(:,is);
     
