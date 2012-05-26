@@ -3129,7 +3129,7 @@ classdef JLabelData < handle
         T1 = T0 + numel(perframedata) - 1;
         return;
       end
-      off = 1 - GetTrxFirstFrame(expi,flies);
+      off = 1 - obj.GetTrxFirstFrame(expi,flies);
       i0 = T0 + off;
       i1 = T1 + off;
       perframedata = tmp.data{flies(1)}(i0:i1);
