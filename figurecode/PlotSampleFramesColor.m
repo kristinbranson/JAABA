@@ -76,7 +76,9 @@ y = y - ylim(1)+1;
 colors_all = nan(ts(end)-ts(1)+1,3,nflygroups);
 for i = 1:nflygroups,
   cmcurr = cm{min(numel(cm),i)};
-  if isnumeric(cmcurr),
+  if isempty(cmcurr),
+    colors_all(:,:,i) = 1;
+  elseif isnumeric(cmcurr),
     colors_all(:,:,i) = cmcurr;
   else
     colors_all(:,:,i) = cmcurr(ts(end)-ts(1)+1);

@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
-   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Righting"/>
-   <file featureconfigfile="params/featureConfig_RightingAR.xml" featureparamfilename="params/WindowFeatures_Righting.xml" gt_labelfilename="labeledRighting_gt.mat" labelfilename="labeledRighting.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat" scorefilestr="scores_Righting.mat"/>
-   <perframe>
-      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
-   </perframe>
+   <targets type="fly"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Stop" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_Stop.xml" gt_labelfilename="gt_labeledStops.mat" labelfilename="labeledStops.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_Stops.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
       <labels colormap="line" linewidth="3"/>
    </plot>
+   <perframe>
+      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
+   </perframe>
    <JLabelMode mode="advanced"/>
    <featureparamlist>
-      <absanglefrom1to2_nose2ell/>
+      <a_mm/>
       <absdtheta/>
       <absdv_cor/>
       <absphidiff_anglesub/>
@@ -19,12 +21,11 @@
       <absthetadiff_anglesub/>
       <absthetadiff_nose2ell/>
       <angle2wall/>
-      <anglefrom1to2_anglesub/>
-      <anglefrom1to2_nose2ell/>
       <anglesub/>
       <area/>
       <arena_angle/>
       <arena_r/>
+      <b_mm/>
       <corfrac_maj/>
       <corfrac_min/>
       <dangle2wall/>
@@ -38,7 +39,6 @@
       <decc/>
       <dell2nose/>
       <dist2wall/>
-      <dnose2ell/>
       <dphi/>
       <dtheta/>
       <du_cor/>
@@ -57,10 +57,7 @@
       <velmag_ctr/>
       <velmag_nose/>
       <velmag_tail/>
-      <veltoward_anglesub/>
-      <veltoward_nose2ell/>
       <yaw/>
       <absyaw/>
-      <scores_Jump/>
    </featureparamlist>
 </params>
