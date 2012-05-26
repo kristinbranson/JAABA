@@ -33,7 +33,7 @@ trx.AddExpDir(expdir);
 moviename = trx.movienames{1};
 [readframe,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
 if ~exist(fullfile(expdir,scoresfilestr),'file'),
-  fprintf('PREDICTIONS NOT LOADED FOR REAL! REMOVE THIS\n');
+  fprintf('PREDICTIONS NOT LOADED FOR REAL FOR %s! FIX THIS\n',behavior);
   predictions = cell(1,trx.nflies);
   for i = 1:trx.nflies,
     predictions{i} = true(trx(i).nframes);

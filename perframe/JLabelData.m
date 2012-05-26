@@ -1632,6 +1632,7 @@ classdef JLabelData < handle
       if ~exist(sfn,'file')
         warndlg(sprintf('No scores file %s at the default location',...
           sfn));
+        return;
       end
       obj.LoadScores(expi,sfn);
     end
