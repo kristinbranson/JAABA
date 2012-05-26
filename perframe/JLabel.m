@@ -431,7 +431,51 @@ handles = UpdateGUIGroundTruthMode(handles);
 % end
 
 
+
+function cache_thread(N,HWD,movieheaderinfo,readframe)
+
+Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
+Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+disp(readframe);
+
+movieheaderinfo.fid=fopen(movieheaderinfo.filename,'rb','ieee-le');
+
+idx=1;
+while true
+  if(Mlastused.Data(idx)==inf)
+    Mims.Data(idx).x = ufmf_read_frame(movieheaderinfo,Mts.Data(idx));
+    Mlastused.Data(idx) = now;
+  end
+  idx=1+mod(idx,N);
+  if(idx==1)  pause(1);  end
+end
+
+
 function UpdatePlots(handles,varargin)
+
+persistent Mts Mlastused Mims
+
+if(isempty(Mts))
+  N=200;  % cache size
+  HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
+
+  %if(exist('cache.dat')~=2)
+  if(1)
+    fid=fopen('cache.dat','w');
+    fwrite(fid,zeros(1,N),'double');
+    fwrite(fid,zeros(1,N),'double');
+    fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
+    fclose(fid);
+  end
+  Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
+  Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+  Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+
+  handles.guidata.cache_thread=batch(@cache_thread,0,...
+    {N,HWD,handles.guidata.movieheaderinfo,handles.guidata.readframe},...
+    'CaptureDiary',true,'additionalpaths',{'../filehandling','../misc'});
+end
 
 % WARNING: we directly access handles.guidata.data.trx for speed here -- 
 % REMOVED! NOT SO SLOW
@@ -542,30 +586,29 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
-    % read in current frame
-    %image_cache = getappdata(handles.figure_JLabel,'image_cache');
-%     try
-%       j = find(handles.guidata.ts(i)==image_cache.ts,1);
-%       if isempty(j),
+      j = find((Mts.Data==handles.guidata.ts(i)) & (Mlastused.Data~=inf));
+      if isempty(j),
         im = handles.guidata.readframe(handles.guidata.ts(i));
-%       else
-%         im = image_cache.ims(:,:,:,j);
-%       end
-%     catch ME
-%       uiwait(warndlg(sprintf('Could not read frame %d from current movie: %s',handles.guidata.ts(i),getReport(ME))));
-%       return;
-%     end
-  
-    % update frame
-    set(handles.guidata.himage_previews(i),'CData',im);
+        j = argmin(Mlastused.Data);
+        Mims.Data(j).x = im;
+        Mts.Data(j) = handles.guidata.ts(i);
+      else
+        im = Mims.Data(j).x;
+      end
+      Mlastused.Data(j) = now;
 
-%     if isempty(j),
-%       j = argmin(image_cache.timestamps);
-%       image_cache.ims(:,:,:,j) = im;
-%       image_cache.ts(j) = handles.guidata.ts(i);
-%     end
-%     image_cache.timestamps(j) = now;
-%     setappdata(handles.figure_JLabel,'image_cache',image_cache);
+      % update frame
+      set(handles.guidata.himage_previews(i),'CData',im);
+
+      tmp=handles.guidata.nframes_jump_go;
+      j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mts.Data);
+      j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));
+      for k=1:length(j)
+        kk = argmin(Mlastused.Data);
+        Mlastused.Data(kk) = inf;
+        Mts.Data(kk) = j(k);
+      end
+
     else
       
       set(handles.guidata.himage_previews(i),'Visible','off');
@@ -588,9 +631,9 @@ for i = axes,
     end
     inbounds = handles.guidata.data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
       handles.guidata.data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
-    set(handles.guidata.hflies(~inbounds,i),'XData',nan,'YData',nan);
-    set(handles.guidata.hflies_extra(~inbounds,i),'XData',nan,'YData',nan);
-    set(handles.guidata.hfly_markers(~inbounds,i),'XData',nan,'YData',nan);
+    set(handles.guidata.hflies(~inbounds,i),'Visible','off');
+    set(handles.guidata.hflies_extra(~inbounds,i),'Visible','off');
+    set(handles.guidata.hfly_markers(~inbounds,i),'Visible','off');
     for fly = find(inbounds),
 
       t = handles.guidata.ts(i);
@@ -756,6 +799,7 @@ if handles.guidata.data.ismovie,
     handles.guidata.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
   end
   im = handles.guidata.readframe(1);
+  handles.guidata.movie_depth = size(im,3);
   handles.guidata.movie_width = size(im,2);
   handles.guidata.movie_height = size(im,1);
   % catch ME,
@@ -1140,12 +1184,14 @@ prediction_bottom = zeros(size(scores_bottom));
 prediction_bottom(scores_bottom>0) = 1;
 prediction_bottom(scores_bottom<0) = 2;
 
+idxBottomScores = ~isnan(scores_bottom);
+bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
+
 for behaviori = 1:handles.guidata.data.nbehaviors
 
   idxScores = predictedidx == behaviori ;
   idxPredict = idxScores & ...
     (abs(scores)>handles.guidata.data.GetConfidenceThreshold(behaviori));
-  idxBottomScores = ~isnan(scores_bottom);
   for channel = 1:3,
     
       handles.guidata.labels_plot.predicted_im(1,idxPredict,channel) = handles.guidata.labelcolors(behaviori,channel);
@@ -1155,7 +1201,6 @@ for behaviori = 1:handles.guidata.data.nbehaviors
       handles.guidata.labels_plot.predicted_im(4,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
     
       % bottom row scores.
-      bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
       handles.guidata.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.guidata.scorecolor(bottomScoreNdx,channel,1);
       handles.guidata.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
         handles.guidata.labelcolors(behaviori,channel);
@@ -1493,6 +1538,7 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+delete(handles.guidata.cache_thread);
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
 
 % --------------------------------------------------------------------
@@ -4425,6 +4471,7 @@ if ~doloop
   start(T);
 end
 
+if(0)  % test framerate
 while true,
   handles = guidata(hObject);
   if handles.guidata.hplaying ~= hObject,
@@ -4477,6 +4524,60 @@ while true,
     pause(pause_time);
   end
 end
+
+else  % test framerate
+
+%t_last=t0;
+t=t0;
+while true,
+  handles = guidata(hObject);
+  if handles.guidata.hplaying ~= hObject,
+    return;
+  end
+  
+  if CALC_FEATURES
+    t0 = handles.guidata.ts(axi);
+    CALC_FEATURES = false;
+  end
+  
+  if PLAY_TIMER_DONE
+    ticker = tic;
+    PLAY_TIMER_DONE = false;
+    predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
+    predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
+    handles = SetPredictedPlot(handles,predictStart,predictEnd);
+    handles = UpdateTimelineIms(handles);
+
+    guidata(hObject,handles);
+    UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+      'refreshtrx',true,'refreshlabels',true,...
+      'refresh_timeline_manual',false,...
+      'refresh_timeline_xlim',false,...
+      'refresh_timeline_hcurr',false,...
+      'refresh_timeline_selection',false,...
+      'refresh_curr_prop',false);
+
+  end
+  if t > t1,
+    if doloop,
+      ticker = tic;
+      continue;
+    else
+      break;
+    end
+  end
+  SetCurrentFrame(handles,axi,t,hObject);
+  handles = UpdateTimelineIms(handles);
+  drawnow;
+if(exist('tocker'))  disp([num2str(1/toc(tocker),2)]);  end
+tocker=tic;
+%if(t-t_last>1)  disp(['skip ' num2str(t-t_last) ' @ ' num2str(t)]);  end
+%if(t==t_last)  disp(['repeat @ ' num2str(t)]);  end
+%t_last=t;
+  t=t+1;
+end
+
+end  % test framerate
 
 stopPlaying(handles);
 
