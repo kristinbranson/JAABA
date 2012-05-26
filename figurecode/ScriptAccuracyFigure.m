@@ -12,7 +12,36 @@ if ~exist(outfigdir,'dir'),
   mkdir(outfigdir);
 end
 
-%% touch
+
+%% global parameters
+
+% sample frames
+annfilestr = 'movie.ufmf.ann';
+colorpos = [.7,0,0];
+colorneg = [0,0,.7];
+border = 16;
+bg_thresh = 10/255;
+wmah = .5;
+frac_a_back = 1;
+dist_epsilon = .1;
+figpos_example = [97 886 1800 650];
+
+% groundtruthing
+ifpcolor = [0,0,.7];
+fpcolor = [.3,.3,1];
+ifncolor = [.7,0,0];
+fncolor = [1,.3,.3];
+ierrorcolor = [0,0,0];
+errorcolor = [.3,.3,.3];
+chancecolor = [.7,.7,.7];
+
+TOUCH = 1;
+CRABWALK = 2;
+BACKUP = 3;
+CHASE = 4;
+
+
+%% TOUCH parameters
 
 behavior = 'Touch';
 scoresfilestr = 'scoresTouch.mat';
@@ -22,33 +51,25 @@ configfilename = '../perframe/params/JLabelParams_FlyBowl_Touch.xml';
 mainfly = 3;
 otherflies = 18;
 ts = [13879,13882,13888,13892,13894,13899];
+ts_overlay = [13875,13882,13888,13899];
 
-colorpos = [.7,0,0];
-colorneg = [0,0,.7];
+%% TOUCH draw example frames
 
-%% load the data
-
-trx = Trx('trxfilestr','registered_trx.mat','moviefilestr','movie.ufmf','perframedir','perframe');
-expdir = fullfile(rootdatadir,experiment_name);
-trx.AddExpDir(expdir);
-moviename = trx.movienames{1};
-[readframe,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
-scoresdata = load(fullfile(expdir,scoresfilestr));
-predictions = cellfun(@(x) x > 0,scoresdata.allScores.scores,'UniformOutput',false);
-
-%% draw example frames
-
-hfig = 1;
-
-hfig = PlotSampleFrames(trx,readframe,predictions,mainfly,otherflies,ts,...
+PlotSampleFramesWrapper(behavior,rootdatadir,experiment_name,...
+  scoresfilestr,mainfly,otherflies,ts,ts_overlay,...
+  'outfigdir',outfigdir,...
+  'annfilestr',annfilestr,...
   'colorpos',colorpos,...
   'colorneg',colorneg,...
-  'hfig',hfig,...
-  'figpos',[]);
+  'border',border,...
+  'bg_thresh',bg_thresh,...
+  'wmah',wmah,...
+  'frac_a_back',frac_a_back,...
+  'dist_epsilon',dist_epsilon,...
+  'figpos',figpos_example,...
+  'hfig_base',TOUCH*100);
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,sprintf('Example%s_%s_fly%02d_frame%02d',behavior,experiment_name,mainfly,ts(1))));
-
-%% parameters
+%% TOUCH plot ground truth error as a function of training set size
 
 roottraindir = 'C:/Data/JAABA/FlyBowl';
 rootgroundtruthdir = 'C:/Data/JAABA/groundtruth_pBDPGAL4U_data';
@@ -70,19 +91,9 @@ groundtruth_experiment_names = {
 train_expdirs = cellfun(@(x) fullfile(roottraindir,x),train_experiment_names,'UniformOutput',false);
 groundtruth_expdirs = cellfun(@(x) fullfile(rootgroundtruthdir,x),groundtruth_experiment_names,'UniformOutput',false);
 
-%% plot ground truth error as a function of training set size
-
-ifpcolor = [0,0,.7];
-fpcolor = [.3,.3,1];
-ifncolor = [.7,0,0];
-fncolor = [1,.3,.3];
-ierrorcolor = [0,0,0];
-errorcolor = [.3,.3,.3];
-chancecolor = [.7,.7,.7];
-
 [hfigs,errordata,figfilenames,outmatfilename] = ...
   Compute_GroundTruthError_vs_TrainingSetSize(behavior,configfilename,train_expdirs,groundtruth_expdirs,...
-  'hfigs',[2,3],...
+  'hfigs',[3,4]+100*TOUCH,...
   'figpos',[95 550 1246 443],...
   'ifpcolor',ifpcolor,...
   'fpcolor',fpcolor,...
@@ -93,7 +104,7 @@ chancecolor = [.7,.7,.7];
   'chancecolor',chancecolor,...
   'outfigdir',outfigdir);
 
-%% crabwalk
+%% CRABWALK
 
 behavior = 'Crabwalk';
 scoresfilestr = 'scoresCrabwalk.mat';
@@ -102,55 +113,27 @@ experiment_name = 'pBDPGAL4U_TrpA_Rig1Plate10BowlB_20110609T091905';
 configfilename = '../perframe/params/JLabelParams_FlyBowl_Crabwalk.xml';
 mainfly = 19;
 otherflies = [];
-ts_sample = 15383:4:15403;
+ts = 15383:4:15403;
 ts_overlay = 15383:4:15423;
 %ts = round(linspace(15370,15407,6));
-border = 16;
-colorpos = [.7,0,0];
-colorneg = [0,0,.7];
 
-%% load the data
+%% CRABWALK draw example frames
 
-trx = Trx('trxfilestr','registered_trx.mat','moviefilestr','movie.ufmf','perframedir','perframe');
-expdir = fullfile(rootdatadir,experiment_name);
-trx.AddExpDir(expdir);
-moviename = trx.movienames{1};
-[readframe,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
-scoresdata = load(fullfile(expdir,scoresfilestr));
-predictions = cellfun(@(x) x > 0,scoresdata.allScores.scores,'UniformOutput',false);
-
-%% draw example frames
-
-hfig = 4;
-
-hfig = PlotSampleFrames(trx,readframe,predictions,mainfly,otherflies,ts_sample,...
+PlotSampleFramesWrapper(behavior,rootdatadir,experiment_name,...
+  scoresfilestr,mainfly,otherflies,ts,ts_overlay,...
+  'outfigdir',outfigdir,...
+  'annfilestr',annfilestr,...
   'colorpos',colorpos,...
   'colorneg',colorneg,...
-  'hfig',hfig,...
-  'figpos',[],...
-  'border',border);
+  'border',border,...
+  'bg_thresh',bg_thresh,...
+  'wmah',wmah,...
+  'frac_a_back',frac_a_back,...
+  'dist_epsilon',dist_epsilon,...
+  'figpos',figpos_example,...
+  'hfig_base',CRABWALK*100);
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,sprintf('Example%s_%s_fly%02d_frame%02d',behavior,experiment_name,mainfly,ts_sample(1))));
-
-%% overlay example frames
-
-hfig = 5;
-figpos = [97 886 523 219];
-maxv_foreground = .75;
-max_weight_color = .25;
-
-hfig = PlotMeanFrames(trx,readframe,predictions,mainfly,otherflies,ts_overlay,...
-  'colorpos',colorpos,...
-  'colorneg',colorneg,...
-  'hfig',hfig,...
-  'figpos',figpos,...
-  'maxv_foreground',maxv_foreground,...
-  'max_weight_color',max_weight_color,...
-  'border',border);
-
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,sprintf('Example%s_Overlay_%s_fly%02d_frame%02d',behavior,experiment_name,mainfly,ts_sample(1))));
-
-%% parameters
+%% CRABWALK plot ground truth error as a function of training set size
 
 roottraindir = 'C:/Data/JAABA/FlyBowl';
 rootgroundtruthdir = 'C:/Data/JAABA/groundtruth_pBDPGAL4U_data';
@@ -172,19 +155,9 @@ groundtruth_experiment_names = {
 train_expdirs = cellfun(@(x) fullfile(roottraindir,x),train_experiment_names,'UniformOutput',false);
 groundtruth_expdirs = cellfun(@(x) fullfile(rootgroundtruthdir,x),groundtruth_experiment_names,'UniformOutput',false);
 
-%% plot ground truth error as a function of training set size
-
-ifpcolor = [0,0,.7];
-fpcolor = [.3,.3,1];
-ifncolor = [.7,0,0];
-fncolor = [1,.3,.3];
-ierrorcolor = [0,0,0];
-errorcolor = [.3,.3,.3];
-chancecolor = [.7,.7,.7];
-
 [hfigs,errordata,figfilenames,outmatfilename] = ...
   Compute_GroundTruthError_vs_TrainingSetSize(behavior,configfilename,train_expdirs,groundtruth_expdirs,...
-  'hfigs',[2,3],...
+  'hfigs',[3,4]+100*CRABWALK,...
   'figpos',[95 550 1246 443],...
   'ifpcolor',ifpcolor,...
   'fpcolor',fpcolor,...
@@ -205,55 +178,27 @@ experiment_name = 'pBDPGAL4U_TrpA_Rig1Plate15BowlB_20110922T145928';
 configfilename = '../perframe/params/JLabelParams_FlyBowl_Backup.xml';
 mainfly = 1;
 otherflies = [];
-ts_sample = 12390:4:12406;
+ts = 12390:4:12406;
 ts_overlay = [12390,12398,12406];
-%ts = round(linspace(15370,15407,6));
-border = 16;
-colorpos = [.7,0,0];
-colorneg = [0,0,.7];
 
-%% load the data
+%% BACKUP draw example frames
 
-trx = Trx('trxfilestr','registered_trx.mat','moviefilestr','movie.ufmf','perframedir','perframe');
-expdir = fullfile(rootdatadir,experiment_name);
-trx.AddExpDir(expdir);
-moviename = trx.movienames{1};
-[readframe,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
-scoresdata = load(fullfile(expdir,scoresfilestr));
-predictions = cellfun(@(x) x > 0,scoresdata.allScores.scores,'UniformOutput',false);
-
-%% draw example frames
-
-hfig = 8;
-
-hfig = PlotSampleFrames(trx,readframe,predictions,mainfly,otherflies,ts_sample,...
+PlotSampleFramesWrapper(behavior,rootdatadir,experiment_name,...
+  scoresfilestr,mainfly,otherflies,ts,ts_overlay,...
+  'outfigdir',outfigdir,...
+  'annfilestr',annfilestr,...
   'colorpos',colorpos,...
   'colorneg',colorneg,...
-  'hfig',hfig,...
-  'figpos',[],...
-  'border',border);
+  'border',border,...
+  'bg_thresh',bg_thresh,...
+  'wmah',wmah,...
+  'frac_a_back',frac_a_back,...
+  'dist_epsilon',dist_epsilon,...
+  'figpos',figpos_example,...
+  'hfig_base',BACKUP*100);
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,sprintf('Example%s_%s_fly%02d_frame%02d',behavior,experiment_name,mainfly,ts_sample(1))));
 
-%% overlay example frames
-
-hfig = 9;
-figpos = [97 886 523 219];
-maxv_foreground = .75;
-max_weight_color = .25;
-
-hfig = PlotMeanFrames(trx,readframe,predictions,mainfly,otherflies,ts_overlay,...
-  'colorpos',colorpos,...
-  'colorneg',colorneg,...
-  'hfig',hfig,...
-  'figpos',figpos,...
-  'maxv_foreground',maxv_foreground,...
-  'max_weight_color',max_weight_color,...
-  'border',border);
-% 
-% SaveFigLotsOfWays(hfig,fullfile(outfigdir,sprintf('Example%s_Overlay_%s_fly%02d_frame%02d',behavior,experiment_name,mainfly,ts_sample(1))));
-
-%% parameters
+%% BACKUP plot ground truth error as a function of training set size
 
 roottraindir = 'C:/Data/JAABA/FlyBowl';
 rootgroundtruthdir = 'C:/Data/JAABA/groundtruth_pBDPGAL4U_data';
@@ -275,19 +220,9 @@ groundtruth_experiment_names = {
 train_expdirs = cellfun(@(x) fullfile(roottraindir,x),train_experiment_names,'UniformOutput',false);
 groundtruth_expdirs = cellfun(@(x) fullfile(rootgroundtruthdir,x),groundtruth_experiment_names,'UniformOutput',false);
 
-%% plot ground truth error as a function of training set size
-
-ifpcolor = [0,0,.7];
-fpcolor = [.3,.3,1];
-ifncolor = [.7,0,0];
-fncolor = [1,.3,.3];
-ierrorcolor = [0,0,0];
-errorcolor = [.3,.3,.3];
-chancecolor = [.7,.7,.7];
-
 [hfigs,errordata,figfilenames,outmatfilename] = ...
   Compute_GroundTruthError_vs_TrainingSetSize(behavior,configfilename,train_expdirs,groundtruth_expdirs,...
-  'hfigs',[10,11],...
+  'hfigs',3:4+BACKUP*100,...
   'figpos',[95 550 1246 443],...
   'ifpcolor',ifpcolor,...
   'fpcolor',fpcolor,...
@@ -305,34 +240,30 @@ scoresfilestr = 'scoresChasev7.mat';
 rootdatadir = 'C:/Data/JAABA/FlyBowl';
 experiment_name = 'pBDPGAL4U_TrpA_Rig1Plate15BowlB_20110922T145928';
 configfilename = '../perframe/params/JLabelParams_FlyBowl_Chase.xml';
-annfilestr = 'movie.ufmf.ann';
 mainfly = 20;
 otherflies = [12];
-ts_sample = 12390:4:12406;
 ts_overlay = [6440,6461,6470,6480,6490];
-%ts = round(linspace(15370,15407,6));
-border = 16;
-colorpos = [.7,0,0];
-colorneg = [0,0,.7];
-outfigdir = 'C:/Code/Jdetect/figures/AccuracyOut';
+ts = ts_overlay;
 
-%% load the data
+%% CHASE plot example frames
 
-trx = Trx('trxfilestr','registered_trx.mat','moviefilestr','movie.ufmf','perframedir','perframe');
-expdir = fullfile(rootdatadir,experiment_name);
-trx.AddExpDir(expdir);
-moviename = trx.movienames{1};
-annfilename = fullfile(rootdatadir,experiment_name,annfilestr);
-[bkgdim,fg_thresh,fg_thresh_low] = read_ann(annfilename,'background_center','n_bg_std_thresh','n_bg_std_thresh_low');
-[readframe,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
-bkgdim = reshape(bkgdim,[headerinfo.nc,headerinfo.nr])'/255;
-scoresdata = load(fullfile(expdir,scoresfilestr));
-predictions = cellfun(@(x) x > 0,scoresdata.allScores.scores,'UniformOutput',false);
-bg_thresh = 10;
-sigma_bkgd = (fg_thresh-bg_thresh)/3;
+PlotSampleFramesWrapper(behavior,rootdatadir,experiment_name,...
+  scoresfilestr,mainfly,otherflies,ts,ts_overlay,...
+  'outfigdir',outfigdir,...
+  'annfilestr',annfilestr,...
+  'colorpos',colorpos,...
+  'colorneg',colorneg,...
+  'border',border,...
+  'bg_thresh',bg_thresh,...
+  'wmah',wmah,...
+  'frac_a_back',frac_a_back,...
+  'dist_epsilon',dist_epsilon,...
+  'figpos',figpos_example,...
+  'hfig_base',CHASE*100);
 
 
-%% parameters
+%% CHASE plot ground truth error as a function of training set size
+
 
 roottraindir = 'C:/Data/JAABA/FlyBowl';
 rootgroundtruthdir = 'C:/Data/JAABA/groundtruth_pBDPGAL4U_data';
@@ -356,19 +287,9 @@ groundtruth_experiment_names = {
 train_expdirs = cellfun(@(x) fullfile(roottraindir,x),train_experiment_names,'UniformOutput',false);
 groundtruth_expdirs = cellfun(@(x) fullfile(rootgroundtruthdir,x),groundtruth_experiment_names,'UniformOutput',false);
 
-%% plot ground truth error as a function of training set size
-
-ifpcolor = [0,0,.7];
-fpcolor = [.3,.3,1];
-ifncolor = [.7,0,0];
-fncolor = [1,.3,.3];
-ierrorcolor = [0,0,0];
-errorcolor = [.3,.3,.3];
-chancecolor = [.7,.7,.7];
-
 [hfigs,errordata,figfilenames,outmatfilename] = ...
   Compute_GroundTruthError_vs_TrainingSetSize(behavior,configfilename,train_expdirs,groundtruth_expdirs,...
-  'hfigs',[10,11],...
+  'hfigs',[3,4]+CHASE*100,...
   'figpos',[95 550 1246 443],...
   'ifpcolor',ifpcolor,...
   'fpcolor',fpcolor,...
