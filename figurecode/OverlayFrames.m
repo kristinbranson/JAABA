@@ -242,7 +242,7 @@ end
 Z = sum(pfore,2);
 overlay_im(Z>0,:) = bsxfun(@rdivide,overlay_im(Z>0,:),Z(Z>0));
 im = bsxfun(@times,overlay_im,pfore_any) + repmat((1-pfore_any).*reshape(bkgdim,[nr*nc,1]),[1,3]);
-im = reshape(im,[nr,nc,3]);
+im = max(0,min(1,reshape(im,[nr,nc,3])));
 finalim = repmat(bkgdim0,[1,1,3]);
 finalim(ylim(1):ylim(2),xlim(1):xlim(2),:) = im;
 
