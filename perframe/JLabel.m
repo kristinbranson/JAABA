@@ -454,9 +454,10 @@ end
 
 function UpdatePlots(handles,varargin)
 
-persistent Mts Mlastused Mims
+persistent Mts Mlastused Mims movie_filename
 
-if(isempty(Mts))
+if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filename))
+  movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
 
