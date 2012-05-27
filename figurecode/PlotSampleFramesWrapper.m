@@ -9,10 +9,14 @@ wmah = .5;
 frac_a_back = 1;
 dist_epsilon = .1;
 figpos_example = [97 886 1800 650];
+targettype = 'fly';
+nframes_sample_bkgd = 20;
 
 [annfilestr,colorpos,colorneg,border,...
   bg_thresh,wmah,frac_a_back,dist_epsilon,...
-  figpos,hfig_base,outfigdir,doplotellipseoverlay] = ...
+  figpos,hfig_base,outfigdir,doplotellipseoverlay,predictions,...
+  targettype,nframes_sample_bkgd,...
+  fg_thresh] = ...
   myparse(varargin,...
   'annfilestr',annfilestr,...
   'colorpos',colorpos,...
@@ -25,28 +29,50 @@ figpos_example = [97 886 1800 650];
   'figpos',figpos_example,...
   'hfig_base',0,...
   'outfigdir','.',...
-  'doplotellipseoverlay',false);
+  'doplotellipseoverlay',false,...
+  'predictions',[],...
+  'targettype',targettype,...
+  'nframes_sample_bkgd',nframes_sample_bkgd,...
+  'fg_thresh',.7);
 
-trx = Trx('trxfilestr','registered_trx.mat','moviefilestr','movie.ufmf','perframedir','perframe');
+switch targettype,
+  case 'fly',
+    trx = Trx('trxfilestr','registered_trx.mat','moviefilestr','movie.ufmf','perframedir','perframe');
+  case 'mouse'
+    trx = Trx('trxfilestr','trx.mat','moviefilestr','movie.seq','perframedir','perframe');
+end
 expdir = fullfile(rootdatadir,experiment_name);
 trx.AddExpDir(expdir);
 moviename = trx.movienames{1};
 [readframe,nframes,fid,headerinfo] = get_readframe_fcn(moviename);
-if ~exist(fullfile(expdir,scoresfilestr),'file'),
-  fprintf('PREDICTIONS NOT LOADED FOR REAL FOR %s! FIX THIS\n',behavior);
-  predictions = cell(1,trx.nflies);
-  for i = 1:trx.nflies,
-    predictions{i} = true(trx(i).nframes);
+if isempty(predictions),
+  if ~exist(fullfile(expdir,scoresfilestr),'file'),
+    fprintf('PREDICTIONS NOT LOADED FOR REAL FOR %s! FIX THIS\n',behavior);
+    predictions = cell(1,trx.nflies);
+    for i = 1:trx.nflies,
+      predictions{i} = true(trx(i).nframes);
+    end
+  else
+    scoresdata = load(fullfile(expdir,scoresfilestr));
+    predictions = cellfun(@(x) x > 0,scoresdata.allScores.scores,'UniformOutput',false);
   end
-else
-  scoresdata = load(fullfile(expdir,scoresfilestr));
-  predictions = cellfun(@(x) x > 0,scoresdata.allScores.scores,'UniformOutput',false);
 end
 
-annfilename = fullfile(rootdatadir,experiment_name,annfilestr);
-[bkgdim,fg_thresh] = read_ann(annfilename,'background_center','n_bg_std_thresh');
-bkgdim = reshape(bkgdim,[headerinfo.nc,headerinfo.nr])'/255;
-fg_thresh = fg_thresh / 255;
+if isempty(annfilestr),
+  annfilename = fullfile(rootdatadir,experiment_name,annfilestr);
+  [bkgdim,fg_thresh] = read_ann(annfilename,'background_center','n_bg_std_thresh');
+  bkgdim = reshape(bkgdim,[headerinfo.nc,headerinfo.nr])'/255;
+  fg_thresh = fg_thresh / 255;
+else
+  sampleims = nan(headerinfo.nr,headerinfo.nc,nframes_sample_bkgd);
+  samplets_bkgd = round(linspace(1,headerinfo.nframes,nframes_sample_bkgd+2));
+  samplets_bkgd = samplets_bkgd(2:end-1);
+  for i = 1:nframes_sample_bkgd,
+    sampleims(:,:,i) = im2double(readframe(samplets_bkgd(i)));
+  end
+  bkgdim = median(sampleims,3);
+end
+
 sigma_bkgd = (fg_thresh-bg_thresh);
 
 hfig = hfig_base+1;

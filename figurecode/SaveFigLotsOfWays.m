@@ -28,9 +28,14 @@ formats = setdiff(formats,{'fig'});
 
 for i = 1:numel(formats),
   filename = [basename,'.',formats{i}];
-  savefig(filename,hfig,formats{i});
-  if ~isempty(path),
-    movefile(filename,fullfile(path,filename));
+  try
+    savefig(filename,hfig,formats{i});
+    if ~isempty(path),
+      movefile(filename,fullfile(path,filename));
+    end
+  catch ME,
+    warning('Error while creating %s: %s',filename,getReport(ME));
+    continue;
   end
   outfilenames{end+1} = fullfile(path,filename);
 end
