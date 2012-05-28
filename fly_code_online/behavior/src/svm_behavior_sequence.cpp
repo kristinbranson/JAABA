@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "svm_behavior_sequence.h"
-
-//#define DEBUG 0
+ 
+#define DEBUG 0
 //#define ALLOW_SAME_TRANSITIONS 0
 #if DEBUG > 0
 char *g_currFile; // CSC 20110420: hack to pass current filename for debug purposes
@@ -1535,14 +1535,21 @@ void SVMBehaviorSequence::restore_transition_counts(int beh, BehaviorBoutSequenc
 // through its cache tables
 #if USE_DURATION_COST > 0
 void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, 
-						     BehaviorBout **states, double *duration_weights, int T) {
+						     BehaviorBout **states, double *duration_weights, int T, int c_prev, int t_p) {
 #else
 void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, 
-						     BehaviorBout **states, int T) {
+						     BehaviorBout **states, int T, int c_prev, int t_p) {
 #endif
   // First backtrack to count the number of bouts in the optimal solution  
   int t = T, c = 0; 
   ybar->num_bouts[beh] = 0;
+#if USE_NEW_LOSS > 0
+  if (c_prev > -1) {
+    ybar->num_bouts[beh]++;
+    t = t_p;
+    c = c_prev;
+  }
+#endif
   while(t >= 0 && states[t][c].start_frame >= 0) { 
     int tt = states[t][c].start_frame;
     c = states[t][c].behavior;
@@ -1556,7 +1563,20 @@ void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar,
   ybar->scores[beh] = 0; 
   ybar->losses[beh] = 0;
   int i = ybar->num_bouts[beh]-1;
-  while(t >= 0 && states[t][c].start_frame >= 0) { 
+#if USE_NEW_LOSS > 0
+  if (c_prev > -1) {
+    ybar->bouts[beh][i].start_frame = t_p;
+    ybar->bouts[beh][i].end_frame = T;
+    ybar->bouts[beh][i].behavior = c_prev;
+    c = c_prev;
+    t = t_p;
+    i--;
+  }
+#endif
+  while(t >= 0 && states[t][c].start_frame >= 0) {
+#if USE_NEW_LOSS > 0 
+   if (c_prev == -1){
+#endif
     ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score + states[t][c].unary_score;
 #if USE_DURATION_COST > 0
     int duration = states[t][c].end_frame-states[t][c].start_frame; 
@@ -1572,12 +1592,18 @@ void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar,
 #endif
     
     ybar->losses[beh] += states[t][c].loss_fn + states[t][c].loss_fp;
+#if USE_NEW_LOSS > 0
+   }
+#endif
     ybar->bouts[beh][i] = states[t][c];
     int tt = states[t][c].start_frame;
     c = states[t][c].behavior; 
     t = tt; 
     i--; 
   }
+#if USE_NEW_LOSS > 0
+ if (c_prev == -1)
+#endif
   ybar->score += ybar->scores[beh];
 }
 
@@ -2032,6 +2058,12 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
             double transition_score = t != T ? transition_weights[c_prev][c_next] : 0;   
 	    double unary_score = unary_weights[c_prev];
             double loss_score = compute_updated_bout_loss(b, y, beh, T, t_p, t, c_prev, fn, gt_bout, dur_gt, loss_fp, loss_fn);
+#if USE_NEW_LOSS > 0
+	    // compute loss differently
+	    //BehaviorBoutSequence *ytemp = (BehaviorBoutSequence*)NewStructuredLabel(b);
+            backtrack_optimal_solution(ybar, beh, table, states, duration_weights, t, c_prev, t_p); 
+            loss_score = Loss(y, ybar);
+#endif
             double score = bout_score + transition_score + unary_score + loss_score;
 #if USE_DURATION_COST > 0
 	    int duration = t-t_p; 
@@ -2074,7 +2106,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 		extreme_vals2[1][i] = my_min(states[t_p][c_next].extreme_vals[1][i],b->bout_min_feature_responses[i]);
 	      }
 	      psi_bout(b, t_p_p, t, beh, -1, tmp_features2, true, !is_first, NULL, extreme_vals2);
-
+ 
 	      double loss_fn, loss_fp;
               double bout_score = 0; 
 	      for(int k = 0; k < num_features; k++) 
@@ -2082,6 +2114,12 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
               double transition_score = t != T ? transition_weights[c_prev][c_next] : 0;   
 	      double unary_score = unary_weights[c_prev];
               double loss_score = compute_updated_bout_loss(b, y, beh, T, t_p_p, t, c_prev, fn, gt_bout, dur_gt, loss_fp, loss_fn);
+#if USE_NEW_LOSS > 0
+	      // compute loss differently
+	      //BehaviorBoutSequence *ytemp = (BehaviorBoutSequence*)NewStructuredLabel(b);;
+              backtrack_optimal_solution(ybar, beh, table, states, duration_weights, t, c_prev, t_p_p); 
+              loss_score = Loss(y, ybar);
+#endif
               double score = bout_score + transition_score + unary_score + loss_score;
 #if USE_DURATION_COST > 0
 	      int duration = t-t_p_p; 
@@ -2267,8 +2305,7 @@ double      SVMBehaviorSequence::Loss(StructuredLabel *y_gt,  StructuredLabel *y
 	return l;
 }
 
- double      SVMBehaviorSequence::loss2(StructuredLabel *y_gt,  StructuredLabel *y_pred, int beh, int debug)
-{
+double      SVMBehaviorSequence::loss2(StructuredLabel *y_gt,  StructuredLabel *y_pred, int beh, int debug) {
 	/* loss for correct label y and predicted label ybar. The loss for
 	y==ybar has to be zero. sparm->loss_function is set with the -l option. */
 
@@ -2284,12 +2321,29 @@ double      SVMBehaviorSequence::Loss(StructuredLabel *y_gt,  StructuredLabel *y
 	double cl, l_fn = 0, l_fn2 = 0;
 
 // 	// TEMP EYRUN
-// 	l = 0;
+// 	l = 0; 
 // 	for(curr_ybar = 0; curr_ybar < ybar->num_bouts[0]; curr_ybar++)
 // 		l += ybar->bouts[0][curr_ybar].loss_fp + ybar->bouts[0][curr_ybar].loss_fn;
 // 	return l;
+#if USE_NEW_LOSS > 0
+	int beh_counts_gt[num_classes[beh]], beh_counts_pred[num_classes[beh]];
+	for (int i=0; i<num_classes[beh]; i++) {
+		beh_counts_gt[i] = 0;
+		beh_counts_pred[i] = 0;
+	}
+	for (int i=0; i<y->num_bouts[beh]; i++) {
+		beh_counts_gt[y->bouts[beh][i].behavior] ++;}
+	for (int i=0; i<ybar->num_bouts[beh]; i++) {
+		beh_counts_pred[ybar->bouts[beh][i].behavior] ++;}
+	for (int i=0; i<num_classes[beh]; i++) {
+		beh_counts_gt[i] = my_max(beh_counts_gt[i],1);
+		beh_counts_pred[i] = my_max(beh_counts_pred[i],1);
+	}
+#endif
 
-	while(curr_y < y->num_bouts[beh] || curr_ybar < ybar->num_bouts[beh]) {
+	while((curr_y < y->num_bouts[beh] || curr_ybar < ybar->num_bouts[beh])) {
+		if (curr_ybar == ybar->num_bouts[beh]-2)
+			int a = 1;
 		if(curr_y < y->num_bouts[beh] && curr_ybar < ybar->num_bouts[beh]) {
 			// Check if the current bout in y and ybar match.  
 			dur_ybar = (b->frame_times[my_min(ybar->bouts[beh][curr_ybar].end_frame,T-1)] - 
@@ -2303,9 +2357,17 @@ double      SVMBehaviorSequence::Loss(StructuredLabel *y_gt,  StructuredLabel *y
 				sum_ybar += inter;
 				sum_y += inter;
 				//if(debug)
+#if USE_NEW_LOSS > 0 
+				l_fn -= match_false_negative_cost(dur_y, beh, y->bouts[beh][curr_y].behavior)*(dur_y ? (inter/dur_y) : 0) / beh_counts_gt[y->bouts[beh][curr_y].behavior];
+#else 
 				l_fn -= match_false_negative_cost(dur_y, beh, y->bouts[beh][curr_y].behavior)*(dur_y ? (inter/dur_y) : 0);
+# endif
 			} else
+#if USE_NEW_LOSS > 0
+				l_fn2 += match_false_negative_cost(dur_y, beh, y->bouts[beh][curr_y].behavior)*(dur_y ? (inter/dur_y) : 0) / beh_counts_gt[y->bouts[beh][curr_y].behavior];
+#else
 				l_fn2 += match_false_negative_cost(dur_y, beh, y->bouts[beh][curr_y].behavior)*(dur_y ? (inter/dur_y) : 0);
+#endif
 		} else
 			inter = 0;
 
@@ -2314,6 +2376,9 @@ double      SVMBehaviorSequence::Loss(StructuredLabel *y_gt,  StructuredLabel *y
 				// Go to the next bout in y adding the appropriate loss based on whether or not
 				// the bout was matched to a bout in ybar
 				cl = match_false_negative_cost(dur_y, beh, y->bouts[beh][curr_y].behavior)*(dur_y ? ((dur_y-sum_y)/dur_y) : 1);
+#if USE_NEW_LOSS > 0
+				cl /= beh_counts_gt[y->bouts[beh][curr_y].behavior];
+#endif
 				l += cl; 
 				if(debug == 2) fprintf(stderr, "y[%d]->%f %f\n", curr_y, cl, l);
 				curr_y++;
@@ -2322,12 +2387,17 @@ double      SVMBehaviorSequence::Loss(StructuredLabel *y_gt,  StructuredLabel *y
 			// Go to the next bout in ybar, adding the appropriate loss based on whether or not
 			// the bout was matched to a bout in y
 			cl = match_false_positive_cost(dur_ybar, beh, ybar->bouts[beh][curr_ybar].behavior) *
-				(dur_ybar ? ((dur_ybar-sum_ybar)/dur_ybar) : 1);
+				(dur_ybar ? ((dur_ybar-sum_ybar)/dur_ybar) : 1); 
+#if USE_NEW_LOSS > 0
+			cl /= beh_counts_pred[ybar->bouts[beh][curr_ybar].behavior];
+#endif
 			l += cl;
 			if(debug == 2) 
 				fprintf(stderr, "ybar[%d]->%f %f\n", curr_ybar, cl, l);
 			if(debug) {
 				assert(my_abs(cl - ybar->bouts[beh][curr_ybar].loss_fp) < .00001);
+				if (my_abs(l_fn2 - ybar->bouts[beh][curr_ybar].loss_fn) > .00001)
+					int a = 1;
 				assert(my_abs(l_fn2 - ybar->bouts[beh][curr_ybar].loss_fn) < .00001);
 			}
 			ybar->bouts[beh][curr_ybar].loss_fn = l_fn2;
@@ -2935,6 +3005,7 @@ void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char
 			free(html_tmp);
 		}
 	}
+
 }
 
 
