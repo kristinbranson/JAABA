@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="WingGrooming"/>
-   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="C:\Code\Jdetect\perframe\WindowFeatures_WingGrooming.xml" gt_labelfilename="labeledWingGrooming_gt.mat" labelfilename="labeledWingGrooming.mat" moviefilename="movie.ufmf" perframedir="perframe" scorefilename="scoresWingGrooming.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_WingGrooming.xml" gt_labelfilename="labeledWingGrooming_gt.mat" labelfilename="labeledWingGrooming.mat" moviefilename="movie.ufmf" perframedir="perframe" scorefilename="scoresWingGrooming.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <JLabelMode mode="advanced"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
