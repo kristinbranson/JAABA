@@ -20,7 +20,7 @@ try
     set(hstatustext,'String','Starting parallel computing workers...');
   end
   if isdeployed,
-    if ispc,
+    if ispc || (isunix && ~ismac),
       setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
     end
   end
@@ -28,7 +28,7 @@ try
     matlabpool('open');
   end
 catch ME,
-  uiwait(warndlg('Error starting parallel computing: %s',getReport(ME)));
+  uiwait(warndlg(sprintf('Error starting parallel computing: %s',getReport(ME))));
 end
 
 % Start JAABA.
