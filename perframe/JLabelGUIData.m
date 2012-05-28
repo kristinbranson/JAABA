@@ -16,6 +16,7 @@ classdef JLabelGUIData < handle
     movie_depth = 1;
     movie_height = 100;
     movie_width = 100;
+    movie_filename = [];
     
     configparams = struct;
 
