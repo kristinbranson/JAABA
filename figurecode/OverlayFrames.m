@@ -5,7 +5,8 @@ colorneg = [0,0,.7];
 border = 10;
 
 [colorpos,colorneg,border,hfig,figpos,cm,...
-  fg_thresh,bg_thresh,sigma_bkgd,wmah,frac_a_back,dist_epsilon] = ...
+  fg_thresh,bg_thresh,sigma_bkgd,wmah,frac_a_back,dist_epsilon,ncolors_reference,...
+  solidbkgdcolor] = ...
   myparse(varargin,'colorpos',colorpos,...
   'colorneg',colorneg,...
   'border',border,...
@@ -17,7 +18,9 @@ border = 10;
   'sigma_bkgd',115/255-10/255,...
   'wmah',.5,...
   'frac_a_back',1,...
-  'dist_epsilon',.1);
+  'dist_epsilon',.1,...
+  'ncolors_reference',[],...
+  'solidbkgdcolor',[.85,.85,.85]);
 
 if isempty(otherflies),
   flygroups = {mainfly};
@@ -118,6 +121,10 @@ for i = 1:nflygroups,
     colors_all(:,:,i) = 1;
   elseif isnumeric(cmcurr),
     colors_all(:,:,i) = cmcurr;
+  elseif ~isempty(ncolors_reference),
+    colors_reference = cmcurr(ncolors_reference);
+    idxcurr = round(linspace(1,ncolors_reference,ts(end)-ts(1)+1));
+    colors_all(:,:,i) = colors_reference(idxcurr,:);
   else
     colors_all(:,:,i) = cmcurr(ts(end)-ts(1)+1);
   end
@@ -241,9 +248,18 @@ for i = 1:nframes,
 end
 Z = sum(pfore,2);
 overlay_im(Z>0,:) = bsxfun(@rdivide,overlay_im(Z>0,:),Z(Z>0));
-im = bsxfun(@times,overlay_im,pfore_any) + repmat((1-pfore_any).*reshape(bkgdim,[nr*nc,1]),[1,3]);
+if ~isempty(solidbkgdcolor),
+  im = bsxfun(@times,overlay_im,pfore_any) + ...
+    bsxfun(@times,1-pfore_any,repmat(reshape(solidbkgdcolor,[1,3]),[nr*nc,1]));
+else
+  im = bsxfun(@times,overlay_im,pfore_any) + repmat((1-pfore_any).*reshape(bkgdim,[nr*nc,1]),[1,3]);
+end
 im = max(0,min(1,reshape(im,[nr,nc,3])));
-finalim = repmat(bkgdim0,[1,1,3]);
+if ~isempty(solidbkgdcolor),
+  finalim = repmat(reshape(solidbkgdcolor,[1,1,3]),[nr,nc]);
+else
+  finalim = repmat(bkgdim0,[1,1,3]);
+end
 finalim(ylim(1):ylim(2),xlim(1):xlim(2),:) = im;
 
 final_pfore_any = reshape(pfore_any,[nr,nc]);
@@ -264,11 +280,12 @@ image(im);
 axis image off;
 hold on;
 
-linecolors = colors_all(:,:,1)*.75;
-hmain = patch([x(mainfly,:),nan]',[y(mainfly,:),nan]',permute([linecolors;0,0,0],[1,3,2]),...
-  'EdgeColor','interp','FaceColor','none',...
-  'Marker','.','EdgeAlpha',.25,'MarkerFaceColor','k','MarkerEdgeColor',[.25,.25,.25],....
-  'LineWidth',1.5);
+%linecolors = colors_all(:,:,1)*.75;
+hmain = plot(x(mainfly,:),y(mainfly,:),'k.-');
+% hmain = patch([x(mainfly,:),nan]',[y(mainfly,:),nan]',permute([linecolors;0,0,0],[1,3,2]),...
+%   'EdgeColor','interp','FaceColor','none',...
+%   'Marker','.','EdgeAlpha',.25,'MarkerFaceColor','k','MarkerEdgeColor',[.25,.25,.25],....
+%   'LineWidth',1.5);
 idxpos = predictions{mainfly}(ts(1):ts(end));
 plot(x(mainfly,idxpos),y(mainfly,idxpos),'.','color',colorpos);
 plot(x(mainfly,~idxpos),y(mainfly,~idxpos),'.','color',colorneg);
@@ -277,12 +294,13 @@ hothers = nan(1,numel(otherflies));
 for flyi = 1:numel(otherflies),
   fly = otherflies(flyi);
   %plot(x,y,'.-','color',[.5,.5,.5]);
-  linecolors = colors_all(:,:,flyi+1)*.5+.25;
-    
-  hothers(flyi) = patch([x(fly,:),nan]',[y(fly,:),nan]',permute([linecolors;0,0,0],[1,3,2]),...
-  'EdgeColor','interp','FaceColor','none',...
-  'Marker','.','EdgeAlpha',.25,'MarkerFaceColor','k','MarkerEdgeColor',[.5,.5,.5],...
-  'LineStyle','-','LineWidth',1.5);
+  %linecolors = colors_all(:,:,flyi+1)*.5+.25;
+
+  hothers(flyi) = plot(x(fly,:),y(fly,:),'.-','color',[.4,.4,.4]);
+%   hothers(flyi) = patch([x(fly,:),nan]',[y(fly,:),nan]',permute([linecolors;0,0,0],[1,3,2]),...
+%   'EdgeColor','interp','FaceColor','none',...
+%   'Marker','.','EdgeAlpha',.25,'MarkerFaceColor','k','MarkerEdgeColor',[.5,.5,.5],...
+%   'LineStyle','-','LineWidth',1.5);
 %   idxpos = predictions{fly}(ts(1):ts(end));
 %   plot(x(fly,idxpos),y(fly,idxpos),'.','color',colorpos);
 %   plot(x(fly,~idxpos),y(fly,~idxpos),'.','color',colorneg);
@@ -293,7 +311,7 @@ tlim = trx(fly).timestamps(ts(end)+trx(fly).off)-...
   trx(fly).timestamps(ts(1)+trx(fly).off);
 set(hax,'CLim',[0,tlim]);
 hcb = colorbar;
-tticks = 0:.25:tlim;
+tticks = [0,tlim];
 realylim = get(hcb,'YLim');
 yticks = realylim(1)+(tticks/tlim)*(realylim(2)-realylim(1));
 set(hcb,'YTick',yticks,'YTickLabel',tticks');

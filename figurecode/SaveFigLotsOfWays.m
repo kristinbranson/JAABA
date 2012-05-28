@@ -26,12 +26,14 @@ if ismember('fig',formats),
 end
 formats = setdiff(formats,{'fig'});
 
+tmpbasename = regexprep(basename,'[^a-zA-Z_0-9]','_');
 for i = 1:numel(formats),
   filename = [basename,'.',formats{i}];
+  tmpfilename = [tmpbasename,'.',formats{i}];
   try
-    savefig(filename,hfig,formats{i});
+    savefig(tmpfilename,hfig,formats{i});
     if ~isempty(path),
-      movefile(filename,fullfile(path,filename));
+      movefile(tmpfilename,fullfile(path,filename));
     end
   catch ME,
     warning('Error while creating %s: %s',filename,getReport(ME));
