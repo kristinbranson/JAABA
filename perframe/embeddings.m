@@ -94,9 +94,11 @@ fprintf('Training,pos:%d,neg:%d Test:pos%d,neg:%d\n',nnz(labels==1),...
 
 
 %%
-%{
 binVals = findThresholds(data,clparams);
 bins = findThresholdBins(data,binVals);
+
+%%
+%{
 [bagModels distmat] = doBagging(data,labels,[],binVals,bins,clparams);
 allbagModels{outqndx} = bagModels;
 celldistmat{outqndx} = distmat;
@@ -336,7 +338,7 @@ figure; image(fbimg);
 
 %%
 
-mfac = 500; sfac = 3; 
+mfac = 400; sfac = 3; 
 
 clear Zm;
 Zm(:,1) = Z(:,1)-min(Z(:,1))+0.15;
@@ -390,10 +392,17 @@ fbimg = imresize(bbimg,sfac);
 fbimg(fbimg(:)>1) = 1;
 %%
 
-hfig = figure; image(fbimg);
+overall = figure; 
+image(fbimg); hold on;
+
+overall1 = figure;
+image(fbimg); hold on;
+
+bname = sprintf('/groups/branson/home/kabram/paperFigs/classifier_chase_images_%d/',outqndx);
+if ~exist(bname,'dir'), mkdir(bname); end
+imwrite(fbimg,fullfile(bname,'background.png'));
 
 %
-hold on;
 % scatter(Zm(numel(labels)+1:end,1)*mfac,Zm(numel(labels)+1:end,2)*mfac,...
 %   S(numel(labels)+1:end),C(numel(labels)+1:end,:),'filled');
 % hold on;
@@ -408,7 +417,7 @@ bx_n = []; by_n = [];
 bx_np = []; by_np = [];
 bx_nn = []; by_nn = [];
 phandle = [];
-count = 1;
+count = 0;
 for ndx = 1:numel(bouts.timestamp)
   if bouts.timestamp(ndx)>qq(2) || bouts.timestamp(ndx)<qq(1); continue; end;
   curidx = bouts.ndx(ndx,:);
@@ -429,13 +438,14 @@ for ndx = 1:numel(bouts.timestamp)
   ii(halfsz+30:end,:,:) = [];
   
   alpha = (ii(:,:,2)<170);
-  newX = curZ(curlndx,1)*mfac-size(ii,1); 
-  newY = curZ(curlndx,2)*mfac-size(ii,2);
+  newX = curZ(curlndx,1)*mfac-size(ii,1)/2; 
+  newY = curZ(curlndx,2)*mfac-size(ii,2)/2;
 
   testX = floor(newX:newX+size(ii,1)); testX(testX<1) = []; testX(testX>size(occupied,1))=[];
   testY = floor(newY:newY+size(ii,1)); testY(testY<1) = []; testY(testY>size(occupied,2))=[];
   oo = occupied(testX,testY);
-  if(nnz(oo(:))/numel(oo)>1), continue; end;
+  if(nnz(oo(:))/numel(oo)>0.4), continue; end;
+  count = count+1;
 
   if bouts.label(ndx) == 1
     bx_np = [bx_np nan newX newX newX+size(ii,2) newX+size(ii,2) newX];
@@ -445,24 +455,37 @@ for ndx = 1:numel(bouts.timestamp)
     by_nn = [by_nn nan newY newY+size(ii,1) newY+size(ii,1) newY newY];
   end
   
+  hszx = size(ii,1) + bottomout; 
 
   occupied(testX,testY) = true;
   
-%   if bouts.label(ndx) == 1
-%     plot(newX,newY,'Marker','*','MarkerEdgeColor',[1 0.6 0],'MarkerSize',3);
-%   else
-%     plot(newX,newY,'Marker','*','MarkerEdgeColor',[0 0.6 1],'MarkerSize',3);
-%   end
-%   
-%   hfignew = figure; 
-%   image(1,1,ii,'AlphaData',alpha);
-%   hold on; axis image; axis off; axis tight;
-%   plot(-traj.Y+hszx-rem,-traj.X+hszx,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
-%   fname = sprintf('/groups/branson/home/kabram/paperFigs/classifier_chase_new_plotted_%d_individual_%d',outqndx,count);
-%   count = count+1;
-%   SaveFigLotsOfWays(hfignew,fname);
-%   close(hfignew);
+  figure(overall1);
+  if bouts.label(ndx) == 1
+    plot(newX+size(ii,1)/2,newY+size(ii,2)/2,'Marker','*','MarkerEdgeColor',[1 0.6 0],'MarkerSize',3);
+  else
+    plot(newX+size(ii,2)/2,newY+size(ii,2)/2,'Marker','*','MarkerEdgeColor',[0 0.6 1],'MarkerSize',3);
+  end
+  
 
+  imwrite(ii,sprintf('%s/individual_images_test_%d.png',bname,count));
+
+  imagetrxtemp = figure; imagebothtemp = figure; hold on;
+  figure(imagebothtemp); 
+  image(1,1,ii,'AlphaData',alpha);
+  plot(-traj.Y+hszx-rem,-traj.X+hszx,'LineStyle','none','Marker','.','MarkerSize',10,'MarkerEdgeColor','k');
+  axis off; axis image;
+  fname = sprintf('%s/individual_both_test_%d',bname,count);
+  SaveFigLotsOfWays(imagebothtemp,fname);
+
+  figure(imagetrxtemp); axis off; axis image;
+  plot(-traj.Y+hszx-rem,-traj.X+hszx,'LineStyle','none','Marker','.','MarkerSize',10,'MarkerEdgeColor','k');
+  fname = sprintf('%s/individual_trx_test_%d',bname,count);
+  axis off; axis image;
+  SaveFigLotsOfWays(imagetrxtemp,fname);
+
+  close(imagebothtemp); close(imagetrxtemp);
+
+  figure(overall);
   image(newX,newY,ii,'AlphaData',alpha);
   hszx = size(ii,1) + bottomout;
   px = [px nan -traj.Y+newX+hszx-rem];
@@ -470,7 +493,12 @@ for ndx = 1:numel(bouts.timestamp)
 
 end
 
+pxtest = px;
+pytest = py;
+px = []; py = [];
+
 curZ = Zm(1:numel(labels),:);
+count = 0;
 for ndx = 1:numel(bouts.timestamp)
   if bouts.timestamp(ndx)>qq(1), continue; end;
   curidx = bouts.ndx(ndx,:);
@@ -495,7 +523,8 @@ for ndx = 1:numel(bouts.timestamp)
   testY = floor(newY:newY+size(ii,1)); testY(testY<1) = []; testY(testY>size(occupied,2))=[];
   oo = occupied(testX,testY);
   if(nnz(oo(:))/numel(oo)>0.4), continue; end;
-
+  count = count+1;
+  
   if bouts.label(ndx) == 1
     bx_p = [bx_p nan newX newX newX+size(ii,2) newX+size(ii,2) newX];
     by_p = [by_p nan newY newY+size(ii,1) newY+size(ii,1) newY newY];
@@ -505,14 +534,41 @@ for ndx = 1:numel(bouts.timestamp)
   end
 
   occupied(testX,testY) = true;
+  
+  imwrite(ii,sprintf('%s/individual_images_train_%d.png',bname,count));
+  imagetrxtemp = figure; imagebothtemp = figure; hold on;
+  figure(imagebothtemp);axis off; axis image;
+  image(1,1,ii,'AlphaData',alpha);
+  plot(-traj.Y+hszx-rem,-traj.X+hszx,'LineStyle','none','Marker','.','MarkerSize',6,'MarkerEdgeColor','k');
+  fname = sprintf('%s/individual_both_train_%d',bname,count);
+  axis off; axis image;
+  SaveFigLotsOfWays(imagebothtemp,fname);
+
+  figure(imagetrxtemp);axis off; axis image;
+  plot(-traj.Y+hszx-rem,-traj.X+hszx,'LineStyle','none','Marker','.','MarkerSize',6,'MarkerEdgeColor','k');
+  fname = sprintf('%s/individual_trx_train_%d',bname,count);
+  axis off; axis image;
+  SaveFigLotsOfWays(imagetrxtemp,fname);
+
+  close(imagebothtemp); close(imagetrxtemp);
+
+  figure(overall);
   image(newX,newY,ii,'AlphaData',alpha);
+  figure(overall1);
+  image(newX,newY,ii,'AlphaData',alpha);
+
   hszx = size(ii,1) + bottomout; 
   px = [px nan -traj.Y+newX+hszx-rem];
   py = [py nan -traj.X+newY+hszx];
 end
 
+figure(overall);
 phandle = [phandle plot(bx_np,by_np,'-','Color',[1 0.6 0])];
 phandle = [phandle plot(bx_nn,by_nn,'-','Color',[0 0.6 1])];
+phandle = [phandle plot(bx_p,by_p,'-','Color',[1 0 0])];
+phandle = [phandle plot(bx_n,by_n,'-','Color',[0 0 1])];
+
+figure(overall1);
 phandle = [phandle plot(bx_p,by_p,'-','Color',[1 0 0])];
 phandle = [phandle plot(bx_n,by_n,'-','Color',[0 0 1])];
 
@@ -521,12 +577,29 @@ for pndx = 1:numel(phandle);
   uistack(phandle(pndx),'up');
 end
 
-plot(px,py,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
-plot(px+0.5,py,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
-plot(px,py+0.5,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
-plot(px+0.5,py+0.5,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
+figure(overall);
+ppx = [pxtest px]; ppy = [pytest py];
+plot(ppx,ppy,'LineStyle','none','Marker','.','MarkerSize',6,'MarkerEdgeColor','k');
+% plot(ppx+0.5,ppy,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
+% plot(px,py+0.5,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
+% plot(px+0.5,py+0.5,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
 axis equal; axis tight; axis off;
+saveas(overall,[bname '/overall.fig']);
+SaveFigLotsOfWays(overall,[bname '/overall']);
+close(overall);
+
+figure(overall1);
+plot(px,py,'LineStyle','none','Marker','.','MarkerSize',6,'MarkerEdgeColor','k');
+% plot(px+0.5,py,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
+% plot(px,py+0.5,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
+% plot(px+0.5,py+0.5,'LineStyle','none','Marker','.','MarkerSize',1.5,'MarkerEdgeColor','k');
+axis equal; axis tight; axis off;
+saveas(overall1,[bname '/overall1.fig']);
+SaveFigLotsOfWays(overall1,[bname '/overall1']);
+close(overall1);
+
 % title(sprintf('Train:%d',outqndx));
-fname = sprintf('/groups/branson/home/kabram/paperFigs/classifier_chase_new_images_%d',outqndx);
-SaveFigLotsOfWays(hfig,fname);
+% fname = sprintf('/groups/branson/home/kabram/paperFigs/classifier_chase_new_plotted_%d',outqndx);
+% SaveFigLotsOfWays(hfig,fname);
+% close(hfig);
 end
