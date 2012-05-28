@@ -2148,8 +2148,19 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 // in that section will be latent
 BehaviorBoutSequence *SVMBehaviorSequence::bout_sequence_remove_section(BehaviorBoutSequence *y_src, int t_start, int t_end) {
   BehaviorBoutSequence *y_dst = (BehaviorBoutSequence*)NewStructuredLabel(y_src->x);
-  Json::Value yy = y_src->save(this);
-  y_dst->load(yy, this);
+  *y_dst = *y_src;
+
+  unsigned int sz = (sizeof(int)+sizeof(BehaviorBout*)+2*sizeof(double))*behaviors->num;
+  y_dst->bouts = (BehaviorBout**)malloc(sz);
+  memset(y_dst->bouts, 0, sz);
+  y_dst->num_bouts = (int*)(y_dst->bouts+behaviors->num);
+  y_dst->scores = (double*)(y_dst->num_bouts+behaviors->num);
+  y_dst->losses = (double*)(y_dst->scores+behaviors->num);
+  y_dst->behaviors = behaviors;
+  y_dst->score = y_dst->loss = y_dst->slack = 0;
+
+  //Json::Value yy = y_src->save(this);
+  //y_dst->load(yy, this);
 
   for(int beh = 0; beh < behaviors->num; beh++) {
     y_dst->num_bouts[beh] = 0;
