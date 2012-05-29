@@ -441,14 +441,15 @@ Mims =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 
 
 readframe=get_readframe_fcn(movie_filename);
 
-idx=1;
 while true
-  if(isnan(Mlastused.Data(idx)))
-    Mims.Data(idx).x = readframe(Mts.Data(idx));
-    Mlastused.Data(idx) = now;
+  idx=find(isnan(Mlastused.Data));
+  if(~isempty(idx))
+    idx2=argmax(Mts.Data(idx));
+    Mlastused.Data(idx(idx2)) = now;
+    Mims.Data(idx(idx2)).x = readframe(Mts.Data(idx(idx2)));
+  else
+    pause(1);
   end
-  idx=1+mod(idx,N);
-  if(idx==1)  pause(1);  end
 end
 
 
@@ -588,18 +589,25 @@ for i = axes,
       j = find((Mts.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)));
       if(numel(j)>1)  j=j(1);  end
       if isempty(j),
-      %  disp(['not cached, ' num2str(sum(isnan(Mlastused.Data)))]);
         j = argmin(Mlastused.Data);
-        Mims.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
         Mts.Data(j) = handles.guidata.ts(i);
-      %else
-      %  disp(['cached, ' num2str(sum(isnan(Mlastused.Data)))]);
+        Mims.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
+        %disp(['NOT CACHED, ' num2str(sum(isnan(Mlastused.Data)))]);
+      else
+        %disp(['cached, ' num2str(sum(isnan(Mlastused.Data)))]);
       end
 
       Mlastused.Data(j) = now;
       set(handles.guidata.himage_previews(i),'CData',Mims.Data(j).x);
 
       tmp=handles.guidata.nframes_jump_go;
+      j=(Mts.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
+      if(sum(j)>0)
+        %disp(['unqueueing frame(s) ' num2str(Mts.Data(j)')...
+        %    '; current frame = ' num2str(handles.guidata.ts(i))]);
+        Mlastused.Data(j) = 0;
+        Mts.Data(j) = 0;
+      end
       j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mts.Data);
       j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));
       for k=1:length(j)
