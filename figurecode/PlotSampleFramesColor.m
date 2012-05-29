@@ -5,7 +5,8 @@ colorneg = [0,0,.7];
 border = 20;
 
 [colorpos,colorneg,border,hfig,figpos,...
-  cm,fg_thresh,bg_thresh,sigma_bkgd,wmah,frac_a_back,dist_epsilon] = ...
+  cm,fg_thresh,bg_thresh,sigma_bkgd,wmah,frac_a_back,dist_epsilon,...
+  ncolors_reference,solidbkgdcolor] = ...
   myparse(varargin,'colorpos',colorpos,...
   'colorneg',colorneg,...
   'border',border,...
@@ -17,7 +18,9 @@ border = 20;
   'sigma_bkgd',115/255-10/255,...
   'wmah',.5,...
   'frac_a_back',1,...
-  'dist_epsilon',.1);
+  'dist_epsilon',.1,...
+  'ncolors_reference',[],...
+  'solidbkgdcolor',[.85,.85,.85]);
 
 if isempty(otherflies),
   flygroups = {mainfly};
@@ -40,7 +43,7 @@ y = nan(trx.nflies,nframes_total);
 a = nan(trx.nflies,nframes_total);
 b = nan(trx.nflies,nframes_total);
 theta = nan(trx.nflies,nframes_total);
-imcenter = [(nc0+1)/2,(nr0+1)/2];
+imcenter = [(nc0+1)/2,(nr0+1)/2]; %#ok<NASGU>
 for fly = 1:trx.nflies,
   idx = allts+trx(fly).off;
   i0 = find(idx>1,1);
@@ -76,8 +79,14 @@ y = y - ylim(1)+1;
 colors_all = nan(ts(end)-ts(1)+1,3,nflygroups);
 for i = 1:nflygroups,
   cmcurr = cm{min(numel(cm),i)};
-  if isnumeric(cmcurr),
+  if isempty(cmcurr),
+    colors_all(:,:,i) = 1;
+  elseif isnumeric(cmcurr),
     colors_all(:,:,i) = cmcurr;
+  elseif ~isempty(ncolors_reference),
+    colors_reference = cmcurr(ncolors_reference);
+    idxcurr = round(linspace(1,ncolors_reference,ts(end)-ts(1)+1));
+    colors_all(:,:,i) = colors_reference(idxcurr,:);
   else
     colors_all(:,:,i) = cmcurr(ts(end)-ts(1)+1);
   end
@@ -197,8 +206,13 @@ for i = 1:nframes,
     colorcurr = colors(i,:,flygroupi);
     imcurr = imcurr + bsxfun(@times,colorcurr,pcurr);
   end
-  imcurr = bsxfun(@plus,bsxfun(@times,imcurr,gray_ims(:,i).*pforefly(:,i)),...
-    (1-pforefly(:,i)).*reshape(bkgdim,[nr*nc,1]));
+  if ~isempty(solidbkgdcolor),
+    imcurr = bsxfun(@times,imcurr,gray_ims(:,i).*pforefly(:,i)) + ...
+      bsxfun(@times,1-pforefly(:,i),repmat(reshape(solidbkgdcolor,[1,3]),[nr*nc,1]));
+  else
+    imcurr = bsxfun(@plus,bsxfun(@times,imcurr,gray_ims(:,i).*pforefly(:,i)),...
+      (1-pforefly(:,i)).*reshape(bkgdim,[nr*nc,1]));
+  end
   im(:,:,i) = imcurr;
 end
 finalim = reshape(im,[nr,nc,3,nframes]);
@@ -216,7 +230,6 @@ figure(hfig);
 clf;
 hax = createsubplots(1,numel(ts),.01);
 
-fly = mainfly;
 idxpos = predictions{mainfly}(ts(1):ts(end));
 timestamps = trx(mainfly).timestamps(ts+trx(mainfly).off)-...
   trx(mainfly).timestamps(ts(1)+trx(mainfly).off);
@@ -243,7 +256,7 @@ colormap(colors_all(:,:,1)*.75);
 tlim = timestamps(end);
 set(hax,'CLim',[0,tlim]);
 hcb = colorbar('East');
-tticks = 0:.25:tlim;
+tticks = [0,tlim];
 realylim = get(hcb,'YLim');
 yticks = realylim(1)+(tticks/tlim)*(realylim(2)-realylim(1));
 set(hcb,'YTick',yticks,'YTickLabel',tticks');
