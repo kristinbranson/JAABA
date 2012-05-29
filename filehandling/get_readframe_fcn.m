@@ -3,9 +3,9 @@
 % function that can be used for random access to frames in the video. it can
 % input files of type fmf, sbfmf, and avi. if videoio is installed on your
 % machine, then get_readframe_fcn will use videoio to read all types of avi
-% supported by videoio. otherwise, it uses mmreader to open any type of avi
-% supported by mmreader. Run "help mmreader" to determine what types of avi
-% files are readable through mmreader on your OS. 
+% supported by videoio. otherwise, it uses VideoReader to open any type of avi
+% supported by VideoReader. Run "help VideoReader" to determine what types of avi
+% files are readable through VideoReader on your OS. 
 %
 % Input:
 % filename is the name of the video to read. The type of video is determined
@@ -74,7 +74,7 @@ else
     headerinfo = info;
     headerinfo.type = 'avi';
   else
-    readerobj = mmreader(filename);
+    readerobj = VideoReader(filename);
     nframes = get(readerobj,'NumberOfFrames');
     if isempty(nframes),
       % approximate nframes from duration

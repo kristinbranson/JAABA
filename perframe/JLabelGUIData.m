@@ -5,6 +5,7 @@ classdef JLabelGUIData < handle
     classifierfilename = '';
     configfilename = '';
     defaultpath = '';
+    packageoutputdir = '';
     
     isgroundtruthmode = false;
     
@@ -12,8 +13,10 @@ classdef JLabelGUIData < handle
     idlestatuscolor = [0,1,0];
     busystatuscolor = [1,0,1];
 
+    movie_depth = 1;
     movie_height = 100;
     movie_width = 100;
+    movie_filename = [];
     
     configparams = struct;
 
@@ -28,6 +31,12 @@ classdef JLabelGUIData < handle
     axes_timeline_labels = [];
     text_timeline_props = [];
     text_timelines = [];
+    
+    hsplash = [];
+    hsplashstatus = [];
+    henabled = [];
+    
+    enabled = true;
 
     guipos = struct;
 
@@ -155,6 +164,10 @@ classdef JLabelGUIData < handle
 
     current_interval = [];
     didclearselection = false;
+    
+    open_peripherals = [];
+
+    cache_thread = [];
         
   end
      

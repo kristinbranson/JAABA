@@ -82,7 +82,7 @@ if isfield(parent_handles,'useVideoWriter'),
     handles.useVideoWriter = true;
   end
 else
-  handles.useVideoWriter = exist('VideoWriter','file');
+  handles.useVideoWriter = exist('VideoWriter','file') > 0;
 end
 
 if isfield(parent_handles,'outavi_compression'),
