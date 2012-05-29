@@ -1,6 +1,6 @@
 % [y,npadl,npadu] = padgrab(x,padv,l1,u1,l2,u2,...)
 %function [y,npadl,npadu] = padgrab(x,padv,varargin)
-%BJA: hard-coded for 6 args to get rid of slow varargin cell array
+%BJA: hard-coded for 6 args to get rid of slow varargin cell array and slow padarray()
 function [y,npadl,npadu] = padgrab2(x,padv,l1,u1,l2,u2)
 
 % parse arguments
@@ -68,11 +68,15 @@ if any(idxhigh),
   npadl(idxhigh) = 0;
 end
 
+% BJA: in my hands npad*==0 when size(y,1)>0
+%   if not, replace with ones(size(y,1),...
 if any(npadl > 0),
-  y = padarray(y,npadl,padv,'pre');
+  %y = padarray(y,npadl,padv,'pre');
+  y = [ones(1,npadl(2)).*padv y];
 end
 if any(npadu > 0),
-  y = padarray(y,npadu,padv,'post');
+  %y = padarray(y,npadu,padv,'post');
+  y = [y ones(1,npadu(2)).*padv];
 end
 
 % if dotranspose,

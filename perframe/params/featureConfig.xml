@@ -115,7 +115,7 @@
     
     <darea trans_types="none,abs" type="appearance"/>
     
-    <da trans_types="none,abs" type="scores"/>
+    <da trans_types="none,abs" type="appearance"/>
     
     <db trans_types="none,abs" type="appearance"/>
 
