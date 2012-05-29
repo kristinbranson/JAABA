@@ -1,6 +1,11 @@
 function modX = convertToRelative(x,relativeParams)
 
 bins = relativeParams.relativeBins;
+while( any((bins(1:end-1)-bins(2:end))>0))
+    ndx = find( (bins(1:end-1)-bins(2:end))>0);
+    bins(ndx+1) = bins(ndx);
+end
+
 [~,modX] = histc(x,bins);
 modX(modX>numel(bins))=numel(bins);
 

@@ -193,26 +193,27 @@ set(handles.table,'ColumnFormat',colFormat);
 % reorganize cached data
 newCachedTableData = cell(handles.cs_ntargets(end),size(fieldList,1)+2);
 newCachedDataExpi = zeros(1,handles.cs_ntargets(end));
+newCachedDataTarget = zeros(1,handles.cs_ntargets(end));
 newCachedExpDirs = handles.JLDObj.expdirs;
 
 if isfield(handles,'cachedTableData'),
 
   % reindexing for experiments
   [ism,old2newexpi] = ismember(handles.cachedExpDirs,newCachedExpDirs);
-  
+
   % move data from old to new
   for oldexpi = find(ism(:)'),
     newexpi = old2newexpi(oldexpi);
-    oldidx1 = find(handles.cachedDataExpi == oldexpi,1);
-    if isempty(oldidx1),
+    oldidx = find(handles.cachedDataExpi == oldexpi);
+    if isempty(oldidx),
       continue;
     end
-    ntargets_curr = handles.JLDObj.nflies_per_exp(newexpi);
-    oldidx = oldidx1:oldidx1+ntargets_curr-1;
-    isdata = handles.cachedDataExpi(oldidx) ~= 0;
-    newidx = LocalTarget2GlobalTarget(handles,newexpi,1):LocalTarget2GlobalTarget(handles,newexpi,ntargets_curr);
+    [targets_curr,order] = sort(handles.cachedDataTarget(oldidx));
+    oldidx = oldidx(order);
+    newidx = LocalTarget2GlobalTarget(handles,newexpi,targets_curr);
     newCachedTableData(newidx,:) = handles.cachedTableData(oldidx,:);
-    newCachedDataExpi(newidx(isdata)) = newexpi;
+    newCachedDataExpi(newidx) = newexpi;
+    newCachedDataTarget(newidx) = handles.cachedDataTarget(oldidx);
   end
   
 end
@@ -220,10 +221,12 @@ end
 % overwrite
 handles.cachedTableData = newCachedTableData;
 handles.cachedDataExpi = newCachedDataExpi;
+handles.cachedDataTarget = newCachedDataTarget;
 handles.cachedExpDirs = newCachedExpDirs;
 
 tableData = {};
 tableExpi = [];
+tableTarget = [];
 count = 1;
 
 [exp_start,target_start] = PageRow2LocalTarget(handles,handles.page_number,1);
@@ -248,6 +251,7 @@ for selExp = exp_start:exp_end,
       tableData{count,2+ndx} = flyStats.(fieldList{ndx,1});
     end
     tableExpi(count) = selExp;
+    tableTarget(count) = flyNum;
     count = count+1;
   end
 end
@@ -258,6 +262,7 @@ start_target = PageRow2GlobalTarget(handles,handles.page_number,1);
 end_target = start_target + numel(tableExpi) - 1;
 handles.cachedTableData(start_target:end_target,:) = tableData;
 handles.cachedDataExpi(start_target:end_target) = tableExpi;
+handles.cachedDataTarget(start_target:end_target) = tableTarget;
 
 set(handles.table,'Data',...
   tableData);
