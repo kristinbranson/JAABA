@@ -1550,9 +1550,6 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-delete(['cache-' num2str(feature('getpid')) '.dat']);
-delete(handles.guidata.cache_thread);
-clear functions  % BJA: need to clear persistent vars in UpdatePlots
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
 
 % --------------------------------------------------------------------
@@ -2215,6 +2212,10 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
+
+delete(['cache-' num2str(feature('getpid')) '.dat']);
+delete(handles.guidata.cache_thread);
+clear functions  % BJA: need to clear persistent vars in UpdatePlots
 
 % check if we need to save
 if handles.guidata.needsave,
