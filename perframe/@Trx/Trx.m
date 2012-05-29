@@ -329,6 +329,9 @@ classdef Trx < handle
     
     labelidx = LoadLabelsFromFile(obj,labelfilestr,varargin)
     
+    [scores,labelidx] = LoadScoresFromFile(obj,labelfilestr,varargin)
+    
+    
     CleanPerFrameData(obj,fns,varargin)
     
     ClearDataCache(obj,fn,ns)
