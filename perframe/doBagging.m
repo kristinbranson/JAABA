@@ -1,8 +1,8 @@
 function [bagModels trainDistMat] = doBagging(data,labels,obj,binVals,bins,params)
 
-boostIterations = 100;
+boostIterations = 25;
 % Learn classifier with all the data.
-numRepeat = 2;
+numRepeat = 20;
 
 numEx = size(data,1);
 posEx = labels == 1;
@@ -40,15 +40,7 @@ for numIter = 1:numRepeat
     
     for ndx =1:2
       curTrainLabels = modLabels(curTrain{ndx});
-      numPos = sum(curTrainLabels>0); 
-      numNeg = sum(curTrainLabels<0);
-      wt = zeros(length(curTrainLabels),1);
-      negWt = numPos/(numNeg+numPos);
-      posWt = numNeg/(numPos+numNeg);
-      wt(curTrainLabels==1)=posWt;
-      wt(curTrainLabels~=1)=negWt;
-      wt = wt./sum(wt);
-      
+      wt = getWeights(curTrainLabels);
       tt = tic;
       [scores curModel] = loglossboostLearnRandomFeatures(data(curTrain{ndx},:),curTrainLabels,...
         boostIterations,wt,binVals,bins(:,curTrain{ndx}),params);
@@ -57,9 +49,14 @@ for numIter = 1:numRepeat
       bagModels{count} = curModel;
       count = count+1;
       etime = toc(tt);
-      obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
-        round( count/(numRepeat*6+1)*100), round((numRepeat*6-count+1)*etime)); 
-      drawnow();
+      if ~isempty(obj)
+        obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
+          round( count/(numRepeat*6+1)*100), round((numRepeat*6-count+1)*etime)); 
+        drawnow();
+      else
+        fprintf('%d%% training done. Time Remaining:%ds \n',...
+          round( count/(numRepeat*6+1)*100), round((numRepeat*6-count+1)*etime)); 
+      end
     end    
   end
   

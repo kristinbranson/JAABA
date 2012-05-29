@@ -1,0 +1,1405 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+   <basicParams>
+      <abs_appearance mode="All" selection="normal"/>
+      <appearance mode="All" selection="normal"/>
+      <position mode="None" selection="normal"/>
+      <locomotion_global mode="None" selection="normal"/>
+      <locomotion mode="All" selection="normal"/>
+   </basicParams>
+   <featureWindowSize size="30"/>
+   <params>
+      <absangchvsangtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      </absangchvsangtc>
+      <angchvsangtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      </angchvsangtc>
+      <area max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </area>
+      <centralheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </centralheadmag>
+      <ratioarealength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </ratioarealength>
+      <spinelength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </spinelength>
+      <tailcentralmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </tailcentralmag>
+      <tailheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </tailheadmag>
+      <velch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velch>
+      <velmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velmag>
+      <velperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      </velperch>
+      <dtailheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dtailheadmag>
+      <dtailcentralmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dtailcentralmag>
+      <dcentralheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dcentralheadmag>
+      <dspinelength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dspinelength>
+      <darea max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </darea>
+      <dratioarealength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dratioarealength>
+      <dangchvsangtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      </dangchvsangtc>
+      <a_mm max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </a_mm>
+      <b_mm max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </b_mm>
+      <ecc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </ecc>
+      <velmaghead max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velmaghead>
+      <velmagcentral max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velmagcentral>
+      <velmagtail max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velmagtail>
+      <velheadch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velheadch>
+      <velcentralch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velcentralch>
+      <veltailch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </veltailch>
+      <velheadperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velheadperch>
+      <velcentralperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velcentralperch>
+      <veltailperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </veltailperch>
+      <velheadtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velheadtc>
+      <velcentraltc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velcentraltc>
+      <veltailtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </veltailtc>
+      <velheadpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velheadpertc>
+      <velcentralpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velcentralpertc>
+      <veltailpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </veltailpertc>
+      <velheadth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velheadth>
+      <velcentralth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velcentralth>
+      <veltailth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </veltailth>
+      <velheadperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velheadperth>
+      <velcentralperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velcentralperth>
+      <veltailperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </veltailperth>
+      <veltc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </veltc>
+      <velpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      </velpertc>
+      <velth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </velth>
+      <velperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      </velperth>
+      <sumspinerelangle max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </sumspinerelangle>
+      <sumspinerelanglehc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </sumspinerelanglehc>
+      <sumspinerelanglect max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </sumspinerelanglect>
+      <dsumspinerelangle max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dsumspinerelangle>
+      <dsumspinerelanglehc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dsumspinerelanglehc>
+      <dsumspinerelanglect max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dsumspinerelanglect>
+      <tailinflmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </tailinflmag>
+      <inflheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      </inflheadmag>
+      <angihvsangti max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      </angihvsangti>
+      <dangihvsangti max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      </dangihvsangti>
+      <dtailinflmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dtailinflmag>
+      <dinflheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+         <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+         <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      </dinflheadmag>
+   </params>
+   <absangchvsangtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none" window_offsets="0,-1,1"/>
+   </absangchvsangtc>
+   <angchvsangtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+   </angchvsangtc>
+   <area max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </area>
+   <centralheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </centralheadmag>
+   <ratioarealength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </ratioarealength>
+   <spinelength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </spinelength>
+   <tailcentralmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </tailcentralmag>
+   <tailheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </tailheadmag>
+   <velch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velch>
+   <velmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velmag>
+   <velperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+   </velperch>
+   <dtailheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dtailheadmag>
+   <dtailcentralmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dtailcentralmag>
+   <dcentralheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dcentralheadmag>
+   <dspinelength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dspinelength>
+   <darea max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </darea>
+   <dratioarealength max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dratioarealength>
+   <dangchvsangtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+   </dangchvsangtc>
+   <a_mm max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </a_mm>
+   <b_mm max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </b_mm>
+   <ecc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </ecc>
+   <velmaghead max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velmaghead>
+   <velmagcentral max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velmagcentral>
+   <velmagtail max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velmagtail>
+   <velheadch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velheadch>
+   <velcentralch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velcentralch>
+   <veltailch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </veltailch>
+   <velheadperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velheadperch>
+   <velcentralperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velcentralperch>
+   <veltailperch max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </veltailperch>
+   <velheadtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velheadtc>
+   <velcentraltc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velcentraltc>
+   <veltailtc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </veltailtc>
+   <velheadpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velheadpertc>
+   <velcentralpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velcentralpertc>
+   <veltailpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </veltailpertc>
+   <velheadth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velheadth>
+   <velcentralth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velcentralth>
+   <veltailth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </veltailth>
+   <velheadperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velheadperth>
+   <velcentralperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velcentralperth>
+   <veltailperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </veltailperth>
+   <veltc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </veltc>
+   <velpertc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+   </velpertc>
+   <velth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </velth>
+   <velperth max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+   </velperth>
+   <sumspinerelangle max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </sumspinerelangle>
+   <sumspinerelanglehc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </sumspinerelanglehc>
+   <sumspinerelanglect max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </sumspinerelanglect>
+   <dsumspinerelangle max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dsumspinerelangle>
+   <dsumspinerelanglehc max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dsumspinerelanglehc>
+   <dsumspinerelanglect max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dsumspinerelanglect>
+   <tailinflmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </tailinflmag>
+   <inflheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,relative" window_offsets="0,-1,1"/>
+   </inflheadmag>
+   <angihvsangti max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+   </angihvsangti>
+   <dangihvsangti max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="abs,flip" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="abs,flip" window_offsets="0,-1,1"/>
+   </dangihvsangti>
+   <dtailinflmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dtailinflmag>
+   <dinflheadmag max_window_radius="30" min_window_radius="1" nwindow_radii="5" sanitycheck="0" trans_types="none,abs,relative" window_offsets="0,-1,1">
+      <mean max_window_radius="30" min_window_radius="0" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <change change_window_radii="1,3" max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <std max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <harmonic max_window_radius="30" min_window_radius="1" num_harmonic="3" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_mean max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_min max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <diff_neighbor_max max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+      <zscore_neighbors max_window_radius="30" min_window_radius="1" nwindow_radii="5" trans_types="none,abs,relative" window_offsets="0,-1,1"/>
+   </dinflheadmag>
+</configuration>
