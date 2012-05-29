@@ -58,11 +58,11 @@ for flyidx = 1:numel(flies),
   %fprintf('Adding %s to data cache for fly %d at idx %d\n',fn,fly,j);
   obj.datacached{n}{j}{fly} = xcurr;
   
-  % update cache size
-  obj.ndatacached = obj.ndatacached + ndataadd;
-  obj.ndatacachedperexp(n) = obj.ndatacachedperexp(n) + ndataadd;
-  
 end
+  
+% update cache size
+obj.ndatacached = obj.ndatacached + ndataadd;
+obj.ndatacachedperexp(n) = obj.ndatacachedperexp(n) + ndataadd;
 
 % update access time for this property
 j = find(strcmp(obj.perframehistory(:,1),fn),1);
