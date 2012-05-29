@@ -8,7 +8,7 @@ while true,
   if isempty(obj.perframehistory),
     break;
   end
-  [~,j] = max(cell2mat(obj.perframehistory(:,2)));
+  [~,j] = min(cell2mat(obj.perframehistory(:,2)));
   fn = obj.perframehistory{j,1};
   ClearDataCache(obj,fn);
 %   for i = 1:obj.nexpdirs,
