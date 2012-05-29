@@ -627,12 +627,14 @@ for i = axes,
     end
     inbounds = handles.guidata.data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
       handles.guidata.data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
-    set(handles.guidata.hflies(~inbounds,i),'Visible','off');
-    set(handles.guidata.hflies_extra(~inbounds,i),'Visible','off');
-    set(handles.guidata.hfly_markers(~inbounds,i),'Visible','off');
-    set(handles.guidata.hflies(inbounds,i),'Visible','on');
-    set(handles.guidata.hflies_extra(inbounds,i),'Visible','on');
-    set(handles.guidata.hfly_markers(inbounds,i),'Visible','on');
+    if handles.doplottracks,
+      set(handles.guidata.hflies(~inbounds,i),'Visible','off');
+      set(handles.guidata.hflies_extra(~inbounds,i),'Visible','off');
+      set(handles.guidata.hfly_markers(~inbounds,i),'Visible','off');
+      set(handles.guidata.hflies(inbounds,i),'Visible','on');
+      set(handles.guidata.hflies_extra(inbounds,i),'Visible','on');
+      set(handles.guidata.hfly_markers(inbounds,i),'Visible','on');
+    end
     for fly = find(inbounds),
 
       t = handles.guidata.ts(i);
@@ -1829,6 +1831,7 @@ handles.guidata.hplaying = nan;
 
 % whether to show trajectories
 set(handles.menu_view_plottracks,'Checked','on');
+handles.doplottracks = true;
 
 % bookmarked clips windows
 handles.guidata.bookmark_windows = [];
@@ -4609,10 +4612,12 @@ v = get(handles.menu_view_plottracks,'Checked');
 if strcmpi(v,'on'),
   h = findall(handles.guidata.axes_previews,'Type','line','Visible','on');
   handles.tracks_visible = h;
+  handles.doplottracks = false;
   set(h,'Visible','off');
   set(hObject,'Checked','off');
 else
   handles.tracks_visible = handles.tracks_visible(ishandle(handles.tracks_visible));
+  handles.doplottracks = true;
   set(handles.tracks_visible(:),'Visible','on');
   set(hObject,'Checked','on');
 end
