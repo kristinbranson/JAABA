@@ -433,22 +433,23 @@ handles = UpdateGUIGroundTruthMode(handles);
 
 
 
-function cache_thread(N,HWD,filename)
+function cache_thread(N,HWD,cache_filename,movie_filename)
 
-Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
-Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
+Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+Mims =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
-readframe=get_readframe_fcn(filename);
+readframe=get_readframe_fcn(movie_filename);
 
-idx=1;
 while true
-  if(isinf(Mlastused.Data(idx)))
-    Mims.Data(idx).x = readframe(Mts.Data(idx));
-    Mlastused.Data(idx) = now;
+  idx=find(isnan(Mlastused.Data));
+  if(~isempty(idx))
+    idx2=argmax(Mts.Data(idx));
+    Mlastused.Data(idx(idx2)) = now;
+    Mims.Data(idx(idx2)).x = readframe(Mts.Data(idx(idx2)));
+  else
+    pause(1);
   end
-  idx=1+mod(idx,N);
-  if(idx==1)  pause(1);  end
 end
 
 
@@ -461,17 +462,18 @@ if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filena
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
 
-  fid=fopen('cache.dat','w');
+  cache_filename=['cache-' num2str(feature('getpid')) '.dat'];
+  fid=fopen(cache_filename,'w');
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
   fclose(fid);
-  Mts =       memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N);
-  Mlastused = memmapfile('cache.dat', 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-  Mims =      memmapfile('cache.dat', 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+  Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
+  Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+  Mims =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
   handles.guidata.cache_thread=batch(@cache_thread,0,...
-    {N,HWD,handles.guidata.movie_filename},...
+    {N,HWD,cache_filename,handles.guidata.movie_filename},...
     'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
 end
 
@@ -584,24 +586,33 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
-      j = find((Mts.Data==handles.guidata.ts(i)) & (Mlastused.Data~=inf));
+      j = find((Mts.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)));
       if(numel(j)>1)  j=j(1);  end
       if isempty(j),
-        %disp('not cached');
         j = argmin(Mlastused.Data);
-        Mims.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
         Mts.Data(j) = handles.guidata.ts(i);
+        Mims.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
+        %disp(['NOT CACHED, ' num2str(sum(isnan(Mlastused.Data)))]);
+      else
+        %disp(['cached, ' num2str(sum(isnan(Mlastused.Data)))]);
       end
 
       Mlastused.Data(j) = now;
       set(handles.guidata.himage_previews(i),'CData',Mims.Data(j).x);
 
       tmp=handles.guidata.nframes_jump_go;
+      j=(Mts.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
+      if(sum(j)>0)
+        %disp(['unqueueing frame(s) ' num2str(Mts.Data(j)')...
+        %    '; current frame = ' num2str(handles.guidata.ts(i))]);
+        Mlastused.Data(j) = 0;
+        Mts.Data(j) = 0;
+      end
       j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mts.Data);
       j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));
       for k=1:length(j)
         kk = argmin(Mlastused.Data);
-        Mlastused.Data(kk) = inf;
+        Mlastused.Data(kk) = nan;
         Mts.Data(kk) = j(k);
       end
 
@@ -1541,9 +1552,6 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-delete('cache.dat');
-delete(handles.guidata.cache_thread);
-clear functions  % BJA: need to clear persistent vars in UpdatePlots
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
 
 % --------------------------------------------------------------------
@@ -2207,6 +2215,10 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
+
+delete(['cache-' num2str(feature('getpid')) '.dat']);
+delete(handles.guidata.cache_thread);
+clear functions  % BJA: need to clear persistent vars in UpdatePlots
 
 % check if we need to save
 if handles.guidata.needsave,
