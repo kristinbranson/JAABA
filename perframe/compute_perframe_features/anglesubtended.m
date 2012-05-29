@@ -157,7 +157,7 @@ function [psi1,psi2] = computetangentpoints(c,d,a,b,theta)
   % 1 > c^2/a^2 + d^2/b^2
   % in which case (c,d) is inside the ellipse
   % this case has already been checked for
-  D = sqrt(D);
+  D = sqrt(max(D,0));
   
   % if sin(phi) = 0
   % then the slope is undefined, so we will consider these as special
@@ -178,11 +178,11 @@ function [psi1,psi2] = computetangentpoints(c,d,a,b,theta)
   end;
   
   % four possible choices for phi
-  cosphi = (-B + D)/(2*A);
+  cosphi = max(-1,min(1,(-B + D)/(2*A)));
   possiblephi(3) = acos(cosphi);
   possiblephi(4) = -possiblephi(3);
   
-  cosphi = (-B - D)/(2*A);
+  cosphi = max(-1,min(1,(-B - D)/(2*A)));
   possiblephi(5) = acos(cosphi);
   possiblephi(6) = -possiblephi(5);
   

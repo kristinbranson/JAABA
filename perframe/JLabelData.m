@@ -1632,6 +1632,7 @@ classdef JLabelData < handle
       if ~exist(sfn,'file')
         warndlg(sprintf('No scores file %s at the default location',...
           sfn));
+        return;
       end
       obj.LoadScores(expi,sfn);
     end
@@ -1984,18 +1985,18 @@ classdef JLabelData < handle
         end
       end
       
-      if ~numel(obj.expdirs)<expi; obj.expdirs(expi) = []; end
-      if ~numel(obj.expnames)<expi; obj.expnames(expi) = []; end
-      if ~numel(obj.outexpdirs)<expi; obj.outexpdirs(expi) = []; end
-      if ~numel(obj.nflies_per_exp)<expi; obj.nflies_per_exp(expi) = []; end
-      if ~numel(obj.sex_per_exp)<expi; obj.sex_per_exp(expi) = []; end
-      if ~numel(obj.frac_sex_per_exp)<expi; obj.frac_sex_per_exp(expi) = []; end
-      if ~numel(obj.firstframes_per_exp)<expi; obj.firstframes_per_exp(expi) = []; end
-      if ~numel(obj.endframes_per_exp)<expi; obj.endframes_per_exp(expi) = []; end
-      if ~numel(obj.labels)<expi; obj.labels(expi) = []; end
-      if ~numel(obj.labelstats)<expi; obj.labelstats(expi) = []; end
-      if ~numel(obj.gt_labels)<expi; obj.gt_labels(expi) = []; end
-      if ~numel(obj.gt_labelstats)<expi; obj.gt_labelstats(expi) = []; end
+      if ~(numel(obj.expdirs)<expi); obj.expdirs(expi) = []; end
+      if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
+      if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
+      if ~(numel(obj.nflies_per_exp)<expi); obj.nflies_per_exp(expi) = []; end
+      if ~(numel(obj.sex_per_exp)<expi); obj.sex_per_exp(expi) = []; end
+      if ~(numel(obj.frac_sex_per_exp)<expi); obj.frac_sex_per_exp(expi) = []; end
+      if ~(numel(obj.firstframes_per_exp)<expi); obj.firstframes_per_exp(expi) = []; end
+      if ~(numel(obj.endframes_per_exp)<expi); obj.endframes_per_exp(expi) = []; end
+      if ~(numel(obj.labels)<expi); obj.labels(expi) = []; end
+      if ~(numel(obj.labelstats)<expi); obj.labelstats(expi) = []; end
+      if ~(numel(obj.gt_labels)<expi); obj.gt_labels(expi) = []; end
+      if ~(numel(obj.gt_labelstats)<expi); obj.gt_labelstats(expi) = []; end
       obj.nexps = obj.nexps - numel(expi);
       % TODO: exp2labeloff
 
@@ -3129,7 +3130,7 @@ classdef JLabelData < handle
         T1 = T0 + numel(perframedata) - 1;
         return;
       end
-      off = 1 - GetTrxFirstFrame(expi,flies);
+      off = 1 - obj.GetTrxFirstFrame(expi,flies);
       i0 = T0 + off;
       i1 = T1 + off;
       perframedata = tmp.data{flies(1)}(i0:i1);

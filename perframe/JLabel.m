@@ -641,11 +641,15 @@ for i = axes,
     set(handles.guidata.hflies(~inbounds,i),'Visible','off');
     set(handles.guidata.hflies_extra(~inbounds,i),'Visible','off');
     set(handles.guidata.hfly_markers(~inbounds,i),'Visible','off');
+    set(handles.guidata.hflies(inbounds,i),'Visible','on');
+    set(handles.guidata.hflies_extra(inbounds,i),'Visible','on');
+    set(handles.guidata.hfly_markers(inbounds,i),'Visible','on');
     for fly = find(inbounds),
 
       t = handles.guidata.ts(i);
       pos = handles.guidata.data.GetTrxPos1(handles.guidata.expi,fly,t);
       UpdateTargetPosition(handles.guidata.data.targettype,handles.guidata.hflies(fly,i),handles.guidata.hflies_extra(fly,i),pos);
+
       set(handles.guidata.hfly_markers(fly,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.guidata.data.GetSex1(handles.guidata.expi,fly,t);
       if lower(sexcurr(1)) == 'm',
