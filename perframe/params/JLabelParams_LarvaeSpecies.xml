@@ -11,4 +11,5 @@
       <trx colormap="jet" colormap_multiplier="0.7" extra_linestyle="none" extra_marker="o" extra_markersize="6"/>
       <labels colormap="line" linewidth="3"/>
    </plot>
+   <JLabelMode mode="advanced"/>
 </params>
