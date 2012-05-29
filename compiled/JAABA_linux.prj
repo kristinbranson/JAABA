@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project>
-  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_linux" location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled" file="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled/JAABA_linux.prj" preferred-package-type="package.type.zip" build-checksum="2967347961" preferred-package-location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled">
+  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_linux" location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled" file="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled/JAABA_linux.prj" preferred-package-type="package.type.zip" build-checksum="2497048714" preferred-package-location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled">
     <param.project.name>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled/JAABA_linux.prj</param.project.name>
     <param.target.type>Standalone Application</param.target.type>
     <param.appname>JAABA_linux</param.appname>
@@ -68,6 +68,7 @@
       <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/version.txt</file>
     </fileset.resources>
     <fileset.package>
+      <file>${PROJECT_ROOT}/ParallelComputingConfiguration_Local_Win4.settings</file>
       <file>${PROJECT_ROOT}/params</file>
     </fileset.package>
     <build-deliverables>
@@ -82,152 +83,10 @@
         <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/compute_perframe_features</directory>
         <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/filehandling</directory>
         <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/branches</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.0_impl</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.0_impl/matlab</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.0_impl/matlab/data</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.0_impl/matlab/olydat analyzer</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.0_impl/matlab/olydat browser</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.0_impl/matlab/peak analyzer</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.1_impl</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.1_impl/matlab</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.1_impl/matlab/data</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.1_impl/matlab/olydat analyzer</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.1_impl/matlab/olydat browser</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/tags/OlyDat_v1.1_impl/matlab/peak analyzer</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/trunk</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/trunk/matlab</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/trunk/matlab/data</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/trunk/matlab/olydat analyzer</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/trunk/matlab/olydat browser</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/box/PostAnalysis/trunk/matlab/peak analyzer</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/data</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/data/FO100_Reg_JPG_12bit</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/data/FO100_Reg_JPG_12bit/bowl not box</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/data/FO100_Reg_JPG_12bit/gap not box</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/data/FO100_Reg_JPG_12bit/nothits</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/data/FO100_Reg_JPG_12bit/seq3avetune_more</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/graphics</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/graphics/distributionPlot</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/gui</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/branches</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/hooks</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/info</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/logs</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/logs/refs</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/logs/refs/heads</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/logs/refs/remotes</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/logs/refs/remotes/github</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/logs/refs/remotes/origin</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/04</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/05</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/07</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/08</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/09</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/0f</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/11</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/15</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/1a</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/1b</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/21</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/24</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/27</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/29</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/2a</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/34</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/35</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/36</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/39</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/3f</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/42</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/43</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/44</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/4b</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/4c</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/4d</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/4e</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/51</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/53</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/54</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/55</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/5c</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/62</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/6e</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/71</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/73</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/82</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/83</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/87</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/8b</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/8c</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/96</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/9a</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/9c</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/9e</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/9f</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/a2</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/a3</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/a5</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/aa</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/ab</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/b2</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/b6</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/b8</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/bc</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/be</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/c1</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/c3</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/c7</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/ca</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/cd</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/ce</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/d2</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/d3</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/e0</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/e3</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/e4</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/ed</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/ee</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/f4</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/f5</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/f7</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/f8</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/fe</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/ff</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/info</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/objects/pack</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/refs</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/refs/heads</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/refs/remotes</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/refs/remotes/github</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/refs/remotes/origin</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/.git/refs/tags</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/FO100_Reg_JPG_12bit</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/FO100_Reg_JPG_12bit/bowl not box</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/FO100_Reg_JPG_12bit/gap not box</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/FO100_Reg_JPG_12bit/nothits</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/FO100_Reg_JPG_12bit/seq3avetune_more</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/chasers</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/chasers/female</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/chasers/female2</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/chasers/male</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/chasers/male2</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/cstruct</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/figs</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/lsm</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/pattern_goodalignment</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/templateBrain</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/kristin/templateBrain/masks</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/cross_assay/trunk/matlab/math</directory>
-        <directory>/groups/branson/bransonlab/projects/olympiad/SAGE/MATLABInterface/Trunk</directory>
-        <directory>/groups/branson/home/bransonk/tracking/code/JCtrax/filehandling</directory>
-        <directory>/groups/branson/home/bransonk/tracking/code/JCtrax/misc</directory>
+        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../figurecode</directory>
+        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../perframe</directory>
+        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../filehandling</directory>
+        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../misc</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/demos</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/graph2d</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/graph3d</directory>
