@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Righting"/>
-   <file featureconfigfile="params/featureConfig_RightingAR.xml" featureparamfilename="params/WindowFeatures_Righting.xml" gt_labelfilename="labeledRighting_gt.mat" labelfilename="labeledRighting.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfig_RightingAR.xml" featureparamfilename="params/WindowFeatures_Righting.xml" gt_labelfilename="labeledRighting_gt.mat" labelfilename="labeledRighting.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat" scorefilestr="scores_Righting.mat"/>
    <perframe>
       <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
    </perframe>
