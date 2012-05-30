@@ -457,13 +457,48 @@ function UpdatePlots(handles,varargin)
 
 persistent Mts Mlastused Mims movie_filename
 
+if strcmp(varargin{1},'CLEAR'),
+  if ~isempty(handles.guidata.cache_thread),
+    delete(handles.guidata.cache_thread);
+    handles.guidata.cache_thread = [];
+  end
+  Mts = []; 
+  Mlastused = []; 
+  Mims = []; 
+  return;
+end
+
 if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filename))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
 
+  % release data used in thread
+  if ~isempty(handles.guidata.cache_thread),
+    delete(handles.guidata.cache_thread);
+    handles.guidata.cache_thread = [];
+  end
+  Mts = []; %#ok<NASGU>
+  Mlastused = []; %#ok<NASGU>
+  Mims = []; %#ok<NASGU>
+  
   cache_filename=['cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
+  if fid < 1,
+    pause(.1);
+    fid=fopen(cache_filename,'w');
+  end
+
+  for i = 1:5,
+    if fid >= 1,
+      break;
+    end
+    new_cache_filename = ['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat'];
+    warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename);
+    cache_filename = new_cache_filename;
+    fid=fopen(cache_filename,'w');
+  end
+    
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
@@ -2216,9 +2251,11 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
 
-delete(['cache-' num2str(feature('getpid')) '.dat']);
 delete(handles.guidata.cache_thread);
-clear functions  % BJA: need to clear persistent vars in UpdatePlots
+handles.guidata.cache_thread = [];
+UpdatePlots(handles,'CLEAR');
+%clear functions  % BJA: need to clear persistent vars in UpdatePlots
+delete(['cache-' num2str(feature('getpid')) '.dat']);
 
 % check if we need to save
 if handles.guidata.needsave,
