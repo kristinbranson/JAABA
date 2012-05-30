@@ -51,7 +51,12 @@ elseif strcmpi(ext,'.mmf'),
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
 elseif strcmpi(ext,'.seq'),
-  headerinfo = r_readseqinfo(filename);
+  [indexfilename] = myparse(varargin,'indexfilename',0);
+  if ischar(indexfilename),
+    headerinfo = r_readseqinfo(filename,indexfilename);
+  else
+    headerinfo = r_readseqinfo(filename);
+  end
   if numel(headerinfo.m_aiSeekPos) < headerinfo.m_iNumFrames,
     headerinfo.m_iNumFrames = numel(headerinfo.m_aiSeekPos);
   end

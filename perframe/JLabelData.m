@@ -150,6 +150,7 @@ classdef JLabelData < handle
     
     % locations of files within experiment directories
     moviefilename = 0;
+    extramoviefilenames = {};
     trxfilename = 0;
     labelfilename = 0;
     gt_labelfilename = 0;
@@ -789,8 +790,12 @@ classdef JLabelData < handle
       end
       
       for i = 1:numel(expis),
-        moviefilename = obj.GetFile('movie',expis(i));
-        obj.SetStatus('Checking movie %s...',moviefilename);
+        [moviefilename,~,moviefilename_lnk] = obj.GetFile('movie',expis(i));
+        ispclnk = ischar(moviefilename_lnk);
+        if ispclnk,
+          obj.SetStatus('Checking movie %s (linked from %s)...',moviefilename,moviefilename_lnk);
+          obj.SetStatus('Checking movie %s...',moviefilename);
+        end
         
         % check for file existence
         if ~exist(moviefilename,'file'),
@@ -805,8 +810,15 @@ classdef JLabelData < handle
           
           % try reading a frame
 %           try
-            [readframe,~,movie_fid] = ...
-              get_readframe_fcn(moviefilename);
+            if ispclnk && isseqfile,
+              indexfilename = regexprep(moviefilename_lnk,'seq$','mat');
+              [indexfilename] = GetPCShortcutFileActualPath(indexfilename);
+              [readframe,~,movie_fid] = ...
+                get_readframe_fcn(moviefilename,'indexfilename',indexfilename);
+            else
+              [readframe,~,movie_fid] = ...
+                get_readframe_fcn(moviefilename);
+            end
             if movie_fid <= 0,
               error('Could not open movie %s for reading',moviefilename);
             end
@@ -2096,10 +2108,12 @@ classdef JLabelData < handle
       end
     end
     
-    function [filename,timestamp] = GetFile(obj,file,expi,dowrite)
+    function [filename,timestamp,filename0] = GetFile(obj,file,expi,dowrite)
         % [filename,timestamp] = GetFile(obj,file,expi)
     % Get the full path to the file of type file for experiment expi. 
-  
+
+      filename0 = 0;
+    
       if nargin < 4,
         dowrite = false;
       end
@@ -2138,6 +2152,7 @@ classdef JLabelData < handle
             actualfilename = y.getLinkLocation();
             actualfilename = char(actualfilename);
             if exist(actualfilename,'file'),
+              filename0 = filename;
               filename = actualfilename;
               tmp = dir(filename);
               timestamp = tmp.datenum;

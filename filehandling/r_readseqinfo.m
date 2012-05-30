@@ -1,4 +1,4 @@
-function seqinfo = r_readseqinfo(fname)
+function seqinfo = r_readseqinfo(fname,indx_fname)
 % r_readseqinfo: function to read info from a .seq file
 %
 % form:seqinfo = r_readseqinfo(fname)
@@ -56,15 +56,17 @@ fclose(fid);
 
 % Read in frame indexing info, automatically generate it if it doesn't exist --
 [pathstr,name,ext] = fileparts(fname);
-if isunix || ismac  
+if nargin < 2,
+  if isunix || ismac
     indx_fname = [pathstr,'/',name,'.mat'];
-else
+  else
     if length(pathstr) == 3 && pathstr(3) == '\'
-        indx_fname = [pathstr,name,'.mat'];
+      indx_fname = [pathstr,name,'.mat'];
     else
-        indx_fname = [pathstr,'\',name,'.mat'];
+      indx_fname = [pathstr,'\',name,'.mat'];
     end
-end;
+  end;
+end
 
 %if ~exist(indx_fname,'file')  % don't do this just now--files are way too
 %big, takes forever and *should* always be done already before have
