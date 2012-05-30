@@ -150,7 +150,6 @@ classdef JLabelData < handle
     
     % locations of files within experiment directories
     moviefilename = 0;
-    extramoviefilenames = {};
     trxfilename = 0;
     labelfilename = 0;
     gt_labelfilename = 0;
@@ -790,12 +789,8 @@ classdef JLabelData < handle
       end
       
       for i = 1:numel(expis),
-        [moviefilename,~,moviefilename_lnk] = obj.GetFile('movie',expis(i));
-        ispclnk = ischar(moviefilename_lnk);
-        if ispclnk,
-          obj.SetStatus('Checking movie %s (linked from %s)...',moviefilename,moviefilename_lnk);
-          obj.SetStatus('Checking movie %s...',moviefilename);
-        end
+        moviefilename = obj.GetFile('movie',expis(i));
+        obj.SetStatus('Checking movie %s...',moviefilename);
         
         % check for file existence
         if ~exist(moviefilename,'file'),
@@ -810,15 +805,8 @@ classdef JLabelData < handle
           
           % try reading a frame
 %           try
-            if ispclnk && isseqfile,
-              indexfilename = regexprep(moviefilename_lnk,'seq$','mat');
-              [indexfilename] = GetPCShortcutFileActualPath(indexfilename);
-              [readframe,~,movie_fid] = ...
-                get_readframe_fcn(moviefilename,'indexfilename',indexfilename);
-            else
-              [readframe,~,movie_fid] = ...
-                get_readframe_fcn(moviefilename);
-            end
+            [readframe,~,movie_fid] = ...
+              get_readframe_fcn(moviefilename);
             if movie_fid <= 0,
               error('Could not open movie %s for reading',moviefilename);
             end
@@ -2108,12 +2096,10 @@ classdef JLabelData < handle
       end
     end
     
-    function [filename,timestamp,filename0] = GetFile(obj,file,expi,dowrite)
+    function [filename,timestamp] = GetFile(obj,file,expi,dowrite)
         % [filename,timestamp] = GetFile(obj,file,expi)
     % Get the full path to the file of type file for experiment expi. 
-
-      filename0 = 0;
-    
+  
       if nargin < 4,
         dowrite = false;
       end
@@ -2146,19 +2132,17 @@ classdef JLabelData < handle
         end
         % check for lnk files
         if ispc && exist([filename,'.lnk'],'file'),
-          try
-            x = java.io.File([filename,'.lnk']);
-            y = sun.awt.shell.ShellFolder.getShellFolder(x);
-            actualfilename = y.getLinkLocation();
-            actualfilename = char(actualfilename);
-            if exist(actualfilename,'file'),
-              filename0 = filename;
+          isseq = ~isempty(regexp(fn,'\.seq$','once'));
+          % for seq file, just keep the soft link, get_readframe_fcn will
+          % deal with it
+          [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+          if didfind,
+            tmp = dir(actualfilename);
+            timestamp = tmp.datenum;
+            if ~isseq || ~strcmpi(file,'movie'),
               filename = actualfilename;
-              tmp = dir(filename);
-              timestamp = tmp.datenum;
-              break;
-            end
-          catch  %#ok<CTCH>
+            end              
+            break;
           end
         end
       end
@@ -2466,9 +2450,9 @@ classdef JLabelData < handle
             % check for existence of current file(s)
             [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
             if iscell(fn),
-              obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || all(cellfun(@(s) exist(s,'file'),fn));
             else
-              obj.fileexists(expi,filei) = exist(fn,'file');
+              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
             end
             
           end
