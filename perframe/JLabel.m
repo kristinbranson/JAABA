@@ -4533,12 +4533,12 @@ while true,
     return;
   end
   
-  if CALC_FEATURES
+  if exist('CALC_FEATURES','var') && CALC_FEATURES
     t0 = handles.guidata.ts(axi);
     CALC_FEATURES = false;
   end
   
-  if PLAY_TIMER_DONE
+  if exist('PLAY_TIMER_DONE','var') && PLAY_TIMER_DONE
     ticker = tic;
     PLAY_TIMER_DONE = false;
     predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
