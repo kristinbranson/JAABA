@@ -819,9 +819,9 @@ end
 
 % check that the current movie exists
 if handles.guidata.data.ismovie,
-  moviefilename = handles.guidata.data.GetFile('movie',expi);
-  if ~exist(moviefilename,'file'),
-    uiwait(warndlg(sprintf('Movie file %s does not exist.',moviefilename)),'Error setting movie');
+  [moviefilename,timestamp] = handles.guidata.data.GetFile('movie',expi);
+  if isinf(timestamp) && ~exist(moviefilename,'file'),
+    uiwait(warndlg(sprintf('Movie file %s does not exist.',moviefilename),'Error setting movie'));
     return;
   end
 
@@ -2255,6 +2255,7 @@ delete(handles.guidata.cache_thread);
 handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
+if ispc, pause(.1); end
 delete(['cache-' num2str(feature('getpid')) '.dat']);
 
 % check if we need to save
