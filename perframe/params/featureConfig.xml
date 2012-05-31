@@ -166,7 +166,19 @@
     <magveldiff_nose2ell trans_types="none,relative" type="social"/>
     
     <nflies_close trans_types="none" type="social"/>
+
+    <nflies_close_03 trans_types="none" type="social"/>
+
+    <nflies_close_04 trans_types="none" type="social"/>
+
+    <nflies_close_05 trans_types="none" type="social"/>
     
+    <nflies_close_07 trans_types="none" type="social"/>
+
+    <nflies_close_10 trans_types="none" type="social"/>
+    
+    <nflies_close_15 trans_types="none" type="social"/>
+
     <phi trans_types="none" type="position"/>
     
     <phisideways trans_types="none" type="locomotion"/>
