@@ -256,6 +256,7 @@ classdef Trx < handle
       m_absanglefrom1to2 = regexp(fn,'^absanglefrom1to2_(.*)$','tokens','once');
       m_dnose2ellanglerange = regexp(fn,'^dnose2ell_angle_(\w+)to(\w+)$','tokens','once');
       m_closestfly_nose2ellanglerange = regexp(fn,'^closestfly_nose2ell_angle_(\w+)to(\w+)$','tokens','once');
+      m_nflies_close = regexp(fn,'^nflies_close_(.+)$','tokens','once');
       if ~isempty(m_magveldiff),
         [data,units] = compute_magveldiff(obj,n,m_magveldiff{1});
       elseif ~isempty(m_veltoward),
@@ -277,7 +278,9 @@ classdef Trx < handle
         v = v*pi/180;
         [data,units] = compute_dnose2ell_anglerange(obj,n,v);
       elseif ~isempty(m_closestfly_nose2ellanglerange),
-        [data,units] = compute_closestfly_nose2ell_anglerange(obj,n,str2double(m_closestfly_nose2ellanglerange));
+        [data,units] = compute_closestfly_nose2ell_anglerange(obj,n,str2double(m_closestfly_nose2ellanglerange{1}));
+      elseif ~isempty(m_nflies_close),
+        [data,units] = compute_nflies_close(obj,n,str2double(m_nflies_close{1}));
       else
         funname = sprintf('compute_%s',fn);
         [data,units] = feval(funname,obj,n);
