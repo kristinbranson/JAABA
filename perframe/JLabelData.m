@@ -5049,7 +5049,7 @@ classdef JLabelData < handle
       
       
       for endx = 1:obj.nexps
-        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,obj.nflies_per_exp);
+        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,perexp);
         
         validflies = find( (obj.endframes_per_exp{endx} - ...
           obj.firstframes_per_exp{endx})>perfly );
