@@ -445,8 +445,8 @@ while true
   idx=find(isnan(Mlastused.Data));
   if(~isempty(idx))
     idx2=argmax(Mts.Data(idx));
-    Mlastused.Data(idx(idx2)) = now;
     Mims.Data(idx(idx2)).x = readframe(Mts.Data(idx(idx2)));
+    Mlastused.Data(idx(idx2)) = now;
   else
     pause(1);
   end
