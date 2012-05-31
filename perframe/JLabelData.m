@@ -2132,18 +2132,17 @@ classdef JLabelData < handle
         end
         % check for lnk files
         if ispc && exist([filename,'.lnk'],'file'),
-          try
-            x = java.io.File([filename,'.lnk']);
-            y = sun.awt.shell.ShellFolder.getShellFolder(x);
-            actualfilename = y.getLinkLocation();
-            actualfilename = char(actualfilename);
-            if exist(actualfilename,'file'),
+          isseq = ~isempty(regexp(fn,'\.seq$','once'));
+          % for seq file, just keep the soft link, get_readframe_fcn will
+          % deal with it
+          [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+          if didfind,
+            tmp = dir(actualfilename);
+            timestamp = tmp.datenum;
+            if ~isseq || ~strcmpi(file,'movie'),
               filename = actualfilename;
-              tmp = dir(filename);
-              timestamp = tmp.datenum;
-              break;
-            end
-          catch  %#ok<CTCH>
+            end              
+            break;
           end
         end
       end
@@ -2451,9 +2450,9 @@ classdef JLabelData < handle
             % check for existence of current file(s)
             [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
             if iscell(fn),
-              obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || all(cellfun(@(s) exist(s,'file'),fn));
             else
-              obj.fileexists(expi,filei) = exist(fn,'file');
+              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
             end
             
           end
