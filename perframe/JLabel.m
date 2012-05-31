@@ -2256,7 +2256,10 @@ handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
 if ispc, pause(.1); end
-delete(['cache-' num2str(feature('getpid')) '.dat']);
+cachefilename = ['cache-' num2str(feature('getpid')) '.dat'];
+if exist(cachefilename,'file'),
+  delete(cachefilename);
+end
 
 % check if we need to save
 if handles.guidata.needsave,
