@@ -51,7 +51,39 @@ elseif strcmpi(ext,'.mmf'),
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
 elseif strcmpi(ext,'.seq'),
-  headerinfo = r_readseqinfo(filename);
+  [indexfilename] = myparse(varargin,'indexfilename',0);
+
+  % get actual filename for shortcuts
+  if ispc && ~exist(filename,'file'),
+    
+    [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+    if ~didfind,
+      error('Could not find movie file %s',filename);
+    end
+    filename0 = filename;
+    % use actualfilename instead
+    filename = actualfilename;
+    
+    % try the index file using the original filename
+    if ~ischar(indexfilename),
+      indexfilename = regexprep(filename0,'seq$','mat');
+      [indexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
+      if ~didfind && ~strcmp(filename0,filename),
+        % try to find the index file using the source filename
+        indexfilename = regexprep(filename,'seq$','mat');
+        [indexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
+        if ~didfind,
+          error('Could not find index file for %s',filename);
+        end
+      end
+    end
+  end
+  
+  if ischar(indexfilename),
+    headerinfo = r_readseqinfo(filename,indexfilename);
+  else
+    headerinfo = r_readseqinfo(filename);
+  end
   if numel(headerinfo.m_aiSeekPos) < headerinfo.m_iNumFrames,
     headerinfo.m_iNumFrames = numel(headerinfo.m_aiSeekPos);
   end

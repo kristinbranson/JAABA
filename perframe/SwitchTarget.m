@@ -394,8 +394,8 @@ handles.page_number = get(hObject,'Value');
 start_target = PageRow2GlobalTarget(handles,handles.page_number,1);
 end_target = min(handles.cs_ntargets(end),start_target+handles.ntargets_per_page-1);
 if all(handles.cachedDataExpi(start_target:end_target) ~= 0),
-  tableData = handles.cachedTableData(start_target:end_target,:);  
-  set(handles.table,'Data',tableData);
+  handles.tableData = handles.cachedTableData(start_target:end_target,:);  
+  set(handles.table,'Data',handles.tableData);
 else
   handles = updateTable(handles);
 end
