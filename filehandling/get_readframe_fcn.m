@@ -116,5 +116,8 @@ else
     %readframe = @(f) flipdim(read(readerobj,f),1);
     headerinfo = get(readerobj);
     headerinfo.type = 'avi';
+    headerinfo.nr = headerinfo.Height;
+    headerinfo.nc = headerinfo.Width;
+    headerinfo.nframes = headerinfo.NumberOfFrames;
   end
 end
