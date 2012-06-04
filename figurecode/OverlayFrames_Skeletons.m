@@ -1,4 +1,4 @@
-function [hfig,finalim,final_pforefly] = PlotSampleFramesColor(trx,readframe,bkgdim0,predictions,mainfly,otherflies,ts,varargin)
+function [hfig,finalim,final_pforefly] = OverlayFrames_Skeletons(trx,trx1,readframe,bkgdim0,predictions,mainfly,otherflies,ts,varargin)
 
 colorpos = [.7,0,0];
 colorneg = [0,0,.7];
@@ -6,8 +6,7 @@ border = 20;
 
 [colorpos,colorneg,border,hfig,figpos,...
   cm,fg_thresh,bg_thresh,sigma_bkgd,wmah,frac_a_back,dist_epsilon,...
-  ncolors_reference,solidbkgdcolor,...
-  flipim,intensityoff] = ...
+  ncolors_reference,solidbkgdcolor,flipim] = ...
   myparse(varargin,'colorpos',colorpos,...
   'colorneg',colorneg,...
   'border',border,...
@@ -22,8 +21,7 @@ border = 20;
   'dist_epsilon',.1,...
   'ncolors_reference',[],...
   'solidbkgdcolor',[.85,.85,.85],...
-  'flipim',false,...
-  'intensityoff',0);
+  'flipim',false);
 
 if isempty(otherflies),
   flygroups = {mainfly};
@@ -46,19 +44,21 @@ y = nan(trx.nflies,nframes_total);
 a = nan(trx.nflies,nframes_total);
 b = nan(trx.nflies,nframes_total);
 theta = nan(trx.nflies,nframes_total);
-imcenter = [(nc0+1)/2,(nr0+1)/2]; %#ok<NASGU>
+nspinepts = size(trx1(1).xspine,1);
+xspine = nan(trx.nflies,nspinepts,nframes_total);
+yspine = nan(trx.nflies,nspinepts,nframes_total);
+imcenter = [(nc0+1)/2,(nr0+1)/2];
 for fly = 1:trx.nflies,
   idx = allts+trx(fly).off;
-  i0 = find(idx>=1,1);
-  i1 = find(idx<=trx(fly).nframes,1,'last');
-  if isempty(i0) || isempty(i1),
-    continue;
-  end
+  i0 = find(idx>1,1);
+  i1 = find(idx<trx(fly).nframes,1,'last');
   x(fly,i0:i1) = trx(fly).x(idx(i0:i1));
   y(fly,i0:i1) = trx(fly).y(idx(i0:i1));
   a(fly,i0:i1) = trx(fly).a(idx(i0:i1));
   b(fly,i0:i1) = trx(fly).b(idx(i0:i1));
   theta(fly,i0:i1) = trx(fly).theta(idx(i0:i1));
+  xspine(fly,:,i0:i1) = trx1(fly).xspine(:,idx(i0:i1));
+  yspine(fly,:,i0:i1) = trx1(fly).yspine(:,idx(i0:i1));
 end
 
 bkgdim = bkgdim0;
@@ -80,6 +80,8 @@ ylim = [floor(ylim(1))-border,ceil(ylim(2))+border];
 bkgdim = bkgdim(ylim(1):ylim(2),xlim(1):xlim(2),:);
 x = x - xlim(1)+1;
 y = y - ylim(1)+1;
+xspine = xspine - xlim(1)+1;
+yspine = yspine - ylim(1)+1;
 
 %% colors for each frame
 colors_all = nan(ts(end)-ts(1)+1,3,nflygroups);
@@ -99,28 +101,20 @@ for i = 1:nflygroups,
 end
 colors = colors_all(ts-ts(1)+1,:,:);
 
+
 %% read in the frames, convert to grayscale
-for i = 1:nframes,
-  t = ts(i);
-  imcurr = readframe(t);
-  imcurr = im2double(imcurr(ylim(1):ylim(2),xlim(1):xlim(2),:));
-  if ncolors > 1,
-    grayim_curr = rgb2gray(imcurr);
-  else
-    grayim_curr = imcurr;
-    imcurr = repmat(imcurr,[1,1,3]);
-  end
-  if i == 1,
-    ims = repmat(imcurr,[1,1,1,nframes]);
-    gray_ims = repmat(grayim_curr,[1,1,nframes]);
-  else
-    ims(:,:,:,i) = imcurr;
-    gray_ims(:,:,i) = grayim_curr;
-  end
+imcurr = readframe(ts(1));
+imcurr = imcurr(ylim(1):ylim(2),xlim(1):xlim(2),:);
+imcurr = im2double(imcurr);
+if ncolors == 3,
+  gray_ims = rgb2gray(imcurr);
+else
+  gray_ims = imcurr;
+  imcurr = repmat(imcurr,[1,1,3]);
 end
 
 %% probability that each pixel is foreground
-dbkgd = permute(sum(abs(bsxfun(@minus,ims,bkgdim)),3),[1,2,4,3])/3;
+dbkgd = sum(abs(bsxfun(@minus,imcurr,bkgdim)),3)/3;
 pback = exp(-dbkgd/sigma_bkgd^2/2);
 pback = pback / max(pback(:));
 minv = exp(-fg_thresh/sigma_bkgd^2/2);
@@ -158,84 +152,80 @@ conn2 = sub2ind([nr,nc],rconn2,cconn2);
 
 %isdy = conn2 == conn1+1 | conn2 == conn1-1;
 %w = min(maxdist,-log(pfore)+dist_epsilon)/maxdist;
-w = reshape((pback+dist_epsilon)/(1+dist_epsilon),[np,nframes]);
+w = reshape((pback+dist_epsilon)/(1+dist_epsilon),[np,1]);
 
 %% assign pixels to flies
 
 % probability that each pixel belongs to each fly
-pfly = zeros(nr*nc,trx.nflies,nframes);
+pfly = zeros(nr*nc,trx.nflies,1);
 %allflies = [flygroups{:}];
 
-for ii = 1:nframes,
-  t = ts(ii);
-  i = t-ts(1)+1;
-  for fly = 1:trx.nflies,
-    if t > trx(fly).endframe || t < trx(fly).firstframe,
-      continue;
-    end
-    mu = [x(fly,i)-frac_a_back*a(fly,i)*cos(theta(fly,i)),...
-      y(fly,i)-frac_a_back*a(fly,i)*sin(theta(fly,i))];
-%     mu = [trx(fly).x(j)-frac_a_back*trx(fly).a(j)*cos(trx(fly).theta(j)),...
-%       trx(fly).y(j)-frac_a_back*trx(fly).a(j)*sin(trx(fly).theta(j))];
-    
-    s = sub2ind([nr,nc],min(nr,max(1,round(mu(2)))),...
-      min(nc,max(1,round(mu(1)))));
-    wcurr = w(conn2,ii);
-    S = axes2cov(a(fly,i),b(fly,i),theta(fly,i));
-    diffs = bsxfun(@minus,[cgrid(:),rgrid(:)],mu);
-    c = chol(S);
-    dmah = sum((diffs/c).^2',1); %#ok<UDIM>
-%     ratio = S(1,1)/S(2,2);
-%     rationorm = 2 / (ratio+1);
-%     wcurr(isdy) = wcurr(isdy)*ratio*rationorm;
-%     wcurr(~isdy) = wcurr(~isdy)*rationorm;
-    G = sparse(conn1,conn2,wcurr,np,np);
-    d = graphshortestpath(G,s,'Directed',true);
-    %pfly(:,fly,i) = exp(-d.^2/(trx(fly).a(j)*dist_epsilon)^2);
-    pfly(:,fly,ii) = exp(-(1-wmah)*d.^2/(a(fly,i)*dist_epsilon)^2 - wmah*dmah);
+ii = 1;
+t = ts(ii);
+i = t-ts(1)+1;
+for fly = 1:trx.nflies,
+  if t > trx(fly).endframe || t < trx(fly).firstframe,
+    continue;
   end
+  mu = [x(fly,i)-frac_a_back*a(fly,i)*cos(theta(fly,i)),...
+    y(fly,i)-frac_a_back*a(fly,i)*sin(theta(fly,i))];
+  %     mu = [trx(fly).x(j)-frac_a_back*trx(fly).a(j)*cos(trx(fly).theta(j)),...
+  %       trx(fly).y(j)-frac_a_back*trx(fly).a(j)*sin(trx(fly).theta(j))];
+  
+  s = sub2ind([nr,nc],min(nr,max(1,round(mu(2)))),...
+    min(nc,max(1,round(mu(1)))));
+  wcurr = w(conn2,ii);
+  S = axes2cov(a(fly,i),b(fly,i),theta(fly,i));
+  diffs = bsxfun(@minus,[cgrid(:),rgrid(:)],mu);
+  c = chol(S);
+  dmah = sum((diffs/c).^2',1); %#ok<UDIM>
+  %     ratio = S(1,1)/S(2,2);
+  %     rationorm = 2 / (ratio+1);
+  %     wcurr(isdy) = wcurr(isdy)*ratio*rationorm;
+  %     wcurr(~isdy) = wcurr(~isdy)*rationorm;
+  G = sparse(conn1,conn2,wcurr,np,np);
+  d = graphshortestpath(G,s,'Directed',true);
+  %pfly(:,fly,i) = exp(-d.^2/(trx(fly).a(j)*dist_epsilon)^2);
+  pfly(:,fly,ii) = exp(-(1-wmah)*d.^2/(a(fly,i)*dist_epsilon)^2 - wmah*dmah);
 end
+
 Z = sum(pfly,2);
 Z(Z==0) = 1;
 pfly = bsxfun(@rdivide,pfly,Z);
 
-gray_ims = reshape(gray_ims,[nr*nc,nframes]);
-pfore = reshape(pfore,[nr*nc,nframes]);
-psomefly = reshape(1-prod(1-pfly(:,[flygroups{:}],:),2),[nr*nc,nframes]);
+gray_ims = reshape(gray_ims,[nr*nc,1]);
+pfore = reshape(pfore,[nr*nc,1]);
+psomefly = reshape(1-prod(1-pfly(:,[flygroups{:}],:),2),[nr*nc,1]);
 pforefly = pfore.*psomefly;
 %pfore_any = 1 - prod(1-pfore.*psomefly,2);
 
 %% color the images
 
-im = zeros(nr*nc,3,nframes);
+im = zeros(nr*nc,3,1);
+i = 1;
+imcurr = zeros(nr*nc,3);
 if flipim,
-  if intensityoff > 0,
-    gray_ims = intensityoff+(1 - gray_ims)*(1-intensityoff);
-  end
+  gray_ims = 1-gray_ims;
 end
-for i = 1:nframes,
-  imcurr = zeros(nr*nc,3);
-  for flygroupi = 1:nflygroups,
-    flygroup = flygroups{flygroupi};
-    pcurr = 1 - prod(1-pfly(:,flygroup,i),2);
-    colorcurr = colors(i,:,flygroupi);
-    imcurr = imcurr + bsxfun(@times,colorcurr,pcurr);
-  end
-  if ~isempty(solidbkgdcolor),
-    imcurr = bsxfun(@times,imcurr,gray_ims(:,i).*pforefly(:,i)) + ...
-      bsxfun(@times,1-pforefly(:,i),repmat(reshape(solidbkgdcolor,[1,3]),[nr*nc,1]));
-  else
-    imcurr = bsxfun(@plus,bsxfun(@times,imcurr,gray_ims(:,i).*pforefly(:,i)),...
-      (1-pforefly(:,i)).*reshape(bkgdim,[nr*nc,1]));
-  end
-  im(:,:,i) = imcurr;
+for flygroupi = 1:nflygroups,
+  flygroup = flygroups{flygroupi};
+  pcurr = 1 - prod(1-pfly(:,flygroup,i),2);
+  colorcurr = colors(i,:,flygroupi);
+  imcurr = imcurr + bsxfun(@times,colorcurr,pcurr);
 end
-finalim = reshape(im,[nr,nc,3,nframes]);
+if ~isempty(solidbkgdcolor),
+  imcurr = bsxfun(@plus,gray_ims(:,i).*pforefly(:,i),...
+    bsxfun(@times,1-pforefly(:,i),repmat(reshape(solidbkgdcolor,[1,3]),[nr*nc,1])));
+else
+  imcurr = bsxfun(@plus,gray_ims(:,i).*pforefly(:,i),...
+    (1-pforefly(:,i)).*reshape(bkgdim,[nr*nc,1]));
+end
+im(:,:,i) = imcurr;
+finalim = reshape(im,[nr,nc,3]);
 
-final_pforefly = reshape(pforefly,[nr,nc,nframes]);
+final_pforefly = reshape(pforefly,[nr,nc]);
 
-
-%%
+%% plot
 
 if isempty(hfig),
   hfig = figure;
@@ -243,7 +233,10 @@ end
 
 figure(hfig);
 clf;
-hax = createsubplots(1,numel(ts),.01);
+if ~isempty(figpos),
+  set(hfig,'Units','pixels','Position',figpos);
+end
+hax = gca;
 
 idxpos = predictions{mainfly}(ts(1):ts(end));
 if isfield(trx,'timestamps'),
@@ -255,33 +248,37 @@ else
     timestamps(ts(1)+trx(mainfly).off);
 end
 
-for i = 1:numel(ts),
-  t = ts(i);
-  image(finalim(:,:,:,i),'Parent',hax(i));
-  axis(hax(i),'image','off');
-  hold(hax(i),'on');
-  plot(hax(i),x(mainfly,:),y(mainfly,:),'k.-');
-  plot(hax(i),x(mainfly,idxpos),y(mainfly,idxpos),'.','Color',colorpos);
-  plot(hax(i),x(mainfly,~idxpos),y(mainfly,~idxpos),'.','Color',colorneg);
-  if predictions{mainfly}(t),
-    colorcurr = colorpos;
-  else
-    colorcurr = colorneg;
-  end
-  plot(hax(i),x(mainfly,t-ts(1)+1),y(mainfly,t-ts(1)+1),'o','color',colorcurr,'markerfacecolor',colorcurr);
-  text(1,1,sprintf('t = %.2fs',timestamps(i)),'HorizontalAlignment','left','VerticalAlignment','top','Parent',hax(i));
+i = 1;
+t = ts(i);
+image(finalim(:,:,:,i),'Parent',hax(i));
+axis(hax(i),'image','off');
+hold(hax(i),'on');
+plot(hax(i),x(mainfly,:),y(mainfly,:),'k.-');
+plot(hax(i),x(mainfly,idxpos),y(mainfly,idxpos),'.','Color',colorpos);
+plot(hax(i),x(mainfly,~idxpos),y(mainfly,~idxpos),'.','Color',colorneg);
+if predictions{mainfly}(t),
+  colorcurr = colorpos;
+else
+  colorcurr = colorneg;
+end
+plot(hax(i),x(mainfly,t-ts(1)+1),y(mainfly,t-ts(1)+1),'o','color',colorcurr,'markerfacecolor',colorcurr);
+text(1,1,sprintf('t = %.2fs',timestamps(i)),'HorizontalAlignment','left','VerticalAlignment','top','Parent',hax(i));
+
+hell = nan(1,nframes);
+for i = 1:nframes,
+  j = ts(i)-ts(1)+1;
+  hell(i) = plot(xspine(mainfly,:,j),yspine(mainfly,:,j));
+  set(hell(i),'LineWidth',2,'Color',colors(i,:,1));
 end
 
-axes(hax(end));
-colormap(colors_all(:,:,1)*.75);
-tlim = timestamps(end)-timestamps(1);
+colormap(colors_all(:,:,1));
+tlim = timestamps(end);
 set(hax,'CLim',[0,tlim]);
 hcb = colorbar('East');
 tticks = [0,tlim];
 realylim = get(hcb,'YLim');
 yticks = realylim(1)+(tticks/tlim)*(realylim(2)-realylim(1));
 set(hcb,'YTick',yticks,'YTickLabel',tticks');
-
 
 if isempty(figpos),
   truesize;
