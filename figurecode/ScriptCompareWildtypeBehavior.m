@@ -44,7 +44,7 @@ meanfractime = nan(nexps,nbehaviors);
 meanfractime_male = nan(nexps,nbehaviors);
 meanfractime_female = nan(nexps,nbehaviors);
 
-for expi = expi:nexps,
+for expi = 1:nexps,
   
   % current experiment
   try
