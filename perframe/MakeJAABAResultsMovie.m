@@ -1,5 +1,10 @@
 function MakeJAABAResultsMovie(expdir,classifierparamsfile,varargin)
 
+%% parse parameters
+
+[framestarts,nframesperseg,fracstarts,fracperseg] = myparse(varargin,'framestarts',[],...
+  'nframesperseg',[],'fracstarts',0,'fracperseg',1/60);
+
 classifierparams = ReadClassifierParamsFile(classifierparamsfile);
 nbehaviors = numel(classifierparams);
 
@@ -17,16 +22,12 @@ end
 
 trx.AddExpDir(expdir);
 
+%% for video reading
+
+[readframe,nframes,fid,headerinfo] = get_readframe_fcn(trx.movienames{1});
+
 %% 
 
-%% create JData structures
+%% clean up
 
-JData = cell(1,nbehaviors);
-for i = 1:nbehaviors,
-  JData{i} = JLabelData(classifierparams(i).configfile,...
-    'setstatusfn',@fprintf_wrapper,'clearstatusfn',@() fprintf('Done.\n'));
-  JData{i}.SetClassifierFileName(classifierparams(i).classifierfile,false);
-  JData{i}.AddExpDirNoPreload(expdir);
-end
-
-%%  
+fclose(fid);
