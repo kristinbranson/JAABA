@@ -9,9 +9,10 @@ ierrorcolor = [0,0,0];
 errorcolor = [.3,.3,.3];
 chancecolor = [.7,.7,.7];
 outfigdir = '.';
+fracframes = logspace(-2.25,0,20);
 
 [hfigs,figpos,ifpcolor,fpcolor,ifncolor,fncolor,...
-  ierrorcolor,errorcolor,chancecolor,outfigdir] = myparse(varargin,'hfigs',[],...
+  ierrorcolor,errorcolor,chancecolor,outfigdir,fracframes] = myparse(varargin,'hfigs',[],...
   'figpos',[95 550 1246 443],...
   'ifpcolor',ifpcolor,...
   'fpcolor',fpcolor,...
@@ -20,7 +21,9 @@ outfigdir = '.';
   'ierrorcolor',ierrorcolor,...
   'errorcolor',errorcolor,...
   'chancecolor',chancecolor,...
-  'outfigdir',outfigdir);
+  'outfigdir',outfigdir,...
+  'fracframes',fracframes);
+fracframes = sort(fracframes);
 
 if ~exist(outfigdir,'dir'),
   mkdir(outfigdir);
@@ -48,17 +51,68 @@ end
 
 %% train on increasing amounts of training data
 
+% find bouts of training data
 islabeled = (Jtrain.windowdata.labelidx_new ~= 0) & (Jtrain.windowdata.labelidx_imp);
 label_timestamp = Jtrain.GetLabelTimestamps(Jtrain.windowdata.exp(islabeled),Jtrain.windowdata.flies(islabeled,:),Jtrain.windowdata.t(islabeled));
-[unique_timestamps] = unique(label_timestamp);
+[unique_timestamps,~,timestampidx] = unique(label_timestamp);
+if min(unique_timestamps) == 0,
+  error('timestamp = 0!!\n');
+end
+
 ntrain_bouts = numel(unique_timestamps);
 
-nframestrain = nan(1,ntrain_bouts);
+% check if there is a unique time stamp for each bout
+idxlabeled = find(islabeled);
+for i = 1:ntrain_bouts,
+  idxcurr = idxlabeled(timestampidx==i);
+  if numel(unique(Jtrain.windowdata.exp(idxcurr))) > 1 || ...
+      numel(unique(Jtrain.windowdata.flies(idxcurr))) > 1,
+    error('Same timestamp for different experiments of flies');
+  end
+%   ts = sort(Jtrain.windowdata.t(idxcurr));
+%   if any(diff(ts) > 1),
+%     warning('Multiple bouts for same timestamp');
+%   end
+end
 
-crosserror = nan(4,3,ntrain_bouts);
-for bouti = 1:ntrain_bouts,
-  
-  fprintf('bout %d / %d...\n',bouti,ntrain_bouts);
+% choose limits on frames based on fracframes
+nframes_train_total = nnz(islabeled);
+frame_lims = fracframes*nframes_train_total;
+nframes_per_bout = nan(1,ntrain_bouts);
+for i = 1:ntrain_bouts,
+  nframes_per_bout(i) = nnz(label_timestamp == unique_timestamps(i));
+end
+nframestrain = cumsum(nframes_per_bout);
+
+% choose the closest bout end to frame limits
+bouti_lims = [];
+for i = 1:numel(fracframes),  
+  [~,bouti] = min(abs(frame_lims(i)-nframestrain));
+  if i > 1 && bouti <= lastbouti && frame_lims(i) >= nframestrain(bouti) && bouti < ntrain_bouts,
+    bouti = bouti + 1;
+  end
+  if i > 1 && bouti <= lastbouti,
+    continue;
+  end
+  bouti_lims(end+1) = bouti; %#ok<AGROW>
+  lastbouti = bouti;
+end
+
+niters = numel(bouti_lims);
+
+
+nframestrain = nan(1,niters);
+
+crosserror = nan(4,3,niters);
+for i = 1:niters,
+
+  bouti = bouti_lims(i);
+  if bouti == ntrain_bouts,
+    nframestrain(i) = nnz(label_timestamp);
+  else
+    nframestrain(i) = nnz(label_timestamp < unique_timestamps(bouti+1));
+  end
+  fprintf('Iteration %d / %d, training on %d / %d frames...\n',i,niters,nframestrain(i),nframes_train_total);
   
   if bouti == ntrain_bouts,
     timerange = [];
@@ -73,23 +127,18 @@ for bouti = 1:ntrain_bouts,
   Jgt.windowdata.scoreNorm = 1;
   tmp = Jgt.GetGTPerformance();
   
-  crosserror(:,:,bouti) = tmp.numbers;
-  if bouti == ntrain_bouts,
-    nframestrain(bouti) = nnz(label_timestamp);
-  else
-    nframestrain(bouti) = nnz(label_timestamp < unique_timestamps(bouti+1));
-  end
+  crosserror(:,:,i) = tmp.numbers;
   
-  if mod(bouti,10) == 0,
+  if mod(i,10) == 0,
     save('tmp.mat','crosserror','nframestrain','bouti');
   end
   
 end
 
-false_positive_important_rate = reshape(crosserror(3,1,:) ./ (crosserror(3,1,:) + crosserror(3,3,:)),[1,ntrain_bouts]);
-false_positive_rate = reshape(crosserror(4,1,:) ./ (crosserror(4,1,:) + crosserror(4,3,:)),[1,ntrain_bouts]);
-false_negative_important_rate = reshape(crosserror(1,3,:) ./ (crosserror(1,3,:) + crosserror(1,1,:)),[1,ntrain_bouts]);
-false_negative_rate = reshape(crosserror(2,3,:) ./ (crosserror(2,3,:) + crosserror(2,1,:)),[1,ntrain_bouts]);
+false_positive_important_rate = reshape(crosserror(3,1,:) ./ (crosserror(3,1,:) + crosserror(3,3,:)),[1,niters]);
+false_positive_rate = reshape(crosserror(4,1,:) ./ (crosserror(4,1,:) + crosserror(4,3,:)),[1,niters]);
+false_negative_important_rate = reshape(crosserror(1,3,:) ./ (crosserror(1,3,:) + crosserror(1,1,:)),[1,niters]);
+false_negative_rate = reshape(crosserror(2,3,:) ./ (crosserror(2,3,:) + crosserror(2,1,:)),[1,niters]);
 
 important_error_rate = (false_positive_important_rate+false_negative_important_rate)/2;
 unimportant_error_rate = (false_positive_rate+false_negative_rate)/2;
@@ -129,7 +178,7 @@ ylim = [0,1];
 
 legends = {};
 
-plot(nframestrain([1,ntrain_bouts]),[.5,.5],'--','color',chancecolor);
+plot(nframestrain([1,niters]),[.5,.5],'--','color',chancecolor);
 legends{end+1} = 'Chance';
 
 hold on;
@@ -158,7 +207,7 @@ legend(legends);
 xlabel('Training set size (frames)');
 ylabel('Error rate');
 
-figfilenames{1} = fullfile(outfigdir,sprintf('GroundTruthErrorRateDetails_%s_%s',behavior,ds));
+figfilenames{1} = fullfile(outfigdir,sprintf('GroundTruthErrorRateDetails1_%s_%s',behavior,ds));
 SaveFigLotsOfWays(hfig,figfilenames{1});
 
 %% only plot the error, not false positives and false negatives
@@ -175,7 +224,7 @@ set(hfig,'Units','pixels','Position',[95 550 1246 443]);
 
 legends = {};
 
-plot(nframestrain([1,ntrain_bouts]),[.5,.5],'--','color',chancecolor);
+plot(nframestrain([1,niters]),[.5,.5],'--','color',chancecolor);
 legends{end+1} = 'Chance';
 
 hold on;
@@ -192,6 +241,6 @@ legend(legends);
 xlabel('Training set size (frames)');
 ylabel('Error rate');
 
-figfilenames{2} = fullfile(outfigdir,sprintf('GroundTruthErrorRate_%s_%s',behavior,ds));
+figfilenames{2} = fullfile(outfigdir,sprintf('GroundTruthErrorRate1_%s_%s',behavior,ds));
 
 SaveFigLotsOfWays(hfig,figfilenames{2});
