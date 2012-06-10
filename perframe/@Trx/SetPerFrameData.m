@@ -38,7 +38,7 @@ end
 obj.FreeDataCache(ndataadd);
 
 obj.nfnscached(n) = obj.nfnscached(n) + 1;
-j = obj.nfnscached;
+j = obj.nfnscached(n);
 %fprintf('Incremented nfnscached(%d) to %d for %s\n',n,obj.nfnscached(n),fn);
 obj.fnscached{n}{j} = fn;
 obj.datacached{n}{j} = cell(1,numel(flies));
