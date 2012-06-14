@@ -22,7 +22,7 @@ function varargout = PlayJAABAResults(varargin)
 
 % Edit the above text to modify the response to help PlayJAABAResults
 
-% Last Modified by GUIDE v2.5 09-Jun-2012 21:45:33
+% Last Modified by GUIDE v2.5 10-Jun-2012 21:47:30
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -820,3 +820,21 @@ for i = 1:numel(hchil),
   end
 end
 set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
+
+
+% --------------------------------------------------------------------
+function menu_switchtarget_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_switchtarget (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+s = cellstr(num2str((1:handles.nflies)'));
+[sel,ok] = listdlg('ListString',s,'SelectionMode','single',...
+  'InitialValue',handles.target,'Name','Switch to target',...
+  'PromptString','Switch to target: ');
+if ~ok,
+  return;
+end
+handles.target = sel;
+handles = SetCurrentFly(handles);
+guidata(hObject,handles);
