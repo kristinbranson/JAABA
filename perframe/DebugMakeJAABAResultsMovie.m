@@ -26,7 +26,7 @@ classifierparamsfile = '../classifierparams.txt';
 
 nintervals = 10;
 nframesperseg = 500;
-keyword = 'GroundTruthBDP';
+keyword = 'GroundTruthBDP_2K';
 timestamp = datestr(now,'yyyymmddTHHMMSS');
 figpos = [100,100,1280,720];
 forcecompute = false;
@@ -96,11 +96,13 @@ end
 
 %% choose what to show
 
-behaviorsuse = {'Chase','Jump','WingGrooming','Righting'};
+behaviorsuse = {'Chase','Jump','WingGrooming','Righting','Backup','PivotTail'};
+weightingscheme = 'isbout';
 
 [targets,expdirs_chosen,framestarts,nframesperseg] = ...
   ChooseExampleIntervals(expdirs,classifierparamsfile,...
-  'nintervals',nintervals,'nframesperseg',nframesperseg);
+  'nintervals',nintervals,'nframesperseg',nframesperseg,...
+  'weightingscheme',weightingscheme);
 
 % sort based on expdir, then framestart
 maxframestart = max(framestarts);
@@ -126,3 +128,21 @@ for i = 1:nintervals,
     'aviname',aviname,...
     'figpos',figpos);
 end
+
+%%
+
+expi = 2;
+expdir = expdirs{expi};
+avibasename = sprintf('JAABAResultsMovie_%s_%s',keyword,timestamp);
+targets = [9,18,3,17];
+framestarts = [9646,10500,14201,14650];
+
+[~,experiment_name] = fileparts(expdirs_chosen{i});
+aviname = sprintf('%s_%02d_%s.avi',avibasename,i,experiment_name);
+MakeJAABAResultsMovie(expdir,classifierparamsfile,...
+  'nframesperseg',nframesperseg,...
+  'targets',targets,...
+  'framestarts',framestarts,...
+  'aviname',aviname,...
+  'figpos',figpos,...
+  'printnone',false);
