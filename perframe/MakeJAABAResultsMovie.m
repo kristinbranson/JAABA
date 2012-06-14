@@ -54,8 +54,8 @@ usemencoder = true;
   'hfig',1,...
   'pxwidthradius',[],...
   'pxheightradius',[],...
-  'awidthradius',4,...
-  'aheightradius',4,...
+  'awidthradius',3,...
+  'aheightradius',3,...
   'frac_bottom',frac_bottom,...
   'trx_linewidth',trx_linewidth,...
   'target_linewidth',target_linewidth,...
@@ -129,11 +129,12 @@ if isfield(classifierparams,'perframe') && isfield(classifierparams(1).perframe,
   trx.SetLandmarkParams(classifierparams(1).perframe.landmark_params);
 end  
 
-trx.AddExpDir(expdir);
+trx.AddExpDir(expdir,'openmovie',false);
 
 %% for video reading
 
-[readframe,~,fid,headerinfo] = get_readframe_fcn(trx.movienames{1});
+moviename = fullfile(expdir,trx.moviefilestr);
+[readframe,~,fid,headerinfo] = get_readframe_fcn(moviename);
 
 %% choose frames, target to show
 
@@ -283,7 +284,7 @@ pxheightradius1 = min((pxwidthradius)*mainpos(4) / mainpos(3),(headerinfo.nr-1)/
 pxwidthradius1 = min((pxheightradius)*mainpos(3) / mainpos(4),(headerinfo.nc-1)/2);
 pxheightradius = max(pxheightradius1,pxheightradius);
 pxwidthradius = max(pxwidthradius1,pxwidthradius);
-ax = ResetAxis(headerinfo.nc/2,headerinfo.nr/2,i,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
+ax = ResetAxis(headerinfo.nc/2,headerinfo.nr/2,1,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
 
 hinfo = text(ax(1),ax(4),'','Parent',haxmain,'Color',textcolor,...
   'FontUnits','pixels','FontSize',fontsize,...
@@ -296,11 +297,11 @@ axis(haxmain,ax);
 hbar = nan(1,nbehaviors);
 hbarback = nan(1,nbehaviors);
 for i = 1:nbehaviors,
-  hbarback(i) = patch(i+bar_width/2*[-1,1,1,-1,-1],zeros(1,5)+.1,barbackcolor,'EdgeColor','none');
+  hbarback(i) = patch(i+bar_width/2*[-1,1,1,-1,-1],zeros(1,5)+.1,barbackcolor,'EdgeColor','none','Parent',haxbottom);
   if i == 1,
     hold(haxbottom,'on');
   end
-  hbar(i) = patch(i+bar_width/2*[-1,1,1,-1,-1],zeros(1,5)+.1,behavior_colors(i,:),'EdgeColor','none');
+  hbar(i) = patch(i+bar_width/2*[-1,1,1,-1,-1],zeros(1,5)+.1,behavior_colors(i,:),'EdgeColor','none','Parent',haxbottom);
 end
 htext = text(nan,nan,'','Parent',haxmain,'Color',textcolor,...
   'FontUnits','pixels','FontSize',fontsize);
