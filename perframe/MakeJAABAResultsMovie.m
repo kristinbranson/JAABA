@@ -325,7 +325,30 @@ for segi = 1:numel(framestarts),
   y = trx(target).y;
   a = trx(target).a;
   b = trx(target).b;
+  sex = trx(target).sex;
   theta = trx(target).theta;
+  % try to make sector somewhat continuous
+  fil = [0.000263865082737   0.106450771973592   0.786570725887342   0.106450771973592   0.000263865082737];
+  fil = fil / sum(fil(:));
+  smooththeta = imfilter(theta,fil,'same','replicate');  
+  sector = floor(modrange((smooththeta-pi/8),0,2*pi)/pi*4)+1;
+  % close holes
+  if numel(sector) > 2,
+    for i = 1:numel(sector),
+      if ((i==1) || (i==numel(sector)) || (sector(i-1)==sector(i+1))) && ...
+          (i==1 || sector(i)~=sector(i-1)) && ...
+          (i==numel(sector) || sector(i)~=sector(i+1)) && ...
+          (i==1 || abs(modrange(theta(i)-theta(i-1),-pi,pi))<pi/12) && ...
+          (i==numel(sector) || abs(modrange(theta(i)-theta(i+1),-pi,pi))<pi/12),
+        if i == 1,
+          sector(i) = sector(i+1);
+        else
+          sector(i) = sector(i-1);
+        end
+      end
+    end
+  end
+
   scores = nan(nbehaviors,nframes_curr);
   for behaviori = 1:nbehaviors,
     scores(behaviori,:) = min(1,max(-1,trx(target).(scorefns{behaviori})/score_norms(behaviori)));
@@ -359,7 +382,8 @@ for segi = 1:numel(framestarts),
     set(htarget,'Color',colortmp);
     
     tailpos = [x(i)-(pxback+2*a(i))*cos(theta(i)),y(i)-(pxback+2*a(i))*sin(theta(i))];      
-    sectori = floor(modrange((theta(i)-pi/8),0,2*pi)/pi*4)+1;
+    sectori = sector(i);
+    % floor(modrange((smooththeta(i)-pi/8),0,2*pi)/pi*4)+1;
     
     if ismember(sectori,[1,7,8]),
       halign = 'right';
@@ -394,7 +418,7 @@ for segi = 1:numel(framestarts),
       'HorizontalAlignment',halign,...
       'VerticalAlignment',valign);
     
-    set(hinfo,'String',sprintf('Target %d, Frame %d',target,t));
+    set(hinfo,'String',sprintf('Target %d (%s), Frame %d',target,sex{i},t));
     
     outofbounds = x(i)-pxborder < ax(1) || ...
       x(i)+pxborder > ax(2) || ...
@@ -433,6 +457,20 @@ for segi = 1:numel(framestarts),
       
       isfirstframe = false;
     end
+
+    % pause for a few frames at the start of a new segment
+    if t == framestarts(segi) && segi > 1,
+      set(hinfo,'Color',[.5,0,0],'FontWeight','bold');
+      fr = getframe(hfig);
+      for pausei = 1:fps,
+        if useVideoWriter,
+          writeVideo(aviobj,fr);
+        else
+          aviobj = addframe(aviobj,fr);
+        end
+      end
+      set(hinfo,'Color',textcolor,'FontWeight','normal');
+    end
     
     fr = getframe(hfig);
     height = size(fr.cdata,1);
@@ -442,6 +480,7 @@ for segi = 1:numel(framestarts),
     else
       aviobj = addframe(aviobj,fr);
     end
+    
     
     set(hfig,'Position',figpos);
     
