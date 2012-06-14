@@ -181,6 +181,8 @@ for fly = 1:trx.nflies,
       w0{fly} = sumlogsumscore;
     case 'lognbouts',  
       w0{fly} = log(nbouts{fly}+weightlogoff);
+    case 'isbout',
+      w0{fly} = double(nbouts{fly} >= 1);
   end
 end
 
