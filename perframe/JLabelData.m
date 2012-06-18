@@ -1914,6 +1914,7 @@ classdef JLabelData < handle
           
         else
           obj.RemoveExpDirs(obj.nexps);
+          return;
         end
       end
       
