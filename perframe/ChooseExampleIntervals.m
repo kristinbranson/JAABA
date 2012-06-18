@@ -67,8 +67,8 @@ end
 
 %% create trx structure
 
-global STORED_TRX;
-if isempty(STORED_TRX),
+%global STORED_TRX;
+%if isempty(STORED_TRX),
 
 trx = Trx('trxfilestr',classifierparams(1).file.trxfilename,...
   'moviefilestr',classifierparams(1).file.moviefilename,...
@@ -84,10 +84,10 @@ for i = 1:nexps,
   trx.AddExpDir(expdirs{i},'openmovie',false);
 end
 
-STORED_TRX = trx;
-else
-  trx = STORED_TRX;
-end
+% STORED_TRX = trx;
+% else
+%   trx = STORED_TRX;
+% end
 
 %% process scores
 
@@ -183,12 +183,18 @@ for fly = 1:trx.nflies,
       w0{fly} = log(nbouts{fly}+weightlogoff);
     case 'isbout',
       w0{fly} = double(nbouts{fly} >= 1);
+    case 'none',
+      w0{fly} = ones(size(nbouts{fly}));
+    case 'random',
+      w0{fly} = rand(size(nbouts{fly}));
   end
 end
 
 % make sure weights are non-negative
-tmp = min(min(cell2mat(w0),[],1),[],2);
-w0 = cellfun(@(x) x-tmp,w0,'UniformOutput',false);
+if ~strcmpi(weightingscheme,'none'),
+  tmp = min(min(cell2mat(w0),[],1),[],2);
+  w0 = cellfun(@(x) x-tmp,w0,'UniformOutput',false);
+end
 % 
 % % normalize per-behavior
 % Z = zeros(nbehaviors,1);

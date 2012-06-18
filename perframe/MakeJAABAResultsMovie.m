@@ -47,7 +47,8 @@ usemencoder = true;
   nintervals,...
   useVideoWriter,...
   avifileTempDataFile,aviname,fps,...
-  usemencoder] = ...
+  usemencoder,titlepagetext,...
+  titlepausetime] = ...
   myparse(varargin,'framestarts',[],'nframesperseg',[],...
   'fracstarts',[],'fracperseg',1/60,...
   'targets',[],...
@@ -83,7 +84,9 @@ usemencoder = true;
   'avifileTempDataFile','',...
   'aviname',aviname,...
   'fps',fps,...
-  'usemencoder',usemencoder);
+  'usemencoder',usemencoder,...
+  'titlepagetext',{},...
+  'titlepausetime',2);
 
 classifierparams = ReadClassifierParamsFile(classifierparamsfile);
 nbehaviors = numel(classifierparams);
@@ -315,6 +318,11 @@ set(hfig,'Color','k');
 
 isfirstframe = true;
 
+if ~isempty(titlepagetext),
+  titlepagetext2 = sprintf(', %s',titlepagetext{:});
+end
+
+
 for segi = 1:numel(framestarts),
   
   % data for this target
@@ -417,8 +425,13 @@ for segi = 1:numel(framestarts),
       'Position',tailpos,...
       'HorizontalAlignment',halign,...
       'VerticalAlignment',valign);
-    
-    set(hinfo,'String',sprintf('Target %d (%s), Frame %d',target,sex{i},t));
+
+    ss = sprintf('Target %d (%s), Frame %d',target,sex{i},t);
+    if ~isempty(titlepagetext),
+      ss = [ss,titlepagetext2];
+    end
+
+    set(hinfo,'String',ss)
     
     outofbounds = x(i)-pxborder < ax(1) || ...
       x(i)+pxborder > ax(2) || ...
@@ -455,6 +468,25 @@ for segi = 1:numel(framestarts),
         end
       end     
       
+      if ~isempty(titlepagetext),
+        set(htext,'Visible','off');
+        htitle = text(mean(ax(1:2)),mean(ax(3:4)),...
+          titlepagetext,'HorizontalAlignment','center',...
+          'VerticalAlignment','middle',...
+          'Color',[.5,0,0],'Parent',haxmain,...
+          'FontSize',40,'FontWeight','bold');
+        fr = getframe(hfig);
+        for pausei = 1:fps*titlepausetime,
+          if useVideoWriter,
+            writeVideo(aviobj,fr);
+          else
+            aviobj = addframe(aviobj,fr);
+          end
+        end
+        set(htext,'Visible','on');
+        delete(htitle);
+      end
+      
       isfirstframe = false;
     end
 
@@ -487,10 +519,22 @@ for segi = 1:numel(framestarts),
   end
 end
 
+
+%% clean up
+  
+if useVideoWriter,
+  close(aviobj);
+else
+  aviobj = close(aviobj); %#ok<NASGU>
+end
+
+fclose(fid);
+
 %% compress using mencoder
 
 if isunix && usemencoder,
-  tmpfile = [aviname,'.tmp'];
+  [path,base,ext] = fileparts(aviname);
+  tmpfile = fullfile(path,[base,'_tmp',ext]);
   newheight = 4*ceil(height/4);
   newwidth = 4*ceil(width/4);
   % subtitles are upside down, so encode with subtitles and flip, then flip
@@ -504,16 +548,6 @@ if isunix && usemencoder,
   unix(sprintf('mv %s %s',tmpfile,aviname));
 end
 
-
-%% clean up
-  
-if useVideoWriter,
-  close(aviobj);
-else
-  aviobj = close(aviobj); %#ok<NASGU>
-end
-
-fclose(fid);
 
 function ax = ResetAxis(x,y,i,nr,nc,pxwidthradius,pxheightradius,pxborder)
 
