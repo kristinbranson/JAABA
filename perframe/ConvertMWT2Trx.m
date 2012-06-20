@@ -16,11 +16,12 @@ makesoftlink = true;
 perframedict = {'x','x_mm'
   'y','y_mm'
   'area','area_mm'};
+trxfns = {'x','y','a','b','theta','x_mm','y_mm','a_mm','b_mm','theta_mm'};
 
 [~,experiment_name] = myfileparts(expdir);
 
 [blobsext,datext,spineext,trxfilestr,perframedirstr,...
-  DEBUG,makesoftlink,perframedict] = ...
+  DEBUG,makesoftlink,perframedict,trxfns] = ...
   myparse(varargin,...
   'blobsext',blobsext,...
   'datext',datext,...
@@ -29,7 +30,8 @@ perframedict = {'x','x_mm'
   'perframedirstr',perframedirstr,...
   'debug',DEBUG,...
   'makesoftlink',makesoftlink,...
-  'perframedict',perframedict);
+  'perframedict',perframedict,...
+  'trxfns',trxfns);
 
 %% read in blobs files
 
@@ -101,10 +103,10 @@ else
     if maxerr > MAXTIMESTAMPERR,
       error('timestamps don''t match up for spine');
     end
-    trx(j).xspine = nan(size(datacurr(jj).xspine,1),trx(j).nframes);
-    trx(j).yspine = nan(size(datacurr(jj).xspine,1),trx(j).nframes);
-    trx(j).xspine(:,f0:f1) = datacurr(jj).xspine;
-    trx(j).yspine(:,f0:f1) = datacurr(jj).yspine;
+    trx(j).xspine_mm = nan(size(datacurr(jj).xspine,1),trx(j).nframes);
+    trx(j).yspine_mm = nan(size(datacurr(jj).xspine,1),trx(j).nframes);
+    trx(j).xspine_mm(:,f0:f1) = datacurr(jj).xspine;
+    trx(j).yspine_mm(:,f0:f1) = datacurr(jj).yspine;
   end
   
 end
@@ -114,7 +116,7 @@ end
 % find dat files
 files = dir(fullfile(expdir,[experiment_name,'*.',datext]));
 datnames = {};
-perframefns = {};
+perframefns = cell(0,2);
 
 for i = 1:numel(files),
   match = regexp(files(i).name,['\.(.+)\.',datext,'$'],'tokens','once');
@@ -127,8 +129,12 @@ for i = 1:numel(files),
   if ~isempty(j),
     fn = perframedict{j,2};
   end
-  perframefn = ['perframe_',fn];
-  perframefns{end+1} = fn; %#ok<AGROW>
+  if ismember(fn,trxfns),
+    perframefn = fn;
+  else
+    perframefn = ['perframe_',fn];
+  end
+  perframefns(end+1,:) = {fn,perframefn}; %#ok<AGROW>
   
   fprintf('Reading in dat file %s...\n',datnames{end});
   
@@ -171,8 +177,8 @@ end
 
 
 % replace first frames with nans
-for i = 1:numel(perframefns),
-  fn = ['perframe_',perframefns{i}];
+for i = 1:size(perframefns,1),
+  fn = perframefns{i,2};
   off = inf;
   for j = 1:numel(trx),
     if isempty(trx(j).(fn)),
@@ -197,8 +203,8 @@ for i = 1:numel(perframefns),
 end
 
 % replace last frames with nans
-for i = 1:numel(perframefns),
-  fn = ['perframe_',perframefns{i}];
+for i = 1:size(perframefns,1),
+  fn = perframefns{i,2};
   off = inf;
   for j = 1:numel(trx),
     if isempty(trx(j).(fn)),
@@ -224,14 +230,20 @@ end
 
 %% compute pxpermm
 
-pxpermm = nanmean([trx.x trx.y] ./ [trx.perframe_x_mm trx.perframe_y_mm]);
+pxpermm = nanmean([trx.x trx.y] ./ [trx.x_mm trx.y_mm]);
 for i = 1:numel(trx),
   trx(i).pxpermm = pxpermm;
-%   trx(i).x_mm = trx(i).x / pxpermm;
-%   trx(i).y_mm = trx(i).y / pxpermm;
-%   trx(i).a_mm = trx(i).a / pxpermm;
-%   trx(i).b_mm = trx(i).b / pxpermm;
-%   trx(i).theta_mm = trx(i).theta;
+  if ~isfield(trx,'x_mm'),
+    trx(i).x_mm = trx(i).x / pxpermm;
+  end
+  if ~isfield(trx,'y_mm'),
+    trx(i).y_mm = trx(i).y / pxpermm;
+  end
+  trx(i).a_mm = trx(i).a / pxpermm;
+  trx(i).b_mm = trx(i).b / pxpermm;
+  trx(i).theta_mm = trx(i).theta;
+  trx(i).xspine = trx(i).xspine * pxpermm;
+  trx(i).yspine = trx(i).xspine * pxpermm;
 end
 
 
@@ -239,6 +251,7 @@ end
 
 if DEBUG,
 
+ncontours = numel(trx);
 nframes = numel(timestamps);
 colors = jet(ncontours)*.7;
 for t = 1:nframes,
@@ -282,33 +295,30 @@ end
 
 %% save the per-frame data
 
-for i = 1:numel(perframefns),
-  fn = perframefns{i};
-  perframefn = ['perframe_',fn];
-  data = {trx.(perframefn)}; %#ok<NASGU>
-  % units not set yet
-  units = parseunits('unit'); %#ok<NASGU>
-  outfile = fullfile(perframedir,[fn,'.mat']);
-  save(outfile,'data','units');
-  trx = rmfield(trx,perframefn);
+for i = 1:size(perframefns,1),
+  fn = perframefns{i,1};
+  perframefn = perframefns{i,2};
+  if ~ismember(fn,trxfns),
+    data = {trx.(perframefn)}; %#ok<NASGU>
+    % units not set yet
+    units = parseunits('unit'); %#ok<NASGU>
+    outfile = fullfile(perframedir,[fn,'.mat']);
+    save(outfile,'data','units');
+    trx = rmfield(trx,perframefn);
+  end
 end
 
+for i = 1:numel(trxfns),
+  fn = trxfns{i};
+  if isfield(trx,fn),
+    data = {trx.(fn)}; %#ok<NASGU>
+    % units not set yet
+    units = parseunits('unit'); %#ok<NASGU>
+    outfile = fullfile(perframedir,[fn,'.mat']);
+    save(outfile,'data','units');    
+  end
+end
 %% create the trx file
 
 outmatname = fullfile(outexpdir,trxfilestr);
 save(outmatname,'trx');
-
-%% copy over the blobs files
-for i = 1:numel(blobsnames),
-  [~,basename] = myfileparts(blobsnames{i});
-  outname = fullfile(outexpdir,basename);
-  if isunix && makesoftlink,
-    cmd = sprintf('ln -s %s %s',blobsnames{i},outname);
-    unix(cmd);
-  else
-    [success,msg] = copyfile(blobsnames{i},outname);
-    if ~success,
-      error('Error copying file %s to %s: %s',blobsnames{i},outname,msg);
-    end
-  end
-end
