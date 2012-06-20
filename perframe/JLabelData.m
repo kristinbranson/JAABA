@@ -1882,7 +1882,8 @@ classdef JLabelData < handle
         return;
       end
 
-      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
+      [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
+      missingfiles = missingfiles{obj.nexps};
       if ~success1,
         msg = msg1;
         obj.RemoveExpDirs(obj.nexps);
@@ -1900,14 +1901,14 @@ classdef JLabelData < handle
       
       if obj.filesfixable && ~obj.allfilesexist,
         if ~isdeployed
-          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+          res = questdlg(sprintf('Experiment %s is missing required files:%s. Generate now?',expdir,sprintf(' %s',missingfiles{:})),'Generate missing files?','Yes','Cancel','Yes');
         else
           res = 'Yes';
         end
         if strcmpi(res,'Yes'),
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
-            msg = sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
+            msg = sprintf('Error generating missing required files %s for experiment %s: %s. Removing...',sprintf(' %s',missingfiles{:}),expdir,msg);
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
@@ -2579,7 +2580,7 @@ classdef JLabelData < handle
       end
     end
     
-    function [success,msg] = UpdateStatusTable(obj,filetypes,expis)
+    function [success,msg,missingfiles] = UpdateStatusTable(obj,filetypes,expis)
     % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
     % Update the tables of what files exist for what experiments. This
     % returns false if all files were in existence or could be generated
@@ -2600,6 +2601,11 @@ classdef JLabelData < handle
       if nargin <= 2 || isempty(expis),
         expis = 1:obj.nexps;
       end
+
+      missingfiles = cell(1,obj.nexps);
+      for i = 1:obj.nexps,
+        missingfiles{i} = {};
+      end
       
       % initialize fileexists table
       obj.fileexists(expis,fileis) = false;
@@ -2618,7 +2624,14 @@ classdef JLabelData < handle
               obj.fileexists(expi,filei) = false;
               obj.filetimestamps(expi,filei) = -inf;
             else
-              obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+              pfexists = cellfun(@(s) exist(s,'file'),fn);
+              obj.fileexists(expi,filei) = all(pfexists);
+              if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file),
+                for tmpi = find(~pfexists(:)'),
+                  [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
+                  missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
+                end
+              end
               obj.filetimestamps(expi,filei) = max(timestamps);
             end
           else
@@ -2630,7 +2643,10 @@ classdef JLabelData < handle
             else
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
             end
-            
+            if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file)
+              missingfiles{expi}{end+1} = file;
+            end
+              
           end
           
         end
@@ -2664,8 +2680,10 @@ classdef JLabelData < handle
                 end
               end
             end
+            if ~isempty(missingfiles{expi}),
+              msg = [msg,'\n','Missing',sprintf(' %s',missingfiles{expi}{:})];
+            end
           end
-          
         end
       end
 

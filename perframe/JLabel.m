@@ -435,6 +435,10 @@ handles = UpdateGUIGroundTruthMode(handles);
 
 function cache_thread(N,HWD,cache_filename,movie_filename)
 
+if isempty(movie_filename),
+  return;
+end
+
 Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
 Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
 Mims =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
@@ -468,7 +472,7 @@ if strcmp(varargin{1},'CLEAR'),
   return;
 end
 
-if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filename))
+if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
@@ -879,9 +883,9 @@ end
 % if no movie, then set limits
 if ~handles.guidata.data.ismovie,
   maxx = max([handles.guidata.data.trx.x]);
-  maxy = max([handles.guidata.data.trx.x]);
-  handles.guidata.movie_height = maxy;
-  handles.guidata.movie_width = maxx;
+  maxy = max([handles.guidata.data.trx.y]);
+  handles.guidata.movie_height = ceil(maxy);
+  handles.guidata.movie_width = ceil(maxx);
   handles.guidata.nframes = max([handles.guidata.data.trx.endframe]);
   
   % set axes colors to be white instead of black
