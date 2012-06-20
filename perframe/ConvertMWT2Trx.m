@@ -242,8 +242,8 @@ for i = 1:numel(trx),
   trx(i).a_mm = trx(i).a / pxpermm;
   trx(i).b_mm = trx(i).b / pxpermm;
   trx(i).theta_mm = trx(i).theta;
-  trx(i).xspine = trx(i).xspine * pxpermm;
-  trx(i).yspine = trx(i).xspine * pxpermm;
+  trx(i).xspine = trx(i).xspine_mm * pxpermm;
+  trx(i).yspine = trx(i).yspine_mm * pxpermm;
 end
 
 
