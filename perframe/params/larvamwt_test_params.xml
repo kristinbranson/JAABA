@@ -2,7 +2,7 @@
 <params>
    <targets type="larvacontour"/>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Behavior" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params\featureConfigMWTContour.xml" featureparamfilename="" gt_labelfilename="gt_labeledBehavior.mat" labelfilename="labeledBehavior.mat" moviefilename="" perframedir="perframe" rootoutputdir="" scorefilename="scores_Behavior.mat" trxfilename="trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params\featureConfigMWTContour.xml" featureparamfilename="C:\Code\Jdetect\perframe\params\WindowFeatures_LarvaeMWT_Behavior.xml" gt_labelfilename="gt_labeledBehavior.mat" labelfilename="labeledBehavior.mat" moviefilename="" perframedir="perframe" rootoutputdir="" scorefilename="scores_Behavior.mat" trxfilename="trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7" extra_linestyle="-" extra_marker="None"/>
       <labels colormap="line" linewidth="3"/>
