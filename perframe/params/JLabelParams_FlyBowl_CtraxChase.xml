@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
    <targets type="fly"/>
-   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="pivot_tail" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_TailPivotTurn.xml" gt_labelfilename="gt_labeledpivot_tail.mat" labelfilename="labeledpivot_tail.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_pivot_tail.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Chase" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_Chase.xml" gt_labelfilename="gt_labeledChasev7.mat" labelfilename="labeledCtraxChase.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_CtraxChase.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
       <labels colormap="line" linewidth="3"/>

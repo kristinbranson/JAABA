@@ -1272,7 +1272,7 @@ classdef JLabelData < handle
       
     end    
     
-    function [success,msg] = SetClassifierFileName(obj,classifierfilename)
+    function [success,msg] = SetClassifierFileName(obj,classifierfilename,doreadconfigfile)
     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
     % Sets the name of the classifier file. If the classifier file exists, 
     % it loads the data stored in the file. This involves removing all the
@@ -1282,6 +1282,10 @@ classdef JLabelData < handle
     % the previously computed window data and computing the window data for
     % all the labeled frames. 
       
+    if nargin < 3,
+      doreadconfigfile = true;
+    end
+    
       success = false;
       msg = '';
       
@@ -1294,6 +1298,8 @@ classdef JLabelData < handle
 
           % remove all experiments
           obj.RemoveExpDirs(1:obj.nexps);
+          
+          if doreadconfigfile,
           
           % set config file
           if ~strcmp(obj.configfilename,'configfilename'),
@@ -1319,6 +1325,8 @@ classdef JLabelData < handle
           % clipsdir
           [success,msg] = obj.SetClipsDir(loadeddata.clipsdir);
           if ~success,error(msg);end
+          
+          end
           
           % featureparamsfilename
 %           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
@@ -1874,6 +1882,183 @@ classdef JLabelData < handle
         return;
       end
 
+      [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
+      missingfiles = missingfiles{obj.nexps};
+      if ~success1,
+        msg = msg1;
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      % check for existence of necessary files in this directory
+      if ~obj.filesfixable,
+        msg = sprintf('Experiment %s is missing required files that cannot be generated within this interface. Removing...',expdir);
+        success = false;
+        % undo
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      if obj.filesfixable && ~obj.allfilesexist,
+        if ~isdeployed
+          res = questdlg(sprintf('Experiment %s is missing required files:%s. Generate now?',expdir,sprintf(' %s',missingfiles{:})),'Generate missing files?','Yes','Cancel','Yes');
+        else
+          res = 'Yes';
+        end
+        if strcmpi(res,'Yes'),
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          if ~success,
+            msg = sprintf('Error generating missing required files %s for experiment %s: %s. Removing...',sprintf(' %s',missingfiles{:}),expdir,msg);
+            obj.RemoveExpDirs(obj.nexps);
+            return;
+          end
+          
+        else
+          obj.RemoveExpDirs(obj.nexps);
+          return;
+        end
+      end
+      
+      % preload this experiment if this is the first experiment added
+      if obj.nexps == 1,
+        % TODO: make this work with multiple flies
+        [success1,msg1] = obj.PreLoad(1,1);
+        if ~success1,
+          msg = sprintf('Error getting basic trx info: %s',msg1);
+          obj.RemoveExpDirs(obj.nexps);
+          return;
+        end
+      elseif istrxinfo,
+        obj.nflies_per_exp(end+1) = nflies_per_exp;
+        obj.sex_per_exp{end+1} = sex_per_exp;
+        obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
+        obj.firstframes_per_exp{end+1} = firstframes_per_exp;
+        obj.endframes_per_exp{end+1} = endframes_per_exp;
+        
+%         if obj.nexps == 1 % This will set hassex and hasperframesex.
+%           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
+%           if ~success1,
+%             msg = sprintf('Error getting basic trx info: %s',msg1);
+%             obj.RemoveExpDirs(obj.nexps);
+%             return;
+%           end
+%         end
+        
+      else
+        obj.nflies_per_exp(end+1) = nan;
+        obj.sex_per_exp{end+1} = {};
+        obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
+        obj.firstframes_per_exp{end+1} = [];
+        obj.endframes_per_exp{end+1} = [];
+        [success1,msg1] = obj.GetTrxInfo(obj.nexps);
+        if ~success1,
+          msg = sprintf('Error getting basic trx info: %s',msg1);
+          obj.RemoveExpDirs(obj.nexps);
+          return;
+        end
+      end
+      
+      [success1,msg1] = obj.PreLoadLabeledData();
+      if ~success1,
+        msg = msg1;
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      
+      
+      % save default path
+      obj.defaultpath = expdir;
+      
+      success = true;
+      
+    end
+   
+    function [success,msg] = AddExpDirNoPreload(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+    % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
+    % Add a new experiment to the GUI. If this is the first experiment,
+    % then it will be preloaded. 
+
+      success = false; msg = '';
+      
+      if isnumeric(expdir), return; end
+      
+      if nargin < 2,
+        error('Usage: obj.AddExpDirs(expdir,[outexpdir],[nflies_per_exp])');
+      end
+
+      % make sure directory exists
+      if ~exist(expdir,'file'),
+        msg = sprintf('expdir %s does not exist',expdir);
+        return;
+      end
+      
+      isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
+      istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
+
+      % base name
+      [~,expname] = myfileparts(expdir);
+      
+      % expnames and rootoutputdir must match
+      if isoutexpdir,
+        [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
+        if ~strcmp(expname,outname),
+          msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
+          return;
+        end
+%         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
+%           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+%           return;
+%         end
+      elseif ~ischar(obj.rootoutputdir),
+        outexpdir = expdir;
+        rootoutputdir = 0;
+      else
+        rootoutputdir = obj.rootoutputdir;        
+      end
+      
+      if ischar(obj.rootoutputdir) && ~isoutexpdir,
+        outexpdir = fullfile(rootoutputdir,expname);
+      end
+      
+      % create missing outexpdirs
+      if ~exist(outexpdir,'dir'),
+        [success1,msg1] = mkdir(rootoutputdir,expname);
+        if ~success1,
+          msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
+          return;
+        end
+      end
+
+      % create clips dir
+      clipsdir = obj.GetFileName('clipsdir');
+      outclipsdir = fullfile(outexpdir,clipsdir);
+      if ~exist(outclipsdir,'dir'),
+        [success1,msg1] = mkdir(outexpdir,clipsdir);
+        if ~success1,
+          msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+          return;
+        end
+      end
+
+      % okay, checks succeeded, start storing stuff
+      obj.nexps = obj.nexps + 1;
+      obj.expdirs{end+1} = expdir;
+      obj.expnames{end+1} = expname;
+      %obj.rootoutputdir = rootoutputdir;
+      obj.outexpdirs{end+1} = outexpdir;
+      
+      % load labels for this experiment
+      [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
+      if ~success1,
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+      [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
+      if ~success1,
+        obj.RemoveExpDirs(obj.nexps);
+        return;
+      end
+
       [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
       if ~success1,
         msg = msg1;
@@ -1946,15 +2131,7 @@ classdef JLabelData < handle
           obj.RemoveExpDirs(obj.nexps);
           return;
         end
-      end
-      
-      [success1,msg1] = obj.PreLoadLabeledData();
-      if ~success1,
-        msg = msg1;
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
+      end      
       
       % save default path
       obj.defaultpath = expdir;
@@ -1962,7 +2139,7 @@ classdef JLabelData < handle
       success = true;
       
     end
-   
+    
     function [success,msg] = RemoveExpDirs(obj,expi)
       % [success,msg] = RemoveExpDirs(obj,expi)
     % Removes experiments in expi from the GUI. If the currently loaded
@@ -2403,7 +2580,7 @@ classdef JLabelData < handle
       end
     end
     
-    function [success,msg] = UpdateStatusTable(obj,filetypes,expis)
+    function [success,msg,missingfiles] = UpdateStatusTable(obj,filetypes,expis)
     % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
     % Update the tables of what files exist for what experiments. This
     % returns false if all files were in existence or could be generated
@@ -2424,6 +2601,11 @@ classdef JLabelData < handle
       if nargin <= 2 || isempty(expis),
         expis = 1:obj.nexps;
       end
+
+      missingfiles = cell(1,obj.nexps);
+      for i = 1:obj.nexps,
+        missingfiles{i} = {};
+      end
       
       % initialize fileexists table
       obj.fileexists(expis,fileis) = false;
@@ -2442,7 +2624,14 @@ classdef JLabelData < handle
               obj.fileexists(expi,filei) = false;
               obj.filetimestamps(expi,filei) = -inf;
             else
-              obj.fileexists(expi,filei) = all(cellfun(@(s) exist(s,'file'),fn));
+              pfexists = cellfun(@(s) exist(s,'file'),fn);
+              obj.fileexists(expi,filei) = all(pfexists);
+              if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file),
+                for tmpi = find(~pfexists(:)'),
+                  [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
+                  missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
+                end
+              end
               obj.filetimestamps(expi,filei) = max(timestamps);
             end
           else
@@ -2454,7 +2643,10 @@ classdef JLabelData < handle
             else
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
             end
-            
+            if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file)
+              missingfiles{expi}{end+1} = file;
+            end
+              
           end
           
         end
@@ -2488,8 +2680,10 @@ classdef JLabelData < handle
                 end
               end
             end
+            if ~isempty(missingfiles{expi}),
+              msg = [msg,'\n','Missing',sprintf(' %s',missingfiles{expi}{:})];
+            end
           end
-          
         end
       end
 
@@ -5049,7 +5243,7 @@ classdef JLabelData < handle
       
       
       for endx = 1:obj.nexps
-        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,obj.nflies_per_exp);
+        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,perexp);
         
         validflies = find( (obj.endframes_per_exp{endx} - ...
           obj.firstframes_per_exp{endx})>perfly );

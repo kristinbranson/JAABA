@@ -1,9 +1,11 @@
-function isclose = isclose_pair(trx,fly1,fly2)
+function isclose = isclose_pair(trx,fly1,fly2,nbodylengths_near)
 
 % initialize
 isclose = false(1,trx(fly1).nframes);
 
-nbodylengths_near = trx.perframe_params.nbodylengths_near;
+if nargin < 4,
+  nbodylengths_near = trx.perframe_params.nbodylengths_near;
+end
 
 % get start and end frames of overlap
 t0 = max(trx(fly1).firstframe,trx(fly2).firstframe);
