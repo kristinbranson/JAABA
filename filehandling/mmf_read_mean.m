@@ -35,8 +35,8 @@ if isempty(meani),
 end
   
 im = fread(fp,header.bkgdim_imagesize,'uint8=>uint8');
-im = reshape(im,header.bkgdim_widthstep,header.height);
-im = im(1:header.width,:);
+im = reshape(im,header.bkgdim_widthstep,header.width);
+im = im(1:header.height,:);
 
 % store in cache
 if isfield(header,'cachedmeans'),

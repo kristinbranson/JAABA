@@ -6,7 +6,8 @@ border = 20;
 
 [colorpos,colorneg,border,hfig,figpos,...
   cm,fg_thresh,bg_thresh,sigma_bkgd,wmah,frac_a_back,dist_epsilon,...
-  ncolors_reference,solidbkgdcolor] = ...
+  ncolors_reference,solidbkgdcolor,...
+  flipim,intensityoff] = ...
   myparse(varargin,'colorpos',colorpos,...
   'colorneg',colorneg,...
   'border',border,...
@@ -20,7 +21,9 @@ border = 20;
   'frac_a_back',1,...
   'dist_epsilon',.1,...
   'ncolors_reference',[],...
-  'solidbkgdcolor',[.85,.85,.85]);
+  'solidbkgdcolor',[.85,.85,.85],...
+  'flipim',false,...
+  'intensityoff',0);
 
 if isempty(otherflies),
   flygroups = {mainfly};
@@ -33,7 +36,7 @@ allts = ts(1):ts(end);
 nframes_total = numel(allts);
 allflies = [flygroups{:}];
 
-[nr0,nc0,~] = size(bkgdim0);
+[nr0,nc0,ncolors] = size(bkgdim0);
 
 %% grab out relevant time points
 % not rotating currently, maybe rotate in the future?
@@ -46,8 +49,11 @@ theta = nan(trx.nflies,nframes_total);
 imcenter = [(nc0+1)/2,(nr0+1)/2]; %#ok<NASGU>
 for fly = 1:trx.nflies,
   idx = allts+trx(fly).off;
-  i0 = find(idx>1,1);
-  i1 = find(idx<trx(fly).nframes,1,'last');
+  i0 = find(idx>=1,1);
+  i1 = find(idx<=trx(fly).nframes,1,'last');
+  if isempty(i0) || isempty(i1),
+    continue;
+  end
   x(fly,i0:i1) = trx(fly).x(idx(i0:i1));
   y(fly,i0:i1) = trx(fly).y(idx(i0:i1));
   a(fly,i0:i1) = trx(fly).a(idx(i0:i1));
@@ -71,7 +77,7 @@ for fly = allflies,
 end
 xlim = [floor(xlim(1))-border,ceil(xlim(2))+border];
 ylim = [floor(ylim(1))-border,ceil(ylim(2))+border];
-bkgdim = bkgdim(ylim(1):ylim(2),xlim(1):xlim(2));
+bkgdim = bkgdim(ylim(1):ylim(2),xlim(1):xlim(2),:);
 x = x - xlim(1)+1;
 y = y - ylim(1)+1;
 
@@ -97,20 +103,24 @@ colors = colors_all(ts-ts(1)+1,:,:);
 for i = 1:nframes,
   t = ts(i);
   imcurr = readframe(t);
-  if size(imcurr,3) > 1,
-    imcurr = rgb2gray(imcurr);
-  end
-  %imcurr = imtransform(imcurr,tform,'XData',[1,nc0],'YData',[1,nr0],'XYScale',1);
-  imcurr = imcurr(ylim(1):ylim(2),xlim(1):xlim(2));
-  if i == 1,
-    gray_ims = repmat(im2double(imcurr),[1,1,nframes]);
+  imcurr = im2double(imcurr(ylim(1):ylim(2),xlim(1):xlim(2),:));
+  if ncolors > 1,
+    grayim_curr = rgb2gray(imcurr);
   else
-    gray_ims(:,:,i) = im2double(imcurr);
+    grayim_curr = imcurr;
+    imcurr = repmat(imcurr,[1,1,3]);
+  end
+  if i == 1,
+    ims = repmat(imcurr,[1,1,1,nframes]);
+    gray_ims = repmat(grayim_curr,[1,1,nframes]);
+  else
+    ims(:,:,:,i) = imcurr;
+    gray_ims(:,:,i) = grayim_curr;
   end
 end
 
 %% probability that each pixel is foreground
-dbkgd = abs(bsxfun(@minus,gray_ims,bkgdim));
+dbkgd = permute(sum(abs(bsxfun(@minus,ims,bkgdim)),3),[1,2,4,3])/3;
 pback = exp(-dbkgd/sigma_bkgd^2/2);
 pback = pback / max(pback(:));
 minv = exp(-fg_thresh/sigma_bkgd^2/2);
@@ -198,6 +208,11 @@ pforefly = pfore.*psomefly;
 %% color the images
 
 im = zeros(nr*nc,3,nframes);
+if flipim,
+  if intensityoff > 0,
+    gray_ims = intensityoff+(1 - gray_ims)*(1-intensityoff);
+  end
+end
 for i = 1:nframes,
   imcurr = zeros(nr*nc,3);
   for flygroupi = 1:nflygroups,
@@ -231,8 +246,14 @@ clf;
 hax = createsubplots(1,numel(ts),.01);
 
 idxpos = predictions{mainfly}(ts(1):ts(end));
-timestamps = trx(mainfly).timestamps(ts+trx(mainfly).off)-...
-  trx(mainfly).timestamps(ts(1)+trx(mainfly).off);
+if isfield(trx,'timestamps'),
+  timestamps = trx(mainfly).timestamps(ts+trx(mainfly).off)-...
+    trx(mainfly).timestamps(ts(1)+trx(mainfly).off);
+else
+  timestamps = [0,cumsum(trx(mainfly).dt)];
+  timestamps = timestamps(ts+trx(mainfly).off)-...
+    timestamps(ts(1)+trx(mainfly).off);
+end
 
 for i = 1:numel(ts),
   t = ts(i);
@@ -253,7 +274,7 @@ end
 
 axes(hax(end));
 colormap(colors_all(:,:,1)*.75);
-tlim = timestamps(end);
+tlim = timestamps(end)-timestamps(1);
 set(hax,'CLim',[0,tlim]);
 hcb = colorbar('East');
 tticks = [0,tlim];

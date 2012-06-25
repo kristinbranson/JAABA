@@ -63,37 +63,17 @@
   
   <perframe>
 
-    <absdtheta trans_types="relative" type="locomotion"/>
-    
-    <absdv_cor trans_types="relative" type="locomotion"/>
-        
-    <area trans_types="none,relative" type="appearance"/>
-        
-    <corfrac_maj trans_types="none,abs" type="locomotion"/>
-    
-    <corfrac_min trans_types="flip,abs" type="locomotion"/>
-    
-    <!--darea trans_types="none,abs" type="appearance"/-->
-        
-    <dtheta trans_types="flip,abs" type="locomotion"/>
-    
-    <du_cor trans_types="none,abs,relative" type="locomotion"/>
-    
-    <du_ctr trans_types="none,abs,relative" type="locomotion"/>
-    
-    <dv_cor trans_types="flip,abs" type="locomotion"/>
-    
-    <dv_ctr trans_types="flip,abs" type="locomotion"/>
-    
-    <flipdv_cor trans_types="relative" type="locomotion"/>
-    
-    <phi trans_types="none" type="position"/>
-    
-    <velmag trans_types="none,relative" type="locomotion"/>
-    
-    <velmag_ctr trans_types="none,relative" type="locomotion"/>
-    
-    <yaw trans_types="flip,abs" type="locomotion"/>
-    
+    <area_mm trans_types="relative,none" type="appearance"/>
+    <bias trans_types="none,abs,flip" type="unknown"/>
+    <cast trans_types="none,abs,relative,flip" type="unknown"/>
+    <crabspeed trans_types="none,relative" type="locomotion"/>
+    <curve trans_types="none,relative" type="appearance"/>
+    <dir trans_types="none,relative" type="locomotion"/>
+    <kink trans_types="none,relative" type="appearance"/>
+    <midline trans_types="none,relative" type="appearance"/>
+    <morpwidth trans_types="none,relative" type="appearance"/>
+    <speed trans_types="none,relative" type="locomotion"/>
+    <speed085 trans_types="none,relative" type="locomotion"/>
+
   </perframe>
 </params>

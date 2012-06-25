@@ -19,10 +19,26 @@
 % max_velocity_angle_weight
 function varargout = read_ann2(filename,varargin)
 
+i = find(strcmpi('trx_firstframe',varargin),1);
+if ~isempty(i),
+  trx_firstframe = varargin{i+1};
+  varargin(i:i+1) = [];
+else
+  trx_firstframe = 1;
+end
+  
+i = find(strcmpi('trx_endframe',varargin),1);
+if ~isempty(i),
+  trx_endframe = varargin{i+1};
+  varargin(i:i+1) = [];
+else
+  trx_endframe = inf;
+end
+
 if nargin == 1,
   readall = true;
   readtrx = true;
-else
+else  
   readall = false;
   varargout = cell(1,nargin-1);
   readtrxi = strcmpi(varargin,'trx');
@@ -59,7 +75,7 @@ end;
 if readtrx,
   trx = struct('x',{},'y',{},'theta',{},'a',{},'b',{},'id',{});
   ids = [];
-  f = startframe;
+  f = max(startframe,trx_firstframe);
   nfields = 6;
   while true,
     if mod(f,300) == 0,
@@ -92,6 +108,9 @@ if readtrx,
       trx(j).id(end+1) = id(i);
     end
     f = f+1;
+    if f > trx_endframe,
+      break;
+    end
   end
   
   for i = 1:length(trx),
