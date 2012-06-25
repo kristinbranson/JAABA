@@ -297,7 +297,7 @@ guidata(hObject, handles);
 function UpdateStatusTable(handles)
 
 v = get(handles.listbox_experiment,'Value');
-if handles.data.nexps == 0 || isempty(v) || v <= 0,
+if isempty(v) || v <= 0 || handles.data.nexps == 0 ,
   set(handles.uitable_status,'Data',{},'Visible','off');
   return;
 end

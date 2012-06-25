@@ -2258,7 +2258,7 @@ classdef JLabelData < handle
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
         
-        if numel(fn)>7 && strcmpi('scores_',fn(1:7))
+        if numel(fn)>7 && strcmpi('scores',fn(1:6))
           obj.ScoresToPerframe(expi,fn);
         else
           perframetrx.(fn); %#ok<VUNUS>
