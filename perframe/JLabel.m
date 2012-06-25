@@ -462,13 +462,13 @@ if strcmp(varargin{1},'CLEAR'),
     delete(handles.guidata.cache_thread);
     handles.guidata.cache_thread = [];
   end
-  Mts = []; 
-  Mlastused = []; 
-  Mims = []; 
+  Mts = struct('Data',[]); 
+  Mlastused = struct('Data',[]); 
+  Mims = struct('Data',[]); 
   return;
 end
 
-if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filename))
+if(isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
@@ -478,9 +478,9 @@ if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filena
     delete(handles.guidata.cache_thread);
     handles.guidata.cache_thread = [];
   end
-  Mts = []; %#ok<NASGU>
-  Mlastused = []; %#ok<NASGU>
-  Mims = []; %#ok<NASGU>
+  Mts = struct('Data',[]); %#ok<NASGU>
+  Mlastused = struct('Data',[]); %#ok<NASGU>
+  Mims = struct('Data',[]); %#ok<NASGU>
   
   cache_filename=['cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
@@ -4072,6 +4072,7 @@ handles.guidata.axes_timeline_props(propi) = [];
 handles.guidata.axes_timelines(axi) = [];
 handles.guidata.labels_timelines(axi) = [];
 handles.guidata.text_timelines(axi) = [];
+handles.guidata.text_timeline_props(propi) = [];
 handles.guidata.htimeline_data(propi) = [];
 handles.guidata.hcurr_timelines(axi) = [];
 handles.guidata.hselection(axi) = [];
