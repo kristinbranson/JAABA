@@ -7,15 +7,19 @@ Install the Matlab Compiler Runtime (MCR) for R2012a. <a href="http://www.mathwo
 
 <h3> STARTING UP </h3>
 
+From compiled executables:<br>
 On Windows: Run the executable JAABA_win.exe <br>
 
 On MAC: Run run_JAABA_mac.command file. <br>
 
 On Linux: Run the run_JAABA_linux.sh file from the command line in a terminal. You need to give the path to installed MCR as the argument. <br>
 
+From SourceCode in MATLAB:<br>
+Change directory to JAABAROOTDIR/perframe and run StartJAABA.m from MATLAB command line.
+
 <h3> Select Project and Load Experiments </h3>
 
-Select the project in the <b> Project and Experiment Selection</b> interface. In the demo version, "FlyBowl_Chase" project should be selected. This project is used to train a Chase detector. After selecting the project, you add movies/experiments to view and annotate. Using the <b>Add..</b> button at the bottom browse to the movie directory and add it. Once you add the example directory click <b>Done</b>.<br><br>
+At the initial user interface, you can select a project for a behavior. In the demo version, "FlyBowl_Chase" project should exist in the project list and should also be selected. This project is used to train a chase detector. You can add or remove projects using the <b>+</b> and <b>-</b> signs at the bottom of the project list. After selecting the project, you add movies/experiments to view and annotate. Using the <b>Add..</b> button at the bottom browse to the experiment directory and add it. After adding one or more of the experiment directories click <b>Done</b>.<br><br>
 
 <img src="images/EditFilesAfter.png" height="562"><br><br>
 
@@ -40,11 +44,11 @@ You can switch animals that is being annotated by double clicking on the animal'
 
 <h3> LABELING </h3>
 
-To label frames as chase, click the <i>chase</i> (or the behavior) button to put the labeling pen down, and then navigate forward or backward in time. All the frames between the current frame and theframe where you put the pen down are labeled once you lift up the pen. To lift the pen, click on <i>chase</i> button again. You can label <i>none</i>'s to label trajectories that are not <i>chase</i>. To erase labels, You can use <i>unknown</i> button.<br><br>
+In the main JAABA window, the buttons to label the behaviors are on the top-left side. The topmost button has the name of the behavior that was specified in the project. In the demo project, the behavior was <b>chase</b>. To label frames as chase, click the <i>chase</i> (or the behavior) button to put the labeling pen down, and then navigate forward or backward in time. All the frames between the current frame and theframe where you put the pen down are labeled once you lift up the pen. To lift the pen, click on <i>chase</i> button again. You can label <i>none</i>'s to label trajectories that are not <i>chase</i>. To erase labels, You can use <i>unknown</i> button.<br><br>
 
 <img src="images/JLabel-chaseLabel.png" width="743" height="562"><br><br>
 
-You can also use keyboard shortcuts for labeling. The shortcuts can be assigned using <b>Edit -> Label Shortcuts..</b>. We usually assign z, x and c keys for labeling chase, not-chase and unknown.
+You can also use keyboard shortcuts for labeling. The shortcuts can be assigned using <b>Edit -> Label Shortcuts..</b>. We usually assign z, x and c keys for labeling the behavior, none and unknown. These shortcuts are project independent.
 
 <h3> TRAINING and REVIEWING </h3>
 
