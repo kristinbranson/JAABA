@@ -1282,7 +1282,7 @@ if ~fname; return; end;
 
 featureparamsfilename = fullfile(pname,fname);
 [params,~,basicTable,windowSize] = ...
-  ReadPerFrameParams(featureparamsfilename);
+  ReadPerFrameParams(featureparamsfilename,handles.JLDobj.featureConfigFile);
 guidata(hObject,handles);
 initData(hObject,params);
 set(handles.basicTable,'Data',basicTable);
