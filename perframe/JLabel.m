@@ -5662,7 +5662,7 @@ handles.visualizeclassifier = ...
   'feature_order',feature_order,'bins',bins,...
   'scores',scores);
 
-handles.guidata.open_peripherals(end+1) = handles.visualizeclassifier;
+handles.guidata.open_peripherals(end+1) = hfig;
 
 guidata(hObject,handles);
 

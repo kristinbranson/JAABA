@@ -4820,16 +4820,30 @@ classdef JLabelData < handle
       if ~strcmp(obj.classifiertype,'boosting'); return; end
       if isempty(obj.classifier), obj.Train;             end
 
+      bouts = struct('ndx',[],'label',[],'timestamp',[]);
+      for expNdx = 1:obj.nexps
+        for flyNdx = 1:obj.nflies_per_exp(expNdx)
+          curLabels = obj.GetLabels(expNdx,flyNdx);
+          for boutNum = 1:numel(curLabels.t0s)
+            bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
+              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
+              obj.windowdata.t < curLabels.t1s(boutNum);
+            bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
+            bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
+          end
+          
+        end
+      end
+
       obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
       obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
-      bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
       
       [obj.bagModels, obj.distMat] =...
-        doBagging( obj.windowdata.X(islabeled,:), ...
-        obj.windowdata.labelidx_new(islabeled),obj,...
+        doBaggingBouts( obj.windowdata.X, ...
+        obj.windowdata.labelidx_new,obj,...
         obj.windowdata.binVals,...
-        bins,obj.classifier_params);
+        obj.classifier_params,bouts);
       
       obj.windowdata.distNdx.exp = obj.windowdata.exp(islabeled);
       obj.windowdata.distNdx.flies = obj.windowdata.flies(islabeled);

@@ -1,62 +1,119 @@
 <center><h2>JAABA - Janelia Automatic Animal Behavior Annotator</h2></center>
 
 
-
 <h3> INSTALLATION </h3>
 
-Download the .zip file and unpack it. Let's call the directory where you unpacked as JAABA_ROOT.
+Install the Matlab Compiler Runtime (MCR) for R2012a. <a href="http://www.mathworks.com/products/compiler/mcr/index.html"> MCR installers and the instructions </a> are available at Mathworks website.
 
 <h3> STARTING UP </h3>
 
-Start matlab and change the directory to JAABA_ROOT/Jdetect/perframe and then run StartJAABA.m script. <br><br>
-<img src="images/EditFiles.png" width="700" height="280"><br><br>
+On Windows: Run the executable .exe <br>
 
-This will bring up a window asking you to add experiment directories. Add the example demo experiment directory JAABA_ROOT/demo. Click "Done" once the experiment is loaded and you should be set to train a walk detector.
+On MAC: Run .cmd file. <br>
+
+On Linux: Run the .sh file from the command line in a terminal. You need to give the path to installed MCR as the argument. <br>
+
+<h3> Select Project and Load Experiments </h3>
+
+Select the project in the <b> Project and Experiment Selection</b> interface. In the demo version, "FlyBowl_Chase" project should be selected. This project is used to train a Chase detector. After selecting the project, you add movies/experiments to view and annotate. Using the <b>Add..</b> button at the bottom browse to the movie directory and add it. Once you add the example directory click <b>Done</b>.<br><br>
+
+<img src="images/EditFilesAfter.png" height="562"><br><br>
 
 <h3> NAVIGATION</h3> 
-After you've clicked "Done", the main JAABA window will appear. <br><br>
+After you click <b>Done</b>, the main JAABA window will appear which will allow you to label and train the behavior detector. <br><br>
 
-<img src="images/JAABA.png" width="743" height="562"><br><br>
-To navigate forward or backward, you can use the <b>Left</b> or <b>Right</b> arrow keys to move by single frame. <b>Up</b> and <b>Down</b> arrow keys move by 30 frames. The scroll-bar below the movie previewer can also be used to move. Clicking on the timelines at the bottom of the window will move to the clicked location. <b>Play</b> button below the movie previewer plays the movie (what else?). 
+<img src="images/JLabelStart1.png" width="743" height="562"><br><br>
 
-<h3>CHANGING FLIES and EXPERIMENTS</h3>
+The animal that is selected for annotation is highlighted by a thicker outline. For the selected animal, we also plot the locations for the next 20 past and future frames.<br><br>
 
-You can switch flies by double clicking on the fly. Flies can also be switched by <b> Go -> Switch Target</b>. If you have loaded more than one experiments you can switch experiments by <b> Go -> Switch Experiment </b>.
+<b>Left</b> and <b>Right</b> arrow keys let you navigate forward or backward by a single frame. <b>Down</b> and <b>Up</b> arrow keys move forward and backward by 30 frames. The scroll-bar below the movie previewer can also be used to move back and forth in time. Clicking on the annotation timelines near the bottom of the window will move to the clicked location. <b>Play</b> button below the movie previewer plays the movie. 
+
+<h3>CHANGING ANIMALS and EXPERIMENTS</h3>
+
+You can switch animals that is being annotated by double clicking on the animal's outline. Animals can also be switched by <b> Go -> Switch Target</b>. Switch Target brings up a table that gives detailed information about the labels and the predictions for the animals. To switch animal, select any cell in the row of that animal and click "Switch to Target".
+
+<br><br><img src="images/SwitchTarget.png" height="562"><br><br>
 
 <h3>VIEWING OPTIONS </h3>
 
-<b>Zoom-in</b>, <b>Zoom-out</b>, and <b>pan</b> buttons above the movie previewer behave as expected (we wouldn't have it any other way). While playing the movie, to keep fly always at the center use <b>View -> Zoom -> Center axes on current target</b>. <b>View -> Zoom -> Keep target in view </b> does not move the axes unless the fly moves outside the preview window, in which case it moves the axes to keep the fly in the view. <b> View -> Zoom -> Static View </b> does not move the axes even if the fly goes outside the preview window.
+<b>Zoom-in</b>, <b>Zoom-out</b>, and <b>pan</b> buttons are above the movie previewer. While playing the movie, to keep animal always at the center use <b>View -> Zoom -> Center axes on current target</b>. <b>View -> Zoom -> Keep target in view </b> does not move the axes unless the animal moves outside the preview window, in which case it moves the axes to keep the animal in the view. <b> View -> Zoom -> Static View </b> does not move the axes even if the animal goes outside the preview window.
 
 <h3> LABELING </h3>
 
-To label frames as walk, click the <i>walk</i> button to put the pen down, and then navigate forward or backward to label a bout of walk. Once you reach the end of the bout, click on <i>walk</i> button again to lift up the pen. You can label <i>none</i>'s to label trajectories that are not <i>walk</i>. You can use <i>unknown</i> button to erase labels from trajectories that you are unsure of. 
+To label frames as chase, click the <i>chase</i> (or the behavior) button to put the labeling pen down, and then navigate forward or backward in time. All the frames between the current frame and theframe where you put the pen down are labeled once you lift up the pen. To lift the pen, click on <i>chase</i> button again. You can label <i>none</i>'s to label trajectories that are not <i>chase</i>. To erase labels, You can use <i>unknown</i> button.<br><br>
+
+<img src="images/JLabel-chaseLabel.png" width="743" height="562"><br><br>
+
+You can also use keyboard shortcuts for labeling. The shortcuts can be assigned using <b>Edit -> Label Shortcuts..</b>. We usually assign z, x and c keys for labeling chase, not-chase and unknown.
 
 <h3> TRAINING and REVIEWING </h3>
 
-Once you have labeled few bouts, you can train a classifier by using the <b>Train</b> button. To see the classifier's predictions on frames without predictions, use the <b>Predict</b> button. If you play the movie, JAABA will predict the behavior for frames as they appear.
+Once you have labeled few bouts of both chase and none (i.e., not chase), you can train a classifier by using the <b>Train</b> button. To see the classifier's predictions on frames without predictions, use the <b>Predict</b> button. If you play the movie, the JAABA will predict the behavior for frames as they appear.
 
-<br><br><img src="images/AutomaticTimeline.png" width="700"><br><br>
+<br><br><img src="images/Automatic-Tracks.png" width="700"><br><br>
 
-The automatic timeline has two parts. The top part shows the prediction for a frame while the lower part shows the classifier's score. Classifier's score can roughly corresponds to classifier's confidence. Dark colors close to black indicate low confidence, while brighter colors indicate high confidence.
+The classifier's predictions are shown on the automatic timeline which has four parts. The top part shows the prediction for a frame while the top-middle part shows the classifier's score. Classifier's score can roughly corresponds to classifier's confidence. Dark colors close to black indicate low confidence, while brighter colors indicate high confidence. The two bottom parts can show predictions and scores of the previous classifier. They can also be used to show the predictions and scores that the frames got during cross-validation or saved scores. <br><br>
+
+To both train and predict, for each frame we compute an extensive set of feature values. The number of feature values for each frame can be in thousands. Computing the feature values takes time and it also requires a lot of memory, so we compute them as and when necessary, but once computed we try to store them as long as possible until the memory used to store them hits a limit. Typically, window features are computed for frames that are around frames that have labels or for the frames on which user wanted to look at the predictions.
 
 <h3> RETRAINING </h3>
 
-As you review the predictions, you can label frames that are incorrectly predicted to add these frames to the training set. It's likely that the classifier's predictions are wrong on these frames because there were no or very few such frames in the training set. And adding such frames to the training set improves the classifier's prediction on similar frames.
+As you review the predictions, you can label frames that are incorrectly predicted to add these frames to the training set. It's likely that the classifier's predictions are wrong on these frames because there were no or very few such frames in the training set. And adding such frames to the training set improves the classifier's prediction on similar frames. Once you add new labels, you can retrain the classifier by clicking <b>Train</b> again. 
 
-Once you have added new labels, you can retrain the classifier. 
+After retraining, the scores from the previous classifier classifier are shown at the bottom of the automatic timeline (<b>old</b> in the drop down menu). 
 
-<br><br><img src="images/AutomaticTimelineRetrain.png" width="700"><br><br>
 
-After retraining the automatic timeline will have 3 parts. The bottom most part shows the scores of the previous classifier to show how the classifier changed when new training examples were added.
+<h3> VISUALIZE CLASSIFIER </h3>
+
+To take a look at the features and the thresholds being used by the current classifier, you can use <b> Classifier -> Visualize Classifier </b>. An example output is shown below
+
+<br><br><img src="images/VisualizeClassifier.png" height="400"><br><br>
+
+The window features are shown in the decreseasing order of the the total weight that is assigned by boosting. The naming convention for window feature name (e.g. dnose2tail_mean_none_radius10_offset0) is perframe feature (dnose2tail) followed by window computation (mean), transformation type (none), window radius (radius 10) and the window offset (offset0). The plot on the left shows the weight assigned and the middle plot shows where the threshold (closest to the 10th percentile) selected by boosting lies. 
+
+<h3> SELECTING FEATURES </h3>
+
+<br><br><img src="images/SelectFeaturesBasic.png" height="400"><br><br>
+
+To select the per-frame features and their corresponding window computations, you can use the Select Features interface that can be accessed by <b> Classifier -> Select Features </b>. In the basic mode, you can select perframe features by broad categories such as "appearance" or "social" and select one of three default amountsof window computations (normal, less or more). To select a particular category, select <b> All </b> from the drop down menu in the second column. Selecting <b> None </b> deselects all the perframe features from that category. Selection is set to <b> Custom </b> if anything was modified in the <b>Advanced</b> mode. Most often, we use <b> normal </b> feature computations.
+
+<br><br><img src="images/SelectFeaturesAdvanced.png" height="400"><br><br>
+
+The <b>Window Size</b> is roughly the radius of the window in which would capture the context to detect behavior. If you select normal window computations, then window features are computed in windows of radius 1, half the window size and window size. <br><br>
+
+Individual perframe features can be selected and their window feature parameters can be modified in the <b>Advanced</b> mode which can be accessed by the <b>Advanced</b> mode button. You can save the window features in to an xml file using the <b> Save as..</b> button. And a saved configuration file can be loaded using the <b>Load ... </b> button. After setting the parameters you can click <b>Done</b> to apply the changes and close or <b>Cancel</b> to discard the changes. If you click <b>Done</b>, then all the features are recomputed to update the changes you made.<br><br>
+
+If you selected <b> hist </b> (histogram) window features for any of the perframe features, you can compute the bin edges that should be used to compute the histogram using the <b> Find hist bins</b> button. This places the histogram bin edges at 5,15,30,50,70,85 and 95 percentile of the perframe data for all the perframe features that have histogram window computation selected. To calculate the percentile, we use the per-frame data over all the animals and all the experiments that are currently loaded.<br>
+
+<h3> ADVANCED NAVIGATION </h3>
+
+To navigate the movie in ways other than simply moving forward and backward in time, you can use left and right arrow keys with <b>Control</b> (or <b>Command</b> on mac) and <b>Shift</b> modifier keys. <b>Control</b> (or <b>Command</b>) modifier keys takes you to the start of the next manually labeled bouts or the end of the previous labeled bouts. <b>Shift</b> lets you navigate in multiple ways which you can select using the <b>Go -> Navigation Preferences </b>. <b> Bouts in current scores </b> will take you beginning and end of bouts in the predictions, <b>Errors in current scores</b> takes you to beginnings and ends of bouts of errors i.e., frames where the predictions do not match the labels, <b>Errors in validated scores</b> takes you to validation errors, <b> Low Confidence </b> takes you to bouts of low confidence predictions. One of the most useful one, <b> Thresholds on perframe </b> where you select a perframe feature and set a threshold and then navigate to frames where the perframe features is either low or high.<br><br>
+
+In the <b>Navigation Preferences</b> you can select how many frames are jumped when using the up and down arrow keys(<b>N. frames jump</b>). Also, you can select which bouts to jump to using the <b>Shift</b> and <b>Control</b> modifier keys. For example, if you select only chase in <b>Seek to next/previous</b> then <b>Control</b> will jump only to starts and ends of bouts of chase.
+
+<br><br><img src="images/NavigationPreferences.png"><br><br>
+
+<h3> CROSS VALIDATION </h3>
+To do cross-validation, you can use <b>Classifier -> Cross Validate</b>. Cross-validation is done over bouts i.e., either the whole labeled bout will be part of training or held out. The detailed error rates from cross-validation are shown in a table. The scores that the labeled frames get during cross-validation are also displayed at the bottom of the scores timeline.
+
+<h3> CLASSIFIER PARAMETERS </h3>
+
+The number of iterations, number of folds for cross-validation can be set using <b>Classifier -> Classifier parameters </b>. 
+
+<br><br><img src="images/ClassifierOptions.png"><br><br>
 
 <h3> SAVING LABELS and CLASSIFIER </h3>
 
-The labels can be saved by using <b>File -> Save Labels</b>.  The saved labels are automatically loaded in when the experiment is added to a new JAABA session. 
+The labels can be saved by using <b>File -> Save Labels</b>.  The saved labels are automatically loaded in when the experiment is added later for the same project. If you add the same experiment, but select a different project, "chase" labels are not added.<br><br>
 
-Similarly, <b>File -> Save classifier and labels</b> will save the current classifier and labels. A saved classifier can be loaded using the <b>Load</b> button when starting a new JAABA session.
+Similarly, <b>File -> Save classifier and labels</b> will save the current classifier and labels. A saved classifier can be loaded using the <b>Load</b> button when starting a new JAABA session. When you load a classifier, the associated movies/experiments are added automatically.
 
 <h3> CLASSIFYING MOVIE</h3>
 
-After training a classifier the whole trajectory of a fly, whole movie or all the movies can be classified by <b>Classifier -> Classify</b>
+After training a classifier the whole trajectory of a animal, whole movie or all the movies can be classified by <b>Classifier -> Classify</b>. <b>Current animal</b> computes the predictions for whole trajectory of the current animal. <b> Current Experiment</b> computes the predictions for all the animals in the current experiment but in addition stores them to disk. The scores computed using this are shown at the bottom of the prediction timeline (the <b>Loaded</b> option in the drop down menu). Same is the case with <b>All Experiments</b>.<br><br>
 
+Saved scores can be loaded using <b>File -> Load Scores -> For current experiment from default location</b> or <b>For all experiments from default location</b> later again or in a new session of JAABA.
 
+<h3> ADDING/REMOVING EXPERIMENTS</h3>
+
+You can add/remove experiments by <b>File -> Edit files... </b> 
