@@ -55,10 +55,18 @@ if header.is_fixed_size,
 else
   bb = zeros(npts,4);
   data = cell(1,npts);
+  cache = fread(fp,(header.frame2file(framei+1)-header.frame2file(framei)+1)*header.bytes_per_pixel,...
+      ['*',header.dataclass]);
+  cacheidx=1;
   for i = 1:npts,
-    bb(i,:) = fread(fp,4,'ushort');
+    %bb(i,:) = fread(fp,4,'ushort');
+    tmp=double(cache(cacheidx:(cacheidx+7)));
+    bb(i,:)=tmp(1:2:7)+256*tmp(2:2:8);
     width = bb(i,4); height = bb(i,3);
-    data{i} = fread(fp,width*height*header.bytes_per_pixel,['*',header.dataclass]);
+    data{i} = cache((cacheidx+8):(cacheidx+7+width*height*header.bytes_per_pixel));
+    cacheidx=cacheidx+8+width*height*header.bytes_per_pixel;
+    %width = bb(i,4); height = bb(i,3);
+    %data{i} = fread(fp,width*height*header.bytes_per_pixel,['*',header.dataclass]);
     % TODO: handle colorspaces other than MONO8 and RGB8
     data{i} = reshape(data{i},[header.ncolors,height,width]);
   end
