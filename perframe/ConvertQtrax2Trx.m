@@ -73,11 +73,11 @@ if ~exist(outexpdir,'dir'),
   mkdir(outexpdir);
 end
 
-% create the trx file
+%% create the trx file
 outmatname = fullfile(outexpdir,trxfilestr);
 cadabra2ctrax(featname,roiname,moviename,outmatname,doflipud,dofliplr,rot,movieinfo);
 
-% copy over the movie
+%% copy over the movie
 if ~exist(moviename,'file'),
   error('Movie %s does not exist',moviename);
 end
@@ -92,7 +92,7 @@ else
   end
 end
 
-% save the per-frame features
+%% save the per-frame features
 perframedir = fullfile(outexpdir,perframedirstr);
 if ~exist(perframedir,'dir'),
   mkdir(perframedir);
@@ -151,3 +151,23 @@ for i = 1:numel(fns),
   end
   save(fullfile(perframedir,[fn,'.mat']),'data','units');
 end
+
+% also the trajectory positions files
+tmp = load(outmatname);
+posfns = {'x','y','a','b','theta','x_mm','y_mm','a_mm','b_mm','theta_mm',...
+  'xwingl_mm','ywingl_mm','xwingr_mm','ywingr_mm',...
+  'xwingl','ywingl','xwingr','ywingr'};
+for i = 1:numel(tmp.trx),
+  tmp.trx(i).theta_mm = tmp.trx(i).theta;
+end
+ 
+for i = 1:numel(posfns),
+  data = {tmp.trx.(posfns{i})};
+  if numel(posfns{i}) >= 3 && strcmp(posfns{i}(end-2:end),'_mm'),
+    units = parseunits('mm');
+  else
+    units = parseunits('px');
+  end
+  save(fullfile(perframedir,[posfns{i},'.mat']),'data','units');
+end
+   
