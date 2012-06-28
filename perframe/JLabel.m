@@ -511,7 +511,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
     
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N),'double');
-  fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
+  fwrite(fid,zeros(1,N*prod(HWD),'uint8'),'uint8');  % need to make this work for other formats
   fclose(fid);
   Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
   Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
