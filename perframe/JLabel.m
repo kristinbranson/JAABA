@@ -5310,7 +5310,7 @@ function crossValidate_Callback(hObject, eventdata, handles)
 handles.guidata.data.StoreLabels();
 [success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
 
-if ~success, warndlg(ms); return; end;
+if ~success, warndlg(msg); return; end;
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
@@ -6295,7 +6295,7 @@ function menu_edit_cache_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 curval = sprintf('%d',handles.guidata.data.cacheSize);
 v = inputdlg('Memory usage (MB)','Cache Size',1,{curval});
-sz = str2double(v);
+sz = str2double(v{1});
 if isnan(sz) || sz<0;
   return;
 end
