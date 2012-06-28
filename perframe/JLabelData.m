@@ -4680,6 +4680,7 @@ classdef JLabelData < handle
         tlabels = {};
         success = false;
         msg = 'No Labeled Data';
+        obj.ClearStatus();
         return; 
       end
       
@@ -4703,6 +4704,7 @@ classdef JLabelData < handle
         crossError.oldNumbers = zeros(4,3);
         crossError.oldFrac = zeros(4,3);
         tlabels = {};
+        obj.ClearStatus();
         return, 
       end;
 
