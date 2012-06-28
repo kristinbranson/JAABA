@@ -182,7 +182,7 @@ else
 end  
 
 set(handles.table,'ColumnName',...
-  {'Experiment Name','Fly|Number',fieldList{:,2}});
+  {'Experiment Name','Target|Number',fieldList{:,2}});
 colFormat{1} = 'char';
 colFormat{2} = 'numeric';
 for ndx = 1:size(fieldList,1)

@@ -6294,7 +6294,7 @@ function menu_edit_cache_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 curval = sprintf('%d',handles.guidata.data.cacheSize);
-v = inputdlg('Window data cache size (MB)','Cache Size',1,{curval});
+v = inputdlg('Memory usage (MB)','Cache Size',1,{curval});
 sz = str2double(v);
 if isnan(sz) || sz<0;
   return;
