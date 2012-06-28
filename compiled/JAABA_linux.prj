@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<deployment-project>
-  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_linux" location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled" file="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled/JAABA_linux.prj" preferred-package-type="package.type.zip" build-checksum="2497048714" preferred-package-location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled">
+<deployment-project plugin="plugin.deploytool" plugin-version="1.0">
+  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_linux" location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled" file="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled/JAABA_linux.prj" preferred-package-type="package.type.zip" build-checksum="115724194" preferred-package-location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled">
     <param.project.name>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/compiled/JAABA_linux.prj</param.project.name>
     <param.target.type>Standalone Application</param.target.type>
     <param.appname>JAABA_linux</param.appname>
@@ -78,15 +78,11 @@
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>/localhome/bransonk/software/matlab/R2011b</root>
+      <root>/localhome/bransonk/software/matlab/R2012a</root>
       <path>
         <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/compute_perframe_features</directory>
         <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/filehandling</directory>
         <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc</directory>
-        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../figurecode</directory>
-        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../perframe</directory>
-        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../filehandling</directory>
-        <directory>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/../../misc</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/demos</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/graph2d</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/graph3d</directory>
@@ -95,6 +91,7 @@
         <directory>${MATLAB_ROOT}/toolbox/matlab/scribe</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/specgraph</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/uitools</directory>
+        <directory>${MATLAB_ROOT}/toolbox/matlab/optimfun</directory>
         <directory>${MATLAB_ROOT}/toolbox/local</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/general</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/ops</directory>
@@ -118,18 +115,17 @@
         <directory>${MATLAB_ROOT}/toolbox/matlab/hds</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/guide</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/datamanager</directory>
-        <directory>${MATLAB_ROOT}/toolbox/shared/simulink</directory>
-        <directory>${MATLAB_ROOT}/toolbox/shared/instrument</directory>
+        <directory>${MATLAB_ROOT}/toolbox/shared/coder/coder</directory>
         <directory>${MATLAB_ROOT}/toolbox/symbolic/symbolic</directory>
         <directory>${MATLAB_ROOT}/toolbox/symbolic/symbolicdemos</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/optimlib</directory>
-        <directory>${MATLAB_ROOT}/toolbox/shared/eml/eml</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/timeseries</directory>
         <directory>${MATLAB_ROOT}/toolbox/images/imdemos</directory>
         <directory>${MATLAB_ROOT}/toolbox/signal/signal</directory>
         <directory>${MATLAB_ROOT}/toolbox/signal/sigtools</directory>
         <directory>${MATLAB_ROOT}/toolbox/signal/sptoolgui</directory>
         <directory>${MATLAB_ROOT}/toolbox/stats/statsdemos</directory>
+        <directory>${MATLAB_ROOT}/toolbox/shared/simulink</directory>
         <directory>${MATLAB_ROOT}/toolbox/compiler/compilerdemos</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/imagesci</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/asynciolib</directory>
@@ -157,6 +153,7 @@
         <directory>${MATLAB_ROOT}/toolbox/sam/m3i</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/dspblks/dspblks</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/dspblks/dspmex</directory>
+        <directory>${MATLAB_ROOT}/toolbox/shared/instrument</directory>
         <directory>${MATLAB_ROOT}/toolbox/distcomp</directory>
         <directory>${MATLAB_ROOT}/toolbox/distcomp/distcomp</directory>
         <directory>${MATLAB_ROOT}/toolbox/distcomp/user</directory>
@@ -169,6 +166,7 @@
         <directory>${MATLAB_ROOT}/toolbox/shared/spcuilib</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/controllib/general</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/dastudio</directory>
+        <directory>${MATLAB_ROOT}/toolbox/matlab/system</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/siglib</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/testmeaslib/simulink</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/testmeaslib/general</directory>
@@ -179,6 +177,8 @@
         <directory>${MATLAB_ROOT}/toolbox/distcomp/pctdemos</directory>
         <directory>${MATLAB_ROOT}/toolbox/signal/sigdemos</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/controllib/graphics</directory>
+        <directory>${MATLAB_ROOT}/toolbox/shared/controllib/graphics/utils</directory>
+        <directory>${MATLAB_ROOT}/toolbox/shared/controllib/graphics/plotoptions</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/audiovideo</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/testmeaslib/graphics</directory>
         <directory>${MATLAB_ROOT}/toolbox/shared/imageslib</directory>
