@@ -6295,7 +6295,7 @@ function menu_edit_cache_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 curval = sprintf('%d',handles.guidata.data.cacheSize);
 v = inputdlg('Memory usage (MB)','Cache Size',1,{curval});
-sz = str2double(v);
+sz = str2double(v{1});
 if isnan(sz) || sz<0;
   return;
 end
