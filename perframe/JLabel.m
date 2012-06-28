@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 14-May-2012 16:16:05
+% Last Modified by GUIDE v2.5 28-Jun-2012 09:29:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -6281,3 +6281,15 @@ outfile = fullfile(pname,fname);
 handles.guidata.data.SaveSuggestionGT(expi,outfile);
 
 
+% --------------------------------------------------------------------
+function menu_edit_cache_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_cache (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+v = inputdlg('Window data cache size (MB)','Cache Size');
+sz = str2double(v);
+if isnan(sz) || sz<0;
+  return;
+end
+
+handles.guidata.data.cacheSize = sz;
