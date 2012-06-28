@@ -286,6 +286,7 @@ classdef JLabelData < handle
     balancedGTSuggestions = {};
     GTSuggestionMode = '';
     
+    cacheSize = 4000;
   end
   
   methods (Access=private)
@@ -2720,6 +2721,7 @@ classdef JLabelData < handle
       if nargin < 3,
         canusecache = true;
       end
+%       canusecache = false;
       istrxinput = nargin >= 4;
       
       obj.SetStatus('Reading trx info for experiment %s',obj.expdirs{expi});
@@ -4063,7 +4065,7 @@ classdef JLabelData < handle
     function TrimWindowData(obj,doforce)
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
-      sizeLimit = 5e9; % 5GB.
+      sizeLimit = obj.cacheSize*1e6;
       classSize = 4;
       ratioLimit = 0.2;
       
