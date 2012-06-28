@@ -1,4 +1,4 @@
-% [mu,S,priors] = mygmm(X,k,...)
+% [mu,S,priors,post,nll] = mygmm(X,k,...)
 % Input:
 % X: N x D matrix of N D-dimensional data points
 % k: number of clusters
@@ -12,7 +12,7 @@
 % 'Start' = 'furthestfirst'
 % 'distance' = 'sqEuclidean'
 % 'weights' = []
-function [mu,S,priors,post] = mygmm(X,k,varargin)
+function [mu,S,priors,post,nll] = mygmm(X,k,varargin)
 
 [nreplicates,covartype,display,precision,resetcovar,maxiters,start,distance,weights] = ...
     myparse(varargin,'Replicates',1,'CovarType','full',...
@@ -29,6 +29,8 @@ end
 [N,D] = size(X);
 if isstruct(start),
   nreplicates = length(start);
+elseif isnumeric(start),
+  nreplicates = size(start,3);
 end
 
 options = zeros(1,14);
@@ -43,6 +45,13 @@ for replicate = 1:nreplicates,
   % initialize
   if isstruct(start),
     mix = start(replicate);
+  elseif isnumeric(start),
+    % start is just the mean
+    mu = start(:,:,replicate);
+    D = dist2(mu,X);
+    [~,idx] = min(D,[],1);
+    % create gmm structure
+    mix = mygmminit(X,mu,idx,covartype);
   else
     [idx,C] = mykmeans(X,k,kmeansparams{:});
     for i = 1:k,
@@ -63,8 +72,9 @@ for replicate = 1:nreplicates,
   else
     [mix,options,errlog,post] = gmmem_weighted(mix,X,weights,options);
   end
-  if errlog(end) < minerr,
-    minerr = errlog(end);
+  nllcurr = options(8);
+  if nllcurr < minerr,
+    minerr = nllcurr;
     mixsave = mix;
   end;
 
@@ -73,3 +83,4 @@ end;
 mu = mixsave.centres;
 S = mixsave.covars;
 priors = mixsave.priors;
+nll = minerr;

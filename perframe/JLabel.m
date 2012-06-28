@@ -449,8 +449,8 @@ while true
   idx=find(isnan(Mlastused.Data));
   if(~isempty(idx))
     idx2=argmax(Mts.Data(idx));
-    Mlastused.Data(idx(idx2)) = now;
     Mims.Data(idx(idx2)).x = readframe(Mts.Data(idx(idx2)));
+    Mlastused.Data(idx(idx2)) = now;
   else
     pause(1);
   end
@@ -462,13 +462,19 @@ function UpdatePlots(handles,varargin)
 persistent Mts Mlastused Mims movie_filename
 
 if strcmp(varargin{1},'CLEAR'),
-  if ~isempty(handles.guidata.cache_thread),
-    delete(handles.guidata.cache_thread);
-    handles.guidata.cache_thread = [];
+  %fprintf('Clearing UpdatePlots data\n');
+  try
+    if isfield(handles,'guidata') && ~isempty(handles.guidata.cache_thread),
+      delete(handles.guidata.cache_thread);
+      handles.guidata.cache_thread = [];
+    end
+    Mts = struct('Data',[]);
+    Mlastused = struct('Data',[]);
+    Mims = struct('Data',[]);
+    movie_filename = '';
+  catch ME,
+    warning('Error when trying to clear UpdatePlots data: %s',getReport(ME));
   end
-  Mts = struct('Data',[]); 
-  Mlastused = struct('Data',[]); 
-  Mims = struct('Data',[]); 
   return;
 end
 
@@ -514,6 +520,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   handles.guidata.cache_thread=batch(@cache_thread,0,...
     {N,HWD,cache_filename,handles.guidata.movie_filename},...
     'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
+  %if(ismac)  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
 end
 
 % WARNING: we directly access handles.guidata.data.trx for speed here -- 
