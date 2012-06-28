@@ -115,7 +115,7 @@
     
     <darea trans_types="none,abs" type="appearance"/>
     
-    <da trans_types="none,abs" type="scores"/>
+    <da trans_types="none,abs" type="appearance"/>
     
     <db trans_types="none,abs" type="appearance"/>
 
@@ -166,7 +166,7 @@
     <magveldiff_nose2ell trans_types="none,relative" type="social"/>
     
     <nflies_close trans_types="none" type="social"/>
-    
+
     <phi trans_types="none" type="position"/>
     
     <phisideways trans_types="none" type="locomotion"/>
