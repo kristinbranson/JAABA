@@ -462,13 +462,19 @@ function UpdatePlots(handles,varargin)
 persistent Mts Mlastused Mims movie_filename
 
 if strcmp(varargin{1},'CLEAR'),
-  if ~isempty(handles.guidata.cache_thread),
-    delete(handles.guidata.cache_thread);
-    handles.guidata.cache_thread = [];
+  %fprintf('Clearing UpdatePlots data\n');
+  try
+    if isfield(handles,'guidata') && ~isempty(handles.guidata.cache_thread),
+      delete(handles.guidata.cache_thread);
+      handles.guidata.cache_thread = [];
+    end
+    Mts = struct('Data',[]);
+    Mlastused = struct('Data',[]);
+    Mims = struct('Data',[]);
+    movie_filename = '';
+  catch ME,
+    warning('Error when trying to clear UpdatePlots data: %s',getReport(ME));
   end
-  Mts = struct('Data',[]); 
-  Mlastused = struct('Data',[]); 
-  Mims = struct('Data',[]); 
   return;
 end
 
