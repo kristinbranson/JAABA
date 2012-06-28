@@ -4697,7 +4697,14 @@ classdef JLabelData < handle
         obj.windowdata.binVals,...
         obj.classifier_params);%,true);
       
-      if ~success, return, end;
+      if ~success, 
+        crossError.numbers = zeros(4,3);
+        crossError.frac = zeros(4,3);
+        crossError.oldNumbers = zeros(4,3);
+        crossError.oldFrac = zeros(4,3);
+        tlabels = {};
+        return, 
+      end;
 
 %{      
 %       crossScores=...
