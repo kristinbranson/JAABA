@@ -511,7 +511,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
     
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N),'double');
-  fwrite(fid,zeros(1,N*prod(HWD)),'uint8');  % need to make this work for other formats
+  fwrite(fid,zeros(1,N*prod(HWD),'uint8'),'uint8');  % need to make this work for other formats
   fclose(fid);
   Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
   Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
@@ -5310,7 +5310,7 @@ function crossValidate_Callback(hObject, eventdata, handles)
 handles.guidata.data.StoreLabels();
 [success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
 
-if ~success, warndlg(ms); return; end;
+if ~success, warndlg(msg); return; end;
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
@@ -6293,10 +6293,11 @@ function menu_edit_cache_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit_cache (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-v = inputdlg('Window data cache size (MB)','Cache Size');
-sz = str2double(v);
+curval = sprintf('%d',handles.guidata.data.cacheSize);
+v = inputdlg('Memory usage (MB)','Cache Size',1,{curval});
+sz = str2double(v{1});
 if isnan(sz) || sz<0;
   return;
 end
 
-handles.guidata.data.cacheSize = sz;
+handles.guidata.data.cacheSize = round(sz);
