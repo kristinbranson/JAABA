@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 14-May-2012 16:16:05
+% Last Modified by GUIDE v2.5 28-Jun-2012 09:29:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -435,6 +435,10 @@ handles = UpdateGUIGroundTruthMode(handles);
 
 function cache_thread(N,HWD,cache_filename,movie_filename)
 
+if isempty(movie_filename),
+  return;
+end
+
 Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
 Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
 Mims =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
@@ -458,18 +462,23 @@ function UpdatePlots(handles,varargin)
 persistent Mts Mlastused Mims movie_filename
 
 if strcmp(varargin{1},'CLEAR'),
-  if ~isempty(handles.guidata.cache_thread),
-    delete(handles.guidata.cache_thread);
-    handles.guidata.cache_thread = [];
+  %fprintf('Clearing UpdatePlots data\n');
+  try
+    if isfield(handles,'guidata') && ~isempty(handles.guidata.cache_thread),
+      delete(handles.guidata.cache_thread);
+      handles.guidata.cache_thread = [];
+    end
+    Mts = struct('Data',[]);
+    Mlastused = struct('Data',[]);
+    Mims = struct('Data',[]);
+    movie_filename = '';
+  catch ME,
+    warning('Error when trying to clear UpdatePlots data: %s',getReport(ME));
   end
-  Mts = []; 
-  Mlastused = []; 
-  Mims = []; 
-  movie_filename = '';
   return;
 end
 
-if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filename))
+if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
@@ -479,9 +488,9 @@ if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filena
     delete(handles.guidata.cache_thread);
     handles.guidata.cache_thread = [];
   end
-  Mts = []; %#ok<NASGU>
-  Mlastused = []; %#ok<NASGU>
-  Mims = []; %#ok<NASGU>
+  Mts = struct('Data',[]); %#ok<NASGU>
+  Mlastused = struct('Data',[]); %#ok<NASGU>
+  Mims = struct('Data',[]); %#ok<NASGU>
   
   cache_filename=['cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
@@ -881,9 +890,9 @@ end
 % if no movie, then set limits
 if ~handles.guidata.data.ismovie,
   maxx = max([handles.guidata.data.trx.x]);
-  maxy = max([handles.guidata.data.trx.x]);
-  handles.guidata.movie_height = maxy;
-  handles.guidata.movie_width = maxx;
+  maxy = max([handles.guidata.data.trx.y]);
+  handles.guidata.movie_height = ceil(maxy);
+  handles.guidata.movie_width = ceil(maxx);
   handles.guidata.nframes = max([handles.guidata.data.trx.endframe]);
   
   % set axes colors to be white instead of black
@@ -4077,6 +4086,7 @@ handles.guidata.axes_timeline_props(propi) = [];
 handles.guidata.axes_timelines(axi) = [];
 handles.guidata.labels_timelines(axi) = [];
 handles.guidata.text_timelines(axi) = [];
+handles.guidata.text_timeline_props(propi) = [];
 handles.guidata.htimeline_data(propi) = [];
 handles.guidata.hcurr_timelines(axi) = [];
 handles.guidata.hselection(axi) = [];
@@ -5659,7 +5669,7 @@ handles.visualizeclassifier = ...
   'feature_order',feature_order,'bins',bins,...
   'scores',scores);
 
-handles.guidata.open_peripherals(end+1) = handles.visualizeclassifier;
+handles.guidata.open_peripherals(end+1) = hfig;
 
 guidata(hObject,handles);
 
@@ -6278,3 +6288,15 @@ outfile = fullfile(pname,fname);
 handles.guidata.data.SaveSuggestionGT(expi,outfile);
 
 
+% --------------------------------------------------------------------
+function menu_edit_cache_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_cache (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+v = inputdlg('Window data cache size (MB)','Cache Size');
+sz = str2double(v);
+if isnan(sz) || sz<0;
+  return;
+end
+
+handles.guidata.data.cacheSize = sz;

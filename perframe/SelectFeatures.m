@@ -153,7 +153,7 @@ for ndx = 1:numel(pfList)
 end
 
 set(handles.pfTable,'Data',tableData);
-set(handles.pfTable,'ColumnName',{'Features','Select','Type'});
+set(handles.pfTable,'ColumnName',{'Features','Select','Category'});
 set(handles.pfTable,'ColumnEditable',[false,true]);
 
 set(handles.pfTable,'ColumnWidth',{190,50,95});
@@ -178,7 +178,7 @@ else
   end
 end
 set(handles.basicTable,'Data',tableData);
-set(handles.basicTable,'ColumnName',{'Categories','Select','Features'});
+set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
 set(handles.basicTable,'ColumnFormat',{'char',...
   {'All' 'None' 'Custom'}, fieldnames(handles.categ)'});
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
@@ -1282,7 +1282,7 @@ if ~fname; return; end;
 
 featureparamsfilename = fullfile(pname,fname);
 [params,~,basicTable,windowSize] = ...
-  ReadPerFrameParams(featureparamsfilename);
+  ReadPerFrameParams(featureparamsfilename,handles.JLDobj.featureConfigFile);
 guidata(hObject,handles);
 initData(hObject,params);
 set(handles.basicTable,'Data',basicTable);
