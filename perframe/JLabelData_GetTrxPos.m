@@ -83,6 +83,12 @@ switch obj.targettype,
       pos.b = obj.trx(fly).b;
       pos.xcontour = obj.trx(fly).xcontour;
       pos.ycontour = obj.trx(fly).ycontour;
+      
+      if all(isfield(obj.trx,{'xspine','yspine'})),
+        pos.xspine = obj.trx(fly).xspine;
+        pos.yspine = obj.trx(fly).yspine;
+      end
+      
       return;
     end
     
@@ -93,6 +99,11 @@ switch obj.targettype,
     pos.b = obj.trx(fly).b(ts + obj.trx(fly).off);
     pos.xcontour = obj.trx(fly).xcontour{ts + obj.trx(fly).off};
     pos.ycontour = obj.trx(fly).ycontour{ts + obj.trx(fly).off};
+    
+    if all(isfield(obj.trx,{'xspine','yspine'})),
+      pos.xspine = obj.trx(fly).xspine(:,ts + obj.trx(fly).off);
+      pos.yspine = obj.trx(fly).yspine(:,ts + obj.trx(fly).off);
+    end
     
   case 'larvasamuel',
     

@@ -17,7 +17,7 @@
 % rot: [optional] degrees to rotate the trajectories by around the center
 % of the video. Default: 0. 
 
-function [succeeded,outmatname,trx] = cadabra2ctrax(featname,roiname,moviename,outmatname,doflipud,dofliplr,rot)
+function [succeeded,outmatname,trx] = cadabra2ctrax(featname,roiname,moviename,outmatname,doflipud,dofliplr,rot,movieinfo)
 
 % initialize outputs
 succeeded = false;
@@ -77,16 +77,23 @@ end
 feat = load(featname);
 roi = load(roiname);
 
-% read fps, frame size, moviename is either the name of the movie or an mmreader object
-if ~ischar(moviename),
-  readerobj = moviename;
-  moviename = fullfile(get(readerobj,'Path'),get(readerobj,'Name'));
+if ~exist('movieinfo','var') || isempty(movieinfo),
+
+  % read fps, frame size, moviename is either the name of the movie or an mmreader object
+  if ~ischar(moviename),
+    readerobj = moviename;
+    moviename = fullfile(get(readerobj,'Path'),get(readerobj,'Name'));
+  else
+    readerobj = mmreader(moviename);
+  end
+  fps = get(readerobj,'FrameRate')+0;
+  movieheight = get(readerobj,'Height')+0;
+  moviewidth = get(readerobj,'Width')+0;
 else
-  readerobj = mmreader(moviename);
+  fps = movieinfo.fps;
+  movieheight = movieinfo.height;
+  moviewidth = movieinfo.width;
 end
-fps = get(readerobj,'FrameRate')+0;
-movieheight = get(readerobj,'Height')+0;
-moviewidth = get(readerobj,'Width')+0;
 movieheight_mm = movieheight * roi.scale.y;
 moviewidth_mm = moviewidth * roi.scale.x;
 
@@ -98,7 +105,7 @@ c = cell(1,2);
 trx = struct('x',c,'y',c,'theta',c,'a',c,'b',c,...
   'id',c,'moviename',c,'firstframe',c,'arena',c,...
   'nframes',c,'endframe',c,'pxpermm',c,'fps',c,'x_mm',c,...
-  'y_mm',c,'a_mm',c,'b_mm',c);
+  'y_mm',c,'a_mm',c,'b_mm',c,'dt',c);
 obj = [feat.fly_feat.obj1,feat.fly_feat.obj2];
 firstframeoff = feat.fly_feat.frame(1) - 1;
 arena = struct('x',nan,'y',nan,'r',nan);
@@ -122,10 +129,15 @@ for fly = 1:2,
   trx(fly).theta = nan(1,nframes);
   trx(fly).a = nan(1,nframes);
   trx(fly).b = nan(1,nframes);
+  trx(fly).xwingl = nan(1,nframes);
+  trx(fly).ywingl = nan(1,nframes);
+  trx(fly).xwingr = nan(1,nframes);
+  trx(fly).ywingr = nan(1,nframes);
   trx(fly).x_mm = nan(1,nframes);
   trx(fly).y_mm = nan(1,nframes);
   trx(fly).a_mm = nan(1,nframes);
   trx(fly).b_mm = nan(1,nframes);
+  trx(fly).dt = nan(1,nframes-1);
   
   % store parameters
   trx(fly).moviename = moviename;
@@ -154,6 +166,26 @@ for fly = 1:2,
   trx(fly).y_mm = trx(fly).y / pxpermm;
   trx(fly).a = trx(fly).a_mm*pxpermm;
   trx(fly).b = trx(fly).b_mm*pxpermm;
+    
+  phil = obj(fly).phil*pi/180;
+  wingll = obj(fly).wingll*pxpermm;
+  xwl = trx(fly).x(idx) + wingll.*cos(-phil-trx(fly).theta(idx)-pi);
+  ywl = trx(fly).y(idx) + wingll.*sin(-phil-trx(fly).theta(idx));
+  phir = obj(fly).phir*pi/180;
+  winglr = obj(fly).winglr*pxpermm;
+  xwr = trx(fly).x(idx) + winglr.*cos(phir-trx(fly).theta(idx)-pi);
+  ywr = trx(fly).y(idx) + winglr.*sin(phir-trx(fly).theta(idx));
+  trx(fly).xwingl(idx) = xwl;
+  trx(fly).ywingl(idx) = ywl;
+  trx(fly).xwingr(idx) = xwr;
+  trx(fly).ywingr(idx) = ywr;
+  trx(fly).xwingl_mm = trx(fly).xwingl / pxpermm;
+  trx(fly).ywingl_mm = trx(fly).ywingl / pxpermm;
+  trx(fly).xwingr_mm = trx(fly).xwingr / pxpermm;
+  trx(fly).ywingr_mm = trx(fly).ywingr / pxpermm;
+  
+  
+  trx(fly).dt(idx(1:end-1)) = diff(feat.fly_feat.time(firstframe:lastframe));
   
   % flipud if necessary
   if doflipud,

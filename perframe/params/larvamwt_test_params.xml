@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<params>
+   <targets type="larvacontour"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Behavior" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params\featureConfigMWTContour.xml" featureparamfilename="C:\Code\Jdetect\perframe\params\WindowFeatures_LarvaeMWT_Behavior.xml" gt_labelfilename="gt_labeledBehavior.mat" labelfilename="labeledBehavior.mat" moviefilename="" perframedir="perframe" rootoutputdir="" scorefilename="scores_Behavior.mat" trxfilename="trx.mat" windowfilename="windowfeatures.mat"/>
+   <plot>
+      <trx colormap="jet" colormap_multiplier="0.7" extra_linestyle="-" extra_marker="None"/>
+      <labels colormap="line" linewidth="3"/>
+   </plot>
+   <perframe>
+      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
+   </perframe>
+   <featureparamlist>
+      <area_mm/>
+      <bias/>
+      <cast/>
+      <crabspeed/>
+      <curve/>
+      <dir/>
+      <kink/>
+      <midline/>
+      <morphwidth/>
+      <speed/>
+      <speed085/>
+   </featureparamlist>
+</params>
