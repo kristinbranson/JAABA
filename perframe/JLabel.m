@@ -465,6 +465,7 @@ if strcmp(varargin{1},'CLEAR'),
   Mts = []; 
   Mlastused = []; 
   Mims = []; 
+  movie_filename = '';
   return;
 end
 
@@ -510,7 +511,7 @@ if(isempty(movie_filename) | ~strcmp(movie_filename,handles.guidata.movie_filena
   handles.guidata.cache_thread=batch(@cache_thread,0,...
     {N,HWD,cache_filename,handles.guidata.movie_filename},...
     'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
-  %if(ismac)  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
+  if(ismac)  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
 end
 
 % WARNING: we directly access handles.guidata.data.trx for speed here -- 
