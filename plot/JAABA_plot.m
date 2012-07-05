@@ -496,13 +496,33 @@ function ret_val=get_label(feature_name,feature_units)
 
 ret_val=[strrep(char(feature_name),'_','-') ' ('];
 if(~isempty(feature_units.num))
-  ret_val=[ret_val char(feature_units.num)];
+  if(length(feature_units.num)>1)
+    ret_val=[ret_val '['];
+  end
+  tmp=char(feature_units.num);
+  tmp=[tmp repmat('-',size(tmp,1),1)];
+  tmp=reshape(tmp',1,numel(tmp));
+  tmp=tmp(1:end-1);
+  ret_val=[ret_val tmp];
+  if(length(feature_units.num)>1)
+    ret_val=[ret_val ']'];
+  end
   if(~isempty(feature_units.den))
     ret_val=[ret_val ' / ' ];
   end
 end
 if(~isempty(feature_units.den))
-  ret_val=[ret_val char(feature_units.den)];
+  if(length(feature_units.den)>1)
+    ret_val=[ret_val '['];
+  end
+  tmp=char(feature_units.den);
+  tmp=[tmp repmat('-',size(tmp,1),1)];
+  tmp=reshape(tmp',1,numel(tmp));
+  tmp=tmp(1:end-1);
+  ret_val=[ret_val tmp];
+  if(length(feature_units.den)>1)
+    ret_val=[ret_val ']'];
+  end
   if(isempty(feature_units.num))
     ret_val=[ret_val ' ^ -1 ' ];
   end
@@ -656,11 +676,11 @@ set(handles.Table,'Data',tmp);
 set(handles.Table,'ColumnName',{'Behavior' 'Feature' 'd'''});
 set(handles.Table,'ColumnWidth',{150 150 50});
 
-set(handles.Status,'string','Ready.');
-
 handles.table_data=table_data;
 handles.table='histogram';
 guidata(hObject,handles);
+
+set(handles.Status,'string','Ready.');
 
 
 % --- 
@@ -776,7 +796,7 @@ switch(handles.bar)
     range_red=[range_red; min(triggered_data(end-3,:)) max(triggered_data(end-3,:))];
     range_red=[range_red; min(triggered_data(end-1,:)) max(triggered_data(end-1,:))];
 end
-xlabel('frames');
+xlabel('time (frames)');
 ylabel(get_label(feature_list(feature_value),feature_data.units));
 axis tight
 if(handles.zoom==2)
@@ -794,36 +814,41 @@ function InterestingTimeSeries_Callback(hObject, eventdata, handles)
 
 set(handles.Status,'string','Thinking...');  drawnow;
 
-ncols=6;
+ncols=4;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
 behavior_list=get(handles.BehaviorList,'String');
 feature_list=get(handles.FeatureList,'String');
 windowradius=str2num(get(handles.WindowRadius,'string'));
+statistic=get(handles.Statistic,'Value');
 
-table_data=zeros(length(behavior_list),length(feature_list)*2*2,ncols);
+table_data=zeros(length(behavior_list),length(feature_list)*2,ncols);
 parfor b=1:length(behavior_list)
   k=1;
-  tmp=zeros(length(feature_list)*2*2,ncols);
+  parfor_tmp=zeros(length(feature_list)*2,ncols);
   behavior_data=load(fullfile(char(experiment_list(experiment_value)),char(behavior_list(b))));
   for f=1:length(feature_list)
     feature_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',char(feature_list(f))));
     for t=1:2  % timing
-      for s=1:2  % statistic
-        triggered_data=calculate_timeseries(behavior_data,1,[],feature_data,t,s,windowradius);
-        tmp(k,:)=[b f t s ...
-            nanmean(triggered_data(end-2,(windowradius+1):end))/nanmean(triggered_data(end-2,1:windowradius)) ...
-             nanstd(triggered_data(end-2,(windowradius+1):end))/ nanstd(triggered_data(end-2,1:windowradius))];
-        k=k+1;
-      end
+      triggered_data=calculate_timeseries(behavior_data,1,[],feature_data,t,statistic,windowradius);
+      foo=nanmean(triggered_data(1:end-5,1:windowradius),2);
+      foo=triggered_data(1:end-5,:)-repmat(foo,1,size(triggered_data,2));
+      foo=sqrt(nanmean(triggered_data(1:end-5,(windowradius+1):end).^2,2)) ./ ...
+          sqrt(nanmean(triggered_data(1:end-5,1:windowradius).^2,2));
+      parfor_tmp(k,:)=[b f t nanmedian(foo)];
+%      parfor_tmp(k,:)=[b f t ...
+%          nanmean(triggered_data(end-2,(windowradius+1):end))/nanmean(triggered_data(end-2,1:windowradius)) ...
+%          nanstd(triggered_data(end-2,(windowradius+1):end))/ nanstd(triggered_data(end-2,1:windowradius))];
+      k=k+1;
     end
   end
-  table_data(b,:,:)=tmp;
+  table_data(b,:,:)=parfor_tmp;
   disp([num2str(b) ' of ' num2str(length(behavior_list))]);
 end
 table_data=reshape(table_data,prod(size(table_data))/ncols,ncols);
-table_data=sortrows(table_data,-(ncols-1));
+table_data=sortrows(table_data,-ncols);
+%table_data=sortrows(table_data,-(ncols-1));
 
 tmp=cell(size(table_data));
 tmp(:,1)=behavior_list(table_data(:,1));
@@ -831,21 +856,22 @@ tmp(:,2)=feature_list(table_data(:,2));
 tmp(:,3)=repmat({'Onset'},size(table_data,1),1);
   find(table_data(:,3)==2);
   tmp(ans,3)=repmat({'Offset'},size(ans),1);
-tmp(:,4)=repmat({'Mean'},size(table_data,1),1);
-  find(table_data(:,4)==2);
-  tmp(ans,4)=repmat({'Median'},size(ans),1);
-tmp(:,5)=num2cell(table_data(:,5));
-tmp(:,6)=num2cell(table_data(:,6));
+%tmp(:,4)=repmat({'Mean'},size(table_data,1),1);
+%  find(table_data(:,4)==2);
+%  tmp(ans,4)=repmat({'Median'},size(ans),1);
+tmp(:,4)=num2cell(table_data(:,4));
+%tmp(:,6)=num2cell(table_data(:,6));
 
 set(handles.Table,'Data',tmp);
-set(handles.Table,'ColumnName',{'Behavior' 'Feature' 'Timing' 'Statistic' 'Mean' 'Std'});
-set(handles.Table,'ColumnWidth',{150 150 50 50 50 50});
-
-set(handles.Status,'string','Ready.');
+set(handles.Table,'ColumnName',{'Behavior' 'Feature' 'Timing' 'dRMS'});
+%set(handles.Table,'ColumnName',{'Behavior' 'Feature' 'Timing' 'Statistic' 'Mean' 'Std'});
+set(handles.Table,'ColumnWidth',{150 150 50 50 50});
 
 handles.table_data=table_data;
 handles.table='timeseries';
 guidata(hObject,handles);
+
+set(handles.Status,'string','Ready.');
 
 
 % --- Executes on selection change in Individuals.
@@ -936,11 +962,11 @@ end
 set(handles.Table,'ColumnName',tmp);
 set(handles.Table,'ColumnWidth',{150 75 75});
 
-set(handles.Status,'string','Ready.');
-
 handles.table_data=table_data;
 handles.table='behavior_stats';
 guidata(hObject,handles);
+
+set(handles.Status,'string','Ready.');
 
 
 % --- 
@@ -951,6 +977,51 @@ if(size(eventdata.Indices,1)==0)  return;  end
 handles=guidata(hObject);
 
 if(strcmp(handles.table,'behavior_stats'))
+  set(handles.Status,'string','Thinking...');  drawnow;
+
+  experiment_value=get(handles.ExperimentList,'Value');
+  experiment_list=get(handles.ExperimentList,'String');
+  behavior_list=get(handles.BehaviorList,'String');
+  feature_list=get(handles.FeatureList,'String');
+
+  behavior_data=load(fullfile(char(experiment_list(experiment_value)),...
+      char(behavior_list(eventdata.Indices(end,1)))));
+  sex_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',...
+      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+  if(eventdata.Indices(end,2)>3)
+    ii=eventdata.Indices(end,2);
+  else
+    ii=1:length(behavior_data.allScores.t0s);
+    if(eventdata.Indices(end,2)>1)
+      for i=1:length(sex_data.data)
+        sex_data.data{i}=strcmp(sex_data.data{i},'M');
+      end
+    end
+  end
+  behavior_cumulative=zeros(1,length(sex_data.data{1}));
+  for i=ii
+    partition_idx=false(1,length(sex_data.data{i}));
+    for j=1:length(behavior_data.allScores.t0s{i})
+      partition_idx((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
+          -behavior_data.allScores.tStart(i)+1)=true;
+    end
+    switch(eventdata.Indices(end,2))
+      case(2)
+        partition_idx = partition_idx & sex_data.data{i}(1:length(partition_idx));
+      case(3)
+        partition_idx = partition_idx & (~sex_data.data{i}(1:length(partition_idx)));
+    end
+    behavior_cumulative(partition_idx)=behavior_cumulative(partition_idx)+1;
+  end
+  behavior_cumulative=conv(behavior_cumulative,ones(1,100)./100,'same');
+  axes(handles.Axes);
+  cla;  hold on;
+  plot(behavior_cumulative);
+  xlabel('time (frames)');
+  ylabel(strrep(char(behavior_list(eventdata.Indices(end,1))),'_','-'));
+  axis tight;
+
+  set(handles.Status,'string','Ready.');
 
 else
   handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),1);
@@ -965,8 +1036,8 @@ else
   if(strcmp(handles.table,'timeseries'))
     handles.timing=handles.table_data(eventdata.Indices(end,1),3);
     set(handles.Timing,'Value',handles.timing);
-    handles.statistic=handles.table_data(eventdata.Indices(end,1),4);
-    set(handles.Statistic,'Value',handles.statistic);
+    %handles.statistic=handles.table_data(eventdata.Indices(end,1),4);
+    %set(handles.Statistic,'Value',handles.statistic);
     PlotTimeSeries_Callback(hObject, eventdata, handles);
 
   elseif(strcmp(handles.table,'histogram'))
