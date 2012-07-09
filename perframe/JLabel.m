@@ -5310,7 +5310,9 @@ function crossValidate_Callback(hObject, eventdata, handles)
 handles.guidata.data.StoreLabels();
 [success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
 
-if ~success, warndlg(msg); return; end;
+if ~success, warndlg(msg); 
+  return; 
+end;
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
