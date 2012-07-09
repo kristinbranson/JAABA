@@ -837,7 +837,8 @@ InitJLabelGui(handles);
 handles = guidata(hObject);
 
 % ask user for experiment directory
-listfile = uigetfile('*.txt','Add experiments list from text file');
+[listfile,pname] = uigetfile('*.txt','Add experiments list from text file');
+listfile = fullfile(pname,listfile);
 if ~ischar(listfile),
   return;
 end
