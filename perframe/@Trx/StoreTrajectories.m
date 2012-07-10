@@ -29,6 +29,13 @@ for i = 1:numel(traj_fns),
       units = parseunits('unit');
   end
   try
+    if dooverwrite && exist(filename,'file'),
+      try
+        delete(filename);
+      catch ME,
+        warning('Could not delete file %s: %s',filename,getReport(ME));
+      end
+    end
     if dooverwrite || ~exist(filename,'file'),
       save(filename,'data','units');
     end

@@ -45,12 +45,12 @@ obj.datacached{n}{j} = cell(1,numel(flies));
 
 for flyidx = 1:numel(flies),
   fly = flies(flyidx);
+  % delete data from cache if necessary
   if iscell(x),
     xcurr = x{flyidx};
   else
     xcurr = x;
   end
-%   % delete data from cache if necessary
 %   ndataadd = numel(xcurr);
 %   obj.FreeDataCache(ndataadd);
 
