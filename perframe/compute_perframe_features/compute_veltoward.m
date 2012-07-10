@@ -12,8 +12,8 @@ for i1 = 1:nflies,
   closestfly = trx(fly1).(['closestfly_',type]);
   
   % velocity of fly1
-  dx1 = diff(trx(fly1).x_mm);
-  dy1 = diff(trx(fly1).y_mm);
+  dx1 = diff(trx(fly1).x_mm,1,2);
+  dy1 = diff(trx(fly1).y_mm,1,2);
   x_mm1 = trx(fly1).x_mm;
   y_mm1 = trx(fly1).y_mm;
 

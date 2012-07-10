@@ -16,8 +16,8 @@ for i = 1:nflies,
     taily = trx(fly).y_mm + 2*sin(-trx(fly).theta).*trx(fly).a_mm;
 
     % change in tail location
-    dx = diff(tailx);
-    dy = diff(taily);
+    dx = diff(tailx,1,2);
+    dy = diff(taily,1,2);
 
     % sideways motion of tail
     data{i} = dx.*cos(trx(fly).theta_mm(1:end-1)+pi/2) + dy.*sin(trx(fly).theta_mm(1:end-1)+pi/2)./trx(fly).dt;
