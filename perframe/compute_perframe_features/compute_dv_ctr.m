@@ -8,8 +8,8 @@ for i = 1:nflies,
   fly = flies(i);
   
   % change in center position
-  dx = diff(trx(fly).x_mm);
-  dy = diff(trx(fly).y_mm);
+  dx = diff(trx(fly).x_mm,1,2);
+  dy = diff(trx(fly).y_mm,1,2);
   
   if trx(fly).nframes < 2,
     data{i} = [];
