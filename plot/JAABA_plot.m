@@ -63,11 +63,13 @@ if(exist('JAABA_plot.mat')==2)
   handles_saved=handles_saved.handles;
   handles.experimentlist=handles_saved.experimentlist;
   handles.experimentvalue=handles_saved.experimentvalue;
+  handles.behaviors=handles_saved.behaviors;
   handles.behaviorlist=handles_saved.behaviorlist;
   handles.behaviorvalue=handles_saved.behaviorvalue;
   handles.behaviorlogic=handles_saved.behaviorlogic;
   handles.behaviorlist2=handles_saved.behaviorlist2;
   handles.behaviorvalue2=handles_saved.behaviorvalue2;
+  handles.features=handles_saved.features;
   handles.featurelist=handles_saved.featurelist;
   handles.featurevalue=handles_saved.featurevalue;
   handles.timing=handles_saved.timing;
@@ -76,15 +78,16 @@ if(exist('JAABA_plot.mat')==2)
   handles.bar=handles_saved.bar;
   handles.zoom=handles_saved.zoom;
   handles.individuals=handles_saved.individuals;
-  if(length(handles.experimentlist)>0)
-    set(handles.ExperimentList,'String',handles.experimentlist);
-  else
-    set(handles.ExperimentList,'String',{'Listbox'});
-  end
+  set(handles.ExperimentList,'String',handles.experimentlist);
   set(handles.ExperimentList,'Value',handles.experimentvalue);
   set(handles.BehaviorList,'String',handles.behaviorlist);
   set(handles.BehaviorList,'Value',handles.behaviorvalue);
   set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
+  if(length(handles.experimentlist)==0)
+    set(handles.ExperimentList,'enable','off');
+    set(handles.BehaviorList,'enable','off');
+    set(handles.FeatureList,'enable','off');
+  end
   if(handles.behaviorlogic==1)
     set(handles.BehaviorList2,'enable','off');
   else
@@ -103,11 +106,13 @@ if(exist('JAABA_plot.mat')==2)
 else
   handles.experimentlist={};
   handles.experimentvalue=1;
-  handles.behaviorlist={''};
+  handles.behaviors={};
+  handles.behaviorlist={};
   handles.behaviorvalue=1;
   handles.behaviorlogic=1;
-  handles.behaviorlist2={''};
+  handles.behaviorlist2={};
   handles.behaviorvalue2=1;
+  handles.features={};
   handles.featurelist={''};
   handles.featurevalue=1;
   handles.timing=1;
@@ -116,6 +121,11 @@ else
   handles.bar=1;
   handles.zoom=1;
   handles.individuals=1;
+  set(handles.ExperimentList,'enable','off');
+  set(handles.BehaviorList,'enable','off');
+  set(handles.BehaviorLogic,'enable','off');
+  set(handles.BehaviorList2,'enable','off');
+  set(handles.FeatureList,'enable','off');
 end
 
 % Choose default command line output for JAABA_plot
@@ -139,12 +149,14 @@ function Reset_Callback(hObject, eventdata, handles)
 
 handles.experimentlist={};
 handles.experimentvalue=1;
-handles.behaviorlist={''};
+handles.behaviors={};
+handles.behaviorlist={};
 handles.behaviorvalue=1;
 handles.behaviorlogic=1;
-handles.behaviorlist2={''};
+handles.behaviorlist2={};
 handles.behaviorvalue2=1;
-handles.featurelist={''};
+handles.features={};
+handles.featurelist={};
 handles.featurevalue=1;
 handles.timing=1;
 handles.statistic=1;
@@ -153,12 +165,11 @@ handles.bar=1;
 handles.zoom=1;
 handles.individuals=1;
 
-set(handles.ExperimentList,'String',{'Listbox'});
-set(handles.BehaviorList,'String',handles.behaviorlist);
-set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
-  set(handles.BehaviorList2,'enable','off');
-set(handles.BehaviorList2,'String',handles.behaviorlist2);
-set(handles.FeatureList,'String',handles.featurelist);
+set(handles.ExperimentList,'String',{},'enable','off');
+set(handles.BehaviorList,'String',{},'enable','off');
+set(handles.BehaviorLogic,'Value',handles.behaviorlogic,'enable','off');
+set(handles.BehaviorList2,'String',{},'enable','off');
+set(handles.FeatureList,'String',{},'enable','off');
 set(handles.Timing,'Value',handles.timing);
 set(handles.Statistic,'Value',handles.statistic);
 set(handles.WindowRadius,'String',handles.windowradius);
@@ -329,11 +340,32 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in ExperimentDelete.
-function ExperimentDelete_Callback(hObject, eventdata, handles)
-% hObject    handle to ExperimentDelete (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user experiment (see GUIDATA)
+% ---
+function ret_val=check_for_diff_and_return_intersection(arg)
+
+if(length(arg)==1)  ret_val=arg{1};  return;  end
+
+flatten={};
+for i=1:length(arg)-1
+  flatten={flatten{:} arg{i}{:}};
+end
+anotb=setdiff(flatten,arg{end});
+bnota=setdiff(arg{end},flatten);
+if(numel(anotb)>0)
+  tmp=char(anotb);
+  tmp=[tmp repmat(', ',size(tmp,1),1)];
+  tmp=reshape(tmp',1,numel(tmp));
+  tmp=tmp(1:end-2);
+  warning([tmp ' are/is in prior experiments but not new one.  proceeding with intersection.']);
+end
+if(numel(bnota)>0)
+  tmp=char(bnota);
+  tmp=[tmp repmat(', ',size(tmp,1),1)];
+  tmp=reshape(tmp',1,numel(tmp));
+  tmp=tmp(1:end-2);
+  warning([tmp ' are/is in new experiment but not prior ones.  proceeding with intersection.']);
+end
+ret_val=intersect(arg{end},flatten);
 
 
 % --- Executes on button press in ExperimentAdd.
@@ -346,16 +378,91 @@ set(handles.Status,'string','Thinking...');
 
 handles.experimentlist{end+1}=uigetdir([],'Select Experiment Directory');
 set(handles.ExperimentList,'String',handles.experimentlist);
+if(length(handles.experimentlist)>0)
+  set(handles.ExperimentList,'enable','on');
+  set(handles.BehaviorList,'enable','on');
+  set(handles.BehaviorLogic,'enable','on');
+  if(handles.behaviorlogic>1)
+    set(handles.BehaviorList2,'enable','on');
+  end
+  set(handles.FeatureList,'enable','on');
+end
 
 tmp=dir(fullfile(handles.experimentlist{end},'scores*.mat'));
-[handles.behaviorlist{1:length(tmp)}]=deal(tmp.name);
+[handles.behaviors{length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
+handles.behaviorlist=check_for_diff_and_return_intersection(handles.behaviors);
 set(handles.BehaviorList,'String',handles.behaviorlist);
-[handles.behaviorlist2{1:length(tmp)}]=deal(tmp.name);
-set(handles.BehaviorList2,'String',handles.behaviorlist2);
+set(handles.BehaviorList2,'String',handles.behaviorlist);
 
 tmp=dir(fullfile(handles.experimentlist{end},'perframe','*.mat'));
-[handles.featurelist{1:length(tmp)}]=deal(tmp.name);
+[handles.features{length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
+handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 set(handles.FeatureList,'String',handles.featurelist);
+
+guidata(hObject,handles);
+
+set(handles.Status,'string','Ready.');
+
+
+% --- Executes on button press in ExperimentDelete.
+function ExperimentDelete_Callback(hObject, eventdata, handles)
+% hObject    handle to ExperimentDelete (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user experiment (see GUIDATA)
+
+set(handles.Status,'string','Thinking...');
+
+idx=get(handles.ExperimentList,'Value');
+handles.experimentlist(idx)=[];
+handles.experimentvalue=min(handles.experimentvalue,length(handles.experimentlist));
+handles.experimentvalue=max(handles.experimentvalue,1);
+if(length(handles.experimentlist)==0)
+  set(handles.ExperimentList,'String',{''});
+  set(handles.ExperimentList,'enable','off');
+  set(handles.BehaviorList,'enable','off');
+  set(handles.BehaviorLogic,'enable','off');
+  set(handles.BehaviorList2,'enable','off');
+  set(handles.FeatureList,'enable','off');
+else
+  set(handles.ExperimentList,'String',handles.experimentlist);
+end
+set(handles.ExperimentList,'Value',handles.experimentvalue);
+
+handles.behaviors(idx)=[];
+flatten={};
+for i=1:length(handles.behaviors)
+  flatten={flatten{:} handles.behaviors{i}{:}};
+end
+handles.behaviorlist=unique(flatten);
+handles.behaviorlist2=unique(flatten);
+handles.behaviorvalue=min(handles.behaviorvalue,length(handles.behaviorlist));
+handles.behaviorvalue=max(handles.behaviorvalue,1);
+handles.behaviorvalue2=min(handles.behaviorvalue2,length(handles.behaviorlist2));
+handles.behaviorvalue2=max(handles.behaviorvalue2,1);
+if(length(handles.behaviorlist)==0)
+  set(handles.BehaviorList,'String',{''});
+  set(handles.BehaviorList2,'String',{''});
+else
+  set(handles.BehaviorList,'String',handles.behaviorlist);
+  set(handles.BehaviorList2,'String',handles.behaviorlist2);
+end
+set(handles.BehaviorList,'Value',handles.behaviorvalue);
+set(handles.BehaviorList2,'Value',handles.behaviorvalue2);
+
+handles.features(idx)=[];
+flatten={};
+for i=1:length(handles.features)
+  flatten={flatten{:} handles.features{i}{:}};
+end
+handles.featurelist=unique(flatten);
+handles.featurevalue=min(handles.featurevalue,length(handles.featurelist));
+handles.featurevalue=max(handles.featurevalue,1);
+if(length(handles.featurelist)==0)
+  set(handles.FeatureList,'String',{''});
+else
+  set(handles.FeatureList,'String',handles.featurelist);
+end
+set(handles.FeatureList,'Value',handles.featurevalue);
 
 guidata(hObject,handles);
 
@@ -491,6 +598,29 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on selection change in Individuals.
+function Individuals_Callback(hObject, eventdata, handles)
+% hObject    handle to Individuals (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user experiment (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns Individuals contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from Individuals
+
+
+% --- Executes during object creation, after setting all properties.
+function Individuals_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Individuals (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
 % ---
 function ret_val=get_label(feature_name,feature_units)
 
@@ -541,7 +671,7 @@ if(iscell(feature_data.data{1}))
   end
 end
 
-during=[];  not_during=[];
+during={};  not_during={};
 partition_idx=cell(1,length(feature_data.data));
 for i=1:length(behavior_data.allScores.t0s)
   tmp1=false(1,length(feature_data.data{i}));
@@ -566,9 +696,12 @@ for i=1:length(behavior_data.allScores.t0s)
     case(4)
       partition_idx{i}=tmp1 | tmp2;
   end
-  during=[during feature_data.data{i}(partition_idx{i} & sex_data.data{i}(1:length(partition_idx{i})))];
-  not_during=[not_during feature_data.data{i}((~partition_idx{i}) & sex_data.data{i}(1:length(partition_idx{i})))];
+  during{i}=feature_data.data{i}(partition_idx{i} & sex_data.data{i}(1:length(partition_idx{i})));
+  not_during{i}=feature_data.data{i}((~partition_idx{i}) & sex_data.data{i}(1:length(partition_idx{i})));
 end
+
+during=[during{:}];
+not_during=[not_during{:}];
 
 
 % --- Executes on button press in PlotHistogram.
@@ -590,31 +723,38 @@ feature_value=get(handles.FeatureList,'Value');
 feature_list=get(handles.FeatureList,'String');
 individuals=get(handles.Individuals,'Value');
 
-behavior_data=load(fullfile(char(experiment_list(experiment_value)),...
-      char(behavior_list(behavior_value))));
-if(behavior_logic>1)
-  behavior_data2=load(fullfile(char(experiment_list(experiment_value)),...
-      char(behavior_list2(behavior_value2))));
-else
-  behavior_data2=[];
-end
-feature_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',...
-      char(feature_list(feature_value))));
-
-sex_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',...
-    char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-for i=1:length(sex_data.data)
-  switch(individuals)
-    case(1)
-      sex_data.data{i}=ones(1,length(sex_data.data{i}));
-    case(2)
-      sex_data.data{i}=strcmp(sex_data.data{i},'M');
-    case(3)
-      sex_data.data{i}=strcmp(sex_data.data{i},'F');
+during={};  not_during={};  feature_units={};
+parfor j=1:length(experiment_value)
+  behavior_data=load(fullfile(char(experiment_list(experiment_value(j))),...
+        char(behavior_list(behavior_value))));
+  if(behavior_logic>1)
+    behavior_data2=load(fullfile(char(experiment_list(experiment_value(j))),...
+        char(behavior_list2(behavior_value2))));
+  else
+    behavior_data2=[];
   end
-end
+  feature_data=load(fullfile(char(experiment_list(experiment_value(j))),'perframe',...
+        char(feature_list(feature_value))));
+  feature_units{j}=feature_data.units;
 
-[during not_during]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,feature_data,sex_data);
+  sex_data=load(fullfile(char(experiment_list(experiment_value(j))),'perframe',...
+      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+  for i=1:length(sex_data.data)
+    switch(individuals)
+      case(1)
+        sex_data.data{i}=ones(1,length(sex_data.data{i}));
+      case(2)
+        sex_data.data{i}=strcmp(sex_data.data{i},'M');
+      case(3)
+        sex_data.data{i}=strcmp(sex_data.data{i},'F');
+    end
+  end
+
+  [during{j} not_during{j}]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
+      feature_data,sex_data);
+end
+during=[during{:}];
+not_during=[not_during{:}];
 
 axes(handles.Axes);
 cla;  hold on;
@@ -624,7 +764,7 @@ hist_not_during=hist(not_during,tmp);
 plot(tmp,hist_not_during./max(hist_not_during),'r.-');
 plot(tmp,hist_during./max(hist_during),'b.-');
 text(tmp(5),0.95,['during = ' num2str(100*length(during)/(length(during)+length(not_during)),3) '%'],'color','b');
-xlabel(get_label(feature_list(feature_value),feature_data.units));
+xlabel(get_label(feature_list(feature_value),feature_units{1}));
 ylabel('normalized');
 axis tight
 
@@ -646,23 +786,27 @@ experiment_list=get(handles.ExperimentList,'String');
 behavior_list=get(handles.BehaviorList,'String');
 feature_list=get(handles.FeatureList,'String');
 
-feature_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',char(feature_list(1))));
-for i=1:length(feature_data.data)
-  sex_data.data{i}=ones(1,length(feature_data.data{i}));
-end
-
 table_data=zeros(length(behavior_list),length(feature_list),ncols);
 parfor b=1:length(behavior_list)
   k=1;
-  tmp=zeros(length(feature_list),ncols);
-  behavior_data=load(fullfile(char(experiment_list(experiment_value)),char(behavior_list(b))));
+  parfor_tmp=zeros(length(feature_list),ncols);
   for f=1:length(feature_list)
-    feature_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',char(feature_list(f))));
-    [during not_during]=calculate_histogram(behavior_data,1,[],feature_data,sex_data);
-    tmp(k,:)=[b f (mean(during)-mean(not_during))/sqrt((std(during)^2+std(not_during)^2)/2)];
+    during={};  not_during={};
+    for e=1:length(experiment_value)
+      behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
+      feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',char(feature_list(f))));
+      sex_data=[];
+      for i=1:length(feature_data.data)
+        sex_data.data{i}=ones(1,length(feature_data.data{i}));
+      end
+      [during{e} not_during{e}]=calculate_histogram(behavior_data,1,[],feature_data,sex_data);
+    end
+    during=[during{:}];
+    not_during=[not_during{:}];
+    parfor_tmp(k,:)=[b f (mean(during)-mean(not_during))/sqrt((std(during)^2+std(not_during)^2)/2)];
     k=k+1;
   end
-  table_data(b,:,:)=tmp;
+  table_data(b,:,:)=parfor_tmp;
   disp([num2str(b) ' of ' num2str(length(behavior_list))]);
 end
 table_data=reshape(table_data,prod(size(table_data))/ncols,ncols);
@@ -695,7 +839,7 @@ if(iscell(feature_data.data{1}))
 end
 
 k=1;
-triggered_data=zeros(5+length([behavior_data.allScores.t0s{:}]),1+2*windowradius);
+triggered_data=zeros(length([behavior_data.allScores.t0s{:}]),1+2*windowradius);
 for i=1:length(behavior_data.allScores.t0s)
   feature_data_padded=[nan(1,windowradius) feature_data.data{i} nan(1,windowradius)];
   if(behavior_logic>1)
@@ -718,22 +862,6 @@ for i=1:length(behavior_data.allScores.t0s)
     triggered_data(k,:)=feature_data_padded(idx+(0:(2*windowradius))+(2-timing));
     k=k+1;
   end
-end
-switch(statistic)
-  case(1)
-    triggered_data(end-2,:)=nanmean(triggered_data(1:k-1,:),1);
-    tmp=nanstd(triggered_data(1:k-1,:),1)./sqrt(size(triggered_data,1));
-    triggered_data(end-3,:)=triggered_data(end-2,:)+tmp;
-    triggered_data(end-1,:)=triggered_data(end-2,:)-tmp;
-    tmp=nanstd(triggered_data(1:k-1,:),1);
-    triggered_data(end-4,:)=triggered_data(end-2,:)+tmp;
-    triggered_data(end-0,:)=triggered_data(end-2,:)-tmp;
-  case(2)
-    triggered_data(end-4,:)=prctile(triggered_data(1:k-1,:),95,1);
-    triggered_data(end-3,:)=prctile(triggered_data(1:k-1,:),75,1);
-    triggered_data(end-2,:)=nanmedian(triggered_data(1:k-1,:),1);
-    triggered_data(end-1,:)=prctile(triggered_data(1:k-1,:),25,1);
-    triggered_data(end-0,:)=prctile(triggered_data(1:k-1,:), 5,1);
 end
 
 
@@ -758,26 +886,42 @@ timing=get(handles.Timing,'Value');
 statistic=get(handles.Statistic,'Value');
 windowradius=str2num(get(handles.WindowRadius,'string'));
 
-behavior_data=load(fullfile(char(experiment_list(experiment_value)),...
-    char(behavior_list(behavior_value))));
-if(behavior_logic>1)
-  behavior_data2=load(fullfile(char(experiment_list(experiment_value)),...
-      char(behavior_list2(behavior_value2))));
-else
-  behavior_data2=[];
+triggered_data=[];  feature_units={};
+parfor j=1:length(experiment_value)
+  behavior_data=load(fullfile(char(experiment_list(experiment_value(j))),...
+      char(behavior_list(behavior_value))));
+  if(behavior_logic>1)
+    behavior_data2=load(fullfile(char(experiment_list(experiment_value(j))),...
+        char(behavior_list2(behavior_value2))));
+  else
+    behavior_data2=[];
+  end
+  feature_data=load(fullfile(char(experiment_list(experiment_value(j))),'perframe',...
+      char(feature_list(feature_value))));
+  feature_units{j}=feature_data.units;
+
+  tmp=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,...
+      feature_data,timing,statistic,windowradius);
+  triggered_data=[triggered_data; tmp];
 end
-feature_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',...
-    char(feature_list(feature_value))));
 
-%figure;  hold on;
-%plot(behavior_data.allScores.scores{1});
-%axis tight;  v=axis;
-%for i=1:length(behavior_data.allScores.t0s{1})
-%  plot(behavior_data.allScores.t0s{1}([i i]),[v(3) v(4)],'r-');
-%  plot(behavior_data.allScores.t1s{1}([i i]),[v(3) v(4)],'r:');
-%end
-
-triggered_data=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,feature_data,timing,statistic,windowradius);
+k=size(triggered_data,1);
+switch(statistic)
+  case(1)
+    triggered_data(k+3,:)=nanmean(triggered_data(1:k,:),1);
+    tmp=nanstd(triggered_data(1:k,:),1)./sqrt(size(triggered_data,1));
+    triggered_data(k+2,:)=triggered_data(k+3,:)+tmp;
+    triggered_data(k+4,:)=triggered_data(k+3,:)-tmp;
+    tmp=nanstd(triggered_data(1:k,:),1);
+    triggered_data(k+1,:)=triggered_data(k+3,:)+tmp;
+    triggered_data(k+5,:)=triggered_data(k+3,:)-tmp;
+  case(2)
+    triggered_data(k+1,:)=prctile(triggered_data(1:k,:),95,1);
+    triggered_data(k+2,:)=prctile(triggered_data(1:k,:),75,1);
+    triggered_data(k+3,:)=nanmedian(triggered_data(1:k,:),1);
+    triggered_data(k+4,:)=prctile(triggered_data(1:k,:),25,1);
+    triggered_data(k+5,:)=prctile(triggered_data(1:k,:), 5,1);
+end
 
 axes(handles.Axes);
 cla;  hold on;
@@ -797,7 +941,7 @@ switch(handles.bar)
     range_red=[range_red; min(triggered_data(end-1,:)) max(triggered_data(end-1,:))];
 end
 xlabel('time (frames)');
-ylabel(get_label(feature_list(feature_value),feature_data.units));
+ylabel(get_label(feature_list(feature_value),feature_units{1}));
 axis tight
 if(handles.zoom==2)
   v=axis;  axis([v(1) v(2) min(range_red(:,1)) max(range_red(:,2))]);
@@ -827,19 +971,21 @@ table_data=zeros(length(behavior_list),length(feature_list)*2,ncols);
 parfor b=1:length(behavior_list)
   k=1;
   parfor_tmp=zeros(length(feature_list)*2,ncols);
-  behavior_data=load(fullfile(char(experiment_list(experiment_value)),char(behavior_list(b))));
   for f=1:length(feature_list)
-    feature_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',char(feature_list(f))));
     for t=1:2  % timing
-      triggered_data=calculate_timeseries(behavior_data,1,[],feature_data,t,statistic,windowradius);
-      foo=nanmean(triggered_data(1:end-5,1:windowradius),2);
-      foo=triggered_data(1:end-5,:)-repmat(foo,1,size(triggered_data,2));
-      foo=sqrt(nanmean(triggered_data(1:end-5,(windowradius+1):end).^2,2)) ./ ...
-          sqrt(nanmean(triggered_data(1:end-5,1:windowradius).^2,2));
+      triggered_data=[];
+      for e=1:length(experiment_value)
+        behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
+        feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',char(feature_list(f))));
+
+        tmp=calculate_timeseries(behavior_data,1,[],feature_data,t,statistic,windowradius);
+        triggered_data=[triggered_data; tmp];
+      end
+      foo=nanmean(triggered_data(:,1:windowradius),2);
+      foo=triggered_data-repmat(foo,1,size(triggered_data,2));
+      foo=sqrt(nanmean(triggered_data(:,(windowradius+1):end).^2,2)) ./ ...
+          sqrt(nanmean(triggered_data(:,1:windowradius).^2,2));
       parfor_tmp(k,:)=[b f t nanmedian(foo)];
-%      parfor_tmp(k,:)=[b f t ...
-%          nanmean(triggered_data(end-2,(windowradius+1):end))/nanmean(triggered_data(end-2,1:windowradius)) ...
-%          nanstd(triggered_data(end-2,(windowradius+1):end))/ nanstd(triggered_data(end-2,1:windowradius))];
       k=k+1;
     end
   end
@@ -848,7 +994,6 @@ parfor b=1:length(behavior_list)
 end
 table_data=reshape(table_data,prod(size(table_data))/ncols,ncols);
 table_data=sortrows(table_data,-ncols);
-%table_data=sortrows(table_data,-(ncols-1));
 
 tmp=cell(size(table_data));
 tmp(:,1)=behavior_list(table_data(:,1));
@@ -856,15 +1001,10 @@ tmp(:,2)=feature_list(table_data(:,2));
 tmp(:,3)=repmat({'Onset'},size(table_data,1),1);
   find(table_data(:,3)==2);
   tmp(ans,3)=repmat({'Offset'},size(ans),1);
-%tmp(:,4)=repmat({'Mean'},size(table_data,1),1);
-%  find(table_data(:,4)==2);
-%  tmp(ans,4)=repmat({'Median'},size(ans),1);
 tmp(:,4)=num2cell(table_data(:,4));
-%tmp(:,6)=num2cell(table_data(:,6));
 
 set(handles.Table,'Data',tmp);
 set(handles.Table,'ColumnName',{'Behavior' 'Feature' 'Timing' 'dRMS'});
-%set(handles.Table,'ColumnName',{'Behavior' 'Feature' 'Timing' 'Statistic' 'Mean' 'Std'});
 set(handles.Table,'ColumnWidth',{150 150 50 50 50});
 
 handles.table_data=table_data;
@@ -874,31 +1014,8 @@ guidata(hObject,handles);
 set(handles.Status,'string','Ready.');
 
 
-% --- Executes on selection change in Individuals.
-function Individuals_Callback(hObject, eventdata, handles)
-% hObject    handle to Individuals (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user experiment (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns Individuals contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from Individuals
-
-
-% --- Executes during object creation, after setting all properties.
-function Individuals_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to Individuals (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- 
-function [male_pct female_pct individual_pct]=calculate_stats(behavior_data,sex_data)
+function [male_pct female_pct male_total female_total individual_pct]=calculate_stats(behavior_data,sex_data)
 
 male_pct=0;  female_pct=0;  individual_pct=[];
 male_total=0;  female_total=0;
@@ -914,8 +1031,8 @@ for i=1:length(behavior_data.allScores.t0s)
   female_total=female_total+sum(~sex_data.data{i}(1:length(partition_idx)));
   individual_pct(i)=100*sum(partition_idx)./length(partition_idx);
 end
-male_pct=100*male_pct/male_total;
-female_pct=100*female_pct/female_total;
+%male_pct=100*male_pct/male_total;
+%female_pct=100*female_pct/female_total;
 
 
 % --- Executes on button press in BehaviorStats.
@@ -931,38 +1048,51 @@ experiment_list=get(handles.ExperimentList,'String');
 behavior_list=get(handles.BehaviorList,'String');
 feature_list=get(handles.FeatureList,'String');
 
-sex_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',...
-    char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-for i=1:length(sex_data.data)
-  sex_data.data{i}=strcmp(sex_data.data{i},'M');
-end
 
-behavior_data=load(fullfile(char(experiment_list(experiment_value)),char(behavior_list(1))));
-table_data=nan(length(behavior_list),3+length(behavior_data.allScores.t0s));
-for b=1:length(behavior_list)
-  behavior_data=load(fullfile(char(experiment_list(experiment_value)),char(behavior_list(b))));
-
-  [male_pct female_pct individual_pct]=calculate_stats(behavior_data,sex_data);
-  if((3+length(individual_pct))>size(table_data,2))
-    table_data(:,(end+1):(3+length(individual_pct)))=...
-        nan(size(table_data,1):((3+length(individual_pct))-size(table_data,2)));
+table_data=cell(1,length(experiment_value));
+parfor e=1:length(experiment_value)
+  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+  for i=1:length(sex_data.data)
+    sex_data.data{i}=strcmp(sex_data.data{i},'M');
   end
-  table_data(b,:)=[b male_pct female_pct individual_pct];
-  %disp([num2str(b) ' of ' num2str(length(behavior_list))]);
+  behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(1))));
+  table_data{e}=nan(length(behavior_list),4+length(behavior_data.allScores.t0s));
+  for b=1:length(behavior_list)
+    behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
+
+    [male_pct female_pct male_total female_total individual_pct]=calculate_stats(behavior_data,sex_data);
+    if((4+length(individual_pct))>size(table_data{e},2))
+      table_data{e}(:,(end+1):(4+length(individual_pct)))=...
+          nan(size(table_data{e},1):((4+length(individual_pct))-size(table_data{e},2)));
+    end
+    table_data{e}(b,:)=[male_pct female_pct male_total female_total individual_pct];
+  end
 end
 
-tmp=cell(size(table_data));
-tmp(:,1)=behavior_list(table_data(:,1));
-tmp(:,2:end)=num2cell(table_data(:,2:end));
+table_data2=nan(length(behavior_list),sum(cellfun(@(x) size(x,2),table_data))-4*length(experiment_value));
+idx=sum(cellfun(@(x) size(x,2),table_data))-4*length(experiment_value);
+for b=1:length(behavior_list)
+  table_data2(b,1)=b;
+  tmp1=cellfun(@(x) x(b,1:2),table_data,'uniformoutput',false);
+  tmp2=cellfun(@(x) x(b,3:4),table_data,'uniformoutput',false);
+  table_data2(b,2:3)=sum(cat(1,tmp1{:})) ./ sum(cat(1,tmp2{:})) .* 100;
+  cellfun(@(x) x(b,5:end),table_data,'uniformoutput',false);
+  table_data2(b,5:(5+idx-1))=cat(2,ans{:});
+end
+
+tmp=cell(size(table_data2));
+tmp(:,1)=behavior_list(table_data2(:,1));
+tmp(:,2:end)=num2cell(table_data2(:,2:end));
 set(handles.Table,'Data',tmp);
 tmp={'Behavior' 'Male %' 'Female %'};
-for i=1:(size(table_data,2)-3)
+for i=1:(size(table_data2,2)-3)
   tmp{i+3}=['Indi #' num2str(i)];
 end
 set(handles.Table,'ColumnName',tmp);
 set(handles.Table,'ColumnWidth',{150 75 75});
 
-handles.table_data=table_data;
+handles.table_data2=table_data2;
 handles.table='behavior_stats';
 guidata(hObject,handles);
 
@@ -984,34 +1114,41 @@ if(strcmp(handles.table,'behavior_stats'))
   behavior_list=get(handles.BehaviorList,'String');
   feature_list=get(handles.FeatureList,'String');
 
-  behavior_data=load(fullfile(char(experiment_list(experiment_value)),...
-      char(behavior_list(eventdata.Indices(end,1)))));
-  sex_data=load(fullfile(char(experiment_list(experiment_value)),'perframe',...
-      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-  if(eventdata.Indices(end,2)>3)
-    ii=eventdata.Indices(end,2);
-  else
-    ii=1:length(behavior_data.allScores.t0s);
-    if(eventdata.Indices(end,2)>1)
-      for i=1:length(sex_data.data)
-        sex_data.data{i}=strcmp(sex_data.data{i},'M');
+  for e=1:length(experiment_value)
+    sex_data{e}=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+        char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+  end
+
+  cellfun(@(x) size(x.data{1},2),sex_data,'uniformoutput',false);
+  behavior_cumulative=zeros(1,max([ans{:}]));
+  for e=1:length(experiment_value)
+    behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),...
+        char(behavior_list(eventdata.Indices(end,1)))));
+    if(eventdata.Indices(end,2)>3)
+      ii=eventdata.Indices(end,2);
+    else
+      ii=1:length(behavior_data.allScores.t0s);
+      if(eventdata.Indices(end,2)>1)
+        for i=1:length(sex_data{e}.data)
+          sex_data{e}.data{i}=strcmp(sex_data{e}.data{i},'M');
+        end
       end
     end
-  end
-  behavior_cumulative=zeros(1,length(sex_data.data{1}));
-  for i=ii
-    partition_idx=false(1,length(sex_data.data{i}));
-    for j=1:length(behavior_data.allScores.t0s{i})
-      partition_idx((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
-          -behavior_data.allScores.tStart(i)+1)=true;
+    for i=ii   % individual
+      partition_idx=false(1,length(sex_data{e}.data{i}));
+      for j=1:length(behavior_data.allScores.t0s{i})  % bout
+        partition_idx((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
+            -behavior_data.allScores.tStart(i)+1)=true;
+      end
+      switch(eventdata.Indices(end,2))
+        case(2)
+          partition_idx = partition_idx & sex_data{e}.data{i}(1:length(partition_idx));
+        case(3)
+          partition_idx = partition_idx & (~sex_data{e}.data{i}(1:length(partition_idx)));
+      end
+      idx=find(partition_idx);
+      behavior_cumulative(idx)=behavior_cumulative(idx)+1;
     end
-    switch(eventdata.Indices(end,2))
-      case(2)
-        partition_idx = partition_idx & sex_data.data{i}(1:length(partition_idx));
-      case(3)
-        partition_idx = partition_idx & (~sex_data.data{i}(1:length(partition_idx)));
-    end
-    behavior_cumulative(partition_idx)=behavior_cumulative(partition_idx)+1;
   end
   behavior_cumulative=conv(behavior_cumulative,ones(1,100)./100,'same');
   axes(handles.Axes);
