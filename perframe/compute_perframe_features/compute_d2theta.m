@@ -12,7 +12,7 @@ for i = 1:nflies,
   elseif trx(fly).nframes == 2,
     data{i} = 0;
   else
-    data{i} = [0,modrange(diff(trx(fly).dtheta),-pi,pi)]./trx(fly).dt;
+    data{i} = [0,modrange(diff(trx(fly).dtheta,1,2),-pi,pi)]./trx(fly).dt;
   end
 end
 units = parseunits('rad/s/s');

@@ -11,7 +11,7 @@ for i = 1:nflies,
   elseif trx(fly).nframes == 2,
     data{i} = 0;  
   else
-    data{i} = [0,diff(trx(fly).smoothdtheta)]./trx(fly).dt;
+    data{i} = [0,diff(trx(fly).smoothdtheta,1,2)]./trx(fly).dt;
   end
 end
 units = parseunits('rad/s/s');
