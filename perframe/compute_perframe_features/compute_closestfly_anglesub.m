@@ -31,7 +31,11 @@ if dosave_d,
   data = maxanglesub; %#ok<NASGU>
   units = parseunits('rad'); %#ok<NASGU>
   filename = trx.GetPerFrameFile('anglesub',n);
-  save(filename,'data','units');
+  try
+    save(filename,'data','units');
+  catch ME
+    warning('Could not save anglesub data to %s: %s',filename,getReport(ME));
+  end         
 end
 
 data = closestfly;
