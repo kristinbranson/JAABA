@@ -22,7 +22,7 @@ function varargout = JLabelEditFiles(varargin)
 
 % Edit the above text to modify the response to help JLabelEditFiles
 
-% Last Modified by GUIDE v2.5 16-Apr-2012 17:02:36
+% Last Modified by GUIDE v2.5 09-Jul-2012 13:42:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -818,3 +818,63 @@ for ndx = allndx(:)'
   handles.projmanager.RemoveConfig(data{ndx,1});
 end
 updateConfigParams(handles);
+
+
+% --- Executes on button press in pushbutton_addlist.
+function pushbutton_addlist_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_addlist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+oldv = get(handles.listbox_experiment,'Value');
+
+if ~handles.disableBehavior && isempty(handles.projmanager.GetCurrentProject()), 
+  uiwait(warndlg('Select a project before adding an experiment'));
+  return
+end
+
+InitJLabelGui(handles);
+handles = guidata(hObject);
+
+% ask user for experiment directory
+[listfile,pname] = uigetfile('*.txt','Add experiments list from text file');
+listfile = fullfile(pname,listfile);
+if ~ischar(listfile),
+  return;
+end
+
+fid = fopen(listfile,'r');
+if fid<0, 
+  uiwait(warndlg(sprintf('Cannot open %s for reading',listfile)));
+  return;
+end
+
+set(handles.pushbutton_cancel,'enable','off');
+SetLabelingMode(handles);
+
+expdir = fgetl(fid);
+
+while(ischar(expdir))
+  if ismember(expdir,handles.data.expdirs),
+    uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
+    expdir = fgetl(fid);
+    continue;
+  end
+  
+  
+  [success,msg] = handles.data.AddExpDir(expdir);
+  if ~success,
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    expdir = fgetl(fid);
+    continue;
+  end
+  
+  expdir = fgetl(fid);
+end
+
+fclose(fid);
+
+set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
+
+% update status table
+UpdateStatusTable(handles);
