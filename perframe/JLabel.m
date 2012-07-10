@@ -520,7 +520,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   handles.guidata.cache_thread=batch(@cache_thread,0,...
     {N,HWD,cache_filename,handles.guidata.movie_filename},...
     'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
-  %if(ismac)  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
+  if(ismac)  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
 end
 
 % WARNING: we directly access handles.guidata.data.trx for speed here -- 
@@ -5310,7 +5310,9 @@ function crossValidate_Callback(hObject, eventdata, handles)
 handles.guidata.data.StoreLabels();
 [success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
 
-if ~success, warndlg(msg); return; end;
+if ~success, warndlg(msg); 
+  return; 
+end;
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Validated';
