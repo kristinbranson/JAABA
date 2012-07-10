@@ -251,7 +251,21 @@ end
 
 %% whether we've specified to use all features
 
-useallfeatures = ischar(feature_types) && strcmpi(feature_types,'all');
+all_feature_types = {
+  'mean'
+  'min'
+  'max'
+  'change'
+  'std'
+  'harmonic'
+  'diff_neighbor_mean'
+  'diff_neighbor_min'
+  'diff_neighbor_max'
+  'zscore_neighbors'}';
+if ischar(feature_types) && strcmpi(feature_types,'all'),
+  feature_types = all_feature_types;
+end
+
 
 %% Find the bins for relative features
 
@@ -345,7 +359,9 @@ end
 
 for ndx = 1:length(feature_types)
   curFeature = feature_types{ndx};
-  if useallfeatures || ismember(curFeature,feature_types);
+  
+  % KB: how could this not be the case?
+  %if useallfeatures || ismember(curFeature,feature_types);
 
     eval(sprintf('curFn = @%s;',fnName{ndx}));
     eval(sprintf('cur_params = %s_params;',curFeature));
@@ -356,7 +372,8 @@ for ndx = 1:length(feature_types)
     y(end+1:end+size(y_new,1),:) = y_new;
     feature_names(end+1:end+numel(feature_names_new)) = feature_names_new;
     feature_types_computed{end+1} = curFeature;
-  end  
+
+  %end  
 end
 
 pad0 = t0-OFF0;
