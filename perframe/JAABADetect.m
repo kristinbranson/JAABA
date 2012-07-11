@@ -171,9 +171,9 @@ for flies = 1:data.nflies_per_exp(expi),
       if ~exist(file{j},'file'),
         error('Per-frame data file %s does not exist',file{j});
       end
+      tmp = load(file{j});
+      perframedata{j} = tmp.data{flies(1)};
     end
-    tmp = load(file{j});
-    perframedata{j} = tmp.data{flies(1)};
   end
 
   % frames for this fly
