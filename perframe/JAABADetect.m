@@ -1,9 +1,35 @@
-% scores = JAABADetect(expdir,classifierfiles,configfiles)
-function scores = JAABADetect(expdir,classifierfiles,configfiles,varargin)
+% scores = JAABADetect(expdir,'classifierfiles',classifierfiles,'configfiles',configfiles)
+% scores = JAABADetect(expdir,'classifierparamsfile',classifierparamsfile)
+function scores = JAABADetect(expdir,varargin)
 
-[blockSize] = myparse(varargin,'blockSize',5000);
+[blockSize,classifierfiles,configfiles,classifierparamsfile] = ...
+  myparse(varargin,'blockSize',10000,...
+  'classifierfiles',{},'configfiles',{},...
+  'classifierparamsfile',0);
+
+if ischar(classifierparamsfile),
+  if ~exist(classifierparamsfile,'file'),
+    error('File %s does not exist',classifierparamsfile);
+  end
+  fid = fopen(classifierparamsfile,'r');
+  classifierfiles = {};
+  configfiles = {};
+  while true,
+    l = fgetl(fid);
+    if ~ischar(l),
+      break;
+    end
+    ws = regexp(l,',','split');
+    classifierfiles{end+1} = ws{1}; %#ok<AGROW>
+    configfiles{end+1} = ws{2}; %#ok<AGROW>
+  end
+  fclose(fid);
+end
 
 nclassifiers = numel(classifierfiles);
+if nclassifiers == 0,
+  error('No classifiers input');
+end
 if nclassifiers ~= numel(configfiles),
   error('Number of classifier files and number of config files do not match');
 end
@@ -243,7 +269,7 @@ for i = 1:nclassifiers,
   end
   
   if ~isfield(configparams{i}.file,'scorefilename'),
-    scorefilename = ['scores_',configparams{i}.names,'.mat'];
+    scorefilename = ['scores_',configparams{i}.behaviors.names,'.mat'];
   else
     scorefilename = configparams{i}.file.scorefilename;
   end
