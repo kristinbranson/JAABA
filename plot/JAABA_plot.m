@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 11-Jul-2012 11:23:52
+% Last Modified by GUIDE v2.5 12-Jul-2012 15:57:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -86,6 +86,10 @@ if(exist('JAABA_plot.mat')==2)
   set(handles.BehaviorList,'String',handles.behaviorlist);
   set(handles.BehaviorList,'Value',handles.behaviorvalue);
   set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
+  set(handles.BehaviorList2,'String',handles.behaviorlist);
+  set(handles.BehaviorList2,'Value',handles.behaviorvalue2);
+  set(handles.FeatureList,'String',handles.featurelist);
+  set(handles.FeatureList,'Value',handles.featurevalue);
   if(length(handles.experimentlist)==0)
     set(handles.ExperimentList,'enable','off');
   end
@@ -94,19 +98,16 @@ if(exist('JAABA_plot.mat')==2)
   end
   if((length(handles.experimentlist)==0) && (length(handles.experimentlist2)==0))
     set(handles.BehaviorList,'enable','off');
+    set(handles.BehaviorLogic,'enable','off');
+    set(handles.BehaviorList2,'enable','off');
     set(handles.FeatureList,'enable','off');
     set(handles.SexList,'enable','off');
-    set(handles.BehaviorLogic,'enable','off');
   end
   if(handles.behaviorlogic==1)
     set(handles.BehaviorList2,'enable','off');
   else
     set(handles.BehaviorList2,'enable','on');
   end
-  set(handles.BehaviorList2,'String',handles.behaviorlist);
-  set(handles.BehaviorList2,'Value',handles.behaviorvalue2);
-  set(handles.FeatureList,'String',handles.featurelist);
-  set(handles.FeatureList,'Value',handles.featurevalue);
   switch(handles.timing)
     case 1
       MenuTimeSeriesPrefsTimingOnset_Callback(hObject, eventdata, handles);
@@ -725,7 +726,8 @@ if(iscell(feature_data.data{1}))
 end
 
 during={};  not_during={};
-partition_idx=cell(1,length(feature_data.data));
+%partition_idx=cell(1,length(feature_data.data));
+partition_idx=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)
   tmp1=false(1,length(feature_data.data{i}));
   for j=1:length(behavior_data.allScores.t0s{i})
@@ -1171,15 +1173,34 @@ set(handles.Status,'string','Ready.');
 
 
 % --- 
-function [male_count female_count male_total female_total individual_count]=calculate_stats(behavior_data,sex_data)
+function [male_count female_count male_total female_total individual_count]=...
+    calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sex_data)
 
 male_count=0;  female_count=0;  individual_count=[];
 male_total=0;  female_total=0;
+%partition_idx=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)
-  partition_idx=false(1,length(sex_data.data{i}));
+  tmp1=false(1,length(sex_data.data{i}));
   for j=1:length(behavior_data.allScores.t0s{i})
-    partition_idx((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
+    tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
         -behavior_data.allScores.tStart(i)+1)=true;
+  end
+  if(behavior_logic>1)
+    tmp2=false(1,length(sex_data.data{i}));
+    for j=1:length(behavior_data2.allScores.t0s{i})
+      tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
+          -behavior_data2.allScores.tStart(i)+1)=true;
+    end
+  end
+  switch(behavior_logic)
+    case(1)
+      partition_idx=tmp1;
+    case(2)
+      partition_idx=tmp1 & tmp2;
+    case(3)
+      partition_idx=tmp1 & ~tmp2;
+    case(4)
+      partition_idx=tmp1 | tmp2;
   end
   male_count=male_count+sum(partition_idx & sex_data.data{i}(1:length(partition_idx)));
   female_count=female_count+sum(partition_idx & (~sex_data.data{i}(1:length(partition_idx))));
@@ -1190,7 +1211,8 @@ end
 
 
 % ---
-function ret_val=calculate_behaviorstats(experiment_value,experiment_list,behavior_list,feature_list)
+function ret_val=calculate_behaviorstats(experiment_value,experiment_list,...
+    behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list)
 
 table_data=cell(1,length(experiment_value));
 parfor e=1:length(experiment_value)
@@ -1201,10 +1223,17 @@ parfor e=1:length(experiment_value)
   end
   behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(1))));
   table_data{e}=nan(length(behavior_list),4+length(behavior_data.allScores.t0s));
+  if(behavior_logic>1)
+    behavior_data2=load(fullfile(char(experiment_list(experiment_value(e))),...
+        char(behavior_list2(behavior_value2))));
+  else
+    behavior_data2=[];
+  end
   for b=1:length(behavior_list)
     behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
 
-    [male_count female_count male_total female_total individual_count]=calculate_stats(behavior_data,sex_data);
+    [male_count female_count male_total female_total individual_count]=...
+        calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sex_data);
     if((4+length(individual_count))>size(table_data{e},2))
       table_data{e}(:,(end+1):(4+length(individual_count)))=...
           nan(size(table_data{e},1):((4+length(individual_count))-size(table_data{e},2)));
@@ -1218,7 +1247,7 @@ for b=1:length(behavior_list)
   table_data2(b,1)=b;
   tmp1=cellfun(@(x) x(b,1:2),table_data,'uniformoutput',false);
   tmp2=cellfun(@(x) x(b,3:4),table_data,'uniformoutput',false);
-  table_data2(b,2)=sum(sum(tmp1{:})) / sum(sum(tmp2{:})) .* 100;
+  table_data2(b,2)=sum(sum([tmp1{:}])) / sum(sum([tmp2{:}])) .* 100;
   table_data2(b,3:4)=sum(cat(1,tmp1{:}),1) ./ sum(cat(1,tmp2{:}),1) .* 100;
   cellfun(@(x) x(b,5:end),table_data,'uniformoutput',false);
   table_data2(b,5:end)=cat(2,ans{:});
@@ -1242,13 +1271,18 @@ experiment_list=get(handles.ExperimentList,'String');
 experiment_value2=get(handles.ExperimentList2,'Value');
 experiment_list2=get(handles.ExperimentList2,'String');
 behavior_list=get(handles.BehaviorList,'String');
+behavior_logic=get(handles.BehaviorLogic,'Value');
+behavior_value2=get(handles.BehaviorList2,'Value');
+behavior_list2=get(handles.BehaviorList2,'String');
 feature_list=get(handles.FeatureList,'String');
 
 if(length(experiment_value)>0)
-  table_data=calculate_behaviorstats(experiment_value,experiment_list,behavior_list,feature_list);
+  table_data=calculate_behaviorstats(experiment_value,experiment_list,...
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
 end
 if(length(experiment_value2)>0)
-  table_data2=calculate_behaviorstats(experiment_value2,experiment_list2,behavior_list,feature_list);
+  table_data2=calculate_behaviorstats(experiment_value2,experiment_list2,...
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
 end
 
 if((length(experiment_value)>0) && (length(experiment_value2)>0))
