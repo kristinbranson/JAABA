@@ -181,14 +181,11 @@ else
   fieldList(end+1,:) = {  'gt_suggestion_frames','Ground Truthing|Frames|Suggested'};
 end  
 
-set(handles.table,'ColumnName',...
-  {'Experiment Name','Target|Number',fieldList{:,2}});
 colFormat{1} = 'char';
 colFormat{2} = 'numeric';
 for ndx = 1:size(fieldList,1)
   colFormat{2+ndx} = 'numeric';
 end
-set(handles.table,'ColumnFormat',colFormat);
 
 % reorganize cached data
 newCachedTableData = cell(handles.cs_ntargets(end),size(fieldList,1)+2);
@@ -266,7 +263,10 @@ handles.cachedDataTarget(start_target:end_target) = tableTarget;
 
 set(handles.table,'Data',...
   tableData);
+set(handles.table,'ColumnName',...
+  {'Experiment Name','Target|Number',fieldList{:,2}});
 set(handles.table,'ColumnEditable',false);
+set(handles.table,'ColumnFormat',colFormat);
 set(handles.table,'CellSelectionCallback',@tableSelect);
 
 
@@ -353,6 +353,10 @@ function figure1_ResizeFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if ~isfield(handles,'figurePos'),
+  return;
+end
 
 oldClosePosRight = handles.figurePos(3)-handles.closePos(1);
 guiPos = get(handles.figure1,'Position');
