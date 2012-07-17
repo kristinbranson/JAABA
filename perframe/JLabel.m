@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 28-Jun-2012 09:29:25
+% Last Modified by GUIDE v2.5 17-Jul-2012 13:36:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1234,15 +1234,22 @@ switch handles.guidata.bottomAutomatic
   case 'Old'
     scores_bottom = handles.guidata.data.GetOldScores(handles.guidata.expi,handles.guidata.flies);
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
+  case 'Postprocessed'
+    scores_bottom = handles.guidata.data.GetLoadedScores(handles.guidata.expi,handles.guidata.flies);
+    scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
+    tt =  handles.guidata.data.GetPostprocessedScores(handles.guidata.expi,handles.guidata.flies);
+    prediction_bottom = (3-tt)/2;
   case 'None'
     scores_bottom = zeros(size(scores));
   otherwise
     warndlg('Undefined scores type to display for the bottom part of the automatic');
 end
 
+if ~strcmp(handles.guidata.bottomAutomatic,'Postprocessed')
 prediction_bottom = zeros(size(scores_bottom));
 prediction_bottom(scores_bottom>0) = 1;
 prediction_bottom(scores_bottom<0) = 2;
+end
 
 idxBottomScores = ~isnan(scores_bottom);
 bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
@@ -5397,8 +5404,8 @@ function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles
 % hObject    handle to menu_classifier_classifyCurrentFly (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-t0 = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
-t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
+t0 =handles.guidata.t0_curr;
+t1 = handles.guidata.t1_curr;
 handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr:handles.guidata.t1_curr);
 handles = SetPredictedPlot(handles,t0,t1);
 
@@ -6303,3 +6310,13 @@ if isnan(sz) || sz<0;
 end
 
 handles.guidata.data.cacheSize = round(sz);
+
+
+% --------------------------------------------------------------------
+function menu_classifier_postprocess_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_postprocess (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+posthandle = PostProcess(handles.guidata.data);
+handles.guidata.open_peripherals(end+1) = posthandle;
