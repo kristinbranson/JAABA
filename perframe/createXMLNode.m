@@ -20,6 +20,12 @@ for ndx = 1:numel(fs)
         valStr = [valStr ',' num2str(curVal(vNdx))];
       end      
       node.setAttribute(fs{ndx},valStr);
+    case 'single'
+      valStr = num2str(curVal(1));
+      for vNdx = 2:numel(curVal)
+        valStr = [valStr ',' num2str(curVal(vNdx))];
+      end      
+      node.setAttribute(fs{ndx},valStr);
     case 'logical'
       valStr = num2str(curVal(1));
       for vNdx = 2:numel(curVal)
