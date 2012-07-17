@@ -19,6 +19,9 @@ if ischar(classifierparamsfile),
     if ~ischar(l),
       break;
     end
+    if isempty(l),
+      continue;
+    end
     ws = regexp(l,',','split');
     classifierfiles{end+1} = ws{1}; %#ok<AGROW>
     configfiles{end+1} = ws{2}; %#ok<AGROW>
@@ -131,7 +134,7 @@ SaveXMLParams(configparams_global,configfile_global,'params');
 
 % initialize with temporary configfile
 data = JLabelData(configfile_global);
-[success,msg] = data.AddExpDir(expdir);
+[success,msg] = data.AddExpDirNoPreload(expdir);
 if ~success,
   error(msg);
 end
@@ -273,7 +276,7 @@ for i = 1:nclassifiers,
   else
     scorefilename = configparams{i}.file.scorefilename;
   end
-  %scorefilename = ['test_',scorefilename];
+  scorefilename = ['test_',scorefilename];
   sfn = fullfile(expdir,scorefilename);
       
   if exist(sfn,'file'),
