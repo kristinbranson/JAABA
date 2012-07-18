@@ -1363,8 +1363,8 @@ if(strcmp(handles.table,'behavior_stats'))
   end
 
   cellfun(@(x) size(x.data{1},2),sex_data,'uniformoutput',false);
-  behavior_cumulative=zeros(1,max([ans{:}]));
-  for e=1:length(experiment_value0)
+  behavior_cumulative=zeros(length(experiment_value0),max([ans{:}]));
+  parfor e=1:length(experiment_value0)
     behavior_data=load(fullfile(char(experiment_list0(experiment_value0(e))),...
         char(behavior_list(b))));
     if(eventdata.Indices(end,2)>4)
@@ -1377,6 +1377,7 @@ if(strcmp(handles.table,'behavior_stats'))
         end
       end
     end
+    parfor_tmp=zeros(1,length(behavior_cumulative(e,:)));
     for i=ii   % individual
       partition_idx=false(1,length(sex_data{e}.data{i}));
       for j=1:length(behavior_data.allScores.t0s{i})  % bout
@@ -1390,9 +1391,11 @@ if(strcmp(handles.table,'behavior_stats'))
           partition_idx = partition_idx & (~sex_data{e}.data{i}(1:length(partition_idx)));
       end
       idx=find(partition_idx);
-      behavior_cumulative(idx)=behavior_cumulative(idx)+1;
+      parfor_tmp(idx)=parfor_tmp(idx)+1;
     end
+    behavior_cumulative(e,:)=parfor_tmp;
   end
+  behavior_cumulative=sum(behavior_cumulative,1);
   behavior_cumulative=conv(behavior_cumulative,ones(1,100)./100,'same');
   axes(handles.Axes);
   cla;  hold on;
