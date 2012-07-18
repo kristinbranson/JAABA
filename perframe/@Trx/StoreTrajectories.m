@@ -5,7 +5,8 @@ if ~exist('dooverwrite','var'),
 end
 
 traj_fns = {'x','y','theta','a','b','timestamps',...
-  'x_mm','y_mm','a_mm','b_mm','theta_mm','dt','sex'};
+  'x_mm','y_mm','a_mm','b_mm','theta_mm','dt','sex',...
+  'wing_anglel','wing_angler'};
 
 for i = 1:numel(traj_fns),
   fn = traj_fns{i};
@@ -19,7 +20,7 @@ for i = 1:numel(traj_fns),
       units = parseunits('px');
     case {'x_mm','y_mm','a_mm','b_mm'},
       units = parseunits('mm');
-    case {'theta','theta_mm'},
+    case {'theta','theta_mm','wing_anglel','wing_angler'},
       units = parseunits('rad');
     case 'dt',
       units = parseunits('s');
