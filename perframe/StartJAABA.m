@@ -9,7 +9,7 @@ addpath(fullfile(jlabelpath,'compute_perframe_features'));
 
 try
   c=parcluster;
-  if (c.NumWorkers>2) & (matlabpool('size')<1)
+  if (c.NumWorkers>2) && (matlabpool('size')<1)
     matlabpool('open',c.NumWorkers-1);  % BJA: must save one for frame cache thread
   end
 end

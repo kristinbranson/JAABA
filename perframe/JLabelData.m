@@ -29,7 +29,7 @@ classdef JLabelData < handle
     % Score loaded from files.
     scoredata = struct('scores',[],'predicted',[],...
           'exp',[],'flies',[],'t',[],'timestamp',[],...
-          'classifierfilenames',[]);
+          'classifierfilenames',[],'postprocessed',[]);
     
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
@@ -214,7 +214,7 @@ classdef JLabelData < handle
       'moviefilename','trxfilename','labelfilename','perframedir','clipsdir',...,'featureparamsfilename',...
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
       'classifierTS','confThresholds','scoreNorm','windowfeaturesparams','windowfeaturescellparams',...
-      'basicFeatureTable','featureWindowSize'};
+      'basicFeatureTable','featureWindowSize','postprocessparams'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -287,6 +287,8 @@ classdef JLabelData < handle
     GTSuggestionMode = '';
     
     cacheSize = 4000;
+    
+    postprocessparams = [];
   end
   
   methods (Access=private)
@@ -1366,6 +1368,10 @@ classdef JLabelData < handle
           obj.classifierTS = loadeddata.classifierTS;
           obj.windowdata.scoreNorm = loadeddata.scoreNorm;
           obj.confThresholds = loadeddata.confThresholds;
+          if isfield(loadeddata,'postprocessparams')
+            obj.postprocessparams = loadeddata.postprocessparams;
+          end
+          
           paramFields = fieldnames(loadeddata.classifier_params);
           for ndx = 1:numel(paramFields)
             obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
@@ -1631,7 +1637,9 @@ classdef JLabelData < handle
           obj.windowdata.scoreNorm = scoreNorm;
         end
       end
-
+      
+      [success,msg] = obj.ApplyPostprocessing();
+  
       obj.ClearStatus();
 
     end
@@ -3439,6 +3447,26 @@ classdef JLabelData < handle
       
     end
     
+    function scores = GetPostprocessedScores(obj,expi,flies,T0,T1)
+      if nargin<4
+        T0 = max(obj.GetTrxFirstFrame(expi,flies));
+        T1 = min(obj.GetTrxEndFrame(expi,flies));
+      end
+      
+      n = T1-T0+1;
+      off = 1 - T0;
+      scores = zeros(1,n);
+
+      if ~isempty(obj.scoredata.exp)                 
+        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2) &...
+          obj.scoredata.t' >= T0 & obj.scoredata.t' <= T1;
+        scores(obj.scoredata.t(idxcurr)+off) = ...
+          2*obj.scoredata.postprocessed(idxcurr)-1;      
+      end
+      
+    end
+    
+    
     function scores = GetOldScores(obj,expi,flies)
       T0 = max(obj.GetTrxFirstFrame(expi,flies));
       T1 = min(obj.GetTrxEndFrame(expi,flies));
@@ -4144,6 +4172,10 @@ classdef JLabelData < handle
     function ShowSelectFeatures(obj)
       selHandle = SelectFeatures(obj);
       uiwait(selHandle);
+    end
+    
+    function wsize = GetFeatureWindowSize(obj)
+      wsize = data.featureWindowSize;
     end
 
     function UpdateBoostingBins(obj)
@@ -5617,6 +5649,96 @@ classdef JLabelData < handle
     end
     function SetMode(obj)
       obj.modeSet = true;
+    end
+    
+
+% Post Processing functions
+
+    function params = GetPostprocessingParams(obj)
+      params = obj.postprocessparams;
+    end
+    
+    function SetPostprocessingParams(obj,params)
+      obj.postprocessparams = params;
+    end
+    
+    function blen = GetPostprocessedBoutLengths(obj)
+      [success,msg] = obj.ApplyPostprocessing();
+      blen = [];
+      if ~success;return; end
+      
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
+          curt = obj.scoredata.t(curidx);
+          if any(curt(2:end)-curt(1:end-1) ~= 1)
+            msg = 'Scores are not in order';
+            success = false;
+            return;
+          end
+          posts = obj.scoredata.postprocessed(curidx);
+          labeled = bwlabel(posts);
+          aa = regionprops(labeled,'Area');
+          blen = [blen [aa.Area]];
+        end
+      end
+    end
+    
+    function [success,msg] = ApplyPostprocessing(obj)
+    % Applies postprocessing to loaded scores.
+    % We do not apply any postprocessing to current scores.
+      msg = ''; success = true;
+      
+      if isempty(obj.postprocessparams); return; end;
+
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
+          curt = obj.scoredata.t(curidx);
+          if any(curt(2:end)-curt(1:end-1) ~= 1)
+            msg = 'Scores are not in order';
+            success = false;
+            return;
+          end
+          curs = obj.scoredata.scores(curidx);
+          
+          if strcmpi(obj.postprocessparams.method,'hysteresis')
+            posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
+          else
+            posts = obj.ApplyFiltering(curs,obj.postprocessparams);
+          end
+          
+          obj.scoredata.postprocessed(curidx) = posts;  
+        end %flies 
+      end
+    
+    end
+    
+    function posts = ApplyHysteresis(obj,curs,params)
+      % Use imfill to find the regions.
+      if isempty(curs), posts = curs; return; end
+      
+      % Select pos bouts that have at least one frame about the high
+      % threshold.
+      hthresh = curs > params.hystopts(1).value*obj.windowdata.scoreNorm;
+      lthresh = curs > 0;
+      pos = imfill(~lthresh,find(hthresh)') & lthresh;
+      
+      % Select neg bouts that have at least one frame below the low
+      % threshold.
+      hthresh = curs < params.hystopts(2).value*obj.windowdata.scoreNorm;
+      lthresh = curs < params.hystopts(1).value*obj.windowdata.scoreNorm;
+      neg = imfill(~lthresh,find(hthresh)') & lthresh;
+      
+      posts = pos | ~neg;
+      
+    end
+    
+    function posts = ApplyFiltering(obj,curs,params)
+      % Use filt to find the regions.
+      if isempty(curs), posts = curs; return; end
+      filts = conv(curs,ones(1,params.filtopts(1).value),'same');
+      posts = filts>0;
     end
     
   end % End methods
