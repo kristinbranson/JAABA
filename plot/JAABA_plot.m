@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 12-Jul-2012 15:57:38
+% Last Modified by GUIDE v2.5 18-Jul-2012 14:11:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,6 +78,7 @@ if(exist('JAABA_plot.mat')==2)
   handles.windowradius=handles_saved.windowradius;
   handles.bar=handles_saved.bar;
   handles.zoom=handles_saved.zoom;
+  handles.subtractmean=handles_saved.subtractmean;
   handles.sex=handles_saved.sex;
   set(handles.ExperimentList,'String',handles.experimentlist);
   set(handles.ExperimentList,'Value',handles.experimentvalue);
@@ -134,6 +135,12 @@ if(exist('JAABA_plot.mat')==2)
     case 2
       MenuTimeSeriesPrefsZoomRed_Callback(hObject, eventdata, handles);
   end
+  switch(handles.subtractmean)
+    case 0
+      set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','off');
+    case 1
+      set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','on');
+  end
   set(handles.SexList,'Value',handles.sex);
 else
   handles.experimentlist={};
@@ -153,6 +160,7 @@ else
   handles.windowradius=10;
   handles.bar=1;
   handles.zoom=1;
+  handles.subtractmean=0;
   handles.sex=1;
   set(handles.ExperimentList,'enable','off');
   set(handles.ExperimentList2,'enable','off');
@@ -199,6 +207,7 @@ handles.statistic=1;
 handles.windowradius=10;
 handles.bar=1;
 handles.zoom=1;
+handles.subtractmean=0;
 handles.sex=1;
 
 set(handles.ExperimentList,'String',handles.experimentlist,'Value',handles.experimentvalue,'enable','off');
@@ -211,6 +220,7 @@ MenuTimeSeriesPrefsTimingOnset_Callback(hObject, eventdata, handles);
 MenuTimeSeriesPrefsStatisticMean_Callback(hObject, eventdata, handles);
 MenuTimeSeriesPrefsBarsNone_Callback(hObject, eventdata, handles);
 MenuTimeSeriesPrefsZoomBlack_Callback(hObject, eventdata, handles);
+set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','off');
 set(handles.SexList,'Value',handles.sex);
 
 save('JAABA_plot.mat','handles');
@@ -931,7 +941,8 @@ set(handles.Status,'string','Ready.');
 
 
 % --- 
-function triggered_data=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,feature_data,timing,statistic,windowradius)
+function triggered_data=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,feature_data,...
+    timing,statistic,windowradius,subtractmean)
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -966,12 +977,16 @@ for i=1:length(behavior_data.allScores.t0s)
     k=k+1;
   end
 end
+if(subtractmean)
+  triggered_data=triggered_data-...
+      repmat(nanmean(triggered_data(:,1:windowradius),2),1,size(triggered_data,2));
+end
 
 
 %---
 function [feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,sex,timing,statistic,windowradius,bar,color)
+    feature_value,feature_list,sex,timing,statistic,windowradius,bar,subtractmean,color)
 
 triggered_data=[];  feature_units={};
 parfor j=1:length(experiment_value)
@@ -988,7 +1003,7 @@ parfor j=1:length(experiment_value)
   feature_units{j}=feature_data.units;
 
   tmp=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,timing,statistic,windowradius);
+      feature_data,timing,statistic,windowradius,subtractmean);
   triggered_data=[triggered_data; tmp];
 end
 
@@ -1052,6 +1067,7 @@ sex=get(handles.SexList,'Value');
 timing=handles.timing;
 statistic=handles.statistic;
 windowradius=handles.windowradius;
+subtractmean=handles.subtractmean;
 
 axes(handles.Axes);
 cla;  hold on;
@@ -1060,13 +1076,13 @@ range=[];
 if(length(experiment_value)>0)
   [feature_units tmp h]=plot_timeseries(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,timing,statistic,windowradius,handles.bar,'r');
+      feature_value,feature_list,sex,timing,statistic,windowradius,handles.bar,subtractmean,'r');
   range=[range; tmp];
 end
 if(length(experiment_value2)>0)
   [feature_units tmp h2]=plot_timeseries(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,timing,statistic,windowradius,handles.bar,'b');
+      feature_value,feature_list,sex,timing,statistic,windowradius,handles.bar,subtractmean,'b');
   range=[range; tmp];
   if(length(experiment_value)>0)
     uistack(h,'top');
@@ -1098,11 +1114,9 @@ parfor b=1:length(behavior_list)
         behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
         feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',char(feature_list(f))));
 
-        tmp=calculate_timeseries(behavior_data,1,[],feature_data,t,statistic,windowradius);
+        tmp=calculate_timeseries(behavior_data,1,[],feature_data,t,statistic,windowradius,1);
         parfor_tmp{f,t}=[parfor_tmp{f,t}; tmp];
       end
-      foo=nanmean(parfor_tmp{f,t}(:,1:windowradius),2);
-      foo=parfor_tmp{f,t}-repmat(foo,1,size(parfor_tmp{f,t},2));
       parfor_tmp{f,t}=[...
           sqrt(nanmean(parfor_tmp{f,t}(:,1:windowradius).^2,2))...
           sqrt(nanmean(parfor_tmp{f,t}(:,(windowradius+1):end).^2,2))];
@@ -1467,6 +1481,21 @@ function MenuTimeSeriesPrefsBars_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuTimeSeriesPrefsBars (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuTimeSeriesPrefsSubtractMean_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesPrefsSubtractMean (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.subtractmean=~handles.subtractmean;
+if(handles.subtractmean)
+  set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','on');
+else
+  set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','off');
+end
+guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
