@@ -8,15 +8,17 @@ for i = 1:numel(varargin),
   if isempty(j),
     j = find(strcmp('max_window_radius',paramscurr(1:2:end-1)),1);
     if ~isempty(j),
-      tmp = 2*max(paramscurr{2*j})+1;
+      tmprad = max(paramscurr{2*j});
+      tmp = 2*tmprad+1;
     else
+      tmprad = max(default_window_radii);
       tmp = 2*max(default_window_radii)+1;
     end
     j = find(strcmp('window_offsets',paramscurr(1:2:end-1)),1);
     if ~isempty(j),
-      tmp = tmp + max(abs(paramscurr{2*j}));
+      tmp = tmp + max(1,tmprad)*max(abs(paramscurr{2*j}));
     else
-      tmp = tmp + max(abs(default_window_offsets));
+      tmp = tmp + max(1,tmprad)*max(abs(default_window_offsets));
     end
   else
     windowscurr = paramscurr{2*j};
