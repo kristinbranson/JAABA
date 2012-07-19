@@ -4405,7 +4405,7 @@ classdef JLabelData < handle
             else
               obj.windowdata.scores_old(toPredict) = 0;
             end
-            obj.ApplyPostprocessing();
+            obj.NormalizeScores([]);obj.ApplyPostprocessing();
             obj.ClearStatus();
           end
           
