@@ -24,7 +24,7 @@ classdef JLabelData < handle
       'labelidx_imp',[],'featurenames',{{}},...
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
       'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
-      'scores_old',[],'scores_validated',[]);
+      'scores_old',[],'scores_validated',[],'postprocessed',[]);
     
     % Score loaded from files.
     scoredata = struct('scores',[],'predicted',[],...
@@ -2209,6 +2209,8 @@ classdef JLabelData < handle
         idxcurr(1:numel(obj.windowdata.scores_old))) = [];
       obj.windowdata.scores_validated(...
         idxcurr(1:numel(obj.windowdata.scores_validated)),:) = [];
+      obj.windowdata.postprocessed(...
+        idxcurr(1:numel(obj.windowdata.postprocessed)),:) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
 
@@ -3447,7 +3449,7 @@ classdef JLabelData < handle
       
     end
     
-    function scores = GetPostprocessedScores(obj,expi,flies,T0,T1)
+    function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1)
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
@@ -3456,12 +3458,17 @@ classdef JLabelData < handle
       n = T1-T0+1;
       off = 1 - T0;
       scores = zeros(1,n);
-
-      if ~isempty(obj.scoredata.exp)                 
+      predictions = zeros(1,n);
+      
+      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+        idxcurr = obj.FlyNdx(expi,flies);
+        scores(obj.windowdata.t(idxcurr)+off) = obj.windowdata.scores(idxcurr);
+        predictions(obj.windowdata.t(idxcurr)+off) = 2 - obj.windowdata.postprocessed(idxcurr);      
+      else
         idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2) &...
           obj.scoredata.t' >= T0 & obj.scoredata.t' <= T1;
-        scores(obj.scoredata.t(idxcurr)+off) = ...
-          2*obj.scoredata.postprocessed(idxcurr)-1;      
+        scores(obj.scoredata.t(idxcurr)+off) = obj.scoredata.scores(idxcurr);      
+        predictions(obj.scoredata.t(idxcurr)+off) = 2 - obj.scoredata.postprocessed(idxcurr);      
       end
       
     end
@@ -3852,6 +3859,7 @@ classdef JLabelData < handle
         obj.windowdata.scores(end+1:end+m,1) = 0;
         obj.windowdata.scores_old(end+1:end+m,1) = 0;   
         obj.windowdata.scores_validated(end+1:end+m,1) = 0;           
+        obj.windowdata.postprocessed(end+1:end+m,1) = 0;           
         obj.windowdata.isvalidprediction(end+1:end+m,1) = false;
 
         % remove from missingts all ts that were computed in this chunk
@@ -4083,6 +4091,7 @@ classdef JLabelData < handle
       obj.windowdata.scores=[];
       obj.windowdata.scores_old=[];
       obj.windowdata.scores_validated=[];
+      obj.windowdata.postprocessed =[];
       obj.windowdata.scoreNorm=[];
       obj.windowdata.binVals=[];
       
@@ -4119,6 +4128,7 @@ classdef JLabelData < handle
       obj.windowdata.scores(idx2remove,:) = [];
       obj.windowdata.scores_old(idx2remove,:) = [];
       obj.windowdata.scores_validated(idx2remove,:) = [];
+      obj.windowdata.postprocessed(idx2remove,:) = [];
       obj.windowdata.isvalidprediction(idx2remove,:) = [];
       obj.windowdata.binVals = [];
       
@@ -4395,6 +4405,7 @@ classdef JLabelData < handle
             else
               obj.windowdata.scores_old(toPredict) = 0;
             end
+            obj.ApplyPostprocessing();
             obj.ClearStatus();
           end
           
@@ -4550,7 +4561,7 @@ classdef JLabelData < handle
       
       % indices into windowdata
       idxcurr = obj.FlyNdx(expi,flies) & ...
-        ~obj.windowdata.isvalidprediction & ismember(obj.windowdata.t,ts);
+        ~obj.windowdata.isvalidprediction; % & ismember(obj.windowdata.t,ts);
       
       % apply classifier
       switch obj.classifiertype,
@@ -4586,7 +4597,8 @@ classdef JLabelData < handle
           end
             
           obj.windowdata.isvalidprediction(idxcurr) = true;
-          obj.ClearStatus();
+          obj.ApplyPostprocessing();
+         obj.ClearStatus();
 
       end
            
@@ -5667,20 +5679,48 @@ classdef JLabelData < handle
       blen = [];
       if ~success;return; end
       
-      for endx = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(endx)
-          curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
-          curt = obj.scoredata.t(curidx);
-          if any(curt(2:end)-curt(1:end-1) ~= 1)
-            msg = 'Scores are not in order';
-            success = false;
-            return;
+      
+      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+        
+        % For predicted scores.
+        for endx = 1:obj.nexps
+          for flies = 1:obj.nflies_per_exp(endx)
+            idx = find(obj.FlyNdx(endx,flies));
+            ts = obj.windowdata.t(idx);
+            [sortedts, idxorder] = sort(ts);
+            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1);
+            gaps = [1;gaps;numel(ts)+1];
+            for ndx = 1:numel(gaps)-1
+              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
+              posts = obj.windowdata.postprocessed(curidx);
+              labeled = bwlabel(posts);
+              aa = regionprops(labeled,'Area');
+              blen = [blen [aa.Area]];
+              
+              
+            end
           end
-          posts = obj.scoredata.postprocessed(curidx);
-          labeled = bwlabel(posts);
-          aa = regionprops(labeled,'Area');
-          blen = [blen [aa.Area]];
         end
+        
+      else
+        
+        % For loaded scores.
+        for endx = 1:obj.nexps
+          for flies = 1:obj.nflies_per_exp(endx)
+            curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
+            curt = obj.scoredata.t(curidx);
+            if any(curt(2:end)-curt(1:end-1) ~= 1)
+              msg = 'Scores are not in order';
+              success = false;
+              return;
+            end
+            posts = obj.scoredata.postprocessed(curidx);
+            labeled = bwlabel(posts);
+            aa = regionprops(labeled,'Area');
+            blen = [blen [aa.Area]];
+          end
+        end
+        
       end
     end
     
@@ -5690,28 +5730,56 @@ classdef JLabelData < handle
       msg = ''; success = true;
       
       if isempty(obj.postprocessparams); return; end;
+      
+      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+        
+        for endx = 1:obj.nexps
+          for flies = 1:obj.nflies_per_exp(endx)
+            idx = find(obj.FlyNdx(endx,flies));
+            ts = obj.windowdata.t(idx);
+            [sortedts, idxorder] = sort(ts);
+            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1);
+            gaps = [1;gaps;numel(ts)+1];
+            for ndx = 1:numel(gaps)-1
+              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
+              curs = obj.windowdata.scores(curidx)';
+              
+              if strcmpi(obj.postprocessparams.method,'hysteresis')
+                posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
+              else
+                posts = obj.ApplyFiltering(curs,obj.postprocessparams);
+              end
+              obj.windowdata.postprocessed(curidx) = posts;
+            
+            end
+          end
+        end
+        
+      else
 
-      for endx = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(endx)
-          curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
-          curt = obj.scoredata.t(curidx);
-          if any(curt(2:end)-curt(1:end-1) ~= 1)
-            msg = 'Scores are not in order';
-            success = false;
-            return;
-          end
-          curs = obj.scoredata.scores(curidx);
-          
-          if strcmpi(obj.postprocessparams.method,'hysteresis')
-            posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
-          else
-            posts = obj.ApplyFiltering(curs,obj.postprocessparams);
-          end
-          
-          obj.scoredata.postprocessed(curidx) = posts;  
-        end %flies 
+        for endx = 1:obj.nexps
+          for flies = 1:obj.nflies_per_exp(endx)
+            curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
+            curt = obj.scoredata.t(curidx);
+            if any(curt(2:end)-curt(1:end-1) ~= 1)
+              msg = 'Scores are not in order';
+              success = false;
+              return;
+            end
+            curs = obj.scoredata.scores(curidx);
+            
+            if strcmpi(obj.postprocessparams.method,'hysteresis')
+              posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
+            else
+              posts = obj.ApplyFiltering(curs,obj.postprocessparams);
+            end
+            
+            obj.scoredata.postprocessed(curidx) = posts;
+          end %flies
+        end
+        
       end
-    
+      
     end
     
     function posts = ApplyHysteresis(obj,curs,params)
@@ -5739,6 +5807,19 @@ classdef JLabelData < handle
       if isempty(curs), posts = curs; return; end
       filts = conv(curs,ones(1,params.filtopts(1).value),'same');
       posts = filts>0;
+    end
+    
+    function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj)
+      curNdx = obj.windowdata.labelidx_cur~=0;
+      labeledscores = obj.windowdata.scores(curNdx);
+      origlabels = obj.windowdata.labelidx_cur(curNdx);
+      labels = ((origlabels==1)-0.5)*2;
+      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+        allScores = obj.windowdata.scores;
+      else
+        allScores = obj.scoredata.scores;
+      end
+      scoreNorm = obj.windowdata.scoreNorm;
     end
     
   end % End methods
