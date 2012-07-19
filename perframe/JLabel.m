@@ -1235,10 +1235,8 @@ switch handles.guidata.bottomAutomatic
     scores_bottom = handles.guidata.data.GetOldScores(handles.guidata.expi,handles.guidata.flies);
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
   case 'Postprocessed'
-    scores_bottom = handles.guidata.data.GetLoadedScores(handles.guidata.expi,handles.guidata.flies);
+    [scores_bottom,prediction_bottom] =  handles.guidata.data.GetPostprocessedScores(handles.guidata.expi,handles.guidata.flies);
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
-    tt =  handles.guidata.data.GetPostprocessedScores(handles.guidata.expi,handles.guidata.flies);
-    prediction_bottom = (3-tt)/2;
   case 'None'
     scores_bottom = zeros(size(scores));
   otherwise
@@ -6318,5 +6316,5 @@ function menu_classifier_postprocess_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-posthandle = PostProcess(handles.guidata.data);
+posthandle = PostProcess(handles.guidata.data,handles);
 handles.guidata.open_peripherals(end+1) = posthandle;

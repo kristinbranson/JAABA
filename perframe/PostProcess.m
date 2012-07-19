@@ -58,6 +58,7 @@ handles.output = hObject;
 set(handles.uipanel_method,'SelectionChangeFcn',@methodchange)
 
 handles.data = varargin{1};
+handles.JLabelHandle = varargin{2};
 params = handles.data.GetPostprocessingParams();
 % params = [];
 
@@ -109,22 +110,75 @@ function pushbutton_update_Callback(hObject, eventdata, handles)
 handles.data.SetPostprocessingParams(handles.params);
 blen = handles.data.GetPostprocessedBoutLengths();
 
-if isempty(blen), axis(handles.axes1,'off'); return; end
+JLabel('UpdateTimelineIms',handles.JLabelHandle);
+JLabel('UpdatePlots',handles.JLabelHandle,'refreshim',false,'refreshflies',false,...
+  'refreshtrx',false,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_auto',true,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
-% wsize = handles.data.GetFeatureWindowSize();
-wsize = handles.data.featureWindowSize();
-edges = [1 2 round(wsize/2) wsize 2*wsize 4*wsize 8*wsize inf];
 
-
-vals = histc(blen,edges);
-vals(end) = [];
-bar(handles.axes1,1:numel(edges)-1,vals);
-xlocs = 1:numel(edges)-1;
-xlabels = {}; xlabels{1} = '1';
-for ndx = 2:numel(edges)-1
-  xlabels{ndx} = sprintf('%d-%d',edges(ndx),edges(ndx+1)-1);
+if isempty(blen), 
+  axis(handles.axes1,'off');
+else
+  
+  % wsize = handles.data.GetFeatureWindowSize();
+  wsize = handles.data.featureWindowSize();
+  edges = [1 2 round(wsize/2) wsize 2*wsize 4*wsize 8*wsize inf];
+  
+  vals = histc(blen,edges);
+  vals(end) = [];
+  bar(handles.axes1,1:numel(edges)-1,vals);
+  xlocs = 1:numel(edges)-1;
+  xlabels = {}; xlabels{1} = '1';
+  for ndx = 2:numel(edges)-1
+    xlabels{ndx} = sprintf('%d-%d',edges(ndx),edges(ndx+1)-1);
+  end
+  set(handles.axes1,'XTick',xlocs,'XTickLabel',xlabels);
+  xlabel(handles.axes1,'Bout Length');
+  ylabel(handles.axes1,'Bouts');
+  
 end
-set(handles.axes1,'XTick',xlocs,'XTickLabel',xlabels);
+
+[labels,lscores,allscores,scoreNorm] = handles.data.GetAllLabelsAndScores();
+numBins = 21;
+if isnan(scoreNorm); scoreNorm = 1; end;
+pos = labels==1;
+neg = ~pos;
+bins = linspace(-scoreNorm,scoreNorm,numBins);
+bins = [-inf bins(2:end-1) inf];
+histPos = histc(lscores(pos),bins);
+histNeg = histc(lscores(neg),bins);
+if ~isempty(histPos),histPos(end) = []; 
+else histPos = zeros(numBins-1,1);end
+if ~isempty(histNeg),histNeg(end) = []; 
+else histNeg = zeros(numBins-1,1);end
+
+handles.posColor = handles.JLabelHandle.guidata.labelcolors(1,:);
+handles.negColor = handles.JLabelHandle.guidata.labelcolors(2,:);
+
+% For axis 1
+xLocs = linspace(-1+1/(numBins-1),1-1/(numBins-1),numBins-1);
+hBar = bar(handles.axes2, xLocs,[histPos histNeg],'BarWidth',1.5);
+set(hBar(1),'FaceColor',handles.posColor);
+set(hBar(2),'FaceColor',handles.negColor);
+ylim = get(handles.axes2,'ylim');
+if(ylim(1)<0); 
+  ylim(1) = 0; 
+  set(handles.axes2,'ylim',ylim);
+end
+set(handles.axes2,'xlim',[-1 1]);
+xlabel(handles.axes2,'Scores');
+ylabel(handles.axes2,'Frames');
+
+hold(handles.axes2,'on');
+histscores = histc(allscores,bins);
+histscores(end) = [];
+histscores = histscores./max(histscores)*0.9*ylim(2);
+plot(handles.axes2,xLocs,histscores);
 
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
@@ -140,6 +194,16 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.data.SetPostprocessingParams(handles.params);
+handles.data.ApplyPostprocessing(handles.params);
+JLabel('UpdateTimelineIms',handles.JLabelHandle);
+JLabel('UpdatePlots',handles.JLabelHandle,'refreshim',false,'refreshflies',false,...
+  'refreshtrx',false,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_auto',true,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 delete(handles.figure1);
 
 
