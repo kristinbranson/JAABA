@@ -293,7 +293,7 @@ end
 
 function updateThresholdButtons(handles)
 
-if ~strcmp(handles.NJObj.GetCurrentType,handles.NJObj.allTypes{8})
+if ~strcmp(handles.NJObj.GetCurrentType,'Thresholds on perframe values')
   for ndx = 1
     set(handles.(sprintf('thresholdPopup%d',ndx)),'Enable','off');
     set(handles.(sprintf('thresholdType%d',ndx)),'Enable','off');
