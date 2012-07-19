@@ -439,17 +439,18 @@ if isempty(movie_filename),
   return;
 end
 
-Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
+Mframenum = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
 Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-Mims =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+Mimage    = memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, ...
+    'Offset', 2*N*8);
 
 readframe=get_readframe_fcn(movie_filename);
 
 while true
   idx=find(isnan(Mlastused.Data));
   if(~isempty(idx))
-    idx2=argmax(Mts.Data(idx));
-    Mims.Data(idx(idx2)).x = readframe(Mts.Data(idx(idx2)));
+    idx2=argmax(Mframenum.Data(idx));
+    Mimage.Data(idx(idx2)).x = readframe(Mframenum.Data(idx(idx2)));
     Mlastused.Data(idx(idx2)) = now;
   else
     pause(1);
@@ -459,7 +460,7 @@ end
 
 function UpdatePlots(handles,varargin)
 
-persistent Mts Mlastused Mims movie_filename
+persistent Mframenum Mlastused Mimage movie_filename
 
 if strcmp(varargin{1},'CLEAR'),
   %fprintf('Clearing UpdatePlots data\n');
@@ -468,9 +469,9 @@ if strcmp(varargin{1},'CLEAR'),
       delete(handles.guidata.cache_thread);
       handles.guidata.cache_thread = [];
     end
-    Mts = struct('Data',[]);
+    Mframenum = struct('Data',[]);
     Mlastused = struct('Data',[]);
-    Mims = struct('Data',[]);
+    Mimage = struct('Data',[]);
     movie_filename = '';
   catch ME,
     warning('Error when trying to clear UpdatePlots data: %s',getReport(ME));
@@ -488,9 +489,9 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
     delete(handles.guidata.cache_thread);
     handles.guidata.cache_thread = [];
   end
-  Mts = struct('Data',[]); %#ok<NASGU>
+  Mframenum = struct('Data',[]); %#ok<NASGU>
   Mlastused = struct('Data',[]); %#ok<NASGU>
-  Mims = struct('Data',[]); %#ok<NASGU>
+  Mimage = struct('Data',[]); %#ok<NASGU>
   
   cache_filename=['cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
@@ -513,9 +514,9 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N*prod(HWD),'uint8'),'uint8');  % need to make this work for other formats
   fclose(fid);
-  Mts =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
+  Mframenum =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
   Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-  Mims =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+  Mimage =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
   handles.guidata.cache_thread=batch(@cache_thread,0,...
     {N,HWD,cache_filename,handles.guidata.movie_filename},...
@@ -632,34 +633,39 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
-      j = find((Mts.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)));
+      j = find((Mframenum.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)));
       if(numel(j)>1)  j=j(1);  end
       if isempty(j),
         j = argmin(Mlastused.Data);
-        Mts.Data(j) = handles.guidata.ts(i);
-        Mims.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
-        %disp(['NOT CACHED, ' num2str(sum(isnan(Mlastused.Data)))]);
+        Mframenum.Data(j) = handles.guidata.ts(i);
+        Mimage.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
+        %disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+        %    num2str(sum(isnan(Mlastused.Data)))]);
       else
-        %disp(['cached, ' num2str(sum(isnan(Mlastused.Data)))]);
+        %disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
+        %    num2str(sum(isnan(Mlastused.Data)))]);
       end
 
       Mlastused.Data(j) = now;
-      set(handles.guidata.himage_previews(i),'CData',Mims.Data(j).x);
+      set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
 
+      % remove from the queue frames preceeding current frame
+      %j=(Mframenum.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
+      %if(sum(j)>0)
+      %  %disp(['unqueueing frame(s) ' num2str(Mframenum.Data(j)')...
+      %  %    '; current frame = ' num2str(handles.guidata.ts(i))]);
+      %  Mlastused.Data(j) = 0;
+      %  Mframenum.Data(j) = 0;
+      %end
+
+      % add to the queue frames subsequent to current frame
       tmp=handles.guidata.nframes_jump_go;
-      j=(Mts.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
-      if(sum(j)>0)
-        %disp(['unqueueing frame(s) ' num2str(Mts.Data(j)')...
-        %    '; current frame = ' num2str(handles.guidata.ts(i))]);
-        Mlastused.Data(j) = 0;
-        Mts.Data(j) = 0;
-      end
-      j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mts.Data);
+      j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mframenum.Data);
       j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));
       for k=1:length(j)
         kk = argmin(Mlastused.Data);
+        Mframenum.Data(kk) = j(k);
         Mlastused.Data(kk) = nan;
-        Mts.Data(kk) = j(k);
       end
 
     else
