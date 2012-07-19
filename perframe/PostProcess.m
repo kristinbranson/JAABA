@@ -162,6 +162,7 @@ handles.negColor = handles.JLabelHandle.guidata.labelcolors(2,:);
 
 % For axis 1
 xLocs = linspace(-1+1/(numBins-1),1-1/(numBins-1),numBins-1);
+hold(handles.axes2,'off');
 hBar = bar(handles.axes2, xLocs,[histPos histNeg],'BarWidth',1.5);
 set(hBar(1),'FaceColor',handles.posColor);
 set(hBar(2),'FaceColor',handles.negColor);
@@ -178,7 +179,7 @@ hold(handles.axes2,'on');
 histscores = histc(allscores,bins);
 histscores(end) = [];
 histscores = histscores./max(histscores)*0.9*ylim(2);
-plot(handles.axes2,xLocs,histscores);
+plot(handles.axes2,xLocs,histscores,'Color',max(handles.posColor,handles.negColor));
 
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
@@ -194,7 +195,7 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.data.SetPostprocessingParams(handles.params);
-handles.data.ApplyPostprocessing(handles.params);
+handles.data.ApplyPostprocessing();
 JLabel('UpdateTimelineIms',handles.JLabelHandle);
 JLabel('UpdatePlots',handles.JLabelHandle,'refreshim',false,'refreshflies',false,...
   'refreshtrx',false,'refreshlabels',true,...
