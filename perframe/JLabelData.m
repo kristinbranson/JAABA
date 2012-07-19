@@ -4332,7 +4332,7 @@ classdef JLabelData < handle
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_cur;
           obj.windowdata.labelidx_cur = obj.windowdata.labelidx_new;
           
-          obj.windowdata.scoreNorm = [];
+          obj.windowdata.scoreNorm = []; obj.NormalizeScores([]);
           % To later find out where each example came from.
 
           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
