@@ -613,6 +613,9 @@ if refresh_timeline_props,
       'YData',perframedata);
     %if isnan(handles.guidata.timeline_data_ylims(1,v)),
       ylim = [min(perframedata),max(perframedata)];
+      if ylim(2) <= ylim(1),
+        ylim(2) = ylim(1)+1;
+      end
       set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
       zoom(handles.guidata.axes_timeline_props(propi),'reset');
     %end
