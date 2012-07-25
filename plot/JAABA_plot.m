@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 18-Jul-2012 14:11:59
+% Last Modified by GUIDE v2.5 24-Jul-2012 13:08:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -80,6 +80,8 @@ if(exist('JAABA_plot.mat')==2)
   handles.zoom=handles_saved.zoom;
   handles.subtractmean=handles_saved.subtractmean;
   handles.sex=handles_saved.sex;
+  handles.boutstats=handles_saved.boutstats;
+  handles.perwhat=handles_saved.perwhat;
   set(handles.ExperimentList,'String',handles.experimentlist);
   set(handles.ExperimentList,'Value',handles.experimentvalue);
   set(handles.ExperimentList2,'String',handles.experimentlist2);
@@ -111,37 +113,39 @@ if(exist('JAABA_plot.mat')==2)
   end
   switch(handles.timing)
     case 1
-      MenuTimeSeriesPrefsTimingOnset_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesTimingOnset_Callback(hObject, eventdata, handles);
     case 2
-      MenuTimeSeriesPrefsTimingOffset_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesTimingOffset_Callback(hObject, eventdata, handles);
   end
   switch(handles.statistic)
     case 1
-      MenuTimeSeriesPrefsStatisticMean_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles);
     case 2
-      MenuTimeSeriesPrefsStatisticMedian_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesStatisticMedian_Callback(hObject, eventdata, handles);
   end
   switch(handles.bar)
     case 1
-      MenuTimeSeriesPrefsBarsNone_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesBarsNone_Callback(hObject, eventdata, handles);
     case 2
-      MenuTimeSeriesPrefsBarsDeviation_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesBarsDeviation_Callback(hObject, eventdata, handles);
     case 3
-      MenuTimeSeriesPrefsBarsError_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesBarsError_Callback(hObject, eventdata, handles);
   end
   switch(handles.zoom)
     case 1
-      MenuTimeSeriesPrefsZoomBlack_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesZoomBlack_Callback(hObject, eventdata, handles);
     case 2
-      MenuTimeSeriesPrefsZoomRed_Callback(hObject, eventdata, handles);
+      MenuTimeSeriesZoomRed_Callback(hObject, eventdata, handles);
   end
   switch(handles.subtractmean)
     case 0
-      set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','off');
+      set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
     case 1
-      set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','on');
+      set(handles.MenuTimeSeriesSubtractMean,'Checked','on');
   end
   set(handles.SexList,'Value',handles.sex);
+  menu_boutstats_set(handles.boutstats);
+  menu_histogram_set(handles.perwhat);
 else
   handles.experimentlist={};
   handles.experimentvalue=[];
@@ -162,6 +166,8 @@ else
   handles.zoom=1;
   handles.subtractmean=0;
   handles.sex=1;
+  handles.boutstats=1;
+  handles.perwhat=1;
   set(handles.ExperimentList,'enable','off');
   set(handles.ExperimentList2,'enable','off');
   set(handles.BehaviorList,'enable','off');
@@ -209,6 +215,8 @@ handles.bar=1;
 handles.zoom=1;
 handles.subtractmean=0;
 handles.sex=1;
+handles.boutstats=1;
+handles.perwhat=1;
 
 set(handles.ExperimentList,'String',handles.experimentlist,'Value',handles.experimentvalue,'enable','off');
 set(handles.ExperimentList2,'String',handles.experimentlist2,'Value',handles.experimentvalue2,'enable','off');
@@ -216,12 +224,13 @@ set(handles.BehaviorList,'String',handles.behaviorlist,'enable','off');
 set(handles.BehaviorLogic,'Value',handles.behaviorlogic,'enable','off');
 set(handles.BehaviorList2,'String',handles.behaviorlist,'enable','off');
 set(handles.FeatureList,'String',handles.featurelist,'enable','off');
-MenuTimeSeriesPrefsTimingOnset_Callback(hObject, eventdata, handles);
-MenuTimeSeriesPrefsStatisticMean_Callback(hObject, eventdata, handles);
-MenuTimeSeriesPrefsBarsNone_Callback(hObject, eventdata, handles);
-MenuTimeSeriesPrefsZoomBlack_Callback(hObject, eventdata, handles);
-set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','off');
+MenuTimeSeriesTimingOnset_Callback(hObject, eventdata, handles);
+MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles);
+MenuTimeSeriesBarsNone_Callback(hObject, eventdata, handles);
+MenuTimeSeriesZoomBlack_Callback(hObject, eventdata, handles);
+set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
 set(handles.SexList,'Value',handles.sex);
+menu_boutstats_set(handles.boutstats);
 
 save('JAABA_plot.mat','handles');
 
@@ -725,7 +734,8 @@ ret_val=[ret_val ')'];
 
 
 % --- 
-function [during not_during]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,feature_data,sex_data)
+function [during not_during]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
+    feature_data,sex_data,perwhat)
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -736,8 +746,6 @@ if(iscell(feature_data.data{1}))
 end
 
 during={};  not_during={};
-%partition_idx=cell(1,length(feature_data.data));
-partition_idx=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)
   tmp1=false(1,length(feature_data.data{i}));
   for j=1:length(behavior_data.allScores.t0s{i})
@@ -753,16 +761,56 @@ for i=1:length(behavior_data.allScores.t0s)
   end
   switch(behavior_logic)
     case(1)
-      partition_idx{i}=tmp1;
+      partition_idx=tmp1;
     case(2)
-      partition_idx{i}=tmp1 & tmp2;
+      partition_idx=tmp1 & tmp2;
     case(3)
-      partition_idx{i}=tmp1 & ~tmp2;
+      partition_idx=tmp1 & ~tmp2;
     case(4)
-      partition_idx{i}=tmp1 | tmp2;
+      partition_idx=tmp1 | tmp2;
   end
-  during{i}=feature_data.data{i}(partition_idx{i} & sex_data.data{i}(1:length(partition_idx{i})));
-  not_during{i}=feature_data.data{i}((~partition_idx{i}) & sex_data.data{i}(1:length(partition_idx{i})));
+  if(perwhat==1)  % per frame
+    during{i}=feature_data.data{i}(partition_idx & sex_data.data{i}(1:length(partition_idx)));
+    not_during{i}=feature_data.data{i}((~partition_idx) & sex_data.data{i}(1:length(partition_idx)));
+  else  % per bout
+    partition_idx=[0 partition_idx 0];
+    start=1+find(~partition_idx(1:(end-1)) &  partition_idx(2:end))-1;
+    stop =  find( partition_idx(1:(end-1)) & ~partition_idx(2:end))-1;
+    if(length(start)>0)
+      for j=1:length(start)
+        if(sum(sex_data.data{i}(start(j):stop(j))) < ((stop(j)-start(j)+1)/2))  continue;  end
+        switch(perwhat)
+          case 2
+            during{i}(j)=mean(feature_data.data{i}(start(j):stop(j)));
+          case 3
+            during{i}(j)=median(feature_data.data{i}(start(j):stop(j)));
+          case 4
+            during{i}(j)=max(feature_data.data{i}(start(j):stop(j)));
+          case 5
+            during{i}(j)=min(feature_data.data{i}(start(j):stop(j)));
+          case 6
+            during{i}(j)=std(feature_data.data{i}(start(j):stop(j)));
+        end
+      end
+      if(length(start)>1)
+        for j=1:(length(start)-1)
+          if(sum(sex_data.data{i}(stop(j):start(j+1))) < ((start(j+1)-stop(j)+1)/2))  continue;  end
+          switch(perwhat)
+            case 2
+              not_during{i}(j)=mean(feature_data.data{i}(stop(j):start(j+1)));
+            case 3
+              not_during{i}(j)=median(feature_data.data{i}(stop(j):start(j+1)));
+            case 4
+              not_during{i}(j)=max(feature_data.data{i}(stop(j):start(j+1)));
+            case 5
+              not_during{i}(j)=min(feature_data.data{i}(stop(j):start(j+1)));
+            case 6
+              not_during{i}(j)=std(feature_data.data{i}(stop(j):start(j+1)));
+          end
+        end
+      end
+    end
+  end
 end
 
 during=[during{:}];
@@ -770,9 +818,9 @@ not_during=[not_during{:}];
 
 
 % ---
-function feature_units=plot_histogram(experiment_value,experiment_list,...
+function [table_data feature_units]=plot_histogram(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,sex,color)
+    feature_value,feature_list,sex,perwhat,color)
 
 during={};  not_during={};  feature_units={};
 parfor j=1:length(experiment_value)
@@ -802,17 +850,34 @@ parfor j=1:length(experiment_value)
   end
 
   [during{j} not_during{j}]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,sex_data);
+      feature_data,sex_data,perwhat);
 end
 during=[during{:}];
 not_during=[not_during{:}];
 feature_units=feature_units{1};
 
+table_data={2,7};
+table_data{1,1}='during';
+table_data{1,2}=num2str(mean(during),3);
+table_data{1,3}=num2str(std(during),3);
+table_data{1,4}=num2str(std(during)./sqrt(length(during)),3);
+table_data{1,5}=num2str(median(during),3);
+table_data{1,6}=[num2str(prctile(during,25),3) '-' num2str(prctile(during,75),3)];
+table_data{1,7}=[num2str(prctile(during,5),3) '-' num2str(prctile(during,95),3)];
+
+table_data{2,1}='not during';
+table_data{2,2}=num2str(mean(not_during),3);
+table_data{2,3}=num2str(std(not_during),3);
+table_data{2,4}=num2str(std(not_during)./sqrt(length(not_during)),3);
+table_data{2,5}=num2str(median(not_during),3);
+table_data{2,6}=[num2str(prctile(during,25),3) '-' num2str(prctile(during,75),3)];
+table_data{2,7}=[num2str(prctile(during,5),3) '-' num2str(prctile(during,95),3)];
+
 tmp=linspace(min([during not_during]),max([during not_during]));
 hist_during=hist(during,tmp);
 hist_not_during=hist(not_during,tmp);
-plot(tmp,hist_not_during./max(hist_not_during),[color '-']);
-plot(tmp,hist_during./max(hist_during),[color '-'],'linewidth',3);
+plot(tmp,hist_not_during./sum(hist_not_during),[color '-']);
+plot(tmp,hist_during./sum(hist_during),[color '-'],'linewidth',3);
 
 
 % --- Executes on button press in PlotHistogram.
@@ -840,21 +905,39 @@ axes(handles.Axes);
 cla;  hold on;
 
 if(length(experiment_value)>0)
-  feature_units=plot_histogram(experiment_value,experiment_list,...
+  [table_data feature_units]=plot_histogram(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,'r');
+      feature_value,feature_list,sex,handles.perwhat,'r');
 end
 if(length(experiment_value2)>0)
-  feature_units=plot_histogram(experiment_value2,experiment_list2,...
+  [table_data2 feature_units2]=plot_histogram(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,'b');
+      feature_value,feature_list,sex,handles.perwhat,'b');
 end
+
+if((length(experiment_value)>0) && (length(experiment_value2)>0))
+  set(handles.Table,'RowStriping','on','BackgroundColor',[1 0.8 0.8; 0.8 0.8 1]);
+  tmp=[table_data(1,:); table_data2(1,:); table_data(2,:); table_data2(2,:)]; 
+elseif(length(experiment_value)>0)
+  set(handles.Table,'RowStriping','off','BackgroundColor',[1 0.8 0.8]);
+  tmp=table_data;
+elseif(length(experiment_value2)>0)
+  set(handles.Table,'RowStriping','off','BackgroundColor',[0.8 0.8 1]);
+  tmp=table_data2;
+end
+
+set(handles.Table,'Data',tmp);
+set(handles.Table,'ColumnName',{'' 'Mean' 'Std. Dev.' 'Std. Err.' 'Median' '25-75' '5-95'});
+set(handles.Table,'ColumnWidth',{75});
 
 %legend('during','not during');
 %text(tmp(5),0.95,['during = ' num2str(100*length(during)/(length(during)+length(not_during)),3) '%'],'color','b');
 xlabel(get_label(feature_list(feature_value),feature_units));
 ylabel('normalized');
 axis tight
+
+handles.table='nan';
+guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.');
 
@@ -1193,15 +1276,15 @@ function [male_count female_count male_total female_total individual_count]=...
 male_count=0;  female_count=0;  individual_count=[];
 male_total=0;  female_total=0;
 %partition_idx=cell(1,length(behavior_data.allScores.t0s));
-for i=1:length(behavior_data.allScores.t0s)
+for i=1:length(behavior_data.allScores.t0s)  % individual
   tmp1=false(1,length(sex_data.data{i}));
-  for j=1:length(behavior_data.allScores.t0s{i})
+  for j=1:length(behavior_data.allScores.t0s{i})  % bout
     tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
         -behavior_data.allScores.tStart(i)+1)=true;
   end
   if(behavior_logic>1)
     tmp2=false(1,length(sex_data.data{i}));
-    for j=1:length(behavior_data2.allScores.t0s{i})
+    for j=1:length(behavior_data2.allScores.t0s{i})  % bout
       tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
           -behavior_data2.allScores.tStart(i)+1)=true;
     end
@@ -1225,10 +1308,10 @@ end
 
 
 % ---
-function ret_val=calculate_behaviorstats(experiment_value,experiment_list,...
+function table_data=calculate_behaviorstats(experiment_value,experiment_list,...
     behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list)
 
-table_data=cell(1,length(experiment_value));
+collated_data=cell(1,length(experiment_value));
 parfor e=1:length(experiment_value)
   sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
       char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
@@ -1236,7 +1319,7 @@ parfor e=1:length(experiment_value)
     sex_data.data{i}=strcmp(sex_data.data{i},'M');
   end
   behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(1))));
-  table_data{e}=nan(length(behavior_list),4+length(behavior_data.allScores.t0s));
+  collated_data{e}=nan(length(behavior_list),4+length(behavior_data.allScores.t0s));
   if(behavior_logic>1)
     behavior_data2=load(fullfile(char(experiment_list(experiment_value(e))),...
         char(behavior_list2(behavior_value2))));
@@ -1248,28 +1331,35 @@ parfor e=1:length(experiment_value)
 
     [male_count female_count male_total female_total individual_count]=...
         calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sex_data);
-    if((4+length(individual_count))>size(table_data{e},2))
-      table_data{e}(:,(end+1):(4+length(individual_count)))=...
-          nan(size(table_data{e},1):((4+length(individual_count))-size(table_data{e},2)));
+    if((4+length(individual_count))>size(collated_data{e},2))
+      collated_data{e}(:,(end+1):(4+length(individual_count)))=...
+          nan(size(collated_data{e},1):((4+length(individual_count))-size(collated_data{e},2)));
     end
-    table_data{e}(b,:)=[male_count female_count male_total female_total individual_count];
+    collated_data{e}(b,:)=[male_count female_count male_total female_total individual_count];
   end
 end
 
-table_data2=nan(length(behavior_list),4+sum(cellfun(@(x) size(x,2),table_data))-4*length(experiment_value));
+%table_data=nan(length(behavior_list),4+sum(cellfun(@(x) size(x,2),collated_data))-4*length(experiment_value));
+table_data={};
+%raw_table_data={};
 for b=1:length(behavior_list)
-  table_data2(b,1)=b;
-  tmp1=cellfun(@(x) x(b,1:2),table_data,'uniformoutput',false);
-  tmp2=cellfun(@(x) x(b,3:4),table_data,'uniformoutput',false);
-  table_data2(b,2)=sum(sum([tmp1{:}])) / sum(sum([tmp2{:}])) .* 100;
-  table_data2(b,3:4)=sum(cat(1,tmp1{:}),1) ./ sum(cat(1,tmp2{:}),1) .* 100;
-  cellfun(@(x) x(b,5:end),table_data,'uniformoutput',false);
-  table_data2(b,5:end)=cat(2,ans{:});
+  table_data{b,1}=behavior_list{b};
+  tmp1=cellfun(@(x) x(b,1:2),collated_data,'uniformoutput',false);
+  tmp2=cellfun(@(x) x(b,3:4),collated_data,'uniformoutput',false);
+  table_data{b,2}=sum(sum([tmp1{:}])) / sum(sum([tmp2{:}])) .* 100;
+  sum(cat(1,tmp1{:}),1) ./ sum(cat(1,tmp2{:}),1) .* 100;
+  table_data{b,3}=ans(1);
+  table_data{b,4}=ans(2);
+  cellfun(@(x) x(b,5:end),collated_data,'uniformoutput',false);
+  cat(2,ans{:});
+  for i=1:length(ans)
+    table_data{b,4+i}=ans(i);
+  end
 end
 
-ret_val=cell(size(table_data2));
-ret_val(:,1)=behavior_list(table_data2(:,1));
-ret_val(:,2:end)=num2cell(table_data2(:,2:end));
+%ret_val=cell(size(table_data));
+%ret_val(:,1)=behavior_list(table_data(:,1));
+%ret_val(:,2:end)=num2cell(table_data(:,2:end));
 
 
 % --- Executes on button press in BehaviorStats.
@@ -1322,11 +1412,212 @@ end
 set(handles.Table,'ColumnName',tmp);
 set(handles.Table,'ColumnWidth',{150 75 75});
 
-%handles.table_data2=table_data2;
 handles.table='behavior_stats';
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.');
+
+
+% --- 
+function [bout_lengths sex inter_bout_lengths inter_sex]=...
+    calculate_boutstats2(behavior_data,behavior_logic,behavior_data2,sex_data)
+
+bout_lengths=cell(1,length(behavior_data.allScores.t0s));
+inter_bout_lengths=cell(1,length(behavior_data.allScores.t0s));
+sex=cell(1,length(behavior_data.allScores.t0s));
+inter_sex=cell(1,length(behavior_data.allScores.t0s));
+for i=1:length(behavior_data.allScores.t0s)  % individual
+  tmp1=false(1,length(sex_data.data{i}));
+  for j=1:length(behavior_data.allScores.t0s{i})  % bout
+    tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
+        -behavior_data.allScores.tStart(i)+1)=true;
+  end
+  if(behavior_logic>1)
+    tmp2=false(1,length(sex_data.data{i}));
+    for j=1:length(behavior_data2.allScores.t0s{i})  % bout
+      tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
+          -behavior_data2.allScores.tStart(i)+1)=true;
+    end
+  end
+  switch(behavior_logic)
+    case(1)
+      partition_idx=tmp1;
+    case(2)
+      partition_idx=tmp1 & tmp2;
+    case(3)
+      partition_idx=tmp1 & ~tmp2;
+    case(4)
+      partition_idx=tmp1 | tmp2;
+  end
+  partition_idx=[0 partition_idx 0];
+  start=1+find(~partition_idx(1:(end-1)) &  partition_idx(2:end))-1;
+  stop =  find( partition_idx(1:(end-1)) & ~partition_idx(2:end))-1;
+  if(length(start)>0)
+    bout_lengths{i}=stop-start+1;
+    sex{i}=zeros(1,length(bout_lengths{i}));
+    for j=1:length(bout_lengths{i})
+      sex{i}(j)=sum(sex_data.data{i}(start(j):stop(j))) > (bout_lengths{i}(j)/2);
+    end
+    if(length(start)>1)
+      inter_bout_lengths{i}=start(2:end)-stop(1:(end-1));
+      inter_sex{i}=zeros(1,length(inter_bout_lengths{i}));
+      for j=1:length(inter_bout_lengths{i})
+        inter_sex{i}(j)=sum(sex_data.data{i}(stop(j):start(j+1))) > (inter_bout_lengths{i}(j)/2);
+      end
+    end
+  end
+end
+
+
+% ---
+function ret_val=print_boutstats(data)
+
+handles=guidata(gcf);
+
+switch(handles.boutstats)
+  case(1)
+    ret_val=num2str(mean(data),3);
+  case(2)
+    ret_val=[num2str(mean(data),3) ' (' num2str(std(data),3) ')'];
+  case(3)
+    ret_val=[num2str(mean(data),3) ' (' num2str(std(data)./sqrt(length(data)),3) ')'];
+  case(4)
+    ret_val=num2str(median(data),3);
+  case(5)
+    ret_val=[num2str(median(data),3) ' (' num2str(prctile(data,5),3) '-' num2str(prctile(data,95),3) ')'];
+  case(6)
+    ret_val=[num2str(median(data),3) ' (' num2str(prctile(data,25),3) '-' num2str(prctile(data,75),3) ')'];
+end
+
+
+% ---
+function [table_data raw_table_data]=calculate_boutstats(experiment_value,experiment_list,...
+    behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list)
+
+collated_data=cell(length(experiment_value),length(behavior_list));
+parfor e=1:length(experiment_value)
+  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+  for i=1:length(sex_data.data)
+    sex_data.data{i}=strcmp(sex_data.data{i},'M');
+  end
+  behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(1))));
+  if(behavior_logic>1)
+    behavior_data2=load(fullfile(char(experiment_list(experiment_value(e))),...
+        char(behavior_list2(behavior_value2))));
+  else
+    behavior_data2=[];
+  end
+  parfor_tmp=cell(1,length(behavior_list));
+  for b=1:length(behavior_list)
+    behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
+
+    [bout_lengths sex inter_bout_lengths inter_sex]=...
+        calculate_boutstats2(behavior_data,behavior_logic,behavior_data2,sex_data);
+    parfor_tmp{b}={bout_lengths sex inter_bout_lengths inter_sex};
+  end
+  collated_data(e,:)=parfor_tmp;
+end
+
+table_data={};
+raw_table_data={};
+for b=1:length(behavior_list)
+  bout_lengths=[];  sex=[];  n=[];
+  inter_bout_lengths=[];  inter_sex=[];  inter_n=[];
+  for e=1:length(experiment_value)
+    bout_lengths=[bout_lengths collated_data{e,b}{1}{:}];
+    sex=[sex collated_data{e,b}{2}{:}];
+    n=[n cellfun(@numel,collated_data{e,b}{1})];
+    inter_bout_lengths=[inter_bout_lengths collated_data{e,b}{3}{:}];
+    inter_sex=[inter_sex collated_data{e,b}{4}{:}];
+    inter_n=[inter_n cellfun(@numel,collated_data{e,b}{3})];
+  end
+  n=[0 cumsum(n)];
+  inter_n=[0 cumsum(inter_n)];
+  table_data{b,1}=behavior_list{b};
+  raw_table_data{b,2}=bout_lengths;
+      table_data{b,2}=print_boutstats(raw_table_data{b,2});
+  raw_table_data{b,3}=inter_bout_lengths;
+      table_data{b,3}=print_boutstats(raw_table_data{b,3});
+  raw_table_data{b,4}=bout_lengths(sex==1);
+      table_data{b,4}=print_boutstats(raw_table_data{b,4});
+  raw_table_data{b,5}=bout_lengths(sex==0);
+      table_data{b,5}=print_boutstats(raw_table_data{b,5});
+  raw_table_data{b,6}=inter_bout_lengths(inter_sex==1);
+      table_data{b,6}=print_boutstats(raw_table_data{b,6});
+  raw_table_data{b,7}=inter_bout_lengths(inter_sex==0);
+      table_data{b,7}=print_boutstats(raw_table_data{b,7});
+  for i=1:(length(n)-1)
+    raw_table_data{b,7+i}=bout_lengths((n(i)+1):n(i+1));
+        table_data{b,7+i}=print_boutstats(raw_table_data{b,7+i});
+    raw_table_data{b,8+i}=inter_bout_lengths((inter_n(i)+1):inter_n(i+1));
+        table_data{b,8+i}=print_boutstats(raw_table_data{b,8+i});
+  end
+end
+
+
+% --- Executes on button press in BoutStats.
+function BoutStats_Callback(hObject, eventdata, handles)
+% hObject    handle to BoutStats (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.Status,'string','Thinking...');  drawnow;
+
+experiment_value=get(handles.ExperimentList,'Value');
+experiment_list=get(handles.ExperimentList,'String');
+experiment_value2=get(handles.ExperimentList2,'Value');
+experiment_list2=get(handles.ExperimentList2,'String');
+behavior_list=get(handles.BehaviorList,'String');
+behavior_logic=get(handles.BehaviorLogic,'Value');
+behavior_value2=get(handles.BehaviorList2,'Value');
+behavior_list2=get(handles.BehaviorList2,'String');
+feature_list=get(handles.FeatureList,'String');
+
+if(length(experiment_value)>0)
+  [table_data raw_table_data]=calculate_boutstats(experiment_value,experiment_list,...
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
+end
+if(length(experiment_value2)>0)
+  [table_data2 raw_table_data2]=calculate_boutstats(experiment_value2,experiment_list2,...
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
+end
+
+if((length(experiment_value)>0) && (length(experiment_value2)>0))
+  set(handles.Table,'RowStriping','on','BackgroundColor',[1 0.8 0.8; 0.8 0.8 1]);
+  tmp(1:2:2*size(table_data2,1),1:size(table_data, 2))=table_data;
+  tmp(2:2:2*size(table_data2,1),1:size(table_data2,2))=table_data2;
+  raw_tmp(1:2:2*size(raw_table_data2,1),1:size(raw_table_data, 2))=raw_table_data;
+  raw_tmp(2:2:2*size(raw_table_data2,1),1:size(raw_table_data2,2))=raw_table_data2;
+  ii=max(size(table_data,2),size(table_data2,2));
+elseif(length(experiment_value)>0)
+  set(handles.Table,'RowStriping','off','BackgroundColor',[1 0.8 0.8]);
+  tmp=table_data;
+  raw_tmp=raw_table_data;
+  ii=size(table_data,2);
+else
+  set(handles.Table,'RowStriping','off','BackgroundColor',[0.8 0.8 1]);
+  tmp=table_data2;
+  raw_tmp=raw_table_data2;
+  ii=size(table_data2,2);
+end
+
+set(handles.Table,'Data',tmp);
+handles.raw_table_data=raw_tmp;
+tmp={'Behavior' 'Bout Length' 'Inter BL' 'Male BL' 'Male IBL' 'Female BL' 'Female IBL'};
+for i=1:(ii-7)/2
+  tmp{2*i+6}=['Indi #' num2str(i) ' BL'];
+  tmp{2*i+7}=['Indi #' num2str(i) ' IBL'];
+end
+set(handles.Table,'ColumnName',tmp);
+set(handles.Table,'ColumnWidth',{150 75 75});
+
+%handles.table_data2=table_data2;
+handles.table='bout_stats';
+guidata(hObject,handles);
+
+set(handles.Status,'string','Ready.');
+
 
 
 % --- 
@@ -1336,7 +1627,44 @@ if(size(eventdata.Indices,1)==0)  return;  end
 
 handles=guidata(hObject);
 
-if(strcmp(handles.table,'behavior_stats'))
+if(strcmp(handles.table,'bout_stats'))
+  if(eventdata.Indices(end,2)==1)  return;  end
+
+  handles.behaviorvalue=eventdata.Indices(end,1);
+  set(handles.BehaviorList,'Value',handles.behaviorvalue);
+  switch(eventdata.Indices(end,2))
+    case {2,3}
+      handles.sex=1;
+    case {4,5}
+      handles.sex=2;
+    case {6,7}
+      handles.sex=3;
+  end
+  set(handles.SexList,'Value',handles.sex);
+
+  experiment_value=get(handles.ExperimentList,'Value');
+  experiment_value2=get(handles.ExperimentList2,'Value');
+  if((length(experiment_value)>0) && (length(experiment_value2)>0))
+    if(mod(eventdata.Indices(end,1),2))
+      color='r';
+    else
+      color='b';
+    end
+  elseif(length(experiment_value)>0)
+    color='r';
+  else
+    color='b';
+  end
+
+  axes(handles.Axes);
+  cla;  hold on;
+  [n,x]=hist(handles.raw_table_data{eventdata.Indices(end,1),eventdata.Indices(end,2)},100);
+  plot(x,n,[color '-']);
+  xlabel('length (frames)');
+  %ylabel(strrep(char(behavior_list(b)),'_','-'));
+  axis tight;
+  
+elseif(strcmp(handles.table,'behavior_stats'))
   if(eventdata.Indices(end,2)==1)  return;  end
   set(handles.Status,'string','Thinking...');  drawnow;
 
@@ -1362,12 +1690,38 @@ if(strcmp(handles.table,'behavior_stats'))
     b=eventdata.Indices(end,1);
     experiment_value0=experiment_value;
     experiment_list0=experiment_list;
-      color='r';
+    color='r';
   else
     b=eventdata.Indices(end,1);
     experiment_value0=experiment_value2;
     experiment_list0=experiment_list2;
     color='b';
+  end
+
+  if(eventdata.Indices(end,2)>4)
+    e=1;  n=0;
+    while((e<=length(experiment_value0)) && (n<eventdata.Indices(end,2)-4))
+      behavior_data=load(fullfile(char(experiment_list0(experiment_value0(e))),...
+          char(behavior_list(b))));
+      e=e+1;
+      n=n+length(behavior_data.allScores.t0s);
+    end
+    if(n<eventdata.Indices(end,2)-4)
+      set(handles.Status,'string','Ready.');
+      return;
+    end
+    ee=e-1;
+    ii=eventdata.Indices(end,2)-4-(n-length(behavior_data.allScores.t0s));
+  else
+    ee=1:length(experiment_value0);
+    ii=nan;
+  end
+
+  handles.behaviorvalue=b;
+  set(handles.BehaviorList,'Value',handles.behaviorvalue);
+  if((eventdata.Indices(end,2)>1) && (eventdata.Indices(end,2)<5))
+    handles.sex=eventdata.Indices(end,2)-1;
+    set(handles.SexList,'Value',handles.sex);
   end
 
   sex_data=cell(1,length(experiment_value0));
@@ -1378,21 +1732,18 @@ if(strcmp(handles.table,'behavior_stats'))
 
   cellfun(@(x) size(x.data{1},2),sex_data,'uniformoutput',false);
   behavior_cumulative=zeros(length(experiment_value0),max([ans{:}]));
-  parfor e=1:length(experiment_value0)
+  %parfor e=1:length(experiment_value0)
+  parfor e=ee
     behavior_data=load(fullfile(char(experiment_list0(experiment_value0(e))),...
         char(behavior_list(b))));
-    if(eventdata.Indices(end,2)>4)
-      ii=eventdata.Indices(end,2);
-    else
-      ii=1:length(behavior_data.allScores.t0s);
-      if(eventdata.Indices(end,2)>2)
-        for i=1:length(sex_data{e}.data)
-          sex_data{e}.data{i}=strcmp(sex_data{e}.data{i},'M');
-        end
+    if((eventdata.Indices(end,2)>2) && (eventdata.Indices(end,2)<5))
+      for i=1:length(sex_data{e}.data)
+        sex_data{e}.data{i}=strcmp(sex_data{e}.data{i},'M');
       end
     end
     parfor_tmp=zeros(1,length(behavior_cumulative(e,:)));
-    for i=ii   % individual
+    for i=1:length(behavior_data.allScores.t0s)   % individual
+      if((eventdata.Indices(end,2)>4)&&(i~=ii))  continue;  end
       partition_idx=false(1,length(sex_data{e}.data{i}));
       for j=1:length(behavior_data.allScores.t0s{i})  % bout
         partition_idx((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
@@ -1418,9 +1769,10 @@ if(strcmp(handles.table,'behavior_stats'))
   ylabel(strrep(char(behavior_list(b)),'_','-'));
   axis tight;
 
+  guidata(hObject,handles);
   set(handles.Status,'string','Ready.');
 
-else
+elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
   handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),1);
   set(handles.BehaviorList,'Value',handles.behaviorvalue);
   set(handles.BehaviorLogic,'Value',1);
@@ -1446,22 +1798,22 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsTiming_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsTiming (see GCBO)
+function MenuTimeSeriesTiming_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesTiming (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsStatistic_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsStatistic (see GCBO)
+function MenuTimeSeriesStatistic_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatistic (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsRadius_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsRadius (see GCBO)
+function MenuTimeSeriesRadius_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesRadius (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1470,148 +1822,336 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsZoom_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsZoom (see GCBO)
+function MenuTimeSeriesZoom_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesZoom (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsBars_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsBars (see GCBO)
+function MenuTimeSeriesBars_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesBars (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsSubtractMean_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsSubtractMean (see GCBO)
+function MenuTimeSeriesSubtractMean_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesSubtractMean (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.subtractmean=~handles.subtractmean;
 if(handles.subtractmean)
-  set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','on');
+  set(handles.MenuTimeSeriesSubtractMean,'Checked','on');
 else
-  set(handles.MenuTimeSeriesPrefsSubtractMean,'Checked','off');
+  set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
 end
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsBarsNone_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsBarsNone (see GCBO)
+function MenuTimeSeriesBarsNone_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesBarsNone (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.bar=1;
-set(handles.MenuTimeSeriesPrefsBarsNone,'Checked','on');
-set(handles.MenuTimeSeriesPrefsBarsDeviation,'Checked','off');
-set(handles.MenuTimeSeriesPrefsBarsError,'Checked','off');
+set(handles.MenuTimeSeriesBarsNone,'Checked','on');
+set(handles.MenuTimeSeriesBarsDeviation,'Checked','off');
+set(handles.MenuTimeSeriesBarsError,'Checked','off');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsBarsDeviation_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsBarsDeviation (see GCBO)
+function MenuTimeSeriesBarsDeviation_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesBarsDeviation (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.bar=2;
-set(handles.MenuTimeSeriesPrefsBarsNone,'Checked','off');
-set(handles.MenuTimeSeriesPrefsBarsDeviation,'Checked','on');
-set(handles.MenuTimeSeriesPrefsBarsError,'Checked','off');
+set(handles.MenuTimeSeriesBarsNone,'Checked','off');
+set(handles.MenuTimeSeriesBarsDeviation,'Checked','on');
+set(handles.MenuTimeSeriesBarsError,'Checked','off');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsBarsError_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsBarsError (see GCBO)
+function MenuTimeSeriesBarsError_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesBarsError (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.bar=3;
-set(handles.MenuTimeSeriesPrefsBarsNone,'Checked','off');
-set(handles.MenuTimeSeriesPrefsBarsDeviation,'Checked','off');
-set(handles.MenuTimeSeriesPrefsBarsError,'Checked','on');
+set(handles.MenuTimeSeriesBarsNone,'Checked','off');
+set(handles.MenuTimeSeriesBarsDeviation,'Checked','off');
+set(handles.MenuTimeSeriesBarsError,'Checked','on');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsZoomBlack_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsZoomBlack (see GCBO)
+function MenuTimeSeriesZoomBlack_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesZoomBlack (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.zoom=1;
-set(handles.MenuTimeSeriesPrefsZoomBlack,'Checked','on');
-set(handles.MenuTimeSeriesPrefsZoomRed,'Checked','off');
+set(handles.MenuTimeSeriesZoomBlack,'Checked','on');
+set(handles.MenuTimeSeriesZoomRed,'Checked','off');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsZoomRed_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsZoomRed (see GCBO)
+function MenuTimeSeriesZoomRed_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesZoomRed (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.zoom=2;
-set(handles.MenuTimeSeriesPrefsZoomBlack,'Checked','off');
-set(handles.MenuTimeSeriesPrefsZoomRed,'Checked','on');
+set(handles.MenuTimeSeriesZoomBlack,'Checked','off');
+set(handles.MenuTimeSeriesZoomRed,'Checked','on');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsStatisticMean_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsStatisticMean (see GCBO)
+function MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMean (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.statistic=1;
-set(handles.MenuTimeSeriesPrefsStatisticMean,'Checked','on');
-set(handles.MenuTimeSeriesPrefsStatisticMedian,'Checked','off');
+set(handles.MenuTimeSeriesStatisticMean,'Checked','on');
+set(handles.MenuTimeSeriesStatisticMedian,'Checked','off');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsStatisticMedian_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsStatisticMedian (see GCBO)
+function MenuTimeSeriesStatisticMedian_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMedian (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.statistic=2;
-set(handles.MenuTimeSeriesPrefsStatisticMean,'Checked','off');
-set(handles.MenuTimeSeriesPrefsStatisticMedian,'Checked','on');
+set(handles.MenuTimeSeriesStatisticMean,'Checked','off');
+set(handles.MenuTimeSeriesStatisticMedian,'Checked','on');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsTimingOnset_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsTimingOnset (see GCBO)
+function MenuTimeSeriesTimingOnset_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesTimingOnset (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.timing=1;
-set(handles.MenuTimeSeriesPrefsTimingOnset,'Checked','on');
-set(handles.MenuTimeSeriesPrefsTimingOffset,'Checked','off');
+set(handles.MenuTimeSeriesTimingOnset,'Checked','on');
+set(handles.MenuTimeSeriesTimingOffset,'Checked','off');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefsTimingOffset_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefsTimingOffset (see GCBO)
+function MenuTimeSeriesTimingOffset_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesTimingOffset (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.timing=2;
-set(handles.MenuTimeSeriesPrefsTimingOnset,'Checked','off');
-set(handles.MenuTimeSeriesPrefsTimingOffset,'Checked','on');
+set(handles.MenuTimeSeriesTimingOnset,'Checked','off');
+set(handles.MenuTimeSeriesTimingOffset,'Checked','on');
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesPrefs_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesPrefs (see GCBO)
+function MenuTimeSeries_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeries (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% ---
+function menu_histogram_set(arg)
+
+handles=guidata(gcf);
+
+set(handles.MenuHistogramPerFrame,'Checked','off');
+set(handles.MenuHistogramMeanPerBout,'Checked','off');
+set(handles.MenuHistogramMedianPerBout,'Checked','off');
+set(handles.MenuHistogramMaxPerBout,'Checked','off');
+set(handles.MenuHistogramMinPerBout,'Checked','off');
+set(handles.MenuHistogramStdPerBout,'Checked','off');
+switch(arg)
+  case(1), set(handles.MenuHistogramPerFrame,'Checked','on');
+  case(2), set(handles.MenuHistogramMeanPerBout,'Checked','on');
+  case(3), set(handles.MenuHistogramMedianPerBout,'Checked','on');
+  case(4), set(handles.MenuHistogramMaxPerBout,'Checked','on');
+  case(5), set(handles.MenuHistogramMinPerBout,'Checked','on');
+  case(6), set(handles.MenuHistogramStdPerBout,'Checked','on');
+end
+
+
+% --------------------------------------------------------------------
+function MenuHistogramPerFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHistogramPerFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.perwhat=1;
+menu_histogram_set(handles.perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuHistogramMeanPerBout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHistogramMeanPerBout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.perwhat=2;
+menu_histogram_set(handles.perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuHistogramMedianPerBout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHistogramMedianPerBout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.perwhat=3;
+menu_histogram_set(handles.perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuHistogramMaxPerBout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHistogramMaxPerBout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.perwhat=4;
+menu_histogram_set(handles.perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuHistogramMinPerBout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHistogramMinPerBout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.perwhat=5;
+menu_histogram_set(handles.perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuHistogramStdPerBout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHistogramStdPerBout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.perwhat=6;
+menu_histogram_set(handles.perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuHistogram_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHistogram (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% ---
+function menu_boutstats_set(arg)
+
+handles=guidata(gcf);
+
+set(handles.MenuBoutStatsMean,'Checked','off');
+set(handles.MenuBoutStatsMeanDeviation,'Checked','off');
+set(handles.MenuBoutStatsMeanStdError,'Checked','off');
+set(handles.MenuBoutStatsMedian,'Checked','off');
+set(handles.MenuBoutStatsMedian5,'Checked','off');
+set(handles.MenuBoutStatsMedian25,'Checked','off');
+switch(arg)
+  case(1), set(handles.MenuBoutStatsMean,'Checked','on');
+  case(2), set(handles.MenuBoutStatsMeanDeviation,'Checked','on');
+  case(3), set(handles.MenuBoutStatsMeanStdError,'Checked','on');
+  case(4), set(handles.MenuBoutStatsMedian,'Checked','on');
+  case(5), set(handles.MenuBoutStatsMedian5,'Checked','on');
+  case(6), set(handles.MenuBoutStatsMedian25,'Checked','on');
+end
+
+
+% --------------------------------------------------------------------
+function MenuBoutStatsMean_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBoutStatsMean (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.boutstats=1;
+menu_boutstats_set(handles.boutstats);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBoutStatsMeanDeviation_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBoutStatsMeanDeviation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.boutstats=2;
+menu_boutstats_set(handles.boutstats);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBoutStatsMeanStdError_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBoutStatsMeanStdError (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.boutstats=3;
+menu_boutstats_set(handles.boutstats);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBoutStatsMedian_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBoutStatsMedian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.boutstats=4;
+menu_boutstats_set(handles.boutstats);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBoutStatsMedian5_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBoutStatsMedian5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.boutstats=5;
+menu_boutstats_set(handles.boutstats);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBoutStatsMedian25_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBoutStatsMedian25 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.boutstats=6;
+menu_boutstats_set(handles.boutstats);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBoutStats_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBoutStats (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1651,4 +2191,20 @@ else
   pan off;
   zoom off;
   set(handles.Pan,'backgroundcolor',get(gcf,'color'));
+end
+
+
+% --- Executes on button press in LogY.
+function LogY_Callback(hObject, eventdata, handles)
+% hObject    handle to LogY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+h=get(gca,'yscale');
+if(strcmp(h,'log'))
+  set(gca,'yscale','linear');
+  set(handles.LogY,'backgroundcolor',get(gcf,'color'));
+else
+  set(gca,'yscale','log');
+  set(handles.LogY,'backgroundcolor',0.1*[1 1 1]);
 end
