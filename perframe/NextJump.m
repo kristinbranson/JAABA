@@ -18,6 +18,8 @@ classdef NextJump < handle
     perframeSelFeatures = [];
     perframeSelThresholds = [];
     perframeComparisonType = [];
+    hthresh = 0;
+    lthresh = 0;
   end
   
   methods (Access = public, Static = true)
@@ -31,7 +33,8 @@ classdef NextJump < handle
       state.perframeSelFeatures = obj.perframeSelFeatures;
       state.perframeSelThresholds = obj.perframeSelThresholds;
       state.perframeComparisonType = obj.perframeComparisonType;
-      
+      state.hthresh = obj.hthresh;
+      state.lthresh = obj.lthresh;
     end
     
     function SetState(obj,state)
@@ -47,8 +50,11 @@ classdef NextJump < handle
         obj.perframeSelThresholds = 0;
         obj.perframeComparisonType = 1;
       end
+      if (isfield(state,'hthresh'))
+        obj.hthresh = state.hthresh;
+        obj.lthresh = state.lthresh;
+      end
     end
-    
     
     
     function SetPerframefns(obj,perframefns)
@@ -81,6 +87,14 @@ classdef NextJump < handle
     
     function seek_behaviors_go = GetSeekBehaviorsGo(obj)
       seek_behaviors_go = obj.seek_behaviors_go;
+    end
+    
+    function SetLowThresh(obj,lthresh)
+      obj.lthresh = lthresh;
+    end
+    
+    function SetHighThresh(obj,hthresh)
+      obj.hthresh = hthresh;
     end
     
     function t = JumpToStart(obj,data,expi,flies,ts,t0,t1)
@@ -506,15 +520,11 @@ classdef NextJump < handle
       t0 = min(max(ts,t0),t1);
       
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
-      predictedidx = prediction.predictedidx;
       scores = data.NormalizeScores(prediction.scoresidx);
       lowconfidx = false(size(scores));
       
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
+      idxScores = (abs(scores)>obj.lthresh) & (abs(scores)<obj.hthresh);
+      lowconfidx(idxScores) = true;
 
       lowconfCandidates = lowconfidx(2:end)~=lowconfidx(1:end-1) & ...
                           lowconfidx(2:end)==true;
@@ -532,14 +542,10 @@ classdef NextJump < handle
       t1 = min(max(ts,t0),t1);
 
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
-      predictedidx = prediction.predictedidx;
       scores = data.NormalizeScores(prediction.scoresidx);
       lowconfidx = false(size(scores));
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
+      idxScores = (abs(scores)>obj.lthresh) & (abs(scores)<obj.hthresh);
+      lowconfidx(idxScores) = true;
       
       lowconfCandidates = lowconfidx(1:end-1)~=lowconfidx(2:end) & ...
                           lowconfidx(1:end-1)==true;
