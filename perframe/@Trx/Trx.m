@@ -78,6 +78,7 @@ classdef Trx < handle
     
     %% per-frame parameters
     perframe_params = [];
+    permovie_params = {};
     % default field of view for computing angle subtended
     %fov = pi;
     
@@ -138,6 +139,11 @@ classdef Trx < handle
     exp2flies = {};
     fly2exp = [];
     
+    %% arena coordinates for rectangluar arena
+    tl_x = []; tl_y = [];
+    tr_x = []; tr_y = [];
+    bl_x = []; bl_y = [];
+    br_x = []; br_y = [];
   end
   
   properties (Hidden = true)

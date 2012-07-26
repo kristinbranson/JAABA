@@ -22,7 +22,7 @@ function varargout = NavigationPreferences(varargin)
 
 % Edit the above text to modify the response to help NavigationPreferences
 
-% Last Modified by GUIDE v2.5 21-Dec-2011 15:54:10
+% Last Modified by GUIDE v2.5 24-Jul-2012 14:56:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -76,6 +76,7 @@ end
 
 set(handles.thresholdPopup1,'String',[{'Select'}; handles.NJObj.GetPerframefns]);
 updateThresholdButtons(handles);
+updateConfidenceButtons(handles);
 % Choose default command line output for NavigationPreferences
 handles.output = hObject;
 
@@ -215,6 +216,7 @@ function jumpToPopUp_Callback(hObject, eventdata, handles)
 contents = cellstr(get(hObject,'String'));
 handles.NJObj.SetCurrentType(contents{get(hObject,'Value')});
 updateThresholdButtons(handles);
+updateConfidenceButtons(handles);
 
 % --- Executes during object creation, after setting all properties.
 function jumpToPopUp_CreateFcn(hObject, eventdata, handles)
@@ -321,6 +323,23 @@ else
   end    
 end
 
+function updateConfidenceButtons(handles)
+
+if ~strcmp(handles.NJObj.GetCurrentType,'Low Confidence')
+  set(handles.text_conf1,'Enable','off');
+  set(handles.text_conf2,'Enable','off');
+  set(handles.edit_thresh_high,'Enable','off');
+  set(handles.edit_thresh_low,'Enable','off');
+else
+  set(handles.text_conf1,'Enable','on');
+  set(handles.text_conf2,'Enable','on');
+  hthresh = handles.NJObj.hthresh;
+  lthresh = handles.NJObj.lthresh;
+  set(handles.edit_thresh_high,'Enable','on','String',sprintf('%.2f',hthresh));
+  set(handles.edit_thresh_low,'Enable','on','String',sprintf('%.2f',lthresh));
+end
+
+
 % --- Executes on selection change in thresholdType1.
 function thresholdType1_Callback(hObject, eventdata, handles)
 % hObject    handle to thresholdType1 (see GCBO)
@@ -340,6 +359,74 @@ function thresholdType1_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit_thresh_high_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_thresh_high (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_thresh_high as text
+%        str2double(get(hObject,'String')) returns contents of edit_thresh_high as a double
+val = str2double(get(hObject,'String'));
+if isempty(val) || isnan(val) || val<-1 || val>1,
+  uiwait(warndlg('Enter a number between -1 and 1'));
+  return;
+end
+if val < handles.NJObj.lthresh,
+  uiwait(warndlg('High threshold cannot be smaller than low threshold'));
+  return;
+end
+
+handles.NJObj.SetHighThresh(val);
+
+% --- Executes during object creation, after setting all properties.
+function edit_thresh_high_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_thresh_high (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit_thresh_low_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_thresh_high (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_thresh_high as text
+%        str2double(get(hObject,'String')) returns contents of edit_thresh_high as a double
+
+val = str2double(get(hObject,'String'));
+if isempty(val) || isnan(val) || val<-1 || val>1,
+  uiwait(warndlg('Enter a number between -1 and 1'));
+  return;
+end
+if val > handles.NJObj.lthresh,
+  uiwait(warndlg('Low threshold cannot be larger than high threshold'));
+  return;
+end
+
+handles.NJObj.SetLowThresh(val);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_thresh_low_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_thresh_high (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');

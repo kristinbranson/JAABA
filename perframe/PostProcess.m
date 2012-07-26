@@ -22,7 +22,7 @@ function varargout = PostProcess(varargin)
 
 % Edit the above text to modify the response to help PostProcess
 
-% Last Modified by GUIDE v2.5 12-Jul-2012 14:02:14
+% Last Modified by GUIDE v2.5 24-Jul-2012 16:04:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,6 +67,9 @@ if isempty(params)
   params.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
   params.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
   params.filtopts(1) = struct('name','Size','tag','size','value',1);
+%   params.filtopts(2) = struct('name','High Threshold','tag','filt_hthres','value',0);
+%   params.filtopts(3) = struct('name','Low Threshold','tag','filt_lthres','value',0);
+  params.blen = 1;
 end
 
 if strcmp(params.method,'Hysteresis')
@@ -81,6 +84,7 @@ handles.origparams = params;
 handles.paramsui = [];
 handles = UpdateParams(handles);
 
+set(handles.edit_blen,'String',sprintf('%d',params.blen));
 pushbutton_update_Callback(hObject,eventdata,handles);
 
 % Update handles structure
@@ -144,6 +148,10 @@ else
 end
 
 [labels,lscores,allscores,scoreNorm] = handles.data.GetAllLabelsAndScores();
+if isempty(allscores), 
+  axis(handles.axes2,'off'); 
+  return; 
+end
 numBins = 21;
 if isnan(scoreNorm); scoreNorm = 1; end;
 pos = labels==1;
@@ -177,9 +185,10 @@ ylabel(handles.axes2,'Frames');
 
 hold(handles.axes2,'on');
 histscores = histc(allscores,bins);
-histscores(end) = [];
+if ~isempty(histscores),histscores(end) = [];
 histscores = histscores./max(histscores)*0.9*ylim(2);
 plot(handles.axes2,xLocs,histscores,'Color',max(handles.posColor,handles.negColor));
+end;
 
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
@@ -262,3 +271,31 @@ end
 
 handles.params.(mtype)(ndx).value = val;
 guidata(hObject,handles);
+
+
+
+function edit_blen_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_blen (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_blen as text
+%        str2double(get(hObject,'String')) returns contents of edit_blen as a double
+val = str2double(get(hObject,'String'));
+if isempty(val) || isnan(val) || (round(val)-val)>0 || val<0
+  uiwait(warndlg('Minimum bout length should be a positive integer value'))
+end
+handles.params.blen = val;
+guidata(hObject,handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_blen_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_blen (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

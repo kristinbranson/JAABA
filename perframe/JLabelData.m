@@ -288,8 +288,8 @@ classdef JLabelData < handle
     
     cacheSize = 4000;
     
-    postprocessparams = [];
-  end
+    postprocessparams = []
+end
   
   methods (Access=private)
     
@@ -553,6 +553,8 @@ classdef JLabelData < handle
         error(msg);
       end
       
+      obj.InitPostprocessparams();
+      
     end
 
     
@@ -560,6 +562,9 @@ classdef JLabelData < handle
 
 
     function idx = FlyNdx(obj,expi,flies)
+      if isempty(obj.windowdata.exp),
+        idx = []; return;
+      end
       idx = obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
     end
     
@@ -1617,12 +1622,14 @@ classdef JLabelData < handle
           obj.scoredata.flies(idxcurr,:) = [];
           obj.scoredata.t(idxcurr) = [];
           obj.scoredata.timestamp(idxcurr) = [];
+          obj.scoredata.postprocessed(idxcurr) = [];
         end
         tStart = allScores.tStart(ndx);
         tEnd = allScores.tEnd(ndx);
         sz = tEnd-tStart+1;
         curScores = allScores.scores{ndx}(tStart:tEnd);
         obj.scoredata.scores(end+1:end+sz) = curScores;
+        
         obj.scoredata.predicted(end+1:end+sz) = -sign(curScores)*0.5+1.5;
         obj.scoredata.exp(end+1:end+sz,1) = expi;
         obj.scoredata.flies(end+1:end+sz,1) = ndx;
@@ -1638,8 +1645,23 @@ classdef JLabelData < handle
         end
       end
       
-      [success,msg] = obj.ApplyPostprocessing();
-  
+      if ~isempty(obj.postprocessparams)
+        [success,msg] = obj.ApplyPostprocessing();
+      else
+        for ndx = 1:numel(allScores.scores)
+          tStart = allScores.tStart(ndx);
+          tEnd = allScores.tEnd(ndx);
+          sz = tEnd-tStart+1;
+          if isfield(allScores,'postprocessedscores');
+            obj.postprocessparams = allScores.postprocessparams;
+            curpostprocessedscores = allScores.postprocessedscores{ndx}(tStart:tEnd);
+            obj.scoredata.postprocessed(end+1:end+sz) = curpostprocessedscores;
+          else
+            obj.scoredata.postprocessed(end+1:end+sz) = 0;
+          end
+        end
+      end
+      
       obj.ClearStatus();
 
     end
@@ -3461,7 +3483,7 @@ classdef JLabelData < handle
       predictions = zeros(1,n);
       
       if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
-        idxcurr = obj.FlyNdx(expi,flies);
+        idxcurr = obj.FlyNdx(expi,flies) & obj.windowdata.isvalidprediction;
         scores(obj.windowdata.t(idxcurr)+off) = obj.windowdata.scores(idxcurr);
         predictions(obj.windowdata.t(idxcurr)+off) = 2 - obj.windowdata.postprocessed(idxcurr);      
       else
@@ -4359,8 +4381,6 @@ classdef JLabelData < handle
       newData = newNumPts - oldNumPts;
       if (newData/oldNumPts)>0.25, return; end
       
-      
-      
       res = false;
     end
     
@@ -4405,7 +4425,8 @@ classdef JLabelData < handle
             else
               obj.windowdata.scores_old(toPredict) = 0;
             end
-            obj.NormalizeScores([]);obj.ApplyPostprocessing();
+            obj.NormalizeScores([]);
+            obj.ApplyPostprocessing();
             obj.ClearStatus();
           end
           
@@ -4614,7 +4635,7 @@ classdef JLabelData < handle
       
       numFlies = obj.GetNumFlies(expi);
       scoresA = cell(1,numFlies); 
-      
+      postprocessedscoresA = cell(1,numFlies);
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
       perframefile = obj.GetPerframeFiles(expi);
@@ -4644,9 +4665,17 @@ classdef JLabelData < handle
       end
       
       allScores = struct;
+      for flies = 1:numFlies
+        postprocessedscoresA{flies} = nan(1,tEndAll(flies));
+        postprocessedscoresA{flies}(tStartAll(flies):tEndAll(flies)) = ...
+          obj.Postprocess(scoresA{flies}(tStartAll(flies):tEndAll(flies)));
+      end
       allScores.scores = scoresA;
       allScores.tStart = tStartAll;
       allScores.tEnd = tEndAll;
+      allScores.postprocessed = postprocessedscoresA;
+      allScores.postprocessparams = obj.postprocessparams;
+      
       for flies = 1:numFlies
         [i0s i1s] = get_interval_ends(allScores.scores{flies}>0);
         allScores.t0s{flies} = i0s;
@@ -5724,6 +5753,14 @@ classdef JLabelData < handle
       end
     end
     
+    function InitPostprocessparams(obj)
+      obj.postprocessparams.method = 'Hysteresis';
+      obj.postprocessparams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
+      obj.postprocessparams.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
+      obj.postprocessparams.filtopts(1) = struct('name','Size','tag','size','value',1);
+      obj.postprocessparams.blen = 1;
+    end
+    
     function [success,msg] = ApplyPostprocessing(obj)
     % Applies postprocessing to loaded scores.
     % We do not apply any postprocessing to current scores.
@@ -5743,13 +5780,7 @@ classdef JLabelData < handle
             for ndx = 1:numel(gaps)-1
               curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
               curs = obj.windowdata.scores(curidx)';
-              
-              if strcmpi(obj.postprocessparams.method,'hysteresis')
-                posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
-              else
-                posts = obj.ApplyFiltering(curs,obj.postprocessparams);
-              end
-              obj.windowdata.postprocessed(curidx) = posts;
+              obj.windowdata.postprocessed(curidx) = obj.Postprocess(curs);
             
             end
           end
@@ -5767,19 +5798,45 @@ classdef JLabelData < handle
               return;
             end
             curs = obj.scoredata.scores(curidx);
-            
-            if strcmpi(obj.postprocessparams.method,'hysteresis')
-              posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
-            else
-              posts = obj.ApplyFiltering(curs,obj.postprocessparams);
-            end
-            
-            obj.scoredata.postprocessed(curidx) = posts;
+            obj.scoredata.postprocessed(curidx) = obj.Postprocess(curs);
           end %flies
         end
         
       end
       
+    end
+    
+    function posts = Postprocess(obj,curs)
+      
+      if isempty(obj.postprocessparams); 
+        posts = curs;
+        return; 
+      end;
+      
+      if strcmpi(obj.postprocessparams.method,'hysteresis')
+        posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
+      else
+        posts = obj.ApplyFiltering(curs,obj.postprocessparams);
+      end
+      
+      posts = obj.RemoveSmallBouts(posts);
+      
+    end
+    
+    function posts = RemoveSmallBouts(obj,posts)
+      if obj.postprocessparams.blen > 1 && numel(posts)>0,
+        
+        while true,
+          tposts = [posts 1-posts(end)];
+          ends = find(tposts(1:end-1)~=tposts(2:end));
+          ends = [1 ends+1];
+          blens = ends(2:end)-ends(1:end-1);
+          [minblen,smallbout] = min(blens);
+          if minblen>obj.postprocessparams.blen, break; end
+           posts(ends(smallbout):ends(smallbout+1)-1) = ...
+              1 - posts(ends(smallbout):ends(smallbout+1)-1);
+        end
+      end
     end
     
     function posts = ApplyHysteresis(obj,curs,params)
