@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 24-Jul-2012 13:08:21
+% Last Modified by GUIDE v2.5 25-Jul-2012 11:45:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -42,6 +42,42 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
+
+
+% ---
+function handles=initialize(handles)
+
+handles.experimentlist={};
+handles.experimentvalue=[];
+handles.experimentlist2={};
+handles.experimentvalue2=[];
+handles.behaviors={};
+handles.behaviorlist={''};
+handles.behaviorvalue=1;
+handles.behaviorlogic=1;
+handles.behaviorvalue2=1;
+handles.individuals=[];
+handles.individuallist={'All' 'Male' 'Female'};
+handles.individualvalue=1;
+handles.features={};
+handles.featurelist={''};
+handles.featurevalue=1;
+handles.timing=1;
+handles.statistic=1;
+handles.windowradius=10;
+handles.bar=1;
+handles.zoom=1;
+handles.subtractmean=0;
+handles.sex=1;
+handles.boutstats=1;
+handles.perwhat=1;
+set(handles.ExperimentList,'enable','off');
+set(handles.ExperimentList2,'enable','off');
+set(handles.BehaviorList,'enable','off');
+set(handles.BehaviorLogic,'enable','off');
+set(handles.BehaviorList2,'enable','off');
+set(handles.FeatureList,'enable','off');
+set(handles.IndividualList,'enable','off');
 
 
 % --- Executes just before JAABA_plot is made visible.
@@ -73,13 +109,15 @@ if(exist('JAABA_plot.mat')==2)
   handles.features=handles_saved.features;
   handles.featurelist=handles_saved.featurelist;
   handles.featurevalue=handles_saved.featurevalue;
+  handles.individuals=handles_saved.individuals;
+  handles.individuallist=handles_saved.individuallist;
+  handles.individualvalue=handles_saved.individualvalue;
   handles.timing=handles_saved.timing;
   handles.statistic=handles_saved.statistic;
   handles.windowradius=handles_saved.windowradius;
   handles.bar=handles_saved.bar;
   handles.zoom=handles_saved.zoom;
   handles.subtractmean=handles_saved.subtractmean;
-  handles.sex=handles_saved.sex;
   handles.boutstats=handles_saved.boutstats;
   handles.perwhat=handles_saved.perwhat;
   set(handles.ExperimentList,'String',handles.experimentlist);
@@ -93,6 +131,8 @@ if(exist('JAABA_plot.mat')==2)
   set(handles.BehaviorList2,'Value',handles.behaviorvalue2);
   set(handles.FeatureList,'String',handles.featurelist);
   set(handles.FeatureList,'Value',handles.featurevalue);
+  set(handles.IndividualList,'String',handles.individuallist);
+  set(handles.IndividualList,'Value',handles.individualvalue);
   if(length(handles.experimentlist)==0)
     set(handles.ExperimentList,'enable','off');
   end
@@ -104,7 +144,7 @@ if(exist('JAABA_plot.mat')==2)
     set(handles.BehaviorLogic,'enable','off');
     set(handles.BehaviorList2,'enable','off');
     set(handles.FeatureList,'enable','off');
-    set(handles.SexList,'enable','off');
+    set(handles.IndividualList,'enable','off');
   end
   if(handles.behaviorlogic==1)
     set(handles.BehaviorList2,'enable','off');
@@ -143,38 +183,10 @@ if(exist('JAABA_plot.mat')==2)
     case 1
       set(handles.MenuTimeSeriesSubtractMean,'Checked','on');
   end
-  set(handles.SexList,'Value',handles.sex);
   menu_boutstats_set(handles.boutstats);
   menu_histogram_set(handles.perwhat);
 else
-  handles.experimentlist={};
-  handles.experimentvalue=[];
-  handles.experimentlist2={};
-  handles.experimentvalue2=[];
-  handles.behaviors={};
-  handles.behaviorlist={''};
-  handles.behaviorvalue=1;
-  handles.behaviorlogic=1;
-  handles.behaviorvalue2=1;
-  handles.features={};
-  handles.featurelist={''};
-  handles.featurevalue=1;
-  handles.timing=1;
-  handles.statistic=1;
-  handles.windowradius=10;
-  handles.bar=1;
-  handles.zoom=1;
-  handles.subtractmean=0;
-  handles.sex=1;
-  handles.boutstats=1;
-  handles.perwhat=1;
-  set(handles.ExperimentList,'enable','off');
-  set(handles.ExperimentList2,'enable','off');
-  set(handles.BehaviorList,'enable','off');
-  set(handles.BehaviorLogic,'enable','off');
-  set(handles.BehaviorList2,'enable','off');
-  set(handles.FeatureList,'enable','off');
-  set(handles.SexList,'enable','off');
+  handles=initialize(handles);
 end
 
 % Choose default command line output for JAABA_plot
@@ -196,40 +208,53 @@ function Reset_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-handles.experimentlist={};
-handles.experimentvalue=[];
-handles.experimentlist2={};
-handles.experimentvalue2=[];
-handles.behaviors={};
-handles.behaviorlist={''};
-handles.behaviorvalue=1;
-handles.behaviorlogic=1;
-handles.behaviorvalue2=1;
-handles.features={};
-handles.featurelist={''};
-handles.featurevalue=1;
-handles.timing=1;
-handles.statistic=1;
-handles.windowradius=10;
-handles.bar=1;
-handles.zoom=1;
-handles.subtractmean=0;
-handles.sex=1;
-handles.boutstats=1;
-handles.perwhat=1;
+handles=initialize(handles);
 
-set(handles.ExperimentList,'String',handles.experimentlist,'Value',handles.experimentvalue,'enable','off');
-set(handles.ExperimentList2,'String',handles.experimentlist2,'Value',handles.experimentvalue2,'enable','off');
-set(handles.BehaviorList,'String',handles.behaviorlist,'enable','off');
-set(handles.BehaviorLogic,'Value',handles.behaviorlogic,'enable','off');
-set(handles.BehaviorList2,'String',handles.behaviorlist,'enable','off');
-set(handles.FeatureList,'String',handles.featurelist,'enable','off');
+%handles.experimentlist={};
+%handles.experimentvalue=[];
+%handles.experimentlist2={};
+%handles.experimentvalue2=[];
+%handles.behaviors={};
+%handles.behaviorlist={''};
+%handles.behaviorvalue=1;
+%handles.behaviorlogic=1;
+%handles.behaviorvalue2=1;
+%handles.features={};
+%handles.featurelist={''};
+%handles.featurevalue=1;
+%handles.individuals=[];
+%handles.individuallist={'All' 'Male' 'Female'};
+%handles.individualvalue=1;
+%handles.timing=1;
+%handles.statistic=1;
+%handles.windowradius=10;
+%handles.bar=1;
+%handles.zoom=1;
+%handles.subtractmean=0;
+%handles.sex=1;
+%handles.boutstats=1;
+%handles.perwhat=1;
+
+set(handles.ExperimentList,'String',handles.experimentlist,'Value',handles.experimentvalue);
+set(handles.ExperimentList2,'String',handles.experimentlist2,'Value',handles.experimentvalue2);
+set(handles.BehaviorList,'String',handles.behaviorlist);
+set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
+set(handles.BehaviorList2,'String',handles.behaviorlist);
+set(handles.FeatureList,'String',handles.featurelist);
+set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
+
+%set(handles.ExperimentList,'String',handles.experimentlist,'Value',handles.experimentvalue,'enable','off');
+%set(handles.ExperimentList2,'String',handles.experimentlist2,'Value',handles.experimentvalue2,'enable','off');
+%set(handles.BehaviorList,'String',handles.behaviorlist,'enable','off');
+%set(handles.BehaviorLogic,'Value',handles.behaviorlogic,'enable','off');
+%set(handles.BehaviorList2,'String',handles.behaviorlist,'enable','off');
+%set(handles.FeatureList,'String',handles.featurelist,'enable','off');
+
 MenuTimeSeriesTimingOnset_Callback(hObject, eventdata, handles);
 MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles);
 MenuTimeSeriesBarsNone_Callback(hObject, eventdata, handles);
 MenuTimeSeriesZoomBlack_Callback(hObject, eventdata, handles);
 set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
-set(handles.SexList,'Value',handles.sex);
 menu_boutstats_set(handles.boutstats);
 
 save('JAABA_plot.mat','handles');
@@ -447,6 +472,23 @@ ret_val=intersect(arg{end},flatten);
 
 
 % ---
+function handles=fillin_individuallist(handles)
+
+tmp=cell(1,3+sum(handles.individuals));
+tmp(1:3)={'All' 'Male' 'Female'};
+k=4;
+for i=1:length(handles.individuals)
+  for j=1:handles.individuals(i)
+    c='R';  n=i;  if(i>length(handles.experimentlist))  c='B';  n=n-length(handles.experimentlist);  end
+    tmp{k}=['Exp #' c num2str(n) ', Indi #' num2str(j)];
+    k=k+1;
+  end
+end
+handles.individuallist=tmp;
+set(handles.IndividualList,'String',handles.individuallist);
+
+
+% ---
 function experiment_add(hObject,handles,arg)
 
 set(handles.Status,'string','Thinking...');
@@ -475,18 +517,37 @@ if(handles.behaviorlogic>1)
   set(handles.BehaviorList2,'enable','on');
 end
 set(handles.FeatureList,'enable','on');
-set(handles.SexList,'enable','on');
+set(handles.IndividualList,'enable','on');
 
 tmp=dir(fullfile(ptr{end},'scores*.mat'));
-[handles.behaviors{length(ptr)+(arg-1)*length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
+%[handles.behaviors{length(ptr)+(arg-1)*length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
+[handles.behaviors{end+1}{1:length(tmp)}]=deal(tmp.name);
+if(arg==1)
+  handles.behaviors=...
+      handles.behaviors([1:(length(handles.experimentlist)-1) end (end-length(handles.experimentlist2)):(end-1)]);
+end
 handles.behaviorlist=check_for_diff_and_return_intersection(handles.behaviors);
 set(handles.BehaviorList,'String',handles.behaviorlist);
 set(handles.BehaviorList2,'String',handles.behaviorlist);
 
 tmp=dir(fullfile(ptr{end},'perframe','*.mat'));
-[handles.features{length(ptr)+(arg-1)*length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
+%[handles.features{length(ptr)+(arg-1)*length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
+[handles.features{end+1}{1:length(tmp)}]=deal(tmp.name);
+if(arg==1)
+  handles.features=...
+      handles.features([1:(length(handles.experimentlist)-1) end (end-length(handles.experimentlist2)):(end-1)]);
+end
 handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 set(handles.FeatureList,'String',handles.featurelist);
+
+behavior_data=load(fullfile(char(ptr(end)),char(handles.behaviorlist(1))));
+%handles.individuals(length(ptr)+(arg-1)*length(handles.experimentlist))=length(behavior_data.allScores.t0s);
+handles.individuals(end+1)=length(behavior_data.allScores.t0s);
+if(arg==1)
+  handles.individuals=...
+      handles.individuals([1:(length(handles.experimentlist)-1) end (end-length(handles.experimentlist2)):(end-1)]);
+end
+handles=fillin_individuallist(handles);
 
 guidata(hObject,handles);
 
@@ -535,6 +596,10 @@ end
 set(handles.FeatureList,'String',handles.featurelist);
 set(handles.FeatureList,'Value',handles.featurevalue);
 
+handles.individuals(idx)=[];
+handles=fillin_individuallist(handles);
+
+
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.');
@@ -563,7 +628,7 @@ if(length(handles.experimentlist2)==0)
     set(handles.BehaviorLogic,'enable','off');
     set(handles.BehaviorList2,'enable','off');
     set(handles.FeatureList,'enable','off');
-    set(handles.SexList,'enable','off');
+    set(handles.IndividualList,'enable','off');
   end
 end
 set(handles.ExperimentList2,'String',handles.experimentlist2);
@@ -595,7 +660,7 @@ if(length(handles.experimentlist)==0)
     set(handles.BehaviorLogic,'enable','off');
     set(handles.BehaviorList2,'enable','off');
     set(handles.FeatureList,'enable','off');
-    set(handles.SexList,'enable','off');
+    set(handles.IndividualList,'enable','off');
   end
 end
 set(handles.ExperimentList,'String',handles.experimentlist);
@@ -632,6 +697,8 @@ set(handles.ExperimentList2,'String',handles.experimentlist2);
 set(handles.ExperimentList2,'Value',handles.experimentvalue2);
 handles.behaviors=handles.behaviors([1:idx2 idx2+idx setdiff((idx2+1):length(handles.behaviors),idx2+idx)]);
 handles.features=handles.features([1:idx2 idx2+idx setdiff((idx2+1):length(handles.behaviors),idx2+idx)]);
+handles.individuals=handles.individuals([1:idx2 idx2+idx setdiff((idx2+1):length(handles.individuals),idx2+idx)]);
+handles=fillin_individuallist(handles);
 
 guidata(hObject,handles);
 
@@ -665,25 +732,27 @@ set(handles.ExperimentList,'String',handles.experimentlist);
 set(handles.ExperimentList,'Value',handles.experimentvalue);
 handles.behaviors=handles.behaviors([setdiff(1:length(handles.behaviors),idx) idx]);
 handles.features=handles.features([setdiff(1:length(handles.features),idx) idx]);
+handles.individuals=handles.individuals([setdiff(1:length(handles.individuals),idx) idx]);
+handles=fillin_individuallist(handles);
 
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.');
 
 
-% --- Executes on selection change in SexList.
-function SexList_Callback(hObject, eventdata, handles)
-% hObject    handle to SexList (see GCBO)
+% --- Executes on selection change in IndividualList.
+function IndividualList_Callback(hObject, eventdata, handles)
+% hObject    handle to IndividualList (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns SexList contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from SexList
+% Hints: contents = cellstr(get(hObject,'String')) returns IndividualList contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from IndividualList
 
 
 % --- Executes during object creation, after setting all properties.
-function SexList_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to SexList (see GCBO)
+function IndividualList_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to IndividualList (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -735,7 +804,7 @@ ret_val=[ret_val ')'];
 
 % --- 
 function [during not_during]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
-    feature_data,sex_data,perwhat)
+    feature_data,sex_data,individual,perwhat)
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -747,6 +816,7 @@ end
 
 during={};  not_during={};
 for i=1:length(behavior_data.allScores.t0s)
+  if((~isnan(individual)) && (i~=individual))  continue;  end
   tmp1=false(1,length(feature_data.data{i}));
   for j=1:length(behavior_data.allScores.t0s{i})
     tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
@@ -820,37 +890,38 @@ not_during=[not_during{:}];
 % ---
 function [table_data feature_units]=plot_histogram(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,sex,perwhat,color)
+    feature_value,feature_list,individual,perwhat,color)
 
 during={};  not_during={};  feature_units={};
-parfor j=1:length(experiment_value)
-  behavior_data=load(fullfile(char(experiment_list(experiment_value(j))),...
+parfor e=1:length(experiment_value)
+  behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),...
         char(behavior_list(behavior_value))));
   if(behavior_logic>1)
-    behavior_data2=load(fullfile(char(experiment_list(experiment_value(j))),...
+    behavior_data2=load(fullfile(char(experiment_list(experiment_value(e))),...
         char(behavior_list2(behavior_value2))));
   else
     behavior_data2=[];
   end
-  feature_data=load(fullfile(char(experiment_list(experiment_value(j))),'perframe',...
+  feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
         char(feature_list(feature_value))));
-  feature_units{j}=feature_data.units;
+  feature_units{e}=feature_data.units;
 
-  sex_data=load(fullfile(char(experiment_list(experiment_value(j))),'perframe',...
+  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
       char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
   for i=1:length(sex_data.data)
-    switch(sex)
-      case(1)
-        sex_data.data{i}=ones(1,length(sex_data.data{i}));
+    switch(individual)
       case(2)
         sex_data.data{i}=strcmp(sex_data.data{i},'M');
       case(3)
         sex_data.data{i}=strcmp(sex_data.data{i},'F');
+      otherwise
+        sex_data.data{i}=ones(1,length(sex_data.data{i}));
     end
   end
+  tmp=nan;  if(individual>3)  tmp=individual-3;  end
 
-  [during{j} not_during{j}]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,sex_data,perwhat);
+  [during{e} not_during{e}]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
+      feature_data,sex_data,tmp,perwhat);
 end
 during=[during{:}];
 not_during=[not_during{:}];
@@ -899,20 +970,33 @@ behavior_value2=get(handles.BehaviorList2,'Value');
 behavior_list2=get(handles.BehaviorList2,'String');
 feature_value=get(handles.FeatureList,'Value');
 feature_list=get(handles.FeatureList,'String');
-sex=get(handles.SexList,'Value');
+individual=get(handles.IndividualList,'Value');
 
 axes(handles.Axes);
 cla;  hold on;
 
+if(individual>3)
+  tmp=[0 cumsum(handles.individuals)];
+  tmp2=find(tmp<(individual-3),1,'last');
+  if(tmp2>length(experiment_list))
+    experiment_value=[];
+    experiment_value2=tmp2-length(experiment_list);
+  else
+    experiment_value=tmp2;
+    experiment_value2=[];
+  end
+  individual=individual-tmp(tmp2);
+end
+
 if(length(experiment_value)>0)
   [table_data feature_units]=plot_histogram(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,handles.perwhat,'r');
+      feature_value,feature_list,individual,handles.perwhat,'r');
 end
 if(length(experiment_value2)>0)
-  [table_data2 feature_units2]=plot_histogram(experiment_value2,experiment_list2,...
+  [table_data2 feature_units]=plot_histogram(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,handles.perwhat,'b');
+      feature_value,feature_list,individual,handles.perwhat,'b');
 end
 
 if((length(experiment_value)>0) && (length(experiment_value2)>0))
@@ -959,7 +1043,7 @@ parfor b=1:length(behavior_list)
       for i=1:length(feature_data.data)
         sex_data.data{i}=ones(1,length(feature_data.data{i}));
       end
-      [during{e} not_during{e}]=calculate_histogram(behavior_data,1,[],feature_data,sex_data);
+      [during{e} not_during{e}]=calculate_histogram(behavior_data,1,[],feature_data,sex_data,nan,1);
     end
     during=[during{:}];
     not_during=[not_during{:}];
@@ -1069,7 +1153,7 @@ end
 %---
 function [feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,sex,timing,statistic,windowradius,bar,subtractmean,color)
+    feature_value,feature_list,individual,timing,statistic,windowradius,bar,subtractmean,color)
 
 triggered_data=[];  feature_units={};
 parfor j=1:length(experiment_value)
@@ -1146,7 +1230,7 @@ behavior_value2=get(handles.BehaviorList2,'Value');
 behavior_list2=get(handles.BehaviorList2,'String');
 feature_value=get(handles.FeatureList,'Value');
 feature_list=get(handles.FeatureList,'String');
-sex=get(handles.SexList,'Value');
+individual=get(handles.IndividualList,'Value');
 timing=handles.timing;
 statistic=handles.statistic;
 windowradius=handles.windowradius;
@@ -1159,13 +1243,13 @@ range=[];
 if(length(experiment_value)>0)
   [feature_units tmp h]=plot_timeseries(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,timing,statistic,windowradius,handles.bar,subtractmean,'r');
+      feature_value,feature_list,individual,timing,statistic,windowradius,handles.bar,subtractmean,'r');
   range=[range; tmp];
 end
 if(length(experiment_value2)>0)
   [feature_units tmp h2]=plot_timeseries(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,sex,timing,statistic,windowradius,handles.bar,subtractmean,'b');
+      feature_value,feature_list,individual,timing,statistic,windowradius,handles.bar,subtractmean,'b');
   range=[range; tmp];
   if(length(experiment_value)>0)
     uistack(h,'top');
@@ -1548,10 +1632,10 @@ for b=1:length(behavior_list)
   raw_table_data{b,7}=inter_bout_lengths(inter_sex==0);
       table_data{b,7}=print_boutstats(raw_table_data{b,7});
   for i=1:(length(n)-1)
-    raw_table_data{b,7+i}=bout_lengths((n(i)+1):n(i+1));
-        table_data{b,7+i}=print_boutstats(raw_table_data{b,7+i});
-    raw_table_data{b,8+i}=inter_bout_lengths((inter_n(i)+1):inter_n(i+1));
-        table_data{b,8+i}=print_boutstats(raw_table_data{b,8+i});
+    raw_table_data{b,6+2*i}=bout_lengths((n(i)+1):n(i+1));
+        table_data{b,6+2*i}=print_boutstats(raw_table_data{b,7+i});
+    raw_table_data{b,7+2*i}=inter_bout_lengths((inter_n(i)+1):inter_n(i+1));
+        table_data{b,7+2*i}=print_boutstats(raw_table_data{b,8+i});
   end
 end
 
@@ -1630,31 +1714,40 @@ handles=guidata(hObject);
 if(strcmp(handles.table,'bout_stats'))
   if(eventdata.Indices(end,2)==1)  return;  end
 
-  handles.behaviorvalue=eventdata.Indices(end,1);
-  set(handles.BehaviorList,'Value',handles.behaviorvalue);
-  switch(eventdata.Indices(end,2))
-    case {2,3}
-      handles.sex=1;
-    case {4,5}
-      handles.sex=2;
-    case {6,7}
-      handles.sex=3;
-  end
-  set(handles.SexList,'Value',handles.sex);
-
   experiment_value=get(handles.ExperimentList,'Value');
   experiment_value2=get(handles.ExperimentList2,'Value');
   if((length(experiment_value)>0) && (length(experiment_value2)>0))
+    handles.behaviorvalue=ceil(eventdata.Indices(end,1)/2);
     if(mod(eventdata.Indices(end,1),2))
       color='r';
     else
       color='b';
     end
   elseif(length(experiment_value)>0)
+    handles.behaviorvalue=eventdata.Indices(end,1);
     color='r';
   else
+    handles.behaviorvalue=eventdata.Indices(end,1);
     color='b';
   end
+  set(handles.BehaviorList,'Value',handles.behaviorvalue);
+%  switch(eventdata.Indices(end,2))
+%    case {2,3}
+%      handles.individualvalue=1;
+%    case {4,5}
+%      handles.individualvalue=2;
+%    case {6,7}
+%      handles.individualvalue=3;
+%  end
+  handles.individualvalue=floor(eventdata.Indices(end,2)/2);
+  if(((color=='r') && (handles.individualvalue>(3+sum(handles.individuals(1:length(handles.experimentlist)))))) || ...
+     ((color=='b') && (handles.individualvalue>(3+sum(handles.individuals((end-length(handles.experimentlist2)+1):end))))))
+    return;
+  end
+  if(color=='b')
+    handles.individualvalue=handles.individualvalue+sum(handles.individuals(1:length(handles.experimentlist)));
+  end
+  set(handles.IndividualList,'Value',handles.individualvalue);
 
   axes(handles.Axes);
   cla;  hold on;
@@ -1719,10 +1812,11 @@ elseif(strcmp(handles.table,'behavior_stats'))
 
   handles.behaviorvalue=b;
   set(handles.BehaviorList,'Value',handles.behaviorvalue);
-  if((eventdata.Indices(end,2)>1) && (eventdata.Indices(end,2)<5))
-    handles.sex=eventdata.Indices(end,2)-1;
-    set(handles.SexList,'Value',handles.sex);
+  handles.individualvalue=eventdata.Indices(end,2)-1;
+  if(color=='b')
+    handles.individualvalue=handles.individualvalue+sum(handles.individuals(1:length(handles.experimentlist)));
   end
+  set(handles.IndividualList,'Value',handles.individualvalue);
 
   sex_data=cell(1,length(experiment_value0));
   for e=1:length(experiment_value0)
@@ -1780,7 +1874,7 @@ elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
   handles.featurevalue=handles.table_data(eventdata.Indices(end,1),2);
   set(handles.FeatureList,'Value',handles.featurevalue);
   handles.sex=1;
-  set(handles.SexList,'Value',handles.sex);
+  set(handles.IndividualList,'Value',handles.sex);
 
   if(strcmp(handles.table,'timeseries'))
     handles.timing=handles.table_data(eventdata.Indices(end,1),3);
