@@ -206,4 +206,5 @@ function pushbuttonCancel_Callback(hObject, eventdata, handles)
 handles.projname = '';
 handles.configfile = '';
 handles.defaultConfigfile = '';
+guidata(hObject,handles);
 uiresume(handles.figure1);
