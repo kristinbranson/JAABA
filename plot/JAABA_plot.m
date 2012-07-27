@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 25-Jul-2012 11:45:05
+% Last Modified by GUIDE v2.5 26-Jul-2012 13:44:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,15 +62,16 @@ handles.individualvalue=1;
 handles.features={};
 handles.featurelist={''};
 handles.featurevalue=1;
-handles.timing=1;
-handles.statistic=1;
-handles.windowradius=10;
-handles.bar=1;
-handles.zoom=1;
-handles.subtractmean=0;
-handles.sex=1;
+handles.individual=1;
+handles.histogram_perwhat=1;
+handles.timeseries_timing=1;
+handles.timeseries_statistic=1;
+handles.timeseries_subtractmean=0;
+handles.timeseries_windowradius=10;
+handles.timeseries_tight=0;
 handles.boutstats=1;
-handles.perwhat=1;
+handles.logy=0;
+handles.stats=0;
 set(handles.ExperimentList,'enable','off');
 set(handles.ExperimentList2,'enable','off');
 set(handles.BehaviorList,'enable','off');
@@ -112,14 +113,16 @@ if(exist('JAABA_plot.mat')==2)
   handles.individuals=handles_saved.individuals;
   handles.individuallist=handles_saved.individuallist;
   handles.individualvalue=handles_saved.individualvalue;
-  handles.timing=handles_saved.timing;
-  handles.statistic=handles_saved.statistic;
-  handles.windowradius=handles_saved.windowradius;
-  handles.bar=handles_saved.bar;
-  handles.zoom=handles_saved.zoom;
-  handles.subtractmean=handles_saved.subtractmean;
+  handles.histogram_perwhat=handles_saved.histogram_perwhat;
+  handles.timeseries_timing=handles_saved.timeseries_timing;
+  handles.timeseries_statistic=handles_saved.timeseries_statistic;
+  handles.timeseries_subtractmean=handles_saved.timeseries_subtractmean;
+  handles.timeseries_windowradius=handles_saved.timeseries_windowradius;
+  handles.timeseries_tight=handles_saved.timeseries_tight;
   handles.boutstats=handles_saved.boutstats;
-  handles.perwhat=handles_saved.perwhat;
+  handles.logy=handles_saved.logy;
+  handles.stats=handles_saved.stats;
+
   set(handles.ExperimentList,'String',handles.experimentlist);
   set(handles.ExperimentList,'Value',handles.experimentvalue);
   set(handles.ExperimentList2,'String',handles.experimentlist2);
@@ -133,6 +136,7 @@ if(exist('JAABA_plot.mat')==2)
   set(handles.FeatureList,'Value',handles.featurevalue);
   set(handles.IndividualList,'String',handles.individuallist);
   set(handles.IndividualList,'Value',handles.individualvalue);
+
   if(length(handles.experimentlist)==0)
     set(handles.ExperimentList,'enable','off');
   end
@@ -151,40 +155,24 @@ if(exist('JAABA_plot.mat')==2)
   else
     set(handles.BehaviorList2,'enable','on');
   end
-  switch(handles.timing)
+  menu_histogram_set(handles.histogram_perwhat);
+  switch(handles.timeseries_timing)
     case 1
       MenuTimeSeriesTimingOnset_Callback(hObject, eventdata, handles);
     case 2
       MenuTimeSeriesTimingOffset_Callback(hObject, eventdata, handles);
   end
-  switch(handles.statistic)
-    case 1
-      MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles);
-    case 2
-      MenuTimeSeriesStatisticMedian_Callback(hObject, eventdata, handles);
-  end
-  switch(handles.bar)
-    case 1
-      MenuTimeSeriesBarsNone_Callback(hObject, eventdata, handles);
-    case 2
-      MenuTimeSeriesBarsDeviation_Callback(hObject, eventdata, handles);
-    case 3
-      MenuTimeSeriesBarsError_Callback(hObject, eventdata, handles);
-  end
-  switch(handles.zoom)
-    case 1
-      MenuTimeSeriesZoomBlack_Callback(hObject, eventdata, handles);
-    case 2
-      MenuTimeSeriesZoomRed_Callback(hObject, eventdata, handles);
-  end
-  switch(handles.subtractmean)
+  menu_timeseries_statistic_set(handles.timeseries_statistic);
+  switch(handles.timeseries_subtractmean)
     case 0
       set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
     case 1
       set(handles.MenuTimeSeriesSubtractMean,'Checked','on');
   end
+  set(handles.MenuTimeSeriesTight,'Checked','off');
   menu_boutstats_set(handles.boutstats);
-  menu_histogram_set(handles.perwhat);
+  if(handles.logy)   set(handles.LogY, 'backgroundcolor',0.4*[1 1 1]);  end
+  if(handles.stats)  set(handles.Stats,'backgroundcolor',0.4*[1 1 1]);  end
 else
   handles=initialize(handles);
 end
@@ -210,31 +198,6 @@ function Reset_Callback(hObject, eventdata, handles)
 
 handles=initialize(handles);
 
-%handles.experimentlist={};
-%handles.experimentvalue=[];
-%handles.experimentlist2={};
-%handles.experimentvalue2=[];
-%handles.behaviors={};
-%handles.behaviorlist={''};
-%handles.behaviorvalue=1;
-%handles.behaviorlogic=1;
-%handles.behaviorvalue2=1;
-%handles.features={};
-%handles.featurelist={''};
-%handles.featurevalue=1;
-%handles.individuals=[];
-%handles.individuallist={'All' 'Male' 'Female'};
-%handles.individualvalue=1;
-%handles.timing=1;
-%handles.statistic=1;
-%handles.windowradius=10;
-%handles.bar=1;
-%handles.zoom=1;
-%handles.subtractmean=0;
-%handles.sex=1;
-%handles.boutstats=1;
-%handles.perwhat=1;
-
 set(handles.ExperimentList,'String',handles.experimentlist,'Value',handles.experimentvalue);
 set(handles.ExperimentList2,'String',handles.experimentlist2,'Value',handles.experimentvalue2);
 set(handles.BehaviorList,'String',handles.behaviorlist);
@@ -243,19 +206,14 @@ set(handles.BehaviorList2,'String',handles.behaviorlist);
 set(handles.FeatureList,'String',handles.featurelist);
 set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
 
-%set(handles.ExperimentList,'String',handles.experimentlist,'Value',handles.experimentvalue,'enable','off');
-%set(handles.ExperimentList2,'String',handles.experimentlist2,'Value',handles.experimentvalue2,'enable','off');
-%set(handles.BehaviorList,'String',handles.behaviorlist,'enable','off');
-%set(handles.BehaviorLogic,'Value',handles.behaviorlogic,'enable','off');
-%set(handles.BehaviorList2,'String',handles.behaviorlist,'enable','off');
-%set(handles.FeatureList,'String',handles.featurelist,'enable','off');
-
+menu_histogram_set(handles.histogram_perwhat);
 MenuTimeSeriesTimingOnset_Callback(hObject, eventdata, handles);
-MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles);
-MenuTimeSeriesBarsNone_Callback(hObject, eventdata, handles);
-MenuTimeSeriesZoomBlack_Callback(hObject, eventdata, handles);
+menu_timeseries_statistic_set(handles.timeseries_statistic);
 set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
+set(handles.MenuTimeSeriesTight,'Checked','off');
 menu_boutstats_set(handles.boutstats);
+set(handles.LogY,'backgroundcolor',get(gcf,'color'));
+set(handles.Stats,'backgroundcolor',get(gcf,'color'));
 
 save('JAABA_plot.mat','handles');
 
@@ -815,7 +773,7 @@ if(iscell(feature_data.data{1}))
 end
 
 during={};  not_during={};
-for i=1:length(behavior_data.allScores.t0s)
+for i=1:length(behavior_data.allScores.t0s)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
   tmp1=false(1,length(feature_data.data{i}));
   for j=1:length(behavior_data.allScores.t0s{i})
@@ -971,6 +929,7 @@ behavior_list2=get(handles.BehaviorList2,'String');
 feature_value=get(handles.FeatureList,'Value');
 feature_list=get(handles.FeatureList,'String');
 individual=get(handles.IndividualList,'Value');
+perwhat=handles.histogram_perwhat;
 
 axes(handles.Axes);
 cla;  hold on;
@@ -991,36 +950,39 @@ end
 if(length(experiment_value)>0)
   [table_data feature_units]=plot_histogram(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,handles.perwhat,'r');
+      feature_value,feature_list,individual,perwhat,'r');
 end
 if(length(experiment_value2)>0)
   [table_data2 feature_units]=plot_histogram(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,handles.perwhat,'b');
+      feature_value,feature_list,individual,perwhat,'b');
 end
 
-if((length(experiment_value)>0) && (length(experiment_value2)>0))
-  set(handles.Table,'RowStriping','on','BackgroundColor',[1 0.8 0.8; 0.8 0.8 1]);
-  tmp=[table_data(1,:); table_data2(1,:); table_data(2,:); table_data2(2,:)]; 
-elseif(length(experiment_value)>0)
-  set(handles.Table,'RowStriping','off','BackgroundColor',[1 0.8 0.8]);
-  tmp=table_data;
-elseif(length(experiment_value2)>0)
-  set(handles.Table,'RowStriping','off','BackgroundColor',[0.8 0.8 1]);
-  tmp=table_data2;
-end
-
-set(handles.Table,'Data',tmp);
-set(handles.Table,'ColumnName',{'' 'Mean' 'Std. Dev.' 'Std. Err.' 'Median' '25-75' '5-95'});
-set(handles.Table,'ColumnWidth',{75});
-
-%legend('during','not during');
-%text(tmp(5),0.95,['during = ' num2str(100*length(during)/(length(during)+length(not_during)),3) '%'],'color','b');
 xlabel(get_label(feature_list(feature_value),feature_units));
 ylabel('normalized');
 axis tight
 
-handles.table='nan';
+if((length(experiment_value)>0) && (length(experiment_value2)>0))
+  tmp=[table_data(1,:); table_data2(1,:); table_data(2,:); table_data2(2,:)]; 
+elseif(length(experiment_value)>0)
+  tmp=table_data;
+elseif(length(experiment_value2)>0)
+  tmp=table_data2;
+end
+
+{'' 'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%-75%' '5%-95%'};
+tmp2(1,:)=sprintf('%15s ',ans{:});
+for i=1:size(tmp,1)
+  tmp2(i+1,:)=sprintf('%15s ',tmp{i,:});
+end
+v=axis;
+h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
+if(handles.stats)
+  set(h,'visible','on');
+else
+  set(h,'visible','off');
+end
+
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.');
@@ -1109,7 +1071,7 @@ set(handles.Status,'string','Ready.');
 
 % --- 
 function triggered_data=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,feature_data,...
-    timing,statistic,windowradius,subtractmean)
+    sex_data,individual,timing,statistic,windowradius,subtractmean)
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -1120,14 +1082,17 @@ if(iscell(feature_data.data{1}))
 end
 
 k=1;
-triggered_data=zeros(length([behavior_data.allScores.t0s{:}]),1+2*windowradius);
-for i=1:length(behavior_data.allScores.t0s)
+%triggered_data=zeros(length([behavior_data.allScores.t0s{:}]),1+2*windowradius);
+triggered_data=[];
+for i=1:length(behavior_data.allScores.t0s)  % individual
+  if((~isnan(individual)) && (i~=individual))  continue;  end
   feature_data_padded=[nan(1,windowradius) feature_data.data{i} nan(1,windowradius)];
+  sex_data_padded=[nan(1,windowradius) sex_data.data{i} nan(1,windowradius)];
   if(behavior_logic>1)
     idx2=[behavior_data2.allScores.t0s{i}'-behavior_data2.allScores.tStart(i) ...
        behavior_data2.allScores.t1s{i}'-behavior_data2.allScores.tStart(i)];
   end
-  for j=1:length(behavior_data.allScores.t0s{i})
+  for j=1:length(behavior_data.allScores.t0s{i})  % bout
     switch(timing)
       case(1)
         idx=behavior_data.allScores.t0s{i}(j)-behavior_data.allScores.tStart(i);
@@ -1140,6 +1105,7 @@ for i=1:length(behavior_data.allScores.t0s)
     if((behavior_logic==3) && (diff(sum(idx2<idx))==-1))
       continue;
     end
+    if(sum(sex_data_padded(idx+(0:(2*windowradius))+(2-timing))) < windowradius)  continue;  end
     triggered_data(k,:)=feature_data_padded(idx+(0:(2*windowradius))+(2-timing));
     k=k+1;
   end
@@ -1151,59 +1117,75 @@ end
 
 
 %---
-function [feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
+function [table_data feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,individual,timing,statistic,windowradius,bar,subtractmean,color)
+    feature_value,feature_list,individual,timing,statistic,subtractmean,windowradius,color)
 
 triggered_data=[];  feature_units={};
-parfor j=1:length(experiment_value)
-  behavior_data=load(fullfile(char(experiment_list(experiment_value(j))),...
+parfor e=1:length(experiment_value)
+  behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),...
       char(behavior_list(behavior_value))));
   if(behavior_logic>1)
-    behavior_data2=load(fullfile(char(experiment_list(experiment_value(j))),...
+    behavior_data2=load(fullfile(char(experiment_list(experiment_value(e))),...
         char(behavior_list2(behavior_value2))));
   else
     behavior_data2=[];
   end
-  feature_data=load(fullfile(char(experiment_list(experiment_value(j))),'perframe',...
+  feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
       char(feature_list(feature_value))));
-  feature_units{j}=feature_data.units;
+  feature_units{e}=feature_data.units;
+
+  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+  for i=1:length(sex_data.data)
+    switch(individual)
+      case(2)
+        sex_data.data{i}=strcmp(sex_data.data{i},'M');
+      case(3)
+        sex_data.data{i}=strcmp(sex_data.data{i},'F');
+      otherwise
+        sex_data.data{i}=ones(1,length(sex_data.data{i}));
+    end
+  end
+  tmp=nan;  if(individual>3)  tmp=individual-3;  end
 
   tmp=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,timing,statistic,windowradius,subtractmean);
+      feature_data,sex_data,tmp,timing,statistic,windowradius,subtractmean);
   triggered_data=[triggered_data; tmp];
 end
 
 feature_units=feature_units{1};
 
+table_data=[sqrt(nanmean(triggered_data(:,1:windowradius).^2,2))...
+            sqrt(nanmean(triggered_data(:,(windowradius+1):end).^2,2))];
+
 k=size(triggered_data,1);
-switch(statistic)
-  case(1)
-    triggered_data(k+3,:)=nanmean(triggered_data(1:k,:),1);
-    tmp=nanstd(triggered_data(1:k,:),1)./sqrt(size(triggered_data,1));
-    triggered_data(k+2,:)=triggered_data(k+3,:)+tmp;
-    triggered_data(k+4,:)=triggered_data(k+3,:)-tmp;
-    tmp=nanstd(triggered_data(1:k,:),1);
-    triggered_data(k+1,:)=triggered_data(k+3,:)+tmp;
-    triggered_data(k+5,:)=triggered_data(k+3,:)-tmp;
-  case(2)
-    triggered_data(k+1,:)=prctile(triggered_data(1:k,:),95,1);
-    triggered_data(k+2,:)=prctile(triggered_data(1:k,:),75,1);
-    triggered_data(k+3,:)=nanmedian(triggered_data(1:k,:),1);
-    triggered_data(k+4,:)=prctile(triggered_data(1:k,:),25,1);
-    triggered_data(k+5,:)=prctile(triggered_data(1:k,:), 5,1);
+if(statistic<4)
+  triggered_data(k+3,:)=nanmean(triggered_data(1:k,:),1);
+  tmp=nanstd(triggered_data(1:k,:),1)./sqrt(k);
+  triggered_data(k+2,:)=triggered_data(k+3,:)+tmp;
+  triggered_data(k+4,:)=triggered_data(k+3,:)-tmp;
+  tmp=nanstd(triggered_data(1:k,:),1);
+  triggered_data(k+1,:)=triggered_data(k+3,:)+tmp;
+  triggered_data(k+5,:)=triggered_data(k+3,:)-tmp;
+else
+  triggered_data(k+1,:)=prctile(triggered_data(1:k,:),95,1);
+  triggered_data(k+2,:)=prctile(triggered_data(1:k,:),75,1);
+  triggered_data(k+3,:)=nanmedian(triggered_data(1:k,:),1);
+  triggered_data(k+4,:)=prctile(triggered_data(1:k,:),25,1);
+  triggered_data(k+5,:)=prctile(triggered_data(1:k,:), 5,1);
 end
 
 plot(-windowradius:windowradius,triggered_data(1:end-5,:)','k-');
 h(1)=plot(-windowradius:windowradius,triggered_data(end-2,:)',[color '-'],'linewidth',3);
 range=[min(triggered_data(end-2,:)) max(triggered_data(end-2,:))];
-switch(bar)
-  case(2)
+switch(statistic)
+  case {2,5}
     h(2)=plot(-windowradius:windowradius,triggered_data(end-4,:)',[color '-'],'linewidth',1);
     h(3)=plot(-windowradius:windowradius,triggered_data(end-0,:)',[color '-'],'linewidth',1);
     range=[range; min(triggered_data(end-4,:)) max(triggered_data(end-4,:))];
     range=[range; min(triggered_data(end-0,:)) max(triggered_data(end-0,:))];
-  case(3)
+  case {3,6}
     h(2)=plot(-windowradius:windowradius,triggered_data(end-3,:)',[color '-'],'linewidth',1);
     h(3)=plot(-windowradius:windowradius,triggered_data(end-1,:)',[color '-'],'linewidth',1);
     range=[range; min(triggered_data(end-3,:)) max(triggered_data(end-3,:))];
@@ -1231,25 +1213,38 @@ behavior_list2=get(handles.BehaviorList2,'String');
 feature_value=get(handles.FeatureList,'Value');
 feature_list=get(handles.FeatureList,'String');
 individual=get(handles.IndividualList,'Value');
-timing=handles.timing;
-statistic=handles.statistic;
-windowradius=handles.windowradius;
-subtractmean=handles.subtractmean;
+timing=handles.timeseries_timing;
+statistic=handles.timeseries_statistic;
+windowradius=handles.timeseries_windowradius;
+subtractmean=handles.timeseries_subtractmean;
 
 axes(handles.Axes);
 cla;  hold on;
 
+if(individual>3)
+  tmp=[0 cumsum(handles.individuals)];
+  tmp2=find(tmp<(individual-3),1,'last');
+  if(tmp2>length(experiment_list))
+    experiment_value=[];
+    experiment_value2=tmp2-length(experiment_list);
+  else
+    experiment_value=tmp2;
+    experiment_value2=[];
+  end
+  individual=individual-tmp(tmp2);
+end
+
 range=[];
 if(length(experiment_value)>0)
-  [feature_units tmp h]=plot_timeseries(experiment_value,experiment_list,...
+  [table_data feature_units tmp h]=plot_timeseries(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,timing,statistic,windowradius,handles.bar,subtractmean,'r');
+      feature_value,feature_list,individual,timing,statistic,subtractmean,windowradius,'r');
   range=[range; tmp];
 end
 if(length(experiment_value2)>0)
-  [feature_units tmp h2]=plot_timeseries(experiment_value2,experiment_list2,...
+  [table_data2 feature_units tmp h2]=plot_timeseries(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,timing,statistic,windowradius,handles.bar,subtractmean,'b');
+      feature_value,feature_list,individual,timing,statistic,subtractmean,windowradius,'b');
   range=[range; tmp];
   if(length(experiment_value)>0)
     uistack(h,'top');
@@ -1260,10 +1255,31 @@ end
 xlabel('time (frames)');
 ylabel(get_label(feature_list(feature_value),feature_units));
 axis tight
-if(handles.zoom==2)
+if(handles.timeseries_tight==1)
   v=axis;  axis([v(1) v(2) min(range(:,1)) max(range(:,2))]);
 end
 
+if((length(experiment_value)>0) && (length(experiment_value2)>0))
+  tmp=[nanmean(table_data(:,1))  nanstd(table_data(:,1))  nanmean(table_data(:,2))  nanstd(table_data(:,2));...
+       nanmean(table_data2(:,1)) nanstd(table_data2(:,1)) nanmean(table_data2(:,2)) nanstd(table_data2(:,2))];
+elseif(length(experiment_value)>0)
+  tmp=[nanmean(table_data(:,1))  nanstd(table_data(:,1))  nanmean(table_data(:,2))  nanstd(table_data(:,2))];
+elseif(length(experiment_value2)>0)
+  tmp=[nanmean(table_data2(:,1)) nanstd(table_data2(:,1)) nanmean(table_data2(:,2)) nanstd(table_data2(:,2))];
+end
+
+{'mean' 'std. dev.' 'mean' 'std. dev.'};
+tmp2(1,:)=['RMS before,after:' sprintf('%10s ',ans{:})];
+for i=1:size(tmp,1)
+  tmp2(i+1,:)=['                 ' sprintf('%10.3f ',tmp(i,:))];
+end
+v=axis;
+h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
+if(handles.stats)
+  set(h,'visible','on');
+else
+  set(h,'visible','off');
+end
 set(handles.Status,'string','Ready.');
 
 
@@ -1280,8 +1296,13 @@ parfor b=1:length(behavior_list)
       for e=1:length(experiment_value)
         behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
         feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',char(feature_list(f))));
+        sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+            char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+        for i=1:length(sex_data.data)
+          sex_data.data{i}=ones(1,length(sex_data.data{i}));
+        end
 
-        tmp=calculate_timeseries(behavior_data,1,[],feature_data,t,statistic,windowradius,1);
+        tmp=calculate_timeseries(behavior_data,1,[],feature_data,sex_data,nan,t,statistic,windowradius,1);
         parfor_tmp{f,t}=[parfor_tmp{f,t}; tmp];
       end
       parfor_tmp{f,t}=[...
@@ -1309,8 +1330,8 @@ experiment_value2=get(handles.ExperimentList2,'Value');
 experiment_list2=get(handles.ExperimentList2,'String');
 behavior_list=get(handles.BehaviorList,'String');
 feature_list=get(handles.FeatureList,'String');
-statistic=handles.statistic;
-windowradius=handles.windowradius;
+statistic=handles.timeseries_statistic;
+windowradius=handles.timeseries_windowradius;
 
 if(length(experiment_value)>0)
   table_data=calculate_interesting_timeseries(experiment_value,experiment_list,...
@@ -1731,14 +1752,6 @@ if(strcmp(handles.table,'bout_stats'))
     color='b';
   end
   set(handles.BehaviorList,'Value',handles.behaviorvalue);
-%  switch(eventdata.Indices(end,2))
-%    case {2,3}
-%      handles.individualvalue=1;
-%    case {4,5}
-%      handles.individualvalue=2;
-%    case {6,7}
-%      handles.individualvalue=3;
-%  end
   handles.individualvalue=floor(eventdata.Indices(end,2)/2);
   if(((color=='r') && (handles.individualvalue>(3+sum(handles.individuals(1:length(handles.experimentlist)))))) || ...
      ((color=='b') && (handles.individualvalue>(3+sum(handles.individuals((end-length(handles.experimentlist2)+1):end))))))
@@ -1751,11 +1764,33 @@ if(strcmp(handles.table,'bout_stats'))
 
   axes(handles.Axes);
   cla;  hold on;
-  [n,x]=hist(handles.raw_table_data{eventdata.Indices(end,1),eventdata.Indices(end,2)},100);
+  data=handles.raw_table_data{eventdata.Indices(end,1),eventdata.Indices(end,2)};
+  [n,x]=hist(data,100);
   plot(x,n,[color '-']);
   xlabel('length (frames)');
   %ylabel(strrep(char(behavior_list(b)),'_','-'));
   axis tight;
+
+  tmp={};
+  tmp{1}=num2str(mean(data),3);
+  tmp{2}=num2str(std(data),3);
+  tmp{3}=num2str(std(data)./sqrt(length(data)),3);
+  tmp{4}=num2str(median(data),3);
+  tmp{5}=[num2str(prctile(data,25),3) '-' num2str(prctile(data,75),3)];
+  tmp{6}=[num2str(prctile(data,5),3) '-' num2str(prctile(data,95),3)];
+
+  {'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%-75%' '5%-95%'};
+  tmp2(1,:)=sprintf('%10s ',ans{:});
+  for i=1:size(tmp,1)
+    tmp2(i+1,:)=sprintf('%10s ',tmp{i,:});
+  end
+  v=axis;
+  h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
+  if(handles.stats)
+    set(h,'visible','on');
+  else
+    set(h,'visible','off');
+  end
   
 elseif(strcmp(handles.table,'behavior_stats'))
   if(eventdata.Indices(end,2)==1)  return;  end
@@ -1877,7 +1912,7 @@ elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
   set(handles.IndividualList,'Value',handles.sex);
 
   if(strcmp(handles.table,'timeseries'))
-    handles.timing=handles.table_data(eventdata.Indices(end,1),3);
+    handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3);
     %set(handles.Timing,'Value',handles.timing);
     %handles.statistic=handles.table_data(eventdata.Indices(end,1),4);
     %set(handles.Statistic,'Value',handles.statistic);
@@ -1889,6 +1924,13 @@ elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
 end
 
 guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuTimeSeries_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeries (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
@@ -1906,37 +1948,13 @@ function MenuTimeSeriesStatistic_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesRadius_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesRadius (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.windowradius=str2num(char(inputdlg({'Window radius:'},'',1,{num2str(10)})));
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuTimeSeriesZoom_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesZoom (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MenuTimeSeriesBars_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesBars (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
 function MenuTimeSeriesSubtractMean_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuTimeSeriesSubtractMean (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.subtractmean=~handles.subtractmean;
-if(handles.subtractmean)
+handles.timeseries_subtractmean=~handles.timeseries_subtractmean;
+if(handles.timeseries_subtractmean)
   set(handles.MenuTimeSeriesSubtractMean,'Checked','on');
 else
   set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
@@ -1945,89 +1963,27 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesBarsNone_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesBarsNone (see GCBO)
+function MenuTimeSeriesRadius_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesRadius (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.bar=1;
-set(handles.MenuTimeSeriesBarsNone,'Checked','on');
-set(handles.MenuTimeSeriesBarsDeviation,'Checked','off');
-set(handles.MenuTimeSeriesBarsError,'Checked','off');
+handles.timeseries_windowradius=str2num(char(inputdlg({'Window radius:'},'',1,{num2str(10)})));
 guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuTimeSeriesBarsDeviation_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesBarsDeviation (see GCBO)
+function MenuTimeSeriesTight_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesTight (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.bar=2;
-set(handles.MenuTimeSeriesBarsNone,'Checked','off');
-set(handles.MenuTimeSeriesBarsDeviation,'Checked','on');
-set(handles.MenuTimeSeriesBarsError,'Checked','off');
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuTimeSeriesBarsError_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesBarsError (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.bar=3;
-set(handles.MenuTimeSeriesBarsNone,'Checked','off');
-set(handles.MenuTimeSeriesBarsDeviation,'Checked','off');
-set(handles.MenuTimeSeriesBarsError,'Checked','on');
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuTimeSeriesZoomBlack_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesZoomBlack (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.zoom=1;
-set(handles.MenuTimeSeriesZoomBlack,'Checked','on');
-set(handles.MenuTimeSeriesZoomRed,'Checked','off');
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuTimeSeriesZoomRed_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesZoomRed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.zoom=2;
-set(handles.MenuTimeSeriesZoomBlack,'Checked','off');
-set(handles.MenuTimeSeriesZoomRed,'Checked','on');
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesStatisticMean (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.statistic=1;
-set(handles.MenuTimeSeriesStatisticMean,'Checked','on');
-set(handles.MenuTimeSeriesStatisticMedian,'Checked','off');
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuTimeSeriesStatisticMedian_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeriesStatisticMedian (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.statistic=2;
-set(handles.MenuTimeSeriesStatisticMean,'Checked','off');
-set(handles.MenuTimeSeriesStatisticMedian,'Checked','on');
+handles.timeseries_tight=~handles.timeseries_tight;
+if(handles.timeseries_tight)
+  set(handles.MenuTimeSeriesTight,'Checked','on');
+else
+  set(handles.MenuTimeSeriesTight,'Checked','off');
+end
 guidata(hObject,handles);
 
 
@@ -2037,7 +1993,7 @@ function MenuTimeSeriesTimingOnset_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.timing=1;
+handles.timeseries_timing=1;
 set(handles.MenuTimeSeriesTimingOnset,'Checked','on');
 set(handles.MenuTimeSeriesTimingOffset,'Checked','off');
 guidata(hObject,handles);
@@ -2049,17 +2005,97 @@ function MenuTimeSeriesTimingOffset_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.timing=2;
+handles.timeseries_timing=2;
 set(handles.MenuTimeSeriesTimingOnset,'Checked','off');
 set(handles.MenuTimeSeriesTimingOffset,'Checked','on');
 guidata(hObject,handles);
 
 
+% ---
+function menu_timeseries_statistic_set(arg)
+
+handles=guidata(gcf);
+
+set(handles.MenuTimeSeriesStatisticMean,'Checked','off');
+set(handles.MenuTimeSeriesStatisticMeanDeviation,'Checked','off');
+set(handles.MenuTimeSeriesStatisticMeanStdErr,'Checked','off');
+set(handles.MenuTimeSeriesStatisticMedian,'Checked','off');
+set(handles.MenuTimeSeriesStatisticMedian5,'Checked','off');
+set(handles.MenuTimeSeriesStatisticMedian25,'Checked','off');
+switch(arg)
+  case(1), set(handles.MenuTimeSeriesStatisticMean,'Checked','on');
+  case(2), set(handles.MenuTimeSeriesStatisticMeanDeviation,'Checked','on');
+  case(3), set(handles.MenuTimeSeriesStatisticMeanStdErr,'Checked','on');
+  case(4), set(handles.MenuTimeSeriesStatisticMedian,'Checked','on');
+  case(5), set(handles.MenuTimeSeriesStatisticMedian5,'Checked','on');
+  case(6), set(handles.MenuTimeSeriesStatisticMedian25,'Checked','on');
+end
+
+
 % --------------------------------------------------------------------
-function MenuTimeSeries_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuTimeSeries (see GCBO)
+function MenuTimeSeriesStatisticMean_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMean (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+handles.timeseries_statistic=1;
+menu_timeseries_statistic_set(handles.timeseries_statistic);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuTimeSeriesStatisticMeanDeviation_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMeanDeviation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.timeseries_statistic=2;
+menu_timeseries_statistic_set(handles.timeseries_statistic);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuTimeSeriesStatisticMeanStdErr_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMeanStdErr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.timeseries_statistic=3;
+menu_timeseries_statistic_set(handles.timeseries_statistic);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuTimeSeriesStatisticMedian_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMedian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.timeseries_statistic=4;
+menu_timeseries_statistic_set(handles.timeseries_statistic);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuTimeSeriesStatisticMedian5_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMedian5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.timeseries_statistic=5;
+menu_timeseries_statistic_set(handles.timeseries_statistic);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuTimeSeriesStatisticMedian25_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuTimeSeriesStatisticMedian25 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.timeseries_statistic=6;
+menu_timeseries_statistic_set(handles.timeseries_statistic);
+guidata(hObject,handles);
 
 
 % ---
@@ -2089,8 +2125,8 @@ function MenuHistogramPerFrame_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.perwhat=1;
-menu_histogram_set(handles.perwhat);
+handles.histogram_perwhat=1;
+menu_histogram_set(handles.histogram_perwhat);
 guidata(hObject,handles);
 
 
@@ -2100,8 +2136,8 @@ function MenuHistogramMeanPerBout_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.perwhat=2;
-menu_histogram_set(handles.perwhat);
+handles.histogram_perwhat=2;
+menu_histogram_set(handles.histogram_perwhat);
 guidata(hObject,handles);
 
 
@@ -2111,8 +2147,8 @@ function MenuHistogramMedianPerBout_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.perwhat=3;
-menu_histogram_set(handles.perwhat);
+handles.histogram_perwhat=3;
+menu_histogram_set(handles.histogram_perwhat);
 guidata(hObject,handles);
 
 
@@ -2122,8 +2158,8 @@ function MenuHistogramMaxPerBout_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.perwhat=4;
-menu_histogram_set(handles.perwhat);
+handles.histogram_perwhat=4;
+menu_histogram_set(handles.histogram_perwhat);
 guidata(hObject,handles);
 
 
@@ -2133,8 +2169,8 @@ function MenuHistogramMinPerBout_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.perwhat=5;
-menu_histogram_set(handles.perwhat);
+handles.histogram_perwhat=5;
+menu_histogram_set(handles.histogram_perwhat);
 guidata(hObject,handles);
 
 
@@ -2144,8 +2180,8 @@ function MenuHistogramStdPerBout_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.perwhat=6;
-menu_histogram_set(handles.perwhat);
+handles.histogram_perwhat=6;
+menu_histogram_set(handles.histogram_perwhat);
 guidata(hObject,handles);
 
 
@@ -2260,7 +2296,7 @@ h=zoom(gcf);
 if(strcmp(get(h,'enable'),'off'))
   zoom on;
   pan off;
-  set(handles.Zoom,'backgroundcolor',0.1*[1 1 1]);
+  set(handles.Zoom,'backgroundcolor',0.4*[1 1 1]);
   set(handles.Pan,'backgroundcolor',get(gcf,'color'));
 else
   zoom off;
@@ -2279,7 +2315,7 @@ h=pan(gcf);
 if(strcmp(get(h,'enable'),'off'))
   pan on;
   zoom off;
-  set(handles.Pan,'backgroundcolor',0.1*[1 1 1]);
+  set(handles.Pan,'backgroundcolor',0.4*[1 1 1]);
   set(handles.Zoom,'backgroundcolor',get(gcf,'color'));
 else
   pan off;
@@ -2294,11 +2330,31 @@ function LogY_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+handles.logy=~handles.logy;
 h=get(gca,'yscale');
-if(strcmp(h,'log'))
+if(handles.logy)
+  set(gca,'yscale','log');
+  set(handles.LogY,'backgroundcolor',0.4*[1 1 1]);
+else
   set(gca,'yscale','linear');
   set(handles.LogY,'backgroundcolor',get(gcf,'color'));
-else
-  set(gca,'yscale','log');
-  set(handles.LogY,'backgroundcolor',0.1*[1 1 1]);
 end
+guidata(hObject, handles);
+
+
+% --- Executes on button press in Stats.
+function Stats_Callback(hObject, eventdata, handles)
+% hObject    handle to Stats (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.stats=~handles.stats;
+h=findobj('tag','stats');
+if(handles.stats)
+  set(h,'visible','on');
+  set(handles.Stats,'backgroundcolor',0.4*[1 1 1]);
+else
+  set(h,'visible','off');
+  set(handles.Stats,'backgroundcolor',get(gcf,'color'));
+end
+guidata(hObject, handles);
