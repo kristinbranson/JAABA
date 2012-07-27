@@ -56,13 +56,14 @@ handles.behaviorlist={''};
 handles.behaviorvalue=1;
 handles.behaviorlogic=1;
 handles.behaviorvalue2=1;
-handles.individuals=[];
-handles.individuallist={'All' 'Male' 'Female'};
-handles.individualvalue=1;
 handles.features={};
 handles.featurelist={''};
 handles.featurevalue=1;
+handles.individuals=[];
+handles.individuallist={'All' 'Male' 'Female'};
+handles.individualvalue=1;
 handles.individual=1;
+handles.sexdata={};
 handles.histogram_perwhat=1;
 handles.timeseries_timing=1;
 handles.timeseries_statistic=1;
@@ -72,6 +73,8 @@ handles.timeseries_tight=0;
 handles.boutstats=1;
 handles.logy=0;
 handles.stats=0;
+handles.interesting_histograms=[];
+handles.interesting_timeseries=[];
 set(handles.ExperimentList,'enable','off');
 set(handles.ExperimentList2,'enable','off');
 set(handles.BehaviorList,'enable','off');
@@ -113,6 +116,7 @@ if(exist('JAABA_plot.mat')==2)
   handles.individuals=handles_saved.individuals;
   handles.individuallist=handles_saved.individuallist;
   handles.individualvalue=handles_saved.individualvalue;
+  handles.sexdata=handles_saved.sexdata;
   handles.histogram_perwhat=handles_saved.histogram_perwhat;
   handles.timeseries_timing=handles_saved.timeseries_timing;
   handles.timeseries_statistic=handles_saved.timeseries_statistic;
@@ -122,6 +126,8 @@ if(exist('JAABA_plot.mat')==2)
   handles.boutstats=handles_saved.boutstats;
   handles.logy=handles_saved.logy;
   handles.stats=handles_saved.stats;
+  handles.interesting_histograms=handles_saved.interesting_histograms;
+  handles.interesting_timeseries=handles_saved.interesting_timeseries;
 
   set(handles.ExperimentList,'String',handles.experimentlist);
   set(handles.ExperimentList,'Value',handles.experimentvalue);
@@ -478,7 +484,6 @@ set(handles.FeatureList,'enable','on');
 set(handles.IndividualList,'enable','on');
 
 tmp=dir(fullfile(ptr{end},'scores*.mat'));
-%[handles.behaviors{length(ptr)+(arg-1)*length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
 [handles.behaviors{end+1}{1:length(tmp)}]=deal(tmp.name);
 if(arg==1)
   handles.behaviors=...
@@ -489,7 +494,6 @@ set(handles.BehaviorList,'String',handles.behaviorlist);
 set(handles.BehaviorList2,'String',handles.behaviorlist);
 
 tmp=dir(fullfile(ptr{end},'perframe','*.mat'));
-%[handles.features{length(ptr)+(arg-1)*length(handles.experimentlist)}{1:length(tmp)}]=deal(tmp.name);
 [handles.features{end+1}{1:length(tmp)}]=deal(tmp.name);
 if(arg==1)
   handles.features=...
@@ -499,13 +503,26 @@ handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 set(handles.FeatureList,'String',handles.featurelist);
 
 behavior_data=load(fullfile(char(ptr(end)),char(handles.behaviorlist(1))));
-%handles.individuals(length(ptr)+(arg-1)*length(handles.experimentlist))=length(behavior_data.allScores.t0s);
 handles.individuals(end+1)=length(behavior_data.allScores.t0s);
 if(arg==1)
   handles.individuals=...
       handles.individuals([1:(length(handles.experimentlist)-1) end (end-length(handles.experimentlist2)):(end-1)]);
 end
 handles=fillin_individuallist(handles);
+
+sexdata=load(fullfile(char(ptr(end)),'perframe',...
+    char(handles.featurelist(find(strcmp(handles.featurelist,'sex.mat'))))));
+for i=1:length(sexdata.data)
+  sexdata.data{i}=strcmp(sexdata.data{i},'M');
+end
+handles.sexdata(end+1)={sexdata.data};
+if(arg==1)
+  handles.sexdata=...
+      handles.sexdata([1:(length(handles.experimentlist)-1) end (end-length(handles.experimentlist2)):(end-1)]);
+end
+
+handles.interesting_histograms=[];
+handles.interesting_timeseries=[];
 
 guidata(hObject,handles);
 
@@ -557,6 +574,10 @@ set(handles.FeatureList,'Value',handles.featurevalue);
 handles.individuals(idx)=[];
 handles=fillin_individuallist(handles);
 
+handles.sexdata(idx)=[];
+
+handles.interesting_histograms=[];
+handles.interesting_timeseries=[];
 
 guidata(hObject,handles);
 
@@ -656,7 +677,12 @@ set(handles.ExperimentList2,'Value',handles.experimentvalue2);
 handles.behaviors=handles.behaviors([1:idx2 idx2+idx setdiff((idx2+1):length(handles.behaviors),idx2+idx)]);
 handles.features=handles.features([1:idx2 idx2+idx setdiff((idx2+1):length(handles.behaviors),idx2+idx)]);
 handles.individuals=handles.individuals([1:idx2 idx2+idx setdiff((idx2+1):length(handles.individuals),idx2+idx)]);
+handles.sexdata=handles.sexdata([1:idx2 idx2+idx setdiff((idx2+1):length(handles.sexdata),idx2+idx)]);
+
 handles=fillin_individuallist(handles);
+
+handles.interesting_histograms=[];
+handles.interesting_timeseries=[];
 
 guidata(hObject,handles);
 
@@ -691,9 +717,14 @@ set(handles.ExperimentList,'Value',handles.experimentvalue);
 handles.behaviors=handles.behaviors([setdiff(1:length(handles.behaviors),idx) idx]);
 handles.features=handles.features([setdiff(1:length(handles.features),idx) idx]);
 handles.individuals=handles.individuals([setdiff(1:length(handles.individuals),idx) idx]);
+handles.sexdata=handles.sexdata([setdiff(1:length(handles.sexdata),idx) idx]);
+
 handles=fillin_individuallist(handles);
 
 guidata(hObject,handles);
+
+handles.interesting_histograms=[];
+handles.interesting_timeseries=[];
 
 set(handles.Status,'string','Ready.');
 
@@ -762,7 +793,7 @@ ret_val=[ret_val ')'];
 
 % --- 
 function [during not_during]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
-    feature_data,sex_data,individual,perwhat)
+    feature_data,sexdata,individual,perwhat)
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -798,15 +829,15 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
       partition_idx=tmp1 | tmp2;
   end
   if(perwhat==1)  % per frame
-    during{i}=feature_data.data{i}(partition_idx & sex_data.data{i}(1:length(partition_idx)));
-    not_during{i}=feature_data.data{i}((~partition_idx) & sex_data.data{i}(1:length(partition_idx)));
+    during{i}=feature_data.data{i}(partition_idx & sexdata{i}(1:length(partition_idx)));
+    not_during{i}=feature_data.data{i}((~partition_idx) & sexdata{i}(1:length(partition_idx)));
   else  % per bout
     partition_idx=[0 partition_idx 0];
     start=1+find(~partition_idx(1:(end-1)) &  partition_idx(2:end))-1;
     stop =  find( partition_idx(1:(end-1)) & ~partition_idx(2:end))-1;
     if(length(start)>0)
       for j=1:length(start)
-        if(sum(sex_data.data{i}(start(j):stop(j))) < ((stop(j)-start(j)+1)/2))  continue;  end
+        if(sum(sexdata{i}(start(j):stop(j))) < ((stop(j)-start(j)+1)/2))  continue;  end
         switch(perwhat)
           case 2
             during{i}(j)=mean(feature_data.data{i}(start(j):stop(j)));
@@ -822,7 +853,7 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
       end
       if(length(start)>1)
         for j=1:(length(start)-1)
-          if(sum(sex_data.data{i}(stop(j):start(j+1))) < ((start(j+1)-stop(j)+1)/2))  continue;  end
+          if(sum(sexdata{i}(stop(j):start(j+1))) < ((start(j+1)-stop(j)+1)/2))  continue;  end
           switch(perwhat)
             case 2
               not_during{i}(j)=mean(feature_data.data{i}(stop(j):start(j+1)));
@@ -848,7 +879,7 @@ not_during=[not_during{:}];
 % ---
 function [table_data feature_units]=plot_histogram(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,individual,perwhat,color)
+    feature_value,feature_list,individual,sexdata,perwhat,color)
 
 during={};  not_during={};  feature_units={};
 parfor e=1:length(experiment_value)
@@ -864,22 +895,20 @@ parfor e=1:length(experiment_value)
         char(feature_list(feature_value))));
   feature_units{e}=feature_data.units;
 
-  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
-      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-  for i=1:length(sex_data.data)
+  tmp2=sexdata{e};
+  for i=1:length(tmp2)
     switch(individual)
       case(2)
-        sex_data.data{i}=strcmp(sex_data.data{i},'M');
       case(3)
-        sex_data.data{i}=strcmp(sex_data.data{i},'F');
+        tmp2{i}=~tmp2{i};
       otherwise
-        sex_data.data{i}=ones(1,length(sex_data.data{i}));
+        tmp2{i}=ones(1,length(tmp2{i}));
     end
   end
   tmp=nan;  if(individual>3)  tmp=individual-3;  end
 
   [during{e} not_during{e}]=calculate_histogram(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,sex_data,tmp,perwhat);
+      feature_data,tmp2,tmp,perwhat);
 end
 during=[during{:}];
 not_during=[not_during{:}];
@@ -930,6 +959,7 @@ feature_value=get(handles.FeatureList,'Value');
 feature_list=get(handles.FeatureList,'String');
 individual=get(handles.IndividualList,'Value');
 perwhat=handles.histogram_perwhat;
+sexdata=handles.sexdata;
 
 axes(handles.Axes);
 cla;  hold on;
@@ -950,12 +980,12 @@ end
 if(length(experiment_value)>0)
   [table_data feature_units]=plot_histogram(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,perwhat,'r');
+      feature_value,feature_list,individual,sexdata(1:length(experiment_list)),perwhat,'r');
 end
 if(length(experiment_value2)>0)
   [table_data2 feature_units]=plot_histogram(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,perwhat,'b');
+      feature_value,feature_list,individual,sexdata((length(experiment_list)+1):end),perwhat,'b');
 end
 
 xlabel(get_label(feature_list(feature_value),feature_units));
@@ -1001,11 +1031,11 @@ parfor b=1:length(behavior_list)
     for e=1:length(experiment_value)
       behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
       feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',char(feature_list(f))));
-      sex_data=[];
+      sexdata={};
       for i=1:length(feature_data.data)
-        sex_data.data{i}=ones(1,length(feature_data.data{i}));
+        sexdata{i}=ones(1,length(feature_data.data{i}));
       end
-      [during{e} not_during{e}]=calculate_histogram(behavior_data,1,[],feature_data,sex_data,nan,1);
+      [during{e} not_during{e}]=calculate_histogram(behavior_data,1,[],feature_data,sexdata,nan,1);
     end
     during=[during{:}];
     not_during=[not_during{:}];
@@ -1034,24 +1064,30 @@ experiment_list2=get(handles.ExperimentList2,'String');
 behavior_list=get(handles.BehaviorList,'String');
 feature_list=get(handles.FeatureList,'String');
 
-if(length(experiment_value)>0)
-  table_data=calculate_interesting_histograms(experiment_value,experiment_list,...
-      behavior_list,feature_list);
-end
-if(length(experiment_value2)>0)
-  table_data2=calculate_interesting_histograms(experiment_value2,experiment_list2,...
-      behavior_list,feature_list);
-end
+if(isempty(handles.interesting_histograms))
+  if(length(experiment_value)>0)
+    table_data=calculate_interesting_histograms(experiment_value,experiment_list,...
+        behavior_list,feature_list);
+  end
+  if(length(experiment_value2)>0)
+    table_data2=calculate_interesting_histograms(experiment_value2,experiment_list2,...
+        behavior_list,feature_list);
+  end
 
-if((length(experiment_value)>0) && (length(experiment_value2)>0))
-  tmp2=[table_data(:,1:2) (table_data2(:,3)-table_data(:,3))./sqrt(table_data2(:,5).^2+table_data(:,5).^2)];
-elseif(length(experiment_value)>0)
-  tmp2=[table_data(:,1:2) (table_data(:,3)-table_data(:,4))./sqrt(table_data(:,5).^2+table_data(:,6).^2)];
-elseif(length(experiment_value2)>0)
-  tmp2=[table_data2(:,1:2) (table_data2(:,3)-table_data2(:,4))./sqrt(table_data2(:,5).^2+table_data2(:,6).^2)];
-end
+  if((length(experiment_value)>0) && (length(experiment_value2)>0))
+    tmp2=[table_data(:,1:2) (table_data2(:,3)-table_data(:,3))./sqrt(table_data2(:,5).^2+table_data(:,5).^2)];
+  elseif(length(experiment_value)>0)
+    tmp2=[table_data(:,1:2) (table_data(:,3)-table_data(:,4))./sqrt(table_data(:,5).^2+table_data(:,6).^2)];
+  elseif(length(experiment_value2)>0)
+    tmp2=[table_data2(:,1:2) (table_data2(:,3)-table_data2(:,4))./sqrt(table_data2(:,5).^2+table_data2(:,6).^2)];
+  end
 
-tmp2=sortrows(tmp2,-3);
+  tmp2=sortrows(tmp2,-3);
+
+  handles.interesting_histograms=tmp2;
+else
+  tmp2=handles.interesting_histograms;
+end
 
 tmp=cell(size(tmp2));
 tmp(:,1)=behavior_list(tmp2(:,1));
@@ -1071,7 +1107,7 @@ set(handles.Status,'string','Ready.');
 
 % --- 
 function triggered_data=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,feature_data,...
-    sex_data,individual,timing,statistic,windowradius,subtractmean)
+    sexdata,individual,timing,statistic,windowradius,subtractmean)
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -1087,7 +1123,7 @@ triggered_data=[];
 for i=1:length(behavior_data.allScores.t0s)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
   feature_data_padded=[nan(1,windowradius) feature_data.data{i} nan(1,windowradius)];
-  sex_data_padded=[nan(1,windowradius) sex_data.data{i} nan(1,windowradius)];
+  sexdata_padded=[nan(1,windowradius) sexdata{i} nan(1,windowradius)];
   if(behavior_logic>1)
     idx2=[behavior_data2.allScores.t0s{i}'-behavior_data2.allScores.tStart(i) ...
        behavior_data2.allScores.t1s{i}'-behavior_data2.allScores.tStart(i)];
@@ -1105,7 +1141,7 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     if((behavior_logic==3) && (diff(sum(idx2<idx))==-1))
       continue;
     end
-    if(sum(sex_data_padded(idx+(0:(2*windowradius))+(2-timing))) < windowradius)  continue;  end
+    if(sum(sexdata_padded(idx+(0:(2*windowradius))+(2-timing))) < windowradius)  continue;  end
     triggered_data(k,:)=feature_data_padded(idx+(0:(2*windowradius))+(2-timing));
     k=k+1;
   end
@@ -1119,7 +1155,7 @@ end
 %---
 function [table_data feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,individual,timing,statistic,subtractmean,windowradius,color)
+    feature_value,feature_list,individual,sexdata,timing,statistic,subtractmean,windowradius,color)
 
 triggered_data=[];  feature_units={};
 parfor e=1:length(experiment_value)
@@ -1135,22 +1171,20 @@ parfor e=1:length(experiment_value)
       char(feature_list(feature_value))));
   feature_units{e}=feature_data.units;
 
-  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
-      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-  for i=1:length(sex_data.data)
+  tmp2=sexdata{e};
+  for i=1:length(tmp2)
     switch(individual)
       case(2)
-        sex_data.data{i}=strcmp(sex_data.data{i},'M');
       case(3)
-        sex_data.data{i}=strcmp(sex_data.data{i},'F');
+        tmp2{i}=~tmp2{i};
       otherwise
-        sex_data.data{i}=ones(1,length(sex_data.data{i}));
+        tmp2{i}=ones(1,length(tmp2{i}));
     end
   end
   tmp=nan;  if(individual>3)  tmp=individual-3;  end
 
   tmp=calculate_timeseries(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,sex_data,tmp,timing,statistic,windowradius,subtractmean);
+      feature_data,tmp2,tmp,timing,statistic,windowradius,subtractmean);
   triggered_data=[triggered_data; tmp];
 end
 
@@ -1213,6 +1247,7 @@ behavior_list2=get(handles.BehaviorList2,'String');
 feature_value=get(handles.FeatureList,'Value');
 feature_list=get(handles.FeatureList,'String');
 individual=get(handles.IndividualList,'Value');
+sexdata=handles.sexdata;
 timing=handles.timeseries_timing;
 statistic=handles.timeseries_statistic;
 windowradius=handles.timeseries_windowradius;
@@ -1238,13 +1273,15 @@ range=[];
 if(length(experiment_value)>0)
   [table_data feature_units tmp h]=plot_timeseries(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,timing,statistic,subtractmean,windowradius,'r');
+      feature_value,feature_list,individual,sexdata(1:length(experiment_list)),...
+      timing,statistic,subtractmean,windowradius,'r');
   range=[range; tmp];
 end
 if(length(experiment_value2)>0)
   [table_data2 feature_units tmp h2]=plot_timeseries(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,individual,timing,statistic,subtractmean,windowradius,'b');
+      feature_value,feature_list,individual,sexdata((length(experiment_list)+1):end),...
+      timing,statistic,subtractmean,windowradius,'b');
   range=[range; tmp];
   if(length(experiment_value)>0)
     uistack(h,'top');
@@ -1269,9 +1306,9 @@ elseif(length(experiment_value2)>0)
 end
 
 {'mean' 'std. dev.' 'mean' 'std. dev.'};
-tmp2(1,:)=['RMS before,after:' sprintf('%10s ',ans{:})];
+tmp2(1,:)=['RMS before,after:' sprintf('%15s ',ans{:})];
 for i=1:size(tmp,1)
-  tmp2(i+1,:)=['                 ' sprintf('%10.3f ',tmp(i,:))];
+  tmp2(i+1,:)=['                 ' sprintf('%15.3f ',tmp(i,:))];
 end
 v=axis;
 h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
@@ -1296,13 +1333,14 @@ parfor b=1:length(behavior_list)
       for e=1:length(experiment_value)
         behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
         feature_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',char(feature_list(f))));
-        sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
-            char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-        for i=1:length(sex_data.data)
-          sex_data.data{i}=ones(1,length(sex_data.data{i}));
+%        sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+%            char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+        sexdata={};
+        for i=1:length(feature_data.data)
+          sexdata{i}=ones(1,length(feature_data.data{i}));
         end
 
-        tmp=calculate_timeseries(behavior_data,1,[],feature_data,sex_data,nan,t,statistic,windowradius,1);
+        tmp=calculate_timeseries(behavior_data,1,[],feature_data,sexdata,nan,t,statistic,windowradius,1);
         parfor_tmp{f,t}=[parfor_tmp{f,t}; tmp];
       end
       parfor_tmp{f,t}=[...
@@ -1333,26 +1371,32 @@ feature_list=get(handles.FeatureList,'String');
 statistic=handles.timeseries_statistic;
 windowradius=handles.timeseries_windowradius;
 
-if(length(experiment_value)>0)
-  table_data=calculate_interesting_timeseries(experiment_value,experiment_list,...
-      behavior_list,feature_list,statistic,windowradius);
-end
-if(length(experiment_value2)>0)
-  table_data2=calculate_interesting_timeseries(experiment_value2,experiment_list2,...
-      behavior_list,feature_list,statistic,windowradius);
-end
+if(isempty(handles.interesting_timeseries))
+  if(length(experiment_value)>0)
+    table_data=calculate_interesting_timeseries(experiment_value,experiment_list,...
+        behavior_list,feature_list,statistic,windowradius);
+  end
+  if(length(experiment_value2)>0)
+    table_data2=calculate_interesting_timeseries(experiment_value2,experiment_list2,...
+        behavior_list,feature_list,statistic,windowradius);
+  end
 
-if((length(experiment_value)>0) && (length(experiment_value2)>0))
-  tmp=(cellfun(@(x) nanmean(x(:,2)),table_data2) - cellfun(@(x) nanmean(x(:,2)),table_data)) ./ ...
-      sqrt(cellfun(@(x) nanstd(x(:,2)),table_data2).^2 + cellfun(@(x) nanstd(x(:,2)),table_data).^2);
-elseif(length(experiment_value)>0)
-  tmp=cellfun(@(x) (nanmean(x(:,2))-nanmean(x(:,1)))/sqrt(nanstd(x(:,2)).^2+nanstd(x(:,1)).^2),table_data);
-elseif(length(experiment_value2)>0)
-  tmp=cellfun(@(x) (nanmean(x(:,2))-nanmean(x(:,1)))/sqrt(nanstd(x(:,2)).^2+nanstd(x(:,1)).^2),table_data2);
+  if((length(experiment_value)>0) && (length(experiment_value2)>0))
+    tmp=(cellfun(@(x) nanmean(x(:,2)),table_data2) - cellfun(@(x) nanmean(x(:,2)),table_data)) ./ ...
+        sqrt(cellfun(@(x) nanstd(x(:,2)),table_data2).^2 + cellfun(@(x) nanstd(x(:,2)),table_data).^2);
+  elseif(length(experiment_value)>0)
+    tmp=cellfun(@(x) (nanmean(x(:,2))-nanmean(x(:,1)))/sqrt(nanstd(x(:,2)).^2+nanstd(x(:,1)).^2),table_data);
+  elseif(length(experiment_value2)>0)
+    tmp=cellfun(@(x) (nanmean(x(:,2))-nanmean(x(:,1)))/sqrt(nanstd(x(:,2)).^2+nanstd(x(:,1)).^2),table_data2);
+  end
+  [tmp2(:,1) tmp2(:,2) tmp2(:,3)]=ind2sub(size(tmp),1:prod(size(tmp)));
+  tmp2(:,4)=tmp(1:prod(size(tmp)));
+  tmp2=sortrows(tmp2,-4);
+
+  handles.interesting_timeseries=tmp2;
+else
+  tmp2=handles.interesting_timeseries;
 end
-[tmp2(:,1) tmp2(:,2) tmp2(:,3)]=ind2sub(size(tmp),1:prod(size(tmp)));
-tmp2(:,4)=tmp(1:prod(size(tmp)));
-tmp2=sortrows(tmp2,-4);
 
 tmp=cell(size(tmp2));
 tmp(:,1)=behavior_list(tmp2(:,1));
@@ -1376,19 +1420,19 @@ set(handles.Status,'string','Ready.');
 
 % --- 
 function [male_count female_count male_total female_total individual_count]=...
-    calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sex_data)
+    calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sexdata)
 
 male_count=0;  female_count=0;  individual_count=[];
 male_total=0;  female_total=0;
 %partition_idx=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)  % individual
-  tmp1=false(1,length(sex_data.data{i}));
+  tmp1=false(1,length(sexdata{i}));
   for j=1:length(behavior_data.allScores.t0s{i})  % bout
     tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
         -behavior_data.allScores.tStart(i)+1)=true;
   end
   if(behavior_logic>1)
-    tmp2=false(1,length(sex_data.data{i}));
+    tmp2=false(1,length(sexdata{i}));
     for j=1:length(behavior_data2.allScores.t0s{i})  % bout
       tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
           -behavior_data2.allScores.tStart(i)+1)=true;
@@ -1404,25 +1448,25 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     case(4)
       partition_idx=tmp1 | tmp2;
   end
-  male_count=male_count+sum(partition_idx & sex_data.data{i}(1:length(partition_idx)));
-  female_count=female_count+sum(partition_idx & (~sex_data.data{i}(1:length(partition_idx))));
-  male_total=male_total+sum(sex_data.data{i}(1:length(partition_idx)));
-  female_total=female_total+sum(~sex_data.data{i}(1:length(partition_idx)));
+  male_count=male_count+sum(partition_idx & sexdata{i}(1:length(partition_idx)));
+  female_count=female_count+sum(partition_idx & (~sexdata{i}(1:length(partition_idx))));
+  male_total=male_total+sum(sexdata{i}(1:length(partition_idx)));
+  female_total=female_total+sum(~sexdata{i}(1:length(partition_idx)));
   individual_count(i)=100*sum(partition_idx)./length(partition_idx);
 end
 
 
 % ---
 function table_data=calculate_behaviorstats(experiment_value,experiment_list,...
-    behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list)
+    behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list,sexdata)
 
 collated_data=cell(1,length(experiment_value));
 parfor e=1:length(experiment_value)
-  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
-      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-  for i=1:length(sex_data.data)
-    sex_data.data{i}=strcmp(sex_data.data{i},'M');
-  end
+%  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+%      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+%  for i=1:length(sex_data.data)
+%    sex_data.data{i}=strcmp(sex_data.data{i},'M');
+%  end
   behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(1))));
   collated_data{e}=nan(length(behavior_list),4+length(behavior_data.allScores.t0s));
   if(behavior_logic>1)
@@ -1435,7 +1479,7 @@ parfor e=1:length(experiment_value)
     behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
 
     [male_count female_count male_total female_total individual_count]=...
-        calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sex_data);
+        calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sexdata{e});
     if((4+length(individual_count))>size(collated_data{e},2))
       collated_data{e}(:,(end+1):(4+length(individual_count)))=...
           nan(size(collated_data{e},1):((4+length(individual_count))-size(collated_data{e},2)));
@@ -1484,14 +1528,17 @@ behavior_logic=get(handles.BehaviorLogic,'Value');
 behavior_value2=get(handles.BehaviorList2,'Value');
 behavior_list2=get(handles.BehaviorList2,'String');
 feature_list=get(handles.FeatureList,'String');
+sexdata=handles.sexdata;
 
 if(length(experiment_value)>0)
   table_data=calculate_behaviorstats(experiment_value,experiment_list,...
-      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list,...
+      sexdata(1:length(experiment_list)));
 end
 if(length(experiment_value2)>0)
   table_data2=calculate_behaviorstats(experiment_value2,experiment_list2,...
-      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list,...
+      sexdata((length(experiment_list)+1):end));
 end
 
 if((length(experiment_value)>0) && (length(experiment_value2)>0))
@@ -1525,20 +1572,20 @@ set(handles.Status,'string','Ready.');
 
 % --- 
 function [bout_lengths sex inter_bout_lengths inter_sex]=...
-    calculate_boutstats2(behavior_data,behavior_logic,behavior_data2,sex_data)
+    calculate_boutstats2(behavior_data,behavior_logic,behavior_data2,sexdata)
 
 bout_lengths=cell(1,length(behavior_data.allScores.t0s));
 inter_bout_lengths=cell(1,length(behavior_data.allScores.t0s));
 sex=cell(1,length(behavior_data.allScores.t0s));
 inter_sex=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)  % individual
-  tmp1=false(1,length(sex_data.data{i}));
+  tmp1=false(1,length(sexdata{i}));
   for j=1:length(behavior_data.allScores.t0s{i})  % bout
     tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
         -behavior_data.allScores.tStart(i)+1)=true;
   end
   if(behavior_logic>1)
-    tmp2=false(1,length(sex_data.data{i}));
+    tmp2=false(1,length(sexdata{i}));
     for j=1:length(behavior_data2.allScores.t0s{i})  % bout
       tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
           -behavior_data2.allScores.tStart(i)+1)=true;
@@ -1561,13 +1608,13 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     bout_lengths{i}=stop-start+1;
     sex{i}=zeros(1,length(bout_lengths{i}));
     for j=1:length(bout_lengths{i})
-      sex{i}(j)=sum(sex_data.data{i}(start(j):stop(j))) > (bout_lengths{i}(j)/2);
+      sex{i}(j)=sum(sexdata{i}(start(j):stop(j))) > (bout_lengths{i}(j)/2);
     end
     if(length(start)>1)
       inter_bout_lengths{i}=start(2:end)-stop(1:(end-1));
       inter_sex{i}=zeros(1,length(inter_bout_lengths{i}));
       for j=1:length(inter_bout_lengths{i})
-        inter_sex{i}(j)=sum(sex_data.data{i}(stop(j):start(j+1))) > (inter_bout_lengths{i}(j)/2);
+        inter_sex{i}(j)=sum(sexdata{i}(stop(j):start(j+1))) > (inter_bout_lengths{i}(j)/2);
       end
     end
   end
@@ -1597,15 +1644,15 @@ end
 
 % ---
 function [table_data raw_table_data]=calculate_boutstats(experiment_value,experiment_list,...
-    behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list)
+    behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list,sexdata)
 
 collated_data=cell(length(experiment_value),length(behavior_list));
 parfor e=1:length(experiment_value)
-  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
-      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-  for i=1:length(sex_data.data)
-    sex_data.data{i}=strcmp(sex_data.data{i},'M');
-  end
+%  sex_data=load(fullfile(char(experiment_list(experiment_value(e))),'perframe',...
+%      char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+%  for i=1:length(sex_data.data)
+%    sex_data.data{i}=strcmp(sex_data.data{i},'M');
+%  end
   behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(1))));
   if(behavior_logic>1)
     behavior_data2=load(fullfile(char(experiment_list(experiment_value(e))),...
@@ -1618,7 +1665,7 @@ parfor e=1:length(experiment_value)
     behavior_data=load(fullfile(char(experiment_list(experiment_value(e))),char(behavior_list(b))));
 
     [bout_lengths sex inter_bout_lengths inter_sex]=...
-        calculate_boutstats2(behavior_data,behavior_logic,behavior_data2,sex_data);
+        calculate_boutstats2(behavior_data,behavior_logic,behavior_data2,sexdata{e});
     parfor_tmp{b}={bout_lengths sex inter_bout_lengths inter_sex};
   end
   collated_data(e,:)=parfor_tmp;
@@ -1678,14 +1725,17 @@ behavior_logic=get(handles.BehaviorLogic,'Value');
 behavior_value2=get(handles.BehaviorList2,'Value');
 behavior_list2=get(handles.BehaviorList2,'String');
 feature_list=get(handles.FeatureList,'String');
+sexdata=handles.sexdata;
 
 if(length(experiment_value)>0)
   [table_data raw_table_data]=calculate_boutstats(experiment_value,experiment_list,...
-      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list,...
+      sexdata(1:length(experiment_list)));
 end
 if(length(experiment_value2)>0)
   [table_data2 raw_table_data2]=calculate_boutstats(experiment_value2,experiment_list2,...
-      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list);
+      behavior_list,behavior_logic,behavior_value2,behavior_list2,feature_list,...
+      sexdata((length(experiment_list)+1):end));
 end
 
 if((length(experiment_value)>0) && (length(experiment_value2)>0))
@@ -1717,7 +1767,6 @@ end
 set(handles.Table,'ColumnName',tmp);
 set(handles.Table,'ColumnWidth',{150 75 75});
 
-%handles.table_data2=table_data2;
 handles.table='bout_stats';
 guidata(hObject,handles);
 
@@ -1808,21 +1857,25 @@ elseif(strcmp(handles.table,'behavior_stats'))
     if(mod(eventdata.Indices(end,1),2))
       experiment_value0=experiment_value;
       experiment_list0=experiment_list;
+      sexdata=handles.sexdata(1:length(experiment_list));
       color='r';
     else
       experiment_value0=experiment_value2;
       experiment_list0=experiment_list2;
+      sexdata=handles.sexdata((length(experiment_list)+1):end);
       color='b';
     end
   elseif(length(experiment_value)>0)
     b=eventdata.Indices(end,1);
     experiment_value0=experiment_value;
     experiment_list0=experiment_list;
+      sexdata=handles.sexdata(1:length(experiment_list));
     color='r';
   else
     b=eventdata.Indices(end,1);
     experiment_value0=experiment_value2;
     experiment_list0=experiment_list2;
+    sexdata=handles.sexdata((length(experiment_list)+1):end);
     color='b';
   end
 
@@ -1853,36 +1906,36 @@ elseif(strcmp(handles.table,'behavior_stats'))
   end
   set(handles.IndividualList,'Value',handles.individualvalue);
 
-  sex_data=cell(1,length(experiment_value0));
-  for e=1:length(experiment_value0)
-    sex_data{e}=load(fullfile(char(experiment_list0(experiment_value0(e))),'perframe',...
-        char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-  end
+%  sex_data=cell(1,length(experiment_value0));
+%  for e=1:length(experiment_value0)
+%    sex_data{e}=load(fullfile(char(experiment_list0(experiment_value0(e))),'perframe',...
+%        char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
+%  end
 
-  cellfun(@(x) size(x.data{1},2),sex_data,'uniformoutput',false);
+  cellfun(@(x) size(x{1},2),sexdata,'uniformoutput',false);
   behavior_cumulative=zeros(length(experiment_value0),max([ans{:}]));
   %parfor e=1:length(experiment_value0)
   parfor e=ee
     behavior_data=load(fullfile(char(experiment_list0(experiment_value0(e))),...
         char(behavior_list(b))));
-    if((eventdata.Indices(end,2)>2) && (eventdata.Indices(end,2)<5))
-      for i=1:length(sex_data{e}.data)
-        sex_data{e}.data{i}=strcmp(sex_data{e}.data{i},'M');
-      end
-    end
+%    if((eventdata.Indices(end,2)>2) && (eventdata.Indices(end,2)<5))
+%      for i=1:length(sexdata{e})
+%        sexdata{e}{i}=strcmp(sexdata{e}{i},'M');
+%      end
+%    end
     parfor_tmp=zeros(1,length(behavior_cumulative(e,:)));
     for i=1:length(behavior_data.allScores.t0s)   % individual
       if((eventdata.Indices(end,2)>4)&&(i~=ii))  continue;  end
-      partition_idx=false(1,length(sex_data{e}.data{i}));
+      partition_idx=false(1,length(sexdata{e}{i}));
       for j=1:length(behavior_data.allScores.t0s{i})  % bout
         partition_idx((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
             -behavior_data.allScores.tStart(i)+1)=true;
       end
       switch(eventdata.Indices(end,2))
         case(3)
-          partition_idx = partition_idx & sex_data{e}.data{i}(1:length(partition_idx));
+          partition_idx = partition_idx & sexdata{e}{i}(1:length(partition_idx));
         case(4)
-          partition_idx = partition_idx & (~sex_data{e}.data{i}(1:length(partition_idx)));
+          partition_idx = partition_idx & (~sexdata{e}{i}(1:length(partition_idx)));
       end
       idx=find(partition_idx);
       parfor_tmp(idx)=parfor_tmp(idx)+1;
@@ -1908,14 +1961,11 @@ elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
   set(handles.BehaviorList2,'enable','off');
   handles.featurevalue=handles.table_data(eventdata.Indices(end,1),2);
   set(handles.FeatureList,'Value',handles.featurevalue);
-  handles.sex=1;
-  set(handles.IndividualList,'Value',handles.sex);
+  handles.individual=1;
+  set(handles.IndividualList,'Value',handles.individual);
 
   if(strcmp(handles.table,'timeseries'))
     handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3);
-    %set(handles.Timing,'Value',handles.timing);
-    %handles.statistic=handles.table_data(eventdata.Indices(end,1),4);
-    %set(handles.Statistic,'Value',handles.statistic);
     PlotTimeSeries_Callback(hObject, eventdata, handles);
 
   elseif(strcmp(handles.table,'histogram'))
