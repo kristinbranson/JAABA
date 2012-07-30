@@ -58,6 +58,23 @@ flies = obj.exp2flies{n};
 obj.firstframes(flies) = [traj.firstframe];
 obj.endframes(flies) = [traj.endframe];
 obj.nframes(flies) = [traj.nframes];
+
+% Adding the arena parameters if they exist for rectangular arena.
+if isfield(traj(1).arena,'tl')
+  count = 1;
+  for ndx = flies(:)'
+    obj.tl_x(ndx) = traj(count).arena.tl(1);
+    obj.tl_y(ndx) = traj(count).arena.tl(2);
+    obj.tr_x(ndx) = traj(count).arena.tr(1);
+    obj.tr_y(ndx) = traj(count).arena.tr(2);
+    obj.bl_x(ndx) = traj(count).arena.bl(1);
+    obj.bl_y(ndx) = traj(count).arena.bl(2);
+    obj.br_x(ndx) = traj(count).arena.br(1);
+    obj.br_y(ndx) = traj(count).arena.br(2);
+    count = count+1;
+  end
+end
+
 % fps
 if isfield(traj,'fps'),
   obj.fps(n) = traj(1).fps;

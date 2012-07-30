@@ -570,6 +570,14 @@ end
 
 if refresh_timeline_auto,
   set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
+  pred = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies,handles.guidata.ts(1),handles.guidata.ts(1));
+  if pred.predictedidx~=0
+    cur_scores = handles.guidata.data.NormalizeScores(pred.scoresidx);
+    set(handles.text_scores,'String',sprintf('%+.2f',cur_scores));
+  else
+    set(handles.text_scores,'String','');
+  end
+    
 end
 if refresh_timeline_suggest,
   set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
@@ -613,6 +621,9 @@ if refresh_timeline_props,
       'YData',perframedata);
     %if isnan(handles.guidata.timeline_data_ylims(1,v)),
       ylim = [min(perframedata),max(perframedata)];
+      if ylim(2) <= ylim(1),
+        ylim(2) = ylim(1)+1;
+      end
       set(handles.guidata.axes_timeline_props(propi),'YLim',ylim);
       zoom(handles.guidata.axes_timeline_props(propi),'reset');
     %end
@@ -747,7 +758,6 @@ for i = axes,
   end
 
   % update trx
-  % TODO: remove hard-coded nprev, npost
   nprev = handles.guidata.traj_nprev;
   npost = handles.guidata.traj_npost;
   if refreshtrx,
@@ -1241,10 +1251,8 @@ switch handles.guidata.bottomAutomatic
     scores_bottom = handles.guidata.data.GetOldScores(handles.guidata.expi,handles.guidata.flies);
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
   case 'Postprocessed'
-    scores_bottom = handles.guidata.data.GetLoadedScores(handles.guidata.expi,handles.guidata.flies);
+    [scores_bottom,prediction_bottom] =  handles.guidata.data.GetPostprocessedScores(handles.guidata.expi,handles.guidata.flies);
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
-    tt =  handles.guidata.data.GetPostprocessedScores(handles.guidata.expi,handles.guidata.flies);
-    prediction_bottom = (3-tt)/2;
   case 'None'
     scores_bottom = zeros(size(scores));
   otherwise
@@ -3000,7 +3008,7 @@ function handles = UpdatePrediction(handles)
 t0 = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
 t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
 handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0:t1);
-handles = SetPredictedPlot(handles,t0,t1);
+handles = SetPredictedPlot(handles);
 
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
@@ -3852,6 +3860,7 @@ manual_radio_pos(2) = timeline_select_pos(4)-auto_radio_pos(2)...
   -manual_radio_pos(4);
 set(handles.timeline_label_manual,'Position',manual_radio_pos);
 
+
 % Positions of the automatic timeline's labels
 labelPredictionPos = get(handles.automaticTimelinePredictionLabel,'Position');
 labelScoresPos =     get(handles.automaticTimelineScoresLabel,'Position');
@@ -3865,6 +3874,13 @@ set(handles.automaticTimelineScoresLabel,'Position',labelScoresPos);
 labelPredictionPos(2) = timeline_auto_pos(2) + ...
   5*timeline_auto_pos(4)/6 - labelPredictionPos(4)/2;
 set(handles.automaticTimelinePredictionLabel,'Position',labelPredictionPos);
+
+% Scores text position
+scores_pos = get(handles.text_scores,'Position');
+scores_pos(2) = popupBottomPos(2);
+scores_pos(1) = auto_radio_pos(1)+auto_radio_pos(3)/2-scores_pos(3)/2;
+set(handles.text_scores,'Position',scores_pos);
+
 
 %{
 % axes_manual_pos = [handles.guidata.guipos.timeline_xpos,...
@@ -4572,7 +4588,7 @@ while true,
     PLAY_TIMER_DONE = false;
     predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
     predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
-    handles = SetPredictedPlot(handles,predictStart,predictEnd);
+    handles = SetPredictedPlot(handles);
     handles = UpdateTimelineIms(handles);
 
     guidata(hObject,handles);
@@ -4629,7 +4645,7 @@ while true,
     PLAY_TIMER_DONE = false;
     predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
     predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
-    handles = SetPredictedPlot(handles,predictStart,predictEnd);
+    handles = SetPredictedPlot(handles);
     handles = UpdateTimelineIms(handles);
 
     guidata(hObject,handles);
@@ -6324,5 +6340,5 @@ function menu_classifier_postprocess_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-posthandle = PostProcess(handles.guidata.data);
+posthandle = PostProcess(handles.guidata.data,handles);
 handles.guidata.open_peripherals(end+1) = posthandle;
