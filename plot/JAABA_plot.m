@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 26-Jul-2012 13:44:49
+% Last Modified by GUIDE v2.5 30-Jul-2012 10:59:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -915,21 +915,23 @@ not_during=[not_during{:}];
 feature_units=feature_units{1};
 
 table_data={2,7};
-table_data{1,1}='during';
-table_data{1,2}=num2str(mean(during),3);
-table_data{1,3}=num2str(std(during),3);
-table_data{1,4}=num2str(std(during)./sqrt(length(during)),3);
-table_data{1,5}=num2str(median(during),3);
-table_data{1,6}=[num2str(prctile(during,25),3) '-' num2str(prctile(during,75),3)];
-table_data{1,7}=[num2str(prctile(during,5),3) '-' num2str(prctile(during,95),3)];
+table_data{1,1}='    during ';
+table_data{1,2}=sprintf('%10.3g ',mean(during));
+table_data{1,3}=sprintf('%10.3g ',std(during));
+table_data{1,4}=sprintf('%10.3g ',std(during)./sqrt(length(during)));
+table_data{1,5}=sprintf('%10.3g ',median(during));
+table_data{1,6}=sprintf('%10.3g ',prctile(during,25));
+table_data{1,7}=sprintf('%10.3g ',prctile(during,75));
+%table_data{1,7}=sprintf('%10.3g-%10.3g ',[prctile(during,5) prctile(during,95)]);
 
-table_data{2,1}='not during';
-table_data{2,2}=num2str(mean(not_during),3);
-table_data{2,3}=num2str(std(not_during),3);
-table_data{2,4}=num2str(std(not_during)./sqrt(length(not_during)),3);
-table_data{2,5}=num2str(median(not_during),3);
-table_data{2,6}=[num2str(prctile(during,25),3) '-' num2str(prctile(during,75),3)];
-table_data{2,7}=[num2str(prctile(during,5),3) '-' num2str(prctile(during,95),3)];
+table_data{2,1}='not during ';
+table_data{2,2}=sprintf('%10.3g ',mean(not_during));
+table_data{2,3}=sprintf('%10.3g ',std(not_during));
+table_data{2,4}=sprintf('%10.3g ',std(not_during)./sqrt(length(not_during)));
+table_data{2,5}=sprintf('%10.3g ',median(not_during));
+table_data{2,6}=sprintf('%10.3g ',prctile(not_during,25));
+table_data{2,7}=sprintf('%10.3g ',prctile(not_during,75));
+%table_data{2,7}=sprintf('%10.3g-%10.3g ',[prctile(not_during,5) prctile(not_during,95)]);
 
 tmp=linspace(min([during not_during]),max([during not_during]));
 hist_during=hist(during,tmp);
@@ -938,9 +940,9 @@ plot(tmp,hist_not_during./sum(hist_not_during),[color '-']);
 plot(tmp,hist_during./sum(hist_during),[color '-'],'linewidth',3);
 
 
-% --- Executes on button press in PlotHistogram.
-function PlotHistogram_Callback(hObject, eventdata, handles)
-% hObject    handle to PlotHistogram (see GCBO)
+% --- Executes on button press in FeatureHistogram.
+function FeatureHistogram_Callback(hObject, eventdata, handles)
+% hObject    handle to FeatureHistogram (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
@@ -1000,10 +1002,11 @@ elseif(length(experiment_value2)>0)
   tmp=table_data2;
 end
 
-{'' 'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%-75%' '5%-95%'};
-tmp2(1,:)=sprintf('%15s ',ans{:});
+clear tmp2
+{'' 'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%' '75%'};
+tmp2(1,:)=sprintf('%10s ',ans{:});
 for i=1:size(tmp,1)
-  tmp2(i+1,:)=sprintf('%15s ',tmp{i,:});
+  tmp2(i+1,:)=[tmp{i,:}];
 end
 v=axis;
 h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
@@ -1227,9 +1230,9 @@ switch(statistic)
 end
 
 
-% --- Executes on button press in PlotTimeSeries.
-function PlotTimeSeries_Callback(hObject, eventdata, handles)
-% hObject    handle to PlotTimeSeries (see GCBO)
+% --- Executes on button press in FeatureTimeSeries.
+function FeatureTimeSeries_Callback(hObject, eventdata, handles)
+% hObject    handle to FeatureTimeSeries (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
@@ -1306,9 +1309,9 @@ elseif(length(experiment_value2)>0)
 end
 
 {'mean' 'std. dev.' 'mean' 'std. dev.'};
-tmp2(1,:)=['RMS before,after:' sprintf('%15s ',ans{:})];
+tmp2(1,:)=['RMS before,after:' sprintf('%10s ',ans{:})];
 for i=1:size(tmp,1)
-  tmp2(i+1,:)=['                 ' sprintf('%15.3f ',tmp(i,:))];
+  tmp2(i+1,:)=['                 ' sprintf('%10.3g ',tmp(i,:))];
 end
 v=axis;
 h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
@@ -1815,23 +1818,23 @@ if(strcmp(handles.table,'bout_stats'))
   cla;  hold on;
   data=handles.raw_table_data{eventdata.Indices(end,1),eventdata.Indices(end,2)};
   [n,x]=hist(data,100);
-  plot(x,n,[color '-']);
+  plot(x,n./sum(n),[color '-']);
   xlabel('length (frames)');
   %ylabel(strrep(char(behavior_list(b)),'_','-'));
   axis tight;
 
   tmp={};
-  tmp{1}=num2str(mean(data),3);
-  tmp{2}=num2str(std(data),3);
-  tmp{3}=num2str(std(data)./sqrt(length(data)),3);
-  tmp{4}=num2str(median(data),3);
-  tmp{5}=[num2str(prctile(data,25),3) '-' num2str(prctile(data,75),3)];
-  tmp{6}=[num2str(prctile(data,5),3) '-' num2str(prctile(data,95),3)];
+  tmp{1}=sprintf('%10.3g ',mean(data));
+  tmp{2}=sprintf('%10.3g ',std(data));
+  tmp{3}=sprintf('%10.3g ',std(data)./sqrt(length(data)));
+  tmp{4}=sprintf('%10.3g ',median(data));
+  tmp{5}=sprintf('%10.3g ',prctile(data,25));
+  tmp{6}=sprintf('%10.3g ',prctile(data,75));
 
-  {'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%-75%' '5%-95%'};
+  {'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%' '75%'};
   tmp2(1,:)=sprintf('%10s ',ans{:});
   for i=1:size(tmp,1)
-    tmp2(i+1,:)=sprintf('%10s ',tmp{i,:});
+    tmp2(i+1,:)=[tmp{i,:}];
   end
   v=axis;
   h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
@@ -1906,23 +1909,12 @@ elseif(strcmp(handles.table,'behavior_stats'))
   end
   set(handles.IndividualList,'Value',handles.individualvalue);
 
-%  sex_data=cell(1,length(experiment_value0));
-%  for e=1:length(experiment_value0)
-%    sex_data{e}=load(fullfile(char(experiment_list0(experiment_value0(e))),'perframe',...
-%        char(feature_list(find(strcmp(feature_list,'sex.mat'))))));
-%  end
-
   cellfun(@(x) size(x{1},2),sexdata,'uniformoutput',false);
   behavior_cumulative=zeros(length(experiment_value0),max([ans{:}]));
-  %parfor e=1:length(experiment_value0)
+  k=1;
   parfor e=ee
     behavior_data=load(fullfile(char(experiment_list0(experiment_value0(e))),...
         char(behavior_list(b))));
-%    if((eventdata.Indices(end,2)>2) && (eventdata.Indices(end,2)<5))
-%      for i=1:length(sexdata{e})
-%        sexdata{e}{i}=strcmp(sexdata{e}{i},'M');
-%      end
-%    end
     parfor_tmp=zeros(1,length(behavior_cumulative(e,:)));
     for i=1:length(behavior_data.allScores.t0s)   % individual
       if((eventdata.Indices(end,2)>4)&&(i~=ii))  continue;  end
@@ -1939,16 +1931,17 @@ elseif(strcmp(handles.table,'behavior_stats'))
       end
       idx=find(partition_idx);
       parfor_tmp(idx)=parfor_tmp(idx)+1;
+      k=k+1;
     end
     behavior_cumulative(e,:)=parfor_tmp;
   end
-  behavior_cumulative=sum(behavior_cumulative,1);
+  behavior_cumulative=sum(behavior_cumulative,1)./k.*100;
   behavior_cumulative=conv(behavior_cumulative,ones(1,100)./100,'same');
   axes(handles.Axes);
   cla;  hold on;
   plot(behavior_cumulative,[color '-']);
   xlabel('time (frames)');
-  ylabel(strrep(char(behavior_list(b)),'_','-'));
+  ylabel([strrep(char(behavior_list(b)),'_','-') ' (%)']);
   axis tight;
 
   guidata(hObject,handles);
@@ -1966,10 +1959,10 @@ elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
 
   if(strcmp(handles.table,'timeseries'))
     handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3);
-    PlotTimeSeries_Callback(hObject, eventdata, handles);
+    FeatureTimeSeries_Callback(hObject, eventdata, handles);
 
   elseif(strcmp(handles.table,'histogram'))
-    PlotHistogram_Callback(hObject, eventdata, handles);
+    FeatureHistogram_Callback(hObject, eventdata, handles);
   end
 end
 
