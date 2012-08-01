@@ -392,7 +392,7 @@ createPfTable(hObject);
 createWindowTable(hObject);
 createCopyFromMenus(hObject);
 createDescriptionPanels(hObject);
-
+compatibleBasicAdvanced(handles);
 
 function readFeatureConfiguration(hObject)
 % Reads the configuration file that sets the default parameters.
@@ -547,6 +547,7 @@ if eventData.Indices(2) ==2
   switch eventData.NewData
 
     case 'None'
+      h = waitbar(0,'Unselecting the perframe features');
       basicTable = get(handles.basicTable,'Data');
       for ndx = 1:numel(handles.pfList)
         disable = true;
@@ -564,11 +565,13 @@ if eventData.Indices(2) ==2
       end
       guidata(hObject,handles);
       createPfTable(handles.pfTable);
-    
+      close(h);
     case 'All'
+      h = waitbar(0,'Selecting the perframe features');
       handles = applyCategoryType(handles,eventData.Indices(1));
       guidata(hObject,handles);
       createPfTable(handles.pfTable);
+      close(h);
   end
 elseif eventData.Indices(2) == 3
 % Choose the category.
@@ -602,6 +605,28 @@ for ndx = 1:numel(handles.pfList)
   end
 end
 
+function compatibleBasicAdvanced(handles)
+basicTable = get(handles.basicTable,'Data');
+incompatible = '';
+for ndx = 1:numel(handles.pfList)
+  selected = false;
+  for bndx = 1:size(basicTable,1)
+    if ~any(strcmp(handles.pftype.(handles.pfList{ndx}),basicTable{bndx,1})),
+      continue;
+    end
+    if strcmpi(basicTable{bndx,2},'all')
+       selected = true;
+    end
+    if selected && ~handles.data{ndx}.valid
+      incompatible = sprintf('%s %s', incompatible,handles.pfList{ndx});
+    end
+    
+  end
+end
+if numel(incompatible)>0
+  uiwait(warndlg(sprintf('Perframe feature(s) %s should have been selected but are not',incompatible),...
+    'Mismatch in categories and perframe features'));
+end
 
 function pfSelect(hObject,eventData)
 % Called when user selects cells in pfTable.
