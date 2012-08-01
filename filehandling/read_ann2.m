@@ -98,7 +98,7 @@ if readtrx,
       if isempty(j),
         ids(end+1) = id(i);
         j = length(ids);
-        trx(j).firstframe = f + 1;
+        trx(j).firstframe = f;
       end
       trx(j).x(end+1) = x(i);
       trx(j).y(end+1) = y(i);
