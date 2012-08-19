@@ -276,7 +276,7 @@ for i = 1:nclassifiers,
   else
     scorefilename = configparams{i}.file.scorefilename;
   end
-  scorefilename = ['test_',scorefilename];
+  %scorefilename = ['test_',scorefilename];
   sfn = fullfile(expdir,scorefilename);
       
   if exist(sfn,'file'),
