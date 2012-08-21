@@ -337,10 +337,14 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
+
+if isfield(handles,'fid') && ~isempty(fopen(handles.fid)),
+  fclose(handles.fid);
+end
+
 savefns = {'filename','CompressionSettings'};
 save(handles.rcfilename,'-struct','handles',savefns{:});
 delete(hObject);
-
 
 % --- Executes when figure1 is resized.
 function figure1_ResizeFcn(hObject, eventdata, handles)
