@@ -2864,6 +2864,11 @@ if ~handles.guidata.enabled,
   return;
 end
 
+% double-click does nothing
+if strcmpi(get(handles.figure_JLabel,'SelectionType'),'open'),
+  return;
+end
+
 if handles.guidata.expi ~= handles.guidata.data.expi,
   handles.guidata.data.Preload(handles.guidata.expi,handles.guidata.flies);
 end
