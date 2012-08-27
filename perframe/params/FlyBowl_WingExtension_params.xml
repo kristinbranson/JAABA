@@ -2,13 +2,13 @@
 <params>
    <targets type="wingedfly"/>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="WingExtension" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params\featureConfigWings.xml" featureparamfilename="C:\Code\Jdetect\perframe\params\WindowFeatures_WingExtension.xml" gt_labelfilename="labeledWingExtensionv2_gt.mat" labelfilename="labeledWingExtensionv2.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_wingtest.mat" trxfilename="wingtracking_results.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfigWings.xml" featureparamfilename="params/WindowFeatures_WingExtension.xml" gt_labelfilename="labeledWingExtensionv2_gt.mat" labelfilename="labeledWingExtensionv2.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_wingtest.mat" trxfilename="wingtracking_results.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7" extra_linestyle="-" extra_marker="."/>
       <labels colormap="line" linewidth="3"/>
    </plot>
    <perframe>
-      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <params fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
       <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
    </perframe>
    <featureparamlist>
