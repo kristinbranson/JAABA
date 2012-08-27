@@ -282,10 +282,7 @@ classdef NextJump < handle
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
-      scores = data.GetPostprocessedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
+      [~,predictedidx] = data.GetPostprocessedScores(expi,flies,t0,t1);
 
       j = find( (predictedidx ~= predictedidx(1)),1);
       if isempty(j), return; end
@@ -303,10 +300,7 @@ classdef NextJump < handle
       if t0 >= ts, return; end
 
       t1 = min(max(ts,t0),t1);
-      scores = data.GetPostprocessedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
+      [~,predictedidx] = data.GetPostprocessedScores(expi,flies,t0,t1);
 
       j = find( (predictedidx ~= predictedidx(end)) ,1,'last');
       if isempty(j), return; end
