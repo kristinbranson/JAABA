@@ -8,7 +8,7 @@ if isempty(in),
 end
 
 % allowed unit names
-knownunitnames = {'mm','deg','rad','frame','sec','unit','px'};
+knownunitnames = {'mm','cm','deg','rad','frame','sec','unit','px'};
 
 % remove white space
 in = strrep(in,' ','');
@@ -40,6 +40,9 @@ end
 dictionary.mms = 'mm';
 dictionary.millimeter = 'mm';
 dictionary.millimeters = 'mm';
+dictionary.cms = 'cm';
+dictionary.centimeter = 'cm';
+dictionary.centimeters = 'cm';
 dictionary.degs = 'deg';
 dictionary.degree = 'deg';
 dictionary.degrees = 'deg';
