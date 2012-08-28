@@ -5845,17 +5845,27 @@ end
       % Use imfill to find the regions.
       if isempty(curs), posts = curs; return; end
       
+      
       % Select pos bouts that have at least one frame about the high
       % threshold.
       hthresh = curs > params.hystopts(1).value*obj.windowdata.scoreNorm;
       lthresh = curs > 0;
-      pos = imfill(~lthresh,find(hthresh)') & lthresh;
-      
+      if( nnz(hthresh)>0)
+        pos = imfill(~lthresh,find(hthresh)') & lthresh;
+        computeNeg = true;
+      else
+        pos = false(size(curs));
+        computeNeg = false;
+      end
       % Select neg bouts that have at least one frame below the low
       % threshold.
       hthresh = curs < params.hystopts(2).value*obj.windowdata.scoreNorm;
       lthresh = curs < params.hystopts(1).value*obj.windowdata.scoreNorm;
-      neg = imfill(~lthresh,find(hthresh)') & lthresh;
+      if nnz(hthresh)>0 && computeNeg,
+        neg = imfill(~lthresh,find(hthresh)') & lthresh;
+      else
+        neg = false(size(curs));
+      end
       
       posts = pos | ~neg;
       
