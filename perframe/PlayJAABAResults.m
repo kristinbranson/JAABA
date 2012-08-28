@@ -72,6 +72,7 @@ if isempty(handles.expdir),
   expdir = handles.expdir;
 end
 if isempty(handles.classifierparamsfile),
+  if isempty(classifierparamsfile), classifierparamsfile = '*.xml'; end
   [filename,path] = uigetfile(classifierparamsfile,'Classifier parameters file');
   if ~ischar(filename),
     delete(handles.figure_PJR);
