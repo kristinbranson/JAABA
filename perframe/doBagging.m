@@ -72,9 +72,14 @@ for mno = 1:length(bagModels)
   validEx = outOfBag(:,mno);
   for j = 1:length(curModel)
     curWk = curModel(j);
-    dd = data(:,curWk.dim)*curWk.dir;
-    tt = curWk.tr*curWk.dir;
-    trainDistMat(:,count) = (dd>tt)*curWk.alpha;
+    dd = data(:,curWk.dim);
+    tr = curWk.tr;
+    if curWk.dir>0,
+      tt = ((dd>tr)-0.5)*2;
+    else
+      tt = ((dd<=tr)-0.5)*2;
+    end
+    trainDistMat(:,count) = tt*curWk.alpha;
     trainDistMat(~validEx,count)=nan;
     count = count+1;
   end

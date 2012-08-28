@@ -43,6 +43,8 @@ edges = .5:numBins+.5;
 idxpos = curLabels > 0;
 % always normalize histograms by Z
 Z = size(curBins,2);
+Zpos = nnz(idxpos);
+Zneg = nnz(~idxpos);
 
 DOLOOP = false;
 if ~DOLOOP,
@@ -84,9 +86,9 @@ parfor dim = 1:numDim
 %   negCount = allCount(1:numBins);
 %}
   posCount = histc(curBinsPos(dim,:),edges);
-  posCount = posCount(1:end-1) / Z;
+  posCount = posCount(1:end-1) / Zpos;
   negCount = histc(curBinsNeg(dim,:),edges);
-  negCount = negCount(1:end-1) / Z;
+  negCount = negCount(1:end-1) / Zneg;
   
 %{
 %   posLeft = 0;
