@@ -25,6 +25,10 @@ classdef JLabelData < handle
       'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
       'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
       'scores_old',[],'scores_validated',[],'postprocessed',[]);
+
+    predictdata = struct('exp',[],'flies',[],'t',[],...
+      'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
+      'scores',[], 'scores_old',[],'scores_validated',[],'postprocessed',[]);
     
     % Score loaded from files.
     scoredata = struct('scores',[],'predicted',[],...
@@ -2811,9 +2815,7 @@ end
         obj.frac_sex_per_exp{expi} = struct('M',tmp,'F',tmp);
         obj.sex_per_exp{expi} = repmat({'?'},[1,numel(trx)]);
         if isfield(trx,'sex'),
-          if numel(trx) > 1,
-            obj.hasperframesex = iscell(trx(1).sex);
-          end
+          obj.hasperframesex = iscell(trx(1).sex);
           if obj.hasperframesex,
             for fly = 1:numel(trx),
               n = numel(trx(fly).sex);
@@ -3327,7 +3329,7 @@ end
     % property. 
 
       if ischar(prop),
-        prop = find(strcmp(prop,handles.perframefn),1);
+        prop = find(strcmp(prop,obj.allperframefns),1);
         if isempty(prop),
           error('Property %s is not a per-frame property');
         end
@@ -4769,7 +4771,7 @@ end
         crossValidateBout( obj.windowdata.X, ...
         obj.windowdata.labelidx_cur,bouts,obj,...
         obj.windowdata.binVals,...
-        obj.classifier_params);%,true);
+        obj.classifier_params,true);
       
       if ~success, 
         crossError.numbers = zeros(4,3);
