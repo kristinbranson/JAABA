@@ -168,6 +168,7 @@ classdef JLabelGUIData < handle
     open_peripherals = [];
 
     cache_thread = [];
+    cacheSize = 4000;
         
   end
      
