@@ -1731,7 +1731,8 @@ handles.guidata.data = JLabelData(handles.guidata.configfilename,...
   'defaultpath',handles.guidata.defaultpath,...
   'classifierfilename',handles.guidata.classifierfilename,...
   'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
-  'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel));
+  'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel),...
+  'cacheSize',handles.guidata.cacheSize);
 
 % number of flies to label at a time
 handles.guidata.nflies_label = 1;
@@ -2214,6 +2215,13 @@ end
     handles.guidata.bottomAutomatic = 'None';
   end
   
+  % cache size
+  if isfield(handles.guidata.rc,'cacheSize'),
+    handles.guidata.cacheSize = handles.guidata.rc.cacheSize;
+  else
+    handles.guidata.cacheSize = 4000;
+  end
+  
 % catch ME,
 %   warning('Error loading RC file: %s',getReport(ME));  
 % end
@@ -2267,6 +2275,10 @@ function handles = SaveRC(handles)
   % navigation preferences
   rc.navPreferences = handles.guidata.NJObj.GetState();
   rc.bottomAutomatic = handles.guidata.bottomAutomatic;
+  
+  % cache size
+  rc.cacheSize = handles.guidata.cacheSize;
+  
   save(handles.guidata.rcfilename,'-struct','rc');
 
 % catch ME,
@@ -6332,6 +6344,7 @@ if isnan(sz) || sz<0;
   return;
 end
 
+handles.guidata.cacheSize = round(sz);
 handles.guidata.data.cacheSize = round(sz);
 
 
