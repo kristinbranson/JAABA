@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<params>
+   <targets type="fly"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Chase" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_Chasev7.xml" gt_labelfilename="gt_labeledChasev7.mat" labelfilename="labeledChasev7.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_Chasev7.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <plot>
+      <trx colormap="jet" colormap_multiplier="0.7"/>
+      <labels colormap="line" linewidth="3"/>
+   </plot>
+   <perframe>
+      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625" max_dnose2ell_anglerange="127"/>
+      <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
+   </perframe>
+   <JLabelMode mode="advanced"/>
+   <featureparamlist>
+      <a_mm/>
+      <absanglefrom1to2_nose2ell/>
+      <absdtheta/>
+      <absdv_cor/>
+      <absphidiff_anglesub/>
+      <absphidiff_nose2ell/>
+      <absthetadiff_anglesub/>
+      <absthetadiff_nose2ell/>
+      <angle2wall/>
+      <anglefrom1to2_anglesub/>
+      <anglefrom1to2_nose2ell/>
+      <angleonclosestfly/>
+      <anglesub/>
+      <area/>
+      <arena_angle/>
+      <arena_r/>
+      <b_mm/>
+      <closestfly_anglesub/>
+      <closestfly_center/>
+      <closestfly_ell2nose/>
+      <closestfly_nose2ell/>
+      <corfrac_maj/>
+      <corfrac_min/>
+      <dangle2wall/>
+      <danglesub/>
+      <darea/>
+      <da/>
+      <db/>
+      <dcenter/>
+      <ddcenter/>
+      <ddist2wall/>
+      <decc/>
+      <dell2nose/>
+      <dnose2ell_angle_30tomin30/>
+      <dnose2ell_angle_min20to20/>
+      <dnose2ell_angle_min30to30/>
+      <dist2wall/>
+      <dnose2ell/>
+      <dnose2tail/>
+      <dphi/>
+      <dtheta/>
+      <du_cor/>
+      <du_ctr/>
+      <du_tail/>
+      <dv_cor/>
+      <dv_ctr/>
+      <dv_tail/>
+      <ecc/>
+      <flipdv_cor/>
+      <magveldiff_anglesub/>
+      <magveldiff_nose2ell/>
+      <nflies_close/>
+      <phi/>
+      <phisideways/>
+      <velmag/>
+      <velmag_ctr/>
+      <velmag_nose/>
+      <velmag_tail/>
+      <veltoward_anglesub/>
+      <veltoward_nose2ell/>
+      <yaw/>
+      <absyaw/>
+   </featureparamlist>
+</params>
