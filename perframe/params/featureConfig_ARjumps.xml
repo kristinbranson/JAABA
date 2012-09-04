@@ -1,0 +1,167 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+    
+    <absdtheta trans_types="relative" type="locomotion"/>
+    
+    <absdv_cor trans_types="relative" type="locomotion"/>
+    
+    <absphidiff_anglesub trans_types="none" type="social"/>
+    
+    <absphidiff_nose2ell trans_types="none" type="social"/>
+    
+    <absthetadiff_anglesub trans_types="none" type="social"/>
+    
+    <absthetadiff_nose2ell trans_types="none" type="social"/>
+    
+    <angle2wall trans_types="flip,abs" type="arena"/>
+    
+    <anglefrom1to2_anglesub trans_types="flip,abs" type="social"/>
+    
+    <anglefrom1to2_nose2ell  trans_types="flip,abs" type="social"/>
+    
+    <!-- angleonclosestfly trans_types="flip,abs" type="social"/-->
+    
+    <anglesub trans_types="none" type="social"/>
+    
+    <area trans_types="none,relative" type="appearance"/>
+    
+    <arena_angle trans_types="none" type="position"/>
+    
+    <arena_r trans_types="none" type="arena,position"/>
+    
+    <closestfly_anglesub trans_types="none" type="identity"/>
+    
+    <closestfly_center  trans_types="none" type="identity"/>
+    
+    <closestfly_ell2nose  trans_types="none" type="identity"/>
+    
+    <closestfly_nose2ell  trans_types="none" type="identity"/>
+    
+    <corfrac_maj trans_types="none,abs" type="locomotion"/>
+    
+    <corfrac_min trans_types="flip,abs" type="locomotion"/>
+<ecc trans_types="none,abs" type="appearance"/>
+    
+    <dangle2wall trans_types="flip,abs" type="arena"/>
+    
+    <danglesub trans_types="none,abs" type="social"/>
+    
+    <darea trans_types="none,abs" type="appearance"/>
+<da trans_types="none,abs" type="appearance"/>
+<db trans_types="none,abs" type="appearance"/>
+    
+    <dcenter trans_types="none,relative" type="social"/>
+    
+    <ddcenter trans_types="none,abs" type="social"/>
+    
+    <ddist2wall trans_types="none" type="arena"/>
+<decc trans_types="none,abs" type="appearance"/>
+    
+    <dell2nose trans_types="none,relative" type="social"/>
+    
+    <!-- dnose2ell_angle_30tomin30 trans_types="none" type="social"/>
+    
+    <dnose2ell_angle_min20to20 trans_types="none" type="social"/>
+    
+    <dnose2ell_angle_min30to30 trans_types="none" type="social"/-->
+    
+    <dist2wall trans_types="none,relative" type="arena"/>
+    
+    <dnose2ell trans_types="none,relative" type="social"/>
+    
+    <!-- dnose2tail trans_types="none,relative" type="social"/-->
+    
+    <dtheta trans_types="flip,abs" type="locomotion"/>
+    
+    <du_cor trans_types="none,abs,relative" type="locomotion"/>
+    
+    <du_ctr trans_types="none,abs,relative" type="locomotion"/>
+    
+    <dv_cor trans_types="flip,abs" type="locomotion"/>
+    
+    <dv_ctr trans_types="flip,abs" type="locomotion"/>
+    
+    <flipdv_cor trans_types="relative" type="locomotion"/>
+    
+    <magveldiff_anglesub trans_types="none,relative" type="social"/>
+    
+    <magveldiff_nose2ell trans_types="none,relative" type="social"/>
+    
+    <!-- nflies_close trans_types="none" type="social"/-->
+    
+    <phi trans_types="none" type="position"/>
+    
+    <velmag trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_ctr trans_types="none,relative" type="locomotion"/>
+    
+    <veltoward_anglesub trans_types="none,relative" type="social"/>
+    
+    <veltoward_nose2ell trans_types="none,relative" type="social"/>
+    
+    <yaw trans_types="flip,abs" type="locomotion"/>
+    
+  </perframe>
+</params>
