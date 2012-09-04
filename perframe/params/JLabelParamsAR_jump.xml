@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<params>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Jump"/>
+   <file featureconfigfile="params/featureConfig_ARjumps.xml" featureparamfilename="/groups/branson/home/robiea/Code_versioned/Jdetect_github/Jdetect/perframe/params/WindowFeaturesJumps_AR_newer.xml" gt_labelfilename="labeledImpJumps_gt.mat" labelfilename="labeledImpJumps.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <perframe>
+      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+   </perframe>
+   <plot>
+      <trx colormap="jet" colormap_multiplier="0.7"/>
+      <labels colormap="line" linewidth="3"/>
+   </plot>
+   <JLabelMode mode="advanced"/>
+   <featureparamlist>
+      <absdtheta/>
+      <absdv_cor/>
+      <absphidiff_anglesub/>
+      <absphidiff_nose2ell/>
+      <absthetadiff_anglesub/>
+      <absthetadiff_nose2ell/>
+      <angle2wall/>
+      <anglefrom1to2_anglesub/>
+      <anglefrom1to2_nose2ell/>
+      <anglesub/>
+      <area/>
+      <arena_angle/>
+      <arena_r/>
+      <closestfly_anglesub/>
+      <closestfly_center/>
+      <closestfly_ell2nose/>
+      <closestfly_nose2ell/>
+      <corfrac_maj/>
+      <corfrac_min/>
+      <ecc/>
+      <dangle2wall/>
+      <danglesub/>
+      <darea/>
+      <da/>
+      <db/>
+      <dcenter/>
+      <ddcenter/>
+      <ddist2wall/>
+      <decc/>
+      <dell2nose/>
+      <dist2wall/>
+      <dnose2ell/>
+      <dtheta/>
+      <du_cor/>
+      <du_ctr/>
+      <dv_cor/>
+      <dv_ctr/>
+      <flipdv_cor/>
+      <magveldiff_anglesub/>
+      <magveldiff_nose2ell/>
+      <phi/>
+      <velmag/>
+      <velmag_ctr/>
+      <veltoward_anglesub/>
+      <veltoward_nose2ell/>
+      <yaw/>
+   </featureparamlist>
+</params>
