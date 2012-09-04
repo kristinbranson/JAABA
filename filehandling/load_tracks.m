@@ -53,7 +53,9 @@ else
   
   nframes = max([trx.nframes]);
   timestamps = nan(1,nframes);
-  if isfield(trx,'timestamps'),
+  if isfield(tmp,'timestamps'),
+    timestamps = tmp.timestamps;
+  elseif isfield(trx,'timestamps'),
     for i = 1:numel(trx),
       timestamps(trx(i).firstframe:trx(i).endframe) = trx(i).timestamps;
     end
