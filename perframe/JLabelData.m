@@ -542,6 +542,11 @@ end
         obj.clearstatusfn = v{i};
       end
       
+      i = find(strcmpi(s,'cacheSize'),1);
+      if ~isempty(i),
+        obj.cacheSize = v{i};
+      end
+      
       % make sure everything gets set, one way or another
       requiredfns = {'moviefilename','trxfilename','labelfilename'}; % 'windowfilename',
       for i = 1:numel(requiredfns),
@@ -2558,8 +2563,8 @@ end
 %         if numel(fn)>7 && strcmpi('scores',fn(1:6))
 %           obj.ScoresToPerframe(expi,fn);
 %         else
-%           perframetrx.(fn); %#ok<VUNUS>
-%         end
+          perframetrx.(fn);
+%        end
           
       end
       
