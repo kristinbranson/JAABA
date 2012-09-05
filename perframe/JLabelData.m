@@ -542,6 +542,11 @@ end
         obj.clearstatusfn = v{i};
       end
       
+      i = find(strcmpi(s,'cacheSize'),1);
+      if ~isempty(i),
+        obj.cacheSize = v{i};
+      end
+      
       % make sure everything gets set, one way or another
       requiredfns = {'moviefilename','trxfilename','labelfilename'}; % 'windowfilename',
       for i = 1:numel(requiredfns),
@@ -1346,6 +1351,16 @@ end
           % load actual window features params instead of filename.
           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
               'basicFeatureTable','featureWindowSize'}))
+            
+            if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
+                  isequal(obj.windowfeaturescellparams,loadeddata.windowfeaturescellparams) && ...
+                  isequal(obj.basicFeatureTable,loadeddata.basicFeatureTable) && ...
+                  isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
+                str = sprintf('Window feature parameters in the configuration file');
+                str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
+                str = sprintf('%s\nUsing parameters stored in the classifier file',str);
+                uiwait(warndlg(str));
+            end
             obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
               loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
               loadeddata.featureWindowSize);
@@ -1468,6 +1483,15 @@ end
           % load actual window features params instead of filename.
           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
               'basicFeatureTable','featureWindowSize'}))
+            if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
+                  isequal(obj.windowfeaturescellparams,loadeddata.windowfeaturescellparams) && ...
+                  isequal(obj.basicFeatureTable,loadeddata.basicFeatureTable) && ...
+                  isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
+                str = sprintf('Window feature parameters in the configuration file');
+                str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
+                str = sprintf('%s\nUsing parameters stored in the classifier file',str);
+                uiwait(warndlg(str));
+            end
             obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
               loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
               loadeddata.featureWindowSize);
@@ -1581,10 +1605,12 @@ end
 % Saving and loading    
 
 
-    function SaveScores(obj,allScores,expi)
+    function SaveScores(obj,allScores,expi,sfn)
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
+     if nargin< 4
       sfn = obj.GetFile('scores',expi,true);
+     end
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
 
       didbak = false;
@@ -1598,21 +1624,8 @@ end
       save(sfn,'allScores','timestamp');
     end
     
-    function LoadScores(obj,expi,sfn)
-      
-      obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
-      if ~exist(sfn,'file')
-        warndlg('Score file %s does not exist. Not loading scores',sfn);
-        return;
-      end
-      load(sfn,'allScores','timestamp');
-      if ~isempty(whos('-file',sfn,'classifierfilename'))
-        S = load(sfn,'classifierfilename');
-        obj.scoredata.classifierfilenames{expi} = S.classifierfilename;
-      else
-        obj.scoredata.classifierfilenames{expi} = '';
-      end
-      
+    function AddScores(obj,expi,allScores,timestamp,classifierfilename)
+      obj.scoredata.classifierfilenames{expi} = classifierfilename;
       for ndx = 1:numel(allScores.scores)
         if obj.scoredata.exp
           idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,ndx),2);
@@ -1626,7 +1639,9 @@ end
           obj.scoredata.flies(idxcurr,:) = [];
           obj.scoredata.t(idxcurr) = [];
           obj.scoredata.timestamp(idxcurr) = [];
-          obj.scoredata.postprocessed(idxcurr) = [];
+          if ~isempty(obj.scoredata.postprocessed)
+            obj.scoredata.postprocessed(idxcurr) = [];
+          end
         end
         tStart = allScores.tStart(ndx);
         tEnd = allScores.tEnd(ndx);
@@ -1640,6 +1655,7 @@ end
         obj.scoredata.t(end+1:end+sz) = tStart:tEnd;
         obj.scoredata.timestamp(end+1:end+sz) = timestamp;
       end
+      
       obj.UpdatePredictedIdx();
 
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
@@ -1665,6 +1681,59 @@ end
           end
         end
       end
+      
+    end
+    
+    function SaveCurScores(obj,expi,sfn)
+    % Saves the current scores to a file.
+      if nargin < 3
+        sfn = obj.GetFile('scores',expi,true);
+      end
+    
+      if isempty(obj.scoredata.exp),
+        uiwait(warndlg('No scores to save'));
+        return;
+      end
+      
+      allScores = struct('scores',{},timestamp,[]);
+      for fly = 1:obj.nflies_per_exp(expi)
+        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,fly),2);
+        
+        curt = obj.scoredata.t(idxcurr);
+        if any(curt(2:end)-curt(1:end-1) ~= 1)
+          uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
+          return;
+        end
+        
+        tStart = obj.firstframes_per_exp{expi}(fly);
+        tEnd = obj.endframes_per_exp{expi}(fly);
+        
+        sz = tEnd-tStart+1;
+        allScores.scores{ndx}(tStart:tEnd) = obj.scoredata.scores(idxcurr);
+        obj.scoredata.t(end+1:end+sz) = tStart:tEnd;
+        obj.scoredata.timestamp(end+1:end+sz) = timestamp;
+        
+      end
+      obj.SaveScores(allScores,sfn);
+      
+    end
+    
+    function LoadScores(obj,expi,sfn)
+      
+      obj.SetStatus('Loading scores for experiment %s from %s',obj.expnames{expi},sfn);
+      if ~exist(sfn,'file')
+        warndlg('Score file %s does not exist. Not loading scores',sfn);
+        return;
+      end
+      load(sfn,'allScores','timestamp');
+      if ~isempty(whos('-file',sfn,'classifierfilename'))
+        S = load(sfn,'classifierfilename');
+        classifierfilename = S.classifierfilename;
+      else
+        classifierfilename = '';
+      end
+      
+      obj.AddScores(expi,allScores,timestamp,classifierfilename);
       
       obj.ClearStatus();
 
@@ -1954,6 +2023,14 @@ end
         end
       end
       
+      % Convert the scores file into perframe files.
+      for i = 1:numel(obj.allperframefns),
+        fn = obj.allperframefns{i};
+        if numel(fn)>7 && strcmpi('scores',fn(1:6))
+          obj.ScoresToPerframe(expi,fn);
+        end
+      end
+      
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
         % TODO: make this work with multiple flies
@@ -2128,6 +2205,16 @@ end
           obj.RemoveExpDirs(obj.nexps);
         end
       end
+      
+      % Convert the scores file into perframe files.
+      for i = 1:numel(obj.allperframefns),
+        fn = obj.allperframefns{i};
+        if numel(fn)>7 && strcmpi('scores',fn(1:6))
+          obj.ScoresToPerframe(expi,fn);
+        end
+      end
+      
+
       
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
@@ -2472,11 +2559,12 @@ end
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
         
-        if numel(fn)>7 && strcmpi('scores',fn(1:6))
-          obj.ScoresToPerframe(expi,fn);
-        else
-          perframetrx.(fn); %#ok<VUNUS>
-        end
+        % Don't generate the per-frame files from scores here anymore..
+%         if numel(fn)>7 && strcmpi('scores',fn(1:6))
+%           obj.ScoresToPerframe(expi,fn);
+%         else
+          perframetrx.(fn);
+%        end
           
       end
       
@@ -4629,7 +4717,7 @@ end
       
     end
     
-    function PredictWholeMovie(obj,expi)
+    function allScores = PredictWholeMovie(obj,expi)
       
       if isempty(obj.classifier),
         return;
@@ -4683,12 +4771,25 @@ end
         allScores.t0s{flies} = i0s;
         allScores.t1s{flies} = i1s;
       end
-      obj.SaveScores(allScores,expi);
-      obj.LoadScores(expi,obj.GetFile('scores',expi));
+      
       obj.ClearStatus();
       
     end
-
+    
+    function PredictSaveMovie(obj,expi,sfn)
+    % Predicts for the whole movie and saves the scores.
+      if nargin < 3
+        sfn = obj.GetFile('scores',expi);
+      end
+      allScores = obj.PredictWholeMovie(expi);
+      obj.SaveScores(allScores,expi,sfn);
+      obj.LoadScores(expi,sfn);
+    end
+    
+    function PredictNoSaveMovie(obj,expi)
+      allScores = obj.PredictWholeMovie(expi);
+      obj.AddScores(expi,allScores,now(),'');
+    end
     
 % Evaluating performance
     
@@ -5845,17 +5946,27 @@ end
       % Use imfill to find the regions.
       if isempty(curs), posts = curs; return; end
       
+      
       % Select pos bouts that have at least one frame about the high
       % threshold.
       hthresh = curs > params.hystopts(1).value*obj.windowdata.scoreNorm;
       lthresh = curs > 0;
-      pos = imfill(~lthresh,find(hthresh)') & lthresh;
-      
+      if( nnz(hthresh)>0)
+        pos = imfill(~lthresh,find(hthresh)') & lthresh;
+        computeNeg = true;
+      else
+        pos = false(size(curs));
+        computeNeg = false;
+      end
       % Select neg bouts that have at least one frame below the low
       % threshold.
       hthresh = curs < params.hystopts(2).value*obj.windowdata.scoreNorm;
       lthresh = curs < params.hystopts(1).value*obj.windowdata.scoreNorm;
-      neg = imfill(~lthresh,find(hthresh)') & lthresh;
+      if nnz(hthresh)>0 && computeNeg,
+        neg = imfill(~lthresh,find(hthresh)') & lthresh;
+      else
+        neg = false(size(curs));
+      end
       
       posts = pos | ~neg;
       
