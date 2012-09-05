@@ -10,6 +10,8 @@ while true,
   if ~ischar(l),
     break;
   end
+  l = strtrim(l);
+  if isempty(l), continue; end
   ws = regexp(l,',','split');
   classifiermatfiles{end+1} = ws{1}; %#ok<AGROW>
   configfiles{end+1} = ws{2}; %#ok<AGROW>
