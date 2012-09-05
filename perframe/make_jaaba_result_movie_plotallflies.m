@@ -17,7 +17,7 @@
 % 'none' for linux). 
 % 'figpos': position of figure
 % if any parameters are not given, the user will be prompted for these
-function [succeeded,aviname,figpos,height,width] = make_jaaba_result_movie_plotallflies(expdir,classifierparamsfiles,varargin)
+function [succeeded,aviname,figpos,height,width] = make_jaaba_result_movie_plotallflies(expdir,varargin)
 
 succeeded = false;
 defaults.boxradius = 1.5;
@@ -31,6 +31,41 @@ allowedcompressions = {'Indeo3', 'Indeo5', 'Cinepak', 'MSVC', 'RLE', 'None','Unc
 useVideoWriter = exist('VideoWriter','file');
 mencoderoptions = '';
 mencoder_maxnframes = inf;
+
+% hand-chosen colors
+% behavior2color = {'WingExtension',[.4392,.1882,.6275]
+%   'Stop',[0,0,.5156]
+%   'Copulation',[0,0,.875]
+%   'AttemptCopulation',[0,.2344,1]
+%   'Backup',[0,.9688,1]
+%   'Crabwalk',[.3281,1,.6719]
+%   'PivotHead',[.6875,1,.3125]
+%   'Walk',[0,.75,0]
+%   'PivotTail',[.9,.9,0]
+%   'Jump',[1,.5938,0]
+%   'Righting',[1,.2188,0]
+%   'Chase',[.8594,0,0]
+%   'Touch',[.5,0,0]
+%   'WingGrooming',[.6353,.1804,.4510]};
+
+behavior2color = {'WingGrooming',[1,.4,.755]
+  'Stop',[0,0,.5156]
+  'WingExtension',[0,0,.875]
+  'AttemptCopulation',[0,.2344,1]
+  'Copulation',[0,.9688,1]
+  'Righting',[.3281,1,.6719]
+  'Backup',[0,.75,0]
+  'Crabwalk',[.9,.9,0]
+  'PivotHead',[1,.75,0]
+  'PivotTail',[1,.5938,0]
+  'Touch',[1,.2188,0]
+  'Chase',[.8594,0,0]
+  'Walk',[.5,0,0]
+  'Jump',[.6353,.1804,.4510]};
+
+
+%  'Crabwalk',[0,.6094,1]
+
 [moviefilestr,trxfilestr,aviname,colors,behavior_cm,...
   zoomflies,nzoomr,nzoomc,boxradius,...
   taillength,fps,maxnframes,firstframes,compression,figpos,movietitle,...
@@ -42,7 +77,9 @@ mencoder_maxnframes = inf;
   scorefns,...
   score_norm_prctile,...
   behaviorweight,...
-  printnone] = ...
+  printnone,...
+  debug,...
+  behavior2color] = ...
   myparse(varargin,'moviefilestr','movie.ufmf','trxfilestr','registered_trx.mat',...
   'aviname','','colors',[],'behavior_cm',@jet,...
   'zoomflies',[],'nzoomr',defaults.nzoomr,'nzoomc',defaults.nzoomc,...
@@ -60,7 +97,9 @@ mencoder_maxnframes = inf;
   'scorefns',{},...
   'score_norm_prctile',80,...
   'behaviorweight',[],...
-  'printnone',false);
+  'printnone',false,...
+  'debug',false,...
+  'behavior2color',behavior2color);
 
 if ~ischar(compression),
   compression = '';
@@ -72,6 +111,7 @@ end
 
 if isempty(behaviors) || isempty(scorefns),
   for i = 1:numel(classifierparamsfiles),
+    classifierparamsfile = classifierparamsfiles{i};
     classifierparams = ReadClassifierParamsFile(classifierparamsfile);
     for j = 1:numel(classifierparams),
       if iscell(classifierparams(j).behaviors.names),
@@ -80,7 +120,7 @@ if isempty(behaviors) || isempty(scorefns),
       else
         behaviors{end+1} = classifierparams(j).behaviors.names; %#ok<AGROW>
       end
-      behaviors{end} = regexprep(behaviors{i},'(_|^)([a-z])','${upper($2)}');
+      behaviors{end} = regexprep(behaviors{end},'(_|^)([a-z])','${upper($2)}');
       scorefns{end+1} = classifierparams(j).file.scorefilename; %#ok<AGROW>
     end
   end
@@ -109,13 +149,25 @@ scores = cell(1,nids);
 for j = 1:nids,
   scores{j} = nan(nbehaviors,trx(j).nframes);
 end
+isscore = false(1,nbehaviors);
 for i = 1:nbehaviors,
   scorefilename = fullfile(expdir,scorefns{i});
+  if ~exist(scorefilename,'file'),
+    warning('Scores file %s does not exist, skipping',scorefilename);
+    continue;
+  end
+  isscore(i) = true;
   tmp = load(scorefilename);
   for j = 1:nids,
     scores{j}(i,:) = tmp.allScores.scores{j}(trxfirstframes(j):trxendframes(j));
   end
 end
+for j = 1:nids,
+  scores{j} = scores{j}(isscore,:);
+end
+behaviors = behaviors(isscore);
+scorefns = scorefns(isscore);
+nbehaviors = numel(behaviors);
 
 
 %% output avi name
@@ -250,9 +302,25 @@ rowszoom = floor(nr/nzoomr);
 %% choose colors for each behavior
 
 nadd = nbehaviors - size(colors,1);
-if nadd > 0,
+colors = cat(1,colors,nan(nadd,3));
+[ism,idx] = ismember(lower(behaviors),lower(behavior2color(:,1)));
+ism = ism & any(isnan(colors),2)';
+if any(ism),
+  colors(ism,:) = cat(1,behavior2color{idx(ism),2});
+end
+
+ism = any(isnan(colors),2)';
+if any(ism),
   tmp = behavior_cm(256);
-  colors = cat(1,colors,tmp(round(linspace(1,256,nadd)),:));
+  d = inf(256,1);
+  for i = find(~ism),
+    d = min(d,sum(abs(bsxfun(@minus,tmp,colors(i,:))),2));
+  end
+  for i = find(ism),
+    [~,j] = max(d);
+    colors(i,:) = tmp(j,:);
+    d = min(d,sum(abs(bsxfun(@minus,tmp,colors(i,:))),2));    
+  end
 end
 
 %% get the score normalizations
@@ -272,16 +340,16 @@ for fly = 1:nids,
   end
 end
 
-%% choose weights for each behavior
+%% choose weights for each behavior: upweight if less common
 
 if isempty(behaviorweight),
   behaviorweight = nan(nbehaviors,1);
   for behaviori = 1:nbehaviors,
     tmp = [];
     for j = 1:nids,
-      tmp = [tmp,scores{j}(i,:)]; %#ok<AGROW>
+      tmp = [tmp,scores{j}(behaviori,:)]; %#ok<AGROW>
     end
-    behaviorweight(behaviori) = nnz(tmp>0);
+    behaviorweight(behaviori) = nnz(tmp<=0);
   end
   behaviorweight = behaviorweight / sum(behaviorweight);
 end
@@ -358,7 +426,8 @@ for i = 1:nzoomr,
       'Visible','on');
     htextzoom(i,j) = text((x0(j)+x1(j))/2,.95*y0(i)+.05*y1(i),'',...
       'color','k','horizontalalignment','center',...
-      'verticalalignment','bottom','fontweight','bold');
+      'verticalalignment','bottom','fontweight','bold',...
+      'FontSize',18);
   end
 end
 
@@ -390,6 +459,7 @@ for segi = 1:numel(firstframes),
     z(z==0) = 1;
     w = bsxfun(@rdivide,w,z);
     tailcolortmp = sum(bsxfun(@times,w,colors),1);
+    tailcolortmp = max(0,min(1,tailcolortmp));
     tailcolor(:,:,fly) = permute(tailcolortmp,[3,2,1]);
     for i = 1:taillength*2,
       set(htail(i,fly),'XData',tailx([i,i+1],fly),'YData',taily([i,i+1],fly),'Color',tailcolor(i,:,fly));
@@ -400,6 +470,7 @@ for segi = 1:numel(firstframes),
       end
     end
   end
+  %tailcolor = max(0,min(1,tailcolor));
   
   for frame = firstframe:endframe,
     if mod(frame - firstframe,20) == 0,
@@ -482,6 +553,7 @@ for segi = 1:numel(firstframes),
       tailx(end,fly) = trx(fly).x(idxfuture(fly));
       taily(end,fly) = trx(fly).y(idxfuture(fly));
     end
+    colorfuture = max(0,min(1,colorfuture));
     
     tailcolor = cat(1,tailcolor(2:end,:,:),permute(colorfuture,[3,2,1]));
     colortmp = permute(tailcolor(taillength+1,:,:),[3,2,1]);
@@ -598,6 +670,19 @@ for segi = 1:numel(firstframes),
           for iii = 1:numel(labelis),
             s{iii} = sprintf('\\color[rgb]{%f %f %f}%s',tmpscores(iii)*colors(labelis(iii),:),behaviors{labelis(iii)});
           end
+          
+          % try to fit on two lines, with at most two behaviors per-line
+          if numel(labelis) > 2,            
+            nperline = 2;
+            s0 = s;
+            s = cell(1,ceil(numel(labelis)/nperline));
+            for linei = 1:numel(s),
+              s{linei} = sprintf('%s, ',s0{2*(linei-1)+1:min(numel(labelis),2*linei)});
+              s{linei} = s{linei}(1:end-2);
+            end
+          end
+
+          
           if printnone && isempty(s),
             s = {'None'};
           end
@@ -667,7 +752,7 @@ for segi = 1:numel(firstframes),
         input('Resize figure 1 to the desired size, hit enter when done.');
         figpos = get(1,'Position');
       end
-      %set(1,'visible','off');
+      set(1,'visible','off');
       if ~debug,
         if useVideoWriter,
           if strcmpi(compression,'None') || strcmpi(compression,'Uncompressed AVI'),
@@ -711,9 +796,9 @@ for segi = 1:numel(firstframes),
     set(1,'Position',figpos);
     else
       drawnow;
-      if any(isbehavior(:)),
-        input('');
-      end
+%       if any(isbehavior(:)),
+%         input('');
+%       end
     end
     
   end
