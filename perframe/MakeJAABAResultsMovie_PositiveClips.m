@@ -405,7 +405,9 @@ for j = 1:nframesout,
     set(hfig,'Position',pos);
   end
   
-  %drawnow;
+  if debug,
+    drawnow;
+  end
 end
 
 
