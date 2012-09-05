@@ -2,7 +2,7 @@
 <params>
    <targets type="fly"/>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="AttemptedCopulation" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params/featureConfig_attemptedcopulation.xml" featureparamfilename="params/WindowFeatures_AttemptedCopulation.xml" gt_labelfilename="gt_labeledAttemptedCopulation.mat" labelfilename="labeledAttemptedCopulation.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_AttemptedCopulation.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_AttemptedCopulation.xml" gt_labelfilename="gt_labeledAttemptedCopulation.mat" labelfilename="labeledAttemptedCopulation.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_AttemptedCopulation.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7" extra_linestyle="-" extra_marker="." extra_markersize="12"/>
       <labels colormap="line" linewidth="3"/>
