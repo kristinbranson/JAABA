@@ -244,7 +244,8 @@ for radiusi = 1:nradii,
     res1 = padgrab(res,nan,1,nbins,1+r+off,N+r+off,1,ntrans);
     y(end+1:end+nbins,:) = res1(:,:,IDX.orig);
     for bini = 1:nbins,
-      feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
+      %feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'bin',bini,'lim',hist_edges(bini:bini+1)}; %#ok<*AGROW>
+      feature_names{end+1} = {'stat','hist','trans','none','radius',r,'offset',off,'hist_edges',hist_edges(bini:bini+1)}; %#ok<*AGROW>
     end
     
 %     if ismember('none',trans_types),
