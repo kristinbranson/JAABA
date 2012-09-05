@@ -476,11 +476,12 @@ function pushbutton_load_Callback(hObject, eventdata, handles)
 InitJLabelGui(handles);
 handles = guidata(hObject);
 
-res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
-if ~strcmpi(res,'Yes'),
-  return;
+if handles.data.nexps>0
+  res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
+  if ~strcmpi(res,'Yes'),
+    return;
+  end
 end
-
 [filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
 if ~ischar(filename),
   return;
