@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
    <targets type="fly"/>
-   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="pivot_tail" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="/params/WindowFeatures_pivot_tail2.xml" gt_labelfilename="gt_labeledpivot_tail2.mat" labelfilename="labeledpivot_tail2.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_pivot_tail2.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Copulation" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/params/WindowFeatures_Copulation.xml" gt_labelfilename="gt_labeledCopulation.mat" labelfilename="labeledCopulation.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_Copulation.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
-      <trx colormap="jet" colormap_multiplier=".7"/>
+      <trx colormap="jet" colormap_multiplier="0.7"/>
       <labels colormap="line" linewidth="3"/>
    </plot>
    <perframe>
-      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <params fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
       <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
    </perframe>
+   <JLabelMode mode="basic"/>
    <featureparamlist>
       <a_mm/>
       <absanglefrom1to2_nose2ell/>
