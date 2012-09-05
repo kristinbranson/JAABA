@@ -33,6 +33,7 @@ else
   ndx = find(strcmp(expName,data.expdirs));
 end
 
-data.PredictWholeMovie(ndx);
+allScores = data.PredictWholeMovie(ndx);
 sfn = data.GetFile('scores',ndx);
-save(sfn,'classifierfilename','-append');
+timestamp = now;
+save(sfn,'allScores','timestamp','classifierfilename');

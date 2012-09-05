@@ -37,7 +37,8 @@ usemencoder = true;
   useVideoWriter,...
   avifileTempDataFile,aviname,fps,...
   usemencoder,...
-  behavior] ...
+  behavior,...
+  debug] ...
   = myparse(varargin,...
   'nzoomr',4,'nzoomc',5,...
   'figpos',[50,50,1500,1000],...
@@ -65,7 +66,8 @@ usemencoder = true;
   'aviname',aviname,...
   'fps',fps,...
   'usemencoder',usemencoder,...
-  'behavior','');
+  'behavior','',...
+  'debug',false);
 
 TMID = 1;
 LENGTH = 2;
@@ -214,6 +216,7 @@ nframesout = min(nframesout,max(nframesfilled(:)));
 
 tsout = nan(nzoomr,nzoomc,nframesout);
 idsout = nan(nzoomr,nzoomc,nframesout);
+t1sout = nan(nzoomr,nzoomc,nframesout);
 
 for r = 1:nzoomr,
   for c = 1:nzoomc,
@@ -225,6 +228,7 @@ for r = 1:nzoomr,
       n = t1-t0+1;
       idsout(r,c,off+1:off+n) = ids(j);
       tsout(r,c,off+1:off+n) = t0:t1;
+      t1sout(r,c,off+1:off+n) = t1;
       off = off + n;
     end
   end
@@ -287,11 +291,19 @@ for i = 1:nzoomr*nzoomc,
 end
 colormap gray;
 
+if ~debug,
+  set(hfig,'Visible','off');
+end
+
 %% 
 
 isfirstframe = true;
 
 for j = 1:nframesout,
+  
+  if mod(j,10) == 0,
+    fprintf('Frame %d / %d\n',j,nframesout);
+  end
   for r = 1:nzoomr,
     for c = 1:nzoomc,
       t = tsout(r,c,j);
@@ -331,7 +343,8 @@ for j = 1:nframesout,
         trx(fly).y(i)+pxborder > ax(4,r,c);
 
       if j == 1 || tsout(r,c,j)-1 ~= tsout(r,c,j-1) || outofbounds,
-        ax(:,r,c) = MakeJAABAResultsMovie_ResetAxis(trx(fly).x,trx(fly).y,i,nr,nc,pxwidthradius,pxheightradius,pxborder);
+        j1 = t1sout(r,c,j)+trx(fly).off;
+        ax(:,r,c) = MakeJAABAResultsMovie_ResetAxis(trx(fly).x(i:j1),trx(fly).y(i:j1),1,nr,nc,pxwidthradius,pxheightradius,pxborder);
         axis(hax(r,c),ax(:,r,c)');
         set(hinfo(r,c),'Position',ax([1,4]));
         axround(:,r,c) = max(1,[min(nc,[floor(ax(1,r,c)),ceil(ax(2,r,c))]),...
@@ -346,38 +359,43 @@ for j = 1:nframesout,
   
   
   if isfirstframe,
-    if useVideoWriter,
-      if strcmpi(compression,'None') || strcmpi(compression,'Uncompressed AVI'),
-        profile = 'Uncompressed AVI';
+    if ~debug,
+      if useVideoWriter,
+        if strcmpi(compression,'None') || strcmpi(compression,'Uncompressed AVI'),
+          profile = 'Uncompressed AVI';
+        else
+          profile = 'Motion JPEG AVI';
+        end
+        aviobj = VideoWriter(aviname,profile); %#ok<TNMLP>
+        set(aviobj,'FrameRate',fps);
+        if ~strcmpi(profile,'Uncompressed AVI'),
+          set(aviobj,'Quality',100);
+        end
+        open(aviobj);
       else
-        profile = 'Motion JPEG AVI';
-      end
-      aviobj = VideoWriter(aviname,profile); %#ok<TNMLP>
-      set(aviobj,'FrameRate',fps);
-      if ~strcmpi(profile,'Uncompressed AVI'),
-        set(aviobj,'Quality',100);
-      end
-      open(aviobj);
-    else
-      if isempty(avifileTempDataFile),
-        aviobj = avifile(aviname,'fps',fps,'quality',100,'compression',compression);  %#ok<REMFF1>
-      else
-        aviobj = myavifile(aviname,'fps',fps,'quality',100,'compression',compression,...
-          'TempDataFile',avifileTempDataFile);
-        fprintf('Temporary data file for avi writing: %s\n',aviobj.TempDataFile);
+        if isempty(avifileTempDataFile),
+          aviobj = avifile(aviname,'fps',fps,'quality',100,'compression',compression);  %#ok<REMFF1>
+        else
+          aviobj = myavifile(aviname,'fps',fps,'quality',100,'compression',compression,...
+            'TempDataFile',avifileTempDataFile);
+          fprintf('Temporary data file for avi writing: %s\n',aviobj.TempDataFile);
+        end
       end
     end
       
     isfirstframe = false;
   end
 
-  fr = getframe(hfig);
-  height = size(fr.cdata,1);
-  width = size(fr.cdata,2);
-  if useVideoWriter,
-    writeVideo(aviobj,fr);
-  else
-    aviobj = addframe(aviobj,fr);
+  if ~debug,
+    if useVideoWriter,
+      fr = getframe(hfig);
+      height = size(fr.cdata,1);
+      width = size(fr.cdata,2);
+      writeVideo(aviobj,fr);
+    else
+      aviobj = addframe(aviobj,hfig);
+    end
+    %set(hfig,'Visible','off');
   end
   
   
@@ -387,23 +405,29 @@ for j = 1:nframesout,
     set(hfig,'Position',pos);
   end
   
-  drawnow;
+  %drawnow;
 end
 
 
 %% clean up
   
-if useVideoWriter,
-  close(aviobj);
-else
-  aviobj = close(aviobj); %#ok<NASGU>
+if ~debug,
+  if useVideoWriter,
+    close(aviobj);
+  else
+    aviobj = close(aviobj); %#ok<NASGU>
+  end
 end
 
 fclose(fid);
 
 %% compress using mencoder
 
-if isunix && usemencoder,
+if ~debug && isunix && usemencoder,
+  if ~useVideoWriter,
+    width = aviobj.Width;
+    height = aviobj.Height;
+  end
   [path,base,ext] = fileparts(aviname);
   tmpfile = fullfile(path,[base,'_tmp',ext]);
   newheight = 4*ceil(height/4);
