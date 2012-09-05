@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
    <targets type="fly"/>
-   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="pivot_head" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params/featureConfig_pivot_headAR.xml" featureparamfilename="/groups/branson/home/robiea/Code_versioned/Jdetect_github/Jdetect/perframe/WindowFeatures_pivot_head.xml" gt_labelfilename="gt_labeledpivot_head.mat" labelfilename="labeledpivot_head.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_pivot_head.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Chase" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params/featureConfig.xml" featureparamfilename="params/WindowFeatures_Chasev7.xml" gt_labelfilename="gt_labeledChasev7.mat" labelfilename="labeledChasev7.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_Chasev7.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
       <labels colormap="line" linewidth="3"/>
    </plot>
    <perframe>
-      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625" max_dnose2ell_anglerange="127"/>
       <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
    </perframe>
+   <JLabelMode mode="advanced"/>
    <featureparamlist>
       <a_mm/>
       <absanglefrom1to2_nose2ell/>
@@ -74,6 +75,5 @@
       <veltoward_nose2ell/>
       <yaw/>
       <absyaw/>
-      <scores_pivot_tail/>
    </featureparamlist>
 </params>
