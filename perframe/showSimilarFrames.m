@@ -603,10 +603,12 @@ function tlH = initTimeline(tl,sz,tcurr)
   %set(tl,'XLimMode','auto');  xlim(tl,[1 2*sz+1]);
   %set(tl,'YLimMode','auto');  ylim(tl,[1 2*sz+1]);
   tlH.image = imagesc(zeros(2,2*sz+1,3),'Parent',tl,[0,255]);
-  tlH.horig = plot(tl,[tcurr,tcurr],[0, 3],'g--','HitTest','off','linewidth',2);
-  tlH.hcurr = plot(tl,[tcurr,tcurr],[0, 3],'y-','HitTest','off','linewidth',2);
+  tlH.horig = plot(tl,[tcurr,tcurr],[0.5, 2.5],'g--','HitTest','off','linewidth',2);
+  tlH.hcurr = plot(tl,[tcurr,tcurr],[0.5, 2.5],'y-','HitTest','off','linewidth',2);
   colormap(tl,'gray');
-  axis(tl,'off','image');
+  axis(tl,'on','image');
+  set(tl,'XTick',[]);
+  set(tl,'YTick',[]);
   
 function updatefly(h1,h2,trx,t,displayChoice)
 % Coped from JCtrax.

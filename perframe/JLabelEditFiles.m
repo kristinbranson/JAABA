@@ -67,7 +67,7 @@ handles.success = false;
   'JLabelSplashHandle',[]);
 
 handles.behaviorXMLeditFile = 'xml_edit_tools/behaviorConfigDefaults.xml';
-set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing'});
+set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing','Ground Truthing Advanced'});
 handles.disableBehavior = disableBehavior;
 
 if disableBehavior,
@@ -77,7 +77,11 @@ if disableBehavior,
   handles.JLabelHandle = JLabelHandle;
   handles.data = JLabelHandle.guidata.data;
   if handles.data.IsGTMode()
-    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing')));
+    if handles.data.IsAdvancedMode()
+      set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
+    else
+      set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
+    end
   elseif handles.data.IsAdvancedMode()
     set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Advanced')));
   else
@@ -237,7 +241,12 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',numel(handl
 set(handles.statusMsg,'String','');
 
 if handles.data.IsGTMode(),
-  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
+  if handles.data.IsAdvancedMode()
+    popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced'));
+  else
+    popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
+  end
+
 elseif handles.data.IsAdvancedMode(),
   popupNdx = find(strcmp(get(handles.popupmode,'String'),'Advanced'));
 else
@@ -687,6 +696,10 @@ switch curStr,
     handles.data.SetAdvancedMode(false);
     handles.data.SetGTMode(false);
   case 'Ground Truthing',
+    handles.data.SetAdvancedMode(false);
+    handles.data.SetGTMode(true);
+  case 'Ground Truthing Advanced',
+    handles.data.SetAdvancedMode(true);
     handles.data.SetGTMode(true);
 end
  
