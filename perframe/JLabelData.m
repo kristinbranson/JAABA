@@ -164,6 +164,7 @@ classdef JLabelData < handle
     
     % whether there is a movie to show
     ismovie = true;
+    openmovie = true;
     
     % file containing feature parameters
     featureparamsfilename = 0;
@@ -449,6 +450,11 @@ end
       % parse optional arguments in order
       s = varargin(1:2:end);
       v = varargin(2:2:end);
+      
+      i = find(strcmpi(s,'openmovie'),1);
+      if ~isempty(i),
+        obj.openmovie = v{i};
+      end
       
       % movie
       i = find(strcmpi(s,'moviefilename'),1);
@@ -773,7 +779,7 @@ end
         end
         oldmoviefilename = obj.moviefilename;
         obj.moviefilename = moviefilename;
-        obj.ismovie = ~isempty(moviefilename);
+        obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
         [success1,msg] = obj.CheckMovies();
         if ~success1,
           obj.moviefilename = oldmoviefilename;
