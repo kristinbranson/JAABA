@@ -2,7 +2,7 @@
 <params>
    <targets type="fly"/>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="pivot_head" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params/featureConfig_pivot_headAR.xml" featureparamfilename="/groups/branson/home/robiea/Code_versioned/Jdetect_github/Jdetect/perframe/WindowFeatures_pivot_head.xml" gt_labelfilename="gt_labeledpivot_head.mat" labelfilename="labeledpivot_head.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_pivot_head.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfig_pivot_headAR.xml" featureparamfilename="params/WindowFeatures_pivot_head.xml" gt_labelfilename="gt_labeledpivot_head.mat" labelfilename="labeledpivot_head.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_pivot_head.mat" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
       <labels colormap="line" linewidth="3"/>
