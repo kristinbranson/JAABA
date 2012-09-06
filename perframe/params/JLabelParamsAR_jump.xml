@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="Jump"/>
-   <file featureconfigfile="params/featureConfig_ARjumps.xml" featureparamfilename="/groups/branson/home/robiea/Code_versioned/Jdetect_github/Jdetect/perframe/params/WindowFeaturesJumps_AR_newer.xml" gt_labelfilename="labeledImpJumps_gt.mat" labelfilename="labeledImpJumps.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params/featureConfig_ARjumps.xml" featureparamfilename="params/WindowFeaturesJumps_AR_newer.xml" gt_labelfilename="labeledImpJumps_gt.mat" labelfilename="labeledImpJumps.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <perframe>
       <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
    </perframe>
