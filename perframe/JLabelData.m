@@ -3394,7 +3394,7 @@ end
           t1 = labels_curr.t1s(j);
           if t0>T1 || t1<T0; continue;end
           t0 = max(T0,t0);
-          t1 = min(T1,t1);
+          t1 = min(T1+1,t1);
           labelidx.vals(t0+off:t1-1+off) = i;
           labelidx.timestamp(t0+off:t1-1+off) = labels_curr.timestamp(j); 
         end
@@ -3403,7 +3403,7 @@ end
         t0 = labels_curr.imp_t0s(j); t1 = labels_curr.imp_t1s(j);
         if t0>T1 || t1<T0; continue;end
         t0 = max(T0,t0);
-        t1 = min(T1,t1);
+        t1 = min(T1+1,t1);
         labelidx.imp(t0+off:t1-1+off) = 1;
       end
       
@@ -5289,7 +5289,7 @@ end
       
       if any(curNdx) && ~isempty(obj.classifier)
         curScores = obj.windowdata.scores(curNdx);
-        curLabels = obj.windowdata.labelidx_cur(curNdx);
+        curLabels = obj.windowdata.labelidx_new(curNdx);
         
         curPosMistakes = nnz( curScores<0 & curLabels ==1 );
         curNegMistakes = nnz( curScores>0 & curLabels >1 );
@@ -5699,7 +5699,7 @@ end
           ts = [];
           
           for j = 1:numel(labels_curr.t0s),
-            ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)]; %#ok<AGROW>
+            ts = [ts,labels_curr.t0s(j):(labels_curr.t1s(j)-1)]; %#ok<AGROW>
           end
           
           % assumes that if have any loaded score for an experiment we
