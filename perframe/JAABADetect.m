@@ -133,7 +133,7 @@ configfile_global = tempname();
 SaveXMLParams(configparams_global,configfile_global,'params');
 
 % initialize with temporary configfile
-data = JLabelData(configfile_global);
+data = JLabelData(configfile_global,'openmovie',false);
 [success,msg] = data.AddExpDirNoPreload(expdir);
 if ~success,
   error(msg);
