@@ -515,7 +515,7 @@ set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
-uiwait(warndlg('Done loading the classifier file'));
+uiwait(warndlg('Done loading the classifier'));
 
 
 % --- Executes on button press in pushbutton_loadwoexp.
