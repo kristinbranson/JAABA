@@ -143,7 +143,8 @@ end
 
 % Add color for mac's.
 buttonNames = {'pushbutton_add','pushbutton_remove','pushbutton_load',...
-              'pushbutton_loadwoexp','pushbutton_cancel','pushbutton_done'};
+              'pushbutton_loadwoexp','pushbutton_cancel','pushbutton_done',...
+              'pushbutton_addlist'};
 for buttonNum = 1:length(buttonNames)
   SetButtonImage(handles.(buttonNames{buttonNum}));
 end
@@ -507,13 +508,15 @@ SetLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileName(classifierfilename);
 if ~success,
-  uiwait(waitdlg(msg,'Error loading file list'));
+  uiwait(warndlg(msg,'Error loading file list'));
   return;
 end
 set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
+uiwait(warndlg('Done loading the classifier file'));
+
 
 % --- Executes on button press in pushbutton_loadwoexp.
 function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
