@@ -272,11 +272,17 @@ for i = 1:nclassifiers,
   end
   
   if ~isfield(configparams{i}.file,'scorefilename'),
-    scorefilename = ['scores_',configparams{i}.behaviors.names,'.mat'];
+    if ~isfield(configparams{i},'behaviors'),
+      error('configparams %d does not have field behaviors',i);
+    elseif ~isfield(configparams{i}.behaviors,'names'),
+      error('configparams{%d}.behaviors does not have field names',i);
+    else
+      scorefilename = ['scores_',configparams{i}.behaviors.names,'.mat'];
+    end
   else
     scorefilename = configparams{i}.file.scorefilename;
   end
-  scorefilename = ['test_',scorefilename];
+  %scorefilename = ['test_',scorefilename];
   sfn = fullfile(expdir,scorefilename);
       
   if exist(sfn,'file'),
