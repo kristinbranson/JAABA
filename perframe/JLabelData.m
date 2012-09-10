@@ -2188,13 +2188,13 @@ end
       end
       
       if obj.filesfixable && ~obj.allfilesexist,
-        if ~isdeployed
-          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
-        else
+%        if ~isdeployed
+%          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+%        else
           res = 'Yes';
-        end
+%        end
         if strcmpi(res,'Yes'),
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps,false);
           if ~success,
             msg = sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
             obj.RemoveExpDirs(obj.nexps);
