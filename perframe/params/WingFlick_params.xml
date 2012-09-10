@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<params>
+   <targets type="wingedfly"/>
+   <behaviors labelcolors="0.7,0,0,0,0,0.7" names="WingFlick" unknowncolor="0,0,0"/>
+   <file featureconfigfile="params/featureConfigWings.xml" featureparamfilename="params/WindowFeatures_WingFlick.xml" gt_labelfilename="labeledWingFlick_gt.mat" labelfilename="labeledWingFlick.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" scorefilename="scores_wingflick.mat" trxfilename="wingtracking_results.mat"/>
+   <plot>
+      <trx colormap="jet" colormap_multiplier="0.7" extra_linestyle="-" extra_marker="."/>
+      <labels colormap="line" linewidth="3"/>
+   </plot>
+   <perframe>
+      <params fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
+   </perframe>
+   <featureparamlist>
+      <a_mm/>
+      <absanglefrom1to2_nose2ell/>
+      <absdtheta/>
+      <absdv_cor/>
+      <absphidiff_anglesub/>
+      <absphidiff_nose2ell/>
+      <absthetadiff_anglesub/>
+      <absthetadiff_nose2ell/>
+      <angle2wall/>
+      <anglefrom1to2_anglesub/>
+      <anglefrom1to2_nose2ell/>
+      <angleonclosestfly/>
+      <anglesub/>
+      <area/>
+      <arena_angle/>
+      <arena_r/>
+      <b_mm/>
+      <closestfly_anglesub/>
+      <closestfly_center/>
+      <closestfly_ell2nose/>
+      <closestfly_nose2ell/>
+      <corfrac_maj/>
+      <corfrac_min/>
+      <dangle2wall/>
+      <danglesub/>
+      <darea/>
+      <da/>
+      <db/>
+      <dcenter/>
+      <ddcenter/>
+      <ddist2wall/>
+      <decc/>
+      <dell2nose/>
+      <dnose2ell_angle_30tomin30/>
+      <dnose2ell_angle_min20to20/>
+      <dnose2ell_angle_min30to30/>
+      <dist2wall/>
+      <dnose2ell/>
+      <dnose2tail/>
+      <dphi/>
+      <dtheta/>
+      <du_cor/>
+      <du_ctr/>
+      <du_tail/>
+      <dv_cor/>
+      <dv_ctr/>
+      <dv_tail/>
+      <ecc/>
+      <flipdv_cor/>
+      <magveldiff_anglesub/>
+      <magveldiff_nose2ell/>
+      <nflies_close/>
+      <phi/>
+      <phisideways/>
+      <velmag/>
+      <velmag_ctr/>
+      <velmag_nose/>
+      <velmag_tail/>
+      <veltoward_anglesub/>
+      <veltoward_nose2ell/>
+      <yaw/>
+      <absyaw/>
+      <angle_biggest_wing/>
+      <angle_smallest_wing/>
+      <area_inmost_wing/>
+      <area_outmost_wing/>
+      <dangle_biggest_wing/>
+      <dangle_smallest_wing/>
+      <darea_inmost_wing/>
+      <darea_outmost_wing/>
+      <dmax_wing_angle/>
+      <dmax_wing_area/>
+      <dmin_wing_angle/>
+      <dmin_wing_area/>
+      <dnwingsdetected/>
+      <dwing_angle_diff/>
+      <dwing_angle_imbalance/>
+      <max_absdwing_angle/>
+      <max_absdwing_area/>
+      <max_dwing_angle_in/>
+      <max_dwing_angle_out/>
+      <max_wing_angle/>
+      <max_wing_area/>
+      <mean_wing_angle/>
+      <mean_wing_area/>
+      <min_absdwing_angle/>
+      <min_absdwing_area/>
+      <min_dwing_angle_in/>
+      <min_dwing_angle_out/>
+      <min_wing_angle/>
+      <min_wing_area/>
+      <nwingsdetected/>
+      <wing_angle_diff/>
+      <wing_angle_imbalance/>
+   </featureparamlist>
+</params>
