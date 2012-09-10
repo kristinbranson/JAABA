@@ -16,7 +16,6 @@ nd = find(~isones,1,'last');
 if isempty(nd),
   nd = 1;
 end
-%varargin = varargin(1:2*nd);
 if mod(nd,1) ~= 0 || nd > nd1,
   error(usagestring);
 end
@@ -24,6 +23,9 @@ end
 %u = cell2mat(varargin(2:2:end));
 l=[l1 l2];
 u=[u1 u2];
+%varargin = varargin(1:2*nd);
+l=l(1:nd);
+u=u(1:nd);
 isrowvec = nd == 1 && nd1 == 2 && size(x,1) == 1;
 if isrowvec,
 %  varargin = [{1,1},varargin];
@@ -68,15 +70,15 @@ if any(idxhigh),
   npadl(idxhigh) = 0;
 end
 
-% BJA: in my hands npad*==0 when size(y,1)>0
-%   if not, replace with ones(size(y,1),...
 if any(npadl > 0),
   %y = padarray(y,npadl,padv,'pre');
-  y = [ones(1,npadl(2)).*padv y];
+  y = [ones(size(y,1),npadl(2)).*padv y];
+  y = [ones(npadl(1),size(y,2)).*padv; y];
 end
 if any(npadu > 0),
   %y = padarray(y,npadu,padv,'post');
-  y = [y ones(1,npadu(2)).*padv];
+  y = [y ones(size(y,1),npadu(2)).*padv];
+  y = [y; ones(npadu(1),size(y,2)).*padv];
 end
 
 % if dotranspose,
