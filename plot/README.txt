@@ -3,15 +3,17 @@ LOADING EXPERIMENTS
 Multiple experiments can be divided into two groups for uni- or bi-variate
 analysis.  Use the "Add" button to invoke a dialog box to browse directories
 for experiments.  Remove selected experiments with the "Delete" button.
-Transfer experiments from one group to the other with the "Move Below/Above"
-buttons.  Designate loaded experiments to analyze by selecting (a subset of)
-them with <shift/ctrl> left button.
+Transfer experiments from one group to the other with the "Move Below" and
+"Move Above" buttons.  Designate loaded experiments to analyze by selecting
+(a subset of) them with <shift/ctrl> left button.
 
 The features and behaviors analyzed are only those common to all of the
 current experiments.
 
-Experiment lists and other settings are maintained from one session to the
-next by saving the configuration to disk.
+Experiment lists and other settings are maintained from one session to
+the next by automatically saving the configuration to disk when exiting
+("most_recent_config.mat").  Multiple different configurations can be
+maintained using the "Load" and "Save" buttons.
 
 
 BEHAVIOR STATISTICS
@@ -19,30 +21,35 @@ BEHAVIOR STATISTICS
 Create a table of the fraction of time each behavior is performed using the
 "Behavior Stats" button.  Each row is a behavior;  the columns break it
 down by sex and individual.  If both experiment lists are populated then
-the data are alternately striped and colored coded.
+the data are alternately striped and colored.  Mean, median, and variance
+can be set by a contextual menu on the button.  Data can be exported to a
+tab-delimited file using the "Export Table" button.
 
 Logical combinations of behaviors can be analyzed using the pull-down menu
 in the lower-left "Behavior" box.  So for example, if "And" "Behavior X"
 is chosen, then the rows in the table show the fraction of time when each
-behavior and Behavior X is performed simultaneously.
+behavior and Behavior X are performed simultaneously.
 
-The fraction of time each behavior is performed as a function of time
-during the experiment can be plotted by selecting a cell in the table for
-the particular behavior and sex/individual of interest.  Zoom and pan
-using the buttons provided.
+The fraction of time each behavior is performed as a function of time during
+the experiment can be plotted by selecting a cell in the table for the
+particular behavior and sex/individual of interest.  Multiple cells selected
+simultaneously will be overlayed.  Zoom and pan using the buttons provided.
+Use the "Stats" button to overlay mean, median, and variance data.  Data can
+be exported to a tab-delimited file using the "Export Graph" button.
 
 
 BOUT STATISTICS
 
-Create a table of bout lengths (BL) and inter-bout lengths (IBL) using the
-"Bout Stats" button.  As for behavior stats, each row is a behavior;  the
-columns break it down by sex and individual;  the experiment groups are
-striped;  and logical operators can be applied.  Mean, median, and variance
-can be set by a contextual menu on the "Bout Stats" button.
+Create a table of bout lengths (BL) and inter-bout lengths (IBL) using
+the "Bout Stats" button.  As for behavior stats, each row is a behavior;
+the columns break it down by sex and individual;  the experiment groups
+are striped;  logical operators can be applied; and there is a separate
+contextual menu.
 
 Selecting a cell plots a histogram, normalized to unit area, of bout and
 inter-bout lengths.  The "LogY" and "Stats" buttons can be used to scale
-the axis and overlay summary statistics, respectively.
+the axis and overlay summary statistics, respectively.  Multiple selected
+cells are overlayed.
 
 
 FEATURE STATISTICS
@@ -81,7 +88,7 @@ from each experiment list and then the difference of the root-mean-square
 of the feature values during the behavior between the two lists is used.
 Selecting a cell plots the time series below.
 
-Both of these calculations take awhile and so are cached to disk.
+Both of these calculations take awhile and so the results are cached to disk.
 
 
 KNOWN ISSUES
@@ -89,12 +96,8 @@ KNOWN ISSUES
 The stats button on a feature time series plot only shows mean and std dev,
 not std error, median, and quantiles.
 
-The cache for interesting histograms and time series is not cleared when
-different subsets of experiments are chosen using shift/ctrl click
-
 
 TODO
 
 feature stats versus time
 social behaviors
-export
