@@ -1224,9 +1224,9 @@ end
       if ischar(clipsdir),
         for i = 1:numel(obj.expdirs),
           clipsdircurr = fullfile(obj.expdirs{i},clipsdir);
-          if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
-            mkdir(clipsdircurr);
-          end
+%           if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
+%             mkdir(clipsdircurr);
+%           end
         end
         if ischar(obj.clipsdir) && strcmp(clipsdir,obj.clipsdir),
           success = true;
@@ -1959,13 +1959,13 @@ end
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(outexpdir,clipsdir);
-      if ~exist(outclipsdir,'dir'),
-        [success1,msg1] = mkdir(outexpdir,clipsdir);
-        if ~success1,
-          msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
-          return;
-        end
-      end
+%       if ~exist(outclipsdir,'dir'),
+%         [success1,msg1] = mkdir(outexpdir,clipsdir);
+%         if ~success1,
+%           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+%           return;
+%         end
+%       end
 
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;
@@ -2144,13 +2144,13 @@ end
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(outexpdir,clipsdir);
-      if ~exist(outclipsdir,'dir'),
-        [success1,msg1] = mkdir(outexpdir,clipsdir);
-        if ~success1,
-          msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
-          return;
-        end
-      end
+%       if ~exist(outclipsdir,'dir'),
+%         [success1,msg1] = mkdir(outexpdir,clipsdir);
+%         if ~success1,
+%           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+%           return;
+%         end
+%       end
 
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;

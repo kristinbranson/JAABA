@@ -9,9 +9,9 @@ for ndx = 1:numel(fs)
     case 'struct'
       node.appendChild(createXMLNode(docNode,fs{ndx},value.(fs{ndx})));
     case 'cell'
-      valStr = curVal{1};
+      valStr = [curVal{1} ','];
       for vNdx = 2:numel(curVal)
-        valStr = [valStr ',' curVal{vNdx}];
+        valStr = [valStr curVal{vNdx} ','];
       end
       node.setAttribute(fs{ndx},valStr);
     case 'double'
