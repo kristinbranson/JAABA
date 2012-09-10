@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 17-Jul-2012 13:36:21
+% Last Modified by GUIDE v2.5 04-Sep-2012 13:48:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1606,9 +1606,9 @@ if ~ischar(filename),
 end
 handles.guidata.data.classifierfilename = fullfile(pathname,filename);
 SetStatus(handles,sprintf('Saving classifier to %s',handles.guidata.data.classifierfilename));
+handles.guidata.data.SaveClassifier();
 handles.guidata.data.SaveLabels();
 handles.guidata.data.SaveGTLabels();
-handles.guidata.data.SaveClassifier();
 handles = SetSaved(handles);
 ClearStatus(handles);
 success = true;
@@ -1731,7 +1731,8 @@ handles.guidata.data = JLabelData(handles.guidata.configfilename,...
   'defaultpath',handles.guidata.defaultpath,...
   'classifierfilename',handles.guidata.classifierfilename,...
   'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
-  'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel));
+  'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel),...
+  'cacheSize',handles.guidata.cacheSize);
 
 % number of flies to label at a time
 handles.guidata.nflies_label = 1;
@@ -2214,6 +2215,13 @@ end
     handles.guidata.bottomAutomatic = 'None';
   end
   
+  % cache size
+  if isfield(handles.guidata.rc,'cacheSize'),
+    handles.guidata.cacheSize = handles.guidata.rc.cacheSize;
+  else
+    handles.guidata.cacheSize = 4000;
+  end
+  
 % catch ME,
 %   warning('Error loading RC file: %s',getReport(ME));  
 % end
@@ -2267,6 +2275,10 @@ function handles = SaveRC(handles)
   % navigation preferences
   rc.navPreferences = handles.guidata.NJObj.GetState();
   rc.bottomAutomatic = handles.guidata.bottomAutomatic;
+  
+  % cache size
+  rc.cacheSize = handles.guidata.cacheSize;
+  
   save(handles.guidata.rcfilename,'-struct','rc');
 
 % catch ME,
@@ -5280,9 +5292,6 @@ function menu_classifier_classifyall_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-for ndx = 1:handles.guidata.data.nexps,
-  handles.guidata.data.PredictWholeMovie(ndx);
-end
 
 
 % --- Executes on button press in bagButton.
@@ -5724,7 +5733,6 @@ function menu_classifier_classifyCurrentMovie_Callback(hObject, eventdata, handl
 % hObject    handle to menu_classifier_classifyCurrentMovie (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.PredictWholeMovie(handles.guidata.expi);
 
 
 
@@ -6336,6 +6344,7 @@ if isnan(sz) || sz<0;
   return;
 end
 
+handles.guidata.cacheSize = round(sz);
 handles.guidata.data.cacheSize = round(sz);
 
 
@@ -6347,3 +6356,117 @@ function menu_classifier_postprocess_Callback(hObject, eventdata, handles)
 
 posthandle = PostProcess(handles.guidata.data,handles);
 handles.guidata.open_peripherals(end+1) = posthandle;
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyCurrentMovieSave (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.guidata.data.PredictSaveMovie(handles.guidata.expi);
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyCurrentMovieSaveNew_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyCurrentMovieSaveNew (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+expi = handles.guidata.expi;
+fspec = fullfile(handles.guidata.data.expdirs{expi},'*.mat'); 
+[fname,pname] = uiputfile(fspec);
+if fname==0,
+  return;
+end
+handles.guidata.data.PredictSaveMovie(handles.guidata.expi,fullfile(pname,fname));
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyCurrentMovieNoSave (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.guidata.data.PredictNoSaveMovie(handles.guidata.expi);
+
+
+% --------------------------------------------------------------------
+function menu_file_savescores_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_savescores (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_file_savescores_default_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_savescores_default (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.guidata.data.SaveCurScores(handles.guidata.expi);
+
+% --------------------------------------------------------------------
+function menu_file_savescores_new_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_savescores_new (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+expi = handles.guidata.expi;
+fspec = fullfile(handles.guidata.data.expdirs{expi},'*.mat'); 
+[fname,pname] = uiputfile(fspec);
+if fname==0,
+  return;
+end
+handles.guidata.data.SaveCurScores(handles.guidata.expi,fullfile(pname,fname));
+
+
+% --------------------------------------------------------------------
+function menu_file_savescores_alldefault_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_savescores_alldefault (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+for ndx = 1:handles.guidata.data.nexps
+  handles.guidata.data.SaveCurScores(ndx);
+end
+
+
+% --------------------------------------------------------------------
+function menu_file_savescores_allnew_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_savescores_allnew (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+fname = inputdlg('Save the scores in the experiment directory to file.. ' );
+if isempty(fname),
+  return;
+end
+for ndx = 1:handles.guidata.data.nexps
+  handles.guidata.data.SaveCurScores(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
+end
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyall_default_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyall_default (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+for ndx = 1:handles.guidata.data.nexps,
+  handles.guidata.data.PredictSaveMovie(ndx);
+end
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyall_new_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyall_new (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+fname = inputdlg('Save scores to.. ' );
+if isempty(fname),
+  return;
+end
+for ndx = 1:handles.guidata.data.nexps
+  handles.guidata.data.PredictSaveMovie(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
+end
+
+
+% --------------------------------------------------------------------
+function menu_classifier_classifyall_nosave_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classifyall_nosave (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+for ndx = 1:handles.guidata.data.nexps
+handles.guidata.data.PredictNoSaveMovie(ndx);
+end
