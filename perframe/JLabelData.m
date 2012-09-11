@@ -5552,8 +5552,8 @@ end
           obj.loadedGTSuggestions{expi}(ndx).start = 1;
           obj.loadedGTSuggestions{expi}(ndx).end = 0;
         else
-          obj.loadedGTSuggestions{expi}(fly(loc)).start = t0s(loc);
-          obj.loadedGTSuggestions{expi}(fly(loc)).end = t1s(loc);
+          obj.loadedGTSuggestions{expi}(ndx).start = t0s(loc);
+          obj.loadedGTSuggestions{expi}(ndx).end = t1s(loc);
         end
       end
       obj.GTSuggestionMode = 'Loaded';
@@ -5644,11 +5644,13 @@ end
             return;
           end
           suggestedidx = false(1,n);
-          start = obj.loadedGTSuggestions{expi}(flies).start;
-          last = obj.loadedGTSuggestions{expi}(flies).end;
-          range = start+off:last+off;
-          selIdx = range(range>0);
-          suggestedidx(selIdx) = true;
+          for ndx = 1:numel(obj.loadedGTSuggestions{expi}(flies).start)
+            start = obj.loadedGTSuggestions{expi}(flies).start(ndx);
+            last = obj.loadedGTSuggestions{expi}(flies).end(ndx);
+            range = start+off:last+off;
+            selIdx = range(range>0);
+            suggestedidx(selIdx) = true;
+          end
 
         case 'Threshold'
           if ~isempty(obj.scoredata.scores)
