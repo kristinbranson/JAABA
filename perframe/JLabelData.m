@@ -5547,8 +5547,8 @@ end
       fclose(fid);
       fly = dat{1}; t0s = dat{2}; t1s = dat{3};
       for ndx = 1:obj.nflies_per_exp(expi)
-        [ism, loc] = ismember(ndx,fly);
-        if ~ism, 
+        loc = ismember(fly,ndx);
+        if ~any(loc), 
           obj.loadedGTSuggestions{expi}(ndx).start = 1;
           obj.loadedGTSuggestions{expi}(ndx).end = 0;
         else
