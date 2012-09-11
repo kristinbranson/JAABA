@@ -5651,6 +5651,7 @@ end
             selIdx = range(range>0);
             suggestedidx(selIdx) = true;
           end
+          suggestedidx(n+1:end) = [];
 
         case 'Threshold'
           if ~isempty(obj.scoredata.scores)
