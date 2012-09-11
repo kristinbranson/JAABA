@@ -22,6 +22,7 @@ if ischar(classifierparamsfile),
     if isempty(l),
       continue;
     end
+    if strcmp(l(1),'%'), continue; end
     ws = regexp(l,',','split');
     classifierfiles{end+1} = ws{1}; %#ok<AGROW>
     configfiles{end+1} = ws{2}; %#ok<AGROW>
