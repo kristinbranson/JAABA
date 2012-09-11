@@ -6158,7 +6158,7 @@ set(handles.menu_view_suggest_threshold,'Checked','off');
 set(handles.menu_view_suggest_file,'Checked','on');
 set(handles.menu_view_suggest_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
-set(handles.menu_view_suggest_balanced,'Checked','off');
+set(handles.menu_view_suggest_file,'Checked','off');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...

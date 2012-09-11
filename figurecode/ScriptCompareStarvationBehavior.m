@@ -22,7 +22,7 @@ computername = strtrim(computername);
 switch computername,
   
   case 'kabram-ws.janelia.priv',
-    rootdatadir0 = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/experiments/starvation';
+    rootdatadir0 = '/groups/branson/home/kabram/flyMovies/Starvation';
   
   otherwise,
 
@@ -59,6 +59,8 @@ scoresfilestrs = dir(fullfile(expdirs{1},'*cores*.mat'));
 scoresfilestrs = {scoresfilestrs.name};
 scoresfns = cellfun(@(x) x(1:end-4),scoresfilestrs,'UniformOutput',false);
 labelfns = regexprep(scoresfns,'scores','labels','preservecase','once');
+nbehaviors = numel(labelfns);
+
 
 %% parameters
 
@@ -82,7 +84,6 @@ behaviorcodes = {
   'labels_pivot_tail'    'Tail pivot turn'
   };
 
-nbehaviors = numel(behaviorcodes)/2;
 
 %% compute statistics of behavior detections
 
