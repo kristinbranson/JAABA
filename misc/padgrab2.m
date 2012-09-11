@@ -12,11 +12,12 @@ nd1 = ndims(x);
 
 %isones = cellfun(@(x) x == 1, varargin(1:2:end-1)) & cellfun(@(x) x == 1, varargin(2:2:end));
 isones = ([l1 l2]==1) & ([u1 u2]==1);
+sz = size(x);
+isones(1:nd1) = isones(1:nd1) & sz == 1;
 nd = find(~isones,1,'last');
 if isempty(nd),
   nd = 1;
 end
-%varargin = varargin(1:2*nd);
 if mod(nd,1) ~= 0 || nd > nd1,
   error(usagestring);
 end
@@ -24,6 +25,9 @@ end
 %u = cell2mat(varargin(2:2:end));
 l=[l1 l2];
 u=[u1 u2];
+%varargin = varargin(1:2*nd);
+l=l(1:nd);
+u=u(1:nd);
 isrowvec = nd == 1 && nd1 == 2 && size(x,1) == 1;
 if isrowvec,
 %  varargin = [{1,1},varargin];
@@ -34,7 +38,7 @@ end
 %if any(u < l),
 %  error(usagestring);
 %end
-sz = size(x);
+%sz = size(x);
 if nd < nd1,
   x = reshape(x,[sz(1:nd-1),prod(sz(nd:end)),1]);
   sz = size(x);
@@ -68,15 +72,15 @@ if any(idxhigh),
   npadl(idxhigh) = 0;
 end
 
-% BJA: in my hands npad*==0 when size(y,1)>0
-%   if not, replace with ones(size(y,1),...
 if any(npadl > 0),
   %y = padarray(y,npadl,padv,'pre');
-  y = [ones(1,npadl(2)).*padv y];
+  y = [ones(size(y,1),npadl(2)).*padv y];
+  y = [ones(npadl(1),size(y,2)).*padv; y];
 end
 if any(npadu > 0),
   %y = padarray(y,npadu,padv,'post');
-  y = [y ones(1,npadu(2)).*padv];
+  y = [y ones(size(y,1),npadu(2)).*padv];
+  y = [y; ones(npadu(1),size(y,2)).*padv];
 end
 
 % if dotranspose,

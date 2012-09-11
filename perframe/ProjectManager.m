@@ -243,6 +243,10 @@ classdef ProjectManager < handle
       
     function success  = AddConfig(obj,name,value)
       
+      if ~isempty(str2num(value))
+        value = str2num(value);
+      end
+      
       success = true;
       
       iname = fliplr(name);
