@@ -8,8 +8,13 @@ hselection_visible = get(handles.guidata.hselection,'Visible');
 set(handles.guidata.hselection,'Visible','off');
 clipsdir = handles.guidata.data.GetFile('clipsdir',handles.guidata.expi);
 if ~exist(clipsdir,'dir'),
-  mkdir(clipsdir);
+  [success1,msg1] = mkdir(clipsdir);
+  if ~success1,
+    msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+    return;
+  end
 end
+
 flystr = sprintf('%02d_',handles.guidata.flies);
 flystr = flystr(1:end-1);
 if iscell(handles.guidata.configparams.behaviors.names),

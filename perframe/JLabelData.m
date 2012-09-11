@@ -164,6 +164,7 @@ classdef JLabelData < handle
     
     % whether there is a movie to show
     ismovie = true;
+    openmovie = true;
     
     % file containing feature parameters
     featureparamsfilename = 0;
@@ -449,6 +450,11 @@ end
       % parse optional arguments in order
       s = varargin(1:2:end);
       v = varargin(2:2:end);
+      
+      i = find(strcmpi(s,'openmovie'),1);
+      if ~isempty(i),
+        obj.openmovie = v{i};
+      end
       
       % movie
       i = find(strcmpi(s,'moviefilename'),1);
@@ -773,7 +779,7 @@ end
         end
         oldmoviefilename = obj.moviefilename;
         obj.moviefilename = moviefilename;
-        obj.ismovie = ~isempty(moviefilename);
+        obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
         [success1,msg] = obj.CheckMovies();
         if ~success1,
           obj.moviefilename = oldmoviefilename;
@@ -1224,9 +1230,9 @@ end
       if ischar(clipsdir),
         for i = 1:numel(obj.expdirs),
           clipsdircurr = fullfile(obj.expdirs{i},clipsdir);
-          if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
-            mkdir(clipsdircurr);
-          end
+%           if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
+%             mkdir(clipsdircurr);
+%           end
         end
         if ischar(obj.clipsdir) && strcmp(clipsdir,obj.clipsdir),
           success = true;
@@ -1959,13 +1965,13 @@ end
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(outexpdir,clipsdir);
-      if ~exist(outclipsdir,'dir'),
-        [success1,msg1] = mkdir(outexpdir,clipsdir);
-        if ~success1,
-          msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
-          return;
-        end
-      end
+%       if ~exist(outclipsdir,'dir'),
+%         [success1,msg1] = mkdir(outexpdir,clipsdir);
+%         if ~success1,
+%           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+%           return;
+%         end
+%       end
 
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;
@@ -2144,13 +2150,13 @@ end
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(outexpdir,clipsdir);
-      if ~exist(outclipsdir,'dir'),
-        [success1,msg1] = mkdir(outexpdir,clipsdir);
-        if ~success1,
-          msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
-          return;
-        end
-      end
+%       if ~exist(outclipsdir,'dir'),
+%         [success1,msg1] = mkdir(outexpdir,clipsdir);
+%         if ~success1,
+%           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+%           return;
+%         end
+%       end
 
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;
@@ -2188,13 +2194,13 @@ end
       end
       
       if obj.filesfixable && ~obj.allfilesexist,
-        if ~isdeployed
-          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
-        else
+%        if ~isdeployed
+%          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+%        else
           res = 'Yes';
-        end
+%        end
         if strcmpi(res,'Yes'),
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps,false);
           if ~success,
             msg = sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
             obj.RemoveExpDirs(obj.nexps);
