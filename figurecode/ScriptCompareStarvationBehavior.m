@@ -15,7 +15,20 @@ outfigdir = '../figures/StarvationOut';
 if ~exist(outfigdir,'dir'),
   mkdir(outfigdir);
 end
-rootdatadir0 = '../experiments/starvation';
+
+[~,computername] = system('hostname');
+computername = strtrim(computername);
+
+switch computername,
+  
+  case 'kabram-ws.janelia.priv',
+    rootdatadir0 = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/experiments/starvation';
+  
+  otherwise,
+
+  rootdatadir0 = '../experiments/starvation';
+  
+end
 
 if ispc,
   addpath C:\Code\FlyBowlAnalysis;
@@ -46,7 +59,6 @@ scoresfilestrs = dir(fullfile(expdirs{1},'*cores*.mat'));
 scoresfilestrs = {scoresfilestrs.name};
 scoresfns = cellfun(@(x) x(1:end-4),scoresfilestrs,'UniformOutput',false);
 labelfns = regexprep(scoresfns,'scores','labels','preservecase','once');
-nbehaviors = numel(labelfns);
 
 %% parameters
 
@@ -70,6 +82,7 @@ behaviorcodes = {
   'labels_pivot_tail'    'Tail pivot turn'
   };
 
+nbehaviors = numel(behaviorcodes)/2;
 
 %% compute statistics of behavior detections
 
@@ -232,8 +245,8 @@ ylabel('Z-scored fraction of time');
 
 [~,idx] = ismember(unique_conditionnames,conditionnamecodes(:,1));
 print_conditionnames = conditionnamecodes(idx,2)';
-[~,idx] = ismember(labelfns,behaviorcodes(:,1));
-behaviors = behaviorcodes(idx,2)';
+[~,idx] = ismember(behaviorcodes(:,1),labelfns);
+behaviors = labelfns(idx)';
 
 hfig = 3;
 figure(hfig);
@@ -317,8 +330,8 @@ end
 [~,idx] = ismember(unique_conditionnames,conditionnamecodes(:,1));
 print_conditionnames = conditionnamecodes(idx,2)';
 
-[~,idx] = ismember(labelfns,behaviorcodes(:,1));
-behaviors = behaviorcodes(idx,2)';
+[~,idx] = ismember(behaviorcodes(:,1),labelfns);
+behaviors = labelfns(idx)';
 
 hfig = 4;
 figure(hfig);
@@ -400,8 +413,10 @@ SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationBehaviorComparison_PerBehav
 print_conditionnames_perexp = print_conditionnames(conditionidx);
 [~,orderedconditionidx] = ismember(print_conditionnames_perexp,print_conditionnames);
 
+[~,idx] = ismember(behaviorcodes(:,1),labelfns);
+
 % X is nexps x nbehaviors
-X = meanfractime;
+X = meanfractime(:,idx);
 y = orderedconditionidx';
 isbaddata = any(isnan(X),2);
 X(isbaddata,:) = [];

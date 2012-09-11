@@ -3700,11 +3700,12 @@ end
             
       % preload labeled window data while we have the per-frame data loaded
       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
-      [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
-      if ~success,
-        warning(msg);
+      if ~obj.IsGTMode() || isempty(obj.scoredata.exp),
+        [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
+        if ~success,
+          warning(msg);
+        end
       end
-
       % update windowdata's labelidx_new
       if ~isempty(obj.windowdata.exp),
         idxcurr = obj.windowdata.exp == obj.expi & ...
@@ -3894,7 +3895,6 @@ end
     
     
 % Window data computation.
-    
 
     function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
     % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
