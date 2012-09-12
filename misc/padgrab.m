@@ -8,6 +8,8 @@ if mod(numel(varargin),2) ~= 0 || isempty(varargin),
   error(usagestring);
 end
 isones = cellfun(@(x) x == 1, varargin(1:2:end-1)) & cellfun(@(x) x == 1, varargin(2:2:end));
+sz = size(x);
+isones(1:nd1) = isones(1:nd1) & sz == 1;
 nd = find(~isones,1,'last');
 if isempty(nd),
   nd = 1;
@@ -26,7 +28,7 @@ u = cell2mat(varargin(2:2:end));
 %if any(u < l),
 %  error(usagestring);
 %end
-sz = size(x);
+%sz = size(x);
 if nd < nd1,
   x = reshape(x,[sz(1:nd-1),prod(sz(nd:end)),1]);
   sz = size(x);
