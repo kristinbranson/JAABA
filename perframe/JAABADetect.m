@@ -22,6 +22,7 @@ if ischar(classifierparamsfile),
     if isempty(l),
       continue;
     end
+    if strcmp(l(1),'%'), continue; end
     ws = regexp(l,',','split');
     classifierfiles{end+1} = ws{1}; %#ok<AGROW>
     configfiles{end+1} = ws{2}; %#ok<AGROW>
@@ -133,7 +134,7 @@ configfile_global = tempname();
 SaveXMLParams(configparams_global,configfile_global,'params');
 
 % initialize with temporary configfile
-data = JLabelData(configfile_global);
+data = JLabelData(configfile_global,'openmovie',false);
 [success,msg] = data.AddExpDirNoPreload(expdir);
 if ~success,
   error(msg);
