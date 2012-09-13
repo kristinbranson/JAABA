@@ -4,7 +4,11 @@ addpath ../misc;
 addpath ../filehandling
 
 %rootdatadir = '../experiments/wildtype/results';
-rootdatadir = 'C:\Data\JAABA\groundtruth_pBDPGAL4U_data';
+if ispc,
+  rootdatadir = 'C:\Data\JAABA\groundtruth_pBDPGAL4U_data';
+else
+  rootdatadir = '/groups/branson/bransonlab/projects/JAABA/data/groundtruth_pBDPGAL4U_data';
+end
 
 %% parameters
 
@@ -22,8 +26,9 @@ experiment_names = {
 };
 expdirs = cellfun(@(x) fullfile(rootdatadir,x),experiment_names,'UniformOutput',false);
 
-classifierparamsfile = '../classifierparams.txt';
-
+classifierparamsfiles = {'../experiments/JAABA_classifier_params1.txt'
+  '../experiments/JAABA_classifier_params2.txt'
+  '../experiments/JAABA_classifier_params_wing.txt'};
 nintervals = 10;
 nframesperseg = 500;
 keyword = 'GroundTruthBDP_2K';
@@ -31,9 +36,22 @@ timestamp = datestr(now,'yyyymmddTHHMMSS');
 figpos = [100,100,1280,720];
 forcecompute = false;
 
+behaviorname_dict = {'pivot_tail','TailPivotTurn'
+  'pivot_head','CenterPivotTurn'};
+
 %% make sure all the scores are computed, up-to-date
 
-classifierparams = ReadClassifierParamsFile(classifierparamsfile);
+classifierparams = [];
+for filei = 1:numel(classifierparamsfiles),
+  
+  classifierparamscurr = ReadClassifierParamsFile(classifierparamsfiles{filei});
+  if filei == 1,
+    classifierparams = classifierparamscurr;
+  else
+    classifierparams = structappend(classifierparams,classifierparamscurr);
+  end
+end
+
 nbehaviors = numel(classifierparams);
 dobreak = false;
 for i = 1:nbehaviors,
@@ -85,7 +103,7 @@ for i = 1:nbehaviors,
     
     if docompute,
       fprintf('Computing %s...\n',scoresfile_curr);
-      JLabelBatch(expdirs{j},classifierfilecurr,configfilecurr);
+      JLabelBatch(expdirs{j},'classifierfiles',classifierfilecurr,'configfiles',configfilecurr);
     end
     
   end
@@ -121,7 +139,7 @@ avibasename = sprintf('JAABAResultsMovie_%s_%s',keyword,timestamp);
 for i = 1:nintervals,
   [~,experiment_name] = fileparts(expdirs_chosen{i});
   aviname = sprintf('%s_%02d_%s_%02d.avi',avibasename,i,experiment_name,targets(i));
-  MakeJAABAResultsMovie(expdirs_chosen{i},classifierparamsfile,...
+  MakeJAABAResultsMovie(expdirs_chosen{i},classifierparamsfiles,...
     'nframesperseg',nframesperseg,...
     'targets',targets(i),...
     'framestarts',framestarts(i),...
@@ -139,7 +157,7 @@ framestarts = [9646,10500,14201,14650];
 
 [~,experiment_name] = fileparts(expdirs_chosen{i});
 aviname = sprintf('%s_%02d_%s.avi',avibasename,i,experiment_name);
-MakeJAABAResultsMovie(expdir,classifierparamsfile,...
+MakeJAABAResultsMovie(expdir,classifierparamsfiles,...
   'nframesperseg',nframesperseg,...
   'targets',targets,...
   'framestarts',framestarts,...
