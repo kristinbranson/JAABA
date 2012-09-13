@@ -414,7 +414,7 @@ SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationBehaviorComparison_PerBehav
 print_conditionnames_perexp = print_conditionnames(conditionidx);
 [~,orderedconditionidx] = ismember(print_conditionnames_perexp,print_conditionnames);
 
-[~,idx] = ismember(behaviorcodes(:,1),labelfns);
+[idx,~] = ismember(behaviorcodes(:,1),labelfns);
 
 % X is nexps x nbehaviors
 X = meanfractime(:,idx);
@@ -482,8 +482,10 @@ print_conditionnames_perexp = print_conditionnames(conditionidx);
 [~,orderedconditionidx] = ismember(print_conditionnames_perexp,print_conditionnames);
 nlambda = 10;
 
+[idx,~] = ismember(behaviorcodes(:,1),labelfns);
+
 % X is nexps x nbehaviors
-X = meanfractime;
+X = meanfractime(:,idx);
 y = orderedconditionidx';
 isbaddata = any(isnan(X),2);
 X(isbaddata,:) = [];
@@ -553,6 +555,73 @@ save('StarvationPredictionData.mat','errorrate','print_conditionnames');
 %     0.3333    0.5000    0.5833    0.1667
 %          0    0.5833    0.5000    0.5000
 %          0    0.1667    0.5000    0.5000
+
+% Starvation errorrate using all the 13 behaviors -- Sep 12.
+%     0.5000    0.2500    0.0714    0.0769
+%     0.2500    0.5000    0.3214    0.1923
+%     0.0714    0.3214    0.5000    0.1923
+%     0.0769    0.1923    0.1923    0.5000
+
+% Starvation errorrate using only the 10 old behaviors -- Sep 12.
+% 
+%     0.5000    0.3571    0.0714    0.0769
+%     0.3571    0.5000    0.3214    0.1538
+%     0.0714    0.3214    0.5000    0.1923
+%     0.0769    0.1538    0.1923    0.5000
+
+%% Logistic regression parameters -- Mayank Sep 12.
+
+% reorder condition names
+print_conditionnames_perexp = print_conditionnames(conditionidx);
+[~,orderedconditionidx] = ismember(print_conditionnames_perexp,print_conditionnames);
+nlambda = 10;
+
+[idx,~] = ismember(labelfns,behaviorcodes(:,1));
+
+% X is nexps x nbehaviors
+X = meanfractime(:,idx);
+y = orderedconditionidx';
+isbaddata = any(isnan(X),2);
+X(isbaddata,:) = [];
+y(isbaddata) = [];
+coeffsall = {};
+fitinfoall = {};
+topbehavior = {};
+for condition1 = 1:nconditions,
+  idx1 = condition1 == y;
+  for condition2 = condition1+1:nconditions,
+    
+    fprintf('condition1 = %d, condition2 = %d\n',condition1,condition2);
+    
+    idx2 = condition2 == y;
+    idxcurr = idx1 | idx2;
+    ncurr = nnz(idxcurr);
+    Xcurr = X(idxcurr,:);
+    % 1 means condition1, 0 means condition2
+    ycurr = idx1(idxcurr);
+    % loop over all examples for cross validation
+    
+    yfitcurr = nan(ncurr,1);
+    idxtrain = true(ncurr,1); 
+      
+    % equal weight for positives and negatives
+    weightscurr = nan(nnz(idxtrain),1);
+    n0 = nnz(ycurr(idxtrain)==0);
+    n1 = nnz(ycurr(idxtrain)==1);
+    weightscurr(ycurr(idxtrain)==0) = 1 / n0;
+    weightscurr(ycurr(idxtrain)==1) = 1 / n1;
+    
+    
+    % logistic regression
+    [coeffscurr,fitinfo] = lassoglm(Xcurr(idxtrain,:),ycurr(idxtrain),'binomial','link','logit',...
+      'NumLambda',nlambda,'CV',ncurr-1,'Weights',weightscurr);
+    j = fitinfo.Index1SE;
+    coeffsall{condition1,condition2} = coeffscurr(:,j);
+    [~,tb] = max(abs(coeffscurr(:,j)));
+    topbehavior{condition1,condition2} = behaviors{tb};
+    fitinfoall{condition1,condition2} = fitinfo;
+  end
+end
 
 %% plot first two principal components
 
