@@ -13,7 +13,8 @@ current experiments.
 Experiment lists and other settings are maintained from one session to
 the next by automatically saving the configuration to disk when exiting
 ("most_recent_config.mat").  Multiple different configurations can be
-maintained using the "Load" and "Save" buttons.
+maintained using the "Load" and "Save" buttons.  The "Reset" button does
+the obvious.
 
 
 BEHAVIOR STATISTICS
@@ -22,29 +23,30 @@ Create a table of the fraction of time each behavior is performed using the
 "Behavior Stats" button.  Each row is a behavior;  the columns break it
 down by sex and individual.  If both experiment lists are populated then
 the data are alternately striped and colored.  Mean, median, and variance
-can be set by a contextual menu on the button.  Data can be exported to a
-tab-delimited file using the "Export Table" button.
+can be set by a contextual menu on the "Prefs" button.  Data can be exported
+to a tab-delimited file using the "Export Table" button.
 
 Logical combinations of behaviors can be analyzed using the pull-down menu
 in the lower-left "Behavior" box.  So for example, if "And" "Behavior X"
 is chosen, then the rows in the table show the fraction of time when each
 behavior and Behavior X are performed simultaneously.
 
-The fraction of time each behavior is performed as a function of time during
-the experiment can be plotted by selecting a cell in the table for the
-particular behavior and sex/individual of interest.  Multiple cells selected
-simultaneously will be overlayed.  Zoom and pan using the buttons provided.
-Use the "Stats" button to overlay mean, median, and variance data.  Data can
-be exported to a tab-delimited file using the "Export Graph" button.
+The fraction of time each behavior is performed as a function of time
+during the experiment can be plotted by selecting a cell in the table for
+the particular behavior and sex/individual of interest.  Multiple cells
+selected simultaneously will be overlayed.  Zoom and pan using the buttons
+provided.  Use the "Stats" button to overlay mean, median, and variance data.
+(to be implemented:  Data can be exported to a tab-delimited file using the
+"Export Graph" button.)
 
 
 BOUT STATISTICS
 
-Create a table of bout lengths (BL) and inter-bout lengths (IBL) using
-the "Bout Stats" button.  As for behavior stats, each row is a behavior;
-the columns break it down by sex and individual;  the experiment groups
-are striped;  logical operators can be applied; and there is a separate
-contextual menu.
+Create a table of bout lengths (BL) and inter-bout lengths (IBL) using the
+"Bout Stats" button.  As for behavior stats, each row is a behavior;  the
+columns break it down by sex and individual;  the experiment groups are
+striped;  logical operators can be applied; and the Prefs contextual menu
+controls statistics.
 
 Selecting a cell plots a histogram, normalized to unit area, of bout and
 inter-bout lengths.  The "LogY" and "Stats" buttons can be used to scale
@@ -52,11 +54,23 @@ the axis and overlay summary statistics, respectively.  Multiple selected
 cells are overlayed.
 
 
+SOCIAL STATISTICS
+
+Create a table of the closest individual using the "Social Stats" button.
+Choose which behavior to analysis using the pull-down menu in the Behavior
+panel, and which metric to use for closest using the pull-down menu in the
+Feature panel.  In the resulting table, each row is an individual, and the
+columns show the mode and percentage of frames of the closest individual
+for each bout, as well as the overall mode of the per-bout modes.
+
+Selecting a cell in the table plots a histogram of the closest indidividual.
+
+
 FEATURE STATISTICS
 
 Histograms of feature values during behaviors of interest can be created by
 selecting the desired behavior, feature, and individuals using the pull-down
-menus in the lower left boxes and clicking on the "Feature Histogram" button.
+menus in the lower left panels and clicking on the "Feature Histogram" button.
 The thick line corresponds to feature values during the behavior;  the
 thin line to values not during the behavior;  the two experiment lists
 are color coded.  A contextual menu in this button controls whether the
@@ -93,11 +107,12 @@ Both of these calculations take awhile and so the results are cached to disk.
 
 KNOWN ISSUES
 
-The stats button on a feature time series plot only shows mean and std dev,
-not std error, median, and quantiles.
+crash on feature time series for entire recording
 
 
 TODO
 
 feature stats versus time
-social behaviors
+per-frame social stat modes
+export graph
+log X
