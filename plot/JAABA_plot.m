@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 10-Sep-2012 14:43:37
+% Last Modified by GUIDE v2.5 13-Sep-2012 17:58:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -72,6 +72,7 @@ handles.timeseries_tight=0;
 handles.prefsstat=1;
 handles.logy=0;
 handles.stats=0;
+handles.convolution_width=100;
 handles.interesting_histograms=[];
 handles.interesting_timeseries=[];
 set(handles.ExperimentList,'enable','off');
@@ -112,6 +113,7 @@ handles.timeseries_tight=handles_saved.timeseries_tight;
 handles.prefsstat=handles_saved.prefsstat;
 handles.logy=handles_saved.logy;
 handles.stats=handles_saved.stats;
+handles.convolution_width=handles_saved.convolution_width;
 handles.interesting_histograms=handles_saved.interesting_histograms;
 handles.interesting_timeseries=handles_saved.interesting_timeseries;
 
@@ -2162,7 +2164,8 @@ if(strcmp(handles.table,'behavior_stats'))
       behavior_cumulative(e,:)=parfor_tmp;
     end
     behavior_cumulative=sum(behavior_cumulative,1)./(k-1).*100;
-    behavior_cumulative=conv(behavior_cumulative,ones(1,100)./100,'same');
+    behavior_cumulative=conv(behavior_cumulative,...
+        ones(1,handles.convolution_width)./handles.convolution_width,'same');
 
     plot(behavior_cumulative,[color '-']);
 
@@ -2385,7 +2388,8 @@ function MenuTimeSeriesRadius_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.timeseries_windowradius=str2num(char(inputdlg({'Window radius:'},'',1,{num2str(10)})));
+handles.timeseries_windowradius=str2num(char(inputdlg({'Window radius:'},'',1,...
+    {num2str(handles.timeseries_windowradius)})));
 guidata(hObject,handles);
 
 
@@ -2643,6 +2647,17 @@ function MenuPrefsStats_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuPrefsStats (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuPrefsConvolutionWidth_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsConvolutionWidth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.convolution_width=str2num(char(inputdlg({'Convolution width:'},'',1,...
+    {num2str(handles.convolution_width)})));
+guidata(hObject,handles);
 
 
 % --- Executes on button press in Zoom.
