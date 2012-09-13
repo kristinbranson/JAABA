@@ -107,12 +107,10 @@ Both of these calculations take awhile and so the results are cached to disk.
 
 KNOWN ISSUES
 
-crash on feature time series for entire recording
 
 
 TODO
 
-feature stats versus time
 per-frame social stat modes
 export graph
-log X
+logX

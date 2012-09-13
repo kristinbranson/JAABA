@@ -856,7 +856,7 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     case(4)
       partition_idx=tmp1 | tmp2;
   end
-  if length(partition_idx)==(length(feature_data.data{i}+1))  % n-1 features
+  if length(partition_idx)==(length(feature_data.data{i})+1)  % n-1 features
     partition_idx=partition_idx(1:end-1);
   end
   if(perwhat==1)  % per frame
@@ -1160,7 +1160,12 @@ for i=1:length(feature_data.data)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
   if(sum(sexdata{i}) < length(sexdata{i})/2)  continue;  end
   tmp=behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1;
-  data(k,behavior_data.allScores.tStart(i):behavior_data.allScores.tEnd(i))=feature_data.data{i}(1:tmp);
+  foo=0;
+  if tmp==(length(feature_data.data{i})+1)  % n-1 features
+    foo=1;
+  end
+  data(k,behavior_data.allScores.tStart(i):(behavior_data.allScores.tEnd(i)-foo))=...
+      feature_data.data{i}(1:(tmp-foo));
   k=k+1;
 end
 
@@ -1374,7 +1379,7 @@ end
 xlabel('time (frames)');
 ylabel(get_label(feature_list(feature_value),feature_units));
 axis tight
-if(handles.timeseries_tight==1)
+if((handles.timeseries_tight==1) && (min(range(:,1))<max(range(:,2))))
   v=axis;  axis([v(1) v(2) min(range(:,1)) max(range(:,2))]);
 end
 
