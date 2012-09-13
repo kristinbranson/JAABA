@@ -514,9 +514,9 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   fwrite(fid,zeros(1,N),'double');
   fwrite(fid,zeros(1,N*prod(HWD),'uint8'),'uint8');  % need to make this work for other formats
   fclose(fid);
-  Mframenum =       memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
+  Mframenum = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
   Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-  Mimage =      memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+  Mimage =    memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
   handles.guidata.cache_thread=batch(@cache_thread,0,...
     {N,HWD,cache_filename,handles.guidata.movie_filename},...
@@ -644,8 +644,8 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
-      j = find((Mframenum.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)));
-      if(numel(j)>1)  j=j(1);  end
+      j = find((Mframenum.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)),1,'first');
+      %if(numel(j)>1)  j=j(1);  end
       if isempty(j),
         j = argmin(Mlastused.Data);
         Mframenum.Data(j) = handles.guidata.ts(i);
@@ -661,22 +661,23 @@ for i = axes,
       set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
 
       % remove from the queue frames preceeding current frame
-      %j=(Mframenum.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
-      %if(sum(j)>0)
-      %  %disp(['unqueueing frame(s) ' num2str(Mframenum.Data(j)')...
-      %  %    '; current frame = ' num2str(handles.guidata.ts(i))]);
-      %  Mlastused.Data(j) = 0;
-      %  Mframenum.Data(j) = 0;
-      %end
+      j=(Mframenum.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
+      if(sum(j)>0)
+        %disp(['unqueueing frame(s) ' num2str(Mframenum.Data(j)')...
+        %    '; current frame = ' num2str(handles.guidata.ts(i))]);
+        Mlastused.Data(j) = 0;
+        Mframenum.Data(j) = 0;
+      end
 
       % add to the queue frames subsequent to current frame
       tmp=handles.guidata.nframes_jump_go;
       j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mframenum.Data);
       j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));
-      for k=1:length(j)
-        kk = argmin(Mlastused.Data);
-        Mframenum.Data(kk) = j(k);
-        Mlastused.Data(kk) = nan;
+      [y,idx]=sort(Mlastused.Data);
+      idx=idx(1:min([length(j) -1+find(isnan(y),1,'first')]));
+      if(~isempty(idx))
+        Mframenum.Data(idx) = j(1:length(idx));
+        Mlastused.Data(idx) = nan;
       end
 
     else
