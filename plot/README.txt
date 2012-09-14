@@ -111,6 +111,8 @@ KNOWN ISSUES
 
 TODO
 
+normality and significance tests
 per-frame social stat modes
-export graph
-logX
+per-frame (to add to existing per-fly) average for behavior stats
+implement export graph button
+add logX button for histograms

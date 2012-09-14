@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 13-Sep-2012 17:58:33
+% Last Modified by GUIDE v2.5 14-Sep-2012 11:44:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -65,6 +65,7 @@ handles.individualvalue=1;
 handles.individual=1;
 handles.sexdata={};
 handles.histogram_perwhat=1;
+handles.behaviorstats_perwhat=1;
 handles.timeseries_timing=1;
 handles.timeseries_subtractmean=0;
 handles.timeseries_windowradius=10;
@@ -106,6 +107,7 @@ handles.individuallist=handles_saved.individuallist;
 handles.individualvalue=handles_saved.individualvalue;
 handles.sexdata=handles_saved.sexdata;
 handles.histogram_perwhat=handles_saved.histogram_perwhat;
+handles.behaviorstats_perwhat=handles_saved.behaviorstats_perwhat;
 handles.timeseries_timing=handles_saved.timeseries_timing;
 handles.timeseries_subtractmean=handles_saved.timeseries_subtractmean;
 handles.timeseries_windowradius=handles_saved.timeseries_windowradius;
@@ -160,6 +162,7 @@ else
   set(handles.BehaviorList2,'enable','on');
 end
 menu_histogram_set(handles.histogram_perwhat);
+menu_behaviorstats_set(handles.behaviorstats_perwhat);
 switch(handles.timeseries_timing)
   case 1
     MenuTimeSeriesTimingEntireRecording_Callback(hObject, eventdata, handles);
@@ -241,6 +244,7 @@ set(handles.FeatureList,'String',handles.featurelist);
 set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
 
 menu_histogram_set(handles.histogram_perwhat);
+menu_behaviorstats_set(handles.behaviorstats_perwhat);
 MenuTimeSeriesTimingEntireRecording_Callback(hObject, eventdata, handles);
 menu_prefsstat_set(handles.prefsstat);
 set(handles.MenuTimeSeriesSubtractMean,'Checked','off');
@@ -1512,6 +1516,8 @@ set(handles.Status,'string','Ready.');
 function ret_val=print_stats(data,stat)
 
 switch(stat)
+  case(0)
+    ret_val=num2str(data,3);
   case(1)
     ret_val=num2str(mean(data),3);
   case(2)
@@ -1529,10 +1535,10 @@ end
 
 % --- 
 %function [male_count female_count male_total female_total individual_count]=...
-function [behav_perc sex]=...
+function [behav_perc_summary behav_perc_individual sex]=...
     calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sexdata)
 
-sex=[];  behav_perc=[];
+sex=[];  behav_perc_summary=zeros(3,2);  behav_perc_individual=[];
 for i=1:length(behavior_data.allScores.t0s)  % individual
   tmp1=false(1,length(sexdata{i}));
   for j=1:length(behavior_data.allScores.t0s{i})  % bout
@@ -1557,13 +1563,17 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
       partition_idx=tmp1 | tmp2;
   end
   sex(i)=sum(sexdata{i}(1:length(partition_idx))) > (length(partition_idx)/2);
-  behav_perc(i)=100*sum(partition_idx)./length(partition_idx);
+  behav_perc_summary(1,1)=behav_perc_summary(1,1)+sum(partition_idx);
+  behav_perc_summary(1,2)=behav_perc_summary(1,2)+length(partition_idx);
+  behav_perc_summary(3-sex(i),1)=behav_perc_summary(3-sex(i),1)+sum(partition_idx);
+  behav_perc_summary(3-sex(i),2)=behav_perc_summary(3-sex(i),2)+length(partition_idx);
+  behav_perc_individual(i)=100*sum(partition_idx)./length(partition_idx);
 end
 
 
 % ---
 function [table_data raw_table_data]=calculate_behaviorstats(experiment_value,experiment_list,...
-    behavior_list,behavior_logic,behavior_value2,behavior_list2,sexdata,stat)
+    behavior_list,behavior_logic,behavior_value2,behavior_list2,sexdata,perwhat,stat)
 
 collated_data=cell(length(experiment_value),length(behavior_list));
 parfor e=1:length(experiment_value)
@@ -1577,9 +1587,9 @@ parfor e=1:length(experiment_value)
   parfor_tmp=cell(1,length(behavior_list));
   for b=1:length(behavior_list)
     behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
-    [behav_perc sex]=...
+    [behav_perc_summary behav_perc_individual sex]=...
         calculate_behaviorstats2(behavior_data,behavior_logic,behavior_data2,sexdata{e});
-    parfor_tmp{b}={behav_perc sex};
+    parfor_tmp{b}={behav_perc_summary behav_perc_individual sex};
   end
   collated_data(e,:)=parfor_tmp;
 end
@@ -1587,20 +1597,33 @@ end
 table_data={};
 raw_table_data={};
 for b=1:length(behavior_list)
-  behav_perc=[];  sex=[];  n=[];
+  behav_perc_summary=[];  behav_perc_individual=[];  sex=[];  n=[];
   for e=1:length(experiment_value)
-    behav_perc=[behav_perc collated_data{e,b}{1}];
-    sex=[sex collated_data{e,b}{2}];
+    behav_perc_summary=[behav_perc_summary collated_data{e,b}{1}];
+    behav_perc_individual=[behav_perc_individual collated_data{e,b}{2}];
+    sex=[sex collated_data{e,b}{3}];
   end
   table_data{b,1}=behavior_list{b};
-  raw_table_data{b,2}=behav_perc;
-      table_data{b,2}=print_stats(raw_table_data{b,2},stat);
-  raw_table_data{b,3}=behav_perc(sex==1);
-      table_data{b,3}=print_stats(raw_table_data{b,3},stat);
-  raw_table_data{b,4}=behav_perc(sex==0);
-      table_data{b,4}=print_stats(raw_table_data{b,4},stat);
-  for i=1:length(behav_perc)
-    raw_table_data{b,4+i}=behav_perc(i);
+  switch(perwhat)
+    case 1
+      tmp=100*sum(behav_perc_summary(:,1:2:2*length(experiment_value)),2) ./ ...
+              sum(behav_perc_summary(:,2:2:2*length(experiment_value)),2);
+      raw_table_data{b,2}=tmp(1);
+          table_data{b,2}=print_stats(raw_table_data{b,2},0);
+      raw_table_data{b,3}=tmp(2);
+          table_data{b,3}=print_stats(raw_table_data{b,3},0);
+      raw_table_data{b,4}=tmp(3);
+          table_data{b,4}=print_stats(raw_table_data{b,4},0);
+    case 2
+      raw_table_data{b,2}=behav_perc_individual;
+          table_data{b,2}=print_stats(raw_table_data{b,2},stat);
+      raw_table_data{b,3}=behav_perc_individual(sex==1);
+          table_data{b,3}=print_stats(raw_table_data{b,3},stat);
+      raw_table_data{b,4}=behav_perc_individual(sex==0);
+          table_data{b,4}=print_stats(raw_table_data{b,4},stat);
+  end
+  for i=1:length(behav_perc_individual)
+    raw_table_data{b,4+i}=behav_perc_individual(i);
         table_data{b,4+i}=print_stats(raw_table_data{b,4+i},1);
   end
 end
@@ -1627,12 +1650,12 @@ sexdata=handles.sexdata;
 if(length(experiment_value)>0)
   [table_data raw_table_data]=calculate_behaviorstats(experiment_value,experiment_list,...
       behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      sexdata(experiment_value),handles.prefsstat);
+      sexdata(experiment_value),handles.behaviorstats_perwhat,handles.prefsstat);
 end
 if(length(experiment_value2)>0)
   [table_data2 raw_table_data2]=calculate_behaviorstats(experiment_value2,experiment_list2,...
       behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      sexdata(experiment_value2+length(experiment_list)),handles.prefsstat);
+      sexdata(experiment_value2+length(experiment_list)),handles.behaviorstats_perwhat,handles.prefsstat);
 end
 
 if((length(experiment_value)>0) && (length(experiment_value2)>0))
@@ -1659,9 +1682,11 @@ end
 
 handles.raw_table_data=raw_tmp;
 tmp={'Behavior' 'Total %' 'Male %' 'Female %'};
-for i=1:(ii-4)
-  tmp{i+4}=['Indi #' num2str(i) ' %'];
-end
+cellstr(num2str((1:(ii-4))','Indi #%d %%'))';
+[tmp{5:ii}]=deal(ans{:});
+%for i=1:(ii-4)
+%  tmp{i+4}=['Indi #' num2str(i) ' %'];
+%end
 set(handles.Table,'ColumnName',tmp);
 set(handles.Table,'ColumnWidth',{150 75 75});
 
@@ -1836,10 +1861,14 @@ end
 
 handles.raw_table_data=raw_tmp;
 tmp={'Behavior' 'Bout Length' 'Inter BL' 'Male BL' 'Male IBL' 'Female BL' 'Female IBL'};
-for i=1:(ii-7)/2
-  tmp{2*i+6}=['Indi #' num2str(i) ' BL'];
-  tmp{2*i+7}=['Indi #' num2str(i) ' IBL'];
-end
+cellstr(num2str((1:((ii-7)/2))','Indi #%d BL'))';
+[tmp{8:2:(ii-1)}]=deal(ans{:});
+cellstr(num2str((1:((ii-7)/2))','Indi #%d IBL'))';
+[tmp{9:2:ii}]=deal(ans{:});
+%for i=1:(ii-7)/2
+%  tmp{2*i+6}=['Indi #' num2str(i) ' BL'];
+%  tmp{2*i+7}=['Indi #' num2str(i) ' IBL'];
+%end
 set(handles.Table,'ColumnName',tmp);
 set(handles.Table,'ColumnWidth',{150 75 75});
 
@@ -2043,10 +2072,14 @@ end
 
 handles.raw_table_data=raw_tmp;
 tmp={'Individual' 'Bout Mode' 'Inter Bout Mode'};
-for i=1:(ii-3)/2
-  tmp{2*i+2}=['B #' num2str(i)];
-  tmp{2*i+3}=['IB #' num2str(i)];
-end
+cellstr(num2str((1:(((ii-3)/2)+1))','B #%d'))';
+[tmp{4:2:ii}]=deal(ans{:});
+cellstr(num2str((1: ((ii-3)/2)   )','IB #%d'))';
+[tmp{5:2:ii}]=deal(ans{:});
+%for i=1:(ii-3)/2
+%  tmp{2*i+2}=['B #' num2str(i)];
+%  tmp{2*i+3}=['IB #' num2str(i)];
+%end
 set(handles.Table,'ColumnName',tmp);
 set(handles.Table,'ColumnWidth',{100 75 100});
 
@@ -2741,6 +2774,7 @@ function ExportTable_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 [file,path]=uiputfile('*.txt','Select file to save table to');
+if (file==0)  return;  end
 fid=fopen(fullfile(path,file),'w');
 tmp=get(handles.Table,'columnname');
 tmp=transpose(tmp);
@@ -2783,3 +2817,45 @@ function Save_Callback(hObject, eventdata, handles)
 
 [file,path]=uiputfile('*.mat','Select file to save configuration to');
 save(fullfile(path,file),'handles');
+
+
+% ---
+function menu_behaviorstats_set(arg)
+
+handles=guidata(gcf);
+
+set(handles.MenuBehaviorStatsPerFrame,'Checked','off');
+set(handles.MenuBehaviorStatsPerFly,'Checked','off');
+switch(arg)
+  case(1), set(handles.MenuBehaviorStatsPerFrame,'Checked','on');
+  case(2), set(handles.MenuBehaviorStatsPerFly,'Checked','on');
+end
+
+
+% --------------------------------------------------------------------
+function MenuBehaviorStatsPerFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorStatsPerFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.behaviorstats_perwhat=1;
+menu_behaviorstats_set(handles.behaviorstats_perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBehaviorStatsPerFly_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorStatsPerFly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.behaviorstats_perwhat=2;
+menu_behaviorstats_set(handles.behaviorstats_perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBehaviorStats_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorStats (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
