@@ -38,6 +38,11 @@ end
 
 %% data locations
 
+% Two of the experiments for the 24 hour starved flies have dead flies.
+% These experiments were not used.
+% EXT_DL_None_Rig1Plate15BowlC_20120520T170832
+% EXT_DL_None_Rig2Plate17BowlC_20120827T170311
+
 rootdatadir1s = dir(fullfile(rootdatadir0,'starve*h'));
 rootdatadir1s = cellfun(@(x)fullfile(rootdatadir0,x),{rootdatadir1s([rootdatadir1s.isdir]).name},'UniformOutput',false);
 
@@ -72,16 +77,16 @@ conditionnamecodes = {
   };
 
 behaviorcodes = {
-  'labelsBackup'         'Backup'
-  'labelsCrabwalk'       'Crabwalk'
-  'labelsTouch'          'Touch'
-  'labelsWingGrooming'   'Wing grooming'
-  'labels_Chasev7'       'Chase'
+  'labels_Walk'          'Walk'
+  'labels_Stops'         'Stop'
   'labels_Jump'          'Jump'
   'labels_Righting'      'Righting'
-  'labels_Stops'         'Stop'
-  'labels_Walk'          'Walk'
+  'labelsWingGrooming'   'Wing grooming'
+  'labelsCrabwalk'       'Crabwalk'
+  'labelsBackup'         'Backup'
   'labels_pivot_tail'    'Tail pivot turn'
+  'labelsTouch'          'Touch'
+  'labels_Chasev7'       'Chase'
   };
 
 
@@ -240,14 +245,22 @@ set(gca,'XLim',[0,3*nbehaviors+1]);
 
 ylabel('Z-scored fraction of time');
 
-%SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationBehaviorComparison'));
+SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationBehaviorComparison'));
 
 %% plot each behavior separately
 
 [~,idx] = ismember(unique_conditionnames,conditionnamecodes(:,1));
 print_conditionnames = conditionnamecodes(idx,2)';
-[~,idx] = ismember(behaviorcodes(:,1),labelfns);
-behaviors = labelfns(idx)';
+
+ndx2meanfrac = [];
+behaviors = {};
+for ndx = 1:numel(behaviorcodes(:,1))
+  ndx2labelfns = find(cellfun(@(x) strcmp(x,behaviorcodes{ndx,1}),labelfns));
+  behaviors{ndx} = behaviorcodes{ndx,2};
+  ndx2meanfrac(ndx) = ndx2labelfns;
+end
+nbehaviors = numel(behaviors);
+
 
 hfig = 3;
 figure(hfig);
@@ -276,7 +289,9 @@ for behi = 1:nbehaviors,
   
 %   v = [meanfractime_condition(:,behi),meanfractime_male_condition(:,behi),meanfractime_female_condition(:,behi)];
 %   s = [stdfractime_condition(:,behi),stdfractime_male_condition(:,behi),stdfractime_female_condition(:,behi)];
-  p = [meanfractime(:,behi),meanfractime_male(:,behi),meanfractime_female(:,behi)];
+  p = [meanfractime(:,ndx2meanfrac(behi)),...
+    meanfractime_male(:,ndx2meanfrac(behi)),...
+    meanfractime_female(:,ndx2meanfrac(behi))];
 %   hbar(:,behi) = bar(1:nconditions,v,'grouped');
 %   for i = 1:3,
 %     set(hbar(i,behi),'FaceColor',datacolors(i,:));
@@ -323,7 +338,7 @@ for behi = 1:nbehaviors,
 end
 
 
-%SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationBehaviorComparison_PerBehaviorBoxPlots'));
+SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationBehaviorComparison_PerBehaviorBoxPlots'));
 
 
 %% plot each behavior separately, only plot both statistics
@@ -331,8 +346,15 @@ end
 [~,idx] = ismember(unique_conditionnames,conditionnamecodes(:,1));
 print_conditionnames = conditionnamecodes(idx,2)';
 
-[~,idx] = ismember(behaviorcodes(:,1),labelfns);
-behaviors = labelfns(idx)';
+ndx2meanfrac = [];
+behaviors = {};
+for ndx = 1:numel(behaviorcodes(:,1))
+  ndx2labelfns = find(cellfun(@(x) strcmp(x,behaviorcodes{ndx,1}),labelfns));
+  behaviors{ndx} = behaviorcodes{ndx,2};
+  ndx2meanfrac(ndx) = ndx2labelfns;
+end
+nbehaviors = numel(behaviors);
+
 
 hfig = 4;
 figure(hfig);
@@ -363,7 +385,7 @@ for behi = 1:nbehaviors,
 %   v = [meanfractime_condition(:,behi),meanfractime_male_condition(:,behi),meanfractime_female_condition(:,behi)];
 %   s = [stdfractime_condition(:,behi),stdfractime_male_condition(:,behi),stdfractime_female_condition(:,behi)];
   %p = [meanfractime2(:,behi),meanfractime_male2(:,behi),meanfractime_female2(:,behi)];
-  p = [meanfractime(:,behi)];
+  p = [meanfractime(:,ndx2meanfrac(behi))];
 %   hbar(:,behi) = bar(1:nconditions,v,'grouped');
 %   for i = 1:3,
 %     set(hbar(i,behi),'FaceColor',datacolors(i,:));
@@ -398,6 +420,11 @@ for behi = 1:nbehaviors,
   else
     set(gca,'XTick',1:nconditions,'XTickLabel',{});
   end
+  set(gca,'box','off');
+  set(get(gca,'XLabel'),'FontSize',16);
+  set(get(gca,'YLabel'),'FontSize',16);
+  set(gca,'FontSize',16);
+
   
   %set(gca,'YLim',[0,max(v(:)+s(:))*1.025]);
   %set(gca,'XLim',[.5,nconditions+.5]);
@@ -406,6 +433,10 @@ end
 
 
 SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationBehaviorComparison_PerBehaviorBoxPlots_BothOnly'));
+%% Save the Data..
+
+save(fullfile(outfigdir,['StarvationBehaviorComparison_ResultsData']),'behaviornames','labelfns',...
+  'meanfractime','metadata','scoresfns');
 
 
 %% use logistic regression to predict the strain given the behavior classification results for each pair
@@ -542,10 +573,29 @@ clf;
 imagesc(errorrate,[0,.5]);
 colormap gray;
 set(gca,'XTick',1:nconditions,'XTickLabel',print_conditionnames,...
-  'YTick',1:nconditions,'YTickLabel',print_conditionnames,'Box','off');
+  'YTick',1:nconditions,'YTickLabel',print_conditionnames,'Box','off',...
+  'FontSize',24);
+set(gca,'XLabel','Starvation duration (hours)');
+set(gca,'YLabel','Starvation duration (hours)');
 axis image;
 colorbar;
 title('Pairwise error rate');
+
+error_rate = errorrate;
+axis image;
+box off;
+numel(error_rate)
+size(error_rate)
+[Row,Col]= size(error_rate);
+for i = 1:Row
+  for j = 1:Col
+    if i==j; continue; end
+    ht(i,j) = text(j,i,sprintf('%.2f',error_rate(i,j)),...
+      'FontUnits','pixels','FontWeight','bold','Color',[.7,0,0],...
+      'HorizontalAlignment','center','VerticalAlignment','middle',...
+      'FontSize',24);
+  end
+end
 
 SaveFigLotsOfWays(hfig,fullfile(outfigdir,'StarvationPrediction_PairwiseErrorRate'));
 
