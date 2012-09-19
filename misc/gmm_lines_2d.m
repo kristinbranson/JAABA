@@ -34,7 +34,7 @@ if isstruct(start),
 end
 
 if isempty(allowed_endpoints),
-  idxhull = convhull(X(:,1),X(:,2);
+  idxhull = convhull(X(:,1),X(:,2));
   allowed_endpoints = X(idxhull,:);
 end
 
@@ -77,8 +77,7 @@ for replicate = 1:nreplicates,
     mixsave = mix;
   end;
 
-end;
-
-mu = mixsave.centres;
-S = mixsave.covars;
-priors = mixsave.priors;
+end
+%mu = mixsave.centres;
+%S = mixsave.covars;
+%priors = mixsave.priors;
