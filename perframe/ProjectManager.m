@@ -11,7 +11,7 @@ classdef ProjectManager < handle
     function obj = ProjectManager(projfile)
       
       if nargin < 1
-        projfile = fullfile('params','BehaviorList.xml');
+        projfile = BehaviorListAbsFileName();
       end
       obj.projfile = projfile;
       
@@ -30,7 +30,13 @@ classdef ProjectManager < handle
         if ~exist(obj.projparams(ndx).configfile,'file'),
           uiwait(warndlg(sprintf('Config file %s does not exist for project %s\n Removing the project',...
             obj.projparams(ndx).configfile,obj.projparams(ndx).name)));
-          obj.projparams(ndx) = [];
+          obj.projparams(ndx) = [];  
+            % ALT: This causes an error to be thrown on the next line if 
+            % there's only one project,
+            % and seems wrong even if there's more than one project,
+            % because we proceed to do things with obj.projparams(ndx),
+            % which is a different element than we were dealing with above.
+            % Also for other reasons.
         end
         
         curparams = ReadXMLParams(obj.projparams(ndx).configfile);
