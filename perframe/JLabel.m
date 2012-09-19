@@ -493,7 +493,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   Mlastused = struct('Data',[]); %#ok<NASGU>
   Mimage = struct('Data',[]); %#ok<NASGU>
   
-  cache_filename=['cache-' num2str(feature('getpid')) '.dat'];
+  cache_filename=fullfile(tempdir(),['cache-' num2str(feature('getpid')) '.dat']);
   fid=fopen(cache_filename,'w');
   if fid < 1,
     pause(.1);
@@ -504,7 +504,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
     if fid >= 1,
       break;
     end
-    new_cache_filename = ['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat'];
+    new_cache_filename = fullfile(tempdir(),['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat']);
     warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename);
     cache_filename = new_cache_filename;
     fid=fopen(cache_filename,'w');
@@ -649,7 +649,10 @@ for i = axes,
       if isempty(j),
         j = argmin(Mlastused.Data);
         Mframenum.Data(j) = handles.guidata.ts(i);
-        Mimage.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
+        Mimage.Data(j).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)));
+          % ALT: Added uint8() 2012-09-14.  Without that, threw error when
+          % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
+          % being of class double
         %disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
         %    num2str(sum(isnan(Mlastused.Data)))]);
       else
