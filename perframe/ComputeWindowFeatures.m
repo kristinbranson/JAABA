@@ -357,6 +357,25 @@ for ndx = 1:length(feature_types)
   fnName{ndx} = ['Compute' curFn 'WindowFeatures'];
 end
 
+% Warn the compiler that it needs to compile these functions and
+% include them in the executable
+%#function ComputeChangeWindowFeatures
+%#function ComputeConfusionMatrix
+%#function ComputeDiffNeighborMaxWindowFeatures
+%#function ComputeDiffNeighborMeanWindowFeatures
+%#function ComputeDiffNeighborMinWindowFeatures
+%#function ComputeHarmonicWindowFeatures
+%#function ComputeHistWindowFeatures
+%#function ComputeMaxDependencyRadius
+%#function ComputeMaxWindowFeatures
+%#function ComputeMeanWindowFeatures
+%#function ComputeMinWindowFeatures
+%#function ComputePerFrameTrans
+%#function ComputePrctileWindowFeatures
+%#function ComputeStdWindowFeatures
+%#function ComputeWindowFeatures
+%#function ComputeZscoreNeighborsWindowFeatures
+
 for ndx = 1:length(feature_types)
   curFeature = feature_types{ndx};
   
