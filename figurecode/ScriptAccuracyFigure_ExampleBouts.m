@@ -184,7 +184,8 @@ rootdatadir = '//groups/branson/home/robiea/Projects_data/JAABA/GroundTruth/wing
 experiment_name = 'GMR_71G01_AE_01_TrpA_Rig1Plate15BowlB_20120316T144030';
 mainfly = 38;
 otherflies = 61;
-ts = [20658 20659 20660 20661 20662 ];
+%ts = [20658 20659 20660 20661 20662 ];
+ts = [20658 20659 20660 20661];
 ts_overlay = ts;
 
 PlotSampleFramesWrapper(behavior,rootdatadir,experiment_name,...
