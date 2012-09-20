@@ -117,7 +117,8 @@ end
 
 %% create trx structure
 
-global STORED_TRX;
+%global STORED_TRX;
+STORED_TRX = [];
 
 if isempty(STORED_TRX),
 handles.trx = Trx('trxfilestr',handles.classifierparams(1).file.trxfilename,...
