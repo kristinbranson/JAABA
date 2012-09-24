@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+</head>
+
+<body>
+<center><h1> Installation and Starting JAABA</h1></center>
+
+<h3> REQUIREMENTS </h3>
+
+Linux (64-bit), Windows (32- or 64-bit), or MAC (64-bit) systems with at least
+4GB RAM. JAABA uses parallel computation, and will be faster on multicore
+machines. If you are running JAABA in Matlab using the source code, then you will
+<b>require</b> Parallel Computation Toolbox. JAABA is a computationally intensive program, and would work better on more powerful machine.
+
+<h3> INSTALLATION </h3>
+
+<p>Download the JAABA packwage for you system from
+<a
+href="http://sourceforge.net/projects/jaaba/">http://sourceforge.net/projects/jaaba/</a>. 
+
+<p><!-- Copy the JAABA folder from USB pen drives. Running the executables from
+the USB pen drive is slow and also might cause errors. This folder contains the
+program, the sample data and this documentation.--> The executables are compiled Matlab programs and do not require Matlab, but require the Matlab Compiler Runtime (MCR)</p>
+
+<p>Install the Matlab Compiler Runtime (MCR) for R2012a. <a
+href="http://www.mathworks.com/products/compiler/mcr/index.html"> MCR installers
+and the instructions </a> are available at Mathworks website.</p> You don't need
+MCR if you'll run JAABA in Matlab from the source code.
+
+<h3> STARTING UP </h3>
+
+On Windows: From JAABA/Win32 or JAABA/Win64 folders depending on your system, run the executable JAABA_win.exe <br>
+
+On 64-bit MAC: From JAABA/MAC64, run run_JAABA_mac.command file. Do <b>not</b> run the <b>JAABA_mac</b> appication.<br>
+
+On 64-bit Linux: From JAABA/Linux64, run the run_JAABA_linux.sh file from the command line in a terminal. You need to give the path to installed MCR as the argument. <br>
+
+From source code in Matlab: Change directory to JAABAROOT/perframe and run
+StartJAABA.m <br>
+
+<p>Loading the MCR is slow, and hence once you run the executable it may take
+some time for JAABA to appear.</p>
+
+
+
+</body>
+</html>
