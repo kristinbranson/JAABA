@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+</head>
+
+<body>
+<center>
+<h1> Post Processing Predictions </h1>
+</center>
+
+<h3> Introduction </h3>
+<p>Prediction and the scores produced by classifiers are not always smooth and
+sometimes can result in bouts that are shorter than normal behavioral bouts.
+In addition to improving the classifier by adding such examples to the training
+set, JAABA gives user post-processing tools to smooth the predictions.
+</p>
+<p> The post-processing tool can be accessed by "Classifier ->
+Post-Processing".</p>
+
+<h3> Types of Post-Processing </h3>
+
+The predictions can be smoothed by filtering or by hysteresis.
+
+<h4> Filtering </h4>
+Filtering smooths the predictions by convolving the scores (and not the
+predictions) with a rectangular window which gives the current
+frame's a score is the mean of the frames in the window around it. The
+predictions is then done by thresholding the scores at 0. The size of the window
+is set by the user.
+
+<h4> Hysteresis </h4>
+Hysteresis smooths the predictions by going through all the predicted bouts of the
+behavior and discarding all the bouts that don't have any frame that get a
+scores about <i>htresh</i>. It then goes through all the bouts of none (or
+not-behavior) and discards all the bouts that don't have any frames with scores
+less than <i>lthresh</i>. The parameters <i>hthresh</i> and  <i>hthresh</i> are
+set by the user.
+
+<h3> Ignoring small bouts </h3>
+
+In addition, to above smoothing methods, user can also set the minimum bout
+length to ignore bouts that have length smaller than the minimum bout length.
+
+</body>
+</html>
