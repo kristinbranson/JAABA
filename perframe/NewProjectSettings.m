@@ -99,7 +99,7 @@ if any(strcmp(projname,handles.prevProjects))
 end
 
 handles.projname = projname;
-handles.configfile = fullfile('params',[projname '_params.xml']);
+handles.configfile = fullfile(GetUserHomeDirName(),[projname '_params.xml']);
 set(handles.editconfig,'String',handles.configfile);
 guidata(hObject,handles);
 
