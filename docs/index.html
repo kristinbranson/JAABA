@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+<title>JAABA Documentation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="acmebase.css" type="text/css">
+
+<style type="text/css">
+
+/* Menu container */
+.menu	{
+width:300px;
+height:280px;
+border:solid #FF9900 1px;
+padding:10px 5px 10px 5px;
+margin:12px 12px 12px 50px;
+}
+
+/* Menu styles */
+.menu ul
+{
+margin:0px;
+padding:0px;
+}
+.menu li
+{
+margin:0px 0px 0px 5px;
+padding:0px;
+		list-style-type:none;
+		text-align:left;
+		font-family:Arial,Helvetica,sans-serif;
+		font-size:13px;
+		font-weight:normal;
+}
+
+/* Submenu styles */
+.menu ul ul 
+{
+	background-color:#F6F6F6;
+}
+.menu li li
+{
+margin:0px 0px 0px 16px;
+}
+
+/* Symbol styles */
+.menu .symbol-item,
+	.menu .symbol-open,
+	.menu .symbol-close
+{
+float:left;
+width:16px;
+height:1em;
+	   background-position:left center;
+	   background-repeat:no-repeat;
+}
+.menu .symbol-item  { background-image:url(icons/page.png); }
+.menu .symbol-open  { background-image:url(icons/minus.png); }
+.menu .symbol-close { background-image:url(icons/plus.png);}
+
+/* Menu line styles */
+.menu li.open  { font-weight:bold; }
+.menu li.close { font-weight:normal; }
+</style>
+
+<script src="TreeMenu.js" type="text/javascript"></script>
+</head>
+
+<body>
+<center><h1>JAABA - Janelia Automatic Animal Behavior Annotator</h1></center>
+
+<div class="menu">
+<ul id="Getting Started">
+
+<li><a href="Installation.html">Installation </a></li>
+
+<li><a href="DataFormatting.html">Preparing Data for JAABA</a></li>
+
+<li><a href="NewProject.html">Creating New Projects</a></li>
+
+<li><a href="AddExperiments.html">Add Experiments to Projects</a></li>
+
+<li><a href="BasicNavigation.html">Navigating Movie and Trajectories</a></li>
+
+<li><a href="Viewing.html"> Movie Viewing Options </a></li>
+
+<li><a href="StatusBar.html"> Status Bar </a></li>
+
+<li><a href="Labeling.html"> Labeling Trajectories </a></li>
+
+<li><a href="Training.html">Training </a></li>
+
+<li><a href="CrossValidation.html">Cross Validation </a></li>
+
+<li><a href="ClassifierParameters.html">Classifier Parameters </a></li>
+
+<li><a href="VisualizingClassifier.html">Visualizing Classifier </a></li>
+
+<li><a href="AdvancedNavigation.html">Advanced Navigation</a></li>
+
+<li><a href="SavingandLoading.html">Saving and Loading</a></li>
+
+<li><a href="WindowFeatureComputation.html">Window Feature Computation</a></li>
+
+<li><a href="GroundTruthing.html">Ground Truthing Mode</a></li>
+
+<li><a href="PostProcessing.html">Post Processing</a></li>
+
+</ul>
+<script type="text/javascript">make_tree_menu('example1');</script>
+</div class="menu">
+</body>
+</html>
