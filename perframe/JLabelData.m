@@ -1315,9 +1315,16 @@ end
       obj.classifierfilename = classifierfilename;
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
 %         try
-          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
+          
+          if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+            success = false;
+            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            return;
+          end
+          
+          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           % remove all experiments
           obj.RemoveExpDirs(1:obj.nexps);
@@ -1450,9 +1457,16 @@ end
       obj.classifierfilename = classifierfilename;
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
 %         try
-          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           loadeddata = load(obj.classifierfilename,obj.classifiervars{:});
+
+          if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+            success = false;
+            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            return;
+          end
+          
+          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           % remove all experiments
           % obj.RemoveExpDirs(1:obj.nexps);
@@ -2629,6 +2643,14 @@ end
         msg = 'Currently, feature params file can only be changed when no experiments are loaded';
         return;
       end
+      
+      if ~exist(featureparamsfilename,'file'),
+        success = true; 
+        msg = '';
+        return;
+      end
+
+      
 %       try
         [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
@@ -5942,7 +5964,7 @@ end
           ends = [1 ends+1];
           blens = ends(2:end)-ends(1:end-1);
           [minblen,smallbout] = min(blens);
-          if minblen>obj.postprocessparams.blen, break; end
+          if minblen>=obj.postprocessparams.blen, break; end
            posts(ends(smallbout):ends(smallbout+1)-1) = ...
               1 - posts(ends(smallbout):ends(smallbout+1)-1);
         end
