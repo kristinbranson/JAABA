@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+</head>
+
+<body>
+<h3> Ground Truthing </h3>
+
+<p>
+JAABA's ground truthing mode is designed to measure classifier's performance.
+The classifier's performance is measured by its accuracy at predicting on data
+that it has not seen before. To do this user labels trajetories on data not part
+of the training set and these labels are used as <i>ground-truth</i> against
+which the classifier's predictions are compared. These labels are not added to
+training set.
+</p>
+
+<h3> Starting JAABA in Ground-Truthing Mode </h3>
+
+<p>To start JAABA in ground-truthing mode, after selecting the project, select
+"Ground-Truthing" as the "Labeling Mode" in the initial
+JAABA gui (which is used to select projects and experiments). After selecting
+Ground-truthing mode, add experiments on which you would like to check
+the classifier's performance and then click done.
+</p>
+
+<center><a href="images/editFilesGT.png"><img
+src="images/editFilesGT.png"></a></center>
+
+<h3> Selecting Classifier </h3>
+
+<p>The classifier on which you want to compute the performance can be loaded at the
+initial gui using the <b>Load w/o exps</b> button. This will load the classifier but
+not the experiments that were used to train the classifier. The classifier can
+also be loaded later using <b>File -> Load Classifier -> without experiments</b>. 
+</p>
+
+<p> Another way to check the performance is use to classify the whole movies
+using the classifier and then load the scores. The scores can be loaded in the main JAABA
+window using <b>File -> Load Scores</b>. If the scores are not saved at the default
+location then you'll have to load scores individually for each experiment. If
+both the classifier and scores are loaded then the performance is computed for
+the loaded classifier.
+</p>
+
+<h3> Labeling in Ground-Truthing Mode</h3>
+
+<p> In the ground-truthing mode, you can label trajectories for flies as you
+would in the normal mode. These labels are used as <i>ground-truth</i> against which
+classifier's predictions are compared. If the ground-truthing mode is started in
+advanced mode, JAABA provides 5 buttons to label behavior: "Important behavior",
+"behavior", "Important None", "None" and "Unknown". </p>
+
+<p>Frames that are
+very clear of behavior and not-behavior should be labeled as "Important behavior" and
+"Important None". These are the frames if the classifier was unable to predict these frames with high
+accuracy then user would be reluctant to use the classifier.
+</p>
+
+<p> Frames in which the behavior or not-behavior is somewhat present and are on border should
+be labeled as "behavior" and "none". These frames are where the users
+themselves are not very sure and are less demanding about classifier's
+performance and would be satisified if classifier get these framesthem mostly right.
+</p>
+<p> If JAABA is started in normal ground-truthing mode, only 3 buttons are
+provided: "behavior", "none" and "unknown". The frames labeled as "behavior" and
+"none" are treated as "important behavior" and "important none" while reporting
+the ground-truth performance. 
+
+<h3> Suggesting Frames to Ground Truth</h3>
+To ground-truth data, users can pick frames to label but performance estimated
+on such frames is likely to be biased. JAABA provides users 2 methods that
+suggest frames for labeling. 
+
+User can ask JAABA to suggest random intervals by <b>View->Ground Truth
+Suggestion -> Random</b>. User is prompted for the size of the interval and the
+number of such intervals and JAABA randomly selects intervals for users to
+label.
+
+For behaviors that are rare or occur less frequently, the number of frames that
+the user needs to label for an accurate estimate of false negative rate can be
+quite large. For such cases, users can use <b>View-> Ground Truth Suggestion
+- Balanced Random</b>. This will ask the user for the size of the interval and the
+number of intervals per experiment. In "Balanced Random", JAABA selects intervals to label
+randomly, but increases the weight of intervals that contain predicted positive frames. The weight of a given interval
+is the sum of the weights of its constituent frames, and the weights of individual frames are set so that
+the total weight of predicted positive and predicted negative examples is the
+same. To use this method of suggestion, the scores should already be computed
+and loaded for all the movies.
+
+The suggested intervals are shown by a cyan line below the manual label
+timeline. The "Switch Target" interface gives information about the number of
+frames that have been suggested by JAABA. To search for the suggested intervals,
+users can use the <b>Go-> Navigation Preferences</b> and select <b>Ground Truth
+Suggestions</b> for <b>Shift + Arrows jumps to ..</b>.
+
+<h3> Ground Truth Performance </h3>
+<p> After labeling the trajectories, user can get the classifier's accuracy on
+the labels by <b>Classifier-> Compute Ground Truth Performance</b>. If a
+classifier is loaded then JAABA will use the classifier's predictions to compute
+the performance. If the scores are loaded then they are used to compute the
+performance. If both scores and classifier are loaded in, then JAABA uses scores
+to compute the performance.
+
+<center><a href="images/CVOut.png"><img src="images/GTPerformance.png"></a></center>
+
+<p> The first and the third column in the result table give the number of frames predicted as the
+behavior (chase in this case) and None. The middle column gives the number of
+frames that are not predicted on. These are the frames whose scores lie between
+the scores threshold that are set by using <b>Classifier -> Set confidence
+thresholds</b>. In the default case, when the thresholds are not set, the
+thresholds are zero. So there is a prediction for each frame and the middle
+column will be all zeros. The top row summarizes the predictions on frames
+that were labeled as <b>important behavior</b>. The number in second row are
+for all the frames that were labeled as behavior, and it includes frames that
+were labeled important as well. Similarly, the next two rows summarize the
+results for frames that were labeled as <b>important None</b> and all
+<b>None</b>.  The percentages in parenthesis are computed over each row.
+</p>
+
+
+<h3> Viewing Predictions </h3>
+
+By default, classifier's predictions are hidden so that they don't bias the
+users labeling. If the user wants to see the predictions by selecting <b>View->
+Show Predictions</b>.
+
+<h3> Saving Labels </h3>
+
+User can save the ground-truth labels by <b>File->Save Labels</b>. This will save the
+labels to the file specified by the "file.gt_labelfilename" parameter in the
+project configuration file. The saved labels can be used to measure performance
+of a different classifier (for the same project and behavior) later. We,
+however, recommend not to test ground-truth too often as this will cause the
+user to select the classifier that over-fits to the ground-truth labels.
+
+</body>
+</html>
