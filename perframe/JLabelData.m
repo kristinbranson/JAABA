@@ -2643,6 +2643,14 @@ end
         msg = 'Currently, feature params file can only be changed when no experiments are loaded';
         return;
       end
+      
+      if ~exist(featureparamsfilename,'file'),
+        success = true; 
+        msg = '';
+        return;
+      end
+
+      
 %       try
         [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
