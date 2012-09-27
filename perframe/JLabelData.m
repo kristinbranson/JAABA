@@ -1315,9 +1315,16 @@ end
       obj.classifierfilename = classifierfilename;
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
 %         try
-          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
+          
+          if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+            success = false;
+            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            return;
+          end
+          
+          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           % remove all experiments
           obj.RemoveExpDirs(1:obj.nexps);
@@ -1450,9 +1457,16 @@ end
       obj.classifierfilename = classifierfilename;
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
 %         try
-          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           loadeddata = load(obj.classifierfilename,obj.classifiervars{:});
+
+          if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+            success = false;
+            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            return;
+          end
+          
+          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           % remove all experiments
           % obj.RemoveExpDirs(1:obj.nexps);

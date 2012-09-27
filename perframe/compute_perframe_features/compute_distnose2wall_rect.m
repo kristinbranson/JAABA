@@ -1,23 +1,25 @@
 % distance to wall
-function [data,units] = compute_dist2wall_rect(trx,n)
+function [data,units] = compute_distnose2wall_rect(trx,n)
 
 flies = trx.exp2flies{n};
 nflies = numel(flies);
 data = cell(1,nflies);
 for i = 1:nflies,
   fly = flies(i);  
-  x = trx(fly).x_mm;
-  y = trx(fly).y_mm;
+  
+  xnose = trx(fly).x_mm + 2*trx(fly).a_mm.*cos(trx(fly).theta_mm);
+  ynose = trx(fly).y_mm + 2*trx(fly).a_mm.*sin(trx(fly).theta_mm);
+
   
   % The ordering of the arguments is to account for weird y directions of images. 
   dtop = getDist(trx.tl_x(fly),trx.tl_y(fly), trx.tr_x(fly),trx.tr_y(fly),...
-    x,y);
+    xnose,ynose);
   dleft = getDist(trx.bl_x(fly),trx.bl_y(fly), trx.tl_x(fly),trx.tl_y(fly),...
-    x,y);
+    xnose,ynose);
   dright = getDist(trx.tr_x(fly),trx.tr_y(fly), trx.br_x(fly),trx.br_y(fly),...
-    x,y);
+    xnose,ynose);
   dbottom = getDist(trx.br_x(fly),trx.br_y(fly), trx.bl_x(fly),trx.bl_y(fly),...
-    x,y);
+    xnose,ynose);
   
   data{i} = min([dtop;dleft; dright; dbottom],[],1);
 
