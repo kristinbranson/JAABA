@@ -199,5 +199,7 @@
 
     <angle2corner_rect trans_types="flip,abs" type="arena"/>
     
+    <distnose2wall_rect trans_types="none" type="arena"/>
+
   </perframe>
 </params>
