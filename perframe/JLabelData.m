@@ -5964,7 +5964,7 @@ end
           ends = [1 ends+1];
           blens = ends(2:end)-ends(1:end-1);
           [minblen,smallbout] = min(blens);
-          if minblen>obj.postprocessparams.blen, break; end
+          if minblen>=obj.postprocessparams.blen, break; end
            posts(ends(smallbout):ends(smallbout+1)-1) = ...
               1 - posts(ends(smallbout):ends(smallbout+1)-1);
         end
