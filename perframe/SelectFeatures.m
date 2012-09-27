@@ -272,6 +272,19 @@ createFeatureTable(hObject);
 handles = guidata(hObject);
 if ~isempty(handles.JLDobj.featureWindowSize)
   set(handles.editSize,'String',num2str(handles.JLDobj.featureWindowSize));
+  
+  curVal = handles.JLDobj.featureWindowSize;
+  categories = fieldnames(handles.categ);
+  winComp = handles.windowComp;
+
+  for cndx = 1:numel(categories)
+    curCat = categories{cndx};
+    for wndx = 1:numel(winComp)
+      if ~isfield(handles.categ.(curCat),winComp{wndx}); continue; end
+      handles.categ.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+    end
+  end
+
 end
 
 pfList = fieldnames(handles.pftype);
@@ -1564,7 +1577,7 @@ function editSize_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of editSize as a double
 curVal = str2double(get(hObject,'String'));
 if isempty(curVal)||(round(curVal)-curVal)~=0
-  msgbox('Enter numerical values. eg: "-1 0 1" (without with quotes)');
+  msgbox('Enter numerical values. eg: "10" (without with quotes)');
   return;
 end
 
