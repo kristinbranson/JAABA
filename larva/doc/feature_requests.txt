@@ -1,9 +1,0 @@
-In filename list, show end of line instead of start, or print the filename somewhere where there is plenty of room?
-
-***
-
-Waitbars saying that things are still running, what they're doing sometimes?
-
-***
-
-Ability to use different behaviors.txt files, and have them correspond to different classifier/All.svmbehavior files?
