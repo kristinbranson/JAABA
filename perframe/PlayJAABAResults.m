@@ -119,7 +119,7 @@ end
 
 global STORED_TRX;
 
-if isempty(STORED_TRX),
+if isempty(STORED_TRX) || ~strcmp(STORED_TRX.expdirs,handles.expdir),
 handles.trx = Trx('trxfilestr',handles.classifierparams(1).file.trxfilename,...
   'moviefilestr',handles.classifierparams(1).file.moviefilename,...
   'perframedir',handles.classifierparams(1).file.perframedir);
@@ -133,6 +133,7 @@ end
 handles.trx.AddExpDir(handles.expdir,'openmovie',false);
 STORED_TRX = handles.trx;
 else
+    
   handles.trx = STORED_TRX;
 end
 

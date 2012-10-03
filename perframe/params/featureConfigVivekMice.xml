@@ -201,5 +201,16 @@
     
     <distnose2wall_rect trans_types="none" type="arena"/>
 
-  </perframe>
+    <scores_wall_climbing_v3 trans_types="none" type="scores"/>
+
+    <scores_walk_pause trans_types="none" type="scores"/>
+    <scores_tail_chase trans_types="none" type="scores"/>
+    <scores_rearing_v2 trans_types="none" type="scores"/>
+    <scores_grooming trans_types="none" type="scores"/>
+    <scores_corner_climbing_v2 trans_types="none" type="scores"/>
+    <scores_circling_v2 trans_types="none" type="scores"/>
+    <scores_back_walk trans_types="none" type="scores"/>
+    <score_pausing trans_types="none" type="scores"/>
+
+</perframe>
 </params>
