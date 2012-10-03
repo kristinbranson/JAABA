@@ -22,9 +22,11 @@ BEHAVIOR STATISTICS
 Create a table of the fraction of time each behavior is performed using the
 "Behavior Stats" button.  Each row is a behavior;  the columns break it
 down by sex and individual.  If both experiment lists are populated then
-the data are alternately striped and colored.  Mean, median, and variance
-can be set by a contextual menu on the "Prefs" button.  Data can be exported
-to a tab-delimited file using the "Export Table" button.
+the data are alternately striped and colored.  A contextual menu on the
+"Behavior Stats" button controls whether averages are done on a per-fly
+or per-frame basis.  Mean, median, and variance can be set by a contextual
+menu on the "Prefs" button.  Data can be exported to a tab-delimited file
+using the "Export Table" button.
 
 Logical combinations of behaviors can be analyzed using the pull-down menu
 in the lower-left "Behavior" box.  So for example, if "And" "Behavior X"
@@ -36,8 +38,6 @@ during the experiment can be plotted by selecting a cell in the table for
 the particular behavior and sex/individual of interest.  Multiple cells
 selected simultaneously will be overlayed.  Zoom and pan using the buttons
 provided.  Use the "Stats" button to overlay mean, median, and variance data.
-(to be implemented:  Data can be exported to a tab-delimited file using the
-"Export Graph" button.)
 
 
 BOUT STATISTICS
@@ -111,6 +111,6 @@ KNOWN ISSUES
 
 TODO
 
-per-frame social stat modes
-export graph
-logX
+normality and significance tests
+implement export graph button
+add logX button for histograms
