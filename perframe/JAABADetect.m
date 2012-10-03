@@ -276,6 +276,7 @@ for i = 1:nclassifiers,
   tStartAll = data.firstframes_per_exp{expi};
   tEndAll = data.endframes_per_exp{expi};
   for flies = 1:data.nflies_per_exp(expi)
+    data.windowdata.scoreNorm = classifiers{i}.scoreNorm;
     postprocessedscoresA{flies} = nan(1,tEndAll(flies));
     postprocessedscoresA{flies}(tStartAll(flies):tEndAll(flies)) = ...
       data.Postprocess(scores{i}{flies}(tStartAll(flies):tEndAll(flies)));
