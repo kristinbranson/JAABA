@@ -4700,6 +4700,8 @@ end
       idxcurr = obj.FlyNdx(expi,flies) & ...
         ~obj.windowdata.isvalidprediction; % & ismember(obj.windowdata.t,ts);
       
+      if ~any(idxcurr), return; end;
+      
       % apply classifier
       switch obj.classifiertype,
         
