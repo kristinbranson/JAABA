@@ -1,3 +1,0 @@
-9 1
-*Sharpturn 0 1
-sharpturn	sharpturn	0	0x976b61

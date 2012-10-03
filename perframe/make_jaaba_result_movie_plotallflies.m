@@ -423,7 +423,7 @@ for i = 1:nzoomr,
     xtmp = x0(j) + [0,1]*(x1(j)-x0(j)) + [1,-1];
     ytmp = y0(i) + [0,1]*(y1(i)-y0(i)) + [1,-1];
     hzoombox(i,j) = plot(xtmp([1,2,2,1,1]),ytmp([1,1,2,2,1]),'k-','LineWidth',2,...
-      'Visible','on');
+      'Visible','off');
     htextzoom(i,j) = text((x0(j)+x1(j))/2,.95*y0(i)+.05*y1(i),'',...
       'color','k','horizontalalignment','center',...
       'verticalalignment','bottom','fontweight','bold',...
@@ -800,6 +800,7 @@ for segi = 1:numel(firstframes),
 %         input('');
 %       end
     end
+    %drawnow;
     
   end
   
