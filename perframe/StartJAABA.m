@@ -6,6 +6,7 @@ addpath(fullfile(baseDir,'misc'));
 addpath(fullfile(baseDir,'filehandling'));
 jlabelpath = fileparts(which('JLabel'));
 addpath(fullfile(jlabelpath,'compute_perframe_features'));
+addpath(fullfile(baseDir,'plot'));
 
 try
   c=parcluster;

@@ -2046,7 +2046,7 @@ end
       % Convert the scores file into perframe files.
       for i = 1:numel(obj.allperframefns),
         fn = obj.allperframefns{i};
-        if numel(fn)>7 && strcmpi('scores',fn(1:6))
+        if numel(fn)>7 && strcmpi('score',fn(1:5))
           obj.ScoresToPerframe(obj.nexps,fn);
         end
       end
@@ -2229,7 +2229,7 @@ end
       % Convert the scores file into perframe files.
       for i = 1:numel(obj.allperframefns),
         fn = obj.allperframefns{i};
-        if numel(fn)>7 && strcmpi('scores',fn(1:6))
+        if numel(fn)>7 && strcmpi('score',fn(1:5))
           obj.ScoresToPerframe(obj.nexps,fn);
         end
       end
@@ -2580,7 +2580,7 @@ end
         end
         
         % Don't generate the per-frame files from scores here anymore..
-        if ~(numel(fn)>7 && strcmpi('scores',fn(1:6)))
+        if ~(numel(fn)>7 && strcmpi('score',fn(1:5)))
           perframetrx.(fn);
        end
           

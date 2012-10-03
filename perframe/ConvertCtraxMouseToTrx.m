@@ -46,10 +46,6 @@ fbl = median(bl,1);
 fbr = median(br,1);
 
 for ndx = 1:numel(trx)
-trx(ndx).arena.tl = ftl;
-trx(ndx).arena.tr = ftr;
-trx(ndx).arena.bl = fbl;
-trx(ndx).arena.br = fbr;
 end
 
 d_top_px = sqrt( sum((ftl-ftr).^2));
@@ -67,6 +63,10 @@ for ndx = 1:numel(trx)
   trx(ndx).theta_mm = trx(ndx).theta;
   trx(ndx).dt = repmat(1/framerate,1,numel(trx(ndx).x)-1);
   trx(ndx).sex = repmat({sex},1,numel(trx(ndx).x));
+  trx(ndx).arena.tl = ftl*scaleFactor;
+  trx(ndx).arena.tr = ftr*scaleFactor;
+  trx(ndx).arena.bl = fbl*scaleFactor;
+  trx(ndx).arena.br = fbr*scaleFactor;
 end
 
 save(fullfile(indir,outtrxfile),'trx');

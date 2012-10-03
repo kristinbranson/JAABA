@@ -6,8 +6,8 @@ nflies = numel(flies);
 data = cell(1,nflies);
 for i = 1:nflies,
   fly = flies(i);  
-  x = trx(fly).x;
-  y = trx(fly).y;
+  x = trx(fly).x_mm;
+  y = trx(fly).y_mm;
   
   walla = zeros(1,4);
   walla(1) = atan2(trx.tr_y(fly)-trx.tl_y(fly),trx.tr_x(fly)-trx.tl_x(fly));
