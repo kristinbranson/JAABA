@@ -26,14 +26,21 @@ classdef JLabelData < handle
       'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
       'scores_old',[],'scores_validated',[],'postprocessed',[]);
 
+    % Score loaded from files. Scores are loaded scores,
+    % cur_scores are scores of the current classifier and old_scores are
+    % scores of the old classifier.
+    % 
     predictdata = struct('exp',[],'flies',[],'t',[],...
-      'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'scores',[], 'scores_old',[],'scores_validated',[],'postprocessed',[]);
-    
-    % Score loaded from files.
-    scoredata = struct('scores',[],'predicted',[],...
-          'exp',[],'flies',[],'t',[],'timestamp',[],...
-          'classifierfilenames',[],'postprocessed',[]);
+          'current',[],'current_valid',[],'current_pp',[],...
+          'old',[],'old_valid',[],'old_postprocessed',[],...
+          'loaded',[],'loaded_valid',[],'loaded_pp',[],...
+          'timestamp',[]);
+        
+    predictblocks = struct('t0',[],'t1',[],'expi',[],'flies',[]);
+   
+    fastPredict = struct('classifier',[],...
+          'windowfeaturescellparams',[],...
+          'pffs',[],'wfidx',[],'ts',[]);
     
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 500;
@@ -219,7 +226,8 @@ classdef JLabelData < handle
       'moviefilename','trxfilename','labelfilename','perframedir','clipsdir',...,'featureparamsfilename',...
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
       'classifierTS','confThresholds','scoreNorm','windowfeaturesparams','windowfeaturescellparams',...
-      'basicFeatureTable','featureWindowSize','postprocessparams'};
+      'basicFeatureTable','featureWindowSize','postprocessparams',...
+      'featurenames'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -388,6 +396,22 @@ end
     X = single(X);
     
     end
+    
+    function params = convertTransTypes2Cell(params)
+      % Convert the trans_types field into cell type
+      if ~isstruct(params),  return; end
+      fnames = fieldnames(params);
+      for ndx = 1:numel(fnames)
+        if isstruct(params.(fnames{ndx}))
+          params.(fnames{ndx}) = JLabelData.convertTransTypes2Cell(params.(fnames{ndx}));
+        end
+      end
+      if isfield(params,'trans_types')&& ~iscell(params.trans_types)
+        params.trans_types = {params.trans_types};
+      end
+    end
+    
+
     
   end
   
@@ -1358,8 +1382,8 @@ end
           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
               'basicFeatureTable','featureWindowSize'}))
             
+            loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-                  isequal(obj.windowfeaturescellparams,loadeddata.windowfeaturescellparams) && ...
                   isequal(obj.basicFeatureTable,loadeddata.basicFeatureTable) && ...
                   isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
                 str = sprintf('Window feature parameters in the configuration file');
@@ -1591,7 +1615,7 @@ end
           params{5} = frac_sex_per_exp{i};
         end
         if isfirstframes,
-          params{6} = firstframes_per_exp{i};
+          params{6} = firstframes_per_exp{i};postprocessed
         end
         if isendframes,
           params{7} = endframes_per_exp{i};
@@ -1631,42 +1655,42 @@ end
     end
     
     function AddScores(obj,expi,allScores,timestamp,classifierfilename)
-      obj.scoredata.classifierfilenames{expi} = classifierfilename;
-      for ndx = 1:numel(allScores.scores)
-        if obj.scoredata.exp
-          idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,ndx),2);
+      obj.predictdata.classifierfilenames{expi} = classifierfilename;
+      for ndx = 1:numel(allScores.loaded)
+        if obj.predictdata.exp
+          idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,ndx),2);
         else
           idxcurr = [];
         end
         if any(idxcurr), 
-          obj.scoredata.scores(idxcurr) = [];
-          obj.scoredata.predicted(idxcurr) = [];
-          obj.scoredata.exp(idxcurr,:) = [];
-          obj.scoredata.flies(idxcurr,:) = [];
-          obj.scoredata.t(idxcurr) = [];
-          obj.scoredata.timestamp(idxcurr) = [];
-          if ~isempty(obj.scoredata.postprocessed)
-            obj.scoredata.postprocessed(idxcurr) = [];
+          obj.predictdata.loaded(idxcurr) = [];
+          obj.predictdata.predicted(idxcurr) = [];
+          obj.predictdata.exp(idxcurr,:) = [];
+          obj.predictdata.flies(idxcurr,:) = [];
+          obj.predictdata.t(idxcurr) = [];
+          obj.predictdata.timestamp(idxcurr) = [];
+          if ~isempty(obj.predictdata.loaded_postprocessed)
+            obj.predictdata.loaded_postprocessed(idxcurr) = [];
           end
         end
         tStart = allScores.tStart(ndx);
         tEnd = allScores.tEnd(ndx);
         sz = tEnd-tStart+1;
-        curScores = allScores.scores{ndx}(tStart:tEnd);
-        obj.scoredata.scores(end+1:end+sz) = curScores;
+        curScores = allScores.loaded{ndx}(tStart:tEnd);
+        obj.predictdata.loaded(end+1:end+sz) = curScores;
         
-        obj.scoredata.predicted(end+1:end+sz) = -sign(curScores)*0.5+1.5;
-        obj.scoredata.exp(end+1:end+sz,1) = expi;
-        obj.scoredata.flies(end+1:end+sz,1) = ndx;
-        obj.scoredata.t(end+1:end+sz) = tStart:tEnd;
-        obj.scoredata.timestamp(end+1:end+sz) = timestamp;
+        obj.predictdata.predicted(end+1:end+sz) = -sign(curScores)*0.5+1.5;
+        obj.predictdata.exp(end+1:end+sz,1) = expi;
+        obj.predictdata.flies(end+1:end+sz,1) = ndx;
+        obj.predictdata.t(end+1:end+sz) = tStart:tEnd;
+        obj.predictdata.timestamp(end+1:end+sz) = timestamp;
       end
       
       obj.UpdatePredictedIdx();
 
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
-        if ~isempty(obj.scoredata.scores)
-          scoreNorm = prctile(abs(obj.scoredata.scores),80);
+        if ~isempty(obj.predictdata.loaded)
+          scoreNorm = prctile(abs(obj.predictdata.loaded),80);
           obj.windowdata.scoreNorm = scoreNorm;
         end
       end
@@ -1674,16 +1698,16 @@ end
       if ~isempty(obj.postprocessparams)
         [success,msg] = obj.ApplyPostprocessing();
       else
-        for ndx = 1:numel(allScores.scores)
+        for ndx = 1:numel(allScores.loaded)
           tStart = allScores.tStart(ndx);
           tEnd = allScores.tEnd(ndx);
           sz = tEnd-tStart+1;
           if isfield(allScores,'postprocessedscores');
             obj.postprocessparams = allScores.postprocessparams;
             curpostprocessedscores = allScores.postprocessedscores{ndx}(tStart:tEnd);
-            obj.scoredata.postprocessed(end+1:end+sz) = curpostprocessedscores;
+            obj.predictdata.loaded_postprocessed(end+1:end+sz) = curpostprocessedscores;
           else
-            obj.scoredata.postprocessed(end+1:end+sz) = 0;
+            obj.predictdata.loaded_postprocessed(end+1:end+sz) = 0;
           end
         end
       end
@@ -1696,16 +1720,16 @@ end
         sfn = obj.GetFile('scores',expi,true);
       end
     
-      if isempty(obj.scoredata.exp),
+      if isempty(obj.predictdata.exp),
         uiwait(warndlg('No scores to save'));
         return;
       end
       
-      allScores = struct('scores',{},timestamp,[]);
+      allScores = struct('loaded',{},timestamp,[]);
       for fly = 1:obj.nflies_per_exp(expi)
-        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,fly),2);
+        idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,fly),2);
         
-        curt = obj.scoredata.t(idxcurr);
+        curt = obj.predictdata.t(idxcurr);
         if any(curt(2:end)-curt(1:end-1) ~= 1)
           uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
           return;
@@ -1715,9 +1739,9 @@ end
         tEnd = obj.endframes_per_exp{expi}(fly);
         
         sz = tEnd-tStart+1;
-        allScores.scores{ndx}(tStart:tEnd) = obj.scoredata.scores(idxcurr);
-        obj.scoredata.t(end+1:end+sz) = tStart:tEnd;
-        obj.scoredata.timestamp(end+1:end+sz) = timestamp;
+        allScores.loaded{ndx}(tStart:tEnd) = obj.predictdata.loaded(idxcurr);
+        obj.predictdata.t(end+1:end+sz) = tStart:tEnd;
+        obj.predictdata.timestamp(end+1:end+sz) = timestamp;
         
       end
       obj.SaveScores(allScores,sfn);
@@ -2076,6 +2100,8 @@ end
         end
       end
       
+      obj.InitPredictiondata(obj.nexps);
+      
       [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
         msg = msg1;
@@ -2261,7 +2287,9 @@ end
         end
       end      
       
-      % save default path
+      obj.InitPredictiondata(obj.nexps);
+   
+    % save default path
       obj.defaultpath = expdir;
       
       success = true;
@@ -2333,15 +2361,20 @@ end
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
 
-      if ~isempty(obj.scoredata.exp)
-        idxcurr = ismember(obj.scoredata.exp, expi);
-        obj.scoredata.scores(idxcurr) = [];
-        obj.scoredata.predicted(idxcurr) = [];
-        obj.scoredata.exp(idxcurr) = [];
-        obj.scoredata.exp = newExpNumbers(obj.scoredata.exp);
-        obj.scoredata.flies(idxcurr) = [];
-        obj.scoredata.t(idxcurr) = [];
-        obj.scoredata.timestamp(idxcurr) = [];
+      if ~isempty(obj.predictdata.exp)
+        idxcurr = ismember(obj.predictdata.exp, expi);
+        fnames = fieldnames(obj.predictdata);
+        for fndx = 1:numel(fnames)
+          obj.predictdata.(fnames{fndx})(idxcurr) = [];
+        end
+      end
+      
+      if ~isempty(obj.predictblocks.expi)
+        idxcurr = ismember(obj.predictblocks.expi,expi);
+        fnames = fieldnames(obj.predictblocks);
+        for fndx = 1:numel(fnames)
+          obj.predictblocks.(fnames{fndx})(idxcurr) = [];
+        end
       end
       
       if ~isempty(obj.randomGTSuggestions)
@@ -2588,10 +2621,10 @@ end
       OUT = struct();
       OUT.units = struct(); OUT.units.num = {'scores'};
       OUT.units.den = {''};
-      for ndx = 1:numel(Q.allScores.scores)
+      for ndx = 1:numel(Q.allScores.loaded)
         t0 = Q.allScores.tStart(ndx);
         t1 = Q.allScores.tEnd(ndx);
-        OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
+        OUT.data{ndx} = Q.allScores.loaded{ndx}(t0:t1);
       end
       save(scoresFileOut,'-struct','OUT');
     end
@@ -2837,7 +2870,7 @@ end
     end
     
     
-% Tracking information
+% Tracking information   
 
 
     function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
@@ -3556,11 +3589,11 @@ end
       off = 1 - T0;
       scores = zeros(1,n);
 
-      if ~isempty(obj.scoredata.exp)                 
-        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2) &...
-          obj.scoredata.t' >= T0 & obj.scoredata.t' <= T1;
-        scores(obj.scoredata.t(idxcurr)+off) = ...
-          obj.scoredata.scores(idxcurr);      
+      if ~isempty(obj.predictdata.exp)                 
+        idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,flies),2) &...
+          obj.predictdata.t' >= T0 & obj.predictdata.t' <= T1;
+        scores(obj.predictdata.t(idxcurr)+off) = ...
+          obj.predictdata.loaded(idxcurr);      
       end
       
     end
@@ -3576,15 +3609,15 @@ end
       scores = zeros(1,n);
       predictions = zeros(1,n);
       
-      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+      if isempty(obj.predictdata.exp) || all(obj.predictdata.timestamp < obj.classifierTS)
         idxcurr = obj.FlyNdx(expi,flies) & obj.windowdata.isvalidprediction;
-        scores(obj.windowdata.t(idxcurr)+off) = obj.windowdata.scores(idxcurr);
+        scores(obj.windowdata.t(idxcurr)+off) = obj.windowdata.loaded(idxcurr);
         predictions(obj.windowdata.t(idxcurr)+off) = 2 - obj.windowdata.postprocessed(idxcurr);      
       else
-        idxcurr = obj.scoredata.exp == expi & all(bsxfun(@eq,obj.scoredata.flies,flies),2) &...
-          obj.scoredata.t' >= T0 & obj.scoredata.t' <= T1;
-        scores(obj.scoredata.t(idxcurr)+off) = obj.scoredata.scores(idxcurr);      
-        predictions(obj.scoredata.t(idxcurr)+off) = 2 - obj.scoredata.postprocessed(idxcurr);      
+        idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,flies),2) &...
+          obj.predictdata.t' >= T0 & obj.predictdata.t' <= T1;
+        scores(obj.predictdata.t(idxcurr)+off) = obj.predictdata.loaded(idxcurr);      
+        predictions(obj.predictdata.t(idxcurr)+off) = 2 - obj.predictdata.loaded_postprocessed(idxcurr);      
       end
       
     end
@@ -3700,7 +3733,7 @@ end
             
       % preload labeled window data while we have the per-frame data loaded
       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
-      if ~obj.IsGTMode() || isempty(obj.scoredata.exp),
+      if ~obj.IsGTMode() || isempty(obj.predictdata.exp),
         [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
         if ~success,
           warning(msg);
@@ -3868,7 +3901,7 @@ end
         end
         obj.windowdata.labelidx_new(idx) = 0;
         obj.windowdata.labelidx_imp(idx) = 0;
-        obj.UpdateErrorIdx();
+        obj.UpdateErrorIdx();data
       end
       
     end
@@ -3896,6 +3929,33 @@ end
     
 % Window data computation.
 
+    function InitPredictiondata(obj,expi)
+      
+      % First remove the old scores if any for that experiment.
+      idx = obj.predictdata.exp == expi;
+      fnames = fieldnames(obj.predictdata);
+      set_to_nan = {};
+      for ndx = 1:numel(fnames)
+        obj.(fnames{ndx})(idx) = [];
+        if ~any(strcmp(fnames{ndx},{'exp','flies','t'}))
+          set_to_nan{end+1} = fnames{ndx};
+        end
+      end
+      
+      for flies = 1:obj.nflies_per_exp(expi)
+        firstframe = obj.firstframes_per_exp{expi}(flies);
+        endframe = obj.endframes_per_exp{expi}(flies);
+        nframes = endframe-firstframe+1;
+        for sndx = 1:numel(set_to_nan)
+          obj.predictdata.(set_to_nan{sndx})(end+1:end+nframes) = nan;
+        end
+        obj.predictdata.exp(end+1:end+nframes) = expi;
+        obj.predictdata.flies(end+1:end+nframes) = flies;
+        obj.predictdata.t(end+1:end+nframes) = firstframe:endframe;
+      end
+
+    end
+
     function [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
     % [success,msg] = PreLoadWindowData(obj,expi,flies,ts)
     % Compute and store the window data for experiment expi, flies flies,
@@ -3910,8 +3970,6 @@ end
       
       success = false; msg = '';
       obj.CheckExp(expi); obj.CheckFlies(flies);
-      
-      obj.TrimWindowData();
       
       % which frames don't have window data yet
       if isempty(obj.windowdata.exp),
@@ -3949,14 +4007,20 @@ end
         % update the status
         obj.SetStatus('Computing window data for exp %s, fly%s: %d%% done...',...
           obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
-
+        
         % compute window data for a chunk starting at t
         [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
         if ~success1, warning(msg); return; end
+
+        % Add this to predict blocks.
+        obj.predictblocks.expi(end+1) = expi;
+        obj.predictblocks.flies(end+1) = flies;
+        obj.predictblocks.t0(end+1) = t0;
+        obj.predictblocks.t1(end+1) = t1;
         
         % only store window data that isn't already cached
         tsnew = t0:t1;
-        idxnew = ~ismember(tsnew,tscurr);
+        idxnew = (~ismember(tsnew,tscurr)) &(~ismember(tsnew,missingts));
         m = nnz(idxnew);
         if m==0; return; end
 
@@ -3996,6 +4060,7 @@ end
       obj.windowdata.featurenames = feature_names;
       
       success = true;
+%       obj.TrimWindowData();
       
     end
 
@@ -4108,7 +4173,8 @@ end
         
         if ~exist(perframefile{ndx},'file'),
           if ~isdeployed
-            res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+            res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',...
+              obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
           else
             res = 'Yes';
           end
@@ -4211,6 +4277,11 @@ end
       obj.windowdata.scoreNorm=[];
       obj.windowdata.binVals=[];
       
+      obj.predictblocks.t0 = [];
+      obj.predictblocks.t1 = [];
+      obj.predictblocks.flies = [];
+      obj.predictblocks.expi = [];
+      
       obj.UpdatePredictedIdx();
 
     end
@@ -4218,19 +4289,21 @@ end
     function TrimWindowData(obj,doforce)
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
-      sizeLimit = obj.cacheSize*1e6;
-      classSize = 4;
-      ratioLimit = 0.2;
-      
-      numUnlabeled = nnz(obj.windowdata.labelidx_new==0);
-      numLabeled = nnz(obj.windowdata.labelidx_new);
-      
-      if (nargin < 2 || ~doforce) && (numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit);
-        return;
-      end
-      
-      idx2remove = obj.windowdata.labelidx_new==0 & ...
-        ~obj.FlyNdx(obj.expi,obj.flies);
+%       sizeLimit = obj.cacheSize*1e6;
+%       classSize = 4;
+%       ratioLimit = 0.2;
+%       
+%       numUnlabeled = nnz(obj.windowdata.labelidx_new==0);
+%       numLabeled = nnz(obj.windowdata.labelidx_new);
+%       
+%       if (nargin < 2 || ~doforce) && (numel(obj.windowdata.X)*classSize < sizeLimit || numUnlabeled/numLabeled<ratioLimit);
+%         return;
+%       end
+%       
+%       idx2remove = obj.windowdata.labelidx_new==0 & ...
+%         ~obj.FlyNdx(obj.expi,obj.flies);
+
+      idx2remove = obj.windowdata.labelidx_new==0;
       if ~any(idx2remove); return; end
       obj.windowdata.X(idx2remove,:) = [];
       obj.windowdata.exp(idx2remove,:) = [];
@@ -4309,8 +4382,9 @@ end
       islabeled = obj.windowdata.labelidx_cur ~= 0;
       obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
     end
-
-% Training and prediction.    
+    
+    
+% Training and prediction.
     
 
     function Train(obj,doFastUpdates,timerange)
@@ -4451,7 +4525,9 @@ end
           obj.windowdata.scoreNorm = [];
           % To later find out where each example came from.
 
-          obj.windowdata.isvalidprediction = false(numel(islabeled),1);
+%           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
+          
+          obj.FindFastPredictParams();
           obj.PredictLoaded();
       end
 
@@ -4505,24 +4581,36 @@ end
           obj.windowdata.scores(idx0) = scores(idx0);
           obj.ClearStatus();
         case 'boosting',
+          if(isempty(obj.predictblocks.t0)), return, end
           
-          toPredict = ~obj.windowdata.isvalidprediction;
-          if any(toPredict),
-            obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
-            scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
-            obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
-            obj.windowdata.scores(toPredict) = scores;
-            obj.windowdata.isvalidprediction(toPredict) = true;
-            if ~isempty(obj.classifier_old),
-              obj.windowdata.scores_old(toPredict) = ...
-                myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
-            else
-              obj.windowdata.scores_old(toPredict) = 0;
-            end
+          for ndx = 1:numel(obj.predictblocks.t0)
+            obj.PredictFast(obj.predictblocks.expi(ndx),...
+              obj.predictblocks.flies(ndx),...
+              obj.predictblocks.t0(ndx):obj.predictblocks.t1(ndx));
             obj.NormalizeScores([]);
             obj.ApplyPostprocessing();
             obj.ClearStatus();
           end
+
+%{          
+%           toPredict = ~obj.windowdata.isvalidprediction;
+%           if any(toPredict),
+%             obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
+%             scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
+%             obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
+%             obj.windowdata.scores(toPredict) = scores;
+%             obj.windowdata.isvalidprediction(toPredict) = true;
+%             if ~isempty(obj.classifier_old),
+%               obj.windowdata.scores_old(toPredict) = ...
+%                 myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
+%             else
+%               obj.windowdata.scores_old(toPredict) = 0;
+%             end
+%             obj.NormalizeScores([]);
+%             obj.ApplyPostprocessing();
+%             obj.ClearStatus();
+%           end
+%}
           
       end
             
@@ -4721,6 +4809,183 @@ end
       
     end
     
+    function FindFastPredictParams(obj)
+      
+        if isempty(obj.classifier),
+          return;
+        end
+        
+        feature_names = obj.windowdata.featurenames;
+        
+        % which features are actually used
+        dims = [obj.classifier.dim];
+        feature_names = feature_names(dims);
+
+        % put these in with the rest of the classifiers' window features
+        wfs = {};
+        wfidx = nan(1,numel(dims));
+        for j = 1:numel(feature_names),
+          wfidxcurr = find(WindowFeatureNameCompare(feature_names{j},wfs),1);
+          if isempty(wfidxcurr),
+            wfidxcurr = numel(wfs)+1;
+            wfs{wfidxcurr} = feature_names{j}; %#ok<AGROW>
+          end
+          wfidx(j) = wfidxcurr;
+        end
+
+        wf2pff = cellfun(@(x)x{1},wfs,'UniformOutput',false);
+        [pffs,~,wf2pffidx] = unique(wf2pff);
+
+        windowfeaturescellparams = struct;
+        for pfi = 1:numel(pffs),
+          pf = pffs{pfi};
+          wfidx = wf2pffidx==pfi;
+          windowfeaturescellparams.(pf) = WindowFeatureName2Params(wfs(wfidx));
+        end
+
+        for j = 1:numel(wfs),
+           wfidxcurr = find(WindowFeatureNameCompare(wfs{j},feature_names));
+           if numel(wfidxcurr) ~= 1,
+             error('Error matching wfs for classifier %d with window features computed',i);
+           end
+           wfidx(j) = wfidxcurr;
+        end
+        classifiers_indexed = obj.classifier;
+        for j = 1:numel(classifiers_indexed),
+          classifiers_indexed(j).dim = j;
+        end
+        
+        obj.fastPredict.classifier = classifiers_indexed;
+        obj.fastPredict.windowfeaturescellparams = windowfeaturescellparams;
+        obj.fastPredict.pffs = pffs;
+        obj.fastPredict.wfidx = wfidx;
+        obj.fastPredict.ts = obj.classifierTS;
+    end
+    
+    function PredictFast(obj,expi,flies,ts)
+    % Predict fast by computing only the required window features.
+      
+        if isempty(obj.classifier) || isemtpy(ts),
+          return;
+        end
+        
+        if ~isempty(obj.predictdata.expi),
+          idxcurr = obj.predictdata.flies == flies & ...
+                    obj.predictdata.expi == expi &...
+                    obj.predictdata.timestamp > obj.classifierTS;
+          tscurr = obj.predictdata.t(idxcurr);
+          missingts = setdiff(ts,tscurr);
+          ndx2predictdata = find(idxcurr);
+        else
+          missingts = ts;
+        end
+        
+        perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
+        perframefile = obj.GetPerframeFiles(expi);
+
+        while true,
+
+          % choose a frame missing window data
+          % if a predict block around that has already been used then use
+          % that.
+          
+          t = missingts(1);
+          curbs_t0 = obj.predictblocks.t0( obj.predictblocks.expi==expi & ...
+            obj.predictblocks.flies == flies);
+          curbs_t1 = obj.predictblock.t1(obj.predictblocks.expi == expi & ...
+            obj.predictblocks.flies == flies);
+          if ~isempty(curbs_t0) && any(  (t-curbs_t0)>=0 & (t-curbs_t1)<=0)
+            tempndx = find( (t-curbs_t0)>=0 & (t-curbs_t1)<=0 );
+            t0 = curbs_t0(tempndx(1));
+            t1 = curbs_t1(tempndx(1));
+          else
+            
+            t = median(missingts);
+            if ~ismember(t,missingts),
+              t = missingts(argmin(abs(t-missingts)));
+            end
+            
+            t1 = min(t+obj.windowdatachunk_radius,T1);
+            % go backward 2*r to find the start of the chunk
+            t0 = max(t1-2*obj.windowdatachunk_radius,T0);
+            % go forward 2*r again to find the end of the chunk
+            t1 = min(t0+2*obj.windowdatachunk_radius,T1);
+            
+            overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
+            if ~isempty(overlap_start),
+              t0 = max(curbs_t1(overlap_start))+1;
+            end
+            
+            overlap_end = find( (t1-curbs_t0)>=0 & (t1-curbs_t1)<=0);
+            if ~isempty(overlap_end),
+              t1 = max(curbs_t0(overlap_end))-1;
+            end
+            
+            obj.predictblocks.t0(end+1) = t0;
+            obj.predictblocks.t1(end+1) = t1;
+            obj.predictblocks.expi(end+1) = expi;
+            obj.predictblocks.flies(end+1) = flies;
+          end
+          
+
+          
+          % update the status
+          obj.SetStatus('Computing window data for exp %s, fly%s: %d%% done...',...
+            obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
+          
+          for j = 1:numel(obj.fastPredict.pffs),
+
+            fn = obj.fastPredict.pffs{j};
+            
+            ndx = find(strcmp(fn,obj.allperframefns));
+            if perframeInMemory,
+              perframedata = obj.perframedata_all{ndx};
+            else
+              perframedata = load(perframefile{ndx});
+              perframedata = perframedata.data{flies(1)};
+            end
+            
+            t11 = min(t1,numel(perframedata{j}));
+            [x_curr,~] = ...
+              ComputeWindowFeatures(perframedata{j},...
+              obj.fastPredict.windowfeaturescellparams.(fn){:},'t0',t0,'t1',t11);
+            
+            if t11 < t1,
+              x_curr(:,end+1:end+t1-t11) = nan;
+            end
+            
+            % add the window data for this per-frame feature to X
+            nold = size(X,1);
+            nnew = size(x_curr,2);
+            if nold > nnew,
+              warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+              x_curr(:,end+1:end+nold-nnew) = nan;
+            elseif nnew > nold && ~isempty(X),
+              warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+              X(end+1:end+nnew-nold,:) = nan;
+            end
+            X = [X,single(x_curr)']; %#ok<AGROW>
+          end
+          
+          scores = myBoostClassify(X(:,wfidx),classifiers_indexed);
+          
+          tsnew = t0:t1;
+          [idxold,curndx] = ismember(tsnew,tscurr);
+          curndx = ndx2predictdata(curndx);
+          
+          obj.predictdata.current(curndx) = scores(idxold);
+          obj.predictdata.timestamp(curndx) = obj.classifierTS;
+          
+          if isempty(missingts),
+            obj.ClearStatus();
+            break;
+          end
+        end
+        
+ 
+    end
+    
+    
     function allScores = PredictWholeMovie(obj,expi)
       
       if isempty(obj.classifier),
@@ -4733,10 +4998,11 @@ end
       tStartAll = obj.GetTrxFirstFrame(expi);
       tEndAll = obj.GetTrxEndFrame(expi);
       perframefile = obj.GetPerframeFiles(expi);
-      windowfeaturescellparams = obj.windowfeaturescellparams;
+      windowfeaturescellparams = obj.fastPredict.windowfeaturescellparams;
+      wfidx = obj.fastPredict.wfidx;
       curperframefns = obj.curperframefns;
       allperframefns = obj.allperframefns;
-      classifier = obj.classifier;
+      classifier = obj.fastPredict.classifier;
       
       obj.SetStatus('Classifying current movie..');
       
@@ -4752,7 +5018,7 @@ end
           X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
             allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
         
-          scores(curt0:curt1) = myBoostClassify(X,classifier);
+          scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
         end
         scoresA{flies} = scores;
         fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
@@ -4963,8 +5229,8 @@ end
           curT = nlt( nlexp==curExp & nlflies == curFly);
           curLabels = nlLabels(nlexp==curExp & nlflies == curFly);
           curLabels_imp = nlLabels_imp(nlexp==curExp & nlflies == curFly);
-          curScoreNdx = find(obj.scoredata.exp == curExp & obj.scoredata.flies==curFly);
-          scoresT = obj.scoredata.t(curScoreNdx);
+          curScoreNdx = find(obj.predictdata.exp == curExp & obj.predictdata.flies==curFly);
+          scoresT = obj.predictdata.t(curScoreNdx);
           [curValidScoreNdx,loc] = ismember(scoresT,curT);
           if nnz(curValidScoreNdx)~=numel(curT)
             warndlg('Scores are missing for some labeled data');
@@ -4974,13 +5240,13 @@ end
           
           orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
           orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
-          orderedScores = [orderedScores; obj.scoredata.scores(curScoreNdx(curValidScoreNdx~=0))'];
+          orderedScores = [orderedScores; obj.predictdata.loaded(curScoreNdx(curValidScoreNdx~=0))'];
         end
         if setClassifierfilename,
-          classifierfilename = obj.scoredata.classifierfilenames{curExp};
+          classifierfilename = obj.predictdata.classifierfilenames{curExp};
           setClassifierfilename = 0;
         elseif strcmp(classifierfilename,'multiple'),
-        elseif ~strcmp(classifierfilename,obj.scoredata.classifierfilenames{curExp}),
+        elseif ~strcmp(classifierfilename,obj.predictdata.classifierfilenames{curExp}),
           classifierfilename = 'multiple';
         end
           
@@ -5188,13 +5454,13 @@ end
       expStats.nlabeledflies = obj.labelstats(expi).nflies_labeled;
       
       
-      if ~isempty(obj.scoredata.exp==expi)
-        expid = obj.scoredata.exp==expi;
+      if ~isempty(obj.predictdata.exp==expi)
+        expid = obj.predictdata.exp==expi;
         expStats.nscoreframes = nnz(expid);
-        expStats.nscorepos = nnz(obj.scoredata.scores(expid)>0);
-        if ~isempty(obj.scoredata.classifierfilenames) && ...
-            numel(obj.scoredata.classifierfilenames)>=expi
-          expStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
+        expStats.nscorepos = nnz(obj.predictdata.loaded(expid)>0);
+        if ~isempty(obj.predictdata.classifierfilenames) && ...
+            numel(obj.predictdata.classifierfilenames)>=expi
+          expStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
         else
           expStats.classifierfilename = '';
         end
@@ -5270,13 +5536,13 @@ end
         flyStats.sexfrac = [];
       end
       
-      if ~isempty(obj.scoredata.exp==expi)
-        idxcurr = obj.scoredata.exp==expi & obj.scoredata.flies == flyNum;
+      if ~isempty(obj.predictdata.exp==expi)
+        idxcurr = obj.predictdata.exp==expi & obj.predictdata.flies == flyNum;
         flyStats.nscoreframes_loaded = nnz(idxcurr);
-        flyStats.nscorepos_loaded = nnz(obj.scoredata.scores(idxcurr)>0);
-        flyStats.nscoreneg_loaded = nnz(obj.scoredata.scores(idxcurr)<0);
-%         if ~isempty(obj.scoredata.classifierfilenames)
-%           flyStats.classifierfilename = obj.scoredata.classifierfilenames{expi};
+        flyStats.nscorepos_loaded = nnz(obj.predictdata.loaded(idxcurr)>0);
+        flyStats.nscoreneg_loaded = nnz(obj.predictdata.loaded(idxcurr)<0);
+%         if ~isempty(obj.predictdata.classifierfilenames)
+%           flyStats.classifierfilename = obj.predictdata.classifierfilenames{expi};
 %         else
 %           flyStats.classifierfilename = '';
 %         end
@@ -5478,14 +5744,14 @@ end
     function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
       success = true; msg = '';
       
-      if isempty(obj.scoredata.exp),
+      if isempty(obj.predictdata.exp),
         msg = 'No Scores have been loaded, cannot suggest intervals for ground truthing\n';
         success = false;
         return;
       end
       
-      numpos = nnz(obj.scoredata.scores>0);
-      numneg = nnz(obj.scoredata.scores<0);
+      numpos = nnz(obj.predictdata.loaded>0);
+      numneg = nnz(obj.predictdata.loaded<0);
       poswt = numneg/(numneg+numpos);
       negwt = numpos/(numneg+numpos);
       
@@ -5493,8 +5759,8 @@ end
       obj.balancedGTSuggestions = {};
       for endx = 1:obj.nexps
         for flies = 1:obj.nflies_per_exp(endx)
-          curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
-          curt = obj.scoredata.t(curidx);
+          curidx = obj.predictdata.exp == endx & obj.predictdata.flies == flies;
+          curt = obj.predictdata.t(curidx);
           if numel(curt)<intsize; continue; end
           if any(curt(2:end)-curt(1:end-1) ~= 1)
             msg = 'Scores are not in order'; 
@@ -5505,7 +5771,7 @@ end
           int.exp(1,end+1:end+numT) = endx;
           int.flies(1,end+1:end+numT) = flies;
           int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
-          curwt = (obj.scoredata.scores(curidx)<0)*negwt +(obj.scoredata.scores(curidx)>0)*poswt ;
+          curwt = (obj.predictdata.loaded(curidx)<0)*negwt +(obj.predictdata.loaded(curidx)>0)*poswt ;
           cumwt = cumsum(curwt);
           sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
           sumwt = [cumwt(intsize) sumwt];
@@ -5571,17 +5837,17 @@ end
           end
           
         case 'Threshold'
-          if ~isempty(obj.scoredata.scores)
+          if ~isempty(obj.predictdata.loaded)
             for fly = 1:obj.nflies_per_exp(expi)
-              idxcurr = obj.scoredata.exp(:) == expi & ...
-                obj.scoredata.flies(:) == fly & ...
-                obj.scoredata.t(:) >=T0 & ...
-                obj.scoredata.t(:) <=T1;
+              idxcurr = obj.predictdata.exp(:) == expi & ...
+                obj.predictdata.flies(:) == fly & ...
+                obj.predictdata.t(:) >=T0 & ...
+                obj.predictdata.t(:) <=T1;
               T0 = obj.GetTrxFirstFrame(expi,fly);
               T1 = obj.GetTrxEndFrame(expi,fly);
               suggestedidx = zeros(1,T1);
-              suggestedidx( obj.scoredata.t(idxcurr)) = ...
-                obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+              suggestedidx( obj.predictdata.t(idxcurr)) = ...
+                obj.NormalizeScores(obj.predictdata.loaded(idxcurr)) > ...
                 -obj.thresholdGTSuggestions;
               [t0s t1s] = get_interval_ends(suggestedidx);
               for ndx = 1:numel(t0s)
@@ -5654,13 +5920,13 @@ end
           suggestedidx(n+1:end) = [];
 
         case 'Threshold'
-          if ~isempty(obj.scoredata.scores)
-            idxcurr = obj.scoredata.exp(:) == expi & ...
-              obj.scoredata.flies(:) == flies & ...
-              obj.scoredata.t(:) >=T0 & ...
-              obj.scoredata.t(:) <=T1;
-            suggestedidx( obj.scoredata.t(idxcurr)+off) = ...
-              obj.NormalizeScores(obj.scoredata.scores(idxcurr)) > ...
+          if ~isempty(obj.predictdata.loaded)
+            idxcurr = obj.predictdata.exp(:) == expi & ...
+              obj.predictdata.flies(:) == flies & ...
+              obj.predictdata.t(:) >=T0 & ...
+              obj.predictdata.t(:) <=T1;
+            suggestedidx( obj.predictdata.t(idxcurr)+off) = ...
+              obj.NormalizeScores(obj.predictdata.loaded(idxcurr)) > ...
               -obj.thresholdGTSuggestions;
           end
 
@@ -5713,7 +5979,7 @@ end
           
           % assumes that if have any loaded score for an experiment we
           % have scores for all the flies and for every frame.
-          if isempty(obj.scoredata.exp) && ~nnz(obj.scoredata.exp ==expi)
+          if isempty(obj.predictdata.exp) && ~nnz(obj.predictdata.exp ==expi)
             [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
             if ~success1,
               warndlg(msg);
@@ -5752,11 +6018,11 @@ end
             
             gt_labels = [gt_labels curLabel];
             
-            if ~isempty(obj.scoredata.exp) && nnz(obj.scoredata.exp ==expi)
-              idx = obj.scoredata.exp(:) ==expi & obj.scoredata.flies(:) == flies &...
-                obj.scoredata.t(:) >=t0 & obj.scoredata.t(:) <t1;
-              ts = obj.scoredata.t(idx);
-              scores = obj.scoredata.scores(idx);
+            if ~isempty(obj.predictdata.exp) && nnz(obj.predictdata.exp ==expi)
+              idx = obj.predictdata.exp(:) ==expi & obj.predictdata.flies(:) == flies &...
+                obj.predictdata.t(:) >=t0 & obj.predictdata.t(:) <t1;
+              ts = obj.predictdata.t(idx);
+              scores = obj.predictdata.loaded(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];
@@ -5819,7 +6085,7 @@ end
       if ~success;return; end
       
       
-      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+      if isempty(obj.predictdata.exp) || all(obj.predictdata.timestamp < obj.classifierTS)
         
         % For predicted scores.
         for endx = 1:obj.nexps
@@ -5846,14 +6112,14 @@ end
         % For loaded scores.
         for endx = 1:obj.nexps
           for flies = 1:obj.nflies_per_exp(endx)
-            curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
-            curt = obj.scoredata.t(curidx);
+            curidx = obj.predictdata.exp == endx & obj.predictdata.flies == flies;
+            curt = obj.predictdata.t(curidx);
             if any(curt(2:end)-curt(1:end-1) ~= 1)
               msg = 'Scores are not in order';
               success = false;
               return;
             end
-            posts = obj.scoredata.postprocessed(curidx);
+            posts = obj.predictdata.loaded_postprocessed(curidx);
             labeled = bwlabel(posts);
             aa = regionprops(labeled,'Area');
             blen = [blen [aa.Area]];
@@ -5878,7 +6144,7 @@ end
       
       if isempty(obj.postprocessparams); return; end;
       
-      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+      if isempty(obj.predictdata.exp) || all(obj.predictdata.timestamp < obj.classifierTS)
         
         for endx = 1:obj.nexps
           for flies = 1:obj.nflies_per_exp(endx)
@@ -5900,15 +6166,15 @@ end
 
         for endx = 1:obj.nexps
           for flies = 1:obj.nflies_per_exp(endx)
-            curidx = obj.scoredata.exp == endx & obj.scoredata.flies == flies;
-            curt = obj.scoredata.t(curidx);
+            curidx = obj.predictdata.exp == endx & obj.predictdata.flies == flies;
+            curt = obj.predictdata.t(curidx);
             if any(curt(2:end)-curt(1:end-1) ~= 1)
               msg = 'Scores are not in order';
               success = false;
               return;
             end
-            curs = obj.scoredata.scores(curidx);
-            obj.scoredata.postprocessed(curidx) = obj.Postprocess(curs);
+            curs = obj.predictdata.loaded(curidx);
+            obj.predictdata.loaded_postprocessed(curidx) = obj.Postprocess(curs);
           end %flies
         end
         
@@ -5991,10 +6257,10 @@ end
       labeledscores = obj.windowdata.scores(curNdx);
       origlabels = obj.windowdata.labelidx_cur(curNdx);
       labels = ((origlabels==1)-0.5)*2;
-      if isempty(obj.scoredata.exp) || all(obj.scoredata.timestamp < obj.classifierTS)
+      if isempty(obj.predictdata.exp) || all(obj.predictdata.timestamp < obj.classifierTS)
         allScores = obj.windowdata.scores;
       else
-        allScores = obj.scoredata.scores;
+        allScores = obj.predictdata.loaded;
       end
       scoreNorm = obj.windowdata.scoreNorm;
     end
