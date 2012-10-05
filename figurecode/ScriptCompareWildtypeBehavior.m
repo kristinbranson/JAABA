@@ -504,6 +504,11 @@ end
 
 SaveFigLotsOfWays(hfig,fullfile(outfigdir,'WildtypeBehaviorComparison_Weekend2_PerBehaviorBoxPlots_BothOnly'));
 
+%% Save the Data..
+
+save(fullfile(outfigdir,['WildtypeBehaviorComparison_ResultsData']),'behaviornames','labelfns',...
+  'meanfractime2','metadata2','scoresfns');
+
 %% use logistic regression to predict the strain given the behavior classification results for each pair
 
 % reorder line names
@@ -613,8 +618,7 @@ imagesc(errorrate,[0,.5]);
 colormap gray;
 set(gca,'XTick',1:nlines,'XTickLabel',print_linenames_order,...
   'YTick',1:nlines,'YTickLabel',print_linenames_order,'Box','off');
-set(gca,'XLabel','Wildtype strains');
-set(gca,'YLabel','Wildtype strains');
+xlabel('Wildtype strains');ylabel('Wildtype strains');
 axis image;
 colorbar;
 title('Pairwise error rate');
@@ -628,6 +632,7 @@ size(error_rate)
 for i = 1:Row
   for j = 1:Col
     if i==j; continue; end
+    if errorrate(i,j) ==0; continue; end
     ht(i,j) = text(j,i,sprintf('%.2f',error_rate(i,j)),...
       'FontUnits','pixels','FontWeight','bold','Color',[.7,0,0],...
       'HorizontalAlignment','center','VerticalAlignment','middle',...
