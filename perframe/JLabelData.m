@@ -5909,7 +5909,7 @@ end
             idx = find(obj.FlyNdx(endx,flies));
             ts = obj.windowdata.t(idx);
             [sortedts, idxorder] = sort(ts);
-            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1);
+            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1;
             gaps = [1;gaps;numel(ts)+1];
             for ndx = 1:numel(gaps)-1
               curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
@@ -5958,7 +5958,11 @@ end
     end
     
     function posts = RemoveSmallBouts(obj,posts)
+        
       if obj.postprocessparams.blen > 1 && numel(posts)>0,
+        if numel(posts)<= obj.postprocessparams.blen
+            posts(:) = 1; return;
+        end
         
         while true,
           tposts = [posts 1-posts(end)];
@@ -5996,7 +6000,7 @@ end
       if nnz(hthresh)>0 && computeNeg,
         neg = imfill(~lthresh,find(hthresh)') & lthresh;
       else
-        neg = false(size(curs));
+        neg = true(size(curs));
       end
       
       posts = pos | ~neg;
