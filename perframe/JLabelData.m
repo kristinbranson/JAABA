@@ -1657,40 +1657,26 @@ end
     function AddScores(obj,expi,allScores,timestamp,classifierfilename)
       obj.predictdata.classifierfilenames{expi} = classifierfilename;
       for ndx = 1:numel(allScores.loaded)
-        if obj.predictdata.exp
-          idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,ndx),2);
-        else
-          idxcurr = [];
-        end
-        if any(idxcurr), 
-          obj.predictdata.loaded(idxcurr) = [];
-          obj.predictdata.predicted(idxcurr) = [];
-          obj.predictdata.exp(idxcurr,:) = [];
-          obj.predictdata.flies(idxcurr,:) = [];
-          obj.predictdata.t(idxcurr) = [];
-          obj.predictdata.timestamp(idxcurr) = [];
-          if ~isempty(obj.predictdata.loaded_postprocessed)
-            obj.predictdata.loaded_postprocessed(idxcurr) = [];
-          end
-        end
+        idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,ndx),2);
+        
         tStart = allScores.tStart(ndx);
         tEnd = allScores.tEnd(ndx);
         sz = tEnd-tStart+1;
+        if (nnz(idxcurr) ~= sz),
+          uiwait(warndlg('Number of frames for the current fly don''t match for fly:%d in experiment:%s',flies,obj.expnames{expi}));
+          return;
+        end
         curScores = allScores.loaded{ndx}(tStart:tEnd);
-        obj.predictdata.loaded(end+1:end+sz) = curScores;
-        
-        obj.predictdata.predicted(end+1:end+sz) = -sign(curScores)*0.5+1.5;
-        obj.predictdata.exp(end+1:end+sz,1) = expi;
-        obj.predictdata.flies(end+1:end+sz,1) = ndx;
-        obj.predictdata.t(end+1:end+sz) = tStart:tEnd;
-        obj.predictdata.timestamp(end+1:end+sz) = timestamp;
+        obj.predictdata.loaded(idxcurr) = curScores;
       end
       
       obj.UpdatePredictedIdx();
 
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
         if ~isempty(obj.predictdata.loaded)
-          scoreNorm = prctile(abs(obj.predictdata.loaded),80);
+          ss = obj.predictdata.loaded;
+          ss = ss(~isnan(ss));
+          scoreNorm = prctile(abs(ss),80);
           obj.windowdata.scoreNorm = scoreNorm;
         end
       end
@@ -1699,15 +1685,15 @@ end
         [success,msg] = obj.ApplyPostprocessing();
       else
         for ndx = 1:numel(allScores.loaded)
+          idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,ndx),2);
           tStart = allScores.tStart(ndx);
           tEnd = allScores.tEnd(ndx);
-          sz = tEnd-tStart+1;
           if isfield(allScores,'postprocessedscores');
             obj.postprocessparams = allScores.postprocessparams;
             curpostprocessedscores = allScores.postprocessedscores{ndx}(tStart:tEnd);
-            obj.predictdata.loaded_postprocessed(end+1:end+sz) = curpostprocessedscores;
+            obj.predictdata.loaded_pp(idxcurr) = curpostprocessedscores;
           else
-            obj.predictdata.loaded_postprocessed(end+1:end+sz) = 0;
+            obj.predictdata.loaded_pp(idxcurr) = 0;
           end
         end
       end
@@ -3549,14 +3535,14 @@ end
                          'scoresidx', zeros(1,n));
       
       
-      if ~isempty(obj.windowdata.exp)
+      if ~isempty(obj.predictdata.exp)
         idxcurr = obj.FlyNdx(expi,flies) & ...
-          obj.windowdata.t >= T0 & obj.windowdata.t <= T1 & ...
-          obj.windowdata.isvalidprediction;
-        prediction.predictedidx(obj.windowdata.t(idxcurr)+off) = ...
-          obj.windowdata.predicted(idxcurr);
-        prediction.scoresidx(obj.windowdata.t(idxcurr)+off) = ...
-          obj.windowdata.scores(idxcurr);
+          obj.predictdata.t >= T0 & obj.predictdata.t <= T1 & ...
+          obj.predictdata.current_valid;
+        prediction.predictedidx(obj.predictdata.t(idxcurr)+off) = ...
+          obj.predictdata.current(idxcurr);
+        prediction.scoresidx(obj.predictdata.t(idxcurr)+off) = ...
+          sign(obj.predictdata.current(idxcurr));
       end
     end
     
