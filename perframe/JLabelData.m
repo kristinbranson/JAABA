@@ -5961,7 +5961,12 @@ end
         
       if obj.postprocessparams.blen > 1 && numel(posts)>0,
         if numel(posts)<= obj.postprocessparams.blen
-            posts(:) = 1; return;
+          if nnz(posts>0) > numel(posts)/2,
+            posts(:) = 1; 
+          else
+            posts(:) = -1;
+          end
+            return;
         end
         
         while true,
