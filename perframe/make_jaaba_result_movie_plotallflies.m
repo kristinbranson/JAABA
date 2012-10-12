@@ -383,6 +383,7 @@ htail = zeros(2*taillength+1,nids);
 htri = zeros(1,nids);
 hwing = zeros(1,nids);
 hsexmarker = zeros(1,nids);
+hsexmarker_zoom = zeros(1,nids);
 scalefactor = rowszoom / (2*boxradius+1);
 hzoom = zeros(nzoomr,nzoomc);
 hzoomwing = zeros(nzoomr,nzoomc);
@@ -428,6 +429,10 @@ for i = 1:nzoomr,
       'color','k','horizontalalignment','center',...
       'verticalalignment','bottom','fontweight','bold',...
       'FontSize',18);
+    if doshowsex,
+      hsexmarker_zoom(i,j) = plot(nan,nan,'k.');
+    end
+
   end
 end
 
@@ -613,11 +618,12 @@ for segi = 1:numel(firstframes),
         if doshowsex,
           sexi = find(strcmpi(trx(fly).sex{idx(fly)},sexes),1);
           sexmarker = sexmarkers{sexi};
+          sexcolorcurr = [1,1,1];
           set(hsexmarker(fly),'xdata',trx(fly).x(idx(fly)),...
             'ydata',trx(fly).y(idx(fly)),...
-            'color',colortmp(fly,:),...
+            'color',sexcolorcurr,...
             'marker',sexmarker,...
-            'markerfacecolor',colortmp(fly,:));
+            'markerfacecolor',sexcolorcurr);
         end
         updatefly(htri(fly),trx(fly),idx(fly));
         set(htri(fly),'Color',colortmp(fly,:));
@@ -721,6 +727,12 @@ for segi = 1:numel(firstframes),
             set(hzoombox(i,j),'Visible','off');
             set(hzoom(i,j),'Linewidth',1);
           end
+          if doshowsex,
+            sexcolorcurr = [1,1,1];            
+            sexi = find(strcmpi(trx(fly).sex{idx(fly)},sexes),1);
+            sexmarker = sexmarkers{sexi};
+            set(hsexmarker_zoom(i,j),'Visible','on','XData',x,'YData',y,'color',sexcolorcurr,'MarkerFaceColor',sexcolorcurr,'Marker',sexmarker);
+          end
             
 %           if doshowsex,
 %             sexi = find(strcmpi(trx(fly).sex{idx(fly)},sexes),1);
@@ -738,6 +750,9 @@ for segi = 1:numel(firstframes),
             set(hzoomwing(i,j),'XData',[],'YData',[]);
           end
           set(htextzoom(i,j),'string','');
+          if doshowsex,
+            set(hsexmarker_zoom(i,j),'Visible','off');
+          end
 %           if doshowsex,
 %             set(htextzoom(i,j),'xdata',[],'ydata',[]);
 %           end
@@ -752,8 +767,8 @@ for segi = 1:numel(firstframes),
         input('Resize figure 1 to the desired size, hit enter when done.');
         figpos = get(1,'Position');
       end
-      set(1,'visible','off');
       if ~debug,
+        set(1,'visible','off');
         if useVideoWriter,
           if strcmpi(compression,'None') || strcmpi(compression,'Uncompressed AVI'),
             profile = 'Uncompressed AVI';
@@ -780,13 +795,14 @@ for segi = 1:numel(firstframes),
     
     if ~debug,
     if frame == firstframes(1),
+      gfdata = getframe_initialize(hax);
       fr = getframe_invisible(hax);
       [height,width,~] = size(fr);
 %       height = ceil(height/4)*4;
 %       width = ceil(width/4)*4;
 %       fr = getframe_invisible(hax,[height,width]);
     else
-      fr = getframe_invisible(hax,[height,width]);
+      fr = getframe_invisible_nocheck(gfdata,[height,width],false);
     end
     if useVideoWriter,
       writeVideo(aviobj,fr);
@@ -808,13 +824,20 @@ end
   
 %% clean up
 
+
+fprintf('Finishing AVI...\n');
+if ~debug,
 if useVideoWriter,
   close(aviobj);
 else
   aviobj = close(aviobj); %#ok<NASGU>
 end
+end
 if fid > 0,
   fclose(fid);
 end
+
+fprintf('Cleanup...\n');
+getframe_cleanup(gfdata);
 
 succeeded = true;
