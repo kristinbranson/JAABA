@@ -264,6 +264,9 @@ classdef JLabelData < handle
     % to overwrite or keep the perframe files.
     perframeOverwrite = [];
     
+    % warn about removing arena features.
+    arenawarn = true;
+    
     % functions for writing text to a status bar
     setstatusfn = '';
     clearstatusfn = '';
@@ -2024,11 +2027,19 @@ end
       end
       
       if obj.filesfixable && ~obj.allfilesexist,
-        if ~isdeployed
-          res = questdlg(sprintf('Experiment %s is missing required files:%s. Generate now?',expdir,sprintf(' %s',missingfiles{:})),'Generate missing files?','Yes','Cancel','Yes');
+        if ~isdeployed 
+          if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
+            res = questdlg(sprintf('Experiment %s is missing required files:%s. Generate now?',expdir,sprintf(' %s',missingfiles{:})),'Generate missing files?','Yes','Cancel','Yes');
+            if strcmpi(res,'Yes')
+              obj.SetGenerateMissingFiles();
+            end
+          else obj.GetGenerateMissingFiles()
+            res = 'Yes';
+          end
         else
           res = 'Yes';
         end
+        
         if strcmpi(res,'Yes'),
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
@@ -2525,6 +2536,26 @@ end
       
     end
     
+    function RemoveArenaPFs(obj)
+      settings = ReadXMLParams(obj.featureConfigFile);
+      toRemove = [];
+      for i = 1:numel(obj.allperframefns)
+        curpf = obj.allperframefns{i};
+        curtypes = settings.perframe.(curpf).type;
+        if any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'))
+          toRemove(end+1) = i;
+          if isfield(obj.windowfeaturesparams,curpf)
+            obj.windowfeaturesparams = rmfield(obj.windowfeaturesparams,curpf);
+            obj.windowfeaturescellparams = rmfield(obj.windowfeaturescellparams,curpf);
+          end
+          curndx = strcmp(obj.curperframefns,curpf);
+          obj.curperframefns(curndx) = [];
+        end
+        
+      end
+      obj.allperframefns(toRemove) = [];
+    end
+    
     function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
@@ -2564,6 +2595,13 @@ end
         'rootwritedir',obj.rootoutputdir);
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
+      
+      
+      if isempty(obj.landmark_params) && obj.arenawarn
+        uiwait(warndlg('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list'));
+        obj.RemoveArenaPFs();
+        obj.arenawarn = false;
+      end
       
       perframefiles = obj.GetPerframeFiles(expi);
       for i = 1:numel(obj.allperframefns),
@@ -4129,8 +4167,15 @@ end
         end
         
         if ~exist(perframefile{ndx},'file'),
-          if ~isdeployed
-            res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+          if ~isdeployed 
+            if isempty(obj.GetGenerateMissingFiles) || ~obj.GenerateMissingFiles()
+              res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+              if strcmpi(res,'Yes');
+                obj.SetGenerateMissingFiles();
+              end
+            else obj.GetGenerateMissingFiles()
+              res = 'Yes';
+            end
           else
             res = 'Yes';
           end
