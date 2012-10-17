@@ -11,7 +11,7 @@ classdef ProjectManager < handle
     function obj = ProjectManager(projfile)
       
       if nargin < 1
-        projfile = BehaviorListAbsFileName();
+        projfile = fullfile('params','BehaviorList.xml');
       end
       obj.projfile = projfile;
       
@@ -30,13 +30,7 @@ classdef ProjectManager < handle
         if ~exist(obj.projparams(ndx).configfile,'file'),
           uiwait(warndlg(sprintf('Config file %s does not exist for project %s\n Removing the project',...
             obj.projparams(ndx).configfile,obj.projparams(ndx).name)));
-          obj.projparams(ndx) = [];  
-            % ALT: This causes an error to be thrown on the next line if 
-            % there's only one project,
-            % and seems wrong even if there's more than one project,
-            % because we proceed to do things with obj.projparams(ndx),
-            % which is a different element than we were dealing with above.
-            % Also for other reasons.
+          obj.projparams(ndx) = [];
         end
         
         curparams = ReadXMLParams(obj.projparams(ndx).configfile);
@@ -86,7 +80,6 @@ classdef ProjectManager < handle
         'gt_labelfilename',sprintf('gt_labeled%s.mat',name),...
         'scorefilename',sprintf('scores_%s.mat',name),...
         'perframedir','perframe',...
-        'windowfilename','windowfeatures.mat',...
         'rootoutputdir','',...
         'featureparamfilename','',...
         'featureconfigfile',fullfile('params','featureConfig.xml'));
@@ -129,11 +122,45 @@ classdef ProjectManager < handle
       curproj = obj.curproj;
     end
     
-    function AddProject(obj,name,configfile,copyconfigFile)
-      
-      if nargin <4,
-        defaultConfigFile = '';
+    function SetName(obj,projnum)
+      name = obj.projparams(projnum).name;
+      obj.projparams(projnum).config.behaviors.names = name;
+      obj.projparams(projnum).config.file.labelfilename = sprintf('labeled%s.mat',name);
+      obj.projparams(projnum).config.file.gt_labelfilename = sprintf('gt_labeled%s.mat',name);
+      obj.projparams(projnum).config.file.scorefilename = sprintf('scores_%s.mat',name);
+      [dd,~] = fileparts(obj.projparams(projnum).configfile);
+      obj.projparams(projnum).config.file.featureparamfilename = ...
+        fullfile(dd,sprintf('WindowFeatures_%s.xml',name));
+    end
+    
+    function CheckClash(obj,projnum)
+      str = '';
+      for ndx = 1:numel(obj.projparams)
+        if ndx == projnum; continue; end
+        if strcmp(obj.projparams(ndx).config.file.labelfilename,...
+            obj.projparams(projnum).config.file.labelfilename),
+          str = sprintf('%s, Labelfilename is same as for project%s',str, obj.projparams(ndx).name);
+        end
+        if strcmp(obj.projparams(ndx).config.file.gt_labelfilename ,...
+            obj.projparams(projnum).config.file.gt_labelfilename ),
+          str = sprintf('%s, Labelfilename is same as for project%s',str, obj.projparams(ndx).name);
+        end
+        if strcmp(obj.projparams(ndx).config.file.scorefilename,...
+            obj.projparams(projnum).config.file.scorefilename),
+          str = sprintf('%s, Labelfilename is same as for project%s',str, obj.projparams(ndx).name);
+        end
+        if strcmp(obj.projparams(ndx).config.file.featureparamfilename,...
+            obj.projparams(projnum).config.file.featureparamfilename),
+          str = sprintf('%s, Labelfilename is same as for project%s',str, obj.projparams(ndx).name);
+        end
       end
+        
+      if ~isempty(str),
+        uiwait(warndlg(sprintf('%s. Please change the names of these file to avoid overwriting files.',str)));
+      end
+    end
+    
+    function AddProject(obj,name,configfile,copyconfigFile)
       
       obj.projparams(end+1).name = name;
       obj.projparams(end).configfile = configfile;
@@ -143,8 +170,19 @@ classdef ProjectManager < handle
       fileToRead = '';
       
       if exist(configfile,'file')
-        fileToRead = configfile;
-        obj.projparams(end).save = false;
+        wstr = 'The configuration file %s for this project already exists';
+        wstr = sprintf('%s\n, Overwrite or use exisiting settings for the file?',wstr);
+        in = questdlg(wstr,'Overwrite','Overwrite','Keep and use existing settings');
+        switch in,
+          case 'Overwrite',
+            delete(configfile);
+            if ~isempty(copyconfigFile) && exist(copyconfigFile,'file')
+              fileToRead = copyconfigFile;
+            end
+          case 'Keep and use existing settings',
+            fileToRead = configfile;
+            obj.projparams(end).save = false;
+        end
       elseif ~isempty(copyconfigFile) && exist(copyconfigFile,'file')
         fileToRead = copyconfigFile;
       end
@@ -164,6 +202,9 @@ classdef ProjectManager < handle
         obj.projparams(end).save = true;
       end
       
+      obj.SetName(numel(obj.projparams));
+      obj.CheckClash(projnum);
+    
     end
     
     function RemoveProject(obj,projnum)
