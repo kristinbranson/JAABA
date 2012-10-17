@@ -452,11 +452,14 @@ while true
     idx2=argmax(Mframenum.Data(idx));
     fnum = Mframenum.Data(idx(idx2));
     dd = uint8(readframe(fnum));
+    pause(0.0003);
     % MK: Cache the read frame to reduce the number of clashes with
     % UpdatePlots
-    Mimage.Data(idx(idx2)).x = dd;
-    Mlastused.Data(idx(idx2)) = now;
-    Mframenum.Data(idx(idx2)) = fnum;
+    if Mframenum.Data(idx(idx2))== fnum
+      Mimage.Data(idx(idx2)).x = dd;
+      Mlastused.Data(idx(idx2)) = now;
+      Mframenum.Data(idx(idx2)) = fnum;
+    end
   else
     pause(1);
   end
