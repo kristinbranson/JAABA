@@ -110,6 +110,7 @@ function [exp,target] = PageRow2LocalTarget(handles,page,row)
 function handles = updateTable(handles)
 % Initialize the table
 
+set(handles.pushbutton_update,'enable','off');
 handles.curExp = handles.JLDObj.GetExp();
 handles.curFly = handles.JLDObj.GetFlies();
 
@@ -268,6 +269,7 @@ set(handles.table,'ColumnName',...
 set(handles.table,'ColumnEditable',false);
 set(handles.table,'ColumnFormat',colFormat);
 set(handles.table,'CellSelectionCallback',@tableSelect);
+set(handles.pushbutton_update,'enable','on');
 
 
 % Update handles structure
