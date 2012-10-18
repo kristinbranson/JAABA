@@ -450,8 +450,16 @@ while true
   idx=find(isnan(Mlastused.Data));
   if(~isempty(idx))
     idx2=argmax(Mframenum.Data(idx));
-    Mimage.Data(idx(idx2)).x = readframe(Mframenum.Data(idx(idx2)));
-    Mlastused.Data(idx(idx2)) = now;
+    fnum = Mframenum.Data(idx(idx2));
+    dd = uint8(readframe(fnum));
+    pause(0.0003);
+    % MK: Cache the read frame to reduce the number of clashes with
+    % UpdatePlots
+    if Mframenum.Data(idx(idx2))== fnum
+      Mimage.Data(idx(idx2)).x = dd;
+      Mlastused.Data(idx(idx2)) = now;
+      Mframenum.Data(idx(idx2)) = fnum;
+    end
   else
     pause(1);
   end
@@ -644,7 +652,10 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
-      j = find((Mframenum.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)),1,'first');
+      j = find((Mframenum.Data==handles.guidata.ts(i)) & ...
+               (~isnan(Mlastused.Data)) & ...
+               (Mlastused.Data>0) ...
+               ,1,'first');
       %if(numel(j)>1)  j=j(1);  end
       if isempty(j),
         j = argmin(Mlastused.Data);
