@@ -1,23 +1,34 @@
-function classifierparams = ReadClassifierParamsFile(classifierparamsfile)
+function classifierparams = ReadClassifierParamsFile(classifierparamsfiles)
 
-fid = fopen(classifierparamsfile,'r');
-
+if ~iscell(classifierparamsfiles)
+  classifierparamsfiles = {classifierparamsfiles};
+end
+  
 classifiermatfiles = {};
 configfiles = {};
 
-while true,
-  l = fgetl(fid);
-  if ~ischar(l),
-    break;
+for filei = 1:numel(classifierparamsfiles),
+  
+  classifierparamsfile = classifierparamsfiles{filei};
+  
+  fid = fopen(classifierparamsfile,'r');
+  
+  
+  while true,
+    l = fgetl(fid);
+    if ~ischar(l),
+      break;
+    end
+    l = strtrim(l);
+    if isempty(l), continue; end
+    ws = regexp(l,',','split');
+    classifiermatfiles{end+1} = ws{1}; %#ok<AGROW>
+    configfiles{end+1} = ws{2}; %#ok<AGROW>
+    
   end
-  l = strtrim(l);
-  if isempty(l), continue; end
-  ws = regexp(l,',','split');
-  classifiermatfiles{end+1} = ws{1}; %#ok<AGROW>
-  configfiles{end+1} = ws{2}; %#ok<AGROW>
+  fclose(fid);
   
 end
-fclose(fid);
 
 nbehaviors = numel(configfiles);
 

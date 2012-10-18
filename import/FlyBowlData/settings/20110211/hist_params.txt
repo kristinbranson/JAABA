@@ -1,2 +1,0 @@
-lim_prctile,.5,99.5
-nbins,100
