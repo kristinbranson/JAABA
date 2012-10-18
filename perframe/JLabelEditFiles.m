@@ -504,9 +504,6 @@ if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
 
-set(handles.pushbutton_load,'enable','off');
-set(handles.pushbutton_loadwoexp,'enable','off');
-set(handles.pushbutton_cancel,'enable','off');
 SetLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileName(classifierfilename);
@@ -514,6 +511,10 @@ if ~success,
   uiwait(warndlg(msg,'Error loading file list'));
   return;
 end
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+
 set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
@@ -539,10 +540,6 @@ if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
 
-set(handles.pushbutton_load,'enable','off');
-set(handles.pushbutton_loadwoexp,'enable','off');
-set(handles.pushbutton_cancel,'enable','off');
-set(handles.popupmode,'enable','off');
 SetLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
@@ -550,6 +547,11 @@ if ~success,
   uiwait(waitdlg(msg,'Error loading file list'));
   return;
 end
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+set(handles.popupmode,'enable','off');
+
 set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
