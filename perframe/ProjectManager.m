@@ -203,7 +203,7 @@ classdef ProjectManager < handle
       end
       
       obj.SetName(numel(obj.projparams));
-      obj.CheckClash(projnum);
+      obj.CheckClash(numel(obj.projparams));
     
     end
     
