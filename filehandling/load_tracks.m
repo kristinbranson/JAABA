@@ -51,7 +51,7 @@ else
   end
   trx = tmp.trx;
   
-  nframes = max([trx.nframes]);
+  nframes = max([trx.endframe]);
   timestamps = nan(1,nframes);
   if isfield(tmp,'timestamps'),
     timestamps = tmp.timestamps;
