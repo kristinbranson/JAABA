@@ -1,11 +1,9 @@
 % JAABA start up script.
-
+jlabelpath = fileparts(mfilename('fullpath'));
 % Initialize all the paths.
-baseDir = pwd;
+baseDir = fileparts(jlabelpath);
 addpath(fullfile(baseDir,'misc'));
-addpath(fullfile(baseDir,'perframe'));
 addpath(fullfile(baseDir,'filehandling'));
-jlabelpath = fileparts(which('JLabel'));
 addpath(fullfile(jlabelpath,'compute_perframe_features'));
 addpath(fullfile(baseDir,'plot'));
 
