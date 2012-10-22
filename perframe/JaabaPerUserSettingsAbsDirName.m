@@ -26,7 +26,7 @@ if isdeployed,
       error('Cannot continue without a settings dir');
     end
     dd = dir(fullfile(pwd,'params','*.xml'));
-    for ndx = 3:numel(dd)
+    for ndx = 1:numel(dd)
       copyfile(fullfile(pwd,'params',dd(ndx).name),....
         fullfile(jaabaPerUserDirName,dd(ndx).name));
     end
