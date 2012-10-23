@@ -48,6 +48,7 @@ try
   uiwait(JLabel(args{:}));
 catch ME,
   uiwait(warndlg(getReport(ME)));
+  delete(findall(0,'type','figure'));
 end
 
 try %#ok<TRYNC>
