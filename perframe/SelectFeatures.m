@@ -256,8 +256,8 @@ function createDescriptionPanels(hObject)
 handles = guidata(hObject);
 
 % which tab to show
-handles.currentTab = 'description';
-set(handles.togglebutton_tabdescription,'Value',1);
+handles.currentTab = 'perframehistogram';
+set(handles.togglebutton_tabperframehistogram,'Value',1);
 
 % set visibility
 uipanel_tabs_SelectionChangeFcn(handles.uipanel_tabs, struct('NewValue',handles.togglebutton_tabdescription), handles);
