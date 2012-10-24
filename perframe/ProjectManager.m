@@ -178,9 +178,9 @@ classdef ProjectManager < handle
       fileToRead = '';
       
       if exist(configfile,'file')
-        wstr = 'The configuration file %s for this project already exists';
+        wstr = sprintf('The configuration file %s for this project already exists',configfile);
         wstr = sprintf('%s\n, Overwrite or use exisiting settings for the file?',wstr);
-        in = questdlg(wstr,'Overwrite','Overwrite','Keep and use existing settings');
+        in = questdlg(wstr,'Overwrite?','Overwrite','Keep and use existing settings','Overwrite');
         switch in,
           case 'Overwrite',
             delete(configfile);
