@@ -1,11 +1,25 @@
 %% Load data
+function OUT = compare_pred_gt()
 %DIR = 'Data/synth_flies/TrainingData/';
-DIR = 'Data/midres_flies/TrainingDataEyrunTest/';
+%DIR = 'Data/midres_flies/TrainingDataAllMoviesUpdated/';
+DIR = 'Data/midres_flies/CleanedMovies/';
+%DIR = 'Data/mice/XaviData10behsUseLog/';
+%DIR = 'Data/honeybee/rot_and_noise/';
+%DIR = 'Data/eric_flies/many_features_and_behs/';
 %file containing the list of file that were tested
-gt_filelist = 'traindata_2.txt';
+%gt_filelist = 'traindata_5.txt';
+%gt_filelist = 'testdata.txt';
+gt_filelist = 'traindata_5.txt';
+%gt_filelist = 'testdata_special.txt';
 %file containing behaviors used for this experiment
 beh_file = 'Data/midres_flies/Params/BoyMeetsBoySVMBehaviorParams.txt';
+%beh_file = 'Data/mice/Params/MouseBehaviorParams10.txt';
+%beh_file = 'Data/honeybee/Params/BehaviorParams.txt';
+%beh_file = 'Data/eric_flies/Params/BehaviorParams_more.txt';
 %beh_file = 'Data/synth_flies/Params/LungeWalkSVMBehaviorParams.txt';
+
+%repfile = 'reportsUpdated/model5iter17_new';
+repfile = 'dummy';
 
 %% Read behaviors
 lines = textread(beh_file,'%s','delimiter','\n');
@@ -22,6 +36,7 @@ num_behs = numel(behs);
 gt_files = textread([DIR gt_filelist],'%s','delimiter','\n');
 num_tracks = numel(gt_files);
 max_dur = 0;
+%num_tracks = 3;
 
 gt_frames = cell(1,num_tracks);   % frameswise labels per track
 for i=1:num_tracks
@@ -39,14 +54,22 @@ for i=1:num_tracks
                 break
             end
         end
-    end       
+    end 
+    %gt_frames{i} = mod(gt_frames{i}-1,10);
 end
 
-%% Read predicted bouts
+%% Read predicted boutsc
 pred_frames = cell(1,num_tracks);   % frameswise labels per track
+invalid = [];
 for i=1:num_tracks
-    filename = [strtok(gt_files{i},'.'),'.label.pred'];%
-    label = readLabels([DIR filename]);
+    filename = [strtok(gt_files{i},'.'),'.label.pred.model53.iter16']; % .label.pred.model5.iter17
+    try
+        label = readLabels([DIR filename]);
+    catch
+        invalid = [invalid i];
+        filename
+        continue
+    end
     pred_frames{i} = zeros(1,numel(gt_frames{i}));
     for j=1:numel(label.segends)
         for b=1:num_behs
@@ -56,46 +79,98 @@ for i=1:num_tracks
                 break
             end
         end
-    end       
+    end  
+    %pred_frames{i} = mod(pred_frames{i}-1,10);
 end
 
+valid = setdiff(1:num_tracks,invalid);
+gt_frames = gt_frames(valid);
+pred_frames = pred_frames(valid);
+num_tracks = numel(valid);
+num_invalid = numel(invalid)
+
 %% Plot GT vs Prediction
-h1=figure(1); clf
-colors = {'y','g','r','b','m','c','k'};
+h1=figure; clf
+%colors = {'y','g','r','b','m','c','k'};
+colors = jet(num_behs);
+% colors(1,:) = [.5 .5 .5];
+% colors = [1 0 0;
+%           0 0 1;
+%           0 1 0];
 handles = [];
 for b=1:num_behs
-    plot(-10,-10,['.' colors{b}])
+    plot(-10,-10,'.','Color', colors(b,:))
     hold on
 end
 legend(behs)
+step = 0.4;
+width = 0.15;
 for i=1:num_tracks
+    % plot baselines that span track's duration
+    %plot([0 numel(gt_frames{i})],[i i],'-k')
+    %plot([0 numel(pred_frames{i})],[i+step i+step],'-','Color',[.5,.5,.5])
     % color each frame according to its predicted behavior
-    for b=2:num_behs
+    for b=1:num_behs
 %         if strcmp(behs{b},'none') || strcmp(behs{b},'other')
 %             continue
 %         end
         % ground truth
         frames = find(gt_frames{i} == b-1);
-        if numel(frames) > 0
-            handles(end+1) = plot(frames,ones(1,numel(frames))*i,['.' colors{b}]);
+%         if numel(frames) > 0
+%             handles(end+1) = plot(frames,ones(1,numel(frames))*i,['.' colors{b}]);
+%         end
+        temp = zeros(size(gt_frames{i}));
+        temp(frames) = 1;
+        cc = bwconncomp(temp);
+        for c=1:cc.NumObjects
+            frms = cc.PixelIdxList{c};
+            if numel(frms) > 0
+%                 if b == 1
+%                 fill([frms(1) frms(1) frms(end) frms(end)], ...
+%                     [i+width i-width i-width i+width ], 'k','FaceColor',[.5 .5 .5], 'EdgeColor','none')
+%                 else
+                fill([frms(1) frms(1) frms(end)+1 frms(end)+1], ...
+                    [i+width i-width i-width i+width ], colors(b,:), 'EdgeColor','none')
+%                 end
+            end
         end
         hold on
         % prediction
         frames = find(pred_frames{i} == b-1);
-        plot(frames,ones(1,numel(frames))*i+0.2,['.' colors{b}]);        
+        temp = zeros(size(pred_frames{i}));
+        temp(frames) = 1;
+        cc = bwconncomp(temp);
+        for c=1:cc.NumObjects
+            frms = cc.PixelIdxList{c};
+            if numel(frms) > 0
+%                 if b == 1
+%                 fill([frms(1) frms(1) frms(end) frms(end)], ...
+%                     [i+step+width i+step-width i+step-width i+step+width], 'k','FaceColor',[.5 .5 .5], 'EdgeColor','none')   
+%                 else
+                fill([frms(1) frms(1) frms(end)+1 frms(end)+1], ...
+                    [i+step+width i+step-width i+step-width i+step+width], colors(b,:), 'EdgeColor','none')
+%                 end
+            end
+        end
+%         plot(frames,ones(1,numel(frames))*i+0.2,['.' colors{b}]);    
+        %if numel(frames) > 0
+        %    fill([frames(1) frames(1) frames(end) frames(end)], ...
+        %        [i+.2+.07 i+.2-.07 i+.2-.07 i+.2+.07 ], colors{b}, 'EdgeColor','none')
+        %end
     end
-    % plot baselines that span track's duration
-    plot([0 numel(gt_frames{i})],[i i],'-k')
-    plot([0 numel(pred_frames{i})],[i+0.2 i+0.2],'-','Color',[.5,.5,.5])
 end
 %legend(handles,behs)
-title(['Ground Truth vs SVM prediction'])
-axis([1 max_dur 0 i+1.2])
-xlabel('frame number')
-ylabel('GT(lower) and predictions(upper)')
+%title(['Ground truth vs predicted segmentation'])
+axis([1 max_dur 0.7 i+0.7])
+%xlabel('frame')
+%ylabel('sequence id')
+set(gca,'xtick',[])
+set(gca,'ytick',[])
+set(gca,'xticklabel',[])
+set(gca,'yticklabel',[])
 
 orient landscape
-%print('-dpsc',plot_name);
+print('-dpsc',repfile);
 %% Plot GT vs Prediction separating ``other" and interesting behaviors
 % h2=figure(2); clf
 % colors = {'y','g','r','b','m','y','y'};
@@ -151,12 +226,14 @@ orient landscape
 total_frames = 0;
 true_frames = 0;
 gt_preds = cell(1,num_behs);
+pred_gts = cell(1,num_behs);
 for i=1:num_tracks
     diff = gt_frames{i}-pred_frames{i};
     true_frames = true_frames + numel(find(diff==0));
     total_frames = total_frames + numel(gt_frames{i});
     for b=1:num_behs
         gt_preds{b} = [gt_preds{b} pred_frames{i}(gt_frames{i}==(b-1))];
+        pred_gts{b} = [pred_gts{b} gt_frames{i}(pred_frames{i}==(b-1))];
     end
 end
 
@@ -166,19 +243,51 @@ for i=1:num_behs
     for j=1:num_behs
         confusion_mat(i,j) = numel(find(gt_preds{i}==(j-1)));
     end
-    confusion_mat(i,:) = confusion_mat(i,:) / sum(confusion_mat(i,:));
+    if sum(confusion_mat(i,:)) == 0
+        confusion_mat(i,:) = 0;
+    else
+        confusion_mat(i,:) = confusion_mat(i,:) / sum(confusion_mat(i,:));
+    end
 end
-h3=figure(3); clf;
+%valid = 1:10;%[1:5 8 10:13];
+diagonal = diag(confusion_mat)
+%diagonal = temp(valid)
+mean(diagonal)
+save confusion_mat_mice confusion_mat
+
+confusion_mat_precision = zeros(num_behs,num_behs);
+for i=1:num_behs
+    for j=1:num_behs
+        confusion_mat_precision(i,j) = numel(find(pred_gts{i}==(j-1)));
+    end
+    confusion_mat_precision(i,:) = confusion_mat_precision(i,:) / sum(confusion_mat_precision(i,:));
+end
+
+OUT.confusion_mat_recall = confusion_mat;
+OUT.confusion_mat_precision = confusion_mat_precision;
+
+%h3=figure(2); clf;
+figure
+subplot(2,2,1)
 imagesc(confusion_mat);
 colorbar
 set(gca,'XTick',1:num_behs,'XTickLabel',behs,'YTick',1:num_behs,'YTickLabel',behs)
-title(['Confusion matrix (frame based)'])
+title(['Confusion matrix for ground truth (frame based)'])
 
-orient landscape
-%print('-dpsc','-append',plot_name);
+%figure; clf;
+subplot(2,2,2)
+imagesc(confusion_mat_precision)
+colorbar
+set(gca,'XTick',1:num_behs,'XTickLabel',behs,'YTick',1:num_behs,'YTickLabel',behs)
+title(['Confusion matrix for prediction (frame based)'])
+
+drawnow
+%return
 %% Precision / Recall
 percent_correct_frames = true_frames/total_frames;
-frame_pred_accuracy = mean(diag(confusion_mat));
+diagon = diag(confusion_mat)
+valid = find(~isnan(diagon));
+frame_pred_accuracy = mean(diagon(valid));
 
 overlap_THRESH = .1;
 beh_results = cell(1,num_behs);
@@ -226,8 +335,11 @@ for i=1:num_behs
     result.false_pos = false_pos;
     beh_results{i} = result;
 end
+OUT.beh_results = beh_results;
+%return
 
-h4=figure(4); clf
+%h4=figure; clf
+subplot(2,2,3:4)
 axis off
 axis ij
 incr = 0.5;
@@ -246,7 +358,7 @@ end
 axis([0 10 0 10])
 
 orient landscape
-%print('-dpsc','-append',plot_name);
+print('-dpsc','-append',repfile);
 %% Confusion matrix only main behaviors
 % % percent frames correctly labeled
 % total_frames = 0;

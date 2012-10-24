@@ -1,5 +1,4 @@
 function trx = readTrx(trxname)
-
 % format:
 % version (double)
 % moviename_length (int)
