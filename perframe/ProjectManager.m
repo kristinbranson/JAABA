@@ -175,6 +175,7 @@ classdef ProjectManager < handle
       obj.projparams(end).save = true;
       obj.curproj = numel(obj.projparams);
       
+      setName = true;
       fileToRead = '';
       
       if exist(configfile,'file')
@@ -190,6 +191,7 @@ classdef ProjectManager < handle
           case 'Keep and use existing settings',
             fileToRead = configfile;
             obj.projparams(end).save = false;
+            setName = false;
         end
       elseif ~isempty(copyconfigFile) && exist(copyconfigFile,'file')
         fileToRead = copyconfigFile;
@@ -210,7 +212,9 @@ classdef ProjectManager < handle
         obj.projparams(end).save = true;
       end
       
-      obj.SetName(numel(obj.projparams));
+      if setName,
+        obj.SetName(numel(obj.projparams));
+      end
       obj.CheckClash(numel(obj.projparams));
     
     end
