@@ -13,6 +13,8 @@ extern char *g_currFile; // CSC 20110420: hack to pass current filename for debu
 
 #define USE_DURATION_COST 1
 #define USE_NEW_LOSS 0
+#define SCALED_LOSS 1
+#define HAMMING_LOSS 0
 
 #define ALLOW_SAME_TRANSITIONS
 #define DEBUG 1
@@ -227,6 +229,7 @@ class SVMBehaviorSequence : public StructuredSVM {
  protected:
   struct _BehaviorGroups *behaviors;  /**< A pointer to the object defining all behavior classes */
   int num_classes[MAX_BEHAVIOR_GROUPS];  /**< The number of behavior classes for each group (same as behaviors->num_values) */
+  int num_bouts_per_class[MAX_BEHAVIOR_GROUPS][10];
   int num_features;  /**< The total number of bout-level features (not including class transition features) */
   int num_base_features;  /**< The total number of frame-level features */
   int feature_diff_frames;  /**< DEPRECATED: I don't think this is used anymore; however deleting it might change the file format for the learned output files */
@@ -328,7 +331,7 @@ class SVMBehaviorSequence : public StructuredSVM {
 
   double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, 
 		   bool fast_update=false, double get_extreme_vals[2][NUMFEAT]=NULL, double use_extreme_vals[2][NUMFEAT]=NULL);
-  void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true); 
+  void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true, int window_size=32); 
   void compute_feature_mean_variance_median_statistics(StructuredDataset *dataset);
   int compute_feature_space_size();
   StructuredExample *read_struct_example(const char *label_fname, const char *features_fname, bool computeFeatures);

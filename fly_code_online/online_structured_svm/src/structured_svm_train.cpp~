@@ -250,6 +250,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
             set->ybar = NewStructuredLabel(ex->x);
             Json::Value yy = set->samples[0].ybar->save(this);
             set->ybar->load(yy, this);
+	    //remove(set->ybar->fname);
           }
           score = score_loss-set->loss;      // <w_t,psi(x_i,y)>
           set->slack_before = score_loss - set->score_gt;

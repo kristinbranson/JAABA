@@ -478,11 +478,11 @@ void StructuredLearnerRpc::parse_command_line_arguments(int argc, const char **a
       assert(i+2 <= argc);
       learner->SetMinItersBeforeNewExample(atoi(argv[i+1]));
       i += 2;
-    } else if(!strcmp(argv[i], "-A")) {
+    } else if(!strcmp(argv[i], "A")) {
       assert(i+2 <= argc);
       learner->SetModelId(atoi(argv[i+1]));
       i += 2;
-    } else if(!strcmp(argv[i], "-a")) {
+    } else if(!strcmp(argv[i], "a")) {
       assert(i+2 <= argc);
       learner->SetIterId(atoi(argv[i+1]));
       i += 2;

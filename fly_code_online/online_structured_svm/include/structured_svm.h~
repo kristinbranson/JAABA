@@ -170,6 +170,7 @@ class StructuredLabel {
  protected:
   StructuredData *x;  /**< A pointer to the data associated with this label */
 public:
+  virtual void printName() = 0;
 
   /**
    * @brief Create a new structured label
