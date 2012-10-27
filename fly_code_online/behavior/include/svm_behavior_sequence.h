@@ -116,9 +116,7 @@ typedef struct _BehaviorBout {
   int behavior;   /**< the index of the behavior */
   double bout_score;  /**< the score of the bout (the dot product <w_bout,f_bout>) */
   double transition_score;  /**< the component of the bout score due to transitioning from the previous behavior class to the class of this bout */
-#if USE_DURATION_COST > 0
   double duration_score;  /** the compoenent of the bout score due to duration variying from the ideal duration for the behavior class of this bout */
-#endif
   double unary_score;
   double loss_fn;  /**< the loss associated with missing detection of some behavior bout(s) that overlap with this bout */
   double loss_fp;  /**< the loss associated with predicting this bout incorrectly */
@@ -229,7 +227,7 @@ class SVMBehaviorSequence : public StructuredSVM {
  protected:
   struct _BehaviorGroups *behaviors;  /**< A pointer to the object defining all behavior classes */
   int num_classes[MAX_BEHAVIOR_GROUPS];  /**< The number of behavior classes for each group (same as behaviors->num_values) */
-  int num_bouts_per_class[MAX_BEHAVIOR_GROUPS][10];
+  //int num_bouts_per_class[MAX_BEHAVIOR_GROUPS][10];  // SJB: computed in class_training_count
   int num_features;  /**< The total number of bout-level features (not including class transition features) */
   int num_base_features;  /**< The total number of frame-level features */
   int feature_diff_frames;  /**< DEPRECATED: I don't think this is used anymore; however deleting it might change the file format for the learned output files */
@@ -263,6 +261,15 @@ class SVMBehaviorSequence : public StructuredSVM {
   char **feature_names;  /**< A num_features array of strings defining a human-interpretable name for each feature */
   char base_feature_names[MAX_BASE_FEATURES][1001];
 
+  void SetDebugDir(const char *dir, bool deb_pred=true, bool deb_wei=true, bool deb_feat=true, bool deb_mod=false) {
+    strcpy(debugdir, dir);
+    debug_predictions = deb_pred;
+    debug_weights = deb_wei;
+    debug_features = deb_feat;
+    debug_model = deb_mod;
+  }
+  
+
   /**
    * @brief Constructor, assumes feature definitions are known before hand and passed to the constructor 
    *
@@ -292,9 +299,12 @@ class SVMBehaviorSequence : public StructuredSVM {
   SparseVector Psi(StructuredData *x, StructuredLabel *y);
   double Inference(StructuredData *x, StructuredLabel *ybar, SparseVector *w, StructuredLabel *y_partial=NULL, StructuredLabel *y_gt=NULL, double w_scale=1);
   double Loss(StructuredLabel *y_gt, StructuredLabel *y_pred);
-  void OnFinishedIteration(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar);
+  void OnFinishedIteration(StructuredData *x, StructuredLabel *y, SparseVector *w=NULL, StructuredLabel *ybar=NULL);
   double ImportanceSample(StructuredData *x, SparseVector *w, StructuredLabel *y_gt, struct _SVM_cached_sample_set *set, double w_scale=1);
-  void OnFinishedIteration(StructuredData *x, StructuredLabel *y);
+  void Debug();
+  void DebugFeatures(const char *fname, BehaviorBoutSequence *y, double *ww, int beh);
+  void DebugExample(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar, SparseVector *w);
+  void OnFinishedPassThroughTrainset();
 
   virtual StructuredLabel *NewStructuredLabel(StructuredData *x) = 0;
   virtual StructuredData *NewStructuredData() = 0;
@@ -362,13 +372,16 @@ class SVMBehaviorSequence : public StructuredSVM {
   void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
 #endif
   bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev);
-  void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double unary_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT]);
+  void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double unary_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT], double duration_score);
   void restore_transition_counts(int beh, BehaviorBoutSequence *y_partial, int** &old_class_transitions, int* &old_class_transition_counts, int* &old_class_training_counts);
   bool *get_allowable_frame_times(BehaviorBoutSequence *y_gt, BehaviorBoutSequence *y_partial, int T);
   int get_bout_start_time(int beh, int *duration, int &tt, int t_p, int t, int &next_duration, int &last_gt, int &last_partial, int *gt_bout, int *partial_label_bout, BehaviorBoutSequence *y, BehaviorBoutSequence *y_partial, int &restrict_c_prev, int &restrict_c_next, bool *allowable_time_frames);
   BehaviorBoutSequence *bout_sequence_remove_section(BehaviorBoutSequence *y_src, int t_start, int t_end);
   void print_bout_sequence_scores(BehaviorBoutSequence *y, int beh);
-  void recompute_bout_sequence_scores(SparseVector *w, BehaviorBoutFeatures *b, BehaviorBoutSequence *y);
+  void init_weight_pointers(int beh, double* &ptr, double** &class_weights, double** &transition_weights, double* &unary_weights, double* &duration_weights);
+  double get_duration_score(int duration, int c, int beh, double *duration_weights);
+
+  friend class BehaviorBoutSequence;
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);

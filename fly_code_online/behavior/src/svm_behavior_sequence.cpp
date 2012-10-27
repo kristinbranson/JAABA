@@ -167,8 +167,8 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 			false_positive_cost[bh][i] = 1;
 		}
 #endif
-		for(i = 0; i < num_classes[bh]; i++)
-			num_bouts_per_class[bh][i] = 0;
+		//for(i = 0; i < num_classes[bh]; i++)
+		//	num_bouts_per_class[bh][i] = 0;
 
 #if USE_DURATION_COST > 0
 		for(i = 0; i < num_classes[bh]; i++) {
@@ -347,22 +347,27 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 	BehaviorBoutFeatures *x;
 	StructuredExample **ex = dataset->examples;
 
+      
 	// Count the total number of bouts in the training set
 	for(n = 0; n < dataset->num_examples; n++) {
 		for(beh = 0; beh < behaviors->num; beh++) {
 			if(behavior < 0 || beh == behavior) {
 				y = ((BehaviorBoutSequence*)ex[n]->y);
 				num_bouts += y->num_bouts[beh];
-				for(i=0; i<y->num_bouts[beh]; i++)
-					num_bouts_per_class[beh][y->bouts[beh][i].behavior]++;
+				//for(i=0; i<y->num_bouts[beh]; i++)
+				//	num_bouts_per_class[beh][y->bouts[beh][i].behavior]++;
 			}
 		}
 	}
+	
+
 #if SCALED_LOSS > 0
 	for (beh = 0; beh < behaviors->num; beh++) {
 		for(i=0; i<num_classes[beh]; i++){
-			false_negative_cost[beh][i] /= num_bouts_per_class[beh][i];
-			false_positive_cost[beh][i] /= num_bouts_per_class[beh][i];
+		  //false_negative_cost[beh][i] /= num_bouts_per_class[beh][i];
+		  //false_positive_cost[beh][i] /= num_bouts_per_class[beh][i];
+			false_negative_cost[beh][i] /= class_training_count[beh][i];
+			false_positive_cost[beh][i] /= class_training_count[beh][i];
 		}
 	}
 #endif
@@ -1149,6 +1154,10 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
   
 	Lock();
 
+	if(strlen(debugdir) && debug_features) 
+	  CreateDirectoryIfNecessary(debugdir);
+	      
+
 	int num, i, j, beh;       
 	char **train_list = load_examples(fname, &num);
 	bool computeClassTransitions = class_training_transitions ? false : true;
@@ -1273,60 +1282,90 @@ StructuredExample *SVMBehaviorSequence::read_struct_example(const char *label_fn
 
 
 
-void SVMBehaviorSequence::OnFinishedIteration(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar) {
-		char fname[1000];
-		int iter_num = this->t;
-		if(strlen(debugdir) && debug_weights) {
-			sprintf(fname, "%s/weights_%d.txt", debugdir, iter_num);
-			SparseVector *w = GetCurrentWeights();
-			double *ww = w->get_non_sparse<double>(sizePsi);
-			print_weights(fname, ww);
-			delete [] ww;
-			delete w;
-		}
+void SVMBehaviorSequence::OnFinishedIteration(StructuredData *x, StructuredLabel *y, SparseVector *w, StructuredLabel *ybar) {
+  DebugExample(x, y, ybar, w);
+  BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x;
+  b->Clear();
+}
 
-		if(strlen(debugdir) && debug_model) {
-			sprintf(fname, "%s/model_%d.txt", debugdir, iter_num);
-			StructuredSVM::Save(fname, false);
-		}
+void SVMBehaviorSequence::OnFinishedPassThroughTrainset() {
+  Debug();
+}
 
-		if(strlen(debugdir) && debug_predictions) {
-			sprintf(fname, "%s/index.html", debugdir);
-			FILE *fout = fopen(fname, "a");
-			assert(fout);
-			fprintf(fout, "<br><br><h2>Iteration %d</h2><a href=\"weights_%d.txt\">weights</a>|<a href=\"iter%d.html\">predictions</a>\n", iter_num, iter_num, iter_num);
-			fclose(fout);
-		}
+void SVMBehaviorSequence::Debug() {
+  char fname[1000];
+  int iter_num = this->t;
+  if(strlen(debugdir) && debug_weights) {
+    sprintf(fname, "%s/weights_%d.txt", debugdir, iter_num);
+    SparseVector *w = GetCurrentWeights();
+    double *ww = w->get_non_sparse<double>(sizePsi);
+    print_weights(fname, ww);
+    delete [] ww;
+    delete w;
+  }
 
-	// Save a visualization of all predicted bouts
-	if(strlen(debugdir) && debug_predictions) {
-		char *html=(char*)malloc(10000000), *html_gt=(char*)malloc(10000000), folder[1000], file[1000], fname[1000];
-		ExtractFolderAndFileName(((BehaviorBoutFeatures*)x)->GetFileName(), folder, file);
-		StripFileExtension(file);
-		int beh = this->behavior >= 0 ? this->behavior : 0;
-		if(iter_num >= 0) sprintf(fname, "%s/%s_%d", debugdir, file, iter_num);
-		else sprintf(fname, "%s/%s", debugdir, file);
-		((BehaviorBoutSequence*)ybar)->Visualize(behaviors, beh, fname, html);
-		if(y) {
-			sprintf(fname, "%s/%s_gt_%d", debugdir, file, iter_num);
-			((BehaviorBoutSequence*)y)->Visualize(behaviors, beh, fname, html_gt);
-		} 
-		if(iter_num >= 0)
-			sprintf(fname, "%s/iter%d.html", debugdir, iter_num);
-		else
-			sprintf(fname, "%s/index.html", debugdir);
-		FILE *fout = fopen(fname, "a");
-		assert(fout);
-		BehaviorBoutSequence *yybar = (BehaviorBoutSequence*)ybar;
-		if(y) {
-			BehaviorBoutSequence *yy = (BehaviorBoutSequence*)y;
-			fprintf(fout, "<br><br>%s: %s, score=%f, loss=%f<br>%s<br>%s: ground truth, score=%f, loss=%f<br>%s\n", file, iter_num >= 0 ? "most violated" : "best_score", (float)yybar->score, (float)yybar->loss, html, file, (float)yy->score, (float)yy->loss, html_gt);
-		} else 
-			fprintf(fout, "<br><br>%s: best score, score=%f, loss=%f<br>%s\n", file, (float)yybar->score, (float)yybar->loss, html);
-		fclose(fout);
-		free(html);
-		free(html_gt);
-	}
+  if(strlen(debugdir) && debug_model) {
+    sprintf(fname, "%s/model_%d.txt", debugdir, iter_num);
+    StructuredSVM::Save(fname, false);
+  }
+}
+
+void SVMBehaviorSequence::DebugExample(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar, SparseVector *w) {
+  char fname[1000];
+  int iter_num = this->t;
+  double *ww = NULL;
+
+  if(strlen(debugdir) && debug_predictions) {
+    sprintf(fname, "%s/index.html", debugdir);
+    FILE *fout = fopen(fname, "a");
+    assert(fout);
+    fprintf(fout, "<br><br><h2>Iteration %d</h2><a href=\"weights_%d.txt\">weights</a>|<a href=\"iter%d.html\">predictions</a>\n", iter_num, iter_num, iter_num);
+    fclose(fout);
+  
+    // Save a visualization of all predicted bouts
+    char *html=(char*)malloc(10000000), *html_gt=(char*)malloc(10000000), folder[1000], file[1000], fname[1000];
+    ExtractFolderAndFileName(((BehaviorBoutFeatures*)x)->GetFileName(), folder, file);
+    StripFileExtension(file);
+    int beh = this->behavior >= 0 ? this->behavior : 0;
+    if(debug_features) {
+      if(!ww) ww = w->get_non_sparse<double>(sizePsi);
+      if(iter_num >= 0) sprintf(fname, "%s/%s_%d_features.html", debugdir, file, iter_num);
+      else sprintf(fname, "%s/%s_features.html", debugdir, file);
+      DebugFeatures(fname, (BehaviorBoutSequence*)ybar, ww, beh);
+    }
+    if(iter_num >= 0) sprintf(fname, "%s/%s_%d", debugdir, file, iter_num);
+    else sprintf(fname, "%s/%s", debugdir, file);
+    ((BehaviorBoutSequence*)ybar)->Visualize(behaviors, beh, fname, html);
+    if(y) {
+      BehaviorBoutSequence *yy = (BehaviorBoutSequence*)y;
+      if(!yy->score) {
+	if(ybar) yy->loss = Loss(y, ybar);
+	
+      }
+      if(debug_features) {
+	sprintf(fname, "%s/%s_gt_%d_features.html", debugdir, file, iter_num);
+	DebugFeatures(fname, yy, ww, beh);
+      }
+      sprintf(fname, "%s/%s_gt_%d", debugdir, file, iter_num);
+      ((BehaviorBoutSequence*)y)->Visualize(behaviors, beh, fname, html_gt);
+    } 
+    if(iter_num >= 0)
+      sprintf(fname, "%s/iter%d.html", debugdir, iter_num);
+    else
+      sprintf(fname, "%s/index.html", debugdir);
+    fout = fopen(fname, "a");
+    assert(fout);
+    BehaviorBoutSequence *yybar = (BehaviorBoutSequence*)ybar;
+    if(y) {
+      BehaviorBoutSequence *yy = (BehaviorBoutSequence*)y;
+      fprintf(fout, "<br><br>%s: %s, score=%f, loss=%f<br>%s<br>%s: ground truth, score=%f, loss=%f<br>%s\n", file, iter_num >= 0 ? "most violated" : "best_score", (float)yybar->score, (float)yybar->loss, html, file, (float)yy->score, (float)yy->loss, html_gt);
+    } else 
+      fprintf(fout, "<br><br>%s: best score, score=%f, loss=%f<br>%s\n", file, (float)yybar->score, (float)yybar->loss, html);
+    fclose(fout);
+    free(html);
+    free(html_gt);
+  }
+  if(ww) free(ww);
 }
 
 double **g_table = NULL;
@@ -1412,7 +1451,7 @@ double SVMBehaviorSequence::compute_updated_bout_loss(BehaviorBoutFeatures *b, B
 // Update the state portion of the dynamic programming cache tables
 void SVMBehaviorSequence::store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, 
 					 double transition_score, double unary_score, double loss_fn, 
-					 double loss_fp, double extreme_vals[2][NUMFEAT]) {
+					 double loss_fp, double extreme_vals[2][NUMFEAT], double duration_score) {
   // states[t][c_next] stores start/end/c_prev, such that we can backtrack to lookup the 
   // optimal solution corresponding to table[t][c_next]                                        
   state.start_frame =  t_p;
@@ -1429,6 +1468,7 @@ void SVMBehaviorSequence::store_solution(BehaviorBout &state, int t_p, int t, in
     memcpy(state.extreme_vals[0], extreme_vals[0], sizeof(double)*NUMFEAT);
     memcpy(state.extreme_vals[1], extreme_vals[1], sizeof(double)*NUMFEAT);
   }
+  state.duration_score = duration_score;
 }
 
 
@@ -1632,24 +1672,7 @@ void SVMBehaviorSequence::backtrack_optimal_solution(BehaviorBoutSequence *ybar,
 #if USE_NEW_LOSS > 0 
    if (c_prev == -1){
 #endif
-    ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score + states[t][c].unary_score;
-#if USE_DURATION_COST > 0
-    int duration = states[t][c].end_frame-states[t][c].start_frame; 
-    double duration_diff = 0;
-    int behavior = states[t][c].behavior;
-#if USE_DURATION_COST > 1
-    if (duration < min_frame_duration[beh][behavior]) duration_diff = 10;
-    else if (duration > max_frame_duration[beh][behavior]) duration_diff = 10;
-#else
-    if (duration < min_frame_duration[beh][behavior])
-	duration_diff = min_frame_duration[beh][behavior] - duration;
-    else if (duration > max_frame_duration[beh][behavior]) 
-	duration_diff = duration - max_frame_duration[beh][behavior];
-    duration_diff *= duration_diff; 
-#endif
-    double duration_score = duration_weights[behavior] * duration_diff;
-    ybar->scores[beh] += duration_score;
-#endif
+    ybar->scores[beh] += states[t][c].bout_score + states[t][c].transition_score + states[t][c].unary_score + states[t][c].duration_score;
 
     
     ybar->losses[beh] += states[t][c].loss_fn + states[t][c].loss_fp;
@@ -1681,45 +1704,25 @@ void SVMBehaviorSequence::print_bout_sequence_scores(BehaviorBoutSequence *y, in
   }
 }
 
-void SVMBehaviorSequence::recompute_bout_sequence_scores(SparseVector *w, BehaviorBoutFeatures *b, BehaviorBoutSequence *y) {
-  double *ww = w->get_non_sparse<double>(sizePsi);
-  double *ptr = ww;
-  double *tmp_features = (double*)malloc((num_features+1)*sizeof(double));
-  for(int beh = 0; beh < behaviors->num; beh++) {
-    if(behavior >= 0 && beh != behavior) {
-      ptr += getPsiSize(num_features, num_classes[beh]);
-      continue;
-    }
-    double **class_weights = (double**)malloc(2*num_classes[beh]*sizeof(double*));
-    double **transition_weights = class_weights+num_classes[beh];
-    double *unary_weights;
-    int i;
-    for(i = 0; i < num_classes[beh]; i++, ptr += num_features) 
-      class_weights[i] = ptr;
-    for(i = 0; i < num_classes[beh]; i++, ptr += num_classes[beh]) 
-      transition_weights[i] = ptr; 
-    unary_weights = ptr; 
-    ptr += num_classes[beh];
 
-    y->scores[beh] = 0;
-    for(i = 0; i < y->num_bouts[beh]; i++) {
-      psi_bout(b, y->bouts[beh][i].start_frame, y->bouts[beh][i].end_frame, beh, -1, tmp_features, true, false);  
-      y->bouts[beh][i].bout_score = 0;
-      for(int k = 0; k < num_features; k++) 
-        y->bouts[beh][i].bout_score += class_weights[y->bouts[beh][i].behavior][k]*tmp_features[k];
-
-      if(i < y->num_bouts[beh]-1)
-        y->bouts[beh][i].transition_score = transition_weights[y->bouts[beh][i].behavior][y->bouts[beh][i+1].behavior];
-      else
-	y->bouts[beh][i].transition_score = 0;
-      y->bouts[beh][i].unary_score = unary_weights[y->bouts[beh][i].behavior];
-
-      y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score + y->bouts[beh][i].unary_score;
-    }
-  }
-  free(tmp_features);
-}
-
+ double SVMBehaviorSequence::get_duration_score(int duration, int c, int beh, double *duration_weights) {
+   double duration_score = 0;
+#if USE_DURATION_COST > 0
+    double duration_diff = 0;
+#if USE_DURATION_COST > 1
+    if (duration < min_frame_duration[beh][c]) duration_diff = 10;
+    else if (duration > max_frame_duration[beh][c]) duration_diff = 10;
+#else
+    if (duration < min_frame_duration[beh][c]) 
+	duration_diff = min_frame_duration[beh][c] - duration;
+    else if (duration > max_frame_duration[beh][c]) 
+	duration_diff = duration - max_frame_duration[beh][c];
+    duration_diff *= duration_diff; 
+#endif
+    duration_score = duration_weights[c] * duration_diff;
+#endif
+    return duration_score;
+ }
 
 // Helper function for Inference().  After dynamic programming runs, this does a bunch of sanity checks to test
 // if the code anywhere has bugs
@@ -1737,24 +1740,8 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
   double score = 0;
   double loss = 0;
   for(int i = 0; i < ybar->num_bouts[beh]; i++) {
-    score += ybar->bouts[beh][i].bout_score + ybar->bouts[beh][i].transition_score + ybar->bouts[beh][i].unary_score;
-#if USE_DURATION_COST > 0
-    int duration = ybar->bouts[beh][i].end_frame-ybar->bouts[beh][i].start_frame; 
-    double duration_diff = 0;
-    int c = ybar->bouts[beh][i].behavior;
-#if USE_DURATION_COST > 1
-    if (duration < min_frame_duration[beh][c]) duration_diff = 10;
-    else if (duration > max_frame_duration[beh][c]) duration_diff = 10;
-#else
-    if (duration < min_frame_duration[beh][c]) 
-	duration_diff = min_frame_duration[beh][c] - duration;
-    else if (duration > max_frame_duration[beh][c]) 
-	duration_diff = duration - max_frame_duration[beh][c];
-    duration_diff *= duration_diff; 
-#endif
-    double duration_score = duration_weights[c] * duration_diff;
-    score += duration_score;
-#endif
+    ybar->bouts[beh][i].duration_score = get_duration_score(ybar->bouts[beh][i].end_frame-ybar->bouts[beh][i].start_frame, ybar->bouts[beh][i].behavior, beh, duration_weights);
+    score += ybar->bouts[beh][i].bout_score + ybar->bouts[beh][i].transition_score + ybar->bouts[beh][i].unary_score + ybar->bouts[beh][i].duration_score;
     loss += ybar->bouts[beh][i].loss_fn + ybar->bouts[beh][i].loss_fp;
     
     // If this check fails, there is a problem with the basic dynamic programming algorithm
@@ -1804,24 +1791,8 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
       y->bouts[beh][i].unary_score = unary_weights[y->bouts[beh][i].behavior];
 
       y->bouts[beh][i].loss_fn = y->bouts[beh][i].loss_fp = 0;
-      y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score + y->bouts[beh][i].unary_score;
-#if USE_DURATION_COST > 0
-      int duration = y->bouts[beh][i].end_frame-y->bouts[beh][i].start_frame; 
-      double duration_diff = 0;
-      int c = y->bouts[beh][i].behavior;
-#if USE_DURATION_COST > 1
-      if (duration < min_frame_duration[beh][c]) duration_diff = 10;
-      else if (duration > max_frame_duration[beh][c]) duration_diff = 10;
-#else
-      if (duration < min_frame_duration[beh][c])
-	  duration_diff = min_frame_duration[beh][c] - duration;
-      else if (duration > max_frame_duration[beh][c]) 
-	  duration_diff = duration - max_frame_duration[beh][c];
-      duration_diff *= duration_diff; 
-#endif
-      double duration_score = duration_weights[c] * duration_diff;
-      y->scores[beh] += duration_score;
-#endif
+      y->bouts[beh][i].duration_score = get_duration_score(y->bouts[beh][i].end_frame-y->bouts[beh][i].start_frame, y->bouts[beh][i].behavior, beh, duration_weights);
+      y->scores[beh] += y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score + y->bouts[beh][i].unary_score + y->bouts[beh][i].duration_score;
 
       // Making sure that ybar_score + ybar_loss >= y_score, so far
       if(!y->disable_checks && y->scores[beh] > .01+(i < y->num_bouts[beh]-1 ? table[y->bouts[beh][i+1].start_frame][y->bouts[beh][i+1].behavior] : table[T][0])) {
@@ -1888,6 +1859,27 @@ bool *SVMBehaviorSequence::get_allowable_frame_times(BehaviorBoutSequence *y_gt,
 
     return allowable_time_frames;
   }
+}
+
+
+// Setup pointers to class_weights and transition weights.  It is assumed that
+// the first class_weightsXnum_features model parameters correspond to the
+// class-feature weights, and the last num_classesXnum_classes weights correspond
+// to the class transition weights
+ void SVMBehaviorSequence::init_weight_pointers(int beh, double* &ptr, double** &class_weights, double** &transition_weights, double* &unary_weights, double* &duration_weights) {
+   int i;
+   class_weights = (double**)malloc(2*num_classes[beh]*sizeof(double*));
+   transition_weights = class_weights+num_classes[beh];
+   for(i = 0; i < num_classes[beh]; i++, ptr += num_features) 
+     class_weights[i] = ptr;
+   for(i = 0; i < num_classes[beh]; i++, ptr += num_classes[beh]) 
+     transition_weights[i] = ptr; 
+   unary_weights = ptr; 
+   ptr += num_classes[beh];
+#if USE_DURATION_COST > 0
+   duration_weights = ptr;
+   ptr += num_classes[beh];
+#endif
 }
 
 /*
@@ -1974,9 +1966,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
     // table[t][c] will store the maximum score for any sub-solution to frames 1...t in which 
     // a bout of class c begins at time t, and states[t][c] will store the corresponding bout labels
     double *bout_scores = (double*)malloc(num_classes[beh]*sizeof(double));
-    double **class_weights = (double**)malloc(2*num_classes[beh]*sizeof(double*));
-    double **transition_weights = class_weights+num_classes[beh];
-    double *unary_weights;
+    double **class_weights, **transition_weights, *unary_weights;
 #if USE_DURATION_COST > 0
     double *duration_weights;
 #endif
@@ -1993,19 +1983,10 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
       states[i] = ptr2;
     }
 
-    // Setup pointers to class_weights and transition weights.  It is assumed that
-    // the first class_weightsXnum_features model parameters correspond to the
-    // class-feature weights, and the last num_classesXnum_classes weights correspond
-    // to the class transition weights
-    for(i = 0; i < num_classes[beh]; i++, ptr += num_features) 
-      class_weights[i] = ptr;
-    for(i = 0; i < num_classes[beh]; i++, ptr += num_classes[beh]) 
-      transition_weights[i] = ptr; 
-    unary_weights = ptr; 
-    ptr += num_classes[beh];
 #if USE_DURATION_COST > 0
-    duration_weights = ptr;
-    ptr += num_classes[beh];
+    init_weight_pointers(beh, ptr, class_weights, transition_weights, unary_weights, duration_weights);
+#else
+    init_weight_pointers(beh, ptr, class_weights, transition_weights, unary_weights, NULL);
 #endif
 
     // When given a user supplied label, it may be the case that some class labels or label 
@@ -2135,23 +2116,8 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
             backtrack_optimal_solution(ybar, beh, table, states, duration_weights, t, c_prev, t_p); 
             loss_score = Loss(y, ybar);
 #endif
-            double score = bout_score + transition_score + unary_score + loss_score;
-#if USE_DURATION_COST > 0
-	    int duration = t-t_p; 
-	    double duration_diff = 0;
-#if USE_DURATION_COST > 1
-	    if (duration < min_frame_duration[beh][c_prev]) duration_diff = 10;
-	    else if (duration > max_frame_duration[beh][c_prev]) duration_diff = 10;
-#else
-	    if (duration < min_frame_duration[beh][c_prev]) 
-		duration_diff = min_frame_duration[beh][c_prev] - duration;
-	    else if (duration > max_frame_duration[beh][c_prev]) 
-		duration_diff = duration - max_frame_duration[beh][c_prev];
-	    duration_diff *= duration_diff; // use second power so that we quickly penalize the duration alot if it varies from the preferred interval
-#endif
-	    double duration_score = duration_weights[c_prev] * duration_diff;
-	    score += duration_score;
-#endif          
+	    double duration_score = get_duration_score(t-t_p, c_prev, beh, duration_weights);
+            double score = bout_score + transition_score + unary_score + loss_score + duration_score;       
 
             // Check if the completed bout has a higher score than all previously examined solutions that 
             // begin a bout of class c at time t
@@ -2161,7 +2127,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
             assert(!isnan(f));
             if(f > table[t][c_next]) {
               table[t][c_next] = f;
-              store_solution(states[t][c_next], t_p, t, c_prev, bout_score, transition_score, unary_score, loss_fn, loss_fp, extreme_vals);
+              store_solution(states[t][c_next], t_p, t, c_prev, bout_score, transition_score, unary_score, loss_fn, loss_fp, extreme_vals, duration_score);
 	      //fprintf(stderr, "(t_p=%d, t=%d, c_prev=%d, c_next=%d), f=%f\n", t_p, t, c_prev, c_next, (float)f); 
             } 
 
@@ -2198,27 +2164,12 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
               backtrack_optimal_solution(ybar, beh, table, states, duration_weights, t, c_prev, t_p_p); 
               loss_score = Loss(y, ybar);
 #endif
-              double score = bout_score + transition_score + unary_score + loss_score;
-#if USE_DURATION_COST > 0
-	      int duration = t-t_p_p; 
-	      double duration_diff = 0;
-#if USE_DURATION_COST > 1
-	      if (duration < min_frame_duration[beh][c_prev]) duration_diff = 10;
-	      else if (duration > max_frame_duration[beh][c_prev]) duration_diff = 10;
-#else
-	      if (duration < min_frame_duration[beh][c_prev]) 
-	  	  duration_diff = min_frame_duration[beh][c_prev] - duration;
-	      else if (duration > max_frame_duration[beh][c_prev]) 
-		  duration_diff = duration - max_frame_duration[beh][c_prev];
-	      duration_diff *= duration_diff; 
-#endif
-	      double duration_score = duration_weights[c_prev] * duration_diff;
-	      score += duration_score;
-#endif
+	      double duration_score = get_duration_score(t-t_p_p, c_prev, beh, duration_weights);
+              double score = bout_score + transition_score + unary_score + loss_score + duration_score;
 	      double f = table[t_p_p][c_prev] + score;
               if(f > table[t][c_next]) {
                 table[t][c_next] = f;
-                store_solution(states[t][c_next], t_p_p, t, c_prev, bout_score, transition_score, unary_score, loss_fn, loss_fp, extreme_vals2);
+                store_solution(states[t][c_next], t_p_p, t, c_prev, bout_score, transition_score, unary_score, loss_fn, loss_fp, extreme_vals2, duration_score);
 		//fprintf(stderr, "(t_prev=%d, t=%d, c_prev=%d, c_next=%d), f=%f\n", t_p, t, c_prev, c_next, (float)f); 
               } 
             }
@@ -2309,6 +2260,8 @@ BehaviorBoutSequence *SVMBehaviorSequence::bout_sequence_remove_section(Behavior
   return y_dst;
 }
 
+
+
 double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w, StructuredLabel *y_gt, 
 					     struct _SVM_cached_sample_set *set, double w_scale) {
   SparseVector *w_curr = GetCurrentWeights(true);
@@ -2365,11 +2318,11 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
   }
 
   // Now run the full exhaustive Inference() procedure to find the most violated constraint
-  /*set->score_gt = w_curr->dot(*set->psi_gt);
+  set->score_gt = w_curr->dot(*set->psi_gt);
   StructuredLabel *ybar = NewStructuredLabel(x);
   retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
   SVM_cached_sample_set_add_sample(set, ybar);
-  */if(set->num_samples) {
+  if(set->num_samples) {
     SVM_cached_sample s = set->samples[0];
     set->samples[0] = set->samples[set->num_samples-1];
     set->samples[set->num_samples-1] = s;
@@ -2377,11 +2330,6 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
   delete w_curr;
 
   return retval;
-}
-
-void SVMBehaviorSequence::OnFinishedIteration(StructuredData *x, StructuredLabel *y) {
-  BehaviorBoutFeatures *b = (BehaviorBoutFeatures*)x;
-  b->Clear();
 }
 
 
@@ -2664,6 +2612,21 @@ Json::Value SVMBehaviorSequence::Save() {
 	}
 	root["feature_min_thresholds"] = min_thr;
 
+	Json::Value aa(Json::arrayValue), bb(Json::arrayValue);
+	for (beh = 0; beh < behaviors->num; beh++) {
+	  Json::Value a(Json::arrayValue), b(Json::arrayValue);
+	  for(i=0; i<num_classes[beh]; i++){
+	    a[i] = false_negative_cost[beh][i];
+	    b[i] = false_positive_cost[beh][i];
+	  }
+	  aa[beh] = a;
+	  bb[beh] = a;
+	}
+	root["false_negative_cost"] = aa;
+	root["false_positive_cost"] = bb;
+	
+	
+
 	return root;
 }
 
@@ -2797,6 +2760,21 @@ bool SVMBehaviorSequence::Load(const Json::Value &root) {
 		min_thresholds[i] = ptr2; ptr2 += feature_params[i].num_histogram_bins;
 		for(j = 0; j < feature_params[i].num_bout_min_thresholds; j++)
 		  min_thresholds[i][j] = a[j].asDouble();
+	}
+
+	if(root["false_positive_cost"].isArray()) {
+	  for (beh = 0; beh < behaviors->num; beh++) {
+	    Json::Value a = root["false_negative_cost"][beh], b=root["false_positive_cost"][beh];
+	    for(i=0; i<num_classes[beh]; i++){
+	      false_negative_cost[beh][i] = a[i].asDouble();
+	      false_positive_cost[beh][i] = b[i].asDouble();
+	    }
+	  }
+	}
+
+	if(!feature_names) {
+	  feature_names = (char**)realloc(feature_names, sizeof(char*)*num_features);
+	  compute_feature_space_size();
 	}
 
 	return true;
@@ -3043,11 +3021,73 @@ bool BehaviorBoutSequence::load(const Json::Value &r, StructuredSVM *s) {
 }
 
 
+void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence *y, double *ww, int beh) {
+   BehaviorBoutFeatures *b = y->features;
+
+  double *tmp_features = (double*)malloc((num_features+3)*sizeof(double));
+  double *class_features = (double*)malloc(sizeof(double)*(num_features+behaviors->behaviors[beh].num_values+2));
+  double *class_transitions = class_features + num_features;
+  double *unary = class_transitions + behaviors->behaviors[beh].num_values;
+  double *duration = unary+1;
+  int *inds = (int*)malloc(sizeof(int)*(num_features+behaviors->behaviors[beh].num_values+2));
+  g_num_features = num_features;
+  g_class_features = class_features;
+  g_class_transitions = class_transitions;
+  double **class_weights, **transition_weights, *unary_weights, *duration_weights;
+  init_weight_pointers(beh, ww, class_weights, transition_weights, unary_weights, duration_weights);
+  FILE *fout = fopen(fname, "w");
+
+  y->score = 0;
+  y->loss = 0;
+  for(int i = 0; i < y->num_bouts[beh]; i++) {
+    int t_p = y->bouts[beh][i].start_frame, t = y->bouts[beh][i].end_frame, 
+      c_prev = y->bouts[beh][i].behavior, 
+      c_next = i<y->num_bouts[beh]-1 ? y->bouts[beh][i+1].behavior : -1;
+    psi_bout(b, t_p, t, beh, c_prev, tmp_features, true, false);  // compute bout features
+
+    y->bouts[beh][i].bout_score = 0;
+    for(int k = 0; k < num_features; k++) {
+      class_features[k] = class_weights[c_prev][k]*tmp_features[k];  // update bout score
+      y->bouts[beh][i].bout_score += class_features[k];
+    }
+    for(int j = 0; j < behaviors->behaviors[beh].num_values; j++) 
+      class_transitions[j] = 0; 
+    class_transitions[c_next] = transition_weights[c_prev][c_next];
+		      
+    y->bouts[beh][i].transition_score = c_next >=0 ? transition_weights[c_prev][c_next] : 0;   
+    *unary = y->bouts[beh][i].unary_score = unary_weights[c_prev];
+    *duration = y->bouts[beh][i].duration_score = get_duration_score(t-t_p, c_prev, beh, duration_weights);
+    double score = y->bouts[beh][i].bout_score + y->bouts[beh][i].transition_score + y->bouts[beh][i].unary_score + y->bouts[beh][i].duration_score;
+    y->score += score;
+    y->loss += y->bouts[beh][i].loss_fn + y->bouts[beh][i].loss_fp;
+		    
+    for(int j = 0; j < num_features+behaviors->behaviors[beh].num_values+2; j++)
+      inds[j] = j;
+    qsort(inds, num_features+behaviors->behaviors[beh].num_values+2, sizeof(int), cmp_feature_inds);
+    fprintf(fout, "<br><br><a name=\"%d\">Behavior=%s score=%f t=(%d-%d)</a>: bout_score=%f transition_score=%f unary_score=%f duration_score=%f loss_fn=%f loss_fp=%f\n", i, behaviors->behaviors[beh].values[c_prev].name, (float)score, t_p, t,
+	    (float)y->bouts[beh][i].bout_score, (float)y->bouts[beh][i].transition_score, (float)y->bouts[beh][i].unary_score, (float)y->bouts[beh][i].duration_score, (float)y->bouts[beh][i].loss_fn,  (float)y->bouts[beh][i].loss_fp);
+    for(int j = 0; j < num_features+behaviors->behaviors[beh].num_values; j++) {
+      if(inds[j] < num_features)
+	fprintf(fout, "<br>%lf=%f*%f, %s:%s %s\n", class_features[inds[j]], class_weights[c_prev][inds[j]], tmp_features[inds[j]], behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name, feature_names[inds[j]]);
+      else if(inds[j] < num_features+behaviors->behaviors[beh].num_values)
+	fprintf(fout, "<br>%lf, %s:%s->%s\n", class_transitions[inds[j]-num_features], behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name, behaviors->behaviors[beh].values[inds[j]-num_features].name);
+      else if(inds[j] < num_features+behaviors->behaviors[beh].num_values+1)
+	fprintf(fout, "<br>%lf, %s:%s unary\n", *unary, behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name);
+      else 
+	fprintf(fout, "<br>%lf, %s:%s duration\n", *duration, behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name);
+    }
+  }
+  free(class_weights);
+  free(class_features);
+  free(tmp_features);
+  free(inds);
+  fclose(fout);
+}
 
 #include "cv.h"
 #include "highgui.h"
 #define LABEL_BOUTS 0
-void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char *fname, char *html) { 
+ void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char *fname, char *html) { 
 	BehaviorGroup *group = &groups->behaviors[beh];
 	if(!this->num_bouts[beh]) 
 		return;
@@ -3106,14 +3146,17 @@ void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char
 #endif
 
 	if(fname) {
-		char *html_tmp=(char*)malloc(10000000), folder[1000], fname2[1000];
+		char *html_tmp=(char*)malloc(10000000), folder[1000], fname2[1000], fname3[1000];
 		if(!strstr(fname, ".png")) sprintf(fname2, "%s.png", fname);
 		else strcpy(fname2, fname);
 		cvSaveImage(fname2, img);
 		cvReleaseImage(&img);
 
 		if(html) {
-			ExtractFolderAndFileName(fname, folder, fname2);    
+		  ExtractFolderAndFileName(fname, folder, fname2);    
+
+		  
+
 			sprintf(html_tmp, "<img src=\"%s.png\" usemap=\"#%s\" height=50 />\n<map name=\"%s\">\n", fname2, fname2, fname2);
 
 			char str[10000], alt[1000];
@@ -3121,9 +3164,13 @@ void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char
 			for(i = 0; i < this->num_bouts[beh]; i++) {
 				int c = this->bouts[beh][i].behavior;
 				float z = 50.0f/h;
-				sprintf(alt, "behavior=%s bout_score=%f transition_score=%f loss_fn=%f loss_fp=%f", group->values[c].name, 
-					(float)this->bouts[beh][i].bout_score, (float)this->bouts[beh][i].transition_score, (float)this->bouts[beh][i].loss_fn,  (float)this->bouts[beh][i].loss_fp);
-				sprintf(str, "  <area shape=\"rect\" coords=\"%d,%d,%d,%d\" href=\"features_%s.html#%d\" title=\"%s\" />\n", (int)(z*this->bouts[beh][i].start_frame), 0, 
+				double score = this->bouts[beh][i].bout_score + this->bouts[beh][i].transition_score + this->bouts[beh][i].unary_score;
+#if USE_DURATION_COST > 0
+				score += this->bouts[beh][i].duration_score;
+#endif
+				sprintf(alt, "behavior=%s score=%f bout_score=%f transition_score=%f unary_score=%f duration_score=%f loss_fn=%f loss_fp=%f", group->values[c].name, (float)score,
+					(float)this->bouts[beh][i].bout_score, (float)this->bouts[beh][i].transition_score, (float)this->bouts[beh][i].unary_score, (float)this->bouts[beh][i].duration_score, (float)this->bouts[beh][i].loss_fn,  (float)this->bouts[beh][i].loss_fp);
+				sprintf(str, "  <area shape=\"rect\" coords=\"%d,%d,%d,%d\" href=\"%s_features.html#%d\" title=\"%s\" />\n", (int)(z*this->bouts[beh][i].start_frame), 0, 
 					(int)(z*this->bouts[beh][i].end_frame), (int)(z*h), fname2, i, alt);
 
 
@@ -3137,5 +3184,3 @@ void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char
 	}
 
 }
-
-

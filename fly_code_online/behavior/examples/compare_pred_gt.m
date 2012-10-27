@@ -1,5 +1,5 @@
 %% Load data
-function OUT = compare_pred_gt()
+function OUT = compare_pred_gt(gt_filelist, predSuffix)
 %DIR = 'Data/synth_flies/TrainingData/';
 %DIR = 'Data/midres_flies/TrainingDataAllMoviesUpdated/';
 DIR = 'Data/midres_flies/CleanedMovies/';
@@ -9,7 +9,6 @@ DIR = 'Data/midres_flies/CleanedMovies/';
 %file containing the list of file that were tested
 %gt_filelist = 'traindata_5.txt';
 %gt_filelist = 'testdata.txt';
-gt_filelist = 'traindata_5.txt';
 %gt_filelist = 'testdata_special.txt';
 %file containing behaviors used for this experiment
 beh_file = 'Data/midres_flies/Params/BoyMeetsBoySVMBehaviorParams.txt';
@@ -20,6 +19,12 @@ beh_file = 'Data/midres_flies/Params/BoyMeetsBoySVMBehaviorParams.txt';
 
 %repfile = 'reportsUpdated/model5iter17_new';
 repfile = 'dummy';
+repfile2 = 'dummy2';
+
+%predSuffix = '.label.pred.model53.iter16';
+if nargin < 2, gt_filelist = 'traindata_5.txt'; end
+if nargin < 2, predSuffix = '.label.pred.model0.iter0'; end
+
 
 %% Read behaviors
 lines = textread(beh_file,'%s','delimiter','\n');
@@ -62,7 +67,7 @@ end
 pred_frames = cell(1,num_tracks);   % frameswise labels per track
 invalid = [];
 for i=1:num_tracks
-    filename = [strtok(gt_files{i},'.'),'.label.pred.model53.iter16']; % .label.pred.model5.iter17
+    filename = [strtok(gt_files{i},'.'),predSuffix]; % .label.pred.model5.iter17
     try
         label = readLabels([DIR filename]);
     catch
@@ -171,6 +176,7 @@ set(gca,'yticklabel',[])
 
 orient landscape
 print('-dpsc',repfile);
+
 %% Plot GT vs Prediction separating ``other" and interesting behaviors
 % h2=figure(2); clf
 % colors = {'y','g','r','b','m','y','y'};
@@ -249,11 +255,13 @@ for i=1:num_behs
         confusion_mat(i,:) = confusion_mat(i,:) / sum(confusion_mat(i,:));
     end
 end
+
 %valid = 1:10;%[1:5 8 10:13];
 diagonal = diag(confusion_mat)
 %diagonal = temp(valid)
 mean(diagonal)
 save confusion_mat_mice confusion_mat
+
 
 confusion_mat_precision = zeros(num_behs,num_behs);
 for i=1:num_behs
@@ -262,6 +270,7 @@ for i=1:num_behs
     end
     confusion_mat_precision(i,:) = confusion_mat_precision(i,:) / sum(confusion_mat_precision(i,:));
 end
+
 
 OUT.confusion_mat_recall = confusion_mat;
 OUT.confusion_mat_precision = confusion_mat_precision;
@@ -274,12 +283,15 @@ colorbar
 set(gca,'XTick',1:num_behs,'XTickLabel',behs,'YTick',1:num_behs,'YTickLabel',behs)
 title(['Confusion matrix for ground truth (frame based)'])
 
+
 %figure; clf;
 subplot(2,2,2)
 imagesc(confusion_mat_precision)
 colorbar
 set(gca,'XTick',1:num_behs,'XTickLabel',behs,'YTick',1:num_behs,'YTickLabel',behs)
 title(['Confusion matrix for prediction (frame based)'])
+
+
 
 drawnow
 %return
@@ -288,6 +300,8 @@ percent_correct_frames = true_frames/total_frames;
 diagon = diag(confusion_mat)
 valid = find(~isnan(diagon));
 frame_pred_accuracy = mean(diagon(valid));
+
+
 
 overlap_THRESH = .1;
 beh_results = cell(1,num_behs);
@@ -338,6 +352,7 @@ end
 OUT.beh_results = beh_results;
 %return
 
+
 %h4=figure; clf
 subplot(2,2,3:4)
 axis off
@@ -358,7 +373,7 @@ end
 axis([0 10 0 10])
 
 orient landscape
-print('-dpsc','-append',repfile);
+print('-dpsc','-append',repfile2);
 %% Confusion matrix only main behaviors
 % % percent frames correctly labeled
 % total_frames = 0;

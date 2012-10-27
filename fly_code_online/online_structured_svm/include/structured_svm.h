@@ -335,7 +335,7 @@ public:
    * @param x The data example we just processed
    * @param y The label we just processed
    */
-  virtual void OnFinishedIteration(StructuredData *x, StructuredLabel *y) {}
+  virtual void OnFinishedIteration(StructuredData *x, StructuredLabel *y, SparseVector *w = NULL, StructuredLabel *ybar=NULL) {}
 
   /**
    * @brief Load a dataset of examples from file.  By default, this assumes each line in the file will correspond

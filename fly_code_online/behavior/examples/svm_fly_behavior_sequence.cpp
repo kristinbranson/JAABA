@@ -388,22 +388,26 @@ bool FlyBehaviorBoutSequence::save(const char *fname) {
 }
 
 int main(int argc, const char **argv) {
-  char bname[1000], feat_name[1000];
+  char bname[1000], feat_name[1000], debug_name[1000];
   BehaviorGroups *behaviors = NULL;
   strcpy(bname, "");
   strcpy(feat_name, "");
+  strcpy(debug_name, "");
 
   for(int i=1; i<argc; i++) {
     if(argv[i][0] == '-') {
       switch ((argv[i])[1]) {
       case 'B': i++; sprintf(bname, "%s", argv[i]); behaviors = load_behaviors(bname, "."); break;
       case 'F': i++; sprintf(feat_name, "%s", argv[i]); break;
+      case 'D': i++; sprintf(debug_name, "%s", argv[i]); break;
       default: i++;
       }
     }
   }
 
   assert(strlen(feat_name) && behaviors);
-  StructuredLearnerRpc v(new SVMFlyBehaviorSequence(feat_name, behaviors, -1));
+  SVMFlyBehaviorSequence *svm = new SVMFlyBehaviorSequence(feat_name, behaviors, -1);
+  if(strlen(debug_name)) svm->SetDebugDir(debug_name);
+  StructuredLearnerRpc v(svm);
   v.main(argc, argv);
 }

@@ -484,7 +484,6 @@ VFLOAT StructuredSVM::Test(StructuredDataset *testset, const char *predictionsFi
       //fprintf(stderr, "%s\n", tmp);
       strs[i] = StringCopy(tmp);
     }
-    delete y;
 
     omp_set_lock(&l_lock);
     sum_los += los;
@@ -499,18 +498,19 @@ VFLOAT StructuredSVM::Test(StructuredDataset *testset, const char *predictionsFi
       fprintf(htmlOut, "<td>%s</td>\n", htmlStr);
       free(htmlStr);
     }
-    fprintf(stderr, "After %d examples: ave_loss=%f, ave_slack=%f\n",  num, (float)(sum_los/num), (float)(sum_slack/num));
+    fprintf(stderr, "After %d examples: ave_loss=%f, sum_los=%f, ave_slack=%f, i=%d loss=%f slack=%f\n",  num, (float)(sum_los/num), (float)sum_los, (float)(sum_slack/num), i, (float)los, (float)slack);
     omp_unset_lock(&l_lock);
 
-    OnFinishedIteration(testset->examples[i]->x, testset->examples[i]->y);
+    OnFinishedIteration(testset->examples[i]->x, testset->examples[i]->y, w, y);
+    delete y;
   }
   if(htmlOut) {
     fprintf(htmlOut, "</tr></table></html>\n");
     fclose(htmlOut);
   }
   double svm_error = (float)(sum_slack/testset->num_examples) + w->dot(*w)*lambda/2;
-  printf("Average loss was %f, slack=%f, svm_err=%f\n", (float)(sum_los/testset->num_examples), 
-	 (float)(sum_slack/testset->num_examples), svm_error);
+  printf("Average loss was %f, slack=%f, svm_err=%f, Total loss=%f\n", (float)(sum_los/testset->num_examples), 
+	 (float)(sum_slack/testset->num_examples), svm_error, (float)sum_los);
 
   omp_destroy_lock(&l_lock);
   if(predictionsFile) {
