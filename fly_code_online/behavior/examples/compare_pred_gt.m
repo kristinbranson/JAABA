@@ -9,7 +9,7 @@ DIR = 'Data/midres_flies/CleanedMovies/';
 %file containing the list of file that were tested
 %gt_filelist = 'traindata_5.txt';
 %gt_filelist = 'testdata.txt';
-gt_filelist = 'traindata_5.txt';
+gt_filelist = 'traindata_2.txt';
 %gt_filelist = 'testdata_special.txt';
 %file containing behaviors used for this experiment
 beh_file = 'Data/midres_flies/Params/BoyMeetsBoySVMBehaviorParams.txt';
@@ -62,7 +62,7 @@ end
 pred_frames = cell(1,num_tracks);   % frameswise labels per track
 invalid = [];
 for i=1:num_tracks
-    filename = [strtok(gt_files{i},'.'),'.label.pred.model53.iter16']; % .label.pred.model5.iter17
+    filename = [strtok(gt_files{i},'.'),'.label.pred.model53.iter20']; % .label.pred.model5.iter17
     try
         label = readLabels([DIR filename]);
     catch
@@ -164,10 +164,10 @@ end
 axis([1 max_dur 0.7 i+0.7])
 %xlabel('frame')
 %ylabel('sequence id')
-set(gca,'xtick',[])
-set(gca,'ytick',[])
-set(gca,'xticklabel',[])
-set(gca,'yticklabel',[])
+% set(gca,'xtick',[])
+% set(gca,'ytick',[])
+% set(gca,'xticklabel',[])
+% set(gca,'yticklabel',[])
 
 orient landscape
 print('-dpsc',repfile);
@@ -263,6 +263,9 @@ for i=1:num_behs
     confusion_mat_precision(i,:) = confusion_mat_precision(i,:) / sum(confusion_mat_precision(i,:));
 end
 
+diagonal = diag(confusion_mat_precision)
+mean(diagonal)
+
 OUT.confusion_mat_recall = confusion_mat;
 OUT.confusion_mat_precision = confusion_mat_precision;
 
@@ -285,7 +288,7 @@ drawnow
 %return
 %% Precision / Recall
 percent_correct_frames = true_frames/total_frames;
-diagon = diag(confusion_mat)
+diagon = diag(confusion_mat);
 valid = find(~isnan(diagon));
 frame_pred_accuracy = mean(diagon(valid));
 
@@ -342,18 +345,23 @@ OUT.beh_results = beh_results;
 subplot(2,2,3:4)
 axis off
 axis ij
-incr = 0.5;
+incr = 1.5;
 text(0,0, ['Percent correct frames: ' num2str(percent_correct_frames)]);
 hold on
 text(0,incr, ['Frame pred accuracy: ' num2str(frame_pred_accuracy)]);
 
 text(0,2.5*incr, 'Precision recall:')
 for i=1:numel(beh_results)
-    text(incr,i*incr + 2.5*incr, [beh_results{i}.name ':   beh count = ' ...
-        num2str(beh_results{i}.beh_count) ', beh pred count = ' ...
-        num2str(beh_results{i}.beh_pred_count) ', false neg = ' ...
-        num2str(beh_results{i}.false_neg) ', false pos = ' ...
-        num2str(beh_results{i}.false_pos)]);
+    tp = beh_results{i}.beh_count - beh_results{i}.false_neg;
+    pred = tp + beh_results{i}.false_pos;
+    text(incr,i*incr + 2.5*incr, [beh_results{i}.name ... 
+        ':   beh count = ' num2str(beh_results{i}.beh_count) ...
+         ', recall = ' num2str(tp/beh_results{i}.beh_count) ...
+         ', precision = ' num2str(tp/pred)]);
+%         num2str(beh_results{i}.beh_count) ', beh pred count = ' ...
+%         num2str(beh_results{i}.beh_pred_count) ', false neg = ' ...
+%         num2str(beh_results{i}.false_neg) ', false pos = ' ...
+%         num2str(beh_results{i}.false_pos)]);
 end
 axis([0 10 0 10])
 
