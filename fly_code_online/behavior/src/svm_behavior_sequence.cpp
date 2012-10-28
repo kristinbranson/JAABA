@@ -281,7 +281,7 @@ void SVMBehaviorSequence::saveBoutFeatures(StructuredDataset *dataset, const cha
 
 	FILE *featureFile, *featureFileUnsphered;
 	featureFile = fopen(filename,"w");
-	fprintf(featureFile, "num_features = %d\nnum_bouts = %d", num_features, num_bouts_extra);
+	fprintf(featureFile, "num_features = %d\nnum_bouts = %d", num_features, num_bouts);
 	for(int n = 0; n < dataset->num_examples; n++) {
 		y = ((BehaviorBoutSequence*)ex[n]->y);
 		x = ((BehaviorBoutFeatures*)ex[n]->x);
@@ -292,10 +292,10 @@ void SVMBehaviorSequence::saveBoutFeatures(StructuredDataset *dataset, const cha
 			if(behavior < 0 || beh == behavior) {
 				for(int j = 0; j < y->num_bouts[beh]; j++) {
 					psi_bout(x, y->bouts[beh][j].start_frame, y->bouts[beh][j].end_frame, beh, y->bouts[beh][j].behavior, tmp_features, sphered, false);
-					/*fprintf(featureFile, "\n%d %d %d %d ", n, y->bouts[beh][j].start_frame, y->bouts[beh][j].end_frame, y->bouts[beh][j].behavior);
+					fprintf(featureFile, "\n%d %d %d %d ", n, y->bouts[beh][j].start_frame, y->bouts[beh][j].end_frame, y->bouts[beh][j].behavior);
 					for(int i = 0; i < num_features; i++) {
 						fprintf(featureFile, "%f ", tmp_features[i]);
-					}*/
+					}
 					for(int i = y->bouts[beh][j].start_frame; i < y->bouts[beh][j].end_frame; i++) 
 						frame_labels[i] = y->bouts[beh][j].behavior;
 				}
@@ -552,6 +552,9 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 			fprintf(stderr, "WARNING: feature %s seems to be the same for every example in the training set\n", feature_names[i]);
 		features_gamma[i] = features_gamma[i] ? 1.0/sqrt(features_gamma[i]/num_bouts) : 0;
 	}
+
+	saveBoutFeatures(dataset,"traindata_5.txt",true,false,0);
+	saveBoutFeatures(dataset,"traindata_5_unsphered.txt",false,false,0);
 /*
 	saveBoutFeatures(dataset, "train_bout_feat_4.txt",   false, true, 4);
 	saveBoutFeatures(dataset, "train_bout_feat_8.txt",   false, true, 8);
@@ -1151,7 +1154,8 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 
 	int num, i, j, beh;       
 	char **train_list = load_examples(fname, &num);
-	bool computeClassTransitions = class_training_transitions ? false : true;
+	//bool computeClassTransitions = class_training_transitions ? false : true;
+	bool computeClassTransitions = true; // TEMP: EYRUN
 	StructuredDataset *dataset = new StructuredDataset();
 	int duration = 0;
 
