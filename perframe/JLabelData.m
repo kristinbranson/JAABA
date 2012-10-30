@@ -31,9 +31,9 @@ classdef JLabelData < handle
     % scores of the old classifier.
     % 
     predictdata = struct('exp',[],'flies',[],'t',[],...
-          'cur',[],'cur_valid',[],'cur_pp',[],...
-          'old',[],'old_valid',[],'old_pp',[],...
-          'loaded',[],'loaded_valid',[],'loaded_pp',[],...
+          'cur',[],'cur_valid',logical([]),'cur_pp',[],...
+          'old',[],'old_valid',logical([]),'old_pp',[],...
+          'loaded',[],'loaded_valid',logical([]),'loaded_pp',[],...
           'timestamp',[]);
         
     predictblocks = struct('t0',[],'t1',[],'expi',[],'flies',[]);
@@ -45,8 +45,8 @@ classdef JLabelData < handle
           'wfidx_valid',false);
     
     % constant: radius of window data to compute at a time
-    windowdatachunk_radius = 500;
-    
+    windowdatachunk_radius = 100;
+    predictwindowdatachunk_radius = 10000;
     % total number of experiments
     nexps = 0;
     
@@ -616,7 +616,8 @@ end
       if isempty(obj.predictdata.exp),
         idx = []; return;
       end
-      idx = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,flies),1);
+      idx = obj.predictdata.exp == expi;
+      idx(obj.predictdata.flies~=flies) = false;
     end
     
     function val = IsCurFly(obj,expi,flies)
@@ -1740,7 +1741,7 @@ end
         [success,msg] = obj.ApplyPostprocessing();
       else
         for ndx = 1:numel(allScores.loaded)
-          idxcurr = obj.predictdata.exp == expi & all(bsxfun(@eq,obj.predictdata.flies,ndx),2);
+          idxcurr = obj.FlyNdxPredict(expi,ndx);
           tStart = allScores.tStart(ndx);
           tEnd = allScores.tEnd(ndx);
           if isfield(allScores,'postprocessedscores');
@@ -3717,7 +3718,7 @@ end
       scores = zeros(1,n);
       
       if ~isempty(obj.predictdata.exp) 
-        idxcurr = obj.predictdata.exp == expi & obj.predictdata.flies == flies & ...
+        idxcurr = obj.FlyNdxPredict(expi,flies) & ...
           obj.predictdata.old_valid;
         scores(obj.windowdata.t(idxcurr)+off) = ...
           obj.predictdata.old(idxcurr);
@@ -4866,10 +4867,10 @@ end
 %       end
       
       % indices into windowdata
-      idxcurr = obj.FlyNdx(expi,flies) & ...
-        ~obj.windowdata.isvalidprediction; % & ismember(obj.windowdata.t,ts);
-      
-      if ~any(idxcurr), return; end;
+%       idxcurr = obj.FlyNdx(expi,flies) & ...
+%         ~obj.windowdata.isvalidprediction; % & ismember(obj.windowdata.t,ts);
+%       
+%       if ~any(idxcurr), return; end;
       
       % apply classifier
       switch obj.classifiertype,
@@ -5027,11 +5028,11 @@ end
             T0 = max(obj.GetTrxFirstFrame(expi,flies));
             T1 = min(obj.GetTrxEndFrame(expi,flies));
             
-            t1 = min(t+obj.windowdatachunk_radius*10,T1);
+            t1 = min(t+obj.predictwindowdatachunk_radius,T1);
             % go backward 2*r to find the start of the chunk
-            t0 = max(t1-2*obj.windowdatachunk_radius*10,T0);
+            t0 = max(t1-2*obj.predictwindowdatachunk_radius,T0);
             % go forward 2*r again to find the end of the chunk
-            t1 = min(t0+2*obj.windowdatachunk_radius*10,T1);
+            t1 = min(t0+2*obj.predictwindowdatachunk_radius,T1);
             
             overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
             if ~isempty(overlap_start),
@@ -5119,6 +5120,7 @@ end
           
           scores = myBoostClassify(X(:,obj.fastPredict.wfidx),obj.fastPredict.classifier);
           
+          obj.SetStatus('Updating Predictions ...');
           curndx = obj.FlyNdxPredict(expi,flies) & ...
             obj.predictdata.t>=t0 & ...
             obj.predictdata.t<=t1;
