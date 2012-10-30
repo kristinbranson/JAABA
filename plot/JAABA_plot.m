@@ -566,6 +566,7 @@ function ExperimentAdd_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user experiment (see GUIDATA)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 persistent directory
 if(isempty(directory))  directory=pwd;  end
@@ -657,6 +658,7 @@ handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % --- Executes on button press in ExperimentDelete2.
@@ -700,6 +702,7 @@ function ExperimentDelete_Callback(hObject, eventdata, handles)
 if(length(handles.experimentlist)==0)  return;  end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 %idx=get(handles.ExperimentList,'Value');
 idx=handles.experimentvalue{handles.groupvalue};
@@ -776,6 +779,7 @@ handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % --- Executes on button press in ExperimentMove2.
@@ -832,6 +836,7 @@ if(~ok)  return;  end
 if(to_group>=handles.groupvalue)  to_group=to_group+1;  end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 from_group=handles.groupvalue;
 %idx=get(handles.ExperimentList,'Value');
@@ -870,6 +875,7 @@ handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % --- Executes on selection change in GroupList.
@@ -1161,6 +1167,7 @@ function FeatureHistogram_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user experiment (see GUIDATA)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -1251,6 +1258,7 @@ axis tight;  zoom reset;
 %end
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 return;
 
@@ -1313,6 +1321,7 @@ function InterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user experiment (see GUIDATA)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -1397,6 +1406,7 @@ handles.table='histogram';
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % --- 
@@ -1647,6 +1657,7 @@ function FeatureTimeSeries_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user experiment (see GUIDATA)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -1776,6 +1787,7 @@ if(handles.featuretimeseries_timing>1)
   end
 end
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % ---
@@ -1818,6 +1830,7 @@ function InterestingTimeSeries_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user experiment (see GUIDATA)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -1873,6 +1886,7 @@ handles.table='timeseries';
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % ---
@@ -1992,6 +2006,7 @@ function BehaviorBarChart_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -2146,6 +2161,7 @@ end
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % ---
@@ -2304,6 +2320,7 @@ function BehaviorTimeSeries_Callback(hObject, eventdata, handles)
 
 %if(eventdata.Indices(end,2)==1)  return;  end
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -2361,6 +2378,7 @@ ylabel(tmp);
 axis tight;  zoom reset;
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 return
 
 tmp={};
@@ -2609,6 +2627,7 @@ function BoutStats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2670,6 +2689,7 @@ handles.table='bout_stats';
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % --- 
@@ -2807,6 +2827,7 @@ function SocialStats_Callback(hObject, eventdata, handles)
 
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2881,6 +2902,7 @@ handles.table='social_stats';
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
 
 
 % --- 
