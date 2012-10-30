@@ -1360,15 +1360,19 @@ end
 
 tmp=cell(size(tmp2,1),5);
 tmp(:,1)=handles.grouplist(tmp2(:,1));
+%tmp(:,2)=num2cell(tmp2(:,6));
+tmp(:,2)=cellstr(num2str(tmp2(:,6),'%-d'));
 idx=~isnan(tmp2(:,2));
-tmp(idx,1)=strcat(tmp(idx,1),repmat(',',sum(idx),1),handles.grouplist(tmp2(idx,2))');
-tmp(:,2)=handles.behaviorlist(tmp2(:,3));
-tmp(:,3)=handles.featurelist(tmp2(:,4));
-tmp(:,4)=cellstr(strcat(num2str(tmp2(:,6),'%-d'),repmat(',',size(tmp2,1),1),num2str(tmp2(:,7),'%-d')));
-tmp(:,5)=num2cell(tmp2(:,5));
+tmp(idx,3)=handles.grouplist(tmp2(idx,2));
+tmp(:,4)=cellstr(num2str(tmp2(:,7),'%-d'));
+tmp(:,5)=handles.behaviorlist(tmp2(:,3));
+tmp(:,6)=handles.featurelist(tmp2(:,4));
+tic;
+toc
+tmp(:,7)=num2cell(tmp2(:,5));
 set(handles.Table,'Data',tmp);
-set(handles.Table,'ColumnName',{'Group' 'Behavior' 'Feature' 'n' 'd'''});
-set(handles.Table,'ColumnWidth',{150 150 150 100 50});
+set(handles.Table,'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd'''});
+set(handles.Table,'ColumnWidth',{75 50 75 50 150 100 75});
 set(handles.Table,'RowStriping','on','BackgroundColor',[1 1 1; 0.95 0.95 0.95]);
 
 handles.table_data=tmp2;
