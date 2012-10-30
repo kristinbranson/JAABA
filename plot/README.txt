@@ -1,11 +1,12 @@
 LOADING EXPERIMENTS
 
-Multiple experiments can be divided into two groups for uni- or bi-variate
-analysis.  Use the "Add" button to invoke a dialog box to browse directories
-for experiments.  Remove selected experiments with the "Delete" button.
-Transfer experiments from one group to the other with the "Move Below" and
-"Move Above" buttons.  Designate loaded experiments to analyze by selecting
-(a subset of) them with <shift/ctrl> left button.
+Multiple experiments can be divided into an arbitrary number of groups for
+multi-variate analysis.  Use the "New" button to create a new group and
+give it a name, then the "Add" button to browse directories for experiments.
+Remove selected experiments with the "Delete" button.  Deleting all of the
+experiments in a group will also delete the group.  Transfer experiments from
+one group to another with the "Move" button.  Designate loaded experiments
+to analyze by selecting (a subset of) them with <shift/ctrl> left button.
 
 The features and behaviors analyzed are only those common to all of the
 current experiments.
@@ -13,34 +14,80 @@ current experiments.
 Experiment lists and other settings are maintained from one session to
 the next by automatically saving the configuration to disk when exiting
 ("most_recent_config.mat").  Multiple different configurations can be
-maintained using the "Load" and "Save" buttons.  The "Reset" button does
-the obvious.
+maintained using the "Load" and "Save" buttons.  The "Reset" button deletes
+all groups and experiments and returns all settings to their defaults.
 
 
 BEHAVIOR STATISTICS
 
-Create a table of the fraction of time each behavior is performed using the
-"Behavior Stats" button.  Each row is a behavior;  the columns break it
-down by sex and individual.  If both experiment lists are populated then
-the data are alternately striped and colored.  A contextual menu on the
-"Behavior Stats" button controls whether averages are done on a per-fly
-or per-frame basis.  Mean, median, and variance can be set by a contextual
-menu on the "Prefs" button.  Data can be exported to a tab-delimited file
-using the "Export Table" button.
+Create bar charts of the fraction of time each behavior is performed using
+the "Behavior Bar Chart" button.  Each panel is a behavior.  A contextual
+menu on the "Behavior Bar Chart" button controls whether averages are done
+on a per-fly or per-frame basis.
 
 Logical combinations of behaviors can be analyzed using the pull-down menu
-in the lower-left "Behavior" box.  So for example, if "And" "Behavior X"
-is chosen, then the rows in the table show the fraction of time when each
-behavior and Behavior X are performed simultaneously.
+in the "Behavior" box to the left.  So for example, if "And" "Behavior <X>"
+is chosen, then the bars in the panels show the fraction of time when each
+behavior and Behavior <X> are performed simultaneously.
 
-The fraction of time each behavior is performed as a function of time
-during the experiment can be plotted by selecting a cell in the table for
-the particular behavior and sex/individual of interest.  Multiple cells
-selected simultaneously will be overlayed.  Zoom and pan using the buttons
-provided.  Use the "Stats" button to overlay mean, median, and variance data.
+Plots for just a single individual or a specific sex can be chosen using
+the pull-down mneu in the "Individual" box.  If "All" is specified here,
+then all individuals from the experiments selected in the "Experiments"
+box are analyzed.
+
+The table is filled with the p-values from K-S normality tests and two-sided
+Wilcoxen rank sum tests.
 
 
-BOUT STATISTICS
+The fraction of time a selected behavior is performed as a function of time
+during the experiment can be plotted using the "Behavior Time Series" button.
+A contextual menu controls whether error bars are plotted or per-experiment
+data overlayed.  Flies are first pooled within an experiment and then combined
+across experiments according to the central tendency and dispersion measures
+specified in a shared contextual menu on the "Prefs" button.  The experiment
+groups are color coded to match that in text of the group pull-down menu.
+
+
+FEATURE STATISTICS
+
+Histograms of feature values during behaviors of interest can be created by
+selecting the desired behavior, feature, and individuals using the pull-down
+menus on the left and clicking on the "Feature Histogram" button.  As with
+behavior statistics, the experiment groups are color coded, a contextual
+menu controls the the specific calculations, and logical operations on
+behaviors can be performed.
+
+A time series of feature values can be plotted with the "Feature Time
+Series" button.  Colors and contextual buttons are as before, but not logical
+operators.  The time axis can either be absolute time during the experiment,
+or relative to the beginning or end of a bout of the specified behavior.
+
+
+INTERESTING DIFFERENCES
+
+Create a table of behavior-feature pairs whose feature histograms are most
+different using the "Interesting Feature Histograms" button.  The metric used
+is the difference in the means normalized by the combined standard deviations
+(i.e. d-prime of signal detection theory).  Differences between both during
+versus not-during the behavior, as well as during the behavior for each
+possible pair of groups are considered.  Selecting a cell in the table changes
+the "Behavior" and "Feature" boxes and plots the corresponding histograms.
+A contextual menu provides options to include or exclude Nan and Inf d-primes.
+
+Still in alpha:  a similar table of behavior-feature pairs whose feature
+time-series are most different can be created using the "Interesting
+Feature Time Series" button.  For univariate data, the metric is the during
+vs. not during the behavior difference between the root-mean-square of the
+feature values.  For bivariate data, the mean of the feature values not
+during behavior is first subtracted from each experiment list and then the
+difference of the root-mean-square of the feature values during the behavior
+between the two lists is used.  Selecting a cell plots the time series below.
+
+Both of these calculations take a (really long) while and so the results
+are cached to disk.
+
+
+BOUT STATISTICS -- not converted to multivariate yet
 
 Create a table of bout lengths (BL) and inter-bout lengths (IBL) using the
 "Bout Stats" button.  As for behavior stats, each row is a behavior;  the
@@ -54,7 +101,7 @@ the axis and overlay summary statistics, respectively.  Multiple selected
 cells are overlayed.
 
 
-SOCIAL STATISTICS
+SOCIAL STATISTICS -- not converted to multivariate yet
 
 Create a table of the closest individual using the "Social Stats" button.
 Choose which behavior to analysis using the pull-down menu in the Behavior
@@ -66,51 +113,8 @@ for each bout, as well as the overall mode of the per-bout modes.
 Selecting a cell in the table plots a histogram of the closest indidividual.
 
 
-FEATURE STATISTICS
-
-Histograms of feature values during behaviors of interest can be created by
-selecting the desired behavior, feature, and individuals using the pull-down
-menus in the lower left panels and clicking on the "Feature Histogram" button.
-The thick line corresponds to feature values during the behavior;  the
-thin line to values not during the behavior;  the two experiment lists
-are color coded.  A contextual menu in this button controls whether the
-calculations are done on a per-frame or per-bout basis.  Logical operations
-on behaviors can be performed as described earlier.  The "LogY" and "Stats"
-buttons work in this context as well.
-
-A time series of feature values near the beginning and end of bouts can be
-similarly plotted with the pull-down menus and "Feature Time Series" button.
-A contextual menu on this button controls various parameters.  The thick
-colored line corresponds to the central tendency;  the thin colored lines
-to the variance;  and the black lines to the raw data.  
-
-
-INTERESTING DIFFERENCES
-
-Create a table of behavior-feature pairs whose histograms are most different
-between the two experiment lists using the "Interesting Histograms" button.
-The metric used is the difference in the means normalized by the combined
-standard deviations (i.e. d-prime of signal detection theory).  Selecting
-a cell in the table plots its histogram as with bout stats.
-
-Still in alpha:  a similar table of behavior-feature pairs whose time-series
-are most different can be created using the "Interesting Time Series" button.
-For univariate data, the metric is the during vs. not during the behavior
-difference between the root-mean-square of the feature values.  For bivariate
-data, the mean of the feature values not during behavior is first subtracted
-from each experiment list and then the difference of the root-mean-square
-of the feature values during the behavior between the two lists is used.
-Selecting a cell plots the time series below.
-
-Both of these calculations take awhile and so the results are cached to disk.
-
-
 KNOWN ISSUES
 
 
 
 TODO
-
-normality and significance tests
-implement export graph button
-add logX button for histograms
