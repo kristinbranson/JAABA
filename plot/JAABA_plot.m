@@ -576,7 +576,7 @@ if(~iscell(newrecordings) || (length(newrecordings)==0))  return;  end
 [directory,~,~]=fileparts(newrecordings{1});
 %if(arg==1)
   handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newrecordings{:}};
-  handles.experimentvalue{handles.groupvalue}=length(handles.experimentlist{handles.groupvalue});
+  handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
   set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue});
   set(handles.ExperimentList,'Value',handles.experimentvalue{handles.groupvalue});
   set(handles.ExperimentList,'enable','on');
@@ -704,9 +704,10 @@ set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 %idx=get(handles.ExperimentList,'Value');
 idx=handles.experimentvalue{handles.groupvalue};
 handles.experimentlist{handles.groupvalue}(idx)=[];
-handles.experimentvalue{handles.groupvalue}=...
-    min(handles.experimentvalue{handles.groupvalue},length(handles.experimentlist{handles.groupvalue}));
-handles.experimentvalue{handles.groupvalue}=max(handles.experimentvalue{handles.groupvalue},1);
+handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
+%handles.experimentvalue{handles.groupvalue}=...
+%    min(handles.experimentvalue{handles.groupvalue},length(handles.experimentlist{handles.groupvalue}));
+%handles.experimentvalue{handles.groupvalue}=max(handles.experimentvalue{handles.groupvalue},1);
 if(isempty(handles.experimentlist{handles.groupvalue}))
   handles.experimentlist(handles.groupvalue)=[];
   handles.experimentvalue(handles.groupvalue)=[];
@@ -836,8 +837,9 @@ from_group=handles.groupvalue;
 %idx=get(handles.ExperimentList,'Value');
 idx=handles.experimentvalue{from_group};
 handles.experimentlist{to_group}={handles.experimentlist{to_group}{:} handles.experimentlist{from_group}{idx}};
-tmp=length(handles.experimentlist{to_group});
-handles.experimentvalue{to_group}=(tmp-length(idx)+1):tmp;
+%tmp=length(handles.experimentlist{to_group});
+%handles.experimentvalue{to_group}=(tmp-length(idx)+1):tmp;
+handles.experimentvalue{to_group}=1:length(handles.experimentlist{to_group});
 handles.experimentlist{from_group}(idx)=[];
 %if(isempty(handles.experimentlist{from_group}))
 %  handles.experimentlist{from_group}={};
@@ -846,11 +848,12 @@ handles.experimentlist{from_group}(idx)=[];
 %end
 %set(handles.ExperimentList2,'String',handles.experimentlist2);
 %set(handles.ExperimentList2,'Value',handles.experimentvalue2,'enable','on');
+handles.experimentvalue{from_group}=1:length(handles.experimentlist{from_group});
 if(isempty(handles.experimentlist{from_group}))
-  handles.experimentvalue{from_group}=[];
+  %handles.experimentvalue{from_group}=[];
   set(handles.ExperimentList,'String',{''},'Value',1);
 else
-  handles.experimentvalue{from_group}=1;
+  %handles.experimentvalue{from_group}=1;
   set(handles.ExperimentList,'String',handles.experimentlist{from_group});
   set(handles.ExperimentList,'Value',handles.experimentvalue{from_group});
 end
