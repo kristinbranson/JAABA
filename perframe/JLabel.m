@@ -450,8 +450,16 @@ while true
   idx=find(isnan(Mlastused.Data));
   if(~isempty(idx))
     idx2=argmax(Mframenum.Data(idx));
-    Mimage.Data(idx(idx2)).x = readframe(Mframenum.Data(idx(idx2)));
-    Mlastused.Data(idx(idx2)) = now;
+    fnum = Mframenum.Data(idx(idx2));
+    dd = uint8(readframe(fnum));
+    pause(0.0003);
+    % MK: Cache the read frame to reduce the number of clashes with
+    % UpdatePlots
+    if Mframenum.Data(idx(idx2))== fnum
+      Mimage.Data(idx(idx2)).x = dd;
+      Mlastused.Data(idx(idx2)) = now;
+      Mframenum.Data(idx(idx2)) = fnum;
+    end
   else
     pause(1);
   end
@@ -493,7 +501,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   Mlastused = struct('Data',[]); %#ok<NASGU>
   Mimage = struct('Data',[]); %#ok<NASGU>
   
-  cache_filename=['cache-' num2str(feature('getpid')) '.dat'];
+  cache_filename=fullfile(tempdir(),['cache-' num2str(feature('getpid')) '.dat']);
   fid=fopen(cache_filename,'w');
   if fid < 1,
     pause(.1);
@@ -504,7 +512,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
     if fid >= 1,
       break;
     end
-    new_cache_filename = ['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat'];
+    new_cache_filename = fullfile(tempdir(),['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat']);
     warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename);
     cache_filename = new_cache_filename;
     fid=fopen(cache_filename,'w');
@@ -644,12 +652,18 @@ for i = axes,
     
     if handles.guidata.data.ismovie,
 
-      j = find((Mframenum.Data==handles.guidata.ts(i)) & (~isnan(Mlastused.Data)),1,'first');
+      j = find((Mframenum.Data==handles.guidata.ts(i)) & ...
+               (~isnan(Mlastused.Data)) & ...
+               (Mlastused.Data>0) ...
+               ,1,'first');
       %if(numel(j)>1)  j=j(1);  end
       if isempty(j),
         j = argmin(Mlastused.Data);
         Mframenum.Data(j) = handles.guidata.ts(i);
-        Mimage.Data(j).x = handles.guidata.readframe(handles.guidata.ts(i));
+        Mimage.Data(j).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)));
+          % ALT: Added uint8() 2012-09-14.  Without that, threw error when
+          % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
+          % being of class double
         %disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
         %    num2str(sum(isnan(Mlastused.Data)))]);
       else
@@ -5326,7 +5340,8 @@ function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.ShowSelectFeatures();
-
+handles = UpdatePrediction(handles);
+guidata(hObject,handles);
 
   
 % --- Executes when selected object is changed in panel_timeline_select.
@@ -5705,7 +5720,7 @@ SetStatus(handles,'Creating classifier visualization');
 [hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
   sorted_weights,feature_order,bins,scores] = ...
   ShowWindowFeatureWeights(handles.guidata.data,'figpos',...
-  [10,10,1000,1000]); %#ok<ASGLU>
+  [10,10,1000,1000],'nfeatures_show',50); %#ok<ASGLU>
 
 ti = sprintf('Classifier %s',datestr(handles.guidata.data.classifierTS));
 set(hfig,'Name',ti);

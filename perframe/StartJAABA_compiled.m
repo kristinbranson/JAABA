@@ -33,11 +33,11 @@ end
 
 % Start JAABA.
 
-if ismac,
-  cd(getenv('JAABA_RUNDIR'));
+%if ismac,
+%  cd(getenv('JAABA_RUNDIR'));
 %else
 %  warndlg(sprintf('Starting JAABA in %s, ctfroot is %s, mfilename is %s',pwd,ctfroot,mfilename('fullpath')));
-end
+%end
 try
   if ishandle(hstatustext),
     set(hstatustext,'String','Starting JAABA...');
@@ -48,6 +48,7 @@ try
   uiwait(JLabel(args{:}));
 catch ME,
   uiwait(warndlg(getReport(ME)));
+  delete(findall(0,'type','figure'));
 end
 
 try %#ok<TRYNC>

@@ -274,6 +274,9 @@ classdef JLabelData < handle
     % to overwrite or keep the perframe files.
     perframeOverwrite = [];
     
+    % warn about removing arena features.
+    arenawarn = true;
+    
     % functions for writing text to a status bar
     setstatusfn = '';
     clearstatusfn = '';
@@ -1348,9 +1351,16 @@ end
       obj.classifierfilename = classifierfilename;
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
 %         try
-          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
+          
+          if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+            success = false;
+            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            return;
+          end
+          
+          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           % remove all experiments
           obj.RemoveExpDirs(1:obj.nexps);
@@ -1497,9 +1507,16 @@ end
       obj.classifierfilename = classifierfilename;
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
 %         try
-          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
+
+          if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+            success = false;
+            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            return;
+          end
+          
+          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
 
           % remove all experiments
           % obj.RemoveExpDirs(1:obj.nexps);
@@ -2060,11 +2077,19 @@ end
       end
       
       if obj.filesfixable && ~obj.allfilesexist,
-        if ~isdeployed
-          res = questdlg(sprintf('Experiment %s is missing required files:%s. Generate now?',expdir,sprintf(' %s',missingfiles{:})),'Generate missing files?','Yes','Cancel','Yes');
+        if ~isdeployed 
+          if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
+            res = questdlg(sprintf('Experiment %s is missing required files:%s. Generate now?',expdir,sprintf(' %s',missingfiles{:})),'Generate missing files?','Yes','Cancel','Yes');
+            if strcmpi(res,'Yes')
+              obj.SetGenerateMissingFiles();
+            end
+          else obj.GetGenerateMissingFiles()
+            res = 'Yes';
+          end
         else
           res = 'Yes';
         end
+        
         if strcmpi(res,'Yes'),
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
@@ -2082,7 +2107,7 @@ end
       % Convert the scores file into perframe files.
       for i = 1:numel(obj.allperframefns),
         fn = obj.allperframefns{i};
-        if numel(fn)>7 && strcmpi('scores',fn(1:6))
+        if numel(fn)>7 && strcmpi('score',fn(1:5))
           obj.ScoresToPerframe(obj.nexps,fn);
         end
       end
@@ -2267,7 +2292,7 @@ end
       % Convert the scores file into perframe files.
       for i = 1:numel(obj.allperframefns),
         fn = obj.allperframefns{i};
-        if numel(fn)>7 && strcmpi('scores',fn(1:6))
+        if numel(fn)>7 && strcmpi('score',fn(1:5))
           obj.ScoresToPerframe(obj.nexps,fn);
         end
       end
@@ -2570,6 +2595,26 @@ end
       
     end
     
+    function RemoveArenaPFs(obj)
+      settings = ReadXMLParams(obj.featureConfigFile);
+      toRemove = [];
+      for i = 1:numel(obj.allperframefns)
+        curpf = obj.allperframefns{i};
+        curtypes = settings.perframe.(curpf).type;
+        if any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'))
+          toRemove(end+1) = i;
+          if isfield(obj.windowfeaturesparams,curpf)
+            obj.windowfeaturesparams = rmfield(obj.windowfeaturesparams,curpf);
+            obj.windowfeaturescellparams = rmfield(obj.windowfeaturescellparams,curpf);
+          end
+          curndx = strcmp(obj.curperframefns,curpf);
+          obj.curperframefns(curndx) = [];
+        end
+        
+      end
+      obj.allperframefns(toRemove) = [];
+    end
+    
     function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
@@ -2610,6 +2655,13 @@ end
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
+      
+      if isempty(obj.landmark_params) && obj.arenawarn
+        uiwait(warndlg('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list'));
+        obj.RemoveArenaPFs();
+        obj.arenawarn = false;
+      end
+      
       perframefiles = obj.GetPerframeFiles(expi);
       for i = 1:numel(obj.allperframefns),
         fn = obj.allperframefns{i};
@@ -2625,7 +2677,7 @@ end
         end
         
         % Don't generate the per-frame files from scores here anymore..
-        if ~(numel(fn)>7 && strcmpi('scores',fn(1:6)))
+        if ~(numel(fn)>7 && strcmpi('score',fn(1:5)))
           perframetrx.(fn);
        end
           
@@ -2688,6 +2740,14 @@ end
         msg = 'Currently, feature params file can only be changed when no experiments are loaded';
         return;
       end
+      
+      if ~exist(featureparamsfilename,'file'),
+        success = true; 
+        msg = '';
+        return;
+      end
+
+      
 %       try
         [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
@@ -4200,9 +4260,15 @@ end
         end
         
         if ~exist(perframefile{ndx},'file'),
-          if ~isdeployed
-            res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',...
-              obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+          if ~isdeployed 
+            if isempty(obj.GetGenerateMissingFiles) || ~obj.GenerateMissingFiles()
+              res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+              if strcmpi(res,'Yes');
+                obj.SetGenerateMissingFiles();
+              end
+            else obj.GetGenerateMissingFiles()
+              res = 'Yes';
+            end
           else
             res = 'Yes';
           end
@@ -4347,6 +4413,12 @@ end
     
     function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
     % Updates the feature params. Called by SelectFeatures
+      if ~isempty(obj.classifier),
+        hasClassifier = true;
+      else
+        hasClassifier = false;
+      end
+      
       obj.SetPerframeParams(params,cellParams)
       if nargin>2
         obj.basicFeatureTable = basicFeatureTable;
@@ -4356,6 +4428,10 @@ end
       obj.classifier = [];
       obj.classifier_old = [];
       obj.PreLoadLabeledData();
+      if hasClassifier,
+        obj.StoreLabels();
+        obj.Train();
+      end
       % TODO: remove clearwindow features.
     end
     
@@ -4436,6 +4512,7 @@ end
       end
 
       if ~any(islabeled),
+        uiwait(warndlg('No frames have been labeled. Not doing any training'));
         return;
       end
       
@@ -4563,7 +4640,7 @@ end
     
     function res = DoFullTraining(obj,doFastUpdates)
       % Check if we should do fast updates or not.
-      res = true;
+      res = true; return; % Always do complete training.
       if ~doFastUpdates, return; end
       if isempty(obj.classifier), return; end
       if isempty(obj.windowdata.binVals), return; end
@@ -4791,6 +4868,8 @@ end
       % indices into windowdata
       idxcurr = obj.FlyNdx(expi,flies) & ...
         ~obj.windowdata.isvalidprediction; % & ismember(obj.windowdata.t,ts);
+      
+      if ~any(idxcurr), return; end;
       
       % apply classifier
       switch obj.classifiertype,
@@ -6228,7 +6307,7 @@ end
             idx = find(obj.FlyNdxPredict(endx,flies));
             ts = obj.predictdata.t(idx);
             [sortedts, idxorder] = sort(ts);
-            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1);
+            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1;
             gaps = [1;gaps;numel(ts)+1];
             for ndx = 1:numel(gaps)-1
               curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
@@ -6277,7 +6356,16 @@ end
     end
     
     function posts = RemoveSmallBouts(obj,posts)
+        
       if obj.postprocessparams.blen > 1 && numel(posts)>0,
+        if numel(posts)<= obj.postprocessparams.blen
+          if nnz(posts>0) > numel(posts)/2,
+            posts(:) = 1; 
+          else
+            posts(:) = -1;
+          end
+            return;
+        end
         
         while true,
           tposts = [posts 1-posts(end)];
@@ -6285,7 +6373,7 @@ end
           ends = [1 ends+1];
           blens = ends(2:end)-ends(1:end-1);
           [minblen,smallbout] = min(blens);
-          if minblen>obj.postprocessparams.blen, break; end
+          if minblen>=obj.postprocessparams.blen, break; end
            posts(ends(smallbout):ends(smallbout+1)-1) = ...
               1 - posts(ends(smallbout):ends(smallbout+1)-1);
         end
@@ -6315,7 +6403,7 @@ end
       if nnz(hthresh)>0 && computeNeg,
         neg = imfill(~lthresh,find(hthresh(:))) & lthresh;
       else
-        neg = false(size(curs));
+        neg = true(size(curs));
       end
       
       posts = pos | ~neg;
