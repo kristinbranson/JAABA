@@ -153,6 +153,7 @@ handles.prefs_convolutionwidth=handles_saved.prefs_convolutionwidth;
 handles.interestingfeaturehistograms_cache=handles_saved.interestingfeaturehistograms_cache;
 handles.interestingfeaturetimeseries_cache=handles_saved.interestingfeaturetimeseries_cache;
 handles.colors=handles_saved.colors;
+handles.table=[];
 
 %set(handles.MenuTimeSeriesTight,'Checked','off');
 %if(handles.logy)   set(handles.LogX, 'backgroundcolor',0.4*[1 1 1]);  end
@@ -230,6 +231,7 @@ if(isempty(handles.individuallist))
 else
   set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
 end
+set(handles.Table,'Data',[]);
 
 menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
 menu_behaviortimeseries_style_set(handles.behaviortimeseries_style);
@@ -1381,8 +1383,6 @@ tmp(idx,3)=handles.grouplist(tmp2(idx,2));
 tmp(:,4)=cellstr(num2str(tmp2(:,7),'%-d'));
 tmp(:,5)=handles.behaviorlist(tmp2(:,3));
 tmp(:,6)=handles.featurelist(tmp2(:,4));
-tic;
-toc
 tmp(:,7)=num2cell(tmp2(:,5));
 set(handles.Table,'Data',tmp);
 set(handles.Table,'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd'''});
