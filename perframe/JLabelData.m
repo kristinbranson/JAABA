@@ -4319,6 +4319,12 @@ end
     
     function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
     % Updates the feature params. Called by SelectFeatures
+      if ~isempty(obj.classifier),
+        hasClassifier = true;
+      else
+        hasClassifier = false;
+      end
+      
       obj.SetPerframeParams(params,cellParams)
       if nargin>2
         obj.basicFeatureTable = basicFeatureTable;
@@ -4328,6 +4334,10 @@ end
       obj.classifier = [];
       obj.classifier_old = [];
       obj.PreLoadLabeledData();
+      if hasClassifier,
+        obj.StoreLabels();
+        obj.Train();
+      end
       % TODO: remove clearwindow features.
     end
     
@@ -4407,6 +4417,7 @@ end
       end
 
       if ~any(islabeled),
+        uiwait(warndlg('No frames have been labeled. Not doing any training'));
         return;
       end
       
@@ -4528,7 +4539,7 @@ end
     
     function res = DoFullTraining(obj,doFastUpdates)
       % Check if we should do fast updates or not.
-      res = true;
+      res = true; return; % Always do complete training.
       if ~doFastUpdates, return; end
       if isempty(obj.classifier), return; end
       if isempty(obj.windowdata.binVals), return; end
