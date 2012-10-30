@@ -563,7 +563,7 @@ function ExperimentAdd_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 persistent directory
 if(isempty(directory))  directory=pwd;  end
@@ -654,7 +654,7 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % --- Executes on button press in ExperimentDelete2.
@@ -697,7 +697,7 @@ function ExperimentDelete_Callback(hObject, eventdata, handles)
 
 if(length(handles.experimentlist)==0)  return;  end
 
-set(handles.Status,'string','Thinking...');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 %idx=get(handles.ExperimentList,'Value');
 idx=handles.experimentvalue{handles.groupvalue};
@@ -772,7 +772,7 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % --- Executes on button press in ExperimentMove2.
@@ -828,7 +828,7 @@ if(isempty(handles.experimentlist{handles.groupvalue}))  return;  end
 if(~ok)  return;  end
 if(to_group>=handles.groupvalue)  to_group=to_group+1;  end
 
-set(handles.Status,'string','Thinking...');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 from_group=handles.groupvalue;
 %idx=get(handles.ExperimentList,'Value');
@@ -864,7 +864,7 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % --- Executes on selection change in GroupList.
@@ -1155,7 +1155,7 @@ function FeatureHistogram_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -1245,7 +1245,7 @@ axis tight;  zoom reset;
 %  tmp=table_data2;
 %end
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 return;
 
@@ -1307,7 +1307,7 @@ function InterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -1393,7 +1393,7 @@ handles.table_data=tmp2;
 handles.table='histogram';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % --- 
@@ -1643,7 +1643,7 @@ function FeatureTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -1772,7 +1772,7 @@ if(handles.featuretimeseries_timing>1)
     set(h,'visible','off');
   end
 end
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % ---
@@ -1814,7 +1814,7 @@ function InterestingTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -1869,7 +1869,7 @@ handles.table_data=tmp2;
 handles.table='timeseries';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % ---
@@ -1988,7 +1988,7 @@ function BehaviorBarChart_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -2142,7 +2142,7 @@ end
 %handles.table='behavior_stats';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % ---
@@ -2300,7 +2300,7 @@ function BehaviorTimeSeries_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %if(eventdata.Indices(end,2)==1)  return;  end
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 %experiment_value=get(handles.ExperimentList,'Value');
 %experiment_list=get(handles.ExperimentList,'String');
@@ -2357,7 +2357,7 @@ tmp=[tmp ' (%)'];
 ylabel(tmp);
 axis tight;  zoom reset;
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 return
 
 tmp={};
@@ -2605,7 +2605,7 @@ function BoutStats_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2666,7 +2666,7 @@ set(handles.Table,'ColumnWidth',{150 75 75});
 handles.table='bout_stats';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % --- 
@@ -2803,7 +2803,7 @@ function SocialStats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-set(handles.Status,'string','Thinking...');  drawnow;
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2877,7 +2877,7 @@ set(handles.Table,'ColumnWidth',{100 75 100});
 handles.table='social_stats';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.');
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 
 
 % --- 
