@@ -1219,7 +1219,21 @@ end
 %      feature_value,feature_list,individual,sexdata((length(experiment_list)+1):end),perwhat,'b');
 %end
 
-xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
+%xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
+tmp=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
+switch(handles.behaviorlogic)
+  case 2
+    tmp=[tmp ' AND '];
+  case 3
+    tmp=[tmp ' AND NOT '];
+  case 4
+    tmp=[tmp ' OR '];
+end
+if(handles.behaviorlogic>1)
+  tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+end
+tmp=[tmp ' (%)'];
+xlabel(tmp);
 ylabel('normalized');
 axis tight;  zoom reset;
 
@@ -1513,7 +1527,7 @@ for e=1:length(experiment_value)
       [behavior_list{behavior_value} '.mat']));
   if(behavior_logic>1)
     behavior_data2=load(fullfile(experiment_list{experiment_value(e)},...
-        [behavior_list2{behavior_value2} '.mat']));
+        [behavior_list{behavior_value2} '.mat']));
   else
     behavior_data2=[];
   end
@@ -1710,6 +1724,22 @@ end
 
 xlabel('time (frames)');
 ylabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
+if(handles.featuretimeseries_timing>1)
+  tmp=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
+  switch(handles.behaviorlogic)
+    case 2
+      tmp=[tmp ' AND '];
+    case 3
+      tmp=[tmp ' AND NOT '];
+    case 4
+      tmp=[tmp ' OR '];
+  end
+  if(handles.behaviorlogic>1)
+    tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+  end
+  tmp=[tmp ' (%)'];
+  title(tmp);
+end
 axis tight;  zoom reset;
 %if((handles.timeseries_tight==1) && (min(range(:,1))<max(range(:,2))))
 %  v=axis;  axis([v(1) v(2) min(range(:,1)) max(range(:,2))]);
@@ -2029,7 +2059,21 @@ for i=1:length(table_data{1})
       bar([ans{:}]'./repmat(tmp',1,max(tmp)),'stacked');
   end
   if(isempty(xt))  xt=1:length(table_data);  end
-  title(char(strrep(handles.behaviorlist{i},'_','-')));
+  %title(char(strrep(handles.behaviorlist{i},'_','-')));
+  tmp=char(strrep(handles.behaviorlist(i),'_','-'));
+  switch(handles.behaviorlogic)
+    case 2
+      tmp=[tmp ' AND '];
+    case 3
+      tmp=[tmp ' AND NOT '];
+    case 4
+      tmp=[tmp ' OR '];
+  end
+  if(handles.behaviorlogic>1)
+    tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+  end
+  tmp=[tmp ' (%)'];
+  title(tmp);
   ylabel('percent');
   set(gca,'xtick',xt,'xticklabel',handles.grouplist);
   axis tight;
@@ -2296,7 +2340,21 @@ for g=gg
 end
 
 xlabel('time (frames)');
-ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
+%ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
+tmp=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
+switch(handles.behaviorlogic)
+  case 2
+    tmp=[tmp ' AND '];
+  case 3
+    tmp=[tmp ' AND NOT '];
+  case 4
+    tmp=[tmp ' OR '];
+end
+if(handles.behaviorlogic>1)
+  tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+end
+tmp=[tmp ' (%)'];
+ylabel(tmp);
 axis tight;  zoom reset;
 
 set(handles.Status,'string','Ready.');
