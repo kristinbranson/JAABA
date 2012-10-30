@@ -23,6 +23,7 @@ printnone = true;
 mintrajlength = 100;
 nintervals = 1;
 compression = 'None';
+behaviorname_dict = cell(0,2);
 allowedcompressions = {'Indeo3', 'Indeo5', 'Cinepak', 'MSVC', 'RLE', 'None','Uncompressed AVI','Motion JPEG AVI'};
 useVideoWriter = exist('VideoWriter','file');
 aviname = '';
@@ -48,7 +49,11 @@ usemencoder = true;
   useVideoWriter,...
   avifileTempDataFile,aviname,fps,...
   usemencoder,titlepagetext,...
-  titlepausetime] = ...
+  titlepausetime,...
+  behaviorname_dict,...
+  behaviororder,...
+  textprefix,...
+  textsuffix] = ...
   myparse(varargin,'framestarts',[],'nframesperseg',[],...
   'fracstarts',[],'fracperseg',1/60,...
   'targets',[],...
@@ -86,7 +91,11 @@ usemencoder = true;
   'fps',fps,...
   'usemencoder',usemencoder,...
   'titlepagetext',{},...
-  'titlepausetime',2);
+  'titlepausetime',2,...
+  'behaviorname_dict',behaviorname_dict,...
+  'behaviororder',{},...
+  'textprefix','',...
+  'textsuffix','');
 
 classifierparams = ReadClassifierParamsFile(classifierparamsfile);
 nbehaviors = numel(classifierparams);
@@ -99,9 +108,23 @@ for i = 1:nbehaviors,
   else
     behaviors{i} = classifierparams(i).behaviors.names;
   end
-  behaviors{i} = regexprep(behaviors{i},'(_|^)([a-z])','${upper($2)}');
+  j = find(strcmp(behaviors{i},behaviorname_dict(:,1)),1);
+  if ~isempty(j),
+    behaviors{i} = behaviorname_dict{j,2};
+  else
+    behaviors{i} = regexprep(behaviors{i},'(_|^)([a-z])','${upper($2)}');
+  end
   scorefn = classifierparams(i).file.scorefilename;
   scorefns{i} = regexprep(scorefn,'\.mat$','');
+end
+
+if ~isempty(behaviororder),
+  [ism,orderidx] = ismember(behaviors,behaviororder);
+  orderidx(~ism) = inf;
+  [~,orderidx] = sort(orderidx);
+  behaviors = behaviors(orderidx);
+  scorefns = scorefns(orderidx);
+  classifierparams = classifierparams(orderidx);
 end
 
 if ~ischar(compression),
@@ -310,7 +333,7 @@ htext = text(nan,nan,'','Parent',haxmain,'Color',textcolor,...
   'FontUnits','pixels','FontSize',fontsize);
 plot(haxbottom,[0,nbehaviors+1],[0,0],'--','color',[.5,.5,.5]);
 set(haxbottom,'XTick',1:nbehaviors,'XTickLabel',behaviors,'YTick',[],...
-  'XLim',[0,nbehaviors+1],'YLim',[-1,1],'XColor','w','Color','k','TickLength',[0,0]);
+  'XLim',[.5,nbehaviors+.5],'YLim',[-1,1],'XColor','w','Color','k','TickLength',[0,0]);
 
 set(hfig,'Color','k');
 
@@ -427,6 +450,12 @@ for segi = 1:numel(framestarts),
       'VerticalAlignment',valign);
 
     ss = sprintf('Target %d (%s), Frame %d',target,sex{i},t);
+    if ~isempty(textprefix),
+      ss = sprintf('%s, %s',textprefix,ss);
+    end
+    if ~isempty(textsuffix),
+      ss = sprintf('%s, %s',ss,textsuffix);
+    end
     if ~isempty(titlepagetext),
       ss = [ss,titlepagetext2];
     end
@@ -491,7 +520,7 @@ for segi = 1:numel(framestarts),
     end
 
     % pause for a few frames at the start of a new segment
-    if t == framestarts(segi) && segi > 1,
+    if t == framestarts(segi),% && segi > 1,
       set(hinfo,'Color',[.5,0,0],'FontWeight','bold');
       fr = getframe(hfig);
       for pausei = 1:fps,

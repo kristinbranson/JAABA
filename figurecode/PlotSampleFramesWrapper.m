@@ -116,14 +116,17 @@ hfig = hfig_base+1;
   'flipim',flipim,...
   'intensityoff',intensityoff);
 
-outfigdir1 = fullfile(outfigdir,sprintf('Example%s_%s_fly%02d_Frames%05dto%05d',behavior,experiment_name,mainfly,ts_overlay(1),ts_overlay(end)));
+shortname = regexprep(experiment_name,'^GMR_','');
+shortname = regexprep(shortname,'_A[DE]_01_.*$','');
+
+outfigdir1 = fullfile(outfigdir,sprintf('Example%s_%s_fly%02d_Frames%05dto%05d',behavior,shortname,mainfly,ts_overlay(1),ts_overlay(end)));
 if ~exist(outfigdir1,'dir'),
   mkdir(outfigdir1);
 end
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir1,sprintf('Example%s_%s_fly%02d_frame%02d',behavior,experiment_name,mainfly,ts(1))));
+SaveFigLotsOfWays(hfig,fullfile(outfigdir1,sprintf('Example%s_%s_fly%02d_frame%02d',behavior,shortname,mainfly,ts(1))));
 for i = 1:size(pfore,3),
-  imwrite(pfore(:,:,i),fullfile(outfigdir1,sprintf('Example%s_pfore_%s_fly%02d_frame%02d.png',behavior,experiment_name,mainfly,ts(i))));
+  imwrite(pfore(:,:,i),fullfile(outfigdir1,sprintf('Example%s_pfore_%s_fly%02d_frame%02d.png',behavior,shortname,mainfly,ts(i))));
 end
 
 hfig = hfig_base+2;
@@ -141,8 +144,8 @@ hfig = hfig_base+2;
   'flipim',flipim,...
   'intensityoff',intensityoff);
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir1,sprintf('Example%s_Overlay_%s_fly%02d_Frames%05dto%05d',behavior,experiment_name,mainfly,ts_overlay(1),ts_overlay(end))));
-imwrite(pfore,fullfile(outfigdir1,sprintf('Example%s_Overlay_pfore_%s_fly%02d_frame%02d.png',behavior,experiment_name,mainfly,ts(i))));
+SaveFigLotsOfWays(hfig,fullfile(outfigdir1,sprintf('Example%s_Overlay_%s_fly%02d_Frames%05dto%05d',behavior,shortname,mainfly,ts_overlay(1),ts_overlay(end))));
+imwrite(pfore,fullfile(outfigdir1,sprintf('Example%s_Overlay_pfore_%s_fly%02d_frame%02d.png',behavior,shortname,mainfly,ts(i))));
 
 if doplotellipseoverlay,
   hfig = hfig_base+3;
@@ -176,5 +179,5 @@ if doplotellipseoverlay,
       'border',border,...
       'ncolors_reference',ncolors_reference);
   end
-  SaveFigLotsOfWays(hfig,fullfile(outfigdir1,sprintf('Example%s_OverlayEllipses_%s_fly%02d_Frames%05dto%05d',behavior,experiment_name,mainfly,ts_overlay(1),ts_overlay(end))));
+  SaveFigLotsOfWays(hfig,fullfile(outfigdir1,sprintf('Example%s_OverlayEllipses_%s_fly%02d_Frames%05dto%05d',behavior,shortname,mainfly,ts_overlay(1),ts_overlay(end))));
 end

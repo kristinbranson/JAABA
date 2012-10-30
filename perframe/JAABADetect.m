@@ -2,10 +2,11 @@
 % scores = JAABADetect(expdir,'classifierparamsfile',classifierparamsfile)
 function scores = JAABADetect(expdir,varargin)
 
-[blockSize,classifierfiles,configfiles,classifierparamsfile] = ...
+[blockSize,classifierfiles,configfiles,classifierparamsfile,configparams] = ...
   myparse(varargin,'blockSize',10000,...
   'classifierfiles',{},'configfiles',{},...
-  'classifierparamsfile',0);
+  'classifierparamsfile',0,...
+  'configparams',[]);
 
 if ischar(classifierparamsfile),
   if ~exist(classifierparamsfile,'file'),
@@ -34,16 +35,26 @@ nclassifiers = numel(classifierfiles);
 if nclassifiers == 0,
   error('No classifiers input');
 end
-if nclassifiers ~= numel(configfiles),
-  error('Number of classifier files and number of config files do not match');
-end
-
 % read parameters
 fprintf('Reading classifier parameters...\n');
-configparams = cell(1,nclassifiers);
+if isempty(configparams),
+  if nclassifiers ~= numel(configfiles),
+    error('Number of classifier files and number of config files do not match');
+  end
+  configparams = cell(1,nclassifiers);
+  for i = 1:nclassifiers,
+    configparams{i} = ReadXMLParams(configfiles{i});
+  end
+else
+  if nclassifiers ~= numel(configparams),
+    error('Number of classifier files and number of config params do not match');
+  end
+  if ~iscell(configparams),
+    configparams = num2cell(configparams);
+  end
+end
 classifiers = cell(1,nclassifiers);
 for i = 1:nclassifiers,
-  configparams{i} = ReadXMLParams(configfiles{i});
   classifiers{i} = load(classifierfiles{i});
 end
 
@@ -271,6 +282,18 @@ for i = 1:nclassifiers,
     allScores.t0s{flies} = i0s;
     allScores.t1s{flies} = i1s;
   end
+  
+  postprocessedscoresA = cell(1,data.nflies_per_exp(expi));
+  tStartAll = data.firstframes_per_exp{expi};
+  tEndAll = data.endframes_per_exp{expi};
+  for flies = 1:data.nflies_per_exp(expi)
+    data.windowdata.scoreNorm = classifiers{i}.scoreNorm;
+    postprocessedscoresA{flies} = nan(1,tEndAll(flies));
+    postprocessedscoresA{flies}(tStartAll(flies):tEndAll(flies)) = ...
+      data.Postprocess(scores{i}{flies}(tStartAll(flies):tEndAll(flies)));
+  end
+  allScores.postprocessed = postprocessedscoresA;
+  allScores.postprocessparams = data.postprocessparams;
   
   if ~isfield(configparams{i}.file,'scorefilename'),
     if ~isfield(configparams{i},'behaviors'),
