@@ -190,9 +190,6 @@ histscores = histscores./max(histscores)*0.9*ylim(2);
 plot(handles.axes2,xLocs,histscores,'Color',max(handles.posColor,handles.negColor));
 end;
 
-handles.JLabelHandle = JLabel('SetNeedSave',handles.JLabelHandle);
-guidata(handles.JLabelHandel.figure1,handles.JLabelHandle);
-
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_cancel (see GCBO)
