@@ -67,7 +67,7 @@ classdef ProjectManager < handle
     
     function defaultConfig = DefaultConfig(obj,name)
       % TODO: 
-      if nargin<3
+      if nargin<2
         name = 'default';
       end
       defaultConfig.targets = struct('type','fly');
