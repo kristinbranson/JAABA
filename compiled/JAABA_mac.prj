@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_mac" location="/Users/kabram/Documents/JAABA_compiled" file="/Users/kabram/Documents/JAABA_compiled/JAABA_mac.prj" preferred-package-type="package.type.zip" build-checksum="2737943229" preferred-package-location="/Users/kabram/Documents/JAABA_compiled">
-    <param.project.name>/Users/kabram/Documents/JAABA_compiled/JAABA_mac.prj</param.project.name>
+  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_mac" location="/Users/kabram/Documents/JAABA/compiled" file="/Users/kabram/Documents/JAABA/compiled/JAABA_mac.prj" preferred-package-type="package.type.zip" build-checksum="2078694864" preferred-package-location="/Users/kabram/Documents/JAABA/compiled">
+    <param.project.name>/Users/kabram/Documents/JAABA/compiled/JAABA_mac.prj</param.project.name>
     <param.target.type>Standalone Application</param.target.type>
     <param.appname>JAABA_mac</param.appname>
     <param.intermediate>${PROJECT_ROOT}/JAABA_mac/src</param.intermediate>
@@ -56,43 +56,26 @@
       <param.user.defined.mcr.options />
     </unset>
     <fileset.main>
-      <file>/Users/kabram/Documents/Jdetect/perframe/StartJAABA_compiled.m</file>
+      <file>/Users/kabram/Documents/JAABA/perframe/StartJAABA_compiled.m</file>
     </fileset.main>
     <fileset.resources>
-      <file>/Users/kabram/Documents/Jdetect/perframe/@Trx</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeChangeWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeConfusionMatrix.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeDiffNeighborMaxWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeDiffNeighborMeanWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeDiffNeighborMinWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeHarmonicWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeHistWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeMaxDependencyRadius.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeMaxWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeMeanWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeMinWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputePerFrameTrans.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputePrctileWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeStdWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/ComputeZscoreNeighborsWindowFeatures.m</file>
-      <file>/Users/kabram/Documents/Jdetect/perframe/compute_perframe_features</file>
+      <file>/Users/kabram/Documents/JAABA/misc</file>
+      <file>/Users/kabram/Documents/JAABA/perframe/@Trx</file>
+      <file>/Users/kabram/Documents/JAABA/perframe/compute_perframe_features</file>
     </fileset.resources>
     <fileset.package>
-      <file special-file="file.mcr" reference-mode="direct">${MATLAB_ROOT}/toolbox/compiler/deploy/maci64/MCRInstaller.zip</file>
+      <file>${PROJECT_ROOT}/params</file>
+      <file>${PROJECT_ROOT}/runJAABA.command</file>
     </fileset.package>
     <build-deliverables>
-      <file name="JAABA_mac.app" location="${PROJECT_ROOT}/JAABA_mac/distrib" optional="false">/Users/kabram/Documents/JAABA_compiled/JAABA_mac/distrib/JAABA_mac.app</file>
-      <file name="readme.txt" location="${PROJECT_ROOT}/JAABA_mac/distrib" optional="true">/Users/kabram/Documents/JAABA_compiled/JAABA_mac/distrib/readme.txt</file>
-      <file name="run_JAABA_mac.sh" location="${PROJECT_ROOT}/JAABA_mac/distrib" optional="false">/Users/kabram/Documents/JAABA_compiled/JAABA_mac/distrib/run_JAABA_mac.sh</file>
+      <file name="readme.txt" location="${PROJECT_ROOT}/JAABA_mac/distrib" optional="true">/Users/kabram/Documents/JAABA/compiled/JAABA_mac/distrib/readme.txt</file>
+      <file name="run_JAABA_mac.sh" location="${PROJECT_ROOT}/JAABA_mac/distrib" optional="false">/Users/kabram/Documents/JAABA/compiled/JAABA_mac/distrib/run_JAABA_mac.sh</file>
+      <file name="JAABA_mac.app" location="${PROJECT_ROOT}/JAABA_mac/distrib" optional="false">/Users/kabram/Documents/JAABA/compiled/JAABA_mac/distrib/JAABA_mac.app</file>
     </build-deliverables>
     <workflow />
     <matlab>
       <root>/Applications/MATLAB_R2012a.app</root>
       <path>
-        <directory>/Users/kabram/Documents/Jdetect/perframe/compute_perframe_features</directory>
-        <directory>/Users/kabram/Documents/Jdetect/filehandling</directory>
-        <directory>/Users/kabram/Documents/Jdetect/misc</directory>
         <directory>/Users/kabram/Documents/MATLAB</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/demos</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/graph2d</directory>
@@ -243,7 +226,7 @@
       <vista>false</vista>
       <linux>false</linux>
       <solaris>false</solaris>
-      <osver>10.7.3</osver>
+      <osver>10.7.5</osver>
       <os32>false</os32>
       <os64>true</os64>
       <arch>maci64</arch>

@@ -29,6 +29,7 @@ end
 
 draw_api = wingedPolygon(h_group,n);
 
+end
 
 function draw_API = wingedPolygon(h_group,n)
 %wingedRect Creates renderer for winged rectangle symbol.
@@ -161,5 +162,6 @@ function setXYDataIfChanged(h, x, y)
 if ~isequal(get(h, 'XData'), x) || ~isequal(get(h, 'YData'), y)
     set(h, 'XData', x, 'YData', y);
 end
+
 end
 

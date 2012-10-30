@@ -39,7 +39,7 @@ end
 
 %% data locations
 
-expnames = dir(fullfile(rootdatadir,'*2012*'));
+expnames = dir(fullfile(rootdatadir,'*201206*'));
 expnames(~[expnames.isdir]) = [];
 expnames = {expnames.name};
 expdirs = cellfun(@(x) fullfile(rootdatadir,x),expnames,'UniformOutput',false);

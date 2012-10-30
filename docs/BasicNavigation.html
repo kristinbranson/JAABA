@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+</head>
+</body>
+<center><h1> Navigating the Movie and Trajectories </h1></center>
+<p>
+After you click <b>Done</b>, the main JAABA window will appear. This is the
+interface where you label and train a behavior detector. </p>
+
+<center><img src="images/JLabelStart1.png" width="743" height="562"></center>
+
+<p>In the Movie Previewer, the animal that is selected for annotation is highlighted by a thicker outline. For the selected animal, we also plot the locations for the past and future frames.
+</p>
+
+<h3> Navigating in Time </h3>
+
+
+<p><b>Left</b> and <b>Right</b> arrow keys let you navigate forward or backward
+by a single frame. <b>Down</b> and <b>Up</b> arrow keys move forward and
+backward by 30 frames. The scroll-bar below the movie previewer can also be used
+to move back and forth in time. Clicking on the past or future trajectory
+points will move to the selected frame.  The <b>Play</b> button below the
+movie previewer plays the movie. The current frame number is shown in the
+textbox next to the play button. Editing this textbox will change the current
+frame. </p>
+
+<p>The current frame is indicated in the timelines below the movie previewer by a vertical yellow line. The top timeline shows the manually annotated labels, the middle timeline shows the automatic predictions and the bottom timeline shows the values of the perframe feature selected in the drop down menu on the left of it (additional perframe timelines can be added by clicking the <b>+</b> button). Clicking on timelines will also move the current frame to the selected frame.
+</p>
+
+
+<h3>CHANGING ANIMALS and EXPERIMENTS</h3>
+
+<p>You can switch the animal that is being annotated by double-clicking on a different animal's outline. The information about the animal being annotated is shown on the right side. Animals can also be switched by <b> Go -> Switch Target</b>. Switch Target brings up a table that gives detailed information about the labels and the predictions for the animals. To switch animals, select any cell in the row of that animal and click "Switch to Target".
+</p>
+
+<p> See <a href=AdvancedNavigation.html>Advanced Navigation</a> for additional
+ways to navigate. </p>
+<center><img src="images/SwitchTarget.png" height="562"></center>
+
+
+</body>
+</html>

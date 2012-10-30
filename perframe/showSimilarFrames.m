@@ -427,7 +427,7 @@ function play(hObject)
     end
     ticLoop = tic;
     updatePlots(hObject,handles,frameNo);
-    set(handles.frameSlider,'Value', frameNo/(2*handles.maxFrames+1));
+    set(handles.frameSlider,'Value', 1-frameNo/(2*handles.maxFrames+1));
     
     if(toc(ticUpdate)>0.5)
       handles = guidata(hObject);
@@ -668,7 +668,7 @@ function frameSlider_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-v = get(hObject,'Value');
+v = 1-get(hObject,'Value');
 handles.frameNo = round(v*(2*handles.maxFrames))+1;
 guidata(hObject,handles);
 updatePlots(hObject,handles,handles.frameNo);
@@ -1140,7 +1140,7 @@ end
 handles.frameNo = frameNo;
 
 updatePlots(hObject,handles,frameNo);
-set(handles.frameSlider,'Value', frameNo/(2*handles.maxFrames+1));
+set(handles.frameSlider,'Value', 1-frameNo/(2*handles.maxFrames+1));
 
 guidata(hObject,handles);
 
@@ -1160,7 +1160,7 @@ end
 handles.frameNo = frameNo;
 
 updatePlots(hObject,handles,frameNo);
-set(handles.frameSlider,'Value', frameNo/(2*handles.maxFrames+1));
+set(handles.frameSlider,'Value', 1-frameNo/(2*handles.maxFrames+1));
 
 guidata(hObject,handles);
 

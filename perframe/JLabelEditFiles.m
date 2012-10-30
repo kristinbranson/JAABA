@@ -55,13 +55,16 @@ function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<
 % have not pushed the done button yet
 handles.success = false;
 
+% figure out a good place to store BehaviorList.xml
+behaviorListAbsFileName=BehaviorListAbsFileName();
+
 %
 [behaviorParamsFile, ...
   disableBehavior, ...
   JLabelHandle,...
   handles.JLabelSplashHandle] = ...
   myparse(varargin,...
-  'behaviorParamsFile',fullfile('params','BehaviorList.xml'),...
+  'behaviorParamsFile',behaviorListAbsFileName,...
   'disableBehavior',false,...
   'JLabelHandle',[],...
   'JLabelSplashHandle',[]);
@@ -506,9 +509,6 @@ if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
 
-set(handles.pushbutton_load,'enable','off');
-set(handles.pushbutton_loadwoexp,'enable','off');
-set(handles.pushbutton_cancel,'enable','off');
 SetLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileName(classifierfilename);
@@ -516,11 +516,15 @@ if ~success,
   uiwait(warndlg(msg,'Error loading file list'));
   return;
 end
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+
 set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
-uiwait(warndlg('Done loading the classifier'));
+uiwait(helpdlg('Done loading the classifier'));
 
 
 % --- Executes on button press in pushbutton_loadwoexp.
@@ -541,10 +545,6 @@ if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
 
-set(handles.pushbutton_load,'enable','off');
-set(handles.pushbutton_loadwoexp,'enable','off');
-set(handles.pushbutton_cancel,'enable','off');
-set(handles.popupmode,'enable','off');
 SetLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
@@ -552,6 +552,11 @@ if ~success,
   uiwait(waitdlg(msg,'Error loading file list'));
   return;
 end
+set(handles.pushbutton_load,'enable','off');
+set(handles.pushbutton_loadwoexp,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
+set(handles.popupmode,'enable','off');
+
 set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
