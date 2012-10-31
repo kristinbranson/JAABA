@@ -795,11 +795,7 @@ end
         end
       end
       
-      if isfield(configparams,'JLabelMode') && ...
-          strcmpi(configparams.JLabelMode.mode,'advanced')
-        obj.SetAdvancedMode(true);
-      end
-      
+     
     end
     
     function [success,msg] = SetMovieFileName(obj,moviefilename)
