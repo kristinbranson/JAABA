@@ -58,6 +58,14 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+buttonNames = {'pushbutton_copy','pushbutton_setfeatures','pushbutton_copyfeatures',...
+              'pushbutton_addlist','pushbutton_removelist','pushbutton_done',...
+              'pushbutton_cancel','featureconfigpopup'};
+for buttonNum = 1:length(buttonNames)
+  SetButtonImage(handles.(buttonNames{buttonNum}));
+end
+
+
 % UIWAIT makes ProjectSetup wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
