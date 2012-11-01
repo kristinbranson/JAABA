@@ -39,10 +39,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MouseHouse',
+  case 'MoTr',
 
     success = false;
-    msg = 'No arena parameters stored in MouseHouse files';
+    msg = 'No arena parameters stored in MoTr files';
     
   case 'Qtrax',
 
@@ -55,6 +55,11 @@ switch InputDataType,
 
   case 'MWT',
 
+    [success,msg,pxpermm] = ...
+      ReadArenaParameters_MWT(...
+      leftovers{:},...
+      'pxpermm',pxpermm);
+    
   otherwise
     success = false;
     msg = sprintf('Unknown data type %s',InputDataType);

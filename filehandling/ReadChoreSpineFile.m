@@ -40,7 +40,7 @@ while true,
   end
   
   id = datacurr(1);
-  timestamp = datacurr(2);
+  timestamps = datacurr(2);
   value = datacurr(3:2+nspinepts*2);
   x = value(1:2:end-1);
   y = value(2:2:end);
@@ -48,7 +48,7 @@ while true,
   idi = find(id == ids,1);
   if isempty(idi),
     idi = numel(ids)+1;
-    newdata = struct('id',id,'timestamp',timestamp,'xspine',x(:),'yspine',y(:));
+    newdata = struct('id',id,'timestamps',timestamps,'xspine',x(:),'yspine',y(:));
     if isempty(ids),
       data = newdata;
     else
@@ -56,7 +56,7 @@ while true,
     end
     ids(idi) = id;
   else
-    data(idi).timestamp(end+1) = timestamp;
+    data(idi).timestamps(end+1) = timestamps;
     data(idi).xspine(:,end+1) = x;
     data(idi).yspine(:,end+1) = y;
   end
@@ -69,7 +69,7 @@ data = data(order);
 
 % sort by timestamps
 for i = 1:numel(data),
-  [data(i).timestamp,order] = sort(data(i).timestamp);
+  [data(i).timestamps,order] = sort(data(i).timestamps);
   data(i).xspine = data(i).xspine(:,order);
   data(i).yspine = data(i).yspine(:,order);
 end

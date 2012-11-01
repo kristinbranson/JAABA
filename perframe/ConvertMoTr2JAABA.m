@@ -1,4 +1,4 @@
-function [success,msg] = ConvertMouseHouse2JAABA(varargin)
+function [success,msg] = ConvertMoTr2JAABA(varargin)
 
 success = false;
 msg = '';
