@@ -160,6 +160,8 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
   else if(runMultiThreaded > 1) numThreads = runMultiThreaded;
   //if(numThreads < 2 && cache_old_examples) numThreads = 2;
 
+  numThreads = 1;
+
   SetTrainset(trainset);
   
   if(!sum_w) {
@@ -1161,6 +1163,7 @@ void StructuredSVM::SetTrainset(StructuredDataset *t) {
   for(int i = 0; i < t->num_examples; i++) {
     CreateTrainingExampleQueues(i); 
   }
+  return; // Eyrun: such that we can start training with a pre-existing model
   regularization_error = 0;
   sum_dual = 0;
   sum_alpha_loss = 0;
