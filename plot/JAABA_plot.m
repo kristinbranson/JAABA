@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 25-Oct-2012 18:10:28
+% Last Modified by GUIDE v2.5 01-Nov-2012 13:41:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -256,6 +256,10 @@ function JAABA_plot_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user experiment (see GUIDATA)
 % varargin   unrecognized PropertyName/PropertyValue pairs from the
 %            command line (see VARARGIN)
+
+jlabelpath = fileparts(mfilename('fullpath'));
+baseDir = fileparts(jlabelpath);
+addpath(fullfile(baseDir,'misc'));
 
 if(exist('matlabpool')==2 && matlabpool('size')==0)
   matlabpool open
@@ -1912,46 +1916,8 @@ switch(stat)
 end
 
 
-% --- 
-%function [male_count female_count male_total female_total individual_count]=...
-function [behav_perc_summary behav_perc_individual sex]=...
-    calculate_behaviorbarchart2(behavior_data,behavior_logic,behavior_data2,sexdata)
-
-sex=[];  behav_perc_summary=zeros(3,2);  behav_perc_individual=[];
-for i=1:length(behavior_data.allScores.t0s)  % individual
-  tmp1=false(1,length(sexdata{i}));
-  for j=1:length(behavior_data.allScores.t0s{i})  % bout
-    tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
-        -behavior_data.allScores.tStart(i)+1)=true;
-  end
-  if(behavior_logic>1)
-    tmp2=false(1,length(sexdata{i}));
-    for j=1:length(behavior_data2.allScores.t0s{i})  % bout
-      tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
-          -behavior_data2.allScores.tStart(i)+1)=true;
-    end
-  end
-  switch(behavior_logic)
-    case(1)
-      partition_idx=tmp1;
-    case(2)
-      partition_idx=tmp1 & tmp2;
-    case(3)
-      partition_idx=tmp1 & ~tmp2;
-    case(4)
-      partition_idx=tmp1 | tmp2;
-  end
-  sex(i)=sum(sexdata{i}(1:length(partition_idx))) > (length(partition_idx)/2);
-  behav_perc_summary(1,1)=behav_perc_summary(1,1)+sum(partition_idx);
-  behav_perc_summary(1,2)=behav_perc_summary(1,2)+length(partition_idx);
-  behav_perc_summary(3-sex(i),1)=behav_perc_summary(3-sex(i),1)+sum(partition_idx);
-  behav_perc_summary(3-sex(i),2)=behav_perc_summary(3-sex(i),2)+length(partition_idx);
-  behav_perc_individual(i)=100*sum(partition_idx)./length(partition_idx);
-end
-
-
 % ---
-function table_data=calculate_behaviorbarchart(experiment_value,experiment_list,...
+function [frames_labelled frames_total]=calculate_behaviorbarchart(experiment_value,experiment_list,...
     behavior_list,behavior_logic,behavior_value2,individual,sexdata,perwhat)
 
 collated_data=cell(length(experiment_value),length(behavior_list));
@@ -1966,38 +1932,79 @@ parfor e=1:length(experiment_value)
   parfor_tmp=cell(1,length(behavior_list));
   for b=1:length(behavior_list)
     behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
-    [behav_perc_summary behav_perc_individual sex]=...
-        calculate_behaviorbarchart2(behavior_data,behavior_logic,behavior_data2,sexdata{experiment_value(e)});
-    parfor_tmp{b}={behav_perc_summary behav_perc_individual sex};
+
+    frames_labelled=nan(1,length(behavior_data.allScores.t0s));
+    frames_total=nan(1,length(behavior_data.allScores.t0s));
+    sex=nan(1,length(behavior_data.allScores.t0s));
+    for i=1:length(behavior_data.allScores.t0s)  % individual
+      tmp1=false(1,length(sexdata{experiment_value(e)}{i}));
+      for j=1:length(behavior_data.allScores.t0s{i})  % bout
+        tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
+            -behavior_data.allScores.tStart(i)+1)=true;
+      end
+      tmp2=[];
+      if(behavior_logic>1)
+        tmp2=false(1,length(sexdata{experiment_value(e)}{i}));
+        for j=1:length(behavior_data2.allScores.t0s{i})  % bout
+          tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
+              -behavior_data2.allScores.tStart(i)+1)=true;
+        end
+      end
+      partition_idx=[];
+      switch(behavior_logic)
+        case(1)
+          partition_idx=tmp1;
+        case(2)
+          partition_idx=tmp1 & tmp2;
+        case(3)
+          partition_idx=tmp1 & ~tmp2;
+        case(4)
+          partition_idx=tmp1 | tmp2;
+      end
+      sex(i)=sum(sexdata{experiment_value(e)}{i}(1:length(partition_idx))) > (length(partition_idx)/2);
+      frames_labelled(i)=sum(partition_idx);
+      frames_total(i)=length(partition_idx);
+    end
+
+    parfor_tmp{b}={frames_labelled frames_total sex};
   end
   collated_data(e,:)=parfor_tmp;
 end
 
-table_data={};
-raw_table_data={};
-for b=1:length(behavior_list)
-  behav_perc_summary=[];  behav_perc_individual=[];  sex=[];  n=[];
-  for e=1:length(experiment_value)
-    behav_perc_summary=[behav_perc_summary collated_data{e,b}{1}];
-    behav_perc_individual=[behav_perc_individual collated_data{e,b}{2}];
-    sex=[sex collated_data{e,b}{3}];
-  end
-  if(individual<4)
-    if(perwhat==1)
-      table_data{b}=...
-          100*sum(behav_perc_summary(individual,1:2:2*length(experiment_value))) ./ ...
-              sum(behav_perc_summary(individual,2:2:2*length(experiment_value)));
-    else
-      switch(individual)
-        case 1, table_data{b}=behav_perc_individual;
-        case 2, table_data{b}=behav_perc_individual(sex==1);
-        case 3, table_data{b}=behav_perc_individual(sex==0);
-      end
-    end
-  else
-%  for i=1:length(behav_perc_individual)
-    table_data{b}=behav_perc_individual(individual-3);
-  end
+switch(individual)
+  case 1
+    frames_labelled=cellfun(@(x) x{1},collated_data,'uniformoutput',false);
+    frames_total=cellfun(@(x) x{2},collated_data,'uniformoutput',false);
+  case 2,3
+    frames_labelled=cellfun(@(x) x{1}(x{3}==(3-individual)),collated_data,'uniformoutput',false);
+    frames_total=cellfun(@(x) x{2}(x{3}==(3-individual)),collated_data,'uniformoutput',false);
+  otherwise
+    frames_labelled=cellfun(@(x) x{1}(individual-3),collated_data,'uniformoutput',false);
+    frames_total=cellfun(@(x) x{2}(individual-3),collated_data,'uniformoutput',false);
+end
+
+% ---
+function [ct,dp,dn]=calculate_ct_d(data,centraltendency,dispersion)
+
+switch(centraltendency)
+  case 1
+    ct=mean(data);
+  case 2
+    ct=median(data);
+end
+switch(dispersion)
+  case 1
+    dp=std(data);
+    dn=dp;
+  case 2
+    dp=std(data)./sqrt(length(data));
+    dn=dp;
+  case 3
+    dp=prctile(data,95);
+    dn=prctile(data,5);
+  case 4
+    dp=prctile(data,75);
+    dn=prctile(data,25);
 end
 
 
@@ -2009,16 +2016,6 @@ function BehaviorBarChart_Callback(hObject, eventdata, handles)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 set(handles.figure1,'pointer','watch');
-
-%experiment_value=get(handles.ExperimentList,'Value');
-%experiment_list=get(handles.ExperimentList,'String');
-%experiment_value2=get(handles.ExperimentList2,'Value');
-%experiment_list2=get(handles.ExperimentList2,'String');
-%behavior_list=get(handles.BehaviorList,'String');
-%behavior_logic=get(handles.BehaviorLogic,'Value');
-%behavior_value2=get(handles.BehaviorList2,'Value');
-%behavior_list2=get(handles.BehaviorList2,'String');
-%sexdata=handles.sexdata;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals)];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -2033,54 +2030,85 @@ if(individual>3)
   individual=individual-cumsum_num_indi_per_exp(tmp);
 end
 
-table_data={};  raw_table_data={};
+frames_labelled={};  frames_total={};
 for g=gg
   set(handles.Status,'string',...
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
   drawnow;
   if(~isempty(handles.experimentvalue{g}))
-    table_data{end+1}=calculate_behaviorbarchart(experimentvalue{g},handles.experimentlist{g},...
+    [frames_labelled{end+1} frames_total{end+1}]=calculate_behaviorbarchart(...
+        experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
         handles.behaviorbarchart_perwhat);
   end
 end
-%if(length(experiment_value2)>0)
-%  [table_data2 raw_table_data2]=calculate_behaviorstats(experiment_value2,experiment_list2,...
-%      behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-%      sexdata(experiment_value2+length(experiment_list)),handles.behaviorstats_perwhat,handles.prefsstat);
-%end
 
-%axes(handles.Axes); cla;  hold on;
 figure;
-for i=1:length(table_data{1})
-  %subplot(ceil(length(table_data{1})/2),2,i);
-  ceil(sqrt(length(table_data{1})));
-  subplot(ceil(length(table_data{1})/ans),ans,i);
-  xt=[];
+table_data=cell(1,length(frames_labelled{1}));
+for b=1:length(frames_labelled{1})  % behavior
+  ceil(sqrt(length(frames_labelled{1})));
+  subplot(ceil(length(frames_labelled{1})/ans),ans,b);  hold on;
+  k=[];
   switch(handles.behaviorbarchart_perwhat)
-    case 1  % perframe
-      bar(cellfun(@(x) x{i},table_data));
-    case 2  % per fly, error bars
-      errorbarplot(cellfun(@(x) mean(x{i}),table_data),cellfun(@(x) std(x{i})./sqrt(length(x{i})),table_data));
-    case 3  % per fly, grouped
-      hold on;
-      k=0;
-      for j=1:length(table_data)
-        h=bar((1:length(table_data{j}{i}))+k,table_data{j}{i},handles.colors{1,1+mod(j-1,length(handles.colors))});
-        set(h,'barwidth',1,'edgecolor','none');
-        k=k+1+length(table_data{j}{i});
+    case 1  % per group
+      table_data{b}=nan(1,length(frames_labelled));
+      for g=1:length(frames_labelled)
+        table_data{b}(g)=100*sum([frames_labelled{g}{:,b}])./sum([frames_total{g}{:,b}]);
+        bar(g,table_data{b}(g),handles.colors{1,1+mod(g-1,length(handles.colors))});
       end
-      xt=cellfun(@(x) length(x{i}),table_data);
-      xt=round(cumsum(xt)-xt/2);
-    case 4  % per fly, stacked
-      tmp=cellfun(@(x) length(x{i}),table_data);
-      cellfun(@(x) padarray(x{i},[0 max(tmp)-length(x{i})],nan,'post')',table_data,'uniformoutput',false);
-      bar([ans{:}]'./repmat(tmp',1,max(tmp)),'stacked');
+    case 2  % per experiment, error bars
+      table_data{b}=cell(1,length(frames_labelled));
+      for g=1:length(frames_labelled)
+        table_data{b}{g}=100*cellfun(@sum,frames_labelled{g}(:,b))./cellfun(@sum,frames_total{g}(:,b));
+        [ct,dp,dn]=calculate_ct_d(table_data{b}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
+        errorbarplot(g,ct,dp,dn,handles.colors{1,1+mod(g-1,length(handles.colors))});
+      end
+    case 3  % per fly, grouped
+      exp_separators=[];  maxy=0;
+      table_data{b}=cell(1,length(frames_labelled));
+      for g=1:length(frames_labelled)
+        tmp=frames_labelled{g}(:,b);
+        tmp2=frames_total{g}(:,b);
+        cumsum(cellfun(@length,tmp));
+        exp_separators=[exp_separators; ans+sum(k)];
+        table_data{b}{g}=100.*[tmp{:}]./[tmp2{:}];
+        maxy=max([maxy table_data{b}{g}]);
+        bar((1:length(table_data{b}{g}))+sum(k),table_data{b}{g},...
+            handles.colors{1,1+mod(g-1,length(handles.colors))},'barwidth',1,'edgecolor','none');
+        k(end+1)=length(table_data{b}{g});
+      end
+      l=exp_separators(1:2:(end-1));
+      r=exp_separators(2:2:end);
+      h=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
+          [0.95 0.95 0.95]);
+      set(h,'edgecolor','none');
+      set(gca,'children',flipud(get(gca,'children')));
+      k=round(cumsum(k)-k/2);
+    case 4  % per fly, stern-style
+      m=0;
+      table_data{b}=cell(1,length(frames_labelled));
+      for g=1:length(frames_labelled)
+        table_data{b}{g}=cell(1,length(frames_labelled{g}(:,b)));
+        for e=1:length(frames_labelled{g}(:,b))
+          table_data{b}{g}{e}=100.*frames_labelled{g}{e,b}./frames_total{g}{e,b};
+          [ct,dp,dn]=calculate_ct_d(table_data{b}{g}{e},handles.prefs_centraltendency,handles.prefs_dispersion);
+          plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',25);
+          plot([m m],[dp dn],[handles.colors{1,1+mod(g-1,length(handles.colors))} '-']);
+          plot(m+(1:length(table_data{b}{g}{e})),table_data{b}{g}{e},...
+              [handles.colors{1,1+mod(g-1,length(handles.colors))} 'o']);
+          m=m+8+length(table_data{b}{g}{e});
+        end
+        [ct,dp,dn]=calculate_ct_d([table_data{b}{g}{:}],handles.prefs_centraltendency,handles.prefs_dispersion);
+        plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',35);
+        plot([m m],[dp dn],[handles.colors{1,1+mod(g-1,length(handles.colors))} '-'],'linewidth',3);
+        m=m+12;
+        k(end+1)=12+8*length(table_data{b}{g})+length([table_data{b}{g}{:}]);
+      end
+      k=round(cumsum(k)-k/2);
   end
-  if(isempty(xt))  xt=1:length(table_data);  end
-  %title(char(strrep(handles.behaviorlist{i},'_','-')));
-  tmp=char(strrep(handles.behaviorlist(i),'_','-'));
+  if(isempty(k))  k=1:length(frames_labelled);  end
+  tmp=char(strrep(handles.behaviorlist(b),'_','-'));
   switch(handles.behaviorlogic)
     case 2
       tmp=[tmp ' AND '];
@@ -2095,71 +2123,40 @@ for i=1:length(table_data{1})
   tmp=[tmp ' (%)'];
   title(tmp);
   ylabel('percent');
-  set(gca,'xtick',xt,'xticklabel',handles.grouplist);
-  axis tight;
+  set(gca,'xtick',k,'xticklabel',handles.grouplist);
+  axis tight;  vt=axis;
+  axisalmosttight;  vat=axis;
+  if(handles.behaviorbarchart_perwhat==3)
+    axis([vat(1) vat(2) 0 vt(4)]);
+  else
+    axis([vat(1) vat(2) 0 vat(4)]);
+  end
 end
 
-if((handles.behaviorbarchart_perwhat~=1) && (individual<4))
+if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
   tmp={'behavior'};
-  for b=1:length(table_data{1})
+  for b=1:length(table_data)
     tmp{3*b+1,1}=handles.behaviorlist{b};
-    for g=1:length(table_data)
+    for g=1:length(table_data{b})
       if(b==1)  tmp{1,g+1}=handles.grouplist{g};  end
-      [~,p,~,~]=kstest(table_data{g}{b});
+      [~,p,~,~]=kstest(table_data{b}{g});
       tmp{3*b+1,g+1}=p;
     end
     k=1;
-    for g=1:length(table_data)-1
-      for g2=(g+1):length(table_data)
+    for g=1:length(table_data{b})-1
+      for g2=(g+1):length(table_data{b})
         if(b==1)  tmp{2,k+1}=strcat(handles.grouplist{g},',',handles.grouplist{g2});  end
-        p=ranksum(table_data{g}{b},table_data{g2}{b});
+        p=ranksum(table_data{b}{g},table_data{b}{g2});
         tmp{3*b+2,k+1}=p;
         k=k+1;
       end
     end
   end
   set(handles.Table,'Data',tmp);
+else
+  set(handles.Table,'Data',[]);
 end
 
-%tmp={};
-%foo=length(handles.grouplist);
-%for g=1:foo
-%  tmp(g:foo:foo*size(table_data{g},1),1:size(table_data{g},2))=table_data{g};
-%  raw_tmp(g:foo:foo*size(raw_table_data{g},1),1:size(raw_table_data{g},2))=raw_table_data{g};
-%end
-%set(handles.Table,'Data',tmp);
-%ii=max(cellfun(@(x) size(x,2),table_data));
-
-%if((length(experiment_value)>0) && (length(experiment_value2)>0))
-%  tmp(1:2:2*size(table_data,1),1:size(table_data, 2))=table_data;
-%  tmp(2:2:2*size(table_data2,1),1:size(table_data2,2))=table_data2;
-%  raw_tmp(1:2:2*size(raw_table_data,1),1:size(raw_table_data, 2))=raw_table_data;
-%  raw_tmp(2:2:2*size(raw_table_data2,1),1:size(raw_table_data2,2))=raw_table_data2;
-%  ii=max(size(table_data,2),size(table_data2,2));
-%  set(handles.Table,'Data',tmp);
-%  set(handles.Table,'RowStriping','on','BackgroundColor',[1 0.8 0.8; 0.8 0.8 1]);
-%elseif(length(experiment_value)>0)
-%  tmp=table_data;
-%  raw_tmp=raw_table_data;
-%  ii=size(table_data,2);
-%  set(handles.Table,'Data',tmp);
-%  set(handles.Table,'RowStriping','off','BackgroundColor',[1 0.8 0.8]);
-%else
-%  tmp=table_data2;
-%  raw_tmp=raw_table_data2;
-%  ii=size(table_data2,2);
-%  set(handles.Table,'Data',tmp);
-%  set(handles.Table,'RowStriping','off','BackgroundColor',[0.8 0.8 1]);
-%end
-
-%handles.raw_table_data=raw_tmp;
-%tmp={'Behavior' 'Total %' 'Male %' 'Female %'};
-%cellstr(num2str((1:(ii-4))','Indi #%d %%'))';
-%[tmp{5:ii}]=deal(ans{:});
-%set(handles.Table,'ColumnName',tmp);
-%set(handles.Table,'ColumnWidth',{150 75 75});
-
-%handles.table='behavior_stats';
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
@@ -2914,9 +2911,7 @@ if(size(eventdata.Indices,1)==0)  return;  end
 
 handles=guidata(hObject);
 
-if(strcmp(handles.table,'behavior_stats'))
-
-elseif(strcmp(handles.table,'bout_stats'))
+if(strcmp(handles.table,'bout_stats'))
   if(eventdata.Indices(end,2)==1)  return;  end
 
   %axes(handles.Axes);  cla;  hold on;
@@ -3638,21 +3633,21 @@ function menu_behaviorbarchart_perwhat_set(arg)
 
 handles=guidata(gcf);
 
-set(handles.MenuBehaviorBarChartPerFrame,'Checked','off');
-set(handles.MenuBehaviorBarChartPerFlyErrorBars,'Checked','off');
+set(handles.MenuBehaviorBarChartPerGroup,'Checked','off');
+set(handles.MenuBehaviorBarChartPerExperimentCTD,'Checked','off');
 set(handles.MenuBehaviorBarChartPerFlyGrouped,'Checked','off');
-set(handles.MenuBehaviorBarChartPerFlyStacked,'Checked','off');
+set(handles.MenuBehaviorBarChartPerFlyScatter,'Checked','off');
 switch(arg)
-  case(1), set(handles.MenuBehaviorBarChartPerFrame,'Checked','on');
-  case(2), set(handles.MenuBehaviorBarChartPerFlyErrorBars,'Checked','on');
+  case(1), set(handles.MenuBehaviorBarChartPerGroup,'Checked','on');
+  case(2), set(handles.MenuBehaviorBarChartPerExperimentCTD,'Checked','on');
   case(3), set(handles.MenuBehaviorBarChartPerFlyGrouped,'Checked','on');
-  case(4), set(handles.MenuBehaviorBarChartPerFlyStacked,'Checked','on');
+  case(4), set(handles.MenuBehaviorBarChartPerFlyScatter,'Checked','on');
 end
 
 
 % --------------------------------------------------------------------
-function MenuBehaviorBarChartPerFrame_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuBehaviorBarChartPerFrame (see GCBO)
+function MenuBehaviorBarChartPerGroup_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorBarChartPerGroup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3662,8 +3657,8 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuBehaviorBarChartPerFlyErrorBars_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuBehaviorBarChartPerFlyErrorBars (see GCBO)
+function MenuBehaviorBarChartPerExperimentCTD_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorBarChartPerExperimentCTD (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3684,8 +3679,8 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuBehaviorBarChartPerFlyStacked_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuBehaviorBarChartPerFlyStacked (see GCBO)
+function MenuBehaviorBarChartPerFlyScatter_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorBarChartPerFlyScatter (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3867,14 +3862,11 @@ function MenuBehaviorTimeSeries_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --------------------------------------------------------------------
-% function [h,h2]=errorbarplot(b,errdata)
-%
-% this doesn't work for matrix data, only vector
+% ---
+function [h,h2]=errorbarplot(x,b,dp,dn,color)
 
-function [h,h2]=errorbarplot(b,errdata)
-
-h = bar(b,'grouped');
+h = bar(x,b,'grouped');
+set(h,'facecolor',color);
 fxdata = get(h, 'XData');
 fydata = get(h ,'YData');
 if(~iscell(fxdata)) xdata{1,1} = fxdata; else xdata = fxdata; end
@@ -3902,8 +3894,9 @@ end;
 % To place the error bars - use the following:
 
 %errdata=[.1 .2; .3 .4; .5 .6];
+
 hold on;
-h2=errorbar(xb, b, errdata);
+h2=errorbar(xb, b, dp, dn);
 set(h2(1),'linewidth',1);            % This changes the thickness of the errorbars
 set(h2(1),'color','k');              % This changes the color of the errorbars
 set(h2(1),'linestyle','none');       % This removes the connecting
