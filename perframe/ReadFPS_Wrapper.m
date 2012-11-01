@@ -19,10 +19,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MouseHouse',
+  case 'MoTr',
 
     success = false;
-    msg = 'FPS not stored in MouseHouse files';
+    msg = 'FPS not stored in MoTr files';
     
   case 'Qtrax',
 
@@ -38,8 +38,10 @@ switch InputDataType,
     
   case 'MWT',
     
-    success = false;
-    msg = 'Not implemented';    
+    [success,msg,fps] = ...
+      ReadFPS_MWT(...
+      leftovers{:},...
+      'fps',fps);
 
   otherwise
     success = false;

@@ -1,12 +1,24 @@
 function [xc,yc,radius] = fitcircle_manual(hfig)
 
+xc = [];
+yc = [];
+radius = [];
+
 if nargin < 1,
   hfig = gcf;
 end
 hold on;
 
 title('Click points on circle');
-[x,y] = getline(hfig,'closed');
+try
+  [x,y] = getline(hfig,'closed');
+catch %#ok<CTCH>
+  return;
+end
+
+if isempty(x),
+  return;
+end
 
 % solve for parameters a, b, and c in the least-squares sense by
 % using the backslash operator
@@ -20,7 +32,7 @@ radius  =  sqrt((xc^2+yc^2)-c);
 
 % display the calculated center
 plot(xc,yc,'mx','LineWidth',2);
-text(xc,yc,sprintf('(%.1f, %.1f)',xc,yc),'Color','m','FontWeight','bold');
+text(xc,yc,sprintf('  (%.1f, %.1f)',xc,yc),'Color','m','FontWeight','bold');
 
 % plot the entire circle
 theta = 0:0.01:2*pi;

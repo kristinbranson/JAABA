@@ -22,7 +22,7 @@ function varargout = PrepareJAABAData(varargin)
 
 % Edit the above text to modify the response to help PrepareJAABAData
 
-% Last Modified by GUIDE v2.5 30-Oct-2012 11:14:53
+% Last Modified by GUIDE v2.5 30-Oct-2012 17:45:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -102,15 +102,7 @@ set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 set(handles.checkbox_OverRideFPS,'Value',handles.OverRideFPS);
 
 % arena parameters
-set(handles.edit_centerx,'String',num2str(handles.ArenaCenterX));
-set(handles.edit_centery,'String',num2str(handles.ArenaCenterY));
-i = find(strcmpi(handles.ArenaTypes,handles.ArenaType),1);
-if isempty(i),
-  handles.ArenaType = handles.ArenaTypes{1};
-  i = 1;
-end
-set(handles.popupmenu_arenatype,'Value',i);
-UpdateArenaSize(handles);
+UpdateArenaParameters(handles);
 %set(handles.checkbox_ComputeArenaParameters,'Enable','off');
 
 function UpdateArenaSize(handles)
@@ -148,11 +140,12 @@ ninputfiles = numel(InputDataType.files);
 data = cell(ninputfiles+1,3);
 data{1,1} = 'Video file';
 data{1,2} = handles.InputVideoFile;
-data{1,3} = ~InputDataType.videorequired;
+data{1,3} = ~InputDataType.videorequired || CheckInputFile(handles,1,handles.InputVideoFile);
 for i = 1:ninputfiles,
   data{i+1,1} = InputDataType.files(i).name;
   data{i+1,2} = InputFiles{i};
   data{i+1,3} = ~InputDataType.files(i).required;
+  data{i+1,3} = ~InputDataType.files(i).required || CheckInputFile(handles,i+1,InputFiles{i});
 end
 set(handles.uitable_InputFiles,'Data',data);
 
@@ -258,7 +251,7 @@ handles.ArenaTypes = get(handles.popupmenu_arenatype,'String');
 
 function handles = SetDefaultValues(handles)
 
-fns = {'InputDataType','SoftLinkFiles','flipud','fliplr',...
+handles.config_fns = {'InputDataType','SoftLinkFiles','flipud','fliplr',...
   'fps','pxpermm','OverRideFPS','ArenaType','ArenaCenterX','ArenaCenterY',...
   'ArenaRadius','ArenaWidth','ArenaHeight',...
   'inputdir','ExperimentDirectory','moviefilestr',...
@@ -295,21 +288,10 @@ end
 handles.inputmoviefilestr = '';
 handles.InputVideoFile = fullfile(handles.inputdir,handles.inputmoviefilestr);
 
-% read in the rc file if it exists
-rc = struct;
 if exist(handles.rcfilename,'file'),
-  try
-    rc = load(handles.rcfilename);
-  catch ME,
-    warndlg(sprintf('Could not load rc file %s: %s',handles.rcfilename,getReport(ME)),'Error loading rc file');
-    rc = struct;
-  end
-end
-
-% fill in read-in stuff
-for i = 1:numel(fns),
-  if isfield(rc,fns{i}),
-    handles.(fns{i}) = rc.(fns{i});
+  [handles,success,msg] = LoadConfiguration(handles,handles.rcfilename);
+  if ~success,
+    warndlg(msg);
   end
 end
 
@@ -590,6 +572,7 @@ if isempty(handles.InputVideoFile),
   return;
 end
 
+SetBusy(handles,sprintf('Opening video file %s',handles.InputVideoFile));
 [readframe,nframes,fid,headerinfo] = get_readframe_fcn(handles.InputVideoFile);
 
 % choose a frame
@@ -597,18 +580,28 @@ t = round(nframes/2);
 im = readframe(t);
 hfig = 1000;
 figure(hfig);
+clf;
 hax = gca;
-imagesc(im,'Parent',hax);
+if size(im,3) > 1,
+  image(im);
+else
+  imagesc(im,'Parent',hax);
+  colormap gray;
+end
 axis(hax,'image');
 hold(hax,'on');
-title('Label circular arena wall');
 if fid > 1,
   fclose(fid);
 end
 
+ClearBusy(handles);
+
+hinstr = nan;
+
 switch lower(handles.ArenaType),
   case 'circle',
-    msgbox({'Click to enter points on the circular arena wall.'
+    title('Label circular arena wall');
+    hinstr = msgbox({'Click to enter points on the circular arena wall.'
       'Use normal button clicks to add points to the '
       'polyline.  A shift-, right-, or double-click adds '
       'a final point and ends the polyline selection.  '
@@ -617,19 +610,179 @@ switch lower(handles.ArenaType),
       'BACKSPACE or DELETE removes the previously '
       'selected point from the polyline.'},...
       'Label Circular Arena Wall');
-    [xc,yc,radius] = fitcircle_manual(hax);
+    while true,
+      [xc,yc,radius] = fitcircle_manual(hax);
+      if isempty(xc),
+        return;
+      end
+      axis(hax,'image');
+      res = questdlg('Are you happy with the results?','','Yes','Redo','Cancel','Yes');
+      switch lower(res),
+        case 'redo',
+          continue;
+        case 'cancel',
+          if ishandle(hinstr), delete(hinstr); end
+          return;
+        case 'yes',
+          break;
+      end
+    end
+
+    handles.ArenaCenterX = xc;
+    handles.ArenaCenterY = yc;
+    handles.ArenaRadius = radius;
+    guidata(hObject,handles);
+    
+    UpdateArenaParameters(handles);
+    
+    % get diameter
+    while true,
+      res = inputdlg('Diameter of arena in millimeters','',1);
+      if isempty(res),
+        if ishandle(hinstr), delete(hinstr); end
+        return;
+      end
+      diameter_mm = str2double(res);
+      if isnan(diameter_mm),
+        warndlg('Please enter a number');
+        continue;
+      end
+      break;
+    end
+    
+    handles.pxpermm = 2*radius/diameter_mm;
+    UpdateArenaParameters(handles);
+    
+    guidata(hObject,handles);
     
   case 'rectangle',
+    title('Label rectangular arena wall');
+    hinstr = msgbox({'Outline the rectangular arena wall.'
+      'Use the mouse to click and drag the desired rectangle.'},...
+      'Label Rectangular Arena Wall');
+    while true,
+
+      try
+        rect = getrect(hax);
+      catch  %#ok<CTCH>
+        return;
+      end
+      if isempty(rect),
+        return;
+      end
+      xc = rect(1)+rect(3)/2;
+      yc = rect(2)+rect(4)/2;
+      width = rect(3);
+      height = rect(4);
+
+      % display the calculated center
+      plot(xc,yc,'mx','LineWidth',2);
+      text(xc,yc,sprintf('  (%.1f, %.1f)',xc,yc),'Color','m','FontWeight','bold');
+
+      % plot the rectangle
+      plot(xc+width*.5*[-1,-1,1,1,-1],yc+height*.5*[-1,1,1,-1,-1],'m-','LineWidth',2);
+
+      message = sprintf('Width is %.1f pixels, height is %.1f pixels',width,height);
+      text(15,15,message,'Color','m','FontWeight','bold','BackgroundColor','k');
+      
+      axis(hax,'image');
+      res = questdlg('Are you happy with the results?','','Yes','Redo','Cancel','Yes');
+      switch lower(res),
+        case 'redo',
+          continue;
+        case 'cancel',
+          if ishandle(hinstr), delete(hinstr); end
+          return;
+        case 'yes',
+          break;
+      end
+    end
+
+    handles.ArenaCenterX = xc;
+    handles.ArenaCenterY = yc;
+    handles.ArenaWidth = width;
+    handles.ArenaHeight = height;
+    guidata(hObject,handles);
+    
+    UpdateArenaParameters(handles);
+    
+    % get width in millimeters
+    while true,
+      res = inputdlg('Width of arena in millimeters','',1);
+      if isempty(res),
+        if ishandle(hinstr), delete(hinstr); end
+        return;
+      end
+      width_mm = str2double(res);
+      if isnan(width_mm),
+        warndlg('Please enter a number');
+        continue;
+      end
+      break;
+    end
+    
+    handles.pxpermm = width/width_mm;
+    UpdateArenaParameters(handles);
+    
+    guidata(hObject,handles);
+    
   case 'none',
+    
+    title('Draw a line of known length');
+    hinstr = msgbox({'Draw a line of known length, e.g. '
+      'between two landmark points. The line shown is '
+      'draggable and resizable. Double-click on line when '
+      'done.'},...
+      'Draw a Line of Known Length');
+    hline = imdistline(hax);
+    api = iptgetapi(hline);
+    fcn = makeConstrainToRectFcn('imline',get(hax,'XLim'),get(hax,'YLim'));
+    api.setPositionConstraintFcn(fcn);
+    try
+      pos = wait(hline);
+    catch
+      return;
+    end
+    if isempty(pos),
+      return;
+    end
+    x = pos(:,1);
+    y = pos(:,2);
+    linelength = sqrt(diff(x).^2 + diff(y).^2);
+    plot(x,y,'m-x','LineWidth',2)
+    
+    % get width in millimeters
+    while true,
+      res = inputdlg('Length of entered line in millimeters','',1);
+      if isempty(res),
+        if ishandle(hinstr), delete(hinstr); end
+        return;
+      end
+      linelength_mm = str2double(res);
+      if isnan(linelength_mm),
+        warndlg('Please enter a number');
+        continue;
+      end
+      break;
+    end
+    
+    handles.pxpermm = linelength/linelength_mm;
+    UpdateArenaParameters(handles);
+    
 end
   
-
+if ishandle(hinstr), 
+  delete(hinstr); 
+end
 
 % --- Executes on button press in pushbutton_Convert.
 function pushbutton_Convert_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_Convert (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% save configuration
+SaveConfiguration(handles,handles.rcfilename);
 
 % check that all the files are ok
 indata = get(handles.uitable_InputFiles,'data');
@@ -645,6 +798,8 @@ InputDataType = handles.InputDataTypes.(handles.InputDataType);
 inputfiles = handles.InputFiles.(handles.InputDataType);
 args = [{InputDataType.files.code}
   inputfiles];
+
+SetBusy(handles,sprintf('Converting to output directory %s',handles.ExperimentDirectory));
 
 [success,msg] = Convert2JAABAWrapper(handles.InputDataType,...
   'inmoviefile',handles.InputVideoFile,...
@@ -663,6 +818,8 @@ args = [{InputDataType.files.code}
   'arenaradius',handles.ArenaRadius,...
   'arenawidth',handles.ArenaWidth,...
   'arenaheight',handles.ArenaHeight);
+
+ClearBusy(handles);
 
 if ~success,
   uiwait(warndlg(msg,'Problem converting'));
@@ -683,6 +840,14 @@ function pushbutton_Save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+[filename,pathname] = uiputfile('*.mat','Save Configuration');
+if ~ischar(filename),
+  return;
+end
+[success,msg] = SaveConfiguration(handles,fullfile(pathname,filename));
+if ~success,
+  warndlg(msg);
+end
 
 % --- Executes on button press in pushbutton_Cancel.
 function pushbutton_Cancel_Callback(hObject, eventdata, handles)
@@ -745,14 +910,39 @@ else
   inputfile = handles.InputFiles.(handles.InputDataType){i};
   inputfilestr = handles.inputfilestrs.(handles.InputDataType){i};
 end
-if isempty(inputfile),
-  inputfile = fullfile(handles.inputdir,inputfilestr);
+if row > 1 && InputDataType.files(i).multiplefiles > 0,
+  if isempty(inputfile),
+    inputdir = handles.inputdir;
+  else
+    inputdir = myfileparts(inputfile{end});
+  end
+  args = {'FilterSpec',inputdir,'Prompt',sprintf('Choose input %s',lower(name)),'Output','cell'};
+  if ~isempty(inputfile) && ~iscell(inputfile),
+    inputfile = {inputfile};
+  end
+  if ~isempty(inputfile),
+    args(end+1:end+2) = {'Append',inputfile};
+  end
+  if ~isempty(exts),
+    args(end+1:end+2) = {'Type',exts};
+  end  
+  inputfile = uipickfiles(args{:});
+  if isnumeric(inputfile),
+    return;
+  end
+  [path,filename] = myfileparts(inputfile{end});
+else
+  if isempty(inputfile),
+    inputfile = fullfile(handles.inputdir,inputfilestr);
+  end
+  
+  [filename,path,filteridx] = uigetfile(exts,sprintf('Choose input %s',lower(name)),inputfile);
+  if ~ischar(filename),
+    return;
+  end
+  inputfile = fullfile(path,filename);
 end
-[filename,path,filteridx] = uigetfile(exts,sprintf('Choose input %s',lower(name)),inputfile);
-if ~ischar(filename),
-  return;
-end
-inputfile = fullfile(path,filename);
+
 handles.inputdir = path;
 if row > 1,
   handles.inputfilestrs.(handles.InputDataType){i} = filename;
@@ -763,7 +953,13 @@ else
 end
 [isok,msg] = CheckInputFile(handles,row,inputfile);
 data = get(handles.uitable_InputFiles,'data');
-data{row,2} = inputfile;
+if row > 1 && InputDataType.files(i).multiplefiles > 0,
+  s = sprintf('%s, ',inputfile{:});
+  s = s(1:end-2);
+  data{row,2} = s;
+else
+  data{row,2} = inputfile;
+end
 data{row,3} = isok;
 set(handles.uitable_InputFiles,'data',data);
 if ~isok,
@@ -777,8 +973,20 @@ guidata(hObject,handles);
 
 function [isok,msg] = CheckInputFile(handles,row,inputfile)
 
-isok = exist(inputfile,'file') > 0;
+isok = true;
 msg = '';
+
+if iscell(inputfile),
+  for i = 1:numel(inputfile),
+    isok = isok && exist(inputfile{i},'file') > 0;
+    if ~isok,
+      msg = sprintf('File %s does not exist.',inputfile{i});
+      break;
+    end
+  end
+else
+  isok = exist(inputfile,'file') > 0;
+end
 if ~isok,
   msg = sprintf('File %s does not exist.',inputfile);
 end
@@ -858,6 +1066,8 @@ if strcmpi(InputDataType.hasarena,'never'),
   return;
 end
 
+SetBusy(handles,'Reading arena parameters...');
+
 inputfiles = handles.InputFiles.(handles.InputDataType);
 args = [{InputDataType.files.code}
   inputfiles];
@@ -879,8 +1089,19 @@ args = [{InputDataType.files.code}
 
 if ~success,
   warndlg(msg,'Could not read arena parameters');
+  ClearBusy(handles);
   return;
 end
+
+UpdateArenaParameters(handles);
+
+ClearBusy(handles);
+
+msgbox(msg,'Read arena parameters');
+guidata(hObject,handles);
+
+function UpdateArenaParameters(handles)
+
 i = find(strcmpi(handles.ArenaTypes,handles.ArenaType),1);
 if isempty(i),
   warndlg(sprintf('Illegal value %s for arenatype',handles.ArenaType),'Bad arenatype');
@@ -892,7 +1113,6 @@ set(handles.edit_centery,'String',num2str(handles.ArenaCenterY));
 set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 
 UpdateArenaSize(handles);
-guidata(hObject,handles);
 
 % --- Executes on button press in pushbutton_ReadFPS.
 function pushbutton_ReadFPS_Callback(hObject, eventdata, handles)
@@ -907,6 +1127,8 @@ if isempty(handles.InputVideoFile) && InputDataType.videorequired,
   warndlg('Input video file has not been set yet');
   return;
 end
+
+SetBusy(handles,'Reading FPS...');
 
 readfpsfrom = '';
 
@@ -947,15 +1169,19 @@ if ~isempty(readfpsfrom),
   msg = 'Read fps from moviefile';
 else
   args = [{InputDataType.files.code}
-    inputfiles];
-  [success,msg,handles.fps] = ReadFPS_Wrapper(InputDataType,args{:});
+    handles.InputFiles.(handles.InputDataType)];
+  [success,msg,handles.fps] = ReadFPS_Wrapper(handles.InputDataType,args{:});
   if ~success,
     warndlg(msg,'Could not read FPS');
+    ClearBusy(handles);
     return;
   end
 end
 
 set(handles.edit_fps,'String',num2str(handles.fps));
+
+ClearBusy(handles);
+
 guidata(hObject,handles);
 
 msgbox(msg);
@@ -1084,3 +1310,131 @@ else
   guidata(hObject,handles);
 
 end
+
+function [success,msg] = SaveConfiguration(handles,filename)
+
+SetBusy(handles,sprintf('Saving configuration to file %s',filename));
+
+rcdata = struct;
+for i = 1:numel(handles.config_fns),
+  fn = handles.config_fns{i};
+  if isfield(handles,fn),
+    rcdata.(fn) = handles.(fn);
+  end
+end
+
+try
+  save(filename,'-struct','rcdata');
+catch ME,
+  msg = getReport(ME);
+  success = false;
+  ClearBusy(handles);
+  return;
+end
+
+success = true;
+msg = '';
+
+ClearBusy(handles);
+
+function [handles,success,msg] = LoadConfiguration(handles,filename,ignorefns)
+
+if nargin < 3,
+  ignorefns = {};
+end
+
+rc = struct;
+if exist(filename,'file'),
+  try
+    rc = load(filename);
+  catch ME,
+    msg = getReport(ME);
+    success = false;
+    return;
+  end
+end
+
+fns = setdiff(handles.config_fns,ignorefns);
+
+% fill in read-in stuff
+for i = 1:numel(fns),
+  fn = fns{i};
+  if isfield(rc,fn),
+    handles.(fn) = rc.(fn);
+  end
+end
+
+success = true;
+msg = '';
+
+function SetBusy(handles,msg)
+
+if nargin < 2,
+  msg = 'Thinking...';
+end
+
+oldpointer = get(handles.figure1,'Pointer');
+if strcmpi(oldpointer,'watch'),
+  oldpointer = 'arrow';
+end
+setappdata(handles.figure1,'OldPointer',oldpointer);
+set(handles.figure1,'Pointer','watch');
+
+set(handles.text_Status,'String',msg,'ForegroundColor','m');
+drawnow;
+
+function ClearBusy(handles)
+
+oldpointer = getappdata(handles.figure1,'OldPointer');
+set(handles.figure1,'Pointer',oldpointer);
+set(handles.text_Status,'String','Ready.','ForegroundColor','g');
+drawnow;
+
+
+% --- Executes on button press in pushbutton_Load.
+function pushbutton_Load_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_Load (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[filename,pathname] = uigetfile('*.mat','Load Configuration');
+if ~ischar(filename),
+  return;
+end
+
+ignorefns = {'ExperimentDirectory'};
+
+[handles,success,msg] = LoadConfiguration(handles,fullfile(pathname,filename),ignorefns);
+if ~success,
+  warndlg(msg);
+  return;
+end
+
+handles = UpdateGUI(handles);
+guidata(hObject,handles);
+
+
+function handles = UpdateGUI(handles)
+
+% set value for input data type
+handles.InputDataTypeIndex = find(strcmpi(handles.InputDataTypeNames,handles.InputDataType),1);
+if isempty(handles.InputDataTypeIndex),
+  handles.InputDataTypeIndex = 1;
+  handles.InputDataType = handles.InputDataTypeNames{1};
+end
+set(handles.radiobutton_InputDataTypes(handles.InputDataTypeIndex),'Value',1);
+
+handles = UpdateInputDataType(handles);
+
+handles = UpdateOutputFilesTable(handles);
+
+% options
+set(handles.checkbox_softlink,'Value',handles.SoftLinkFiles);
+set(handles.checkbox_fliplr,'Value',handles.fliplr);
+set(handles.checkbox_flipud,'Value',handles.flipud);
+set(handles.edit_fps,'String',num2str(handles.fps));
+set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
+set(handles.checkbox_OverRideFPS,'Value',handles.OverRideFPS);
+
+% arena parameters
+UpdateArenaParameters(handles);

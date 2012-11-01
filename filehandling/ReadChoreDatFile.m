@@ -39,13 +39,13 @@ while true,
   end
   
   id = datacurr(1);
-  timestamp = datacurr(2);
+  timestamps = datacurr(2);
   value = datacurr(3);
 
   idi = find(id == ids,1);
   if isempty(idi),
     idi = numel(ids)+1;
-    newdata = struct('id',id,'timestamp',timestamp,'value',value);
+    newdata = struct('id',id,'timestamps',timestamps,'value',value);
     if isempty(ids),
       data = newdata;
     else
@@ -53,7 +53,7 @@ while true,
     end
     ids(idi) = id;
   else
-    data(idi).timestamp(end+1) = timestamp;
+    data(idi).timestamps(end+1) = timestamps;
     data(idi).value(end+1) = value;
   end
   
@@ -65,7 +65,7 @@ data = data(order);
 
 % sort by timestamps
 for i = 1:numel(data),
-  [data(i).timestamp,order] = sort(data(i).timestamp);
+  [data(i).timestamps,order] = sort(data(i).timestamps);
   data(i).value = data(i).value(order);
 end
 

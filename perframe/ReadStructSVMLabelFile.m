@@ -39,11 +39,17 @@ behavioridx = behavioridx+1;
 % initialize everything as None
 labelidx0 = repmat(2,[1,nframes]);
 isunknown = ismember(behaviornames,{'*Unknown*','*Tracker Failure*'});
-idx_behavior = find(~isunknown);
+isnone = strcmpi(behaviornames,'None');
+idx_behavior = find(~isunknown&~isnone);
 idx = find(isunknown(behavioridx));
 % set unknown labels
 for i = idx(:)',
   labelidx0(startframes(i):endframes(i)-1) = 0;
+end
+idx = find(isnone(behavioridx));
+% set none labels
+for i = idx(:)',
+  labelidx0(startframes(i):endframes(i)-1) = 2;
 end
 
 labels = cell(1,numel(idx_behavior));
