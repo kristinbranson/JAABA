@@ -3068,13 +3068,13 @@ void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence 
 	    (float)y->bouts[beh][i].bout_score, (float)y->bouts[beh][i].transition_score, (float)y->bouts[beh][i].unary_score, (float)y->bouts[beh][i].duration_score, (float)y->bouts[beh][i].loss_fn,  (float)y->bouts[beh][i].loss_fp);
     for(int j = 0; j < num_features+behaviors->behaviors[beh].num_values; j++) {
       if(inds[j] < num_features)
-	fprintf(fout, "<br>%lf=%f*%f, %s:%s %s\n", class_features[inds[j]], class_weights[c_prev][inds[j]], tmp_features[inds[j]], behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name, feature_names[inds[j]]);
+	fprintf(fout, "<br>%lf=%f*%f, %s:%s %s\n", class_features[inds[j]], class_weights[c_prev][inds[j]], tmp_features[inds[j]], behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[c_prev].name, feature_names[inds[j]]);
       else if(inds[j] < num_features+behaviors->behaviors[beh].num_values)
-	fprintf(fout, "<br>%lf, %s:%s->%s\n", class_transitions[inds[j]-num_features], behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name, behaviors->behaviors[beh].values[inds[j]-num_features].name);
+	fprintf(fout, "<br>%lf, %s:%s->%s\n", class_transitions[inds[j]-num_features], behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[c_prev].name, behaviors->behaviors[beh].values[inds[j]-num_features].name);
       else if(inds[j] < num_features+behaviors->behaviors[beh].num_values+1)
-	fprintf(fout, "<br>%lf, %s:%s unary\n", *unary, behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name);
+	fprintf(fout, "<br>%lf, %s:%s unary\n", *unary, behaviors->behaviors[beh].name, behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[c_prev].name);
       else 
-	fprintf(fout, "<br>%lf, %s:%s duration\n", *duration, behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[i].name);
+	fprintf(fout, "<br>%lf, %s:%s duration\n", *duration, behaviors->behaviors[beh].name, behaviors->behaviors[beh].name, behaviors->behaviors[beh].values[c_prev].name);
     }
   }
   free(class_weights);
