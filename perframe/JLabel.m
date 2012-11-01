@@ -5340,7 +5340,8 @@ function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.ShowSelectFeatures();
-
+handles = UpdatePrediction(handles);
+guidata(hObject,handles);
 
   
 % --- Executes when selected object is changed in panel_timeline_select.
@@ -6126,7 +6127,7 @@ function menu_view_suggest_balanced_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-in = inputdlg({'Number of frames per labeling bout','Number of intervals'});
+in = inputdlg({'Number of frames per labeling interval','Number of intervals'});
 if isempty(in), return; end
 intsize = str2double(in{1});
 numint = str2double(in{2});
