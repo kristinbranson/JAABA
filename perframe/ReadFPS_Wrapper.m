@@ -33,8 +33,10 @@ switch InputDataType,
     
   case 'MAGATAnalyzer',
 
-    success = false;
-    msg = 'Not implemented';
+    [success,msg,fps] = ...
+      ReadFPS_MAGATAnalyzer(...
+      leftovers{:},...
+      'fps',fps);
     
   case 'MWT',
     

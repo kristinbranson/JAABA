@@ -1,7 +1,7 @@
 function [success,msg] = ConvertMoTr2JAABA(varargin)
 
 success = false;
-msg = '';
+msg = {};
 
 %% parse inputs
 
@@ -10,7 +10,7 @@ msg = '';
   expdir,moviefilestr,trxfilestr,perframedirstr,...
   arenatype,arenacenterx,arenacentery,...
   arenaradius,arenawidth,arenaheight,...
-  pxpermm,fps,overridefps,...
+  pxpermm,...
   dosoftlink,frameinterval,...
   sex] = myparse(varargin,...
   'inmoviefile','','seqindexfile','',...
@@ -18,8 +18,7 @@ msg = '';
   'expdir','','moviefilestr','movie.ufmf','trxfilestr','trx.mat','perframedirstr','perframe',...
   'arenatype','None','arenacenterx',0,'arenacentery',0,...
   'arenaradius',123,'arenawidth',123,'arenaheight',123,...
-  'pxpermm',1,'fps',30,...
-  'overridefps',false,...
+  'pxpermm',1,...
   'dosoftlink',false,...
   'frameinterval',[],...
   'sex',{});
@@ -27,6 +26,11 @@ msg = '';
 %% check that required inputs are given
 if isempty(inmoviefile),
   msg = 'Input movie file is empty';
+  return;
+end
+[~,~,ext] = fileparts(inmoviefile);
+if ~strcmpi(ext,'.seq'),
+  msg = 'Input movie file must be a .seq file';
   return;
 end
 if isempty(seqindexfile),
@@ -70,13 +74,9 @@ nmice = numel(tmp.astrctTrackers);
 nframes = numel(tmp.astrctTrackers(1).m_afX);
 
 % fps
-if overridefps,
-  timestamps = timestamps(1)+(0:nframes-1)/fps;
-end
 dt = diff(timestamps);
-if ~overridefps,
-  fps = 1/median(dt);
-end
+fps = 1/median(dt);
+msg{end+1} = sprintf('Computed frame rate = %f fps from timestamps.',fps);
 
 if strcmpi(arenatype,'None'),
   arenacenterx = 0;
@@ -111,6 +111,9 @@ for i = 1:numel(sex),
   trx(i).sex = sex{i};
 end
 
+msg{end+1} = sprintf('Read trx for %d mice, frame range [%d,%d]',nmice,min([trx.firstframe]),max([trx.endframe]));
+msg{end+1} = sprintf('Using input pixels-per-mm scaling = %f.',pxpermm);
+
 arenaradius_mm = arenaradius / pxpermm;
 arenawidth_mm = arenawidth / pxpermm;
 arenaheight_mm = arenaheight / pxpermm;
@@ -119,6 +122,13 @@ arenacentery_mm = 0;
 trx = SetLandmarkParameters(trx,arenatype,arenacenterx_mm,arenacentery_mm,...
   arenaradius_mm,arenawidth_mm,arenaheight_mm); %#ok<NASGU>
 
+if strcmpi(arenatype,'Circle')
+  msg{end+1} = sprintf('Set circular arena parameters. Center = (0,0) mm, radius = %.1f mm.',arenaradius_mm);
+elseif strcmpi(arenatype,'Rectangle'),
+  msg{end+1} = sprintf('Set rectangular arena parameters. Center = (0,0) mm, width= %.1f mm, height = %.1f mm',arenawidth_mm,arenaheight_mm);  
+end
+msg{end+1} = sprintf('x_mm ranges within [%.1f,%.1f], y_mm ranges within [%.1f,%.1f]',...
+  min([trx.x_mm]),max([trx.x_mm]),min([trx.y_mm]),max([trx.y_mm]));
 
 %% create the experiment directory
 if ~exist(expdir,'dir'),
@@ -127,6 +137,7 @@ if ~exist(expdir,'dir'),
     msg = msg1;
     return;
   end
+  msg{end+1} = sprintf('Created experiment directory %s.',expdir);
 end
 
 %% save the trx file
@@ -140,9 +151,14 @@ if ~exist(trxfile,'file'),
   msg = sprintf('Failed to save trx to file %s',trxfile);
   return;
 end
+msg{end+1} = sprintf('Saved trx to file %s.',trxfile);
 
 %% copy/soft-link movie
+
 if dosoftlink,
+  if exist(moviefile,'file'),
+    delete(moviefile);
+  end
   if isunix,
     cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
     unix(cmd);
@@ -150,36 +166,59 @@ if dosoftlink,
     [status,result] = unix(sprintf('readlink %s',moviefile));
     result = strtrim(result);
     if status ~= 0 || ~strcmp(result,inmoviefile),
-      warndlg(sprintf('Failed to make soft link, copying %s to %s instead',inmoviefile,moviefile));
+      res = questdlg(sprintf('Failed to make soft link. Copy %s to %s instead?',inmoviefile,moviefile));
+      if ~strcmpi(res,'Yes'),
+        msg = sprintf('Failed to make soft link from %s to %s.',inmoviefile,moviefile);
+        return;
+      end
       dosoftlink = false;
     end
   elseif ispc,
+    if exist([moviefile,'.lnk'],'file'),
+      delete([moviefile,'.lnk']);
+    end
     cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
     fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
     system(cmd);
     % test to make sure that worked
     [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
     if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
-      res = questdlg(sprintf('Failed to make shortcut, copy %s to %s instead?',inmoviefile,moviefile));
-      if ismember(res,{'No','Cancel'}),
-        msg = sprintf('Failed to make shortcut from file %s to %s',inmoviefile,moviefile);
+      res = questdlg(sprintf('Failed to make shortcut. Copy %s to %s instead?',inmoviefile,moviefile));
+      if ~strcmpi(res,'Yes'),
+        msg = sprintf('Failed to make shortcut from %s to %s.',inmoviefile,moviefile);
         return;
       end
       dosoftlink = false;
     end
   else
-    warndlg(sprintf('Unknown OS, not soft-linking movie file %s',inmoviefile));
+    res = questdlg(sprintf('Unknown OS, cannot soft-link movie file %s. Copy instead?',inmoviefile));
+    if ~strcmpi(res,'Yes'),
+      msg = sprintf('Failed to make softlink from %s to %s.',inmoviefile,moviefile);
+      return;
+    end
     dosoftlink = false;
   end  
+  if dosoftlink,
+    msg{end+1} = sprintf('Made a link to movie file %s at %s',inmoviefile,moviefile);
+  end
 end
   
 if ~dosoftlink,
+  if ispc,
+    if exist([moviefile,'.lnk'],'file'),
+      delete([moviefile,'.lnk']);
+    end
+  end
+  if exist(moviefile,'file'),
+    delete(moviefile);
+  end
   [success1,msg1] = copyfile(inmoviefile,moviefile);
   if ~success1,
     msg = msg1;
     success = false;
     return;
   end
+  msg{end+1} = sprintf('Copied movie file %s to %s',inmoviefile,moviefile);
 end
 
 %% copy/soft-link index file

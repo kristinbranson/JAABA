@@ -1,7 +1,7 @@
 function [success,msg] = ConvertMWT2JAABA(varargin)
 
 success = false;
-msg = '';
+msg = {};
 
 MINDT = .001;
 MAXTIMESTAMPERR = .01;
@@ -17,7 +17,7 @@ trxfns = {'x','y','a','b','theta','x_mm','y_mm','a_mm','b_mm','theta_mm'};
   expdir,moviefilestr,trxfilestr,perframedirstr,...
   arenatype,arenacenterx,arenacentery,...
   arenaradius,arenawidth,arenaheight,...
-  pxpermm,fps,overridefps,...
+  pxpermm,fps,overridefps,overridearena,...
   dosoftlink] = myparse(varargin,...
   'inmoviefile','',...
   'blobsfile','','spinefile','','datfiles',{},...
@@ -25,7 +25,7 @@ trxfns = {'x','y','a','b','theta','x_mm','y_mm','a_mm','b_mm','theta_mm'};
   'arenatype','None','arenacenterx',0,'arenacentery',0,...
   'arenaradius',123,'arenawidth',123,'arenaheight',123,...
   'pxpermm',1,'fps',30,...
-  'overridefps',false,...
+  'overridefps',false,'overridearena',false,...
   'dosoftlink',false);
 
 % check that required inputs are given
@@ -250,6 +250,17 @@ if strcmpi(arenatype,'None'),
 end
 
 if isfield(trx,'x_mm'),
+  if ~overridearena,
+    idx = [trx.x_mm] > 0;
+    tmp = [trx.x]./[trx.x_mm];
+    s = nanstd(tmp);
+    if s < 1,
+      tmp = nanmean(tmp(idx));
+      if ~isnan(tmp),
+        pxpermm = tmp;
+      end
+    end
+  end
   dx = [trx.x_mm] - ([trx.x]-arenacenterx)/pxpermm;
   if nanstd(dx) > 1,
     msg = sprintf('pxpermm does not match the relationship between x and x_mm');
