@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 01-Nov-2012 13:41:13
+% Last Modified by GUIDE v2.5 02-Nov-2012 11:50:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -70,6 +70,7 @@ handles.featurehistogram_perwhat=1;
 handles.featurehistogram_style=1;
 handles.featurehistogram_logbinsize=0;
 handles.featurehistogram_notduring=0;
+handles.featurehistogram_nbins=100;
 handles.featuretimeseries_timing=1;
 handles.featuretimeseries_style=1;
 handles.featuretimeseries_subtractmean=0;
@@ -79,7 +80,7 @@ handles.interestingfeaturehistograms_omitinf=1;
 %handles.timeseries_tight=0;
 handles.prefs_centraltendency=1;
 handles.prefs_dispersion=1;
-handles.prefs_convolutionwidth=100;
+handles.prefs_convolutionwidth=1000;
 %handles.logy=0;
 %handles.stats=0;
 handles.interestingfeaturehistograms_cache=[];
@@ -138,6 +139,7 @@ handles.featurehistogram_perwhat=handles_saved.featurehistogram_perwhat;
 handles.featurehistogram_style=handles_saved.featurehistogram_style;
 handles.featurehistogram_logbinsize=handles_saved.featurehistogram_logbinsize;
 handles.featurehistogram_notduring=handles_saved.featurehistogram_notduring;
+handles.featurehistogram_nbins=handles_saved.featurehistogram_nbins;
 handles.featuretimeseries_timing=handles_saved.featuretimeseries_timing;
 handles.featuretimeseries_style=handles_saved.featuretimeseries_style;
 handles.featuretimeseries_subtractmean=handles_saved.featuretimeseries_subtractmean;
@@ -1070,7 +1072,8 @@ not_during=[not_during{:}];
 %function [table_data feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
 function [feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,...
-    feature_value,feature_list,individual,sexdata,perwhat,style,notduring,logbinsize,centraltendency,dispersion,color)
+    feature_value,feature_list,individual,sexdata,perwhat,style,notduring,logbinsize,nbins,...
+    centraltendency,dispersion,color)
 
 during={};  not_during={};  feature_units={};
 parfor e=1:length(experiment_value)
@@ -1143,13 +1146,13 @@ if(logbinsize)
     low=ans(1);  if(ans(1)==0)  low=ans(2);  end
     high=max(max(during));
   end
-  tmp=logspace(log10(low),log10(high));
+  tmp=logspace(log10(low),log10(high),nbins);
   set(gca,'xscale','log');
 else
   if(notduring)
-    tmp=linspace(min(min([during not_during])),max(max([during not_during])));
+    tmp=linspace(min(min([during not_during])),max(max([during not_during])),nbins);
   else
-    tmp=linspace(min(min(during)),max(max(during)));
+    tmp=linspace(min(min(during)),max(max(during)),nbins);
   end
 end
 
@@ -1203,7 +1206,7 @@ for g=gg
         handles.featurevalue,handles.featurelist,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
         handles.featurehistogram_perwhat,handles.featurehistogram_style,...
-        handles.featurehistogram_notduring,handles.featurehistogram_logbinsize,...
+        handles.featurehistogram_notduring,handles.featurehistogram_logbinsize,handles.featurehistogram_nbins,...
         handles.prefs_centraltendency,handles.prefs_dispersion,...
         handles.colors{1,1+mod(g-1,length(handles.colors))});
   end
@@ -1497,7 +1500,7 @@ end
 
 %---
 %function [table_data feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
-function [table_data feature_units]=plot_featuretimeseries(experiment_value,experiment_list,...
+function feature_units=plot_feature_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,feature_value,feature_list,...
     individual,sexdata,timing,style,centraltendency,dispersion,convolutionwidth,subtractmean,windowradius,color)
 
@@ -1541,12 +1544,12 @@ if(timing==1)
   cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],data,'uniformoutput',false);
   ydata=cat(1,ans{:});
   xdata=1:size(ydata,2);
-  table_data=[];
+  %table_data=[];
 else
   ydata=cat(1,data{:});
   xdata=-windowradius:windowradius;
-  table_data=[sqrt(nanmean(ydata(:,1:windowradius).^2,2))...
-              sqrt(nanmean(ydata(:,(windowradius+1):end).^2,2))];
+  %table_data=[sqrt(nanmean(ydata(:,1:windowradius).^2,2))...
+  %            sqrt(nanmean(ydata(:,(windowradius+1):end).^2,2))];
 end
 
 feature_units=feature_units{1};
@@ -1586,7 +1589,7 @@ for g=gg
   drawnow;
   if(~isempty(experimentvalue{g}))
     %[table_data{end+1} feature_units{end+1} tmp h]=plot_timeseries(experimentvalue{g},handles.experimentlist{g},...
-    [table_data{end+1} feature_units{end+1}]=plot_featuretimeseries(experimentvalue{g},handles.experimentlist{g},...
+    feature_units{end+1}=plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorvalue,handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,...
         handles.featurevalue,handles.featurelist,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
@@ -1765,7 +1768,7 @@ end
 
 
 % ---
-function [frames_labelled frames_total]=calculate_behaviorbarchart(experiment_value,experiment_list,...
+function [frames_labelled frames_total]=calculate_behavior_barchart(experiment_value,experiment_list,...
     behavior_list,behavior_logic,behavior_value2,individual,sexdata,perwhat)
 
 collated_data=cell(length(experiment_value),length(behavior_list));
@@ -1884,7 +1887,7 @@ for g=gg
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
   drawnow;
   if(~isempty(handles.experimentvalue{g}))
-    [frames_labelled{end+1} frames_total{end+1}]=calculate_behaviorbarchart(...
+    [frames_labelled{end+1} frames_total{end+1}]=calculate_behavior_barchart(...
         experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
@@ -2012,7 +2015,7 @@ set(handles.figure1,'pointer','arrow');
 
 
 % ---
-function plot_behaviortimeseries(experiment_value,experiment_list,...
+function plot_behavior_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_logic,behavior_value2,individual,sexdata,...
     style,centraltendency,dispersion,convolutionwidth,color)
 
@@ -2189,7 +2192,7 @@ for g=gg
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
   drawnow;
   if(~isempty(handles.experimentvalue{g}))
-    plot_behaviortimeseries(experimentvalue{g},handles.experimentlist{g},...
+    plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorlist{handles.behaviorvalue},...
         handles.behaviorlogic,handles.behaviorlist{handles.behaviorvalue2},...
         individual,handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
@@ -3643,6 +3646,17 @@ function MenuFeatureHistogramNotDuring_Callback(hObject, eventdata, handles)
 
 handles.featurehistogram_notduring=~handles.featurehistogram_notduring;
 menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuFeatureHistogramNbins_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFeatureHistogramNbins (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.featurehistogram_nbins=str2num(char(inputdlg({'Number of bins:'},'',1,...
+    {num2str(handles.featurehistogram_nbins)})));
 guidata(hObject,handles);
 
 
