@@ -229,7 +229,7 @@ classdef JLabelData < handle
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
       'classifierTS','confThresholds','scoreNorm','windowfeaturesparams','windowfeaturescellparams',...
       'basicFeatureTable','featureWindowSize','postprocessparams',...
-      'featurenames'};
+      'featurenames','scorefilename'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -241,6 +241,8 @@ classdef JLabelData < handle
     % parameter name, parameter value, so that it can be input to
     % ComputeWindowFeatures
     windowfeaturescellparams = {};
+    
+    savewindowfeatures = false;
     
     % State of the basic/compact feature table.
     basicFeatureTable = {};
@@ -657,7 +659,12 @@ end
         return;
       end
       %       try
-      configparams = ReadXMLParams(configfilename);
+      [~,~,ext] = fileparts(configfilename);
+      if strcmp(ext,'xml'),
+        configparams = ReadXMLParams(configfilename);
+      else
+        configparams = load(configfilename);
+      end
       %       catch ME,
       %         msg = sprintf('Error reading config file %s: %s',configfilename,getReport(ME));
       %         return;
@@ -684,16 +691,16 @@ end
         obj.confThresholds = zeros(1,obj.nbehaviors);
 
 %         % colors
-%         if isfield(configparams.behaviors,'labelcolors'),
-%           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
-%             obj.labelcolors = configparams.behaviors.labelcolors;
-%           end
-%         end
-%         if isfield(configparams.behaviors,'unknowncolor'),
-%           if numel(configparams.behaviors.unknowncolor) == 3,
-%             obj.unknowncolor = configparams.behaviors.unknowncolor;
-%           end
-%         end
+        if isfield(configparams.behaviors,'labelcolors'),
+          if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
+            obj.labelcolors = configparams.behaviors.labelcolors;
+          end
+        end
+        if isfield(configparams.behaviors,'unknowncolor'),
+          if numel(configparams.behaviors.unknowncolor) == 3,
+            obj.unknowncolor = configparams.behaviors.unknowncolor;
+          end
+        end
         
         % rearrange so that None is the last label
         nonei = find(strcmpi('None',obj.labelnames),1);
@@ -773,6 +780,14 @@ end
             return;
           end
         end
+        
+        if isfield(configparams,'windowfeatures') && ~isempty(configparams.windowfeatures)
+          obj.basicFeatureTable = configparams.windowfeatures.basicFeatureTable;
+          obj.featureWindowSize = configparams.windowfeatures.featureWindowSize;
+          obj.SetPerframeParams(configparams.windowfeatures.windowfeatureparams,...
+            configparams.windowfeatures.windowfeaturecellparams);
+        end
+        
         if isfield(configparams,'perframe'),
           if isfield(configparams.perframe,'params'),
             obj.perframe_params = configparams.perframe.params;
@@ -2710,6 +2725,11 @@ end
       
       obj.featureConfigFile = configfile;
       settings = ReadXMLParams(configfile);
+      
+      if isfield(settings,'perframe_params'),
+          obj.perframe_params = configparams.perframe.params;
+      end
+
       obj.allperframefns =  fieldnames(settings.perframe);
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
@@ -2764,7 +2784,32 @@ end
       obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
       obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
       obj.curperframefns = fieldnames(windowfeaturesparams);
+      obj.savewindowfeatures = true;
     end  
+    
+    
+    function ret = NeedSaveProject(obj)
+      ret = obj.savewindowfeatures;
+    end
+    
+    function ResetSaveProject(obj)
+      obj.savewindowfeatures = false;
+    end
+    
+    function SaveProject(obj)
+      configfilename = obj.configfilename;
+      [~,~,ext] = filepart(configfilename);
+      if strcmp(ext,'xml'),
+        uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
+        return;
+      end
+      windowfeatures = struct('windowfeaturesparams',obj.windowfeaturesparams,...
+        'windowfeaturescellparams',obj.windowfeaturescellparams,...
+        'basicFeatureTable',obj.basicFeatureTable,...
+        'featureWindowSize',obj.featureWindowSize);
+      save(configfilename,'windowfeatures','-append');
+      obj.ResetSaveProject(obj);
+    end
     
     function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
       windowfeaturesparams = obj.windowfeaturesparams; %#ok<PROP>
@@ -4464,8 +4509,10 @@ end
     end
     
     function ShowSelectFeatures(obj)
+      obj.SetStatus('Set the window computation features...');
       selHandle = SelectFeatures(obj);
       uiwait(selHandle);
+      obj.ClearStatus();
     end
     
     function wsize = GetFeatureWindowSize(obj)

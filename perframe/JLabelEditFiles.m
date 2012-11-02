@@ -398,7 +398,9 @@ InitJLabelGui(handles);
 handles = guidata(hObject);
 
 % ask user for experiment directory
-allexpdirs = uipickfiles('FilterSpec',handles.data.defaultpath,'Prompt','Add experiment directory');
+defaultdir = fileparts(handles.data.defaultpath);
+allexpdirs = uipickfiles('FilterSpec',defaultdir,...
+  'Prompt','Add experiment directory');
 if numel(allexpdirs)==1 && ~ischar(allexpdirs{1}),
   return;
 end
