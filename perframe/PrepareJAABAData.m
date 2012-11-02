@@ -22,7 +22,7 @@ function varargout = PrepareJAABAData(varargin)
 
 % Edit the above text to modify the response to help PrepareJAABAData
 
-% Last Modified by GUIDE v2.5 30-Oct-2012 17:45:18
+% Last Modified by GUIDE v2.5 02-Nov-2012 08:54:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,11 +52,10 @@ function PrepareJAABAData_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to PrepareJAABAData (see VARARGIN)
 
-% Choose default command line output for PrepareJAABAData
-handles.output = hObject;
+handles = InitializeData(handles);
+handles = InitializeGUI(handles);
 
-% Update handles structure
-guidata(hObject, handles);
+guidata(hObject,handles);
 
 % UIWAIT makes PrepareJAABAData wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -69,13 +68,7 @@ function varargout = PrepareJAABAData_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-
-handles = InitializeData(handles);
-handles = InitializeGUI(handles);
-
-guidata(hObject,handles);
+varargout = {};
 
 function handles = InitializeGUI(handles)
 
@@ -100,6 +93,7 @@ set(handles.checkbox_flipud,'Value',handles.flipud);
 set(handles.edit_fps,'String',num2str(handles.fps));
 set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 set(handles.checkbox_OverRideFPS,'Value',handles.OverRideFPS);
+set(handles.checkbox_OverRideArena,'Value',handles.OverRideArena);
 
 % arena parameters
 UpdateArenaParameters(handles);
@@ -117,7 +111,7 @@ if strcmpi(handles.ArenaType,'None'),
 elseif strcmpi(handles.ArenaType,'Circle'),
   set([handles.text_centerx,handles.edit_centerx,...
     handles.text_centery,handles.edit_centery,...
-    handles.text_arenasize1,handles.edit_arenasize1],'Visible','on');
+    handles.text_arenasize1,handles.edit_arenasize1],'Visible',handles.visible_edit_arena);
   set([handles.text_arenasize2,handles.edit_arenasize2],'Visible','off');
   set(handles.text_arenasize1,'String','Arena radius (px)');
   set(handles.edit_arenasize1,'String',num2str(handles.ArenaRadius));
@@ -126,11 +120,18 @@ else
   set([handles.text_centerx,handles.edit_centerx,...
     handles.text_centery,handles.edit_centery,...
     handles.text_arenasize1,handles.edit_arenasize1,...
-    handles.text_arenasize2,handles.edit_arenasize2],'Visible','on');
+    handles.text_arenasize2,handles.edit_arenasize2],'Visible',handles.visible_edit_arena);
   set(handles.text_arenasize1,'String','Arena width (px)');
   set(handles.edit_arenasize1,'String',num2str(handles.ArenaWidth));
   set(handles.edit_arenasize2,'String',num2str(handles.ArenaHeight));
 end
+
+if strcmpi(handles.visible_edit_pxpermm,'off') && strcmpi(handles.ArenaType,'None'),
+  set(handles.pushbutton_ComputeArenaParameters,'Enable','off');
+else
+  set(handles.pushbutton_ComputeArenaParameters,'Enable','on');
+end
+
 
 function handles = UpdateInputDataType(handles)
 
@@ -149,36 +150,65 @@ for i = 1:ninputfiles,
 end
 set(handles.uitable_InputFiles,'Data',data);
 
-if ismember(handles.InputDataType,{'LarvaeRiveraAlba'}),
-  set([handles.text_fps,handles.edit_fps,...
-    handles.text_pxpermm,handles.edit_pxpermm,...
-    handles.text_OverRideFPS,handles.checkbox_OverRideFPS,...
-    handles.text_arenatype,handles.popupmenu_arenatype,...
-    handles.text_centerx,handles.edit_centerx,...
-    handles.text_centery,handles.edit_centery,...
-    handles.text_arenasize1,handles.edit_arenasize1,...
-    handles.text_arenasize2,handles.edit_arenasize2,...
-    handles.pushbutton_ComputeArenaParameters,...
-    handles.pushbutton_ReadArenaParameters,...
-    handles.pushbutton_ReadFPS],...
-    'Enable','off');
-else
-  set([handles.text_fps,handles.edit_fps,...
-    handles.text_pxpermm,handles.edit_pxpermm,...
-    handles.text_OverRideFPS,handles.checkbox_OverRideFPS,...
-    handles.text_arenatype,handles.popupmenu_arenatype,...
-    handles.text_centerx,handles.edit_centerx,...
-    handles.text_centery,handles.edit_centery,...
-    handles.text_arenasize1,handles.edit_arenasize1,...
-    handles.text_arenasize2,handles.edit_arenasize2,...
-    handles.pushbutton_ComputeArenaParameters,...
-    handles.pushbutton_ReadArenaParameters,...
-    handles.pushbutton_ReadFPS],...
-    'Enable','on');
+hedit_arena = [handles.text_arenatype,handles.popupmenu_arenatype,...
+  handles.text_centerx,handles.edit_centerx,...
+  handles.text_centery,handles.edit_centery,...
+  handles.text_arenasize1,handles.edit_arenasize1,...
+  handles.text_arenasize2,handles.edit_arenasize2];
+
+handles.visible_edit_fps = 'on';
+handles.visible_override_fps = 'on';
+handles.visible_edit_pxpermm = 'on';
+handles.visible_edit_arena = 'on';
+handles.visible_override_arena = 'on';
+handles.visible_compute_arena = 'on';
+handles.visible_read_arena = 'on';
+handles.visible_read_fps = 'on';
+
+if strcmpi(InputDataType.writefps,'no'),
+  handles.visible_edit_fps = 'off';
+end
+if strcmpi(InputDataType.writefps,'no') || strcmpi(InputDataType.readfps,'no'),
+  handles.visible_override_fps = 'off';
+end
+if strcmpi(InputDataType.writepxpermm,'no'),
+  handles.visible_edit_pxpermm = 'off';
+end
+if strcmpi(InputDataType.writearena,'no'),
+  handles.visible_edit_arena = 'off';
+end
+if (strcmpi(InputDataType.writearena,'no')&&strcmpi(InputDataType.writepxpermm,'no')) || ...
+    (strcmpi(InputDataType.readarena,'no')&&strcmpi(InputDataType.readpxpermm,'no')) || ...
+    (strcmpi(InputDataType.readarena,'no')&&strcmpi(InputDataType.writepxpermm,'no')) || ...
+    (strcmpi(InputDataType.writearena,'no')&&strcmpi(InputDataType.readpxpermm,'no')),
+  handles.visible_override_arena = 'off';
+end
+if (strcmpi(InputDataType.writearena,'no')&&strcmpi(InputDataType.writepxpermm,'no')),
+  handles.visible_compute_arena = 'off';
+end
+if (strcmpi(InputDataType.writearena,'no')&&strcmpi(InputDataType.writepxpermm,'no')) || ...
+    (strcmpi(InputDataType.readarena,'no')&&strcmpi(InputDataType.readpxpermm,'no')) || ...
+    (strcmpi(InputDataType.readarena,'no')&&strcmpi(InputDataType.writepxpermm,'no')) || ...
+    (strcmpi(InputDataType.writearena,'no')&&strcmpi(InputDataType.readpxpermm,'no')),
+  handles.visible_read_arena = 'off';
+end
+if strcmpi(InputDataType.writefps,'no'),
+  handles.visible_read_fps = 'off';
 end
 
-
-    
+set([handles.text_fps,handles.edit_fps],'Visible',handles.visible_edit_fps);
+set([handles.text_OverRideFPS,handles.checkbox_OverRideFPS],'Visible',handles.visible_override_fps);
+set([handles.text_pxpermm,handles.edit_pxpermm],'Visible',handles.visible_edit_pxpermm);
+set([handles.text_arenatype,handles.popupmenu_arenatype,...
+  handles.text_centerx,handles.edit_centerx,...
+  handles.text_centery,handles.edit_centery,...
+  handles.text_arenasize1,handles.edit_arenasize1,...
+  handles.text_arenasize2,handles.edit_arenasize2],...
+  'Visible',handles.visible_edit_arena);
+set([handles.text_OverRideArena,handles.checkbox_OverRideArena],'Visible',handles.visible_override_arena);
+set(handles.pushbutton_ComputeArenaParameters,'Visible',handles.visible_compute_arena);
+set(handles.pushbutton_ReadArenaParameters,'Visible',handles.visible_read_arena);
+set(handles.pushbutton_ReadFPS,'Visible',handles.visible_read_fps);
 
 function handles = UpdateOutputFilesTable(handles)
 
@@ -244,7 +274,7 @@ handles.rcfilename = fullfile(p,'.PrepareJAABAData_rc.mat');
 handles = SetDefaultValues(handles);
 
 % allowed extensions for videos
-handles.VideoFileExts = {'*.ufmf';'*.avi';'*.fmf';'*.sbfmf';'*.*'};
+handles.VideoFileExts = {'*.ufmf';'*.avi';'*.fmf';'*.sbfmf';'*.seq';'*.mov';'*.mmf';'*.mp4';'*.*'};
 
 % arena file types
 handles.ArenaTypes = get(handles.popupmenu_arenatype,'String');
@@ -252,7 +282,7 @@ handles.ArenaTypes = get(handles.popupmenu_arenatype,'String');
 function handles = SetDefaultValues(handles)
 
 handles.config_fns = {'InputDataType','SoftLinkFiles','flipud','fliplr',...
-  'fps','pxpermm','OverRideFPS','ArenaType','ArenaCenterX','ArenaCenterY',...
+  'fps','pxpermm','OverRideFPS','OverRideArena','ArenaType','ArenaCenterX','ArenaCenterY',...
   'ArenaRadius','ArenaWidth','ArenaHeight',...
   'inputdir','ExperimentDirectory','moviefilestr',...
   'trxfilestr','perframedirstr','inputfilestrs','inputmoviefilestr'};
@@ -263,6 +293,7 @@ handles.flipud = false;
 handles.fliplr = false;
 handles.fps = 30;
 handles.OverRideFPS = false;
+handles.OverRideArena = false;
 handles.pxpermm = 1;
 handles.ArenaType = 'None';
 handles.ArenaCenterX = 0;
@@ -598,6 +629,8 @@ ClearBusy(handles);
 
 hinstr = nan;
 
+getpxpermm = strcmpi(handles.visible_edit_pxpermm,'on');
+
 switch lower(handles.ArenaType),
   case 'circle',
     title('Label circular arena wall');
@@ -610,8 +643,9 @@ switch lower(handles.ArenaType),
       'BACKSPACE or DELETE removes the previously '
       'selected point from the polyline.'},...
       'Label Circular Arena Wall');
+        
     while true,
-      [xc,yc,radius] = fitcircle_manual(hax);
+      [xc,yc,radius,h] = fitcircle_manual(hax);
       if isempty(xc),
         return;
       end
@@ -619,6 +653,9 @@ switch lower(handles.ArenaType),
       res = questdlg('Are you happy with the results?','','Yes','Redo','Cancel','Yes');
       switch lower(res),
         case 'redo',
+          if any(ishandle(h)),
+            delete(h(ishandle(h)))
+          end
           continue;
         case 'cancel',
           if ishandle(hinstr), delete(hinstr); end
@@ -636,24 +673,26 @@ switch lower(handles.ArenaType),
     UpdateArenaParameters(handles);
     
     % get diameter
-    while true,
-      res = inputdlg('Diameter of arena in millimeters','',1);
-      if isempty(res),
-        if ishandle(hinstr), delete(hinstr); end
-        return;
+    if getpxpermm,
+      while true,
+        res = inputdlg('Diameter of arena in millimeters','',1);
+        if isempty(res),
+          if ishandle(hinstr), delete(hinstr); end
+          return;
+        end
+        diameter_mm = str2double(res);
+        if isnan(diameter_mm),
+          warndlg('Please enter a number');
+          continue;
+        end
+        break;
       end
-      diameter_mm = str2double(res);
-      if isnan(diameter_mm),
-        warndlg('Please enter a number');
-        continue;
-      end
-      break;
+      
+      handles.pxpermm = 2*radius/diameter_mm;
+      UpdateArenaParameters(handles);
+    
+      guidata(hObject,handles);
     end
-    
-    handles.pxpermm = 2*radius/diameter_mm;
-    UpdateArenaParameters(handles);
-    
-    guidata(hObject,handles);
     
   case 'rectangle',
     title('Label rectangular arena wall');
@@ -676,19 +715,23 @@ switch lower(handles.ArenaType),
       height = rect(4);
 
       % display the calculated center
-      plot(xc,yc,'mx','LineWidth',2);
-      text(xc,yc,sprintf('  (%.1f, %.1f)',xc,yc),'Color','m','FontWeight','bold');
+      h = [];
+      h(1) = plot(xc,yc,'mx','LineWidth',2);
+      h(2) = text(xc,yc,sprintf('  (%.1f, %.1f)',xc,yc),'Color','m','FontWeight','bold');
 
       % plot the rectangle
-      plot(xc+width*.5*[-1,-1,1,1,-1],yc+height*.5*[-1,1,1,-1,-1],'m-','LineWidth',2);
+      h(3) = plot(xc+width*.5*[-1,-1,1,1,-1],yc+height*.5*[-1,1,1,-1,-1],'m-','LineWidth',2);
 
       message = sprintf('Width is %.1f pixels, height is %.1f pixels',width,height);
-      text(15,15,message,'Color','m','FontWeight','bold','BackgroundColor','k');
+      h(4) = text(15,15,message,'Color','m','FontWeight','bold','BackgroundColor','k');
       
       axis(hax,'image');
       res = questdlg('Are you happy with the results?','','Yes','Redo','Cancel','Yes');
       switch lower(res),
         case 'redo',
+          if any(ishandle(h)),
+            delete(h(ishandle(h)));
+          end
           continue;
         case 'cancel',
           if ishandle(hinstr), delete(hinstr); end
@@ -706,26 +749,27 @@ switch lower(handles.ArenaType),
     
     UpdateArenaParameters(handles);
     
-    % get width in millimeters
-    while true,
-      res = inputdlg('Width of arena in millimeters','',1);
-      if isempty(res),
-        if ishandle(hinstr), delete(hinstr); end
-        return;
+    if getpxpermm,
+      % get width in millimeters
+      while true,
+        res = inputdlg('Width of arena in millimeters','',1);
+        if isempty(res),
+          if ishandle(hinstr), delete(hinstr); end
+          return;
+        end
+        width_mm = str2double(res);
+        if isnan(width_mm),
+          warndlg('Please enter a number');
+          continue;
+        end
+        break;
       end
-      width_mm = str2double(res);
-      if isnan(width_mm),
-        warndlg('Please enter a number');
-        continue;
-      end
-      break;
+      
+      handles.pxpermm = width/width_mm;
+      UpdateArenaParameters(handles);
+      
+      guidata(hObject,handles);
     end
-    
-    handles.pxpermm = width/width_mm;
-    UpdateArenaParameters(handles);
-    
-    guidata(hObject,handles);
-    
   case 'none',
     
     title('Draw a line of known length');
@@ -809,7 +853,11 @@ SetBusy(handles,sprintf('Converting to output directory %s',handles.ExperimentDi
   'trxfilestr',handles.trxfilestr,...
   'perframedirstr',handles.perframedirstr,...
   'overridefps',handles.OverRideFPS,...
+  'overridearena',handles.OverRideArena,...
   'dosoftlink',handles.SoftLinkFiles,...
+  'fliplr',handles.fliplr,...
+  'flipud',handles.flipud,...
+  'dotransposeimage',false,...
   'fps',handles.fps,...
   'pxpermm',handles.pxpermm,...
   'arenatype',handles.ArenaType,...
@@ -824,7 +872,11 @@ ClearBusy(handles);
 if ~success,
   uiwait(warndlg(msg,'Problem converting'));
 else
-  res = questdlg('Conversion succesful!','Conversion successful','Go to folder','Done','Go to folder');
+  if isempty(msg),
+    res = questdlg('Conversion succesful!','Conversion successful','Go to folder','Done','Go to folder');
+  else
+    res = questdlg(msg,'Conversion successful!','Go to folder','Done','Go to folder');
+  end
   if strcmpi(res,'Go to folder'),
     if ispc,
       winopen(handles.ExperimentDirectory);
@@ -855,6 +907,8 @@ function pushbutton_Cancel_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+SaveConfiguration(handles,handles.rcfilename);
+delete(handles.figure1);
 
 % --- Executes when selected object is changed in uipanel_InputDataType.
 function uipanel_InputDataType_SelectionChangeFcn(hObject, eventdata, handles)
@@ -865,7 +919,6 @@ function uipanel_InputDataType_SelectionChangeFcn(hObject, eventdata, handles)
 %	NewValue: handle of the currently selected object
 % handles    structure with handles and user data (see GUIDATA)
 
-fprintf('Old handle: %f, new handle: %f\n',eventdata.OldValue,eventdata.NewValue);
 handles.InputDataTypeIndex = get(eventdata.NewValue,'UserData');
 handles.InputDataType = handles.InputDataTypeNames{handles.InputDataTypeIndex};
 handles = UpdateInputDataType(handles);
@@ -1061,7 +1114,7 @@ function pushbutton_ReadArenaParameters_Callback(hObject, eventdata, handles)
 
 InputDataType = handles.InputDataTypes.(handles.InputDataType);
 
-if strcmpi(InputDataType.hasarena,'never'),
+if strcmpi(InputDataType.readarena,'no'),
   warndlg(sprintf('Cannot read arena parameters for data type %s',InputDataType.name));
   return;
 end
@@ -1153,8 +1206,10 @@ if ~isempty(handles.InputVideoFile),
       end
       [~,t0] = readframe(f0);
       [~,t1] = readframe(f1);
-      handles.fps = (f1-f0)/(t1-t0);
-      readfpsfrom = 'inmoviefile';
+      if ~isnan(t0) && ~isnan(t1),
+        handles.fps = (f1-f0)/(t1-t0);
+        readfpsfrom = 'inmoviefile';
+      end
       
     end
     if fid > 1,
@@ -1364,6 +1419,19 @@ for i = 1:numel(fns),
   end
 end
 
+if ismember('inputfilestrs',fns),
+  fns0 = fieldnames(handles.inputfilestrs);
+  fns1 = fieldnames(handles.InputDataTypes);
+  idxremove = ~ismember(fns0,fns1);
+  if any(idxremove),
+    handles.inputfilestrs = rmfield(handles.inputfilestrs,fns0(idxremove));
+  end
+  idxadd = find(~ismember(fns1,fns0));
+  for i = idxadd(:)',
+    handles.inputfilestrs.(fns1{i})= cell(1,numel(handles.InputDataTypes.(fns1{i}).files));  
+  end
+end
+
 success = true;
 msg = '';
 
@@ -1435,6 +1503,36 @@ set(handles.checkbox_flipud,'Value',handles.flipud);
 set(handles.edit_fps,'String',num2str(handles.fps));
 set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 set(handles.checkbox_OverRideFPS,'Value',handles.OverRideFPS);
+set(handles.checkbox_OverRideArena,'Value',handles.OverRideArena);
 
 % arena parameters
 UpdateArenaParameters(handles);
+
+
+% --- Executes on button press in checkbox_OverRideArena.
+function checkbox_OverRideArena_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_OverRideArena (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_OverRideArena
+handles.OverRideArena = get(hObject,'Value');
+guidata(hObject,handles);
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+SaveConfiguration(handles,handles.rcfilename);
+delete(handles.figure1);
+
+
+% --- Executes during object deletion, before destroying properties.
+function figure1_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

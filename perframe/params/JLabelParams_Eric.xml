@@ -1,24 +1,13 @@
-<?xml version="1.0"?>
-
+<?xml version="1.0" encoding="utf-8"?>
 <params>
-  <targets
-      type="wingedfly"
-  />
-  <behaviors 
-      names="Lunging,WingExtension"
-      labelcolors=".7,0,0,0,.7,0,0,0,.7"
-      />
-  <file 
-      moviefilename="movie.mp4"
-      trxfilename="trx.mat"
-      labelfilename="AllTrainingLabels.mat"
-      gt_labelfilename="AllGroundTruthLabels.mat"
-      perframedir="perframe"
-      windowfilename="windowfeatures.mat"
-      featureparamfilename="params/WindowFeatures_EricFew.xml"
-      featureconfigfile="params/featureConfigEric.xml"
-      />
-  <featureparamlist>
+   <targets type="wingedfly"/>
+   <behaviors labelcolors="0.7,0,0,0,0.7,0,0,0,0.7" names="Lunging"/>
+   <file featureconfigfile="params/featureConfig.xml" gt_labelfilename="AllGroundTruthLabels.mat" labelfilename="AllTrainingLabels.mat" moviefilename="movie.mp4" perframedir="perframe" trxfilename="trx.mat" windowfilename="windowfeatures.mat"/>
+   <plot>
+      <trx colormap="jet" colormap_multiplier="0.7" extra_linestyle="-" extra_marker="."/>
+      <labels colormap="line" linewidth="3"/>
+   </plot>
+   <featureparamlist>
       <FArea/>
       <FLength/>
       <a_mm/>
@@ -70,19 +59,5 @@
       <wingthr/>
       <x_mm/>
       <y_mm/>
-  </featureparamlist>
-  
-  <plot>
-    <trx 
-	colormap="jet"
-	colormap_multiplier=".7"
-  extra_marker="."
-  extra_linestyle="-"
-	/>
-    <labels 
-	colormap="line"
-	linewidth="3"
-	/>
-  </plot>
-
+   </featureparamlist>
 </params>
