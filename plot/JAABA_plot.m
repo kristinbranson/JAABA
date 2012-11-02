@@ -1768,6 +1768,33 @@ end
 
 
 % ---
+function [ct,dp,dn]=calculate_ct_d(data,centraltendency,dispersion)
+
+switch(centraltendency)
+  case 1
+    ct=mean(data);
+  case 2
+    ct=median(data);
+end
+switch(dispersion)
+  case 1
+    tmp=std(data);
+    dp=ct+tmp;
+    dn=ct-tmp;
+  case 2
+    tmp=std(data)./sqrt(length(data));
+    dp=ct+tmp;
+    dn=ct-tmp;
+  case 3
+    dp=prctile(data,95);
+    dn=prctile(data,5);
+  case 4
+    dp=prctile(data,75);
+    dn=prctile(data,25);
+end
+
+
+% ---
 function [frames_labelled frames_total]=calculate_behavior_barchart(experiment_value,experiment_list,...
     behavior_list,behavior_logic,behavior_value2,individual,sexdata,perwhat)
 
@@ -1832,30 +1859,6 @@ switch(individual)
   otherwise
     frames_labelled=cellfun(@(x) x{1}(individual-3),collated_data,'uniformoutput',false);
     frames_total=cellfun(@(x) x{2}(individual-3),collated_data,'uniformoutput',false);
-end
-
-% ---
-function [ct,dp,dn]=calculate_ct_d(data,centraltendency,dispersion)
-
-switch(centraltendency)
-  case 1
-    ct=mean(data);
-  case 2
-    ct=median(data);
-end
-switch(dispersion)
-  case 1
-    dp=std(data);
-    dn=dp;
-  case 2
-    dp=std(data)./sqrt(length(data));
-    dn=dp;
-  case 3
-    dp=prctile(data,95);
-    dn=prctile(data,5);
-  case 4
-    dp=prctile(data,75);
-    dn=prctile(data,25);
 end
 
 
@@ -1944,17 +1947,20 @@ for b=1:length(frames_labelled{1})  % behavior
         for e=1:length(frames_labelled{g}(:,b))
           table_data{b}{g}{e}=100.*frames_labelled{g}{e,b}./frames_total{g}{e,b};
           [ct,dp,dn]=calculate_ct_d(table_data{b}{g}{e},handles.prefs_centraltendency,handles.prefs_dispersion);
-          plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',25);
+          %plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',25);
+          plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} 'o']);
           plot([m m],[dp dn],[handles.colors{1,1+mod(g-1,length(handles.colors))} '-']);
           plot(m+(1:length(table_data{b}{g}{e})),table_data{b}{g}{e},...
-              [handles.colors{1,1+mod(g-1,length(handles.colors))} 'o']);
-          m=m+8+length(table_data{b}{g}{e});
+              [handles.colors{1,1+mod(g-1,length(handles.colors))} '.']);
+              %[handles.colors{1,1+mod(g-1,length(handles.colors))} 'o']);
+          m=m+16+length(table_data{b}{g}{e});
         end
         [ct,dp,dn]=calculate_ct_d([table_data{b}{g}{:}],handles.prefs_centraltendency,handles.prefs_dispersion);
-        plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',35);
+        %plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',35);
+        plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} 'o'],'markersize',9);
         plot([m m],[dp dn],[handles.colors{1,1+mod(g-1,length(handles.colors))} '-'],'linewidth',3);
-        m=m+12;
-        k(end+1)=12+8*length(table_data{b}{g})+length([table_data{b}{g}{:}]);
+        m=m+24;
+        k(end+1)=24+16*length(table_data{b}{g})+length([table_data{b}{g}{:}]);
       end
       k=round(cumsum(k)-k/2);
   end
