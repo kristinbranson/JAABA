@@ -660,7 +660,7 @@ end
       end
       %       try
       [~,~,ext] = fileparts(configfilename);
-      if strcmp(ext,'xml'),
+      if strcmp(ext,'.xml'),
         configparams = ReadXMLParams(configfilename);
       else
         configparams = load(configfilename);
@@ -691,16 +691,16 @@ end
         obj.confThresholds = zeros(1,obj.nbehaviors);
 
 %         % colors
-        if isfield(configparams.behaviors,'labelcolors'),
-          if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
-            obj.labelcolors = configparams.behaviors.labelcolors;
-          end
-        end
-        if isfield(configparams.behaviors,'unknowncolor'),
-          if numel(configparams.behaviors.unknowncolor) == 3,
-            obj.unknowncolor = configparams.behaviors.unknowncolor;
-          end
-        end
+%         if isfield(configparams.behaviors,'labelcolors'),
+%           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
+%             obj.labelcolors = configparams.behaviors.labelcolors;
+%           end
+%         end
+%         if isfield(configparams.behaviors,'unknowncolor'),
+%           if numel(configparams.behaviors.unknowncolor) == 3,
+%             obj.unknowncolor = configparams.behaviors.unknowncolor;
+%           end
+%         end
         
         % rearrange so that None is the last label
         nonei = find(strcmpi('None',obj.labelnames),1);
