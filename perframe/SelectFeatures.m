@@ -52,6 +52,11 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to SelectFeatures (see VARARGIN)
 
+if ismac, % On mac change the foreground color to black.
+  allpopups = findall(hObject,'Style','popup');
+  set(allpopups,'ForegroundColor',[0 0 0]);
+end
+
 % Choose default command line output for SelectFeatures
 set(hObject,'Visible','off');
 JLDobj = varargin{1};
