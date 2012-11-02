@@ -1497,13 +1497,12 @@ end
 
 %---
 %function [table_data feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
-function [table_data feature_units]=plot_timeseries(experiment_value,experiment_list,...
+function [table_data feature_units]=plot_featuretimeseries(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,feature_value,feature_list,...
     individual,sexdata,timing,style,centraltendency,dispersion,convolutionwidth,subtractmean,windowradius,color)
 
-data=[];  feature_units={};
-%parfor e=1:length(experiment_value)
-for e=1:length(experiment_value)
+data={};  feature_units={};
+parfor e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},...
       [behavior_list{behavior_value} '.mat']));
   if(behavior_logic>1)
@@ -1529,93 +1528,30 @@ for e=1:length(experiment_value)
   tmp=nan;  if(individual>3)  tmp=individual-3;  end
 
   if(timing==1)
-    data{e}=calculate_entiretimeseries(behavior_data,feature_data,tmp2,tmp);
-    data{e}=conv(nanmean(data{e},1),ones(1,convolutionwidth)./convolutionwidth,'same');
+    calculate_entiretimeseries(behavior_data,feature_data,tmp2,tmp);
+    data{e}=conv(nanmean(ans,1),ones(1,convolutionwidth)./convolutionwidth,'same');
   else
-    tmp=calculate_triggeredtimeseries(behavior_data,behavior_logic,behavior_data2,...
+    data{e}=calculate_triggeredtimeseries(behavior_data,behavior_logic,behavior_data2,...
         feature_data,tmp2,tmp,timing,windowradius,subtractmean);
-    data=[data; tmp];
   end
 end
 
 if(timing==1)
   max(cellfun(@(x) size(x,2),data));
   cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],data,'uniformoutput',false);
-  data=cat(1,ans{:});
+  ydata=cat(1,ans{:});
+  xdata=1:size(ydata,2);
+  table_data=[];
+else
+  ydata=cat(1,data{:});
+  xdata=-windowradius:windowradius;
+  table_data=[sqrt(nanmean(ydata(:,1:windowradius).^2,2))...
+              sqrt(nanmean(ydata(:,(windowradius+1):end).^2,2))];
 end
 
 feature_units=feature_units{1};
 
-table_data=[sqrt(nanmean(data(:,1:windowradius).^2,2))...
-            sqrt(nanmean(data(:,(windowradius+1):end).^2,2))];
-
-plot_it(1:size(data,2),data,style,centraltendency,dispersion,color,1);
-
-%k=size(data,1);
-%if(statistic<4)
-%  data(k+3,:)=nanmean(data(1:k,:),1);
-%  tmp=nanstd(data(1:k,:),1)./sqrt(k);
-%  data(k+2,:)=data(k+3,:)+tmp;
-%  data(k+4,:)=data(k+3,:)-tmp;
-%  tmp=nanstd(data(1:k,:),1);
-%  data(k+1,:)=data(k+3,:)+tmp;
-%  data(k+5,:)=data(k+3,:)-tmp;
-%else
-%  data(k+1,:)=prctile(data(1:k,:),95,1);
-%  data(k+2,:)=prctile(data(1:k,:),75,1);
-%  data(k+3,:)=nanmedian(data(1:k,:),1);
-%  data(k+4,:)=prctile(data(1:k,:),25,1);
-%  data(k+5,:)=prctile(data(1:k,:), 5,1);
-%end
-
-%k=size(data,1);
-%if(statistic<4)
-%  data2(3,:)=nanmean(data,1);
-%  tmp=nanstd(data,1)./sqrt(k);
-%  data2(2,:)=data2(3,:)+tmp;
-%  data2(4,:)=data2(3,:)-tmp;
-%  tmp=nanstd(data,1);
-%  data2(1,:)=data2(3,:)+tmp;
-%  data2(5,:)=data2(3,:)-tmp;
-%else
-%  data2(1,:)=prctile(data,95,1);
-%  data2(2,:)=prctile(data,75,1);
-%  data2(3,:)=nanmedian(data,1);
-%  data2(4,:)=prctile(data,25,1);
-%  data2(5,:)=prctile(data, 5,1);
-%end
-%
-%if(timing==1)
-%  xdata=1:size(data,2);
-%else
-%  xdata=-windowradius:windowradius;
-%end
-%
-%%plot(xdata,data(1:end-5,:)','k-');
-%%h(1)=plot(xdata,data(end-2,:)',[color '-'],'linewidth',3);
-%%range=[min(data(end-2,:)) max(data(end-2,:))];
-%h(1)=plot(xdata,data2(3,:)',[color '-'],'linewidth',3);
-%range=[min(data2(3,:)) max(data2(3,:))];
-%switch(statistic)
-%  case {2,5}
-%    %h(2)=plot(xdata,data(end-4,:)',[color '-'],'linewidth',1);
-%    %h(3)=plot(xdata,data(end-0,:)',[color '-'],'linewidth',1);
-%    %range=[range; min(data(end-4,:)) max(data(end-4,:))];
-%    %range=[range; min(data(end-0,:)) max(data(end-0,:))];
-%    h(2)=plot(xdata,data2(1,:)',[color '-'],'linewidth',1);
-%    h(3)=plot(xdata,data2(5,:)',[color '-'],'linewidth',1);
-%    range=[range; min(data2(1,:)) max(data2(1,:))];
-%    range=[range; min(data2(5,:)) max(data2(5,:))];
-%  case {3,6}
-%    %h(2)=plot(xdata,data(end-3,:)',[color '-'],'linewidth',1);
-%    %h(3)=plot(xdata,data(end-1,:)',[color '-'],'linewidth',1);
-%    %range=[range; min(data(end-3,:)) max(data(end-3,:))];
-%    %range=[range; min(data(end-1,:)) max(data(end-1,:))];
-%    h(2)=plot(xdata,data2(2,:)',[color '-'],'linewidth',1);
-%    h(3)=plot(xdata,data2(4,:)',[color '-'],'linewidth',1);
-%    range=[range; min(data2(2,:)) max(data2(2,:))];
-%    range=[range; min(data2(4,:)) max(data2(4,:))];
-%end
+plot_it(xdata,ydata,style,centraltendency,dispersion,color,1);
 
 
 % --- Executes on button press in FeatureTimeSeries.
@@ -1650,7 +1586,7 @@ for g=gg
   drawnow;
   if(~isempty(experimentvalue{g}))
     %[table_data{end+1} feature_units{end+1} tmp h]=plot_timeseries(experimentvalue{g},handles.experimentlist{g},...
-    [table_data{end+1} feature_units{end+1}]=plot_timeseries(experimentvalue{g},handles.experimentlist{g},...
+    [table_data{end+1} feature_units{end+1}]=plot_featuretimeseries(experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorvalue,handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,...
         handles.featurevalue,handles.featurelist,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
