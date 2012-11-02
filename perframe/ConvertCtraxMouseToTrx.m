@@ -70,7 +70,7 @@ for ndx = 1:numel(trx)
 end
 
 save(fullfile(indir,outtrxfile),'trx');
-fclose(movie_fid);
+if movie_fid > 0, fclose(movie_fid); end
 
 function [tl tr bl br] = getCorners(img)
   
