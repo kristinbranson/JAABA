@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 02-Nov-2012 11:50:55
+% Last Modified by GUIDE v2.5 02-Nov-2012 14:16:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -87,29 +87,6 @@ handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
 handles.colors={'r' 'g' 'b' 'c' 'm' 'y' 'k';
                 'red' 'green' 'blue' 'cyan' 'magenta' 'yellow' 'black'};
-
-%set(handles.GroupList,'enable','off');
-%set(handles.ExperimentList,'enable','off');
-%set(handles.ExperimentAdd,'enable','off');
-%set(handles.ExperimentDelete,'enable','off');
-%set(handles.ExperimentMove,'enable','off');
-%set(handles.BehaviorList,'enable','off');
-%set(handles.BehaviorLogic,'enable','off');
-%set(handles.BehaviorList2,'enable','off');
-%set(handles.FeatureList,'enable','off');
-%set(handles.IndividualList,'enable','off');
-
-%set(handles.GroupList,'String',{''},'Value',1);
-%set(handles.ExperimentList,'String',{''},'Value',1);
-%set(handles.BehaviorList,'String',{''},'Value',1);
-%set(handles.BehaviorLogic,'Value',1);
-%set(handles.BehaviorList2,'String',{''});
-%set(handles.FeatureList,'String',{''},'Value',1);
-%set(handles.IndividualList,'String',{''},'Value',1);
-
-%set(handles.MenuTimeSeriesTight,'Checked','off');
-%set(handles.LogY,'backgroundcolor',get(gcf,'color'));
-%set(handles.Stats,'backgroundcolor',get(gcf,'color'));
 
 
 % ---
@@ -300,17 +277,6 @@ handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 
-% --- Executes on button press in Reset.
-function Reset_Callback(hObject, eventdata, handles)
-% hObject    handle to Reset (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user experiment (see GUIDATA)
-
-handles=initialize(handles);
-update_figure(handles);
-guidata(hObject, handles);
-
-
 % ---
 function figure_CloseRequestFcn(hObject, eventdata)
 
@@ -470,30 +436,6 @@ function BehaviorList2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-% --- Executes on selection change in ExperimentList2.
-%function ExperimentList2_Callback(hObject, eventdata, handles)
-% hObject    handle to ExperimentList2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns ExperimentList2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from ExperimentList2
-
-
-
-% --- Executes during object creation, after setting all properties.
-%function ExperimentList2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ExperimentList2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-%if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%    set(hObject,'BackgroundColor','white');
-%end
 
 
 % --- Executes on selection change in ExperimentList.
@@ -667,38 +609,6 @@ set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
 
 
-% --- Executes on button press in ExperimentDelete2.
-%function ExperimentDelete2_Callback(hObject, eventdata, handles)
-% hObject    handle to ExperimentDelete2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-%
-%if(length(handles.experimentlist2)==0)  return;  end
-%
-%set(handles.Status,'string','Thinking...');
-%
-%idx=get(handles.ExperimentList2,'Value');
-%handles.experimentlist2(idx)=[];
-%handles.experimentvalue2=min(handles.experimentvalue2,length(handles.experimentlist2));
-%handles.experimentvalue2=max(handles.experimentvalue2,1);
-%if(length(handles.experimentlist2)==0)
-%  handles.experimentlist2={};
-%  handles.experimentvalue2=[];
-%  set(handles.ExperimentList2,'enable','off');
-%  if(length(handles.experimentlist)==0)
-%    set(handles.BehaviorList,'enable','off');
-%    set(handles.BehaviorLogic,'enable','off');
-%    set(handles.BehaviorList2,'enable','off');
-%    set(handles.FeatureList,'enable','off');
-%    set(handles.IndividualList,'enable','off');
-%  end
-%end
-%set(handles.ExperimentList2,'String',handles.experimentlist2);
-%set(handles.ExperimentList2,'Value',handles.experimentvalue2);
-%
-%experiment_delete(hObject,handles,idx+length(handles.experimentlist));
-
-
 % --- Executes on button press in ExperimentDelete.
 function ExperimentDelete_Callback(hObject, eventdata, handles)
 % hObject    handle to ExperimentDelete (see GCBO)
@@ -786,47 +696,6 @@ guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
-
-
-% --- Executes on button press in ExperimentMove2.
-%function ExperimentMove2_Callback(hObject, eventdata, handles)
-% hObject    handle to ExperimentMove2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-%
-%if(length(handles.experimentlist2)==0)  return;  end
-%
-%set(handles.Status,'string','Thinking...');
-%
-%idx=get(handles.ExperimentList2,'Value');
-%idx2=length(handles.experimentlist);
-%handles.experimentlist={handles.experimentlist{:} handles.experimentlist2{idx}};
-%tmp=length(handles.experimentlist);
-%handles.experimentvalue=(tmp-length(idx)+1):tmp;
-%handles.experimentlist2(idx)=[];
-%handles.experimentvalue2=1;
-%if(length(handles.experimentlist2)==0)
-%  handles.experimentlist2={};
-%  handles.experimentvalue2=[];
-%  set(handles.ExperimentList2,'enable','off');
-%end
-%set(handles.ExperimentList,'String',handles.experimentlist);
-%set(handles.ExperimentList,'Value',handles.experimentvalue,'enable','on');
-%set(handles.ExperimentList2,'String',handles.experimentlist2);
-%set(handles.ExperimentList2,'Value',handles.experimentvalue2);
-%handles.behaviors=handles.behaviors([1:idx2 idx2+idx setdiff((idx2+1):length(handles.behaviors),idx2+idx)]);
-%handles.features=handles.features([1:idx2 idx2+idx setdiff((idx2+1):length(handles.behaviors),idx2+idx)]);
-%handles.individuals=handles.individuals([1:idx2 idx2+idx setdiff((idx2+1):length(handles.individuals),idx2+idx)]);
-%handles.sexdata=handles.sexdata([1:idx2 idx2+idx setdiff((idx2+1):length(handles.sexdata),idx2+idx)]);
-%
-%handles=fillin_individuallist(handles);
-%
-%handles.interesting_histograms=[];
-%handles.interesting_timeseries=[];
-%
-%guidata(hObject,handles);
-%
-%set(handles.Status,'string','Ready.');
 
 
 % --- Executes on button press in ExperimentMove.
@@ -2917,13 +2786,6 @@ function MenuFeatureTimeSeries_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --------------------------------------------------------------------
-%function MenuFeatureTimeSeriesTiming_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuFeatureTimeSeriesTiming (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
 % ---
 function menu_featuretimeseries_subtractmean_set(arg)
 
@@ -3214,197 +3076,6 @@ function MenuFeatureHistogram_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on button press in Prefs.
-function Prefs_Callback(hObject, eventdata, handles)
-% hObject    handle to Prefs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MenuPrefs_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% ---
-function menu_prefscentraltendency_set(arg)
-
-handles=guidata(gcf);
-
-set(handles.MenuPrefsCentralTendencyMean,'Checked','off');
-set(handles.MenuPrefsCentralTendencyMedian,'Checked','off');
-switch(arg)
-  case(1), set(handles.MenuPrefsCentralTendencyMean,'Checked','on');
-  case(2), set(handles.MenuPrefsCentralTendencyMedian,'Checked','on');
-end
-
-
-% --------------------------------------------------------------------
-function MenuPrefsCentralTendency_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsCentralTendency (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MenuPrefsCentralTendencyMean_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsCentralTendencyMean (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.prefs_centraltendency=1;
-menu_prefscentraltendency_set(handles.prefs_centraltendency);
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuPrefsCentralTendencyMedian_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsCentralTendencyMedian (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.prefs_centraltendency=2;
-menu_prefscentraltendency_set(handles.prefs_centraltendency);
-guidata(hObject,handles);
-
-
-% ---
-function menu_prefsdispersion_set(arg)
-
-handles=guidata(gcf);
-
-set(handles.MenuPrefsDispersionStdDev,'Checked','off');
-set(handles.MenuPrefsDispersionStdErr,'Checked','off');
-set(handles.MenuPrefsDispersion5,'Checked','off');
-set(handles.MenuPrefsDispersion25,'Checked','off');
-switch(arg)
-  case(1), set(handles.MenuPrefsDispersionStdDev,'Checked','on');
-  case(2), set(handles.MenuPrefsDispersionStdErr,'Checked','on');
-  case(3), set(handles.MenuPrefsDispersion5,'Checked','on');
-  case(4), set(handles.MenuPrefsDispersion25,'Checked','on');
-end
-
-
-% --------------------------------------------------------------------
-function MenuPrefsDispersion_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsDispersion (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MenuPrefsDispersionStdDev_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsDispersionStdDev (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.prefs_dispersion=1;
-menu_prefsdispersion_set(handles.prefs_dispersion);
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuPrefsDispersionStdErr_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsDispersionStdErr (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.prefs_dispersion=2;
-menu_prefsdispersion_set(handles.prefs_dispersion);
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuPrefsDispersion5_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsDispersion5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.prefs_dispersion=3;
-menu_prefsdispersion_set(handles.prefs_dispersion);
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuPrefsDispersion25_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsDispersion25 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.prefs_dispersion=4;
-menu_prefsdispersion_set(handles.prefs_dispersion);
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function MenuPrefsConvolutionWidth_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuPrefsConvolutionWidth (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.prefs_convolutionwidth=str2num(char(inputdlg({'Convolution width:'},'',1,...
-    {num2str(handles.prefs_convolutionwidth)})));
-guidata(hObject,handles);
-
-
-% --- Executes on button press in ZoomIn.
-%function ZoomIn_Callback(hObject, eventdata, handles)
-% hObject    handle to ZoomIn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-%h=zoom(gcf);
-%if(strcmp(get(h,'enable'),'off'))
-%  zoom on;
-  pan off;
-%  set(handles.ZoomIn,'backgroundcolor',0.4*[1 1 1]);
-%  set(handles.Pan,'backgroundcolor',get(gcf,'color'));
-%else
-%  zoom off;
-%  pan off;
-%  set(handles.ZoomIn,'backgroundcolor',get(gcf,'color'));
-%end
-
-
-% --- Executes on button press in Pan.
-%function Pan_Callback(hObject, eventdata, handles)
-% hObject    handle to Pan (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-%h=pan(gcf);
-%if(strcmp(get(h,'enable'),'off'))
-%  pan on;
-%  zoom off;
-%  set(handles.Pan,'backgroundcolor',0.4*[1 1 1]);
-%  set(handles.ZoomIn,'backgroundcolor',get(gcf,'color'));
-%else
-%  pan off;
-%  zoom off;
-%  set(handles.Pan,'backgroundcolor',get(gcf,'color'));
-%end
-
-
-% --- Executes on button press in LogX.
-%function LogX_Callback(hObject, eventdata, handles)
-% hObject    handle to LogX (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-%handles.logy=~handles.logy;
-%h=get(gca,'yscale');
-%if(handles.logy)
-%  set(gca,'yscale','log');
-%  set(handles.LogX,'backgroundcolor',0.4*[1 1 1]);
-%else
-%  set(gca,'yscale','linear');
-%  set(handles.LogX,'backgroundcolor',get(gcf,'color'));
-%end
-%guidata(hObject, handles);
-
-
 % --- Executes on button press in Stats.
 %function Stats_Callback(hObject, eventdata, handles)
 % hObject    handle to Stats (see GCBO)
@@ -3452,28 +3123,6 @@ function ExportGraph_Callback(hObject, eventdata, handles)
 % hObject    handle to ExportGraph (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in Load.
-function Load_Callback(hObject, eventdata, handles)
-% hObject    handle to Load (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[file,path]=uigetfile('*.mat','Select configuration file to open');
-handles=load_configuration_file(fullfile(path,file),hObject,eventdata,handles);
-update_figure(handles);
-guidata(hObject, handles);
-
-
-% --- Executes on button press in Save.
-function Save_Callback(hObject, eventdata, handles)
-% hObject    handle to Save (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[file,path]=uiputfile('*.mat','Select file to save configuration to');
-save(fullfile(path,file),'handles');
 
 
 % ---
@@ -3593,20 +3242,6 @@ guidata(hObject,handles);
 % --------------------------------------------------------------------
 function MenuInterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuInterestingFeatureHistograms (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in ZoomOut.
-%function ZoomOut_Callback(hObject, eventdata, handles)
-% hObject    handle to ZoomOut (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in LogY.
-%function LogY_Callback(hObject, eventdata, handles)
-% hObject    handle to LogY (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3759,3 +3394,179 @@ h2=errorbar(xb, b, dp, dn);
 set(h2(1),'linewidth',1);            % This changes the thickness of the errorbars
 set(h2(1),'color','k');              % This changes the color of the errorbars
 set(h2(1),'linestyle','none');       % This removes the connecting
+
+
+% --------------------------------------------------------------------
+function MenuPrefs_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefs (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% ---
+function menu_prefscentraltendency_set(arg)
+
+handles=guidata(gcf);
+
+set(handles.MenuPrefsCentralTendencyMean,'Checked','off');
+set(handles.MenuPrefsCentralTendencyMedian,'Checked','off');
+set(handles.MenuPrefsCentralTendencyMode,'Checked','off');
+switch(arg)
+  case(1), set(handles.MenuPrefsCentralTendencyMean,'Checked','on');
+  case(2), set(handles.MenuPrefsCentralTendencyMedian,'Checked','on');
+  case(2), set(handles.MenuPrefsCentralTendencyMode,'Checked','on');
+end
+
+
+% --------------------------------------------------------------------
+function MenuPrefsCentralTendency_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsCentralTendency (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuPrefsCentralTendencyMean_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsCentralTendencyMean (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_centraltendency=1;
+menu_prefscentraltendency_set(handles.prefs_centraltendency);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuPrefsCentralTendencyMedian_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsCentralTendencyMedian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_centraltendency=2;
+menu_prefscentraltendency_set(handles.prefs_centraltendency);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuPrefsCentralTendencyMode_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsCentralTendencyMode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_centraltendency=3;
+menu_prefscentraltendency_set(handles.prefs_centraltendency);
+guidata(hObject,handles);
+
+
+% ---
+function menu_prefsdispersion_set(arg)
+
+handles=guidata(gcf);
+
+set(handles.MenuPrefsDispersionStdDev,'Checked','off');
+set(handles.MenuPrefsDispersionStdErr,'Checked','off');
+set(handles.MenuPrefsDispersionPrctile5,'Checked','off');
+set(handles.MenuPrefsDispersionPrctile25,'Checked','off');
+switch(arg)
+  case(1), set(handles.MenuPrefsDispersionStdDev,'Checked','on');
+  case(2), set(handles.MenuPrefsDispersionStdErr,'Checked','on');
+  case(3), set(handles.MenuPrefsDispersionPrctile5,'Checked','on');
+  case(4), set(handles.MenuPrefsDispersionPrctile25,'Checked','on');
+end
+
+
+% --------------------------------------------------------------------
+function MenuPrefsDispersion_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsDispersion (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuPrefsDispersionStdDev_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsDispersionStdDev (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_dispersion=1;
+menu_prefsdispersion_set(handles.prefs_dispersion);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuPrefsDispersionStdErr_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsDispersionStdErr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_dispersion=2;
+menu_prefsdispersion_set(handles.prefs_dispersion);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuPrefsDispersionPrctile5_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsDispersion5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_dispersion=3;
+menu_prefsdispersion_set(handles.prefs_dispersion);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuPrefsDispersionPrctile25_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsDispersion25 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_dispersion=4;
+menu_prefsdispersion_set(handles.prefs_dispersion);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuPrefsConvolutionWidth_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuPrefsConvolutionWidth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.prefs_convolutionwidth=str2num(char(inputdlg({'Convolution width:'},'',1,...
+    {num2str(handles.prefs_convolutionwidth)})));
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuReset_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuReset (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+questdlg('Reset?','','Yes','No','No');
+if(strcmp(ans,'No'))  return;  end
+handles=initialize(handles);
+update_figure(handles);
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function MenuLoad_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuLoad (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[file,path]=uigetfile('*.mat','Select configuration file to open');
+handles=load_configuration_file(fullfile(path,file),hObject,eventdata,handles);
+update_figure(handles);
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function MenuSave_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSave (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[file,path]=uiputfile('*.mat','Select file to save configuration to');
+save(fullfile(path,file),'handles');
