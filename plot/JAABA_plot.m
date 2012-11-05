@@ -848,6 +848,84 @@ end
 ret_val=[ret_val ')'];
 
 
+% ---
+function print_csv_help(fid,tstr,xstr,ystr)
+
+tstr=strrep(tstr,'%','%%');
+xstr=strrep(xstr,'%','%%');
+ystr=strrep(ystr,'%','%%');
+
+fprintf(fid,['%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel=' ystr '\n%%\n']);
+
+%for g=1:length(handles.grouplist)
+%  fprintf(fid,['%% xdata, group ' handles.grouplist{g} ...
+%             '\n%% ydata1, group ' handles.grouplist{g} ...
+%             '\n%% ydata2, group ' handles.grouplist{g} ...
+%             '\n%%...\n%% ydataN, group ' handles.grouplist{g} '\n']);
+%  if(g<length(handles.grouplist));  fprintf(fid,'%%\n');  end
+%end
+%fprintf(fid,'\n');
+
+
+% ---
+function plot_it(xdata,ydata,style,centraltendency,dispersion,color,linewidth,fid,experimentlist)
+
+fprintf(fid,'%% xdata\n');  fprintf(fid,'%g, ',xdata);  fprintf(fid,'\n');
+if(style~=3)
+  switch(centraltendency)
+    case 1
+      data_ct=nanmean(ydata,1);
+      str_ct='mean';
+    case 2
+      data_ct=nanmedian(ydata,1);
+      str_ct='median';
+  end
+end
+switch(style)
+  case 1
+    plot(xdata,data_ct,color,'linewidth',linewidth);
+    fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
+  case 2
+    switch(dispersion)
+      case 1
+        tmp=nanstd(ydata,[],1);
+        data_dp=data_ct+tmp;
+        data_dn=data_ct-tmp;
+        str_dp=[str_ct ' + std dev'];
+        str_dn=[str_ct ' - std dev'];
+      case 2
+        tmp=nanstd(ydata,[],1)./sqrt(sum(~isnan(ydata),1));
+        data_dp=data_ct+tmp;
+        data_dn=data_ct-tmp;
+        str_dp=[str_ct ' + std err'];
+        str_dn=[str_ct ' - std err'];
+      case 3
+        data_dp=prctile(ydata,95);
+        data_dn=prctile(ydata,5);
+        str_dp='95%%';
+        str_dn='5%%';
+      case 4
+        data_dp=prctile(ydata,75);
+        data_dn=prctile(ydata,25);
+        str_dp='75%%';
+        str_dn='25%%';
+    end
+    plot(xdata,data_dp,color,'linewidth',linewidth);
+    plot(xdata,data_dn,color,'linewidth',linewidth);
+    plot(xdata,data_ct,color,'linewidth',3*linewidth);
+    fprintf(fid,['%% ydata, ' str_dp '\n']);  fprintf(fid,'%g, ',data_dp);  fprintf(fid,'\n');
+    fprintf(fid,['%% ydata, ' str_dn '\n']);  fprintf(fid,'%g, ',data_dn);  fprintf(fid,'\n');
+    fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
+  case 3
+    plot(xdata,ydata',color,'linewidth',linewidth);
+    for e=1:size(ydata,1)
+      fprintf(fid,['%% ydata, exp ' experimentlist{e} '\n']);
+      fprintf(fid,'%g, ',ydata(e,:));  fprintf(fid,'\n');
+    end
+end
+fprintf(fid,'\n');
+
+
 % --- 
 function [during not_during]=calculate_feature_histogram(behavior_data,behavior_logic,behavior_data2,...
     feature_data,sexdata,individual,perwhat)
@@ -942,7 +1020,7 @@ not_during=[not_during{:}];
 function [feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,...
     feature_value,feature_list,individual,sexdata,perwhat,style,notduring,logbinsize,nbins,...
-    centraltendency,dispersion,color)
+    centraltendency,dispersion,color,fid)
 
 during={};  not_during={};  feature_units={};
 parfor e=1:length(experiment_value)
@@ -1029,13 +1107,15 @@ if(notduring)
   hist_not_during=hist(not_during',tmp);
   if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
   hist_not_during=hist_not_during./repmat(sum(hist_not_during,1),size(hist_not_during,1),1);
-  plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1);
+  plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1,...
+    fid,experiment_list(experiment_value));
 end
 hist_during=hist(during',tmp);
 if(size(during,1)==1)  hist_during=hist_during';  end
 hist_during=hist_during./repmat(sum(hist_during,1),size(hist_during,1),1);
 linewidth=1;  if(notduring)  linewidth=2;  end
-plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth);
+plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
+    fid,experiment_list(experiment_value));
 
 
 % --- Executes on button press in FeatureHistogram.
@@ -1063,12 +1143,34 @@ end
 %axes(handles.Axes);  cla;  hold on;
 figure;  hold on;
 
+fid=fopen('most_recent_figure.csv','w');
+
+tstr='feature histogram';
+%xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
+xstr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
+switch(handles.behaviorlogic)
+  case 2
+    xstr=[xstr ' AND '];
+  case 3
+    xstr=[xstr ' AND NOT '];
+  case 4
+    xstr=[xstr ' OR '];
+end
+if(handles.behaviorlogic>1)
+  xstr=[xstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+end
+xstr=[xstr ' (%)'];
+ystr='normalized';
+
+print_csv_help(fid,tstr,xstr,ystr);
+
 table_data={};  feature_units={};
 for g=gg
   set(handles.Status,'string',...
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
   drawnow;
   if(~isempty(experimentvalue{g}))
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
     %[table_data{end+1} feature_units{end+1}]=plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
     [feature_units{end+1}]=plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorvalue,handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,...
@@ -1077,26 +1179,14 @@ for g=gg
         handles.featurehistogram_perwhat,handles.featurehistogram_style,...
         handles.featurehistogram_notduring,handles.featurehistogram_logbinsize,handles.featurehistogram_nbins,...
         handles.prefs_centraltendency,handles.prefs_dispersion,...
-        handles.colors{1,1+mod(g-1,length(handles.colors))});
+        handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
   end
 end
 
-%xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
-tmp=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
-switch(handles.behaviorlogic)
-  case 2
-    tmp=[tmp ' AND '];
-  case 3
-    tmp=[tmp ' AND NOT '];
-  case 4
-    tmp=[tmp ' OR '];
-end
-if(handles.behaviorlogic>1)
-  tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
-end
-tmp=[tmp ' (%)'];
-xlabel(tmp);
-ylabel('normalized');
+fclose(fid);
+
+xlabel(xstr);
+ylabel(ystr);
 axis tight;  zoom reset;
 
 %tmp=cat(1,table_data{:});
@@ -1328,52 +1418,15 @@ if(subtractmean)
 end
 
 
-% ---
-function plot_it(xdata,ydata,style,centraltendency,dispersion,color,linewidth)
-
-if(style~=3)
-  switch(centraltendency)
-    case 1
-      data_ct=nanmean(ydata,1);
-    case 2
-      data_ct=nanmedian(ydata,1);
-  end
-end
-switch(style)
-  case 1
-    plot(xdata,data_ct,color,'linewidth',linewidth);
-  case 2
-    switch(dispersion)
-      case 1
-        tmp=nanstd(ydata,[],1);
-        data_dp=data_ct+tmp;
-        data_dn=data_ct-tmp;
-      case 2
-        tmp=nanstd(ydata,[],1)./sqrt(sum(~isnan(ydata),1));
-        data_dp=data_ct+tmp;
-        data_dn=data_ct-tmp;
-      case 3
-        data_dp=prctile(ydata,95);
-        data_dn=prctile(ydata,5);
-      case 4
-        data_dp=prctile(ydata,75);
-        data_dn=prctile(ydata,25);
-    end
-    plot(xdata,data_dp,color,'linewidth',linewidth);
-    plot(xdata,data_dn,color,'linewidth',linewidth);
-    plot(xdata,data_ct,color,'linewidth',3*linewidth);
-  case 3
-    plot(xdata,ydata',color,'linewidth',linewidth);
-end
-
-
 %---
 %function [table_data feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
-function feature_units=plot_feature_timeseries(experiment_value,experiment_list,...
+%function feature_units=plot_feature_timeseries(experiment_value,experiment_list,...
+function plot_feature_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,feature_value,feature_list,...
-    individual,sexdata,timing,style,centraltendency,dispersion,convolutionwidth,subtractmean,windowradius,color)
+    individual,sexdata,timing,style,centraltendency,dispersion,convolutionwidth,subtractmean,windowradius,...
+    color,fid)
 
-data={};  feature_units={};
+data={};  %feature_units={};
 parfor e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},...
       [behavior_list{behavior_value} '.mat']));
@@ -1385,7 +1438,7 @@ parfor e=1:length(experiment_value)
   end
   feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
       [feature_list{feature_value} '.mat']));
-  feature_units{e}=feature_data.units;
+  %feature_units{e}=feature_data.units;
 
   tmp2=sexdata{experiment_value(e)};
   for i=1:length(tmp2)
@@ -1403,8 +1456,9 @@ parfor e=1:length(experiment_value)
     calculate_entiretimeseries(behavior_data,feature_data,tmp2,tmp);
     data{e}=conv(nanmean(ans,1),ones(1,convolutionwidth)./convolutionwidth,'same');
   else
-    data{e}=calculate_triggeredtimeseries(behavior_data,behavior_logic,behavior_data2,...
+    calculate_triggeredtimeseries(behavior_data,behavior_logic,behavior_data2,...
         feature_data,tmp2,tmp,timing,windowradius,subtractmean);
+    data{e}=nanmean(ans,1);
   end
 end
 
@@ -1421,9 +1475,9 @@ else
   %            sqrt(nanmean(ydata(:,(windowradius+1):end).^2,2))];
 end
 
-feature_units=feature_units{1};
+%feature_units=feature_units{1};
 
-plot_it(xdata,ydata,style,centraltendency,dispersion,color,1);
+plot_it(xdata,ydata,style,centraltendency,dispersion,color,1,fid,experiment_list(experiment_value));
 
 
 % --- Executes on button press in FeatureTimeSeries.
@@ -1450,45 +1504,64 @@ end
 
 figure;  hold on;
 
+fid=fopen('most_recent_figure.csv','w');
+
+tstr='feature time series';
+xstr='time (frames)';
+units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
+    [handles.featurelist{handles.featurevalue} '.mat']),'units');
+%ystr=get_label(handles.featurelist(handles.featurevalue),feature_units{1});
+ystr=get_label(handles.featurelist(handles.featurevalue),units.units);
+if(handles.featuretimeseries_timing>1)
+  tstr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
+  switch(handles.behaviorlogic)
+    case 2
+      tstr=[tstr ' AND '];
+    case 3
+      tstr=[tstr ' AND NOT '];
+    case 4
+      tstr=[tstr ' OR '];
+  end
+  if(handles.behaviorlogic>1)
+    tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+  end
+  tstr=[tstr ' (%)'];
+  title(tstr);
+end
+
+print_csv_help(fid,tstr,xstr,ystr);
+
 %range=[];
-table_data={};  feature_units={};
+table_data={};  %feature_units={};
 for g=gg
   set(handles.Status,'string',...
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
   drawnow;
   if(~isempty(experimentvalue{g}))
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
     %[table_data{end+1} feature_units{end+1} tmp h]=plot_timeseries(experimentvalue{g},handles.experimentlist{g},...
-    feature_units{end+1}=plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
+    %feature_units{end+1}=plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
+    plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorvalue,handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,...
         handles.featurevalue,handles.featurelist,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
         handles.featuretimeseries_timing,handles.featuretimeseries_style,...
         handles.prefs_centraltendency,handles.prefs_dispersion,handles.prefs_convolutionwidth,...
         handles.featuretimeseries_subtractmean,handles.timeseries_windowradius,...
-        handles.colors{1,1+mod(g-1,length(handles.colors))});
+        handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
 %    range=[range; tmp];
   end
 end
 
-xlabel('time (frames)');
-ylabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
-if(handles.featuretimeseries_timing>1)
-  tmp=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
-  switch(handles.behaviorlogic)
-    case 2
-      tmp=[tmp ' AND '];
-    case 3
-      tmp=[tmp ' AND NOT '];
-    case 4
-      tmp=[tmp ' OR '];
-  end
-  if(handles.behaviorlogic>1)
-    tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
-  end
-  tmp=[tmp ' (%)'];
-  title(tmp);
-end
+fclose(fid);
+
+xlabel(xstr);
+ylabel(ystr);
+title(tstr);
 axis tight;  zoom reset;
+
+
+
 %if((handles.timeseries_tight==1) && (min(range(:,1))<max(range(:,2))))
 %  v=axis;  axis([v(1) v(2) min(range(:,1)) max(range(:,2))]);
 %end
@@ -1767,9 +1840,29 @@ for g=gg
   end
 end
 
+fid=fopen('most_recent_figure.csv','w');
+
 figure;
 table_data=cell(1,length(frames_labelled{1}));
 for b=1:length(frames_labelled{1})  % behavior
+  tstr='behavior bar chart';
+  ystr=char(strrep(handles.behaviorlist(b),'_','-'));
+  switch(handles.behaviorlogic)
+    case 2
+      ystr=[ystr ' AND '];
+    case 3
+      ystr=[ystr ' AND NOT '];
+    case 4
+      ystr=[ystr ' OR '];
+  end
+  if(handles.behaviorlogic>1)
+    ystr=[ystr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+  end
+  ystr=[ystr ' (%)'];
+  xstr='group';
+
+  print_csv_help(fid,tstr,xstr,ystr);
+
   ceil(sqrt(length(frames_labelled{1})));
   subplot(ceil(length(frames_labelled{1})/ans),ans,b);  hold on;
   k=[];
@@ -1780,13 +1873,20 @@ for b=1:length(frames_labelled{1})  % behavior
         table_data{b}(g)=100*sum([frames_labelled{g}{:,b}])./sum([frames_total{g}{:,b}]);
         bar(g,table_data{b}(g),handles.colors{1,1+mod(g-1,length(handles.colors))});
       end
+      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',handles.grouplist{gg});  fprintf(fid,'\n');
+      fprintf(fid,['%% ydata, per group\n']);  fprintf(fid,'%g, ',table_data{b});  fprintf(fid,'\n');
     case 2  % per experiment, error bars
       table_data{b}=cell(1,length(frames_labelled));
       for g=1:length(frames_labelled)
         table_data{b}{g}=100*cellfun(@sum,frames_labelled{g}(:,b))./cellfun(@sum,frames_total{g}(:,b));
-        [ct,dp,dn]=calculate_ct_d(table_data{b}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
-        errorbarplot(g,ct,dp,dn,handles.colors{1,1+mod(g-1,length(handles.colors))});
+        [ct{g},dp{g},dn{g}]=...
+            calculate_ct_d(table_data{b}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
+        errorbarplot(g,ct{g},dp{g},dn{g},handles.colors{1,1+mod(g-1,length(handles.colors))});
       end
+      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',handles.grouplist{gg});  fprintf(fid,'\n');
+      fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',[dp{:}]);  fprintf(fid,'\n');
+      fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',[dn{:}]);  fprintf(fid,'\n');
+      fprintf(fid,['%% ydata, CT\n']);  fprintf(fid,'%g, ',[ct{:}]);  fprintf(fid,'\n');
     case 3  % per fly, grouped
       exp_separators=[];  maxy=0;
       table_data{b}=cell(1,length(frames_labelled));
@@ -1800,6 +1900,9 @@ for b=1:length(frames_labelled{1})  % behavior
         bar((1:length(table_data{b}{g}))+sum(k),table_data{b}{g},...
             handles.colors{1,1+mod(g-1,length(handles.colors))},'barwidth',1,'edgecolor','none');
         k(end+1)=length(table_data{b}{g});
+        fprintf(fid,['%% data, %s\n'],handles.grouplist{g});
+        fprintf(fid,'%g, ',table_data{b}{g});
+        fprintf(fid,'\n');
       end
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
@@ -1830,25 +1933,15 @@ for b=1:length(frames_labelled{1})  % behavior
         plot([m m],[dp dn],[handles.colors{1,1+mod(g-1,length(handles.colors))} '-'],'linewidth',3);
         m=m+24;
         k(end+1)=24+16*length(table_data{b}{g})+length([table_data{b}{g}{:}]);
+        fprintf(fid,['%% data, %s\n'],handles.grouplist{g});
+        fprintf(fid,'%g, ',[table_data{b}{g}{:}]);
+        fprintf(fid,'\n');
       end
       k=round(cumsum(k)-k/2);
   end
   if(isempty(k))  k=1:length(frames_labelled);  end
-  tmp=char(strrep(handles.behaviorlist(b),'_','-'));
-  switch(handles.behaviorlogic)
-    case 2
-      tmp=[tmp ' AND '];
-    case 3
-      tmp=[tmp ' AND NOT '];
-    case 4
-      tmp=[tmp ' OR '];
-  end
-  if(handles.behaviorlogic>1)
-    tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
-  end
-  tmp=[tmp ' (%)'];
-  title(tmp);
-  ylabel('percent');
+  %title(tstr);
+  ylabel(ystr);
   set(gca,'xtick',k,'xticklabel',handles.grouplist);
   axis tight;  vt=axis;
   axisalmosttight;  vat=axis;
@@ -1857,6 +1950,7 @@ for b=1:length(frames_labelled{1})  % behavior
   else
     axis([vat(1) vat(2) 0 vat(4)]);
   end
+  fprintf(fid,'\n');
 end
 
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
@@ -1871,17 +1965,29 @@ if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
     k=1;
     for g=1:length(table_data{b})-1
       for g2=(g+1):length(table_data{b})
-        if(b==1)  tmp{2,k+1}=strcat(handles.grouplist{g},',',handles.grouplist{g2});  end
+        if(b==1)  tmp{2,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});  end
         p=ranksum(table_data{b}{g},table_data{b}{g2});
         tmp{3*b+2,k+1}=p;
         k=k+1;
       end
     end
   end
+  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,1});      fprintf(fid,'\n');
+  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,2:end});  fprintf(fid,'\n');
+  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{2,2:end});  fprintf(fid,'\n\n');
+  for i=2:((size(tmp,1)+1)/3)
+    fprintf(fid,'%s, ',tmp{3*(i-1)+1,1});      fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{3*(i-1)+1,2:end});  fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{3*(i-1)+2,2:end});  fprintf(fid,'\n\n');
+  end
   set(handles.Table,'Data',tmp);
+  set(handles.Table,'ColumnName',{});
 else
   set(handles.Table,'Data',[]);
+  set(handles.Table,'ColumnName',{});
 end
+
+fclose(fid);
 
 guidata(hObject,handles);
 
@@ -1892,7 +1998,7 @@ set(handles.figure1,'pointer','arrow');
 % ---
 function plot_behavior_timeseries(experiment_value,experiment_list,...
     behavior_value,behavior_logic,behavior_value2,individual,sexdata,...
-    style,centraltendency,dispersion,convolutionwidth,color)
+    style,centraltendency,dispersion,convolutionwidth,color,fid)
 
 %collated_data=cell(length(experiment_value),length(behavior_list));
 %parfor e=1:length(experiment_value)
@@ -1971,7 +2077,8 @@ for e=1:length(experiment_value)
   behavior_cumulative(e,:)=conv(behavior_cumulative(e,:),ones(1,convolutionwidth)./convolutionwidth,'same');
 end
 
-plot_it(1:size(behavior_cumulative,2),100.*behavior_cumulative,style,centraltendency,dispersion,color,1);
+plot_it(1:size(behavior_cumulative,2),100.*behavior_cumulative,style,centraltendency,dispersion,color,1,...
+    fid,experiment_list(experiment_value));
 
 %if(style~=3)
 %  %behavior_cumulative=sum(behavior_cumulative,1)./(k-1).*100;
@@ -2061,37 +2168,47 @@ end
 
 figure;  hold on;
 
+fid=fopen('most_recent_figure.csv','w');
+
+tstr='behavior time series';
+xstr='time (frames)';
+%ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
+ystr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
+switch(handles.behaviorlogic)
+  case 2
+    ystr=[ystr ' AND '];
+  case 3
+    ystr=[ystr ' AND NOT '];
+  case 4
+    ystr=[ystr ' OR '];
+end
+if(handles.behaviorlogic>1)
+  ystr=[ystr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+end
+ystr=[ystr ' (%)'];
+
+print_csv_help(fid,tstr,xstr,ystr);
+
 table_data={};  raw_table_data={};
 for g=gg
   set(handles.Status,'string',...
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
   drawnow;
   if(~isempty(handles.experimentvalue{g}))
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
     plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorlist{handles.behaviorvalue},...
         handles.behaviorlogic,handles.behaviorlist{handles.behaviorvalue2},...
         individual,handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
         handles.behaviortimeseries_style,handles.prefs_centraltendency,handles.prefs_dispersion,...
-        handles.prefs_convolutionwidth,handles.colors{1,1+mod(g-1,length(handles.colors))});
+        handles.prefs_convolutionwidth,handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
   end
 end
 
-xlabel('time (frames)');
-%ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
-tmp=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
-switch(handles.behaviorlogic)
-  case 2
-    tmp=[tmp ' AND '];
-  case 3
-    tmp=[tmp ' AND NOT '];
-  case 4
-    tmp=[tmp ' OR '];
-end
-if(handles.behaviorlogic>1)
-  tmp=[tmp char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
-end
-tmp=[tmp ' (%)'];
-ylabel(tmp);
+fclose(fid);
+
+xlabel(xstr);
+ylabel(ystr);
 axis tight;  zoom reset;
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
