@@ -52,6 +52,11 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to SelectFeatures (see VARARGIN)
 
+if ismac, % On mac change the foreground color to black.
+  allpopups = findall(hObject,'Style','popup');
+  set(allpopups,'ForegroundColor',[0 0 0]);
+end
+
 % Choose default command line output for SelectFeatures
 set(hObject,'Visible','off');
 JLDobj = varargin{1};
@@ -256,8 +261,8 @@ function createDescriptionPanels(hObject)
 handles = guidata(hObject);
 
 % which tab to show
-handles.currentTab = 'description';
-set(handles.togglebutton_tabdescription,'Value',1);
+handles.currentTab = 'perframehistogram';
+set(handles.togglebutton_tabperframehistogram,'Value',1);
 
 % set visibility
 uipanel_tabs_SelectionChangeFcn(handles.uipanel_tabs, struct('NewValue',handles.togglebutton_tabdescription), handles);
