@@ -48,3 +48,15 @@ labelfiles = cellfun(@(x) fullfile(rootdatadir,x),labelfiles,'UniformOutput',fal
 %%
 
 ConvertStructSVMTrx2JAABA(trxfiles,labelfiles,expdir);
+%%
+
+rootdatadir = 'C:\Data\JAABA\eyrun\midres_flies_cleanedmovies';
+expdir = 'test_movie1seq1';
+
+%% grab files
+
+trxfiles = {fullfile(rootdatadir,'movie1_seq1.trx')};
+labelfiles = {fullfile(rootdatadir,'movie1_seq1.label')};
+
+%%
+ConvertStructSVMTrx2JAABA(trxfiles,labelfiles,expdir);

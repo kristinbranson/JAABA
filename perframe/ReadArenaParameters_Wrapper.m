@@ -17,7 +17,7 @@ msg = '';
   'pxpermm',1);  
 
 switch InputDataType,
-  case 'Ctrax',
+  case {'Ctrax','CtraxPlusWings'},
 
     [success,msg,...
       arenatype,arenacenterx,arenacentery,...
@@ -39,10 +39,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MouseHouse',
+  case 'MoTr',
 
     success = false;
-    msg = 'No arena parameters stored in MouseHouse files';
+    msg = 'No arena parameters stored in MoTr files';
     
   case 'Qtrax',
 
@@ -53,8 +53,18 @@ switch InputDataType,
     
   case 'MAGATAnalyzer',
 
+    [success,msg,pxpermm] = ...
+      ReadArenaParameters_MAGATAnalyzer(...
+      leftovers{:},...
+      'pxpermm',pxpermm);
+    
   case 'MWT',
 
+    [success,msg,pxpermm] = ...
+      ReadArenaParameters_MWT(...
+      leftovers{:},...
+      'pxpermm',pxpermm);
+    
   otherwise
     success = false;
     msg = sprintf('Unknown data type %s',InputDataType);
