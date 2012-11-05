@@ -18,7 +18,13 @@ msg = {};
   'dosavecadabrafeats',false,...
   'doflipud',false,'dofliplr',false,'dotransposeimage',false);
 
-% check that required inputs are given
+wingunits = struct(...
+  'nwingsdetected',parseunits('unit'),...
+  'wing_areal',parseunits('px^2'),...
+  'wing_arear',parseunits('px^2'),...
+  'wing_trough_angle',parseunits('rad'));
+
+%% check that required inputs are given
 if isempty(inmoviefile),
   msg = 'Input movie file is empty';
   return;
@@ -66,7 +72,7 @@ msg{end+1} = sprintf('Read pxpermm = %f',pxpermm);
 
 % get timestamps
 timestamps = feat.fly_feat.time;
-fps = 1/median(diff(timestamps));
+fps = 1/nanmedian(diff(timestamps));
 msg{end+1} = sprintf('Read fps = %f',fps);
 
 % allocate
@@ -182,6 +188,22 @@ for fly = 1:2,
     trx(fly).xwingr = trx(fly).ywingr;
     trx(fly).ywingr = tmp;
   end
+  
+  % for per-frame features
+  
+  % wing angles
+  trx(fly).wing_anglel = -obj(fly).phil/180*pi;
+  trx(fly).wing_angler = obj(fly).phir/180*pi;
+
+  % always set nwingsdetected to 2
+  perframedata.nwingsdetected{fly} = repmat(2,[1,trx(fly).nframes]);
+  
+  % this is really the wing length
+  perframedata.wing_areal{fly} = obj(fly).wingll*pxpermm;
+  perframedata.wing_arear{fly} = obj(fly).winglr*pxpermm;
+  
+  % set trough angle just to be between the two wings
+  perframedata.wing_trough_angle{fly} = (trx(fly).wing_angler - trx(fly).wing_anglel)/2;
   
 end
 
@@ -304,6 +326,16 @@ if ~exist(perframedir,'dir'),
     msg = msg1;
     return;
   end
+end
+
+%% save wing per-frame features
+
+fns = fieldnames(perframedata);
+for i = 1:numel(fns),
+  fn = fns{i};
+  s = struct('data',{perframedata.(fn)},'units',wingunits.(fn)); %#ok<NASGU>
+  filename = fullfile(perframedir,[fn,'.mat']);
+  save(filename,'-struct','s');
 end
 
 %% save the CADABRA per-frame features
