@@ -11,6 +11,7 @@ msg = {};
   arenatype,arenacenterx,arenacentery,...
   arenaradius,arenawidth,arenaheight,...
   pxpermm,...
+  dofliplr,doflipud,dotransposeimage,...
   dosoftlink,frameinterval,...
   sex] = myparse(varargin,...
   'inmoviefile','','seqindexfile','',...
@@ -19,6 +20,7 @@ msg = {};
   'arenatype','None','arenacenterx',0,'arenacentery',0,...
   'arenaradius',123,'arenawidth',123,'arenaheight',123,...
   'pxpermm',1,...
+  'fliplr',false,'flipud',false,'dotransposeimage',false,...
   'dosoftlink',false,...
   'frameinterval',[],...
   'sex',{});
@@ -53,15 +55,88 @@ perframedir = fullfile(expdir,perframedirstr);
 %% load in the data
 
 headerinfo = r_readseqinfo(inmoviefile);
-tmp = load(intrxfile);
+td = load(intrxfile);
+% orientation is backwards
+for i = 1:numel(td.astrctTrackers),
+  td.astrctTrackers(i).m_afTheta = -td.astrctTrackers(i).m_afTheta;
+end
+% get image size if flipping
+imheight = headerinfo.m_iHeight;
+imwidth = headerinfo.m_iWidth;
+nmice = numel(td.astrctTrackers);
+
+%% if sex not entered for each mice, ask for it
+
+if numel(sex) <= nmice,
+  prompt = cell(1,nmice);
+  for i = 1:nmice,
+    prompt{i} = sprintf('Mouse %d',i);
+  end
+  defans = sex;
+  for i = numel(sex)+1:nmice,
+    if i > nmice/2,
+      defans{i} = 'M';
+    else
+      defans{i} = 'F';
+    end
+  end
+  while true,
+    res = inputdlg(prompt,'Enter sex for each mouse. M = male, F = female.',1,defans,'on');
+    if isempty(res),
+      msg = 'Sex of each mouse not entered.';
+      return;
+    end
+    res = upper(res);
+    isok = ~cellfun(@isempty,regexp(res,'^(M|F)$','once'));
+    if all(isok),
+      sex = res;
+      break;
+    end
+    uiwait(warndlg('Sex must be M or F for each mouse'));
+    if any(isok),
+      [defans{isok}] = deal(res{isok});
+    end
+  end
+end
+
+%% flip if necessary
+if dofliplr,
+  for i = 1:numel(td.astrctTrackers),
+    td.astrctTrackers(i).m_afX = imwidth-td.astrctTrackers(i).m_afX+1;
+    td.astrctTrackers(i).m_afTheta = modrange(pi - td.astrctTrackers(i).m_afTheta,-pi,pi);
+  end
+  msg{end+1} = 'Flipped the trajectories left-right.';
+end
+if doflipud,
+  for i = 1:numel(td.astrctTrackers),
+    td.astrctTrackers(i).m_afY = imheight-td.astrctTrackers(i).m_afY+1;
+    td.astrctTrackers(i).m_afTheta = modrange(-td.astrctTrackers(i).m_afTheta,-pi,pi);
+  end
+  msg{end+1} = 'Flipped the trajectories up-down.';
+end
+if dotransposeimage,
+  for i = 1:numel(tx),
+    tmp = td.astrctTrackers(i).m_afX;
+    td.astrctTrackers(i).m_afX = td.astrctTrackers(i).m_afY;
+    td.astrctTrackers(i).m_afY = tmp;
+    c = cos(td.astrctTrackers(i).m_afTheta);
+    s = sin(td.astrctTrackers(i).m_afTheta);
+    td.astrctTrackers(i).m_afTheta = atan2(c,s);
+  end
+  msg{end+1} = 'Switched x and y in trajectories.';
+end
+
+%%
 
 % crop if desired
 if ~isempty(frameinterval),
-  fns = fieldnames(tmp.astrctTrackers);
+  frameinterval(1) = max(frameinterval(1),1);
+  frameinterval(2) = min(frameinterval(2),numel(td.astrctTrackers(1).m_afX));
+  fns = fieldnames(td.astrctTrackers);
   for i = 1:numel(fns),
     fn = fns{i};
-    for j = 1:numel(tmp.astrctTrackers),
-      tmp.astrctTrackers(j).(fn) = tmp.astrctTrackers(j).(fn)(frameinterval(1):frameinterval(2));
+    for j = 1:numel(td.astrctTrackers),
+      td.astrctTrackers(j).(fn) = td.astrctTrackers(j).(fn)(frameinterval(1):frameinterval(2));
     end
   end
   timestamps = headerinfo.m_afTimestamp(frameinterval(1):frameinterval(2));
@@ -70,8 +145,7 @@ else
 end
 
 % count
-nmice = numel(tmp.astrctTrackers);
-nframes = numel(tmp.astrctTrackers(1).m_afX);
+nframes = numel(td.astrctTrackers(1).m_afX);
 
 % fps
 dt = diff(timestamps);
@@ -85,11 +159,11 @@ end
 
 %% create new trx
 
-trx = struct('x',{tmp.astrctTrackers.m_afX},...
-  'y',{tmp.astrctTrackers.m_afY},...
-  'theta',cellfun(@(x) -x, {tmp.astrctTrackers.m_afTheta},'UniformOutput',false),...
-  'a',cellfun(@(x) x/2,{tmp.astrctTrackers.m_afA},'UniformOutput',false),...
-  'b',cellfun(@(x) x/2,{tmp.astrctTrackers.m_afB},'UniformOutput',false),...
+trx = struct('x',{td.astrctTrackers.m_afX},...
+  'y',{td.astrctTrackers.m_afY},...
+  'theta',{td.astrctTrackers.m_afTheta},...
+  'a',cellfun(@(x) x/2,{td.astrctTrackers.m_afA},'UniformOutput',false),...
+  'b',cellfun(@(x) x/2,{td.astrctTrackers.m_afB},'UniformOutput',false),...
   'firstframe',num2cell(ones(1,nmice)),...
   'arena',cell(1,nmice),...
   'off',num2cell(zeros(1,nmice)),...
@@ -99,11 +173,11 @@ trx = struct('x',{tmp.astrctTrackers.m_afX},...
   'moviename',repmat({inmoviefile},[1,nmice]),...
   'annname',repmat({intrxfile},[1,nmice]),...
   'matname',repmat({trxfile},[1,nmice]),...
-  'x_mm',cellfun(@(x) (x-arenacenterx)/pxpermm,{tmp.astrctTrackers.m_afX},'UniformOutput',false),...
-  'y_mm',cellfun(@(x) (x-arenacentery)/pxpermm,{tmp.astrctTrackers.m_afY},'UniformOutput',false),...
-  'a_mm',cellfun(@(x) x/pxpermm/2,{tmp.astrctTrackers.m_afA},'UniformOutput',false),...
-  'b_mm',cellfun(@(x) x/pxpermm/2,{tmp.astrctTrackers.m_afB},'UniformOutput',false),...
-  'theta_mm',cellfun(@(x) -x, {tmp.astrctTrackers.m_afTheta},'UniformOutput',false),...
+  'x_mm',cellfun(@(x) (x-arenacenterx)/pxpermm,{td.astrctTrackers.m_afX},'UniformOutput',false),...
+  'y_mm',cellfun(@(x) (x-arenacentery)/pxpermm,{td.astrctTrackers.m_afY},'UniformOutput',false),...
+  'a_mm',cellfun(@(x) x/pxpermm/2,{td.astrctTrackers.m_afA},'UniformOutput',false),...
+  'b_mm',cellfun(@(x) x/pxpermm/2,{td.astrctTrackers.m_afB},'UniformOutput',false),...
+  'theta_mm',cellfun(@(x) -x, {td.astrctTrackers.m_afTheta},'UniformOutput',false),...
   'dt',repmat({dt},[1,nmice]),...
   'fps',repmat({fps},[1,nmice]),...
   'pxpermm',repmat({pxpermm},[1,nmice]));
@@ -120,7 +194,7 @@ arenaheight_mm = arenaheight / pxpermm;
 arenacenterx_mm = 0;
 arenacentery_mm = 0;
 trx = SetLandmarkParameters(trx,arenatype,arenacenterx_mm,arenacentery_mm,...
-  arenaradius_mm,arenawidth_mm,arenaheight_mm); %#ok<NASGU>
+  arenaradius_mm,arenawidth_mm,arenaheight_mm);
 
 if strcmpi(arenatype,'Circle')
   msg{end+1} = sprintf('Set circular arena parameters. Center = (0,0) mm, radius = %.1f mm.',arenaradius_mm);

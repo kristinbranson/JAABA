@@ -17,7 +17,7 @@ msg = '';
   'pxpermm',1);  
 
 switch InputDataType,
-  case 'Ctrax',
+  case {'Ctrax','CtraxPlusWings'},
 
     [success,msg,...
       arenatype,arenacenterx,arenacentery,...
