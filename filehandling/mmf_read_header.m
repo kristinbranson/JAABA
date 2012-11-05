@@ -25,14 +25,12 @@ function header = mmf_read_header(filename,varargin)
 % filename = '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/data/larvae_bruno/20120211_161800/20120211_161800@FCF_w1118_1500005@UAS_TNT_2_0003@t7@n#n#n#n@30@.mmf'
 
 INDEXEXT = '.index.mat';
-FILEMARKER = 'a3d2d45d';
-BGMARKER = 'bb67ca20';
-IMAGEMARKER = 'f80921af';
-DEBUG = 0;
+BGMARKER = hex2dec('bb67ca20');
+IMAGEMARKER = hex2dec('f80921af');
+DEBUG = false;
 MAXNMEANSCACHED = 5;
 
-[forcebuildindex,showwaitbar,DEBUG] = ...
-  myparse(varargin,'forcebuildindex',false,'showwaitbar',true,'debug',DEBUG);
+[forcebuildindex,DEBUG] = myparse(varargin,'forcebuildindex',false,'debug',DEBUG);
 
 % name of file with frame to file index
 indexfilename = [filename,INDEXEXT];
@@ -50,17 +48,8 @@ header.fid = fid;
 
 if ~dobuildindex,
   header = load(indexfilename);
-  header.fid = fid;
 else
   
-fprintf('Building index for mmf movie %s...\n',filename);
-
-if showwaitbar,
-  fseek(fid,0,'eof');
-  endoffileloc = ftell(fid);
-end
-fseek(fid,0,'bof');
-
 % Set of Image Stacks representing a movie. Beginning of file is a header, with this format:
 % 10240 byte zero padded header beginning with a textual description of the file, followed by \0 then the following fields (all ints, except idcode)
 
@@ -75,10 +64,7 @@ while true,
 end
 
 % read idcode
-file_idcode = dec2hex(fread(fid,1,'ulong')); 
-if ~strcmpi(file_idcode,FILEMARKER),
-  error('id code %s does not match file id code %s',file_idcode,FILEMARKER);
-end
+header_idcode = dec2hex(fread(fid,1,'ulong')); %#ok<NASGU>
 
 % read header size
 headersize = fread(fid,1,'int');
@@ -88,15 +74,13 @@ header.headersize = headersize;
 keyframeinterval = fread(fid,1,'int');
 header.keyframeinterval = keyframeinterval;
 
-if DEBUG > 0,
-  % read threshold below background
-  thresholdbelowbackground = fread(fid,1,'int');
-  
-  % read threshold below background
-  thresholdabovebackground = fread(fid,1,'int');
-  % seek to the end of the header
-end
+% read threshold below background
+thresholdbelowbackground = fread(fid,1,'int'); %#ok<NASGU>
 
+% read threshold below background
+thresholdabovebackground = fread(fid,1,'int'); %#ok<NASGU>
+
+% seek to the end of the header
 fseek(fid,headersize,'bof');
 
 header.stacksizes = [];
@@ -105,16 +89,9 @@ header.stackstarts = [];
 header.mean2file = [];
 header.frame2file = [];
 header.frame2mean = [];
-header.numblocks = [];
 
 isfirst = true;
 stacki = 0;
-
-firststackstartloc = ftell(fid);
-
-if showwaitbar,
-  hwait = waitbar(0,'Constructing mmf index...');
-end
 
 while true,
   
@@ -123,12 +100,9 @@ while true,
   % 4 byte unsigned long idcode = bb67ca20, header size in bytes, total size of stack on disk, nframes: number of images in stack
 
   stackstart = ftell(fid);
-  if showwaitbar && ishandle(hwait),
-    waitbar((stackstart-firststackstartloc)/endoffileloc,hwait);
-  end
-
-  bg_idcode = dec2hex(fread(fid,1,'ulong')); 
-  if isempty(bg_idcode) || ~strcmpi(bg_idcode,BGMARKER),
+  
+  bg_idcode = fread(fid,1,'ulong'); 
+  if isempty(bg_idcode) || bg_idcode ~= BGMARKER,
     break;
   end
   
@@ -202,7 +176,7 @@ while true,
   header.mean2file(end+1) = ftell(fid);
   
   % followed by the image data
-  if DEBUG >= 2,
+  if DEBUG,
     bkgdim_data = fread(fid,bkgdim_imagesize,'uint8=>uint8');
     bkgdim_data = reshape(bkgdim_data,bkgdim_widthstep,bkgdim_height);
     bkgdim_data = bkgdim_data(1:bkgdim_width,:);
@@ -216,61 +190,45 @@ while true,
   % image blocks that differ from background) then metadata:
   % Name-Value MetaData: idcode (unsigned long) = c15ac674, int number of key-value pairs stored, then each pair
   % in the format \0-terminated string of chars then 8 byte double value
-  % disp(stacknframes)
   for i = 1:stacknframes,
-      
-    imstart = ftell(fid);
-      
-    im_idcode = dec2hex(fread(fid,1,'ulong'));
-    if ~strcmpi(im_idcode,IMAGEMARKER),
+    header.frame2file(end+1) = ftell(fid);
+    header.frame2mean(end+1) = stacki;
+    im_idcode = fread(fid,1,'ulong');
+    if im_idcode ~= IMAGEMARKER,
       break;
     end
     im_headersize = fread(fid,1,'int');
-    if DEBUG > 0,
-      im_depth = fread(fid,1,'int');
-      im_nchannels = fread(fid,1,'int');
-    else
-      fseek(fid,8,'cof');
-    end
-    
+    %im_depth = fread(fid,1,'int');
+    %im_nchannels = fread(fid,1,'int');
+    fseek(fid,8,'cof');
     im_numblocks = fread(fid,1,'int');
-    header.numblocks(end+1) = im_numblocks;
-    if DEBUG > 0,
-
-      im_metadata_idcode = fread(fid,1,'ulong'); %#ok<*NASGU>
-      im_metadata_nkeyvals = fread(fid,1,'int');
-      im_metadata_keys = cell(1,im_metadata_nkeyvals);
-      im_metadata_vals = cell(1,im_metadata_nkeyvals);
-      for metadatai = 1:im_metadata_nkeyvals,
-        fn = '';
-        while true,
-          c = fread(fid,1,'*char');
-          if c == 0,
-            break;
-          end
-          fn(end+1) = c; %#ok<AGROW>
-        end
-        val = fread(fid,1,'double');
-        im_metadata_keys{metadatai} = fn;
-        im_metadata_vals{metadatai} = val;
-      end
-    
-    end
+    %im_metadata_idcode = fread(fid,1,'ulong');
+    %im_metadata_nkeyvals = fread(fid,1,'int');
+    %im_metadata_keys = cell(1,im_metadata_nkeyvals);
+    %im_metadata_vals = cell(1,im_metadata_nkeyvals);
+    %for i = 1:im_metadata_nkeyvals,
+    %fn = '';
+    %while true,
+    %  c = fread(fid,1,'*char');
+    %  if c == 0,
+    %    break;
+    %  end
+    %  fn(end+1) = c; %#ok<AGROW>
+    %end
+    %val = fread(fid,1,'double');
+    %im_metadata_keys{i} = fn;
+    %im_metadata_vals{i} = val;
+    %end
     
     % seek to the end of the header
-    fseek(fid,imstart+im_headersize,'bof');
-    
-    % skip the header when reading the blocks
-    header.frame2file(end+1) = ftell(fid);
-    header.frame2mean(end+1) = stacki;
-    
-    if DEBUG >= 2,
+    fseek(fid,header.frame2file(end)+im_headersize,'bof');
+    if DEBUG,
       im_data = bkgdim_data;
     end
     for j = 1:im_numblocks,
       block_rect = fread(fid,4,'int');
       % then interlaced row ordered image data
-      if DEBUG >= 2,
+      if DEBUG,
         block_data = fread(fid,block_rect(3)*block_rect(4),'*uint8');
         block_data = reshape(block_data,[block_rect(3),block_rect(4)]);
         im_data(block_rect(1)+1:block_rect(1)+block_rect(3),block_rect(2)+1:block_rect(2)+block_rect(4)) = block_data;
@@ -279,7 +237,7 @@ while true,
       end
     end
     
-    if DEBUG >= 2,
+    if DEBUG,
       imagesc(im_data);
       axis image;
       drawnow;
@@ -295,16 +253,12 @@ header.ncolors = 1;
 header.nr = header.height;
 header.nc = header.width;
 
+end
+
 try
   save(indexfilename,'-struct','header');
 catch ME
   warning('Could not save index file to %s:\n%s',indexfilename,getReport(ME));
-end
-
-if showwaitbar && ishandle(hwait),
-  delete(hwait);
-end
-fprintf('Done building index.\n');
 end
 
 % cache some means
@@ -317,3 +271,4 @@ header.cachedmeans_accesstime = -inf(1,nmeanscached);
 for i = 1:nmeanscached,
   [~,header] = mmf_read_mean(header,'meani',i);
 end
+

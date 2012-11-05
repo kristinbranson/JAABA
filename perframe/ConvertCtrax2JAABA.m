@@ -1,23 +1,35 @@
 function [success,msg] = ConvertCtrax2JAABA(varargin)
 
 success = false;
-msg = '';
+msg = {};
 
 [inmoviefile,intrxfile,annfile,...
   expdir,moviefilestr,trxfilestr,perframedirstr,...
   arenatype,arenacenterx,arenacentery,...
   arenaradius,arenawidth,arenaheight,...
-  pxpermm,fps,overridefps,...
-  dosoftlink] = myparse(varargin,...
+  pxpermm,fps,overridefps,overridearena,...
+  dosoftlink,...
+  dofliplr,doflipud,dotransposeimage,...
+  inperframedir] = myparse(varargin,...
   'inmoviefile','','intrxfile','','annfile','',...
   'expdir','','moviefilestr','movie.ufmf','trxfilestr','trx.mat','perframedirstr','perframe',...
   'arenatype','None','arenacenterx',0,'arenacentery',0,...
   'arenaradius',123,'arenawidth',123,'arenaheight',123,...
   'pxpermm',1,'fps',30,...
-  'overridefps',false,...
-  'dosoftlink',false);
+  'overridefps',false,'overridearena',false,...
+  'dosoftlink',false,...
+  'fliplr',false,...
+  'flipud',false,...
+  'dotransposeimage',false,...
+  'inperframedir','');
 
-% check that required inputs are given
+wingunits = struct(...
+  'nwingsdetected',parseunits('unit'),...
+  'wing_areal',parseunits('px^2'),...
+  'wing_arear',parseunits('px^2'),...
+  'wing_trough_angle',parseunits('rad'));
+
+%% check that required inputs are given
 if isempty(inmoviefile),
   msg = 'Input movie file is empty';
   return;
@@ -36,7 +48,7 @@ moviefile = fullfile(expdir,moviefilestr);
 trxfile = fullfile(expdir,trxfilestr);
 perframedir = fullfile(expdir,perframedirstr);
 
-% load in the trx
+%% load in the trx
 try
   [trx,~,success1,timestamps] = load_tracks(intrxfile,moviefile,...
     'dosave',false,'annname',annfile,'verbose',false);
@@ -49,12 +61,107 @@ catch ME,
   return;
 end
 
-% compute frame rate if not overriding and possible
-if ~overridefps && ~isempty(timestamps),
-  fps = 1/median(diff(timestamps));
+iswings = isfield(trx,'xwingl');
+
+if iswings,
+  if isempty(inperframedir),
+    msg = 'Per-frame directory containing wing data is not set';
+    return;
+  end
+  fns = fieldnames(wingunits);
+  for i = 1:numel(fns),
+    fn = fns{i};
+    filename = fullfile(inperframedir,[fn,'.mat']);
+    if ~exist(filename,'file'),
+      msg = sprintf('Wing feature file %s does not exist.',filename);
+      return;
+    end
+  end
 end
 
-if strcmpi(arenatype,'None'),
+if dofliplr || doflipud,
+  try
+    % get image size
+    [readframe,~,fid] = get_readframe_fcn(inmoviefile);
+    im = readframe(1);
+    [imheight,imwidth,~] = size(im);
+    if fid > 1,
+      fclose(fid);
+    end
+  catch ME,
+    msg = getReport(ME);
+    return;
+  end
+end
+
+% flip if necessary
+if dofliplr,
+  for i = 1:numel(trx),
+    trx(i).x = imwidth-trx(i).x+1;
+    trx(i).theta = modrange(pi - trx(i).theta,-pi,pi);
+    if iswings,
+      trx(i).xwingl = imwidth-trx(i).xwingl+1;
+      trx(i).xwingr = imwidth-trx(i).xwingr+1;
+    end
+  end
+  msg{end+1} = 'Flipped the trajectories left-right.';
+end
+if doflipud,
+  for i = 1:numel(trx),
+    trx(i).y = imheight-trx(i).y+1;
+    trx(i).theta = modrange(-trx(i).theta,-pi,pi);
+    if iswings,
+      trx(i).ywingl = imheight-trx(i).xwingl+1;
+      trx(i).ywingr = imheight-trx(i).xwingr+1;
+    end
+  end
+  msg{end+1} = 'Flipped the trajectories up-down.';
+end
+if dotransposeimage,
+  for i = 1:numel(tx),
+    tmp = trx(i).x;
+    trx(i).x = trx(i).y;
+    trx(i).y = tmp;
+    c = cos(trx(i).theta);
+    s = sin(trx(i).theta);
+    trx(i).theta = atan2(c,s);
+    if iswings,
+      tmp = trx(i).xwingl;
+      trx(i).xwingl = trx(i).ywingl;
+      trx(i).ywingl = tmp;
+      tmp = trx(i).xwingr;
+      trx(i).xwingr = trx(i).ywingr;
+      trx(i).ywingr = tmp;
+    end
+  end
+  msg{end+1} = 'Switched x and y in trajectories.';
+end
+
+% compute frame rate if not overriding and possible
+if ~overridefps && ~isempty(timestamps),
+  fps = 1/nanmedian(diff(timestamps));
+  msg{end+1} = sprintf('Computed frame rate = %f fps from timestamps.',fps);
+else
+  msg{end+1} = sprintf('Using input frame rate %f fps to set timestamps',fps);
+end
+
+if ~overridearena && isfield(trx,'pxpermm'),
+  tmp = nanmean([trx.pxpermm]);
+  if ~isnan(tmp),
+    pxpermm = tmp;
+    msg{end+1} = sprintf('Read pxpermm = %f from trxfile.',pxpermm);
+  end
+else
+  msg{end+1} = sprintf('Using input pixels-per-mm scaling = %f.',pxpermm);
+end
+
+if ~overridearena && isfield(trx,'arena') && all(isfield(trx(1).arena,{'x','y','r'})),
+  arenaradius = trx(1).arena.r;
+  arenacenterx = trx(1).arena.x;
+  arenacentery = trx(1).arena.y;
+  arenatype = 'Circle';
+  msg{end+1} = sprintf('Read circle arena parameters from trxfile. Center = (%.1f, %.1f) px, radius = %.1f px.',arenacenterx,arenacentery,arenaradius);
+elseif strcmpi(arenatype,'None'),
   arenacenterx = 0;
   arenacentery = 0;
 end
@@ -82,7 +189,9 @@ for fly = 1:length(trx),
   
 end
 
-if isempty(timestamps),
+msg{end+1} = sprintf('Read trx for %d flies, frame range [%d,%d]',numel(trx),min([trx.firstframe]),max([trx.endframe]));
+
+if isempty(timestamps) || overridefps,
   timestamps = (0:max([trx.endframe]))*1/fps; %#ok<NASGU>
 end
 
@@ -93,7 +202,15 @@ arenaheight_mm = arenaheight / pxpermm;
 arenacenterx_mm = 0;
 arenacentery_mm = 0;
 trx = SetLandmarkParameters(trx,arenatype,arenacenterx_mm,arenacentery_mm,...
-  arenaradius_mm,arenawidth_mm,arenaheight_mm); %#ok<NASGU>
+  arenaradius_mm,arenawidth_mm,arenaheight_mm); 
+
+if strcmpi(arenatype,'Circle')
+  msg{end+1} = sprintf('Set circular arena parameters. Center = (0,0) mm, radius = %.1f mm.',arenaradius_mm);
+elseif strcmpi(arenatype,'Rectangle'),
+  msg{end+1} = sprintf('Set rectangular arena parameters. Center = (0,0) mm, width= %.1f mm, height = %.1f mm',arenawidth_mm,arenaheight_mm);  
+end
+msg{end+1} = sprintf('x_mm ranges within [%.1f,%.1f], y_mm ranges within [%.1f,%.1f]',...
+  min([trx.x_mm]),max([trx.x_mm]),min([trx.y_mm]),max([trx.y_mm]));
 
 % create the experiment directory
 if ~exist(expdir,'dir'),
@@ -102,6 +219,7 @@ if ~exist(expdir,'dir'),
     msg = msg1;
     return;
   end
+  msg{end+1} = sprintf('Created experiment directory %s.',expdir);
 end
 
 % save the trx file
@@ -115,9 +233,13 @@ if ~exist(trxfile,'file'),
   msg = sprintf('Failed to save trx to file %s',trxfile);
   return;
 end
+msg{end+1} = sprintf('Saved trx to file %s.',trxfile);
 
 % copy/soft-link movie
 if dosoftlink,
+  if exist(moviefile,'file'),
+    delete(moviefile);
+  end
   if isunix,
     cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
     unix(cmd);
@@ -125,32 +247,59 @@ if dosoftlink,
     [status,result] = unix(sprintf('readlink %s',moviefile));
     result = strtrim(result);
     if status ~= 0 || ~strcmp(result,inmoviefile),
-      warndlg(sprintf('Failed to make soft link, copying %s to %s instead',inmoviefile,moviefile));
+      res = questdlg(sprintf('Failed to make soft link. Copy %s to %s instead?',inmoviefile,moviefile));
+      if ~strcmpi(res,'Yes'),
+        msg = sprintf('Failed to make soft link from %s to %s.',inmoviefile,moviefile);
+        return;
+      end
       dosoftlink = false;
     end
   elseif ispc,
+    if exist([moviefile,'.lnk'],'file'),
+      delete([moviefile,'.lnk']);
+    end
     cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
     fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
     system(cmd);
     % test to make sure that worked
     [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
     if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
-      warndlg(sprintf('Failed to make shortcut, copying %s to %s instead',inmoviefile,moviefile));
+      res = questdlg(sprintf('Failed to make shortcut. Copy %s to %s instead?',inmoviefile,moviefile));
+      if ~strcmpi(res,'Yes'),
+        msg = sprintf('Failed to make shortcut from %s to %s.',inmoviefile,moviefile);
+        return;
+      end
       dosoftlink = false;
     end
   else
-    warndlg(sprintf('Unknown OS, not soft-linking movie file %s',inmoviefile));
+    res = questdlg(sprintf('Unknown OS, cannot soft-link movie file %s. Copy instead?',inmoviefile));
+    if ~strcmpi(res,'Yes'),
+      msg = sprintf('Failed to make softlink from %s to %s.',inmoviefile,moviefile);
+      return;
+    end
     dosoftlink = false;
   end  
+  if dosoftlink,
+    msg{end+1} = sprintf('Made a link to movie file %s at %s',inmoviefile,moviefile);
+  end
 end
   
 if ~dosoftlink,
+  if ispc,
+    if exist([moviefile,'.lnk'],'file'),
+      delete([moviefile,'.lnk']);
+    end
+  end
+  if exist(moviefile,'file'),
+    delete(moviefile);
+  end
   [success1,msg1] = copyfile(inmoviefile,moviefile);
   if ~success1,
     msg = msg1;
     success = false;
     return;
   end
+  msg{end+1} = sprintf('Copied movie file %s to %s',inmoviefile,moviefile);
 end
 
 % make per-frame directory
@@ -159,6 +308,24 @@ if ~exist(perframedir,'dir'),
   if ~success1,
     msg = msg1;
     return;
+  end
+end
+
+% copy over wing features
+if iswings,
+  fns = fieldnames(wingunits);
+  for i = 1:numel(fns),
+    fn = fns{i};
+    filenamein = fullfile(inperframedir,[fn,'.mat']);
+    filenameout = fullfile(perframedir,[fn,'.mat']);
+    if exist(filenameout,'file'),
+      delete(filenameout);
+    end
+    [success1,msg1] = copyfile(filenamein,filenameout);
+    if ~success1,
+      msg = msg1;
+      return;
+    end
   end
 end
 
