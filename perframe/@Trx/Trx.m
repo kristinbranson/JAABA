@@ -128,6 +128,9 @@ classdef Trx < handle
     pxpermm = [];
     fps = [];
     
+    %% region of interests
+    roi = [];
+    
     %% trajectory frames
     
     firstframes = [];
@@ -276,13 +279,13 @@ classdef Trx < handle
       elseif ~isempty(m_absanglefrom1to2),
         [data,units] = compute_absanglefrom1to2(obj,n,m_absanglefrom1to2{1});
       elseif ~isempty(m_dnose2ellanglerange),
-        m_dnose2ellanglerange = strrep(m_dnose2ellanglerange,'min','-');
-        v = str2double(m_dnose2ellanglerange);
-        if numel(v) ~= 2 || any(isnan(v)),
-          error('anglerange must be something like min30to30');
-        end
-        v = v*pi/180;
-        [data,units] = compute_dnose2ell_anglerange(obj,n,v);
+%         m_dnose2ellanglerange = strrep(m_dnose2ellanglerange,'min','-');
+%         v = str2double(m_dnose2ellanglerange);
+%         if numel(v) ~= 2 || any(isnan(v)),
+%           error('anglerange must be something like min30to30');
+%         end
+%         v = v*pi/180;
+        [data,units] = compute_dnose2ell_anglerange(obj,n,m_dnose2ellanglerange);
       elseif ~isempty(m_closestfly_nose2ellanglerange),
         m_closestfly_nose2ellanglerange = strrep(m_closestfly_nose2ellanglerange,'min','-');
         v = str2double(m_closestfly_nose2ellanglerange);
