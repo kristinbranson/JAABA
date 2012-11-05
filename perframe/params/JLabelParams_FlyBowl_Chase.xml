@@ -8,7 +8,7 @@
       <labels colormap="line" linewidth="3"/>
    </plot>
    <perframe>
-      <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625" max_dnose2ell_anglerange="127"/>
+      <params fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
       <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
    </perframe>
    <JLabelMode mode="advanced"/>
@@ -21,7 +21,6 @@
       <absphidiff_nose2ell/>
       <absthetadiff_anglesub/>
       <absthetadiff_nose2ell/>
-      <angle2wall/>
       <anglefrom1to2_anglesub/>
       <anglefrom1to2_nose2ell/>
       <angleonclosestfly/>
@@ -36,20 +35,17 @@
       <closestfly_nose2ell/>
       <corfrac_maj/>
       <corfrac_min/>
-      <dangle2wall/>
       <danglesub/>
       <darea/>
       <da/>
       <db/>
       <dcenter/>
       <ddcenter/>
-      <ddist2wall/>
       <decc/>
       <dell2nose/>
       <dnose2ell_angle_30tomin30/>
       <dnose2ell_angle_min20to20/>
       <dnose2ell_angle_min30to30/>
-      <dist2wall/>
       <dnose2ell/>
       <dnose2tail/>
       <dphi/>
