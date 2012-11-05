@@ -11,10 +11,41 @@ obj.expdirs(n) = [];
 obj.outexpdirs(n) = [];
 
 % clear video info
-obj.nrs(n) = [];
-obj.ncs(n) = [];
-obj.ncolors(n) = [];
-obj.nframes(n) = [];
+if numel(obj.nrs) >= n,
+  obj.nrs(n) = [];
+  obj.ncs(n) = [];
+  obj.ncolors(n) = [];
+  obj.movie_nframes(n) = [];
+end
+
+flies = obj.exp2flies{n};
+
+% clear trajectory frame info
+obj.firstframes(flies) = [];
+obj.endframes(flies) = [];
+obj.nframes(flies) = [];
+
+% clear arena parameters
+if numel(obj.tl_x) >= max(flies),
+  obj.tl_x(flies) = [];
+  obj.tl_y(flies) = []; 
+  obj.tr_x(flies) = []; 
+  obj.tr_y(flies) = []; 
+  obj.bl_x(flies) = []; 
+  obj.bl_y(flies) = []; 
+  obj.br_x(flies) = []; 
+  obj.br_y(flies) = []; 
+end
+
+% clear fps
+if numel(obj.fps) >= n,
+  obj.fps(n) = [];
+end
+
+% clear roi
+if numel(obj.roi) >= max(flies),
+  obj.roi(flies) = [];
+end
 
 % clear trajectory files
 obj.trxfiles(n) = [];
