@@ -7,7 +7,7 @@ msg = '';
 [fps,leftovers] = myparse_nocheck(varargin,'fps',30);
 
 switch InputDataType,
-  case 'Ctrax',
+  case {'Ctrax','CtraxPlusWings'},
 
     [success,msg,fps] = ...
       ReadFPS_Ctrax(...

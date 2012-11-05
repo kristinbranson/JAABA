@@ -22,7 +22,7 @@ function varargout = PrepareJAABAData(varargin)
 
 % Edit the above text to modify the response to help PrepareJAABAData
 
-% Last Modified by GUIDE v2.5 02-Nov-2012 08:54:24
+% Last Modified by GUIDE v2.5 05-Nov-2012 09:56:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -90,10 +90,13 @@ handles = UpdateOutputFilesTable(handles);
 set(handles.checkbox_softlink,'Value',handles.SoftLinkFiles);
 set(handles.checkbox_fliplr,'Value',handles.fliplr);
 set(handles.checkbox_flipud,'Value',handles.flipud);
+set(handles.checkbox_transpose,'Value',handles.dotransposeimage);
 set(handles.edit_fps,'String',num2str(handles.fps));
 set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 set(handles.checkbox_OverRideFPS,'Value',handles.OverRideFPS);
 set(handles.checkbox_OverRideArena,'Value',handles.OverRideArena);
+set(handles.edit_CropFirstFrame,'String',num2str(handles.CropFirstFrame));
+set(handles.edit_CropEndFrame,'String',num2str(handles.CropEndFrame));
 
 % arena parameters
 UpdateArenaParameters(handles);
@@ -281,7 +284,7 @@ handles.ArenaTypes = get(handles.popupmenu_arenatype,'String');
 
 function handles = SetDefaultValues(handles)
 
-handles.config_fns = {'InputDataType','SoftLinkFiles','flipud','fliplr',...
+handles.config_fns = {'InputDataType','SoftLinkFiles','flipud','fliplr','dotransposeimage',...
   'fps','pxpermm','OverRideFPS','OverRideArena','ArenaType','ArenaCenterX','ArenaCenterY',...
   'ArenaRadius','ArenaWidth','ArenaHeight',...
   'inputdir','ExperimentDirectory','moviefilestr',...
@@ -291,6 +294,7 @@ handles.InputDataType = 'Ctrax';
 handles.SoftLinkFiles = false;
 handles.flipud = false;
 handles.fliplr = false;
+handles.dotransposeimage = false;
 handles.fps = 30;
 handles.OverRideFPS = false;
 handles.OverRideArena = false;
@@ -301,6 +305,8 @@ handles.ArenaCenterY = 0;
 handles.ArenaRadius = 123;
 handles.ArenaWidth = 123;
 handles.ArenaHeight = 123;
+handles.CropFirstFrame = 1;
+handles.CropEndFrame = inf;
 
 handles.inputdir = '';
 defaultExpDir = sprintf('Exp%s',datestr(now,'yyyymmddTHHMMSS'));
@@ -838,6 +844,17 @@ if any(~isok),
   return;
 end
 
+% check that file extensions make sense
+[success,msg] = CheckOutputFileExtensions(handles,...
+  'moviefilestr',handles.moviefilestr,...
+  'trxfilestr',handles.trxfilestr);
+if ~success,
+  res = questdlg([msg,{'Convert anyways?'}]);
+  if ~strcmpi(res,'Yes'),
+    return;
+  end
+end
+
 InputDataType = handles.InputDataTypes.(handles.InputDataType);
 inputfiles = handles.InputFiles.(handles.InputDataType);
 args = [{InputDataType.files.code}
@@ -857,7 +874,7 @@ SetBusy(handles,sprintf('Converting to output directory %s',handles.ExperimentDi
   'dosoftlink',handles.SoftLinkFiles,...
   'fliplr',handles.fliplr,...
   'flipud',handles.flipud,...
-  'dotransposeimage',false,...
+  'dotransposeimage',handles.dotransposeimage,...
   'fps',handles.fps,...
   'pxpermm',handles.pxpermm,...
   'arenatype',handles.ArenaType,...
@@ -865,7 +882,8 @@ SetBusy(handles,sprintf('Converting to output directory %s',handles.ExperimentDi
   'arenacentery',handles.ArenaCenterY,...
   'arenaradius',handles.ArenaRadius,...
   'arenawidth',handles.ArenaWidth,...
-  'arenaheight',handles.ArenaHeight);
+  'arenaheight',handles.ArenaHeight,...
+  'frameinterval',[handles.CropFirstFrame,handles.CropEndFrame]);
 
 ClearBusy(handles);
 
@@ -963,6 +981,7 @@ else
   inputfile = handles.InputFiles.(handles.InputDataType){i};
   inputfilestr = handles.inputfilestrs.(handles.InputDataType){i};
 end
+
 if row > 1 && InputDataType.files(i).multiplefiles > 0,
   if isempty(inputfile),
     inputdir = handles.inputdir;
@@ -977,6 +996,7 @@ if row > 1 && InputDataType.files(i).multiplefiles > 0,
     args(end+1:end+2) = {'Append',inputfile};
   end
   if ~isempty(exts),
+    exts = ReorderExts(exts,inputfile);
     args(end+1:end+2) = {'Type',exts};
   end  
   inputfile = uipickfiles(args{:});
@@ -988,12 +1008,22 @@ else
   if isempty(inputfile),
     inputfile = fullfile(handles.inputdir,inputfilestr);
   end
-  
-  [filename,path,filteridx] = uigetfile(exts,sprintf('Choose input %s',lower(name)),inputfile);
-  if ~ischar(filename),
-    return;
+  if row > 1 && InputDataType.files(i).isdir,
+    [inputparentdir,inputname] = fileparts(inputfile);
+    inputfile = uigetdir2(inputparentdir,sprintf('Choose input %s',lower(name)),inputname);
+    if ~ischar(inputfile),
+      return;
+    end
+    [path,filename] = myfileparts(inputfile);
+  else
+    
+    exts = ReorderExts(exts,inputfile);
+    [filename,path,filteridx] = uigetfile(exts,sprintf('Choose input %s',lower(name)),inputfile);
+    if ~ischar(filename),
+      return;
+    end
+    inputfile = fullfile(path,filename);
   end
-  inputfile = fullfile(path,filename);
 end
 
 handles.inputdir = path;
@@ -1023,6 +1053,19 @@ end
 
 guidata(hObject,handles);
 
+function exts = ReorderExts(exts,inputfile)
+
+% reorder exts
+if numel(exts) > 1 && ~isempty(inputfile),
+  if iscell(inputfile),
+    [~,~,ext] = fileparts(inputfile{end});
+  else
+    [~,~,ext] = fileparts(inputfile);
+  end
+  if ~isempty(ext),
+    exts = [{['*',ext]};setdiff(exts,{['*',ext]})];
+  end
+end
 
 function [isok,msg] = CheckInputFile(handles,row,inputfile)
 
@@ -1114,7 +1157,7 @@ function pushbutton_ReadArenaParameters_Callback(hObject, eventdata, handles)
 
 InputDataType = handles.InputDataTypes.(handles.InputDataType);
 
-if strcmpi(InputDataType.readarena,'no'),
+if strcmpi(InputDataType.readarena,'no') && strcmpi(InputDataType.readpxpermm,'no'),
   warndlg(sprintf('Cannot read arena parameters for data type %s',InputDataType.name));
   return;
 end
@@ -1338,21 +1381,40 @@ if row == 1,
   guidata(hObject,handles);
   return;
 else
+  
   name = data{row,2};
+  
+  % check the input name
   if ~IsNiceFileName(name),
     res = questdlg(sprintf('%s is not a great file name. Are you sure you want to use it?',name));
-    if ~strcmpi(res,'Yes'),
-      switch row,
-        case 2,
-          data{2,2} = handles.moviefilestr;
-        case 3,
-          data{3,2} = handles.trxfilestr;
-        case 4,
-          data{4,2} = handles.perframedirstr;
-      end
-      set(hObject,'Data',data);
-      return;
+  else
+    res = 'Yes';
+  end
+  if strcmpi(res,'Yes'),
+    if row == 2,
+      [isokext,msg] = CheckOutputFileExtensions(handles,...
+        'moviefilestr',name);
+    elseif row == 3,
+      [isokext,msg] = CheckOutputFileExtensions(handles,...
+        'trxfilestr',name);
+    else
+      isokext = true;
     end
+    if ~isokext,
+      res = questdlg([msg,{'Do you want to use it anyway?'}]);
+    end
+  end
+  if ~strcmpi(res,'Yes'),
+    switch row,
+      case 2,
+        data{2,2} = handles.moviefilestr;
+      case 3,
+        data{3,2} = handles.trxfilestr;
+      case 4,
+        data{4,2} = handles.perframedirstr;
+    end
+    set(hObject,'Data',data);
+    return;
   end
   switch row,
     case 2,
@@ -1500,10 +1562,13 @@ handles = UpdateOutputFilesTable(handles);
 set(handles.checkbox_softlink,'Value',handles.SoftLinkFiles);
 set(handles.checkbox_fliplr,'Value',handles.fliplr);
 set(handles.checkbox_flipud,'Value',handles.flipud);
+set(handles.checkbox_transpose,'Value',handles.dotransposeimage);
 set(handles.edit_fps,'String',num2str(handles.fps));
 set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 set(handles.checkbox_OverRideFPS,'Value',handles.OverRideFPS);
 set(handles.checkbox_OverRideArena,'Value',handles.OverRideArena);
+set(handles.edit_CropFirstFrame,'Value',num2str(handles.CropFirstFrame));
+set(handles.edit_CropEndFrame,'Value',num2str(handles.CropEndFrame));
 
 % arena parameters
 UpdateArenaParameters(handles);
@@ -1536,3 +1601,97 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+function [success,msg] = CheckOutputFileExtensions(handles,varargin)
+
+success = true;
+msg = {};
+
+[moviefilestr,trxfilestr] = myparse(varargin,...
+  'moviefilestr','','trxfilestr','');
+
+if ~isempty(handles.InputVideoFile) && ~isempty(moviefilestr),
+  [~,~,extin] = fileparts(handles.InputVideoFile);
+  [~,~,extout] = fileparts(moviefilestr);
+  if ~isempty(extin) && ~isempty(extout) && ~strcmpi(extin,extout),
+    success = false;
+    msg{end+1} = sprintf('Output video file extension %s does not match input video file extension %s',extout,extin);
+  end
+end
+if ~isempty(trxfilestr),
+  [~,~,extout] = fileparts(trxfilestr);
+  if ~strcmpi(extout,'.mat'),
+    success = false;
+    msg{end+1} = sprintf('Output trx file extension is ''%s'' and should be ''.mat''',extout);
+  end
+end
+
+
+% --- Executes on button press in checkbox_transpose.
+function checkbox_transpose_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_transpose (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_transpose
+handles.dotransposeimage = get(hObject,'Value');
+guidata(hObject,handles);
+
+function edit_CropFirstFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_CropFirstFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_CropFirstFrame as text
+%        str2double(get(hObject,'String')) returns contents of edit_CropFirstFrame as a double
+v = str2double(get(hObject,'String'));
+if isnan(v) || v > handles.CropEndFrame,
+  warndlg('First frame must be a number between 1 and end frame');
+  set(hObject,'String',num2str(handles.CropFirstFrame));
+  return;
+end
+handles.CropFirstFrame = v;
+guidata(hObject,handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_CropFirstFrame_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_CropFirstFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit_CropEndFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_CropEndFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_CropEndFrame as text
+%        str2double(get(hObject,'String')) returns contents of edit_CropEndFrame as a double
+
+v = str2double(get(hObject,'String'));
+if isnan(v) || v < handles.CropFirstFrame,
+  warndlg('End frame must be a number greater than or equal to first frame. Enter "Inf" if the end of the trajectory should not be cropped.');
+  set(hObject,'String',num2str(handles.CropFirstFrame));
+  return;
+end
+handles.CropEndFrame = v;
+guidata(hObject,handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_CropEndFrame_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_CropEndFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
