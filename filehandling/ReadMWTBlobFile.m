@@ -84,8 +84,8 @@ trx = trx(order);
 
 % check for missing data
 for i1 = 1:numel(trx),
-  if any(isnan(trx(i1).timestamp)),
-    warning('%d frames of data not set for target %d',nnz(isnan(trx(i1).timestamp)),i1);
+  if any(isnan(trx(i1).timestamps)),
+    warning('%d frames of data not set for target %d',nnz(isnan(trx(i1).timestamps)),i1);
   end
 end
 
@@ -183,7 +183,7 @@ fclose(fid);
       end
       
       f = data_curr(1);
-      timestamp = data_curr(2);
+      timestamps = data_curr(2);
       x = data_curr(3);
       y = data_curr(4);
       area = data_curr(5);
@@ -198,7 +198,7 @@ fclose(fid);
       if isempty(idi),
         idi = numel(ids) + 1;
         newtrx = struct('x',x,'y',y,'theta',theta,'a',a,'b',b,'id',id,...
-          'firstframe',f,'nframes',nan,'endframe',f,'off',1-f,'timestamp',timestamp,...
+          'firstframe',f,'nframes',nan,'endframe',f,'off',1-f,'timestamps',timestamps,...
           'area',area,'length',length,'width',width);
         if readcontour,
           newtrx.xcontour = {xcontour(:)};
@@ -252,7 +252,7 @@ fclose(fid);
           trx(idi).length(end+1:end+npad) = nan;
           trx(idi).width(end+1:end+npad) = nan;
           trx(idi).area(end+1:end+npad) = nan;
-          trx(idi).timestamp(end+1:end+npad) = nan;
+          trx(idi).timestamps(end+1:end+npad) = nan;
           
           if readcontour || havereadcontour,
             tmp = cell(1,npad);
@@ -275,7 +275,7 @@ fclose(fid);
         trx(idi).length(i) = length;
         trx(idi).width(i) = width;
         trx(idi).area(i) = area;
-        trx(idi).timestamp(i) = timestamp;
+        trx(idi).timestamps(i) = timestamps;
         
         if readcontour || havereadcontour,
           trx(idi).xcontour{i} = xcontour;
@@ -300,6 +300,27 @@ fclose(fid);
     else
       trx(idi).nframes = trx(idi).endframe-trx(idi).firstframe+1;
       %fprintf('Read %d frames for id %d\n',trx(idi).nframes,id);
+    end
+    
+    if havereadcontour,
+      for tmpi = 1:numel(trx),
+        nframescurr = trx(tmpi).nframes;
+        nadd = nframescurr - numel(trx(tmpi).xcontour);
+        if nadd > 0,
+          trx(tmpi).xcontour(end+1:end+nadd) = cell(1,nadd);
+          trx(tmpi).ycontour(end+1:end+nadd) = cell(1,nadd);
+        end
+      end
+    end
+    if havereadspine,
+      for tmpi = 1:numel(trx),
+        nframescurr = trx(tmpi).nframes;
+        nadd = nframescurr - size(trx(ympi).xspine,2);
+        if nadd > 0,
+          trx(tmpi).xspine(:,end+1:end+nadd) = nan;
+          trx(tmpi).yspine(:,end+1:end+nadd) = nan;
+        end
+      end
     end
     
   end
