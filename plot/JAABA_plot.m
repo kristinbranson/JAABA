@@ -1427,7 +1427,7 @@ function plot_feature_timeseries(experiment_value,experiment_list,...
     color,fid)
 
 data={};  %feature_units={};
-parfor e=1:length(experiment_value)
+for e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},...
       [behavior_list{behavior_value} '.mat']));
   if(behavior_logic>1)
@@ -1454,7 +1454,9 @@ parfor e=1:length(experiment_value)
 
   if(timing==1)
     calculate_entiretimeseries(behavior_data,feature_data,tmp2,tmp);
-    data{e}=conv(nanmean(ans,1),ones(1,convolutionwidth)./convolutionwidth,'same');
+    %data{e}=conv(nanmean(ans,1),ones(1,convolutionwidth)./convolutionwidth,'same');
+    data{e}=conv(nanmean(ans,1),ones(1,convolutionwidth),'same');
+    data{e}=data{e}./conv(ones(1,length(data{e})),ones(1,convolutionwidth),'same');
   else
     calculate_triggeredtimeseries(behavior_data,behavior_logic,behavior_data2,...
         feature_data,tmp2,tmp,timing,windowradius,subtractmean);
@@ -2074,7 +2076,9 @@ for e=1:length(experiment_value)
     k=k+1;
   end
   behavior_cumulative(e,:)=parfor_tmp./k;
-  behavior_cumulative(e,:)=conv(behavior_cumulative(e,:),ones(1,convolutionwidth)./convolutionwidth,'same');
+  %behavior_cumulative(e,:)=conv(behavior_cumulative(e,:),ones(1,convolutionwidth)./convolutionwidth,'same');
+  behavior_cumulative(e,:)=conv(behavior_cumulative(e,:),ones(1,convolutionwidth),'same')...
+      ./conv(ones(1,length(behavior_cumulative(e,:))),ones(1,convolutionwidth),'same');
 end
 
 plot_it(1:size(behavior_cumulative,2),100.*behavior_cumulative,style,centraltendency,dispersion,color,1,...
