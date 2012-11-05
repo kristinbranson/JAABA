@@ -398,26 +398,33 @@ InitJLabelGui(handles);
 handles = guidata(hObject);
 
 % ask user for experiment directory
-expdir = uigetdir(handles.data.defaultpath,'Add experiment directory');
-if ~ischar(expdir),
-  return;
-end
-
-if ismember(expdir,handles.data.expdirs),
-  uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
+defaultdir = fileparts(handles.data.defaultpath);
+allexpdirs = uipickfiles('FilterSpec',defaultdir,...
+  'Prompt','Add experiment directory');
+if numel(allexpdirs)==1 && ~ischar(allexpdirs{1}),
   return;
 end
 
 set(handles.pushbutton_cancel,'enable','off');
 SetLabelingMode(handles);
 
-[success,msg] = handles.data.AddExpDir(expdir);
-if ~success,
-  uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
-  return;
-end
+for ndx = 1:numel(allexpdirs)
+  expdir = allexpdirs{ndx};
+  if ismember(expdir,handles.data.expdirs),
+    uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
+    return;
+  end
+  
+  
+  [success,msg] = handles.data.AddExpDir(expdir);
+  if ~success,
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    return;
+  end
+  
+  set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 
-set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
+end
 
 % update status table
 UpdateStatusTable(handles);
@@ -519,7 +526,7 @@ set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
-uiwait(warndlg('Done loading the classifier'));
+uiwait(helpdlg('Done loading the classifier'));
 
 
 % --- Executes on button press in pushbutton_loadwoexp.

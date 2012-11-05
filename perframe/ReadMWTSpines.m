@@ -52,7 +52,7 @@ for i = 1:nspines,
     j = j + 1;
   end
   fclose(fid);
-  trk.timestamp = timestamps;
+  trk.timestamps = timestamps;
   trx = structappend(trx,trk);
 end
 
