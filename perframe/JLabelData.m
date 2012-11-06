@@ -2711,10 +2711,10 @@ end
       OUT = struct();
       OUT.units = struct(); OUT.units.num = {'scores'};
       OUT.units.den = {''};
-      for ndx = 1:numel(Q.allScores.loaded)
+      for ndx = 1:numel(Q.allScores.scores)
         t0 = Q.allScores.tStart(ndx);
         t1 = Q.allScores.tEnd(ndx);
-        OUT.data{ndx} = Q.allScores.loaded{ndx}(t0:t1);
+        OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
       end
       save(scoresFileOut,'-struct','OUT');
     end
@@ -2784,7 +2784,6 @@ end
       obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
       obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
       obj.curperframefns = fieldnames(windowfeaturesparams);
-      obj.savewindowfeatures = true;
     end  
     
     
@@ -4461,11 +4460,13 @@ end
         hasClassifier = false;
       end
       
-      obj.SetPerframeParams(params,cellParams)
+      obj.SetPerframeParams(params,cellParams);
       if nargin>2
         obj.basicFeatureTable = basicFeatureTable;
         obj.featureWindowSize = featureWindowSize;
       end
+      obj.savewindowfeatures = true;
+
       obj.ClearWindowData();
       obj.classifier = [];
       obj.classifier_old = [];
