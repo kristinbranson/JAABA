@@ -849,13 +849,13 @@ ret_val=[ret_val ')'];
 
 
 % ---
-function print_csv_help(fid,tstr,xstr,ystr)
+function print_csv_help(fid,type,tstr,xstr,ystr)
 
 tstr=strrep(tstr,'%','%%');
 xstr=strrep(xstr,'%','%%');
 ystr=strrep(ystr,'%','%%');
 
-fprintf(fid,['%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel=' ystr '\n%%\n']);
+fprintf(fid,['%% type=' type '\n%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel=' ystr '\n%%\n']);
 
 %for g=1:length(handles.grouplist)
 %  fprintf(fid,['%% xdata, group ' handles.grouplist{g} ...
@@ -1020,7 +1020,8 @@ not_during=[not_during{:}];
 
 % ---
 %function [table_data feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
-function [feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
+%function [feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
+function plot_feature_histogram(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,...
     feature_value,feature_list,individual,sexdata,perwhat,style,notduring,logbinsize,nbins,...
     centraltendency,dispersion,color,fid)
@@ -1037,7 +1038,7 @@ parfor e=1:length(experiment_value)
   end
   feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
         [feature_list{feature_value} '.mat']));
-  feature_units{e}=feature_data.units;
+  %feature_units{e}=feature_data.units;
 
   tmp2=sexdata{experiment_value(e)};
   for i=1:length(tmp2)
@@ -1064,7 +1065,7 @@ not_during=cat(1,ans{:});
 
 %during=[during{:}];
 %not_during=[not_during{:}];
-feature_units=feature_units{1};
+%feature_units=feature_units{1};
 
 %table_data={2,7};
 %table_data{1,1}='    during ';
@@ -1148,24 +1149,27 @@ figure;  hold on;
 
 fid=fopen('most_recent_figure.csv','w');
 
-tstr='feature histogram';
+type='feature histogram';
 %xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
-xstr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
+tstr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
 switch(handles.behaviorlogic)
   case 2
-    xstr=[xstr ' AND '];
+    tstr=[tstr ' AND '];
   case 3
-    xstr=[xstr ' AND NOT '];
+    tstr=[tstr ' AND NOT '];
   case 4
-    xstr=[xstr ' OR '];
+    tstr=[tstr ' OR '];
 end
 if(handles.behaviorlogic>1)
-  xstr=[xstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+  tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
 end
-xstr=[xstr ' (%)'];
+%xstr=[xstr ' (%)'];
+units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
+    [handles.featurelist{handles.featurevalue} '.mat']),'units');
+xstr=get_label(handles.featurelist(handles.featurevalue),units.units);
 ystr='normalized';
 
-print_csv_help(fid,tstr,xstr,ystr);
+print_csv_help(fid,type,tstr,xstr,ystr);
 
 table_data={};  feature_units={};
 for g=gg
@@ -1175,7 +1179,8 @@ for g=gg
   if(~isempty(experimentvalue{g}))
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
     %[table_data{end+1} feature_units{end+1}]=plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
-    [feature_units{end+1}]=plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
+    %[feature_units{end+1}]=plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
+    plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
         handles.behaviorvalue,handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,...
         handles.featurevalue,handles.featurelist,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
@@ -1188,6 +1193,7 @@ end
 
 fclose(fid);
 
+title(tstr);
 xlabel(xstr);
 ylabel(ystr);
 axis tight;  zoom reset;
@@ -1511,7 +1517,8 @@ figure;  hold on;
 
 fid=fopen('most_recent_figure.csv','w');
 
-tstr='feature time series';
+type='feature time series';
+tstr='';
 xstr='time (frames)';
 units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
     [handles.featurelist{handles.featurevalue} '.mat']),'units');
@@ -1531,10 +1538,9 @@ if(handles.featuretimeseries_timing>1)
     tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
   end
   tstr=[tstr ' (%)'];
-  title(tstr);
 end
 
-print_csv_help(fid,tstr,xstr,ystr);
+print_csv_help(fid,type,tstr,xstr,ystr);
 
 %range=[];
 table_data={};  %feature_units={};
@@ -1562,7 +1568,7 @@ fclose(fid);
 
 xlabel(xstr);
 ylabel(ystr);
-title(tstr);
+%title(tstr);
 axis tight;  zoom reset;
 
 
@@ -1852,7 +1858,8 @@ fid=fopen('most_recent_figure.csv','w');
 figure;
 table_data=cell(1,length(frames_labelled{1}));
 for b=1:length(frames_labelled{1})  % behavior
-  tstr='behavior bar chart';
+  type='behavior bar chart';
+  tstr='';
   ystr=char(strrep(handles.behaviorlist(b),'_','-'));
   switch(handles.behaviorlogic)
     case 2
@@ -1868,7 +1875,7 @@ for b=1:length(frames_labelled{1})  % behavior
   ystr=[ystr ' (%)'];
   xstr='group';
 
-  print_csv_help(fid,tstr,xstr,ystr);
+  print_csv_help(fid,type,tstr,xstr,ystr);
 
   ceil(sqrt(length(frames_labelled{1})));
   subplot(ceil(length(frames_labelled{1})/ans),ans,b);  hold on;
@@ -2179,7 +2186,8 @@ figure;  hold on;
 
 fid=fopen('most_recent_figure.csv','w');
 
-tstr='behavior time series';
+type='behavior time series';
+tstr='';
 xstr='time (frames)';
 %ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
 ystr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
@@ -2196,7 +2204,7 @@ if(handles.behaviorlogic>1)
 end
 ystr=[ystr ' (%)'];
 
-print_csv_help(fid,tstr,xstr,ystr);
+print_csv_help(fid,type,tstr,xstr,ystr);
 
 table_data={};  raw_table_data={};
 for g=gg
