@@ -879,6 +879,9 @@ if(style~=3)
     case 2
       data_ct=nanmedian(ydata,1);
       str_ct='median';
+    case 3
+      data_ct=mode(ydata,1);
+      str_ct='mode';
   end
 end
 switch(style)
@@ -1719,6 +1722,8 @@ switch(centraltendency)
     ct=mean(data);
   case 2
     ct=median(data);
+  case 3
+    ct=mode(data);
 end
 switch(dispersion)
   case 1
@@ -3535,7 +3540,7 @@ set(handles.MenuPrefsCentralTendencyMode,'Checked','off');
 switch(arg)
   case(1), set(handles.MenuPrefsCentralTendencyMean,'Checked','on');
   case(2), set(handles.MenuPrefsCentralTendencyMedian,'Checked','on');
-  case(2), set(handles.MenuPrefsCentralTendencyMode,'Checked','on');
+  case(3), set(handles.MenuPrefsCentralTendencyMode,'Checked','on');
 end
 
 
