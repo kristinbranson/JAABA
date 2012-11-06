@@ -28,6 +28,14 @@ function [readframe,nframes,fid,headerinfo] = get_readframe_fcn(filename,varargi
 CTRAX_ISVIDEOIO = false;
 
 [~,ext] = splitext(filename);
+
+if ispc && ~exist(filename,'file') && ~strcmpi(ext,'.seq'),  
+  [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+  if didfind,
+    filename = actualfilename;
+  end
+end
+
 if strcmpi(ext,'.fmf'),
   [header_size,version,nr,nc,bytes_per_chunk,nframes,data_format] = fmf_read_header(filename);
   fid = fopen(filename);
