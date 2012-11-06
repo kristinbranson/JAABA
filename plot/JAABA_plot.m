@@ -1883,7 +1883,7 @@ for b=1:length(frames_labelled{1})  % behavior
         table_data{b}{g}=100*cellfun(@sum,frames_labelled{g}(:,b))./cellfun(@sum,frames_total{g}(:,b));
         [ct{g},dp{g},dn{g}]=...
             calculate_ct_d(table_data{b}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
-        errorbarplot(g,ct{g},dp{g},dn{g},handles.colors{1,1+mod(g-1,length(handles.colors))});
+        errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},handles.colors{1,1+mod(g-1,length(handles.colors))});
       end
       fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',handles.grouplist{gg});  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',[dp{:}]);  fprintf(fid,'\n');
