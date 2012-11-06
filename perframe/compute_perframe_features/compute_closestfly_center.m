@@ -12,16 +12,17 @@ mind = cell(1,nflies);
 
 for i1 = 1:nflies,
   fly1 = flies(i1);
-  dcenter = nan(nflies,trx(fly1).nframes);
-  for i2 = 1:nflies,
-    fly2 = flies(i2);
-    if i1 == i2,
+  flies2 = flies(trx.roi(fly1)==trx.roi(flies));
+  dcenter = inf(numel(flies2),trx(fly1).nframes);
+  for i2 = 1:numel(flies2),
+    fly2 = flies2(i2);
+    if fly1 == fly2,
       continue;
     end
     dcenter(i2,:) = dcenter_pair(trx,fly1,fly2);
   end
   [mind{i1},closesti] = min(dcenter,[],1);
-  closestfly{i1} = flies(closesti);
+  closestfly{i1} = flies2(closesti);
   closestfly{i1}(isnan(mind{i1})) = nan;
 end
 

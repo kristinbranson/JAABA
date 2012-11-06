@@ -60,7 +60,7 @@ obj.endframes(flies) = [traj.endframe];
 obj.nframes(flies) = [traj.nframes];
 
 % Adding the arena parameters if they exist for rectangular arena.
-if isfield(traj(1).arena,'tl')
+if isfield(traj(1),'arena') && isfield(traj(1).arena,'tl')
   count = 1;
   for ndx = flies(:)'
     obj.tl_x(ndx) = traj(count).arena.tl(1);
@@ -80,4 +80,13 @@ if isfield(traj,'fps'),
   obj.fps(n) = traj(1).fps;
 else
   obj.fps(n) = nan;
+end
+
+% roi
+if isfield(traj,'roi'),
+  for i = 1:numel(flies),
+    obj.roi(flies(i)) = traj(i).roi;
+  end
+else
+  obj.roi(flies) = 1;
 end
