@@ -30,7 +30,7 @@ end
 
 alltimestamps = [];
 for seti = 1:nsets,
-  alltimestamps = union(alltimestamps,[trxall{seti}.timestamp]);
+  alltimestamps = union(alltimestamps,[trxall{seti}.timestamps]);
 end
 dts = diff(alltimestamps);
 if any(dts < MINDT),
@@ -45,7 +45,7 @@ endframes = nan(ntargets,nsets);
 for seti = 1:nsets,
   for i = 1:ntargets,
     j = idx{seti}(i);
-    [~,framesall{i,seti}] = ismember(trxall{seti}(j).timestamp,alltimestamps);
+    [~,framesall{i,seti}] = ismember(trxall{seti}(j).timestamps,alltimestamps);
     firstframes(i,seti) = min(framesall{i,seti});
     endframes(i,seti) = max(framesall{i,seti});
   end
@@ -60,8 +60,8 @@ for i = 1:ntargets,
   trk.endframe = max(endframes(i,:));
   trk.nframes = trk.endframe - trk.firstframe + 1;
   trk.off = 1 - trk.firstframe;
-  trk.timestamp = alltimestamps(trk.firstframe:trk.endframe);
-  trk.dt = diff(trk.timestamp);
+  trk.timestamps = alltimestamps(trk.firstframe:trk.endframe);
+  trk.dt = diff(trk.timestamps);
   for seti = 1:nsets,
     j = idx{seti}(i);
     frames = framesall{i,seti};

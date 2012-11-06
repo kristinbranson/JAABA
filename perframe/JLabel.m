@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 04-Sep-2012 13:48:36
+% Last Modified by GUIDE v2.5 02-Nov-2012 10:28:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -153,6 +153,12 @@ RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 % enable gui
 EnableGUI(handles);
+
+if ismac, % On mac change the foreground color to black.
+  allpopups = findall(hObject,'Style','popup');
+  set(allpopups,'ForegroundColor',[0 0 0]);
+end
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -2132,6 +2138,8 @@ else
   set(handles.menu_file_save,'Enable','off');
 end
 
+set(handles.menu_file_save_project,'Enable','off');
+
 function handles = LoadRC(handles)
 
 % rc file name
@@ -2322,7 +2330,7 @@ end
 
 % check if we need to save
 if handles.guidata.needsave,
-  res = questdlg('Save before quitting?','Save?','Yes','No','Cancel','Yes');
+  res = questdlg('Save classifier and labels before quitting?','Save?','Yes','No','Cancel','Yes');
   if strcmpi(res,'Yes'),
     success = menu_file_save_Callback(hObject, eventdata, handles);
     if ~success,
@@ -2333,6 +2341,17 @@ if handles.guidata.needsave,
     return;
   end
 end
+
+if handles.guidata.data.NeedSaveProject(),
+  res = questdlg('Window features for the project have been modified. Save before quitting?','Save?','Yes','No','Cancel','Yes');
+  if strcmpi(res,'Yes')
+    menu_file_save_project_Callback(hObject,eventdata,handles);
+  elseif strcmpi(res,'Cancel');
+    return;
+  end
+    
+    
+end  
 
 if ~isempty(handles.guidata.movie_fid) && ...
     handles.guidata.movie_fid > 1 && ~isempty(fopen(handles.guidata.movie_fid)),
@@ -5340,7 +5359,13 @@ function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.ShowSelectFeatures();
+handles = UpdatePrediction(handles);
 
+if handles.guidata.data.NeedSaveProject();
+  set(handles.menu_file_save_project,'Enable','on');
+end
+
+guidata(hObject,handles);
 
   
 % --- Executes when selected object is changed in panel_timeline_select.
@@ -6126,7 +6151,7 @@ function menu_view_suggest_balanced_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-in = inputdlg({'Number of frames per labeling bout','Number of intervals'});
+in = inputdlg({'Number of frames per labeling interval','Number of intervals'});
 if isempty(in), return; end
 intsize = str2double(in{1});
 numint = str2double(in{2});
@@ -6486,3 +6511,12 @@ function menu_classifier_classifyall_nosave_Callback(hObject, eventdata, handles
 for ndx = 1:handles.guidata.data.nexps
 handles.guidata.data.PredictNoSaveMovie(ndx);
 end
+
+
+% --------------------------------------------------------------------
+function menu_file_save_project_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_project (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.guidata.data.SaveProject();
+set(handles.menu_file_save_project,'Enable','off');

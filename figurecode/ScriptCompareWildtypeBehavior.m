@@ -15,7 +15,21 @@ outfigdir = '../figures/WildtypeOut';
 if ~exist(outfigdir,'dir'),
   mkdir(outfigdir);
 end
-rootdatadir = '../experiments/wildtype/results';
+
+[~,computername] = system('hostname');
+computername = strtrim(computername);
+
+switch computername,
+  
+  case 'kabram-ws.janelia.priv',
+    rootdatadir= '/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/experiments/wildtype/results';
+  
+  otherwise,
+
+    rootdatadir = '../experiments/wildtype/results';
+  
+end
+
 
 if ispc,
   addpath C:\Code\FlyBowlAnalysis;
@@ -50,17 +64,18 @@ linenamecodes = {
   };
 
 behaviorcodes = {
-  'labelsBackup'         'Backup'
-  'labelsCrabwalk'       'Crabwalk'
-  'labelsTouch'          'Touch'
-  'labelsWingGrooming'   'Wing grooming'
-  'labels_Chasev7'       'Chase'
+  'labels_Walk'          'Walk'
+  'labels_Stops'         'Stop'
   'labels_Jump'          'Jump'
   'labels_Righting'      'Righting'
-  'labels_Stops'         'Stop'
-  'labels_Walk'          'Walk'
+  'labelsWingGrooming'   'Wing grooming'
+  'labelsCrabwalk'       'Crabwalk'
+  'labelsBackup'         'Backup'
   'labels_pivot_tail'    'Tail pivot turn'
+  'labelsTouch'          'Touch'
+  'labels_Chasev7'       'Chase'
   };
+
 
 print_linenames_order = {'Berlin','CantonS MH','CantonS UH','CantonS GR','Dickinson','OregonR'};
 
@@ -400,8 +415,17 @@ SaveFigLotsOfWays(hfig,fullfile(outfigdir,'WildtypeBehaviorComparison_Weekend2_P
 [~,idx] = ismember(unique_linenames,linenamecodes(:,1));
 print_linenames = linenamecodes(idx,2)';
 
-[~,idx] = ismember(labelfns,behaviorcodes(:,1));
-behaviors = behaviorcodes(idx,2)';
+% [~,idx] = ismember(labelfns,behaviorcodes(:,1));
+% behaviors = behaviorcodes(idx,2)';
+
+ndx2meanfrac = [];
+behaviors = {};
+for ndx = 1:numel(behaviorcodes(:,1))
+  ndx2labelfns = find(cellfun(@(x) strcmp(x,behaviorcodes{ndx,1}),labelfns));
+  behaviors{ndx} = behaviorcodes{ndx,2};
+  ndx2meanfrac(ndx) = ndx2labelfns;
+end
+nbehaviors = numel(behaviors);
 
 hfig = 4;
 figure(hfig);
@@ -432,7 +456,7 @@ for behi = 1:nbehaviors,
 %   v = [meanfractime_line(:,behi),meanfractime_male_line(:,behi),meanfractime_female_line(:,behi)];
 %   s = [stdfractime_line(:,behi),stdfractime_male_line(:,behi),stdfractime_female_line(:,behi)];
   %p = [meanfractime2(:,behi),meanfractime_male2(:,behi),meanfractime_female2(:,behi)];
-  p = [meanfractime2(:,behi)];
+  p = [meanfractime2(:,ndx2meanfrac(behi))];
 %   hbar(:,behi) = bar(1:nlines,v,'grouped');
 %   for i = 1:3,
 %     set(hbar(i,behi),'FaceColor',datacolors(i,:));
@@ -467,6 +491,10 @@ for behi = 1:nbehaviors,
   else
     set(gca,'XTick',1:nlines,'XTickLabel',{});
   end
+  set(gca,'box','off');
+  set(get(gca,'XLabel'),'FontSize',16);
+  set(get(gca,'YLabel'),'FontSize',16);
+  set(gca,'FontSize',16);
   
   %set(gca,'YLim',[0,max(v(:)+s(:))*1.025]);
   %set(gca,'XLim',[.5,nlines+.5]);
@@ -475,6 +503,11 @@ end
 
 
 SaveFigLotsOfWays(hfig,fullfile(outfigdir,'WildtypeBehaviorComparison_Weekend2_PerBehaviorBoxPlots_BothOnly'));
+
+%% Save the Data..
+
+save(fullfile(outfigdir,['WildtypeBehaviorComparison_ResultsData']),'behaviornames','labelfns',...
+  'meanfractime2','metadata2','scoresfns');
 
 %% use logistic regression to predict the strain given the behavior classification results for each pair
 
@@ -585,9 +618,27 @@ imagesc(errorrate,[0,.5]);
 colormap gray;
 set(gca,'XTick',1:nlines,'XTickLabel',print_linenames_order,...
   'YTick',1:nlines,'YTickLabel',print_linenames_order,'Box','off');
+xlabel('Wildtype strains');ylabel('Wildtype strains');
 axis image;
 colorbar;
 title('Pairwise error rate');
+
+error_rate = errorrate;
+axis image;
+box off;
+numel(error_rate)
+size(error_rate)
+[Row,Col]= size(error_rate);
+for i = 1:Row
+  for j = 1:Col
+    if i==j; continue; end
+    if errorrate(i,j) ==0; continue; end
+    ht(i,j) = text(j,i,sprintf('%.2f',error_rate(i,j)),...
+      'FontUnits','pixels','FontWeight','bold','Color',[.7,0,0],...
+      'HorizontalAlignment','center','VerticalAlignment','middle',...
+      'FontSize',24);
+  end
+end
 
 SaveFigLotsOfWays(hfig,fullfile(outfigdir,'WildTypeStrainPrediction_PairwiseErrorRate'));
 

@@ -53,6 +53,12 @@ function NavigationPreferences_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to NavigationPreferences (see VARARGIN)
 
 % first input should be the parent figure from JLabel
+
+if ismac, % On mac change the foreground color to black.
+  allpopups = findall(hObject,'Style','popup');
+  set(allpopups,'ForegroundColor',[0 0 0]);
+end
+
 handles.figure_JLabel = varargin{1};
 handles.NJObj = varargin{2};
 

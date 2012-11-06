@@ -51,6 +51,6 @@ for i = 1:nbehaviors,
       continue;
     end
     [~,name] = fileparts(expdirs{j});
-    fprintf('%s, %s OK\n',name,behavior);
+    %fprintf('%s, %s OK\n',name,behavior);
   end
 end

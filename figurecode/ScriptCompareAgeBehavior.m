@@ -15,7 +15,20 @@ outfigdir = '../figures/AgeOut';
 if ~exist(outfigdir,'dir'),
   mkdir(outfigdir);
 end
-rootdatadir0 = '../experiments/age';
+
+[~,computername] = system('hostname');
+computername = strtrim(computername);
+
+switch computername,
+  
+  case 'kabram-ws.janelia.priv',
+    rootdatadir0 = '/groups/branson/home/kabram/flyMovies/Age';
+  
+  otherwise,
+
+  rootdatadir0 = '../experiments/age';
+  
+end
 
 if ispc,
   addpath C:\Code\FlyBowlAnalysis;
@@ -27,26 +40,25 @@ end
 
 conditionnamecodes = {
   'age02days'      '2'
-  'age04days'      '4'
-  'age05days'      '5'
-  'age09days'      '9'
-  'age12days'      '12'
+  'age06days'      '6'
+  'age13days'      '13'
+  'age20days'      '20'
   };
 
 behaviorcodes = {
-  'labelsBackup'         'Backup'
-  'labelsCrabwalk'       'Crabwalk'
-  'labelsTouch'          'Touch'
-  'labelsWingGrooming'   'Wing grooming'
-  'labels_Chasev7'       'Chase'
+  'labels_Walk'          'Walk'
+  'labels_Stops'         'Stop'
   'labels_Jump'          'Jump'
   'labels_Righting'      'Righting'
-  'labels_Stops'         'Stop'
-  'labels_Walk'          'Walk'
+  'labelsWingGrooming'   'Wing grooming'
+  'labelsCrabwalk'       'Crabwalk'
+  'labelsBackup'         'Backup'
   'labels_pivot_tail'    'Tail pivot turn'
+  'labelsTouch'          'Touch'
+  'labels_Chasev7'       'Chase'
   };
 
-weekend = '1';
+% weekend = '1';
 
 
 %% data locations
@@ -60,14 +72,19 @@ expdirs = {};
 for rooti = 1:numel(rootdatadir1s),
   rootdatadir = rootdatadir1s{rooti};
   % only use weekend 2
-  switch weekend,
-    case 'all',
-      expnamescurr = dir(fullfile(rootdatadir,'*2012*'));
-    case '1',
-      expnamescurr = dir(fullfile(rootdatadir,'*201205*'));
-    case '2',
-      expnamescurr = dir(fullfile(rootdatadir,'*201206*'));
-  end
+%   switch weekend,
+%     case 'all',
+%       expnamescurr = dir(fullfile(rootdatadir,'*2012*'));
+%     case '1',
+%       expnamescurr = dir(fullfile(rootdatadir,'*201205*'));
+%     case '2',
+%       expnamescurr = dir(fullfile(rootdatadir,'*201206*'));
+%   end
+
+% Use 0830 and 0904 experiments for the revision.
+  expnamescurr = [];
+  expnamescurr = [expnamescurr dir(fullfile(rootdatadir,'*20120830*'))];
+  expnamescurr = [expnamescurr dir(fullfile(rootdatadir,'*20120904*'))];
   expnamescurr(~[expnamescurr.isdir]) = [];
   expnamescurr = {expnamescurr.name};
   expnames = [expnames,expnamescurr];
@@ -242,14 +259,22 @@ set(gca,'XLim',[0,3*nbehaviors+1]);
 
 ylabel('Z-scored fraction of time');
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison_wk',weekend]));
+SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison']));
 
 %% plot each behavior separately
 
 [~,idx] = ismember(unique_conditionnames,conditionnamecodes(:,1));
 print_conditionnames = conditionnamecodes(idx,2)';
-[~,idx] = ismember(labelfns,behaviorcodes(:,1));
-behaviors = behaviorcodes(idx,2)';
+
+ndx2meanfrac = [];
+behaviors = {};
+for ndx = 1:numel(behaviorcodes(:,1))
+  ndx2labelfns = find(cellfun(@(x) strcmp(x,behaviorcodes{ndx,1}),labelfns));
+  behaviors{ndx} = behaviorcodes{ndx,2};
+  ndx2meanfrac(ndx) = ndx2labelfns;
+end
+nbehaviors = numel(behaviors);
+
 
 hfig = 3;
 figure(hfig);
@@ -278,7 +303,9 @@ for behi = 1:nbehaviors,
   
 %   v = [meanfractime_condition(:,behi),meanfractime_male_condition(:,behi),meanfractime_female_condition(:,behi)];
 %   s = [stdfractime_condition(:,behi),stdfractime_male_condition(:,behi),stdfractime_female_condition(:,behi)];
-  p = [meanfractime(:,behi),meanfractime_male(:,behi),meanfractime_female(:,behi)];
+  p = [meanfractime(:,ndx2meanfrac(behi)),...
+    meanfractime_male(:,ndx2meanfrac(behi)),...
+    meanfractime_female(:,ndx2meanfrac(behi))];
 %   hbar(:,behi) = bar(1:nconditions,v,'grouped');
 %   for i = 1:3,
 %     set(hbar(i,behi),'FaceColor',datacolors(i,:));
@@ -325,7 +352,7 @@ for behi = 1:nbehaviors,
 end
 
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison_PerBehaviorBoxPlots_wk',weekend]));
+SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison_PerBehaviorBoxPlots']));
 
 
 %% plot each behavior separately, only plot both statistics
@@ -333,8 +360,15 @@ SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison_PerBehaviorBox
 [~,idx] = ismember(unique_conditionnames,conditionnamecodes(:,1));
 print_conditionnames = conditionnamecodes(idx,2)';
 
-[~,idx] = ismember(labelfns,behaviorcodes(:,1));
-behaviors = behaviorcodes(idx,2)';
+ndx2meanfrac = [];
+behaviors = {};
+for ndx = 1:numel(behaviorcodes(:,1))
+  ndx2labelfns = find(cellfun(@(x) strcmp(x,behaviorcodes{ndx,1}),labelfns));
+  behaviors{ndx} = behaviorcodes{ndx,2};
+  ndx2meanfrac(ndx) = ndx2labelfns;
+end
+nbehaviors = numel(behaviors);
+
 
 hfig = 4;
 figure(hfig);
@@ -365,7 +399,7 @@ for behi = 1:nbehaviors,
 %   v = [meanfractime_condition(:,behi),meanfractime_male_condition(:,behi),meanfractime_female_condition(:,behi)];
 %   s = [stdfractime_condition(:,behi),stdfractime_male_condition(:,behi),stdfractime_female_condition(:,behi)];
   %p = [meanfractime2(:,behi),meanfractime_male2(:,behi),meanfractime_female2(:,behi)];
-  p = [meanfractime(:,behi)];
+  p = [meanfractime(:,ndx2meanfrac(behi))];
 %   hbar(:,behi) = bar(1:nconditions,v,'grouped');
 %   for i = 1:3,
 %     set(hbar(i,behi),'FaceColor',datacolors(i,:));
@@ -400,15 +434,21 @@ for behi = 1:nbehaviors,
   else
     set(gca,'XTick',1:nconditions,'XTickLabel',{});
   end
-  
+  set(gca,'box','off');
+  set(get(gca,'XLabel'),'FontSize',16);
+  set(get(gca,'YLabel'),'FontSize',16);
+  set(gca,'FontSize',16);
+  set(gca,'Color','none');
   %set(gca,'YLim',[0,max(v(:)+s(:))*1.025]);
   %set(gca,'XLim',[.5,nconditions+.5]);
-  
 end
 
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison_PerBehaviorBoxPlots_BothOnly_wk',weekend]));
+SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison_PerBehaviorBoxPlots_BothOnly']));
+%% Save the Data..
 
+save(fullfile(outfigdir,['AgeBehaviorComparison_ResultsData']),'behaviornames','labelfns',...
+  'meanfractime','metadata','scoresfns');
 
 %% use logistic regression to predict the strain given the behavior classification results for each pair
 
@@ -416,8 +456,11 @@ SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgeBehaviorComparison_PerBehaviorBox
 print_conditionnames_perexp = print_conditionnames(conditionidx);
 [~,orderedconditionidx] = ismember(print_conditionnames_perexp,print_conditionnames);
 
+[~,idx] = ismember(labelfns,behaviorcodes(:,1));
+behaviors = behaviorcodes(idx,2)';
+
 % X is nexps x nbehaviors
-X = meanfractime;
+X = meanfractime(:,idx);
 y = orderedconditionidx';
 isbaddata = any(isnan(X),2);
 X(isbaddata,:) = [];
@@ -482,8 +525,11 @@ print_conditionnames_perexp = print_conditionnames(conditionidx);
 [~,orderedconditionidx] = ismember(print_conditionnames_perexp,print_conditionnames);
 nlambda = 10;
 
+[idx,~] = ismember(labelfns,behaviorcodes(:,1));
+
 % X is nexps x nbehaviors
-X = meanfractime;
+X = meanfractime(:,idx);
+
 y = orderedconditionidx';
 isbaddata = any(isnan(X),2);
 X(isbaddata,:) = [];
@@ -533,21 +579,45 @@ for condition1 = 1:nconditions,
   end
 end
 
+
+
 hfig = 6;
 figure(hfig);
 clf;
 
+
 imagesc(errorrate,[0,.5]);
 colormap gray;
 set(gca,'XTick',1:nconditions,'XTickLabel',print_conditionnames,...
-  'YTick',1:nconditions,'YTickLabel',print_conditionnames,'Box','off');
+  'YTick',1:nconditions,'YTickLabel',print_conditionnames,'Box','off',...
+  'FontSize',24);
+xlabel('Age (days)');
+ylabel('Age (days)');
 axis image;
 colorbar;
 title('Pairwise error rate');
 
-SaveFigLotsOfWays(hfig,fullfile(outfigdir,['AgePrediction_PairwiseErrorRate_wk',weekend]));
+error_rate = errorrate;
+axis image;
+box off;
+numel(error_rate);
+size(error_rate);
+[Row,Col]= size(error_rate);
+for i = 1:Row
+  for j = 1:Col
+    if i==j; continue; end
+    if error_rate(i,j)==0; continue; end
+    ht(i,j) = text(j,i,sprintf('%.2f',error_rate(i,j)),...
+      'FontUnits','pixels','FontWeight','bold','Color',[.7,0,0],...
+      'HorizontalAlignment','center','VerticalAlignment','middle',...
+      'FontSize',24);
+  end
+end
 
-save(['AgePredictionData_wk',weekend,'.mat'],'errorrate','print_conditionnames');
+
+SaveFigLotsOfWays(hfig,fullfile(outfigdir,'AgePrediction_PairwiseErrorRate'));
+
+save(['AgePredictionData.mat'],'errorrate','print_conditionnames');
 
 % all:
 %     2         4         5         9         12
@@ -559,6 +629,75 @@ save(['AgePredictionData_wk',weekend,'.mat'],'errorrate','print_conditionnames')
 
 % wk 2:
 %     4         9         12
+
+% Aug 30 and Sep 4 2012 data with all the 13 behaviors.
+%        2        6         13      20
+%     0.5000    0.0833    0.0833         0
+%     0.0833    0.5000    0.1250    0.1667
+%     0.0833    0.1250    0.5000    0.1667
+%          0    0.1667    0.1667    0.5000
+
+% Aug 30 and Sep 4 2012 data with 10 old behaviors.
+%        2        6         13      20
+%     0.5000    0.1250    0.0833         0
+%     0.1250    0.5000    0.1250    0.1667
+%     0.0833    0.1250    0.5000    0.0417
+%          0    0.1667    0.0417    0.5000
+
+%% Logistic regression parameters -- Mayank Sep 12.
+
+% reorder condition names
+print_conditionnames_perexp = print_conditionnames(conditionidx);
+[~,orderedconditionidx] = ismember(print_conditionnames_perexp,print_conditionnames);
+nlambda = 10;
+
+[idx,~] = ismember(labelfns,behaviorcodes(:,1));
+
+% X is nexps x nbehaviors
+X = meanfractime(:,idx);
+y = orderedconditionidx';
+isbaddata = any(isnan(X),2);
+X(isbaddata,:) = [];
+y(isbaddata) = [];
+coeffsall = {};
+fitinfoall = {};
+topbehavior = {};
+for condition1 = 1:nconditions,
+  idx1 = condition1 == y;
+  for condition2 = condition1+1:nconditions,
+    
+    fprintf('condition1 = %d, condition2 = %d\n',condition1,condition2);
+    
+    idx2 = condition2 == y;
+    idxcurr = idx1 | idx2;
+    ncurr = nnz(idxcurr);
+    Xcurr = X(idxcurr,:);
+    % 1 means condition1, 0 means condition2
+    ycurr = idx1(idxcurr);
+    % loop over all examples for cross validation
+    
+    yfitcurr = nan(ncurr,1);
+    idxtrain = true(ncurr,1); 
+      
+    % equal weight for positives and negatives
+    weightscurr = nan(nnz(idxtrain),1);
+    n0 = nnz(ycurr(idxtrain)==0);
+    n1 = nnz(ycurr(idxtrain)==1);
+    weightscurr(ycurr(idxtrain)==0) = 1 / n0;
+    weightscurr(ycurr(idxtrain)==1) = 1 / n1;
+    
+    
+    % logistic regression
+    [coeffscurr,fitinfo] = lassoglm(Xcurr(idxtrain,:),ycurr(idxtrain),'binomial','link','logit',...
+      'NumLambda',nlambda,'CV',ncurr-1,'Weights',weightscurr);
+    j = fitinfo.Index1SE;
+    coeffsall{condition1,condition2} = coeffscurr(:,j);
+    [~,tb] = max(abs(coeffscurr(:,j)));
+    topbehavior{condition1,condition2} = behaviors{tb};
+    fitinfoall{condition1,condition2} = fitinfo;
+  end
+end
+
 
 
 %% plot first two principal components

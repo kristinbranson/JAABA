@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_linux" location="/groups/branson/home/kabram/Jdetect/compiled" file="/groups/branson/home/kabram/Jdetect/compiled/JAABA_linux.prj" preferred-package-type="package.type.zip" build-checksum="3794666600" preferred-package-location="/groups/branson/home/kabram/Jdetect/compiled">
+  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_linux" location="/groups/branson/home/kabram/Jdetect/compiled" file="/groups/branson/home/kabram/Jdetect/compiled/JAABA_linux.prj" preferred-package-type="package.type.zip" build-checksum="4044887373" preferred-package-location="/groups/branson/home/kabram/bransonlab/mayank/Jdetect/compiled">
     <param.project.name>/groups/branson/home/kabram/Jdetect/compiled/JAABA_linux.prj</param.project.name>
     <param.target.type>Standalone Application</param.target.type>
     <param.appname>JAABA_linux</param.appname>
@@ -56,18 +56,36 @@
       <param.user.defined.mcr.options />
     </unset>
     <fileset.main>
-      <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/StartJAABA_compiled.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/StartJAABA_compiled.m</file>
     </fileset.main>
     <fileset.resources>
-      <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/filehandling</file>
-      <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc</file>
-      <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/compute_perframe_features</file>
-      <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/janelia_logo.png</file>
-      <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/version.txt</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/filehandling</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/misc</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeChangeWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeConfusionMatrix.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeDiffNeighborMaxWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeDiffNeighborMeanWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeDiffNeighborMinWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeHarmonicWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeHistWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeMaxDependencyRadius.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeMaxWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeMeanWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeMinWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputePerFrameTrans.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputePrctileWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeStdWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeZScoreNeighborsWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/ComputeZscoreNeighborsWindowFeatures.m</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/compute_perframe_features</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/janelia_logo.png</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/perframe/version.txt</file>
     </fileset.resources>
     <fileset.package>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/compiled/ParallelComputingConfiguration_Local_Linux64.mat</file>
+      <file>/groups/branson/bransonlab/mayank/Jdetect/compiled/params</file>
       <file>${PROJECT_ROOT}/ParallelComputingConfiguration_Local_Win4.settings</file>
-      <file>${PROJECT_ROOT}/params</file>
     </fileset.package>
     <build-deliverables>
       <file name="run_JAABA_linux.sh" location="${PROJECT_ROOT}/JAABA_linux/distrib" optional="false">/groups/branson/home/kabram/Jdetect/compiled/JAABA_linux/distrib/run_JAABA_linux.sh</file>
@@ -78,9 +96,10 @@
     <matlab>
       <root>/usr/local/MATLAB/R2012a</root>
       <path>
-        <directory>/groups/branson/home/kabram/Jdetect/perframe/compute_perframe_features</directory>
-        <directory>/groups/branson/home/kabram/Jdetect/filehandling</directory>
-        <directory>/groups/branson/home/kabram/Jdetect/misc</directory>
+        <directory>/groups/branson/bransonlab/mayank/Jdetect/plot</directory>
+        <directory>/groups/branson/bransonlab/mayank/Jdetect/perframe/compute_perframe_features</directory>
+        <directory>/groups/branson/bransonlab/mayank/Jdetect/filehandling</directory>
+        <directory>/groups/branson/bransonlab/mayank/Jdetect/misc</directory>
         <directory>/groups/branson/home/kabram/Documents/MATLAB</directory>
         <directory>/groups/branson/home/kabram/matlab</directory>
         <directory>${MATLAB_ROOT}/toolbox/matlab/optimfun</directory>
@@ -204,7 +223,7 @@
       <vista>false</vista>
       <linux>true</linux>
       <solaris>false</solaris>
-      <osver>2.6.32-33-generic</osver>
+      <osver>2.6.32-43-generic</osver>
       <os32>false</os32>
       <os64>true</os64>
       <arch>glnxa64</arch>
