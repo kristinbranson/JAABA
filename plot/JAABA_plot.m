@@ -1086,19 +1086,27 @@ not_during=cat(1,ans{:});
 %table_data{2,7}=sprintf('%10.3g ',prctile(not_during,75));
 %%table_data{2,7}=sprintf('%10.3g-%10.3g ',[prctile(not_during,5) prctile(not_during,95)]);
 
-if((min(min(during))<0) || (notduring && (min(min(not_during))<0)))  logbinsize=0;  end
 if(logbinsize)
   if(notduring)
-    unique([reshape(during,1,prod(size(during))) reshape(not_during,1,prod(size(not_during)))]);
-    low=ans(1);  if(ans(1)==0)  low=ans(2);  end
+    unique([reshape(abs(during),1,prod(size(during))) reshape(abs(not_during),1,prod(size(not_during)))]);
+    nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+    low=min(min([during not_during]));
     high=max(max([during not_during]));
   else
-    unique(reshape(during,1,prod(size(during))));
-    low=ans(1);  if(ans(1)==0)  low=ans(2);  end
+    unique(reshape(abs(during),1,prod(size(during))));
+    nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+    low=min(min(during));
     high=max(max(during));
   end
-  tmp=logspace(log10(low),log10(high),nbins);
-  set(gca,'xscale','log');
+  if((low>=0) && (high>0))
+    tmp=logspace(log10(max(low,nearzero)),log10(high),nbins);
+  elseif((low<0) && (high<=0))
+    tmp=fliplr(-logspace(log10(max(abs(high),nearzero)),log10(abs(low)),nbins));
+  elseif((low<0) && (high>0))
+    tmp=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
+        logspace(log10(nearzero),log10(abs(high)),nbins)];
+  end
+  %set(gca,'xscale','log');
 else
   if(notduring)
     tmp=linspace(min(min([during not_during])),max(max([during not_during])),nbins);
@@ -1995,6 +2003,7 @@ if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
     fprintf(fid,'%g, ',tmp{3*(i-1)+2,2:end});  fprintf(fid,'\n\n');
   end
   set(handles.Table,'Data',tmp);
+  set(handles.Table,'ColumnWidth','auto');
   set(handles.Table,'ColumnName',{});
 else
   set(handles.Table,'Data',[]);
