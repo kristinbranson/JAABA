@@ -1847,7 +1847,7 @@ if(individual>3)
   individual=individual-cumsum_num_indi_per_exp(tmp);
 end
 
-frames_labelled={};  frames_total={};
+frames_labelled={};  frames_total={};  color={};  xticklabels={};
 for g=gg
   set(handles.Status,'string',...
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
@@ -1858,6 +1858,8 @@ for g=gg
         handles.behaviorlist,handles.behaviorlogic,handles.behaviorvalue2,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
         handles.behaviorbarchart_perwhat);
+    color{end+1}=handles.colors{1,1+mod(gg(g)-1,length(handles.colors))};
+    xticklabels{end+1}=handles.grouplist{g};
   end
 end
 
@@ -1893,7 +1895,7 @@ for b=1:length(frames_labelled{1})  % behavior
       table_data{b}=nan(1,length(frames_labelled));
       for g=1:length(frames_labelled)
         table_data{b}(g)=100*sum([frames_labelled{g}{:,b}])./sum([frames_total{g}{:,b}]);
-        bar(g,table_data{b}(g),handles.colors{1,1+mod(g-1,length(handles.colors))});
+        bar(g,table_data{b}(g),color{g});
       end
       fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',handles.grouplist{gg});  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, per group\n']);  fprintf(fid,'%g, ',table_data{b});  fprintf(fid,'\n');
@@ -1903,7 +1905,7 @@ for b=1:length(frames_labelled{1})  % behavior
         table_data{b}{g}=100*cellfun(@sum,frames_labelled{g}(:,b))./cellfun(@sum,frames_total{g}(:,b));
         [ct{g},dp{g},dn{g}]=...
             calculate_ct_d(table_data{b}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
-        errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},handles.colors{1,1+mod(g-1,length(handles.colors))});
+        errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},color{g});
       end
       fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',handles.grouplist{gg});  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',[dp{:}]);  fprintf(fid,'\n');
@@ -1919,8 +1921,7 @@ for b=1:length(frames_labelled{1})  % behavior
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{b}{g}=100.*[tmp{:}]./[tmp2{:}];
         maxy=max([maxy table_data{b}{g}]);
-        bar((1:length(table_data{b}{g}))+sum(k),table_data{b}{g},...
-            handles.colors{1,1+mod(g-1,length(handles.colors))},'barwidth',1,'edgecolor','none');
+        bar((1:length(table_data{b}{g}))+sum(k),table_data{b}{g},color{g},'barwidth',1,'edgecolor','none');
         k(end+1)=length(table_data{b}{g});
         fprintf(fid,['%% data, %s\n'],handles.grouplist{g});
         fprintf(fid,'%g, ',table_data{b}{g});
@@ -1941,18 +1942,14 @@ for b=1:length(frames_labelled{1})  % behavior
         for e=1:length(frames_labelled{g}(:,b))
           table_data{b}{g}{e}=100.*frames_labelled{g}{e,b}./frames_total{g}{e,b};
           [ct,dp,dn]=calculate_ct_d(table_data{b}{g}{e},handles.prefs_centraltendency,handles.prefs_dispersion);
-          %plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',25);
-          plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} 'o']);
-          plot([m m],[dp dn],[handles.colors{1,1+mod(g-1,length(handles.colors))} '-']);
-          plot(m+(1:length(table_data{b}{g}{e})),table_data{b}{g}{e},...
-              [handles.colors{1,1+mod(g-1,length(handles.colors))} '.']);
-              %[handles.colors{1,1+mod(g-1,length(handles.colors))} 'o']);
+          plot(m,ct,[color{g} 'o']);
+          plot([m m],[dp dn],[color{g} '-']);
+          plot(m+(1:length(table_data{b}{g}{e})),table_data{b}{g}{e},[color{g} '.']);
           m=m+16+length(table_data{b}{g}{e});
         end
         [ct,dp,dn]=calculate_ct_d([table_data{b}{g}{:}],handles.prefs_centraltendency,handles.prefs_dispersion);
-        %plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} '.'],'markersize',35);
-        plot(m,ct,[handles.colors{1,1+mod(g-1,length(handles.colors))} 'o'],'markersize',9);
-        plot([m m],[dp dn],[handles.colors{1,1+mod(g-1,length(handles.colors))} '-'],'linewidth',3);
+        plot(m,ct,[color{g} 'o'],'markersize',9);
+        plot([m m],[dp dn],[color{g} '-'],'linewidth',3);
         m=m+24;
         k(end+1)=24+16*length(table_data{b}{g})+length([table_data{b}{g}{:}]);
         fprintf(fid,['%% data, %s\n'],handles.grouplist{g});
@@ -1964,7 +1961,7 @@ for b=1:length(frames_labelled{1})  % behavior
   if(isempty(k))  k=1:length(frames_labelled);  end
   %title(tstr);
   ylabel(ystr);
-  set(gca,'xtick',k,'xticklabel',handles.grouplist);
+  set(gca,'xtick',k,'xticklabel',xticklabels);
   axis tight;  vt=axis;
   axisalmosttight;  vat=axis;
   if(handles.behaviorbarchart_perwhat==3)
