@@ -3697,6 +3697,7 @@ function MenuLoad_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 [file,path]=uigetfile('*.mat','Select configuration file to open');
+if((file==0) && (path==0))  return;  end
 handles=load_configuration_file(fullfile(path,file),hObject,eventdata,handles);
 update_figure(handles);
 guidata(hObject, handles);
@@ -3709,4 +3710,5 @@ function MenuSave_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 [file,path]=uiputfile('*.mat','Select file to save configuration to');
+if((file==0) && (path==0))  return;  end
 save(fullfile(path,file),'handles');
