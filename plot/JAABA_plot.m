@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 02-Nov-2012 14:16:07
+% Last Modified by GUIDE v2.5 08-Nov-2012 10:47:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -3678,8 +3678,8 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuReset_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuReset (see GCBO)
+function MenuFileReset_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFileReset (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3691,24 +3691,31 @@ guidata(hObject, handles);
 
 
 % --------------------------------------------------------------------
-function MenuLoad_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuLoad (see GCBO)
+function MenuFileLoad_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFileLoad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 [file,path]=uigetfile('*.mat','Select configuration file to open');
-if((file==0) && (path==0))  return;  end
+if(isnumeric(file) && isnumeric(path) && (file==0) && (path==0))  return;  end
 handles=load_configuration_file(fullfile(path,file),hObject,eventdata,handles);
 update_figure(handles);
 guidata(hObject, handles);
 
 
 % --------------------------------------------------------------------
-function MenuSave_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuSave (see GCBO)
+function MenuFileSave_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFileSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 [file,path]=uiputfile('*.mat','Select file to save configuration to');
-if((file==0) && (path==0))  return;  end
+if(isnumeric(file) && isnumeric(path) && (file==0) && (path==0))  return;  end
 save(fullfile(path,file),'handles');
+
+
+% --------------------------------------------------------------------
+function MenuFile_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFile (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
