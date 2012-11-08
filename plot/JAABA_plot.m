@@ -1975,29 +1975,39 @@ end
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
   tmp={'behavior'};
   for b=1:length(table_data)
-    tmp{3*b+1,1}=handles.behaviorlist{b};
+    tmp{4*b+1,1}=handles.behaviorlist{b};
     for g=1:length(table_data{b})
       if(b==1)  tmp{1,g+1}=handles.grouplist{g};  end
       [~,p,~,~]=kstest(table_data{b}{g});
-      tmp{3*b+1,g+1}=p;
+      tmp{4*b+1,g+1}=p;
     end
+    if(b==1)  tmp{1,g+2}='(K-S normal)';  end
     k=1;
     for g=1:length(table_data{b})-1
       for g2=(g+1):length(table_data{b})
-        if(b==1)  tmp{2,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});  end
-        p=ranksum(table_data{b}{g},table_data{b}{g2});
-        tmp{3*b+2,k+1}=p;
+        if(b==1)
+          tmp{2,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
+          tmp{3,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
+        end
+        tmp{4*b+2,k+1}=ranksum(table_data{b}{g},table_data{b}{g2});
+        [~,tmp{4*b+3,k+1}]=ttest2(table_data{b}{g},table_data{b}{g2});
         k=k+1;
       end
+    end
+    if(b==1)
+      tmp{2,k+1}='(ranksum)';
+      tmp{3,k+1}='(t-test)';
     end
   end
   fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,1});      fprintf(fid,'\n');
   fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,2:end});  fprintf(fid,'\n');
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{2,2:end});  fprintf(fid,'\n\n');
-  for i=2:((size(tmp,1)+1)/3)
-    fprintf(fid,'%s, ',tmp{3*(i-1)+1,1});      fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{3*(i-1)+1,2:end});  fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{3*(i-1)+2,2:end});  fprintf(fid,'\n\n');
+  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{2,2:end});  fprintf(fid,'\n');
+  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{3,2:end});  fprintf(fid,'\n\n');
+  for i=2:((size(tmp,1)+1)/4)
+    fprintf(fid,'%s, ',tmp{4*(i-1)+1,1});      fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{4*(i-1)+1,2:end});  fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{4*(i-1)+2,2:end});  fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{4*(i-1)+3,2:end});  fprintf(fid,'\n\n');
   end
   set(handles.Table,'Data',tmp);
   set(handles.Table,'ColumnWidth','auto');
