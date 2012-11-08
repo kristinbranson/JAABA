@@ -1152,12 +1152,9 @@ if(individual>3)
   individual=individual-cumsum_num_indi_per_exp(tmp);
 end
 
-%axes(handles.Axes);  cla;  hold on;
-figure;  hold on;
-
 fid=fopen('most_recent_figure.csv','w');
 
-type='feature histogram';
+handles.type='feature histogram';
 %xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
 tstr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
 switch(handles.behaviorlogic)
@@ -1177,9 +1174,11 @@ units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'pe
 xstr=get_label(handles.featurelist(handles.featurevalue),units.units);
 ystr='normalized';
 
-print_csv_help(fid,type,tstr,xstr,ystr);
+print_csv_help(fid,handles.type,tstr,xstr,ystr);
 
-table_data={};  feature_units={};
+guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+
+%table_data={};  feature_units={};
 for g=gg
   set(handles.Status,'string',...
       ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
@@ -1521,11 +1520,9 @@ if(individual>3)
   individual=individual-cumsum_num_indi_per_exp(tmp);
 end
 
-figure;  hold on;
-
 fid=fopen('most_recent_figure.csv','w');
 
-type='feature time series';
+handles.type='feature time series';
 tstr='';
 xstr='time (frames)';
 units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
@@ -1548,7 +1545,9 @@ if(handles.featuretimeseries_timing>1)
   tstr=[tstr ' (%)'];
 end
 
-print_csv_help(fid,type,tstr,xstr,ystr);
+print_csv_help(fid,handles.type,tstr,xstr,ystr);
+
+guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 
 %range=[];
 table_data={};  %feature_units={};
@@ -1762,7 +1761,7 @@ function [frames_labelled frames_total]=calculate_behavior_barchart(experiment_v
     behavior_list,behavior_logic,behavior_value2,individual,sexdata,perwhat)
 
 collated_data=cell(length(experiment_value),length(behavior_list));
-for e=1:length(experiment_value)
+parfor e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{1} '.mat']));
   if(behavior_logic>1)
     behavior_data2=load(fullfile(experiment_list{experiment_value(e)},...
@@ -1865,10 +1864,11 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-figure;
+handles.type='behavior bar chart';
+guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+
 table_data=cell(1,length(frames_labelled{1}));
 for b=1:length(frames_labelled{1})  % behavior
-  type='behavior bar chart';
   tstr='';
   ystr=char(strrep(handles.behaviorlist(b),'_','-'));
   switch(handles.behaviorlogic)
@@ -1885,7 +1885,7 @@ for b=1:length(frames_labelled{1})  % behavior
   ystr=[ystr ' (%)'];
   xstr='group';
 
-  print_csv_help(fid,type,tstr,xstr,ystr);
+  print_csv_help(fid,handles.type,tstr,xstr,ystr);
 
   ceil(sqrt(length(frames_labelled{1})));
   subplot(ceil(length(frames_labelled{1})/ans),ans,b);  hold on;
@@ -2188,11 +2188,9 @@ if(individual>3)
   individual=individual-cumsum_num_indi_per_exp(tmp);
 end
 
-figure;  hold on;
-
 fid=fopen('most_recent_figure.csv','w');
 
-type='behavior time series';
+handles.type='behavior time series';
 tstr='';
 xstr='time (frames)';
 %ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
@@ -2210,7 +2208,9 @@ if(handles.behaviorlogic>1)
 end
 ystr=[ystr ' (%)'];
 
-print_csv_help(fid,type,tstr,xstr,ystr);
+print_csv_help(fid,handles.type,tstr,xstr,ystr);
+
+guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 
 table_data={};  raw_table_data={};
 for g=gg
@@ -2912,6 +2912,8 @@ elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
     FeatureTimeSeries_Callback(hObject, eventdata, handles);
 
   elseif(strcmp(handles.table,'histogram'))
+    handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),2));
+    menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
     FeatureHistogram_Callback(hObject, eventdata, handles);
   end
 end
@@ -3719,3 +3721,40 @@ function MenuFile_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuFile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% ---
+function ButtonDownFcn_Callback(src,evt)
+
+handles=guidata(src);
+
+tmp={};
+
+switch handles.type
+  case 'feature histogram'
+    tmp{end+1}=['perwhat=' num2str(handles.featurehistogram_perwhat)];
+    tmp{end+1}=['logbinsize=' num2str(handles.featurehistogram_logbinsize)];
+    tmp{end+1}=['notduring=' num2str(handles.featurehistogram_notduring)];
+    tmp{end+1}=['nbins=' num2str(handles.featurehistogram_nbins)];
+  case 'feature time series'
+    tmp{end+1}=['timing=' num2str(handles.featuretimeseries_timing)];
+    tmp{end+1}=['style=' num2str(handles.featuretimeseries_style)];
+    tmp{end+1}=['subtractmean=' num2str(handles.featuretimeseries_subtractmean)];
+end
+tmp{end+1}='';
+
+tmp{end+1}=['CT=' num2str(handles.prefs_centraltendency)];
+tmp{end+1}=['D='  num2str(handles.prefs_dispersion)];
+tmp{end+1}=['conv. width='  num2str(handles.prefs_convolutionwidth)];
+tmp{end+1}='';
+
+for g=1:length(handles.grouplist)
+  if(length(handles.experimentvalue{g})==0)  continue;  end
+  tmp{end+1}=['group ' handles.grouplist{g}];
+  for e=1:length(handles.experimentvalue{g})
+    [~,tmp{end+1},~]=fileparts(handles.experimentlist{g}{handles.experimentvalue{g}(e)});
+  end
+  tmp{end+1}='';
+end
+
+h=msgbox(tmp,'Parameters','replace');
