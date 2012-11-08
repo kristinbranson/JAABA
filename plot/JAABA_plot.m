@@ -513,15 +513,16 @@ function ExperimentAdd_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
-
 persistent directory
 if(isempty(directory))  directory=pwd;  end
 
 %tmp=uigetdir([],'Select experiment directory');
 newrecordings=uipickfiles('prompt','Select experiment directory','filterspec',directory);
 if(~iscell(newrecordings) || (length(newrecordings)==0))  return;  end
+
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
+
 [directory,~,~]=fileparts(newrecordings{1});
 %if(arg==1)
   handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newrecordings{:}};
@@ -705,7 +706,8 @@ function ExperimentMove_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if(isempty(handles.experimentlist{handles.groupvalue}))  return;  end
-[to_group,ok]=listdlg('liststring',{handles.grouplist{setdiff(1:length(handles.grouplist),handles.groupvalue)}},...
+[to_group,ok]=listdlg('liststring',...
+    {handles.grouplist{setdiff(1:length(handles.grouplist),handles.groupvalue)}},...
     'selectionmode','single');
 if(~ok)  return;  end
 if(to_group>=handles.groupvalue)  to_group=to_group+1;  end
@@ -714,33 +716,29 @@ set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 set(handles.figure1,'pointer','watch');
 
 from_group=handles.groupvalue;
-%idx=get(handles.ExperimentList,'Value');
 idx=handles.experimentvalue{from_group};
-handles.experimentlist{to_group}={handles.experimentlist{to_group}{:} handles.experimentlist{from_group}{idx}};
-%tmp=length(handles.experimentlist{to_group});
-%handles.experimentvalue{to_group}=(tmp-length(idx)+1):tmp;
+idxF=idx+sum(cellfun(@length,handles.experimentlist(1:(from_group-1))));
+idxT=sum(cellfun(@length,handles.experimentlist(1:to_group)));
+
+handles.experimentlist{to_group}=...
+    {handles.experimentlist{to_group}{:} handles.experimentlist{from_group}{idx}};
 handles.experimentvalue{to_group}=1:length(handles.experimentlist{to_group});
 handles.experimentlist{from_group}(idx)=[];
-%if(isempty(handles.experimentlist{from_group}))
-%  handles.experimentlist{from_group}={};
-%  handles.experimentvalue{from_group}=[];
-%  set(handles.ExperimentList,'enable','off');
-%end
-%set(handles.ExperimentList2,'String',handles.experimentlist2);
-%set(handles.ExperimentList2,'Value',handles.experimentvalue2,'enable','on');
 handles.experimentvalue{from_group}=1:length(handles.experimentlist{from_group});
 if(isempty(handles.experimentlist{from_group}))
-  %handles.experimentvalue{from_group}=[];
   set(handles.ExperimentList,'String',{''},'Value',1);
 else
-  %handles.experimentvalue{from_group}=1;
   set(handles.ExperimentList,'String',handles.experimentlist{from_group});
   set(handles.ExperimentList,'Value',handles.experimentvalue{from_group});
 end
-handles.behaviors=handles.behaviors([setdiff(1:length(handles.behaviors),idx) idx]);
-handles.features=handles.features([setdiff(1:length(handles.features),idx) idx]);
-handles.individuals=handles.individuals([setdiff(1:length(handles.individuals),idx) idx]);
-handles.sexdata=handles.sexdata([setdiff(1:length(handles.sexdata),idx) idx]);
+
+if(idxF(1)<idxT)  idxT=idxT-length(idxF);  end
+tmp=setdiff(1:length(handles.behaviors),idxF);
+tmp=[tmp(1:idxT) idxF tmp((idxT+1):end)];
+handles.behaviors=handles.behaviors(tmp);
+handles.features=handles.features(tmp);
+handles.individuals=handles.individuals(tmp);
+handles.sexdata=handles.sexdata(tmp);
 
 handles=fillin_individuallist(handles);
 
@@ -1762,7 +1760,7 @@ function [frames_labelled frames_total]=calculate_behavior_barchart(experiment_v
     behavior_list,behavior_logic,behavior_value2,individual,sexdata,perwhat)
 
 collated_data=cell(length(experiment_value),length(behavior_list));
-parfor e=1:length(experiment_value)
+for e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{1} '.mat']));
   if(behavior_logic>1)
     behavior_data2=load(fullfile(experiment_list{experiment_value(e)},...
