@@ -22,7 +22,7 @@ function varargout = JAABA_plot(varargin)
 
 % Edit the above text to modify the response to help JAABA_plot
 
-% Last Modified by GUIDE v2.5 08-Nov-2012 10:47:00
+% Last Modified by GUIDE v2.5 08-Nov-2012 17:28:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -3246,32 +3246,40 @@ function MenuFeatureHistogram_Callback(hObject, eventdata, handles)
 %guidata(hObject, handles);
 
 
-% --- Executes on button press in ExportTable.
-function ExportTable_Callback(hObject, eventdata, handles)
-% hObject    handle to ExportTable (see GCBO)
+% --- Executes on button press in CloseAll.
+function CloseAll_Callback(hObject, eventdata, handles)
+% hObject    handle to CloseAll (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[file,path]=uiputfile('*.txt','Select file to save table to');
-if (file==0)  return;  end
-fid=fopen(fullfile(path,file),'w');
-tmp=get(handles.Table,'columnname');
-tmp=transpose(tmp);
-tmp2=get(handles.Table,'data');
-tmp2(2:end+1,:)=tmp2;
-tmp2(1,:)=tmp;
-tmp2=cellfun(@char,tmp2,'uniformoutput',false);
-for i=1:size(tmp2,1)
-  for j=1:size(tmp2,2)
-    fprintf(fid,'%s\t',char(tmp2(i,j)));
-  end
-  fprintf(fid,'\r\n');
+questdlg('Close all figures?','','Yes','No','No');
+if(strcmp(ans,'No'))  return;  end
+hh=findobj('type','figure');
+for h=1:length(hh)
+  if(hh(h)~=gcf)  close(hh(h));  end
 end
-fclose(fid);
+
+
+%[file,path]=uiputfile('*.txt','Select file to save table to');
+%if (file==0)  return;  end
+%fid=fopen(fullfile(path,file),'w');
+%tmp=get(handles.Table,'columnname');
+%tmp=transpose(tmp);
+%tmp2=get(handles.Table,'data');
+%tmp2(2:end+1,:)=tmp2;
+%tmp2(1,:)=tmp;
+%tmp2=cellfun(@char,tmp2,'uniformoutput',false);
+%for i=1:size(tmp2,1)
+%  for j=1:size(tmp2,2)
+%    fprintf(fid,'%s\t',char(tmp2(i,j)));
+%  end
+%  fprintf(fid,'\r\n');
+%end
+%fclose(fid);
 
 
 % --- Executes on button press in ExportGraph.
-function ExportGraph_Callback(hObject, eventdata, handles)
+%function ExportGraph_Callback(hObject, eventdata, handles)
 % hObject    handle to ExportGraph (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -3695,7 +3703,7 @@ function MenuFileReset_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-questdlg('Reset?','','Yes','No','No');
+questdlg('Reset configuration to default?','','Yes','No','No');
 if(strcmp(ans,'No'))  return;  end
 handles=initialize(handles);
 update_figure(handles);
