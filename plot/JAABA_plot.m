@@ -1116,13 +1116,15 @@ end
 if(notduring)
   hist_not_during=hist(not_during',tmp);
   if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
-  hist_not_during=hist_not_during./repmat(sum(hist_not_during,1),size(hist_not_during,1),1);
+  hist_not_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_not_during,2));
+  hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
   plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1,...
     fid,experiment_list(experiment_value));
 end
 hist_during=hist(during',tmp);
 if(size(during,1)==1)  hist_during=hist_during';  end
-hist_during=hist_during./repmat(sum(hist_during,1),size(hist_during,1),1);
+hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
+hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
 linewidth=1;  if(notduring)  linewidth=2;  end
 plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
     fid,experiment_list(experiment_value));
