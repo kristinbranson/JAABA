@@ -975,6 +975,7 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     partition_idx=[0 partition_idx 0];
     start=1+find(~partition_idx(1:(end-1)) &  partition_idx(2:end))-1;
     stop =  find( partition_idx(1:(end-1)) & ~partition_idx(2:end))-1;
+    during{i}=nan;  not_during{i}=nan;
     if(length(start)>0)
       for j=1:length(start)
         if(sum(sexdata{i}(start(j):stop(j))) < ((stop(j)-start(j)+1)/2))  continue;  end
