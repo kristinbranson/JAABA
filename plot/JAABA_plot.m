@@ -2009,7 +2009,7 @@ if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
   end
   set(handles.Table,'Data',tmp);
   set(handles.Table,'ColumnWidth','auto');
-  set(handles.Table,'ColumnName',{});
+  set(handles.Table,'ColumnName',{''});
 else
   set(handles.Table,'Data',[]);
   set(handles.Table,'ColumnName',{});
