@@ -911,9 +911,22 @@ switch(style)
         str_dp='75%%';
         str_dn='25%%';
     end
-    plot(xdata,data_dp,color,'linewidth',linewidth);
-    plot(xdata,data_dn,color,'linewidth',linewidth);
-    plot(xdata,data_ct,color,'linewidth',3*linewidth);
+    %plot(xdata,data_dp,color,'linewidth',linewidth);
+    %plot(xdata,data_dn,color,'linewidth',linewidth);
+    %plot(xdata,data_ct,color,'linewidth',3*linewidth);
+    h=plot(xdata,data_ct,color,'linewidth',3*linewidth);
+    idx=isnan(data_dp) | isnan(data_dn);
+    xdata=xdata(~idx);  data_dp=data_dp(~idx);  data_dn=data_dn(~idx);
+    color2=(get(h,'color')+[4 4 4])/5;
+    k=1;  m=0;  step=10000;
+    while(k<=length(xdata))
+      idx=k:min(k+step,length(xdata));
+      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],...
+            color2,'edgecolor','none');
+      k=k+step+1;  m=m+1;
+    end
+    get(gca,'children');  set(gca,'children',circshift(ans,-m));  % send to back
+    %get(gca,'children');  set(gca,'children',ans([m+1 1:m (m+2):end]));  % send to back
     fprintf(fid,['%% ydata, ' str_dp '\n']);  fprintf(fid,'%g, ',data_dp);  fprintf(fid,'\n');
     fprintf(fid,['%% ydata, ' str_dn '\n']);  fprintf(fid,'%g, ',data_dn);  fprintf(fid,'\n');
     fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
@@ -1205,22 +1218,6 @@ title(tstr);
 xlabel(xstr);
 ylabel(ystr);
 axis tight;  zoom reset;
-
-%tmp=cat(1,table_data{:});
-%
-%clear tmp2
-%{'' 'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%' '75%'};
-%tmp2(1,:)=sprintf('%10s ',ans{:});
-%for i=1:size(tmp,1)
-%  tmp2(i+1,:)=[tmp{i,:}];
-%end
-%v=axis;
-%h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
-%if(handles.stats)
-%  set(h,'visible','on');
-%else
-%  set(h,'visible','off');
-%end
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
@@ -3708,6 +3705,7 @@ questdlg('Reset configuration to default?','','Yes','No','No');
 if(strcmp(ans,'No'))  return;  end
 handles=initialize(handles);
 update_figure(handles);
+set(handles.figure1,'pointer','arrow');
 guidata(hObject, handles);
 
 
