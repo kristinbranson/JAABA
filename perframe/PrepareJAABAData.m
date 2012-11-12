@@ -1567,8 +1567,8 @@ set(handles.edit_fps,'String',num2str(handles.fps));
 set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 set(handles.checkbox_OverRideFPS,'Value',handles.OverRideFPS);
 set(handles.checkbox_OverRideArena,'Value',handles.OverRideArena);
-set(handles.edit_CropFirstFrame,'Value',num2str(handles.CropFirstFrame));
-set(handles.edit_CropEndFrame,'Value',num2str(handles.CropEndFrame));
+set(handles.edit_CropFirstFrame,'String',num2str(handles.CropFirstFrame));
+set(handles.edit_CropEndFrame,'String',num2str(handles.CropEndFrame));
 
 % arena parameters
 UpdateArenaParameters(handles);
