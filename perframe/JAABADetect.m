@@ -2,11 +2,20 @@
 % scores = JAABADetect(expdir,'classifierparamsfile',classifierparamsfile)
 function scores = JAABADetect(expdir,varargin)
 
-[blockSize,classifierfiles,configfiles,classifierparamsfile,configparams] = ...
+[blockSize,classifierfiles,configfiles,classifierparamsfile,configparams,forcecompute,DEBUG] = ...
   myparse(varargin,'blockSize',10000,...
   'classifierfiles',{},'configfiles',{},...
   'classifierparamsfile',0,...
-  'configparams',[]);
+  'configparams',[],...
+  'forcecompute',false,...
+  'debug',false);
+
+if ischar(forcecompute),
+  forcecompute = str2double(forcecompute) ~= 0;
+end
+if ischar(DEBUG),
+  DEBUG = str2double(DEBUG);
+end
 
 if ischar(classifierparamsfile),
   if ~exist(classifierparamsfile,'file'),
@@ -58,6 +67,71 @@ for i = 1:nclassifiers,
   classifiers{i} = load(classifierfiles{i});
 end
 
+% scores file name
+scorefilenames = cell(1,nclassifiers);
+for i = 1:nclassifiers,
+  if ~isfield(configparams{i}.file,'scorefilename'),
+    if ~isfield(configparams{i},'behaviors'),
+      error('configparams %d does not have field behaviors',i);
+    elseif ~isfield(configparams{i}.behaviors,'names'),
+      error('configparams{%d}.behaviors does not have field names',i);
+    else
+      scorefilenames{i} = ['scores_',configparams{i}.behaviors.names,'.mat'];
+    end
+  else
+    scorefilenames{i} = configparams{i}.file.scorefilename;
+  end
+end
+
+% find classifiers that are done
+docompute = true(1,nclassifiers);
+if forcecompute == 0,
+  for i = 1:nclassifiers,
+    scorefile = fullfile(expdir,scorefilenames{i});
+    if exist(scorefile,'file'),
+      
+      % check timestamp
+      try
+        sd = load(scorefile,'timestamp');
+        if sd.timestamp == classifiers{i}.classifierTS,
+          docompute(i) = false;
+          behaviorname = configparams{i}.behaviors.names;
+          if iscell(behaviorname),
+            behaviorname = sprintf('%s_',behaviorname{:});
+            behaviorname = behaviorname(1:end-1);
+          end
+          fprintf('Skipping classifier %s(%s) for experiment %s, scores already computed\n',...
+            behaviorname,datestr(classifiers{i}.classifierTS,'yyyymmddTHHMMSS'),...
+            expdir); %#ok<PFCEL>
+        end
+      catch 
+        continue;
+      end
+    end
+      
+  end
+  
+end
+
+scores = cell(1,nclassifiers);
+if nargout >= 1,
+  for i = find(~docompute),
+    scorefile = fullfile(expdir,scorefilenames{i});
+    try
+      sd = load(scorefile,'allScores');
+      scores{i} = sd.allScores.scores;
+    catch ME,
+      warning('Could not load in scores from %s: %s',scorefile,getReport(ME));
+      docompute(i) = true;
+    end
+  end
+end
+
+if ~any(docompute),
+  fprintf('All classifiers have been run on experiment %s. Exiting.\n',expdir);
+  return;
+end
+
 % check that the config files are compatible
 configparams_global = configparams{1};
 for i = 2:nclassifiers,
@@ -84,7 +158,7 @@ wfidx_per_classifier = cell(1,nclassifiers);
 wfs_per_classifier = cell(1,nclassifiers);
 wfs = {};
 fprintf('Getting list of window features...\n');
-for i = 1:nclassifiers,
+for i = find(docompute),
   
   fprintf('Classifier %d\n',i);
   
@@ -121,7 +195,7 @@ end
 wf2pff = cellfun(@(x)x{1},wfs,'UniformOutput',false);
 [pffs,~,wf2pffidx] = unique(wf2pff);
 pfidx_per_classifier = cell(1,nclassifiers);
-for i = 1:nclassifiers,
+for i = find(docompute),
   pfidx_per_classifier{i} = wf2pffidx(wfidx_per_classifier{i});
 end
 
@@ -141,7 +215,7 @@ configparams_global.featureparamlist = struct;
 for i = 1:numel(pffs),
   configparams_global.featureparamlist.(pffs{i}) = struct;
 end
-configfile_global = tempname();
+configfile_global = [tempname(),'.xml'];
 SaveXMLParams(configparams_global,configfile_global,'params');
 
 % initialize with temporary configfile
@@ -168,8 +242,7 @@ if data.filesfixable && ~data.allfilesexist,
 end
 
 isfirst = true;
-scores = cell(1,nclassifiers);
-for i = 1:nclassifiers,
+for i = find(docompute),
   scores{i} = cell(1,data.nflies_per_exp(expi));
 end
 
@@ -195,7 +268,7 @@ for flies = 1:data.nflies_per_exp(expi),
   tStart = 1;
   off = 1-data.firstframes_per_exp{expi}(flies);
   tEnd = data.endframes_per_exp{expi}(flies)+off;
-  for i = 1:nclassifiers,
+  for i = find(docompute),
     scores{i}{flies} = nan(1,tEnd-off);
   end
   
@@ -259,7 +332,7 @@ for flies = 1:data.nflies_per_exp(expi),
     end
     
     % apply the classifiers
-    for i = 1:nclassifiers,
+    for i = find(docompute),
       Xcurr = X(:,wfidx_per_classifier{i});
       % there's some weird offseting in the stored scores files
       scores{i}{flies}(t0-off:t1-off) = myBoostClassify(Xcurr,classifiers_indexed{i});
@@ -272,7 +345,7 @@ for flies = 1:data.nflies_per_exp(expi),
 end
 
 % save scores
-for i = 1:nclassifiers,
+for i = find(docompute),
   allScores = struct;
   allScores.scores = scores{i};
   allScores.tStart = data.firstframes_per_exp{expi};
@@ -293,19 +366,9 @@ for i = 1:nclassifiers,
       data.Postprocess(scores{i}{flies}(tStartAll(flies):tEndAll(flies)));
   end
   allScores.postprocessed = postprocessedscoresA;
-  allScores.postprocessparams = data.postprocessparams;
-  
-  if ~isfield(configparams{i}.file,'scorefilename'),
-    if ~isfield(configparams{i},'behaviors'),
-      error('configparams %d does not have field behaviors',i);
-    elseif ~isfield(configparams{i}.behaviors,'names'),
-      error('configparams{%d}.behaviors does not have field names',i);
-    else
-      scorefilename = ['scores_',configparams{i}.behaviors.names,'.mat'];
-    end
-  else
-    scorefilename = configparams{i}.file.scorefilename;
-  end
+  allScores.postprocessparams = data.postprocessparams; %#ok<STRNU>
+
+  scorefilename = scorefilenames{i};
   %scorefilename = ['test_',scorefilename];
   sfn = fullfile(expdir,scorefilename);
       
@@ -317,5 +380,7 @@ for i = 1:nclassifiers,
   end
   timestamp = classifiers{i}.classifierTS; %#ok<NASGU>
   classifierfilename = classifierfiles{i}; %#ok<NASGU>
-  save(sfn,'allScores','timestamp','classifierfilename');  
+  if DEBUG > 0,
+    save(sfn,'allScores','timestamp','classifierfilename');
+  end
 end
