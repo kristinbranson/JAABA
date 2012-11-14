@@ -1,10 +1,17 @@
 function [trx,fieldnames,data,units] = ReadStructSVMTrxFile(trxfile)
 
+MAXSTRINGLENGTH = 10000;
 fid = fopen(trxfile,'rb');
 version = fread(fid,1,'double'); %#ok<NASGU>
 moviename_length = fread(fid,1,'int');
+if moviename_length > MAXSTRINGLENGTH,
+  error('Movie name length = %d > %d\n',moviename_length,MAXSTRINGLENGTH);
+end
 moviename = fread(fid,moviename_length,'char=>char')';
 matname_length = fread(fid,1,'int');
+if matname_length > MAXSTRINGLENGTH,
+  error('Mat name length = %d > %d\n',matname_length,MAXSTRINGLENGTH);
+end
 matname = fread(fid,matname_length,'char=>char')'; %#ok<NASGU>
 nflies = fread(fid,1,'int'); %#ok<NASGU>
 fly_ids = fread(fid,1,'int');
@@ -23,15 +30,24 @@ nframes = lastframe-firstframe+1;
 
 for i = 1:nfields,
   fieldname_length = fread(fid,1,'int');
+  if fieldname_length > MAXSTRINGLENGTH,
+    error('Field name length = %d > %d\n',fieldname_length,MAXSTRINGLENGTH);
+  end
   fieldname = fread(fid,fieldname_length,'char=>char')';
   fieldnames{i} = fieldname;
   units_numerator_length = fread(fid,1,'int');
+  if units_numerator_length > MAXSTRINGLENGTH,
+    error('Units numerator length = %d > %d\n',units_numerator_length,MAXSTRINGLENGTH);
+  end
   units_numerator = fread(fid,units_numerator_length,'char=>char')';
   units_numerator = regexp(strtrim(units_numerator),'\s','split');
   idx = strcmp(units_numerator,'1');
   units_numerator(idx) = [];
   
   units_denominator_length = fread(fid,1,'int');
+  if units_denominator_length > MAXSTRINGLENGTH,
+    error('Units denominator length = %d > %d\n',units_denominator_length,MAXSTRINGLENGTH);
+  end
   units_denominator = fread(fid,units_denominator_length,'char=>char')';
   units_denominator = regexp(strtrim(units_denominator),'\s','split');
   idx = strcmp(units_denominator,'1');
