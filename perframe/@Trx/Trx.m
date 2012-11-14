@@ -74,7 +74,8 @@ classdef Trx < handle
     
     %% landmark parameters
 
-    landmark_params = [];
+    default_landmark_params = [];
+    landmark_params = {};
     
     %% per-frame parameters
     perframe_params = [];
@@ -216,7 +217,7 @@ classdef Trx < handle
     
     function SetLandmarkParams(obj,landmark_params)
       
-      obj.landmark_params = landmark_params;
+      obj.default_landmark_params = landmark_params;
       % TODO: invalidate features computed with the old parameters
       
     end

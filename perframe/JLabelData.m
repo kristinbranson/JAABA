@@ -77,6 +77,7 @@ classdef JLabelData < handle
     labelidx = struct('val',[],'imp',[],'timestamp',[]);
     labelidx_off = 0;
     
+    labelsLoadedFromClassifier = false;
     % first frame that all flies currently selected are tracked
     t0_curr = 0;
     % last frame that all flies currently selected are tracked
@@ -229,7 +230,7 @@ classdef JLabelData < handle
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
       'classifierTS','confThresholds','scoreNorm','windowfeaturesparams','windowfeaturescellparams',...
       'basicFeatureTable','featureWindowSize','postprocessparams',...
-      'featurenames','scorefilename'};
+      'featurenames','scorefilename','labels'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -252,7 +253,8 @@ classdef JLabelData < handle
     allperframefns = {};
     curperframefns = {};
     perframeunits = {};
-
+    scoresasinput = [];
+    
     % experiment/file management
 
     % matrix of size numel(file_types) x nexps, where
@@ -784,13 +786,16 @@ end
         if isfield(configparams,'windowfeatures') && ~isempty(configparams.windowfeatures)
           obj.basicFeatureTable = configparams.windowfeatures.basicFeatureTable;
           obj.featureWindowSize = configparams.windowfeatures.featureWindowSize;
-          obj.SetPerframeParams(configparams.windowfeatures.windowfeatureparams,...
-            configparams.windowfeatures.windowfeaturecellparams);
+          obj.SetPerframeParams(configparams.windowfeatures.windowfeaturesparams,...
+            configparams.windowfeatures.windowfeaturescellparams);
         end
         
         if isfield(configparams,'perframe'),
           if isfield(configparams.perframe,'params'),
-            obj.perframe_params = configparams.perframe.params;
+            pf_fields = fieldnames(configparams.perframe.params);
+            for ndx = 1:numel(pf_fields),
+              obj.perframe_params.(pf_fields{ndx}) = configparams.perframe.params.(pf_fields{ndx});
+            end
           end
           if isfield(configparams.perframe,'landmark_params'),
             obj.landmark_params = configparams.perframe.landmark_params;
@@ -808,6 +813,22 @@ end
         if isfield(configparams.learning,'classifiertype'),
           obj.SetClassifierType(configparams.learning.classifiertype);
         end
+      end
+      
+      if isfield(configparams,'scoresinput'),
+        obj.scoresasinput = configparams.scoresinput;
+        for ndx = 1:numel(obj.scoresasinput)
+          [~,name,~] = fileparts(obj.scoresasinput(ndx).scorefilename);
+          obj.allperframefns{end+1} = name;
+        end
+        
+        scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
+        if isempty(scoresbasicndx),
+          obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
+        else
+          obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
+        end
+        
       end
       
      
@@ -1343,7 +1364,7 @@ end
       
     end    
     
-    function [success,msg] = SetClassifierFileName(obj,classifierfilename,doreadconfigfile)
+    function [success,msg] = SetClassifierFileName(obj,classifierfilename,varargin)
     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
     % Sets the name of the classifier file. If the classifier file exists, 
     % it loads the data stored in the file. This involves removing all the
@@ -1353,9 +1374,9 @@ end
     % the previously computed window data and computing the window data for
     % all the labeled frames. 
       
-    if nargin < 3,
-      doreadconfigfile = true;
-    end
+    [classifierlabels,doreadconfigfile] = myparse(varargin,...
+      'classifierlabels',false,...
+      'doreadconfigfile',true);
     
       success = false;
       msg = '';
@@ -1447,11 +1468,25 @@ end
 %           if ~success,error(msg); end
            
           % set experiment directories
-          [success,msg] = obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
-            loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
-            loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
-          if ~success,error(msg); end
-          
+          if classifierlabels && isfield(loadeddata,'labels'),
+            [success,msg] = obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
+              loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
+              loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
+            if ~success,error(msg); end
+            obj.labels = loadeddata.labels;
+            [success,msg] = obj.PreLoadLabeledData();
+            if ~success,error(msg); end
+            obj.labelsLoadedFromClassifier = true;
+            
+          else
+            if classifierlabels,
+              uiwait(warndlg('The classifier file didn''t have any labels. Loading the current labels'));
+            end
+            [success,msg] = obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
+              loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
+              loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
+            if ~success,error(msg); end
+          end
           [success,msg] = obj.UpdateStatusTable();
           if ~success, error(msg); end
           
@@ -1878,6 +1913,13 @@ end
         expis = 1:obj.nexps;
       end
       
+      if obj.labelsLoadedFromClassifier,
+        res = questdlg(['Labels were loaded from the classifier. Saving the'...
+          ' labels will overwrite the current labels. Overwrite?'],...
+          'Overwrite Current Labels?','Yes','No','Cancel','No');
+        if ~strcmpi(res,'Yes'), return, end
+      end
+      
       % store labels in labelidx
       obj.StoreLabels();
       
@@ -2091,7 +2133,9 @@ end
       if obj.filesfixable && ~obj.allfilesexist,
         if ~isdeployed 
           if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
-            res = questdlg(sprintf('Experiment %s is missing required files:%s. Generate now?',expdir,sprintf(' %s',missingfiles{:})),'Generate missing files?','Yes','Cancel','Yes');
+            res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
+              'Generate now?'],expdir,sprintf(' %s',missingfiles{:})),...
+              'Generate missing files?','Yes','Cancel','Yes');
             if strcmpi(res,'Yes')
               obj.SetGenerateMissingFiles();
             end
@@ -2117,13 +2161,27 @@ end
       end
       
       % Convert the scores file into perframe files.
-      for i = 1:numel(obj.allperframefns),
-        fn = obj.allperframefns{i};
-        if numel(fn)>7 && strcmpi('score',fn(1:5))
-          obj.ScoresToPerframe(obj.nexps,fn);
-        end
+      
+      for i = 1:numel(obj.scoresasinput)
+        [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
+          obj.scoresasinput(i).ts);
+          if ~success,
+            obj.RemoveExpDirs(obj.nexps);
+            return;
+          end
       end
       
+%       for i = 1:numel(obj.allperframefns),
+%         fn = obj.allperframefns{i};
+%         if numel(fn)>7 && strcmpi('score',fn(1:5))
+%           [success,msg] = obj.ScoresToPerframe(obj.nexps,fn);
+%           if ~success,
+%             obj.RemoveExpDirs(obj.nexps);
+%             return;
+%           end
+%         end
+%       end
+%       
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
         % TODO: make this work with multiple flies
@@ -2301,14 +2359,22 @@ end
         end
       end
       
-      % Convert the scores file into perframe files.
-      for i = 1:numel(obj.allperframefns),
-        fn = obj.allperframefns{i};
-        if numel(fn)>7 && strcmpi('score',fn(1:5))
-          obj.ScoresToPerframe(obj.nexps,fn);
+      for i = 1:numel(obj.scoresasinput)
+        [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
+          obj.scoresasinput(i).ts);
+        if ~success,
+          obj.RemoveExpDirs(obj.nexps);
+          return;
         end
       end
-      
+      % Convert the scores file into perframe files.
+%       for i = 1:numel(obj.allperframefns),
+%         fn = obj.allperframefns{i};
+%         if numel(fn)>7 && strcmpi('score',fn(1:5))
+%           obj.ScoresToPerframe(obj.nexps,fn);
+%         end
+%       end
+%       
 
       
       % preload this experiment if this is the first experiment added
@@ -2661,7 +2727,7 @@ end
       perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
         'moviefilestr',obj.GetFileName('movie'),...
         'perframedir',obj.GetFileName('perframedir'),...
-        'landmark_params',obj.landmark_params,...
+        'default_landmark_params',obj.landmark_params,...
         'perframe_params',obj.perframe_params,...
         'rootwritedir',obj.rootoutputdir);
       
@@ -2703,20 +2769,36 @@ end
       
     end
     
-    function ScoresToPerframe(obj,expi,fn)
+    function [success, msg] = ScoresToPerframe(obj,expi,fn,ts)
+      success = true; msg = '';
       outdir = obj.outexpdirs{expi};
-      scoresFileIn = fullfile(outdir,fn);
-      scoresFileOut = fullfile(outdir,obj.GetFileName('perframe'),fn);
-      Q = load([scoresFileIn '.mat']);
+      scoresFileIn = [fullfile(outdir,fn) '.mat'];
+      scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fn) '.mat'];
+      if ~exist(scoresFileIn,'file'),
+        success = false; 
+        msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
+      end
+      Q = load(scoresFileIn);
+      if Q.timestamp ~= ts, % check the timestamps match the classifier's timestamp.
+        success = false; 
+        msg = sprintf(['The scores file %s were generated using a classifier' ...
+          'that was saved on %s while the classifier chosen was saved on %s'],...
+          scoresFileIn,datestr(Q.timestamp),datestr(ts));
+      end
       OUT = struct();
       OUT.units = struct(); OUT.units.num = {'scores'};
       OUT.units.den = {''};
-      for ndx = 1:numel(Q.allScores.loaded)
+      for ndx = 1:numel(Q.allScores.scores)
         t0 = Q.allScores.tStart(ndx);
         t1 = Q.allScores.tEnd(ndx);
-        OUT.data{ndx} = Q.allScores.loaded{ndx}(t0:t1);
+        OUT.data{ndx} = Q.allScores.scores{ndx}(t0:t1);
       end
-      save(scoresFileOut,'-struct','OUT');
+      try
+        save(scoresFileOut,'-struct','OUT');
+      catch ME,
+        success = false;
+        msg = ME.message;
+      end
     end
     
     function [success,msg] = SetFeatureConfigFile(obj,configfile)
@@ -2727,10 +2809,14 @@ end
       settings = ReadXMLParams(configfile);
       
       if isfield(settings,'perframe_params'),
-          obj.perframe_params = configparams.perframe.params;
+        pf_fields = fieldnames(settings.perframe_params);
+        for ndx = 1:numel(pf_fields),
+          obj.perframe_params.(pf_fields{ndx}) = configparams.perframe.params.(pf_fields{ndx});
+        end
       end
 
       obj.allperframefns =  fieldnames(settings.perframe);
+      
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
         return;
@@ -3761,7 +3847,7 @@ end
       if ~isempty(obj.predictdata.exp) 
         idxcurr = obj.FlyNdxPredict(expi,flies) & ...
           obj.predictdata.old_valid;
-        scores(obj.windowdata.t(idxcurr)+off) = ...
+        scores(obj.predictdata.t(idxcurr)+off) = ...
           obj.predictdata.old(idxcurr);
       end
       
@@ -4304,7 +4390,9 @@ end
         if ~exist(perframefile{ndx},'file'),
           if ~isdeployed 
             if isempty(obj.GetGenerateMissingFiles) || ~obj.GenerateMissingFiles()
-              res = questdlg(sprintf('Experiment %s is missing some perframe files (%s, possibly more). Generate now?',obj.expnames{expi},perframefile{ndx}),'Generate missing files?','Yes','Cancel','Yes');
+              res = questdlg(sprintf(['Experiment %s is missing some perframe files '...
+                '(%s, possibly more). Generate now?'],obj.expnames{expi},perframefile{ndx}),...
+                'Generate missing files?','Yes','Cancel','Yes');
               if strcmpi(res,'Yes');
                 obj.SetGenerateMissingFiles();
               end
@@ -4510,7 +4598,7 @@ end
     
     function ShowSelectFeatures(obj)
       obj.SetStatus('Set the window computation features...');
-      selHandle = SelectFeatures(obj);
+      selHandle = SelectFeatures(obj,obj.scoresasinput);
       uiwait(selHandle);
       obj.ClearStatus();
     end
@@ -4675,6 +4763,7 @@ end
 %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
           
           obj.FindFastPredictParams();
+          obj.predictdata.cur_valid(:) = false;
           obj.PredictLoaded();
       end
 
