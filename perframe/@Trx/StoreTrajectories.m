@@ -81,3 +81,9 @@ if isfield(traj,'fps'),
 else
   obj.fps(n) = nan;
 end
+
+if isfield(traj,'landmark_params')
+  obj.landmark_params{n} = traj.landmark_params;
+else
+  obj.landmark_params{n} = obj.default_landmark_params;
+end

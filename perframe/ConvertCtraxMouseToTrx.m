@@ -23,6 +23,12 @@ sampleframes = 1;
 
 trx = load_tracks(fullfile(indir, intrxfile));
 
+[~,~,ext] = fileparts(moviefilename);
+if strcmp(ext,'.ufmf')
+  isufmf = true;
+else
+  isufmf = false;
+end
 
 [readframe,nframes,movie_fid,movieheaderinfo] = ...
   get_readframe_fcn(fullfile(indir,moviefilename));
@@ -45,8 +51,7 @@ ftr = median(tr,1);
 fbl = median(bl,1);
 fbr = median(br,1);
 
-for ndx = 1:numel(trx)
-end
+image_size = size(img);
 
 d_top_px = sqrt( sum((ftl-ftr).^2));
 d_left_px = sqrt( sum((ftl-fbl).^2));
@@ -55,12 +60,23 @@ d_right_px = sqrt( sum((ftr-fbr).^2));
 mean_size = mean([d_top_px d_right_px d_left_px d_bottom_px]);
 scaleFactor = arenaSize/mean_size;
 
+
 for ndx = 1:numel(trx)
   trx(ndx).x_mm = trx(ndx).x*scaleFactor;
-  trx(ndx).y_mm = trx(ndx).y*scaleFactor;
+  if isufmf,
+    trx(ndx).y_mm = trx(ndx).y*scaleFactor;
+  else
+    trx(ndx).y_mm = (image_size(1)-trx(ndx).y)*scaleFactor;
+    trx(ndx).y = (image_size(1)-trx(ndx).y);
+  end
   trx(ndx).a_mm = trx(ndx).a*scaleFactor;
   trx(ndx).b_mm = trx(ndx).b*scaleFactor;
-  trx(ndx).theta_mm = trx(ndx).theta;
+  if isufmf,
+    trx(ndx).theta_mm = trx(ndx).theta;
+  else
+    trx(ndx).theta_mm = 2*pi - trx(ndx).theta;
+    trx(ndx).theta = 2*pi - trx(ndx).theta;
+  end
   trx(ndx).dt = repmat(1/framerate,1,numel(trx(ndx).x)-1);
   trx(ndx).sex = repmat({sex},1,numel(trx(ndx).x));
   trx(ndx).arena.tl = ftl*scaleFactor;
