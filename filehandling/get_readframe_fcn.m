@@ -169,7 +169,7 @@ function [im,timestamp] = seq_read_frame_piotr(f,sr)
 im = [];
 timestamp = [];
 
-if ~sr.seek(f),
+if ~sr.seek(f-1),
   warning('Could not seek to frame %d',f);
   return;
 end
