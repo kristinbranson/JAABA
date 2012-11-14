@@ -1,12 +1,28 @@
-function [success,msg,scores,tlabels] = crossValidateBout(data,labels,bouts,obj,binVals,params,timed)
+function [success,msg,scores,tlabels] = crossValidateBout(data,labels,bouts,obj,binVals,params,timed,setidx)
 
 success = true; msg = '';
 k = params.CVfolds;
 
 % Learn classifier with all the data.
+if nargin >= 7 && timed,
+  fprintf('WARNING: setting timed = false in crossValidateBout, even though the input is true. FIX THIS!\n');
+  timed = false;
+end
 if nargin< 8,
   timed = false;
 end
+
+if nargin < 8,
+  setidx = [];
+end
+
+issetidx = ~isempty(setidx);
+if issetidx,
+  k = max(setidx);
+end
+
+% choose sets to hold out together
+if ~issetidx,
 
 posBouts = bouts.label == 1;
 negBouts = ~posBouts;
@@ -37,6 +53,8 @@ negCum = cumsum(negBouts);
 % Randomly permute the bouts.
 posCum = posCum(randperm(numel(posCum)));
 negCum = negCum(randperm(numel(negCum)));
+
+end
 
 modLabels = sign( (labels==1)-0.5);
 tlabels = {};
@@ -100,6 +118,9 @@ scores = zeros(numel(tpoints),size(data,1));
 bins = findThresholdBins(data(labels~=0,:),binVals);
 
 for bno = 1:k
+  
+  if ~issetidx,
+  
   curPosTest = posCum >= posBlocks(bno) & ...
     posCum < posBlocks(bno+1) & ...
     posBouts;
@@ -117,9 +138,16 @@ for bno = 1:k
     curTestNdx = curTestNdx | bouts.ndx(negNdx,:);
   end
   
+  else
+    
+    curTestNdx = setidx == bno;
+  
+  end
   
   for tndx = 1:numel(tpoints)
   
+    if ~issetidx,
+    
     curPosTrain = find(~curPosTest & posBouts & bouts.timestamp<=tpoints(tndx));
     curNegTrain = find(~curNegTest & negBouts & bouts.timestamp<=tpoints(tndx));
 
@@ -131,6 +159,12 @@ for bno = 1:k
       curTrainNdx = curTrainNdx | bouts.ndx(negNdx,:);
     end
 
+    else
+      
+      curTrainNdx = bno ~= setidx;
+
+    end
+    
     curTrainLabels = modLabels(curTrainNdx);
 
     wt = getWeights(curTrainLabels);  
