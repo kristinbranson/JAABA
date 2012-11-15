@@ -401,7 +401,7 @@ handles = guidata(hObject);
 defaultdir = fileparts(handles.data.defaultpath);
 allexpdirs = uipickfiles('FilterSpec',defaultdir,...
   'Prompt','Add experiment directory');
-if numel(allexpdirs)==1 && ~ischar(allexpdirs{1}),
+if (~iscell(allexpdirs) && isnumeric(allexpdirs)) || (numel(allexpdirs)==1 && ~ischar(allexpdirs{1})),
   return;
 end
 
