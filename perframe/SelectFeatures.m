@@ -519,7 +519,7 @@ pftype = struct;
 for pfndx = 1:numel(perframeL)
   curpf = perframeL{pfndx};
   
-  if any(strcmp([curpf '.mat'],scores_perframe)), % This is a score perframe.
+  if any(strcmp(curpf ,scores_perframe)), % This is a score perframe.
     transType.(curpf) = {'none'};
     pftype.(curpf) = {'scores'};
     continue;
