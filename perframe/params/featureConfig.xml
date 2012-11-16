@@ -200,4 +200,6 @@
     <absyaw trans_types="none" type="compatbility"/>
     
   </perframe>
+  
+  <perframe_params  fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
 </params>
