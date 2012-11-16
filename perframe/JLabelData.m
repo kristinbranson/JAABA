@@ -2843,7 +2843,7 @@ end
       if isfield(settings,'perframe_params'),
         pf_fields = fieldnames(settings.perframe_params);
         for ndx = 1:numel(pf_fields),
-          obj.perframe_params.(pf_fields{ndx}) = configparams.perframe.params.(pf_fields{ndx});
+          obj.perframe_params.(pf_fields{ndx}) = settings.perframe_params.(pf_fields{ndx});
         end
       end
 
@@ -4868,6 +4868,8 @@ end
           if(isempty(obj.predictblocks.t0)), return, end
           
           for ndx = 1:numel(obj.predictblocks.t0)
+            obj.SetStatus('Predicting for exp %s... %d%% done',...
+            obj.expnames{obj.predictblocks.exp(ndx)},100*ndx/numel(obj.predictblocks.t0));
             obj.PredictFast(obj.predictblocks.expi(ndx),...
               obj.predictblocks.flies(ndx),...
               obj.predictblocks.t0(ndx):obj.predictblocks.t1(ndx));
@@ -5181,7 +5183,6 @@ end
         perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
         perframefile = obj.GetPerframeFiles(expi);
 
-       nts0 = numel(missingts);
        while true,
 
           % choose a frame missing window data
@@ -5232,10 +5233,6 @@ end
           
           i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
           i1 = t1 - obj.GetTrxFirstFrame(expi,flies) + 1;
-          
-          % update the status
-          obj.SetStatus('Classifying frames for exp %s, fly%s: %d%% done...',...
-            obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
           
           X = [];
           
