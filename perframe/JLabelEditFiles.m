@@ -144,7 +144,7 @@ JLabelHandle = handles.JLabelHandle;
 JLabelHandle.guidata.configfilename = handles.configfilename;
 [~,~,ext] = fileparts(handles.configfilename);
 if strcmp(ext,'.xml')
-  JLabelHandle.guidata.configparams = ReadXMLparams(handles.configfilename);
+  JLabelHandle.guidata.configparams = ReadXMLParams(handles.configfilename);
 elseif strcmp(ext,'.mat')
   JLabelHandle.guidata.configparams = load(handles.configfilename);
 else
