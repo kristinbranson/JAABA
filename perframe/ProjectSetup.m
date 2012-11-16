@@ -219,10 +219,6 @@ handles.params.trx.colormap = 'jet';
 handles.params.trx.colormap_multiplier = 0.7;
 handles.params.labels.colormap = 'line';
 handles.params.labels.linewidth = 3;
-handles.params.landmark_params.arena_center_mm_x = 0;
-handles.params.landmark_params.arena_center_mm_y = 0;
-handles.params.landmark_params.arena_radius_mm = 60;
-handles.params.landmark_params.arena_type = 'circle';
 handles.params.file.labelfilename = '';
 handles.params.file.gt_labelfilename = '';
 handles.params.file.scorefilename = '';
@@ -798,25 +794,28 @@ if ismember('Classifier files used as input', sellist);
 end
 
 if ismember('Advanced Parameters',sellist),
-  try 
-    handles.params.behaviors.labelcolors = origparams.behaviors.labelcolors;
-    handles.params.behaviors.unknowncolor = origparams.behaviors.unknowncolor;
-    handles.params.plot.trx.colormap = origparams.plot.trx.colormap;
-    handles.params.plot.trx.colormap_multiplier = origparams.plot.trx.colormap_multiplier;
-    handles.params.plot.labels.colormap = origparams.plot.labels.colormap;
-    handles.params.plot.labels.linewidth = origparams.plot.labels.linewidth;
-    handles.params.perframe.params.fov = origparams.perframe.params.fov;
-    handles.params.perframe.params.nbodylengths_near = origparams.perframe.params.nbodylengths_near;
-    handles.params.perframe.params.thetafil = origparams.perframe.params.thetafil;
-    handles.params.perframe.params.max_dnose2ell_anglerange = origparams.perframe.params.max_dnose2ell_anglerange;
-    handles.params.perframe.landmark_params.arena_center_mm_x = origparams.perframe.landmark_params.arena_center_mm_x ;
-    handles.params.perframe.landmark_params.arena_center_mm_y = origparams.perframe.landmark_params.arena_center_mm_x ;
-    handles.params.perframe.landmark_params.arena_radius_mm = origparams.perframe.landmark_params.arena_radius_mm;
-    handles.params.perframe.landmark_params.arena_type = origparams.perframe.landmark_params.arena_type;
-  catch 
-    uiwait(warndlg(['Could not copy all the advanced parameters. '...
-      'Possibly because some of them are missing. Please set them individually']));
+  adv_params = {'behaviors.labelcolors',...
+    'behaviors.unknowncolor',...
+    'plot.trx.colormap',...
+    'plot.trx.colormap_multiplier',...
+    'plot.labels.colormap',...
+    'plot.labels.linewidth',...
+    'perframe.params.fov',...
+    'perframe.params.nbodylengths_near',...
+    'perframe.params.thetafil',...
+    'perframe.params.max_dnose2ell_anglerange',...
+    'perframe.landmark_params.arena_center_mm_x',...
+    'perframe.landmark_params.arena_center_mm_y',...
+    'perframe.landmark_params.arena_radius_mm',...
+    'perframe.landmark_params.arena_type'};
+  
+  for str = adv_params(:)',
+    try
+      eval(sprintf('handles.params.%s = origparams.%s;',str{1},str{1}));
+    catch
+    end
   end
+
 end
 
 handles = addversion(handles);
