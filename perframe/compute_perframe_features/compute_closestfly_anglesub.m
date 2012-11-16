@@ -13,16 +13,17 @@ maxanglesub = cell(1,nflies);
 for i1 = 1:nflies,
   fly1 = flies(i1);
   fprintf('fly1 = %d\n',fly1);
-  anglesub = nan(nflies,trx(fly1).nframes);
-  for i2 = 1:nflies,
-    fly2 = flies(i2);
-    if i1 == i2,
+  flies2 = flies(trx.roi(fly1)==trx.roi(flies));
+  anglesub = nan(numel(flies2),trx(fly1).nframes);
+  for i2 = 1:numel(flies2),
+    fly2 = flies2(i2);
+    if fly1 == fly2,
       continue;
     end
     anglesub(i2,:) = anglesub_pair(trx,fly1,fly2);
   end
   [maxanglesub{i1},closesti] = max(anglesub,[],1);
-  closestfly{i1} = flies(closesti);
+  closestfly{i1} = flies2(closesti);
   closestfly{i1}(isnan(maxanglesub{i1})) = nan;
 end
 

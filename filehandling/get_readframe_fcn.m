@@ -28,6 +28,14 @@ function [readframe,nframes,fid,headerinfo] = get_readframe_fcn(filename,varargi
 CTRAX_ISVIDEOIO = false;
 
 [~,ext] = splitext(filename);
+
+if ispc && ~exist(filename,'file') && ~strcmpi(ext,'.seq'),  
+  [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
+  if didfind,
+    filename = actualfilename;
+  end
+end
+
 if strcmpi(ext,'.fmf'),
   [header_size,version,nr,nc,bytes_per_chunk,nframes,data_format] = fmf_read_header(filename);
   fid = fopen(filename);
@@ -51,11 +59,15 @@ elseif strcmpi(ext,'.mmf'),
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
 elseif strcmpi(ext,'.seq'),
-  [indexfilename] = myparse(varargin,'indexfilename',0);
-
-  % get actual filename for shortcuts
+  [indexfilename,seqtype] = myparse(varargin,'indexfilename',0,'seqtype',0);
+  
+  if ischar(indexfilename),
+    seqtype = 'shay';
+  end
+  
+  % get file names
   if ispc && ~exist(filename,'file'),
-    
+      
     [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
     if ~didfind,
       error('Could not find movie file %s',filename);
@@ -63,7 +75,7 @@ elseif strcmpi(ext,'.seq'),
     filename0 = filename;
     % use actualfilename instead
     filename = actualfilename;
-    
+      
     % try the index file using the original filename
     if ~ischar(indexfilename),
       indexfilename = regexprep(filename0,'seq$','mat');
@@ -72,28 +84,59 @@ elseif strcmpi(ext,'.seq'),
         % try to find the index file using the source filename
         indexfilename = regexprep(filename,'seq$','mat');
         [indexfilename,didfind] = GetPCShortcutFileActualPath(indexfilename);
+        % if didn't find index file, then maybe this is a piotr seq file
         if ~didfind,
-          error('Could not find index file for %s',filename);
+          if ischar(seqtype) && strcmpi(seqtype,'shay'),
+            error('Could not find index file for %s',filename);
+          else
+            seqtype = 'piotr';
+          end
         end
       end
     end
-  end
-  
-  if ischar(indexfilename),
-    headerinfo = r_readseqinfo(filename,indexfilename);
+    
   else
-    headerinfo = r_readseqinfo(filename);
+    
+    % set seqtype to piotr if indexfilename doesn't exist
+    if ~ischar(seqtype) && ~ischar(indexfilename),
+      indexfilename = regexprep(filename,'seq$','mat');
+      if ~exist(indexfilename,'file'),
+        seqtype = 'piotr';
+      end
+    end
+    
   end
-  if numel(headerinfo.m_aiSeekPos) < headerinfo.m_iNumFrames,
-    headerinfo.m_iNumFrames = numel(headerinfo.m_aiSeekPos);
+    
+  % get actual filename for shortcuts
+  if strcmpi(seqtype,'piotr'),
+    warning('Closing file currently not implemented for Piotr''s seq files...');
+    headerinfo = seqIo(filename,'getinfo');
+    headerinfo.nr = headerinfo.height;
+    headerinfo.nc = headerinfo.width;
+    headerinfo.nframes = headerinfo.numFrames;
+    headerinfo.type = 'seq_piotr';
+    fid = 0;
+    nframes = headerinfo.numFrames;
+    sr = seqIo(filename,'r');
+    readframe = @(f) seq_read_frame_piotr(f,sr);
+  else
+    
+    if ischar(indexfilename),
+      headerinfo = r_readseqinfo(filename,indexfilename);
+    else
+      headerinfo = r_readseqinfo(filename);
+    end
+    if numel(headerinfo.m_aiSeekPos) < headerinfo.m_iNumFrames,
+      headerinfo.m_iNumFrames = numel(headerinfo.m_aiSeekPos);
+    end
+    headerinfo.nr = headerinfo.m_iHeight;
+    headerinfo.nc = headerinfo.m_iWidth;
+    headerinfo.nframes = headerinfo.m_iNumFrames;
+    headerinfo.type = 'seq';
+    fid = 0;
+    nframes = headerinfo.m_iNumFrames;
+    readframe = @(f) read_seq_frame(headerinfo,f);
   end
-  headerinfo.nr = headerinfo.m_iHeight;
-  headerinfo.nc = headerinfo.m_iWidth;
-  headerinfo.nframes = headerinfo.m_iNumFrames;
-  headerinfo.type = 'seq';
-  fid = 0;
-  nframes = headerinfo.m_iNumFrames;
-  readframe = @(f) read_seq_frame(headerinfo,f);
 else
   fid = 0;
   if CTRAX_ISVIDEOIO,
@@ -121,3 +164,18 @@ else
     headerinfo.nframes = headerinfo.NumberOfFrames;
   end
 end
+
+function [im,timestamp] = seq_read_frame_piotr(f,sr)
+im = [];
+timestamp = [];
+
+if ~sr.seek(f-1),
+  warning('Could not seek to frame %d',f);
+  return;
+end
+
+[im,timestamp] = sr.getframe();
+
+
+
+

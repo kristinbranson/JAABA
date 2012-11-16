@@ -1,25 +1,30 @@
 function [success,msg] = ConvertQtrax2JAABA(varargin)
 
 success = false;
-msg = '';
+msg = {};
 
 [inmoviefile,featfile,roifile,...
   expdir,moviefilestr,trxfilestr,perframedirstr,...
   arenatype,arenacenterx,arenacentery,...
   arenaradius,arenawidth,arenaheight,...
-  fps,overridefps,...
   dosoftlink,...
-  dosavecadabrafeats] = myparse(varargin,...
+  dosavecadabrafeats,...
+  doflipud,dofliplr,dotransposeimage] = myparse(varargin,...
   'inmoviefile','','featfile','','roifile','',...
   'expdir','','moviefilestr','movie.ufmf','trxfilestr','trx.mat','perframedirstr','perframe',...
   'arenatype','None','arenacenterx',0,'arenacentery',0,...
   'arenaradius',123,'arenawidth',123,'arenaheight',123,...
-  'fps',30,...
-  'overridefps',false,...
   'dosoftlink',false,...
-  'dosavecadabrafeats',false);
+  'dosavecadabrafeats',false,...
+  'doflipud',false,'dofliplr',false,'dotransposeimage',false);
 
-% check that required inputs are given
+wingunits = struct(...
+  'nwingsdetected',parseunits('unit'),...
+  'wing_areal',parseunits('px^2'),...
+  'wing_arear',parseunits('px^2'),...
+  'wing_trough_angle',parseunits('rad'));
+
+%% check that required inputs are given
 if isempty(inmoviefile),
   msg = 'Input movie file is empty';
   return;
@@ -55,19 +60,20 @@ if doflipud || dofliplr,
 end
 
 obj = [feat.fly_feat.obj1,feat.fly_feat.obj2];
+msg{end+1} = sprintf('Read trajectories from file %s',featfile);
+msg{end+1} = sprintf('Read ROI info from file %s',roifile);
 
 %% convert
 
 % scale, pxpermm, hopefully these are the same
 pxpermm = 1/mean([roi.scale.x,roi.scale.y]);
 
+msg{end+1} = sprintf('Read pxpermm = %f',pxpermm);
+
 % get timestamps
 timestamps = feat.fly_feat.time;
-if overridefps,
-  timestamps = timestamps(1) + (0:numel(feat.fly_feat.time)-1)/fps;
-else
-  fps = 1/median(diff(timestamps));
-end
+fps = 1/nanmedian(diff(timestamps));
+msg{end+1} = sprintf('Read fps = %f',fps);
 
 % allocate
 c = cell(1,2);
@@ -132,8 +138,8 @@ for fly = 1:2,
   trx(fly).theta_mm = trx(fly).theta;
   
   % convert mm to px, incorporate offset
-  trx(fly).x(idx) = obj(fly).pos_x*roi.scale.x + roi.ROI.cols(1) - 1;
-  trx(fly).y(idx) = obj(fly).pos_y*roi.scale.y + roi.ROI.rows(1) - 1 - 1;
+  trx(fly).x(idx) = obj(fly).pos_x/roi.scale.x + roi.ROI.cols(1) - 1;
+  trx(fly).y(idx) = obj(fly).pos_y/roi.scale.y + roi.ROI.rows(1) - 1 - 1;
   trx(fly).a = trx(fly).a_mm*pxpermm;
   trx(fly).b = trx(fly).b_mm*pxpermm;
     
@@ -168,16 +174,57 @@ for fly = 1:2,
     trx(fly).theta = modrange(pi-trx(fly).theta,-pi,pi);
   end
   
+  if dotransposeimage,
+    tmp = trx(fly).x;
+    trx(fly).x = trx(fly).y;
+    trx(fly).y = tmp;
+    c = cos(trx(fly).theta);
+    s = sin(trx(fly).theta);
+    trx(fly).theta = atan2(c,s);
+    tmp = trx(fly).xwingl;
+    trx(fly).xwingl = trx(fly).ywingl;
+    trx(fly).ywingl = tmp;
+    tmp = trx(fly).xwingr;
+    trx(fly).xwingr = trx(fly).ywingr;
+    trx(fly).ywingr = tmp;
+  end
+  
+  % for per-frame features
+  
+  % wing angles
+  trx(fly).wing_anglel = -obj(fly).phil/180*pi;
+  trx(fly).wing_angler = obj(fly).phir/180*pi;
+
+  % always set nwingsdetected to 2
+  perframedata.nwingsdetected{fly} = repmat(2,[1,trx(fly).nframes]);
+  
+  % this is really the wing length
+  perframedata.wing_areal{fly} = obj(fly).wingll*pxpermm;
+  perframedata.wing_arear{fly} = obj(fly).winglr*pxpermm;
+  
+  % set trough angle just to be between the two wings
+  perframedata.wing_trough_angle{fly} = (trx(fly).wing_angler - trx(fly).wing_anglel)/2;
+  
 end
+
+msg{end+1} = sprintf('Read trx for %d flies, frame range [%d,%d]',numel(trx),min([trx.firstframe]),max([trx.endframe]));
 
 % set landmark parameters
 arenaradius_mm = arenaradius / pxpermm;
 arenawidth_mm = arenawidth / pxpermm;
 arenaheight_mm = arenaheight / pxpermm;
-arenacenterx_mm = (arenacenterx - roi.ROI.cols(1) + 1)/roi.ROI.scale.x;
-arenacentery_mm = (arenacentery - roi.ROI.rows(1) + 1 + 1)/roi.ROI.scale.y;
+arenacenterx_mm = (arenacenterx - roi.ROI.cols(1) + 1)*roi.scale.x;
+arenacentery_mm = (arenacentery - roi.ROI.rows(1) + 1 + 1)*roi.scale.y;
 trx = SetLandmarkParameters(trx,arenatype,arenacenterx_mm,arenacentery_mm,...
-  arenaradius_mm,arenawidth_mm,arenaheight_mm); %#ok<NASGU>
+  arenaradius_mm,arenawidth_mm,arenaheight_mm); 
+
+if strcmpi(arenatype,'Circle')
+  msg{end+1} = sprintf('Set circular arena parameters. Center = (%.1f,%.1f) mm, radius = %.1f mm.',arenacenterx_mm,arenacentery_mm,arenaradius_mm);
+elseif strcmpi(arenatype,'Rectangle'),
+  msg{end+1} = sprintf('Set rectangular arena parameters. Center = (%.1f,%.1f) mm, width= %.1f mm, height = %.1f mm',arenacenterx_mm,arenacentery_mm,arenawidth_mm,arenaheight_mm);  
+end
+msg{end+1} = sprintf('x_mm ranges within [%.1f,%.1f], y_mm ranges within [%.1f,%.1f]',...
+  min([trx.x_mm]),max([trx.x_mm]),min([trx.y_mm]),max([trx.y_mm]));
 
 %% create the experiment directory
 if ~exist(expdir,'dir'),
@@ -186,6 +233,7 @@ if ~exist(expdir,'dir'),
     msg = msg1;
     return;
   end
+  msg{end+1} = sprintf('Created experiment directory %s.',expdir);
 end
 
 %% save the trx file
@@ -199,10 +247,15 @@ if ~exist(trxfile,'file'),
   msg = sprintf('Failed to save trx to file %s',trxfile);
   return;
 end
+msg{end+1} = sprintf('Saved trx to file %s.',trxfile);
 
 %% copy/soft-link movie
 
+% copy/soft-link movie
 if dosoftlink,
+  if exist(moviefile,'file'),
+    delete(moviefile);
+  end
   if isunix,
     cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
     unix(cmd);
@@ -210,32 +263,59 @@ if dosoftlink,
     [status,result] = unix(sprintf('readlink %s',moviefile));
     result = strtrim(result);
     if status ~= 0 || ~strcmp(result,inmoviefile),
-      warndlg(sprintf('Failed to make soft link, copying %s to %s instead',inmoviefile,moviefile));
+      res = questdlg(sprintf('Failed to make soft link. Copy %s to %s instead?',inmoviefile,moviefile));
+      if ~strcmpi(res,'Yes'),
+        msg = sprintf('Failed to make soft link from %s to %s.',inmoviefile,moviefile);
+        return;
+      end
       dosoftlink = false;
     end
   elseif ispc,
+    if exist([moviefile,'.lnk'],'file'),
+      delete([moviefile,'.lnk']);
+    end
     cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
     fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
     system(cmd);
     % test to make sure that worked
     [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
     if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
-      warndlg(sprintf('Failed to make shortcut, copying %s to %s instead',inmoviefile,moviefile));
+      res = questdlg(sprintf('Failed to make shortcut. Copy %s to %s instead?',inmoviefile,moviefile));
+      if ~strcmpi(res,'Yes'),
+        msg = sprintf('Failed to make shortcut from %s to %s.',inmoviefile,moviefile);
+        return;
+      end
       dosoftlink = false;
     end
   else
-    warndlg(sprintf('Unknown OS, not soft-linking movie file %s',inmoviefile));
+    res = questdlg(sprintf('Unknown OS, cannot soft-link movie file %s. Copy instead?',inmoviefile));
+    if ~strcmpi(res,'Yes'),
+      msg = sprintf('Failed to make softlink from %s to %s.',inmoviefile,moviefile);
+      return;
+    end
     dosoftlink = false;
   end  
+  if dosoftlink,
+    msg{end+1} = sprintf('Made a link to movie file %s at %s',inmoviefile,moviefile);
+  end
 end
   
 if ~dosoftlink,
+  if ispc,
+    if exist([moviefile,'.lnk'],'file'),
+      delete([moviefile,'.lnk']);
+    end
+  end
+  if exist(moviefile,'file'),
+    delete(moviefile);
+  end
   [success1,msg1] = copyfile(inmoviefile,moviefile);
   if ~success1,
     msg = msg1;
     success = false;
     return;
   end
+  msg{end+1} = sprintf('Copied movie file %s to %s',inmoviefile,moviefile);
 end
 
 %% make per-frame directory
@@ -246,6 +326,16 @@ if ~exist(perframedir,'dir'),
     msg = msg1;
     return;
   end
+end
+
+%% save wing per-frame features
+
+fns = fieldnames(perframedata);
+for i = 1:numel(fns),
+  fn = fns{i};
+  s = struct('data',{perframedata.(fn)},'units',wingunits.(fn)); %#ok<NASGU>
+  filename = fullfile(perframedir,[fn,'.mat']);
+  save(filename,'-struct','s');
 end
 
 %% save the CADABRA per-frame features
