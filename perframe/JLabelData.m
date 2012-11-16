@@ -2915,16 +2915,9 @@ end
     
     function SaveProject(obj)
       configfilename = obj.configfilename;
-<<<<<<< HEAD
-      [~,~,ext] = filepart(configfilename);
-      if strcmp(ext,'xml'),
-        uiwait(warndlg(['Project file is saved in the old format. '...
-          'Cannot save the window features to the project file']));
-=======
       [~,~,ext] = fileparts(configfilename);
       if strcmp(ext,'.xml'),
         uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
->>>>>>> e73e69b7724da86ad0d91fe0199ffa599ff10a95
         return;
       end
       windowfeatures = struct('windowfeaturesparams',obj.windowfeaturesparams,...
