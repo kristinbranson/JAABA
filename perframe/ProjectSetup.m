@@ -609,15 +609,19 @@ else
 end
 
 if isfield(classifier,'scorefilename')
+  scorefilename = classifier.scorefilename;
+  [~,scorefilename,~] = fileparts(scorefilename);
   curs.scorefilename = scorefilename;
 else
   configfile = classifier.configfilename;
   if exist(configfile,'file')
     configparams = ReadXMLParams(configfile);
     if isfield(configparams,'scorefilename');
-      curs.scorefilename = configparams.file.scorefilename;
+      scorefilename = configparams.file.scorefilename;
+      [~,scorefilename,~] = fileparts(scorefilename);
+      curs.scorefilename = scorefilename;
     else
-      curs.scorefilename = sprintf('scores_%s.mat',configparams.behaviors.names);
+      curs.scorefilename = sprintf('scores_%s',configparams.behaviors.names);
     end
   else
     sname = inputdlg(['Cannot find the config file pointed by the classifier.'...
