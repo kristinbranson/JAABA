@@ -1349,7 +1349,8 @@ end
           return;
         end
         if ~exist(rootoutputdir,'file'),
-          msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',rootoutputdir);
+          msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',...
+            rootoutputdir);
           success = false;
           return;
         end
@@ -1389,7 +1390,8 @@ end
           
           if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
             success = false;
-            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            msg = ['Label files specified for the project doesn''t match' ...
+              ' the labelfiles used to train the classifier. Not loading the classifier'];
             return;
           end
           
@@ -1436,7 +1438,6 @@ end
             
             loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-                  isequal(obj.basicFeatureTable,loadeddata.basicFeatureTable) && ...
                   isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
                 str = sprintf('Window feature parameters in the configuration file');
                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
@@ -1541,7 +1542,9 @@ end
         obj.ClearStatus();
         
         obj.classifierfilename = classifierfilename;
-        
+ 
+        obj.FindFastPredictParams();
+ 
       end
 
     end
@@ -1559,7 +1562,8 @@ end
 
           if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
             success = false;
-            msg = 'Label files specified for the project doesn''t match the labelfiles used to train the classifier. Not loading the classifier';
+            msg = ['Label files specified for the project doesn''t match the labelfiles '...
+              'used to train the classifier. Not loading the classifier'];
             return;
           end
           
@@ -1602,7 +1606,6 @@ end
               'basicFeatureTable','featureWindowSize'}))
             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
                   isequal(obj.windowfeaturescellparams,loadeddata.windowfeaturescellparams) && ...
-                  isequal(obj.basicFeatureTable,loadeddata.basicFeatureTable) && ...
                   isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
                 str = sprintf('Window feature parameters in the configuration file');
                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
@@ -1649,6 +1652,8 @@ end
           end
           % obj.ClearCachedPerExpData();
           obj.ClearStatus();
+          obj.FindFastPredictParams();
+ 
       end
     end
     
@@ -1756,7 +1761,7 @@ end
       obj.ClearStatus();
     end
     
-    function AddScores(obj,expi,allScores,timestamp,classifierfilename)
+    function AddScores(obj,expi,allScores,timestamp,classifierfilename,updateCurrent)
 %       obj.predictdata.classifierfilenames{expi} = classifierfilename;
       for ndx = 1:numel(allScores.scores)
         idxcurr = obj.FlyNdxPredict(expi,ndx);
@@ -1765,14 +1770,21 @@ end
         tEnd = allScores.tEnd(ndx);
         sz = tEnd-tStart+1;
         if (nnz(idxcurr) ~= sz),
-          uiwait(warndlg('Number of frames for the current fly don''t match for fly:%d in experiment:%s',flies,obj.expnames{expi}));
+          uiwait(warndlg(['Cannot load scores for experiment:%s. Number of frames '...
+            'in the score file dont match the number of frames in the trax file for '...
+            'fly:%d'],obj.expnames{expi},ndx));
           return;
         end
         curScores = allScores.scores{ndx}(tStart:tEnd);
-        obj.predictdata.loaded(idxcurr) = curScores;
+        if updateCurrent,
+          obj.predictdata.cur(idxcurr) = curScores;
+          obj.predictdata.cur_valid(idxcurr) = true;
+        else
+          obj.predictdata.loaded(idxcurr) = curScores;
+          obj.predictdata.loaded_valid(idxcurr) = true;
+        end
       end
       
-      obj.UpdatePredictedIdx();
 
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
         if ~isempty(obj.predictdata.loaded)
@@ -1783,9 +1795,12 @@ end
         end
       end
       
-      if ~isempty(obj.postprocessparams)
+      if ~isempty(obj.postprocessparams),
         [success,msg] = obj.ApplyPostprocessing();
-      else
+        if ~success,
+          uiwait(warndlg(['Couldn''t apply postprocessing to the scores: ' msg]));
+        end
+      elseif ~updateCurrent,
         for ndx = 1:numel(allScores.loaded)
           idxcurr = obj.FlyNdxPredict(expi,ndx);
           tStart = allScores.tStart(ndx);
@@ -1800,6 +1815,8 @@ end
         end
       end
       
+      obj.UpdatePredictedIdx();
+
     end
     
     function SaveCurScores(obj,expi,sfn)
@@ -1815,6 +1832,7 @@ end
       
       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
         'postprocessed',{{}},'postprocessedparams',[]);
+      scores_valid = true;
       for fly = 1:obj.nflies_per_exp(expi)
         idxcurr = obj.FlyNdxPredict(expi,fly);
         
@@ -1824,14 +1842,24 @@ end
           return;
         end
         
+        if ~all(obj.predictdata.cur(idxcurr)), 
+          scores_valid = false; 
+          break; 
+        end
+        
         tStart = obj.firstframes_per_exp{expi}(fly);
         tEnd = obj.endframes_per_exp{expi}(fly);
         
-        sz = tEnd-tStart+1;
-        allScores.scores{fly}(tStart:tEnd) = obj.predictdata.loaded(idxcurr);
+        allScores.scores{fly}(tStart:tEnd) = obj.predictdata.cur(idxcurr);
         allScores.tStart(fly) = tStart;
         allScores.tEnd(fly) = tEnd;
-        allScores.postprocessed{fly}(tStart:tEnd) = obj.predictdata.loaded_pp(idxcurr);
+        allScores.postprocessed{fly}(tStart:tEnd) = obj.predictdata.cur_pp(idxcurr);
+      end
+      
+      if ~scores_valid,
+        uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
+         '%s. Cannot save the scores.'],obj.expnames{expi}));
+        return;
       end
       allScores.postprocessedparams = obj.postprocessparams;
       obj.SaveScores(allScores,expi,sfn);
@@ -1853,7 +1881,7 @@ end
         classifierfilename = '';
       end
       
-      obj.AddScores(expi,allScores,timestamp,classifierfilename);
+      obj.AddScores(expi,allScores,timestamp,classifierfilename,false);
       
       obj.ClearStatus();
 
@@ -2027,7 +2055,8 @@ end
 % Experiment handling
 
 
-    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,...
+        frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
     % then it will be preloaded. 
@@ -2123,7 +2152,8 @@ end
       
       % check for existence of necessary files in this directory
       if ~obj.filesfixable,
-        msg = sprintf('Experiment %s is missing required files that cannot be generated within this interface. Removing...',expdir);
+        msg = sprintf(['Experiment %s is missing required files that cannot '...
+          'be generated within this interface. Removing...'],expdir);
         success = false;
         % undo
         obj.RemoveExpDirs(obj.nexps);
@@ -2149,7 +2179,9 @@ end
         if strcmpi(res,'Yes'),
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
-            msg = sprintf('Error generating missing required files %s for experiment %s: %s. Removing...',sprintf(' %s',missingfiles{:}),expdir,msg);
+            msg = sprintf(['Error generating missing required files %s '...
+              'for experiment %s: %s. Removing...'],...
+              sprintf(' %s',missingfiles{:}),expdir,msg);
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
@@ -2238,7 +2270,8 @@ end
       
     end
    
-    function [success,msg] = AddExpDirNoPreload(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+    function [success,msg] = AddExpDirNoPreload(obj,expdir,outexpdir,nflies_per_exp,...
+        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
     % then it will be preloaded. 
@@ -2289,7 +2322,8 @@ end
       if ~exist(outexpdir,'dir'),
         [success1,msg1] = mkdir(rootoutputdir,expname);
         if ~success1,
-          msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
+          msg = (sprintf(['Could not create output directory %s, failed to '...
+            'set expdirs: %s'],outexpdir,msg1));
           return;
         end
       end
@@ -2297,13 +2331,6 @@ end
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(outexpdir,clipsdir);
-%       if ~exist(outclipsdir,'dir'),
-%         [success1,msg1] = mkdir(outexpdir,clipsdir);
-%         if ~success1,
-%           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
-%           return;
-%         end
-%       end
 
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;
@@ -2333,7 +2360,8 @@ end
       
       % check for existence of necessary files in this directory
       if ~obj.filesfixable,
-        msg = sprintf('Experiment %s is missing required files that cannot be generated within this interface. Removing...',expdir);
+        msg = sprintf(['Experiment %s is missing required files that cannot '...
+          'be generated within this interface. Removing...'],expdir);
         success = false;
         % undo
         obj.RemoveExpDirs(obj.nexps);
@@ -2342,7 +2370,8 @@ end
       
       if obj.filesfixable && ~obj.allfilesexist,
 %        if ~isdeployed
-%          res = questdlg(sprintf('Experiment %s is missing required files. Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+%          res = questdlg(sprintf('Experiment %s is missing required files. ...
+%           Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
 %        else
           res = 'Yes';
 %        end
@@ -2441,9 +2470,9 @@ end
       newExpNumbers = [];
       for ndx = 1:obj.nexps
         if ismember(ndx,expi);
-          newExpNumbers(ndx,1) = 0;
+          newExpNumbers(1,ndx) = 0;
         else
-          newExpNumbers(ndx,1) = ndx-nnz(expi<ndx);
+          newExpNumbers(1,ndx) = ndx-nnz(expi<ndx);
         end
       end
       
@@ -2489,14 +2518,14 @@ end
         idxcurr(1:numel(obj.windowdata.postprocessed)),:) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
+      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp);
 
-      if ~isempty(obj.predictdata.exp)
-        idxcurr = ismember(obj.predictdata.exp, expi);
-        fnames = fieldnames(obj.predictdata);
-        for fndx = 1:numel(fnames)
-          obj.predictdata.(fnames{fndx})(idxcurr) = [];
-        end
+      idxcurr = ismember(obj.predictdata.exp, expi);
+      fnames = fieldnames(obj.predictdata);
+      for fndx = 1:numel(fnames)
+        obj.predictdata.(fnames{fndx})(idxcurr) = [];
       end
+      obj.predictdata.exp = newExpNumbers(obj.predictdata.exp);
       
       if ~isempty(obj.predictblocks.expi)
         idxcurr = ismember(obj.predictblocks.expi,expi);
@@ -2504,6 +2533,7 @@ end
         for fndx = 1:numel(fnames)
           obj.predictblocks.(fnames{fndx})(idxcurr) = [];
         end
+        obj.predictblocks.expi = newExpNumbers(obj.predictblocks.expi);
       end
       
       if ~isempty(obj.randomGTSuggestions)
@@ -2735,7 +2765,8 @@ end
       
       
       if isempty(obj.landmark_params) && obj.arenawarn
-        uiwait(warndlg('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list'));
+        uiwait(warndlg(['Landmark params were not defined in the configuration file.'...
+          ' Not computing arena features and removing them from the perframe list']));
         obj.RemoveArenaPFs();
         obj.arenawarn = false;
       end
@@ -2749,7 +2780,8 @@ end
           continue;
         end
         if isInteractive
-          hwait = mywaitbar(i/numel(obj.allperframefns),hwait,sprintf('Computing %s and saving to file %s',fn,file));
+          hwait = mywaitbar(i/numel(obj.allperframefns),hwait,...
+            sprintf('Computing %s and saving to file %s',fn,file));
         else
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
@@ -2886,13 +2918,21 @@ end
       configfilename = obj.configfilename;
       [~,~,ext] = filepart(configfilename);
       if strcmp(ext,'xml'),
-        uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
+        uiwait(warndlg(['Project file is saved in the old format. '...
+          'Cannot save the window features to the project file']));
         return;
       end
       windowfeatures = struct('windowfeaturesparams',obj.windowfeaturesparams,...
         'windowfeaturescellparams',obj.windowfeaturescellparams,...
         'basicFeatureTable',obj.basicFeatureTable,...
-        'featureWindowSize',obj.featureWindowSize);
+        'featureWindowSize',obj.featureWindowSize); %#ok<NASGU>
+      if exist(configfilename,'file')
+        [didbak,msg] = copyfile(configfilename,[configfilename '~']);
+        if ~didbak,
+          warning('Could not create backup of %s: %s',configfilename,msg);
+        end
+      end
+      
       save(configfilename,'windowfeatures','-append');
       obj.ResetSaveProject(obj);
     end
@@ -3015,7 +3055,8 @@ end
             % check for existence of current file(s)
             [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
             if iscell(fn),
-              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || all(cellfun(@(s) exist(s,'file'),fn));
+              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || ...
+                all(cellfun(@(s) exist(s,'file'),fn));
             else
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
             end
@@ -3128,7 +3169,8 @@ end
                 global CACHED_TRX_EXPNAME; %#ok<TLEV>
                 if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
                     ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',obj.expnames{expi}),'interpreter','none');
+                  hwait = mywaitbar(0,sprintf('Loading trx to determine number of flies for %s',...
+                    obj.expnames{expi}),'interpreter','none');
                   trx = load_tracks(trxfile);
                   if ishandle(hwait), delete(hwait); end
                   CACHED_TRX = trx;
@@ -3138,7 +3180,8 @@ end
                   trx = CACHED_TRX;
                 end
 %               catch ME,
-%                 msg = sprintf('Could not load trx file for experiment %s to count flies: %s',obj.expdirs{expi},getReport(ME));
+%                 msg = sprintf(['Could not load trx file for experiment %s '...
+%                     'to count flies: %s'],obj.expdirs{expi},getReport(ME));
 %               end
             end
           end
@@ -4459,10 +4502,12 @@ end
         nold = size(X,1);
         nnew = size(x_curr,2);
         if nold > nnew,
-          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          warning(['Number of examples for per-frame feature %s does not match number '...
+            'of examples for previous features'],fn);
           x_curr(:,end+1:end+nold-nnew) = nan;
         elseif nnew > nold && ~isempty(X),
-          warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+          warning(['Number of examples for per-frame feature %s does not match number '...
+            'of examples for previous features'],fn);
           X(end+1:end+nnew-nold,:) = nan;
         end
         X = [X,x_curr']; %#ok<AGROW>
@@ -4639,7 +4684,8 @@ end
       
       islabeled = (obj.windowdata.labelidx_new ~= 0) & (obj.windowdata.labelidx_imp);
       if nargin >= 3 && ~isempty(timerange),
-        label_timestamp = obj.GetLabelTimestamps(obj.windowdata.exp(islabeled),obj.windowdata.flies(islabeled,:),obj.windowdata.t(islabeled));
+        label_timestamp = obj.GetLabelTimestamps(obj.windowdata.exp(islabeled),...
+          obj.windowdata.flies(islabeled,:),obj.windowdata.t(islabeled));
         islabeled(islabeled) = label_timestamp >= timerange(1) & label_timestamp < timerange(2);
       end
 
@@ -4671,7 +4717,8 @@ end
             
             % replace labels for examples that have been relabeled:
             % islabeled & waslabeled will not change
-            idx_relabel = islabeled & waslabeled & (obj.windowdata.labelidx_new(1:Nprev) ~= obj.windowdata.labelidx_cur(1:Nprev));
+            idx_relabel = islabeled & waslabeled & ...
+              (obj.windowdata.labelidx_new(1:Nprev) ~= obj.windowdata.labelidx_cur(1:Nprev));
             if any(idx_relabel),
               obj.SetStatus('Updating fern classifier for %d relabeled examples...',nnz(idx_relabel));
               [obj.classifier] = fernsClfRelabelTrainingData( obj.windowdata.labelidx_cur(waslabeled), ...
@@ -4684,7 +4731,8 @@ end
             idx_remove = waslabeled & ~islabeled(1:Nprev);
             if any(idx_remove),
               obj.SetStatus('Removing %d training examples from fern classifier',nnz(idx_remove));
-              [obj.classifier] = fernsClfRemoveTrainingData(obj.windowdata.labelidx_cur(waslabeled), idx_remove(waslabeled), obj.classifier );
+              [obj.classifier] = fernsClfRemoveTrainingData(obj.windowdata.labelidx_cur(waslabeled), ...
+                idx_remove(waslabeled), obj.classifier );
               % update labelidx_cur
               obj.windowdata.labelidx_cur(idx_remove) = 0;
             end
@@ -5232,10 +5280,12 @@ end
             nold = size(X,1);
             nnew = size(x_curr,2);
             if nold > nnew,
-              warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+              warning(['Number of examples for per-frame feature %s does not '...
+                'match number of examples for previous features'],fn);
               x_curr(:,end+1:end+nold-nnew) = nan;
             elseif nnew > nold && ~isempty(X),
-              warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+              warning(['Number of examples for per-frame feature %s does not '...
+                'match number of examples for previous features'],fn);
               X(end+1:end+nnew-nold,:) = nan;
             end
             X = [X,x_curr']; %#ok<AGROW>
@@ -5245,7 +5295,8 @@ end
             feature_names = {};
             for ndx = 1:numel(feature_names_list)
               fn = pffs{ndx};
-              feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_list{ndx},'UniformOutput',false)]; %#ok<AGROW>
+              feature_names = [feature_names,cellfun(@(s) [{fn},s],...
+                feature_names_list{ndx},'UniformOutput',false)]; %#ok<AGROW>
             end
             obj.FindWfidx(feature_names);
           end
@@ -5278,7 +5329,7 @@ end
       if isempty(obj.classifier),
         return;
       end
-      
+           
       numFlies = obj.GetNumFlies(expi);
       scoresA = cell(1,numFlies); 
       postprocessedscoresA = cell(1,numFlies);
@@ -5286,12 +5337,20 @@ end
       tEndAll = obj.GetTrxEndFrame(expi);
       perframefile = obj.GetPerframeFiles(expi);
       windowfeaturescellparams = obj.fastPredict.windowfeaturescellparams;
-      wfidx = obj.fastPredict.wfidx;
       curperframefns = obj.fastPredict.pffs;
       allperframefns = obj.allperframefns;
       classifier = obj.fastPredict.classifier;
       
       obj.SetStatus('Classifying current movie..');
+      
+      if ~obj.fastPredict.wfidx_valid,
+        [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+          allperframefns,perframefile,1,windowfeaturescellparams,...
+          1,1);
+        obj.FindWfidx(feature_names);
+      end
+      wfidx = obj.fastPredict.wfidx;
+      
       
       parfor flies = 1:numFlies
         blockSize = 5000*2;
@@ -5340,12 +5399,17 @@ end
       end
       allScores = obj.PredictWholeMovie(expi);
       obj.SaveScores(allScores,expi,sfn);
-      obj.LoadScores(expi,sfn);
+      obj.AddScores(expi,allScores,now(),'',true);
+      
+      idxexp = obj.predictdata.exp == expi;
+      if any(obj.predictdata.loaded_valid(idxexp)),
+        obj.LoadScores(expi,sfn);
+      end
     end
     
     function PredictNoSaveMovie(obj,expi)
       allScores = obj.PredictWholeMovie(expi);
-      obj.AddScores(expi,allScores,now(),'');
+      obj.AddScores(expi,allScores,now(),'',true);
     end
     
 % Evaluating performance
@@ -5850,7 +5914,11 @@ end
       if any(curNdx) && ~isempty(obj.classifier)
         curScores = obj.predictdata.cur(curNdx);
 
-        curWScores = myBoostClassify(obj.windowdata.X(curWNdx,:),obj.classifier);
+        if ~isempty(curWNdx)
+          curWScores = myBoostClassify(obj.windowdata.X(curWNdx,:),obj.classifier);
+        else
+          curWScores = [];
+        end
         curLabels = obj.windowdata.labelidx_new(curWNdx);
         
         curPosMistakes = nnz( curWScores<0 & curLabels ==1 );
@@ -6464,7 +6532,7 @@ end
               return;
             end
             curs = obj.predictdata.loaded(curidx);
-            obj.predictdata.loaded_postprocessed(curidx) = obj.Postprocess(curs);
+            obj.predictdata.loaded_pp(curidx) = obj.Postprocess(curs);
           end %flies
         end
         
@@ -7147,7 +7215,8 @@ end % End class
 %           fn = obj.perframefns{j};
 %           perframedata = load(fullfile(perframedir,[fn,'.mat']));
 %           hwait = mywaitbar((fly-1+(j-1)/numel(obj.perframefns))/obj.nflies_per_exp(expi),hwait,...
-%             sprintf('Computing %s window features (%d/%d) for fly %d/%d',fn,j,numel(obj.perframefns),fly,numel(perframedata.data)));
+%             sprintf('Computing %s window features (%d/%d) for fly %d/%d',fn,j,...
+%             numel(obj.perframefns),fly,numel(perframedata.data)));
 %           [x_curr,feature_names_curr] = ...
 %             ComputeWindowFeatures(perframedata.data{fly},obj.windowfeaturescellparams.(fn){:});
 %           nold = size(X,2);
@@ -7160,7 +7229,8 @@ end % End class
 %           X = [X;x_curr]; %#ok<AGROW>
 %           feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
 %         end
-%         hwait = mywaitbar(fly/obj.nflies_per_exp(expi),hwait,sprintf('Saving window features for fly %d/%d to file...',fly,obj.nflies_per_exp(expi)));
+%         hwait = mywaitbar(fly/obj.nflies_per_exp(expi),hwait,...
+%           sprintf('Saving window features for fly %d/%d to file...',fly,obj.nflies_per_exp(expi)));
 %         save(filename,'X','feature_names');
 %         catch ME,
 %           msg = getReport(ME);

@@ -88,23 +88,34 @@ for i = 1:nclassifiers,
   
   fprintf('Classifier %d\n',i);
   
-  % all per-frame features for this classifier
-  pffs_curr = fieldnames(classifiers{i}.windowfeaturesparams);
-  
-  % list of all window features for this classifier
-  feature_names = {};
-  for j = 1:numel(pffs_curr),
-    fn = pffs_curr{j};
-    [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
-      classifiers{i}.windowfeaturescellparams.(fn){:});
-    feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
-    feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+  if ~isfield(classifiers{i},'feature_names'),
+    
+    % all per-frame features for this classifier
+    pffs_curr = fieldnames(classifiers{i}.windowfeaturesparams);
+    
+    % list of all window features for this classifier
+    feature_names = {};
+    for j = 1:numel(pffs_curr),
+      fn = pffs_curr{j};
+      [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
+        classifiers{i}.windowfeaturescellparams.(fn){:});
+      feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
+      feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+    end
+    
+    % which features are actually used
+    dims = [classifiers{i}.classifier.dim];
+    feature_names = feature_names(dims);
+    
+    
+    wfs_per_classifier{i} = feature_names;
+    
+  else
+    dims = [classifiers{i}.classifier.dim];
+    feature_names =  classifiers{i}.feature_names;
+    wfs_per_classifier{i} = feature_names;
+    
   end
-  
-  % which features are actually used
-  dims = [classifiers{i}.classifier.dim];
-  feature_names = feature_names(dims);
-  wfs_per_classifier{i} = feature_names;
   
   % put these in with the rest of the classifiers' window features
   wfidx_per_classifier{i} = nan(1,numel(dims));
@@ -142,8 +153,8 @@ for i = 1:numel(pffs),
   configparams_global.featureparamlist.(pffs{i}) = struct;
 end
 configfile_global = tempname();
-SaveXMLParams(configparams_global,configfile_global,'params');
-
+% SaveXMLParams(configparams_global,configfile_global,'params');
+save(configfile_global,'-struct','configparams_global');
 % initialize with temporary configfile
 data = JLabelData(configfile_global,'openmovie',false);
 [success,msg] = data.AddExpDirNoPreload(expdir);

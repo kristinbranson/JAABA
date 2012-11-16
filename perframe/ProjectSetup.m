@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before ProjectSetup is made visible.
-function ProjectSetup_OpeningFcn(hObject, eventdata, handles, varargin)
+function ProjectSetup_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -165,14 +165,14 @@ end
 if ~ischar(handles.outfile),
   uiwait(handles.figure1);
 else
-  params2save = handles.params(1);
+  params2save = handles.params(1); %#ok<NASGU>
   save(handles.outfile,'-struct','params2save');
 end
 
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = ProjectSetup_OutputFcn(hObject, eventdata, handles) 
+function varargout = ProjectSetup_OutputFcn(hObject, ~, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -342,12 +342,12 @@ for ndx = 1:numel(fnames)
   if isstruct(curStruct.(fnames{ndx})),
     list = addToList(curStruct.(fnames{ndx}),list,[pathTillNow fnames{ndx} '.']);
   else
-    list{end+1,1} = [pathTillNow fnames{ndx}];
+    list{end+1,1} = [pathTillNow fnames{ndx}]; %#ok<AGROW>
     param = curStruct.(fnames{ndx});
     if isnumeric(param)
       q = num2str(param(1));
       for jj = 2:numel(param)
-        q = [q ',' num2str(param(jj))];
+        q = [q ',' num2str(param(jj))]; %#ok<AGROW>
       end
       list{end,2} = q;
     else
@@ -415,7 +415,7 @@ setConfigTable(handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function featureconfigpopup_CreateFcn(hObject, eventdata, handles)
+function featureconfigpopup_CreateFcn(hObject, ~, ~)
 % hObject    handle to featureconfigpopup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -428,7 +428,7 @@ end
 
 
 
-function editlabelfilename_Callback(hObject, eventdata, handles)
+function editlabelfilename_Callback(hObject, eventdata, handles) %#ok<DEFNU>
 % hObject    handle to editlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -440,7 +440,7 @@ guidata(hObject,handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function editlabelfilename_CreateFcn(hObject, eventdata, handles)
+function editlabelfilename_CreateFcn(hObject, eventdata, handles) %#ok<*DEFNU>
 % hObject    handle to editlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -541,56 +541,6 @@ guidata(hObject,handles);
 % --- Executes during object creation, after setting all properties.
 function edittrxfilename_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to edittrxfilename (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function editperframedir_Callback(hObject, eventdata, handles)
-% hObject    handle to editperframedir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editperframedir as text
-%        str2double(get(hObject,'String')) returns contents of editperframedir as a double
-handles = updateParams(handles);
-guidata(hObject,handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function editperframedir_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editperframedir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function editclipsdir_Callback(hObject, eventdata, handles)
-% hObject    handle to editclipsdir (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of editclipsdir as text
-%        str2double(get(hObject,'String')) returns contents of editclipsdir as a double
-handles = updateParams(handles);
-guidata(hObject,handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function editclipsdir_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editclipsdir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -705,7 +655,7 @@ uiresume(handles.figure1);
 
 
 % --- Executes on button press in pushbutton_done.
-function pushbutton_done_Callback(hObject, eventdata, handles)
+function pushbutton_done_Callback(hObject, ~, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -717,7 +667,14 @@ if fname == 0; return; end;
 
 handles.outfile = fullfile(pname,fname);
 
-params2save = handles.params(1);
+if exist(handles.outfile,'file')
+  [didback,msg] = copyfile(handles.outfile,[handles.outfile '~']);
+  if ~didback,
+    warning('Could not create backup of %s: %s',handles.outfile,msg);
+  end
+end
+
+params2save = handles.params(1); %#ok<NASGU>
 save(handles.outfile,'-struct','params2save');
 
 guidata(hObject,handles);
@@ -1018,14 +975,14 @@ eval(eval_str);
 handles = AddConfig(handles,newName,value);
 handles = RemoveConfig(handles,oldName);
 
-function handles = EditConfigValue(handles,name,value)
+function handles = EditConfigValue(handles,name,value) %#ok<INUSD>
 eval_str = sprintf('handles.params.%s = value;',name);
 eval(eval_str);
 
 function handles = AddConfig(handles,name,value)
 
-if ischar(value) && ~isempty(str2num(value))
-  value = str2num(value);
+if ischar(value) && ~isempty(str2num(value)) %#ok<ST2NM>
+  value = str2num(value); %#ok<NASGU,ST2NM>
 end
 
 iname = fliplr(name);
