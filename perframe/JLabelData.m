@@ -2708,6 +2708,7 @@ end
       toRemove = [];
       for i = 1:numel(obj.allperframefns)
         curpf = obj.allperframefns{i};
+        if any(strcmp(curpf,{obj.scoresasinput(:).scorefilename})), continue; end
         curtypes = settings.perframe.(curpf).type;
         if any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'))
           toRemove(end+1) = i;
