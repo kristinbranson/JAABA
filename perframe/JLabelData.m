@@ -2902,7 +2902,6 @@ end
       obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
       obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
       obj.curperframefns = fieldnames(windowfeaturesparams);
-      obj.savewindowfeatures = true;
     end  
     
     
@@ -2916,10 +2915,16 @@ end
     
     function SaveProject(obj)
       configfilename = obj.configfilename;
+<<<<<<< HEAD
       [~,~,ext] = filepart(configfilename);
       if strcmp(ext,'xml'),
         uiwait(warndlg(['Project file is saved in the old format. '...
           'Cannot save the window features to the project file']));
+=======
+      [~,~,ext] = fileparts(configfilename);
+      if strcmp(ext,'.xml'),
+        uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
+>>>>>>> e73e69b7724da86ad0d91fe0199ffa599ff10a95
         return;
       end
       windowfeatures = struct('windowfeaturesparams',obj.windowfeaturesparams,...
@@ -4594,11 +4599,13 @@ end
         hasClassifier = false;
       end
       
-      obj.SetPerframeParams(params,cellParams)
+      obj.SetPerframeParams(params,cellParams);
       if nargin>2
         obj.basicFeatureTable = basicFeatureTable;
         obj.featureWindowSize = featureWindowSize;
       end
+      obj.savewindowfeatures = true;
+
       obj.ClearWindowData();
       obj.classifier = [];
       obj.classifier_old = [];
@@ -5458,7 +5465,7 @@ end
       
     end
     
-    function [success,msg,crossError,tlabels] = CrossValidate(obj)
+    function [success,msg,crossError,tlabels] = CrossValidate(obj,varargin)
     % Cross validate on bouts.
       
       obj.StoreLabels();
@@ -5467,6 +5474,8 @@ end
       if ~success, 
         return;
       end
+      
+      [setidx,byexp] = myparse(varargin,'setidx',[],'byexp',false);
 
       islabeled = obj.windowdata.labelidx_cur ~= 0;
       if ~any(islabeled),                        
@@ -5489,11 +5498,15 @@ end
 
       bouts = obj.getLabeledBouts();
       
+      if byexp && isempty(setidx),
+        [~,~,setidx] = unique(obj.windowdata.exp);
+      end
+      
       [success,msg,crossScores, tlabels]=...
         crossValidateBout( obj.windowdata.X, ...
         obj.windowdata.labelidx_cur,bouts,obj,...
         obj.windowdata.binVals,...
-        obj.classifier_params,true);
+        obj.classifier_params,true,setidx);
       
       if ~success, 
         crossError.numbers = zeros(4,3);
@@ -6378,8 +6391,8 @@ end
             
             gt_labels = [gt_labels curLabel];
             
-            if ~isempty(obj.predictdata.exp) && nnz(obj.predictdata.exp ==expi)
-              idx = obj.predictdata.exp(:) ==expi & obj.predictdata.flies(:) == flies &...
+            if any(obj.predictdata.loaded_valid),
+              idx = obj.FlyNdxPredict(expi,flies)' &...
                 obj.predictdata.t(:) >=t0 & obj.predictdata.t(:) <t1;
               ts = obj.predictdata.t(idx);
               scores = obj.predictdata.loaded(idx);
@@ -6387,7 +6400,7 @@ end
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];
             else
-              idx = obj.FlyNdx(expi,flies) & ...
+              idx = obj.FlyNdxPredict(expi,flies)' & ...
                 obj.predictdata.t(:)>=t0 & obj.predictdata.t(:)<t1;
               ts = obj.predictdata.t(idx);
               scores = obj.predictdata.cur(idx);

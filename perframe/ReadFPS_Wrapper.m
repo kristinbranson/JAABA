@@ -7,7 +7,7 @@ msg = '';
 [fps,leftovers] = myparse_nocheck(varargin,'fps',30);
 
 switch InputDataType,
-  case 'Ctrax',
+  case {'Ctrax','CtraxPlusWings'},
 
     [success,msg,fps] = ...
       ReadFPS_Ctrax(...
@@ -19,10 +19,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MouseHouse',
+  case 'MoTr',
 
     success = false;
-    msg = 'FPS not stored in MouseHouse files';
+    msg = 'FPS not stored in MoTr files';
     
   case 'Qtrax',
 
@@ -33,13 +33,17 @@ switch InputDataType,
     
   case 'MAGATAnalyzer',
 
-    success = false;
-    msg = 'Not implemented';
+    [success,msg,fps] = ...
+      ReadFPS_MAGATAnalyzer(...
+      leftovers{:},...
+      'fps',fps);
     
   case 'MWT',
     
-    success = false;
-    msg = 'Not implemented';    
+    [success,msg,fps] = ...
+      ReadFPS_MWT(...
+      leftovers{:},...
+      'fps',fps);
 
   otherwise
     success = false;

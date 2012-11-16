@@ -1,12 +1,23 @@
 function [labels,behaviors] = ReadStructSVMLabelFile(labelfile)
 
+MAXSTRINGLENGTH = 10000;
+
 fid = fopen(labelfile,'rb');
 version = fread(fid,1,'double'); %#ok<NASGU>
 moviename_length = fread(fid,1,'int');
+if moviename_length > MAXSTRINGLENGTH,
+  error('Movie name length = %d > %d\n',moviename_length,MAXSTRINGLENGTH);
+end
 moviename = fread(fid,moviename_length,'char=>char')'; %#ok<NASGU>
 matname_length = fread(fid,1,'int');
+if matname_length > MAXSTRINGLENGTH,
+  error('Mat name length = %d > %d\n',matname_length,MAXSTRINGLENGTH);
+end
 matname = fread(fid,matname_length,'char=>char')'; %#ok<NASGU>
 trxname_length = fread(fid,1,'int');
+if trxname_length > MAXSTRINGLENGTH,
+  error('Trx name length = %d > %d\n',trxname_length,MAXSTRINGLENGTH);
+end
 trxname = fread(fid,trxname_length,'char=>char')'; %#ok<NASGU>
 nflies = fread(fid,1,'int'); %#ok<NASGU>
 fly_ids = fread(fid,1,'int');
@@ -21,6 +32,9 @@ behaviornames = cell(1,nbehaviors);
 
 for i = 1:nbehaviors,
   behaviorname_length = fread(fid,1,'int');
+  if behaviorname_length > MAXSTRINGLENGTH,
+    error('Behavior name length = %d > %d\n',behaviorname_length,MAXSTRINGLENGTH);
+  end
   behaviorname = fread(fid,behaviorname_length,'char=>char')';
   behaviornames{i} = behaviorname;
 end
@@ -39,11 +53,17 @@ behavioridx = behavioridx+1;
 % initialize everything as None
 labelidx0 = repmat(2,[1,nframes]);
 isunknown = ismember(behaviornames,{'*Unknown*','*Tracker Failure*'});
-idx_behavior = find(~isunknown);
+isnone = strcmpi(behaviornames,'None');
+idx_behavior = find(~isunknown&~isnone);
 idx = find(isunknown(behavioridx));
 % set unknown labels
 for i = idx(:)',
   labelidx0(startframes(i):endframes(i)-1) = 0;
+end
+idx = find(isnone(behavioridx));
+% set none labels
+for i = idx(:)',
+  labelidx0(startframes(i):endframes(i)-1) = 2;
 end
 
 labels = cell(1,numel(idx_behavior));
