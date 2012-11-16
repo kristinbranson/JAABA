@@ -1728,7 +1728,7 @@ while true,
 %   try
   [~,~,ext] = fileparts(handles.guidata.configfilename);
   if strcmp(ext,'.xml')
-    JLabelHandle.guidata.configparams = ReadXMLparams(handles.guidata.configfilename);
+    JLabelHandle.guidata.configparams = ReadXMLParams(handles.guidata.configfilename);
   elseif strcmp(ext,'.mat')
     JLabelHandle.guidata.configparams = load(handles.guidata.configfilename);
   else
@@ -6427,6 +6427,15 @@ if fname==0,
   return;
 end
 handles.guidata.data.PredictSaveMovie(handles.guidata.expi,fullfile(pname,fname));
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
 % --------------------------------------------------------------------
@@ -6435,6 +6444,15 @@ function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata,
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.PredictNoSaveMovie(handles.guidata.expi);
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
 % --------------------------------------------------------------------
