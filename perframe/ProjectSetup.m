@@ -703,7 +703,7 @@ if ok == 0, return; end
 if strcmp(ext,'.xml')
   origparams = ReadXMLParams(fullfile(pname,fnames));
 else
-  origparams = load(fullfile(pname,fname));
+  origparams = load(fullfile(pname,fnames));
 end
 
 if ismember('Target Type',sellist)
