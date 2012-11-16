@@ -3,7 +3,7 @@ function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSi
 % Convert tracking results from ctrx into trx format. Mainly for vivek's
 % movies.
 % indir: experiment directory
-% intrxfile: input trx file (ctrx output)
+% intrxfile: input trx file (ctrax output)
 % moviefilename:
 % outtrxfile: output trx file
 % arenaSize: The size of the edge of the box in mm
