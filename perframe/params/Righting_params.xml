@@ -4,6 +4,7 @@
    <file featureconfigfile="params/featureConfig_RightingAR.xml" featureparamfilename="params/WindowFeatures_Righting.xml" gt_labelfilename="labeledRighting_gt.mat" labelfilename="labeledRighting.mat" moviefilename="movie.ufmf" perframedir="perframe" rootoutputdir="" trxfilename="registered_trx.mat" windowfilename="windowfeatures.mat"/>
    <perframe>
       <params fov="3.1416" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
+      <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
    </perframe>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7"/>
