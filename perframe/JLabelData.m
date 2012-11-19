@@ -2668,8 +2668,12 @@ end
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
       
-      if isempty(obj.landmark_params) && obj.arenawarn
-        uiwait(warndlg('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list'));
+      if isempty(obj.landmark_params) && obj.arenawarn,
+        if isInteractive,
+          uiwait(warndlg('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list'));
+        else
+          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list');
+        end
         obj.RemoveArenaPFs();
         obj.arenawarn = false;
       end
