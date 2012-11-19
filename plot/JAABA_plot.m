@@ -929,17 +929,26 @@ end
 during={};  not_during={};
 for i=1:length(behavior_data.allScores.t0s)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
-  tmp1=false(1,length(feature_data.data{i}));
-  for j=1:length(behavior_data.allScores.t0s{i})
-    tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
-        -behavior_data.allScores.tStart(i)+1)=true;
-  end
+%  tmp1=false(1,length(feature_data.data{i}));
+%  for j=1:length(behavior_data.allScores.t0s{i})
+%    tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
+%        -behavior_data.allScores.tStart(i)+1)=true;
+%  end
+  tmp1=zeros(1,length(feature_data.data{i}));
+  tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+  tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+  tmp1=logical(cumsum(tmp1(1:length(feature_data.data{i}))));
+  
   if(behavior_logic>1)
-    tmp2=false(1,length(feature_data.data{i}));
-    for j=1:length(behavior_data2.allScores.t0s{i})
-      tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
-          -behavior_data2.allScores.tStart(i)+1)=true;
-    end
+    %tmp2=false(1,length(feature_data.data{i}));
+    %for j=1:length(behavior_data2.allScores.t0s{i})
+    %  tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
+    %      -behavior_data2.allScores.tStart(i)+1)=true;
+    %end
+    tmp2=zeros(1,length(feature_data.data{i}));
+    tmp2(behavior_data2.allScores.t0s{i}-behavior_data2.allScores.tStart(i)+1)=1;
+    tmp2(behavior_data2.allScores.t1s{i}-behavior_data2.allScores.tStart(i)+1)=-1;
+    tmp2=logical(cumsum(tmp2(1:length(feature_data.data{i}))));
   end
   switch(behavior_logic)
     case(1)
@@ -1015,6 +1024,7 @@ during=cell(1,length(experiment_value));
 not_during=cell(1,length(experiment_value));
 bad=zeros(1,length(experiment_value));
 parfor e=1:length(experiment_value)
+%for e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},...
         [behavior_list{behavior_value} '.mat']));
   if(behavior_logic>1)
@@ -1253,16 +1263,19 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       bad2={};
       parfor b=1:length(behavior_list)
       %for b=1:length(behavior_list)
+        behavior_data={};
+        for e=1:length(experiment_value)
+          behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
+        end
         k=1;  bad2{b}={};
         parfor_tmp=zeros(length(feature_list),8);
         for f=1:length(feature_list)
           during={};  not_during={};
           for e=1:length(experiment_value)
-            behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
             feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
                 [feature_list{f} '.mat']));
 
-            if(length(behavior_data.allScores.scores)~=length(feature_data.data))
+            if(length(behavior_data{e}.allScores.scores)~=length(feature_data.data))
               [~,foo,~]=fileparts(experiment_list{experiment_value(e)});
               bad2{b}{end+1}=[foo ', ' behavior_list{b} ', ' feature_list{f}];
               continue;
@@ -1272,7 +1285,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
             for i=1:length(feature_data.data)
               sexdata{i}=ones(1,length(feature_data.data{i}));
             end
-            [during{e} not_during{e}]=calculate_feature_histogram(behavior_data,1,[],feature_data,sexdata,nan,perwhat);
+            [during{e} not_during{e}]=calculate_feature_histogram(behavior_data{e},1,[],feature_data,sexdata,nan,perwhat);
           end
           during=[during{:}];
           not_during=[not_during{:}];
