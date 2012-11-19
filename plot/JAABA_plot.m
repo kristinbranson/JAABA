@@ -760,7 +760,9 @@ function GroupNew_Callback(hObject, eventdata, handles)
 %handles.grouplist{end+1}=['<html><font color="' ...
 %    handles.colors{2,1+mod(length(handles.grouplist),length(handles.colors))} '">' ans '</font></html>'];
 ;
-handles.grouplist{end+1}=char(inputdlg({'Name:'},'Create new experiment group'));
+inputdlg({'Name:'},'Create new experiment group');
+if(isempty(ans))  return;  end
+handles.grouplist{end+1}=char(ans);
 handles.groupvalue=length(handles.grouplist);
 handles.experimentlist{handles.groupvalue}={};
 handles.experimentvalue{handles.groupvalue}=[];
@@ -1847,7 +1849,7 @@ switch(individual)
   case 1
     frames_labelled=cellfun(@(x) x{1},collated_data,'uniformoutput',false);
     frames_total=cellfun(@(x) x{2},collated_data,'uniformoutput',false);
-  case 2,3
+  case {2,3}
     frames_labelled=cellfun(@(x) x{1}(x{3}==(3-individual)),collated_data,'uniformoutput',false);
     frames_total=cellfun(@(x) x{2}(x{3}==(3-individual)),collated_data,'uniformoutput',false);
   otherwise
