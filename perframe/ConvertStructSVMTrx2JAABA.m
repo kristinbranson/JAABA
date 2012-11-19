@@ -38,6 +38,7 @@ alldata = {};
 allfieldnames = {};
 allunits = {};
 alllabels = [];
+allgtlabels = [];
 allbehaviors = {};
 
 % loop through trxfiles and labelfiles, one for each fly
@@ -50,6 +51,9 @@ for i = 1:numel(trxfiles),
   [trxcurr,fieldnamescurr,datacurr,unitscurr] = ReadStructSVMTrxFile(trxfile);
   trx = structappend(trx,trxcurr);
   id = trxcurr.id;
+  if numel(trxfiles) == 1,
+    id = 1;
+  end
   
   % check that it is from the same movie
   if i == 1,
@@ -100,7 +104,7 @@ for i = 1:numel(trxfiles),
       dokeep = label ~= 2 | rand(1,maxT)<=fracsubsamplenegs;
       label(~dokeep) = 0;
       
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[],'off',[]);
       labelnames_curr = {behaviorscurr{behaviori},'None'};
       for j = 1:2,
         [i0s,i1s] = get_interval_ends(label==j);
@@ -115,7 +119,7 @@ for i = 1:numel(trxfiles),
       end
       newlabels.timestamp = repmat(labelscurr{behaviori}.timestamp(end),size(newlabels.t0s));
       newlabels.flies = labelscurr{behaviori}.flies;
-      
+      newlabels.off = labelscurr{behaviori}.off;
       labelscurr{behaviori} = newlabels;
       
     end
@@ -136,6 +140,17 @@ for i = 1:numel(trxfiles),
       alllabels{idx(j)}.imp_t0s{end+1} = labelscurr{j}.imp_t0s;
       alllabels{idx(j)}.imp_t1s{end+1} = labelscurr{j}.imp_t1s;
     end
+    for j = find(ism),
+      allgtlabels{idx(j)}.t0s{end+1} = labels0{j}.t0s;
+      allgtlabels{idx(j)}.t1s{end+1} = labels0{j}.t1s;
+      allgtlabels{idx(j)}.names{end+1} = labels0{j}.names;
+      allgtlabels{idx(j)}.flies(:,end+1) = labels0{j}.flies;
+      allgtlabels{idx(j)}.off(end+1) = labels0{j}.off;
+      allgtlabels{idx(j)}.timestamp{end+1} = labels0{j}.timestamp;
+      allgtlabels{idx(j)}.imp_t0s{end+1} = labels0{j}.imp_t0s;
+      allgtlabels{idx(j)}.imp_t1s{end+1} = labels0{j}.imp_t1s;
+    end
+
   end
   if any(~ism),
     for j = find(~ism),
@@ -146,6 +161,16 @@ for i = 1:numel(trxfiles),
       alllabels{end}.timestamp = {alllabels{end}.timestamp};
       alllabels{end}.imp_t0s = {alllabels{end}.imp_t0s};
       alllabels{end}.imp_t1s = {alllabels{end}.imp_t1s};
+      allbehaviors{end+1} = behaviorscurr{j};
+    end
+    for j = find(~ism),
+      allgtlabels{end+1} = labels0{j};
+      allgtlabels{end}.t0s = {allgtlabels{end}.t0s};
+      allgtlabels{end}.t1s = {allgtlabels{end}.t1s};
+      allgtlabels{end}.names = {allgtlabels{end}.names};
+      allgtlabels{end}.timestamp = {allgtlabels{end}.timestamp};
+      allgtlabels{end}.imp_t0s = {allgtlabels{end}.imp_t0s};
+      allgtlabels{end}.imp_t1s = {allgtlabels{end}.imp_t1s};
       allbehaviors{end+1} = behaviorscurr{j};
     end
   end  
@@ -236,6 +261,18 @@ if ~isempty(intrkfile),
         alllabels{i}.imp_t1s{fly} = alllabels{i}.imp_t1s{nflies_trx};
         alllabels{i}.off(fly) = alllabels{i}.off(nflies_trx);
         alllabels{i}.flies(fly,:) = fly;
+      end
+    end
+    for i = 1:numel(allgtlabels),
+      for fly = nflies_trx+1:nflies,
+        allgtlabels{i}.t0s{fly} = allgtlabels{i}.t0s{nflies_trx};
+        allgtlabels{i}.t1s{fly} = allgtlabels{i}.t1s{nflies_trx};
+        allgtlabels{i}.names{fly} = allgtlabels{i}.names{nflies_trx};
+        allgtlabels{i}.timestamp{fly} = allgtlabels{i}.timestamp{nflies_trx};
+        allgtlabels{i}.imp_t0s{fly} = allgtlabels{i}.imp_t0s{nflies_trx};
+        allgtlabels{i}.imp_t1s{fly} = allgtlabels{i}.imp_t1s{nflies_trx};
+        allgtlabels{i}.off(fly) = allgtlabels{i}.off(nflies_trx);
+        allgtlabels{i}.flies(fly,:) = fly;
       end
     end
   end
@@ -376,7 +413,11 @@ for i = 1:numel(alllabels),
   labels = alllabels{i}; %#ok<NASGU>
   save(fullfile(expdir,filestr),'-struct','labels');
 end
-  
+for i = 1:numel(allgtlabels),
+  filestr = sprintf('labeled_gt_%s.mat',allbehaviors{i});
+  labels = allgtlabels{i}; %#ok<NASGU>
+  save(fullfile(expdir,filestr),'-struct','labels');
+end
 
 if ~isempty(inmoviefile),
 
