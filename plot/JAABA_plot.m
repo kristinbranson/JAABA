@@ -1234,6 +1234,16 @@ set(handles.figure1,'pointer','arrow');
 %table_data=reshape(table_data,prod(size(table_data))/8,8);
 
 
+function progress_bar(~,~,h)
+
+fid=fopen(fullfile(tempdir,'progressbar.txt'),'r');
+den=fread(fid,1,'uint32');
+fseek(fid,0,1);
+num=ftell(fid)/4;
+waitbar(num/den,h);
+fclose(fid);
+
+
 % --- Executes on button press in InterestingFeatureHistograms.
 function InterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % hObject    handle to InterestingFeatureHistograms (see GCBO)
@@ -1246,59 +1256,76 @@ set(handles.figure1,'pointer','watch');
 if(isempty(handles.interestingfeaturehistograms_cache))
   table_data={};
   bad={};
-  for g=1:length(handles.grouplist)
+  gg=find(cellfun(@isempty,handles.grouplist)==0);
+
+  h=waitbar(0,'This will likely take awhile...',...
+      'CreateCancelBtn','fid=fopen(fullfile(tempdir,''cancel.txt''),''w''); fclose(fid);');
+  fid=fopen(fullfile(tempdir,'progressbar.txt'),'w');
+  fwrite(fid,length(handles.behaviorlist)*sum(cellfun(@length,handles.experimentvalue)),'uint32');
+  fclose(fid);
+  t = timer('TimerFcn',{@progress_bar,h}, 'Period', 3, 'ExecutionMode', 'fixedRate');
+  start(t);
+
+  for g=gg
     set(handles.Status,'string',...
-        ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
+        ['Processing ' num2str(length(handles.experimentvalue{gg(g)})) ' experiment(s) in group ' handles.grouplist{gg(g)}]);
     drawnow;
-    if(~isempty(handles.experimentvalue{g}))
-%      table_data{end+1}=calculate_interesting_feature_histograms(...
-%          handles.experimentvalue{g},handles.experimentlist{g},...
-%          handles.behaviorlist,handles.featurelist,handles.featurehistogram_perwhat);
-      experiment_value=handles.experimentvalue{g};
-      experiment_list=handles.experimentlist{g};
-      behavior_list=handles.behaviorlist;
-      feature_list=handles.featurelist;
-      perwhat=handles.featurehistogram_perwhat;
-      parfor_tmp2=zeros(length(behavior_list),length(feature_list),8);
-      bad2={};
-      parfor b=1:length(behavior_list)
-      %for b=1:length(behavior_list)
-        behavior_data={};
-        for e=1:length(experiment_value)
-          behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
-        end
-        k=1;  bad2{b}={};
-        parfor_tmp=zeros(length(feature_list),8);
-        for f=1:length(feature_list)
-          during={};  not_during={};
-          for e=1:length(experiment_value)
-            feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
-                [feature_list{f} '.mat']));
-
-            if(length(behavior_data{e}.allScores.scores)~=length(feature_data.data))
-              [~,foo,~]=fileparts(experiment_list{experiment_value(e)});
-              bad2{b}{end+1}=[foo ', ' behavior_list{b} ', ' feature_list{f}];
-              continue;
-            end
-
-            sexdata={};
-            for i=1:length(feature_data.data)
-              sexdata{i}=ones(1,length(feature_data.data{i}));
-            end
-            [during{e} not_during{e}]=calculate_feature_histogram(behavior_data{e},1,[],feature_data,sexdata,nan,perwhat);
-          end
-          during=[during{:}];
-          not_during=[not_during{:}];
-          %parfor_tmp(k,:)=[b f (mean(during)-mean(not_during))/sqrt((std(during)^2+std(not_during)^2)/2)];
-          parfor_tmp(k,:)=[b f mean(during) mean(not_during) std(during) std(not_during) length(during) length(not_during)];
-          k=k+1;
-        end
-        parfor_tmp2(b,:,:)=parfor_tmp;
-        disp([num2str(b) ' of ' num2str(length(behavior_list))]);
+    experiment_value=handles.experimentvalue{gg(g)};
+    experiment_list=handles.experimentlist{gg(g)};
+    parfor_tmp2=zeros(length(handles.behaviorlist),length(handles.featurelist),8);
+    bad2={};
+    parfor b=1:length(handles.behaviorlist)
+    %for b=1:length(handles.behaviorlist)
+      behavior_data={};
+      for e=1:length(experiment_value)
+        behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},[handles.behaviorlist{b} '.mat']));
       end
-      bad=[bad [bad2{:}]];
-      table_data{end+1}=reshape(parfor_tmp2,prod(size(parfor_tmp2))/8,8);
+      k=1;  bad2{b}={};
+      parfor_tmp=zeros(length(handles.featurelist),8);
+      for f=1:length(handles.featurelist)
+        if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+        during={};  not_during={};
+        for e=1:length(experiment_value)
+          if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+          feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
+              [handles.featurelist{f} '.mat']));
+
+          if(length(behavior_data{e}.allScores.scores)~=length(feature_data.data))
+            [~,foo,~]=fileparts(experiment_list{experiment_value(e)});
+            bad2{b}{end+1}=[foo ', ' handles.behaviorlist{b} ', ' handles.featurelist{f}];
+            continue;
+          end
+
+          sexdata={};
+          for i=1:length(feature_data.data)
+            sexdata{i}=ones(1,length(feature_data.data{i}));
+          end
+          [during{e} not_during{e}]=calculate_feature_histogram(behavior_data{e},1,[],...
+              feature_data,sexdata,nan,handles.featurehistogram_perwhat);
+        end
+        during=[during{:}];
+        not_during=[not_during{:}];
+        %parfor_tmp(k,:)=[b f (mean(during)-mean(not_during))/sqrt((std(during)^2+std(not_during)^2)/2)];
+        parfor_tmp(k,:)=[b f mean(during) mean(not_during) std(during) std(not_during) length(during) length(not_during)];
+        k=k+1;
+      end
+      parfor_tmp2(b,:,:)=parfor_tmp;
+      fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
     end
+    bad=[bad [bad2{:}]];
+    table_data{end+1}=reshape(parfor_tmp2,prod(size(parfor_tmp2))/8,8);
+  end
+
+  stop(t);
+  delete(t);
+  delete(h);
+  delete(fullfile(tempdir,'progressbar.txt'));
+
+  if(exist(fullfile(tempdir,'cancel.txt')))
+    delete(fullfile(tempdir,'cancel.txt'));
+    set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+    set(handles.figure1,'pointer','arrow');
+    return;
   end
 
   if(~isempty(bad))
@@ -1315,15 +1342,15 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   end
 
   tmp2=[];
-  for g=1:length(handles.grouplist)
-    tmp2=[tmp2; repmat(g,size(table_data{g},1),1) nan(size(table_data{g},1),1) table_data{g}(:,1:2) ...
-        (table_data{g}(:,3)-table_data{g}(:,4))./sqrt(table_data{g}(:,5).^2+table_data{g}(:,6).^2)...
-        table_data{g}(:,7) table_data{g}(:,8)];
+  for g=gg
+    tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) nan(size(table_data{gg(g)},1),1) table_data{gg(g)}(:,1:2) ...
+        (table_data{gg(g)}(:,3)-table_data{gg(g)}(:,4))./sqrt(table_data{gg(g)}(:,5).^2+table_data{gg(g)}(:,6).^2)...
+        table_data{gg(g)}(:,7) table_data{gg(g)}(:,8)];
     if(g==length(handles.grouplist))  break;  end
     for g2=(g+1):length(handles.grouplist)
-      tmp2=[tmp2; repmat(g,size(table_data{g},1),1) repmat(g2,size(table_data{g},1),1) table_data{g}(:,1:2) ...
-          (table_data{g2}(:,3)-table_data{g}(:,3))./sqrt(table_data{g2}(:,5).^2+table_data{g}(:,5).^2)...
-          table_data{g}(:,7) table_data{g2}(:,7)];
+      tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) repmat(g2,size(table_data{gg(g)},1),1) table_data{gg(g)}(:,1:2) ...
+          (table_data{g2}(:,3)-table_data{gg(g)}(:,3))./sqrt(table_data{g2}(:,5).^2+table_data{gg(g)}(:,5).^2)...
+          table_data{gg(g)}(:,7) table_data{g2}(:,7)];
     end
   end
   if(handles.interestingfeaturehistograms_omitnan)
