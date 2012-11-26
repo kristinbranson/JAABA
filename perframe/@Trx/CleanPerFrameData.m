@@ -23,7 +23,7 @@ for i = 1:numel(fns),
     if ~isempty(j),
       obj.datacached{n}(j) = [];
       obj.fnscached{n}(j) = [];
-      obj.nfnscached{n} = obj.nfnscached{n}-1;
+      obj.nfnscached(n) = obj.nfnscached(n)-1;
     end
     
   end
