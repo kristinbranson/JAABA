@@ -89,9 +89,9 @@
     
     <area trans_types="none,relative" type="appearance"/>
     
-    <arena_angle trans_types="none" type="position"/>
+    <!--arena_angle trans_types="none" type="position"/>
     
-    <arena_r trans_types="none" type="arena,position"/>
+    <arena_r trans_types="none" type="arena,position"/-->
     
     <b_mm trans_types="none,abs" type="appearance"/>
     
@@ -201,7 +201,7 @@
     
     <distnose2wall_rect trans_types="none" type="arena"/>
 
-    <scores_wall_climbing_v3 trans_types="none" type="scores"/>
+    <!--scores_wall_climbing_v3 trans_types="none" type="scores"/>
 
     <scores_walk_pause trans_types="none" type="scores"/>
     <scores_tail_chase trans_types="none" type="scores"/>
@@ -210,7 +210,8 @@
     <scores_corner_climbing_v2 trans_types="none" type="scores"/>
     <scores_circling_v2 trans_types="none" type="scores"/>
     <scores_back_walk trans_types="none" type="scores"/>
-    <score_pausing trans_types="none" type="scores"/>
+    <score_pausing trans_types="none" type="scores"/-->
 
 </perframe>
+  <perframe_params  fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
 </params>
