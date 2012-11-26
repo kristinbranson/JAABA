@@ -4673,6 +4673,7 @@ end
           obj.predictdata.old = obj.predictdata.cur;
           obj.predictdata.old_valid = obj.predictdata.cur_valid;
           obj.predictdata.old_pp = obj.predictdata.cur_pp;
+          obj.predictdata.cur_valid(:) = false;
           
           obj.windowdata.scoreNorm = [];
           % To later find out where each example came from.
