@@ -810,9 +810,8 @@ if ismember('Advanced Parameters',sellist),
     'perframe.landmark_params.arena_type'};
   
   for str = adv_params(:)',
-    try
+    try %#ok<TRYNC>
       eval(sprintf('handles.params.%s = origparams.%s;',str{1},str{1}));
-    catch
     end
   end
 

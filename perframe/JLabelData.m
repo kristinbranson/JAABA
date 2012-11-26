@@ -783,7 +783,7 @@ end
           end
         end
         
-        if isfield(configparams,'windowfeatures') && ~isempty(configparams.windowfeatures)
+        if isfield(configparams,'windowfeatures') && isfield(configparams.windowfeatures,'basicFeatureTable')
           obj.basicFeatureTable = configparams.windowfeatures.basicFeatureTable;
           obj.featureWindowSize = configparams.windowfeatures.featureWindowSize;
           obj.SetPerframeParams(configparams.windowfeatures.windowfeaturesparams,...
@@ -822,13 +822,14 @@ end
           obj.allperframefns{end+1} = name;
         end
         
-        scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
-        if isempty(scoresbasicndx),
-          obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
-        else
-          obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
+        if ~isempty(obj.basicFeatureTable),
+          scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
+          if isempty(scoresbasicndx),
+            obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
+          else
+            obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
+          end
         end
-        
       end
       
      
@@ -1475,6 +1476,8 @@ end
               loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
             if ~success,error(msg); end
             obj.labels = loadeddata.labels;
+            [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
+            obj.labelidx_off = 1 - obj.t0_curr;
             [success,msg] = obj.PreLoadLabeledData();
             if ~success,error(msg); end
             obj.labelsLoadedFromClassifier = true;
@@ -1611,10 +1614,10 @@ end
                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
                 str = sprintf('%s\nUsing parameters stored in the classifier file',str);
                 uiwait(warndlg(str));
+                obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
+                  loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
+                  loadeddata.featureWindowSize);
             end
-            obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
-              loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
-              loadeddata.featureWindowSize);
           end
           
           if ~isfield(loadeddata,'featurenames')
@@ -1763,6 +1766,7 @@ end
     
     function AddScores(obj,expi,allScores,timestamp,classifierfilename,updateCurrent)
 %       obj.predictdata.classifierfilenames{expi} = classifierfilename;
+      obj.SetStatus('Updating Predictions ...');
       for ndx = 1:numel(allScores.scores)
         idxcurr = obj.FlyNdxPredict(expi,ndx);
         
@@ -1816,6 +1820,7 @@ end
       end
       
       obj.UpdatePredictedIdx();
+      obj.ClearStatus();
 
     end
     
@@ -2220,7 +2225,9 @@ end
         [success1,msg1] = obj.PreLoad(1,1);
         if ~success1,
           msg = sprintf('Error getting basic trx info: %s',msg1);
+          uiwait(warndlg(msg));
           obj.RemoveExpDirs(obj.nexps);
+          obj.ClearStatus();
           return;
         end
       elseif istrxinfo,
@@ -2765,12 +2772,12 @@ end
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
       
-      if isempty(obj.landmark_params) && obj.arenawarn
-        uiwait(warndlg(['Landmark params were not defined in the configuration file.'...
-          ' Not computing arena features and removing them from the perframe list']));
-        obj.RemoveArenaPFs();
-        obj.arenawarn = false;
-      end
+%       if isempty(obj.landmark_params) && obj.arenawarn
+%         uiwait(warndlg(['Landmark params were not defined in the configuration file.'...
+%           ' Not computing arena features and removing them from the perframe list']));
+%         obj.RemoveArenaPFs();
+%         obj.arenawarn = false;
+%       end
       
       perframefiles = obj.GetPerframeFiles(expi);
       for i = 1:numel(obj.allperframefns),
@@ -2788,10 +2795,9 @@ end
         end
         
         % Don't generate the per-frame files from scores here anymore..
-        if ~(numel(fn)>7 && strcmpi('score',fn(1:5)))
+        if ~any(strcmp(fn,{obj.scoresasinput(:).scorefilename}))
           perframetrx.(fn);
-       end
-          
+        end        
       end
       
       if isInteractive && ishandle(hwait),
@@ -4869,8 +4875,14 @@ end
           if(isempty(obj.predictblocks.t0)), return, end
           
           for ndx = 1:numel(obj.predictblocks.t0)
-            obj.SetStatus('Predicting for exp %s... %d%% done',...
-            obj.expnames{obj.predictblocks.expi(ndx)},100*ndx/numel(obj.predictblocks.t0));
+            curex = obj.predictblocks.expi(ndx);
+            flies = obj.predictblocks.flies(ndx);
+            numcurex = nnz(obj.predictblocks.expi(:) == curex & ...
+              obj.predictblocks.flies(:) == flies);
+            numcurexdone = nnz(obj.predictblocks.expi(1:ndx) == curex & ...
+              obj.predictblocks.flies(1:ndx) == flies);
+            obj.SetStatus('Predicting for exp %s fly %d ... %d%% done',...
+            obj.expnames{curex},flies,round(100*numcurexdone/numcurex));
             obj.PredictFast(obj.predictblocks.expi(ndx),...
               obj.predictblocks.flies(ndx),...
               obj.predictblocks.t0(ndx):obj.predictblocks.t1(ndx));
@@ -5090,6 +5102,7 @@ end
 %             
 %           obj.windowdata.isvalidprediction(idxcurr) = true;
 
+          obj.SetStatus('Updating Predictions ...');
           obj.PredictFast(expi,flies,ts)
           obj.ApplyPostprocessing();
           obj.ClearStatus();
@@ -5301,7 +5314,6 @@ end
           
           scores = myBoostClassify(X(:,obj.fastPredict.wfidx),obj.fastPredict.classifier);
           
-          obj.SetStatus('Updating Predictions ...');
           curndx = obj.FlyNdxPredict(expi,flies) & ...
             obj.predictdata.t>=t0 & ...
             obj.predictdata.t<=t1;
@@ -5830,6 +5842,7 @@ end
     function flyStats = GetFlyStats(obj,expi,flyNum)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
+      obj.SetStatus('Computing stats for %s %d',obj.expnames{expi},flyNum);
       
       obj.StoreLabels();
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
@@ -5981,7 +5994,8 @@ end
       %         flyStats.npredictfrac = [];
       %       end
       
-    end
+      obj.ClearStatus();
+   end
     
     function scores = NormalizeScores(obj,scores)
       
