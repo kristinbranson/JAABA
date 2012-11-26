@@ -181,9 +181,10 @@ else
   tableData = {};
   for ndx = 1:numel(handles.pftypeList)
     tableData{ndx,1} = handles.pftypeList{ndx};
-    tableData{ndx,2} = 'Custom';
+    tableData{ndx,2} = 'None';
     tableData{ndx,3} = 'normal';
   end
+    
 end
 set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
