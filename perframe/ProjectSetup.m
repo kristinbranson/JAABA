@@ -870,6 +870,8 @@ if ok,
   
 end
 
+guidata(hObject,handles);
+
 
 
 function [allPfList selected missing]= GetAllPerframeList(configparams)

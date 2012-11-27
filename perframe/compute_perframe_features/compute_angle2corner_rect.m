@@ -10,15 +10,15 @@ for i = 1:nflies,
   y = trx(fly).y_mm;
   
   cornera = zeros(1,4);
-  cornera(1) = atan2(trx.tl_y(fly)-trx.br_y(fly),trx.tl_x(fly)-trx.br_x(fly));
-  cornera(2) = atan2(trx.tr_y(fly)-trx.bl_y(fly),trx.tr_x(fly)-trx.bl_x(fly));
-  cornera(3) = atan2(trx.br_y(fly)-trx.tl_y(fly),trx.br_x(fly)-trx.tl_x(fly));
-  cornera(4) = atan2(trx.bl_y(fly)-trx.tr_y(fly),trx.bl_x(fly)-trx.tr_x(fly));
+  cornera(1) = atan2(trx.landmarkparams{n}.tl_y(fly)-trx.landmarkparams{n}.br_y(fly),trx.landmarkparams{n}.tl_x(fly)-trx.landmarkparams{n}.br_x(fly));
+  cornera(2) = atan2(trx.landmarkparams{n}.tr_y(fly)-trx.landmarkparams{n}.bl_y(fly),trx.landmarkparams{n}.tr_x(fly)-trx.landmarkparams{n}.bl_x(fly));
+  cornera(3) = atan2(trx.landmarkparams{n}.br_y(fly)-trx.landmarkparams{n}.tl_y(fly),trx.landmarkparams{n}.br_x(fly)-trx.landmarkparams{n}.tl_x(fly));
+  cornera(4) = atan2(trx.landmarkparams{n}.bl_y(fly)-trx.landmarkparams{n}.tr_y(fly),trx.landmarkparams{n}.bl_x(fly)-trx.landmarkparams{n}.tr_x(fly));
   
-  dtl = sqrt( (trx.tl_x(fly)-x).^2 + (trx.tl_y(fly)-y).^2);
-  dtr = sqrt( (trx.tr_x(fly)-x).^2 + (trx.tr_y(fly)-y).^2);
-  dbr = sqrt( (trx.br_x(fly)-x).^2 + (trx.br_y(fly)-y).^2);
-  dbl = sqrt( (trx.bl_x(fly)-x).^2 + (trx.bl_y(fly)-y).^2);
+  dtl = sqrt( (trx.landmarkparams{n}.tl_x(fly)-x).^2 + (trx.landmarkparams{n}.tl_y(fly)-y).^2);
+  dtr = sqrt( (trx.landmarkparams{n}.tr_x(fly)-x).^2 + (trx.landmarkparams{n}.tr_y(fly)-y).^2);
+  dbr = sqrt( (trx.landmarkparams{n}.br_x(fly)-x).^2 + (trx.landmarkparams{n}.br_y(fly)-y).^2);
+  dbl = sqrt( (trx.landmarkparams{n}.bl_x(fly)-x).^2 + (trx.landmarkparams{n}.bl_y(fly)-y).^2);
 
   
   [~,closest] = min([dtl;dtr; dbr; dbl],[],1);
