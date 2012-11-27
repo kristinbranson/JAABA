@@ -89,6 +89,7 @@ bool StructuredSVM::Save(const char *fname, bool saveFull) {
   if(modelfile) free(modelfile);
   modelfile = StringCopy(fname);
   if(sum_w) root["Sum w"] = sum_w->save();
+  root["Sum w scale"] = sum_w_scale;
   if(useWeights) {
     Json::Value a(Json::arrayValue);
     for(int i = 0; i < sizePsi; i++)
@@ -138,6 +139,8 @@ bool StructuredSVM::Load(const char *fname, bool loadFull) {
     if(!sum_w) sum_w = new SparseVector; 
     sum_w->load(root["Sum w"]); 
   }
+  if(root.isMember("Sum w scale")) 
+    sum_w_scale = root.get("Sum w scale", 0).asDouble();
   if(root.isMember("Use Weights")) {
     Json::Value a = root["Use Weights"];
     useWeights = (bool*)malloc(sizeof(bool)*a.size());
@@ -194,6 +197,9 @@ StructuredSVM::StructuredSVM() {
   M = 0;
   finished = false;
   maxCachedSamplesPerExample = 0;
+  keepAllEvictedLabels = false;
+  isTesting = false;
+  savingCachedExamples = false;
 
   minItersBeforeNewExample = 1;
   isMultiSample = false;

@@ -586,6 +586,8 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
 
   void SaveCachedExamples(const char *output_name, bool saveFull=true);
   void LoadCachedExamples(const char *fname, bool loadFull=true);
+  bool IsTesting() { return isTesting; }
+
  protected:
 
   SparseVector *sum_w; /**< the unnormalized learned model weights w^t = sum_w*(t*lambda) */ 
@@ -619,6 +621,7 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
   double maxLoss;
   int numMultiSampleIterations;
   int maxCachedSamplesPerExample;
+  bool savingCachedExamples;
 
   int modelId;
   int iterId;
@@ -685,6 +688,8 @@ protected:
 
  protected:
   StructuredDataset *trainset;
+  bool keepAllEvictedLabels;
+  bool isTesting;
   
   void SVM_cached_sample_set_compute_features(struct _SVM_cached_sample_set *set, StructuredExample *ex);
 
@@ -709,6 +714,7 @@ protected:
   void ExtractSampleSet(int num_samples, bool augment);
   void ConvertCachedExamplesToBinaryTrainingSet();
   void CondenseSamples(struct _SVM_cached_sample_set *set);
+  void UncondenseSamples(struct _SVM_cached_sample_set *set);
   void UpdateFromCache(bool lock=true, int *num=NULL, int i=-1);
   void TrainMain(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL); 
   void TrainBinary(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL); 
@@ -805,6 +811,9 @@ typedef struct _SVM_cached_sample_set {
   bool lock;
   int numIters;
   double sumSlack;
+
+  StructuredLabel **evicted_labels;
+  int num_evicted_labels;
 } SVM_cached_sample_set;
 
 
