@@ -118,7 +118,7 @@ classdef JLabelData < handle
     
     % computing per-frame properties
     perframe_params = {};
-    landmark_params = {};
+    landmark_params = struct;
     
     % classifier
     
@@ -280,6 +280,7 @@ classdef JLabelData < handle
     
     % warn about removing arena features.
     arenawarn = true;
+    hasarenaparams = [];
     
     % functions for writing text to a status bar
     setstatusfn = '';
@@ -2772,12 +2773,16 @@ end
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
       
-%       if isempty(obj.landmark_params) && obj.arenawarn
-%         uiwait(warndlg(['Landmark params were not defined in the configuration file.'...
-%           ' Not computing arena features and removing them from the perframe list']));
-%         obj.RemoveArenaPFs();
-%         obj.arenawarn = false;
-%       end
+      if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
+        if isInteractive,
+          uiwait(warndlg(['Landmark params were not defined in the configuration file'...
+            ' or in the trx file. Not computing arena features and removing them from the perframe list']));
+        else
+          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list');
+        end
+        obj.RemoveArenaPFs();
+        obj.arenawarn = false;
+      end
       
       perframefiles = obj.GetPerframeFiles(expi);
       for i = 1:numel(obj.allperframefns),
@@ -2807,6 +2812,8 @@ end
       success = true;
       
     end
+    
+    
     
     function [success, msg] = ScoresToPerframe(obj,expi,fn,ts)
       success = true; msg = '';
@@ -3232,6 +3239,12 @@ end
           end
         end
       end
+      if isfield(trx,'arena')
+        obj.hasarenaparams(expi) = true;
+      else
+        obj.hasarenaparams(expi) = false;
+      end
+      
       obj.ClearStatus();
       
     end
@@ -4811,6 +4824,7 @@ end
           obj.predictdata.old = obj.predictdata.cur;
           obj.predictdata.old_valid = obj.predictdata.cur_valid;
           obj.predictdata.old_pp = obj.predictdata.cur_pp;
+          obj.predictdata.cur_valid(:) = false;
           
           obj.windowdata.scoreNorm = [];
           % To later find out where each example came from.

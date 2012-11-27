@@ -309,6 +309,10 @@ classdef Trx < handle
       end
       
     end
+    
+    function has = HasLandmarkParams(obj)
+      has = all(~cellfun(@(x) isempty(fieldnames(x)),obj.landmark_params));
+    end
 
     %
     

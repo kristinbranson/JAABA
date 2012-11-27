@@ -265,6 +265,17 @@ for flies = 1:data.nflies_per_exp(expi),
   % load per-frame data
   if flies == 1,
     perframedata = data.perframedata;
+    if any(cellfun(@isempty,perframedata)),
+      file = data.GetPerframeFiles(expi);
+      for j = 1:numel(file),
+        if ~exist(file{j},'file'),
+          error('Per-frame data file %s does not exist',file{j});
+        end
+        tmp = load(file{j});
+        perframedata{j} = tmp.data{flies(1)};
+      end
+    end
+
   else
     file = data.GetPerframeFiles(expi);
     for j = 1:numel(file),
@@ -392,7 +403,7 @@ for i = find(docompute),
   end
   timestamp = classifiers{i}.classifierTS; %#ok<NASGU>
   classifierfilename = classifierfiles{i}; %#ok<NASGU>
-  if DEBUG > 0,
+  if DEBUG == 0,
     save(sfn,'allScores','timestamp','classifierfilename');
   end
 end
