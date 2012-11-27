@@ -148,6 +148,13 @@ classdef Trx < handle
     tr_x = []; tr_y = [];
     bl_x = []; bl_y = [];
     br_x = []; br_y = [];
+    
+%     %% larva spine
+%     xspine = [];
+%     yspine = [];
+%     xspine_mm = [];
+%     yspine_mm = [];
+    
   end
   
   properties (Hidden = true)

@@ -8,5 +8,5 @@ for i = 1:nflies,
   fly = flies(i);
   data{i} = diff(trx(fly).area)./trx(fly).dt;
 end
-units = parseunits('mm^2/s');
+units = parseunits('mm*mm/s');
 
