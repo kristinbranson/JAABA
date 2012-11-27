@@ -60,19 +60,35 @@ obj.endframes(flies) = [traj.endframe];
 obj.nframes(flies) = [traj.nframes];
 
 % Adding the arena parameters if they exist for rectangular arena.
-if isfield(traj(1),'arena') && isfield(traj(1).arena,'tl')
-  count = 1;
-  for ndx = flies(:)'
-    obj.tl_x(ndx) = traj(count).arena.tl(1);
-    obj.tl_y(ndx) = traj(count).arena.tl(2);
-    obj.tr_x(ndx) = traj(count).arena.tr(1);
-    obj.tr_y(ndx) = traj(count).arena.tr(2);
-    obj.bl_x(ndx) = traj(count).arena.bl(1);
-    obj.bl_y(ndx) = traj(count).arena.bl(2);
-    obj.br_x(ndx) = traj(count).arena.br(1);
-    obj.br_y(ndx) = traj(count).arena.br(2);
-    count = count+1;
+if isfield(traj(1),'arena') 
+  
+  if isfield(traj(1).arena,'tl')
+    count = 1;
+    for ndx = flies(:)'
+      obj.landmark_params{n}.tl_x(ndx) = traj(count).arena.tl(1);
+      obj.landmark_params{n}.tl_y(ndx) = traj(count).arena.tl(2);
+      obj.landmark_params{n}.tr_x(ndx) = traj(count).arena.tr(1);
+      obj.landmark_params{n}.tr_y(ndx) = traj(count).arena.tr(2);
+      obj.landmark_params{n}.bl_x(ndx) = traj(count).arena.bl(1);
+      obj.landmark_params{n}.bl_y(ndx) = traj(count).arena.bl(2);
+      obj.landmark_params{n}.br_x(ndx) = traj(count).arena.br(1);
+      obj.landmark_params{n}.br_y(ndx) = traj(count).arena.br(2);
+      count = count+1;
+    end
+  elseif isfield(traj(1).arena,'arena_radius_mm')
+    count = 1;
+    for ndx = flies(:)'
+      obj.landmark_params{n}.arena_radius_mm(ndx) = traj(count).arena.arena_radius_mm;
+      obj.landmark_params{n}.arena_center_mm_x(ndx) = traj(count).arena.arena_center_mm_x;
+      obj.landmark_params{n}.arena_center_mm_y(ndx) = traj(count).arena.arena_center_mm_y;
+      count = count+1;
+    end
+  else
+    obj.landmark_params{n} = obj.default_landmark_params;
   end
+  
+else
+  obj.landmark_params{n} = obj.default_landmark_params;
 end
 
 % fps
@@ -82,11 +98,11 @@ else
   obj.fps(n) = nan;
 end
 
-if isfield(traj,'landmark_params')
-  obj.landmark_params{n} = traj.landmark_params;
-else
-  obj.landmark_params{n} = obj.default_landmark_params;
-end
+% if isfield(traj,'landmark_params')
+%   obj.landmark_params{n} = traj.landmark_params;
+% else
+%   obj.landmark_params{n} = obj.default_landmark_params;
+% end
 % roi
 if isfield(traj,'roi'),
   for i = 1:numel(flies),

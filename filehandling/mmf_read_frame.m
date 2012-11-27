@@ -30,7 +30,7 @@ bb = nan(im_numblocks,4);
 %for j = 1:im_numblocks,
   block_rect = fread(fp,4,'int');
   j=1;
-while block_rect(1)>=0
+while numel(block_rect) == 4 && block_rect(1)>=0
   %if block_rect(1)<0
       %disp(['skipping blocks ',num2str(framei),' ',mat2str(block_rect),sprintf(' block %d / %d',j,im_numblocks)])
       %break;
@@ -40,7 +40,10 @@ while block_rect(1)>=0
   block_data = fread(fp,block_rect(3)*block_rect(4),'*uint8');
   block_data = reshape(block_data,[block_rect(3),block_rect(4)]);
   im(block_rect(1)+1:block_rect(1)+block_rect(3),block_rect(2)+1:block_rect(2)+block_rect(4)) = block_data;
-  block_rect = fread(fp,4,'int');
+  [block_rect,count] = fread(fp,4,'int');
+  if count < 4,
+    break;
+  end
   j=j+1;
 end
 %disp([num2str(framei),' ',mat2str(block_rect),sprintf(' block %d / %d',j-1,im_numblocks)])
