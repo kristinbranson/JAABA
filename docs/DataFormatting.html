@@ -109,9 +109,9 @@ several existing tracking systems.
 <li> Under <b><a href="#PrepareJAABADataInputFiles">Input Files</a></b>, choose the input files specific to this tracker. Most tracking systems
 require a video file and file(s) containing the trajectories. Some trackers require additional files. 
 Details of the types of input files required for each tracking system are given <a href="#PrepareJAABADataInputFiles">below</a>.</li>
-<li> Under <b>Output Files, Experiment directory</b> choose the output <a href="#ExperimentDirectoryStructure">experiment directory</a> location. This is the directory in which the converted data will be created.</li>
-<li> Under <b>Output Files</b>, set the names of the video and <a href="#TracksFileStructure">trx</a> files, and the <a href="#PerFrameDirectoryStructure">per-frame directory</a>. When creating a new JAABA project, the names of these files should correspond.</li>
-<li> Under <b>Conversion</b>, set the conversion between frames and seconds and between pixels and millimeters. This is necessary because behavior definitions created using JAABA should be somewhat independent of the video's resolution. Thus, JAABA's per-frame features are all defined in real units, e.g. the speed of an animal is measured in mm/s. The "Conversion" panel also allows the user to set the type of arena the animals are contained within. Options include a circular arena, a rectangular arena, and no arena. The location of the arena wall is used when computing JAABA's landmark-based per-frame features such as the distance to the w. The unit conversion factors and the arena parameters can be set in any of three ways:
+<li> Under <b><a href="#PrepareJAABADataOutputFiles">Output Files</a>, Experiment directory</b> choose the output <a href="#ExperimentDirectoryStructure">experiment directory</a> location. This is the directory in which the converted data will be created. There should be <b>one</b> directory per video, see <a href="#ExperimentDirectoryStructure">above</a>.</li>
+<li> Under <b><a href="#PrepareJAABADataOutputFiles">Output Files</a></b>, set the names of the video and <a href="#TracksFileStructure">trx</a> files, and the <a href="#PerFrameDirectoryStructure">per-frame directory</a>. When creating a new JAABA project, the names of these files should correspond.</li>
+<li> Under <b><a href="#PrepareJAABADataConversion">Conversion</a></b>, set the conversion between frames and seconds and between pixels and millimeters. This is necessary because behavior definitions created using JAABA should be somewhat independent of the video's resolution. Thus, JAABA's per-frame features are all defined in real units, e.g. the speed of an animal is measured in mm/s. The "Conversion" panel also allows the user to set the type of arena the animals are contained within. Options include a circular arena, a rectangular arena, and no arena. The location of the arena wall is used when computing JAABA's landmark-based per-frame features such as the distance to the wall. The unit conversion factors and the arena parameters can be set in any of three ways:
 <ol>
 <li> Numbers can be entered into the text boxes. </li>
 <li> After pushing the "<b>Compute arena parameters...</b>" button, the user can draw on a frame of 
@@ -119,7 +119,7 @@ video and label known arena parameters (circular arena diameter, rectangular are
 <li> For several of the tracking systems, the conversions and/or landmark parameters can be read from the input files. Pushing "<b>Read arena parameters...</b>" attempts to read the arena parameters and/or spatial conversion factor from the input files. Similarly, pushing "<b>Read FPS...</b>" attempts to read the frame to second conversion factor from either the video or the input files.</li>
 </ol>
 </li>
-<li> Under <b>Options</b>, set any optional parameters.</li>
+<li> Under <b><a href="#PrepareJAABADataOptions">Options</a></b>, set any optional parameters.</li>
 <li> Push the <b>Convert</b> button to perform the conversion and create an experiment directory that can be input into JAABA. This potentially will take some time. After conversion is done, you will be prompted with a message indicating whether the process was successful and a summary of what was done. 
 </ol>
 
