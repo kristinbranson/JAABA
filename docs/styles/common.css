@@ -17,14 +17,14 @@ body {
 
 /* links */
 a:link {
-    color: #C60;
+    color: #700;
 	text-decoration: none;
 }
 a:visited {
-    color: #C60;
+    color: #700;
 }
 a:hover {
-	color: #F60;
+	color: #900;
 	background: #E8F0FF;
 }
 
