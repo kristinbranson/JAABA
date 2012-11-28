@@ -155,7 +155,8 @@ else
   msg{end+1} = sprintf('Using input pixels-per-mm scaling = %f.',pxpermm);
 end
 
-if ~overridearena && isfield(trx,'arena') && all(isfield(trx(1).arena,{'x','y','r'})),
+if ~overridearena && isfield(trx,'arena') && all(isfield(trx(1).arena,{'x','y','r'})) && ...
+  ~isempty(trx(1).arena.r) && ~isempty(trx(1).arena.x) && ~isempty(trx(1).arena.y),
   arenaradius = trx(1).arena.r;
   arenacenterx = trx(1).arena.x;
   arenacentery = trx(1).arena.y;
