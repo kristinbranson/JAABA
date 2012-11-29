@@ -1392,8 +1392,9 @@ end
           
           if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
             success = false;
-            msg = ['Label files specified for the project doesn''t match' ...
-              ' the labelfiles used to train the classifier. Not loading the classifier'];
+            msg = sprintf(['Label file name specified for the project (%s) don''t match' ...
+              ' the label file name used to train the classifier (%s). Not loading the classifier'],...
+              obj.labelfilename,loadeddata.labelfilename);
             return;
           end
           
@@ -1405,9 +1406,9 @@ end
           if doreadconfigfile,
           
           % set config file
-          if ~strcmp(obj.configfilename,'configfilename'),
-            obj.SetConfigFileName(loadeddata.configfilename);
-          end
+%           if ~strcmp(obj.configfilename,'configfilename'),
+%             obj.SetConfigFileName(loadeddata.configfilename);
+%           end
 
           % set movie
           [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
@@ -1440,15 +1441,15 @@ end
             
             loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-                  isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
+                    isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
                 str = sprintf('Window feature parameters in the configuration file');
                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
                 str = sprintf('%s\nUsing parameters stored in the classifier file',str);
                 uiwait(warndlg(str));
+                obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
+                    loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
+                    loadeddata.featureWindowSize);
             end
-            obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
-              loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
-              loadeddata.featureWindowSize);
           end
           
           if ~isfield(loadeddata,'featurenames')
@@ -2510,7 +2511,7 @@ end
       idxcurr = ismember(obj.windowdata.exp, expi);
       obj.windowdata.X(idxcurr,:) = [];
       obj.windowdata.exp(idxcurr) = [];
-      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp);
+      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp)';
       obj.windowdata.flies(idxcurr) =[];
       obj.windowdata.t(idxcurr) =[];
       obj.windowdata.labelidx_new(idxcurr) = [];
@@ -2941,10 +2942,11 @@ end
         uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
         return;
       end
-      windowfeatures = struct('windowfeaturesparams',obj.windowfeaturesparams,...
-        'windowfeaturescellparams',obj.windowfeaturescellparams,...
-        'basicFeatureTable',obj.basicFeatureTable,...
-        'featureWindowSize',obj.featureWindowSize); %#ok<NASGU>
+      windowfeatures = struct();
+      windowfeatures.windowfeaturesparams = obj.windowfeaturesparams;
+      windowfeatures.windowfeaturescellparams = obj.windowfeaturescellparams;
+      windowfeatures.basicFeatureTable = obj.basicFeatureTable;
+      windowfeatures.featureWindowSize=obj.featureWindowSize;  %#ok<STRNU>
       if exist(configfilename,'file')
         [didbak,msg] = copyfile(configfilename,[configfilename '~']);
         if ~didbak,
@@ -2953,7 +2955,7 @@ end
       end
       
       save(configfilename,'windowfeatures','-append');
-      obj.ResetSaveProject(obj);
+      obj.ResetSaveProject();
     end
     
     function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
@@ -4945,7 +4947,7 @@ end
     % SetTrainingData(obj,trainingdata)
     % Sets the labelidx_cur of windowdata based on the input training data.
     % This reflects the set of labels the classifier was last trained on. 
-
+      return;
       for i = 1:numel(trainingdata),
         [ism,labelidx] = ismember(trainingdata(i).names,obj.labelnames);
         if any(~ism),
@@ -4961,7 +4963,7 @@ end
           isflies = isexp & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
           ist = isflies & obj.windowdata.t >= t0 & obj.windowdata.t < t1;
           if nnz(ist) ~= (t1-t0),
-            error('Sanity check: number of training examples does not match windowdata');
+            uiwait(warndlg('Labels in the classifier do not match the training data'));
           end
           obj.windowdata.labelidx_cur(ist) = l;
         end
@@ -5863,7 +5865,7 @@ end
     function flyStats = GetFlyStats(obj,expi,flyNum)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
-      obj.SetStatus('Computing stats for %s %d',obj.expnames{expi},flyNum);
+      obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
       
       obj.StoreLabels();
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');

@@ -2350,7 +2350,9 @@ if handles.guidata.needsave,
 end
 
 if handles.guidata.data.NeedSaveProject(),
-  res = questdlg('Window features for the project have been modified. Save before quitting?','Save?','Yes','No','Cancel','Yes');
+  res = questdlg(['Current window features do not match the ones in the project file.'...
+      'Update the project file with the current window features?'],...
+      'Update?','Yes','No','Cancel','Yes');
   if strcmpi(res,'Yes')
     menu_file_save_project_Callback(hObject,eventdata,handles);
   elseif strcmpi(res,'Cancel');
