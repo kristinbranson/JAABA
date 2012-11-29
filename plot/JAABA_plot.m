@@ -859,9 +859,6 @@ newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput'
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 set(handles.figure1,'pointer','watch');
 
-handles.classifierlist={handles.classifierlist{:} newclassifiers{:}};
-handles.classifiervalue=1:length(handles.classifierlist);
-
 handlesconfigurations=cell(1,length(newclassifiers));
 handlesbehaviorlist=cell(1,length(newclassifiers));
 handlesscorefiles=cell(1,length(newclassifiers));
@@ -879,8 +876,20 @@ for c=1:length(newclassifiers)
     else
       pa=directory;  na='';  ex='';
     end
-    [configfile tmp]=uigetfile(pa,['Select configuration file for ' ' classifier'],[na ex]);
-    handlesconfigurations{c}=fullfile(tmp,configfile);
+    [configfile tmp]=uigetfile(pa,['Select configuration file for ' newclassifiers{c}],[na ex]);
+    if(isnumeric(configfile) && isnumeric(tmp) && (configfile==0) && (tmp==0))
+      uiwait(errordlg(['skipping ' newclassifiers{c}],''));
+      newclassifiers{c}='';
+      continue;
+    else
+      try
+        handlesconfigurations{c}=fullfile(tmp,configfile);
+        params=ReadXMLParams(handlesconfigurations{c});
+      catch
+        newclassifiers{c}='';
+        continue;
+      end
+    end
   end
   handlesbehaviorlist{c}=params.behaviors.names;
   handlesscorefiles{c}=params.file.scorefilename;
@@ -905,10 +914,14 @@ for c=1:length(newclassifiers)
   handlesindividuals(:,c)=parfor_tmp;
 end
 
-handles.configurations={handles.configurations{:} handlesconfigurations{:}};
-handles.behaviorlist={handles.behaviorlist{:} handlesbehaviorlist{:}};
-handles.scorefiles={handles.scorefiles{:} handlesscorefiles{:}};
-handles.individuals=[handles.individuals handlesindividuals];
+idx=find(~cellfun(@isempty,newclassifiers));
+handles.classifierlist={handles.classifierlist{:} newclassifiers{idx}};
+handles.configurations={handles.configurations{:} handlesconfigurations{idx}};
+handles.behaviorlist={handles.behaviorlist{:} handlesbehaviorlist{idx}};
+handles.scorefiles={handles.scorefiles{:} handlesscorefiles{idx}};
+handles.individuals=[handles.individuals handlesindividuals(:,idx)];
+
+handles.classifiervalue=1:length(handles.classifierlist);
 
 handles=fillin_individuallist(handles);
 update_figure(handles);
@@ -1579,7 +1592,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     %for b=1:length(handles.behaviorlist)
       behavior_data={};
       for e=1:length(experiment_value)
-        behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},[handles.behaviorlist{b} '.mat']));
+        behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},handles.scorefiles{b}));
       end
       k=1;  bad2{b}={};
       parfor_tmp=zeros(length(handles.featurelist),8);
