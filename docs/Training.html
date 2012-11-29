@@ -42,11 +42,53 @@ strong.regular-font {
 
 </head>
 </body>
-<h1>Training a Classifier</h1>
+<h1><a href="index.html">JAABA</a>: Creating a Behavior Classifier</h1>
 
 <hr class="h2-divider">
 
-<h2>Training</h2>
+<h2>Contents</h2>
+<ul>
+<li><a href="#AddingLabels">Adding or Changing Labels</a></li>
+<li><a href="#KeyboardShortcuts">Label Keyboard Shortcuts</a></li>
+<li><a href="#Training">Training</a></li>
+<li><a href="#SelectFeaturesQuick">Select Features (Quick)</a></li>
+<li><a href="#Predictions">Examining the Classifier's Predictions</a></li>
+<li><a href="#Memory">Memory Usage</a></li>
+<li><a href="#Retraining">Retraining</a></li>
+<li><a href="#Guidelines">Labeling Guidelines</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="AddingLabels">Adding or Changing Labels</a></h2>
+
+<p> JAABA creates classifiers that predict <b>whether or not</b> the animal(s) are performing a given behavior (specified in the <a href="NewProject.html">Project Configuration</a>) in each frame. In the screen capture below, we are labeling whether the flies are <i>Chasing</i> or not. Thus, the label for each animal in each frame can have one of three values, and there are three buttons on the top-right side of the <a href="GUIOverview.html">JAABA interface</a> corresponding to these. 
+<ul>
+<li> <b>[Behavior]</b>: The top-most button is used to label the frame as the behavior for the current project. It will have the name specified in the project configuration, for example <i>Chase</i> in the screen capture below. </li>
+<li> <b>None</b>: The middle button is used to label a frame as <b>not</b> the behavior for the current project, e.g. not chasing.</li>
+<li> <b>Unknown</b>: The bottom button is used to label a frame as either unknown or unlabeled. All frames start as unknown, thus this button can be used to <b>erase</b> labels added previously. </li>
+</ul>
+
+<p>To add or change labels, click the relevant button to put the <b>labeling pen down</b>, then navigate forward or backward in time. The frames being labeled will be outlined in a dashed white box. Click the relevant button again to pick the <b>labeling pen up</b>. All the frames between the pen-down and pen-up frames will be labeled.
+
+<center><img src="images/JLabel-chaseLabel.png" width="743"
+height="562"></center>
+
+<hr class="h2-divider">
+
+<h2><a id="KeyboardShortcuts">Label Keyboard Shortcuts</a></h2>
+
+You can assign keyboard shortcuts to each of the label buttons. The shortcuts can be assigned using <b>Edit -> Label Shortcuts..</b>. For example, we like to assign:
+<ul>
+<li> [Behavior]: <b>z</b></li>
+<li> None: <b>x</b></li>
+<li> Unknown: <b>c</b></li>
+</ul>
+</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Training">Training</a></h2>
 
 <p>Once you have <a href="Labeling.html">labeled</a> a few bouts of both the behavior and none (i.e., not
 the behavior), you can train a classifier by pushing the <b>Train</b> button.</p> The status bar of the
@@ -55,7 +97,7 @@ on the complexity of the project.
 
 <hr class="h2-divider">
 
-<h2>Select Features (Quick)</h2>
+<h2><a id="SelectFeaturesQuick">Select Features (Quick)</a></h2>
 
 <p>The first time you train a classifier, JAABA will show the 
 <b><a href="WindowFeatureComputation.html#SelectFeatures">Select Features</a></b> interface 
@@ -97,7 +139,7 @@ More details on perframe features, window computations and window size can be fo
 
 <hr class="h2-divider">
 
-<h2>Examining the Classifier's Predictions</h2>
+<h2><a id="Predictions">Examining the Classifier's Predictions</a></h2>
 
 <p>The middle timeline on the <a href="GUIOverview.html">JAABA interface</a> shows the 
 current classifier's predictions. Some frames will have predictions computed, and some will not. 
@@ -135,7 +177,7 @@ while brighter colors indicate high confidence.</li>
 
 <hr class="h2-divider">
 
-<h2> Memory Usage </h2>
+<h2><a id="Memory">Memory Usage</a></h2>
 
 We compute an extensive set of window features for each frame labeled or predicted. 
 The number of window features for each frame is in the thousands. Computing these window features
@@ -146,7 +188,7 @@ The amount of memory that is used to store window features can be controlled und
 
 <hr class="h2-divider">
 
-<h2> Retraining </h2>
+<h2><a id="Retraining">Retraining</a></h2>
 
 <p>As you review the predictions, you should label frames whose class is <b>incorrectly predicted</b>
 and for which you are confident of the true class. It's likely that the classifier's predictions 
@@ -158,13 +200,13 @@ After retraining, the scores from the previous classifier can be shown at the bo
 automatic predictions timeline (<b>old</b> in the drop down menu). 
 </p>
 
-<h3> LABELING GUIDELINES </h3>
+<hr class="h2-divider">
 
-<p>Machine learning algorithms are sensitive to inconsistent labels. To help in
-learning an accurate detector, you should not label frames for which you are unsure of the behavior. There is a tendency to label these frames inconsistently and with such data it is difficult for learning algorithms to find a good classifier because most of the effort is spent separating similar looking examples. The other advantage is that labeling is faster and easier because it takes longer to decide on labels for such difficult examples.</p>
+<h2><a id="Guidelines">Labeling Guidelines</a></h2>
 
-<p>Machine learning algorithms also find it difficult to train an accurate classifier if the number of examples from both classes are unbalanced. To create a more balanced training set, once you train an initial classifier, you should try to label only examples that are incorrectly predicted or get low scores, and train often. This strategy reduces the addition of obvious examples that make up most of the "not" behavior from bloating the training set and thus resulting in a healthier balance of positive and negative examples in the training set.</p>
+<p>Machine learning algorithms are <b>sensitive to inconsistently labeled data</b>. If two similar frames are given the same label, the learning algorithm will spend most of its effort (complexity) in separating these similar looking frames. To train an accurate classifier, you should <b>not</b> label frames for which you are unsure of the correct behavior class. A second advantage of this strategy is that labeling is faster and easier, as it takes longer to decide on labels for difficult examples.</p>
 
+<p>Machine learning algorithms also find it difficult to train an accurate classifier if the number of examples from both classes are <b>unbalanced</b>. To create a more balanced training set, once you train an initial classifier, you should try to label only examples that are incorrectly predicted or have low confidence, and train often. This strategy prevents bloating the training set with obvious examples that make up most of the <i>None</i> behavior class. </p>
 
 </body>
 
