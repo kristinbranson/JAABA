@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+<!--- OLD FORMATTING
+
 <style type="text/css">
 table {
 background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
@@ -18,11 +21,48 @@ padding:3px; background-color:yellow;color:black;
 
 }
 </style>
+
+--->
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
 </head>
 </body>
-<center><h1> Creating a new JAABA Project </h1></center>
+<center><h1> Creating a new <a href="index.html">JAABA</a> Project </h1></center>
 
-<p>For each behavior, you need a separate JAABA project. To add a new project,
+<br>
+<p>Each behavior in JAABA corresponds to a different project. You can create a new project when JAABA starts up throught the <a href="#ProjectConfigurationDialog">Project Configuration Dialog</a>. </p>
+
+<hr class="h2-divider">
+
+<h2><a id="Contents">Contents</a></h2>
+<ul>
+<li><a href="#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
+<li><a href="#ProjectConfigurationParameters">Project Parameters</a></li>
+<li> <a href="#ExampleFiles">Example Files</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="ProjectConfigurationDialog">Project Configuration Dialog</a></h2>
+
+<p>For <b>each behavior</b>, you need a <b>separate</b> JAABA project. To add a new project,
 	click on the '+' sign below the projects list in the initial JAABA edit
 	project and experiments interface. </p>
 	
@@ -44,7 +84,9 @@ its complete heirarchy. For example, the heirarchy of parameter
 details of all the parameters.To add/remove parameters click on the "+/-"
 buttons below the table.</p>
 
-<br><br>
+<hr class="h2-divider">
+
+<h2><a id="ProjectConfigurationParameters">Project Parameters</a></h2>
 
 <table border=1>
 <tr> <th>Parameter Name</th><th>Typical Value</th><th>Details</th> </tr>
@@ -116,7 +158,9 @@ the configuration file of the existing project in the "Copy Configuration
 settings from" field.
 </p>
 
-<h3> Example Files </h3>
+<hr class="h2-divider">
+
+<h2> <a id="ExampleFiles">Example Files</a></h2>
 
 Example project configuration file:
 
@@ -147,4 +191,13 @@ Example project configuration file:
 
 </pre>
 </body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
 </html>
