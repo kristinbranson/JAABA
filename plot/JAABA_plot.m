@@ -2240,7 +2240,7 @@ fid=fopen('most_recent_figure.csv','w');
 handles.type='behavior bar chart';
 guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 
-table_data=cell(1,length(frames_labelled{1}));
+table_data=cell(1,size(frames_labelled{1},2));
 for b=1:size(frames_labelled{1},2)  % behavior
   tstr='';
   ystr=char(strrep(handles.behaviorlist(b),'_','-'));
