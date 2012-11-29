@@ -95,16 +95,21 @@ fn = s(i).subs;
 i = i + 1;
 
 % get indices
+elidx = [];
 if n < i,
   t = ':';
 else
   if ~strcmp(s(i).type,'()'),
     error('Frame indices must be indexed by ()');
   end
-  if numel(s(i).subs) > 1,
-    error('Only one frame index allowed');
+  if numel(s(i).subs) > 2,
+    error('Can only index as (i,t) or (t)');
+  elseif numel(s(i).subs) == 2,
+    elidx = s(i).subs{1};
+    t = s(i).subs{2};
+  else
+    t = s(i).subs{1};
   end
-  t = s(i).subs{1};
 end
 
 if strcmp(fn,'nframes'),
@@ -119,10 +124,21 @@ else
   res = cell(1,numel(idx));
   for j = 1:numel(idx),
     x = obj.GetPerFrameData(fn,idx(j));
-    if ischar(t),
-      res{j} = x;
+    if ~isempty(elidx),
+      if ~ischar(elidx),
+        x = x(elidx,:);
+      end
+      if ischar(t),
+        res{j} = x;
+      else
+        res{j} = x(:,t);
+      end
     else
-      res{j} = x(t);
+      if ischar(t),
+        res{j} = x;
+      else
+        res{j} = x(t);
+      end
     end
   end
 end
