@@ -1917,7 +1917,7 @@ SetJumpGoMenuLabels(handles)
 % label shortcuts
 if numel(handles.guidata.label_shortcuts) ~= 2*handles.guidata.data.nbehaviors + 1,
   if handles.guidata.data.nbehaviors == 2,
-    handles.guidata.label_shortcuts = {'z','a','x','s','d'};
+    handles.guidata.label_shortcuts = {'z','a','x','s','d'}';
   else
     handles.guidata.label_shortcuts = cellstr(num2str((1:2*handles.guidata.data.nbehaviors+1)'));
   end
