@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+<!--- OLD FORMATTING
 <style type="text/css">
 table {
 background-color:yellow;border-collapse:collapse;
@@ -18,70 +20,142 @@ padding:3px; background-color:yellow;color:black;
 
 }
 </style>
+--->
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
 </head>
 </body>
-<center><h1> Training a Classifier </h1></center>
+<h1>Training a Classifier</h1>
 
-<h3> TRAINING and REVIEWING </h3>
+<hr class="h2-divider">
 
-<p>Once you have labeled a few bouts of both behavior and none (i.e., not
-behavior), you can train a classifier by using the <b>Train</b> button.
-The first time you train a classifier, JAABA will pop-up the <b>Select
-Features</b> interface and ask you to pick up the features.  
-</p>
+<h2>Training</h2>
 
-</center><table style="border:0px; width:50%"; >
-<tr style="padding:3px; background-color:white;color:black;">
-<td><center><a href="images/selectFeautresInitial.png"><img src="images/selectFeaturesInitial.png"
-height="500px"/></a></center></td>
-<td><center><a href="images/SelectFeaturesSel.png"><img
-src="images/SelectFeaturesSel.png"
-height="500px"/></a></center></td>
-</tr>
-</table></center>
+<p>Once you have <a href="Labeling.html">labeled</a> a few bouts of both the behavior and none (i.e., not
+the behavior), you can train a classifier by pushing the <b>Train</b> button.</p> The status bar of the
+main JAABA interface will indicate that training is occurring. This should take 15-60 seconds, depending
+on the complexity of the project. 
 
+<hr class="h2-divider">
 
-<p> To start quickly, select or deselect categories of per-frame by selecting
-<b>all</b> or <b>none</b> from the drop-down menu in the table. Also set the
-<b>Window Size</b> to a positive integer.</p>
+<h2>Select Features (Quick)</h2>
 
-<p> You can then hit to use those per-frame features to train the detector. If
-you didn't specify a file in the projects configuration in the parameter
-<b>file.featureparamfilename</b>, then it'll ask for a location to save the
-settings you selected. The parameter <b>file.featureparamfilename</b> will be
-updated in the project configuration file to point to this location. More
-details on perframe features, window computations and window size can be found 
+<p>The first time you train a classifier, JAABA will show the 
+<b><a href="WindowFeatureComputation.html#SelectFeatures">Select Features</a></b> interface 
+and ask you to choose the per-frame and window features JAABA will use. 
+To start quickly, select or deselect categories of per-frame by selecting
+<b>All</b> or <b>None</b> from the <b>Select</b> table column and <b>normal</b> from the <b>Amount</b>
+column. Also set <b>Window Size</b> to a positive integer. Then, push the <b>Done</b> button to 
+continue. </p>
+<p>
+More details on perframe features, window computations and window size can be found 
 <a href=WindowFeatureComputation.html>here</a>.
 </p>
 
-<p>
-For frames around manual labels, JAABA will automatically show the predictions.
-To see the classifier's predictions on frames without predictions, use the
-<b>Predict</b> button. This will find the predictions for some number of
-frames around the current frame. If you <b>play</b> the movie, JAABA will predict the
-behavior for frames as they appear. The prediction isn't done for the whole
-trajectory but only on certain frames around the current frame.
+<center>
+<table style="border:0px;margin-bottom:5px;margin-top:5px"; >
+<tr>
+<td>
+<center>
+<a href="images/selectFeautresInitial.png">
+<img src="images/selectFeaturesInitial.png" height="500px"/>
+</a>
+<br>
+<i>Initial</i>
+</center>
+</td>
+<td>
+<center>
+<a href="images/SelectFeaturesSel.png">
+<img src="images/SelectFeaturesSel.png" height="500px"/>
+</a>
+<br>
+<i>Final</i>
+</center>
+</td>
+</tr>
+</table>
+<i>Select Features Dialog</i>
+</center>
+
+<hr class="h2-divider">
+
+<h2>Examining the Classifier's Predictions</h2>
+
+<p>The middle timeline on the <a href="GUIOverview.html">JAABA interface</a> shows the 
+current classifier's predictions. Some frames will have predictions computed, and some will not. 
+You can compute predictions for frames in the following ways:
+<ul>
+<li>Pushing the <b>Predict</b> button will compute predictions for a window of frames around the
+current frame for the selected animal. </li>
+<li>While the video is <b>playing</b>, predictions will automatically be computed for frames as they
+appear. </li>
+<li>Selecting <b>Classifier->Classify->Current fly</b> will produce predictions for all frames for the selected animal.</li>
+<li>Selecting <b>Classifier->Classify->Current experiment</b> will produce predictions for all frames for all animals in the current video.</li>
+<li>Selecting <b>Classifier->Classify->All experiments</b> will produce predictions for all frames for all animals in all videos.</li>
+</ul>
 </p>
 
+<center>
+<img src="images/Automatic-Tracks.png" width="700">
+<br>
+<i>JAABA Timelines</i>
+</center>
 
-<center><img src="images/Automatic-Tracks.png" width="700"></center>
+<p>The classifier's predictions are shown in the <b>Automatic Predictions</b> timeline, which
+is subdivided into the following four parts:
+<ul>
+<li> The top line shows the binary <b>predictions</b> of the current classifier.</li>
+<li> The second line shows the continuous <b>scores</b> output by the classifier. The classifier's binary predictions (above) are obtained by thresholding the scores. The magnitude of the scores ranges between 0 and 1 and roughly corresponds to the classifier's confidence. Darker colors indicate low confidence, 
+while brighter colors indicate high confidence.</li>
+<li> What is shown in the bottom two rows can be set using the drop down menu on the left. It can show:
+<ul>
+<li> Predictions and scores of the <b>previously trained classifier</b></li>
+<li> The results of <b><a href="CrossValidation.html">cross-validation</a></b></li>
+<li> Scores <b>loaded</b> from a file. </li>
+</ul>
+</ul>
 
-<p>The classifier's predictions are shown on the automatic predictions timeline
-which has four parts. The top two rows always show the predictions and scores of
-the current classifier. The classifier's scores roughly correspond to the
-classifier's confidence. Dark colors close to black indicate low confidence,
-	while brighter colors indicate high confidence. What is shown in the bottom
-	two rows can be set using the drop down menu on the left. It can show
-	predictions and scores of the previous classifier, the results of
-	cross-validation, or loaded scores. </p>
+<hr class="h2-divider">
 
-<h3> MEMORY USAGE </h3>
+<h2> Memory Usage </h2>
 
-To both train and predict, for each frame we compute an extensive set of window feature. The number of feature values for each frame can be in the thousands. Computing the feature values takes time and requires a lot of memory, so we compute them as and when necessary, but once computed we try to store them as long as possible until the memory used to store them hits a limit. Window features are computed for frames that are around frames that have labels or predictions. The amount of memory that is used for window features can be controlled by <b>Edit -> Memory Usage</b>.
+We compute an extensive set of window features for each frame labeled or predicted. 
+The number of window features for each frame is in the thousands. Computing these window features
+requires time and storing them requires memory, so we compute them as and when necessary.
+Once computed, we store them as long as possible, until the memory used to store them hits a limit. 
+The amount of memory that is used to store window features can be controlled under the menu item
+<b>Edit -> Memory Usage</b>.
 
-<h3> RETRAINING </h3>
+<hr class="h2-divider">
 
-<p>As you review the predictions, you can label frames whose class is incorrectly predicted. It's likely that the classifier's predictions are wrong on these frames because there were no or very few such frames in the training set. Adding such frames to the training set improves the classifier's prediction on similar frames. Once you add new labels, you can retrain the classifier by clicking <b>Train</b> again. After retraining, the scores from the previous classifier can be shown at the bottom of the automatic predictions timeline (<b>old</b> in the drop down menu). 
+<h2> Retraining </h2>
+
+<p>As you review the predictions, you should label frames whose class is <b>incorrectly predicted</b>
+and for which you are confident of the true class. It's likely that the classifier's predictions 
+are wrong on these frames because there were few similar frames in the training set. Adding such 
+frames to the training set will improve the classifier's prediction on similar frames.</p>
+
+<p>Once you add new labels, you can <b>retrain</b> the classifier by clicking <b>Train</b> again. 
+After retraining, the scores from the previous classifier can be shown at the bottom of the 
+automatic predictions timeline (<b>old</b> in the drop down menu). 
 </p>
 
 <h3> LABELING GUIDELINES </h3>
@@ -92,4 +166,14 @@ learning an accurate detector, you should not label frames for which you are uns
 <p>Machine learning algorithms also find it difficult to train an accurate classifier if the number of examples from both classes are unbalanced. To create a more balanced training set, once you train an initial classifier, you should try to label only examples that are incorrectly predicted or get low scores, and train often. This strategy reduces the addition of obvious examples that make up most of the "not" behavior from bloating the training set and thus resulting in a healthier balance of positive and negative examples in the training set.</p>
 
 
-</body></html>
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</html>
