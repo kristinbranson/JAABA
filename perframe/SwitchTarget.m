@@ -323,7 +323,9 @@ jtable = jscrollpane.getViewport.getView;
 
 if(size(eventData.Indices,1)==1)
   ndx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
-  handles.curExp = find(strcmp(handles.JLDObj.expnames,handles.tableData{ndx,1}));
+
+  start_target = PageRow2GlobalTarget(handles,handles.page_number,1);
+  handles.curExp = handles.cachedDataExpi(start_target + ndx - 1);
   handles.curFly = handles.tableData{ndx,2};
 end
 
