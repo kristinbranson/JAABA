@@ -1880,6 +1880,13 @@ end
         return;
       end
       load(sfn,'allScores','timestamp');
+      if ~isempty(obj.classifierTS),
+        if timestamp~=obj.classifierTS
+          uiwait(warndlg(['Scores were computed using a classifier trained on %s'...
+            ' while the current classifier was trained on '],datestr(timestamp),...
+            datestr(obj.classifierTS))),
+        end
+      end
       if ~isempty(whos('-file',sfn,'classifierfilename'))
         S = load(sfn,'classifierfilename');
         classifierfilename = S.classifierfilename;
