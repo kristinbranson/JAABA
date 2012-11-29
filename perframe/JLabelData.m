@@ -2668,8 +2668,12 @@ end
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
       
-      if isempty(obj.landmark_params) && obj.arenawarn
-        uiwait(warndlg('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list'));
+      if isempty(obj.landmark_params) && obj.arenawarn,
+        if isInteractive,
+          uiwait(warndlg('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list'));
+        else
+          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list');
+        end
         obj.RemoveArenaPFs();
         obj.arenawarn = false;
       end
@@ -3760,7 +3764,7 @@ end
       if ~isempty(obj.predictdata.exp) 
         idxcurr = obj.FlyNdxPredict(expi,flies) & ...
           obj.predictdata.old_valid;
-        scores(obj.windowdata.t(idxcurr)+off) = ...
+        scores(obj.predictdata.t(idxcurr)+off) = ...
           obj.predictdata.old(idxcurr);
       end
       
@@ -4669,6 +4673,7 @@ end
           obj.predictdata.old = obj.predictdata.cur;
           obj.predictdata.old_valid = obj.predictdata.cur_valid;
           obj.predictdata.old_pp = obj.predictdata.cur_pp;
+          obj.predictdata.cur_valid(:) = false;
           
           obj.windowdata.scoreNorm = [];
           % To later find out where each example came from.
