@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+<!--- OLD FORMATTING
+
 <style type="text/css">
 table {
 background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
@@ -18,43 +21,126 @@ padding:3px; background-color:yellow;color:black;
 
 }
 </style>
+
+-->
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
 </head>
 </body>
-<center><h1> Navigating the Movie and Trajectories </h1></center>
+<center><h1> <a href="index.html">JAABA</a>: Navigating within and between Videos </h1></center>
+<br>
+
 <p>
-After you click <b>Done</b>, the main JAABA window will appear. This is the
-interface where you label and train a behavior detector. </p>
 
-<center><img src="images/JLabelStart1.png" width="743" height="562"></center>
+Within the main JAABA interface, there are several methods for navigating in <a href="#Time">time</a> and <a href="#Space">space</a> within a video, <a href="#SwitchTarget">between different animals</a> in the same video, and <a href="#SwitchTarget">between different videos</a>. This will allow you to easily find new, informative frames to label and evaluate the performance of the current classifier. </p>
 
-<p>In the Movie Previewer, the animal that is selected for annotation is highlighted by a thicker outline. For the selected animal, we also plot the locations for the past and future frames.
-</p>
+<hr class="h2-divider">
 
-<h3> Navigating in Time </h3>
+<h2> <a id="Contents">Contents</a></h2>
 
+<ul>
+<li> <a href="#Time">Navigating in Time</a></li>
+<li><a href="#SwitchTarget">Switching to Different Animals and Videos</a></li>
+<li> <a href="#Space">Navigating in Space</a> </li>
+<li> <a href="#Advanced">Navigation Preferences</a></li>
+</ul>
 
-<p><b>Left</b> and <b>Right</b> arrow keys let you navigate forward or backward
-by a single frame. <b>Down</b> and <b>Up</b> arrow keys move forward and
-backward by 30 frames. The scroll-bar below the movie previewer can also be used
-to move back and forth in time. Clicking on the past or future trajectory
-points will move to the selected frame.  The <b>Play</b> button below the
-movie previewer plays the movie. The current frame number is shown in the
-textbox next to the play button. Editing this textbox will change the current
-frame. </p>
+<hr class="h2-divider">
 
-<p>The current frame is indicated in the timelines below the movie previewer by a vertical yellow line. The top timeline shows the manually annotated labels, the middle timeline shows the automatic predictions and the bottom timeline shows the values of the perframe feature selected in the drop down menu on the left of it (additional perframe timelines can be added by clicking the <b>+</b> button). Clicking on timelines will also move the current frame to the selected frame.
-</p>
+<h2> <a id="Time">Navigating in Time</a></h2>
 
+<center>
+<img src="images/JLabelStart1.png" width="743" height="562">
+<br>
+<i>JAABA Interface Screenshot</i>
+</center>
 
-<h3>CHANGING ANIMALS and EXPERIMENTS</h3>
+<ul>
+<li> The <b>Left</b> and <b>Right</b> arrow keys let you navigate forward or backward
+by a single frame.</li>
+<li>The <b>Down</b> and <b>Up</b> arrow keys move the video forward and
+backward by 30 frames (the number of frames can be modified in the <a href="#Advanced">Navigation Preferences</a>). </li>
+<li> The <b>slider</b> below the Movie Previewer can also be used to change the current video frame. </li>
+<li> Clicking on the selected animal's <b>plotted trajectory</b> will move the video to the selected frame. </li>
+<li> The <b>Play</b> button below the Movie Previewer plays the movie. You can set the movie playback speed using <b> View -> Preview Options.. </b></li>
+<li> The current frame number is shown in the <b>text box</b> next to the play button. Editing this textbox will change the current frame. </li>
+<li> Clicking on the <b>timelines</b> will move the current frame to the selected frame. The current frame is indicated in the timelines below the Movie Previewer by a vertical yellow line.</li>
+<li> Pushing <b>Ctrl-Right</b> and <b>Ctrl-Left</b> (<b>Command-Right</b> and <b>Command-Left</b> on the Mac) navigates to the start or end of the next or previous manually labeled bout. </li>
+<li>Pushing <b>Shift-Right</b> and <b>Shift-Left</b> lets you navigate to configurable frames of interest for the currently selected fly. See <a href="#Advanced">Navigation Preferences</a> below.</li>
+</ul>
 
-<p>You can switch the animal that is being annotated by double-clicking on a different animal's outline. The information about the animal being annotated is shown on the right side. Animals can also be switched by <b> Go -> Switch Target</b>. Switch Target brings up a table that gives detailed information about the labels and the predictions for the animals. To switch animals, select any cell in the row of that animal and click "Switch to Target".
-</p>
+<hr class="h2-divider">
 
-<p> See <a href=AdvancedNavigation.html>Advanced Navigation</a> for additional
-ways to navigate. </p>
+<h2><a id="SwitchTarget">Switching to Different Animals and Videos</a></h2>
+
+There are two ways to switch which animal is currently being annotated.
+<ul>
+<li>For animals in the same video, you can <b>double-click</b> that animal's plotted position to switch to that animal. </li>
+<li> You can switch to animals in the same or different videos using the <b>Go -> Switch Target</b> menu. This brings up a table that gives detailed information about each animal, including how many frames of each category have been labeled and predicted for the animal. To switch animals in this interface, select any cell in the row of that animal and click <b>Switch to Target</b>.
+</li>
+</ul>
+
 <center><img src="images/SwitchTarget.png" height="562"></center>
 
+<hr class="h2-divider">
+
+<h2> <a id="Space">Navigating in Space</a> </h2>
+
+<ul>
+<li> The <b>Zoom-in</b>, <b>Zoom-out</b>, and <b>Pan</b> buttons above the Movie Previewer can be used to manually change the field of view.</li>
+<li> To keep the animal being annotated within the Movie Previewer while changing the field of view as little as possible, select <b>View -> Zoom -> Keep target in view </b>. <i>Recommended.</i></li>
+<li> To keep the animal being annotated at the center of the Movie Previewer, select <b>View -> Zoom -> Center axes on current target</b>.</li>
+<li> To keep the field of view static, select <b>View -> Zoom -> Static View</b>. In this mode, the animal being annotated may go outside the field of view. </li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2> <a id="Advanced">Navigation Preferences</a></h2>
+
+Pushing <b>Shift-Right</b> and <b>Shift-Left</b> lets you navigate to configurable frames of interest for the currently selected fly. You can configure which frames it navigates to using the <b>Navigation Preferences</b> dialog (menu item <b>Go -> Navigation Preferences</b>). Options include:
+<ul>
+<li> <b> Bouts in current scores</b>: Navigate to the starts and ends of bouts in the current classifier's predictions.</li>
+<li> <b>Errors in current scores</b>: Navigate to errors in the current classifier's predictions (frames in which the current classifier's predictions do not match the labels). </li>
+<li><b>Errors in validated scores</b>: Navigate to cross validation errors (frames in which the cross-validation prediction does not match the manual labels). </li>
+<li><b> Low Confidence</b>: Navigate to frames in which the confidence of the classifier in its predictions is low. The thresholds for low confidence can be set by selecting menu item <b>Classifier -> Set Confidence Thresholds</b>. The predictions for frames that have low confidence are not shown in the automatic predictions timeline. </li>
+<li> <b>Thresholds on perframe</b>: Navigate to frames in which a selected per-frame feature is above or below a selected threshold. You can select the per-frame feature and threshold within the <b>Navigation Preferences</b> dialog.</li>
+</ul>
+
+<p>Within the <b>Navigation Preferences</b> dialog you can also select how many frames are jumped (<b>N. frames jump</b>) when using the <b>Up</b> and <b>Down</b> arrow keys.</p>
+
+<p>You can select which behaviors to jump to using the <b>Shift</b> and <b>Control/Command</b> modifier keys. For example, if you select only Chase in <b>Seek to next/previous</b> then <b>Control</b> will jump just to bouts of chasing.</p>
+
+<p><center>
+<img src="images/NavigationPreferences.png">
+<br>
+<i>Navigation Preferences Dialog Screenshot</i>
+</center></p>
 
 </body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
 </html>
