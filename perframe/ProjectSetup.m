@@ -290,6 +290,15 @@ for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
   str = get(handles.(curbox),'String');
+  if ~isNiceFileName(str),
+      uiwait(warndlg(sprintf(...
+          ['The name specified for %s cannot have special characters.'...
+          'Please use only alphanumeric characters and _'],curf)));
+      set(handles.(curbox),'String',handles.params.file.(curf));
+      continue;
+  end
+
+  
   if ~isempty(str)
     handles.params.file.(curf) = str;
   end
@@ -368,9 +377,15 @@ function editName_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editName as text
 %        str2double(get(hObject,'String')) returns contents of editName as a double
 name = get(hObject,'String');
+if isempty(regexp(name,'^[a-zA-Z][\w_,]*$','once','start'));
+   uiwait(warndlg(['The behavior name cannot have special characters.'...
+       'Please use only alphanumeric characters and _']));
+   return;
+end
+    
 name = regexp(name,',','split');
-handles.params.behaviors.names = name;
 name_str = [sprintf('%s_',name{1:end-1}),name{end}];
+handles.params.behaviors.names = name;
 handles.params.file.labelfilename = sprintf('label_%s.mat',name_str);
 handles.params.file.gt_labelfilename = sprintf('gt_label_%s.mat',name_str);
 handles.params.file.scorefilename = sprintf('scores_%s.mat',name_str);
@@ -735,6 +750,11 @@ if ismember('Behavior Name and File Names',sellist)
   else
     handles.params.behaviors.names = {origparams.behaviors.names};
   end
+  if ~isfield(origparams.file,'scorefilename')
+     name = handles.params.behaviors.names;
+     name_str = [sprintf('%s_',name{1:end-1}),name{end}];
+     handles.params.file.scorefilename =  sprintf('scores_%s.mat',name_str);
+  end
 end
 
 if ismember('Window Features',sellist),
@@ -752,8 +772,8 @@ if ismember('Window Features',sellist),
     end
   elseif isfield(origparams.file,'featureparamfilename')
     uiwait(warndlg(['The selected configuration file does not have any '...
-      'window features, but does point to a file that have the window features. '...
-      'Loading the window features from the referenced file']));
+      'window features, but points to a file that does have the window features. '...
+      'Loading the window features from the referenced file:' origparams.file.featureparamfilename]));
     [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
       ReadPerFrameParams(origparams.file.featureparamfilename,handles.params.file.featureconfigfile); 
 
@@ -848,9 +868,9 @@ if ~isempty(missing),
   for ndx = 2:numel(missing)
     list = sprintf('%s %s ',list,missing{ndx});
   end
-  wstr = sprintf('Perframe feature(s) %s are defined in config file%s\n%s',...
+  wstr = sprintf('Perframe feature(s) %s are defined in the project file%s\n%s',...
         list,...
-        ' but is not defined in featureConfig.',...
+        ' but are not defined for the current target type.',...
         'Ignoring them.');
   uiwait(warndlg(wstr));
  
