@@ -630,10 +630,10 @@ idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-len
         (tmp-length(newrecordings)))];
 handles.features=handles.features(idx);
 handles.sexdata=handles.sexdata(idx);
+handles.individuals=handles.individuals(idx,:);
 
 handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 %set(handles.FeatureList,'String',handles.featurelist);
-
 handles=fillin_individuallist(handles);
 
 handles.interestingfeaturehistograms_cache=[];
@@ -706,20 +706,21 @@ idx=idx+sum(cellfun(@length,handles.experimentlist(1:(handles.groupvalue-1))));
 %set(handles.BehaviorList,'String',handles.behaviorlist,'Value',handles.behaviorvalue);
 %set(handles.BehaviorList2,'String',handles.behaviorlist,'Value',handles.behaviorvalue2);
 
-handles.features(idx)=[];
-handles.featurelist=unique([handles.features{:}]);
-handles.featurevalue=max(1,min(handles.featurevalue,length(handles.featurelist)));
-if(isempty(handles.featurelist))
-  handles.featurelist={''};
-end
+%handles.featurelist=unique([handles.features{:}]);
+%handles.featurevalue=max(1,min(handles.featurevalue,length(handles.featurelist)));
+%if(isempty(handles.featurelist))
+%  handles.featurelist={''};
+%end
 %set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
 
-update_figure(handles);
-
+handles.features(idx)=[];
+handles.sexdata(idx)=[];
 handles.individuals(idx,:)=[];
+
+handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 handles=fillin_individuallist(handles);
 
-handles.sexdata(idx)=[];
+update_figure(handles);
 
 handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
@@ -762,17 +763,17 @@ handles.experimentvalue{from_group}=1:length(handles.experimentlist{from_group})
 %  set(handles.ExperimentList,'String',handles.experimentlist{from_group});
 %  set(handles.ExperimentList,'Value',handles.experimentvalue{from_group});
 %end
-update_figure(handles);
-
 if(idxF(1)<idxT)  idxT=idxT-length(idxF);  end
 tmp=setdiff(1:length(handles.features),idxF);
 tmp=[tmp(1:idxT) idxF tmp((idxT+1):end)];
 %handles.behaviors=handles.behaviors(tmp);
 handles.features=handles.features(tmp);
-handles.individuals=handles.individuals(tmp,:);
 handles.sexdata=handles.sexdata(tmp);
+handles.individuals=handles.individuals(tmp,:);
 
 handles=fillin_individuallist(handles);
+
+update_figure(handles);
 
 handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
