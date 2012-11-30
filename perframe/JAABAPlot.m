@@ -1,18 +1,18 @@
-function varargout = JAABA_plot(varargin)
-%JAABA_PLOT M-file for JAABA_plot.fig
-%      JAABA_PLOT, by itself, creates a new JAABA_PLOT or raises the existing
+function varargout = JAABAPlot(varargin)
+%JAABAPLOT M-file for JAABAPlot.fig
+%      JAABAPLOT, by itself, creates a new JAABAPLOT or raises the existing
 %      singleton*.
 %
-%      H = JAABA_PLOT returns the handle to a new JAABA_PLOT or the handle to
+%      H = JAABAPLOT returns the handle to a new JAABAPLOT or the handle to
 %      the existing singleton*.
 %
-%      JAABA_PLOT('Property','Value',...) creates a new JAABA_PLOT using the
+%      JAABAPLOT('Property','Value',...) creates a new JAABAPLOT using the
 %      given property value pairs. Unrecognized properties are passed via
-%      varargin to JAABA_plot_OpeningFcn.  This calling syntax produces a
+%      varargin to JAABAPlot_OpeningFcn.  This calling syntax produces a
 %      warning when there is an existing singleton*.
 %
-%      JAABA_PLOT('CALLBACK') and JAABA_PLOT('CALLBACK',hObject,...) call the
-%      local function named CALLBACK in JAABA_PLOT.M with the given input
+%      JAABAPLOT('CALLBACK') and JAABAPLOT('CALLBACK',hObject,...) call the
+%      local function named CALLBACK in JAABAPLOT.M with the given input
 %      arguments.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
@@ -20,16 +20,16 @@ function varargout = JAABA_plot(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help JAABA_plot
+% Edit the above text to modify the response to help JAABAPlot
 
-% Last Modified by GUIDE v2.5 29-Nov-2012 09:18:06
+% Last Modified by GUIDE v2.5 30-Nov-2012 13:55:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @JAABA_plot_OpeningFcn, ...
-                   'gui_OutputFcn',  @JAABA_plot_OutputFcn, ...
+                   'gui_OpeningFcn', @JAABAPlot_OpeningFcn, ...
+                   'gui_OutputFcn',  @JAABAPlot_OutputFcn, ...
                    'gui_LayoutFcn',  [], ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -321,8 +321,8 @@ menu_prefscentraltendency_set(handles.prefs_centraltendency);
 menu_prefsdispersion_set(handles.prefs_dispersion);
 
 
-% --- Executes just before JAABA_plot is made visible.
-function JAABA_plot_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before JAABAPlot is made visible.
+function JAABAPlot_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -348,7 +348,7 @@ end
 update_figure(handles);
 
 
-% Choose default command line output for JAABA_plot
+% Choose default command line output for JAABAPlot
 handles.output = hObject;
 
 set(hObject,'CloseRequestFcn',@figure_CloseRequestFcn);
@@ -359,7 +359,7 @@ set(handles.ClassifierList,'Callback',@ClassifierListCallback);
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes JAABA_plot wait for user response (see UIRESUME)
+% UIWAIT makes JAABAPlot wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
@@ -390,7 +390,7 @@ delete(hObject);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = JAABA_plot_OutputFcn(hObject, eventdata, handles)
+function varargout = JAABAPlot_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
