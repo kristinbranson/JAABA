@@ -22,7 +22,7 @@ function varargout = ClassifierOptions(varargin)
 
 % Edit the above text to modify the response to help ClassifierOptions
 
-% Last Modified by GUIDE v2.5 12-Jan-2012 14:25:04
+% Last Modified by GUIDE v2.5 28-Nov-2012 18:45:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -287,3 +287,14 @@ function iter_updates_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+uiresume(hObject);
+% delete(hObject);
