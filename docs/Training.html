@@ -208,6 +208,23 @@ automatic predictions timeline (<b>old</b> in the drop down menu).
 
 <p>Machine learning algorithms also find it difficult to train an accurate classifier if the number of examples from both classes are <b>unbalanced</b>. To create a more balanced training set, once you train an initial classifier, you should try to label only examples that are incorrectly predicted or have low confidence, and train often. This strategy prevents bloating the training set with obvious examples that make up most of the <i>None</i> behavior class. </p>
 
+<h2><a id="ClassifierParameters">Classifier Parameters (Advanced)</a></h2>
+
+<p>Under the <b>Classifier->Classifier parameters</b> menu you can set:
+<ul>
+<li><b>Iterations</b>: Number of iterations of boosting. We use 100 iterations for most classifiers. 
+Increasing this number results in more complicated classifiers that are slower to train and run. </li>
+<li><b>Iterations for fast updates</b>: Number of iterations of boosting to change when using fast updates.</li>
+<li><b>Base Classifier</b>: Type of classifier added in each iteration. Currently, the only option is <b>Decision Stumps</b>.</li>
+<li><b>Sample points</b>:
+<li><b>The number of iterations and the number of folds for cross-validation can
+be set using 
+
+.</p>
+<center><img src="images/ClassifierOptions.png"></center>
+
+
+
 </body>
 
 <footer>
