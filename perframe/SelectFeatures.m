@@ -176,7 +176,20 @@ handles = guidata(hObject);
 % Adding drop down menu kind of thing.
 
 if ~isempty(handles.JLDobj.basicFeatureTable)
-  tableData = handles.JLDobj.basicFeatureTable;
+  oldtableData = handles.JLDobj.basicFeatureTable;
+  tableData = {};
+  for ndx = 1:numel(handles.pftypeList)
+    curcateg = handles.pftypeList{ndx};
+    tableData{ndx,1} = curcateg;
+    ondx = find(strcmpi(oldtableData(:,1),curcateg));
+    if isempty(ondx),
+      tableData{ndx,2} = 'None';
+      tableData{ndx,3} = 'normal';
+    else
+      tableData(ndx,2:3) = oldtableData(ondx,2:3);
+    end
+  end
+  
 else
   tableData = {};
   for ndx = 1:numel(handles.pftypeList)
@@ -662,7 +675,7 @@ for ndx = 1:numel(handles.pfList)
   end
 end
 if numel(incompatible)>0
-  uiwait(warndlg(sprintf('Perframe feature(s) %s should have been selected but are not',incompatible),...
+  uiwait(warndlg(sprintf('Perframe feature(s) %s are not selected but should have been based on the category selection',incompatible),...
     'Mismatch in categories and perframe features'));
 end
 
