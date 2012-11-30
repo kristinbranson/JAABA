@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
+</head>
+</body>
+<h1><a href="index.html">JAABA</a>: Evaluating a Behavior Classifier</h1>
+
+There are several methods for estimating how well your behavior classifier is working. The first
+method you should use is to 
+<a href="Training.html#Predictions"><b>examine the classifier's predictions</b></a> 
+on frames different from the training data. Machine learning classifiers will perform very well on 
+the labeled data they were trained on, well on data similar to the labeled data, and not well on 
+data very different from the training data. Thus, we recommend seeking to and examining the classifier's
+predictions for different parts of the video for the current fly, different flies, and different
+videos. See <a href="BasicNavigation.html">Navigating within and between Videos</a>. 
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#CrossValidation">Cross Validation</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="CrossValidation">Cross Validation</a></h2>
+
+<p>Cross Validation is a quick way to quantitatively measure the classifier's accuracy
+on frames outside the training data set. In cross validation, a subset of the
+training data is held out for testing and the rest of the training data is used 
+for training. In k-fold cross validation, 1/k of the training data is held out for
+testing and the testing is done k times so that each training example gets tested 
+once. </p>
+
+<p>Select the <b>Classifier -> Cross Validate</b> menu item to perform cross validation with
+the current set of labeled data.</p>
+
+<p>In JAABA, cross validation is done over bouts, i.e., either the whole labeled bout will
+be part of the training set or it will be part of the test set. By default,
+JAABA does 7-fold cross validation, thus you need at least 7 bouts each of the
+behavior and not-behavior to do cross validation.</p>
+
+<p>After cross validation is performed, it returns a table showing the types of errors the
+classifiers made. The <b>columns</b> of the table correspond to the classifiers' <b>predictions</b>, 
+and the <b>rows</b> correspond to the <b>manual labels</b>.
+<ul>
+<li> The first column in the table gives the number of frames predicted as the
+behavior (Chase in the table below) for different types of frames. </li>
+
+and None. The middle column gives the number of
+frames that are not predicted on. These are the frames whose scores lie between
+the scores threshold that are set by using <b>Classifier -> Set confidence
+thresholds</b>. In the default case when the thresholds are not set, the
+thresholds are zero. So there is a prediction for each frame and the middle
+column should be all zeros. The top row summarizes the predictions on frames
+that were labeled as <b>important behavior</b>. The number in second row are
+for all the frames that were labeled as behavior, and it includes frames that
+were labeled important as well. Similarly, the next two rows summarize the
+results for frames that were labeled as <b>important None</b> and all
+<b>None</b>.  The percentages in parenthesis are computed over each row.
+</p>
+
+<p> The bottom 4 rows have the same format as the top 4 rows, but the
+cross-validation numbers
+are computed only for the <b>old</b> labels. <b>Old</b> labels are the labels that were
+used to train the classifier just before the current classifier in the
+current JAABA session. Comparing the cross validation error rates on old labels gives
+user an idea how much the addition of new labels has improved the 
+performance as compared to the previous training set, if they had noted down
+		the cross validation error rates when the last classifier was trained.
+		</p>
+
+
+
+<ul>
+<li><b>False negatives</b>: Frames that were manually labeled as the behavior but predicted 
+to be not-behavior.</li>
+<li><b>False positives</b>: Frames that were manually labeled as not-behavior but predicted to
+be the behavior.</li>
+</ul>
+</p>
+<p>The predictions and scores for all the labeled frames produced using cross validation can 
+be displayed at the bottom of the scores timeline by selecting <b>Cross validation</b> 
+from the drop-down menu left of the scores timeline. Note that cross validation is done using 
+the labels that were used to train the latest classifier. Labels added after training a 
+classifier are not used to in cross validation.</p>
+
+<center><a href="images/CVOut.png"><img src="images/CVOut.png"></a>
+<br>
+<i>Screencap showing the output of cross validation</i>
+</center>
+
+<p> The first and the third column in the result table give the number of frames predicted as the
+behavior (chase in this case) and None. The middle column gives the number of
+frames that are not predicted on. These are the frames whose scores lie between
+the scores threshold that are set by using <b>Classifier -> Set confidence
+thresholds</b>. In the default case when the thresholds are not set, the
+thresholds are zero. So there is a prediction for each frame and the middle
+column should be all zeros. The top row summarizes the predictions on frames
+that were labeled as <b>important behavior</b>. The number in second row are
+for all the frames that were labeled as behavior, and it includes frames that
+were labeled important as well. Similarly, the next two rows summarize the
+results for frames that were labeled as <b>important None</b> and all
+<b>None</b>.  The percentages in parenthesis are computed over each row.
+</p>
+
+<p> The bottom 4 rows have the same format as the top 4 rows, but the
+cross-validation numbers
+are computed only for the <b>old</b> labels. <b>Old</b> labels are the labels that were
+used to train the classifier just before the current classifier in the
+current JAABA session. Comparing the cross validation error rates on old labels gives
+user an idea how much the addition of new labels has improved the 
+performance as compared to the previous training set, if they had noted down
+		the cross validation error rates when the last classifier was trained.
+		</p>
+
+
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</html>
