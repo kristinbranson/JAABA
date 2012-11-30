@@ -57,16 +57,33 @@ origdiff = [];
 newdiff = [];
 sn = data.windowdata.scoreNorm;
 bins = linspace(-sn,sn,20);
+origmat = zeros(2,2,ncomparisons);
+newmat = zeros(2,2,ncomparisons);
 for ndx = 1:ncomparisons
   t = histc(allOrig - allNew{ndx},[-inf bins inf]);
   t(1) = []; t(end) = [];
   origdiff(end+1,:) = t;
   
+  origmat(1,1,ndx) = nnz(allOrig>0 & allNew{ndx}>0);
+  origmat(1,2,ndx) = nnz(allOrig>0 & allNew{ndx}<0);
+  origmat(2,1,ndx) = nnz(allOrig<0 & allNew{ndx}>0);
+  origmat(2,2,ndx) = nnz(allOrig<0 & allNew{ndx}<0);
+  
+
   ndx1 = randsample(setdiff(1:ncomparisons,ndx),1);
   t = histc(allNew{ndx1} - allNew{ndx},[-inf bins inf]);
   t(1) = []; t(end) = [];
   newdiff(end+1,:) = t;
+
+  newmat(1,1,ndx) = nnz(allNew{ndx1}>0 & allNew{ndx}>0);
+  newmat(1,2,ndx) = nnz(allNew{ndx1}>0 & allNew{ndx}<0);
+  newmat(2,1,ndx) = nnz(allNew{ndx1}<0 & allNew{ndx}>0);
+  newmat(2,2,ndx) = nnz(allNew{ndx1}<0 & allNew{ndx}<0);
 end
+
+origmat = round(mean(origmat,3));
+newmat = round(mean(newmat,3));
+
 
 origdiffpos = [];
 newdiffpos = [];
@@ -94,6 +111,7 @@ for ndx = 1:ncomparisons
   t(1) = []; t(end) = [];
   origdiffneg(end+1,:) = t;
   
+  
   ndx1 = randsample(setdiff(1:ncomparisons,ndx),1);
   t = histc(allNew{ndx1}(pos) - allNew{ndx}(pos),[-inf bins inf]);
   t(1) = []; t(end) = [];
@@ -113,14 +131,26 @@ numPosNew = 0; numNegNew = 0;
 for ndx = 1:numel(allNew)
   numPosNew = numPosNew + nnz(allNew{ndx}>0);
   numNegNew = numNegNew + nnz(allNew{ndx}<0);
+  
 end
 numPosNew = numPosNew/numel(allNew);
 numNegNew = numNegNew/numel(allNew);
 
-title({'Red: Orig - new, Blue: new - new'...
+
+title({'Red: Orig - new, Blue: new - new'});
+msg = {...
  sprintf('Frames predicted by the orig, pos :%d neg:%d',numPosOrig,numNegOrig),...
  sprintf('Frames predicted by the new (avg), pos :%d neg:%d',round(numPosNew),round(numNegNew)),...
-});
+ sprintf('Orig Vs New'),...
+ sprintf('           New Pos          New Neg     '),...
+ sprintf('Orig Pos     %d          %d     ',origmat(1,1),origmat(1,2)),...
+ sprintf('Orig Neg     %d          %d     ',origmat(2,1),origmat(2,2)),...
+ sprintf('New Vs New'),...
+ sprintf('           New Pos          New Neg     '),...
+ sprintf('New Pos     %d          %d     ',newmat(1,1),newmat(1,2)),...
+ sprintf('New Neg     %d          %d     ',newmat(2,1),newmat(2,2)),...
+};
+warndlg(msg);
 
 subplot(2,2,3); hold on;
 for ndx = 1:ncomparisons

@@ -4805,6 +4805,14 @@ end
             obj.classifier_old = obj.classifier;
             [obj.windowdata.binVals] = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
             bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
+            labels = obj.windowdata.labelidx_new(islabeled);
+            npos = nnz(labels ==1);
+            nneg = nnz(labels~=1);
+            if npos < 1 || nneg < 1,
+              uiwait(warndlg('Only behavior or nones have been labeled. Not training a classifier'));
+              obj.ClearStatus();
+              return;
+            end
             [obj.classifier, ~] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
@@ -6025,8 +6033,7 @@ end
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
         if ~any(obj.predictdata.cur_valid), return; end
         
-        idxcurr = obj.predictdata.cur_valid;
-        wScores = obj.predictdata.cur(idxcurr);
+        wScores = myBoostClassify(obj.windowdata.X,obj.classifier);
         scoreNorm = prctile(abs(wScores),80);
         obj.windowdata.scoreNorm = scoreNorm;
       end
