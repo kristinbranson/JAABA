@@ -148,6 +148,64 @@ handles.table=[];
 
 
 % ---
+function handles=update_experiment_data(handles,features,sexdata,individuals)
+
+handlesexperimentlist=[handles.experimentlist{:}];
+
+handlesfeatures=cell(1,length(handlesexperimentlist));
+handlessexdata=cell(1,length(handlesexperimentlist));
+handlesindividuals=zeros(length(handlesexperimentlist),length(handles.scorefiles));
+
+parfor ge=1:length(handlesexperimentlist)
+  if(features)
+    tmp=dir(fullfile(handlesexperimentlist{ge},'perframe','*.mat'));
+    [handlesfeatures{ge}{1:length(tmp)}]=deal(tmp.name);
+    handlesfeatures{ge}=cellfun(@(x) x(1:(end-4)),handlesfeatures{ge},'uniformoutput',false);
+  end
+
+  if(sexdata)
+    tmp=load(fullfile(handlesexperimentlist{ge},'perframe','sex.mat'));
+    cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
+    handlessexdata(ge)={ans};
+  end
+
+  if(individuals)
+    behavior_data=[];
+    parfor_tmp=zeros(1,length(handles.scorefiles));
+    for s=1:length(handles.scorefiles)
+      classifier=load(handles.classifierlist{s});
+      try
+        behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{s}));
+      catch
+        behavior_data.allScores.t0s=[];
+        behavior_data.timestamp=nan;
+      end
+      if ((classifier.classifierTS ~= behavior_data.timestamp) || (length(behavior_data.allScores.t0s)==0))
+        parfor_tmp(s)=-1;
+      else
+        parfor_tmp(s)=length(behavior_data.allScores.t0s);
+      end
+    end
+    handlesindividuals(ge,:)=parfor_tmp;
+  end
+end
+
+if(features)
+  handles.features={handlesfeatures{:}};
+  handles.featurelist=check_for_diff_and_return_intersection(handles.features);
+end
+
+if(sexdata)
+  handles.sexdata={handlessexdata{:}};
+end
+
+if(individuals)
+  handles.individuals=handlesindividuals;
+  handles=fillin_individuallist(handles);
+end
+
+
+% ---
 function update_figure(handles)
 
 if(isempty(handles.grouplist) || length(handles.experimentlist{handles.groupvalue})==0)
@@ -918,7 +976,7 @@ end
 idx=find(~cellfun(@isempty,newclassifiers));
 handles.classifierlist={handles.classifierlist{:} newclassifiers{idx}};
 handles.configurations={handles.configurations{:} handlesconfigurations{idx}};
-handles.behaviorlist={handles.behaviorlist{:} handlesbehaviorlist{idx}};
+handles.behaviorlist={handles.behaviorlist{1:(end-1)} handlesbehaviorlist{idx} 'All'};
 handles.scorefiles={handles.scorefiles{:} handlesscorefiles{idx}};
 handles.individuals=[handles.individuals handlesindividuals(:,idx)];
 
@@ -963,64 +1021,6 @@ guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
-
-
-% ---
-function handles=update_experiment_data(handles,features,sexdata,individuals)
-
-handlesexperimentlist=[handles.experimentlist{:}];
-
-handlesfeatures=cell(1,length(handlesexperimentlist));
-handlessexdata=cell(1,length(handlesexperimentlist));
-handlesindividuals=zeros(length(handlesexperimentlist),length(handles.scorefiles));
-
-parfor ge=1:length(handlesexperimentlist)
-  if(features)
-    tmp=dir(fullfile(handlesexperimentlist{ge},'perframe','*.mat'));
-    [handlesfeatures{ge}{1:length(tmp)}]=deal(tmp.name);
-    handlesfeatures{ge}=cellfun(@(x) x(1:(end-4)),handlesfeatures{ge},'uniformoutput',false);
-  end
-
-  if(sexdata)
-    tmp=load(fullfile(handlesexperimentlist{ge},'perframe','sex.mat'));
-    cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
-    handlessexdata(ge)={ans};
-  end
-
-  if(individuals)
-    behavior_data=[];
-    parfor_tmp=zeros(1,length(handles.scorefiles));
-    for s=1:length(handles.scorefiles)
-      classifier=load(handles.classifierlist{s});
-      try
-        behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{s}));
-      catch
-        behavior_data.allScores.t0s=[];
-        behavior_data.timestamp=nan;
-      end
-      if ((classifier.classifierTS ~= behavior_data.timestamp) || (length(behavior_data.allScores.t0s)==0))
-        parfor_tmp(s)=-1;
-      else
-        parfor_tmp(s)=length(behavior_data.allScores.t0s);
-      end
-    end
-    handlesindividuals(ge,:)=parfor_tmp;
-  end
-end
-
-if(features)
-  handles.features={handlesfeatures{:}};
-  handles.featurelist=check_for_diff_and_return_intersection(handles.features);
-end
-
-if(sexdata)
-  handles.sexdata={handlessexdata{:}};
-end
-
-if(individuals)
-  handles.individuals=handlesindividuals;
-  handles=fillin_individuallist(handles);
-end
 
 
 % --- Executes on button press in ClassifierClassify.
@@ -1338,7 +1338,7 @@ function plot_feature_histogram(experiment_value,experiment_list,...
 
 during=cell(1,length(experiment_value));
 not_during=cell(1,length(experiment_value));
-bad=zeros(1,length(experiment_value));
+%bad=zeros(1,length(experiment_value));
 parfor e=1:length(experiment_value)
 %for e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_file));
@@ -1350,11 +1350,11 @@ parfor e=1:length(experiment_value)
   feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
         [feature_list{feature_value} '.mat']));
 
-  if((length(behavior_data.allScores.scores)~=length(feature_data.data)) || ...
-      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(feature_data.data))))
-    bad(e)=1;
-    continue;
-  end
+%  if((length(behavior_data.allScores.scores)~=length(feature_data.data)) || ...
+%      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(feature_data.data))))
+%    bad(e)=1;
+%    continue;
+%  end
 
   tmp2=sexdata{experiment_value(e)};
   for i=1:length(tmp2)
@@ -1372,17 +1372,17 @@ parfor e=1:length(experiment_value)
       feature_data,tmp2,tmp,perwhat);
 end
 
-tmp=find(bad);
-if(length(tmp)>0)
-  during(tmp)=[];  not_during(tmp)=[];
-  msg{1}=['the following experiments had different numbers of individuals ' ...
-      'for the selected behavior and feature.  they will be ommitted from the analysis.'];
-  msg{2}='';
-  for i=1:length(tmp)
-    [~,msg{end+1},~]=fileparts(experiment_list{i});
-  end
-  uiwait(errordlg(msg));
-end
+%tmp=find(bad);
+%if(length(tmp)>0)
+%  during(tmp)=[];  not_during(tmp)=[];
+%  msg{1}=['the following experiments had different numbers of individuals ' ...
+%      'for the selected behavior and feature.  they will be ommitted from the analysis.'];
+%  msg{2}='';
+%  for i=1:length(tmp)
+%    [~,msg{end+1},~]=fileparts(experiment_list{i});
+%  end
+%  uiwait(errordlg(msg));
+%end
 
 max(cellfun(@(x) size(x,2),during));
 cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during,'uniformoutput',false);
@@ -1461,92 +1461,73 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-handles.type='feature histogram';
-%xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
-tstr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
-switch(handles.behaviorlogic)
-  case 2
-    tstr=[tstr ' AND '];
-  case 3
-    tstr=[tstr ' AND NOT '];
-  case 4
-    tstr=[tstr ' OR '];
-end
-if(handles.behaviorlogic>1)
-  tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
-end
-%xstr=[xstr ' (%)'];
-units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
-    [handles.featurelist{handles.featurevalue} '.mat']),'units');
-xstr=get_label(handles.featurelist(handles.featurevalue),units.units);
-ystr='normalized';
-
-print_csv_help(fid,handles.type,tstr,xstr,ystr);
-
 guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 
-for g=gg
-  set(handles.Status,'string',...
-      ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-  drawnow;
+bb=handles.behaviorvalue;
+if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
-  if(isempty(experimentvalue{g}))  continue;  end
+handles.type='feature histogram';
 
-  fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-  plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
-      handles.scorefiles{handles.behaviorvalue},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
-      handles.featurevalue,handles.featurelist,individual,...
-      handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
-      handles.featurehistogram_perwhat,handles.featurehistogram_style,...
-      handles.featurehistogram_notduring,handles.featurehistogram_logbinsize,handles.featurehistogram_nbins,...
-      handles.prefs_centraltendency,handles.prefs_dispersion,...
-      handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+for b=bb
+
+  %xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
+  tstr=char(strrep(handles.behaviorlist(b),'_','-'));
+  switch(handles.behaviorlogic)
+    case 2
+      tstr=[tstr ' AND '];
+    case 3
+      tstr=[tstr ' AND NOT '];
+    case 4
+      tstr=[tstr ' OR '];
+  end
+  if(handles.behaviorlogic>1)
+    tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+  end
+  %xstr=[xstr ' (%)'];
+  units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
+      [handles.featurelist{handles.featurevalue} '.mat']),'units');
+  xstr=get_label(handles.featurelist(handles.featurevalue),units.units);
+  ystr='normalized';
+
+  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+
+  if(length(bb)>1)
+    ceil(sqrt(length(bb)));
+    subplot(ceil(length(bb)/ans),ans,b);
+  end
+  hold on;
+
+  for g=gg
+    set(handles.Status,'string',...
+        ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
+    drawnow;
+
+    if(isempty(experimentvalue{g}))  continue;  end
+
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+    plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
+        handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
+        handles.featurevalue,handles.featurelist,individual,...
+        handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
+        handles.featurehistogram_perwhat,handles.featurehistogram_style,...
+        handles.featurehistogram_notduring,handles.featurehistogram_logbinsize,handles.featurehistogram_nbins,...
+        handles.prefs_centraltendency,handles.prefs_dispersion,...
+        handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+  end
+
+  title(tstr);
+  xlabel(xstr);
+  ylabel(ystr);
+  axis tight;  zoom reset;
+
 end
 
 fclose(fid);
-
-title(tstr);
-xlabel(xstr);
-ylabel(ystr);
-axis tight;  zoom reset;
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
 
 %guidata(hObject,handles);
-
-
-% ---
-%function table_data=calculate_interesting_feature_histograms(experiment_value,experiment_list,...
-%    behavior_list,feature_list,perwhat)
-%
-%table_data=zeros(length(behavior_list),length(feature_list),8);
-%parfor b=1:length(behavior_list)
-%%for b=1:length(behavior_list)
-%  k=1;
-%  parfor_tmp=zeros(length(feature_list),8);
-%  for f=1:length(feature_list)
-%    during={};  not_during={};
-%    for e=1:length(experiment_value)
-%      behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
-%      feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
-%          [feature_list{f} '.mat']));
-%      sexdata={};
-%      for i=1:length(feature_data.data)
-%        sexdata{i}=ones(1,length(feature_data.data{i}));
-%      end
-%      [during{e} not_during{e}]=calculate_feature_histogram(behavior_data,1,[],feature_data,sexdata,nan,perwhat);
-%    end
-%    during=[during{:}];
-%    not_during=[not_during{:}];
-%    %parfor_tmp(k,:)=[b f (mean(during)-mean(not_during))/sqrt((std(during)^2+std(not_during)^2)/2)];
-%    parfor_tmp(k,:)=[b f mean(during) mean(not_during) std(during) std(not_during) length(during) length(not_during)];
-%    k=k+1;
-%  end
-%  table_data(b,:,:)=parfor_tmp;
-%  disp([num2str(b) ' of ' num2str(length(behavior_list))]);
-%end
-%table_data=reshape(table_data,prod(size(table_data))/8,8);
 
 
 function progress_bar(~,~,h)
@@ -1786,15 +1767,13 @@ end
 
 
 %---
-%function [table_data feature_units range h]=plot_timeseries(experiment_value,experiment_list,...
-%function feature_units=plot_feature_timeseries(experiment_value,experiment_list,...
 function plot_feature_timeseries(experiment_value,experiment_list,...
     score_file,behavior_logic,score_file2,feature_value,feature_list,...
     individual,sexdata,timing,style,centraltendency,dispersion,convolutionwidth,subtractmean,windowradius,...
     color,fid)
 
 data=cell(1,length(experiment_value));
-bad=zeros(1,length(experiment_value));
+%bad=zeros(1,length(experiment_value));
 parfor e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_file));
   if(behavior_logic>1)
@@ -1804,13 +1783,12 @@ parfor e=1:length(experiment_value)
   end
   feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
       [feature_list{feature_value} '.mat']));
-  %feature_units{e}=feature_data.units;
 
-  if((length(behavior_data.allScores.scores)~=length(feature_data.data)) || ...
-      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(feature_data.data))))
-    bad(e)=1;
-    continue;
-  end
+%  if((length(behavior_data.allScores.scores)~=length(feature_data.data)) || ...
+%      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(feature_data.data))))
+%    bad(e)=1;
+%    continue;
+%  end
 
   tmp2=sexdata{experiment_value(e)};
   for i=1:length(tmp2)
@@ -1835,32 +1813,27 @@ parfor e=1:length(experiment_value)
   end
 end
 
-tmp=find(bad);
-if(length(tmp)>0)
-  data(tmp)=[];
-  msg{1}=['the following experiments had different numbers of individuals ' ...
-      'for the selected behavior and feature.  they will be ommitted from the analysis.'];
-  msg{2}='';
-  for i=1:length(tmp)
-    [~,msg{end+1},~]=fileparts(experiment_list{i});
-  end
-  uiwait(errordlg(msg));
-end
+%tmp=find(bad);
+%if(length(tmp)>0)
+%  data(tmp)=[];
+%  msg{1}=['the following experiments had different numbers of individuals ' ...
+%      'for the selected behavior and feature.  they will be ommitted from the analysis.'];
+%  msg{2}='';
+%  for i=1:length(tmp)
+%    [~,msg{end+1},~]=fileparts(experiment_list{i});
+%  end
+%  uiwait(errordlg(msg));
+%end
 
 if(timing==1)
   max(cellfun(@(x) size(x,2),data));
   cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],data,'uniformoutput',false);
   ydata=cat(1,ans{:});
   xdata=1:size(ydata,2);
-  %table_data=[];
 else
   ydata=cat(1,data{:});
   xdata=-windowradius:windowradius;
-  %table_data=[sqrt(nanmean(ydata(:,1:windowradius).^2,2))...
-  %            sqrt(nanmean(ydata(:,(windowradius+1):end).^2,2))];
 end
-
-%feature_units=feature_units{1};
 
 plot_it(xdata,ydata,style,centraltendency,dispersion,color,1,fid,experiment_list(experiment_value));
 
@@ -1889,86 +1862,71 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-handles.type='feature time series';
-tstr='';
-xstr='time (frames)';
-units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
-    [handles.featurelist{handles.featurevalue} '.mat']),'units');
-%ystr=get_label(handles.featurelist(handles.featurevalue),feature_units{1});
-ystr=get_label(handles.featurelist(handles.featurevalue),units.units);
-if(handles.featuretimeseries_timing>1)
-  tstr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
-  switch(handles.behaviorlogic)
-    case 2
-      tstr=[tstr ' AND '];
-    case 3
-      tstr=[tstr ' AND NOT '];
-    case 4
-      tstr=[tstr ' OR '];
-  end
-  if(handles.behaviorlogic>1)
-    tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
-  end
-  tstr=[tstr ' (%)'];
-end
-
-print_csv_help(fid,handles.type,tstr,xstr,ystr);
-
 guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 
-%range=[];
-table_data={};  %feature_units={};
-for g=gg
-  set(handles.Status,'string',...
-      ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-  drawnow;
-  if(~isempty(experimentvalue{g}))
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    %[table_data{end+1} feature_units{end+1} tmp h]=plot_timeseries(experimentvalue{g},handles.experimentlist{g},...
-    %feature_units{end+1}=plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
-    plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
-        handles.scorefiles{handles.behaviorvalue},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
-        handles.featurevalue,handles.featurelist,individual,...
-        handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
-        handles.featuretimeseries_timing,handles.featuretimeseries_style,...
-        handles.prefs_centraltendency,handles.prefs_dispersion,handles.prefs_convolutionwidth,...
-        handles.featuretimeseries_subtractmean,handles.timeseries_windowradius,...
-        handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
-%    range=[range; tmp];
+bb=handles.behaviorvalue;
+if(handles.featuretimeseries_timing==1)  bb=1;  end
+if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+
+handles.type='feature time series';
+
+for b=bb
+
+  xstr='time (frames)';
+  units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
+      [handles.featurelist{handles.featurevalue} '.mat']),'units');
+  %ystr=get_label(handles.featurelist(handles.featurevalue),feature_units{1});
+  ystr=get_label(handles.featurelist(handles.featurevalue),units.units);
+  tstr='';
+  if(handles.featuretimeseries_timing>1)
+    tstr=char(strrep(handles.behaviorlist(b),'_','-'));
+    switch(handles.behaviorlogic)
+      case 2
+        tstr=[tstr ' AND '];
+      case 3
+        tstr=[tstr ' AND NOT '];
+      case 4
+        tstr=[tstr ' OR '];
+    end
+    if(handles.behaviorlogic>1)
+      tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+    end
   end
+
+  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+
+  if(length(bb)>1)
+    ceil(sqrt(length(bb)));
+    subplot(ceil(length(bb)/ans),ans,b);
+  end
+  hold on;
+
+  table_data={};
+  for g=gg
+    set(handles.Status,'string',...
+        ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
+    drawnow;
+    if(~isempty(experimentvalue{g}))
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
+          handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
+          handles.featurevalue,handles.featurelist,individual,...
+          handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
+          handles.featuretimeseries_timing,handles.featuretimeseries_style,...
+          handles.prefs_centraltendency,handles.prefs_dispersion,handles.prefs_convolutionwidth,...
+          handles.featuretimeseries_subtractmean,handles.timeseries_windowradius,...
+          handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+    end
+  end
+
+  xlabel(xstr);
+  ylabel(ystr);
+  title(tstr);
+  axis tight;  zoom reset;
+
 end
 
 fclose(fid);
-
-xlabel(xstr);
-ylabel(ystr);
-%title(tstr);
-axis tight;  zoom reset;
-
-
-
-%if((handles.timeseries_tight==1) && (min(range(:,1))<max(range(:,2))))
-%  v=axis;  axis([v(1) v(2) min(range(:,1)) max(range(:,2))]);
-%end
-
-%if(handles.featuretimeseries_timing>1)
-%  tmp=cellfun(@(x) [nanmean(x(:,1)) nanstd(x(:,1)) nanmean(x(:,2)) nanstd(x(:,2))],table_data,...
-%      'uniformoutput',false);
-%  tmp=cat(1,tmp{:});
-%
-%  {'mean' 'std. dev.' 'mean' 'std. dev.'};
-%  tmp2(1,:)=['RMS before,after:' sprintf('%10s ',ans{:})];
-%  for i=1:size(tmp,1)
-%    tmp2(i+1,:)=['                 ' sprintf('%10.3g ',tmp(i,:))];
-%  end
-%  v=axis;
-%  h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
-%  if(handles.stats)
-%    set(h,'visible','on');
-%  else
-%    set(h,'visible','off');
-%  end
-%end
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
@@ -2125,78 +2083,80 @@ end
 
 % ---
 function [frames_labelled frames_total]=calculate_behavior_barchart(experiment_value,experiment_list,...
-    score_files,behavior_logic,behavior_value2,individual,sexdata,perwhat)
+    score_file,behavior_logic,score_file2,individual,sexdata,perwhat)
 
-collated_data=cell(length(experiment_value),length(score_files));
-bad=zeros(1,length(experiment_value));
+%collated_data=cell(length(experiment_value),length(score_files));
+collated_data=cell(1,length(experiment_value));
+%bad=zeros(1,length(experiment_value));
 parfor e=1:length(experiment_value)
-  behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_files{1}));
+%for e=1:length(experiment_value)
+  behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_file));
   if(behavior_logic>1)
-    behavior_data2=load(fullfile(experiment_list{experiment_value(e)},...
-        score_files{behavior_value2}));
+    behavior_data2=load(fullfile(experiment_list{experiment_value(e)},score_file2));
   else
     behavior_data2=[];
   end
 
-  if((length(behavior_data.allScores.scores)~=length(sexdata{experiment_value(e)})) || ...
-      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(sexdata{experiment_value(e)}))))
-    bad(e)=1;
-    continue;
-  end
+%  if((length(behavior_data.allScores.scores)~=length(sexdata{experiment_value(e)})) || ...
+%      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(sexdata{experiment_value(e)}))))
+%    bad(e)=1;
+%    continue;
+%  end
 
-  parfor_tmp=cell(1,length(score_files));
-  for b=1:length(score_files)
-    behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_files{b}));
+%  parfor_tmp=cell(1,length(score_files));
+%  for b=1:length(score_files)
+%    behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_files{b}));
 
-    frames_labelled=nan(1,length(behavior_data.allScores.t0s));
-    frames_total=nan(1,length(behavior_data.allScores.t0s));
-    sex=nan(1,length(behavior_data.allScores.t0s));
-    for i=1:length(behavior_data.allScores.t0s)  % individual
-      tmp1=false(1,length(sexdata{experiment_value(e)}{i}));
-      for j=1:length(behavior_data.allScores.t0s{i})  % bout
-        tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
-            -behavior_data.allScores.tStart(i)+1)=true;
-      end
-      tmp2=[];
-      if(behavior_logic>1)
-        tmp2=false(1,length(sexdata{experiment_value(e)}{i}));
-        for j=1:length(behavior_data2.allScores.t0s{i})  % bout
-          tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
-              -behavior_data2.allScores.tStart(i)+1)=true;
-        end
-      end
-      partition_idx=[];
-      switch(behavior_logic)
-        case(1)
-          partition_idx=tmp1;
-        case(2)
-          partition_idx=tmp1 & tmp2;
-        case(3)
-          partition_idx=tmp1 & ~tmp2;
-        case(4)
-          partition_idx=tmp1 | tmp2;
-      end
-      sex(i)=sum(sexdata{experiment_value(e)}{i}(1:length(partition_idx))) > (length(partition_idx)/2);
-      frames_labelled(i)=sum(partition_idx);
-      frames_total(i)=length(partition_idx);
+  frames_labelled=nan(1,length(behavior_data.allScores.t0s));
+  frames_total=nan(1,length(behavior_data.allScores.t0s));
+  sex=nan(1,length(behavior_data.allScores.t0s));
+  for i=1:length(behavior_data.allScores.t0s)  % individual
+    tmp1=false(1,length(sexdata{experiment_value(e)}{i}));
+    for j=1:length(behavior_data.allScores.t0s{i})  % bout
+      tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
+          -behavior_data.allScores.tStart(i)+1)=true;
     end
-
-    parfor_tmp{b}={frames_labelled frames_total sex};
+    tmp2=[];
+    if(behavior_logic>1)
+      tmp2=false(1,length(sexdata{experiment_value(e)}{i}));
+      for j=1:length(behavior_data2.allScores.t0s{i})  % bout
+        tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
+            -behavior_data2.allScores.tStart(i)+1)=true;
+      end
+    end
+    partition_idx=[];
+    switch(behavior_logic)
+      case(1)
+        partition_idx=tmp1;
+      case(2)
+        partition_idx=tmp1 & tmp2;
+      case(3)
+        partition_idx=tmp1 & ~tmp2;
+      case(4)
+        partition_idx=tmp1 | tmp2;
+    end
+    sex(i)=sum(sexdata{experiment_value(e)}{i}(1:length(partition_idx))) > (length(partition_idx)/2);
+    frames_labelled(i)=sum(partition_idx);
+    frames_total(i)=length(partition_idx);
   end
-  collated_data(e,:)=parfor_tmp;
+
+%    parfor_tmp{b}={frames_labelled frames_total sex};
+%  end
+%  collated_data(e,:)=parfor_tmp;
+  collated_data{e}={frames_labelled frames_total sex};
 end
 
-tmp=find(bad);
-if(length(tmp)>0)
-  collated_data=collated_data(~logical(bad),:);
-  msg{1}=['the following experiments had different numbers of individuals ' ...
-      'for the selected behavior and sex feature.  they will be ommitted from the analysis.'];
-  msg{2}='';
-  for i=1:length(tmp)
-    [~,msg{end+1},~]=fileparts(experiment_list{i});
-  end
-  uiwait(errordlg(msg));
-end
+%tmp=find(bad);
+%if(length(tmp)>0)
+%  collated_data=collated_data(~logical(bad),:);
+%  msg{1}=['the following experiments had different numbers of individuals ' ...
+%      'for the selected behavior and sex feature.  they will be ommitted from the analysis.'];
+%  msg{2}='';
+%  for i=1:length(tmp)
+%    [~,msg{end+1},~]=fileparts(experiment_list{i});
+%  end
+%  uiwait(errordlg(msg));
+%end
 
 switch(individual)
   case 1
@@ -2233,29 +2193,18 @@ if(individual>3)
   individual=individual-cumsum_num_indi_per_exp(tmp);
 end
 
-frames_labelled={};  frames_total={};  color={};  xticklabels={};
-for g=gg
-  set(handles.Status,'string',...
-      ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-  drawnow;
-  if(~isempty(handles.experimentvalue{g}))
-    [frames_labelled{end+1} frames_total{end+1}]=calculate_behavior_barchart(...
-        experimentvalue{g},handles.experimentlist{g},handles.scorefiles,...
-        handles.behaviorlogic,handles.behaviorvalue2,individual,...
-        handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
-        handles.behaviorbarchart_perwhat);
-    color{end+1}=handles.colors{1,1+mod(gg(g)-1,length(handles.colors))};
-    xticklabels{end+1}=handles.grouplist{g};
-  end
-end
-
 fid=fopen('most_recent_figure.csv','w');
 
-handles.type='behavior bar chart';
 guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 
-table_data=cell(1,size(frames_labelled{1},2));
-for b=1:size(frames_labelled{1},2)  % behavior
+bb=handles.behaviorvalue;
+if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+
+handles.type='behavior bar chart';
+
+table_data={};
+for b=bb
+
   tstr='';
   ystr=char(strrep(handles.behaviorlist(b),'_','-'));
   switch(handles.behaviorlogic)
@@ -2274,46 +2223,80 @@ for b=1:size(frames_labelled{1},2)  % behavior
 
   print_csv_help(fid,handles.type,tstr,xstr,ystr);
 
-  ceil(sqrt(length(frames_labelled{1})));
-  subplot(ceil(length(frames_labelled{1})/ans),ans,b);  hold on;
-  k=[];
+  if(length(bb)>1)
+    ceil(sqrt(length(bb)));
+    subplot(ceil(length(bb)/ans),ans,b);
+  end
+  hold on;
+
+  %frames_labelled={};  frames_total={};  color={};  xticklabels={};
+  exp_separators=[];  maxy=0;  k=[];  m=0;  table_data{end+1}=[];
+  for g=gg
+    set(handles.Status,'string',...
+        ['Processing ' num2str(length(handles.experimentvalue{g})) ...
+        ' experiment(s) in group ' handles.grouplist{g}]);
+    drawnow;
+    if(~isempty(handles.experimentvalue{g}))
+      [frames_labelled frames_total]=calculate_behavior_barchart(...
+          experimentvalue{g},handles.experimentlist{g},...
+          handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
+          individual,handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
+          handles.behaviorbarchart_perwhat);
+      color=handles.colors{1,1+mod(gg(g)-1,length(handles.colors))};
+      xticklabels{g}=handles.grouplist{g};
+
+      switch(handles.behaviorbarchart_perwhat)
+        case 1  % per group
+          table_data{end}(g)=100*sum([frames_labelled{:}])./sum([frames_total{:}]);
+          bar(g,table_data{end}(g),color);
+        case 2  % per experiment, error bars
+          table_data{end}{g}=100*cellfun(@sum,frames_labelled)./cellfun(@sum,frames_total);
+          [ct{g},dp{g},dn{g}]=...
+              calculate_ct_d(table_data{end}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
+          errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},color);
+        case 3  % per fly, grouped
+            cumsum(cellfun(@length,frames_labelled))';
+            exp_separators=[exp_separators; ans+sum(k)];
+            table_data{end}{g}=100.*[frames_labelled{:}]./[frames_total{:}];
+            maxy=max([maxy table_data{end}{g}]);
+            bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},color,'barwidth',1,'edgecolor','none');
+            k(end+1)=length(table_data{end}{g});
+            fprintf(fid,['%% data, %s\n'],xticklabels{g});
+            fprintf(fid,'%g, ',[table_data{end}{g}]);
+            fprintf(fid,'\n');
+        case 4  % per fly, stern-style
+            table_data{end}{g}=cell(1,length(frames_labelled));
+            for e=1:length(frames_labelled)
+              table_data{end}{g}{e}=100.*frames_labelled{e}./frames_total{e};
+              [ct,dp,dn]=calculate_ct_d(table_data{end}{g}{e},handles.prefs_centraltendency,handles.prefs_dispersion);
+              plot(m,ct,[color 'o']);
+              plot([m m],[dp dn],[color '-']);
+              plot(m+(1:length(table_data{end}{g}{e})),table_data{end}{g}{e},[color '.']);
+              m=m+16+length(table_data{end}{g}{e});
+            end
+            [ct,dp,dn]=calculate_ct_d([table_data{end}{g}{:}],handles.prefs_centraltendency,handles.prefs_dispersion);
+            plot(m,ct,[color 'o'],'markersize',9);
+            plot([m m],[dp dn],[color '-'],'linewidth',3);
+            m=m+24;
+            k(end+1)=24+16*length(table_data{end}{g})+length([table_data{end}{g}{:}]);
+            fprintf(fid,['%% data, %s\n'],xticklabels{g});
+            fprintf(fid,'%g, ',[table_data{end}{g}{:}]);
+            fprintf(fid,'\n');
+      end
+
+    end
+  end
+
   switch(handles.behaviorbarchart_perwhat)
     case 1  % per group
-      table_data{b}=nan(1,length(frames_labelled));
-      for g=1:length(frames_labelled)
-        table_data{b}(g)=100*sum([frames_labelled{g}{:,b}])./sum([frames_total{g}{:,b}]);
-        bar(g,table_data{b}(g),color{g});
-      end
-      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',handles.grouplist{gg});  fprintf(fid,'\n');
-      fprintf(fid,['%% ydata, per group\n']);  fprintf(fid,'%g, ',table_data{b});  fprintf(fid,'\n');
+      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
+      fprintf(fid,['%% ydata, per group\n']);  fprintf(fid,'%g, ',table_data{end});  fprintf(fid,'\n');
     case 2  % per experiment, error bars
-      table_data{b}=cell(1,length(frames_labelled));
-      for g=1:length(frames_labelled)
-        table_data{b}{g}=100*cellfun(@sum,frames_labelled{g}(:,b))./cellfun(@sum,frames_total{g}(:,b));
-        [ct{g},dp{g},dn{g}]=...
-            calculate_ct_d(table_data{b}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
-        errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},color{g});
-      end
-      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',handles.grouplist{gg});  fprintf(fid,'\n');
+      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',[dp{:}]);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',[dn{:}]);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT\n']);  fprintf(fid,'%g, ',[ct{:}]);  fprintf(fid,'\n');
     case 3  % per fly, grouped
-      exp_separators=[];  maxy=0;
-      table_data{b}=cell(1,length(frames_labelled));
-      for g=1:length(frames_labelled)
-        tmp=frames_labelled{g}(:,b);
-        tmp2=frames_total{g}(:,b);
-        cumsum(cellfun(@length,tmp));
-        exp_separators=[exp_separators; ans+sum(k)];
-        table_data{b}{g}=100.*[tmp{:}]./[tmp2{:}];
-        maxy=max([maxy table_data{b}{g}]);
-        bar((1:length(table_data{b}{g}))+sum(k),table_data{b}{g},color{g},'barwidth',1,'edgecolor','none');
-        k(end+1)=length(table_data{b}{g});
-        fprintf(fid,['%% data, %s\n'],handles.grouplist{g});
-        fprintf(fid,'%g, ',table_data{b}{g});
-        fprintf(fid,'\n');
-      end
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
       h=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
@@ -2322,29 +2305,9 @@ for b=1:size(frames_labelled{1},2)  % behavior
       set(gca,'children',flipud(get(gca,'children')));
       k=round(cumsum(k)-k/2);
     case 4  % per fly, stern-style
-      m=0;
-      table_data{b}=cell(1,length(frames_labelled));
-      for g=1:length(frames_labelled)
-        table_data{b}{g}=cell(1,length(frames_labelled{g}(:,b)));
-        for e=1:length(frames_labelled{g}(:,b))
-          table_data{b}{g}{e}=100.*frames_labelled{g}{e,b}./frames_total{g}{e,b};
-          [ct,dp,dn]=calculate_ct_d(table_data{b}{g}{e},handles.prefs_centraltendency,handles.prefs_dispersion);
-          plot(m,ct,[color{g} 'o']);
-          plot([m m],[dp dn],[color{g} '-']);
-          plot(m+(1:length(table_data{b}{g}{e})),table_data{b}{g}{e},[color{g} '.']);
-          m=m+16+length(table_data{b}{g}{e});
-        end
-        [ct,dp,dn]=calculate_ct_d([table_data{b}{g}{:}],handles.prefs_centraltendency,handles.prefs_dispersion);
-        plot(m,ct,[color{g} 'o'],'markersize',9);
-        plot([m m],[dp dn],[color{g} '-'],'linewidth',3);
-        m=m+24;
-        k(end+1)=24+16*length(table_data{b}{g})+length([table_data{b}{g}{:}]);
-        fprintf(fid,['%% data, %s\n'],handles.grouplist{g});
-        fprintf(fid,'%g, ',[table_data{b}{g}{:}]);
-        fprintf(fid,'\n');
-      end
       k=round(cumsum(k)-k/2);
   end
+
   if(isempty(k))  k=1:length(frames_labelled);  end
   %title(tstr);
   ylabel(ystr);
@@ -2357,12 +2320,13 @@ for b=1:size(frames_labelled{1},2)  % behavior
     axis([vat(1) vat(2) 0 vat(4)]);
   end
   fprintf(fid,'\n');
+
 end
 
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
   tmp={'behavior'};
   for b=1:length(table_data)
-    tmp{4*b+1,1}=handles.behaviorlist{b};
+    tmp{4*b+1,1}=handles.behaviorlist{bb(b)};
     for g=1:length(table_data{b})
       if(b==1)  tmp{1,g+1}=handles.grouplist{g};  end
       [~,p,~,~]=kstest(table_data{b}{g});
@@ -2419,7 +2383,7 @@ function plot_behavior_timeseries(experiment_value,experiment_list,...
 
 cellfun(@(x) size(x{1},2),sexdata,'uniformoutput',false);
 behavior_cumulative=zeros(length(experiment_value),max([ans{:}]));
-bad=zeros(1,length(experiment_value));
+%bad=zeros(1,length(experiment_value));
 parfor e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_file));
   behavior_data2=[];
@@ -2427,11 +2391,11 @@ parfor e=1:length(experiment_value)
     behavior_data2=load(fullfile(experiment_list{experiment_value(e)},score_file2));
   end
 
-  if((length(behavior_data.allScores.scores)~=length(sexdata{experiment_value(e)})) || ...
-      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(sexdata{experiment_value(e)}))))
-    bad(e)=1;
-    continue;
-  end
+%  if((length(behavior_data.allScores.scores)~=length(sexdata{experiment_value(e)})) || ...
+%      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(sexdata{experiment_value(e)}))))
+%    bad(e)=1;
+%    continue;
+%  end
 
   parfor_tmp=zeros(1,length(behavior_cumulative(e,:)));
   k=0;
@@ -2479,17 +2443,17 @@ parfor e=1:length(experiment_value)
       ./conv(ones(1,length(behavior_cumulative(e,:))),ones(1,convolutionwidth),'same');
 end
 
-tmp=find(bad);
-if(length(tmp)>0)
-  behavior_cumulative=behavior_cumulative(~logical(bad),:);
-  msg{1}=['the following experiments had different numbers of individuals ' ...
-      'for the selected behavior and sex feature.  they will be ommitted from the analysis.'];
-  msg{2}='';
-  for i=1:length(tmp)
-    [~,msg{end+1},~]=fileparts(experiment_list{i});
-  end
-  uiwait(errordlg(msg));
-end
+%tmp=find(bad);
+%if(length(tmp)>0)
+%  behavior_cumulative=behavior_cumulative(~logical(bad),:);
+%  msg{1}=['the following experiments had different numbers of individuals ' ...
+%      'for the selected behavior and sex feature.  they will be ommitted from the analysis.'];
+%  msg{2}='';
+%  for i=1:length(tmp)
+%    [~,msg{end+1},~]=fileparts(experiment_list{i});
+%  end
+%  uiwait(errordlg(msg));
+%end
 
 plot_it(1:size(behavior_cumulative,2),100.*behavior_cumulative,style,centraltendency,dispersion,color,1,...
     fid,experiment_list(experiment_value));
@@ -2520,178 +2484,66 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-handles.type='behavior time series';
-tstr='';
-xstr='time (frames)';
-%ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
-ystr=char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-'));
-switch(handles.behaviorlogic)
-  case 2
-    ystr=[ystr ' AND '];
-  case 3
-    ystr=[ystr ' AND NOT '];
-  case 4
-    ystr=[ystr ' OR '];
-end
-if(handles.behaviorlogic>1)
-  ystr=[ystr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
-end
-ystr=[ystr ' (%)'];
-
-print_csv_help(fid,handles.type,tstr,xstr,ystr);
-
 guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 
-table_data={};  raw_table_data={};
-for g=gg
-  set(handles.Status,'string',...
-      ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-  drawnow;
-  if(~isempty(handles.experimentvalue{g}))
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
-        handles.scorefiles{handles.behaviorvalue},...
-        handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
-        individual,handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
-        handles.behaviortimeseries_style,handles.prefs_centraltendency,handles.prefs_dispersion,...
-        handles.prefs_convolutionwidth,handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+bb=handles.behaviorvalue;
+if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+
+handles.type='behavior time series';
+
+for b=bb
+
+  tstr='';
+  xstr='time (frames)';
+  %ylabel([char(strrep(handles.behaviorlist(handles.behaviorvalue),'_','-')) ' (%)']);
+  ystr=char(strrep(handles.behaviorlist(b),'_','-'));
+  switch(handles.behaviorlogic)
+    case 2
+      ystr=[ystr ' AND '];
+    case 3
+      ystr=[ystr ' AND NOT '];
+    case 4
+      ystr=[ystr ' OR '];
   end
+  if(handles.behaviorlogic>1)
+    ystr=[ystr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
+  end
+  ystr=[ystr ' (%)'];
+
+  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+
+  if(length(bb)>1)
+    ceil(sqrt(length(bb)));
+    subplot(ceil(length(bb)/ans),ans,b);
+  end
+  hold on;
+
+  %table_data={};  raw_table_data={};
+  for g=gg
+    set(handles.Status,'string',...
+        ['Processing ' num2str(length(handles.experimentvalue{g})) ...
+        ' experiment(s) in group ' handles.grouplist{g}]);
+    drawnow;
+    if(~isempty(handles.experimentvalue{g}))
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
+          handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
+          individual,handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
+          handles.behaviortimeseries_style,handles.prefs_centraltendency,handles.prefs_dispersion,...
+          handles.prefs_convolutionwidth,handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+    end
+  end
+
+  xlabel(xstr);
+  ylabel(ystr);
+  axis tight;  zoom reset;
+
 end
 
 fclose(fid);
 
-xlabel(xstr);
-ylabel(ystr);
-axis tight;  zoom reset;
-
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
-
-%tmp={};
-%for r=1:size(eventdata.Indices,1)
-%  if((length(experiment_value)>0) && (length(experiment_value2)>0))
-%    b=ceil(eventdata.Indices(r,1)/2);
-%    if(mod(eventdata.Indices(r,1),2))
-%      experiment_value0=experiment_value;
-%      experiment_list0=experiment_list;
-%      sexdata=handles.sexdata(1:length(experiment_list));
-%      color='r';
-%    else
-%      experiment_value0=experiment_value2;
-%      experiment_list0=experiment_list2;
-%      sexdata=handles.sexdata((length(experiment_list)+1):end);
-%      color='b';
-%    end
-%  elseif(length(experiment_value)>0)
-%    b=eventdata.Indices(r,1);
-%    experiment_value0=experiment_value;
-%    experiment_list0=experiment_list;
-%      sexdata=handles.sexdata(1:length(experiment_list));
-%    color='r';
-%  else
-%    b=eventdata.Indices(r,1);
-%    experiment_value0=experiment_value2;
-%    experiment_list0=experiment_list2;
-%    sexdata=handles.sexdata((length(experiment_list)+1):end);
-%    color='b';
-%  end
-%
-%  if(eventdata.Indices(r,2)>4)
-%    e=1;  n=0;
-%    while((e<=length(experiment_value0)) && (n<eventdata.Indices(r,2)-4))
-%      behavior_data=load(fullfile(experiment_list0{experiment_value0(e)},...
-%          [behavior_list{b} '.mat']));
-%      e=e+1;
-%      n=n+length(behavior_data.allScores.t0s);
-%    end
-%    if(n<eventdata.Indices(r,2)-4)
-%      set(handles.Status,'string','Ready.');
-%      return;
-%    end
-%    ee=e-1;
-%    ii=eventdata.Indices(r,2)-4-(n-length(behavior_data.allScores.t0s));
-%  else
-%    ee=1:length(experiment_value0);
-%    ii=nan;
-%  end
-%
-%  handles.behaviorvalue=b;
-%  set(handles.BehaviorList,'Value',handles.behaviorvalue);
-%  handles.individualvalue=eventdata.Indices(r,2)-1;
-%  if(((color=='r') && ...
-%      (handles.individualvalue>(3+sum(handles.individuals(1:length(handles.experimentlist)))))) || ...
-%     ((color=='b') && ...
-%      (handles.individualvalue>(3+sum(handles.individuals((end-length(handles.experimentlist2)+1):end))))))
-%    return;
-%  end
-%  if((color=='b') && (handles.individualvalue>3))
-%    handles.individualvalue=handles.individualvalue+sum(handles.individuals(1:length(handles.experimentlist)));
-%  end
-%  set(handles.IndividualList,'Value',handles.individualvalue);
-%
-%  cellfun(@(x) size(x{1},2),sexdata,'uniformoutput',false);
-%  behavior_cumulative=zeros(length(experiment_value0),max([ans{:}]));
-%  k=1;
-%  parfor e=ee
-%    behavior_data=load(fullfile(experiment_list0{experiment_value0(e)},...
-%        [behavior_list{b} '.mat']));
-%    parfor_tmp=zeros(1,length(behavior_cumulative(e,:)));
-%    for i=1:length(behavior_data.allScores.t0s)   % individuals
-%      if((eventdata.Indices(r,2)>4)&&(i~=ii))  continue;  end
-%      partition_idx=false(1,length(sexdata{experiment_value0(e)}{i}));
-%      for j=1:length(behavior_data.allScores.t0s{i})  % bout
-%        partition_idx((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
-%            -behavior_data.allScores.tStart(i)+1)=true;
-%      end
-%      switch(eventdata.Indices(r,2))
-%        case(3)
-%          partition_idx = partition_idx & sexdata{e}{i}(1:length(partition_idx));
-%        case(4)
-%          partition_idx = partition_idx & (~sexdata{e}{i}(1:length(partition_idx)));
-%      end
-%      idx=find(partition_idx);
-%      parfor_tmp(idx)=parfor_tmp(idx)+1;
-%      k=k+1;
-%    end
-%    behavior_cumulative(e,:)=parfor_tmp;
-%  end
-%  behavior_cumulative=sum(behavior_cumulative,1)./(k-1).*100;
-%  behavior_cumulative=conv(behavior_cumulative,...
-%      ones(1,handles.prefs_convolutionwidth)./handles.prefs_convolutionwidth,'same');
-%
-%  plot(behavior_cumulative,[color '-']);
-%
-%  if(eventdata.Indices(r,2)<4)
-%    data=handles.raw_table_data{eventdata.Indices(r,1),eventdata.Indices(r,2)};
-%    tmp{end+1,1}=sprintf('%10.3g ',mean(data));
-%    tmp{end  ,2}=sprintf('%10.3g ',std(data));
-%    tmp{end  ,3}=sprintf('%10.3g ',std(data)./sqrt(length(data)));
-%    tmp{end  ,4}=sprintf('%10.3g ',median(data));
-%    tmp{end  ,5}=sprintf('%10.3g ',prctile(data,25));
-%    tmp{end  ,6}=sprintf('%10.3g ',prctile(data,75));
-%    tmp{end  ,7}=sprintf('%10.3g ',prctile(data,5));
-%    tmp{end  ,8}=sprintf('%10.3g ',prctile(data,95));
-%  end
-%end
-%
-%xlabel('time (frames)');
-%ylabel([char(strrep(behavior_list{b},'_','-')) ' (%)']);
-%axis tight;
-%
-%{'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%' '75%' '5%' '95%'};
-%tmp2(1,:)=sprintf('%10s ',ans{:});
-%for i=1:size(tmp,1)
-%  tmp2(i+1,:)=[tmp{i,:}];
-%end
-%v=axis;
-%h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
-%if(handles.stats)
-%  set(h,'visible','on');
-%else
-%  set(h,'visible','off');
-%end
-%
-%guidata(hObject,handles);
 
 
 % --- 
@@ -4139,3 +3991,30 @@ for g=1:length(handles.grouplist)
 end
 
 h=msgbox(tmp,'Parameters','replace');
+
+
+
+%BOUT STATISTICS -- not converted to multivariate yet
+%
+%Create a table of bout lengths (BL) and inter-bout lengths (IBL) using the
+%"Bout Stats" button.  As for behavior stats, each row is a behavior;  the
+%columns break it down by sex and individual;  the experiment groups are
+%striped;  logical operators can be applied; and the Prefs contextual menu
+%controls statistics.
+%
+%Selecting a cell plots a histogram, normalized to unit area, of bout and
+%inter-bout lengths.  The "LogY" and "Stats" buttons can be used to scale
+%the axis and overlay summary statistics, respectively.  Multiple selected
+%cells are overlayed.
+%
+%
+%SOCIAL STATISTICS -- not converted to multivariate yet
+%
+%Create a table of the closest individual using the "Social Stats" button.
+%Choose which behavior to analysis using the pull-down menu in the Behavior
+%panel, and which metric to use for closest using the pull-down menu in the
+%Feature panel.  In the resulting table, each row is an individual, and the
+%columns show the mode and percentage of frames of the closest individual
+%for each bout, as well as the overall mode of the per-bout modes.
+%
+%Selecting a cell in the table plots a histogram of the closest indidividual.
