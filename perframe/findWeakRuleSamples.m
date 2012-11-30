@@ -12,25 +12,37 @@ binNo = ones(1,numDim);
 bestDir = ones(1,numDim);
 
 numS = params.numSample;
-curSel = zeros(1,numS);
-cumD = cumsum(dist);
-randPts = sort(rand(numS,1),'ascend');
-count = 1; ndx = 1;
-while count<=numS
-  if ndx > numel(cumD)
-    curSel(count) = numel(cumD);
-    count = count+1;
-  else
-    if(cumD(ndx)>=randPts(count))
-      curSel(count) = ndx;
-      count = count+1;
-    else
-      ndx = ndx+1;
-    end
-  end
-end
 
-curSel(curSel==0) = size(data,1);
+% KB: copied from randsample
+dist = dist / sum(dist);
+edges = min([0 cumsum(dist')],1); % protect against accumulated round-off
+edges(end) = 1; % get the upper edge exact
+[~,curSel] = histc(rand(numS,1),edges);
+
+
+% OLD WAY OF DOING THIS IS SLOWER:
+% curSel = zeros(1,numS);
+% cumD = cumsum(dist);
+% randPts = sort(rand(numS,1),'ascend');
+% count = 1; ndx = 1;
+% while count<=numS
+%   if ndx > numel(cumD)
+%     curSel(count) = numel(cumD);
+%     count = count+1;
+%   else
+%     if(cumD(ndx)>=randPts(count))
+%       curSel(count) = ndx;
+%       count = count+1;
+%     else
+%       ndx = ndx+1;
+%     end
+%   end
+% end
+
+if any(curSel==0),
+  warning('Sanity check: some samples are not being chosen');
+  curSel(curSel==0) = size(data,1);
+end
 
 curBins = bins(:,curSel);
 curLabels = labels(curSel);
