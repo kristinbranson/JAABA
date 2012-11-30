@@ -569,6 +569,7 @@ end
 % ---
 function ret_val=check_for_diff_and_return_intersection(arg)
 
+if(length(arg)==0)  ret_val=[];  return;  end
 if(length(arg)==1)  ret_val=arg{1};  return;  end
 
 flatten=[arg{:}];
