@@ -73,10 +73,7 @@ strong.regular-font {
 <p>The current set of manual labels for all videos can be saved by selecting the menu item 
 <b>File -> Save Labels</b>. The labels for each video get saved in a file in its corresponding
 <a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of 
-this file is the same for all experiments, and is specified in the configuration file
-(value of the <b>file.labelfilename</b> parameter). We will refer to this labels file in each
-experiment directory as the <i>default location</i>. The <b>file.labelfilename</b> parameter
-is set to <b>labeled[ProjectName].mat</b> by default.
+this file is the same for all experiments, and is specified by the <b>Label File Name</b> during project setup. We will refer to this labels file in each experiment directory as the <i>default location</i>.
 </p>
 
 
@@ -116,7 +113,7 @@ experiment, or all the experiments can be classified by selecting one of the opt
 the <b>Classifier -> Classify</b> menu, see 
 <a href="Training.html#Predictions">Examining the Classifier's Predictions</a> 
 for details. The classifier's predictions and raw output scores can be saved to a file for several 
-of the options under this menu.
+of the options under this menu. The saved predictions can also be used as <b>input</b> for other projects.
 <ul>
 <li><b>Current animal</b>: Predicts the behavior for all frames for the current animal and allows the 
 user to view these results within the current JAABA session, but does <b>not</b> save the predictions 
@@ -127,8 +124,8 @@ but does <b>not</b> save the predictions to file. </li>
 <li><b>Classifier -> Classify -> Current Experiment -> Save to default</b>: Classifies all animals for the
 current experiment/video and saves to the <b>scores file</b> within the corresponding 
 <a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of the 
-scores file within the experiment directory is the same for all experiments, and is specified in
-the project configuration parameter <b>file.scorefilename</b>.</li> 
+scores file within the experiment directory is the same for all experiments, and is specified during the
+project setup as <b>Score/Output File Name</b>.</li> 
 <li><b>Classifier -> Classify -> Current Experiment -> Save to different</b>: Classifies all animals for the
 current experiment/video, then prompts the user for the location to save the scores to, and saves to this file.</li>
 <b>Classifier -> Classify -> All Experiments -> Don't Save</b>: Classifies all animals for all experiments/videos, 
@@ -137,8 +134,8 @@ predictions to file. </li>
 <li><b>Classifier -> Classify -> All Experiments -> Save to default</b>: Classifies all animals for 
 all experiments/videos, then saves to the <b>scores file</b> within each corresponding 
 <a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of the 
-scores file within the experiment directory is the same for all experiments, and is specified in
-the project configuration parameter <b>file.scorefilename</b>.</li> 
+scores file within the experiment directory is the same for all experiments, and is specified during
+the project setup by <b>Score/Output File Name</b>.</li> 
 <li><b>Classifier -> Classify -> All Experiments -> Save to different</b>: Classifies all animals for 
 all experiments/videos, then prompts the user for a filename that will be used for all experiments. The
 classifier's predictions for each experment are stored into this selected filename within its 
@@ -159,15 +156,15 @@ on the left. Predictions can be loaded by selecting any of the options under the
 <li> <b>File -> Load Scores -> For current experiment from default location</b>: Loads the scores for the current
 experiment from the default scores file within its corresponding 
 <a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of the 
-scores file within the experiment directory is the same for all experiments, and is specified in
-the project configuration parameter <b>file.scorefilename</b></li>
+scores file within the experiment directory is the same for all experiments, and is specified 
+during project setup as <b>Score/Output File Name</b>.</li> 
 <li> <b>File -> Load Scores -> For current experiment from different location</b>: Prompts the user
 for a file location, and loads the scores for the current experiment from that file.</li>
 <li> <b>File -> Load Scores -> For all experiments from default location</b>: Loads the scores for all
 experiments from the default scores file within each corresponding 
 <a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of the 
-scores file within the experiment directory is the same for all experiments, and is specified in
-the project configuration parameter <b>file.scorefilename</b></li>
+scores file within the experiment directory is the same for all experiments, and is specified
+during project setup as <b>Score/Output File Name</b>.</li> 
 </ul>
 Options not mentioned above should not be used, and are there for backwards compatability purposes. 
 
