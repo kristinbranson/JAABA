@@ -2846,12 +2846,13 @@ end
       if ~exist(scoresFileIn,'file'),
         success = false; 
         msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
+        return;
       end
       Q = load(scoresFileIn);
       if Q.timestamp ~= ts, % check the timestamps match the classifier's timestamp.
         success = false; 
-        msg = sprintf(['The scores file %s were generated using a classifier' ...
-          'that was saved on %s while the classifier chosen was saved on %s'],...
+        msg = sprintf(['The scores file %s was generated using a classifier' ...
+          ' that was saved on %s while the classifier chosen was saved on %s'],...
           scoresFileIn,datestr(Q.timestamp),datestr(ts));
       end
       OUT = struct();
