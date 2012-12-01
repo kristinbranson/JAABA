@@ -6421,7 +6421,7 @@ end
           
           % assumes that if have any loaded score for an experiment we
           % have scores for all the flies and for every frame.
-          if isempty(obj.predictdata.exp) && ~nnz(obj.predictdata.exp ==expi)
+          if ~any(obj.predictdata.loaded_valid) 
             [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
             if ~success1,
               warndlg(msg);
@@ -6475,7 +6475,7 @@ end
               scores = obj.predictdata.cur(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
-              gt_scores = [gt_scores; scores(ndxInLoaded)];
+              gt_scores = [gt_scores scores(ndxInLoaded)];
             end
           end
           
