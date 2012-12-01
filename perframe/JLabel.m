@@ -603,7 +603,7 @@ if refresh_timeline_error,
   'YData',zeros(size(handles.guidata.labels_plot.error_xs))+1.5);
   %set(handles.himage_timeline_error,'CData',handles.guidata.labels_plot.error_im);
 end
-if refresh_GT_suggestion,
+if refresh_GT_suggestion && ~isempty(fieldnames(handles.guidata.labels_plot)),
   set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
 end
