@@ -54,8 +54,6 @@ strong.regular-font {
 <h2><a id="Contents">Contents</a></h2>
 <ul>
 <li><a href="#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
-<li><a href="#ProjectConfigurationParameters">Project Parameters</a></li>
-<li> <a href="#ExampleFiles">Example Files</a></li>
 </ul>
 
 <hr class="h2-divider">
@@ -63,18 +61,62 @@ strong.regular-font {
 <h2><a id="ProjectConfigurationDialog">Project Configuration Dialog</a></h2>
 
 <p>For <b>each behavior</b>, you need a <b>separate</b> JAABA project. To add a new project,
-	click on the '+' sign below the projects list in the initial JAABA edit
+	click on the <i>New Project</i> button in the initial JAABA edit
 	project and experiments interface. </p>
 	
 	<center><img src="images/EditFilesInitial.png"></center>
+	<center><i>Screenshot of Edit Projects and Files interface</i></center>
 	
-<p>	This will pop up a dialog box, where you
-	can enter  the name of the project and the configuration file to store the
-	project settings. The projects configurations are stored in xml format. An
-	example xml project configuration file at the bottom of the page. Make sure that the name does not contain any special characters.</p> 
+<p>	This will open a Project Setup window. In this window, select the animal type for the project using the <i>Target Type</i> drop down menu and specify the name of the behavior for the project and the files that will be used by JAABA for this project. 
+	</p> 
+	<center><img src="images/ProjectSetup_filled.png"></center>
+	<center><i>Screenshot of the Project Setup interface</i></center>
 
-	<center><img src="images/NewProject.png"></center>
+<table border=1 style="margin-bottom:15px;margin-top:35px">
+<tr> <th>Field Name</th><th>Typical Value</th><th>Details</th> </tr>
+<tr> <td>Behavior Name</td><td >Chase</td><td>Name of the behavior</td> </tr>
 
+<tr> <td>Movie File Name</td><td >movie.ufmf</td><td>Name of the movie
+file. For each experiment, JAABA reads and shows this file from the experiment directory. </td> </tr>
+
+<tr> <td>file.trxfilename</td><td >trx.mat</td><td>Name of the mat file
+in which the tracks are stored. For each experiment, JAABA reads this file to find the animals trajectories. </td> </tr>
+
+<tr> <td>Label File Name</td><td
+>labeledChases.mat</td><td>File within the experiment directory
+where the labels for this project/behavior will be stored.</td> </tr>
+
+<tr> <td>Ground Truth Label File Name</td><td
+>labeledChases_gt.mat</td><td>File within the experiment directory
+where the <a href="GroundTruthing.html">ground truthing</a> labels for this project will be stored.</td> </tr>
+
+<tr> <td>Output/Score File Name</td><td
+>scoresChase.mat</td><td>File within the experiment directory
+where the output predictions for this project  will be stored.</td> </tr>
+
+</table>
+	<center><i>Details of the fields in the Project Setup interface</i></center>
+
+
+<p> Click <i>Done</i> to save the project and close the window. JAABA will ask for a location to save the project as a <i>mat</i> file. Once you create a project, you can continue working on this project, use <i>Select Project</i> button in the Edit Project and Files window to select this project file. Also, you can edit an existing project using <i>Edit Project</i> button after you select the project.  When creating a new project, you can copy the settings from an existing project using the <i>Copy Settings From </i> button.</p>
+
+<p> In JAABA, you can use output of previously trained behavior detectors as inputs for the current behavior. Use the <i>Add</i> and <i>Remove</i> buttons to specify the list of <a href="SavingAndLoading.html"/>saved classifiers</a> whose output you want to use as inputs. Note that the <a href=SavingAndLoading.html#Predictions>scores/predictions</a> for the classifiers should already be generated for all the experiments that you want to use for this project.
+
+</p>
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</html>
+
+<!--
 <p>The project configuration in the form of xml entries are shown in a table on the
 right of the project list which can also be edited. The left column of the table
 lists all the project parameters and right side gives the parameters value. The
@@ -150,16 +192,6 @@ the center of the arena</td> </tr>
 <tr> <td>perframe.landmark_params.arena_radius_mm</td><td>60</td><td> Radius of the arena</td> </tr>
 
 </table>
-
-<p> When creating a new project, you can copy parameters of an existing
-project. In the popup dialog that asks for the new project's name and the
-location of the project's configuration file, you can point to the location of
-the configuration file of the existing project in the "Copy Configuration
-settings from" field.
-</p>
-
-<hr class="h2-divider">
-
 <h2> <a id="ExampleFiles">Example Files</a></h2>
 
 Example project configuration file:
@@ -188,16 +220,7 @@ Example project configuration file:
    &lt/perframe&gt
 
 &lt/params&gt
-
 </pre>
-</body>
-
-<footer>
-<hr class="h1-divider">
-<center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
-</center>
-</footer>
 
 
-</html>
+-->
