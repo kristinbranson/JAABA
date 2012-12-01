@@ -6611,4 +6611,8 @@ function menu_help_doc_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-web('../docs/index.html');
+if isdeployed,
+    web(fullfile(pwd,'docs/index.html'),'-browser');
+else
+    web('../docs/index.html','-browser');
+end
