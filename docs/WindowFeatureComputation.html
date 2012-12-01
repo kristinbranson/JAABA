@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+<!--- OLD FORMATTING
 <style type="text/css">
 table {
 background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
@@ -18,162 +20,237 @@ padding:3px; background-color:yellow;color:black;
 
 }
 </style>
+--->
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
+
 </head>
 
 <body>
-<center>
-<h1> Window Feature Computation </h1>
-</center>
-<h3> Introduction </h3>
+<h1> <a href="index.html">JAABA</a> Features </h1>
 
-<p>Per-frame features computed from trajectories give information about animal's
-state in just the current frame. To classify behaviors, it also is necessary to
-provide more information about what the animal was doing in the frames before
-and after the current frame. For example, to detect walks, the mean value of speed around the
-current frame and the variation of speed around the current frame is more  informatve
-than just the speed in the current frame. 
+<b>TODO: describe per-frame features</b>
+
+<p><b>Per-frame features</b> are computed from the input trajectories, and give information 
+about the animal's state in the current frame. To classify behaviors, it also is necessary to
+provide contextual information about what the animal was doing in the frames before
+and after the current frame. For example, to detect whether an animal is walking, the speed in
+just the current frame is informative, but information about the speed in frames around the
+current frame, such as the mean or standard deviation of the speed in a <b>window of frames around
+the current frame</b>, can greatly improve performance. On top of the per-frame features, JAABA 
+computes a large, fast, general-purpose set of <b>window features</b> to include this context.</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Contents">Contents</a></h2>
+<ul>
+<li><a href="#Types">Window Feature Types</a></li>
+<li><a href="#Transformations">Window Feature Transformations</a></li>
+<li><a href="#Templates">Window Feature Templates</a></li>
+<li><a href="#Files">Window Feature Computation Files</a></li>
+<li><a href="#SelectFeatures">Select Features</a></li>
+<ul>
+<li><a href="#BasicMode">Basic Mode</a></li>
+<li><a href="#AdvancedMode">Advanced Mode</a></li>
+<li><a href="#Buttons">Select Features Buttons</a></li>
+</ul>
+<li><a href="#Examples">Example Files</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="Types">Window Feature Types</a></h2>
+
+<p>Each window feature is computed from a window of frames for a single per-frame feature. At each frame, for each 
+per-frame feature, we compute around 100-200 window features (depending on the per-frame feature and the JAABA 
+settings). A window feature is defined by <b>which per-frame feature</b> it operates on, 
+<b>which window of frames</b> it operates on (relative to the current frame), and 
+<b>what function</b> it computes from this window of frames. Each window feature is thus defined by
+the following parameters:
+<ul>
+<li> <b>Type</b>: The type of computation that is performed on the window of data, for example, mean or
+standard deviation. The full list is given below.</li>
+<li> <b>Transformation</b>: It is often beneficial to perform some simple transformations on the data, either
+directly on the per-frame feature before computing the window feature, or after. For example, the <code>dtheta</code>
+per-frame feature is the difference in the animal's orientation between the next and previous frames. The sign of 
+this per-frame feature is usually irrelevant, as it corresponds to whether the animal is turning left or right. 
+Thus, we may want to use the <b>absolute value</b> transformation on this per-frame feature to symmetrize the 
+feature. If we are computing e.g. the mean of the window, there will be less noise if we compute the absolute
+value <b>after</b> computing the mean. Depending on the type of window feature, the transformations may be
+computed before or after the window computation. A list of the types of window feature transformations is given
+<a href="#Transformations">below</a>. 
+<li> <b>Radius</b>: The radius of the window in frames. The total size
+of the window is <b>2*radius+1</b>, thus a radius of 0 corresponds to just a single frame.</li>
+<li> <b>Offset</b>: The where the window is in time, relative to the current frame. An offset of 0 means
+that the window is centered on the current frame. An offset of -1 means that the window ends on the
+current frame, that is, it is offset by <i>-radius</i> frames. An offset of 1 means the window starts at 
+the current frame, that is, it is offset by <i>radius</i> frames. In general, the window for frame <i>t</i> is 
+centered at <i>t + offset*radius</i>.</li>
+<li> <b>Other parameters</b>: Depending on the type of window feature, other parameters may be required. These
+are described in the table below. 
+</ul>
 </p>
 
-<h3> Window Computation Types </h3>
-
-<p>JAABA computes window features from per-frame features to provide temporal
-context.For each per-frame feature, we compute around 100-200 window features. Each window feature has a type, described below, a radius, and an
-offset. The radius describes the size of the window, in frames. The total size
-of the window is 2*radius+1. The offset describes where the window is in
-time, relative to the current frame. An offset of 0 means that the window is
-centered on the current frame. An offset of -1 means that the window ends on the
-current frame. An offset of 1 means the window starts at the current frame. In
-general, the window for frame t is centered at t + offset*radius.
-</p>
-
-<p> The table below lists the type of window computations that are used in
-JAABA</p>
-
-<table border="1">
+<p> The table below lists the type of window computations that are used in JAABA:
+<table border="1" style="margin-top:2em">
 <tr>
 <th>Type </th><th> Description </th></tr>
-<tr><td>      mean   </td><td>  Mean of the per-frame feature within the window
+<tr><td><b>mean</b></td><td>  Mean of the per-frame feature within the window.
 </td></tr> 
-<tr><td>     min   </td><td>  Minimum of the per-frame feature within the window
+<tr><td><b>min</b></td><td>  Minimum of the per-frame feature within the window.
 </td></tr>
-<tr><td>   	max   </td><td>   Maximum of the per-frame feature within the window
+<tr><td><b>max</b></td><td>   Maximum of the per-frame feature within the window.
 </td></tr>
-<tr><td>   	std  </td><td>    Standard deviation of the per-frame feature within the window
+<tr><td><b>std</b></td><td>    Standard deviation of the per-frame feature within the window.
 </td></tr>
-<tr><td>hist </td><td>  This window feature requires as a parameter the edges of the
-histogram bins for the given per-frame feature. For each bin of the histogram
-(and each radius and offset) you will get a new window feature, which is the
-fraction of per-frame data within the given window which falls within the given
-bin. </td></tr>
-<tr><td>harmonic </td><td> The convolution of the data in the current window with a cosine
-function. This feature requires an extra parameter "num_harmonic" specifying the number of "bumps"
-within the filter (half the number of periods) </td></tr>
-<tr><td>   change </td><td>  The difference between the average value of the given per-frame
+<tr><td><b>hist</b></td><td>  This window feature requires as a parameter the edges of the
+histogram bins for the given per-frame feature. This actually corresponds to a group of window
+features, as, for each bin of the histogram, there is a separate window feature, which is the
+fraction of per-frame data within the current window which falls within the given bin. </td></tr>
+<tr><td><b>harmonic</b></td><td> Convolution of the data in the current window with a cosine
+function. This feature requires an extra parameter <b>num_harmonic</b> specifying the number of "bumps"
+within the filter (half the number of periods). </td></tr>
+<tr><td><b>change</b></td><td>  Difference between the average value of the given per-frame
 feature in a small window at the end and the average value of a given per-frame
 feature in a small window at the start of the window. This feature requires an
-extra parameter "change_window_radii"specifying  the radius of the smaller window</td></tr>
-<tr><td>diff_neighbor_mean </td><td> The difference between the current frame's per-frame
-feature and the mean of the per-frame feature in the given window around the
-current frame</td></tr>
-<tr><td>diff_neighbor_min </td><td> The difference between the current frame's per-frame
-feature and the minimum of the per-frame feature in the given window around the
-current frame </td></tr>
-<tr><td>diff_neighbor_max </td><td> The difference between the current frame's per-frame
-feature and the maximum of the per-frame feature in the given window around the
-current frame.  </td></tr>
-<tr><td>zscore_neighbors </td><td> The current frame's per-frame feature normalized by the
-mean and standard deviation of the per-frame feature in the given window around
-the current frame (subtract the mean then divide by the standard deviation)
-	</td></tr>
+extra parameter <b>change_window_radii</b> specifying the radius of the smaller window.</td></tr>
+<tr><td><b>diff_neighbor_mean</b></td><td> Difference between the current frame's per-frame
+feature and the mean of the per-frame feature in the window.</td></tr>
+<tr><td><b>diff_neighbor_min</b></td><td> Difference between the current frame's per-frame
+feature and the minimum of the per-frame feature in the window.</td></tr>
+<tr><td><b>diff_neighbor_max</b></td><td> Difference between the current frame's per-frame
+feature and the maximum of the per-frame feature in the window.</td></tr>
+<tr><td><b>zscore_neighbors</b></td><td> Current frame's per-frame feature normalized by the
+mean and standard deviation of the per-frame feature in the window (subtract the mean then 
+divide by the standard deviation).</td></tr>
 </table>
 
-<h3> Transformations on Window Features</h3>
+<hr class="h2-divider">
+
+<h2><a id="Transformations">Window Feature Transformations</a></h2>
 <p>
-For some per-frame features, we also transform the features by taking the
-absolute value, relative value and/or flipping all the values by the sign of the
-current per-frame value. Absolute-transformed features are used for per-frame
+For some per-frame features, we transform the features in some subset of the following ways:
+<ul>
+<li><b>Absolute value</b>: Depending on the window feature type,
+we either take the absolute value of the per-frame feature before the window feature computation
+or the abolute value of the result of the window feature computation. Absolute-transformed 
+features are used for per-frame
 features like change in orientation where the sign, indicating turning left or
-turning right, is often not discriminatory. Flip-transformed features are used
-in similar cases to absolute-transformed features, but allow the sign to be
-preserved within a window. Relative-transformed features are used to normalize
-features by per-animal statistics. For example, some populations of or
-individual animals will walk slower than the ÒnormalÓ animal. In such cases, the
-speed at which the animal is perceived to walk or chase is much slower compared
-to ÒnormalÓ animals. Converting feature values into relative values enables the
-classifier to detect behaviors for such cases, and generalize better to types of
-animals outside of the training set. We transform a feature value into a
-relative value by finding the fraction of feature values over the whole
+turning right, is often not discriminatory. 
+<li><b>Relative value</b>: Normalize the per-frame feature by the distribution of that
+per-frame feature over <b>the animal's entire trajectory</b>. This is useful, for example, 
+if walking speed is consistent for a given animal or subgroup of animals, but varies
+greatly between animals or groups of animals we want to apply the classifier to. Consider, for
+example, locomotion-impaired animals. In such cases, the speed at which the animal is perceived 
+to walk or chase is much slower compared to "normal" animals. Converting feature values into 
+relative values enables the classifier to detect behaviors for such cases, and generalize better 
+to types of animals outside of the training set. We transform a feature value into a
+relative value by finding the <b>percent of feature values</b> over the whole
 trajectory that are smaller than the current value. For example, if the feature
 value of the current frame is the median then its relative transformed value is
-50. If 10\% of the features values over the trajectory are smaller than the
+50. If 10% of the features values over the animal's trajectory are smaller than the
 current value then the relative value is 10. In other words, the relative value
-of a feature value is its percentile value within its trajectory. 
+of a feature value is its <b>percentile value within its trajectory</b>. 
+<li><b>Flipped value</b>: Flip all the per-frame feature values by the sign of the per-frame feature
+in the current frame. Flip-transformed features are used
+in similar cases to absolute-transformed features, but allow the sign to be
+preserved within a window. </li>
+</ul>
 </p>
 <p>
 For the absolute value and "flip" transformations, we do this by either taking the transformation of the per-frame data first, then computing the window function on the transformed data, or we do this by computing the window function first, then computing the transformation on the output of the window data. Whether we do the transformation first or not depends on the window feature.
 </p>
 <p>
-We do the transformation first for min, max, hist, diff_neighbor_min, diff_neighbor_max. We do the transformation after for mean, prctile, change, harmonic, diff_neighbor_mean, zscore_neighbors. We do not do the transformation for std. For the relative transformation, we always do the transformation first. 
-</p>
+We do the transformation first for the <code>min</code>, <code>max</code>, <code>hist</code>, 
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code> window feature types. We do the transformation 
+after for the <code>mean</code>, <code>prctile</code>, <code>change</code>, <code>harmonic</code>, 
+<code>diff_neighbor_mean</code>, and <code>zscore_neighbors</code> window feature types. We do 
+<b>not</b> do the transformation for the <code>std</code> feature types.</p>
+<p>For the relative transformation, we always do the transformation first.</p>
 
-<h3> Window Feature Computation Templates </h3>
+<hr class="h2-divider">
+
+<h2><a id="Templates">Window Feature Templates</a></h2>
 
 <p>
-For each window computation type, we have to specify the sizes of the windows,
-the position of these windows relative to the current frame, transformation
-types etc. The number of
-parameters add up and the  parameters that have to be specified for each
-per-frame feature is quite large. To help the users in specifying the parameters
-JAABA gives the ability to define templates for feature computation. 
+For each per-frame feature, we need to specify a large number of parameters to define which window features
+should be computed from it. We found that we almost always set these features in one of a few ways, and thus 
+created templates for the parameters. Thus, for each per-frame feature, we specify a template as to which types of 
+window features to compute. 
 </p>
 
-The table below specifies the templates that we use.
+<p>The table below specifies the templates that we use.
 <table border="1">
-<tr> <th> Template Name </th><th> Windows Computations Used</th><th> Windows
-</th><th> Offsets </th><th> Extra Parameters </th>
+<tr> <th style="width:10%">Template Name</th>
+<th style="width:35%">Window Feature Types Used</th>
+<th style="width:10%">Window Radii</th>
+<th style="width:10%">Window Offsets</th>
+<th style="width:35%">Extra Parameters</th>
 </tr>
-<tr> <td> Normal </td><td> mean, min, max, change, std,
-	harmonic,diff_neighbor_mean,
-	diff_neighbor_min,diff_neighbor_max,zscore_neightbors</td>
-	<td>  1, <i>wsize</i>/2, <i>wsize</i> </td>
-	<td> 0, -1,1 </td>
-	<td> For mean: window radii are 0, <i>wsize</i>/2 and <i>wsize</i> <br>
-		 For change: the change window radii are 1 and 3 <br>
-		 For harmonic: the number of harmonics (or bumps) is 3 
-    </td>
+<tr> <td> <b>Normal</b></td>
+<td> <code>mean</code>, <code>min</code>, <code>max</code>, 
+<code>change</code>, <code>std</code>, <code>harmonic</code>, <code>diff_neighbor_mean</code>,
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code>, <code>zscore_neighbors</code></td>
+<td>  1, <code>wradius</code>/2, <code>wradius</code> </td>
+<td> 0, -1,1 </td>
+<td> <ul>
+<li><code>mean</code>: Window radii are instead 0, <code>wradius</code>/2 and <code>wradius</code></li>
+<li><code>change</code>: The change small window radii are 1 and 3</code></li>
+<li><code>harmonic</code>: The number of harmonics ("bumps") is 3</code></li> 
+</ul></td>
 </tr>
-<tr> <td> More </td><td> mean, min, max, change, hist, std,
-	harmonic,diff_neighbor_mean,
-	diff_neighbor_min,diff_neighbor_max,zscore_neightbors</td>
-	<td>  1, <i>wsize</i>/2, <i>wsize</i> </td>
-	<td> 0, -1,1 </td>
-	<td> For mean: window radii are 0, <i>wsize</i>/2 and <i>wsize</i> <br>
-		 For hist: the number of bins is 5 <br>
-		 For change: the change window radii are 1 and 3 <br>
-		 For harmonic: the number of harmonics (or bumps) is 1,2,3,4 and 5
-    </td>
+<tr> <td> More </td>
+<td> <b><code>hist</code></b>, <code>mean</code>, <code>min</code>, <code>max</code>, 
+<code>change</code>, <code>std</code>, <code>harmonic</code>, <code>diff_neighbor_mean</code>,
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code>, <code>zscore_neighbors</code></td>
+<td>  1, <code>wradius</code>/2, <code>wradius</code> </td>
+<td> 0, -1,1 </td>
+<td> <ul>
+<li><code>hist</code>: Bin edges are chosen so that the number of bins is 5</li>
+<li><code>mean</code>: Window radii are instead 0, <code>wradius</code>/2 and <code>wradius</code></li>
+<li><code>change</code>: The change small window radii are 1 and 3</code></li>
+<li><code>harmonic</code>: The number of harmonics ("bumps") is 1,2,3,4, and 5</code></li> 
+</ul></td>
 </tr>
-<tr> <td> Less </td><td> mean, min, max, change, std,
-	harmonic,diff_neighbor_mean,
-	diff_neighbor_min,diff_neighbor_max,zscore_neighbors</td>
-	<td>  1, <i>wsize</i> </td>
-	<td> 0, -1,1 </td>
-	<td> For mean: window radii are 0 and <i>wsize</i> <br>
-		 For change: the change window radii are 1 and 3 <br>
-		 For harmonic: the number of harmonics (or bumps) is 1,2 and 3
-    </td>
+<tr> <td> Less </td>
+<td> <code>mean</code>, <code>min</code>, <code>max</code>, 
+<code>change</code>, <code>std</code>, <code>harmonic</code>, <code>diff_neighbor_mean</code>,
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code>, <code>zscore_neighbors</code></td>
+<td>  1, <code>wradius</code> </td>
+<td> 0, -1,1 </td>
+<td> <ul>
+<li><code>mean</code>: Window radii are instead 0 and <code>wradius</code></li>
+<li><code>change</code>: The change small window radii are 1 and 3</code></li>
+<li><code>harmonic</code>: The number of harmonics ("bumps") is 3</code></li> 
+</ul></td>
 </tr>
-
-
 </table>
+<p>In the above table, <code>wradius</code> is a parameter specified by the user. It is roughly the
+radius of window size that the user thinks should be sufficient to capture the behavior. </p>
 
-<p><i>wsize </i> is a parameter that is specified by the user. It is roughly the
-radius of window size that the user think should be sufficient to capture the
-behavior. </p>
+<hr class="h2-divider">
 
-<h3> Window Feature Computation Files </h3>
+<h2><a id="Files">Window Feature Computation Files</a></h2>
 <p>
-For each project, two configuration files specify the window features to be
+<b>TODO: This needs to be updated</b>. For each project, two configuration files specify the window features to be
 computed. The file.featureconfigfile parameter in the project configuration
 specifies the global feature configurations. This is an input file that is
 mostly common for all the projects and specifies the window computation
@@ -187,58 +264,60 @@ feature computation settings for that particular projects are stored. The user
 can user the "Select Features" interface to edit this file.
 </p>
 
-<h3><a id="SelectFeatures">Select Features Interface</a></h3>
+<hr class="h2-divider">
+
+<h2><a id="SelectFeatures">Select Features</a></h2>
 <p>
-Select Features Interface is graphical interface that the user can use to edit
+The <b>Select Features</b> dialog is a GUI the user can use to edit the
 window feature computation parameters for the current project. This interface
-can be accessed from the main JAABA window by <b>Classifier->Select Features</b>.
+can be accessed from the main JAABA window by selecting the menu item <b>Classifier->Select Features</b>.
 </p>
 
-<h4> Basic Mode </h4>
-<center><img src="images/SelectFeaturesBasic.png"></center>
-<p>In the basic mode, user can select class of per-frame features and the template
-window compuations to be used for the class. The class of per-frame features is
+<h3><a id="BasicMode">Basic Mode</a></h3>
+<p>In basic mode, the user can select the classes of per-frame features and the
+window feature templates to be used for the class. The class of each per-frame feature is
 specified in the feature configuration file.</p> 
+<center><img src="images/SelectFeaturesBasic.png">
+<br>
+<i>Screen capture of the Select Features dialog in Basic mode</i>
+</center>
 
-<h4> Advanced Mode </h4>
-<center><img src="images/SelectFeaturesAdvanced.png"></center>
+<h3><a id="AdvancedMode">Advanced Mode</a></h3>
 <p>
-In the advanced mode, user can set individual parameters of the per-frame
-features. The advanced mode also shows the histogram of per-frame features. If
-the user changes any parameter for a per-frame features then the window
-computation template for that  class of per-frame feature is set to "custom".
+In advanced mode, the user can set all the window feature parameters for each per-frame
+feature separately. The advanced mode also shows the histograms of the per-frame features
+over labeled data for all animals and unlabeled data for the currently selected animal. If
+the user changes any parameter for a per-frame feature then the window
+computation template for the corresponding class of per-frame features is set to <b>custom</b>.
 </p>
+<center><img src="images/SelectFeaturesAdvanced.png"><br>
+<i>Screen capture of the Select Features dialog in Advanced mode</i></center>
 
-<h4> Select Features Buttons </h4>
+<h3><a id="Buttons">Select Features Buttons</a></h3>
 
 <ul>
-<li> <b>Advanced</b> Toggles between basic and advanced modes</li>
-
-<li> <b>Find hist bins</b> If user has selected to compute
-histogram ("hist") features for any per-frame feature then the "Find Hist Bins"
-button will find the bin edges at 5,15,30 50,70,85 and 90 prctile of the
-per-frame features over all the flies and all the movies that are currently
-loaded.</li>
-
-<li> <b>Load...</b>Loads a window feature computation configuration file.</li> 
-
-<li><b>Save as..</b> Saves the current configuration as an xml file. The project
-configuration file is not updated and  will point to the old location of the
-window feature computation configuration file.</li>
-
-<li> <b>Done</b> button will save the changes to the window features
-configuration file. If a configuration file
-is not specified in the project configuration file (set by parameter
+<li> <b>Advanced &gt / Basic &lt </b>: Toggles between advanced and basic modes</li>
+<li> <b>Find hist bins</b>: If user has selected to compute
+histogram (<code>hist</code>) features for any per-frame feature, then the 
+<b>Find hist bins</b> button will set the bin edges at the 
+5, 15, 30, 50, 70, 85, and 90th prctiles of the per-frame features over all the flies 
+and all the experiments that are currently loaded in.</li>
+<li> <b>Load...</b>: Loads a window feature computation configuration file.</li> 
+<li><b>Save as..</b>: Saves the current window feature configuration as an xml file. 
+Note that the project configuration file is not updated and will point to the old 
+location of the window feature computation configuration file.</li>
+<li> <b>Done</b>: Save the changes to the window features configuration file. If a 
+configuration file is not specified in the project configuration file (set by parameter
 "featureparamfilename"), then it prompts the user to
-select a file. The location of window feature configuration file is saved in the
-project configuration file. Also, if a JAABA session is already in session, then
-all the window features are recomputed for all the labeled frames.</li>
-
-<li> <b>Cancel</b> Discards the changes made by the user and
-returns back to main JAABA window</li>
-
+select a file. The location of the window feature configuration file is saved in the
+project configuration file. Also, if applicable, all
+window features are recomputed for all the labeled frames.</li>
+<li> <b>Cancel</b>: Discard the changes made by the user and return back to main JAABA window</li>
 </ul>
-<h3> Example Files </h3>
+
+<hr class="h2-divider">
+
+<h2><a id="Examples">Example Files</a></h2>
 <p> Example feature config file </p>
 <pre>
 &lt?xml version="1.0"?&gt
@@ -447,4 +526,12 @@ returns back to main JAABA window</li>
 </pre>
 
 </body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
 </html>
