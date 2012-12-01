@@ -72,13 +72,20 @@ if isempty(handles.expdir),
   expdir = handles.expdir;
 end
 if isempty(handles.classifierparamsfile),
-  if isempty(classifierparamsfile), classifierparamsfile = '*.xml'; end
-  [filename,path] = uigetfile(classifierparamsfile,'Classifier parameters file');
-  if ~ischar(filename),
+  if isempty(classifierparamsfile), classifierparamsfile = ''; end
+  if iscell(classifierparamsfile),
+    classifierparamsfile = classifierparamsfile{1};
+  end
+  [filename,path] = uigetfile(classifierparamsfile,'Classifier parameters file','MultiSelect','on');
+  if ~ischar(filename) && ~iscell(filename),
     delete(handles.figure_PJR);
     return;
   end
-  handles.classifierparamsfile = fullfile(path,filename);
+  if iscell(filename),
+    handles.classifierparamsfile = cellfun(@(x) fullfile(path,x),filename,'UniformOutput',false);
+  else
+    handles.classifierparamsfile = fullfile(path,filename);
+  end
   classifierparamsfile = handles.classifierparamsfile;
 end
 
@@ -441,7 +448,8 @@ function varargout = PlayJAABAResults_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
+varargout = {};
+%varargout{1} = handles.output;
 
 
 % --- Executes on slider movement.
