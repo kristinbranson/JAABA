@@ -17,7 +17,7 @@ elseif isunix,
     msg = sprintf('Could not find a web browser');
     return
   end
-  [stat,msg] = unix(html_file);  
+  [stat,msg] = unix(sprintf('%s %s',browser,html_file));  
 elseif ispc,
   html_file = fullfile(html_file);
   [stat,msg] = dos(['cmd.exe /c rundll32 url.dll,FileProtocolHandler "' html_file '"']);
