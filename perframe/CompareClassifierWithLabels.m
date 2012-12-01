@@ -20,7 +20,6 @@ if isempty(explist),
 
 else
   data.SetClassifierFileNameWoExp(clfile);
-  ncomparisons = 1;
   for ndx = 1:numel(explist)
     [success,msg] = data.AddExpDir(explist{ndx});
     if ~success,
@@ -50,9 +49,7 @@ end
 
 allNew = {};
 for ndx = 1:ncomparisons
-  if isempty(explist)
-    data.Train();
-  end
+  data.Train();
   allNew{ndx} = getCurrentScores(data);
 end
 
