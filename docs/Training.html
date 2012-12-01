@@ -56,6 +56,11 @@ strong.regular-font {
 <li><a href="#Memory">Memory Usage</a></li>
 <li><a href="#Retraining">Retraining</a></li>
 <li><a href="#Guidelines">Labeling Guidelines</a></li>
+<li><a href="#PostProcessing">Post-Processing Predictions</a>
+<ul>
+<li><a href="#Types">Types of Post-Processing</a></li>
+</ul>
+</li>
 <li><a href="#ClassifierParameters">Classifier Parameters (Advanced)</a></li>
 </ul>
 
@@ -210,6 +215,41 @@ automatic predictions timeline (<b>old</b> in the drop down menu).
 <p>Machine learning algorithms are <b>sensitive to inconsistently labeled data</b>. If two similar frames are given the same label, the learning algorithm will spend most of its effort (complexity) in separating these similar looking frames. To train an accurate classifier, you should <b>not</b> label frames for which you are unsure of the correct behavior class. A second advantage of this strategy is that labeling is faster and easier, as it takes longer to decide on labels for difficult examples.</p>
 
 <p>Machine learning algorithms also find it difficult to train an accurate classifier if the number of examples from both classes are <b>unbalanced</b>. To create a more balanced training set, once you train an initial classifier, you should try to label only examples that are incorrectly predicted or have low confidence, and train often. This strategy prevents bloating the training set with obvious examples that make up most of the <i>None</i> behavior class. </p>
+
+<hr class="h2-divider">
+
+<h2><a id="PostProcessing">Post-Processing Predictions</a></h2>
+
+<p>Prediction and the scores produced by classifiers are not always smooth and
+sometimes can result in <b>bouts that are shorter than normal behavioral bouts</b>. This is a limitation
+of the type of learning algorithm used by JAABA. JAABA finds a classifier which minimizes the 
+total number of frames classified incorrectly, and all frames are given the same weight. With this
+error criterion, the penalty for an incorrect classification which results in a spurious one-frame-long
+bout of the behavior is the same as the penalty for missing the start of a behavior bout by one frame. </p>
+<p>To address this issue, the user can use post-processing tools to smooth and filter the predictions.
+The post-processing tool can be accessed by selecting the menu iterm <b>Classifier ->Post-Processing</b>.</p>
+
+<hr class="h2-divider">
+
+<h3><a id="Types">Types of Post-Processing</a></h3>
+
+The predictions can be smoothed using the following methods:
+<ul>
+<li><b>Hysteresis</b>: Hysteresis smooths the predictions by first going through all the predicted 
+bouts of the behavior and discarding all bouts that don't have any frames with scores above a
+stricter threshold <code>hthresh</code> > 0. It then goes through all the bouts of None (not-behavior) 
+and discards all the bouts that don't have any frames with scores
+less than a stricter threshold <code>lthresh < 0</code>. The parameters <code>hthresh</code> and  
+<code>hthresh</code> are set by the user.</li>
+<li><b>Filtering</b>: Filtering smooths the predictions by <b>convolving the scores</b> 
+(<b>not</b> the predictions) with a box filter. Thus, the prediction for a given frame is
+the mean of the predictions for the frames in a window around the current frame. The
+predictions are then computed by thresholding the filtered scores at 0. The size of the window
+is set by the user.
+</ul>
+
+<p>In addition, to the above smoothing methods, the user can also set the <b>minimum bout length</b> so as to 
+ignore bouts that have length smaller than the minimum bout length.</p>
 
 <hr class="h2-divider">
 
