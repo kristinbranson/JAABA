@@ -70,6 +70,9 @@ reducedHeight = curPos(4);
 handles.advancedSize = curPos(3:4);
 handles.basicSize = [reducedWidth reducedHeight];
 set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
+
+handles.scoresasinput = varargin{2};
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -173,14 +176,28 @@ handles = guidata(hObject);
 % Adding drop down menu kind of thing.
 
 if ~isempty(handles.JLDobj.basicFeatureTable)
-  tableData = handles.JLDobj.basicFeatureTable;
+  oldtableData = handles.JLDobj.basicFeatureTable;
+  tableData = {};
+  for ndx = 1:numel(handles.pftypeList)
+    curcateg = handles.pftypeList{ndx};
+    tableData{ndx,1} = curcateg;
+    ondx = find(strcmpi(oldtableData(:,1),curcateg));
+    if isempty(ondx),
+      tableData{ndx,2} = 'None';
+      tableData{ndx,3} = 'normal';
+    else
+      tableData(ndx,2:3) = oldtableData(ondx,2:3);
+    end
+  end
+  
 else
   tableData = {};
   for ndx = 1:numel(handles.pftypeList)
     tableData{ndx,1} = handles.pftypeList{ndx};
-    tableData{ndx,2} = 'Custom';
+    tableData{ndx,2} = 'None';
     tableData{ndx,3} = 'normal';
   end
+    
 end
 set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
@@ -508,13 +525,20 @@ end
 
 % Now for each different perframe feature read the type default trans_types.
 perframeL = handles.JLDobj.allperframefns;
-
+scores_perframe = {handles.scoresasinput(:).scorefilename};
 transType = struct;
 pftype = struct;
 
 % perframeL might not contain all the perframe features.
 for pfndx = 1:numel(perframeL)
   curpf = perframeL{pfndx};
+  
+  if any(strcmp(curpf ,scores_perframe)), % This is a score perframe.
+    transType.(curpf) = {'none'};
+    pftype.(curpf) = {'scores'};
+    continue;
+  end
+  
   transType.(curpf) = settings.perframe.(curpf).trans_types;
   curtypes  = settings.perframe.(curpf).type; 
   if ischar(curtypes)
@@ -543,14 +567,23 @@ for pfndx = 1:numel(fallpf)
     end
   end
 end
-
+if ~any(strcmp(pftypeList,'scores')),
+  pftypeList{end+1} = 'scores';
+end
 
 handles.transType = transType;
 handles.pftype = pftype;
 handles.pftypeList = pftypeList;
+
+% basicData = get(handles.basicTable,'Data');
+% scoresBasicNdx = find(strcmpi(basicData{:,1},'scores'));
+% handles = applyCategoryType(handles,scoresBasicNdx);
+
 guidata(hObject,handles);
 set(handles.editSize,'String',...
   num2str(handles.categ.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
+
+
 
 function basicSelect(hObject,eventData)
 
@@ -642,7 +675,7 @@ for ndx = 1:numel(handles.pfList)
   end
 end
 if numel(incompatible)>0
-  uiwait(warndlg(sprintf('Perframe feature(s) %s should have been selected but are not',incompatible),...
+  uiwait(warndlg(sprintf('Perframe feature(s) %s are not selected but should have been based on the category selection',incompatible),...
     'Mismatch in categories and perframe features'));
 end
 
@@ -1701,35 +1734,41 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-configfile = handles.JLDobj.configfilename;
-configparams = ReadXMLParams(configfile);
-
-if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
-  behaviorname = configparams.behaviors.names;
-  if iscell(behaviorname),
-    defaultname = sprintf('WindowFeatures_%s.xml',behaviorname{1});
-  else
-    defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
-  end
-  [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
-  if isempty(fname),return, end
-  featureconfigfile = fullfile(fpath,fname);
-  configparams.file.featureparamfilename = featureconfigfile;
-  docNode = com.mathworks.xml.XMLUtils.createDocument('params');
-  toc = docNode.getDocumentElement;
-  fnames = fieldnames(configparams);
-  for ndx = 1:numel(fnames)
-    toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
-  end
-  xmlwrite(configfile,docNode);
-end
-
-featureconfigfile = configparams.file.featureparamfilename;
-[params,~] = convertData(handles);
-basicData = get(handles.basicTable,'Data');
-featureWindowSize = round(str2double(get(handles.editSize,'String')));
-docNode = createParamsXML(params,basicData,featureWindowSize);
-xmlwrite(featureconfigfile,docNode);
+% configfile = handles.JLDobj.configfilename;
+% [~,~,ext ] = fileparts(configfile);
+% if strcmpi(ext,'.xml'),
+%   configparams = ReadXMLParams(configfile);
+% elseif strcmpi(ext,'.mat'),
+%   configparams = load(configfile);
+% else
+%   errordlg('Project file %s is invalid. Cannot save the window features',configfile);
+% end
+% if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
+%   behaviorname = configparams.behaviors.names;
+%   if iscell(behaviorname),
+%     defaultname = sprintf('WindowFeatures_%s.xml',behaviorname{1});
+%   else
+%     defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+%   end
+%   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
+%   if isempty(fname),return, end
+%   featureconfigfile = fullfile(fpath,fname);
+%   configparams.file.featureparamfilename = featureconfigfile;
+%   docNode = com.mathworks.xml.XMLUtils.createDocument('params');
+%   toc = docNode.getDocumentElement;
+%   fnames = fieldnames(configparams);
+%   for ndx = 1:numel(fnames)
+%     toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
+%   end
+%   xmlwrite(configfile,docNode);
+% end
+% 
+% featureconfigfile = configparams.file.featureparamfilename;
+% [params,~] = convertData(handles);
+% basicData = get(handles.basicTable,'Data');
+% featureWindowSize = round(str2double(get(handles.editSize,'String')));
+% docNode = createParamsXML(params,basicData,featureWindowSize);
+% xmlwrite(featureconfigfile,docNode);
 
 pushbutton_done_Callback(hObject,eventdata,handles);
 push_cancel_Callback(hObject,eventdata,handles);

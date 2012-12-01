@@ -10,19 +10,19 @@ for i = 1:nflies,
   y = trx(fly).y_mm;
   
   walla = zeros(1,4);
-  walla(1) = atan2(trx.tr_y(fly)-trx.tl_y(fly),trx.tr_x(fly)-trx.tl_x(fly));
-  walla(2) = atan2(trx.br_y(fly)-trx.tr_y(fly),trx.br_x(fly)-trx.tr_x(fly));
-  walla(3) = atan2(trx.bl_y(fly)-trx.br_y(fly),trx.bl_x(fly)-trx.br_x(fly));
-  walla(4) = atan2(trx.tl_y(fly)-trx.bl_y(fly),trx.tl_x(fly)-trx.bl_x(fly));
+  walla(1) = atan2(trx.landmark_params{n}.tr_y(fly)-trx.landmark_params{n}.tl_y(fly),trx.landmark_params{n}.tr_x(fly)-trx.landmark_params{n}.tl_x(fly));
+  walla(2) = atan2(trx.landmark_params{n}.br_y(fly)-trx.landmark_params{n}.tr_y(fly),trx.landmark_params{n}.br_x(fly)-trx.landmark_params{n}.tr_x(fly));
+  walla(3) = atan2(trx.landmark_params{n}.bl_y(fly)-trx.landmark_params{n}.br_y(fly),trx.landmark_params{n}.bl_x(fly)-trx.landmark_params{n}.br_x(fly));
+  walla(4) = atan2(trx.landmark_params{n}.tl_y(fly)-trx.landmark_params{n}.bl_y(fly),trx.landmark_params{n}.tl_x(fly)-trx.landmark_params{n}.bl_x(fly));
   
   
-  [dtop] = getDist(trx.tl_x(fly),trx.tl_y(fly), trx.tr_x(fly),trx.tr_y(fly),...
+  [dtop] = getDist(trx.landmark_params{n}.tl_x(fly),trx.landmark_params{n}.tl_y(fly), trx.landmark_params{n}.tr_x(fly),trx.landmark_params{n}.tr_y(fly),...
     x,y);
-  [dright]= getDist(trx.tr_x(fly),trx.tr_y(fly), trx.br_x(fly),trx.br_y(fly),...
+  [dright]= getDist(trx.landmark_params{n}.tr_x(fly),trx.landmark_params{n}.tr_y(fly), trx.landmark_params{n}.br_x(fly),trx.landmark_params{n}.br_y(fly),...
     x,y);
-  [dbottom] = getDist(trx.bl_x(fly),trx.bl_y(fly), trx.br_x(fly),trx.br_y(fly),...
+  [dbottom] = getDist(trx.landmark_params{n}.bl_x(fly),trx.landmark_params{n}.bl_y(fly), trx.landmark_params{n}.br_x(fly),trx.landmark_params{n}.br_y(fly),...
     x,y);
-  [dleft] = getDist(trx.tl_x(fly),trx.tl_y(fly), trx.bl_x(fly),trx.bl_y(fly),...
+  [dleft] = getDist(trx.landmark_params{n}.tl_x(fly),trx.landmark_params{n}.tl_y(fly), trx.landmark_params{n}.bl_x(fly),trx.landmark_params{n}.bl_y(fly),...
     x,y);
   
   [~,closest] = min([dtop;dright; dbottom; dleft],[],1);
