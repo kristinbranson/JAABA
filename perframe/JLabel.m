@@ -3634,7 +3634,15 @@ function menu_edit_label_shortcuts_Callback(hObject, eventdata, handles)
 prompts  = {};
 allShortcuts = handles.guidata.label_shortcuts;
 curShortcuts = {};
+tprompts = {};
 for j = 1:2*handles.guidata.data.nbehaviors
+    
+  labelStr = handles.guidata.data.labelnames{ceil(j/2)};
+  if mod(j,2), 
+    labelStr = ['Important ' labelStr];
+  end
+  tprompts{end+1} = labelStr;
+  
   if ~handles.guidata.data.IsAdvancedMode() && ~mod(j,2); continue; end
   % Don't show unimportant keys for Normal mode.
   labelStr = handles.guidata.data.labelnames{ceil(j/2)};
@@ -3645,11 +3653,35 @@ for j = 1:2*handles.guidata.data.nbehaviors
   curShortcuts{end+1} = allShortcuts{j};
 end
 prompts{end+1} = 'Unknown';
+tprompts{end+1} = 'Unknown';
 curShortcuts{end+1} = allShortcuts{end};
 sh = inputdlg(prompts,'Label Shortcuts',1,curShortcuts);
 if isempty(sh),
   return;
 end
+
+curshortcuts = allShortcuts;
+if ~handles.guidata.data.IsAdvancedMode()
+  curshortcuts(1:2:2*handles.guidata.data.nbehaviors)= sh(1:handles.guidata.data.nbehaviors);
+  curshortcuts(2*handles.guidata.data.nbehaviors+1)= sh(handles.guidata.data.nbehaviors+1);
+else
+  curshortcuts = sh;
+end
+[uniquekeys,occ,ndx] = unique(curshortcuts);
+nbeh = handles.guidata.data.nbehaviors;
+if numel(uniquekeys)~= 2*nbeh+1
+  overlap = [];
+  for ndx = 1:2*nbeh+1
+    nb = find(strcmp(curshortcuts{ndx},curshortcuts));
+    if numel(nb) > 1,
+      overlap = [overlap ', ' tprompts{ndx} ':' curshortcuts{ndx}];
+    end
+  end
+  overlap = overlap(3:end);
+  uiwait(warndlg(sprintf(...
+      'Some short cut keys are assigned to multiple behaviors:%s',overlap))); 
+end
+
 if ~handles.guidata.data.IsAdvancedMode()
   handles.guidata.label_shortcuts(1:2:2*handles.guidata.data.nbehaviors)= sh(1:handles.guidata.data.nbehaviors);
   handles.guidata.label_shortcuts(2*handles.guidata.data.nbehaviors+1)= sh(handles.guidata.data.nbehaviors+1);
