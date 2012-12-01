@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 06-Nov-2012 16:04:46
+% Last Modified by GUIDE v2.5 01-Dec-2012 12:01:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;

@@ -291,11 +291,11 @@ boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
 for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
-  str = get(handles.(curbox),'String');
+  str = strtrim(get(handles.(curbox),'String'));
   if ~isempty(str) && ~IsNiceFileName(str),
       uiwait(warndlg(sprintf(...
           ['The name specified for %s cannot have special characters.'...
-          'Please use only alphanumeric characters and _'],curf)));
+          'Please use only alphanumeric characters and underscore'],curf)));
       set(handles.(curbox),'String',handles.params.file.(curf));
       continue;
   end
