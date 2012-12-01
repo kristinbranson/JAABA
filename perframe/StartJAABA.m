@@ -7,6 +7,7 @@ addpath(fullfile(baseDir,'filehandling'));
 addpath(fullfile(jlabelpath,'compute_perframe_features'));
 addpath(fullfile(jlabelpath,'larva_compute_perframe_features'));
 addpath(fullfile(baseDir,'plot'));
+addpath(fullfile(baseDir,'perframe','params'));
 
 try
   c=parcluster;

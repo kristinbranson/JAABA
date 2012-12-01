@@ -22,7 +22,7 @@ function varargout = JLabel(varargin)
 
 % Edit the above text to modify the response to help JLabel
 
-% Last Modified by GUIDE v2.5 02-Nov-2012 10:28:15
+% Last Modified by GUIDE v2.5 06-Nov-2012 16:04:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1726,7 +1726,14 @@ while true,
   end
     
 %   try
-    handles.guidata.configparams = ReadXMLParams(handles.guidata.configfilename);
+  [~,~,ext] = fileparts(handles.guidata.configfilename);
+  if strcmp(ext,'.xml')
+    JLabelHandle.guidata.configparams = ReadXMLParams(handles.guidata.configfilename);
+  elseif strcmp(ext,'.mat')
+    JLabelHandle.guidata.configparams = load(handles.guidata.configfilename);
+  else
+    errordlg('Project file is not a valid');
+  end
 %   catch ME,
 %     uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.guidata.configfilename,getReport(ME)),'Error reading config file'));
 %     havefilename = false;
@@ -2347,7 +2354,9 @@ if handles.guidata.needsave,
 end
 
 if handles.guidata.data.NeedSaveProject(),
-  res = questdlg('Window features for the project have been modified. Save before quitting?','Save?','Yes','No','Cancel','Yes');
+  res = questdlg(['Current window features do not match the ones in the project file.'...
+      'Update the project file with the current window features?'],...
+      'Update?','Yes','No','Cancel','Yes');
   if strcmpi(res,'Yes')
     menu_file_save_project_Callback(hObject,eventdata,handles);
   elseif strcmpi(res,'Cancel');
@@ -4118,6 +4127,8 @@ else
   end
   ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
   set(handles.guidata.hselection(propi),'YData',ydata([1,2,2,1,1]));
+  s = sprintf('%.3f',perframedata(handles.guidata.ts(1)-T0+1));
+  set(handles.guidata.text_timeline_props(propi),'String',s);
   guidata(hObject,handles);
 end
 
@@ -6422,6 +6433,15 @@ if fname==0,
   return;
 end
 handles.guidata.data.PredictSaveMovie(handles.guidata.expi,fullfile(pname,fname));
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
 % --------------------------------------------------------------------
@@ -6430,6 +6450,15 @@ function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata,
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.PredictNoSaveMovie(handles.guidata.expi);
+handles = UpdateTimelineIms(handles);
+guidata(handles.figure_JLabel,handles);
+UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
+  'refreshtrx',true,'refreshlabels',true,...
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 
 % --------------------------------------------------------------------
@@ -6524,3 +6553,29 @@ function menu_file_save_project_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.SaveProject();
 set(handles.menu_file_save_project,'Enable','off');
+
+
+% --------------------------------------------------------------------
+function menu_help_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_help (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_help_about_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_help_about (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+vid = fopen('version.txt','r');
+vv = textscan(vid,'%s');
+fclose(vid);
+helpdlg(sprintf('JAABA (Janelia Automated Animal Behavior Annotator) version:%s',vv{1}{1}));
+
+% --------------------------------------------------------------------
+function menu_help_doc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_help_doc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+web('../docs/index.html');

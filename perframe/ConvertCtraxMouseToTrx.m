@@ -26,10 +26,8 @@ trx = load_tracks(fullfile(indir, intrxfile));
 [~,~,ext] = fileparts(moviefilename);
 if strcmp(ext,'.ufmf')
   isufmf = true;
-  fprintf('Movie is an ufmf, not flipping the y co-ordinates\n');
 else
   isufmf = false;
-  fprintf('Movie is not an ufmf, flipping the y co-ordinates\n');
 end
 
 [readframe,nframes,movie_fid,movieheaderinfo] = ...
