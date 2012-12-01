@@ -290,7 +290,7 @@ for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
   str = get(handles.(curbox),'String');
-  if ~isNiceFileName(str),
+  if ~IsNiceFileName(str),
       uiwait(warndlg(sprintf(...
           ['The name specified for %s cannot have special characters.'...
           'Please use only alphanumeric characters and _'],curf)));
