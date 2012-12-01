@@ -5606,16 +5606,26 @@ end
     function ROCCurve(obj,JLabelHandle)
     % This now shows histogram, apt naming be damned.
     
+      if isempty(obj.classifier),
+          uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
+          return;
+      end
       curNdx = obj.windowdata.labelidx_cur~=0;
       curScores = obj.windowdata.scores(curNdx);
       curLabels = obj.windowdata.labelidx_cur(curNdx);
       modLabels = ((curLabels==1)-0.5)*2;
+      
       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
       
     end
     
     function newError = TestOnNewLabels(obj)
       obj.StoreLabels();
+      [success,msg] = obj.PreLoadLabeledData();
+      if ~success,
+        warning(msg);
+        return;
+      end
       newError = struct();
 
       prevLabeled = obj.windowdata.labelidx_cur~=0;
@@ -5658,7 +5668,7 @@ end
           
           orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
           orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
-          orderedScores = [orderedScores; obj.predictdata.loaded(curScoreNdx(curValidScoreNdx~=0))'];
+          orderedScores = [orderedScores; obj.predictdata.cur(curScoreNdx(curValidScoreNdx~=0))'];
         end
 %         if setClassifierfilename,
 %           classifierfilename = obj.windowdata.classifierfilenames{curExp};
@@ -5670,11 +5680,9 @@ end
           
       end
       
-      prediction = -sign(orderedScores)/2+1.5;
-      
       modLabels = 2*orderedLabels-orderedLabels_imp;
       
-      newError = obj.createConfMat(prediction,modLabels);
+      newError = obj.createConfMat(orderedScores,modLabels);
       newError.classifierfilename = classifierfilename;
       
     end
