@@ -1618,7 +1618,22 @@ end
                 uiwait(warndlg(str));
                 obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
                   loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
-                  loadeddata.featureWindowSize);
+                  loadeddata.featureWindowSize,false);
+            else
+              obj.predictdata.old = obj.predictdata.cur;
+              obj.predictdata.old_valid = obj.predictdata.cur_valid;
+              obj.predictdata.old_pp = obj.predictdata.cur_pp;
+              obj.predictdata.cur_valid(:) = false;
+              
+              obj.windowdata.scoreNorm = [];
+              % To later find out where each example came from.
+              
+              %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
+              
+              obj.FindFastPredictParams();
+              obj.predictdata.cur_valid(:) = false;
+              obj.PredictLoaded();
+
             end
           end
           
@@ -1883,9 +1898,9 @@ end
       load(sfn,'allScores','timestamp');
       if ~isempty(obj.classifierTS),
         if timestamp~=obj.classifierTS
-          uiwait(warndlg(['Scores were computed using a classifier trained on %s'...
-            ' while the current classifier was trained on '],datestr(timestamp),...
-            datestr(obj.classifierTS))),
+          uiwait(warndlg(sprintf(['Scores were computed using a classifier trained on %s'...
+            ' while the current classifier was trained on %s'],datestr(timestamp),...
+            datestr(obj.classifierTS)))),
         end
       end
       if ~isempty(whos('-file',sfn,'classifierfilename'))
@@ -4613,12 +4628,16 @@ end
       
     end
     
-    function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize)
+    function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize,dotrain)
     % Updates the feature params. Called by SelectFeatures
       if ~isempty(obj.classifier),
         hasClassifier = true;
       else
         hasClassifier = false;
+      end
+      
+      if nargin < 5
+        dotrain = true;
       end
       
       obj.SetPerframeParams(params,cellParams);
@@ -4632,7 +4651,7 @@ end
       obj.classifier = [];
       obj.classifier_old = [];
       obj.PreLoadLabeledData();
-      if hasClassifier,
+      if hasClassifier && dotrain,
         obj.StoreLabels();
         obj.Train();
       end
