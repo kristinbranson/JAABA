@@ -74,7 +74,8 @@ classdef Trx < handle
     
     %% landmark parameters
 
-    landmark_params = [];
+    default_landmark_params = [];
+    landmark_params = {};
     
     %% per-frame parameters
     perframe_params = [];
@@ -226,7 +227,7 @@ classdef Trx < handle
     
     function SetLandmarkParams(obj,landmark_params)
       
-      obj.landmark_params = landmark_params;
+      obj.default_landmark_params = landmark_params;
       % TODO: invalidate features computed with the old parameters
       
     end
@@ -314,6 +315,10 @@ classdef Trx < handle
         warning('Could not save %s data to %s: %s',fn,filename,getReport(ME));
       end
       
+    end
+    
+    function has = HasLandmarkParams(obj)
+      has = all(~cellfun(@(x) isempty(fieldnames(x)),obj.landmark_params));
     end
 
     %
