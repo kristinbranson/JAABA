@@ -493,13 +493,14 @@ end
 classifierfilename = fullfile(pathname,filename);
 if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
+  return;
 end
 
 SetLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
 if ~success,
-  uiwait(waitdlg(msg,'Error loading file list'));
+  uiwait(warndlg([msg ' Error loading file list']));
   return;
 end
 set(handles.pushbutton_load,'enable','off');
