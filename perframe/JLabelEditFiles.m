@@ -100,8 +100,9 @@ else
   end
   
   handles.configfilename = defpath;
-  set(handles.text_projectfile,'String',handles.configfilename);
-
+  if exist(handles.configfilename,'file') && ~exist(handles.configfilename,'dir'),
+    set(handles.text_projectfile,'String',handles.configfilename);
+  end
   handles.JLabelHandle = JLabelHandle;
   handles.needJLabelInit = true;
   guidata(hObject,handles);

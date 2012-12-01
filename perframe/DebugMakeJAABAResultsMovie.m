@@ -135,7 +135,7 @@ end
 %% choose what to show
 
 %behaviorsuse = {'Chase','Jump','WingGrooming','Righting','Backup','pivot_tail','pivot_head','WingExtension','WingFlick','AttenptedCopulation'};
-behaviorsuse = {'WingExtension','WingFlick','AttenptedCopulation','Copulation','pivot_head'};
+behaviorsuse = {'WingExtension','WingFlick','AttemptedCopulation','Copulation','pivot_head'};
 weightingscheme = 'sumlogsumscore';
 
 [targets,expdirs_chosen,framestarts,nframesperseg] = ...
@@ -208,7 +208,7 @@ targets = [10,20];
 framestarts = [9646,10500,14201,14650];
 framestarts = [4396,7345];
 
-[~,experiment_name] = fileparts(expdirs_chosen{expi});
+[~,experiment_name] = fileparts(expdir);
 aviname = sprintf('%s_%02d_%s.avi',avibasename,expi,experiment_name);
 MakeJAABAResultsMovie(expdir,classifierparamsfiles,...
   'nframesperseg',nframesperseg,...
