@@ -1478,7 +1478,7 @@ end
               loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
             if ~success,error(msg); end
             obj.labels = loadeddata.labels;
-            [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
+            [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(1,1);
             obj.labelidx_off = 1 - obj.t0_curr;
             [success,msg] = obj.PreLoadLabeledData();
             if ~success,error(msg); end
@@ -6163,12 +6163,18 @@ end
         permuteValid = validflies(randperm(numel(validflies)));
         randFlies = permuteValid(1:perexp);
         
-        for fndx = randFlies(:)',
-          first = obj.firstframes_per_exp{endx}(fndx);
-          last = obj.endframes_per_exp{endx}(fndx);
-          suggestStart = first + round( (last-first-perfly)*rand(1));
-          obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
-          obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
+        for fndx = 1:obj.nflies_per_exp(endx),
+          if any(fndx == randFlies),
+              first = obj.firstframes_per_exp{endx}(fndx);
+              last = obj.endframes_per_exp{endx}(fndx);
+              suggestStart = first + round( (last-first-perfly)*rand(1));
+              obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
+              obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
+          else
+              obj.randomGTSuggestions{endx}(fndx).start = [];
+              obj.randomGTSuggestions{endx}(fndx).end = [];
+              
+          end
         end
         
       end
