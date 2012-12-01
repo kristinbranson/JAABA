@@ -3680,6 +3680,7 @@ if numel(uniquekeys)~= 2*nbeh+1
   overlap = overlap(3:end);
   uiwait(warndlg(sprintf(...
       'Some short cut keys are assigned to multiple behaviors:%s',overlap))); 
+  return;
 end
 
 if ~handles.guidata.data.IsAdvancedMode()
