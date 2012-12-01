@@ -2846,6 +2846,7 @@ end
       if ~exist(scoresFileIn,'file'),
         success = false; 
         msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
+        return;
       end
       Q = load(scoresFileIn);
       if Q.timestamp ~= ts, % check the timestamps match the classifier's timestamp.
