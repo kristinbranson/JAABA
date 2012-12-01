@@ -9,10 +9,10 @@ for i = 1:nflies,
   x = trx(fly).x_mm;
   y = trx(fly).y_mm;
   
-  dtl = sqrt( (trx.tl_x(fly)-x).^2 + (trx.tl_y(fly)-y).^2);
-  dtr = sqrt( (trx.tr_x(fly)-x).^2 + (trx.tr_y(fly)-y).^2);
-  dbl = sqrt( (trx.bl_x(fly)-x).^2 + (trx.bl_y(fly)-y).^2);
-  dbr = sqrt( (trx.br_x(fly)-x).^2 + (trx.br_y(fly)-y).^2);
+  dtl = sqrt( (trx.landmark_params{n}.tl_x(fly)-x).^2 + (trx.landmark_params{n}.tl_y(fly)-y).^2);
+  dtr = sqrt( (trx.landmark_params{n}.tr_x(fly)-x).^2 + (trx.landmark_params{n}.tr_y(fly)-y).^2);
+  dbl = sqrt( (trx.landmark_params{n}.bl_x(fly)-x).^2 + (trx.landmark_params{n}.bl_y(fly)-y).^2);
+  dbr = sqrt( (trx.landmark_params{n}.br_x(fly)-x).^2 + (trx.landmark_params{n}.br_y(fly)-y).^2);
   data{i} = min([dtl;dtr; dbl; dbr],[],1);
 
 end
