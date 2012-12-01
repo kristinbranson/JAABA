@@ -222,6 +222,8 @@ handles.params.labels.linewidth = 3;
 handles.params.file.labelfilename = '';
 handles.params.file.gt_labelfilename = '';
 handles.params.file.scorefilename = '';
+handles.params.file.trxfilename = '';
+handles.params.file.moviefilename = '';
 handles = addversion(handles);
 handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
 
@@ -290,7 +292,7 @@ for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
   str = get(handles.(curbox),'String');
-  if ~IsNiceFileName(str),
+  if ~isempty(str) && ~IsNiceFileName(str),
       uiwait(warndlg(sprintf(...
           ['The name specified for %s cannot have special characters.'...
           'Please use only alphanumeric characters and _'],curf)));
