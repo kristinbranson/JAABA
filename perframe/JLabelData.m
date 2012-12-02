@@ -2875,6 +2875,8 @@ end
       success = false;
       msg = '';
       
+      configfile = deployedRelative2Global(configfile);
+      
       obj.featureConfigFile = configfile;
       settings = ReadXMLParams(configfile);
       

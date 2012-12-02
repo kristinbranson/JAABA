@@ -15,6 +15,8 @@
 % fprintf('JAABA location: %s\n',mfilename('fullpath'));
 % fprintf('ctfroot -> %s\n',ctfroot);
 
+%SetUpJAABAPath;
+
 try
   if ishandle(hstatustext),
     set(hstatustext,'String','Starting parallel computing workers...');
