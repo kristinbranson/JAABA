@@ -269,8 +269,12 @@ handles.InputDataTypeNames = fieldnames(handles.InputDataTypes);
 
 
 % rc file
-p = fileparts(mfilename('fullpath'));
-handles.rcfilename = fullfile(p,'.PrepareJAABAData_rc.mat');
+if isdeployed,
+  handles.rcfilename = deployedRelative2Global('.JLabelrc.mat');
+else
+  p = fileparts(mfilename('fullpath'));
+  handles.rcfilename = fullfile(p,'.PrepareJAABAData_rc.mat');
+end
 
 % set default values
 handles = SetDefaultValues(handles);
