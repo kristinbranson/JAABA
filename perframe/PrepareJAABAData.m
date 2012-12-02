@@ -1,28 +1,25 @@
 function varargout = PrepareJAABAData(varargin)
-% PREPAREJAABADATA MATLAB code for PrepareJAABAData.fig
-%      PREPAREJAABADATA, by itself, creates a new PREPAREJAABADATA or raises the existing
-%      singleton*.
+% PREPAREJAABADATA: Convert data from several tracking programs into 
+% a format compatible with JAABA. 
 %
-%      H = PREPAREJAABADATA returns the handle to a new PREPAREJAABADATA or the handle to
-%      the existing singleton*.
+% This program is part of JAABA.
 %
-%      PREPAREJAABADATA('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in PREPAREJAABADATA.M with the given input arguments.
-%
-%      PREPAREJAABADATA('Property','Value',...) creates a new PREPAREJAABADATA or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before PrepareJAABAData_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to PrepareJAABAData_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
+% JAABA: The Janelia Automatic Animal Behavior Annotator
+% Copyright 2012, Kristin Branson, HHMI Janelia Farm Resarch Campus
+% http://jaaba.sourceforge.net/
+% bransonk@janelia.hhmi.org
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License (version 3 pasted in LICENSE.txt) for 
+% more details.
 
-% Edit the above text to modify the response to help PrepareJAABAData
-
-% Last Modified by GUIDE v2.5 05-Nov-2012 09:56:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -51,6 +48,8 @@ function PrepareJAABAData_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to PrepareJAABAData (see VARARGIN)
+
+SetUpJAABAPath;
 
 handles = InitializeData(handles);
 handles = InitializeGUI(handles);
