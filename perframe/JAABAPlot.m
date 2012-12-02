@@ -332,7 +332,22 @@ if ~isdeployed,
 end
 
 if(exist('matlabpool')==2 && matlabpool('size')==0)
-  matlabpool open
+  
+  useparallel = true;
+  if isdeployed,
+    if ispc || (isunix && ~ismac),
+      filename = deployedRelative2Global('ParallelComputingConfiguration_Local_Win4.settings');
+      if ~exist(filename,'file'),
+        useparallel = false;
+      else
+        setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
+      end
+    end
+  end
+  if useparallel
+    matlabpool('open');
+  end
+
 end
 
 if isdeployed,
@@ -4037,8 +4052,8 @@ function pushbutton_help_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+html_file = 'http://jaaba.sourceforge.net/PlottingResults.html';
 if isdeployed,
-  html_file = deployedRelative2Global('docs/PlottingResults.html');
   [stat,msg] = myweb_nocheck(html_file);
   if stat ~= 0,
     errordlg({'Please see documentation at http://jaaba.sourceforge.net'
@@ -4046,5 +4061,5 @@ if isdeployed,
       msg});
   end
 else
-  web('-browser','../docs/PlottingResults.html');
+  web('-browser',html_file);
 end
