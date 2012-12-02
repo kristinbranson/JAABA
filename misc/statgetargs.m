@@ -1,4 +1,8 @@
 function [eid,emsg,varargout]=statgetargs(pnames,dflts,varargin)
+% 
+% needed to copy this function because it was in the private folder of
+% the stats toolbox
+%
 %STATGETARGS Process parameter name/value pairs for statistics functions
 %   [EID,EMSG,A,B,...]=STATGETARGS(PNAMES,DFLTS,'NAME1',VAL1,'NAME2',VAL2,...)
 %   accepts a cell array PNAMES of valid parameter names, a cell array
