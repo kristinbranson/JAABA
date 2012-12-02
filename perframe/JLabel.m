@@ -6611,7 +6611,8 @@ function menu_help_doc_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if isdeployed,
-  html_file = deployedRelative2Global('docs/index.html');
+  %html_file = deployedRelative2Global('docs/index.html');
+  html_file = 'http://jaaba.sourceforge.net/';
   [stat,msg] = myweb_nocheck(html_file);
   if stat ~= 0,
     errordlg({'Please see documentation at http://jaaba.sourceforge.net'
@@ -6619,7 +6620,7 @@ if isdeployed,
       msg});
   end
 else
-  web('-browser','../docs/index.html');
+  web('-browser','http://jaaba.sourceforge.net/');
 end
 
 
