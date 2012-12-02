@@ -1889,7 +1889,7 @@ set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 
 % maximum distance squared in fraction of axis to change frames when
 % clicking on preview window
-handles.guidata.max_click_dist_preview = .025^2;
+handles.guidata.max_click_dist_preview = .005^2;
 
 % zoom state
 handles.guidata.preview_zoom_mode = 'follow_fly';
