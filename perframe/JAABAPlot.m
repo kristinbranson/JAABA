@@ -1,26 +1,23 @@
 function varargout = JAABAPlot(varargin)
-%JAABAPLOT M-file for JAABAPlot.fig
-%      JAABAPLOT, by itself, creates a new JAABAPLOT or raises the existing
-%      singleton*.
+%JAABAPLOT: Plot the output of JAABA
 %
-%      H = JAABAPLOT returns the handle to a new JAABAPLOT or the handle to
-%      the existing singleton*.
+% This program is part of JAABA.
 %
-%      JAABAPLOT('Property','Value',...) creates a new JAABAPLOT using the
-%      given property value pairs. Unrecognized properties are passed via
-%      varargin to JAABAPlot_OpeningFcn.  This calling syntax produces a
-%      warning when there is an existing singleton*.
-%
-%      JAABAPLOT('CALLBACK') and JAABAPLOT('CALLBACK',hObject,...) call the
-%      local function named CALLBACK in JAABAPLOT.M with the given input
-%      arguments.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
-
-% Edit the above text to modify the response to help JAABAPlot
+% JAABA: The Janelia Automatic Animal Behavior Annotator
+% Copyright 2012, Kristin Branson, HHMI Janelia Farm Resarch Campus
+% http://jaaba.sourceforge.net/
+% bransonk@janelia.hhmi.org
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License (version 3 pasted in LICENSE.txt) for 
+% more details.
 
 % Last Modified by GUIDE v2.5 30-Nov-2012 13:55:34
 
@@ -330,11 +327,7 @@ function JAABAPlot_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   unrecognized PropertyName/PropertyValue pairs from the
 %            command line (see VARARGIN)
 
-jlabelpath = fileparts(mfilename('fullpath'));
-baseDir = fileparts(jlabelpath);
-addpath(fullfile(baseDir,'misc'));
-addpath(fullfile(baseDir,'perframe'));
-addpath(fullfile(baseDir,'filehandling'));
+SetUpJAABAPath;
 
 if(exist('matlabpool')==2 && matlabpool('size')==0)
   matlabpool open
