@@ -1334,7 +1334,8 @@ function Save_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Use project name.
-[fName,pName] = uiputfile('params/*.xml','Save feature configurations to..');
+paramsdir = deployedRelative2Global('params');
+[fName,pName] = uiputfile(fullfile(paramsdir,'*.xml'),'Save feature configurations to..');
 if ~fName
   return;
 end
