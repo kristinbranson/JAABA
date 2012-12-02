@@ -385,7 +385,11 @@ guidata(hObject,handles);
 function figure_CloseRequestFcn(hObject, eventdata)
 
 handles=guidata(hObject);
-save('most_recent_config.mat','handles');
+try
+    save('most_recent_config.mat','handles');
+catch ME,
+    uiwait(warndlg(ME.message));
+end
 delete(hObject);
 
 
