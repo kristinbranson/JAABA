@@ -1478,7 +1478,7 @@ end
               loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
             if ~success,error(msg); end
             obj.labels = loadeddata.labels;
-            [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
+            [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(obj.expi,obj.flies);
             obj.labelidx_off = 1 - obj.t0_curr;
             [success,msg] = obj.PreLoadLabeledData();
             if ~success,error(msg); end
