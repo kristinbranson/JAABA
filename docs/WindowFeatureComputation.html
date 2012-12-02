@@ -248,23 +248,6 @@ radius of window size that the user thinks should be sufficient to capture the b
 
 <hr class="h2-divider">
 
-<h2><a id="Files">Window Feature Computation Files</a></h2>
-<p>
-<b>TODO: This needs to be updated</b>. For each project, two configuration files specify the window features to be
-computed. The file.featureconfigfile parameter in the project configuration
-specifies the global feature configurations. This is an input file that is
-mostly common for all the projects and specifies the window computation
-templates and also has the list of per-frame features. An example of the feature
-config file is at the bottom of the page.
-</p>
-
-<p>
-The other file is file.featureparamfilename which specifies the xml file where the window
-feature computation settings for that particular projects are stored. The user
-can user the "Select Features" interface to edit this file.
-</p>
-
-<hr class="h2-divider">
 
 <h2><a id="SelectFeatures">Select Features</a></h2>
 <p>
@@ -275,8 +258,13 @@ can be accessed from the main JAABA window by selecting the menu item <b>Classif
 
 <h3><a id="BasicMode">Basic Mode</a></h3>
 <p>In basic mode, the user can select the classes of per-frame features and the
-window feature templates to be used for the class. The class of each per-frame feature is
-specified in the feature configuration file.</p> 
+window feature templates to be used for the class. The list of per-frame feature that belong to a particular class
+depends on the animal (Target-Type) that was selected for the project. Scores is a special class that 
+has all the per-frame features that are the predictions of the previously trained classifiers. 
+The list of per-frame features that belong to this particular class correspond to the list of the previously trained 
+classifiers that were selected during project setup. 
+
+</p> 
 <center><img src="images/SelectFeaturesBasic.png">
 <br>
 <i>Screen capture of the Select Features dialog in Basic mode</i>
@@ -302,20 +290,25 @@ histogram (<code>hist</code>) features for any per-frame feature, then the
 <b>Find hist bins</b> button will set the bin edges at the 
 5, 15, 30, 50, 70, 85, and 90th prctiles of the per-frame features over all the flies 
 and all the experiments that are currently loaded in.</li>
-<li> <b>Load...</b>: Loads a window feature computation configuration file.</li> 
-<li><b>Save as..</b>: Saves the current window feature configuration as an xml file. 
-Note that the project configuration file is not updated and will point to the old 
-location of the window feature computation configuration file.</li>
-<li> <b>Done</b>: Save the changes to the window features configuration file. If a 
-configuration file is not specified in the project configuration file (set by parameter
-"featureparamfilename"), then it prompts the user to
-select a file. The location of the window feature configuration file is saved in the
-project configuration file. Also, if applicable, all
-window features are recomputed for all the labeled frames.</li>
+<li> <b>Done</b>: Save the changes and return to JAABA. Also, if applicable, all
+window features are recomputed for all the labeled frames. When you quit JAABA, it'll ask you if you 
+want to save the changes you made to window features to the project file so that the same window feature
+settings will be used when you select the same project. The window feature settings are also saved in the classifier file when you save a classifier and they are loaded in when you load the classifier.
+</li>
 <li> <b>Cancel</b>: Discard the changes made by the user and return back to main JAABA window</li>
 </ul>
 
-<hr class="h2-divider">
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+</html>
+<!--<hr class="h2-divider">
 
 <h2><a id="Examples">Example Files</a></h2>
 <p> Example feature config file </p>
@@ -525,13 +518,4 @@ window features are recomputed for all the labeled frames.</li>
 &lt/params&gt
 </pre>
 
-</body>
-
-<footer>
-<hr class="h1-divider">
-<center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
-</center>
-</footer>
-
-</html>
+-->
