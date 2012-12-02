@@ -1919,7 +1919,7 @@ SetJumpGoMenuLabels(handles)
 % label shortcuts
 if numel(handles.guidata.label_shortcuts) ~= 2*handles.guidata.data.nbehaviors + 1,
   if handles.guidata.data.nbehaviors == 2,
-    handles.guidata.label_shortcuts = {'z','a','x','s','d'}';
+    handles.guidata.label_shortcuts = {'z','a','x','s','c'}';
   else
     handles.guidata.label_shortcuts = cellstr(num2str((1:2*handles.guidata.data.nbehaviors+1)'));
   end
@@ -2149,7 +2149,11 @@ set(handles.menu_file_save_project,'Enable','off');
 function handles = LoadRC(handles)
 
 % rc file name
-handles.guidata.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
+if isdeployed,
+  handles.guidata.rcfilename = deployedRelative2Global('.JLabelrc.mat');
+else
+  handles.guidata.rcfilename = fullfile(myfileparts(mfilename('fullpath')),'.JLabelrc.mat');
+end
 handles.guidata.rc = struct;
 if exist(handles.guidata.rcfilename,'file'),
 %   try
@@ -6606,4 +6610,16 @@ function menu_help_doc_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-web('../docs/index.html','-browser');
+if isdeployed,
+  html_file = deployedRelative2Global('docs/index.html');
+  [stat,msg] = myweb_nocheck(html_file);
+  if stat ~= 0,
+    errordlg({'Please see documentation at http://jaaba.sourceforge.net'
+      'Error opening webpage within MATLAB:'
+      msg});
+  end
+else
+  web('-browser','../docs/index.html');
+end
+
+

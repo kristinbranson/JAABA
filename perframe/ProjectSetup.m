@@ -197,7 +197,12 @@ end
 handles.mode = mode;
 
 function handles = initFeatureconfig(handles)
-list = ReadXMLParams('featureConfigList.xml');
+if isdeployed,
+  filename = deployedRelative2Global('params/featureConfigList.xml');
+else
+  filename = 'featureConfigList.xml';
+end
+list = ReadXMLParams(filename);
 animal_types = fieldnames(list);
 
 handles.list = list;
