@@ -2192,6 +2192,10 @@ end
       if obj.filesfixable && ~obj.allfilesexist,
         if ~isdeployed 
           if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
+            if numel(missingfiles)>10,
+              missingfiles = missingfiles(1:10);
+              missingfiles{end+1} = ' and more ';
+            end
             res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
               'Generate now?'],expdir,sprintf(' %s',missingfiles{:})),...
               'Generate missing files?','Yes','Cancel','Yes');
