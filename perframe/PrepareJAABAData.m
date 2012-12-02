@@ -49,7 +49,9 @@ function PrepareJAABAData_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to PrepareJAABAData (see VARARGIN)
 
-SetUpJAABAPath;
+if ~isdeployed,
+  SetUpJAABAPath;
+end
 
 handles = InitializeData(handles);
 handles = InitializeGUI(handles);
