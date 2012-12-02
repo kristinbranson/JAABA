@@ -69,7 +69,7 @@ function varargout = PrepareJAABAData_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-varargout = {};
+varargout = {hObject};
 
 function handles = InitializeGUI(handles)
 
