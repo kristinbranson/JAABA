@@ -38,9 +38,15 @@ abilities and limitations.</p>
 
 <h2>Contents</h2>
 
+<ul>
+<li><a href="#Itinerary">Suggested Itinerary</a></li>
+<li><a href="#DemoVideo">Video Tutorial</a></li>
+<li><a href="#SampleData">Sample Data</a></li>
+</ul>
+
 <hr class="h2-divider">
 
-<h2>Suggested Itinerary</h2>
+<h2><a id="Itinerary">Suggested Itinerary</a></h2>
 
 <ol>
 <li> <b>Computer requirements</b>: Check the computer requirements at 
@@ -78,7 +84,37 @@ sample and data and this tutorial are similar to the introduction we gave in our
 <iframe width="840" height="630" src="http://www.youtube.com/embed/YX9QpRSx_HE" frameborder="0" allowfullscreen></iframe>
 </center>
 
+<hr class="h2-divider">
 
+<h2><a id="SampleData">Sample Data</a></h2>
+
+<p>We have provided a sample <b>JAABA project</b> and two <b>sample videos<b>, available for download at
+<a href="http://sourceforge.net/projects/jaaba/files/Sample%20Data/">Sourceforge</a>. </p>
+
+<p>The sample data directory contains two experiment directories that can be used with JAABA:
+<ul>
+<li><b><code>pBDPGAL4U_TrpA_Rig2Plate17BowlA_20120202T145723</code></b> contains video of our control flies. </li>
+<li><b><code>Chase1_TrpA_Rig1Plate15BowlA_20120404T141155</code></b> contains video of flies from a GAL4 line 
+from the dTrpA neural activation screen which chase more than control. </li>
+</ul>
+</p>
+
+<p>Each experiment directory contains the following files:
+<ul>
+<li><b><code>movie.ufmf</b></code>: A video of ~10 male and 10 female flies exploring a Fly Bowl. </li>
+<li><b><code>movie.ufmf.ann</b></code>: Output of Ctrax for the video. </li>
+<li><b><code>registered_trx.mat</b></code>: Trajectories of the flies in a format compatible with JAABA.</li>
+<li><b><code>perframe</b></code>: A directory containing the pre-computed per-frame features for JAABA. </li>
+<li><b><code>ctrax_results_movie_*.avi</b></code>: A short video showing clips of the flies being tracked. </li>
+<li><b><code>Metadata.xml</b></code>: xml file containing information about how the video was collected.</li>
+</ul>
+</p>
+
+<p><b><code>Chase_JAABAProject.mat</code></b> is a <b>sample JAABA project</b>. To test JAABA, we recommend:
+<ol>
+<li> Setting the project to be Chase_JAABAProject.mat.</li>
+<li> Adding the two experiment directories in this directory. </li>
+<li> Test out JAABA. </li>
 
 <footer>
 <hr class="h1-divider">

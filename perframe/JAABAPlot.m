@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 30-Nov-2012 13:55:34
+% Last Modified by GUIDE v2.5 02-Dec-2012 11:54:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -327,14 +327,27 @@ function JAABAPlot_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   unrecognized PropertyName/PropertyValue pairs from the
 %            command line (see VARARGIN)
 
-SetUpJAABAPath;
+if ~isdeployed,
+  SetUpJAABAPath;
+end
 
 if(exist('matlabpool')==2 && matlabpool('size')==0)
   matlabpool open
 end
 
-if(exist('most_recent_config.mat')==2)
-  handles=load_configuration_file('most_recent_config.mat',hObject,eventdata,handles);
+if isdeployed,
+  handles.rcfilename = deployedRelative2Global('most_recent_config.mat');
+else
+  handles.rcfilename = 'most_recent_config.mat';
+end
+
+if(exist(handles.rcfilename)==2)
+  try
+    handles=load_configuration_file(handles.rcfilename,hObject,eventdata,handles);
+  catch ME
+    errordlg({'Error loading last used configuration. Using default values.',getReport(ME)},'Error loading last used configuration');
+    handles=initialize(handles);
+  end
 else
   handles=initialize(handles);
 end
@@ -378,7 +391,11 @@ guidata(hObject,handles);
 function figure_CloseRequestFcn(hObject, eventdata)
 
 handles=guidata(hObject);
-save('most_recent_config.mat','handles');
+try
+  save(handles.rcfilename,'handles');
+catch ME,
+  errordlg({'Error saving last configuration. State will not be saved.',getReport(ME)},'Error saving last configuration');
+end
 delete(hObject);
 
 
@@ -4012,3 +4029,22 @@ h=msgbox(tmp,'Parameters','replace');
 %for each bout, as well as the overall mode of the per-bout modes.
 %
 %Selecting a cell in the table plots a histogram of the closest indidividual.
+
+
+% --- Executes on button press in pushbutton_help.
+function pushbutton_help_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_help (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isdeployed,
+  html_file = deployedRelative2Global('docs/PlottingResults.html');
+  [stat,msg] = myweb_nocheck(html_file);
+  if stat ~= 0,
+    errordlg({'Please see documentation at http://jaaba.sourceforge.net'
+      'Error opening webpage within MATLAB:'
+      msg});
+  end
+else
+  web('-browser','../docs/PlottingResults.html');
+end
