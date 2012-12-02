@@ -53,7 +53,10 @@ try
   else
     args = {};
   end
-  uiwait(JLabel(args{:}));
+  JLabelHandle = JLabel(args{:});
+  if ishandle(JLabelHandle)
+    uiwait(JLabelHandle);
+  end
 catch ME,
   uiwait(warndlg(getReport(ME)));
   delete(findall(0,'type','figure'));
