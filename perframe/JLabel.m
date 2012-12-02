@@ -1,28 +1,23 @@
 function varargout = JLabel(varargin)
-% JLABEL MATLAB code for JLabel.fig
-%      JLABEL, by itself, creates a new JLABEL or raises the existing
-%      singleton*.
+% JLabel: Start up the JAABA program
 %
-%      H = JLABEL returns the handle to a new JLABEL or the handle to
-%      the existing singleton*.
+% This program is part of JAABA.
 %
-%      JLABEL('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in JLABEL.M with the given input arguments.
-%
-%      JLABEL('Property','Value',...) creates a new JLABEL or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before JLabel_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to JLabel_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
-
-% Edit the above text to modify the response to help JLabel
-
-% Last Modified by GUIDE v2.5 01-Dec-2012 12:01:33
+% JAABA: The Janelia Automatic Animal Behavior Annotator
+% Copyright 2012, Kristin Branson, HHMI Janelia Farm Resarch Campus
+% http://jaaba.sourceforge.net/
+% bransonk@janelia.hhmi.org
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License (version 3 pasted in LICENSE.txt) for 
+% more details.
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
