@@ -272,7 +272,7 @@ handles.InputDataTypeNames = fieldnames(handles.InputDataTypes);
 
 % rc file
 if isdeployed,
-  handles.rcfilename = deployedRelative2Global('.JLabelrc.mat');
+  handles.rcfilename = deployedRelative2Global('.PrepareJAABAData_rc.mat');
 else
   p = fileparts(mfilename('fullpath'));
   handles.rcfilename = fullfile(p,'.PrepareJAABAData_rc.mat');
@@ -867,6 +867,8 @@ args = [{InputDataType.files.code}
 
 SetBusy(handles,sprintf('Converting to output directory %s',handles.ExperimentDirectory));
 
+try
+
 [success,msg] = Convert2JAABAWrapper(handles.InputDataType,...
   'inmoviefile',handles.InputVideoFile,...
   args{:},...
@@ -890,6 +892,12 @@ SetBusy(handles,sprintf('Converting to output directory %s',handles.ExperimentDi
   'arenaheight',handles.ArenaHeight,...
   'frameinterval',[handles.CropFirstFrame,handles.CropEndFrame]);
 
+catch ME,
+  errordlg(getReport(ME),'Error converting');
+  ClearBusy(handles);
+  return;
+end
+
 ClearBusy(handles);
 
 if ~success,
@@ -904,7 +912,11 @@ else
     if ispc,
       winopen(handles.ExperimentDirectory);
     else
-      web(handles.ExperimentDirectory,'-browser');
+      if isdeployed,
+        myweb_nocheck(handles.ExperimentDirectory);
+      else
+        web(handles.ExperimentDirectory,'-browser');
+      end
     end
   end
 end
