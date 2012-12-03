@@ -21,12 +21,18 @@ try
   if ishandle(hstatustext),
     set(hstatustext,'String','Starting parallel computing workers...');
   end
+  useparallel = true;
   if isdeployed,
     if ispc || (isunix && ~ismac),
-      setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
+      filename = deployedRelative2Global('ParallelComputingConfiguration_Local_Win4.settings');
+      if ~exist(filename,'file'),
+        useparallel = false;
+      else
+        setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
+      end
     end
   end
-  if matlabpool('size') < 1,
+  if useparallel && matlabpool('size') < 1,
     matlabpool('open');
   end
 catch ME,
