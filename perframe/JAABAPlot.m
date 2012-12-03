@@ -1,28 +1,25 @@
 function varargout = JAABAPlot(varargin)
-%JAABAPLOT M-file for JAABAPlot.fig
-%      JAABAPLOT, by itself, creates a new JAABAPLOT or raises the existing
-%      singleton*.
+%JAABAPLOT: Plot the output of JAABA
 %
-%      H = JAABAPLOT returns the handle to a new JAABAPLOT or the handle to
-%      the existing singleton*.
+% This program is part of JAABA.
 %
-%      JAABAPLOT('Property','Value',...) creates a new JAABAPLOT using the
-%      given property value pairs. Unrecognized properties are passed via
-%      varargin to JAABAPlot_OpeningFcn.  This calling syntax produces a
-%      warning when there is an existing singleton*.
-%
-%      JAABAPLOT('CALLBACK') and JAABAPLOT('CALLBACK',hObject,...) call the
-%      local function named CALLBACK in JAABAPLOT.M with the given input
-%      arguments.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
+% JAABA: The Janelia Automatic Animal Behavior Annotator
+% Copyright 2012, Kristin Branson, HHMI Janelia Farm Resarch Campus
+% http://jaaba.sourceforge.net/
+% bransonk@janelia.hhmi.org
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License (version 3 pasted in LICENSE.txt) for 
+% more details.
 
-% Edit the above text to modify the response to help JAABAPlot
-
-% Last Modified by GUIDE v2.5 30-Nov-2012 13:55:34
+% Last Modified by GUIDE v2.5 02-Dec-2012 11:54:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -330,18 +327,42 @@ function JAABAPlot_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   unrecognized PropertyName/PropertyValue pairs from the
 %            command line (see VARARGIN)
 
-jlabelpath = fileparts(mfilename('fullpath'));
-baseDir = fileparts(jlabelpath);
-addpath(fullfile(baseDir,'misc'));
-addpath(fullfile(baseDir,'perframe'));
-addpath(fullfile(baseDir,'filehandling'));
-
-if(exist('matlabpool')==2 && matlabpool('size')==0)
-  matlabpool open
+if ~isdeployed,
+  SetUpJAABAPath;
 end
 
-if(exist('most_recent_config.mat')==2)
-  handles=load_configuration_file('most_recent_config.mat',hObject,eventdata,handles);
+if(exist('matlabpool')==2 && matlabpool('size')==0)
+  
+  useparallel = true;
+  if isdeployed,
+    if ispc || (isunix && ~ismac),
+      filename = deployedRelative2Global('ParallelComputingConfiguration_Local_Win4.settings');
+      if ~exist(filename,'file'),
+        useparallel = false;
+      else
+        setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
+      end
+    end
+  end
+  if useparallel
+    matlabpool('open');
+  end
+
+end
+
+if isdeployed,
+  handles.rcfilename = deployedRelative2Global('most_recent_config.mat');
+else
+  handles.rcfilename = 'most_recent_config.mat';
+end
+
+if(exist(handles.rcfilename)==2)
+  try
+    handles=load_configuration_file(handles.rcfilename,hObject,eventdata,handles);
+  catch ME
+    errordlg({'Error loading last used configuration. Using default values.',getReport(ME)},'Error loading last used configuration');
+    handles=initialize(handles);
+  end
 else
   handles=initialize(handles);
 end
@@ -385,7 +406,11 @@ guidata(hObject,handles);
 function figure_CloseRequestFcn(hObject, eventdata)
 
 handles=guidata(hObject);
-save('most_recent_config.mat','handles');
+try
+  save(handles.rcfilename,'handles');
+catch ME,
+  errordlg({'Error saving last configuration. State will not be saved.',getReport(ME)},'Error saving last configuration');
+end
 delete(hObject);
 
 
@@ -4019,3 +4044,22 @@ h=msgbox(tmp,'Parameters','replace');
 %for each bout, as well as the overall mode of the per-bout modes.
 %
 %Selecting a cell in the table plots a histogram of the closest indidividual.
+
+
+% --- Executes on button press in pushbutton_help.
+function pushbutton_help_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_help (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+html_file = 'http://jaaba.sourceforge.net/PlottingResults.html';
+if isdeployed,
+  [stat,msg] = myweb_nocheck(html_file);
+  if stat ~= 0,
+    errordlg({'Please see documentation at http://jaaba.sourceforge.net'
+      'Error opening webpage within MATLAB:'
+      msg});
+  end
+else
+  web('-browser',html_file);
+end

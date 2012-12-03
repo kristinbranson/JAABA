@@ -1,28 +1,23 @@
 function varargout = JLabel(varargin)
-% JLABEL MATLAB code for JLabel.fig
-%      JLABEL, by itself, creates a new JLABEL or raises the existing
-%      singleton*.
+% JLabel: Start up the JAABA program
 %
-%      H = JLABEL returns the handle to a new JLABEL or the handle to
-%      the existing singleton*.
+% This program is part of JAABA.
 %
-%      JLABEL('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in JLABEL.M with the given input arguments.
-%
-%      JLABEL('Property','Value',...) creates a new JLABEL or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before JLabel_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to JLabel_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
-
-% Edit the above text to modify the response to help JLabel
-
-% Last Modified by GUIDE v2.5 01-Dec-2012 12:01:33
+% JAABA: The Janelia Automatic Animal Behavior Annotator
+% Copyright 2012, Kristin Branson, HHMI Janelia Farm Resarch Campus
+% http://jaaba.sourceforge.net/
+% bransonk@janelia.hhmi.org
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License (version 3 pasted in LICENSE.txt) for 
+% more details.
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1889,7 +1884,7 @@ set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 
 % maximum distance squared in fraction of axis to change frames when
 % clicking on preview window
-handles.guidata.max_click_dist_preview = .025^2;
+handles.guidata.max_click_dist_preview = .005^2;
 
 % zoom state
 handles.guidata.preview_zoom_mode = 'follow_fly';
@@ -1924,7 +1919,7 @@ SetJumpGoMenuLabels(handles)
 % label shortcuts
 if numel(handles.guidata.label_shortcuts) ~= 2*handles.guidata.data.nbehaviors + 1,
   if handles.guidata.data.nbehaviors == 2,
-    handles.guidata.label_shortcuts = {'z','a','x','s','d'}';
+    handles.guidata.label_shortcuts = {'z','a','x','s','c'}';
   else
     handles.guidata.label_shortcuts = cellstr(num2str((1:2*handles.guidata.data.nbehaviors+1)'));
   end
@@ -2154,7 +2149,11 @@ set(handles.menu_file_save_project,'Enable','off');
 function handles = LoadRC(handles)
 
 % rc file name
-handles.guidata.rcfilename = fullfile(myfileparts(which('JLabel')),'.JLabelrc.mat');
+if isdeployed,
+  handles.guidata.rcfilename = deployedRelative2Global('.JLabelrc.mat');
+else
+  handles.guidata.rcfilename = fullfile(myfileparts(mfilename('fullpath')),'.JLabelrc.mat');
+end
 handles.guidata.rc = struct;
 if exist(handles.guidata.rcfilename,'file'),
 %   try
@@ -3071,7 +3070,7 @@ function handles = UpdatePrediction(handles)
 % TODO: make this work for multiple axes
 t0 = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
 t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0:t1);
+handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
 handles = SetPredictedPlot(handles);
 
 handles = UpdateTimelineIms(handles);
@@ -4631,9 +4630,9 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
-  t0 = min(handles.guidata.ts(1)+framesPerTick,handles.guidata.t1_curr);
+  t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.guidata.t0_curr);
   t1 = min(t0+framesPerTick,handles.guidata.t1_curr);
-  handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0:t1);
+  handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
   PLAY_TIMER_DONE = true;
   
 function handles = play(hObject,handles,t0,t1,doloop)
@@ -4662,9 +4661,10 @@ if nargin < 3,
 end
 
 if ~doloop
-  framesPerTick = round(handles.guidata.timeline_nframes/4);
+  framesPerTick = 4000;
+  t_period = round(framesPerTick/handles.guidata.play_FPS*1000)/1000;
   T = timer('TimerFcn',{@predictTimerCallback,hObject,framesPerTick},...
-        'Period',framesPerTick/handles.guidata.play_FPS,...
+        'Period',t_period,...
         'ExecutionMode','fixedRate',...
         'Tag','predictTimer');
   start(T);
@@ -5530,7 +5530,7 @@ function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles
 % handles    structure with handles and user data (see GUIDATA)
 t0 =handles.guidata.t0_curr;
 t1 = handles.guidata.t1_curr;
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr:handles.guidata.t1_curr);
+handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr,handles.guidata.t1_curr);
 handles = SetPredictedPlot(handles,t0,t1);
 
 handles = UpdateTimelineIms(handles);
@@ -6611,4 +6611,17 @@ function menu_help_doc_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-web('../docs/index.html');
+if isdeployed,
+  %html_file = deployedRelative2Global('docs/index.html');
+  html_file = 'http://jaaba.sourceforge.net/';
+  [stat,msg] = myweb_nocheck(html_file);
+  if stat ~= 0,
+    errordlg({'Please see documentation at http://jaaba.sourceforge.net'
+      'Error opening webpage within MATLAB:'
+      msg});
+  end
+else
+  web('-browser','http://jaaba.sourceforge.net/');
+end
+
+

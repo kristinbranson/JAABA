@@ -1,22 +1,5 @@
-function [out1,out2,out3] = ginput(arg1)
-%GINPUT Graphical input from mouse.
-%   [X,Y] = GINPUT(N) gets N points from the current axes and returns 
-%   the X- and Y-coordinates in length N vectors X and Y.  The cursor
-%   can be positioned using a mouse (or by using the Arrow Keys on some 
-%   systems).  Data points are entered by pressing a mouse button
-%   or any key on the keyboard except carriage return, which terminates
-%   the input before N points are entered.
-%
-%   [X,Y] = GINPUT gathers an unlimited number of points until the
-%   return key is pressed.
-% 
-%   [X,Y,BUTTON] = GINPUT(N) returns a third result, BUTTON, that 
-%   contains a vector of integers specifying which mouse button was
-%   used (1,2,3 from left) or ASCII numbers if a key on the keyboard
-%   was used.
-
-%   Copyright 1984-2002 The MathWorks, Inc. 
-%   $Revision: 1.1 $  $Date: 2004/07/12 21:18:13 $
+function [out1,out2,out3] = myginput(arg1)
+% almost the same as matlab's ginput, but does not change the mouse pointer
 
 out1 = []; out2 = []; out3 = []; y = [];
 c = computer;

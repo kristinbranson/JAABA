@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+</head>
+
+<body>
+<h1><a href="index.html">JAABA</a>: Getting Started</h1>
+
+<p>JAABA is a machine learning-based program that will help you <b>create automatic behavior detectors</b>. To define a 
+behavior and create a behavior detector, you will need to <b>label</b> the behavior of animals in a subset of frames 
+in videos. It is very important to <b>choose these labels carefully</b>. In addition, there are <b>limitations to the 
+types of behaviors</b> for which JAABA can create behavior classifiers. These limitations are not exactly well-defined, 
+and the best way we know for understanding them is to try out JAABA. If you are new to JAABA, please <b>follow the 
+instructions</b> in this document to get a feel for the <b>types of behaviors</b> JAABA can create detectors for, and 
+the <b>effect of different types of labels</b> on JAABA's performance. In general, you will start with a task that we
+know is within JAABA's capabilities, then iteratively make the task more complicated to test and understand JAABA's
+abilities and limitations.</p>
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+
+<ul>
+<li><a href="#Itinerary">Suggested Itinerary</a></li>
+<li><a href="#DemoVideo">Video Tutorial</a></li>
+<li><a href="#SampleData">Sample Data</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="Itinerary">Suggested Itinerary</a></h2>
+
+<ol>
+<li> <b>Computer requirements</b>: Check the computer requirements at 
+<a href="Installation.html#ComputerRequirements"><b>Minimum Computer Requirements</b></a> 
+to ensure that you have a sufficiently powerful computer to run JAABA. </li>
+<li> <b>Download and install</b>: Please follow the instructions at 
+<a href="Installation.html"><b>Installation and Starting JAABA</b></a> 
+on how to download and install JAABA. </li>
+<li> <b>Demonstration</b>: Watch our <a href="#DemoVideo"><b>video tutorial</b></a> to using JAABA on <a href="http://youtu.be/YX9QpRSx_HE">YouTube</a>. We
+recommend watching the HD version.</li>
+<li> <b>Sample data</b>: Download our sample data from <a href="http://sourceforge.net/projects/jaaba/files/Sample%20Data/">Sourceforge</a>. Follow the instructions at <a href="#SampleData">Sample Data</a>.</li>
+<li> <b>Train a chase classifier</b> using the sample data, in particular using the included Project Configuration file 
+<code>sampledata/Chase_JAABAProject.mat</code> and the two experiments 
+<code>pBDPGAL4U_TrpA_Rig2Plate17BowlA_20120202T145723</code> and
+<code>Chase1_TrpA_Rig1Plate15BowlA_20120404T141155</code>. Read and refer to the rest of the documentation on this site
+while training, in particular the sections on <a href="Training.html">Training.html</a> and 
+<a href="Evaluating.html">Evaluating a Behavior Classifier</a>. While training, we recommend you start with the 
+most obvious bouts of chases and not chases, then gradually try to get JAABA to work on more difficult examples.</li>
+<li> <b>Prepare your data</b>: Follow instructions at <a href="DataFormatting.html"><b>Preparing Data for JAABA</b></a>
+on how to prepare your own data for use with JAABA. </li>
+<li> <b>Train your classifier</b>: Train a behavior classifier for your data that you are interested in, always
+remembering to try easy things first and hard things later. </li>
+</ol>
+
+<hr class="h2-divider">
+
+<h2><a id="DemoVideo">Video Tutorial</a></h2>
+
+<p>We have created a video tutorial to using JAABA that we recommend you watch before trying JAABA yourself. 
+This video shows us creating a chase classifier using the <a href="#SampleData">Sample Data</a> distributed on 
+out website. We recommend you watch the video in HD, as details will not be visible at lower resolutions. This
+sample and data and this tutorial are similar to the introduction we gave in our usability study described in 
+<a href="TODO">our paper</a>. </p>
+<center>
+<iframe width="840" height="630" src="http://www.youtube.com/embed/YX9QpRSx_HE" frameborder="0" allowfullscreen></iframe>
+</center>
+
+<hr class="h2-divider">
+
+<h2><a id="SampleData">Sample Data</a></h2>
+
+<p>We have provided a sample <b>JAABA project</b> and two <b>sample videos<b>, available for download at
+<a href="http://sourceforge.net/projects/jaaba/files/Sample%20Data/">Sourceforge</a>. </p>
+
+<p>The sample data directory contains two experiment directories that can be used with JAABA:
+<ul>
+<li><b><code>pBDPGAL4U_TrpA_Rig2Plate17BowlA_20120202T145723</code></b> contains video of our control flies. </li>
+<li><b><code>Chase1_TrpA_Rig1Plate15BowlA_20120404T141155</code></b> contains video of flies from a GAL4 line 
+from the dTrpA neural activation screen which chase more than control. </li>
+</ul>
+</p>
+
+<p>Each experiment directory contains the following files:
+<ul>
+<li><b><code>movie.ufmf</b></code>: A video of ~10 male and 10 female flies exploring a Fly Bowl. </li>
+<li><b><code>movie.ufmf.ann</b></code>: Output of Ctrax for the video. </li>
+<li><b><code>registered_trx.mat</b></code>: Trajectories of the flies in a format compatible with JAABA.</li>
+<li><b><code>perframe</b></code>: A directory containing the pre-computed per-frame features for JAABA. </li>
+<li><b><code>ctrax_results_movie_*.avi</b></code>: A short video showing clips of the flies being tracked. </li>
+<li><b><code>Metadata.xml</b></code>: xml file containing information about how the video was collected.</li>
+</ul>
+</p>
+
+<p><b><code>Chase_JAABAProject.mat</code></b> is a <b>sample JAABA project</b>. To test JAABA, we recommend:
+<ol>
+<li> Setting the project to be Chase_JAABAProject.mat.</li>
+<li> Adding the two experiment directories in this directory. </li>
+<li> Test out JAABA. </li>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+</body>
+</html>
