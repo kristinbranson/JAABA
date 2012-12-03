@@ -92,19 +92,21 @@ The only requirement is the freely available <a href="http://www.mathworks.com/p
 <li> Download and install the <b>Matlab Compiler Runtime (MCR) for R2012a</b>. <a
 href="http://www.mathworks.com/products/compiler/mcr/index.html">MCR installers
 and instructions </a> are available at Mathworks website.</li>
-<li> <b>Download</b> the JAABA package for you system from
+<li> <b>Download</b> the JAABA package for your system from
 <a href="http://sourceforge.net/projects/jaaba/files">http://sourceforge.net/projects/jaaba/files</a>.
-<li> <b>Unzip</b> the package zip file.
+<li> <b>Unzip</b> the package zip file. </li>
+<li> <b>Leave the executable</b> in the directory in the package. You can move the entire directory, but JAABA
+relies on other files in that directory, so please leave them in the same directory. </li>
 </ol>
 
 <h3><a id="ExecutablesStartUp">Start-Up (Easy)</a></h3>
 
 Within the package, there is an executable program. The name of this file depends on the OS:
 <ul>
-<li> <b>Windows</b>: Double-click <b>JAABA_win.exe</b> to run JAABA. </li>
-<li> <b>Mac OS X</b>: Double-click the executable <b>run_JAABA_mac.command</b> to run JAABA. Do <b>not</b> run the JAABA_mac application. </li>
-<li> <b>Linux</b>: The shell script <b>run_JAABA_linux.sh</b> runs JAABA. It can be run using the command
-<pre>[JAABA package location]/run_JAABA_linux.sh [MCR location]</pre>
+<li> <b>Windows</b>: Double-click <b>JAABA.exe</b> to run JAABA. </li>
+<li> <b>Mac OS X</b>: Double-click the <b>JAABA</b> application to run JAABA.</li>
+<li> <b>Linux</b>: The shell script <b>run_JAABA.sh</b> runs JAABA. It should be run from within the JAABA package directory using the command
+<pre>./run_JAABA.sh [MCR location]</pre>
 </ul>
 Please be <b>patient</b>. Loading the MATLAB MCR is slow, hence once you run the executable it may take some time for JAABA to appear.
 

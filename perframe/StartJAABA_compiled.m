@@ -15,16 +15,24 @@
 % fprintf('JAABA location: %s\n',mfilename('fullpath'));
 % fprintf('ctfroot -> %s\n',ctfroot);
 
+%SetUpJAABAPath;
+
 try
   if ishandle(hstatustext),
     set(hstatustext,'String','Starting parallel computing workers...');
   end
+  useparallel = true;
   if isdeployed,
     if ispc || (isunix && ~ismac),
-      setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
+      filename = deployedRelative2Global('ParallelComputingConfiguration_Local_Win4.settings');
+      if ~exist(filename,'file'),
+        useparallel = false;
+      else
+        setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
+      end
     end
   end
-  if matlabpool('size') < 1,
+  if useparallel && matlabpool('size') < 1,
     matlabpool('open');
   end
 catch ME,
@@ -45,7 +53,10 @@ try
   else
     args = {};
   end
-  uiwait(JLabel(args{:}));
+  JLabelHandle = JLabel(args{:});
+  if ishandle(JLabelHandle)
+    uiwait(JLabelHandle);
+  end
 catch ME,
   uiwait(warndlg(getReport(ME)));
   delete(findall(0,'type','figure'));

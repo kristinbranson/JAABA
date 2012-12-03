@@ -1478,7 +1478,7 @@ end
               loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
             if ~success,error(msg); end
             obj.labels = loadeddata.labels;
-            [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(1,1);
+            [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(obj.expi,obj.flies);
             obj.labelidx_off = 1 - obj.t0_curr;
             [success,msg] = obj.PreLoadLabeledData();
             if ~success,error(msg); end
@@ -2192,6 +2192,10 @@ end
       if obj.filesfixable && ~obj.allfilesexist,
         if ~isdeployed 
           if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
+            if numel(missingfiles)>10,
+              missingfiles = missingfiles(1:10);
+              missingfiles{end+1} = ' and more ';
+            end
             res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
               'Generate now?'],expdir,sprintf(' %s',missingfiles{:})),...
               'Generate missing files?','Yes','Cancel','Yes');
@@ -2874,6 +2878,8 @@ end
     function [success,msg] = SetFeatureConfigFile(obj,configfile)
       success = false;
       msg = '';
+      
+      configfile = deployedRelative2Global(configfile);
       
       obj.featureConfigFile = configfile;
       settings = ReadXMLParams(configfile);
@@ -4936,7 +4942,7 @@ end
             obj.expnames{curex},flies,round(100*numcurexdone/numcurex));
             obj.PredictFast(obj.predictblocks.expi(ndx),...
               obj.predictblocks.flies(ndx),...
-              obj.predictblocks.t0(ndx):obj.predictblocks.t1(ndx));
+              obj.predictblocks.t0(ndx),obj.predictblocks.t1(ndx));
           end
             obj.NormalizeScores([]);
             obj.ApplyPostprocessing();
@@ -5089,7 +5095,7 @@ end
       obj.suggestedidx(idxcurr) = obj.predictedidx(idxcurr);
     end
 
-    function Predict(obj,expi,flies,ts)
+    function Predict(obj,expi,flies,t0,t1)
     % Predict(obj,expi,flies,ts)
     % Runs the behavior classifier on the input experiment, flies, and
     % frames. This involves first precomputing the window data for these
@@ -5101,7 +5107,7 @@ end
         return;
       end
 
-      if isempty(ts),
+      if isempty(t0>t1),
         return;
       end
             
@@ -5154,7 +5160,7 @@ end
 %           obj.windowdata.isvalidprediction(idxcurr) = true;
 
           obj.SetStatus('Updating Predictions ...');
-          obj.PredictFast(expi,flies,ts)
+          obj.PredictFast(expi,flies,t0,t1)
           obj.ApplyPostprocessing();
           obj.ClearStatus();
 
@@ -5225,10 +5231,10 @@ end
       obj.fastPredict.wfidx_valid = true;
     end
     
-    function PredictFast(obj,expi,flies,ts)
+    function PredictFast(obj,expi,flies,t0,t1)
     % Predict fast by computing only the required window features.
       
-        if isempty(obj.classifier) || isempty(ts),
+        if isempty(obj.classifier) || t0>t1 ,
           return;
         end
         
@@ -5236,14 +5242,18 @@ end
           obj.FindFastPredictParams();
         end
        
-        idxcurr = obj.predictdata.flies == flies & ...
-          obj.predictdata.exp == expi &...
-          obj.predictdata.cur_valid;
-        tscurr = obj.predictdata.t(idxcurr);
-        missingts = setdiff(ts,tscurr);
-        if numel(missingts)==0, return; end
-        
-%         if isempty(missingts), return; end
+%         idxcurr = obj.predictdata.flies == flies & ...
+%           obj.predictdata.exp == expi &...
+%           obj.predictdata.cur_valid;
+%         tscurr = obj.predictdata.t(idxcurr);
+%         missingts = setdiff(ts,tscurr);
+%         if numel(missingts)==0, return; end
+%         
+        idxcurr = obj.FlyNdxPredict(expi,flies);
+        idxcurr_t = obj.predictdata.t(idxcurr)>=t0 & obj.predictdata.t(idxcurr)<=t1;
+        idxcurr(idxcurr) = idxcurr_t;
+        if all(obj.predictdata.cur_valid(idxcurr)), return; end
+        missingts = obj.predictdata.t(idxcurr);
         
         perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
         perframefile = obj.GetPerframeFiles(expi);
