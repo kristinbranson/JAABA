@@ -1,13 +1,24 @@
 % JAABA start up script.
-jlabelpath = fileparts(mfilename('fullpath'));
-% Initialize all the paths.
-baseDir = fileparts(jlabelpath);
-addpath(fullfile(baseDir,'misc'));
-addpath(fullfile(baseDir,'filehandling'));
-addpath(fullfile(jlabelpath,'compute_perframe_features'));
-addpath(fullfile(jlabelpath,'larva_compute_perframe_features'));
-addpath(fullfile(baseDir,'plot'));
-addpath(fullfile(baseDir,'perframe','params'));
+%
+% This program is part of JAABA.
+%
+% JAABA: The Janelia Automatic Animal Behavior Annotator
+% Copyright 2012, Kristin Branson, HHMI Janelia Farm Resarch Campus
+% http://jaaba.sourceforge.net/
+% bransonk@janelia.hhmi.org
+% 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License (version 3 pasted in LICENSE.txt) for 
+% more details.
+
+SetUpJAABAPath;
 
 try
   c=parcluster;

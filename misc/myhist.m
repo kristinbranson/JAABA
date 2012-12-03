@@ -1,32 +1,5 @@
 function [no,xo,idx] = myhist(varargin)
-%HIST  Histogram.
-%   N = HIST(Y) bins the elements of Y into 10 equally spaced containers
-%   and returns the number of elements in each container.  If Y is a
-%   matrix, HIST works down the columns.
-%
-%   N = HIST(Y,M), where M is a scalar, uses M bins.
-%
-%   N = HIST(Y,X), where X is a vector, returns the distribution of Y
-%   among bins with centers specified by X. The first bin includes
-%   data between -inf and the first center and the last bin
-%   includes data between the last bin and inf. Note: Use HISTC if
-%   it is more natural to specify bin edges instead. 
-%
-%   [N,X] = HIST(...) also returns the position of the bin centers in X.
-%
-%   HIST(...) without output arguments produces a histogram bar plot of
-%   the results. The bar edges on the first and last bins may extend to
-%   cover the min and max of the data unless a matrix of data is supplied.
-%
-%   HIST(AX,...) plots into AX instead of GCA.
-%
-%   Class support for inputs Y, X: 
-%      float: double, single
-%
-%   See also HISTC, MODE.
-
-%   Copyright 1984-2006 The MathWorks, Inc. 
-%   $Revision: 5.20.4.10 $  $Date: 2006/12/15 19:27:30 $
+% almost the same as hist, except it can take weights
 
 % Parse possible Axes input
 i = find(strcmpi(varargin,'weights'));
