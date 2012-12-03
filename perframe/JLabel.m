@@ -4630,7 +4630,7 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
-  t0 = min(handles.guidata.ts(1)+framesPerTick,handles.guidata.t1_curr);
+  t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.guidata.t0_curr);
   t1 = min(t0+framesPerTick,handles.guidata.t1_curr);
   handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
   PLAY_TIMER_DONE = true;
