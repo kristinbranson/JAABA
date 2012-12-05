@@ -169,7 +169,8 @@ classdef JLabelGUIData < handle
 
     cache_thread = [];
     cacheSize = 4000;
-        
+     
+    tempname = [];
   end
      
   methods (Access=public)
