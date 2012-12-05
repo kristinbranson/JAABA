@@ -85,6 +85,7 @@ handles.guidata.busystatuscolor = [1,0,1];
 handles.guidata.movie_height = 100;
 handles.guidata.movie_width = 100;
 handles.guidata.movie_depth = 1;
+handles.guidata.tempname = tempname();
 ClearStatus(handles);
 
 [handles,success] = JLabelEditFiles('JLabelHandle',handles,...
@@ -502,7 +503,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   Mlastused = struct('Data',[]); %#ok<NASGU>
   Mimage = struct('Data',[]); %#ok<NASGU>
   
-  cache_filename=fullfile(tempdir(),['cache-' num2str(feature('getpid')) '.dat']);
+  cache_filename= [handles.guidata.tempname 'cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
   if fid < 1,
     pause(.1);
