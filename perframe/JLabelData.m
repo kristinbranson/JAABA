@@ -806,7 +806,10 @@ end
           if isfield(configparams.targets,'type'),
             obj.targettype = configparams.targets.type;
           end
+        else isfield(configparams.behaviors,'type'),
+            obj.targettype = configparams.behaviors.type;
         end
+        
       end
       
       
