@@ -3070,7 +3070,7 @@ function handles = UpdatePrediction(handles)
 % TODO: make this work for multiple axes
 t0 = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
 t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0:t1);
+handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
 handles = SetPredictedPlot(handles);
 
 handles = UpdateTimelineIms(handles);
@@ -4630,9 +4630,9 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
-  t0 = min(handles.guidata.ts(1)+framesPerTick,handles.guidata.t1_curr);
+  t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.guidata.t0_curr);
   t1 = min(t0+framesPerTick,handles.guidata.t1_curr);
-  handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0:t1);
+  handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
   PLAY_TIMER_DONE = true;
   
 function handles = play(hObject,handles,t0,t1,doloop)
@@ -4661,9 +4661,10 @@ if nargin < 3,
 end
 
 if ~doloop
-  framesPerTick = round(handles.guidata.timeline_nframes/4);
+  framesPerTick = 4000;
+  t_period = round(framesPerTick/handles.guidata.play_FPS*1000)/1000;
   T = timer('TimerFcn',{@predictTimerCallback,hObject,framesPerTick},...
-        'Period',framesPerTick/handles.guidata.play_FPS,...
+        'Period',t_period,...
         'ExecutionMode','fixedRate',...
         'Tag','predictTimer');
   start(T);
@@ -5529,7 +5530,7 @@ function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles
 % handles    structure with handles and user data (see GUIDATA)
 t0 =handles.guidata.t0_curr;
 t1 = handles.guidata.t1_curr;
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr:handles.guidata.t1_curr);
+handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr,handles.guidata.t1_curr);
 handles = SetPredictedPlot(handles,t0,t1);
 
 handles = UpdateTimelineIms(handles);
