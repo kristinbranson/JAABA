@@ -2530,7 +2530,7 @@ end
       idxcurr = ismember(obj.windowdata.exp, expi);
       obj.windowdata.X(idxcurr,:) = [];
       obj.windowdata.exp(idxcurr) = [];
-      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp)';
+      obj.windowdata.exp(:) = newExpNumbers(obj.windowdata.exp);
       obj.windowdata.flies(idxcurr) =[];
       obj.windowdata.t(idxcurr) =[];
       obj.windowdata.labelidx_new(idxcurr) = [];
@@ -2553,7 +2553,6 @@ end
         idxcurr(1:numel(obj.windowdata.postprocessed)),:) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
-      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp);
 
       idxcurr = ismember(obj.predictdata.exp, expi);
       fnames = fieldnames(obj.predictdata);
@@ -2580,19 +2579,31 @@ end
       end
 
       % update current exp, flies
-      if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
+      if ~isempty(obj.expi) && obj.expi > 0 
         
-        % change to different experiment, by default choose fly 1
-        % TODO: allow for more than one fly to be selected at once
-        obj.expi = 0;
-        obj.flies = nan(size(obj.flies));
+        if ismember(obj.expi,expi), % The current experiment was removed.
+          newexpi = find( newExpNumbers(obj.expi+1:end),1);
+          if isempty(newexpi), % No next experiment.
+            newexpi = find(newExpNumbers(1:obj.expi-1),1,'last');
+            if isempty(newexpi), % No previous experiment either.
+              newexpi = 0;
+            else
+              newexpi = newExpNumbers(newexpi);
+            end
+          else
+            newexpi = newExpNumbers(obj.expi+newexpi);
+          end
+          
+          obj.expi = 0;
+          obj.flies = nan(size(obj.flies));
 
-        if obj.nexps > 0,
-          obj.PreLoad(obj.nexps,1);
+          if obj.nexps > 0,
+            obj.PreLoad(newexpi,1);
+          end
+          
+        else
+          obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
         end
-
-      elseif ~isempty(obj.expi) && obj.expi > 0 && ~ismember(obj.expi,expi)
-        obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
       end
       
       success = true;
@@ -4942,7 +4953,7 @@ end
             obj.expnames{curex},flies,round(100*numcurexdone/numcurex));
             obj.PredictFast(obj.predictblocks.expi(ndx),...
               obj.predictblocks.flies(ndx),...
-              obj.predictblocks.t0(ndx):obj.predictblocks.t1(ndx));
+              obj.predictblocks.t0(ndx),obj.predictblocks.t1(ndx));
           end
             obj.NormalizeScores([]);
             obj.ApplyPostprocessing();
@@ -5095,7 +5106,7 @@ end
       obj.suggestedidx(idxcurr) = obj.predictedidx(idxcurr);
     end
 
-    function Predict(obj,expi,flies,ts)
+    function Predict(obj,expi,flies,t0,t1)
     % Predict(obj,expi,flies,ts)
     % Runs the behavior classifier on the input experiment, flies, and
     % frames. This involves first precomputing the window data for these
@@ -5107,7 +5118,7 @@ end
         return;
       end
 
-      if isempty(ts),
+      if isempty(t0>t1),
         return;
       end
             
@@ -5160,7 +5171,7 @@ end
 %           obj.windowdata.isvalidprediction(idxcurr) = true;
 
           obj.SetStatus('Updating Predictions ...');
-          obj.PredictFast(expi,flies,ts)
+          obj.PredictFast(expi,flies,t0,t1)
           obj.ApplyPostprocessing();
           obj.ClearStatus();
 
@@ -5231,10 +5242,10 @@ end
       obj.fastPredict.wfidx_valid = true;
     end
     
-    function PredictFast(obj,expi,flies,ts)
+    function PredictFast(obj,expi,flies,t0,t1)
     % Predict fast by computing only the required window features.
       
-        if isempty(obj.classifier) || isempty(ts),
+        if isempty(obj.classifier) || t0>t1 ,
           return;
         end
         
@@ -5242,14 +5253,18 @@ end
           obj.FindFastPredictParams();
         end
        
-        idxcurr = obj.predictdata.flies == flies & ...
-          obj.predictdata.exp == expi &...
-          obj.predictdata.cur_valid;
-        tscurr = obj.predictdata.t(idxcurr);
-        missingts = setdiff(ts,tscurr);
-        if numel(missingts)==0, return; end
-        
-%         if isempty(missingts), return; end
+%         idxcurr = obj.predictdata.flies == flies & ...
+%           obj.predictdata.exp == expi &...
+%           obj.predictdata.cur_valid;
+%         tscurr = obj.predictdata.t(idxcurr);
+%         missingts = setdiff(ts,tscurr);
+%         if numel(missingts)==0, return; end
+%         
+        idxcurr = obj.FlyNdxPredict(expi,flies);
+        idxcurr_t = obj.predictdata.t(idxcurr)>=t0 & obj.predictdata.t(idxcurr)<=t1;
+        idxcurr(idxcurr) = idxcurr_t;
+        if all(obj.predictdata.cur_valid(idxcurr)), return; end
+        missingts = obj.predictdata.t(idxcurr);
         
         perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
         perframefile = obj.GetPerframeFiles(expi);
