@@ -7,66 +7,88 @@ best.error = 0.5;
 best.dir = 1;
 best.tr = 0;
 
-curBestErr = 0.5*ones(1,numDim);
-binNo = ones(1,numDim);
-bestDir = ones(1,numDim);
+% curBestErr = 0.5*ones(1,numDim);
+% binNo = ones(1,numDim);
+% bestDir = ones(1,numDim);
 
 numS = params.numSample;
 
-% KB: copied from randsample
+% KB: only sample if it is helpful
+dosample = numS < numel(dist);
+
+% always helpful to normalize
 dist = dist / sum(dist);
-edges = min([0 cumsum(dist')],1); % protect against accumulated round-off
-edges(end) = 1; % get the upper edge exact
-[~,curSel] = histc(rand(numS,1),edges);
 
 
-% OLD WAY OF DOING THIS IS SLOWER:
-% curSel = zeros(1,numS);
-% cumD = cumsum(dist);
-% randPts = sort(rand(numS,1),'ascend');
-% count = 1; ndx = 1;
-% while count<=numS
-%   if ndx > numel(cumD)
-%     curSel(count) = numel(cumD);
-%     count = count+1;
-%   else
-%     if(cumD(ndx)>=randPts(count))
-%       curSel(count) = ndx;
-%       count = count+1;
-%     else
-%       ndx = ndx+1;
-%     end
-%   end
-% end
+% fot testing
+% for dosample = [false,true],
+%   
+%   niters = 100;
+%   
+%   tic;
+%   for iter = 1:niters,
 
-if any(curSel==0),
-  warning('Sanity check: some samples are not being chosen');
-  curSel(curSel==0) = size(data,1);
+
+if dosample,
+  
+  % KB: copied from randsample
+  edges = min([0 cumsum(dist')],1); % protect against accumulated round-off
+  edges(end) = 1; % get the upper edge exact
+  [~,curSel] = histc(rand(numS,1),edges);
+  
+  if any(curSel==0),
+    warning('Sanity check: some samples are not being chosen');
+    curSel(curSel==0) = size(data,1);
+  end
+  
+  curBins = bins(:,curSel);
+  curLabels = labels(curSel);
+
+else
+  
+  curBins = bins;
+  curLabels = labels;
+  
 end
-
-curBins = bins(:,curSel);
-curLabels = labels(curSel);
 
 % KB: precompute these
 numBins = size(binVals,1)+1;
-% for histogramming
-edges = .5:numBins+.5;
 % indices with positive labels
 idxpos = curLabels > 0;
-% always normalize histograms by Z
-Z = size(curBins,2);
-Zpos = nnz(idxpos);
-Zneg = nnz(~idxpos);
 
-DOLOOP = false;
-if ~DOLOOP,
-% do this without looping at all
-fracpos = nnz(idxpos)/Z;
-fracneg = nnz(~idxpos)/Z;
-posCount = histc(curBins(:,idxpos),edges,2);
-posCount = posCount(:,1:end-1) / Z;
-negCount = histc(curBins(:,~idxpos),edges,2);
-negCount = negCount(:,1:end-1) / Z;
+% always normalize histograms by Z
+if dosample,
+  Z = size(curBins,2);
+  Zpos = nnz(idxpos);
+else
+  Z = sum(dist);
+  Zpos = sum(dist(idxpos));
+end
+Zneg = Z - Zpos;
+
+fracpos = Zpos/Z;
+fracneg = Zneg/Z;
+
+if dosample,
+  
+  posCount = accummatrix(curBins(:,idxpos)',ones(Zpos,1),numBins)'/Z;
+  negCount = accummatrix(curBins(:,~idxpos)',ones(Zneg,1),numBins)'/Z;
+  
+%   posCount = histc(curBins(:,idxpos),edges,2);
+%   posCount = posCount(:,1:end-1) / Z;
+%   negCount = histc(curBins(:,~idxpos),edges,2);
+%   negCount = negCount(:,1:end-1) / Z;
+
+else
+
+  % weighted histogram, loop-free version
+
+  posCount = accummatrix(curBins(:,idxpos)',dist(idxpos),numBins)';
+  negCount = accummatrix(curBins(:,~idxpos)',dist(~idxpos),numBins)';
+  
+  
+end
+
 posLeft = cumsum(posCount,2);
 posRight = fracpos - posLeft;
 negLeft = cumsum(negCount,2);
@@ -82,68 +104,15 @@ err = 0.5-binErr/2;
 curBestErr = curBestErr'; binNo = binNo';
 bestDir = dir(sub2ind([numDim,numBins],1:numDim,binNo));
 
-else
-
-% pre-split up curBins for parfor
-curBinsPos = curBins(:,idxpos);
-curBinsNeg = curBins(:,~idxpos);
-
-parfor dim = 1:numDim
-
-%{
-%   binNdx =  curBins(dim,:)+uint8(numBins*(curLabels'>0));
-%   allCount = histc(binNdx,.5:(2*numBins+0.5));
-%   allCount = allCount/sum(allCount);
-%   posCount = allCount(numBins+1:end-1);
-%   negCount = allCount(1:numBins);
-%}
-  posCount = histc(curBinsPos(dim,:),edges);
-  posCount = posCount(1:end-1) / Zpos;
-  negCount = histc(curBinsNeg(dim,:),edges);
-  negCount = negCount(1:end-1) / Zneg;
-  
-%{
-%   posLeft = 0;
-%   posRight = sum(posCount);
-%   negLeft = 0;
-%   negRight = sum(negCount);
-%   
-%   err = zeros(1,size(binVals,1));
-%   dir = ones(1,size(binVals,1));
-%   for ndx = 1:size(binVals,1)
-%     posLeft = posLeft + posCount(ndx);
-%     posRight = posRight - posCount(ndx);
-%     negLeft = negLeft + negCount(ndx);
-%     negRight = negRight - negCount(ndx);
-% 
-%     err(ndx) = posRight+negLeft-posLeft-negRight;
-%     if(err(ndx)<0)
-%       err(ndx) = - err(ndx);
-%       dir(ndx) = -1;
-%     end
-%   end
-%}
-
-  dir = ones(1,numBins);
-  posLeft = cumsum(posCount);
-  posRight = sum(posCount)-posLeft;
-  negLeft = cumsum(negCount);
-  negRight = sum(negCount)-negLeft;
-  binErr = posRight+negLeft-posLeft-negRight;
-  negErr = binErr<0;
-  binErr(negErr) = -binErr(negErr);
-  dir(negErr) = -1;
-
-  err = 0.5-binErr/2;
-  [curBestErr(dim) binNo(dim)]= min(err(1:end-1));
-  bestDir(dim) = dir(binNo(dim));
-end
-
-end % end DOLOOP condition
-
-[minError minDim] = min(curBestErr);
+[minError minDim] = min(curBestErr); %#ok<UDIM>
 best.error = minError;   best.dim = minDim; 
 best.dir = bestDir(minDim);   best.tr = binVals(binNo(minDim),minDim);
+
+%   end
+%   
+%   fprintf('dosample = %d, time = %f\n',dosample,toc);
+%   
+% end
 
 end
 
