@@ -2530,7 +2530,7 @@ end
       idxcurr = ismember(obj.windowdata.exp, expi);
       obj.windowdata.X(idxcurr,:) = [];
       obj.windowdata.exp(idxcurr) = [];
-      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp)';
+      obj.windowdata.exp(:) = newExpNumbers(obj.windowdata.exp);
       obj.windowdata.flies(idxcurr) =[];
       obj.windowdata.t(idxcurr) =[];
       obj.windowdata.labelidx_new(idxcurr) = [];
@@ -2553,7 +2553,6 @@ end
         idxcurr(1:numel(obj.windowdata.postprocessed)),:) = [];
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
-      obj.windowdata.exp = newExpNumbers(obj.windowdata.exp);
 
       idxcurr = ismember(obj.predictdata.exp, expi);
       fnames = fieldnames(obj.predictdata);
@@ -2580,19 +2579,31 @@ end
       end
 
       % update current exp, flies
-      if ~isempty(obj.expi) && obj.expi > 0 && ismember(obj.expi,expi),
+      if ~isempty(obj.expi) && obj.expi > 0 
         
-        % change to different experiment, by default choose fly 1
-        % TODO: allow for more than one fly to be selected at once
-        obj.expi = 0;
-        obj.flies = nan(size(obj.flies));
+        if ismember(obj.expi,expi), % The current experiment was removed.
+          newexpi = find( newExpNumbers(obj.expi+1:end),1);
+          if isempty(newexpi), % No next experiment.
+            newexpi = find(newExpNumbers(1:obj.expi-1),1,'last');
+            if isempty(newexpi), % No previous experiment either.
+              newexpi = 0;
+            else
+              newexpi = newExpNumbers(newexpi);
+            end
+          else
+            newexpi = newExpNumbers(obj.expi+newexpi);
+          end
+          
+          obj.expi = 0;
+          obj.flies = nan(size(obj.flies));
 
-        if obj.nexps > 0,
-          obj.PreLoad(obj.nexps,1);
+          if obj.nexps > 0,
+            obj.PreLoad(newexpi,1);
+          end
+          
+        else
+          obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
         end
-
-      elseif ~isempty(obj.expi) && obj.expi > 0 && ~ismember(obj.expi,expi)
-        obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
       end
       
       success = true;
