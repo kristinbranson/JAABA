@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <params>
 <flies file="params/featureConfig.xml" animal="fly"/>
-<flies_wing file="params/featureConfigWings.xml" animal="fly"/>
+<flies_wing file="params/featureConfigWings.xml" animal="wingedfly"/>
 <eyrun_flies file="params/featureConfigEyrun.xml" animal="fly"/>
 <mice file="params/featureConfigVivekMice.xml" animal="mouse"/>
 <eric_flies file="params/featureConfigEric.xml" animal="fly"/>
