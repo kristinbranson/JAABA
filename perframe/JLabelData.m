@@ -806,7 +806,10 @@ end
           if isfield(configparams.targets,'type'),
             obj.targettype = configparams.targets.type;
           end
+        else isfield(configparams.behaviors,'type'),
+            obj.targettype = configparams.behaviors.type;
         end
+        
       end
       
       
@@ -6184,12 +6187,18 @@ end
         permuteValid = validflies(randperm(numel(validflies)));
         randFlies = permuteValid(1:perexp);
         
-        for fndx = randFlies(:)',
-          first = obj.firstframes_per_exp{endx}(fndx);
-          last = obj.endframes_per_exp{endx}(fndx);
-          suggestStart = first + round( (last-first-perfly)*rand(1));
-          obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
-          obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
+        for fndx = 1:obj.nflies_per_exp(endx),
+          if any(fndx == randFlies),
+              first = obj.firstframes_per_exp{endx}(fndx);
+              last = obj.endframes_per_exp{endx}(fndx);
+              suggestStart = first + round( (last-first-perfly)*rand(1));
+              obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
+              obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
+          else
+              obj.randomGTSuggestions{endx}(fndx).start = [];
+              obj.randomGTSuggestions{endx}(fndx).end = [];
+              
+          end
         end
         
       end
@@ -6436,7 +6445,7 @@ end
           
           % assumes that if have any loaded score for an experiment we
           % have scores for all the flies and for every frame.
-          if isempty(obj.predictdata.exp) && ~nnz(obj.predictdata.exp ==expi)
+          if ~any(obj.predictdata.loaded_valid) 
             [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
             if ~success1,
               warndlg(msg);
@@ -6490,7 +6499,7 @@ end
               scores = obj.predictdata.cur(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
-              gt_scores = [gt_scores; scores(ndxInLoaded)];
+              gt_scores = [gt_scores scores(ndxInLoaded)];
             end
           end
           
