@@ -2838,7 +2838,7 @@ end
         end
         
         % Don't generate the per-frame files from scores here anymore..
-        if ~any(strcmp(fn,{obj.scoresasinput(:).scorefilename}))
+        if isempty(obj.scoresasinput) || ~any(strcmp(fn,{obj.scoresasinput(:).scorefilename}))
           perframetrx.(fn);
         end        
       end
