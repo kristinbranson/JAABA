@@ -67,6 +67,7 @@ Please follow the appropriate instructions below. </p>
 <li><a href="#SourceSoftwareRequirements">Software Requirements (Advanced)</a></li>
 <li><a href="#SourceInstallation">Installation (Advanced)</a></li>
 <li><a href="#SourceStartUp">Start-Up (Advanced)</a></li>
+<li><a href="#WindowsFirewall">Windows Firewall Security Warning</a></li>
 </ul>
 </ul>
 
@@ -92,7 +93,7 @@ The only requirement is the freely available <a href="http://www.mathworks.com/p
 <li> Download and install the <b>Matlab Compiler Runtime (MCR) for R2012a</b>. <a
 href="http://www.mathworks.com/products/compiler/mcr/index.html">MCR installers
 and instructions </a> are available at Mathworks website.</li>
-<li> <b>Download</b> the JAABA package for you system from
+<li> <b>Download</b> the JAABA package for your system from
 <a href="http://sourceforge.net/projects/jaaba/files">http://sourceforge.net/projects/jaaba/files</a>.
 <li> <b>Unzip</b> the package zip file. </li>
 <li> <b>Leave the executable</b> in the directory in the package. You can move the entire directory, but JAABA
@@ -103,10 +104,10 @@ relies on other files in that directory, so please leave them in the same direct
 
 Within the package, there is an executable program. The name of this file depends on the OS:
 <ul>
-<li> <b>Windows</b>: Double-click <b>JAABA_win.exe</b> to run JAABA. </li>
+<li> <b>Windows</b>: Double-click <b>JAABA.exe</b> to run JAABA. The first time you run this program, you may receive a Windows Security Warning from your firewall. This is normal, and we recommend allowing JAABA to run. See <a href="#WindowsFirewall">Windows Firewall Security Warning</a> below for more information. </li>
 <li> <b>Mac OS X</b>: Double-click the <b>JAABA</b> application to run JAABA.</li>
-<li> <b>Linux</b>: The shell script <b>run_JAABA.sh</b> runs JAABA. It can be run using the command
-<pre>[JAABA package location]/run_JAABA.sh [MCR location]</pre>
+<li> <b>Linux</b>: The shell script <b>run_JAABA.sh</b> runs JAABA. It should be run from within the JAABA package directory using the command
+<pre>./run_JAABA.sh [MCR location]</pre>
 </ul>
 Please be <b>patient</b>. Loading the MATLAB MCR is slow, hence once you run the executable it may take some time for JAABA to appear.
 
@@ -137,10 +138,19 @@ Users with <b>programming experience</b>, with <b>MATLAB licenses</b>, and/or wa
 <li> Run <b>StartJAABA</b> on the command line to start JAABA.</li>
 </ol>
 
+<h2><a id="WindowsFirewall">Windows Firewall Security Warning</a></h2>
+
+When JAABA is started for the first time in Windows, it may trigger a Windows Security Warning from your firewall. This is normal, and
+we recommend you allow JAABA to proceed. This warning is triggered when JAABA calls 
+<a href="http://www.mathworks.com/help/distcomp/matlabpool.html"><code>matlabpool</code></code>, 
+part of MATLAB's Parallel Computing Toolbox. The Parallel Computing Toolbox can be used to distribute
+jobs over a many computers over a network, which is why Windows creates a warning. JAABA only uses multiprocessing on a single machine, and
+thus will not be accessing your network. 
+
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated December 4, 2012</i>
 </center>
 </footer>
 
