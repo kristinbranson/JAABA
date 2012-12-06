@@ -3101,8 +3101,13 @@ end
               obj.fileexists(expi,filei) = all(pfexists);
               if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file),
                 for tmpi = find(~pfexists(:)'),
-                  [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
-                  missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
+                  if numel(missingfiles{expi})<10
+                    [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
+                    missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
+                    if numel(missingfiles{expi}) == 10,
+                       missingfiles{expi}{end+1} = ' and possibly more';
+                    end
+                  end
                 end
               end
               obj.filetimestamps(expi,filei) = max(timestamps);
@@ -3154,11 +3159,11 @@ end
                 end
               end
             end
-            if ~isempty(missingfiles{expi}),
-              msg = [msg,'\n','Missing',sprintf(' %s',missingfiles{expi}{:})];
-            end
           end
         end
+      end
+      if exist('missingfiles','var') && ~isempty(missingfiles) && isempty(missingfiles{expi}),
+          msg = [msg,' Missing',sprintf(' %s',missingfiles{expi}{:})];
       end
 
       % fail if was ok and now not ok
