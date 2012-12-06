@@ -60,7 +60,7 @@ for i = 1:numel(trxfiles),
     moviefile = trxcurr.moviename;
   else
     if ~strcmp(moviefile,trxcurr.moviename),
-      msg = {'Movies mismatch'};
+      msg = {sprintf('Movies mismatch %d %s %s', i, trxfile, labelfile) };
       return;
     end
   end
@@ -82,99 +82,100 @@ for i = 1:numel(trxfiles),
   end
   
   % read the labels    
-  [labelscurr,behaviorscurr] = ReadStructSVMLabelFile(labelfile);
-  
-  % randomly subsample negatives
-  if fracsubsamplenegs < 1,
-    
-    labels0 = labelscurr;
-    
-    for behaviori = 1:numel(labelscurr),
+  if ~isempty(labelfile) && exist(labelfile, 'file')
+      [labelscurr,behaviorscurr] = ReadStructSVMLabelFile(labelfile);
 
-      maxT = max(labelscurr{behaviori}.t1s);
-      label = zeros(1,maxT);
-      for j = 1:numel(labelscurr{behaviori}.t0s),
-        if strcmpi(labelscurr{behaviori}.names{j},'none'),
-          label(labelscurr{behaviori}.t0s(j):labelscurr{behaviori}.t1s(j)-1) = 2;
-        else
-          label(labelscurr{behaviori}.t0s(j):labelscurr{behaviori}.t1s(j)-1) = 1;
+      % randomly subsample negatives
+      if fracsubsamplenegs < 1,
+
+        labels0 = labelscurr;
+
+        for behaviori = 1:numel(labelscurr),
+
+          maxT = max(labelscurr{behaviori}.t1s);
+          label = zeros(1,maxT);
+          for j = 1:numel(labelscurr{behaviori}.t0s),
+            if strcmpi(labelscurr{behaviori}.names{j},'none'),
+              label(labelscurr{behaviori}.t0s(j):labelscurr{behaviori}.t1s(j)-1) = 2;
+            else
+              label(labelscurr{behaviori}.t0s(j):labelscurr{behaviori}.t1s(j)-1) = 1;
+            end
+          end
+
+          dokeep = label ~= 2 | rand(1,maxT)<=fracsubsamplenegs;
+          label(~dokeep) = 0;
+
+          newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[],'off',[]);
+          labelnames_curr = {behaviorscurr{behaviori},'None'};
+          for j = 1:2,
+            [i0s,i1s] = get_interval_ends(label==j);
+            if ~isempty(i0s),
+              n = numel(i0s);
+              newlabels.t0s(end+1:end+n) = i0s;
+              newlabels.t1s(end+1:end+n) = i1s;
+              newlabels.imp_t0s(end+1:end+n) = i0s;
+              newlabels.imp_t1s(end+1:end+n) = i1s;
+              newlabels.names(end+1:end+n) = repmat(labelnames_curr(j),[1,n]);
+            end
+          end
+          newlabels.timestamp = repmat(labelscurr{behaviori}.timestamp(end),size(newlabels.t0s));
+          newlabels.flies = labelscurr{behaviori}.flies;
+          newlabels.off = labelscurr{behaviori}.off;
+          labelscurr{behaviori} = newlabels;
+
         end
+
       end
 
-      dokeep = label ~= 2 | rand(1,maxT)<=fracsubsamplenegs;
-      label(~dokeep) = 0;
-      
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[],'off',[]);
-      labelnames_curr = {behaviorscurr{behaviori},'None'};
-      for j = 1:2,
-        [i0s,i1s] = get_interval_ends(label==j);
-        if ~isempty(i0s),
-          n = numel(i0s);
-          newlabels.t0s(end+1:end+n) = i0s;
-          newlabels.t1s(end+1:end+n) = i1s;
-          newlabels.imp_t0s(end+1:end+n) = i0s;
-          newlabels.imp_t1s(end+1:end+n) = i1s;
-          newlabels.names(end+1:end+n) = repmat(labelnames_curr(j),[1,n]);
+
+      % add them to alllabels
+      [ism,idx] = ismember(behaviorscurr,allbehaviors);
+      if any(ism),
+        for j = find(ism),
+          alllabels{idx(j)}.t0s{end+1} = labelscurr{j}.t0s;
+          alllabels{idx(j)}.t1s{end+1} = labelscurr{j}.t1s;
+          alllabels{idx(j)}.names{end+1} = labelscurr{j}.names;
+          alllabels{idx(j)}.flies(:,end+1) = labelscurr{j}.flies;
+          alllabels{idx(j)}.off(end+1) = labelscurr{j}.off;
+          alllabels{idx(j)}.timestamp{end+1} = labelscurr{j}.timestamp;
+          alllabels{idx(j)}.imp_t0s{end+1} = labelscurr{j}.imp_t0s;
+          alllabels{idx(j)}.imp_t1s{end+1} = labelscurr{j}.imp_t1s;
+        end
+        for j = find(ism),
+          allgtlabels{idx(j)}.t0s{end+1} = labels0{j}.t0s;
+          allgtlabels{idx(j)}.t1s{end+1} = labels0{j}.t1s;
+          allgtlabels{idx(j)}.names{end+1} = labels0{j}.names;
+          allgtlabels{idx(j)}.flies(:,end+1) = labels0{j}.flies;
+          allgtlabels{idx(j)}.off(end+1) = labels0{j}.off;
+          allgtlabels{idx(j)}.timestamp{end+1} = labels0{j}.timestamp;
+          allgtlabels{idx(j)}.imp_t0s{end+1} = labels0{j}.imp_t0s;
+          allgtlabels{idx(j)}.imp_t1s{end+1} = labels0{j}.imp_t1s;
+        end
+
+      end
+      if any(~ism),
+        for j = find(~ism),
+          alllabels{end+1} = labelscurr{j};
+          alllabels{end}.t0s = {alllabels{end}.t0s};
+          alllabels{end}.t1s = {alllabels{end}.t1s};
+          alllabels{end}.names = {alllabels{end}.names};
+          alllabels{end}.timestamp = {alllabels{end}.timestamp};
+          alllabels{end}.imp_t0s = {alllabels{end}.imp_t0s};
+          alllabels{end}.imp_t1s = {alllabels{end}.imp_t1s};
+          allbehaviors{end+1} = behaviorscurr{j};
+        end
+        for j = find(~ism),
+          allgtlabels{end+1} = labels0{j};
+          allgtlabels{end}.t0s = {allgtlabels{end}.t0s};
+          allgtlabels{end}.t1s = {allgtlabels{end}.t1s};
+          allgtlabels{end}.names = {allgtlabels{end}.names};
+          allgtlabels{end}.timestamp = {allgtlabels{end}.timestamp};
+          allgtlabels{end}.imp_t0s = {allgtlabels{end}.imp_t0s};
+          allgtlabels{end}.imp_t1s = {allgtlabels{end}.imp_t1s};
+          %allbehaviors{end+1} = behaviorscurr{j};
         end
       end
-      newlabels.timestamp = repmat(labelscurr{behaviori}.timestamp(end),size(newlabels.t0s));
-      newlabels.flies = labelscurr{behaviori}.flies;
-      newlabels.off = labelscurr{behaviori}.off;
-      labelscurr{behaviori} = newlabels;
-      
-    end
-    
   end
-  
-  
-  % add them to alllabels
-  [ism,idx] = ismember(behaviorscurr,allbehaviors);
-  if any(ism),
-    for j = find(ism),
-      alllabels{idx(j)}.t0s{end+1} = labelscurr{j}.t0s;
-      alllabels{idx(j)}.t1s{end+1} = labelscurr{j}.t1s;
-      alllabels{idx(j)}.names{end+1} = labelscurr{j}.names;
-      alllabels{idx(j)}.flies(:,end+1) = labelscurr{j}.flies;
-      alllabels{idx(j)}.off(end+1) = labelscurr{j}.off;
-      alllabels{idx(j)}.timestamp{end+1} = labelscurr{j}.timestamp;
-      alllabels{idx(j)}.imp_t0s{end+1} = labelscurr{j}.imp_t0s;
-      alllabels{idx(j)}.imp_t1s{end+1} = labelscurr{j}.imp_t1s;
-    end
-    for j = find(ism),
-      allgtlabels{idx(j)}.t0s{end+1} = labels0{j}.t0s;
-      allgtlabels{idx(j)}.t1s{end+1} = labels0{j}.t1s;
-      allgtlabels{idx(j)}.names{end+1} = labels0{j}.names;
-      allgtlabels{idx(j)}.flies(:,end+1) = labels0{j}.flies;
-      allgtlabels{idx(j)}.off(end+1) = labels0{j}.off;
-      allgtlabels{idx(j)}.timestamp{end+1} = labels0{j}.timestamp;
-      allgtlabels{idx(j)}.imp_t0s{end+1} = labels0{j}.imp_t0s;
-      allgtlabels{idx(j)}.imp_t1s{end+1} = labels0{j}.imp_t1s;
-    end
-
-  end
-  if any(~ism),
-    for j = find(~ism),
-      alllabels{end+1} = labelscurr{j};
-      alllabels{end}.t0s = {alllabels{end}.t0s};
-      alllabels{end}.t1s = {alllabels{end}.t1s};
-      alllabels{end}.names = {alllabels{end}.names};
-      alllabels{end}.timestamp = {alllabels{end}.timestamp};
-      alllabels{end}.imp_t0s = {alllabels{end}.imp_t0s};
-      alllabels{end}.imp_t1s = {alllabels{end}.imp_t1s};
-      allbehaviors{end+1} = behaviorscurr{j};
-    end
-    for j = find(~ism),
-      allgtlabels{end+1} = labels0{j};
-      allgtlabels{end}.t0s = {allgtlabels{end}.t0s};
-      allgtlabels{end}.t1s = {allgtlabels{end}.t1s};
-      allgtlabels{end}.names = {allgtlabels{end}.names};
-      allgtlabels{end}.timestamp = {allgtlabels{end}.timestamp};
-      allgtlabels{end}.imp_t0s = {allgtlabels{end}.imp_t0s};
-      allgtlabels{end}.imp_t1s = {allgtlabels{end}.imp_t1s};
-      allbehaviors{end+1} = behaviorscurr{j};
-    end
-  end  
-
 end
 
 msg{end+1} = sprintf('Read %d trx from trx files',numel(trx));

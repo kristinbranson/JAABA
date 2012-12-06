@@ -5,6 +5,8 @@ classdef JLabelData < handle
     % type of target (mainly used for plotting
     targettype = 'fly';
     
+    h = {};  % SJB: stores network information for structured svm server
+    
     % current selection
     
     % currently selected  experiment
@@ -124,7 +126,8 @@ classdef JLabelData < handle
     
     % type of classifier to use
 %    classifiertype = 'ferns';
-    classifiertype = 'boosting';
+    %classifiertype = 'boosting';
+    classifiertype = 'structured_svm';
     
     % currently learned classifier. structure depends on the type of
     % classifier. if empty, then no classifier has been trained yet. 
@@ -837,6 +840,15 @@ end
       end
       
      
+      if isfield(configparams,'network_server'),
+        obj.h = struct('ip_adress', '127.0.0.1', 'port', 8088, 'example_ids', []);
+        if isfield(configparams.network_server,'ip_address'),
+          obj.h.ip_address = configparams.network_server.ip_address;
+        end
+        if isfield(configparams.network_server,'port'),
+          obj.h.port = configparams.network_server.port;
+        end
+      end
     end
     
     function [success,msg] = SetMovieFileName(obj,moviefilename)
@@ -1021,7 +1033,7 @@ end
     end
 
     function [success,msg] = SetClassifierType(obj,classifiertype)
-
+    
       success = true;
       msg = '';
       
@@ -1687,7 +1699,7 @@ end
     % classifier. This function calls RemoveExpDirs to remove all current
     % experiments not in expdirs, then calls AddExpDirs to add the new
     % experiment directories. 
-
+    
       success = false;
       msg = '';
       
@@ -2092,7 +2104,7 @@ end
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
     % then it will be preloaded. 
-
+    
       success = false; msg = '';
       
       if isnumeric(expdir), return; end
@@ -2137,6 +2149,9 @@ end
       
       % create missing outexpdirs
       if ~exist(outexpdir,'dir'),
+          rootoutputdir
+          expname
+          
         [success1,msg1] = mkdir(rootoutputdir,expname);
         if ~success1,
           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
@@ -2940,7 +2955,6 @@ end
         return;
       end
 
-      
 %       try
         [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
@@ -4743,6 +4757,9 @@ end
     % which have been removed the training set, and adding new examples for
     % newly labeled frames. If the classifier has not yet been trained, it
     % is trained from scratch. 
+      if strcmp(obj.classifiertype, 'structured_svm')
+          return;
+      end
       
       % load all labeled data
       [success,msg] = obj.PreLoadLabeledData();
@@ -4991,6 +5008,25 @@ end
       
     end
     
+    function ExperimentsFinalized(obj)
+        if strcmp(obj.classifiertype, 'structured_svm')
+            %synchStructuredBehaviors(obj);
+            obj.h.example_ids = synchStructuredTrainingSet(obj);
+        end
+    end
+    
+    function LabelChanged(obj, expi, fly_id)
+        if strcmp(obj.classifiertype, 'structured_svm')
+            obj.SetStatus('Changing label');
+            query = struct('method', 'relabel_example',...
+                'index',obj.h.example_ids(expi,fly_id), ...
+                'y', getBoutLabel(obj, expi, fly_id));
+            response = jsonrpc_request(obj.h.ip_address, obj.h.port, query);
+            if isfield(response, 'error'), warning(response.error); end
+            obj.ClearStatus();
+        end
+    end
+    
     function SetTrainingData(obj,trainingdata)
     % SetTrainingData(obj,trainingdata)
     % Sets the labelidx_cur of windowdata based on the input training data.
@@ -5117,7 +5153,7 @@ end
      
       % TODO: don't store window data just because predicting. 
       
-      if isempty(obj.classifier),
+      if isempty(obj.classifier) && ~strcmp(obj.classifiertype, 'structured_svm'),
         return;
       end
 
@@ -5177,7 +5213,15 @@ end
           obj.PredictFast(expi,flies,t0,t1)
           obj.ApplyPostprocessing();
           obj.ClearStatus();
-
+          
+        case 'structured_svm',
+          obj.SetStatus('Applying structured predictor...');
+          x = getBoutData(obj, obj.expi, obj.flies);
+          query = struct('method', 'classify_example', 'x', x);
+          response = jsonrpc_request(obj.h.ip_address, obj.h.port, query);
+          if isfield(response, 'error'), warning(response.error); end
+          obj.predictdata = boutLabelToPredictedFrames(response.y, obj.expi, obj.flies);
+          obj.ClearStatus();
       end
            
       obj.UpdatePredictedIdx();

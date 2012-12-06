@@ -340,9 +340,10 @@ classdef JClassifier < handle
       % compute window data
       [success,msg] = obj.PreLoadWindowData(expi,flies,ts);
       if ~success,
-        warning(msg);
-        return;
+          warning(msg);
+          return;
       end
+      
       
       % indices into windowdata
       idxcurr = obj.FlyNdx(expi,flies) & ...

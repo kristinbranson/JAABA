@@ -84,6 +84,7 @@ for ii = 1:numel(idx_behavior),
   labels_curr.names = {};
   labels_curr.timestamp = [];
   labels_curr.flies = fly_ids;
+  labels_curr.fly_id = fly_ids;
   labels_curr.imp_t0s = [];
   labels_curr.imp_t1s = [];
   labels_curr.off = 1-firstframe;

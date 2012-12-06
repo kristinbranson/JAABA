@@ -147,6 +147,8 @@ handles = UpdateGUIGroundTruthMode(handles);
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
+handles.guidata.data.ExperimentsFinalized(); 
+
 % enable gui
 EnableGUI(handles);
 
@@ -1605,6 +1607,7 @@ else
   defaultconfigfilename = handles.guidata.configfilename;
 end
 
+
 % loop until we have a valid config file
 while true,
 
@@ -2473,6 +2476,7 @@ else % label pen is up.
   set(handles.menu_classifier,'enable','on');
   set(handles.pushbutton_train,'Enable','on');
 
+  handles.guidata.data.LabelChanged(handles.guidata.expi,handles.guidata.flies);
 
 end
 
