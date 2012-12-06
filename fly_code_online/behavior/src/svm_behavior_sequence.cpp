@@ -1839,7 +1839,7 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
       }
     }
     y->score += y->scores[beh];
-    if(!y->disable_checks)
+    if(!y->disable_checks && !y_partial)
       assert(ybar->score+ybar->loss+.01 >= y->score);
 
     ybar->slack -= y->score;

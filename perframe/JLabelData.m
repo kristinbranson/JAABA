@@ -5221,6 +5221,7 @@ end
           response = jsonrpc_request(obj.h.ip_address, obj.h.port, query);
           if isfield(response, 'error'), warning(response.error); end
           obj.predictdata = boutLabelToPredictedFrames(response.y, obj.expi, obj.flies);
+          obj.windowdata.scoreNorm = 1;
           obj.ClearStatus();
       end
            

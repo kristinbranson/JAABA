@@ -1,5 +1,4 @@
 % JAABA start up script.
-<<<<<<< Updated upstream
 %
 % This program is part of JAABA.
 %
