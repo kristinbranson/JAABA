@@ -213,3 +213,33 @@ file.multiplefiles = 0;
 file.isdir = 1;
 file.exts = {'*'};
 InputDataTypes.CtraxPlusWings.files = structappend(InputDataTypes.CtraxPlusWings.files,file);
+
+InputDataTypes.SimpleTwoFlies = struct;
+InputDataTypes.SimpleTwoFlies.name = 'Kristin''s Simple Two-Fly Tracker';
+InputDataTypes.SimpleTwoFlies.videorequired = true;
+InputDataTypes.SimpleTwoFlies.readarena = 'no';
+InputDataTypes.SimpleTwoFlies.readpxpermm = 'no';
+InputDataTypes.SimpleTwoFlies.readfps = 'no';
+InputDataTypes.SimpleTwoFlies.writearena = 'maybe';
+InputDataTypes.SimpleTwoFlies.writepxpermm = 'yes';
+InputDataTypes.SimpleTwoFlies.writefps = 'yes';
+InputDataTypes.SimpleTwoFlies.files = [];
+
+file = struct;
+file.name = 'Trx mat file';
+file.description = 'Mat file containing trajectories and other information output by Kristin''s Simple Two-Fly Tracker';
+file.code = 'intrxfile';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.SimpleTwoFlies.files = structappend(InputDataTypes.SimpleTwoFlies.files,file);
+
+file.name = 'Per-frame directory';
+file.code = 'inperframedir';
+file.description = 'Per-frame directory containing wing statistics';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 1;
+file.exts = {'*'};
+InputDataTypes.SimpleTwoFlies.files = structappend(InputDataTypes.SimpleTwoFlies.files,file);
