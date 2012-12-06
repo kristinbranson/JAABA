@@ -84,7 +84,7 @@ function varargout = PrepareJAABAData_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-varargout = {};
+varargout = {hObject};
 
 function handles = InitializeGUI(handles)
 
@@ -1735,8 +1735,8 @@ function pushbutton_help_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+html_file = 'http://jaaba.sourceforge.net/PlottingResults.html';
 if isdeployed,
-  html_file = deployedRelative2Global('docs/DataFormatting.html');
   [stat,msg] = myweb_nocheck(html_file);
   if stat ~= 0,
     errordlg({'Please see documentation at http://jaaba.sourceforge.net'
@@ -1744,5 +1744,5 @@ if isdeployed,
       msg});
   end
 else
-  web('-browser','../docs/DataFormatting.html');
+  web('-browser',html_file);
 end

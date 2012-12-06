@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+<!--- OLD FORMAT
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+
+--->
+
+</head>
+</body>
+<h1> <a href="index.html">JAABA</a>: Labeling Trajectories </h1>
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#AddingLabels">Adding or Changing Labels</a></li>
+<li><a href="#KeyboardShortcuts">Keyboard Shortcuts</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="AddingLabels">Adding or Changing Labels</a></h2>
+
+<p> JAABA creates classifiers that predict <b>whether or not</b> the animal(s) are performing a given behavior (specified in the <a href="NewProject.html">Project Configuration</a>) in each frame. In the screen capture below, we are labeling whether the flies are <i>Chasing</i> or not. Thus, the label for each animal in each frame can have one of three values, and there are three buttons on the top-right side of the <a href="GUIOverview.html">JAABA interface</a> corresponding to these. 
+<ul>
+<li> <b>[Behavior]</b>: The top-most button is used to label the frame as the behavior for the current project. It will have the name specified in the project configuration, for example <i>Chase</i> in the screen capture below. </li>
+<li> <b>None</b>: The middle button is used to label a frame as <b>not</b> the behavior for the current project, e.g. not chasing.</li>
+<li> <b>Unknown</b>: The bottom button is used to label a frame as either unknown or unlabeled. All frames start as unknown, thus this button can be used to <b>erase</b> labels added previously. </li>
+</ul>
+
+<p>To add or change labels, click the relevant button to put the <b>labeling pen down</b>, then navigate forward or backward in time. The frames being labeled will be outlined in a dashed white box. Click the relevant button again to pick the <b>labeling pen up</b>. All the frames between the pen-down and pen-up frames will be labeled.
+
+<center><img src="images/JLabel-chaseLabel.png" width="743"
+height="562"></center>
+
+<hr class="h2-divider">
+
+<h2><a id="KeyboardShortcuts">Keyboard Shortcuts</a></h2>
+
+You can assign keyboard shortcuts to each of the label buttons. The shortcuts can be assigned using <b>Edit -> Label Shortcuts..</b>. For example, we like to assign:
+<ul>
+<li> [Behavior]: <b>z</b></li>
+<li> None: <b>x</b></li>
+<li> Unknown: <b>c</b></li>
+</ul>
+</p>
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</html>

@@ -1,0 +1,10 @@
+v1.0	Initial version.
+v1.1	Added class name alteration to menu's enclosing LI tag.
+v1.2	Add TreeMenu.show() and TreeMenu.hide() methods.
+v1.3	Add TreeMenu.show_all(),TreeMenu.hide_all(), and TreeMenu.reset() methods.
+	Added dir.php file listing example.
+v1.31	Modified cookie to allow more menu states.
+v1.4	Allow img tag symbols for simultaneous background/forground images adjustment.
+	Added TreeMenu.Singular flag so only one menu is open at a time.
+	Added TreeMenu.OmitSymbols flag to prevent symbols from being added to menu.
+	Added TreeMenu.SetupMenu flag to allow server to pre-setup menu.
