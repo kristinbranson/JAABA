@@ -14,16 +14,29 @@ else
   sampleSize = numPts;
 end
 
+% tic
+% 
+% rrand = reshape(randsample(numPts,numDim*sampleSize,true),[sampleSize,numDim]);
+% sel = sub2ind([]
+% 
+% toc
+
 parfor dim = 1:numDim
   curD = data(:,dim);
-  rrand = randperm(numPts);
-  sel = curD(rrand(1:sampleSize));
+%   rrand = randperm(numPts);
+%   sel = curD(rrand(1:sampleSize));
+  rrand = randperm(numPts,sampleSize);
+  sel = curD(rrand);
   curVals = prctile(sel,prcValues);
   binVals(:,dim) = curVals;
 %   binVals3(1,dim,:) = curVals;
 %   curBins = sum(bsxfun(@gt,curD,curVals),2)+1;
 %   bins(dim,:) = curBins;
 end
+
+% toc
+
+
 
 % bins = uint8(ones(size(data,2),size(data,1)));
 % 

@@ -10,6 +10,7 @@ etimehist = [];
 etimehistlength = 5;
 nittoutput = 3;
 origbins = bins; origdata = data; origbinVals = binVals;
+
 for itt = 1:numIters
   if ceil(itt*10/numIters)-ceil( (itt-1)*10/numIters) > 0.5
     % every 1/10th iterations select features to train on.
