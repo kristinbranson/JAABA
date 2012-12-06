@@ -52,7 +52,12 @@ if isempty(configparams),
   end
   configparams = cell(1,nclassifiers);
   for i = 1:nclassifiers,
-    configparams{i} = ReadXMLParams(configfiles{i});
+    [~,~,ext] = fileparts(configfiles{i});
+    if strcmpi(ext,'.xml');
+      configparams{i} = ReadXMLParams(configfiles{i});
+    else
+      configparams{i} = load(configfiles{i});
+    end
   end
 else
   if nclassifiers ~= numel(configparams),
