@@ -76,7 +76,19 @@ else
     datacurr.nframes = length(datacurr.x);
     datacurr.endframe = datacurr.nframes + datacurr.firstframe - 1;
     if isfield(in,'timestamps'),
-      datacurr.timestamps = in.timestamps(datacurr.firstframe:datacurr.endframe);
+      if numel(in.timestamps) >= datacurr.endframe,
+        datacurr.timestamps = in.timestamps(datacurr.firstframe:datacurr.endframe);
+      else
+        nadd = datacurr.nframes - numel(datacurr.timestamps);
+        fps = nanmedian(diff(datacurr.timestamps));
+        if datacurr.firstframe > numel(in.timestamps),
+          toff = datacurr.firstframe - numel(in.timestamps);
+          datacurr.timestamps = in.timestamps(end)+(toff:toff+nadd)/fps;
+        else
+          datacurr.timestamps = in.timestamps(datacurr.firstframe:end);
+          datacurr.timestamps(end+1:end+nadd) = in.timestamps(end)+(0:nadd-1)/fps;
+        end
+      end
     end
     if isconverted,
       datacurr.pxpermm = in.pxpermm;
