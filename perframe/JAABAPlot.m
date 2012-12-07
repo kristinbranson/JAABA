@@ -648,34 +648,37 @@ function ExperimentAdd_Callback(hObject, eventdata, handles)
 persistent directory
 if(isempty(directory))  directory=pwd;  end
 
-newrecordings=uipickfiles('prompt','Select experiment directory','filterspec',directory);
-tmp=ismember(newrecordings,[handles.experimentlist{:}]);
+newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
+if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
+  newexperiments=textread('../../data/test.txt','%s');
+end
+tmp=ismember(newexperiments,[handles.experimentlist{:}]);
 if(sum(tmp)>0)
   msg{1}='The following experiments have already been added:';
   msg{2}='';
-  msg(3:(2+sum(tmp)))=newrecordings(tmp);
+  msg(3:(2+sum(tmp)))=newexperiments(tmp);
   uiwait(errordlg(msg));
-  newrecordings(tmp)=[];
+  newexperiments(tmp)=[];
 end
-if(~iscell(newrecordings) || (length(newrecordings)==0))  return;  end
+if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
 set(handles.figure1,'pointer','watch');
 
-[directory,~,~]=fileparts(newrecordings{1});
-handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newrecordings{:}};
+[directory,~,~]=fileparts(newexperiments{1});
+handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
 handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
 
-handlesfeatures=cell(1,length(newrecordings));
-handlessexdata=cell(1,length(newrecordings));
-handlesindividuals=zeros(length(newrecordings),length(handles.scorefiles));
-parfor n=1:length(newrecordings)
-%for n=1:length(newrecordings)
-  tmp=dir(fullfile(newrecordings{n},'perframe','*.mat'));
+handlesfeatures=cell(1,length(newexperiments));
+handlessexdata=cell(1,length(newexperiments));
+handlesindividuals=zeros(length(newexperiments),length(handles.scorefiles));
+parfor n=1:length(newexperiments)
+%for n=1:length(newexperiments)
+  tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
   [handlesfeatures{n}{1:length(tmp)}]=deal(tmp.name);
   handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
 
-  sexdata=load(fullfile(newrecordings{n},'perframe','sex.mat'));
+  sexdata=load(fullfile(newexperiments{n},'perframe','sex.mat'));
   sexdata.data=cellfun(@(x) strcmp(x,'M'),sexdata.data,'uniformoutput',false);
   handlessexdata(n)={sexdata.data};
 
@@ -684,7 +687,7 @@ parfor n=1:length(newrecordings)
   for s=1:length(handles.scorefiles)
     classifier=load(handles.classifierlist{s});
     try
-      behavior_data=load(fullfile(newrecordings{n},handles.scorefiles{s}));
+      behavior_data=load(fullfile(newexperiments{n},handles.scorefiles{s}));
     catch
       behavior_data.allScores.t0s=[];
       behavior_data.timestamp=nan;
@@ -699,11 +702,11 @@ parfor n=1:length(newrecordings)
 end
 
 %msg{1}='can''t find the configuration file for the following experiments and classifiers:';
-%for n=1:length(newrecordings)
+%for n=1:length(newexperiments)
 %  tmp=find(cellfun(@isempty,handlesbehaviors{n}));
 %  if(length(tmp)>0)
 %    msg{end+1}='';
-%    msg{end+1}=newrecordings{n};
+%    msg{end+1}=newexperiments{n};
 %    for i=1:length(tmp)
 %      msg{end+1}=handlesclassifiers{n}{tmp(i)};
 %    end
@@ -716,10 +719,10 @@ handles.sexdata={handles.sexdata{:} handlessexdata{:}};
 handles.individuals=[handles.individuals; handlesindividuals];
 
 tmp=length(handles.features);
-idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-length(newrecordings)) ...
-    ((tmp-length(newrecordings)+1) : tmp) ...
-    ((tmp-length(newrecordings)-sum(cellfun(@length,handles.experimentlist((handles.groupvalue+1):end)))+1) : ...
-        (tmp-length(newrecordings)))];
+idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-length(newexperiments)) ...
+    ((tmp-length(newexperiments)+1) : tmp) ...
+    ((tmp-length(newexperiments)-sum(cellfun(@length,handles.experimentlist((handles.groupvalue+1):end)))+1) : ...
+        (tmp-length(newexperiments)))];
 handles.features=handles.features(idx);
 handles.sexdata=handles.sexdata(idx);
 handles.individuals=handles.individuals(idx,:);
