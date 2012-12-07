@@ -1392,10 +1392,10 @@ parfor e=1:length(experiment_value)
         tmp2{i}=ones(1,length(tmp2{i}));
     end
   end
-  tmp=nan;  if(individual>3)  tmp=individual-3;  end
+  tmploop=nan;  if(individual>3)  tmploop=individual-3;  end
 
   [during{e} not_during{e}]=calculate_feature_histogram(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,tmp2,tmp,perwhat);
+      feature_data,tmp2,tmploop,perwhat);
 end
 
 %tmp=find(bad);
@@ -1455,7 +1455,7 @@ if(notduring)
     fid,experiment_list(experiment_value));
 end
 hist_during=hist(during',tmp);
-if(size(during,1)==1)  hist_during=hist_during';  end
+if(size(hist_during,1)==1)  hist_during=hist_during';  end
 hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
 hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
 linewidth=1;  if(notduring)  linewidth=2;  end
@@ -1596,8 +1596,12 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     experiment_list=handles.experimentlist{gg(g)};
     parfor_tmp2=zeros(length(handles.behaviorlist),length(handles.featurelist),8);
     bad2={};
-    parfor b=1:length(handles.behaviorlist)
-    %for b=1:length(handles.behaviorlist)
+    %parfor b=1:length(handles.behaviorlist)
+    for b=1:length(handles.behaviorlist)
+      % KB: skip the All behavior
+      if strcmp(handles.behaviorlist{b},'All'),
+        continue;
+      end
       behavior_data={};
       for e=1:length(experiment_value)
         behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},handles.scorefiles{b}));
@@ -2821,7 +2825,7 @@ end
 function ret_val=print_stats2(arg)
 
 sprintf('%d,',arg{1});
-ret_val=[ans(1:(end-1)) ' (' num2str(arg{2},3) '%)'];
+ret_val=[ans(1:(end-1)) ' (' num2str(arg{2},3) '%)']; %#ok<COLND>
 
 
 
