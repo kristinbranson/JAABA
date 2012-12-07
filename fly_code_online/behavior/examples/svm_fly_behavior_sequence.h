@@ -41,6 +41,8 @@ class FlyBehaviorBoutFeatures : public BehaviorBoutFeatures {
   bool load(const char *fname, SVMBehaviorSequence *svm);
   bool load(const Json::Value &x, StructuredSVM *s);
   Json::Value save(StructuredSVM *s);
+  int GetFirstFrame() { return firstframe; }
+  int GetLastFrame() { return lastframe; }
 
   friend class FlyBehaviorBoutSequence;
 };
@@ -63,6 +65,13 @@ public:
   bool save(const char *fname);
   bool load(const Json::Value &x, StructuredSVM *s);
   Json::Value save(StructuredSVM *s);
+  void AddBout(int groupInd, int behavior, int start_frame, int end_frame) {
+    bouts[groupInd] = (BehaviorBout*)realloc(bouts[groupInd], (num_bouts[groupInd]+1)*sizeof(BehaviorBout));
+    bouts[groupInd][num_bouts[groupInd]].behavior = behavior;
+    bouts[groupInd][num_bouts[groupInd]].start_frame = start_frame;
+    bouts[groupInd][num_bouts[groupInd]].end_frame = end_frame;
+    num_bouts[groupInd]++;
+  }
 
   friend class FlyBehaviorBoutFeatures;
   friend class SVMFlyBehaviorSequence;

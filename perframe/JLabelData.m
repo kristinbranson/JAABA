@@ -5217,10 +5217,10 @@ end
         case 'structured_svm',
           obj.SetStatus('Applying structured predictor...');
           x = getBoutData(obj, obj.expi, obj.flies);
-          query = struct('method', 'classify_example', 'x', x);
+          query = struct('method', 'classify_example', 'x', x, 't0', t0, 't1', t1);
           response = jsonrpc_request(obj.h.ip_address, obj.h.port, query);
           if isfield(response, 'error'), warning(response.error); end
-          obj.predictdata = boutLabelToPredictedFrames(response.y, obj.expi, obj.flies);
+          boutLabelToPredictedFrames(obj, response.y, obj.expi, obj.flies);
           obj.windowdata.scoreNorm = 1;
           obj.ClearStatus();
       end

@@ -6,7 +6,49 @@
 class StructuredLearnerJaabaRpc : public StructuredLearnerRpc {
 public:
   StructuredLearnerJaabaRpc(StructuredSVM *l) : StructuredLearnerRpc(l) {}
+  bool ClassifyExample(const Json::Value& root, Json::Value& response);
 };  
+
+// Overrides default StructuredLearnerRpc::ClassifyExample() because we want to add support
+// to only do inference on an interval (t0,t1)
+bool StructuredLearnerJaabaRpc::ClassifyExample(const Json::Value& root, Json::Value& response) {
+  if(learner) {
+    FlyBehaviorBoutFeatures *x = (FlyBehaviorBoutFeatures*)learner->NewStructuredData();
+    FlyBehaviorBoutSequence *partial_label = NULL;
+    if(!x->load(root["x"], learner)) { delete x; JSON_ERROR("Invalid 'x' parameter", -1); }
+
+    if(root.isMember("partial_label")) {
+      partial_label = (FlyBehaviorBoutSequence*)learner->NewStructuredLabel(x);
+      if(!partial_label->load(root["partial_label"], learner)) {
+	delete x; 
+	delete partial_label; 
+	JSON_ERROR("Invalid 'partial_label' parameter", -1); 
+      }
+    } else if(root.isMember("t0") && root.isMember("t1") ) {
+      partial_label = (FlyBehaviorBoutSequence*)learner->NewStructuredLabel(x);
+      ((SVMFlyBehaviorSequence*)learner)->init_bout_label(partial_label, NULL);
+      int t0 = root["t0"].asInt();
+      if(t0 > x->GetFirstFrame()) partial_label->AddBout(0, NONE_BEHAVIOR, 0, t0-x->GetFirstFrame());
+      int t1 = root["t1"].asInt();
+      if(t1 < x->GetLastFrame()) partial_label->AddBout(0, NONE_BEHAVIOR, t1-x->GetFirstFrame()+1, x->GetLastFrame()-x->GetFirstFrame()+1);
+    }
+
+    FlyBehaviorBoutSequence *y = (FlyBehaviorBoutSequence*)learner->NewStructuredLabel(x);
+    SparseVector *w = learner->GetCurrentWeights();
+    double score = learner->Inference(x, y, w, partial_label);
+    
+    if(!isnan(score)) response["score"] = score;
+    response["y"] = y->save(learner);
+
+    delete x;
+    delete y;
+    if(partial_label) delete partial_label;
+    delete w;
+
+    return true;
+  } else
+    return false;
+}
 
 /*
 bool StructuredLearnerJaabaRpc::SetBehaviors(const Json::Value& root, Json::Value& response) {

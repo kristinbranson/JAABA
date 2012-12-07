@@ -47,7 +47,7 @@ bool StructuredLearnerRpc::ClassifyExample(const Json::Value& root, Json::Value&
 
     SparseVector *w = learner->GetCurrentWeights();
     double score = learner->Inference(sessions[sess_ind].example->x, sessions[sess_ind].example->y, w, 
-                               sessions[sess_ind].partial_label);
+				      sessions[sess_ind].partial_label);
     
     if(!isnan(score)) response["score"] = score;
     response["y"] = sessions[sess_ind].example->y->save(learner);

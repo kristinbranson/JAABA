@@ -29,6 +29,8 @@ extern const char *bout_feature_names[]; // initialized in svm_struct_api_behavi
 
 #define NUMFEAT 36
 
+#define NONE_BEHAVIOR 0
+
 #define FEATURE_SAMPLE_SMOOTHNESS_WINDOW 1
 #define NUM_TEMPORAL_LEVELS 2
 #define NUM_BOUT_MAX_THRESHOLDS 3
