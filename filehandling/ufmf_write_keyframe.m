@@ -2,41 +2,22 @@ function frameloc = ufmf_write_keyframe(fp,stamp,im,keyframe_type)
 
 w = size(im,1);
 h = size(im,2);
-switch dtype(im),
- case 'uint8'
-  dtype_char = 'B';
- case 'float32',
-  dtype_char = 'f';
- otherwise
-  error('Unsupported type %s',dtype(im));
-end
+dtype_char = matlabclass2dtypechar(dtype(im));
 
-structtype.s = 'char';
-structtype.c = '??';
-structtype.I = 'uint32';
-structtype.d = 'double';
-structtype.Q = '??';
-structtype.H = '??';
-structtype.B = '??';
-
-%CHUNKID = '<B', # 0 = keyframe, 1 = points
-% KEYFRAME2 = '<cHHd', # (dtype, width,height,timestamp)
+frameloc = ftell(fp);
 
 % this is a keyframe
-fwrite(fp,0,structtype.B);
+fwrite(fp,0,'uchar');
 
 % write keyframe_type
-fwrite(fp,len(keyframe_type),'uint8');
-fwrite(fp,keyframe_type,structtype.s);
-
-% write dtype (one of 'B' (uint8), 'f' (float32))
-fwrite(fp,dtype,structtype.c);
-% width
-fwrite(fp,w,structtype.H);
-% height
-fwrite(fp,h,structtype.H);
+fwrite(fp,len(keyframe_type),'uchar');
+fwrite(fp,keyframe_type,'char');
+% write dtype 
+fwrite(fp,dtype_char,structtype.c);
+% width, height
+fwrite(fp,[w,h],'ushort');
 % stamp
-fwrite(fp,stamp,structtype.H);
+fwrite(fp,stamp,'double');
 
 % write the data
 fwrite(fp,im,dtype(im));
