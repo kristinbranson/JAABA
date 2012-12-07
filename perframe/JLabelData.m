@@ -6591,41 +6591,36 @@ end
     % We do not apply any postprocessing to current scores.
       msg = ''; success = true;
       
-      if  obj.HasCurrentScores,
-        
-        for endx = 1:obj.nexps
-          for flies = 1:obj.nflies_per_exp(endx)
-            idx = obj.predictdata{endx}{flies}.cur_valid; 
-            ts = obj.predictdata{endx}{flies}.t(idx);
-            [sortedts, idxorder] = sort(ts);
-            gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1;
-            gaps = [1;gaps';numel(ts)+1];
-            for ndx = 1:numel(gaps)-1
-              curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
-              curs = obj.predictdata{endx}{flies}.cur(curidx);
-              obj.predictdata{endx}{flies}.cur_pp(curidx) = obj.Postprocess(curs);
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          idx = obj.predictdata{endx}{flies}.cur_valid;
+          ts = obj.predictdata{endx}{flies}.t(idx);
+          [sortedts, idxorder] = sort(ts);
+          gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1;
+          gaps = [1;gaps';numel(ts)+1];
+          for ndx = 1:numel(gaps)-1
+            curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
+            curs = obj.predictdata{endx}{flies}.cur(curidx);
+            obj.predictdata{endx}{flies}.cur_pp(curidx) = obj.Postprocess(curs);
             
-            end
           end
         end
-        
-      else
-
-        for endx = 1:obj.nexps
-          for flies = 1:obj.nflies_per_exp(endx)
-            curidx = obj.predictdata{endx}{flies}.loaded_valid;
-            curt = obj.predictdata{endx}{flies}.t(curidx);
-            if any(curt(2:end)-curt(1:end-1) ~= 1)
-              msg = 'Scores are not in order';
-              success = false;
-              return;
-            end
-            curs = obj.predictdata{endx}{flies}.loaded(curidx);
-            obj.predictdata{endx}{flies}.loaded_pp(curidx) = obj.Postprocess(curs);
-          end %flies
-        end
-        
       end
+      
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.predictdata{endx}{flies}.loaded_valid;
+          curt = obj.predictdata{endx}{flies}.t(curidx);
+          if any(curt(2:end)-curt(1:end-1) ~= 1)
+            msg = 'Scores are not in order';
+            success = false;
+            return;
+          end
+          curs = obj.predictdata{endx}{flies}.loaded(curidx);
+          obj.predictdata{endx}{flies}.loaded_pp(curidx) = obj.Postprocess(curs);
+        end %flies
+      end
+      
       
     end
     
