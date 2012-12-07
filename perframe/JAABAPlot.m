@@ -649,6 +649,14 @@ persistent directory
 if(isempty(directory))  directory=pwd;  end
 
 newrecordings=uipickfiles('prompt','Select experiment directory','filterspec',directory);
+tmp=ismember(newrecordings,[handles.experimentlist{:}]);
+if(sum(tmp)>0)
+  msg{1}='The following experiments have already been added:';
+  msg{2}='';
+  msg(3:(2+sum(tmp)))=newrecordings(tmp);
+  uiwait(errordlg(msg));
+  newrecordings(tmp)=[];
+end
 if(~iscell(newrecordings) || (length(newrecordings)==0))  return;  end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
