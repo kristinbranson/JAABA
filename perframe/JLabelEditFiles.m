@@ -348,7 +348,9 @@ handles = guidata(hObject);
 %   return;
 % end
 
-allexpdirs = uigetdir2(handles.data.defaultpath,'Add experiment directory');
+defaultdir = fileparts(handles.data.defaultpath);
+
+allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
 if isempty(allexpdirs) || ~iscell(allexpdirs),
   return;
 end
@@ -366,7 +368,7 @@ for ndx = 1:numel(allexpdirs)
   
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
     return;
   end
   
