@@ -348,7 +348,9 @@ handles = guidata(hObject);
 %   return;
 % end
 
-allexpdirs = uigetdir2(handles.data.defaultpath,'Add experiment directory');
+defaultdir = fileparts(handles.data.defaultpath);
+
+allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
 if isempty(allexpdirs) || ~iscell(allexpdirs),
   return;
 end
