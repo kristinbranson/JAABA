@@ -52,7 +52,12 @@ if isempty(configparams),
   end
   configparams = cell(1,nclassifiers);
   for i = 1:nclassifiers,
-    configparams{i} = ReadXMLParams(configfiles{i});
+    [~,~,ext] = fileparts(configfiles{i});
+    if strcmpi(ext,'.xml');
+      configparams{i} = ReadXMLParams(configfiles{i});
+    else
+      configparams{i} = load(configfiles{i});
+    end
   end
 else
   if nclassifiers ~= numel(configparams),
@@ -237,7 +242,6 @@ if ~success,
   error(msg);
 end
 expi = 1;
-
 % check if all the data inecessary is there
 if ~data.filesfixable,
   fprintf('Experiment %s is missing required files that cannot be generated within this interface.',expdir);
@@ -367,8 +371,10 @@ for flies = 1:data.nflies_per_exp(expi),
   
 end
 
+
 % save scores
 for i = find(docompute),
+  data.SetPostprocessingParams(classifiers{i}.postprocessparams);
   allScores = struct;
   allScores.scores = scores{i};
   allScores.tStart = data.firstframes_per_exp{expi};
@@ -390,7 +396,7 @@ for i = find(docompute),
   end
   allScores.postprocessed = postprocessedscoresA;
   allScores.postprocessparams = data.postprocessparams; %#ok<STRNU>
-
+  allScores.scoreNorm = classifiers{i}.scoreNorm;
   scorefilename = scorefilenames{i};
   %scorefilename = ['test_',scorefilename];
   sfn = fullfile(expdir,scorefilename);
