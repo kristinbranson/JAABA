@@ -5606,9 +5606,14 @@ end
           return;
       end
       curNdx = obj.windowdata.labelidx_cur~=0;
-      curScores = obj.windowdata.scores(curNdx);
       curLabels = obj.windowdata.labelidx_cur(curNdx);
       modLabels = ((curLabels==1)-0.5)*2;
+
+      if ~isempty(obj.classifier),
+        curScores = myBoostClassify(obj.windowdata.X,obj.classifier);
+      else
+        curScores = zeros(size(curLabels));
+      end
       
       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
       
