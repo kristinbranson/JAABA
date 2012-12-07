@@ -85,6 +85,7 @@ handles.guidata.busystatuscolor = [1,0,1];
 handles.guidata.movie_height = 100;
 handles.guidata.movie_width = 100;
 handles.guidata.movie_depth = 1;
+handles.guidata.tempname = tempname();
 ClearStatus(handles);
 
 [handles,success] = JLabelEditFiles('JLabelHandle',handles,...
@@ -502,7 +503,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   Mlastused = struct('Data',[]); %#ok<NASGU>
   Mimage = struct('Data',[]); %#ok<NASGU>
   
-  cache_filename=fullfile(tempdir(),['cache-' num2str(feature('getpid')) '.dat']);
+  cache_filename= [handles.guidata.tempname 'cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
   if fid < 1,
     pause(.1);
@@ -598,7 +599,7 @@ if refresh_timeline_error,
   'YData',zeros(size(handles.guidata.labels_plot.error_xs))+1.5);
   %set(handles.himage_timeline_error,'CData',handles.guidata.labels_plot.error_im);
 end
-if refresh_GT_suggestion,
+if refresh_GT_suggestion && ~isempty(fieldnames(handles.guidata.labels_plot)),
   set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
 end
@@ -1489,92 +1490,7 @@ if ~success,
   return;
 end
  
-%{
-%   % rearrange labels
-%   newlabels = struct('t0s',cell(1,numel(expdirs)),...
-%     't1s',cell(1,numel(expdirs)),...
-%     'names',cell(1,numel(expdirs)),...
-%     'flies',cell(1,numel(expdirs)));
-% 
-%   % loop through new experiments
-%   for i = 1:numel(expdirs),
-%     
-%     % is this experiment already loaded in?
-%     j = find(strcmp(expdirs{i},handles.expdirs),1);
-%     
-%     % if this is a new experiment, try to load the labels from file
-%     if isempty(j),
-%       labelmatname = fullfile(expdirs{i},handles.guidata.configparams.file.labelfilename);
-%       if exist(labelmatname,'file'),
-%         try
-%           loadedlabels = load(labelmatname,'t0s','t1s','names','flies');
-%           newlabels(i).t0s = loadedlabels.t0s;
-%           newlabels(i).t1s = loadedlabels.t1s;
-%           newlabels(i).names = loadedlabels.names;
-%           newlabels(i).flies = loadedlabels.flies;
-%           newwindowdata_labeled = [];
-%           newwindowdata_labeled_movie = [];
-%           newwindowdata_labeled_flies = [];
-%         catch ME,
-%           uiwait(warndlg('Error loading labels from %s: %s',labelmatname,getReport(ME)));
-%         end
-%         didloadtrxfile = false;
-%         for k = 1:numel(newlabels(i).t0s),
-%           if isempty(newlabels(i).t0s{k}),
-%             continue;
-%           end
-%           flies = newlabels(i).flies{k};
-%           % TODO: multiple flies
-%           windowfilename = GetWindowFileName(handles,outexpdirs{i},flies(1));
-%           windowdata = load(windowfilename);
-%           islabeled = false(1,size(windowdata.X,2));
-% 
-%           if ~didloadtrxfile,
-%             % TODO: remove this
-%             trxfilename = fullfile(expdirs{i},handles.guidata.configparams.file.trxfilename);
-%             global CACHED_TRX; %#ok<TLEV>
-%             if isempty(CACHED_TRX),
-%               trx_curr = load_tracks(trxfilename);
-%               CACHED_TRX = trx_curr;
-%             else
-%               trx_curr = CACHED_TRX;
-%             end
-%             didloadtrxfile = true;
-%           end          
-%           off = trx_curr(flies(1)).off;
-%           
-%           for l = 1:numel(newlabels(i).t0s{k}),
-%             i0 = newlabels(i).t0s{k}(l)+off;
-%             i1 = newlabels(i).t1s{k}(l)+off;
-%             islabeled(i0:i1) = true;
-%           end
-%           if ~isempty(newwindowdata_labeled),
-%             nnew = size(windowdata.X,1);
-%             nold = size(newwindowdata_labeled,1);
-%             if nnew > nold,
-%               newwindowdata_labeled(end+1:end+nnew-nold,:) = nan;
-%             elseif nold > nnew,
-%               windowdata.X(end+1:end+nold-nnew) = nan;
-%             end
-%           end
-%           n = nnz(islabeled);
-%           newwindowdata_labeled(:,end+1:end+n) = windowdata.X(:,islabeled);
-%           newwindowdata_labeled_movie(end+1:end+n) = i;
-%           newwindowdata_labeled_flies(end+1:end+n,:) = repmat(flies,[n,1]);
-%         end
-%       end
-%     else
-%       % existing experiment, just copy labels
-%       newlabels(i) = handles.labels(j);
-%       idx = handles.windowdata_labeled_movie == i;
-%       n = nnz(idx);
-%       newwindowdata_labeled(:,end+1:end+n) = handles.windowdata_labeled(:,idx);
-%       newwindowdata_labeled_movie(end+1:end+n) = i;
-%       newwindowdata_labeled_flies(end+1:end+n,:) = handles.windowdata_labeled_flies(idx,:);      
-%     end
-%   end
-%   handles.labels = newlabels;
-%}
+
 
 % save needed if list has changed
 handles = SetNeedSave(handles);
@@ -3070,7 +2986,7 @@ function handles = UpdatePrediction(handles)
 % TODO: make this work for multiple axes
 t0 = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
 t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0:t1);
+handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
 handles = SetPredictedPlot(handles);
 
 handles = UpdateTimelineIms(handles);
@@ -4630,9 +4546,9 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
-  t0 = min(handles.guidata.ts(1)+framesPerTick,handles.guidata.t1_curr);
+  t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.guidata.t0_curr);
   t1 = min(t0+framesPerTick,handles.guidata.t1_curr);
-  handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0:t1);
+  handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
   PLAY_TIMER_DONE = true;
   
 function handles = play(hObject,handles,t0,t1,doloop)
@@ -4661,9 +4577,10 @@ if nargin < 3,
 end
 
 if ~doloop
-  framesPerTick = round(handles.guidata.timeline_nframes/4);
+  framesPerTick = 4000;
+  t_period = round(framesPerTick/handles.guidata.play_FPS*1000)/1000;
   T = timer('TimerFcn',{@predictTimerCallback,hObject,framesPerTick},...
-        'Period',framesPerTick/handles.guidata.play_FPS,...
+        'Period',t_period,...
         'ExecutionMode','fixedRate',...
         'Tag','predictTimer');
   start(T);
@@ -5529,7 +5446,7 @@ function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles
 % handles    structure with handles and user data (see GUIDATA)
 t0 =handles.guidata.t0_curr;
 t1 = handles.guidata.t1_curr;
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr:handles.guidata.t1_curr);
+handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr,handles.guidata.t1_curr);
 handles = SetPredictedPlot(handles,t0,t1);
 
 handles = UpdateTimelineIms(handles);

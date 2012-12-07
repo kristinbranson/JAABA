@@ -48,6 +48,7 @@ header.fid = fid;
 
 if ~dobuildindex,
   header = load(indexfilename);
+  header.fid = fid;
 else
   
 % Set of Image Stacks representing a movie. Beginning of file is a header, with this format:

@@ -341,10 +341,17 @@ InitJLabelGui(handles);
 handles = guidata(hObject);
 
 % ask user for experiment directory
+% defaultdir = fileparts(handles.data.defaultpath);
+% allexpdirs = uipickfiles('FilterSpec',defaultdir,...
+%   'Prompt','Add experiment directory');
+% if (~iscell(allexpdirs) && isnumeric(allexpdirs)) || (numel(allexpdirs)==1 && ~ischar(allexpdirs{1})),
+%   return;
+% end
+
 defaultdir = fileparts(handles.data.defaultpath);
-allexpdirs = uipickfiles('FilterSpec',defaultdir,...
-  'Prompt','Add experiment directory');
-if (~iscell(allexpdirs) && isnumeric(allexpdirs)) || (numel(allexpdirs)==1 && ~ischar(allexpdirs{1})),
+
+allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
+if isempty(allexpdirs) || ~iscell(allexpdirs),
   return;
 end
 
@@ -361,7 +368,7 @@ for ndx = 1:numel(allexpdirs)
   
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
     return;
   end
   
