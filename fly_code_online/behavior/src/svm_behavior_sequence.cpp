@@ -2112,6 +2112,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
   double *tmp_features2 = tmp_features + (num_features+1);
   double *ww = w->get_non_sparse<double>(sizePsi);
   double *ptr = ww;
+  bool aborted = false;
   int T = b->num_frames;
   //if(y && y->num_bouts && y->num_bouts[0]) 
   //T = my_min(T, y->bouts[0][y->num_bouts[0]-1].end_frame);
@@ -2234,6 +2235,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
   
     // Looping through all possible times t when an old bout could end and a new bout begins
     for(int t = 1; t <= T; t++) { 
+
       // Suppose a new bout of class c begins at time t.  Compute the optimal score for any labeling
       // through time 0...t that begins a bout of class c in time t.  We can prune the search space, 
       // because given the preceding completed bout (a bout beginning in some time step t_p and of some
@@ -2267,11 +2269,16 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	t_p = get_bout_start_time(beh, durations, tt, t_p, t, next_duration, last_gt, last_partial, gt_bout, 
 				  partial_label_bout, y, y_partial, restrict_c_prev, restrict_c_next, allowable_time_frames);
 
+	if(y && relabelingExample && t != T)  { // abort inference if training and someone wants to relabel an example
+	  aborted = true;
+	  continue;
+	}
+
         // We can quickly discard all solutions where a candidate bout (t_p,t) overlaps a region in the partial
         // label in which there are multiple bouts of different classes.  Furthermore, we can compute
         // restrict_c_prev and restrict_c_next, which are restrictions on the possible labels of
         // c_prev and c_next, respectively
-        if(!check_agreement_with_partial_label(y_partial, beh, t_p, t, partial_label_bout, restrict_c_prev))
+        if(!aborted && !check_agreement_with_partial_label(y_partial, beh, t_p, t, partial_label_bout, restrict_c_prev))
           break;
 
         // allowable_time_frames is a computational time saving trick, where we only allow bouts 
@@ -2479,11 +2486,11 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 #if USE_DURATION_COST > 0
     // Backtrack through table and states to extract the optimal solution
     backtrack_optimal_solution(ybar, beh, table, states, duration_weights, T);
-    sanity_check_dynamic_programming_solution(beh, b, ybar, y, w, class_weights, transition_weights, unary_weights, duration_weights, table, states, T, y_partial);
+    if(!aborted) sanity_check_dynamic_programming_solution(beh, b, ybar, y, w, class_weights, transition_weights, unary_weights, duration_weights, table, states, T, y_partial);
 #else
     // Backtrack through table and states to extract the optimal solution
     backtrack_optimal_solution(ybar, beh, table, states, T);
-    sanity_check_dynamic_programming_solution(beh, b, ybar, y, w, class_weights, transition_weights, unary_weights, table, states, T, y_partial);
+    if(!aborted) sanity_check_dynamic_programming_solution(beh, b, ybar, y, w, class_weights, transition_weights, unary_weights, table, states, T, y_partial);
 #endif
 
     // Restore modified transition tables, if necessary
@@ -2579,7 +2586,7 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
     //if(y && y->num_bouts && y->num_bouts[0]) 
     //  T = my_min(T, y->bouts[0][y->num_bouts[0]-1].end_frame);
     y->disable_checks = true;
-    while(t_start < T) {
+    while(t_start < T && !relabelingExample) {
       // Consider selecting the segmentation with the highest slack among all segmentations for this example that
       // have been considered so far.  We will see if there's some local change to this segmentation that will increase
       // the slack even more
@@ -2608,13 +2615,13 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
       sprintf(ybar->fname+strlen(ybar->fname), "_%d", t_start);
       fprintf(stderr, ".");
       if(retval > set->score_gt) { 
+	Lock();
 	SVM_cached_sample_set_add_sample(set, ybar);
 	SVM_cached_sample_set_compute_features(set, trainset->examples[set->i]);
       
 	// Use the current sample set to update the weights immediately.  Usually we would never do this, but
 	// this allows us to update the model weights more frequently when bout sequences are really
 	// long and inference is slow
-	Lock();
 	MultiSampleUpdate(set, trainset->examples[set->i], 1);
 	delete w_curr;
 	w_curr = GetCurrentWeights(false);
@@ -2629,9 +2636,10 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
   }
 
   // Now run the full exhaustive Inference() procedure to find the most violated constraint
-  set->score_gt = w_curr->dot(*set->psi_gt);
   StructuredLabel *ybar = NewStructuredLabel(x);
   retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
+  Lock();
+  set->score_gt = w_curr->dot(*set->psi_gt);
   SVM_cached_sample_set_add_sample(set, ybar);
   SVM_cached_sample_set_compute_features(set, trainset->examples[set->i]);
   if(set->num_samples) {
@@ -2639,6 +2647,8 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
     set->samples[0] = set->samples[set->num_samples-1];
     set->samples[set->num_samples-1] = s;
   }
+  Unlock();
+
   delete w_curr;
 
   return retval;
