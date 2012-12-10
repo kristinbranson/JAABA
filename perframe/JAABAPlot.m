@@ -207,19 +207,19 @@ function update_figure(handles)
 
 if(isempty(handles.grouplist) || length(handles.experimentlist{handles.groupvalue})==0)
   set(handles.ExperimentList,'enable','off');
+  set(handles.ExperimentMove,'enable','off');
 else
   set(handles.ExperimentList,'enable','on');
+  set(handles.ExperimentMove,'enable','on');
 end
 if(isempty(handles.grouplist))
   set(handles.GroupList,'enable','off');
   set(handles.ExperimentAdd,'enable','off');
   set(handles.ExperimentDelete,'enable','off');
-  set(handles.ExperimentMove,'enable','off');
 else
   set(handles.GroupList,'enable','on');
   set(handles.ExperimentAdd,'enable','on');
   set(handles.ExperimentDelete,'enable','on');
-  set(handles.ExperimentMove,'enable','on');
 end
 if(sum(cellfun(@length,handles.experimentlist))==0)
   set(handles.FeatureList,'enable','off');
@@ -865,7 +865,7 @@ handles.experimentvalue{from_group}=1:length(handles.experimentlist{from_group})
 %  set(handles.ExperimentList,'String',handles.experimentlist{from_group});
 %  set(handles.ExperimentList,'Value',handles.experimentvalue{from_group});
 %end
-if(idxF(1)<idxT)  idxT=idxT-length(idxF);  end
+if(idxF(1)<=idxT)  idxT=idxT-length(idxF);  end
 tmp=setdiff(1:length(handles.features),idxF);
 tmp=[tmp(1:idxT) idxF tmp((idxT+1):end)];
 %handles.behaviors=handles.behaviors(tmp);
@@ -899,6 +899,7 @@ function GroupList_Callback(hObject, eventdata, handles)
 handles.groupvalue=get(handles.GroupList,'Value');
 set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue},...
     'Value',handles.experimentvalue{handles.groupvalue});
+update_figure(handles);
 guidata(hObject,handles);
 
 
@@ -942,6 +943,7 @@ set(handles.GroupList,'enable','on');
 set(handles.ExperimentAdd,'enable','on');
 set(handles.ExperimentDelete,'enable','on');
 set(handles.ExperimentMove,'enable','on');
+update_figure(handles);
 guidata(hObject,handles);
 
 
