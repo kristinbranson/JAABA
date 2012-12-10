@@ -667,8 +667,8 @@ if(sum(tmp)>0)
 end
 if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 [directory,~,~]=fileparts(newexperiments{1});
 handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
@@ -743,8 +743,9 @@ update_figure(handles);
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ExperimentDelete.
@@ -755,8 +756,8 @@ function ExperimentDelete_Callback(hObject, eventdata, handles)
 
 if(length(handles.experimentlist)==0)  return;  end
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 idx=handles.experimentvalue{handles.groupvalue};
 handles.experimentlist{handles.groupvalue}(idx)=[];
@@ -827,8 +828,9 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ExperimentMove.
@@ -844,8 +846,8 @@ if(isempty(handles.experimentlist{handles.groupvalue}))  return;  end
 if(~ok)  return;  end
 if(to_group>=handles.groupvalue)  to_group=to_group+1;  end
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 from_group=handles.groupvalue;
 idx=handles.experimentvalue{from_group};
@@ -880,8 +882,9 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on selection change in GroupList.
@@ -957,8 +960,8 @@ if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
 if(~iscell(newclassifiers))  newclassifiers={newclassifiers};  end
 newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 handlesconfigurations=cell(1,length(newclassifiers));
 handlesbehaviorlist=cell(1,length(newclassifiers));
@@ -1032,8 +1035,9 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ClassifierDelete.
@@ -1042,8 +1046,8 @@ function ClassifierDelete_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 idx=handles.classifiervalue;
 handles.classifierlist(idx)=[];
@@ -1061,8 +1065,9 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ClassifierCheck.
@@ -1071,8 +1076,8 @@ function ClassifierCheck_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 handlesexperimentlist=[handles.experimentlist{:}];
 
@@ -1143,8 +1148,9 @@ set(handles.Table,'ColumnWidth',mat2cell(ans,1,ones(1,length(ans))));
 set(handles.Table,'ColumnName',{''});
 set(handles.Table,'RowName',{});
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ClassifierClassify.
@@ -1153,8 +1159,8 @@ function ClassifierClassify_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 %h=waitbar(0,'This will likely take awhile...',...
 %    'CreateCancelBtn','fid=fopen(fullfile(tempdir,''cancel.txt''),''w''); fclose(fid);');
@@ -1193,8 +1199,9 @@ update_figure(handles);
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on selection change in ClassifierList.
@@ -1567,8 +1574,8 @@ function FeatureHistogram_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -1648,8 +1655,9 @@ end
 
 fclose(fid);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 %guidata(hObject,handles);
 
@@ -1670,8 +1678,8 @@ function InterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 if(isempty(handles.interestingfeaturehistograms_cache))
   table_data={};
@@ -1747,8 +1755,9 @@ if(isempty(handles.interestingfeaturehistograms_cache))
 
   if(exist(fullfile(tempdir,'cancel.txt')))
     delete(fullfile(tempdir,'cancel.txt'));
-    set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
     set(handles.figure1,'pointer','arrow');
+    drawnow;
     return;
   end
 
@@ -1811,8 +1820,9 @@ handles.table_data=tmp2;
 handles.table='histogram';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
@@ -1972,8 +1982,8 @@ function FeatureTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -2056,8 +2066,9 @@ end
 
 fclose(fid);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % ---
@@ -2099,8 +2110,8 @@ function InterestingTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2155,8 +2166,9 @@ handles.table_data=tmp2;
 handles.table='timeseries';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % ---
@@ -2305,8 +2317,8 @@ function BehaviorBarChart_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -2500,8 +2512,9 @@ fclose(fid);
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % ---
@@ -2594,8 +2607,8 @@ function BehaviorTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -2670,8 +2683,9 @@ end
 
 fclose(fid);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
@@ -2792,8 +2806,8 @@ function BoutStats_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2854,8 +2868,9 @@ set(handles.Table,'ColumnWidth',{150 75 75});
 handles.table='bout_stats';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
@@ -2992,8 +3007,8 @@ function SocialStats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -3067,8 +3082,9 @@ set(handles.Table,'ColumnWidth',{100 75 100});
 handles.table='social_stats';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
