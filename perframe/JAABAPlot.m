@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 02-Dec-2012 11:54:25
+% Last Modified by GUIDE v2.5 07-Dec-2012 17:15:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -223,19 +223,19 @@ else
 end
 if(sum(cellfun(@length,handles.experimentlist))==0)
   set(handles.FeatureList,'enable','off');
+  set(handles.ClassifierCheck,'enable','off');
 else
   set(handles.FeatureList,'enable','on');
+  set(handles.ClassifierCheck,'enable','on');
 end
 if(isempty(handles.classifierlist))
   set(handles.ClassifierList,'enable','off');
   set(handles.ClassifierDelete,'enable','off');
-  set(handles.ClassifierClassify,'enable','off');
   set(handles.BehaviorList,'enable','off');
   set(handles.BehaviorLogic,'enable','off');
 else
   set(handles.ClassifierList,'enable','on');
   set(handles.ClassifierDelete,'enable','on');
-  set(handles.ClassifierClassify,'enable','on');
   set(handles.BehaviorList,'enable','on');
   set(handles.BehaviorLogic,'enable','on');
 end
@@ -243,6 +243,11 @@ if(handles.behaviorlogic==1)
   set(handles.BehaviorList2,'enable','off');
 else
   set(handles.BehaviorList2,'enable','on');
+end
+if((sum(cellfun(@length,handles.experimentlist))==0) || (isempty(handles.classifierlist)))
+  set(handles.ClassifierClassify,'enable','off');
+else
+  set(handles.ClassifierClassify,'enable','on');
 end
 if((sum(cellfun(@length,handles.experimentlist))==0) || (isempty(handles.classifierlist)) || ...
     (sum(sum(handles.individuals==-1))>0) || (sum(sum(diff(handles.individuals,[],2)~=0))>0))
@@ -1055,6 +1060,88 @@ handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
+
+set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.figure1,'pointer','arrow');
+
+
+% --- Executes on button press in ClassifierCheck.
+function ClassifierCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to ClassifierCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
+set(handles.figure1,'pointer','watch');
+
+handlesexperimentlist=[handles.experimentlist{:}];
+
+table=cell(length(handlesexperimentlist),length(handles.scorefiles));
+
+parfor ge=1:length(handlesexperimentlist)
+%for ge=1:length(handlesexperimentlist)
+  behavior_data=[];
+  parfor_tmp=cell(1,length(handles.scorefiles));
+  for c=1:length(handles.classifierlist)
+    classifier=load(handles.classifierlist{c});
+    try
+      behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{c}));
+    catch
+      parfor_tmp{c}='missing';
+      continue;
+    end
+    if (classifier.classifierTS ~= behavior_data.timestamp)
+      parfor_tmp{c}=[datestr(classifier.classifierTS) ' ~= ' datestr(behavior_data.timestamp)];
+    else
+      parfor_tmp{c}='up-to-date';
+    end
+  end
+  table(ge,:)=parfor_tmp;
+  tmp=dir(fullfile(handlesexperimentlist{ge},'*.mat'));
+  extrascorefiles=setdiff({tmp.name},handles.scorefiles);
+  table2{ge}={};
+  for s=1:length(extrascorefiles)
+    tmp=load(fullfile(handlesexperimentlist{ge},extrascorefiles{s}));
+    if(~isfield(tmp,'classifierfilename'))
+      continue;
+    end
+    table2{ge}{end+1}=extrascorefiles{s};
+  end
+end
+
+[~,tmp,~]=cellfun(@(x) fileparts(x),handlesexperimentlist,'uniformoutput',false);
+table=[tmp' table];
+[~,tmp,~]=cellfun(@(x) fileparts(x),handles.classifierlist,'uniformoutput',false);
+table=[{'' tmp{:}}; table];
+
+tmp=unique([table2{:}]);
+if(length(tmp)>0)
+  table{1,end+1}='   ';
+  table(1,(end+1):(end+length(tmp)))=tmp;
+end
+for i=1:length(table2)
+  for j=1:length(table2{i})
+    idx=find(cellfun(@(x) strcmp(x,table2{i}{j}),table(1,:)));
+    table{i+1,idx}='extra';
+  end
+end
+
+if(length(handles.experimentlist)>1)
+  tmp=zeros(1,-1+length(handles.experimentlist)+length([handles.experimentlist{:}]));
+  cumsum(cellfun(@length,handles.experimentlist));
+  tmp(2+ans(1:end-1))=1;
+  cumsum(tmp);
+  tmp=ans+(1:(-1+length(handles.experimentlist)+length([handles.experimentlist{:}])));
+  tmp2(tmp,:)=[table(:,:)];
+  table=tmp2;
+end
+
+set(handles.Table,'Data',table);
+6*max(cellfun(@length,table),[],1);
+set(handles.Table,'ColumnWidth',mat2cell(ans,1,ones(1,length(ans))));
+%set(handles.Table,'ColumnWidth','auto');
+set(handles.Table,'ColumnName',{''});
+set(handles.Table,'RowName',{});
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
 set(handles.figure1,'pointer','arrow');
