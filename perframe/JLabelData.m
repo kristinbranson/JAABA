@@ -2540,7 +2540,7 @@ end
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
 
-      obj.predictdata(expi) = [];
+      if ~(numel(obj.predictdata)<expi); obj.predictdata(expi) = []; end
       
       if ~isempty(obj.predictblocks.expi)
         idxcurr = ismember(obj.predictblocks.expi,expi);
