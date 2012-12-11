@@ -113,6 +113,12 @@ else
   handles.MaxFPS = 0;
   handles.MinSPF = 0;
 end
+
+% set callback for slider motion
+fcn = get(handles.slider_Frame,'Callback');
+handles.hslider_listener = handle.listener(handles.slider_Frame,...
+  'ActionEvent',fcn);
+
 % open video
 handles = open_fmf(handles);
 
@@ -271,7 +277,11 @@ end
 handles.filterspec = {  '*.ufmf','MicroFlyMovieFormat (*.ufmf)'; ...
   '*.fmf','FlyMovieFormat (*.fmf)'; ...
   '*.sbfmf','StaticBackgroundFMF (*.sbfmf)'; ...
-  '*.avi','AVI (*.avi)'};
+  '*.avi','AVI (*.avi)'
+  '*.mp4','MP4 (*.mp4)'
+  '*.mov','MOV (*.mov)'
+  '*.mmf','MMF (*.mmf)'
+  '*.*','*.*'};
 
 if isfield(handles,'fileext'),
   % default ext is last chosen
