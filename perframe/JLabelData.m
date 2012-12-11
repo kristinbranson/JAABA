@@ -6023,7 +6023,7 @@ end
       flyStats.one2two = [];
       flyStats.two2one = [];
       if ~isempty(obj.classifier_old),
-        curNdx = obj.FlyNdx(expi,flyNum);
+        curNdx = obj.predictdata{expi}{flyNum}.old_valid;
         if nnz(curNdx);
           flyStats.one2two = nnz(obj.predictdata{expi}{flyNum}.cur(curNdx)<0 ...
             & obj.predictdata{expi}{flyNum}.old(curNdx)>0);
