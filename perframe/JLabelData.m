@@ -5605,15 +5605,11 @@ end
           uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
           return;
       end
-      curNdx = obj.windowdata.labelidx_cur~=0;
-      curLabels = obj.windowdata.labelidx_cur(curNdx);
+      curNdx = obj.windowdata.labelidx_new~=0;
+      curLabels = obj.windowdata.labelidx_new(curNdx);
       modLabels = ((curLabels==1)-0.5)*2;
 
-      if ~isempty(obj.classifier),
-        curScores = myBoostClassify(obj.windowdata.X,obj.classifier);
-      else
-        curScores = zeros(size(curLabels));
-      end
+      curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
       
       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
       
