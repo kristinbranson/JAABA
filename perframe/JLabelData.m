@@ -3852,7 +3852,9 @@ end
                          'scoresidx', zeros(1,n));
       
 
-      idxcurr = obj.predictdata{expi}{flies}.cur_valid;
+      idxcurr = obj.predictdata{expi}{flies}.cur_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
       
       prediction.predictedidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
         -sign(obj.predictdata{expi}{flies}.cur(idxcurr))*0.5+1.5;
@@ -3889,7 +3891,9 @@ end
       off = 1 - T0;
       scores = zeros(1,n);
 
-        idxcurr = obj.predictdata{expi}{flies}.loaded_valid;
+        idxcurr = obj.predictdata{expi}{flies}.loaded_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.loaded(idxcurr);      
       
@@ -3907,11 +3911,15 @@ end
       predictions = zeros(1,n);
       
       if obj.HasCurrentScores,
-        idxcurr = obj.predictdata{expi}{flies}.cur_valid;
+        idxcurr = obj.predictdata{expi}{flies}.cur_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = obj.predictdata{expi}{flies}.cur(idxcurr);
         predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}.cur_pp(idxcurr);
       else
-        idxcurr = obj.predictdata{expi}{flies}.loaded_valid;
+        idxcurr = obj.predictdata{expi}{flies}.loaded_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = obj.predictdata{expi}{flies}.loaded(idxcurr);      
         predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}.loaded_pp(idxcurr);      
       end
@@ -3927,7 +3935,9 @@ end
       off = 1 - T0;
       scores = zeros(1,n);
       
-        idxcurr = obj.predictdata{expi}{flies}.old_valid;
+        idxcurr = obj.predictdata{expi}{flies}.old_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.old(idxcurr);
       
