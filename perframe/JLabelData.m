@@ -2540,7 +2540,11 @@ end
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
 
-      obj.predictdata(expi) = [];
+      for curex = sort(expi(:)','descend'), %#ok<UDIM>
+        if numel(obj.predictdata)>expi
+          obj.predictdata(expi) = [];
+        end
+      end
       
       if ~isempty(obj.predictblocks.expi)
         idxcurr = ismember(obj.predictblocks.expi,expi);
