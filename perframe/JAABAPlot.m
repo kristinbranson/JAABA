@@ -764,6 +764,12 @@ set(handles.figure1,'pointer','watch');  drawnow;
 idx=handles.experimentvalue{handles.groupvalue};
 handles.experimentlist{handles.groupvalue}(idx)=[];
 handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
+
+idx=idx+sum(cellfun(@length,handles.experimentlist(1:(handles.groupvalue-1))));
+handles.features(idx)=[];
+handles.sexdata(idx)=[];
+handles.individuals(idx,:)=[];
+
 if(isempty(handles.experimentlist{handles.groupvalue}))
   handles.colors=handles.colors(setdiff(1:size(handles.colors,1),handles.groupvalue),:);
   handles.experimentlist(handles.groupvalue)=[];
@@ -771,12 +777,6 @@ if(isempty(handles.experimentlist{handles.groupvalue}))
   handles.grouplist(handles.groupvalue)=[];
   handles.groupvalue=max(1,min([handles.groupvalue length(handles.grouplist)]));
 end
-
-idx=idx+sum(cellfun(@length,handles.experimentlist(1:(handles.groupvalue-1))));
-
-handles.features(idx)=[];
-handles.sexdata(idx)=[];
-handles.individuals(idx,:)=[];
 
 handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 handles=fillin_individuallist(handles);
