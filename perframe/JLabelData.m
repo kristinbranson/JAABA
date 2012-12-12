@@ -319,10 +319,6 @@ end
   methods (Access=public,Static=true)
 
     % movie, trx, and perframedir are required for each experiment
-    function res = IsRequiredFile(file)
-      res = ismember(file,{'movie','trx','perframedir'});
-    end    
-    
     % perframedir can be generated
     function res = CanGenerateFile(file)
       res = ismember(file,{'perframedir'});
@@ -605,6 +601,14 @@ end
 
     
 % Some helper functions.
+
+    function res = IsRequiredFile(obj,file)
+      if obj.openmovie
+        res = ismember(file,{'movie','trx','perframedir'});
+      else
+        res = ismember(file,{'trx','perframedir'});
+      end
+    end
 
 
     function idx = FlyNdx(obj,expi,flies)
@@ -3081,7 +3085,7 @@ end
             else
               pfexists = cellfun(@(s) exist(s,'file'),fn);
               obj.fileexists(expi,filei) = all(pfexists);
-              if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file),
+              if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file),
                 for tmpi = find(~pfexists(:)'),
                   if numel(missingfiles{expi})<10
                     [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
@@ -3104,7 +3108,7 @@ end
             else
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
             end
-            if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file)
+            if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file)
               missingfiles{expi}{end+1} = file;
             end
               
@@ -3128,7 +3132,7 @@ end
           
           % if file doesn't exist and is required, then not all files exist
           if ~obj.fileexists(expi,filei),
-            if JLabelData.IsRequiredFile(file),
+            if obj.IsRequiredFile(file),
               obj.allfilesexist = false;
               % if furthermore file can't be generated, then not fixable
               if ~JLabelData.CanGenerateFile(file),
