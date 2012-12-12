@@ -270,7 +270,7 @@ for i = 1:nfiles,
   if file_exists,
     timestamp = datestr(timestamp);%,'yyyymmddTHHMMSS');
   end
-  if JLabelData.IsRequiredFile(file),
+  if handles.data.IsRequiredFile(file),
     if file_exists,
       data{i,2} = sprintf('<html><font color="green">%s</font></html>',timestamp);
     else
