@@ -270,7 +270,7 @@ for i = 1:nfiles,
   if file_exists,
     timestamp = datestr(timestamp);%,'yyyymmddTHHMMSS');
   end
-  if JLabelData.IsRequiredFile(file),
+  if handles.data.IsRequiredFile(file),
     if file_exists,
       data{i,2} = sprintf('<html><font color="green">%s</font></html>',timestamp);
     else
@@ -368,7 +368,11 @@ for ndx = 1:numel(allexpdirs)
   
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+    if iscell(msg)
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+    else
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    end
     return;
   end
   
@@ -463,11 +467,11 @@ end
 
 SetLabelingMode(handles);
 
-res = questdlg('Load labels that were used to train the classifier or current labels?',...
-  'Labels?','Classifier Labels','Current Labels','Cancel','Classifier Labels');
+res = questdlg('Load the labels and the classifier from the file, or just load the classifier?',...
+  'Labels?','Load Labels and Classifier','Load Classifier Only','Cancel','Load Labels and Classifier');
 if strcmpi(res,'Cancel'), return, end
 
-classifierlabels = strcmpi(res,'Classifier Labels');
+classifierlabels = strcmpi(res,'Load Labels and Classifier');
 
 [success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
 if ~success,
