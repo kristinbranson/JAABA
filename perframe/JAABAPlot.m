@@ -1093,11 +1093,13 @@ for i=1:length(table2)
 end
 
 if(length(handles.experimentlist)>1)
-  tmp=zeros(1,-1+length(handles.experimentlist)+length([handles.experimentlist{:}]));
+  %tmp=zeros(1,length(handles.experimentlist)+length([handles.experimentlist{:}]));
+  tmp=zeros(1,1+length([handles.experimentlist{:}]));
   cumsum(cellfun(@length,handles.experimentlist));
   tmp(2+ans(1:end-1))=1;
   cumsum(tmp);
-  tmp=ans+(1:(-1+length(handles.experimentlist)+length([handles.experimentlist{:}])));
+  %tmp=ans+(1:(-1+length(handles.experimentlist)+length([handles.experimentlist{:}])));
+  tmp=ans+(1:(1+length([handles.experimentlist{:}])));
   tmp2(tmp,:)=[table(:,:)];
   table=tmp2;
 end
