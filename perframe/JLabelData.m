@@ -1852,7 +1852,7 @@ end
         allScores.scores{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur;
         allScores.tStart(fly) = tStart;
         allScores.tEnd(fly) = tEnd;
-        allScores.postprocessed{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur_pp(idxcurr);
+        allScores.postprocessed{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur_pp;
       end
       
       if ~scores_valid,
@@ -4647,7 +4647,7 @@ end
         hasClassifier = false;
       end
       
-      if nargin < 5
+      if nargin < 6
         dotrain = true;
       end
       
