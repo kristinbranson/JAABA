@@ -3852,7 +3852,9 @@ end
                          'scoresidx', zeros(1,n));
       
 
-      idxcurr = obj.predictdata{expi}{flies}.cur_valid;
+      idxcurr = obj.predictdata{expi}{flies}.cur_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
       
       prediction.predictedidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
         -sign(obj.predictdata{expi}{flies}.cur(idxcurr))*0.5+1.5;
@@ -3889,7 +3891,9 @@ end
       off = 1 - T0;
       scores = zeros(1,n);
 
-        idxcurr = obj.predictdata{expi}{flies}.loaded_valid;
+        idxcurr = obj.predictdata{expi}{flies}.loaded_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.loaded(idxcurr);      
       
@@ -3907,11 +3911,15 @@ end
       predictions = zeros(1,n);
       
       if obj.HasCurrentScores,
-        idxcurr = obj.predictdata{expi}{flies}.cur_valid;
+        idxcurr = obj.predictdata{expi}{flies}.cur_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = obj.predictdata{expi}{flies}.cur(idxcurr);
         predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}.cur_pp(idxcurr);
       else
-        idxcurr = obj.predictdata{expi}{flies}.loaded_valid;
+        idxcurr = obj.predictdata{expi}{flies}.loaded_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = obj.predictdata{expi}{flies}.loaded(idxcurr);      
         predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}.loaded_pp(idxcurr);      
       end
@@ -3927,7 +3935,9 @@ end
       off = 1 - T0;
       scores = zeros(1,n);
       
-        idxcurr = obj.predictdata{expi}{flies}.old_valid;
+        idxcurr = obj.predictdata{expi}{flies}.old_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.old(idxcurr);
       
@@ -5248,6 +5258,8 @@ end
         
         perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
         perframefile = obj.GetPerframeFiles(expi);
+        
+        nmissingts = inf;
 
        while true,
 
@@ -5256,10 +5268,10 @@ end
           % that.
           
           t = missingts(1);
-          curbs_t0 = obj.predictblocks.t0( obj.predictblocks.expi==expi & ...
-            obj.predictblocks.flies == flies);
-          curbs_t1 = obj.predictblocks.t1(obj.predictblocks.expi == expi & ...
-            obj.predictblocks.flies == flies);
+          curblockndx = obj.predictblocks.expi==expi & obj.predictblocks.flies == flies;
+          curbs_t0 = obj.predictblocks.t0(curblockndx );
+          curbs_t1 = obj.predictblocks.t1(curblockndx );
+          
           if ~isempty(curbs_t0) && any(  (t-curbs_t0)>=0 & (t-curbs_t1)<=0)
             tempndx = find( (t-curbs_t0)>=0 & (t-curbs_t1)<=0 );
             t0 = curbs_t0(tempndx(1));
@@ -5281,20 +5293,40 @@ end
             % go forward 2*r again to find the end of the chunk
             t1 = min(t0+2*obj.predictwindowdatachunk_radius,T1);
             
-            overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
-            if ~isempty(overlap_start),
-              t0 = max(curbs_t1(overlap_start))+1;
-            end
             
-            overlap_end = find( (t1-curbs_t0)>=0 & (t1-curbs_t1)<=0);
-            if ~isempty(overlap_end),
-              t1 = max(curbs_t0(overlap_end))-1;
+            % Find blocks that overlap with the current interval and merge
+            % them into one block.
+            overlapping_blocks1 = find( curbs_t0-t0 >= 0 & curbs_t0-t1 <= 0);
+            overlapping_blocks2 = find( curbs_t1-t0 >= 0 & curbs_t0-t1 <= 0);
+            overlapping_blocks = unique([overlapping_blocks1(:);overlapping_blocks2(:)]);
+            if ~isempty(overlapping_blocks),
+                t0 = min(t0,min(curbs_t0(overlapping_blocks)));
+                t1 = max(t1,max(curbs_t1(overlapping_blocks)));
+                todelete = find(curblockndx);
+                todelete = todelete(overlapping_blocks);
+                obj.predictblocks.t0(todelete) = [];
+                obj.predictblocks.t1(todelete) = [];
+                obj.predictblocks.flies(todelete) = [];
+                obj.predictblocks.expi(todelete) = [];
             end
-            
-            obj.predictblocks.t0(end+1) = t0;
-            obj.predictblocks.t1(end+1) = t1;
-            obj.predictblocks.expi(end+1) = expi;
-            obj.predictblocks.flies(end+1) = flies;
+%             overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
+%             if ~isempty(overlap_start),
+%               t0 = max(curbs_t1(overlap_start))+1;
+%             end
+%             
+%             overlap_end = find( (t1-curbs_t0)>=0 & (t1-curbs_t1)<=0);
+%             if ~isempty(overlap_end),
+%               t1 = max(curbs_t0(overlap_end))-1;
+%             end
+           
+            if t0 <= t1,
+                obj.predictblocks.t0(end+1) = t0;
+                obj.predictblocks.t1(end+1) = t1;
+                obj.predictblocks.expi(end+1) = expi;
+                obj.predictblocks.flies(end+1) = flies;
+            else
+                warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);                
+            end
           end
           
           i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
@@ -5379,6 +5411,14 @@ end
             obj.ClearStatus();
             break;
           end
+          
+          nmissingtsnew = numel(missingts);
+          if nmissingtsnew >= nmissingts,
+              errordlg('Sanity check: Number of frames missing window features did not decrease. Breaking out of loop.');
+              break;
+          end
+          nmissingts = nmissingtsnew;
+          
         end
         
  
@@ -6013,7 +6053,7 @@ end
       flyStats.one2two = [];
       flyStats.two2one = [];
       if ~isempty(obj.classifier_old),
-        curNdx = obj.FlyNdx(expi,flyNum);
+        curNdx = obj.predictdata{expi}{flyNum}.old_valid;
         if nnz(curNdx);
           flyStats.one2two = nnz(obj.predictdata{expi}{flyNum}.cur(curNdx)<0 ...
             & obj.predictdata{expi}{flyNum}.old(curNdx)>0);
