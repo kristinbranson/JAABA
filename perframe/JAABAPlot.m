@@ -656,6 +656,7 @@ persistent directory
 if(isempty(directory))  directory=pwd;  end
 
 newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
+if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
 if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
   newexperiments=textread('../../data/test.txt','%s');
 end
@@ -667,7 +668,6 @@ if(sum(tmp)>0)
   uiwait(errordlg(msg));
   newexperiments(tmp)=[];
 end
-if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');  drawnow;
