@@ -5575,7 +5575,7 @@ end
       
       [setidx,byexp] = myparse(varargin,'setidx',[],'byexp',false);
 
-      islabeled = obj.windowdata.labelidx_cur ~= 0;
+      islabeled = obj.windowdata.labelidx_new ~= 0;
       if ~any(islabeled),                        
         crossError.numbers = zeros(4,3);
         crossError.frac = zeros(4,3);
@@ -5602,7 +5602,7 @@ end
       
       [success,msg,crossScores, tlabels]=...
         crossValidateBout( obj.windowdata.X, ...
-        obj.windowdata.labelidx_cur,bouts,obj,...
+        obj.windowdata.labelidx_new,bouts,obj,...
         obj.windowdata.binVals,...
         obj.classifier_params,true,setidx);
       
