@@ -467,11 +467,11 @@ end
 
 SetLabelingMode(handles);
 
-res = questdlg('Load labels that were used to train the classifier or current labels?',...
-  'Labels?','Classifier Labels','Current Labels','Cancel','Classifier Labels');
+res = questdlg('Load the labels and the classifier from the file, or just load the classifier?',...
+  'Labels?','Load Labels and Classifier','Load Classifier Only','Cancel','Load Labels and Classifier');
 if strcmpi(res,'Cancel'), return, end
 
-classifierlabels = strcmpi(res,'Classifier Labels');
+classifierlabels = strcmpi(res,'Load Labels and Classifier');
 
 [success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
 if ~success,
@@ -622,11 +622,11 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~handles.disableBehavior,
-  if ~isfield(handles,'configfilename') || isempty(handles.configfilename), 
-    uiwait(warndlg('Select a project before adding an experiment'));
-    return;
-  end
+oldv = get(handles.listbox_experiment,'Value');
+
+if ~handles.disableBehavior && isempty(handles.projmanager.GetCurrentProject()), 
+  uiwait(warndlg('Select a project before adding an experiment'));
+  return
 end
 
 InitJLabelGui(handles);
