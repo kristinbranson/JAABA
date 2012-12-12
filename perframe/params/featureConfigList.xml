@@ -7,5 +7,6 @@
 <eric_flies file="params/featureConfigEric.xml" animal="fly"/>
 <larvae file="params/featureConfigLarvae.xml" animal="larvae"/>
 <vivek_mice file="params/featureConfigVivekMice.xml" animal="mice"/>
+<adam_flies file="params/featureConfig_adam.xml" animal="fly"/>
 
 </params>
