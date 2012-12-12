@@ -368,7 +368,11 @@ for ndx = 1:numel(allexpdirs)
   
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+    if iscell(msg)
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+    else
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    end
     return;
   end
   
