@@ -319,10 +319,6 @@ end
   methods (Access=public,Static=true)
 
     % movie, trx, and perframedir are required for each experiment
-    function res = IsRequiredFile(file)
-      res = ismember(file,{'movie','trx','perframedir'});
-    end    
-    
     % perframedir can be generated
     function res = CanGenerateFile(file)
       res = ismember(file,{'perframedir'});
@@ -605,6 +601,14 @@ end
 
     
 % Some helper functions.
+
+    function res = IsRequiredFile(obj,file)
+      if obj.openmovie
+        res = ismember(file,{'movie','trx','perframedir'});
+      else
+        res = ismember(file,{'trx','perframedir'});
+      end
+    end
 
 
     function idx = FlyNdx(obj,expi,flies)
@@ -1852,7 +1856,7 @@ end
         allScores.scores{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur;
         allScores.tStart(fly) = tStart;
         allScores.tEnd(fly) = tEnd;
-        allScores.postprocessed{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur_pp(idxcurr);
+        allScores.postprocessed{fly}(tStart:tEnd) = obj.predictdata{expi}{fly}.cur_pp;
       end
       
       if ~scores_valid,
@@ -2540,7 +2544,11 @@ end
       obj.windowdata.distNdx = [];
       obj.windowdata.binVals=[];
 
-      obj.predictdata(expi) = [];
+      for curex = sort(expi(:)','descend'), %#ok<UDIM>
+        if numel(obj.predictdata)>expi
+          obj.predictdata(expi) = [];
+        end
+      end
       
       if ~isempty(obj.predictblocks.expi)
         idxcurr = ismember(obj.predictblocks.expi,expi);
@@ -3077,7 +3085,7 @@ end
             else
               pfexists = cellfun(@(s) exist(s,'file'),fn);
               obj.fileexists(expi,filei) = all(pfexists);
-              if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file),
+              if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file),
                 for tmpi = find(~pfexists(:)'),
                   if numel(missingfiles{expi})<10
                     [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
@@ -3100,7 +3108,7 @@ end
             else
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
             end
-            if ~obj.fileexists(expi,filei) && JLabelData.IsRequiredFile(file)
+            if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file)
               missingfiles{expi}{end+1} = file;
             end
               
@@ -3124,7 +3132,7 @@ end
           
           % if file doesn't exist and is required, then not all files exist
           if ~obj.fileexists(expi,filei),
-            if JLabelData.IsRequiredFile(file),
+            if obj.IsRequiredFile(file),
               obj.allfilesexist = false;
               % if furthermore file can't be generated, then not fixable
               if ~JLabelData.CanGenerateFile(file),
@@ -3852,7 +3860,9 @@ end
                          'scoresidx', zeros(1,n));
       
 
-      idxcurr = obj.predictdata{expi}{flies}.cur_valid;
+      idxcurr = obj.predictdata{expi}{flies}.cur_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
       
       prediction.predictedidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
         -sign(obj.predictdata{expi}{flies}.cur(idxcurr))*0.5+1.5;
@@ -3889,7 +3899,9 @@ end
       off = 1 - T0;
       scores = zeros(1,n);
 
-        idxcurr = obj.predictdata{expi}{flies}.loaded_valid;
+        idxcurr = obj.predictdata{expi}{flies}.loaded_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.loaded(idxcurr);      
       
@@ -3907,11 +3919,15 @@ end
       predictions = zeros(1,n);
       
       if obj.HasCurrentScores,
-        idxcurr = obj.predictdata{expi}{flies}.cur_valid;
+        idxcurr = obj.predictdata{expi}{flies}.cur_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = obj.predictdata{expi}{flies}.cur(idxcurr);
         predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}.cur_pp(idxcurr);
       else
-        idxcurr = obj.predictdata{expi}{flies}.loaded_valid;
+        idxcurr = obj.predictdata{expi}{flies}.loaded_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = obj.predictdata{expi}{flies}.loaded(idxcurr);      
         predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = 2 - obj.predictdata{expi}{flies}.loaded_pp(idxcurr);      
       end
@@ -3927,7 +3943,9 @@ end
       off = 1 - T0;
       scores = zeros(1,n);
       
-        idxcurr = obj.predictdata{expi}{flies}.old_valid;
+        idxcurr = obj.predictdata{expi}{flies}.old_valid & ...
+            obj.predictdata{expi}{flies}.t>=T0 & ...
+            obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.old(idxcurr);
       
@@ -4633,7 +4651,7 @@ end
         hasClassifier = false;
       end
       
-      if nargin < 5
+      if nargin < 6
         dotrain = true;
       end
       
@@ -5248,6 +5266,8 @@ end
         
         perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
         perframefile = obj.GetPerframeFiles(expi);
+        
+        nmissingts = inf;
 
        while true,
 
@@ -5256,10 +5276,10 @@ end
           % that.
           
           t = missingts(1);
-          curbs_t0 = obj.predictblocks.t0( obj.predictblocks.expi==expi & ...
-            obj.predictblocks.flies == flies);
-          curbs_t1 = obj.predictblocks.t1(obj.predictblocks.expi == expi & ...
-            obj.predictblocks.flies == flies);
+          curblockndx = obj.predictblocks.expi==expi & obj.predictblocks.flies == flies;
+          curbs_t0 = obj.predictblocks.t0(curblockndx );
+          curbs_t1 = obj.predictblocks.t1(curblockndx );
+          
           if ~isempty(curbs_t0) && any(  (t-curbs_t0)>=0 & (t-curbs_t1)<=0)
             tempndx = find( (t-curbs_t0)>=0 & (t-curbs_t1)<=0 );
             t0 = curbs_t0(tempndx(1));
@@ -5281,20 +5301,40 @@ end
             % go forward 2*r again to find the end of the chunk
             t1 = min(t0+2*obj.predictwindowdatachunk_radius,T1);
             
-            overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
-            if ~isempty(overlap_start),
-              t0 = max(curbs_t1(overlap_start))+1;
-            end
             
-            overlap_end = find( (t1-curbs_t0)>=0 & (t1-curbs_t1)<=0);
-            if ~isempty(overlap_end),
-              t1 = max(curbs_t0(overlap_end))-1;
+            % Find blocks that overlap with the current interval and merge
+            % them into one block.
+            overlapping_blocks1 = find( curbs_t0-t0 >= 0 & curbs_t0-t1 <= 0);
+            overlapping_blocks2 = find( curbs_t1-t0 >= 0 & curbs_t0-t1 <= 0);
+            overlapping_blocks = unique([overlapping_blocks1(:);overlapping_blocks2(:)]);
+            if ~isempty(overlapping_blocks),
+                t0 = min(t0,min(curbs_t0(overlapping_blocks)));
+                t1 = max(t1,max(curbs_t1(overlapping_blocks)));
+                todelete = find(curblockndx);
+                todelete = todelete(overlapping_blocks);
+                obj.predictblocks.t0(todelete) = [];
+                obj.predictblocks.t1(todelete) = [];
+                obj.predictblocks.flies(todelete) = [];
+                obj.predictblocks.expi(todelete) = [];
             end
-            
-            obj.predictblocks.t0(end+1) = t0;
-            obj.predictblocks.t1(end+1) = t1;
-            obj.predictblocks.expi(end+1) = expi;
-            obj.predictblocks.flies(end+1) = flies;
+%             overlap_start = find( (t0-curbs_t0)>=0 & (t0-curbs_t1)<=0);
+%             if ~isempty(overlap_start),
+%               t0 = max(curbs_t1(overlap_start))+1;
+%             end
+%             
+%             overlap_end = find( (t1-curbs_t0)>=0 & (t1-curbs_t1)<=0);
+%             if ~isempty(overlap_end),
+%               t1 = max(curbs_t0(overlap_end))-1;
+%             end
+           
+            if t0 <= t1,
+                obj.predictblocks.t0(end+1) = t0;
+                obj.predictblocks.t1(end+1) = t1;
+                obj.predictblocks.expi(end+1) = expi;
+                obj.predictblocks.flies(end+1) = flies;
+            else
+                warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);                
+            end
           end
           
           i0 = t0 - obj.GetTrxFirstFrame(expi,flies) + 1;
@@ -5379,6 +5419,14 @@ end
             obj.ClearStatus();
             break;
           end
+          
+          nmissingtsnew = numel(missingts);
+          if nmissingtsnew >= nmissingts,
+              errordlg('Sanity check: Number of frames missing window features did not decrease. Breaking out of loop.');
+              break;
+          end
+          nmissingts = nmissingtsnew;
+          
         end
         
  
@@ -5531,7 +5579,7 @@ end
       
       [setidx,byexp] = myparse(varargin,'setidx',[],'byexp',false);
 
-      islabeled = obj.windowdata.labelidx_cur ~= 0;
+      islabeled = obj.windowdata.labelidx_new ~= 0;
       if ~any(islabeled),                        
         crossError.numbers = zeros(4,3);
         crossError.frac = zeros(4,3);
@@ -5558,7 +5606,7 @@ end
       
       [success,msg,crossScores, tlabels]=...
         crossValidateBout( obj.windowdata.X, ...
-        obj.windowdata.labelidx_cur,bouts,obj,...
+        obj.windowdata.labelidx_new,bouts,obj,...
         obj.windowdata.binVals,...
         obj.classifier_params,true,setidx);
       
@@ -5610,15 +5658,11 @@ end
           uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
           return;
       end
-      curNdx = obj.windowdata.labelidx_cur~=0;
-      curLabels = obj.windowdata.labelidx_cur(curNdx);
+      curNdx = obj.windowdata.labelidx_new~=0;
+      curLabels = obj.windowdata.labelidx_new(curNdx);
       modLabels = ((curLabels==1)-0.5)*2;
 
-      if ~isempty(obj.classifier),
-        curScores = myBoostClassify(obj.windowdata.X,obj.classifier);
-      else
-        curScores = zeros(size(curLabels));
-      end
+      curScores = myBoostClassify(obj.windowdata.X(curNdx,:),obj.classifier);
       
       ShowROCCurve(modLabels,curScores,obj,JLabelHandle);
       
@@ -6017,7 +6061,7 @@ end
       flyStats.one2two = [];
       flyStats.two2one = [];
       if ~isempty(obj.classifier_old),
-        curNdx = obj.FlyNdx(expi,flyNum);
+        curNdx = obj.predictdata{expi}{flyNum}.old_valid;
         if nnz(curNdx);
           flyStats.one2two = nnz(obj.predictdata{expi}{flyNum}.cur(curNdx)<0 ...
             & obj.predictdata{expi}{flyNum}.old(curNdx)>0);
@@ -6281,12 +6325,11 @@ end
       switch obj.GTSuggestionMode
         
         case 'Random'
-          start = obj.randomGTSuggestions{expi}(fly).start;
-          last = obj.randomGTSuggestions{expi}(fly).end;
           for fly = 1:obj.nflies_per_exp(expi)
+            start = obj.randomGTSuggestions{expi}(fly).start;
+            last = obj.randomGTSuggestions{expi}(fly).end;
             fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,start,last);
           end
-          
         case 'Threshold'
           if obj.predictdata{expi}{1}.loaded_valid(1)
             for fly = 1:obj.nflies_per_exp(expi)
