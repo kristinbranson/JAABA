@@ -6277,12 +6277,11 @@ end
       switch obj.GTSuggestionMode
         
         case 'Random'
-          start = obj.randomGTSuggestions{expi}(fly).start;
-          last = obj.randomGTSuggestions{expi}(fly).end;
           for fly = 1:obj.nflies_per_exp(expi)
+            start = obj.randomGTSuggestions{expi}(fly).start;
+            last = obj.randomGTSuggestions{expi}(fly).end;
             fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,start,last);
           end
-          
         case 'Threshold'
           if obj.predictdata{expi}{1}.loaded_valid(1)
             for fly = 1:obj.nflies_per_exp(expi)
