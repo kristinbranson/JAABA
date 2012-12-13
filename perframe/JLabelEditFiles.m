@@ -638,7 +638,6 @@ listfile = fullfile(pname,listfile);
 if ~ischar(listfile),
   return;
 end
-'xml_file',handles.projectfilename
 fid = fopen(listfile,'r');
 if fid<0, 
   uiwait(warndlg(sprintf('Cannot open %s for reading',listfile)));
