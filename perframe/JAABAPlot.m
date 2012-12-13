@@ -1597,7 +1597,7 @@ for b=bb
   for g=gg
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
 
     if(isempty(experimentvalue{g}))  continue;  end
 
@@ -1619,6 +1619,7 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+legend(handles.grouplist(gg));
 
 fclose(fid);
 
@@ -2013,7 +2014,7 @@ for b=bb
   for g=gg
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(experimentvalue{g}))
       fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
       plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
@@ -2034,6 +2035,7 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+legend(handles.grouplist(gg));
 
 fclose(fid);
 
@@ -2389,7 +2391,7 @@ for b=bb
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ...
         ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(handles.experimentvalue{g}))
       [frames_labelled frames_total]=calculate_behavior_barchart(...
           experimentvalue{g},handles.experimentlist{g},...
@@ -2480,6 +2482,7 @@ for b=bb
   fprintf(fid,'\n');
 
 end
+legend(handles.grouplist(gg));
 
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
   tmp={'behavior'};
@@ -2685,7 +2688,7 @@ for b=bb
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ...
         ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(handles.experimentvalue{g}))
       fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
       plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
@@ -2702,6 +2705,7 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+legend(handles.grouplist(gg));
 
 fclose(fid);
 
