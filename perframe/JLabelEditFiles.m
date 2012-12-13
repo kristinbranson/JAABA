@@ -622,11 +622,11 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-oldv = get(handles.listbox_experiment,'Value');
-
-if ~handles.disableBehavior && isempty(handles.projmanager.GetCurrentProject()), 
-  uiwait(warndlg('Select a project before adding an experiment'));
-  return
+if ~handles.disableBehavior,
+  if ~isfield(handles,'configfilename') || isempty(handles.configfilename), 
+    uiwait(warndlg('Select a project before adding an experiment'));
+    return;
+  end
 end
 
 InitJLabelGui(handles);
