@@ -1555,12 +1555,15 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='feature histogram';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='feature histogram';
 
 for b=bb
 
@@ -1964,13 +1967,16 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='feature time series';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(handles.featuretimeseries_timing==1)  bb=1;  end
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='feature time series';
 
 for b=bb
 
@@ -2340,12 +2346,15 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='behavior bar chart';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='behavior bar chart';
 
 table_data={};
 for b=bb
@@ -2634,12 +2643,15 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='behavior time series';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='behavior time series';
 
 for b=bb
 
@@ -4053,9 +4065,12 @@ function MenuFile_Callback(hObject, eventdata, handles)
 
 
 % ---
-function ButtonDownFcn_Callback(src,evt)
+function figure_info_callback(src,evt)
 
 handles=guidata(src);
+
+CT={'Mean' 'Median' 'Mode'};
+D={'Std. Dev.' 'Std. Err.' '5%-95%' '25%-75%'};
 
 tmp={};
 
@@ -4072,9 +4087,9 @@ switch handles.type
 end
 tmp{end+1}='';
 
-tmp{end+1}=['CT=' num2str(handles.prefs_centraltendency)];
-tmp{end+1}=['D='  num2str(handles.prefs_dispersion)];
-tmp{end+1}=['conv. width='  num2str(handles.prefs_convolutionwidth)];
+tmp{end+1}=['Central Tendency = ' CT{handles.prefs_centraltendency}];
+tmp{end+1}=['Dispersion = '  D{handles.prefs_dispersion}];
+tmp{end+1}=['convolution width = '  num2str(handles.prefs_convolutionwidth) ' frames'];
 tmp{end+1}='';
 
 for g=1:length(handles.grouplist)
