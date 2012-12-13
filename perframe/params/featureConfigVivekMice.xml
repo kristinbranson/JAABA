@@ -134,6 +134,7 @@
     
     <distnose2wall_rect trans_types="none" type="arena"/>
 
+    <distnose2wall_animaldir_rect trans_types="none" type="arena"/>
     <!--scores_wall_climbing_v3 trans_types="none" type="scores"/>
 
     <scores_walk_pause trans_types="none" type="scores"/>
