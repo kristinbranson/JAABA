@@ -4982,18 +4982,19 @@ end
         case 'boosting',
           if(isempty(obj.predictblocks.t0)), return, end
           
-          for ndx = 1:numel(obj.predictblocks.t0)
-            curex = obj.predictblocks.expi(ndx);
-            flies = obj.predictblocks.flies(ndx);
-            numcurex = nnz(obj.predictblocks.expi(:) == curex & ...
-              obj.predictblocks.flies(:) == flies);
-            numcurexdone = nnz(obj.predictblocks.expi(1:ndx) == curex & ...
-              obj.predictblocks.flies(1:ndx) == flies);
+          predictblocks = obj.predictblocks;
+          for ndx = 1:numel(predictblocks.t0)
+            curex = predictblocks.expi(ndx);
+            flies = predictblocks.flies(ndx);
+            numcurex = nnz(predictblocks.expi(:) == curex & ...
+              predictblocks.flies(:) == flies);
+            numcurexdone = nnz(predictblocks.expi(1:ndx) == curex & ...
+              predictblocks.flies(1:ndx) == flies);
             obj.SetStatus('Predicting for exp %s fly %d ... %d%% done',...
             obj.expnames{curex},flies,round(100*numcurexdone/numcurex));
-            obj.PredictFast(obj.predictblocks.expi(ndx),...
-              obj.predictblocks.flies(ndx),...
-              obj.predictblocks.t0(ndx),obj.predictblocks.t1(ndx));
+            obj.PredictFast(predictblocks.expi(ndx),...
+              predictblocks.flies(ndx),...
+              predictblocks.t0(ndx),predictblocks.t1(ndx));
           end
             obj.NormalizeScores([]);
             obj.ApplyPostprocessing();
@@ -5315,7 +5316,8 @@ end
           curbs_t0 = obj.predictblocks.t0(curblockndx );
           curbs_t1 = obj.predictblocks.t1(curblockndx );
           
-          if ~isempty(curbs_t0) && any(  (t-curbs_t0)>=0 & (t-curbs_t1)<=0)
+          if ~isempty(curbs_t0) && any(  (t-curbs_t0)>=0 & (t-curbs_t1)<=0) && ...
+              t1-t0 > 2*obj.predictwindowdatachunk_radius-2,
             tempndx = find( (t-curbs_t0)>=0 & (t-curbs_t1)<=0 );
             t0 = curbs_t0(tempndx(1));
             t1 = curbs_t1(tempndx(1));
@@ -5741,8 +5743,8 @@ end
           curT = nlt( nlexp==curExp & nlflies == curFly);
           curLabels = nlLabels(nlexp==curExp & nlflies == curFly);
           curLabels_imp = nlLabels_imp(nlexp==curExp & nlflies == curFly);
-          curScoreNdx = find(obj.predictdata{expi}{flies}.cur_valid);
-          scoresT = obj.predictdata{expi}{flies}.t(curScoreNdx);
+          curScoreNdx = find(obj.predictdata{curExp}{curFly}.cur_valid);
+          scoresT = obj.predictdata{curExp}{curFly}.t(curScoreNdx);
           [curValidScoreNdx,loc] = ismember(scoresT,curT);
           if nnz(curValidScoreNdx)~=numel(curT)
             warndlg('Scores are missing for some labeled data');
@@ -5752,7 +5754,7 @@ end
           
           orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
           orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
-          orderedScores = [orderedScores; obj.predictdata{expi}{flies}.cur(curScoreNdx(curValidScoreNdx~=0))'];
+          orderedScores = [orderedScores; obj.predictdata{curExp}{curFly}.cur(curScoreNdx(curValidScoreNdx~=0))'];
         end
 %         if setClassifierfilename,
 %           classifierfilename = obj.windowdata.classifierfilenames{curExp};
