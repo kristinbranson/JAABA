@@ -1651,8 +1651,8 @@ set(handles.figure1,'pointer','watch');  drawnow;
 
 if(isempty(handles.interestingfeaturehistograms_cache))
   table_data={};
-  bad={};
-  gg=find(cellfun(@isempty,handles.grouplist)==0);
+
+  handlesexperimentlist=[handles.experimentlist{:}];
 
   h=waitbar(0,'This will likely take awhile...',...
       'CreateCancelBtn','fid=fopen(fullfile(tempdir,''cancel.txt''),''w''); fclose(fid);');
@@ -1662,59 +1662,50 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   t = timer('TimerFcn',{@progress_bar,h}, 'Period', 3, 'ExecutionMode', 'fixedRate');
   start(t);
 
-  for g=gg
-    set(handles.Status,'string',...
-        ['Processing ' num2str(length(handles.experimentvalue{gg(g)})) ' experiment(s) in group ' handles.grouplist{gg(g)}]);
-    drawnow;
-    experiment_value=handles.experimentvalue{gg(g)};
-    experiment_list=handles.experimentlist{gg(g)};
-    parfor_tmp2=zeros(length(handles.behaviorlist),length(handles.featurelist),8);
-    bad2={};
-    %parfor b=1:length(handles.behaviorlist)
-    for b=1:length(handles.behaviorlist)
-      % KB: skip the All behavior
-      if strcmp(handles.behaviorlist{b},'All'),
-        continue;
-      end
-      behavior_data={};
-      for e=1:length(experiment_value)
-        behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},handles.scorefiles{b}));
-      end
-      k=1;  bad2{b}={};
-      parfor_tmp=zeros(length(handles.featurelist),8);
-      for f=1:length(handles.featurelist)
-        if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
-        during={};  not_during={};
-        for e=1:length(experiment_value)
-          if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
-          feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
-              [handles.featurelist{f} '.mat']));
+  nexperiments=length(handlesexperimentlist);
+  nbehaviors=length(handles.behaviorlist)-1;
+  nfeatures=length(handles.featurelist);
 
-          if(length(behavior_data{e}.allScores.scores)~=length(feature_data.data))
-            [~,foo,~]=fileparts(experiment_list{experiment_value(e)});
-            bad2{b}{end+1}=[foo ', ' handles.behaviorlist{b} ', ' handles.featurelist{f}];
-            continue;
-          end
-
-          sexdata={};
-          for i=1:length(feature_data.data)
-            sexdata{i}=ones(1,length(feature_data.data{i}));
-          end
-          [during{e} not_during{e}]=calculate_feature_histogram(behavior_data{e},1,[],...
-              feature_data,sexdata,nan,handles.featurehistogram_perwhat);
-        end
-        during=[during{:}];
-        not_during=[not_during{:}];
-        %parfor_tmp(k,:)=[b f (mean(during)-mean(not_during))/sqrt((std(during)^2+std(not_during)^2)/2)];
-        parfor_tmp(k,:)=[b f mean(during) mean(not_during) std(during) std(not_during) length(during) length(not_during)];
-        k=k+1;
-      end
-      parfor_tmp2(b,:,:)=parfor_tmp;
-      fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
+tic
+  %bad={};
+  table_data=zeros(nexperiments,nbehaviors,nfeatures,6);
+  parfor ge=1:nexperiments
+  %for ge=1:nexperiments
+    behavior_data={};
+    for b=1:nbehaviors
+      behavior_data{b}=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
     end
-    bad=[bad [bad2{:}]];
-    table_data{end+1}=reshape(parfor_tmp2,prod(size(parfor_tmp2))/8,8);
+    bad{ge}={};
+    parfor_tmp=zeros(nbehaviors,nfeatures,6);
+    for f=1:nfeatures
+      if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+      feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
+          [handles.featurelist{f} '.mat']));
+      sexdata={};
+      for s=1:length(feature_data.data)
+        sexdata{s}=ones(1,length(feature_data.data{s}));
+      end
+      for b=1:nbehaviors
+        if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+
+%        if(length(behavior_data{b}.allScores.scores)~=length(feature_data.data))
+%          [~,foo,~]=fileparts(handlesexperimentlist{ge});
+%          bad{ge}{end+1}=[foo ', ' handles.behaviorlist{b} ', ' handles.featurelist{f}];
+%          continue;
+%        end
+
+        [during not_during]=calculate_feature_histogram(behavior_data{b},1,[],...
+            feature_data,sexdata,nan,handles.featurehistogram_perwhat);
+        parfor_tmp(b,f,:)=[mean(during) mean(not_during) ...
+            std(during) std(not_during) length(during) length(not_during)];
+      end
+    end
+    table_data(ge,:,:,:)=parfor_tmp;
+    fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
   end
+toc
+%  bad=[bad{:}];
+%  table_data{end+1}=reshape(parfor_tmp2,prod(size(parfor_tmp2))/8,8);
 
   stop(t);
   delete(t);
@@ -1729,56 +1720,85 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     return;
   end
 
-  if(~isempty(bad))
-    msg{1}=['the following experiments had different numbers of individuals ' ...
-        'for the indicated behavior and feature.  they will be ommitted from the analysis.'];
-    msg{2}='';
-    tmp=length(bad);
-    if(tmp>20)
-      bad=bad(1:20);
-      bad{end+1}='';
-      bad{end+1}=['plus another ' num2str(tmp) ' combinations'];
-    end
-    uiwait(errordlg({msg{:} bad{:}}));
-  end
+%  if(~isempty(bad))
+%    msg{1}=['the following experiments had different numbers of individuals ' ...
+%        'for the indicated behavior and feature.  they will be ommitted from the analysis.'];
+%    msg{2}='';
+%    tmp=length(bad);
+%    if(tmp>20)
+%      bad=bad(1:20);
+%      bad{end+1}='';
+%      bad{end+1}=['plus another ' num2str(tmp) ' combinations'];
+%    end
+%    uiwait(errordlg({msg{:} bad{:}}));
+%  end
 
   tmp2=[];
-  for g=gg
-    tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) nan(size(table_data{gg(g)},1),1) table_data{gg(g)}(:,1:2) ...
-        (table_data{gg(g)}(:,3)-table_data{gg(g)}(:,4))./sqrt(table_data{gg(g)}(:,5).^2+table_data{gg(g)}(:,6).^2)...
-        table_data{gg(g)}(:,7) table_data{gg(g)}(:,8)];
+  %for g=gg
+  cum_grp_siz=[0 cumsum(cellfun(@length,handles.experimentlist))];
+  for g=1:length(handles.grouplist)
+    gg=cum_grp_siz(g)+(1:length(handles.experimentlist{g}));
+    tmp2=[tmp2; ...
+        repmat(g,nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
+        nan(nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,6))),nbehaviors*nfeatures,1) ...
+        reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
+        reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
+        reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,2)))./ ...
+          sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg,:,:,4).^2))/2))', ...
+          nbehaviors*nfeatures,1)];
+
+%    tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) nan(size(table_data{gg(g)},1),1) ...
+%        table_data{gg(g)}(:,1:2) ...
+%        (table_data{gg(g)}(:,3)-table_data{gg(g)}(:,4))./...
+%          sqrt(table_data{gg(g)}(:,5).^2+table_data{gg(g)}(:,6).^2)...
+%        table_data{gg(g)}(:,7) table_data{gg(g)}(:,8)];
     if(g==length(handles.grouplist))  break;  end
     for g2=(g+1):length(handles.grouplist)
-      tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) repmat(g2,size(table_data{gg(g)},1),1) table_data{gg(g)}(:,1:2) ...
-          (table_data{g2}(:,3)-table_data{gg(g)}(:,3))./sqrt(table_data{g2}(:,5).^2+table_data{gg(g)}(:,5).^2)...
-          table_data{gg(g)}(:,7) table_data{g2}(:,7)];
+      gg2=cum_grp_siz(g2)+(1:length(handles.experimentlist{g2}));
+      tmp2=[tmp2; ...
+          repmat(g,nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
+          repmat(g2,nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg2,:,:,5))),nbehaviors*nfeatures,1) ...
+          reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
+          reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
+          reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
+            sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg2,:,:,3).^2))/2))', ...
+            nbehaviors*nfeatures,1)];
+
+%      tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) repmat(g2,size(table_data{gg(g)},1),1) ...
+%          table_data{gg(g)}(:,1:2) ...
+%          (table_data{g2}(:,3)-table_data{gg(g)}(:,3))./...
+%            sqrt(table_data{g2}(:,5).^2+table_data{gg(g)}(:,5).^2)...
+%          table_data{gg(g)}(:,7) table_data{g2}(:,7)];
     end
   end
   if(handles.interestingfeaturehistograms_omitnan)
-    idx=find(~isnan(tmp2(:,5)));
+    idx=find(~isnan(tmp2(:,7)));
     tmp2=tmp2(idx,:);
   end
   if(handles.interestingfeaturehistograms_omitinf)
-    idx=find(~isinf(tmp2(:,5)));
+    idx=find(~isinf(tmp2(:,7)));
     tmp2=tmp2(idx,:);
   end
-  tmp2=sortrows(tmp2,-5);
+  tmp2=sortrows(tmp2,-7);
 
   handles.interestingfeaturehistograms_cache=tmp2;
 else
   tmp2=handles.interestingfeaturehistograms_cache;
 end
 
-tmp=cell(size(tmp2,1),5);
+tmp=cell(size(tmp2,1),7);
 tmp(:,1)=handles.grouplist(tmp2(:,1));
-%tmp(:,2)=num2cell(tmp2(:,6));
-tmp(:,2)=cellstr(num2str(tmp2(:,6),'%-d'));
-idx=~isnan(tmp2(:,2));
-tmp(idx,3)=handles.grouplist(tmp2(idx,2));
-tmp(:,4)=cellstr(num2str(tmp2(:,7),'%-d'));
-tmp(:,5)=handles.behaviorlist(tmp2(:,3));
-tmp(:,6)=handles.featurelist(tmp2(:,4));
-tmp(:,7)=num2cell(tmp2(:,5));
+tmp(:,2)=cellstr(num2str(tmp2(:,2),'%-d'));
+idx=~isnan(tmp2(:,3));
+tmp(idx,3)=handles.grouplist(tmp2(idx,3));
+tmp(:,4)=cellstr(num2str(tmp2(:,4),'%-d'));
+tmp(:,5)=handles.behaviorlist(tmp2(:,5));
+tmp(:,6)=handles.featurelist(tmp2(:,6));
+tmp(:,7)=num2cell(tmp2(:,7));
 set(handles.Table,'Data',tmp);
 set(handles.Table,'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd'''});
 set(handles.Table,'ColumnWidth',{75 50 75 50 150 100 75});
@@ -3250,24 +3270,26 @@ elseif(strcmp(handles.table,'social_stats'))
   axis tight;
 
 elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
-  handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),3);
-  set(handles.BehaviorList,'Value',handles.behaviorvalue);
-  set(handles.BehaviorLogic,'Value',1);
-  set(handles.BehaviorList2,'enable','off');
-  handles.featurevalue=handles.table_data(eventdata.Indices(end,1),4);
-  set(handles.FeatureList,'Value',handles.featurevalue);
+  handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),5);
+  handles.behaviorlogic=1;
+  handles.featurevalue=handles.table_data(eventdata.Indices(end,1),6);
   handles.individual=1;
-  set(handles.IndividualList,'Value',handles.individual);
+%  set(handles.BehaviorList,'Value',handles.behaviorvalue);
+%  set(handles.BehaviorLogic,'Value',1);
+%  set(handles.BehaviorList2,'enable','off');
+%  set(handles.FeatureList,'Value',handles.featurevalue);
+%  set(handles.IndividualList,'Value',handles.individual);
 
   if(strcmp(handles.table,'timeseries'))
     handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3)+1;
     FeatureTimeSeries_Callback(hObject, eventdata, handles);
 
   elseif(strcmp(handles.table,'histogram'))
-    handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),2));
+    handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),3));
     menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
     FeatureHistogram_Callback(hObject, eventdata, handles);
   end
+  update_figure(handles);
 end
 
 guidata(hObject,handles);
