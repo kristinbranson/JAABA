@@ -1077,7 +1077,7 @@ function slider_preview_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 % get slider value
 % t = min(max(1,round(get(hObject,'Value'))),handles.guidata.nframes);
 t = min(max(handles.guidata.t0_curr,round(get(hObject,'Value'))),handles.guidata.t1_curr);
-
+set(hObject,'Value',t);
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
 
