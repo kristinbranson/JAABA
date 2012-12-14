@@ -1304,8 +1304,7 @@ switch(style)
     k=1;  m=0;  step=10000;
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
-      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],...
-            'color',color2,'edgecolor','none');
+      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none');
       k=k+step+1;  m=m+1;
     end
     get(gca,'children');  set(gca,'children',circshift(ans,-m));  % send to back
