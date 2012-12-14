@@ -2303,7 +2303,9 @@ end
         end
       end
       
-      obj.InitPredictiondata(obj.nexps);
+      if numel(obj.predictdata)<obj.nexps
+        obj.InitPredictiondata(obj.nexps);
+      end
       
       [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
@@ -3691,6 +3693,9 @@ end
       obj.expi = expi;
       obj.flies = flies;
 
+      if numel(obj.predictdata)<obj.expi
+        obj.InitPredictiondata(obj.expi);
+      end
       obj.UpdatePredictedIdx();
       obj.ClearStatus();
            
