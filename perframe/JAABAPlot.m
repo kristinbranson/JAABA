@@ -1160,6 +1160,8 @@ delete(fullfile(tempdir,'progressbar.txt'));
 handles=update_experiment_data(handles,false,false,true);
 update_figure(handles);
 
+handles.interestingfeaturehistograms_cache=[];
+
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
@@ -3281,24 +3283,69 @@ elseif(strcmp(handles.table,'social_stats'))
   axis tight;
 
 elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
-  handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),5);
-  handles.behaviorlogic=1;
-  handles.featurevalue=handles.table_data(eventdata.Indices(end,1),6);
-  handles.individual=1;
 %  set(handles.BehaviorList,'Value',handles.behaviorvalue);
 %  set(handles.BehaviorLogic,'Value',1);
 %  set(handles.BehaviorList2,'enable','off');
 %  set(handles.FeatureList,'Value',handles.featurevalue);
 %  set(handles.IndividualList,'Value',handles.individual);
 
-  if(strcmp(handles.table,'timeseries'))
-    handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3)+1;
-    FeatureTimeSeries_Callback(hObject, eventdata, handles);
+%  if(strcmp(handles.table,'timeseries'))
+%    handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3)+1;
+%    FeatureTimeSeries_Callback(hObject, eventdata, handles);
 
-  elseif(strcmp(handles.table,'histogram'))
-    handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),3));
-    menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
-    FeatureHistogram_Callback(hObject, eventdata, handles);
+  if(strcmp(handles.table,'histogram'))
+    switch(eventdata.Indices(end,2))
+      case {1,3}
+        group=handles.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
+        if(isnan(group))
+          questdlg('Remove all during / not-during comparisons from table?','','Yes','No','No');
+        else
+          questdlg(['Remove all ' handles.grouplist{group} ' groups from table?'],'','Yes','No','No');
+        end
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        if(isnan(group))
+          idx=find((~isnan(handles.table_data(:,1)))&(~isnan(handles.table_data(:,3))));
+        else
+          idx=find((handles.table_data(:,1)~=group)&(handles.table_data(:,3)~=group));
+        end
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {2,4}
+        thresh=handles.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
+        questdlg(['Remove all rows for which n or n2 is less than or equal to ' num2str(thresh) ...
+            ' from table?'],'','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find((handles.table_data(:,2)>thresh)&(handles.table_data(:,4)>thresh));
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {5}
+        questdlg(['Remove all ' handles.behaviorlist{handles.table_data(eventdata.Indices(end,1),5)} ...
+            ' behaviors from table?'],'','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find(handles.table_data(:,5)~=handles.table_data(eventdata.Indices(end,1),5));
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {6}
+        questdlg(['Remove all ' handles.featurelist{handles.table_data(eventdata.Indices(end,1),6)} ...
+            ' features from table?'],'','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find(handles.table_data(:,6)~=handles.table_data(eventdata.Indices(end,1),6));
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {7}
+        handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),5);
+        handles.behaviorlogic=1;
+        handles.featurevalue=handles.table_data(eventdata.Indices(end,1),6);
+        handles.individual=1;
+        handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),3));
+        menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
+        FeatureHistogram_Callback(hObject, eventdata, handles);
+    end
+
   end
   update_figure(handles);
 end
