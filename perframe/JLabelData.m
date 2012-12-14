@@ -414,7 +414,27 @@ end
       end
     end
     
+    function cellparams = convertParams2CellParams(params)
+      cellparams = struct;
+      fns1 = fieldnames(params);
+      for i1 = 1:numel(fns1),
+        fn1 = fns1{i1};
+        fns2 = fieldnames(params.(fn1));
+        cellparams.(fn1) = {};
+        feature_types = {};
+        for i2 = 1:numel(fns2),
+          fn2 = fns2{i2};
+          if ~isstruct(params.(fn1).(fn2)),
+            cellparams.(fn1)(end+1:end+2) = {fn2,params.(fn1).(fn2)};
+          else
+            cellparams.(fn1)(end+1:end+2) = {[fn2,'_params'],struct2paramscell(params.(fn1).(fn2))};
+            feature_types{end+1} = fn2; %#ok<AGROW>
+          end
+        end
+        cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
+      end
 
+    end
     
   end
   
@@ -781,6 +801,9 @@ end
         if isfield(configparams,'windowfeatures') && isfield(configparams.windowfeatures,'basicFeatureTable')
           obj.basicFeatureTable = configparams.windowfeatures.basicFeatureTable;
           obj.featureWindowSize = configparams.windowfeatures.featureWindowSize;
+          configparams.windowfeatures.windowfeaturesparams = JLabelData.convertTransTypes2Cell(configparams.windowfeatures.windowfeaturesparams);
+          configparams.windowfeatures.windowfeaturescellparams = JLabelData.convertParams2CellParams(configparams.windowfeatures.windowfeaturesparams);
+
           obj.SetPerframeParams(configparams.windowfeatures.windowfeaturesparams,...
             configparams.windowfeatures.windowfeaturescellparams);
         end
@@ -1436,7 +1459,8 @@ end
           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
               'basicFeatureTable','featureWindowSize'}))
             
-%            loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
+            loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
+            loadeddata.windowfeaturescellparams = JLabelData.convertParams2CellParams(loadeddata.windowfeaturesparams);
             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
                     isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
                 str = sprintf('Window feature parameters in the configuration file');
@@ -1606,8 +1630,9 @@ end
           % load actual window features params instead of filename.
           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
               'basicFeatureTable','featureWindowSize'}))
+            loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
+            loadeddata.windowfeaturescellparams = JLabelData.convertParams2CellParams(loadeddata.windowfeaturesparams);
             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-                  isequal(obj.windowfeaturescellparams,loadeddata.windowfeaturescellparams) && ...
                   isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
                 str = sprintf('Window feature parameters in the configuration file');
                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
@@ -2278,7 +2303,9 @@ end
         end
       end
       
-      obj.InitPredictiondata(obj.nexps);
+      if numel(obj.predictdata)<obj.nexps
+        obj.InitPredictiondata(obj.nexps);
+      end
       
       [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
@@ -2749,7 +2776,6 @@ end
           toRemove(end+1) = i;
           if isfield(obj.windowfeaturesparams,curpf)
             obj.windowfeaturesparams = rmfield(obj.windowfeaturesparams,curpf);
-            obj.windowfeaturescellparams = rmfield(obj.windowfeaturescellparams,curpf);
           end
           curndx = strcmp(obj.curperframefns,curpf);
           obj.curperframefns(curndx) = [];
@@ -2757,6 +2783,9 @@ end
         
       end
       obj.allperframefns(toRemove) = [];
+      obj.windowfeaturesparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
+      obj.windowfeaturescellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
+
     end
     
     function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
@@ -2935,6 +2964,9 @@ end
 %           params.featureparamsfilename,getReport(ME));
 %         return;
 %       end
+      windowfeaturesparams = JLabelData.convertTransTypes2Cell(windowfeaturesparams);
+      windowfeaturescellparams = JLabelData.convertParams2CellParams(windowfeaturesparams);
+
       obj.SetPerframeParams(windowfeaturesparams,windowfeaturescellparams); %#ok<PROP>
       obj.featureparamsfilename = featureparamsfilename;
       obj.basicFeatureTable = basicFeatureTable;
@@ -3661,6 +3693,9 @@ end
       obj.expi = expi;
       obj.flies = flies;
 
+      if numel(obj.predictdata)<obj.expi
+        obj.InitPredictiondata(obj.expi);
+      end
       obj.UpdatePredictedIdx();
       obj.ClearStatus();
            
@@ -5808,7 +5843,8 @@ end
 
       if isempty(distNdx) % The example was not part of the training data.
         outOfTraining = 1;
-        curX = obj.windowdata.X(windowNdx,:);
+        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(obj.expi,obj.flies,curTime);
+        curX = curX(curTime-t0+1,:);
         curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
         count = 1;
         for bagNo = 1:length(obj.bagModels)
@@ -5856,7 +5892,8 @@ end
       for ex = allPos'
         if count>4; break; end;
         isClose = 0;
-        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+        if ~outOfTraining && ...
+          obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
            obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
            abs( obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex) )<5,
            continue; 
@@ -5880,7 +5917,8 @@ end
       for ex = allNeg'
         if count>4; break; end;
         isClose = 0;
-        if obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
+        if ~outOfTraining && ...
+          obj.windowdata.exp(windowNdx) == obj.windowdata.distNdx.exp(ex) &&...
            obj.windowdata.flies(windowNdx) == obj.windowdata.distNdx.flies(ex) && ...
            abs(obj.windowdata.t(windowNdx) - obj.windowdata.distNdx.t(ex))<5,
            continue; 
@@ -5900,9 +5938,9 @@ end
         curN(count) = ex;
       end
       
-      varForSSF.curFrame.expNum = obj.windowdata.exp(windowNdx);
-      varForSSF.curFrame.flyNum = obj.windowdata.flies(windowNdx);
-      varForSSF.curFrame.curTime = obj.windowdata.t(windowNdx);
+      varForSSF.curFrame.expNum = obj.expi;
+      varForSSF.curFrame.flyNum = obj.flies;
+      varForSSF.curFrame.curTime = curTime;
       
       for k = 1:4
         varForSSF.posFrames(k).expNum = obj.windowdata.distNdx.exp(curP(k));

@@ -177,6 +177,10 @@ DOCACHE = true;
 for(j=1:2:length(varargin)-1)
   if(strcmpi(varargin{j},'trans_types'))
     tmp=uint8(0);
+    if ischar(varargin{j+1})
+      fprintf('Trans types is string. It should be cell\n');
+      varargin{j+1} = {varargin{j+1}};
+    end
     for(i=1:length(varargin{j+1}))
       if(strcmpi('none',varargin{j+1}(i)))      tmp=bitor(1,tmp);  end
       if(strcmpi('abs',varargin{j+1}(i)))       tmp=bitor(2,tmp);  end
@@ -191,6 +195,11 @@ for(k=2:2:length(varargin))
     for(j=1:2:length(varargin{k})-1)
       if(strcmpi(varargin{k}{j},'trans_types'))
         tmp=uint8(0);
+        if ischar(varargin{k}{j+1})
+          fprintf('Trans types is string. It should be cell\n');
+          varargin{k}{j+1} = {varargin{k}{j+1}};
+        end
+
         for(i=1:length(varargin{k}{j+1}))
           if(strcmpi('none',varargin{k}{j+1}(i)))      tmp=bitor(1,tmp);  end
           if(strcmpi('abs',varargin{k}{j+1}(i)))       tmp=bitor(2,tmp);  end
