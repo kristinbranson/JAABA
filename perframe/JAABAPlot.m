@@ -658,7 +658,7 @@ if(isempty(directory))  directory=pwd;  end
 newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
 if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
 if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
-  newexperiments=textread('../../data/test.txt','%s');
+  newexperiments=textread(newexperiments{1},'%s');
 end
 tmp=ismember(newexperiments,[handles.experimentlist{:}]);
 if(sum(tmp)>0)
@@ -1555,12 +1555,15 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='feature histogram';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='feature histogram';
 
 for b=bb
 
@@ -1594,7 +1597,7 @@ for b=bb
   for g=gg
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
 
     if(isempty(experimentvalue{g}))  continue;  end
 
@@ -1616,6 +1619,7 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+legend(handles.grouplist(gg));
 
 fclose(fid);
 
@@ -1964,13 +1968,16 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='feature time series';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(handles.featuretimeseries_timing==1)  bb=1;  end
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='feature time series';
 
 for b=bb
 
@@ -2007,7 +2014,7 @@ for b=bb
   for g=gg
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(experimentvalue{g}))
       fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
       plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
@@ -2028,6 +2035,7 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+legend(handles.grouplist(gg));
 
 fclose(fid);
 
@@ -2340,12 +2348,15 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='behavior bar chart';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='behavior bar chart';
 
 table_data={};
 for b=bb
@@ -2380,7 +2391,7 @@ for b=bb
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ...
         ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(handles.experimentvalue{g}))
       [frames_labelled frames_total]=calculate_behavior_barchart(...
           experimentvalue{g},handles.experimentlist{g},...
@@ -2471,6 +2482,7 @@ for b=bb
   fprintf(fid,'\n');
 
 end
+legend(handles.grouplist(gg));
 
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
   tmp={'behavior'};
@@ -2634,12 +2646,15 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='behavior time series';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
-
-handles.type='behavior time series';
 
 for b=bb
 
@@ -2673,7 +2688,7 @@ for b=bb
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ...
         ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(handles.experimentvalue{g}))
       fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
       plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
@@ -2690,6 +2705,7 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+legend(handles.grouplist(gg));
 
 fclose(fid);
 
@@ -4053,9 +4069,12 @@ function MenuFile_Callback(hObject, eventdata, handles)
 
 
 % ---
-function ButtonDownFcn_Callback(src,evt)
+function figure_info_callback(src,evt)
 
 handles=guidata(src);
+
+CT={'Mean' 'Median' 'Mode'};
+D={'Std. Dev.' 'Std. Err.' '5%-95%' '25%-75%'};
 
 tmp={};
 
@@ -4072,9 +4091,9 @@ switch handles.type
 end
 tmp{end+1}='';
 
-tmp{end+1}=['CT=' num2str(handles.prefs_centraltendency)];
-tmp{end+1}=['D='  num2str(handles.prefs_dispersion)];
-tmp{end+1}=['conv. width='  num2str(handles.prefs_convolutionwidth)];
+tmp{end+1}=['Central Tendency = ' CT{handles.prefs_centraltendency}];
+tmp{end+1}=['Dispersion = '  D{handles.prefs_dispersion}];
+tmp{end+1}=['convolution width = '  num2str(handles.prefs_convolutionwidth) ' frames'];
 tmp{end+1}='';
 
 for g=1:length(handles.grouplist)
