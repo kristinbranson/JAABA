@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 07-Dec-2012 17:15:08
+% Last Modified by GUIDE v2.5 14-Dec-2012 17:17:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,6 +78,7 @@ handles.featuretimeseries_subtractmean=0;
 handles.timeseries_windowradius=10;
 handles.interestingfeaturehistograms_omitnan=1;
 handles.interestingfeaturehistograms_omitinf=1;
+handles.interestingfeaturehistograms_absdprime=1;
 %handles.timeseries_tight=0;
 handles.prefs_centraltendency=1;
 handles.prefs_dispersion=1;
@@ -129,6 +130,7 @@ handles.featuretimeseries_subtractmean=handles_saved.featuretimeseries_subtractm
 handles.timeseries_windowradius=handles_saved.timeseries_windowradius;
 handles.interestingfeaturehistograms_omitnan=handles_saved.interestingfeaturehistograms_omitnan;
 handles.interestingfeaturehistograms_omitinf=handles_saved.interestingfeaturehistograms_omitinf;
+handles.interestingfeaturehistograms_absdprime=handles_saved.interestingfeaturehistograms_absdprime;
 %handles.timeseries_tight=handles_saved.timeseries_tight;
 handles.prefs_centraltendency=handles_saved.prefs_centraltendency;
 handles.prefs_dispersion=handles_saved.prefs_dispersion;
@@ -321,6 +323,7 @@ menu_featuretimeseries_style_set(handles.featuretimeseries_style);
 menu_featuretimeseries_subtractmean_set(handles.featuretimeseries_subtractmean);
 menu_interestingfeaturehistograms_omitnan_set(handles.interestingfeaturehistograms_omitnan);
 menu_interestingfeaturehistograms_omitinf_set(handles.interestingfeaturehistograms_omitinf);
+menu_interestingfeaturehistograms_absdprime_set(handles.interestingfeaturehistograms_absdprime);
 menu_prefscentraltendency_set(handles.prefs_centraltendency);
 menu_prefsdispersion_set(handles.prefs_dispersion);
 
@@ -1779,20 +1782,23 @@ toc
 %          table_data{gg(g)}(:,7) table_data{g2}(:,7)];
     end
   end
-  if(handles.interestingfeaturehistograms_omitnan)
-    idx=find(~isnan(tmp2(:,7)));
-    tmp2=tmp2(idx,:);
-  end
-  if(handles.interestingfeaturehistograms_omitinf)
-    idx=find(~isinf(tmp2(:,7)));
-    tmp2=tmp2(idx,:);
-  end
-  tmp2=sortrows(tmp2,-7);
-
   handles.interestingfeaturehistograms_cache=tmp2;
 else
   tmp2=handles.interestingfeaturehistograms_cache;
 end
+
+if(handles.interestingfeaturehistograms_omitnan)
+  idx=find(~isnan(tmp2(:,7)));
+  tmp2=tmp2(idx,:);
+end
+if(handles.interestingfeaturehistograms_omitinf)
+  idx=find(~isinf(tmp2(:,7)));
+  tmp2=tmp2(idx,:);
+end
+if(handles.interestingfeaturehistograms_absdprime)
+  tmp2(:,7)=abs(tmp2(:,7));
+end
+tmp2=sortrows(tmp2,-7);
 
 tmp=cell(size(tmp2,1),7);
 tmp(:,1)=handles.grouplist(tmp2(:,1));
@@ -3805,7 +3811,7 @@ function MenuInterestingFeatureHistogramsOmitNaN_Callback(hObject, eventdata, ha
 
 handles.interestingfeaturehistograms_omitnan=~handles.interestingfeaturehistograms_omitnan;
 menu_interestingfeaturehistograms_omitnan_set(handles.interestingfeaturehistograms_omitnan);
-handles.interestingfeaturehistograms_cache=[];
+%handles.interestingfeaturehistograms_cache=[];
 guidata(hObject,handles);
 
 
@@ -3828,7 +3834,30 @@ function MenuInterestingFeatureHistogramsOmitInf_Callback(hObject, eventdata, ha
 
 handles.interestingfeaturehistograms_omitinf=~handles.interestingfeaturehistograms_omitinf;
 menu_interestingfeaturehistograms_omitinf_set(handles.interestingfeaturehistograms_omitinf);
-handles.interestingfeaturehistograms_cache=[];
+%handles.interestingfeaturehistograms_cache=[];
+guidata(hObject,handles);
+
+
+% ---
+function menu_interestingfeaturehistograms_absdprime_set(arg)
+
+handles=guidata(gcf);
+if(arg)
+  set(handles.MenuInterestingFeatureHistogramsAbsDPrime,'Checked','on');
+else
+  set(handles.MenuInterestingFeatureHistogramsAbsDPrime,'Checked','off');
+end
+
+
+% --------------------------------------------------------------------
+function MenuInterestingFeatureHistogramsAbsDPrime_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuInterestingFeatureHistogramsAbsDPrime (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.interestingfeaturehistograms_absdprime=~handles.interestingfeaturehistograms_absdprime;
+menu_interestingfeaturehistograms_absdprime_set(handles.interestingfeaturehistograms_absdprime);
+%handles.interestingfeaturehistograms_cache=[];
 guidata(hObject,handles);
 
 
