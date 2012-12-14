@@ -658,7 +658,7 @@ if(isempty(directory))  directory=pwd;  end
 newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
 if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
 if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
-  newexperiments=textread('../../data/test.txt','%s');
+  newexperiments=textread(newexperiments{1},'%s');
 end
 tmp=ismember(newexperiments,[handles.experimentlist{:}]);
 if(sum(tmp)>0)
