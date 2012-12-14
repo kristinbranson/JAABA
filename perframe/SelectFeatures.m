@@ -540,6 +540,9 @@ for pfndx = 1:numel(perframeL)
   end
   
   transType.(curpf) = settings.perframe.(curpf).trans_types;
+  if ischar(transType.(curpf))
+    transType.(curpf) = {transType.(curpf)};
+  end
   curtypes  = settings.perframe.(curpf).type; 
   if ischar(curtypes)
     pftype.(curpf)  = {curtypes}; 

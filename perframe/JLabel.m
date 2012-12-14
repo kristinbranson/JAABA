@@ -1024,7 +1024,8 @@ success = true;
 function handles = UnsetCurrentMovie(handles)
 
 % close previous movie
-if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)),
+if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)) && ...
+    handles.guidata.movie_fid~=0,
   fclose(handles.guidata.movie_fid);
 end
 
