@@ -1688,8 +1688,10 @@ prcEdges = [5 15 30 50 70 85 95];
 histfnNdx = find(strcmp('hist',handles.windowComp));
 histExtraName = handles.winextraParams{histfnNdx};
 
+h = waitbar(0,'Computing hist bins');
 for ndx = 1:numel(handles.pfList)
   curPf = handles.pfList{ndx};
+  waitbar(ndx/numel(handles.pfList),h);
   
   if ~handles.data{ndx}.valid || ~handles.data{ndx}.hist.valid; 
     continue;
@@ -1722,6 +1724,7 @@ for ndx = 1:numel(handles.pfList)
   bins = [binMin bins binMax];
   handles.data{ndx}.hist.values.(histExtraName) = bins;
 end
+delete(h);
 guidata(hObject,handles);
 if ~isempty(handles.pfNdx)
   setWindowTable(handles,handles.pfNdx);

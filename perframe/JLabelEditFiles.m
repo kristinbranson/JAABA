@@ -579,6 +579,15 @@ function popupmode_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmode contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmode
 
+contents = cellstr(get(hObject,'String'));
+curstr = contents{get(hObject,'Value')};
+if any(strcmpi(curstr,{ 'Ground Truthing','Ground Truthing Advanced'})),
+  set(handles.pushbutton_load,'Enable','off');
+else
+  set(handles.pushbutton_load,'Enable','on');
+end
+
+
 
 % --- Executes during object creation, after setting all properties.
 function popupmode_CreateFcn(hObject, eventdata, handles)
