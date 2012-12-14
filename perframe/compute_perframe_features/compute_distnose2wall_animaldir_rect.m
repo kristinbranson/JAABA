@@ -18,9 +18,9 @@ for i = 1:nflies,
 
   
   dtop = getDist(nose,body,tl,tr);
-  dleft = getDist(nose,body,tl,bl);
+  dleft = getDist(nose,body,bl,tl);
   dright = getDist(nose,body,tr,br);
-  dbottom = getDist(nose,body,bl,br);
+  dbottom = getDist(nose,body,br,bl);
 
   data{i} = min([dtop;dleft; dright; dbottom],[],1);
 
@@ -43,4 +43,14 @@ ua = ((x4-x3)*(y1-y3)-(y4-y3)*(x1-x3))./((y4-y3)*(x2-x1)-(x4-x3)*(y2-y1));
 x = x1 + ua.*(x2 - x1);
 y = y1 + ua.*(y2 - y1);
 
+side = sign((x4-x3)*(y1-y3)-(y4-y3)*(x1-x3));
 d = sqrt( (x-x1).^2 + (y-y1).^2);
+d = side.*d;
+
+% sign of ua tell us if the intersection point was away from the
+% the body or not. ua>0 means that the intersection point was towards the
+% tail rather than towards the head.
+% side tells us whether the nose was beyond the wall or not.
+% ua>0 & side>0 means that nose was inside the wall and the intersection
+% point was behind the mice. In this case set the dist to 0.
+d(ua>0 & side>0) = inf;
