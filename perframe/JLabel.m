@@ -153,6 +153,7 @@ EnableGUI(handles);
 if ismac, % On mac change the foreground color to black.
   allpopups = findall(hObject,'Style','popup');
   set(allpopups,'ForegroundColor',[0 0 0]);
+  set(allpopups,'BackgroundColor',[1 1 1]);
 end
 
 
