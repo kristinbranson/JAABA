@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 14-Dec-2012 17:17:50
+% Last Modified by GUIDE v2.5 17-Dec-2012 09:00:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -75,7 +75,7 @@ handles.featurehistogram_nbins=100;
 handles.featuretimeseries_timing=1;
 handles.featuretimeseries_style=1;
 handles.featuretimeseries_subtractmean=0;
-handles.timeseries_windowradius=10;
+handles.featuretimeseries_windowradius=10;
 handles.interestingfeaturehistograms_omitnan=1;
 handles.interestingfeaturehistograms_omitinf=1;
 handles.interestingfeaturehistograms_absdprime=1;
@@ -127,7 +127,7 @@ handles.featurehistogram_nbins=handles_saved.featurehistogram_nbins;
 handles.featuretimeseries_timing=handles_saved.featuretimeseries_timing;
 handles.featuretimeseries_style=handles_saved.featuretimeseries_style;
 handles.featuretimeseries_subtractmean=handles_saved.featuretimeseries_subtractmean;
-handles.timeseries_windowradius=handles_saved.timeseries_windowradius;
+handles.featuretimeseries_windowradius=handles_saved.featuretimeseries_windowradius;
 handles.interestingfeaturehistograms_omitnan=handles_saved.interestingfeaturehistograms_omitnan;
 handles.interestingfeaturehistograms_omitinf=handles_saved.interestingfeaturehistograms_omitinf;
 handles.interestingfeaturehistograms_absdprime=handles_saved.interestingfeaturehistograms_absdprime;
@@ -2054,7 +2054,7 @@ for b=bb
           handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
           handles.featuretimeseries_timing,handles.featuretimeseries_style,...
           handles.prefs_centraltendency,handles.prefs_dispersion,handles.prefs_convolutionwidth,...
-          handles.featuretimeseries_subtractmean,handles.timeseries_windowradius,...
+          handles.featuretimeseries_subtractmean,handles.featuretimeseries_windowradius,...
           handles.colors(g,:),fid);
           %handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
     end
@@ -2125,7 +2125,7 @@ experiment_list2=get(handles.ExperimentList2,'String');
 behavior_list=get(handles.BehaviorList,'String');
 feature_list=get(handles.FeatureList,'String');
 statistic=handles.prefsstat;
-windowradius=handles.timeseries_windowradius;
+windowradius=handles.featuretimeseries_windowradius;
 
 if(isempty(handles.interestingfeaturetimeseries_cache))
   if(length(experiment_value)>0)
@@ -3418,13 +3418,13 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuFeatureTimeSeriesRadius_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuFeatureTimeSeriesRadius (see GCBO)
+function MenuFeatureTimeSeriesWindowRadius_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFeatureTimeSeriesWindowRadius (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.timeseries_windowradius=str2num(char(inputdlg({'Window radius:'},'',1,...
-    {num2str(handles.timeseries_windowradius)})));
+handles.featuretimeseries_windowradius=str2num(char(inputdlg({'Window radius:'},'',1,...
+    {num2str(handles.featuretimeseries_windowradius)})));
 guidata(hObject,handles);
 
 
@@ -3547,14 +3547,14 @@ set(handles.MenuFeatureHistogramMeanPerBout,'Checked','off');
 set(handles.MenuFeatureHistogramMedianPerBout,'Checked','off');
 set(handles.MenuFeatureHistogramMaxPerBout,'Checked','off');
 set(handles.MenuFeatureHistogramMinPerBout,'Checked','off');
-set(handles.MenuFeatureHistogramStdPerBout,'Checked','off');
+set(handles.MenuFeatureHistogramStdDevPerBout,'Checked','off');
 switch(arg)
   case(1), set(handles.MenuFeatureHistogramPerFrame,'Checked','on');
   case(2), set(handles.MenuFeatureHistogramMeanPerBout,'Checked','on');
   case(3), set(handles.MenuFeatureHistogramMedianPerBout,'Checked','on');
   case(4), set(handles.MenuFeatureHistogramMaxPerBout,'Checked','on');
   case(5), set(handles.MenuFeatureHistogramMinPerBout,'Checked','on');
-  case(6), set(handles.MenuFeatureHistogramStdPerBout,'Checked','on');
+  case(6), set(handles.MenuFeatureHistogramStdDevPerBout,'Checked','on');
 end
 
 
@@ -3619,8 +3619,8 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuFeatureHistogramStdPerBout_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuFeatureHistogramStdPerBout (see GCBO)
+function MenuFeatureHistogramStdDevPerBout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFeatureHistogramStdDevPerBout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -4184,19 +4184,29 @@ handles=guidata(src);
 
 CT={'Mean' 'Median' 'Mode'};
 D={'Std. Dev.' 'Std. Err.' '5%-95%' '25%-75%'};
+style={'Central Tendency' 'Central Tendency & Dispersion' 'Overlayed per-Exp Means'};
+behaviorbarchart_perwhat={'per Group' 'per Experiment' 'per Fly' 'per Fly'};
+featurehistogram_perwhat={'per Frame' 'Mean per Bout' 'Median per Bout' 'Max per Bout' 'Min per Bout' 'Std. Dev. per Bout'};
+featuretimeseries_timing={'Entire Recording' 'Onset Triggered' 'Offset Triggered'};
 
 tmp={};
 
 switch handles.type
+  case 'behavior bar chart'
+    tmp{end+1}=['perwhat = ' behaviorbarchart_perwhat{handles.behaviorbarchart_perwhat}];
+  case 'behavior time series'
+    tmp{end+1}=['style = ' style{handles.behaviortimeseries_style}];
   case 'feature histogram'
-    tmp{end+1}=['perwhat=' num2str(handles.featurehistogram_perwhat)];
+    tmp{end+1}=['perwhat = ' featurehistogram_perwhat{handles.featurehistogram_perwhat}];
+    tmp{end+1}=['style = ' style{handles.featurehistogram_style}];
     tmp{end+1}=['logbinsize=' num2str(handles.featurehistogram_logbinsize)];
     tmp{end+1}=['notduring=' num2str(handles.featurehistogram_notduring)];
     tmp{end+1}=['nbins=' num2str(handles.featurehistogram_nbins)];
   case 'feature time series'
-    tmp{end+1}=['timing=' num2str(handles.featuretimeseries_timing)];
-    tmp{end+1}=['style=' num2str(handles.featuretimeseries_style)];
+    tmp{end+1}=['timing = ' featuretimeseries_timing{handles.featuretimeseries_timing}];
+    tmp{end+1}=['style = ' style{handles.featuretimeseries_style}];
     tmp{end+1}=['subtractmean=' num2str(handles.featuretimeseries_subtractmean)];
+    tmp{end+1}=['windowradius=' num2str(handles.featuretimeseries_windowradius)];
 end
 tmp{end+1}='';
 
