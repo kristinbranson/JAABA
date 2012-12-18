@@ -3364,6 +3364,22 @@ if ~handles.guidata.enabled,
   return;
 end
 
+if strcmpi(eventdata.Modifier,'control')
+  switch eventdata.Key,
+    case 't',
+      if ~handles.guidata.data.IsGTMode(),
+        pushbutton_train_Callback(hObject,eventdata,handles);
+      end
+      
+    case 'p',
+        pushbutton_predict_Callback(hObject,eventdata,handles);
+    case 'n',
+      menu_go_navigation_preferences_Callback(hObject,eventdata,handles);
+    case 'j',
+      menu_go_switch_target_Callback(hObject,eventdata,handles);
+  end
+end
+
 switch eventdata.Key,
   
   case 'leftarrow',
@@ -3390,15 +3406,6 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
-  case 't',
-    if strcmpi(eventdata.Modifier,'control') && ~handles.guidata.data.IsGTMode(),
-      pushbutton_train_Callback(hObject,eventdata,handles);
-    end
-    
-  case 'p',
-    if strcmpi(eventdata.Modifier,'control'),
-      pushbutton_predict_Callback(hObject,eventdata,handles);
-    end
     
   case handles.guidata.label_shortcuts,
     buttonNum = find(strcmp(eventdata.Key,handles.guidata.label_shortcuts),1);
