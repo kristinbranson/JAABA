@@ -936,7 +936,12 @@ for c=1:length(newclassifiers)
   params=[];  params.behaviors.names='';
   try
     handlesconfigurations{c}=classifier.configfilename;
-    params=ReadXMLParams(handlesconfigurations{c});
+    [~,~,ext] = fileparts(classifier.configfilename);
+    if strcmpi(ext,'.xml');
+      params=ReadXMLParams(handlesconfigurations{c});
+    else
+      params = load(handlesconfigurations{c});
+    end
   catch
     fullfile(directory,classifier.configfilename);
     if(exist(ans,'file'))
@@ -959,7 +964,11 @@ for c=1:length(newclassifiers)
       end
     end
   end
-  handlesbehaviorlist{c}=params.behaviors.names;
+  if iscell(params.behaviors.names),
+    handlesbehaviorlist{c} = params.behaviors.names{1};
+  else
+    handlesbehaviorlist{c}=params.behaviors.names;
+  end
   handlesscorefiles{c}=params.file.scorefilename;
 
   ee=0;  behavior_data=[];  parfor_tmp=zeros(sum(cellfun(@length,handles.experimentlist)),1);
