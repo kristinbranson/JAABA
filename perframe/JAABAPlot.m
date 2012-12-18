@@ -1024,9 +1024,10 @@ set(handles.figure1,'pointer','watch');  drawnow;
 
 idx=handles.classifiervalue;
 handles.classifierlist(idx)=[];
-handles.classifiervalue=1:length(handles.classifierlist);
+handles.classifiervalue=1:max(1,length(handles.classifierlist));
 handles.configurations(idx)=[];
 handles.behaviorlist(idx)=[];
+handles.behaviorvalue=max(1,length(handles.behaviorlist));
 handles.scorefiles(idx)=[];
 handles.individuals(:,idx)=[];
 
