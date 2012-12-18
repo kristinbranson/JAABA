@@ -91,6 +91,8 @@ ClearStatus(handles);
 [handles,success] = JLabelEditFiles('JLabelHandle',handles,...
   'JLabelSplashHandle',handles.guidata.hsplash);
 
+set(handles.figure_JLabel,'pointer','watch');
+
 if ~success,
   guidata(hObject,handles);
   delete(hObject);
@@ -150,11 +152,13 @@ RecursiveSetKeyPressFcn(handles.figure_JLabel);
 % enable gui
 EnableGUI(handles);
 
+
 if ismac, % On mac change the foreground color to black.
   allpopups = findall(hObject,'Style','popup');
   set(allpopups,'ForegroundColor',[0 0 0]);
 end
 
+set(handles.figure_JLabel,'pointer','arrow');
 
 % Update handles structure
 guidata(hObject, handles);
@@ -5790,6 +5794,9 @@ hvisible_gt = [handles.menu_view_showPredictions, ...
   handles.menu_view_suggest,...
   handles.menu_classifier_gt_performance];
 
+if handles.guidata.data.nexps < 1,
+  return;
+end
 
 if handles.guidata.data.IsGTMode()
   set(hinv_gt,'Visible','off');
