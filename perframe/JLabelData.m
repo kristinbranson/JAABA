@@ -1903,7 +1903,7 @@ end
         return;
       end
       load(sfn,'allScores','timestamp');
-      if ~isempty(obj.classifierTS),
+      if ~isempty(obj.classifierTS) && obj.classifierTS>0,
         if timestamp~=obj.classifierTS
           uiwait(warndlg(sprintf(['Scores were computed using a classifier trained on %s'...
             ' while the current classifier was trained on %s'],datestr(timestamp),...
@@ -1913,16 +1913,22 @@ end
       if ~isempty(whos('-file',sfn,'classifierfilename'))
         S = load(sfn,'classifierfilename');
         classifierfilename = S.classifierfilename;
-        if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm),
-          if exist(classifierfilename,'file'),
-            if ~isempty(whos('-file',sfn,'classifierfilename'))
-              ss = load(classifierfilename,'scoreNorm');
-              obj.windowdata.scoreNorm = ss;
-            end
-          end
-        end
       else
         classifierfilename = '';
+      end
+      
+      if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm),
+        if isfield(allScores,'scoreNorm'),
+          obj.windowdata.scoreNorm = allScores.scoreNorm;
+        elseif exist(classifierfilename,'file'),
+          if ~isempty(whos('-file',sfn,'classifierfilename'))
+            ss = load(classifierfilename,'scoreNorm');
+            obj.windowdata.scoreNorm = ss;
+          end
+        else
+          obj.windowdata.scoreNorm = 1;
+          uiwait(warndlg('Score file did not have the score normalization. Setting it to 1'));
+        end
       end
       
       obj.AddScores(expi,allScores,timestamp,classifierfilename,false);
@@ -4028,6 +4034,8 @@ end
       if nargin < 2 || isempty(expi),
         expi = obj.expi;
       end
+      
+      if expi < 1, return; end
       
       if nargin < 3 || isempty(flies),
         flies = obj.flies;
@@ -6175,7 +6183,12 @@ end
         obj.setstatusfn(sprintf(varargin{:}));
         drawnow;
       end
-      
+      allF = findall(0,'type','figure');
+      jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+      jfig = allF(jfigNdx);
+      if ~isempty(jfig),
+        set(jfig,'pointer','watch');
+      end
     end
     
     function ClearStatus(obj)
@@ -6185,6 +6198,12 @@ end
       if ~isempty(obj.clearstatusfn),
         obj.clearstatusfn();
         drawnow;
+      end
+      allF = findall(0,'type','figure');
+      jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+      jfig = allF(jfigNdx);
+      if ~isempty(jfig),
+        set(jfig,'pointer','arrow');
       end
       
     end
@@ -6301,7 +6320,7 @@ end
           
           curt = obj.predictdata{endx}{flies}.t;
           if numel(curt)<intsize; continue; end
-          numT = nnz(curidx)-intsize+1;
+          numT = numel(curt)-intsize+1;
           int.exp(1,end+1:end+numT) = endx;
           int.flies(1,end+1:end+numT) = flies;
           int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
