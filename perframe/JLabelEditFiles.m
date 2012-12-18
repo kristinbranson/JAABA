@@ -132,6 +132,7 @@ set(handles.pushbutton_newproject,'enable','off');
 
 function InitJLabelGui(handles)
 
+set(handles.figure_JLabelEditFiles,'pointer','watch');
 if ~handles.needJLabelInit, return; end
 handles.needJLabelInit = false;
 
@@ -161,6 +162,7 @@ handles.JLabelHandle = JLabelHandle;
 guidata(handles.figure_JLabelEditFiles,handles);
 guidata(JLabelHandle.figure_JLabel,JLabelHandle);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
+set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 
 function InitExperimentsGui(hObject,handles,varargin)
