@@ -132,8 +132,8 @@ set(handles.pushbutton_newproject,'enable','off');
 
 function InitJLabelGui(handles)
 
-set(handles.figure_JLabelEditFiles,'pointer','watch');
 if ~handles.needJLabelInit, return; end
+set(handles.figure_JLabelEditFiles,'pointer','watch');
 handles.needJLabelInit = false;
 
 % For behavior --
