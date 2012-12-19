@@ -4760,7 +4760,7 @@ end
 
     function UpdateBoostingBins(obj)
       
-      islabeled = obj.windowdata.labelidx_cur ~= 0;
+      islabeled = obj.windowdata.labelidx_new ~= 0;
       obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
     end
     
@@ -5606,7 +5606,8 @@ end
             if ~all(obj.windowdata.labelidx_new(idx)), continue; end
             bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
               obj.windowdata.t >= curLabels.t0s(boutNum) & ...
-              obj.windowdata.t < curLabels.t1s(boutNum);
+              obj.windowdata.t < curLabels.t1s(boutNum) & ...
+              obj.windowdata.labelidx_imp;
             bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
             bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
           end
