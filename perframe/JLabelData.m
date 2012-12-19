@@ -227,7 +227,7 @@ classdef JLabelData < handle
       'configfilename','rootoutputdir','classifiertype','classifier','trainingdata','classifier_params',...
       'classifierTS','confThresholds','scoreNorm','windowfeaturesparams','windowfeaturescellparams',...
       'basicFeatureTable','featureWindowSize','postprocessparams',...
-      'featurenames','scorefilename','labels'};
+      'featurenames','scorefilename','labels','scoresasinput'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -4760,7 +4760,7 @@ end
 
     function UpdateBoostingBins(obj)
       
-      islabeled = obj.windowdata.labelidx_cur ~= 0;
+      islabeled = obj.windowdata.labelidx_new ~= 0;
       obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
     end
     
@@ -5573,6 +5573,9 @@ end
       
       confMat = zeros(2*obj.nbehaviors,3);
       scoreNorm = obj.windowdata.scoreNorm;
+      if isempty(scoreNorm) || isnan(scoreNorm),
+        scoreNorm = 0;
+      end
       for ndx = 1:2*obj.nbehaviors
         if mod(ndx,2)
           curIdx = modLabels==ndx;
@@ -5598,11 +5601,13 @@ end
           for boutNum = 1:numel(curLabels.t0s)
             idx =  obj.FlyNdx(expNdx,flyNdx) & ...
               obj.windowdata.t >= curLabels.t0s(boutNum) & ...
-              obj.windowdata.t < curLabels.t1s(boutNum);
-            if ~all(obj.windowdata.labelidx_cur(idx)), continue; end
+              obj.windowdata.t < curLabels.t1s(boutNum) & ...
+              obj.windowdata.labelidx_imp;
+            if ~all(obj.windowdata.labelidx_new(idx)), continue; end
             bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
               obj.windowdata.t >= curLabels.t0s(boutNum) & ...
-              obj.windowdata.t < curLabels.t1s(boutNum);
+              obj.windowdata.t < curLabels.t1s(boutNum) & ...
+              obj.windowdata.labelidx_imp;
             bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
             bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
           end
@@ -5624,7 +5629,7 @@ end
       
       [setidx,byexp] = myparse(varargin,'setidx',[],'byexp',false);
 
-      islabeled = obj.windowdata.labelidx_new ~= 0;
+      islabeled = obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp;
       if ~any(islabeled),                        
         crossError.numbers = zeros(4,3);
         crossError.frac = zeros(4,3);
@@ -5649,9 +5654,14 @@ end
         [~,~,setidx] = unique(obj.windowdata.exp);
       end
       
+      % Don't use unimportant labels
+      labels = obj.windowdata.labelidx_new;
+      labels(~obj.windowdata.labelidx_imp) = 0;
+      
       [success,msg,crossScores, tlabels]=...
         crossValidateBout( obj.windowdata.X, ...
-        obj.windowdata.labelidx_new,bouts,obj,...
+        labels,...
+        bouts,obj,...
         obj.windowdata.binVals,...
         obj.classifier_params,true,setidx);
       
@@ -5676,14 +5686,15 @@ end
       obj.windowdata.scores_validated = zeros(numel(islabeled),1);
       obj.windowdata.scores_validated(islabeled) = crossScores(1,:);
 
-      modLabels = 2*obj.windowdata.labelidx_cur(islabeled)-obj.windowdata.labelidx_imp(islabeled);
+      modLabels = 2*obj.windowdata.labelidx_new(islabeled)-obj.windowdata.labelidx_imp(islabeled);
 
       for tndx = 1:size(crossScores,1)
         crossError(tndx) = obj.createConfMat(crossScores(tndx,:),modLabels);
       end
       
       waslabeled = false(numel(islabeled),1);
-      waslabeled(1:numel(obj.windowdata.labelidx_old)) = obj.windowdata.labelidx_old~=0;
+      waslabeled(1:numel(obj.windowdata.labelidx_old)) = ...
+        obj.windowdata.labelidx_old~=0 & obj.windowdata.labelidx_imp;
       oldSelect = waslabeled(islabeled);
       oldScores = crossScores(oldSelect);
       oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled(:)&islabeled(:)) - ...
@@ -6124,7 +6135,7 @@ end
         curNdx = obj.FlyNdx(expi,flyNum);
         if nnz(curNdx);
           curScores = obj.windowdata.scores_validated(curNdx);
-          curLabels = obj.windowdata.labelidx_cur(curNdx);
+          curLabels = obj.windowdata.labelidx_new(curNdx);
           
           curPosMistakes = nnz( curScores(:)<0 & curLabels(:) ==1 );
           curNegMistakes = nnz( curScores(:)>0 & curLabels(:) >1 );
