@@ -6838,7 +6838,7 @@ end
       
       allScores = [];
       for expi = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(ndx)
+        for flies = 1:obj.nflies_per_exp(expi)
           curidx = obj.predictdata{expi}{flies}.cur_valid;
           allScores = [allScores obj.predictdata{expi}{flies}.cur(curidx)]; %#ok<AGROW>
         end
