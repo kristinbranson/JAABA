@@ -1585,49 +1585,72 @@ cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during,'uniformoutput',false);
 not_during=cat(1,ans{:});
 
 if(logbinsize)
+  low=[];  high=[];
   if(notduring)
-    unique([reshape(abs(during),1,prod(size(during))) reshape(abs(not_during),1,prod(size(not_during)))]);
-    nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
-    low=min(min([during not_during]));
-    high=max(max([during not_during]));
+    foo=[during not_during];
+    if(~isempty(foo))
+      unique([reshape(abs(during),1,prod(size(during))) reshape(abs(not_during),1,prod(size(not_during)))]);
+      nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+      low=min(min(foo));
+      high=max(max(foo));
+    end
   else
-    unique(reshape(abs(during),1,prod(size(during))));
-    nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
-    low=min(min(during));
-    high=max(max(during));
+    if(~isempty(during))
+      unique(reshape(abs(during),1,prod(size(during))));
+      nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+      low=min(min(during));
+      high=max(max(during));
+    end
   end
-  if((low>=0) && (high>0))
-    tmp=logspace(log10(max(low,nearzero)),log10(high),nbins);
-  elseif((low<0) && (high<=0))
-    tmp=fliplr(-logspace(log10(max(abs(high),nearzero)),log10(abs(low)),nbins));
-  elseif((low<0) && (high>0))
-    tmp=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
-        logspace(log10(nearzero),log10(abs(high)),nbins)];
+  if(~isempty(low) && ~isempty(high))
+    if((low>=0) && (high>0))
+      tmp=logspace(log10(max(low,nearzero)),log10(high),nbins);
+    elseif((low<0) && (high<=0))
+      tmp=fliplr(-logspace(log10(max(abs(high),nearzero)),log10(abs(low)),nbins));
+    elseif((low<0) && (high>0))
+      tmp=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
+          logspace(log10(nearzero),log10(abs(high)),nbins)];
+    end
   end
   %set(gca,'xscale','log');
 else
   if(notduring)
-    tmp=linspace(min(min([during not_during])),max(max([during not_during])),nbins);
+    foo=[during not_during];
+    if(~isempty(foo))
+      tmp=linspace(min(min(foo)),max(max(foo)),nbins);
+    end
   else
-    tmp=linspace(min(min(during)),max(max(during)),nbins);
+    if(~isempty(during))
+      tmp=linspace(min(min(during)),max(max(during)),nbins);
+    end
   end
 end
 
 if(notduring)
-  hist_not_during=hist(not_during',tmp);
-  if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
-  hist_not_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_not_during,2));
-  hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
-  plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1,...
-    fid,experiment_list(experiment_value));
+  if(~isempty(not_during))
+    hist_not_during=hist(not_during',tmp);
+    if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
+    hist_not_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_not_during,2));
+    hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
+    plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1,...
+      fid,experiment_list(experiment_value));
+  else
+    plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
+      fid,experiment_list(experiment_value));
+  end
 end
-hist_during=hist(during',tmp);
-if(size(hist_during,1)==1)  hist_during=hist_during';  end
-hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
-hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
-linewidth=1;  if(notduring)  linewidth=2;  end
-h=plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
-    fid,experiment_list(experiment_value));
+if(~isempty(during))
+  hist_during=hist(during',tmp);
+  if(size(hist_during,1)==1)  hist_during=hist_during';  end
+  hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
+  hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
+  linewidth=1;  if(notduring)  linewidth=2;  end
+  h=plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
+      fid,experiment_list(experiment_value));
+else
+  h=plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
+      fid,experiment_list(experiment_value));
+end
 
 
 % --- Executes on button press in FeatureHistogram.
