@@ -3378,7 +3378,7 @@ if strcmpi(eventdata.Modifier,'control')
     case 'j',
       menu_go_switch_target_Callback(hObject,eventdata,handles);
     case 'k'
-      menu_view_plottracks_Callback(hObject,eventdata,handles);
+      menu_view_plottracks_Callback(handles.menu_view_plottracks,eventdata,handles);
   end
 end
 
