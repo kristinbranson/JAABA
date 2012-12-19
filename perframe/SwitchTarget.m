@@ -264,7 +264,7 @@ handles.cachedDataTarget(start_target:end_target) = tableTarget;
 
 set(handles.table,'Data',...
   tableData);
-set(handles.table,'ColumnName',{});
+set(handles.table,'ColumnName',{}); drawnow();
 set(handles.table,'ColumnName',...
   {'Experiment Name','Target|Number',fieldList{:,2}});
 handles.fieldList = fieldList;
