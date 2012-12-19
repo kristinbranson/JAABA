@@ -6134,7 +6134,7 @@ end
         curNdx = obj.FlyNdx(expi,flyNum);
         if nnz(curNdx);
           curScores = obj.windowdata.scores_validated(curNdx);
-          curLabels = obj.windowdata.labelidx_cur(curNdx);
+          curLabels = obj.windowdata.labelidx_new(curNdx);
           
           curPosMistakes = nnz( curScores(:)<0 & curLabels(:) ==1 );
           curNegMistakes = nnz( curScores(:)>0 & curLabels(:) >1 );
