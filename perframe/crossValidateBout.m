@@ -115,7 +115,7 @@ end
 
 
 scores = zeros(numel(tpoints),size(data,1));
-bins = findThresholdBins(data(labels~=0,:),binVals);
+bins = findThresholdBins(data,binVals);
 
 for bno = 1:k
   
@@ -169,7 +169,7 @@ for bno = 1:k
 
     wt = getWeights(curTrainLabels);  
     tt = tic;
-    curbins = curTrainNdx(labels~=0);
+    curbins = curTrainNdx;
     [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
       params.iter,wt,binVals,bins(:,curbins),params);
     tScores = myBoostClassify(data(curTestNdx,:),curModel);
