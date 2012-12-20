@@ -791,7 +791,9 @@ if ismember('Window Features',sellist),
     handles.params.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
     handles.params.windowfeatures.basicFeatureTable = basicFeatureTable;
     handles.params.windowfeatures.featureWindowSize = featureWindowSize;
-    handles.params.file = rmfield(handles.params.file,'featureparamfilename');    
+    if isfield(handles.params.file,'featureparamfilename'),
+        handles.params.file = rmfield(handles.params.file,'featureparamfilename');
+    end
   else
     uiwait(warndlg(['The selected configuration file does not have any '...
       'window features. Not copying the window features']));
