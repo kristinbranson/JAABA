@@ -23,7 +23,7 @@ datalocparamsfile = fullfile(settingsdir,analysis_protocol,datalocparamsfilestr)
 dataloc_params = ReadParams(datalocparamsfile);
 paramsfile = fullfile(settingsdir,analysis_protocol,dataloc_params.jaabadetectparamsfilestr);
 params = ReadParams(paramsfile);
-jaabadir = fullfile(settingsdir,analysis_protocol,params.jaabadir);
+%jaabadir = fullfile(settingsdir,analysis_protocol,params.jaabadir);
 
 % 
 % oldpwd = pwd;
@@ -33,49 +33,15 @@ jaabadir = fullfile(settingsdir,analysis_protocol,params.jaabadir);
 if ~iscell(params.classifierparamsfiles),
   params.classifierparamsfiles = {params.classifierparamsfiles};
 end
-for i = 1:numel(params.classifierparamsfiles),
 
+for i = 1:numel(params.classifierparamsfiles),
+  
   classifierparamsfile = fullfile(settingsdir,analysis_protocol,params.classifierparamsfiles{i});
-  if ~exist(classifierparamsfile,'file'),
-    error('File %s does not exist',classifierparamsfile);
-  end
-  fid = fopen(classifierparamsfile,'r');
-  if fid < 1,
-    error('Could not open file %s for reading',classifierparamsfile);
-  end
-  classifierfiles = {};
-  configfiles = {};
-  while true,
-    l = fgetl(fid);
-    if ~ischar(l),
-      break;
-    end
-    if isempty(l),
-      continue;
-    end
-    if strcmp(l(1),'%'), continue; end
-    ws = regexp(l,',','split');
-    classifierfiles{end+1} = fullfile(settingsdir,analysis_protocol,ws{1}); %#ok<AGROW>
-    configfiles{end+1} = fullfile(settingsdir,analysis_protocol,ws{2}); %#ok<AGROW>
-  end
-  fclose(fid);
-  
-  configparams = cell(1,numel(configfiles));
-  % make the featureConfig and window features paths global
-  for j = 1:numel(configfiles),
-    configparams{j} = ReadXMLParams(configfiles{j});
-    if ~isabspath(configparams{j}.file.featureconfigfile),
-      configparams{j}.file.featureconfigfile = fullfile(jaabadir,configparams{j}.file.featureconfigfile);
-    end
-    if ~isabspath(configparams{j}.file.featureparamfilename),
-      configparams{j}.file.featureparamfilename = fullfile(jaabadir,configparams{j}.file.featureparamfilename);
-    end
-  end
-  
-  JAABADetect(expdir,'classifierfiles',classifierfiles,...
-    'configparams',configparams,...
+  JAABADetect(expdir,'classifierparamsfile',classifierparamsfile,...
     'forcecompute',forcecompute,...
-    'debug',DEBUG);
+    'debug',DEBUG,...
+    'isrelativepath',true,...
+    'fnsrelative',{'featureconfigfile','featureparamfilename'});
   
 end
 % 
