@@ -24,6 +24,9 @@ if isfield(v,'params')
 else
     params = v;
 end
+
+params = convertTransTypes2Cell(params);
+
 % convert to cell params also
 if nargout > 1,
   cellparams = struct;
@@ -119,3 +122,16 @@ for ndx = 1:numel(pftypeList)
   end
 end
 
+  function params = convertTransTypes2Cell(params)
+    % Convert the trans_types field into cell type
+    if ~isstruct(params),  return; end
+    fnames = fieldnames(params);
+    for ndx = 1:numel(fnames)
+      if isstruct(params.(fnames{ndx}))
+        params.(fnames{ndx}) = JLabelData.convertTransTypes2Cell(params.(fnames{ndx}));
+      end
+    end
+    if isfield(params,'trans_types')&& ~iscell(params.trans_types)
+      params.trans_types = {params.trans_types};
+    end
+  

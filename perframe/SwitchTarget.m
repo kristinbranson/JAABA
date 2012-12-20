@@ -264,8 +264,10 @@ handles.cachedDataTarget(start_target:end_target) = tableTarget;
 
 set(handles.table,'Data',...
   tableData);
+set(handles.table,'ColumnName',{}); drawnow();
 set(handles.table,'ColumnName',...
   {'Experiment Name','Target|Number',fieldList{:,2}});
+handles.fieldList = fieldList;
 set(handles.table,'ColumnEditable',false);
 set(handles.table,'ColumnFormat',colFormat);
 set(handles.table,'CellSelectionCallback',@tableSelect);
@@ -404,6 +406,9 @@ end_target = min(handles.cs_ntargets(end),start_target+handles.ntargets_per_page
 if all(handles.cachedDataExpi(start_target:end_target) ~= 0),
   handles.tableData = handles.cachedTableData(start_target:end_target,:);  
   set(handles.table,'Data',handles.tableData);
+  set(handles.table,'ColumnName',{});
+  set(handles.table,'ColumnName',...
+    {'Experiment Name','Target|Number',handles.fieldList{:,2}});
 else
   handles = updateTable(handles);
 end

@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 02-Dec-2012 11:54:25
+% Last Modified by GUIDE v2.5 17-Dec-2012 09:00:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -75,9 +75,10 @@ handles.featurehistogram_nbins=100;
 handles.featuretimeseries_timing=1;
 handles.featuretimeseries_style=1;
 handles.featuretimeseries_subtractmean=0;
-handles.timeseries_windowradius=10;
+handles.featuretimeseries_windowradius=10;
 handles.interestingfeaturehistograms_omitnan=1;
 handles.interestingfeaturehistograms_omitinf=1;
+handles.interestingfeaturehistograms_absdprime=1;
 %handles.timeseries_tight=0;
 handles.prefs_centraltendency=1;
 handles.prefs_dispersion=1;
@@ -86,8 +87,9 @@ handles.prefs_convolutionwidth=1000;
 %handles.stats=0;
 handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
-handles.colors={'r' 'g' 'b' 'c' 'm' 'y' 'k';
-                'red' 'green' 'blue' 'cyan' 'magenta' 'yellow' 'black'};
+%handles.colors={'r' 'g' 'b' 'c' 'm' 'y' 'k';
+%                '#FF0000' '#00FF00' '#0000FF' '#00FFFF' '#FF00FF' '#FFFF00' '#000000'};
+handles.colors=[];
 
 
 % ---
@@ -125,9 +127,10 @@ handles.featurehistogram_nbins=handles_saved.featurehistogram_nbins;
 handles.featuretimeseries_timing=handles_saved.featuretimeseries_timing;
 handles.featuretimeseries_style=handles_saved.featuretimeseries_style;
 handles.featuretimeseries_subtractmean=handles_saved.featuretimeseries_subtractmean;
-handles.timeseries_windowradius=handles_saved.timeseries_windowradius;
+handles.featuretimeseries_windowradius=handles_saved.featuretimeseries_windowradius;
 handles.interestingfeaturehistograms_omitnan=handles_saved.interestingfeaturehistograms_omitnan;
 handles.interestingfeaturehistograms_omitinf=handles_saved.interestingfeaturehistograms_omitinf;
+handles.interestingfeaturehistograms_absdprime=handles_saved.interestingfeaturehistograms_absdprime;
 %handles.timeseries_tight=handles_saved.timeseries_tight;
 handles.prefs_centraltendency=handles_saved.prefs_centraltendency;
 handles.prefs_dispersion=handles_saved.prefs_dispersion;
@@ -207,35 +210,35 @@ function update_figure(handles)
 
 if(isempty(handles.grouplist) || length(handles.experimentlist{handles.groupvalue})==0)
   set(handles.ExperimentList,'enable','off');
+  set(handles.ExperimentMove,'enable','off');
 else
   set(handles.ExperimentList,'enable','on');
+  set(handles.ExperimentMove,'enable','on');
 end
 if(isempty(handles.grouplist))
   set(handles.GroupList,'enable','off');
   set(handles.ExperimentAdd,'enable','off');
   set(handles.ExperimentDelete,'enable','off');
-  set(handles.ExperimentMove,'enable','off');
 else
   set(handles.GroupList,'enable','on');
   set(handles.ExperimentAdd,'enable','on');
   set(handles.ExperimentDelete,'enable','on');
-  set(handles.ExperimentMove,'enable','on');
 end
 if(sum(cellfun(@length,handles.experimentlist))==0)
   set(handles.FeatureList,'enable','off');
+  set(handles.ClassifierCheck,'enable','off');
 else
   set(handles.FeatureList,'enable','on');
+  set(handles.ClassifierCheck,'enable','on');
 end
 if(isempty(handles.classifierlist))
   set(handles.ClassifierList,'enable','off');
   set(handles.ClassifierDelete,'enable','off');
-  set(handles.ClassifierClassify,'enable','off');
   set(handles.BehaviorList,'enable','off');
   set(handles.BehaviorLogic,'enable','off');
 else
   set(handles.ClassifierList,'enable','on');
   set(handles.ClassifierDelete,'enable','on');
-  set(handles.ClassifierClassify,'enable','on');
   set(handles.BehaviorList,'enable','on');
   set(handles.BehaviorLogic,'enable','on');
 end
@@ -243,6 +246,11 @@ if(handles.behaviorlogic==1)
   set(handles.BehaviorList2,'enable','off');
 else
   set(handles.BehaviorList2,'enable','on');
+end
+if((sum(cellfun(@length,handles.experimentlist))==0) || (isempty(handles.classifierlist)))
+  set(handles.ClassifierClassify,'enable','off');
+else
+  set(handles.ClassifierClassify,'enable','on');
 end
 if((sum(cellfun(@length,handles.experimentlist))==0) || (isempty(handles.classifierlist)) || ...
     (sum(sum(handles.individuals==-1))>0) || (sum(sum(diff(handles.individuals,[],2)~=0))>0))
@@ -265,8 +273,9 @@ if(isempty(handles.grouplist))
   set(handles.GroupList,'String',{''},'Value',1);
 else
   tmp=length(handles.grouplist);
-  cellstr(strcat(repmat('<html><font color="',tmp,1),...
-      {handles.colors{2,1+mod(0:length(handles.grouplist)-1,length(handles.colors))}}',...
+%      {handles.colors{2,1+mod(0:length(handles.grouplist)-1,length(handles.colors))}}',...
+  cellstr(strcat(repmat('<html><font color=#"',tmp,1),...
+      reshape(dec2hex(round(handles.colors'*255),2)',6,size(handles.colors,1))',...
       repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
   set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
 end
@@ -300,7 +309,7 @@ if(isempty(handles.individuallist))
 else
   set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
 end
-set(handles.Table,'Data',[]);
+%set(handles.Table,'Data',[]);
 
 menu_classify_forcecompute_set(handles.classify_forcecompute);
 menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
@@ -314,6 +323,7 @@ menu_featuretimeseries_style_set(handles.featuretimeseries_style);
 menu_featuretimeseries_subtractmean_set(handles.featuretimeseries_subtractmean);
 menu_interestingfeaturehistograms_omitnan_set(handles.interestingfeaturehistograms_omitnan);
 menu_interestingfeaturehistograms_omitinf_set(handles.interestingfeaturehistograms_omitinf);
+menu_interestingfeaturehistograms_absdprime_set(handles.interestingfeaturehistograms_absdprime);
 menu_prefscentraltendency_set(handles.prefs_centraltendency);
 menu_prefsdispersion_set(handles.prefs_dispersion);
 
@@ -648,26 +658,37 @@ function ExperimentAdd_Callback(hObject, eventdata, handles)
 persistent directory
 if(isempty(directory))  directory=pwd;  end
 
-newrecordings=uipickfiles('prompt','Select experiment directory','filterspec',directory);
-if(~iscell(newrecordings) || (length(newrecordings)==0))  return;  end
+newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
+if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
+if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
+  newexperiments=textread(newexperiments{1},'%s');
+end
+tmp=ismember(newexperiments,[handles.experimentlist{:}]);
+if(sum(tmp)>0)
+  msg{1}='The following experiments have already been added:';
+  msg{2}='';
+  msg(3:(2+sum(tmp)))=newexperiments(tmp);
+  uiwait(errordlg(msg));
+  newexperiments(tmp)=[];
+end
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
-[directory,~,~]=fileparts(newrecordings{1});
-handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newrecordings{:}};
+[directory,~,~]=fileparts(newexperiments{1});
+handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
 handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
 
-handlesfeatures=cell(1,length(newrecordings));
-handlessexdata=cell(1,length(newrecordings));
-handlesindividuals=zeros(length(newrecordings),length(handles.scorefiles));
-parfor n=1:length(newrecordings)
-%for n=1:length(newrecordings)
-  tmp=dir(fullfile(newrecordings{n},'perframe','*.mat'));
+handlesfeatures=cell(1,length(newexperiments));
+handlessexdata=cell(1,length(newexperiments));
+handlesindividuals=zeros(length(newexperiments),length(handles.scorefiles));
+parfor n=1:length(newexperiments)
+%for n=1:length(newexperiments)
+  tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
   [handlesfeatures{n}{1:length(tmp)}]=deal(tmp.name);
   handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
 
-  sexdata=load(fullfile(newrecordings{n},'perframe','sex.mat'));
+  sexdata=load(fullfile(newexperiments{n},'perframe','sex.mat'));
   sexdata.data=cellfun(@(x) strcmp(x,'M'),sexdata.data,'uniformoutput',false);
   handlessexdata(n)={sexdata.data};
 
@@ -676,7 +697,7 @@ parfor n=1:length(newrecordings)
   for s=1:length(handles.scorefiles)
     classifier=load(handles.classifierlist{s});
     try
-      behavior_data=load(fullfile(newrecordings{n},handles.scorefiles{s}));
+      behavior_data=load(fullfile(newexperiments{n},handles.scorefiles{s}));
     catch
       behavior_data.allScores.t0s=[];
       behavior_data.timestamp=nan;
@@ -691,11 +712,11 @@ parfor n=1:length(newrecordings)
 end
 
 %msg{1}='can''t find the configuration file for the following experiments and classifiers:';
-%for n=1:length(newrecordings)
+%for n=1:length(newexperiments)
 %  tmp=find(cellfun(@isempty,handlesbehaviors{n}));
 %  if(length(tmp)>0)
 %    msg{end+1}='';
-%    msg{end+1}=newrecordings{n};
+%    msg{end+1}=newexperiments{n};
 %    for i=1:length(tmp)
 %      msg{end+1}=handlesclassifiers{n}{tmp(i)};
 %    end
@@ -708,10 +729,10 @@ handles.sexdata={handles.sexdata{:} handlessexdata{:}};
 handles.individuals=[handles.individuals; handlesindividuals];
 
 tmp=length(handles.features);
-idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-length(newrecordings)) ...
-    ((tmp-length(newrecordings)+1) : tmp) ...
-    ((tmp-length(newrecordings)-sum(cellfun(@length,handles.experimentlist((handles.groupvalue+1):end)))+1) : ...
-        (tmp-length(newrecordings)))];
+idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-length(newexperiments)) ...
+    ((tmp-length(newexperiments)+1) : tmp) ...
+    ((tmp-length(newexperiments)-sum(cellfun(@length,handles.experimentlist((handles.groupvalue+1):end)))+1) : ...
+        (tmp-length(newexperiments)))];
 handles.features=handles.features(idx);
 handles.sexdata=handles.sexdata(idx);
 handles.individuals=handles.individuals(idx,:);
@@ -727,8 +748,9 @@ update_figure(handles);
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ExperimentDelete.
@@ -739,67 +761,25 @@ function ExperimentDelete_Callback(hObject, eventdata, handles)
 
 if(length(handles.experimentlist)==0)  return;  end
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 idx=handles.experimentvalue{handles.groupvalue};
 handles.experimentlist{handles.groupvalue}(idx)=[];
 handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
+
+idx=idx+sum(cellfun(@length,handles.experimentlist(1:(handles.groupvalue-1))));
+handles.features(idx)=[];
+handles.sexdata(idx)=[];
+handles.individuals(idx,:)=[];
+
 if(isempty(handles.experimentlist{handles.groupvalue}))
+  handles.colors=handles.colors(setdiff(1:size(handles.colors,1),handles.groupvalue),:);
   handles.experimentlist(handles.groupvalue)=[];
   handles.experimentvalue(handles.groupvalue)=[];
   handles.grouplist(handles.groupvalue)=[];
   handles.groupvalue=max(1,min([handles.groupvalue length(handles.grouplist)]));
 end
-%  if(isempty(handles.grouplist))
-%    set(handles.GroupList,'enable','off');
-%    set(handles.ExperimentAdd,'enable','off');
-%    set(handles.ExperimentDelete,'enable','off');
-%    set(handles.ExperimentMove,'enable','off');
-%  end
-%  if(sum(cellfun(@length,handles.experimentlist(:)))==0)
-%    set(handles.BehaviorList,'enable','off');
-%    set(handles.BehaviorLogic,'enable','off');
-%    set(handles.BehaviorList2,'enable','off');
-%    set(handles.FeatureList,'enable','off');
-%    set(handles.IndividualList,'enable','off');
-%  end
-%end
-%if(isempty(handles.experimentlist))
-%  set(handles.ExperimentList,'String',{''},'Value',1);
-%  set(handles.GroupList,'String',{''},'Value',1);
-%else
-%  set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue},...
-%      'Value',handles.experimentvalue{handles.groupvalue});
-%  tmp=length(handles.grouplist);
-%  cellstr(strcat(repmat('<html><font color="',tmp,1),...
-%      {handles.colors{2,1+mod(0:length(handles.grouplist)-1,length(handles.colors))}}',...
-%      repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
-%  set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
-%end
-
-idx=idx+sum(cellfun(@length,handles.experimentlist(1:(handles.groupvalue-1))));
-
-%handles.behaviors(idx)=[];
-%handles.behaviorlist=unique([handles.behaviors{:}]);
-%handles.behaviorvalue=max(1,min(handles.behaviorvalue,length(handles.behaviorlist)));
-%handles.behaviorvalue2=max(1,min(handles.behaviorvalue2,length(handles.behaviorlist)));
-%if(isempty(handles.behaviorlist))
-%  handles.behaviorlist={''};
-%end
-%set(handles.BehaviorList,'String',handles.behaviorlist,'Value',handles.behaviorvalue);
-%set(handles.BehaviorList2,'String',handles.behaviorlist,'Value',handles.behaviorvalue2);
-
-%handles.featurelist=unique([handles.features{:}]);
-%handles.featurevalue=max(1,min(handles.featurevalue,length(handles.featurelist)));
-%if(isempty(handles.featurelist))
-%  handles.featurelist={''};
-%end
-%set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
-
-handles.features(idx)=[];
-handles.sexdata(idx)=[];
-handles.individuals(idx,:)=[];
 
 handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 handles=fillin_individuallist(handles);
@@ -811,8 +791,9 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ExperimentMove.
@@ -828,8 +809,8 @@ if(isempty(handles.experimentlist{handles.groupvalue}))  return;  end
 if(~ok)  return;  end
 if(to_group>=handles.groupvalue)  to_group=to_group+1;  end
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 from_group=handles.groupvalue;
 idx=handles.experimentvalue{from_group};
@@ -847,7 +828,7 @@ handles.experimentvalue{from_group}=1:length(handles.experimentlist{from_group})
 %  set(handles.ExperimentList,'String',handles.experimentlist{from_group});
 %  set(handles.ExperimentList,'Value',handles.experimentvalue{from_group});
 %end
-if(idxF(1)<idxT)  idxT=idxT-length(idxF);  end
+if(idxF(1)<=idxT)  idxT=idxT-length(idxF);  end
 tmp=setdiff(1:length(handles.features),idxF);
 tmp=[tmp(1:idxT) idxF tmp((idxT+1):end)];
 %handles.behaviors=handles.behaviors(tmp);
@@ -864,8 +845,9 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on selection change in GroupList.
@@ -880,6 +862,7 @@ function GroupList_Callback(hObject, eventdata, handles)
 handles.groupvalue=get(handles.GroupList,'Value');
 set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue},...
     'Value',handles.experimentvalue{handles.groupvalue});
+update_figure(handles);
 guidata(hObject,handles);
 
 
@@ -902,27 +885,27 @@ function GroupNew_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%char(inputdlg({'Name:'},'Create new experiment group'));
-%handles.grouplist{end+1}=['<html><font color="' ...
-%    handles.colors{2,1+mod(length(handles.grouplist),length(handles.colors))} '">' ans '</font></html>'];
-;
 inputdlg({'Name:'},'Create new experiment group');
 if(isempty(ans))  return;  end
+defaultcolors=[1 0 0;  0 0.5 0;  0 0 1;  0 1 1;  1 0 1;  0.749 0.749 0;  0 0 0];
+handles.colors(end+1,:)=uisetcolor(defaultcolors(1+mod(length(handles.grouplist),size(defaultcolors,1)),:));
 handles.grouplist{end+1}=char(ans);
 handles.groupvalue=length(handles.grouplist);
 handles.experimentlist{handles.groupvalue}={};
 handles.experimentvalue{handles.groupvalue}=[];
-tmp=length(handles.grouplist);
-cellstr(strcat(repmat('<html><font color="',tmp,1),...
-    {handles.colors{2,1+mod(0:length(handles.grouplist)-1,length(handles.colors))}}',...
-    repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
-set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
-set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue},...
-    'Value',handles.experimentvalue{handles.groupvalue});
-set(handles.GroupList,'enable','on');
-set(handles.ExperimentAdd,'enable','on');
-set(handles.ExperimentDelete,'enable','on');
-set(handles.ExperimentMove,'enable','on');
+%tmp=length(handles.grouplist);
+%    {handles.colors{2,1+mod(0:length(handles.grouplist)-1,length(handles.colors))}}',...
+%cellstr(strcat(repmat('<html><font color="',tmp,1),...
+%    reshape(dec2hex(round(handles.colors'*255),2)',6,size(handles.colors,1))',...
+%    repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
+%set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
+%set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue},...
+%    'Value',handles.experimentvalue{handles.groupvalue});
+%set(handles.GroupList,'enable','on');
+%set(handles.ExperimentAdd,'enable','on');
+%set(handles.ExperimentDelete,'enable','on');
+%set(handles.ExperimentMove,'enable','on');
+update_figure(handles);
 guidata(hObject,handles);
 
 
@@ -941,8 +924,8 @@ if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
 if(~iscell(newclassifiers))  newclassifiers={newclassifiers};  end
 newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 handlesconfigurations=cell(1,length(newclassifiers));
 handlesbehaviorlist=cell(1,length(newclassifiers));
@@ -953,7 +936,12 @@ for c=1:length(newclassifiers)
   params=[];  params.behaviors.names='';
   try
     handlesconfigurations{c}=classifier.configfilename;
-    params=ReadXMLParams(handlesconfigurations{c});
+    [~,~,ext] = fileparts(classifier.configfilename);
+    if strcmpi(ext,'.xml');
+      params=ReadXMLParams(handlesconfigurations{c});
+    else
+      params = load(handlesconfigurations{c});
+    end
   catch
     fullfile(directory,classifier.configfilename);
     if(exist(ans,'file'))
@@ -976,7 +964,11 @@ for c=1:length(newclassifiers)
       end
     end
   end
-  handlesbehaviorlist{c}=params.behaviors.names;
+  if iscell(params.behaviors.names),
+    handlesbehaviorlist{c} = params.behaviors.names{1};
+  else
+    handlesbehaviorlist{c}=params.behaviors.names;
+  end
   handlesscorefiles{c}=params.file.scorefilename;
 
   ee=0;  behavior_data=[];  parfor_tmp=zeros(sum(cellfun(@length,handles.experimentlist)),1);
@@ -1016,8 +1008,9 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ClassifierDelete.
@@ -1026,8 +1019,8 @@ function ClassifierDelete_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 idx=handles.classifiervalue;
 handles.classifierlist(idx)=[];
@@ -1045,8 +1038,94 @@ handles.interestingfeaturetimeseries_cache=[];
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
+
+
+% --- Executes on button press in ClassifierCheck.
+function ClassifierCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to ClassifierCheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
+
+handlesexperimentlist=[handles.experimentlist{:}];
+
+table=cell(length(handlesexperimentlist),length(handles.scorefiles));
+
+parfor ge=1:length(handlesexperimentlist)
+%for ge=1:length(handlesexperimentlist)
+  behavior_data=[];
+  parfor_tmp=cell(1,length(handles.scorefiles));
+  for c=1:length(handles.classifierlist)
+    classifier=load(handles.classifierlist{c});
+    try
+      behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{c}));
+    catch
+      parfor_tmp{c}='missing';
+      continue;
+    end
+    if (classifier.classifierTS ~= behavior_data.timestamp)
+      parfor_tmp{c}=[datestr(classifier.classifierTS) ' ~= ' datestr(behavior_data.timestamp)];
+    else
+      parfor_tmp{c}='up-to-date';
+    end
+  end
+  table(ge,:)=parfor_tmp;
+  tmp=dir(fullfile(handlesexperimentlist{ge},'*.mat'));
+  extrascorefiles=setdiff({tmp.name},handles.scorefiles);
+  table2{ge}={};
+  for s=1:length(extrascorefiles)
+    tmp=load(fullfile(handlesexperimentlist{ge},extrascorefiles{s}));
+    if(~isfield(tmp,'classifierfilename'))
+      continue;
+    end
+    table2{ge}{end+1}=extrascorefiles{s};
+  end
+end
+
+[~,tmp,~]=cellfun(@(x) fileparts(x),handlesexperimentlist,'uniformoutput',false);
+table=[tmp' table];
+[~,tmp,~]=cellfun(@(x) fileparts(x),handles.classifierlist,'uniformoutput',false);
+table=[{'' tmp{:}}; table];
+
+tmp=unique([table2{:}]);
+if(length(tmp)>0)
+  table{1,end+1}='   ';
+  table(1,(end+1):(end+length(tmp)))=tmp;
+end
+for i=1:length(table2)
+  for j=1:length(table2{i})
+    idx=find(cellfun(@(x) strcmp(x,table2{i}{j}),table(1,:)));
+    table{i+1,idx}='extra';
+  end
+end
+
+if(length(handles.experimentlist)>1)
+  %tmp=zeros(1,length(handles.experimentlist)+length([handles.experimentlist{:}]));
+  tmp=zeros(1,1+length([handles.experimentlist{:}]));
+  cumsum(cellfun(@length,handles.experimentlist));
+  tmp(2+ans(1:end-1))=1;
+  cumsum(tmp);
+  %tmp=ans+(1:(-1+length(handles.experimentlist)+length([handles.experimentlist{:}])));
+  tmp=ans+(1:(1+length([handles.experimentlist{:}])));
+  tmp2(tmp,:)=[table(:,:)];
+  table=tmp2;
+end
+
+set(handles.Table,'Data',table);
+6*max(cellfun(@length,table),[],1);
+set(handles.Table,'ColumnWidth',mat2cell(ans,1,ones(1,length(ans))));
+%set(handles.Table,'ColumnWidth','auto');
+set(handles.Table,'ColumnName',{''});
+set(handles.Table,'RowName',{});
+
+set(handles.Status,'string','Ready.','foregroundcolor','g');
+set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on button press in ClassifierClassify.
@@ -1055,8 +1134,8 @@ function ClassifierClassify_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 %h=waitbar(0,'This will likely take awhile...',...
 %    'CreateCancelBtn','fid=fopen(fullfile(tempdir,''cancel.txt''),''w''); fclose(fid);');
@@ -1093,10 +1172,13 @@ delete(fullfile(tempdir,'progressbar.txt'));
 handles=update_experiment_data(handles,false,false,true);
 update_figure(handles);
 
+handles.interestingfeaturehistograms_cache=[];
+
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- Executes on selection change in ClassifierList.
@@ -1181,7 +1263,7 @@ fprintf(fid,['%% type=' type '\n%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel
 
 
 % ---
-function plot_it(xdata,ydata,style,centraltendency,dispersion,color,linewidth,fid,experimentlist)
+function h=plot_it(xdata,ydata,style,centraltendency,dispersion,color,linewidth,fid,experimentlist)
 
 fprintf(fid,'%% xdata\n');  fprintf(fid,'%g, ',xdata);  fprintf(fid,'\n');
 if(style~=3)
@@ -1199,7 +1281,7 @@ if(style~=3)
 end
 switch(style)
   case 1
-    plot(xdata,data_ct,color,'linewidth',linewidth);
+    h=plot(xdata,data_ct,'color',color,'linewidth',linewidth);
     fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
   case 2
     switch(dispersion)
@@ -1229,15 +1311,14 @@ switch(style)
     %plot(xdata,data_dp,color,'linewidth',linewidth);
     %plot(xdata,data_dn,color,'linewidth',linewidth);
     %plot(xdata,data_ct,color,'linewidth',3*linewidth);
-    h=plot(xdata,data_ct,color,'linewidth',3*linewidth);
+    h=plot(xdata,data_ct,'color',color,'linewidth',3*linewidth);
     idx=isnan(data_dp) | isnan(data_dn);
     xdata=xdata(~idx);  data_dp=data_dp(~idx);  data_dn=data_dn(~idx);
     color2=(get(h,'color')+[4 4 4])/5;
     k=1;  m=0;  step=10000;
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
-      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],...
-            color2,'edgecolor','none');
+      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none');
       k=k+step+1;  m=m+1;
     end
     get(gca,'children');  set(gca,'children',circshift(ans,-m));  % send to back
@@ -1246,7 +1327,8 @@ switch(style)
     fprintf(fid,['%% ydata, ' str_dn '\n']);  fprintf(fid,'%g, ',data_dn);  fprintf(fid,'\n');
     fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
   case 3
-    plot(xdata,ydata',color,'linewidth',linewidth);
+    h=plot(xdata,ydata','color',color,'linewidth',linewidth);
+    h=h(1);
     for e=1:size(ydata,1)
       fprintf(fid,['%% ydata, exp ' experimentlist{e} '\n']);
       fprintf(fid,'%g, ',ydata(e,:));  fprintf(fid,'\n');
@@ -1357,7 +1439,7 @@ not_during=[not_during{:}];
 % ---
 %function [table_data feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
 %function [feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
-function plot_feature_histogram(experiment_value,experiment_list,...
+function h=plot_feature_histogram(experiment_value,experiment_list,...
     score_file,behavior_logic,score_file2,...
     feature_value,feature_list,individual,sexdata,perwhat,style,notduring,logbinsize,nbins,...
     centraltendency,dispersion,color,fid)
@@ -1459,7 +1541,7 @@ if(size(hist_during,1)==1)  hist_during=hist_during';  end
 hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
 hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
 linewidth=1;  if(notduring)  linewidth=2;  end
-plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
+h=plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
     fid,experiment_list(experiment_value));
 
 
@@ -1469,8 +1551,8 @@ function FeatureHistogram_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -1487,13 +1569,17 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='feature histogram';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
-handles.type='feature histogram';
-
+h=[];
 for b=bb
 
   %xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
@@ -1526,19 +1612,20 @@ for b=bb
   for g=gg
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
 
     if(isempty(experimentvalue{g}))  continue;  end
 
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
+    h(g)=plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
         handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
         handles.featurevalue,handles.featurelist,individual,...
         handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
         handles.featurehistogram_perwhat,handles.featurehistogram_style,...
         handles.featurehistogram_notduring,handles.featurehistogram_logbinsize,handles.featurehistogram_nbins,...
         handles.prefs_centraltendency,handles.prefs_dispersion,...
-        handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+        handles.colors(g,:),fid);
+        %handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
   end
 
   title(tstr);
@@ -1547,11 +1634,14 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+idx=find(h>0);
+legend(h(idx),handles.grouplist(gg));
 
 fclose(fid);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 %guidata(hObject,handles);
 
@@ -1572,13 +1662,13 @@ function InterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 if(isempty(handles.interestingfeaturehistograms_cache))
   table_data={};
-  bad={};
-  gg=find(cellfun(@isempty,handles.grouplist)==0);
+
+  handlesexperimentlist=[handles.experimentlist{:}];
 
   h=waitbar(0,'This will likely take awhile...',...
       'CreateCancelBtn','fid=fopen(fullfile(tempdir,''cancel.txt''),''w''); fclose(fid);');
@@ -1588,59 +1678,50 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   t = timer('TimerFcn',{@progress_bar,h}, 'Period', 3, 'ExecutionMode', 'fixedRate');
   start(t);
 
-  for g=gg
-    set(handles.Status,'string',...
-        ['Processing ' num2str(length(handles.experimentvalue{gg(g)})) ' experiment(s) in group ' handles.grouplist{gg(g)}]);
-    drawnow;
-    experiment_value=handles.experimentvalue{gg(g)};
-    experiment_list=handles.experimentlist{gg(g)};
-    parfor_tmp2=zeros(length(handles.behaviorlist),length(handles.featurelist),8);
-    bad2={};
-    %parfor b=1:length(handles.behaviorlist)
-    for b=1:length(handles.behaviorlist)
-      % KB: skip the All behavior
-      if strcmp(handles.behaviorlist{b},'All'),
-        continue;
-      end
-      behavior_data={};
-      for e=1:length(experiment_value)
-        behavior_data{e}=load(fullfile(experiment_list{experiment_value(e)},handles.scorefiles{b}));
-      end
-      k=1;  bad2{b}={};
-      parfor_tmp=zeros(length(handles.featurelist),8);
-      for f=1:length(handles.featurelist)
-        if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
-        during={};  not_during={};
-        for e=1:length(experiment_value)
-          if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
-          feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
-              [handles.featurelist{f} '.mat']));
+  nexperiments=length(handlesexperimentlist);
+  nbehaviors=length(handles.behaviorlist)-1;
+  nfeatures=length(handles.featurelist);
 
-          if(length(behavior_data{e}.allScores.scores)~=length(feature_data.data))
-            [~,foo,~]=fileparts(experiment_list{experiment_value(e)});
-            bad2{b}{end+1}=[foo ', ' handles.behaviorlist{b} ', ' handles.featurelist{f}];
-            continue;
-          end
-
-          sexdata={};
-          for i=1:length(feature_data.data)
-            sexdata{i}=ones(1,length(feature_data.data{i}));
-          end
-          [during{e} not_during{e}]=calculate_feature_histogram(behavior_data{e},1,[],...
-              feature_data,sexdata,nan,handles.featurehistogram_perwhat);
-        end
-        during=[during{:}];
-        not_during=[not_during{:}];
-        %parfor_tmp(k,:)=[b f (mean(during)-mean(not_during))/sqrt((std(during)^2+std(not_during)^2)/2)];
-        parfor_tmp(k,:)=[b f mean(during) mean(not_during) std(during) std(not_during) length(during) length(not_during)];
-        k=k+1;
-      end
-      parfor_tmp2(b,:,:)=parfor_tmp;
-      fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
+tic
+  %bad={};
+  table_data=zeros(nexperiments,nbehaviors,nfeatures,6);
+  parfor ge=1:nexperiments
+  %for ge=1:nexperiments
+    behavior_data={};
+    for b=1:nbehaviors
+      behavior_data{b}=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
     end
-    bad=[bad [bad2{:}]];
-    table_data{end+1}=reshape(parfor_tmp2,prod(size(parfor_tmp2))/8,8);
+    bad{ge}={};
+    parfor_tmp=zeros(nbehaviors,nfeatures,6);
+    for f=1:nfeatures
+      if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+      feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
+          [handles.featurelist{f} '.mat']));
+      sexdata={};
+      for s=1:length(feature_data.data)
+        sexdata{s}=ones(1,length(feature_data.data{s}));
+      end
+      for b=1:nbehaviors
+        if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
+
+%        if(length(behavior_data{b}.allScores.scores)~=length(feature_data.data))
+%          [~,foo,~]=fileparts(handlesexperimentlist{ge});
+%          bad{ge}{end+1}=[foo ', ' handles.behaviorlist{b} ', ' handles.featurelist{f}];
+%          continue;
+%        end
+
+        [during not_during]=calculate_feature_histogram(behavior_data{b},1,[],...
+            feature_data,sexdata,nan,handles.featurehistogram_perwhat);
+        parfor_tmp(b,f,:)=[mean(during) mean(not_during) ...
+            std(during) std(not_during) length(during) length(not_during)];
+      end
+    end
+    table_data(ge,:,:,:)=parfor_tmp;
+    fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
   end
+toc
+%  bad=[bad{:}];
+%  table_data{end+1}=reshape(parfor_tmp2,prod(size(parfor_tmp2))/8,8);
 
   stop(t);
   delete(t);
@@ -1649,61 +1730,94 @@ if(isempty(handles.interestingfeaturehistograms_cache))
 
   if(exist(fullfile(tempdir,'cancel.txt')))
     delete(fullfile(tempdir,'cancel.txt'));
-    set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
     set(handles.figure1,'pointer','arrow');
+    drawnow;
     return;
   end
 
-  if(~isempty(bad))
-    msg{1}=['the following experiments had different numbers of individuals ' ...
-        'for the indicated behavior and feature.  they will be ommitted from the analysis.'];
-    msg{2}='';
-    tmp=length(bad);
-    if(tmp>20)
-      bad=bad(1:20);
-      bad{end+1}='';
-      bad{end+1}=['plus another ' num2str(tmp) ' combinations'];
-    end
-    uiwait(errordlg({msg{:} bad{:}}));
-  end
+%  if(~isempty(bad))
+%    msg{1}=['the following experiments had different numbers of individuals ' ...
+%        'for the indicated behavior and feature.  they will be ommitted from the analysis.'];
+%    msg{2}='';
+%    tmp=length(bad);
+%    if(tmp>20)
+%      bad=bad(1:20);
+%      bad{end+1}='';
+%      bad{end+1}=['plus another ' num2str(tmp) ' combinations'];
+%    end
+%    uiwait(errordlg({msg{:} bad{:}}));
+%  end
 
   tmp2=[];
-  for g=gg
-    tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) nan(size(table_data{gg(g)},1),1) table_data{gg(g)}(:,1:2) ...
-        (table_data{gg(g)}(:,3)-table_data{gg(g)}(:,4))./sqrt(table_data{gg(g)}(:,5).^2+table_data{gg(g)}(:,6).^2)...
-        table_data{gg(g)}(:,7) table_data{gg(g)}(:,8)];
+  %for g=gg
+  cum_grp_siz=[0 cumsum(cellfun(@length,handles.experimentlist))];
+  for g=1:length(handles.grouplist)
+    gg=cum_grp_siz(g)+(1:length(handles.experimentlist{g}));
+    tmp2=[tmp2; ...
+        repmat(g,nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
+        nan(nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,6))),nbehaviors*nfeatures,1) ...
+        reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
+        reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
+        reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,2)))./ ...
+          sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg,:,:,4).^2))/2))', ...
+          nbehaviors*nfeatures,1)];
+
+%    tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) nan(size(table_data{gg(g)},1),1) ...
+%        table_data{gg(g)}(:,1:2) ...
+%        (table_data{gg(g)}(:,3)-table_data{gg(g)}(:,4))./...
+%          sqrt(table_data{gg(g)}(:,5).^2+table_data{gg(g)}(:,6).^2)...
+%        table_data{gg(g)}(:,7) table_data{gg(g)}(:,8)];
     if(g==length(handles.grouplist))  break;  end
     for g2=(g+1):length(handles.grouplist)
-      tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) repmat(g2,size(table_data{gg(g)},1),1) table_data{gg(g)}(:,1:2) ...
-          (table_data{g2}(:,3)-table_data{gg(g)}(:,3))./sqrt(table_data{g2}(:,5).^2+table_data{gg(g)}(:,5).^2)...
-          table_data{gg(g)}(:,7) table_data{g2}(:,7)];
+      gg2=cum_grp_siz(g2)+(1:length(handles.experimentlist{g2}));
+      tmp2=[tmp2; ...
+          repmat(g,nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
+          repmat(g2,nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg2,:,:,5))),nbehaviors*nfeatures,1) ...
+          reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
+          reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
+          reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
+            sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg2,:,:,3).^2))/2))', ...
+            nbehaviors*nfeatures,1)];
+
+%      tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) repmat(g2,size(table_data{gg(g)},1),1) ...
+%          table_data{gg(g)}(:,1:2) ...
+%          (table_data{g2}(:,3)-table_data{gg(g)}(:,3))./...
+%            sqrt(table_data{g2}(:,5).^2+table_data{gg(g)}(:,5).^2)...
+%          table_data{gg(g)}(:,7) table_data{g2}(:,7)];
     end
   end
-  if(handles.interestingfeaturehistograms_omitnan)
-    idx=find(~isnan(tmp2(:,5)));
-    tmp2=tmp2(idx,:);
-  end
-  if(handles.interestingfeaturehistograms_omitinf)
-    idx=find(~isinf(tmp2(:,5)));
-    tmp2=tmp2(idx,:);
-  end
-  tmp2=sortrows(tmp2,-5);
-
   handles.interestingfeaturehistograms_cache=tmp2;
 else
   tmp2=handles.interestingfeaturehistograms_cache;
 end
 
-tmp=cell(size(tmp2,1),5);
+if(handles.interestingfeaturehistograms_omitnan)
+  idx=find(~isnan(tmp2(:,7)));
+  tmp2=tmp2(idx,:);
+end
+if(handles.interestingfeaturehistograms_omitinf)
+  idx=find(~isinf(tmp2(:,7)));
+  tmp2=tmp2(idx,:);
+end
+if(handles.interestingfeaturehistograms_absdprime)
+  tmp2(:,7)=abs(tmp2(:,7));
+end
+tmp2=sortrows(tmp2,-7);
+
+tmp=cell(size(tmp2,1),7);
 tmp(:,1)=handles.grouplist(tmp2(:,1));
-%tmp(:,2)=num2cell(tmp2(:,6));
-tmp(:,2)=cellstr(num2str(tmp2(:,6),'%-d'));
-idx=~isnan(tmp2(:,2));
-tmp(idx,3)=handles.grouplist(tmp2(idx,2));
-tmp(:,4)=cellstr(num2str(tmp2(:,7),'%-d'));
-tmp(:,5)=handles.behaviorlist(tmp2(:,3));
-tmp(:,6)=handles.featurelist(tmp2(:,4));
-tmp(:,7)=num2cell(tmp2(:,5));
+tmp(:,2)=cellstr(num2str(tmp2(:,2),'%-d'));
+idx=~isnan(tmp2(:,3));
+tmp(idx,3)=handles.grouplist(tmp2(idx,3));
+tmp(:,4)=cellstr(num2str(tmp2(:,4),'%-d'));
+tmp(:,5)=handles.behaviorlist(tmp2(:,5));
+tmp(:,6)=handles.featurelist(tmp2(:,6));
+tmp(:,7)=num2cell(tmp2(:,7));
 set(handles.Table,'Data',tmp);
 set(handles.Table,'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd'''});
 set(handles.Table,'ColumnWidth',{75 50 75 50 150 100 75});
@@ -1713,8 +1827,9 @@ handles.table_data=tmp2;
 handles.table='histogram';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
@@ -1797,7 +1912,7 @@ end
 
 
 %---
-function plot_feature_timeseries(experiment_value,experiment_list,...
+function h=plot_feature_timeseries(experiment_value,experiment_list,...
     score_file,behavior_logic,score_file2,feature_value,feature_list,...
     individual,sexdata,timing,style,centraltendency,dispersion,convolutionwidth,subtractmean,windowradius,...
     color,fid)
@@ -1865,7 +1980,7 @@ else
   xdata=-windowradius:windowradius;
 end
 
-plot_it(xdata,ydata,style,centraltendency,dispersion,color,1,fid,experiment_list(experiment_value));
+h=plot_it(xdata,ydata,style,centraltendency,dispersion,color,1,fid,experiment_list(experiment_value));
 
 
 % --- Executes on button press in FeatureTimeSeries.
@@ -1874,8 +1989,8 @@ function FeatureTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -1892,14 +2007,18 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='feature time series';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(handles.featuretimeseries_timing==1)  bb=1;  end
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
-handles.type='feature time series';
-
+h=[];
 for b=bb
 
   xstr='time (frames)';
@@ -1935,17 +2054,18 @@ for b=bb
   for g=gg
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(experimentvalue{g}))
       fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-      plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
+      h(g)=plot_feature_timeseries(experimentvalue{g},handles.experimentlist{g},...
           handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
           handles.featurevalue,handles.featurelist,individual,...
           handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
           handles.featuretimeseries_timing,handles.featuretimeseries_style,...
           handles.prefs_centraltendency,handles.prefs_dispersion,handles.prefs_convolutionwidth,...
-          handles.featuretimeseries_subtractmean,handles.timeseries_windowradius,...
-          handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+          handles.featuretimeseries_subtractmean,handles.featuretimeseries_windowradius,...
+          handles.colors(g,:),fid);
+          %handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
     end
   end
 
@@ -1955,11 +2075,14 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+idx=find(h>0);
+legend(h(idx),handles.grouplist(gg));
 
 fclose(fid);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % ---
@@ -2001,8 +2124,8 @@ function InterestingTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user experiment (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2011,7 +2134,7 @@ experiment_list2=get(handles.ExperimentList2,'String');
 behavior_list=get(handles.BehaviorList,'String');
 feature_list=get(handles.FeatureList,'String');
 statistic=handles.prefsstat;
-windowradius=handles.timeseries_windowradius;
+windowradius=handles.featuretimeseries_windowradius;
 
 if(isempty(handles.interestingfeaturetimeseries_cache))
   if(length(experiment_value)>0)
@@ -2057,8 +2180,9 @@ handles.table_data=tmp2;
 handles.table='timeseries';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % ---
@@ -2109,6 +2233,46 @@ switch(dispersion)
     dp=prctile(data,75);
     dn=prctile(data,25);
 end
+
+
+% ---
+function [h,h2]=errorbarplot(x,b,dp,dn,color)
+
+h = bar(x,b,'grouped');
+set(h,'facecolor',color);
+fxdata = get(h, 'XData');
+fydata = get(h ,'YData');
+if(~iscell(fxdata)) xdata{1,1} = fxdata; else xdata = fxdata; end
+if(~iscell(fydata)) ydata{1,1} = fydata; else ydata = fydata; end
+
+% Determine number of bars
+sizz = size(b);
+nb = sizz(1)*sizz(2);
+xb = [];
+yb = [];
+for i = 1:length(xdata),
+    xb = [xb xdata{i,1}];
+    yb = [yb ydata{i,1}];
+end;
+
+%% To find the center of each bar - need to look at the output vectors xb, yb
+%% find where yb is non-zero - for each bar there is a pair of non-zero yb values.
+%% The center of these values is the middle of the bar
+%
+%nz = find(yb);
+%for i = 1:nb,
+%    center(i) = (xb(nz(i*2))-xb(nz((i*2)-1)))/2 + xb(nz((i*2)-1));
+%end;
+
+% To place the error bars - use the following:
+
+%errdata=[.1 .2; .3 .4; .5 .6];
+
+hold on;
+h2=errorbar(xb, b, dp, dn);
+set(h2(1),'linewidth',1);            % This changes the thickness of the errorbars
+set(h2(1),'color','k');              % This changes the color of the errorbars
+set(h2(1),'linestyle','none');       % This removes the connecting
 
 
 % ---
@@ -2207,8 +2371,8 @@ function BehaviorBarChart_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -2225,13 +2389,17 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='behavior bar chart';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
-handles.type='behavior bar chart';
-
+h=[];
 table_data={};
 for b=bb
 
@@ -2265,31 +2433,36 @@ for b=bb
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ...
         ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(handles.experimentvalue{g}))
       [frames_labelled frames_total]=calculate_behavior_barchart(...
           experimentvalue{g},handles.experimentlist{g},...
           handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
           individual,handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
           handles.behaviorbarchart_perwhat);
-      color=handles.colors{1,1+mod(gg(g)-1,length(handles.colors))};
+      %color=handles.colors{1,1+mod(gg(g)-1,length(handles.colors))};
+      color=handles.colors(gg(g),:);
       xticklabels{g}=handles.grouplist{g};
 
       switch(handles.behaviorbarchart_perwhat)
         case 1  % per group
           table_data{end}(g)=100*sum([frames_labelled{:}])./sum([frames_total{:}]);
-          bar(g,table_data{end}(g),color);
+          %bar(g,table_data{end}(g),color);
+          h(g)=bar(g,table_data{end}(g));
+          set(h(g),'facecolor',color);
         case 2  % per experiment, error bars
           table_data{end}{g}=100*cellfun(@sum,frames_labelled)./cellfun(@sum,frames_total);
           [ct{g},dp{g},dn{g}]=...
               calculate_ct_d(table_data{end}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
-          errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},color);
+          h(g)=errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},color);
         case 3  % per fly, grouped
             cumsum(cellfun(@length,frames_labelled))';
             exp_separators=[exp_separators; ans+sum(k)];
             table_data{end}{g}=100.*[frames_labelled{:}]./[frames_total{:}];
             maxy=max([maxy table_data{end}{g}]);
-            bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},color,'barwidth',1,'edgecolor','none');
+            h(g)=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
+                'barwidth',1,'edgecolor','none');
+            set(h(g),'facecolor',color);
             k(end+1)=length(table_data{end}{g});
             fprintf(fid,['%% data, %s\n'],xticklabels{g});
             fprintf(fid,'%g, ',[table_data{end}{g}]);
@@ -2298,15 +2471,17 @@ for b=bb
             table_data{end}{g}=cell(1,length(frames_labelled));
             for e=1:length(frames_labelled)
               table_data{end}{g}{e}=100.*frames_labelled{e}./frames_total{e};
-              [ct,dp,dn]=calculate_ct_d(table_data{end}{g}{e},handles.prefs_centraltendency,handles.prefs_dispersion);
-              plot(m,ct,[color 'o']);
-              plot([m m],[dp dn],[color '-']);
-              plot(m+(1:length(table_data{end}{g}{e})),table_data{end}{g}{e},[color '.']);
+              [ct,dp,dn]=calculate_ct_d(table_data{end}{g}{e},...
+                  handles.prefs_centraltendency,handles.prefs_dispersion);
+              h(g)=plot(m,ct,'o','color',color);
+              plot([m m],[dp dn],'-','color',color);
+              plot(m+(1:length(table_data{end}{g}{e})),table_data{end}{g}{e},'.','color',color);
               m=m+16+length(table_data{end}{g}{e});
             end
-            [ct,dp,dn]=calculate_ct_d([table_data{end}{g}{:}],handles.prefs_centraltendency,handles.prefs_dispersion);
-            plot(m,ct,[color 'o'],'markersize',9);
-            plot([m m],[dp dn],[color '-'],'linewidth',3);
+            [ct,dp,dn]=calculate_ct_d([table_data{end}{g}{:}],...
+                handles.prefs_centraltendency,handles.prefs_dispersion);
+            plot(m,ct,'o','color',color,'markersize',9);
+            plot([m m],[dp dn],'-','color',color,'linewidth',3);
             m=m+24;
             k(end+1)=24+16*length(table_data{end}{g})+length([table_data{end}{g}{:}]);
             fprintf(fid,['%% data, %s\n'],xticklabels{g});
@@ -2329,9 +2504,9 @@ for b=bb
     case 3  % per fly, grouped
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
-      h=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
+      hh=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
           [0.95 0.95 0.95]);
-      set(h,'edgecolor','none');
+      set(hh,'edgecolor','none');
       set(gca,'children',flipud(get(gca,'children')));
       k=round(cumsum(k)-k/2);
     case 4  % per fly, stern-style
@@ -2352,6 +2527,8 @@ for b=bb
   fprintf(fid,'\n');
 
 end
+idx=find(h>0);
+legend(h(idx),handles.grouplist(gg));
 
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
   tmp={'behavior'};
@@ -2402,12 +2579,13 @@ fclose(fid);
 
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % ---
-function plot_behavior_timeseries(experiment_value,experiment_list,...
+function h=plot_behavior_timeseries(experiment_value,experiment_list,...
     score_file,behavior_logic,score_file2,individual,sexdata,...
     style,centraltendency,dispersion,convolutionwidth,color,fid)
 
@@ -2485,7 +2663,7 @@ end
 %  uiwait(errordlg(msg));
 %end
 
-plot_it(1:size(behavior_cumulative,2),100.*behavior_cumulative,style,centraltendency,dispersion,color,1,...
+h=plot_it(1:size(behavior_cumulative,2),100.*behavior_cumulative,style,centraltendency,dispersion,color,1,...
     fid,experiment_list(experiment_value));
 
 
@@ -2496,8 +2674,8 @@ function BehaviorTimeSeries_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
@@ -2514,13 +2692,17 @@ end
 
 fid=fopen('most_recent_figure.csv','w');
 
-guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+handles.type='behavior time series';
+
+%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
+h=figure('toolbar','figure');  hold on;
+guidata(h,handles);
+uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
-handles.type='behavior time series';
-
+h=[];
 for b=bb
 
   tstr='';
@@ -2553,14 +2735,15 @@ for b=bb
     set(handles.Status,'string',...
         ['Processing ' num2str(length(handles.experimentvalue{g})) ...
         ' experiment(s) in group ' handles.grouplist{g}]);
-    drawnow;
+    %drawnow;
     if(~isempty(handles.experimentvalue{g}))
       fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-      plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
+      h(g)=plot_behavior_timeseries(experimentvalue{g},handles.experimentlist{g},...
           handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
           individual,handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
           handles.behaviortimeseries_style,handles.prefs_centraltendency,handles.prefs_dispersion,...
-          handles.prefs_convolutionwidth,handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+          handles.prefs_convolutionwidth,handles.colors(g,:),fid);
+%          handles.prefs_convolutionwidth,handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
     end
   end
 
@@ -2569,11 +2752,14 @@ for b=bb
   axis tight;  zoom reset;
 
 end
+idx=find(h>0);
+legend(h(idx),handles.grouplist(gg));
 
 fclose(fid);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
@@ -2694,8 +2880,8 @@ function BoutStats_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2756,8 +2942,9 @@ set(handles.Table,'ColumnWidth',{150 75 75});
 handles.table='bout_stats';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
@@ -2894,8 +3081,8 @@ function SocialStats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-set(handles.Status,'string','Thinking...','foregroundcolor','b');  drawnow;
-set(handles.figure1,'pointer','watch');
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');  drawnow;
 
 experiment_value=get(handles.ExperimentList,'Value');
 experiment_list=get(handles.ExperimentList,'String');
@@ -2969,8 +3156,9 @@ set(handles.Table,'ColumnWidth',{100 75 100});
 handles.table='social_stats';
 guidata(hObject,handles);
 
-set(handles.Status,'string','Ready.','foregroundcolor','g');  drawnow;
+set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --- 
@@ -3066,68 +3254,115 @@ elseif(strcmp(handles.table,'social_stats'))
     else
       color='b';
     end
-    %handles.individualvalue=floor(eventdata.Indices(r,2)/2);
-    %if(((color=='r') && ...
-    %    (handles.individualvalue>(3+sum(handles.individuals(1:length(handles.experimentlist)))))) || ...
-    %   ((color=='b') && ...
-    %    (handles.individualvalue>(3+sum(handles.individuals((end-length(handles.experimentlist2)+1):end))))))
-    %  return;
-    %end
-    %if((color=='b') && (handles.individualvalue>3))
-    %  handles.individualvalue=handles.individualvalue+sum(handles.individuals(1:length(handles.experimentlist)));
-    %end
-    %set(handles.IndividualList,'Value',handles.individualvalue);
+%    %handles.individualvalue=floor(eventdata.Indices(r,2)/2);
+%    %if(((color=='r') && ...
+%    %    (handles.individualvalue>(3+sum(handles.individuals(1:length(handles.experimentlist)))))) || ...
+%    %   ((color=='b') && ...
+%    %    (handles.individualvalue>(3+sum(handles.individuals((end-length(handles.experimentlist2)+1):end))))))
+%    %  return;
+%    %end
+%    %if((color=='b') && (handles.individualvalue>3))
+%    %  handles.individualvalue=handles.individualvalue+sum(handles.individuals(1:length(handles.experimentlist)));
+%    %end
+%    %set(handles.IndividualList,'Value',handles.individualvalue);
 
     data=handles.raw_table_data{eventdata.Indices(end,1),eventdata.Indices(end,2)};
     tmp=unique(handles.raw_table_data{eventdata.Indices(end,1),2});
     hist(data,min(tmp):max(tmp));
-    %plot(x,n./sum(n),[color '-']);
+%    %plot(x,n./sum(n),[color '-']);
 
-    %tmp{r,1}=sprintf('%10.3g ',mean(data));
-    %tmp{r,2}=sprintf('%10.3g ',std(data));
-    %tmp{r,3}=sprintf('%10.3g ',std(data)./sqrt(length(data)));
-    %tmp{r,4}=sprintf('%10.3g ',median(data));
-    %tmp{r,5}=sprintf('%10.3g ',prctile(data,25));
-    %tmp{r,6}=sprintf('%10.3g ',prctile(data,75));
-    %tmp{r,7}=sprintf('%10.3g ',prctile(data,5));
-    %tmp{r,8}=sprintf('%10.3g ',prctile(data,95));
-  %end
+%    %tmp{r,1}=sprintf('%10.3g ',mean(data));
+%    %tmp{r,2}=sprintf('%10.3g ',std(data));
+%    %tmp{r,3}=sprintf('%10.3g ',std(data)./sqrt(length(data)));
+%    %tmp{r,4}=sprintf('%10.3g ',median(data));
+%    %tmp{r,5}=sprintf('%10.3g ',prctile(data,25));
+%    %tmp{r,6}=sprintf('%10.3g ',prctile(data,75));
+%    %tmp{r,7}=sprintf('%10.3g ',prctile(data,5));
+%    %tmp{r,8}=sprintf('%10.3g ',prctile(data,95));
+%  %end
 
-  %{'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%' '75%' '5%' '95%'};
-  %tmp2(1,:)=sprintf('%10s ',ans{:});
-  %for i=1:size(tmp,1)
-  %  tmp2(i+1,:)=[tmp{i,:}];
-  %end
-  %v=axis;
-  %h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
-  %if(handles.stats)
-  %  set(h,'visible','on');
-  %else
-  %  set(h,'visible','off');
-  %end
+%  %{'Mean' 'Std.Dev.' 'Std.Err.' 'Median' '25%' '75%' '5%' '95%'};
+%  %tmp2(1,:)=sprintf('%10s ',ans{:});
+%  %for i=1:size(tmp,1)
+%  %  tmp2(i+1,:)=[tmp{i,:}];
+%  %end
+%  %v=axis;
+%  %h=text(v(1),v(4),tmp2,'color',[0 0.5 0],'tag','stats','verticalalignment','top','fontname','fixed');
+%  %if(handles.stats)
+%  %  set(h,'visible','on');
+%  %else
+%  %  set(h,'visible','off');
+%  %end
   
   xlabel('closest fly (#)');
   axis tight;
 
 elseif(strcmp(handles.table,'timeseries') || strcmp(handles.table,'histogram'))
-  handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),3);
-  set(handles.BehaviorList,'Value',handles.behaviorvalue);
-  set(handles.BehaviorLogic,'Value',1);
-  set(handles.BehaviorList2,'enable','off');
-  handles.featurevalue=handles.table_data(eventdata.Indices(end,1),4);
-  set(handles.FeatureList,'Value',handles.featurevalue);
-  handles.individual=1;
-  set(handles.IndividualList,'Value',handles.individual);
+%  set(handles.BehaviorList,'Value',handles.behaviorvalue);
+%  set(handles.BehaviorLogic,'Value',1);
+%  set(handles.BehaviorList2,'enable','off');
+%  set(handles.FeatureList,'Value',handles.featurevalue);
+%  set(handles.IndividualList,'Value',handles.individual);
 
-  if(strcmp(handles.table,'timeseries'))
-    handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3)+1;
-    FeatureTimeSeries_Callback(hObject, eventdata, handles);
+%  if(strcmp(handles.table,'timeseries'))
+%    handles.timeseries_timing=handles.table_data(eventdata.Indices(end,1),3)+1;
+%    FeatureTimeSeries_Callback(hObject, eventdata, handles);
 
-  elseif(strcmp(handles.table,'histogram'))
-    handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),2));
-    menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
-    FeatureHistogram_Callback(hObject, eventdata, handles);
+  if(strcmp(handles.table,'histogram'))
+    switch(eventdata.Indices(end,2))
+      case {1,3}
+        group=handles.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
+        if(isnan(group))
+          questdlg('Remove all during / not-during comparisons from table?','','Yes','No','No');
+        else
+          questdlg(['Remove all ' handles.grouplist{group} ' groups from table?'],'','Yes','No','No');
+        end
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        if(isnan(group))
+          idx=find((~isnan(handles.table_data(:,1)))&(~isnan(handles.table_data(:,3))));
+        else
+          idx=find((handles.table_data(:,1)~=group)&(handles.table_data(:,3)~=group));
+        end
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {2,4}
+        thresh=handles.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
+        questdlg(['Remove all rows for which n or n2 is less than or equal to ' num2str(thresh) ...
+            ' from table?'],'','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find((handles.table_data(:,2)>thresh)&(handles.table_data(:,4)>thresh));
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {5}
+        questdlg(['Remove all ' handles.behaviorlist{handles.table_data(eventdata.Indices(end,1),5)} ...
+            ' behaviors from table?'],'','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find(handles.table_data(:,5)~=handles.table_data(eventdata.Indices(end,1),5));
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {6}
+        questdlg(['Remove all ' handles.featurelist{handles.table_data(eventdata.Indices(end,1),6)} ...
+            ' features from table?'],'','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find(handles.table_data(:,6)~=handles.table_data(eventdata.Indices(end,1),6));
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      case {7}
+        handles.behaviorvalue=handles.table_data(eventdata.Indices(end,1),5);
+        handles.behaviorlogic=1;
+        handles.featurevalue=handles.table_data(eventdata.Indices(end,1),6);
+        handles.individual=1;
+        handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),3));
+        menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
+        FeatureHistogram_Callback(hObject, eventdata, handles);
+    end
+
   end
+  update_figure(handles);
 end
 
 guidata(hObject,handles);
@@ -3192,13 +3427,13 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuFeatureTimeSeriesRadius_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuFeatureTimeSeriesRadius (see GCBO)
+function MenuFeatureTimeSeriesWindowRadius_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFeatureTimeSeriesWindowRadius (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.timeseries_windowradius=str2num(char(inputdlg({'Window radius:'},'',1,...
-    {num2str(handles.timeseries_windowradius)})));
+handles.featuretimeseries_windowradius=str2num(char(inputdlg({'Window radius:'},'',1,...
+    {num2str(handles.featuretimeseries_windowradius)})));
 guidata(hObject,handles);
 
 
@@ -3321,14 +3556,14 @@ set(handles.MenuFeatureHistogramMeanPerBout,'Checked','off');
 set(handles.MenuFeatureHistogramMedianPerBout,'Checked','off');
 set(handles.MenuFeatureHistogramMaxPerBout,'Checked','off');
 set(handles.MenuFeatureHistogramMinPerBout,'Checked','off');
-set(handles.MenuFeatureHistogramStdPerBout,'Checked','off');
+set(handles.MenuFeatureHistogramStdDevPerBout,'Checked','off');
 switch(arg)
   case(1), set(handles.MenuFeatureHistogramPerFrame,'Checked','on');
   case(2), set(handles.MenuFeatureHistogramMeanPerBout,'Checked','on');
   case(3), set(handles.MenuFeatureHistogramMedianPerBout,'Checked','on');
   case(4), set(handles.MenuFeatureHistogramMaxPerBout,'Checked','on');
   case(5), set(handles.MenuFeatureHistogramMinPerBout,'Checked','on');
-  case(6), set(handles.MenuFeatureHistogramStdPerBout,'Checked','on');
+  case(6), set(handles.MenuFeatureHistogramStdDevPerBout,'Checked','on');
 end
 
 
@@ -3393,8 +3628,8 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function MenuFeatureHistogramStdPerBout_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuFeatureHistogramStdPerBout (see GCBO)
+function MenuFeatureHistogramStdDevPerBout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFeatureHistogramStdDevPerBout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3457,24 +3692,6 @@ function MenuFeatureHistogram_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuFeatureHistogram (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in Stats.
-%function Stats_Callback(hObject, eventdata, handles)
-% hObject    handle to Stats (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-%
-%handles.stats=~handles.stats;
-%h=findobj('tag','stats');
-%if(handles.stats)
-%  set(h,'visible','on');
-%  set(handles.Stats,'backgroundcolor',0.4*[1 1 1]);
-%else
-%  set(h,'visible','off');
-%  set(handles.Stats,'backgroundcolor',get(gcf,'color'));
-%end
-%guidata(hObject, handles);
 
 
 % --- Executes on button press in CloseAll.
@@ -3603,7 +3820,7 @@ function MenuInterestingFeatureHistogramsOmitNaN_Callback(hObject, eventdata, ha
 
 handles.interestingfeaturehistograms_omitnan=~handles.interestingfeaturehistograms_omitnan;
 menu_interestingfeaturehistograms_omitnan_set(handles.interestingfeaturehistograms_omitnan);
-handles.interestingfeaturehistograms_cache=[];
+%handles.interestingfeaturehistograms_cache=[];
 guidata(hObject,handles);
 
 
@@ -3626,7 +3843,30 @@ function MenuInterestingFeatureHistogramsOmitInf_Callback(hObject, eventdata, ha
 
 handles.interestingfeaturehistograms_omitinf=~handles.interestingfeaturehistograms_omitinf;
 menu_interestingfeaturehistograms_omitinf_set(handles.interestingfeaturehistograms_omitinf);
-handles.interestingfeaturehistograms_cache=[];
+%handles.interestingfeaturehistograms_cache=[];
+guidata(hObject,handles);
+
+
+% ---
+function menu_interestingfeaturehistograms_absdprime_set(arg)
+
+handles=guidata(gcf);
+if(arg)
+  set(handles.MenuInterestingFeatureHistogramsAbsDPrime,'Checked','on');
+else
+  set(handles.MenuInterestingFeatureHistogramsAbsDPrime,'Checked','off');
+end
+
+
+% --------------------------------------------------------------------
+function MenuInterestingFeatureHistogramsAbsDPrime_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuInterestingFeatureHistogramsAbsDPrime (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.interestingfeaturehistograms_absdprime=~handles.interestingfeaturehistograms_absdprime;
+menu_interestingfeaturehistograms_absdprime_set(handles.interestingfeaturehistograms_absdprime);
+%handles.interestingfeaturehistograms_cache=[];
 guidata(hObject,handles);
 
 
@@ -3745,46 +3985,6 @@ function MenuBehaviorTimeSeries_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuBehaviorTimeSeries (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-% ---
-function [h,h2]=errorbarplot(x,b,dp,dn,color)
-
-h = bar(x,b,'grouped');
-set(h,'facecolor',color);
-fxdata = get(h, 'XData');
-fydata = get(h ,'YData');
-if(~iscell(fxdata)) xdata{1,1} = fxdata; else xdata = fxdata; end
-if(~iscell(fydata)) ydata{1,1} = fydata; else ydata = fydata; end
-
-% Determine number of bars
-sizz = size(b);
-nb = sizz(1)*sizz(2);
-xb = [];
-yb = [];
-for i = 1:length(xdata),
-    xb = [xb xdata{i,1}];
-    yb = [yb ydata{i,1}];
-end;
-
-%% To find the center of each bar - need to look at the output vectors xb, yb
-%% find where yb is non-zero - for each bar there is a pair of non-zero yb values.
-%% The center of these values is the middle of the bar
-%
-%nz = find(yb);
-%for i = 1:nb,
-%    center(i) = (xb(nz(i*2))-xb(nz((i*2)-1)))/2 + xb(nz((i*2)-1));
-%end;
-
-% To place the error bars - use the following:
-
-%errdata=[.1 .2; .3 .4; .5 .6];
-
-hold on;
-h2=errorbar(xb, b, dp, dn);
-set(h2(1),'linewidth',1);            % This changes the thickness of the errorbars
-set(h2(1),'color','k');              % This changes the color of the errorbars
-set(h2(1),'linestyle','none');       % This removes the connecting
 
 
 % --------------------------------------------------------------------
@@ -3987,28 +4187,41 @@ function MenuFile_Callback(hObject, eventdata, handles)
 
 
 % ---
-function ButtonDownFcn_Callback(src,evt)
+function figure_info_callback(src,evt)
 
 handles=guidata(src);
+
+CT={'Mean' 'Median' 'Mode'};
+D={'Std. Dev.' 'Std. Err.' '5%-95%' '25%-75%'};
+style={'Central Tendency' 'Central Tendency & Dispersion' 'Overlayed per-Exp Means'};
+behaviorbarchart_perwhat={'per Group' 'per Experiment' 'per Fly' 'per Fly'};
+featurehistogram_perwhat={'per Frame' 'Mean per Bout' 'Median per Bout' 'Max per Bout' 'Min per Bout' 'Std. Dev. per Bout'};
+featuretimeseries_timing={'Entire Recording' 'Onset Triggered' 'Offset Triggered'};
 
 tmp={};
 
 switch handles.type
+  case 'behavior bar chart'
+    tmp{end+1}=['perwhat = ' behaviorbarchart_perwhat{handles.behaviorbarchart_perwhat}];
+  case 'behavior time series'
+    tmp{end+1}=['style = ' style{handles.behaviortimeseries_style}];
   case 'feature histogram'
-    tmp{end+1}=['perwhat=' num2str(handles.featurehistogram_perwhat)];
+    tmp{end+1}=['perwhat = ' featurehistogram_perwhat{handles.featurehistogram_perwhat}];
+    tmp{end+1}=['style = ' style{handles.featurehistogram_style}];
     tmp{end+1}=['logbinsize=' num2str(handles.featurehistogram_logbinsize)];
     tmp{end+1}=['notduring=' num2str(handles.featurehistogram_notduring)];
     tmp{end+1}=['nbins=' num2str(handles.featurehistogram_nbins)];
   case 'feature time series'
-    tmp{end+1}=['timing=' num2str(handles.featuretimeseries_timing)];
-    tmp{end+1}=['style=' num2str(handles.featuretimeseries_style)];
+    tmp{end+1}=['timing = ' featuretimeseries_timing{handles.featuretimeseries_timing}];
+    tmp{end+1}=['style = ' style{handles.featuretimeseries_style}];
     tmp{end+1}=['subtractmean=' num2str(handles.featuretimeseries_subtractmean)];
+    tmp{end+1}=['windowradius=' num2str(handles.featuretimeseries_windowradius)];
 end
 tmp{end+1}='';
 
-tmp{end+1}=['CT=' num2str(handles.prefs_centraltendency)];
-tmp{end+1}=['D='  num2str(handles.prefs_dispersion)];
-tmp{end+1}=['conv. width='  num2str(handles.prefs_convolutionwidth)];
+tmp{end+1}=['Central Tendency = ' CT{handles.prefs_centraltendency}];
+tmp{end+1}=['Dispersion = '  D{handles.prefs_dispersion}];
+tmp{end+1}=['convolution width = '  num2str(handles.prefs_convolutionwidth) ' frames'];
 tmp{end+1}='';
 
 for g=1:length(handles.grouplist)

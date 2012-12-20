@@ -65,21 +65,53 @@
     
     <a_mm trans_types="none,abs" type="appearance"/>
     
+    <absanglefrom1to2_nose2ell  trans_types="none" type="social"/>
+
     <absdtheta trans_types="relative" type="locomotion"/>
     
     <absdv_cor trans_types="relative" type="locomotion"/>
     
+    <absphidiff_anglesub trans_types="none" type="social"/>
+    
+    <absphidiff_nose2ell trans_types="none" type="social"/>
+    
+    <absthetadiff_anglesub trans_types="none" type="social"/>
+    
+    <absthetadiff_nose2ell trans_types="none" type="social"/>
+    
+    <angle2wall trans_types="flip,abs" type="arena"/>
+    
+    <anglefrom1to2_anglesub trans_types="flip,abs" type="social"/>
+    
+    <anglefrom1to2_nose2ell  trans_types="flip,abs" type="social"/>
+    
+    <angleonclosestfly trans_types="flip,abs" type="social"/>
+    
+    <anglesub trans_types="none" type="social"/>
+    
     <area trans_types="none,relative" type="appearance"/>
     
-    <!--arena_angle trans_types="none" type="position"/>
+    <arena_angle trans_types="none" type="position"/>
     
-    <arena_r trans_types="none" type="arena,position"/-->
+    <arena_r trans_types="none" type="arena,position"/>
     
     <b_mm trans_types="none,abs" type="appearance"/>
+    
+    <closestfly_anglesub trans_types="none" type="identity"/>
+    
+    <closestfly_center  trans_types="none" type="identity"/>
+    
+    <closestfly_ell2nose  trans_types="none" type="identity"/>
+    
+    <closestfly_nose2ell  trans_types="none" type="identity"/>
     
     <corfrac_maj trans_types="none,abs" type="locomotion"/>
     
     <corfrac_min trans_types="flip,abs" type="locomotion"/>
+    
+    <dangle2wall trans_types="flip,abs" type="arena"/>
+    
+    <danglesub trans_types="none,abs" type="social"/>
     
     <darea trans_types="none,abs" type="appearance"/>
     
@@ -87,7 +119,27 @@
     
     <db trans_types="none,abs" type="appearance"/>
 
+    <dcenter trans_types="none,relative" type="social"/>
+    
+    <ddcenter trans_types="none,abs" type="social"/>
+    
+    <ddist2wall trans_types="none" type="arena"/>
+    
     <decc trans_types="none,abs" type="appearance"/>
+    
+    <dell2nose trans_types="none,relative" type="social"/>
+    
+    <dnose2ell_angle_30tomin30 trans_types="none" type="social"/>
+    
+    <dnose2ell_angle_min20to20 trans_types="none" type="social"/>
+    
+    <dnose2ell_angle_min30to30 trans_types="none" type="social"/>
+    
+    <dist2wall trans_types="none,relative" type="arena"/>
+    
+    <dnose2ell trans_types="none,relative" type="social"/>
+    
+    <dnose2tail trans_types="none,relative" type="social"/>
     
     <dphi trans_types="none,abs" type="position,locomotion"/>
     
@@ -109,6 +161,24 @@
     
     <flipdv_cor trans_types="relative" type="locomotion"/>
     
+    <magveldiff_anglesub trans_types="none,relative" type="social"/>
+    
+    <magveldiff_nose2ell trans_types="none,relative" type="social"/>
+    
+    <nflies_close trans_types="none" type="social"/>
+
+    <nflies_close_03 trans_types="none" type="social"/>
+
+    <nflies_close_04 trans_types="none" type="social"/>
+
+    <nflies_close_05 trans_types="none" type="social"/>
+    
+    <nflies_close_07 trans_types="none" type="social"/>
+
+    <nflies_close_10 trans_types="none" type="social"/>
+    
+    <nflies_close_15 trans_types="none" type="social"/>
+
     <phi trans_types="none" type="position"/>
     
     <phisideways trans_types="none" type="locomotion"/>
@@ -121,31 +191,17 @@
     
     <velmag_tail trans_types="none,relative" type="locomotion"/>
     
+    <veltoward_anglesub trans_types="none,relative" type="social"/>
+    
+    <veltoward_nose2ell trans_types="none,relative" type="social"/>
+    
     <yaw trans_types="flip,abs" type="locomotion"/>
     
+    <absyaw trans_types="none" type="compatbility"/>
+
+    <dnose2ell_angle_150to210 trans_types="none" type="social"/>
     
-    <dist2wall_rect trans_types="none" type="arena"/>
-
-    <angle2wall_rect trans_types="flip,abs" type="arena"/>
-
-    <dist2corner_rect trans_types="none" type="arena"/>
-
-    <angle2corner_rect trans_types="flip,abs" type="arena"/>
-    
-    <distnose2wall_rect trans_types="none" type="arena"/>
-
-    <distnose2wall_animaldir_rect trans_types="none" type="arena"/>
-    <!--scores_wall_climbing_v3 trans_types="none" type="scores"/>
-
-    <scores_walk_pause trans_types="none" type="scores"/>
-    <scores_tail_chase trans_types="none" type="scores"/>
-    <scores_rearing_v2 trans_types="none" type="scores"/>
-    <scores_grooming trans_types="none" type="scores"/>
-    <scores_corner_climbing_v2 trans_types="none" type="scores"/>
-    <scores_circling_v2 trans_types="none" type="scores"/>
-    <scores_back_walk trans_types="none" type="scores"/>
-    <score_pausing trans_types="none" type="scores"/-->
-
-</perframe>
+  </perframe>
+  
   <perframe_params  fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
 </params>

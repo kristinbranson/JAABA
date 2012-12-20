@@ -7,7 +7,7 @@ scores = zeros(numEx,1);
 
 clk = tic;
 etimehist = [];
-etimehistlength = 5;
+etimehistlength = 25;
 nittoutput = 3;
 origbins = bins; origdata = data; origbinVals = binVals;
 
