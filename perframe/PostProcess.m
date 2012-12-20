@@ -217,7 +217,7 @@ JLabel('UpdatePlots',handles.JLabelHandle,'refreshim',false,'refreshflies',false
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
 handles.JLabelHandle = JLabel('SetNeedSave',handles.JLabelHandle);
-guidata(handles.JLabelHandel.figure1,handles.JLabelHandle);
+guidata(handles.JLabelHandle.figure_JLabel,handles.JLabelHandle);
 delete(handles.figure1);
 
 
