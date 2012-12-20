@@ -172,7 +172,7 @@ for i = find(docompute),
   
   fprintf('Classifier %d\n',i);
   
-  if ~isfield(classifiers{i},'feature_names'),
+  if ~isfield(classifiers{i},'featurenames'),
     
     % all per-frame features for this classifier
     pffs_curr = fieldnames(classifiers{i}.windowfeaturesparams);
