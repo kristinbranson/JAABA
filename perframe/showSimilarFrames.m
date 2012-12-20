@@ -533,8 +533,8 @@ function im = getRotatedFrame(handles,curFrame)
       tt(2*sz+1:end-2*sz,2*sz+1:end-2*sz,1) = ...
         zeros(pointer.movieheaderinfo.nr,pointer.movieheaderinfo.nc);
     else
-      tt(2*sz+1:end-2*sz,2*sz+1:end-2*sz,1) = ...
-        pointer.readframe(curTime+offset);
+      s = pointer.readframe(curTime+offset);
+      tt(2*sz+1:end-2*sz,2*sz+1:end-2*sz,1) = s(:,:,1);
     end
     timg = tt(bBoxY,bBoxX,:);
     rotI = imrotate(timg,curA*180/pi-90,'bilinear','crop');

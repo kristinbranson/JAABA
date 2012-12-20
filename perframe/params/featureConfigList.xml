@@ -3,9 +3,10 @@
 <flies file="params/featureConfig.xml" animal="fly"/>
 <flies_wing file="params/featureConfigWings.xml" animal="wingedfly"/>
 <eyrun_flies file="params/featureConfigEyrun.xml" animal="fly"/>
-<mice file="params/featureConfig.xml" animal="fly"/>
+<!--mice file="params/featureConfig.xml" animal="fly"/-->
 <eric_flies file="params/featureConfigEric.xml" animal="fly"/>
 <larvae file="params/featureConfigLarvae.xml" animal="larvae"/>
-<vivek_mice file="params/featureConfigVivekMice.xml" animal="fly"/>
+<vivek_mice file="params/featureConfigVivekMice.xml" animal="mice"/>
+<adam_flies file="params/featureConfig_adam.xml" animal="fly"/>
 
 </params>
