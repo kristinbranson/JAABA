@@ -12,6 +12,10 @@ function scores = JAABADetect(expdir,varargin)
   'isrelativepath',false,...
   'fnsrelative',{'featureparamfilename'});
 
+if ~isdeployed,
+  SetUpJAABAPath;
+end
+
 if ischar(forcecompute),
   forcecompute = str2double(forcecompute) ~= 0;
 end
@@ -114,7 +118,8 @@ if forcecompute == 0,
             behaviorname,datestr(classifiers{i}.classifierTS,'yyyymmddTHHMMSS'),...
             expdir); %#ok<PFCEL>
         end
-      catch 
+      catch ME,
+        fprintf('Could not check timestamps: %s\n',getReport(ME));
         continue;
       end
     end
@@ -229,7 +234,7 @@ for i = find(docompute),
     
   else
     dims = [classifiers{i}.classifier.dim];
-    feature_names =  classifiers{i}.featurenames;
+    feature_names =  classifiers{i}.featurenames(dims);
     wfs_per_classifier{i} = feature_names;
     
   end
@@ -433,8 +438,8 @@ for i = find(docompute),
       data.Postprocess(scores{i}{flies}(tStartAll(flies):tEndAll(flies)));
   end
   allScores.postprocessed = postprocessedscoresA;
-  allScores.postprocessparams = data.postprocessparams; %#ok<STRNU>
-  allScores.scoreNorm = classifiers{i}.scoreNorm;
+  allScores.postprocessparams = data.postprocessparams;
+  allScores.scoreNorm = classifiers{i}.scoreNorm; %#ok<STRNU>
   scorefilename = scorefilenames{i};
   %scorefilename = ['test_',scorefilename];
   sfn = fullfile(expdir,scorefilename);
