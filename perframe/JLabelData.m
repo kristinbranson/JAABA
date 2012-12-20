@@ -696,7 +696,7 @@ end
         % allocate configdence thresholds
         obj.confThresholds = zeros(1,obj.nbehaviors);
 
-%         % colors
+         % colors
 %         if isfield(configparams.behaviors,'labelcolors'),
 %           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
 %             obj.labelcolors = configparams.behaviors.labelcolors;
@@ -841,12 +841,20 @@ end
       
      
       if isfield(configparams,'network_server'),
-        obj.h = struct('ip_adress', '127.0.0.1', 'port', 8088, 'example_ids', []);
+        obj.h = struct('ip_adress', '127.0.0.1', 'port', 8088, 'example_ids', [],...
+            'recompute_bout_statistics_on_relabel', false,...
+            'num_optimization_iters_on_relabel', 0);
         if isfield(configparams.network_server,'ip_address'),
           obj.h.ip_address = configparams.network_server.ip_address;
         end
         if isfield(configparams.network_server,'port'),
           obj.h.port = configparams.network_server.port;
+        end
+        if isfield(configparams.network_server,'recompute_bout_statistics_on_relabel'),
+          obj.h.recompute_bout_statistics_on_relabel = configparams.network_server.recompute_bout_statistics_on_relabel;
+        end
+        if isfield(configparams.network_server,'num_optimization_iters_on_relabel'),
+          obj.h.num_optimization_iters_on_relabel = configparams.network_server.num_optimization_iters_on_relabel;
         end
       end
     end
@@ -5010,7 +5018,7 @@ end
     
     function ExperimentsFinalized(obj)
         if strcmp(obj.classifiertype, 'structured_svm')
-            %synchStructuredBehaviors(obj);
+            synchStructuredBehaviors(obj);
             obj.h.example_ids = synchStructuredTrainingSet(obj);
         end
     end
@@ -5020,7 +5028,9 @@ end
             obj.SetStatus('Changing label');
             query = struct('method', 'relabel_example',...
                 'index',obj.h.example_ids(expi,fly_id), ...
-                'y', getBoutLabel(obj, expi, fly_id));
+                'y', getBoutLabel(obj, expi, fly_id), ...
+                'recompute_bout_statistics', obj.h.recompute_bout_statistics_on_relabel, ...
+                'num_optimization_iters', obj.h.num_optimization_iters_on_relabel);
             response = jsonrpc_request(obj.h.ip_address, obj.h.port, query);
             if isfield(response, 'error'), warning(response.error); end
             obj.ClearStatus();

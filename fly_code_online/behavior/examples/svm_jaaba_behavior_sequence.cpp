@@ -7,10 +7,23 @@ class StructuredLearnerJaabaRpc : public StructuredLearnerRpc {
 public:
   StructuredLearnerJaabaRpc(StructuredSVM *l) : StructuredLearnerRpc(l) {}
   bool ClassifyExample(const Json::Value& root, Json::Value& response);
+  bool RelabelExample(const Json::Value& root, Json::Value& response);
+  bool SetBehaviors(const Json::Value& root, Json::Value& response);
+protected:
+  void AddMethods();
 };  
 
+void StructuredLearnerJaabaRpc::AddMethods() {
+  StructuredLearnerRpc::AddMethods();
+
+  Json::Value set_behaviors_parameters, set_behaviors_returns;
+  set_behaviors_parameters["behaviors"] = "An array of behaviors, with each entry behavior a pair {\"name\":name,\"color\",color}";
+  set_behaviors_returns["message"] = "A response indicating success";
+  server->RegisterMethod(new JsonRpcMethod<StructuredLearnerJaabaRpc>(this, &StructuredLearnerJaabaRpc::SetBehaviors, "set_behaviors", "Initialize the list of behaviors we are training", set_behaviors_parameters, set_behaviors_returns));
+}
+
 // Overrides default StructuredLearnerRpc::ClassifyExample() because we want to add support
-// to only do inference on an interval (t0,t1)
+// to only do inference only on an interval (t0,t1)
 bool StructuredLearnerJaabaRpc::ClassifyExample(const Json::Value& root, Json::Value& response) {
   if(learner) {
     FlyBehaviorBoutFeatures *x = (FlyBehaviorBoutFeatures*)learner->NewStructuredData();
@@ -50,44 +63,95 @@ bool StructuredLearnerJaabaRpc::ClassifyExample(const Json::Value& root, Json::V
     return false;
 }
 
-/*
+// Overrides default StructuredLearnerRpc::ClassifyExample() because we want to add support
+// for recomputing bout-level mean, viariance, and median statistics
+bool StructuredLearnerJaabaRpc::RelabelExample(const Json::Value& root, Json::Value& response) {
+  if(learner) {
+    int ind = root.get("index",-1).asInt();
+    if(ind < 0 || ind >= learner->GetTrainset()->num_examples) {
+      JSON_ERROR("Missing or invalid training example 'index' parameter to relabel_example()", -1); 
+    }
+    StructuredExample *ex = learner->GetTrainset()->examples[ind];
+
+    StructuredLabel *y = learner->NewStructuredLabel(ex->x);
+    if(root.isMember("y")) {
+      if(!y->load(root["y"], learner)) { 
+	delete y;
+	JSON_ERROR("Invalid 'y' parameter", -1); 
+      }
+    } else {
+      delete y;
+      JSON_ERROR("No 'y' parameter specified", -1); 
+    }
+    response["index"] = ind;
+
+    bool recomputeStatistics = root.get("recompute_bout_statistics", false).asBool();
+    int num_optimization_iters = root.get("num_optimization_iters", 0).asInt();
+
+    if(recomputeStatistics || num_optimization_iters) {
+      learner->PauseWorkerThreads(true, true);
+      if(recomputeStatistics) learner->FlushCache();
+    }
+    learner->RelabelExample(ex, y);
+    learner->SaveTrainingSet(ind);
+
+    if(recomputeStatistics) {
+      ((SVMBehaviorSequence*)learner)->compute_feature_mean_variance_median_statistics(learner->GetTrainset());
+    }
+    if(num_optimization_iters) {
+      learner->Lock();
+      learner->OptimizeAllConstraints(num_optimization_iters);
+      learner->Unlock();
+    }
+    if(recomputeStatistics || num_optimization_iters) {
+      learner->PauseWorkerThreads(false);
+    }
+  }
+
+  return true;
+}
+
+
+
 bool StructuredLearnerJaabaRpc::SetBehaviors(const Json::Value& root, Json::Value& response) {
   int noneInd = -1;
+  SVMFlyBehaviorSequence *l = ((SVMFlyBehaviorSequence*)learner);
 
   if(root.isMember("behaviors")) {
     BehaviorGroups *beh = (BehaviorGroups*)malloc(sizeof(BehaviorGroups)); 
     beh->num = 1;
     beh->behaviors = (BehaviorGroup*)malloc(sizeof(BehaviorGroup));
     beh->behaviors[0].num_values = root["behaviors"].size();
-    beh->behaviors[0].values = malloc(beh->behaviors[0].num_values*sizeof(BehaviorValue)); 
+    beh->behaviors[0].values = (BehaviorValue*)malloc(beh->behaviors[0].num_values*sizeof(BehaviorValue)); 
     memset(beh->behaviors[0].values, 0, beh->behaviors[0].num_values*sizeof(BehaviorValue));
-    for(int i = 0; i < root["behaviors"].size(); i++) {
-      strcpy(beh->behaviors[0].values[i].name, root["behaviors"][i].asString().c_str());
+    for(int i = 0; i < (int)root["behaviors"].size(); i++) {
+      strcpy(beh->behaviors[0].values[i].name, root["behaviors"][i].get("name","").asString().c_str());
       strncpy(beh->behaviors[0].values[i].abbreviation, beh->behaviors[0].values[i].name, 3);
       beh->behaviors[0].values[i].abbreviation[3] = '\0';
-      beh->behaviors[0].values[i].color = rand() & 0x00FFFFFF;
+      beh->behaviors[0].values[i].color = root["behaviors"][i].get("color",rand() & 0x00FFFFFF).asInt();
       if(!strcasecmp(beh->behaviors[0].values[i].name, "none"))
 	noneInd = i;
     }
-    if(root.isMember("colors") && root["colors"].size() <= root["behaviors"].size()) {
-      for(int i = 0; i < root["colors"].size(); i++) 
-	beh->behaviors[0].values[i].color = root["colors"][i].asInt();
-    }
     if(noneInd < 0) {
       JSON_ERROR("No behavior 'none' found in set_behaviors()", -1); 
-      return;
     } else if(noneInd > 0) {
       // make sure the "none" behavior is at index 0
       BehaviorValue tmp = beh->behaviors[0].values[0];
       beh->behaviors[0].values[0] = beh->behaviors[0].values[noneInd]; 
       beh->behaviors[0].values[noneInd] = tmp;
     }
-    ()learner->SetBehaviors(beh);
+    l->SetBehaviors(beh);
+    l->Init(l->NumBaseFeatures(), beh, 0, l->BaseFeatures());
+
+    char str[1000];
+    sprintf(str, "Initialized %d behaviors", beh->behaviors[0].num_values);
+    response["message"] = str;
   } else {
     JSON_ERROR("Missing 'behaviors' parameter in set_behaviors()", -1); 
   }
+  return true;
 }
-*/
+
 
 int main(int argc, const char **argv) {
   char bname[1000], feat_name[1000], debug_name[1000];
@@ -292,7 +356,7 @@ bool FlyBehaviorBoutSequence::load(const Json::Value &r, StructuredSVM *s) {
 	num_bouts[i] = isA ? r["num_bouts"][i].asInt() : r["num_bouts"].asInt();
 	this->bouts[i] = (BehaviorBout*)malloc(sizeof(BehaviorBout)*num_bouts[i]);
 	Json::Value a = isA ? r["bouts"][i] : r["bouts"];
-	for(int j = 0; j < (a.isArray() ? a.size() : 1); j++) {
+	for(int j = 0; j < (a.isArray() ? (int)a.size() : 1); j++) {
 	  Json::Value c = a.isArray() ? a[j] : a;
 	  bouts[i][j].start_frame = c["start_frame"].asInt()-firstframe;
 	  bouts[i][j].end_frame = c["end_frame"].asInt()-firstframe;
@@ -390,10 +454,10 @@ StructuredData *SVMFlyBehaviorSequence::NewStructuredData() { return new FlyBeha
 SVMFlyBehaviorSequence::SVMFlyBehaviorSequence(const char *feature_params, struct _BehaviorGroups *behaviors, int beh) :
   SVMBehaviorSequence(behaviors, beh)
 {
-  assert(behaviors->num);
+  assert(!behaviors || behaviors->num);
   SVMFeatureParams fparams[MAX_BASE_FEATURES];
-  int num_feat = feature_params && strlen(feature_params) ? ReadFeatureParams(feature_params, fparams) : NULL;
-  Init(num_feat, behaviors, beh, fparams);
+  int num_feat = feature_params && strlen(feature_params) ? ReadFeatureParams(feature_params, fparams) : 0;
+ Init(num_feat, behaviors, beh, fparams);
 }
 
 

@@ -183,6 +183,7 @@ StructuredSVM::StructuredSVM() {
   sum_w = NULL;
   u_i_buff = NULL;
   trainLatent = false;
+  pauseWorkers = false;
 
   trainfile = modelfile = NULL; 
 
