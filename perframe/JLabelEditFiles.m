@@ -133,6 +133,7 @@ set(handles.pushbutton_newproject,'enable','off');
 function InitJLabelGui(handles)
 
 if ~handles.needJLabelInit, return; end
+set(handles.figure_JLabelEditFiles,'pointer','watch');
 handles.needJLabelInit = false;
 
 % For behavior --
@@ -161,6 +162,7 @@ handles.JLabelHandle = JLabelHandle;
 guidata(handles.figure_JLabelEditFiles,handles);
 guidata(JLabelHandle.figure_JLabel,JLabelHandle);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
+set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 
 function InitExperimentsGui(hObject,handles,varargin)
@@ -270,7 +272,7 @@ for i = 1:nfiles,
   if file_exists,
     timestamp = datestr(timestamp);%,'yyyymmddTHHMMSS');
   end
-  if JLabelData.IsRequiredFile(file),
+  if handles.data.IsRequiredFile(file),
     if file_exists,
       data{i,2} = sprintf('<html><font color="green">%s</font></html>',timestamp);
     else
@@ -368,7 +370,11 @@ for ndx = 1:numel(allexpdirs)
   
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+    if iscell(msg)
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+    else
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    end
     return;
   end
   
@@ -463,11 +469,11 @@ end
 
 SetLabelingMode(handles);
 
-res = questdlg('Load labels that were used to train the classifier or current labels?',...
-  'Labels?','Classifier Labels','Current Labels','Cancel','Classifier Labels');
+res = questdlg('Load the labels and the classifier from the file, or just load the classifier?',...
+  'Labels?','Load Labels and Classifier','Load Classifier Only','Cancel','Load Labels and Classifier');
 if strcmpi(res,'Cancel'), return, end
 
-classifierlabels = strcmpi(res,'Classifier Labels');
+classifierlabels = strcmpi(res,'Load Labels and Classifier');
 
 [success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
 if ~success,
@@ -575,6 +581,15 @@ function popupmode_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmode contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmode
 
+contents = cellstr(get(hObject,'String'));
+curstr = contents{get(hObject,'Value')};
+if any(strcmpi(curstr,{ 'Ground Truthing','Ground Truthing Advanced'})),
+  set(handles.pushbutton_load,'Enable','off');
+else
+  set(handles.pushbutton_load,'Enable','on');
+end
+
+
 
 % --- Executes during object creation, after setting all properties.
 function popupmode_CreateFcn(hObject, eventdata, handles)
@@ -618,11 +633,11 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-oldv = get(handles.listbox_experiment,'Value');
-
-if ~handles.disableBehavior && isempty(handles.projmanager.GetCurrentProject()), 
-  uiwait(warndlg('Select a project before adding an experiment'));
-  return
+if ~handles.disableBehavior,
+  if ~isfield(handles,'configfilename') || isempty(handles.configfilename), 
+    uiwait(warndlg('Select a project before adding an experiment'));
+    return;
+  end
 end
 
 InitJLabelGui(handles);
@@ -634,7 +649,6 @@ listfile = fullfile(pname,listfile);
 if ~ischar(listfile),
   return;
 end
-'xml_file',handles.projectfilename
 fid = fopen(listfile,'r');
 if fid<0, 
   uiwait(warndlg(sprintf('Cannot open %s for reading',listfile)));

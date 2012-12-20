@@ -91,6 +91,8 @@ ClearStatus(handles);
 [handles,success] = JLabelEditFiles('JLabelHandle',handles,...
   'JLabelSplashHandle',handles.guidata.hsplash);
 
+set(handles.figure_JLabel,'pointer','watch');
+
 if ~success,
   guidata(hObject,handles);
   delete(hObject);
@@ -150,11 +152,14 @@ RecursiveSetKeyPressFcn(handles.figure_JLabel);
 % enable gui
 EnableGUI(handles);
 
+
 if ismac, % On mac change the foreground color to black.
   allpopups = findall(hObject,'Style','popup');
   set(allpopups,'ForegroundColor',[0 0 0]);
+  set(allpopups,'BackgroundColor',[1 1 1]);
 end
 
+set(handles.figure_JLabel,'pointer','arrow');
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1024,7 +1029,8 @@ success = true;
 function handles = UnsetCurrentMovie(handles)
 
 % close previous movie
-if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)),
+if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)) && ...
+    handles.guidata.movie_fid~=0,
   fclose(handles.guidata.movie_fid);
 end
 
@@ -1076,7 +1082,7 @@ function slider_preview_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 % get slider value
 % t = min(max(1,round(get(hObject,'Value'))),handles.guidata.nframes);
 t = min(max(handles.guidata.t0_curr,round(get(hObject,'Value'))),handles.guidata.t1_curr);
-
+set(hObject,'Value',t);
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
 
@@ -3358,6 +3364,24 @@ if ~handles.guidata.enabled,
   return;
 end
 
+if strcmpi(eventdata.Modifier,'control')
+  switch eventdata.Key,
+    case 't',
+      if ~handles.guidata.data.IsGTMode(),
+        pushbutton_train_Callback(hObject,eventdata,handles);
+      end
+      
+    case 'p',
+        pushbutton_predict_Callback(hObject,eventdata,handles);
+    case 'n',
+      menu_go_navigation_preferences_Callback(hObject,eventdata,handles);
+    case 'j',
+      menu_go_switch_target_Callback(hObject,eventdata,handles);
+    case 'k'
+      menu_view_plottracks_Callback(handles.menu_view_plottracks,eventdata,handles);
+  end
+end
+
 switch eventdata.Key,
   
   case 'leftarrow',
@@ -3384,15 +3408,6 @@ switch eventdata.Key,
   case 'downarrow',
     menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
 
-  case 't',
-    if strcmpi(eventdata.Modifier,'control') && ~handles.guidata.data.IsGTMode(),
-      pushbutton_train_Callback(hObject,eventdata,handles);
-    end
-    
-  case 'p',
-    if strcmpi(eventdata.Modifier,'control'),
-      pushbutton_predict_Callback(hObject,eventdata,handles);
-    end
     
   case handles.guidata.label_shortcuts,
     buttonNum = find(strcmp(eventdata.Key,handles.guidata.label_shortcuts),1);
@@ -5377,14 +5392,10 @@ cnames = {sprintf('%s|Predicted',handles.guidata.data.labelnames{1}),...
           sprintf('%s|Predicted',handles.guidata.data.labelnames{2}),...
           };
 rnames = {sprintf('%s Important ',handles.guidata.data.labelnames{1}),...
-          sprintf('%s All',handles.guidata.data.labelnames{1}),...
           sprintf('%s Important ',handles.guidata.data.labelnames{2}),...
-          sprintf('%s All',handles.guidata.data.labelnames{2}),...
           '',...
           sprintf('Old %s Important',handles.guidata.data.labelnames{1}),...
-          sprintf('Old %s All',handles.guidata.data.labelnames{1}),...
           sprintf('Old %s Important',handles.guidata.data.labelnames{2}),...
-          sprintf('Old %s All',handles.guidata.data.labelnames{2})...
           };
 
 dat = {};
@@ -5414,8 +5425,8 @@ for col = 1:3
   end
 end
         
-f = figure('Position',[200 200 550 240],'Name','Cross Validation Error');
-t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
+f = figure('Position',[200 200 550 140],'Name','Cross Validation Error');
+t = uitable('Parent',f,'Data',dat([1 3 5 6 8],:),'ColumnName',cnames,... 
             'ColumnWidth',{100},...
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
 
@@ -5789,6 +5800,9 @@ hvisible_gt = [handles.menu_view_showPredictions, ...
   handles.menu_view_suggest,...
   handles.menu_classifier_gt_performance];
 
+if handles.guidata.data.nexps < 1,
+  return;
+end
 
 if handles.guidata.data.IsGTMode()
   set(hinv_gt,'Visible','off');
