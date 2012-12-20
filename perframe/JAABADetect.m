@@ -2,13 +2,19 @@
 % scores = JAABADetect(expdir,'classifierparamsfile',classifierparamsfile)
 function scores = JAABADetect(expdir,varargin)
 
-[blockSize,classifierfiles,configfiles,classifierparamsfile,configparams,forcecompute,DEBUG] = ...
+[blockSize,classifierfiles,configfiles,classifierparamsfile,configparams,forcecompute,DEBUG,isrelativepath,fnsrelative] = ...
   myparse(varargin,'blockSize',10000,...
   'classifierfiles',{},'configfiles',{},...
   'classifierparamsfile',0,...
   'configparams',[],...
   'forcecompute',false,...
-  'debug',false);
+  'debug',false,...
+  'isrelativepath',false,...
+  'fnsrelative',{'featureparamfilename'});
+
+if ~isdeployed,
+  SetUpJAABAPath;
+end
 
 if ischar(forcecompute),
   forcecompute = str2double(forcecompute) ~= 0;
@@ -18,26 +24,29 @@ if ischar(DEBUG),
 end
 
 if ischar(classifierparamsfile),
-  if ~exist(classifierparamsfile,'file'),
-    error('File %s does not exist',classifierparamsfile);
-  end
-  fid = fopen(classifierparamsfile,'r');
-  classifierfiles = {};
-  configfiles = {};
-  while true,
-    l = fgetl(fid);
-    if ~ischar(l),
-      break;
-    end
-    if isempty(l),
-      continue;
-    end
-    if strcmp(l(1),'%'), continue; end
-    ws = regexp(l,',','split');
-    classifierfiles{end+1} = ws{1}; %#ok<AGROW>
-    configfiles{end+1} = ws{2}; %#ok<AGROW>
-  end
-  fclose(fid);
+  configparams = ReadClassifierParamsFile(classifierparamsfile,'isrelativepath',isrelativepath,'fnsrelative',fnsrelative);
+  classifierfiles = {configparams.classifierfile};
+  configfiles = {configparams.configfile};
+%   if ~exist(classifierparamsfile,'file'),
+%     error('File %s does not exist',classifierparamsfile);
+%   end
+%   fid = fopen(classifierparamsfile,'r');
+%   classifierfiles = {};
+%   configfiles = {};
+%   while true,
+%     l = fgetl(fid);
+%     if ~ischar(l),
+%       break;
+%     end
+%     if isempty(l),
+%       continue;
+%     end
+%     if strcmp(l(1),'%'), continue; end
+%     ws = regexp(l,',','split');
+%     classifierfiles{end+1} = ws{1}; %#ok<AGROW>
+%     configfiles{end+1} = ws{2}; %#ok<AGROW>
+%   end
+%   fclose(fid);
 end
 
 nclassifiers = numel(classifierfiles);
@@ -109,7 +118,8 @@ if forcecompute == 0,
             behaviorname,datestr(classifiers{i}.classifierTS,'yyyymmddTHHMMSS'),...
             expdir); %#ok<PFCEL>
         end
-      catch 
+      catch ME,
+        fprintf('Could not check timestamps: %s\n',getReport(ME));
         continue;
       end
     end
@@ -167,7 +177,40 @@ for i = find(docompute),
   
   fprintf('Classifier %d\n',i);
   
-  if ~isfield(classifiers{i},'feature_names'),
+  % check trans_types
+  nfixtranstypes = 0;
+  fns = fieldnames(classifiers{i}.windowfeaturescellparams);
+  for j = 1:numel(fns),
+    fn = fns{j};
+    k = find(strcmp(classifiers{i}.windowfeaturescellparams.(fn),'trans_types'));
+    if ~isempty(k),
+      k = k+1;
+      if ~iscell(classifiers{i}.windowfeaturescellparams.(fn){k}),
+        classifiers{i}.windowfeaturescellparams.(fn){k} = {classifiers{i}.windowfeaturescellparams.(fn){k}}; %#ok<CCAT1>
+        nfixtranstypes = nfixtranstypes+1;
+      end
+    end
+    for k = 2:2:numel(classifiers{i}.windowfeaturescellparams.(fn)),
+      if ~iscell(classifiers{i}.windowfeaturescellparams.(fn){k}),
+        continue;
+      end
+      l = find(strcmp(classifiers{i}.windowfeaturescellparams.(fn){k},'trans_types'),1);
+      if isempty(l),
+        continue;
+      end
+      l = l+1;
+      if ~iscell(classifiers{i}.windowfeaturescellparams.(fn){k}{l}),
+        classifiers{i}.windowfeaturescellparams.(fn){k}{l} = {classifiers{i}.windowfeaturescellparams.(fn){k}{l}}; %#ok<CCAT1>
+        nfixtranstypes = nfixtranstypes+1;
+      end
+    end
+  end
+  if nfixtranstypes > 0,
+    [~,name] = fileparts(classifierfiles{i});
+    warning('Fixed %d trans_types issues for classifier %s',nfixtranstypes,name);
+  end
+  
+  if ~isfield(classifiers{i},'featurenames'),
     
     % all per-frame features for this classifier
     pffs_curr = fieldnames(classifiers{i}.windowfeaturesparams);
@@ -191,7 +234,7 @@ for i = find(docompute),
     
   else
     dims = [classifiers{i}.classifier.dim];
-    feature_names =  classifiers{i}.feature_names;
+    feature_names =  classifiers{i}.featurenames(dims);
     wfs_per_classifier{i} = feature_names;
     
   end
@@ -395,8 +438,8 @@ for i = find(docompute),
       data.Postprocess(scores{i}{flies}(tStartAll(flies):tEndAll(flies)));
   end
   allScores.postprocessed = postprocessedscoresA;
-  allScores.postprocessparams = data.postprocessparams; %#ok<STRNU>
-  allScores.scoreNorm = classifiers{i}.scoreNorm;
+  allScores.postprocessparams = data.postprocessparams;
+  allScores.scoreNorm = classifiers{i}.scoreNorm; %#ok<STRNU>
   scorefilename = scorefilenames{i};
   %scorefilename = ['test_',scorefilename];
   sfn = fullfile(expdir,scorefilename);
