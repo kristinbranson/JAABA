@@ -1429,31 +1429,18 @@ function [during not_during]=calculate_feature_histogram(behavior_data,behavior_
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
   if(length(vals)>2)  error('uhoh');  end
-  %for i=1:length(feature_data.data)
-  %  feature_data.data{i}=strcmp(feature_data.data{i},vals{1});
-  %end
   feature_data.data=cellfun(@(x) strcmp(x,vals{1}),feature_data.data,'uniformoutput',false);
 end
 
 during={};  not_during={};
 for i=1:length(behavior_data.allScores.t0s)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
-%  tmp1=false(1,length(feature_data.data{i}));
-%  for j=1:length(behavior_data.allScores.t0s{i})
-%    tmp1((behavior_data.allScores.t0s{i}(j):(behavior_data.allScores.t1s{i}(j)-1))...
-%        -behavior_data.allScores.tStart(i)+1)=true;
-%  end
   tmp1=zeros(1,length(feature_data.data{i}));
   tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
   tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
   tmp1=logical(cumsum(tmp1(1:length(feature_data.data{i}))));
   
   if(behavior_logic>1)
-    %tmp2=false(1,length(feature_data.data{i}));
-    %for j=1:length(behavior_data2.allScores.t0s{i})
-    %  tmp2((behavior_data2.allScores.t0s{i}(j):(behavior_data2.allScores.t1s{i}(j)-1))...
-    %      -behavior_data2.allScores.tStart(i)+1)=true;
-    %end
     tmp2=zeros(1,length(feature_data.data{i}));
     tmp2(behavior_data2.allScores.t0s{i}-behavior_data2.allScores.tStart(i)+1)=1;
     tmp2(behavior_data2.allScores.t1s{i}-behavior_data2.allScores.tStart(i)+1)=-1;
@@ -1538,6 +1525,7 @@ cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
 mat2cell(cumsum_num_exp_per_group(1:end-1),1,ones(1,length(cumsum_num_exp_per_group)-1));
 cellfun(@(x,y) x+y,handles.experimentvalue,ans,'uniformoutput',false);
 selected_exp=[ans{:}];
+cumsum_num_selexp_per_group=[0 cumsum(cellfun(@length,handles.experimentvalue))];
 
 ggee=1:length(handlesexperimentlist);
 individual=handles.individualvalue;
@@ -1673,7 +1661,7 @@ for b=bb
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
 
     if(individual<4)
-      idx=(cumsum_num_exp_per_group(g)+1):(cumsum_num_exp_per_group(g+1));
+      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
     else
       find(cumsum_num_exp_per_group<ggee,1,'last');
       if(ans~=g)  continue;  end
@@ -1737,6 +1725,7 @@ fseek(fid,0,1);
 num=ftell(fid)/4;
 waitbar(num/den,h);
 fclose(fid);
+drawnow;
 
 
 % --- Executes on button press in InterestingFeatureHistograms.
@@ -1752,22 +1741,27 @@ drawnow;
 if(isempty(handles.interestingfeaturehistograms_cache))
   table_data={};
 
-  handlesexperimentlist=[handles.experimentlist{:}];
+  cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
+  mat2cell(cumsum_num_exp_per_group(1:end-1),1,ones(1,length(cumsum_num_exp_per_group)-1));
+  cellfun(@(x,y) x+y,handles.experimentvalue,ans,'uniformoutput',false);
+  selected_exp=[ans{:}];
+  cumsum_num_selexp_per_group=[0 cumsum(cellfun(@length,handles.experimentvalue))];
 
-  h=waitbar(0,'This will likely take awhile...',...
-      'CreateCancelBtn','fid=fopen(fullfile(tempdir,''cancel.txt''),''w''); fclose(fid);');
-  fid=fopen(fullfile(tempdir,'progressbar.txt'),'w');
-  fwrite(fid,length(handles.behaviorlist)*sum(cellfun(@length,handles.experimentvalue)),'uint32');
-  fclose(fid);
-  t = timer('TimerFcn',{@progress_bar,h}, 'Period', 3, 'ExecutionMode', 'fixedRate');
-  start(t);
+  handlesexperimentlist=[handles.experimentlist{:}];
+  handlesexperimentlist=handlesexperimentlist(selected_exp);
 
   nexperiments=length(handlesexperimentlist);
   nbehaviors=length(handles.behaviorlist)-1;
   nfeatures=length(handles.featurelist);
 
-tic
-  %bad={};
+  h=waitbar(0,'This will likely take awhile...',...
+      'CreateCancelBtn','fid=fopen(fullfile(tempdir,''cancel.txt''),''w''); fclose(fid);');
+  fid=fopen(fullfile(tempdir,'progressbar.txt'),'w');
+  fwrite(fid,nfeatures*sum(cellfun(@length,handles.experimentvalue)),'uint32');
+  fclose(fid);
+  t = timer('TimerFcn',{@progress_bar,h}, 'Period', 3, 'ExecutionMode', 'fixedRate');
+  start(t);
+
   table_data=zeros(nexperiments,nbehaviors,nfeatures,6);
   parfor ge=1:nexperiments
   %for ge=1:nexperiments
@@ -1788,24 +1782,15 @@ tic
       for b=1:nbehaviors
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
-%        if(length(behavior_data{b}.allScores.scores)~=length(feature_data.data))
-%          [~,foo,~]=fileparts(handlesexperimentlist{ge});
-%          bad{ge}{end+1}=[foo ', ' handles.behaviorlist{b} ', ' handles.featurelist{f}];
-%          continue;
-%        end
-
         [during not_during]=calculate_feature_histogram(behavior_data{b},1,[],...
             feature_data,sexdata,nan,handles.featurehistogram_perwhat);
         parfor_tmp(b,f,:)=[mean(during) mean(not_during) ...
             std(during) std(not_during) length(during) length(not_during)];
       end
+      fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
     end
     table_data(ge,:,:,:)=parfor_tmp;
-    fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
   end
-toc
-%  bad=[bad{:}];
-%  table_data{end+1}=reshape(parfor_tmp2,prod(size(parfor_tmp2))/8,8);
 
   stop(t);
   delete(t);
@@ -1820,24 +1805,9 @@ toc
     return;
   end
 
-%  if(~isempty(bad))
-%    msg{1}=['the following experiments had different numbers of individuals ' ...
-%        'for the indicated behavior and feature.  they will be ommitted from the analysis.'];
-%    msg{2}='';
-%    tmp=length(bad);
-%    if(tmp>20)
-%      bad=bad(1:20);
-%      bad{end+1}='';
-%      bad{end+1}=['plus another ' num2str(tmp) ' combinations'];
-%    end
-%    uiwait(errordlg({msg{:} bad{:}}));
-%  end
-
   tmp2=[];
-  %for g=gg
-  cum_grp_siz=[0 cumsum(cellfun(@length,handles.experimentlist))];
   for g=1:length(handles.grouplist)
-    gg=cum_grp_siz(g)+(1:length(handles.experimentlist{g}));
+    gg=cumsum_num_selexp_per_group(g)+(1:length(handles.experimentlist{g}));
     tmp2=[tmp2; ...
         repmat(g,nbehaviors*nfeatures,1) ...
         reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
@@ -1849,14 +1819,9 @@ toc
           sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg,:,:,4).^2))/2))', ...
           nbehaviors*nfeatures,1)];
 
-%    tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) nan(size(table_data{gg(g)},1),1) ...
-%        table_data{gg(g)}(:,1:2) ...
-%        (table_data{gg(g)}(:,3)-table_data{gg(g)}(:,4))./...
-%          sqrt(table_data{gg(g)}(:,5).^2+table_data{gg(g)}(:,6).^2)...
-%        table_data{gg(g)}(:,7) table_data{gg(g)}(:,8)];
     if(g==length(handles.grouplist))  break;  end
     for g2=(g+1):length(handles.grouplist)
-      gg2=cum_grp_siz(g2)+(1:length(handles.experimentlist{g2}));
+      gg2=cumsum_num_selexp_per_group(g2)+(1:length(handles.experimentlist{g2}));
       tmp2=[tmp2; ...
           repmat(g,nbehaviors*nfeatures,1) ...
           reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
@@ -1867,12 +1832,6 @@ toc
           reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
             sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg2,:,:,3).^2))/2))', ...
             nbehaviors*nfeatures,1)];
-
-%      tmp2=[tmp2; repmat(g,size(table_data{gg(g)},1),1) repmat(g2,size(table_data{gg(g)},1),1) ...
-%          table_data{gg(g)}(:,1:2) ...
-%          (table_data{g2}(:,3)-table_data{gg(g)}(:,3))./...
-%            sqrt(table_data{g2}(:,5).^2+table_data{gg(g)}(:,5).^2)...
-%          table_data{gg(g)}(:,7) table_data{g2}(:,7)];
     end
   end
   handles.interestingfeaturehistograms_cache=tmp2;
