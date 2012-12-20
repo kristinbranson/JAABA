@@ -309,6 +309,7 @@ classdef JLabelData < handle
     cacheSize = 4000;
     
     postprocessparams = []
+    version = '';
 end
   
   methods (Access=private)
@@ -607,6 +608,16 @@ end
         if isnumeric(obj.(fn)),
           error('%s did not get initialized',fn);
         end
+      end
+      
+      try 
+        vid = fopen('version.txt','r');
+        vv = textscan(vid,'%s');
+        fclose(vid);
+        obj.version = vv;
+      catch ME
+        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);
+        obj.version = '0.0';
       end
       
       % initialize the status table describing what required files exist
@@ -1795,7 +1806,8 @@ end
         end
       end
       timestamp = obj.classifierTS;
-      save(sfn,'allScores','timestamp');
+      version = obj.version;
+      save(sfn,'allScores','timestamp','version');
       obj.ClearStatus();
     end
     
@@ -1957,7 +1969,7 @@ end
       s = struct;
       s.classifierTS = obj.classifierTS;
       s.trainingdata = obj.SummarizeTrainingData();
-%       try
+      try
         for i = 1:numel(obj.classifiervars),
           fn = obj.classifiervars{i};
           if isfield(s,fn),
@@ -1973,9 +1985,9 @@ end
             
         end
         save(obj.classifierfilename,'-struct','s');
-%       catch ME,
-%         errordlg(getReport(ME),'Error saving classifier to file');
-%       end      
+      catch ME,
+        errordlg(getReport(ME),'Error saving classifier to file');
+      end      
       
     end
 
@@ -2024,15 +2036,16 @@ end
         imp_t0s = obj.labels(i).imp_t0s; %#ok<NASGU>
         imp_t1s = obj.labels(i).imp_t1s; %#ok<NASGU>
         
-%         try
-          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s');
-%         catch ME,
-%           if didbak,
-%             [didundo,msg] = copyfile([lfn,'~'],lfn);
-%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end
-%           end
-%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
-%         end
+        version = obj.version; %#ok<NASGU>
+        try
+          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
+        catch ME,
+          if didbak,
+            [didundo,msg] = copyfile([lfn,'~'],lfn);
+            if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
+          end
+          errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
+        end
       end
 
       
@@ -2068,7 +2081,7 @@ end
         if exist(lfn,'file'),
           [didbak,msg] = copyfile(lfn,[lfn,'~']);
           if ~didbak,
-            warning('Could not create backup of %s: %s',lfn,msg);
+            warning('Could not create backup of %s: %s',lfn,msg); %#ok<WNTAG>
           end
         end
 
@@ -2081,15 +2094,16 @@ end
         imp_t0s = obj.gt_labels(i).imp_t0s; %#ok<NASGU>
         imp_t1s = obj.gt_labels(i).imp_t1s; %#ok<NASGU>
         
-%         try
-          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s');
-%         catch ME,
-%           if didbak,
-%             [didundo,msg] = copyfile([lfn,'~'],lfn);
-%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end
-%           end
-%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
-%         end
+        version = obj.version; %#ok<NASGU>
+        try
+          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
+        catch ME,
+          if didbak,
+            [didundo,msg] = copyfile([lfn,'~'],lfn);
+            if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
+          end
+          errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
+        end
       end
 
       
@@ -6838,7 +6852,7 @@ end
       
       allScores = [];
       for expi = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(ndx)
+        for flies = 1:obj.nflies_per_exp(expi)
           curidx = obj.predictdata{expi}{flies}.cur_valid;
           allScores = [allScores obj.predictdata{expi}{flies}.cur(curidx)]; %#ok<AGROW>
         end
