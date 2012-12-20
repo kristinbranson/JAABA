@@ -410,8 +410,12 @@ end
           params.(fnames{ndx}) = JLabelData.convertTransTypes2Cell(params.(fnames{ndx}));
         end
       end
-      if isfield(params,'trans_types')&& ~iscell(params.trans_types)
-        params.trans_types = {params.trans_types};
+      if isfield(params,'trans_types')
+          if ~iscell(params.trans_types)
+              params.trans_types = {params.trans_types};
+          end
+        x = cellfun(@isempty,params.trans_types);
+        params.trans_types(x)=[];
       end
     end
     
