@@ -2,13 +2,15 @@
 % scores = JAABADetect(expdir,'classifierparamsfile',classifierparamsfile)
 function scores = JAABADetect(expdir,varargin)
 
-[blockSize,classifierfiles,configfiles,classifierparamsfile,configparams,forcecompute,DEBUG] = ...
+[blockSize,classifierfiles,configfiles,classifierparamsfile,configparams,forcecompute,DEBUG,isrelativepath,fnsrelative] = ...
   myparse(varargin,'blockSize',10000,...
   'classifierfiles',{},'configfiles',{},...
   'classifierparamsfile',0,...
   'configparams',[],...
   'forcecompute',false,...
-  'debug',false);
+  'debug',false,...
+  'isrelativepath',false,...
+  'fnsrelative',{'featureparamfilename'});
 
 if ischar(forcecompute),
   forcecompute = str2double(forcecompute) ~= 0;
@@ -18,26 +20,29 @@ if ischar(DEBUG),
 end
 
 if ischar(classifierparamsfile),
-  if ~exist(classifierparamsfile,'file'),
-    error('File %s does not exist',classifierparamsfile);
-  end
-  fid = fopen(classifierparamsfile,'r');
-  classifierfiles = {};
-  configfiles = {};
-  while true,
-    l = fgetl(fid);
-    if ~ischar(l),
-      break;
-    end
-    if isempty(l),
-      continue;
-    end
-    if strcmp(l(1),'%'), continue; end
-    ws = regexp(l,',','split');
-    classifierfiles{end+1} = ws{1}; %#ok<AGROW>
-    configfiles{end+1} = ws{2}; %#ok<AGROW>
-  end
-  fclose(fid);
+  configparams = ReadClassifierParamsFile(classifierparamsfile,'isrelativepath',isrelativepath,'fnsrelative',fnsrelative);
+  classifierfiles = {configparams.classifierfile};
+  configfiles = {configparams.configfile};
+%   if ~exist(classifierparamsfile,'file'),
+%     error('File %s does not exist',classifierparamsfile);
+%   end
+%   fid = fopen(classifierparamsfile,'r');
+%   classifierfiles = {};
+%   configfiles = {};
+%   while true,
+%     l = fgetl(fid);
+%     if ~ischar(l),
+%       break;
+%     end
+%     if isempty(l),
+%       continue;
+%     end
+%     if strcmp(l(1),'%'), continue; end
+%     ws = regexp(l,',','split');
+%     classifierfiles{end+1} = ws{1}; %#ok<AGROW>
+%     configfiles{end+1} = ws{2}; %#ok<AGROW>
+%   end
+%   fclose(fid);
 end
 
 nclassifiers = numel(classifierfiles);
