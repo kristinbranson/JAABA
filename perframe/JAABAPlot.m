@@ -1521,138 +1521,6 @@ during=[during{:}];
 not_during=[not_during{:}];
 
 
-% ---
-%function [table_data feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
-%function [feature_units]=plot_feature_histogram(experiment_value,experiment_list,...
-function h=plot_feature_histogram(experiment_value,experiment_list,...
-    score_file,behavior_logic,score_file2,...
-    feature_value,feature_list,individual,sexdata,perwhat,style,notduring,logbinsize,nbins,...
-    centraltendency,dispersion,color,fid)
-
-during=cell(1,length(experiment_value));
-not_during=cell(1,length(experiment_value));
-%bad=zeros(1,length(experiment_value));
-parfor e=1:length(experiment_value)
-%for e=1:length(experiment_value)
-  behavior_data=load(fullfile(experiment_list{experiment_value(e)},score_file));
-  if(behavior_logic>1)
-    behavior_data2=load(fullfile(experiment_list{experiment_value(e)},score_file2));
-  else
-    behavior_data2=[];
-  end
-  feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
-        [feature_list{feature_value} '.mat']));
-
-%  if((length(behavior_data.allScores.scores)~=length(feature_data.data)) || ...
-%      ((behavior_logic>1) && (length(behavior_data2.allScores.scores)~=length(feature_data.data))))
-%    bad(e)=1;
-%    continue;
-%  end
-
-  tmp2=sexdata{experiment_value(e)};
-  for i=1:length(tmp2)
-    switch(individual)
-      case(2)
-      case(3)
-        tmp2{i}=~tmp2{i};
-      otherwise
-        tmp2{i}=ones(1,length(tmp2{i}));
-    end
-  end
-  tmploop=nan;  if(individual>3)  tmploop=individual-3;  end
-
-  [during{e} not_during{e}]=calculate_feature_histogram(behavior_data,behavior_logic,behavior_data2,...
-      feature_data,tmp2,tmploop,perwhat);
-end
-
-%tmp=find(bad);
-%if(length(tmp)>0)
-%  during(tmp)=[];  not_during(tmp)=[];
-%  msg{1}=['the following experiments had different numbers of individuals ' ...
-%      'for the selected behavior and feature.  they will be ommitted from the analysis.'];
-%  msg{2}='';
-%  for i=1:length(tmp)
-%    [~,msg{end+1},~]=fileparts(experiment_list{i});
-%  end
-%  uiwait(errordlg(msg));
-%end
-
-max(cellfun(@(x) size(x,2),during));
-cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during,'uniformoutput',false);
-during=cat(1,ans{:});
-max(cellfun(@(x) size(x,2),not_during));
-cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during,'uniformoutput',false);
-not_during=cat(1,ans{:});
-
-if(logbinsize)
-  low=[];  high=[];
-  if(notduring)
-    foo=[during not_during];
-    if(~isempty(foo))
-      unique([reshape(abs(during),1,prod(size(during))) reshape(abs(not_during),1,prod(size(not_during)))]);
-      nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
-      low=min(min(foo));
-      high=max(max(foo));
-    end
-  else
-    if(~isempty(during))
-      unique(reshape(abs(during),1,prod(size(during))));
-      nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
-      low=min(min(during));
-      high=max(max(during));
-    end
-  end
-  if(~isempty(low) && ~isempty(high))
-    if((low>=0) && (high>0))
-      tmp=logspace(log10(max(low,nearzero)),log10(high),nbins);
-    elseif((low<0) && (high<=0))
-      tmp=fliplr(-logspace(log10(max(abs(high),nearzero)),log10(abs(low)),nbins));
-    elseif((low<0) && (high>0))
-      tmp=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
-          logspace(log10(nearzero),log10(abs(high)),nbins)];
-    end
-  end
-  %set(gca,'xscale','log');
-else
-  if(notduring)
-    foo=[during not_during];
-    if(~isempty(foo))
-      tmp=linspace(min(min(foo)),max(max(foo)),nbins);
-    end
-  else
-    if(~isempty(during))
-      tmp=linspace(min(min(during)),max(max(during)),nbins);
-    end
-  end
-end
-
-if(notduring)
-  if(~isempty(not_during))
-    hist_not_during=hist(not_during',tmp);
-    if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
-    hist_not_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_not_during,2));
-    hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
-    plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1,...
-      fid,experiment_list(experiment_value));
-  else
-    plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
-      fid,experiment_list(experiment_value));
-  end
-end
-if(~isempty(during))
-  hist_during=hist(during',tmp);
-  if(size(hist_during,1)==1)  hist_during=hist_during';  end
-  hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
-  hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
-  linewidth=1;  if(notduring)  linewidth=2;  end
-  h=plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
-      fid,experiment_list(experiment_value));
-else
-  h=plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
-      fid,experiment_list(experiment_value));
-end
-
-
 % --- Executes on button press in FeatureHistogram.
 function FeatureHistogram_Callback(hObject, eventdata, handles)
 % hObject    handle to FeatureHistogram (see GCBO)
@@ -1663,24 +1531,25 @@ set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
 drawnow;
 
+handlesexperimentlist=[handles.experimentlist{:}];
+
 cumsum_num_indi_per_exp=[0 cumsum(handles.individuals(:,1))'];
 cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
+mat2cell(cumsum_num_exp_per_group(1:end-1),1,ones(1,length(cumsum_num_exp_per_group)-1));
+cellfun(@(x,y) x+y,handles.experimentvalue,ans,'uniformoutput',false);
+selected_exp=[ans{:}];
 
-gg=1:length(handles.grouplist);
-experimentvalue=handles.experimentvalue;
+ggee=1:length(handlesexperimentlist);
 individual=handles.individualvalue;
 if(individual>3)
-  tmp=find(cumsum_num_indi_per_exp<(individual-3),1,'last');
-  gg=find(cumsum_num_exp_per_group<tmp,1,'last');
-  experimentvalue{gg}=tmp-cumsum_num_exp_per_group(gg);
-  individual=individual-cumsum_num_indi_per_exp(tmp);
+  ggee=find(cumsum_num_indi_per_exp<(individual-3),1,'last');
+  individual=individual-cumsum_num_indi_per_exp(ggee);
 end
 
 fid=fopen('most_recent_figure.csv','w');
 
 handles.type='feature histogram';
 
-%guidata(figure('ButtonDownFcn',@ButtonDownFcn_Callback),handles);  hold on;
 h=figure('toolbar','figure');  hold on;
 guidata(h,handles);
 uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
@@ -1688,10 +1557,16 @@ uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
+behavior_logic=handles.behaviorlogic;
+score_file2=handles.scorefiles{handles.behaviorvalue2};
+feature_value=handles.featurevalue;
+feature_list=handles.featurelist;
+notduring=handles.featurehistogram_notduring;
+nbins=handles.featurehistogram_nbins;
+
 h=[];
 for b=bb
 
-  %xlabel(get_label(handles.featurelist(handles.featurevalue),feature_units{1}));
   tstr=char(strrep(handles.behaviorlist(b),'_','-'));
   switch(handles.behaviorlogic)
     case 2
@@ -1704,10 +1579,9 @@ for b=bb
   if(handles.behaviorlogic>1)
     tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
   end
-  %xstr=[xstr ' (%)'];
-  units=load(fullfile(handles.experimentlist{gg(1)}{experimentvalue{gg(1)}(1)},'perframe',...
-      [handles.featurelist{handles.featurevalue} '.mat']),'units');
-  xstr=get_label(handles.featurelist(handles.featurevalue),units.units);
+  units=load(fullfile(handlesexperimentlist{ggee(1)},'perframe',...
+      [feature_list{feature_value} '.mat']),'units');
+  xstr=get_label(feature_list(feature_value),units.units);
   ystr='normalized';
 
   print_csv_help(fid,handles.type,tstr,xstr,ystr);
@@ -1718,33 +1592,132 @@ for b=bb
   end
   hold on;
 
-  for g=gg
-    set(handles.Status,'string',...
-        ['Processing ' num2str(length(handles.experimentvalue{g})) ' experiment(s) in group ' handles.grouplist{g}]);
-    %drawnow;
+  score_file=handles.scorefiles{b};
 
-    if(isempty(experimentvalue{g}))  continue;  end
+  during=cell(1,length(ggee));
+  not_during=cell(1,length(ggee));
+  parfor ge=ggee
+    if((individual<4)&&(~ismember(ge,selected_exp)))  continue;  end
+
+    behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
+    if(behavior_logic>1)
+      behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
+    else
+      behavior_data2=[];
+    end
+    feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
+          [feature_list{feature_value} '.mat']));
+
+    tmp2=handles.sexdata{ge};
+    for i=1:length(tmp2)
+      switch(individual)
+        case(2)
+        case(3)
+          tmp2{i}=~tmp2{i};
+        otherwise
+          tmp2{i}=ones(1,length(tmp2{i}));
+      end
+    end
+    tmploop=nan;  if(individual>3)  tmploop=individual-3;  end
+
+    [during{ge} not_during{ge}]=calculate_feature_histogram(...
+        behavior_data,behavior_logic,behavior_data2,feature_data,tmp2,tmploop,...
+        handles.featurehistogram_perwhat);
+  end
+
+  max(cellfun(@(x) size(x,2),during));
+  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during,'uniformoutput',false);
+  during=cat(1,ans{:});
+  max(cellfun(@(x) size(x,2),not_during));
+  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during,'uniformoutput',false);
+  not_during=cat(1,ans{:});
+
+  low=[];  high=[];  nearzero=[];
+  if(~isempty(during))
+    low=min(min(during));
+    high=max(max(during));
+    unique(reshape(abs(during),1,prod(size(during))));
+    nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+  end
+  if(notduring && ~isempty(not_during))
+    low=min([low min(not_during)]);
+    high=max([high max(not_during)]);
+    unique(reshape(abs(not_during),1,prod(size(not_during))));
+    tmp=ans(1);  if(ans(1)==0)  tmp=ans(2);  end
+    nearzero=min(tmp,nearzero);
+  end
+
+  if(~isempty(low) && ~isempty(high) && ~isempty(nearzero))
+    if(handles.featurehistogram_logbinsize)
+      if((low>=0) && (high>0))
+        tmp=logspace(log10(max(low,nearzero)),log10(high),nbins);
+      elseif((low<0) && (high<=0))
+        tmp=fliplr(-logspace(log10(max(abs(high),nearzero)),log10(abs(low)),nbins));
+      elseif((low<0) && (high>0))
+        tmp=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
+            logspace(log10(nearzero),log10(abs(high)),nbins)];
+      end
+    else
+      tmp=linspace(low,high,nbins);
+    end
+  end
+
+  style=handles.featurehistogram_style;
+  centraltendency=handles.prefs_centraltendency;
+  dispersion=handles.prefs_dispersion;
+
+  for g=1:length(handles.grouplist)
+    color=handles.colors(g,:);
 
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    h(g)=plot_feature_histogram(experimentvalue{g},handles.experimentlist{g},...
-        handles.scorefiles{b},handles.behaviorlogic,handles.scorefiles{handles.behaviorvalue2},...
-        handles.featurevalue,handles.featurelist,individual,...
-        handles.sexdata((cumsum_num_exp_per_group(g)+1):cumsum_num_exp_per_group(g+1)),...
-        handles.featurehistogram_perwhat,handles.featurehistogram_style,...
-        handles.featurehistogram_notduring,handles.featurehistogram_logbinsize,handles.featurehistogram_nbins,...
-        handles.prefs_centraltendency,handles.prefs_dispersion,...
-        handles.colors(g,:),fid);
-        %handles.colors{1,1+mod(g-1,length(handles.colors))},fid);
+
+    if(individual<4)
+      idx=(cumsum_num_exp_per_group(g)+1):(cumsum_num_exp_per_group(g+1));
+    else
+      find(cumsum_num_exp_per_group<ggee,1,'last');
+      if(ans~=g)  continue;  end
+      idx=1;
+    end
+
+    if(notduring)
+      if(~isempty(not_during(idx,:)))
+        hist_not_during=hist(not_during(idx,:)',tmp);
+        if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
+        hist_not_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_not_during,2));
+        hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
+        plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1,...
+          fid,experiment_list(experiment_value));
+      else
+        plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
+          fid,experiment_list(experiment_value));
+      end
+    end
+    if(~isempty(during(idx,:)))
+      hist_during=hist(during(idx,:)',tmp);
+      if(size(hist_during,1)==1)  hist_during=hist_during';  end
+      hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
+      hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
+      linewidth=1;  if(notduring)  linewidth=2;  end
+      h(g)=plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
+          fid,handlesexperimentlist(idx));
+    else
+      h(g)=plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
+          fid,handlesexperimentlist(idx));
+    end
   end
 
   title(tstr);
   xlabel(xstr);
   ylabel(ystr);
   axis tight;  zoom reset;
-
 end
+
 idx=find(h>0);
-legend(h(idx),handles.grouplist(gg));
+if(individual<4)
+  legend(h(idx),handles.grouplist);
+else
+  legend(h(idx),handles.individuallist(individual));
+end
 
 fclose(fid);
 
