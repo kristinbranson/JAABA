@@ -178,7 +178,7 @@ for(j=1:2:length(varargin)-1)
   if(strcmpi(varargin{j},'trans_types'))
     tmp=uint8(0);
     if ischar(varargin{j+1})
-      fprintf('Trans types is string. It should be cell\n');
+      warning('Trans types is string. It should be cell');
       varargin{j+1} = {varargin{j+1}};
     end
     for(i=1:length(varargin{j+1}))
@@ -196,7 +196,7 @@ for(k=2:2:length(varargin))
       if(strcmpi(varargin{k}{j},'trans_types'))
         tmp=uint8(0);
         if ischar(varargin{k}{j+1})
-          fprintf('Trans types is string. It should be cell\n');
+          warning('Trans types is string. It should be cell');
           varargin{k}{j+1} = {varargin{k}{j+1}};
         end
 
