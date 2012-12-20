@@ -1650,15 +1650,16 @@ for b=bb
   if(~isempty(low) && ~isempty(high) && ~isempty(nearzero))
     if(handles.featurehistogram_logbinsize)
       if((low>=0) && (high>0))
-        tmp=logspace(log10(max(low,nearzero)),log10(high),nbins);
+        bins=logspace(log10(max(low,nearzero)),log10(high),nbins);
       elseif((low<0) && (high<=0))
-        tmp=fliplr(-logspace(log10(max(abs(high),nearzero)),log10(abs(low)),nbins));
+        bins=fliplr(-logspace(log10(max(abs(high),nearzero)),log10(abs(low)),nbins));
       elseif((low<0) && (high>0))
-        tmp=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
+        bins=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
             logspace(log10(nearzero),log10(abs(high)),nbins)];
       end
+      plot(bins,zeros(1,length(bins)),'k.');
     else
-      tmp=linspace(low,high,nbins);
+      bins=linspace(low,high,nbins);
     end
   end
 
@@ -1681,11 +1682,11 @@ for b=bb
 
     if(notduring)
       if(~isempty(not_during(idx,:)))
-        hist_not_during=hist(not_during(idx,:)',tmp);
+        hist_not_during=hist(not_during(idx,:)',bins);
         if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
-        hist_not_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_not_during,2));
+        hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
         hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
-        plot_it(tmp,hist_not_during',style,centraltendency,dispersion,color,1,...
+        plot_it(bins,hist_not_during',style,centraltendency,dispersion,color,1,...
           fid,experiment_list(experiment_value));
       else
         plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
@@ -1693,12 +1694,12 @@ for b=bb
       end
     end
     if(~isempty(during(idx,:)))
-      hist_during=hist(during(idx,:)',tmp);
+      hist_during=hist(during(idx,:)',bins);
       if(size(hist_during,1)==1)  hist_during=hist_during';  end
-      hist_during.*repmat(([0 diff(tmp)]+[diff(tmp) 0])'/2,1,size(hist_during,2));
+      hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
       hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
       linewidth=1;  if(notduring)  linewidth=2;  end
-      h(g)=plot_it(tmp,hist_during',style,centraltendency,dispersion,color,linewidth,...
+      h(g)=plot_it(bins,hist_during',style,centraltendency,dispersion,color,linewidth,...
           fid,handlesexperimentlist(idx));
     else
       h(g)=plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
