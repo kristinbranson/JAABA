@@ -96,7 +96,9 @@ bool StructuredLearnerJaabaRpc::RelabelExample(const Json::Value& root, Json::Va
     learner->SaveTrainingSet(ind);
 
     if(recomputeStatistics) {
+      learner->Lock();
       ((SVMBehaviorSequence*)learner)->compute_feature_mean_variance_median_statistics(learner->GetTrainset());
+      learner->Unlock();
     }
     if(num_optimization_iters) {
       learner->Lock();
@@ -490,6 +492,7 @@ bool SVMFlyBehaviorSequence::ReadFeatureParam(FILE *modelfl, SVMFeatureParams *p
 int SVMFlyBehaviorSequence::ReadFeatureParams(const char *fname, SVMFeatureParams *p) {
   int num = 0;
   FILE *fin = fopen(fname, "r");
+  if(!fin) { fprintf(stderr, "Couldn't open feature file %s\n", fname); }
   assert(fin);
   while(fscanf(fin, "%s ", feature_defs[num].name) && strlen(feature_defs[num].name) && 
 	feature_defs[num].name[strlen(feature_defs[num].name)-1] == ':') {

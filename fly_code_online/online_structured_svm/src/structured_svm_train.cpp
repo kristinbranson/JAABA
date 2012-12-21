@@ -824,7 +824,7 @@ void StructuredSVM::RelabelExample(StructuredExample *ex, StructuredLabel *y) {
   hasConverged = false;
 
   delete ex->y;
-  ex->y = y;
+  ex->y = NULL;
   if(ex->set) {
     if(ex->set->psi_gt) {
       // Recompute the features at the ground truth label psi_gt
@@ -863,6 +863,7 @@ void StructuredSVM::RelabelExample(StructuredExample *ex, StructuredLabel *y) {
 	UpdateWeights(ex->set, ex->set->i);
     }
   }
+  ex->y = y;
   
   relabelingExample = false;
   Unlock();

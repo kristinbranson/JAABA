@@ -90,6 +90,8 @@ public:
       non_sparse = (double*)malloc(sizeof(double)*n);
       memcpy(non_sparse, v, sizeof(double)*n);
     } else {
+      numAlloc = 1;
+      elements = (SparseVectorElement*)realloc(elements, numAlloc*sizeof(SparseVectorElement));
       for(int i = 0; i < n; i++) {
 	if(v[i]) {
 	  if((numNonZero+2) > numAlloc) {

@@ -11,6 +11,6 @@
       <params fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
       <landmark_params arena_center_mm_x="0" arena_center_mm_y="0" arena_radius_mm="60" arena_type="circle"/>
    </perframe>
-   <network_server ip_address="127.0.0.1" port="8086" />
+   <network_server ip_address="127.0.0.1" port="8086" recompute_bout_statistics_on_relabel="true" num_optimization_iters_on_relabel="10"/>
 
 </params>

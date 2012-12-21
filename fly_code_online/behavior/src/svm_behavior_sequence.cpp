@@ -69,6 +69,8 @@ char *g_feature_names[MAX_FEATURES];
 
 SVMBehaviorSequence::SVMBehaviorSequence(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams) : StructuredSVM() {
   memset(restrict_behavior_features, 0, sizeof(bool*)*MAX_BEHAVIOR_GROUPS);
+  memset(false_negative_cost, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
+  memset(false_positive_cost, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
 #if USE_DURATION_COST > 0
   memset(min_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
   memset(max_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
@@ -78,6 +80,8 @@ SVMBehaviorSequence::SVMBehaviorSequence(int num_feat, struct _BehaviorGroups *b
 
 SVMBehaviorSequence::SVMBehaviorSequence(struct _BehaviorGroups *behaviors, int beh)  : StructuredSVM(){
   memset(restrict_behavior_features, 0, sizeof(bool*)*MAX_BEHAVIOR_GROUPS);
+  memset(false_negative_cost, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
+  memset(false_positive_cost, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
 #if USE_DURATION_COST > 0
   memset(min_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
   memset(max_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
@@ -3138,6 +3142,15 @@ BehaviorBoutFeatures::BehaviorBoutFeatures() {
   features = NULL;
   frame_times = NULL;
   fvec = NULL;
+
+  frame_times = NULL;
+  features = smoothed_features = integral_features = integral_sqr_features = NULL;
+  max_feature_responses = min_feature_responses = ave_feature_responses = NULL;
+  integral_histogram_features = NULL;
+  histogram_bins = NULL;
+
+  bout_max_feature_responses = bout_min_feature_responses = NULL;
+  bout_start = bout_end = num_frames = num_base_features = 0;
 }
 
 BehaviorBoutFeatures::~BehaviorBoutFeatures() {
