@@ -61,6 +61,7 @@ obj.endframes(flies) = [traj.endframe];
 obj.nframes(flies) = [traj.nframes];
 
 % Adding the arena parameters if they exist for rectangular arena.
+setlandmarkparams = false;
 if isfield(traj(1),'arena') 
   
   if isfield(traj(1).arena,'tl')
@@ -76,6 +77,7 @@ if isfield(traj(1),'arena')
       obj.landmark_params{n}.br_y(ndx) = traj(count).arena.br(2);
       count = count+1;
     end
+    setlandmarkparams = true;
   elseif isfield(traj(1).arena,'arena_radius_mm')
     count = 1;
     for ndx = flies(:)'
@@ -84,11 +86,10 @@ if isfield(traj(1),'arena')
       obj.landmark_params{n}.arena_center_mm_y(ndx) = traj(count).arena.arena_center_mm_y;
       count = count+1;
     end
-  else
-    obj.landmark_params{n} = obj.default_landmark_params;
+    setlandmarkparams = true;
   end
-  
-else
+end
+if ~setlandmarkparams,
   fns = fieldnames(obj.default_landmark_params);
   obj.landmark_params{n} = obj.default_landmark_params;
   for i = 1:numel(fns),
