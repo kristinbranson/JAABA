@@ -426,6 +426,7 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
   int AddExample(StructuredData *x, StructuredLabel *y);  
 
   void RelabelExample(StructuredExample *ex, StructuredLabel *y);
+  void OptimizeAllConstraints(int num_iter);
 
   /**
    * @brief Load a training set from file in the format of LoadDataset()
@@ -500,6 +501,8 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
    */
   double GetLambda() { return lambda; }
 
+  void PauseWorkerThreads(bool pause, bool wait=false);
+  void FlushCache(bool lock = true);
 
   /**
    * @brief Save the training set to the same location read by LoadTrainset()
@@ -627,6 +630,7 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
   int maxCachedSamplesPerExample;
   bool savingCachedExamples;
   bool relabelingExample;
+  bool pauseWorkers;
 
   int modelId;
   int iterId;
@@ -709,7 +713,6 @@ protected:
   long UpdateWeightsAddStatisticsBefore(struct _SVM_cached_sample_set *ex, int iterInd);
   void UpdateWeightsAddStatisticsAfter(struct _SVM_cached_sample_set *ex, int iterInd, long tt);
   void RecomputeWeights(bool full=true);
-  void OptimizeAllConstraints(int num_iter);
   bool SaveOnlineData(const char *fname);
   bool LoadOnlineData(const char *fname);
   void CreateTrainingExampleQueues(int ind);
@@ -833,6 +836,7 @@ void write_SVM_cached_sample_set(SVM_cached_sample_set *s, FILE *fout, Structure
 void write_SVM_cached_sample_set(SVM_cached_sample_set *s, FILE *fout, StructuredSVM *svm, bool writeFull);
 SVM_cached_sample *SVM_cached_sample_set_add_sample(SVM_cached_sample_set *s, StructuredLabel *ybar);
 void clear_SVM_cached_sample(SVM_cached_sample *s);
+void clear_SVM_cached_sample_set(SVM_cached_sample_set *s, bool clearEvicted=true);
 int SVM_cached_sample_cmp(const void * a, const void * b);
 int SVM_cached_sample_set_alpha_cmp(const void *a, const void *b);
 int SVM_cached_sample_set_ave_slack_cmp(const void *a, const void *b);

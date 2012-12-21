@@ -335,6 +335,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   void Init(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams = NULL);
   
   int NumBaseFeatures() { return num_base_features; }
+  SVMFeatureParams *BaseFeatures() { return feature_params; }
 
   SVMFeatureParams DefaultParams();
   struct _BehaviorGroups *Behaviors() { return behaviors; }
@@ -345,7 +346,6 @@ class SVMBehaviorSequence : public StructuredSVM {
   void print_weights(const char *fname, double *w); 
   void set_feature_name(int feature_ind, int base_feature_ind, const char *name);
   double loss2(StructuredLabel *y_gt,  StructuredLabel *y_pred, int beh, int debug);
-
 
   double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int beh, int c, double *feat, bool normalize=true, 
 		   bool fast_update=false, double get_extreme_vals[2][NUMFEAT]=NULL, double use_extreme_vals[2][NUMFEAT]=NULL);
@@ -389,6 +389,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   void init_weight_pointers(int beh, double* &ptr, double** &class_weights, double** &transition_weights, double* &unary_weights, double* &duration_weights);
   double get_duration_score(int duration, int c, int beh, double *duration_weights);
   bool fill_unlabeled_gt_frames(BehaviorBoutSequence *&y_gt, BehaviorBoutSequence *&y_partial);
+  void ComputeClassTrainsitionCounts();
 
   friend class BehaviorBoutSequence;
 };

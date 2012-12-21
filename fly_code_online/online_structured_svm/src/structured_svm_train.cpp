@@ -200,7 +200,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
       // Worker threads, continuously call ybar=find_most_violated_constraint and then use ybar to update the current weights
       int i = -1;
       while(!finished) {
-        while(savingCachedExamples || relabelingExample) 
+        while(savingCachedExamples || relabelingExample || pauseWorkers) 
 	  usleep(100000);
         
         // Choose a training example 'i' to process
@@ -216,7 +216,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
 
         SVM_cached_sample_set *set = trainset->examples[i]->set;
         if(!set) {
-          set = new_SVM_cached_sample_set(i, Psi(ex->x, ex->y).ptr());
+          trainset->examples[i]->set = set = new_SVM_cached_sample_set(i, Psi(ex->x, ex->y).ptr());
           set->psi_gt_sqr = set->psi_gt->dot(*set->psi_gt, useWeights);
         } 
         set->lock = true;
@@ -781,6 +781,38 @@ int StructuredSVM::AddExample(StructuredData *x, StructuredLabel *y) {
   return retval;
 }
 
+
+// Results in preserving a cache of extracted sample labels, but otherwise restarting optimization
+void StructuredSVM::FlushCache(bool lock) {
+  if(lock) Lock(); 
+  for(int i = 0; i < trainset->num_examples; i++) {
+    StructuredExample *ex = trainset->examples[i];
+    while(ex->set && ex->set->lock) {
+      Unlock();
+      usleep(100000);
+      Lock();
+    }
+    if(ex->set) {
+      clear_SVM_cached_sample_set(ex->set, false);
+      if(ex->set->psi_gt) 
+	delete ex->set->psi_gt;
+      ex->set->psi_gt = NULL;
+
+      for(int j = 0; j < ex->set->num_samples; j++) 
+	clear_SVM_cached_sample(&ex->set->samples[j]);
+    }
+  }
+  hasConverged = false;
+
+  SetTrainset(trainset);  
+  if(!sum_w) {
+    sum_w = new SparseVector;
+    sum_w->make_non_sparse(true, sizePsi);
+  }
+
+  if(lock) Unlock();
+}
+
 void StructuredSVM::RelabelExample(StructuredExample *ex, StructuredLabel *y) {
   Lock(); 
   relabelingExample = true;
@@ -1048,6 +1080,22 @@ SparseVector *StructuredSVM::GetCurrentWeights(bool lock) {
 }
 
 
+void StructuredSVM::PauseWorkerThreads(bool pause, bool wait) { 
+    pauseWorkers = pause; 
+    if(wait) {
+      Lock();
+      for(int i = 0; i < trainset->num_examples; i++) {
+	StructuredExample *ex = trainset->examples[i];
+	while(ex->set && ex->set->lock) {
+	  Unlock();
+	  usleep(100000);
+	  Lock();
+	}
+      }
+      Unlock();
+    }
+}
+
 void free_SVM_cached_sample(SVM_cached_sample *s) {
   if(s->ybar) delete s->ybar;
   if(s->psi) delete s->psi;
@@ -1096,7 +1144,7 @@ void write_SVM_cached_sample(SVM_cached_sample *s, FILE *fout, StructuredSVM *sv
 
 
 
-void clear_SVM_cached_sample_set(SVM_cached_sample_set *s) {
+ void clear_SVM_cached_sample_set(SVM_cached_sample_set *s, bool clearEvicted) {
   if(s->u_i)
     delete s->u_i;
   s->u_i = NULL;
@@ -1117,13 +1165,15 @@ void clear_SVM_cached_sample_set(SVM_cached_sample_set *s) {
   s->numIters = 0;
   s->sumSlack = 0;
 
-  if(s->evicted_labels) {
-    for(int i = 0; i < s->num_evicted_labels; i++)
-      delete s->evicted_labels[i];
-    free(s->evicted_labels);
-    s->evicted_labels = NULL;
+  if(clearEvicted) {
+    if(s->evicted_labels) {
+      for(int i = 0; i < s->num_evicted_labels; i++)
+	delete s->evicted_labels[i];
+      free(s->evicted_labels);
+      s->evicted_labels = NULL;
+    }
+    s->num_evicted_labels = 0;
   }
-  s->num_evicted_labels = 0;
 }
 
 SVM_cached_sample_set *new_SVM_cached_sample_set(int i, SparseVector *psi_gt) {

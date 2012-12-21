@@ -68,32 +68,21 @@ char *g_feature_names[MAX_FEATURES];
 
 
 SVMBehaviorSequence::SVMBehaviorSequence(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams) : StructuredSVM() {
-	for(int i = 0; i < behaviors->num; i++) {
-		if(beh == -1 || i == beh) {
-			restrict_behavior_features[i] = (bool**)malloc(behaviors->behaviors[i].num_values*sizeof(bool*));
-			memset(restrict_behavior_features[i], 0, sizeof(bool*)*behaviors->behaviors[i].num_values);
-			/*
-			CSC & SB 20110324: changed beh to i
-			*/
-		}
-	}
-
-	Init(num_feat, behaviors, beh, sparams);
+  memset(restrict_behavior_features, 0, sizeof(bool*)*MAX_BEHAVIOR_GROUPS);
+#if USE_DURATION_COST > 0
+  memset(min_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
+  memset(max_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
+#endif
+  Init(num_feat, behaviors, beh, sparams);
 }
 
 SVMBehaviorSequence::SVMBehaviorSequence(struct _BehaviorGroups *behaviors, int beh)  : StructuredSVM(){
-	Init(0, behaviors, beh);
-	for(int i = 0; i < behaviors->num; i++) {
-		if(beh == -1 || i == beh) {
-			restrict_behavior_features[i] = (bool**)malloc(behaviors->behaviors[i].num_values*sizeof(bool*));
-			memset(restrict_behavior_features[i], 0, sizeof(bool*)*behaviors->behaviors[i].num_values);
-			/*
-			CSC & SB 20110324: changed beh to i
-			restrict_behavior_features[beh] = (bool**)malloc(behaviors->behaviors[beh].num_values*sizeof(bool*));
-			memset(restrict_behavior_features[beh], 0, sizeof(bool*)*behaviors->behaviors[beh].num_values);
-			*/
-		}
-	}
+  memset(restrict_behavior_features, 0, sizeof(bool*)*MAX_BEHAVIOR_GROUPS);
+#if USE_DURATION_COST > 0
+  memset(min_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
+  memset(max_frame_duration, 0, sizeof(double*)*MAX_BEHAVIOR_GROUPS);
+#endif
+  Init(0, behaviors, beh);
 }
 
 void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, int beh, SVMFeatureParams *sparams) {
@@ -150,13 +139,13 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 	
 	sizePsi = 0;
 	compute_feature_space_size();
-	for(int bh = 0; bh < behaviors->num; bh++) {
+	for(int bh = 0; behaviors && bh < behaviors->num; bh++) {
 		num_classes[bh] = behaviors->behaviors[bh].num_values;
 
-		false_negative_cost[bh] = (double*)malloc(2*sizeof(double)*num_classes[bh]);
+		false_negative_cost[bh] = (double*)realloc(false_negative_cost[bh], 2*sizeof(double)*num_classes[bh]);
 		false_positive_cost[bh] = false_negative_cost[bh]+num_classes[bh];
 #if USE_DURATION_COST > 0
-		min_frame_duration[bh]  = (double*)malloc(2*sizeof(double)*num_classes[bh]);
+		min_frame_duration[bh]  = (double*)realloc(min_frame_duration[bh], 2*sizeof(double)*num_classes[bh]);
 		max_frame_duration[bh]  = min_frame_duration[bh]+num_classes[bh];
 #endif
 		// It is assumed here that the label 0 is the unknown label.  The user could define custom
@@ -188,6 +177,17 @@ void SVMBehaviorSequence::Init(int num_feat, struct _BehaviorGroups *behaviors, 
 #endif
 		sizePsi += getPsiSize(this->num_features, this->num_classes[bh]);
 	}
+
+	for(int i = 0; behaviors && i < behaviors->num; i++) {
+		if(beh == -1 || i == beh) {
+		  restrict_behavior_features[i] = (bool**)realloc(restrict_behavior_features[i], behaviors->behaviors[i].num_values*sizeof(bool*));
+			memset(restrict_behavior_features[i], 0, sizeof(bool*)*behaviors->behaviors[i].num_values);
+			/*
+			CSC & SB 20110324: changed beh to i
+			*/
+		}
+	}
+	fprintf(stderr, "Psi is %d-dimensional, over %d base features, %d appearance features, and %d class features\n", sizePsi, num_base_features, num_features, sizePsi-num_features);
 }
 
 SVMBehaviorSequence::~SVMBehaviorSequence() {
@@ -358,6 +358,7 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 	BehaviorBoutFeatures *x;
 	StructuredExample **ex = dataset->examples;
 
+	ComputeClassTrainsitionCounts();
       
 	// Count the total number of bouts in the training set
 	for(n = 0; n < dataset->num_examples; n++) {
@@ -377,8 +378,10 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 		for(i=0; i<num_classes[beh]; i++){
 		  //false_negative_cost[beh][i] /= num_bouts_per_class[beh][i];
 		  //false_positive_cost[beh][i] /= num_bouts_per_class[beh][i];
+		  if(class_training_count[beh][i]) {
 			false_negative_cost[beh][i] /= class_training_count[beh][i];
 			false_positive_cost[beh][i] /= class_training_count[beh][i];
+		  }
 		}
 	}
 #endif
@@ -1190,43 +1193,11 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 	StructuredDataset *dataset = new StructuredDataset();
 	int duration = 0;
 
-	// Keep track of the number of transitions between each pair of classes
-	if(computeClassTransitions) {
-		class_training_transitions = (int***)malloc(behaviors->num*sizeof(int**));
-		class_training_transitions_count = (int**)malloc(behaviors->num*sizeof(int*));
-		class_training_count = (int**)malloc(behaviors->num*sizeof(int*));
-		for(beh = 0; beh < behaviors->num; beh++) {
-			class_training_transitions[beh] = (int**)malloc(num_classes[beh]*sizeof(int*));
-			class_training_transitions_count[beh] = (int*)malloc(num_classes[beh]*sizeof(int));
-			class_training_count[beh] = (int*)malloc(num_classes[beh]*sizeof(int));
-			for(i = 0; i < num_classes[beh]; i++) {
-				class_training_transitions[beh][i] = (int*)malloc(num_classes[beh]*sizeof(int));
-				class_training_count[beh][i] = class_training_transitions_count[beh][i] = 0;
-				for(j = 0; j < num_classes[beh]; j++) {
-					class_training_transitions[beh][i][j] = 0;
-				}
-			}
-		}
-	}
-
 	for(j = 0; j < num; j++) {
 		StructuredExample *ex = read_struct_example(train_list[j], train_list[j], false);
 		dataset->AddExample(ex);
 		BehaviorBoutSequence *y = (BehaviorBoutSequence*)ex->y;
-		if(computeClassTransitions) {
-			for(beh = 0; beh < behaviors->num; beh++) {
-				for(i = 0; i < y->num_bouts[beh]; i++) {
-					class_training_count[beh][y->bouts[beh][i].behavior]++;
-#if USE_DURATION_COST > 0
-					duration = y->bouts[beh][i].end_frame - y->bouts[beh][i].start_frame;
-					min_frame_duration[beh][y->bouts[beh][i].behavior] = my_min(min_frame_duration[beh][y->bouts[beh][i].behavior], duration);
-					max_frame_duration[beh][y->bouts[beh][i].behavior] = my_max(max_frame_duration[beh][y->bouts[beh][i].behavior], duration);
-#endif
-					if(i)
-						class_training_transitions[beh][y->bouts[beh][i].behavior][y->bouts[beh][i-1].behavior]++;
-				}
-			}	 
-		} 
+		
 		// Temporary fix, ground truth segmentations should have bouts that span all the way to b->num_frames
 		int T = ((BehaviorBoutFeatures*)ex->x)->num_frames;
 		if(y->num_bouts && y->num_bouts[0] && y->bouts[0][y->num_bouts[0]-1].end_frame==T-1)
@@ -1257,18 +1228,6 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 			sprintf(fname, "%s/features_normalized.txt", debugdir);
 			print_features(fname, dataset, true);
 		}
-
-
-		// Compress the class transitions into a sparse array
-		for(beh = 0; beh < behaviors->num; beh++) {
-			for(i = 0; i < num_classes[beh]; i++) {
-				class_training_transitions_count[beh][i] = 0;
-				for(j = 0; j < num_classes[beh]; j++) {
-					if(class_training_transitions[beh][i][j])
-						class_training_transitions[beh][i][class_training_transitions_count[beh][i]++] = j;
-				}
-			}
-		}
 	} /*else {
 		for(j = 0; j < num; j++) {
 			BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)dataset->examples[j]->x;
@@ -1280,6 +1239,60 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 	Unlock();
 
 	return dataset;
+}
+
+
+
+// Keep track of the number of transitions between each pair of classes
+void SVMBehaviorSequence::ComputeClassTrainsitionCounts() {
+  int beh, i, j, duration;
+  bool allocate = !class_training_transitions;
+  if(allocate) {
+    class_training_transitions = (int***)malloc(behaviors->num*sizeof(int**));
+    class_training_transitions_count = (int**)malloc(behaviors->num*sizeof(int*));
+    class_training_count = (int**)malloc(behaviors->num*sizeof(int*));
+  }
+  for(beh = 0; beh < behaviors->num; beh++) {
+    if(allocate) {
+      class_training_transitions[beh] = (int**)malloc(num_classes[beh]*sizeof(int*));
+      class_training_transitions_count[beh] = (int*)malloc(num_classes[beh]*sizeof(int));
+      class_training_count[beh] = (int*)malloc(num_classes[beh]*sizeof(int));
+    }
+    for(i = 0; i < num_classes[beh]; i++) {
+      class_training_transitions[beh][i] = (int*)malloc(num_classes[beh]*sizeof(int));
+      class_training_count[beh][i] = class_training_transitions_count[beh][i] = 0;
+      for(j = 0; j < num_classes[beh]; j++) {
+	class_training_transitions[beh][i][j] = 0;
+      }
+    }
+    for(j = 0; j < trainset->num_examples; j++) {
+      BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)trainset->examples[j]->x;
+      BehaviorBoutSequence *y = (BehaviorBoutSequence*)trainset->examples[j]->y;
+      for(i = 0; i < y->num_bouts[beh]; i++) {
+	class_training_count[beh][y->bouts[beh][i].behavior]++;
+#if USE_DURATION_COST > 0
+	duration = y->bouts[beh][i].end_frame - y->bouts[beh][i].start_frame;
+	min_frame_duration[beh][y->bouts[beh][i].behavior] = my_min(min_frame_duration[beh][y->bouts[beh][i].behavior], duration);
+	max_frame_duration[beh][y->bouts[beh][i].behavior] = my_max(max_frame_duration[beh][y->bouts[beh][i].behavior], duration);
+#endif
+	if(i) {
+	  class_training_transitions[beh][y->bouts[beh][i].behavior][y->bouts[beh][i-1].behavior]++;
+	  if(i==y->num_bouts[beh]-1 && y->bouts[beh][i].behavior != NONE_BEHAVIOR && y->bouts[beh][i].end_frame < x->num_frames)
+	    class_training_transitions[beh][NONE_BEHAVIOR][y->bouts[beh][i].behavior]++;
+	} else if(y->bouts[beh][i].start_frame > 0 && y->bouts[beh][i].behavior != NONE_BEHAVIOR)
+	  class_training_transitions[beh][y->bouts[beh][i].behavior][NONE_BEHAVIOR]++;
+      }
+    }
+
+    // Compress the class transitions into a sparse array
+    for(i = 0; i < num_classes[beh]; i++) {
+      class_training_transitions_count[beh][i] = 0;
+      for(j = 0; j < num_classes[beh]; j++) {
+	if(class_training_transitions[beh][i][j])
+	  class_training_transitions[beh][i][class_training_transitions_count[beh][i]++] = j;
+      }
+    }
+  }
 }
 
 StructuredExample *SVMBehaviorSequence::read_struct_example(const char *label_fname, const char *features_fname, bool computeFeatures) {
@@ -1847,7 +1860,7 @@ void SVMBehaviorSequence::sanity_check_dynamic_programming_solution(int beh, Beh
     
     // Probably redundant with earlier checks, if this fails it means the dynamic programming algorithm hasn't 
     // correctly included the ground truth label as a possible segmentation
-    if(!y->disable_checks)
+    if(!y->disable_checks && !y_partial)
       assert(ybar->slack >= -0.01);
   }
 
@@ -2270,7 +2283,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	t_p = get_bout_start_time(beh, durations, tt, t_p, t, next_duration, last_gt, last_partial, gt_bout, 
 				  partial_label_bout, y, y_partial, restrict_c_prev, restrict_c_next, allowable_time_frames);
 
-	if(y && relabelingExample && t != T)  { // abort inference if training and someone wants to relabel an example
+	if(y && (relabelingExample||pauseWorkers) && t != T)  { // abort inference if training and someone wants to relabel an example
 	  aborted = true;
 	  continue;
 	}
@@ -2587,7 +2600,7 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
     //if(y && y->num_bouts && y->num_bouts[0]) 
     //  T = my_min(T, y->bouts[0][y->num_bouts[0]-1].end_frame);
     y->disable_checks = true;
-    while(t_start < T && !relabelingExample) {
+    while(t_start < T && !relabelingExample && !pauseWorkers) {
       // Consider selecting the segmentation with the highest slack among all segmentations for this example that
       // have been considered so far.  We will see if there's some local change to this segmentation that will increase
       // the slack even more
