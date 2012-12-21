@@ -295,7 +295,7 @@ void SVMBehaviorSequence::saveBoutFeatures(StructuredDataset *dataset, const cha
 	for(int n = 0; n < dataset->num_examples; n++) {
 		y = ((BehaviorBoutSequence*)ex[n]->y);
 		x = ((BehaviorBoutFeatures*)ex[n]->x);
-		int frame_labels[x->num_frames];
+		int *frame_labels = new int[x->num_frames];
 		if(!x->memory_buffer)
 		  x->ComputeCaches(this);
 		for(int beh = 0; beh < behaviors->num; beh++) {
@@ -334,6 +334,7 @@ void SVMBehaviorSequence::saveBoutFeatures(StructuredDataset *dataset, const cha
 				}
 			}	
 		}
+		delete [] frame_labels;
 #if KEEP_FEATURES_IN_MEMORY == 0
 		x->Clear();
 #endif	
@@ -3487,10 +3488,13 @@ void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence 
   fclose(fout);
 }
 
+#ifndef NO_OPENCV
 #include "cv.h"
 #include "highgui.h"
+#endif
 #define LABEL_BOUTS 0
- void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char *fname, char *html) { 
+ void BehaviorBoutSequence::Visualize(BehaviorGroups *groups, int beh, const char *fname, char *html) {
+#ifndef NO_OPENCV
 	BehaviorGroup *group = &groups->behaviors[beh];
 	if(!this->num_bouts[beh]) 
 		return;
@@ -3585,5 +3589,5 @@ void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence 
 			free(html_tmp);
 		}
 	}
-
+#endif
 }

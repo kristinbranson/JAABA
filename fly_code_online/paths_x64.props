@@ -3,8 +3,8 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Program Files (x86)\opencv\include\opencv;C:\Program Files (x86)\opencv\build\include;C:\Program Files (x86)\Visual Leak Detector\include;</IncludePath>
-    <LibraryPath>$(WindowsSdkDir)lib\x64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(VSInstallDir);$(VSInstallDir)lib\amd64;$(FrameworkSDKDir)\lib\amd64;$(SolutionDir)\lib\amd64;$(SolutionDir)\online_structured_svm\lib\amd64;C:\Program Files (x86)\opencv\build\x64\vc10\lib;C:\Program Files (x86)\Visual Leak Detector\lib\Win64;</LibraryPath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Program Files (x86)\opencv\include\opencv;C:\Program Files (x86)\opencv\build\include;C:\Program Files (x86)\Visual Leak Detector\include;C:\Program Files\MATLAB\2011b\extern\include</IncludePath>
+    <LibraryPath>$(WindowsSdkDir)lib\x64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(VSInstallDir);$(VSInstallDir)lib\amd64;$(FrameworkSDKDir)\lib\amd64;$(SolutionDir)\lib\amd64;$(SolutionDir)\online_structured_svm\lib\amd64;C:\Program Files (x86)\opencv\build\x64\vc10\lib;C:\Program Files (x86)\Visual Leak Detector\lib\Win64;C:\Program Files\MATLAB\2011b\extern\lib\win64\microsoft;</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>

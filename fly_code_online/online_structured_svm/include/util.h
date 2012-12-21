@@ -1,6 +1,10 @@
 #ifndef __UTIL_H
 #define __UTIL_H
 
+#ifdef WIN32
+#include <winsock2.h>
+#include <windows.h>
+#endif
 
 #include <assert.h>
 #include <stdlib.h>

@@ -1,8 +1,8 @@
 #ifndef MATLAB_HELPER_H
 #define MATLAB_HELPER_H
 
-#include <mat.h>
-#include <matrix.h>
+#include "mat.h"
+#include "matrix.h"
 
 
 #define MAT_GET_VARIABLE(var, name) \
