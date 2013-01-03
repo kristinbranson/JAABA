@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_Linux" location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe" file="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/JAABA_Linux.prj" build-checksum="1670595681">
+  <configuration target="target.standalone" target-name="Standalone Application" name="JAABA_Linux" location="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe" file="/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/JAABA_Linux.prj" build-checksum="3317829907">
     <param.project.name>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/perframe/JAABA_Linux.prj</param.project.name>
     <param.target.type>Standalone Application</param.target.type>
     <param.appname>JAABA_Linux</param.appname>
@@ -250,6 +250,7 @@
       <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc/hungarian.m</file>
       <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc/imscwrite.m</file>
       <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc/isabspath.m</file>
+      <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc/isdisplay.m</file>
       <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc/isglobalpath.m</file>
       <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc/isnaturalnumber.m</file>
       <file>/groups/branson/home/bransonk/behavioranalysis/code/Jdetect/Jdetect/misc/kjet.m</file>
