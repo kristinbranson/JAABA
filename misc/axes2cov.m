@@ -12,7 +12,7 @@ function S = axes2cov(a,b,theta)
 N = length(a);
 costheta = cos(theta);
 sintheta = sin(theta);
-a = (a/2)^2; b = (b/2)^2;
+a = (a/2).^2; b = (b/2).^2;
 S = zeros(2,2,N);
 S(1,1,:) = costheta.^2.*a + sintheta.^2.*b;
 S(2,2,:) = sintheta.^2.*a + costheta.^2.*b;
