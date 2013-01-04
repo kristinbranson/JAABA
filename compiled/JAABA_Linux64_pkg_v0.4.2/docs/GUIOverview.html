@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+</head>
+
+<body>
+<center>
+<h1> <a href="index.html">JAABA</a> GUI Overview</h1>
+</center>
+<br>
+<p>On this page, we describe each component of the JAABA GUI.</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Contents">Contents</a></h2>
+<ul>
+  <li><a class="reference" href="Main">Main JAABA Interface</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="Main">Main JAABA Interface</a></h2>
+
+<center>
+<a href="images/MainGUIScreenCap_Annotated.png"><img width="1200px" src="images/MainGUIScreenCap_Annotated.png"></a><br>
+<i>Annotated Screen Capture of Main GUI</i>
+</center>
+
+<ol>
+<li> <a id="MenuBar"><b>Menu Bar</b></a></li>
+<li> <a id="ZoomButtons"><b>Zoom Buttons</b></li></a>: When toggled on, these buttons can be used to 
+zoom in or out on the <a href="#MoviePreviewer">Movie Previewer</a> view, the number of frames shown
+in all the timelines, and the y-axis limits for the
+<a href="#PerFrameFeatureTimeline">Per-Frame Feature Timelines</a>. Be sure to toggle these buttons
+off when you are done changing the axes limits to restore normal function.</li>
+<li> <a id="PanButton"><b>Pan Button</b></li> When toggled on, this button can be used to pan the
+<a href="#MoviePreviewer">Movie Previewer</a> view, or change the y-axis limits in the 
+<a href="#PerFrameFeatureTimeline">Per-Frame Feature Timelines</a>. </li>
+<li> <a id="SaveLabelsButton"><b>Save Labels Button</b></a>: Save the labels for the current project. </li>
+<li> <a id="MoviePreviewer"><b>Movie Previewer</b></a>: Window showing the current frame of the 
+current video, annotated with the animals' tracked positions. This is the main interface for allowing
+the user to see the current animal's behavior. </li>
+<li> <a id="FrameSlider"><b>Frame Slider</b></a>: The current frame can be changed by moving the frame slider.</b></li>
+<li> <a id="ManualTimeline"><b>Manual Label Timeline</b></a>: This timeline shows the labels the user has added for a window
+of frames centered on the current frame. The x-axis corresponds to time, and the color indicates the 
+label. The size of this window can be set using the <a href="#ZoomButtons">Zoom Buttons</a> or through 
+the View->Timeline View Options menu item. </li>
+<li> <a id="CurrentScore"><b>Current Score</b></a>: The raw score output by the current classifier for the current frame. 
+This value will be positive if the behavior is predicted and negative if the None class is
+predicted. The magnitude of this number corresponds to the classifier's confidence. This
+number corresponds with the color shown in the <a href="#AutomaticTimeline">Automatic Prediction 
+Timeline's Raw Scores row</a>.</li>
+<li> <a id="PerFrameFeatureSelector"><b>Per-Frame Feature Selector</b></a>: This drop-down menu can be used to select the per-frame
+feature shown in the timeline to the timeline to the right. If you select <i>Remove</i> from 
+the list, this timeline will be removed. Help currently not implemented.</li>
+<li> <a id="CurrentPerFrameFeatureValue"><b>Current Per-Frame Feature Value</b></a>: The value of the per-frame feature for the current frame. 
+This number corresponds with the y-coordinate of the per-frame feature timeline for the current frame.</li>
+<li> <a id="AddPerFrameFeatureButton"><b>Add Per-Frame Feature Button</b></a>: Push this button to add a new per-frame feature timeline to 
+the display.</b></li>
+<li> <a id="StatusBar"><b>Status Bar</b></a>: The Status Bar shows important information about the
+current state of JAABA. If the text is green, JAABA is not busy and you can click buttons, etc. If the
+text is magenta, then JAABA is busy computing something, and you should wait until it turns green again
+before using the GUI again. When it is not busy, the Status Bar shows information about the current 
+video and the current animal. </li>
+<li> <a id="Trajectory"><b>Current Animal's Trajectory</b></a>: The trajectory of the currently selected animal is plotted for a 
+window of frames before and after the current frame. Centroid positions are shown as connected dots. The 
+number of frames before and after the current frame plotted can be set in the View->Preview Options menu. </li>
+<li> <a id="CurrentAnimal"><b>Current Animal</b></a>: The currently selected animal's tracked position in the current frame is plotted.
+The currently selected animal's position is plotted with a thicker outline, the color of which is 
+set by either the manual or automatic labels for the current frame, depending on the current configuration.
+For flies and mice, a triangle is plotted to indicate the size of the ellipse fit to the animal and its
+head direction. If the fly's wings are tracked, lines from the fly centroid to the tips of each wing are
+also plotted. For larvae, an 11-point line from the animal's head to its tail through its center is plotted. 
+The head is indicated with a large circle. For flies and mice, the sex of the animal is indicated by the 
+presence (male) or absence (female or unknown) of a dot at the animal's center.</li>
+<li> <a id="OtherAnimals"><b>Other Animals</b></a>: All other tracked animals' positions are plotted. They can be distinguished from 
+the selected animal by the thickness of the outline (their outlines are thinner). The color of the outline is 
+unique per animal.</li>
+<li> <a id="AddBehaviorLabelButton"><b>Add [Behavior] Label Button</b></a>: This button is pushed to start or end labeling a bout of the
+behavior. It is equivalent to press the corresponding <a href="Labeling.html#KeyboardShortcuts">keyboard
+shortcut</a>. </li>
+<li> <a id="AddNoneLabelButton"><b>Add None Label Button</b></a>: This button is pushed to start or end labeling a bout of the
+None behavior class. It is equivalent to press the corresponding 
+<a href="Labeling.html#KeyboardShortcuts">keyboard shortcut</a>. </li>
+<li> <a id="AddUnknownLabelButton"><b>Add Unknown Label Button</b></a>: The labels for all frames is Unknown by default. This button can
+be used to set the labels for frames to Unknown, effectively erasing other labels given to the frame. 
+Pressing this button starts or ends labeling a bout of Unknown label. It is equivalent to press the corresponding 
+<a href="Labeling.html#KeyboardShortcuts">keyboard shortcut</a>. </li>
+<li> <a id="ToggleSelectModeButton"><b>Toggle Select Mode Button</b></a>: Pressing this button toggles whether Select Mode is enabled or not. 
+If it is enabled, intervals of the timeline can be selected by clicking and dragging. These intervals
+can then be played or bookmarked. </li>
+<li> <a id="PlaySelectionButton"><b>Play Selection Button</b></a>: If an interval of time is selected, pressing this button will play/stop
+playing the selected interval in a loop.</li>
+<li> <a id="ClearSelectionButton"><b>Clear Selection Button</b></a>: Set no interval to be selected</li>
+<li> <a id="CurrentAnimalInformation"><b>Current Animal Information</b></a>: Information about the currently selected animal. The information is:
+<ul>
+<li> <b>Target</b>: Animal identity number.</li>
+<li> <b>Sex</b>: The sex of the animal in the current frame (for some trackers, sex is classified per-frame,
+in case identities are swapped by the tracker) and, in parentheses, the percent of frames over the entire 
+trajectory that the animal is labeled as male and female. </li>
+<li> <b>Frames</b>: Which frames the animal is tracked for. </li>
+<li> <b>Experiment Name</b>: The name of the experiment directory for the current video.</li>
+</ul>
+</li>
+<li> <a id="LabeledBoutOfBehavior"><b>Labeled Bout of [Behavior]</b></a>: The red interval on the <a href="#ManualTimeline">Manual Timeline</a>
+shows a bout of frames that were labeled as the behavior. </li>
+<li> <a id="UnlabeledBout"><b>Unlabeled Bout</b></a>: Black indicates that the frames have not been labeled. Note that it is often
+difficult to tell exactly when a behavior begins or ends, so there will often be a short unlabeled interval
+of frames between a bout of the behavior and a bout of None. </li>
+<li> <a id="LabeledBoutOfNone"><b>Labeled Bout of None</b></a>: The blue interval on the <a href="#ManualTimeline">Manual Timeline</a>
+shows a bout of frames that were labeled as None (the behavior is not occurring). </li>
+<li> <a id="CurrentFrameEditBox"><b>Current Frame Edit Box</b></a>: Text edit box that shows the current frame number. This number can be
+modified to change the current frame. </li>
+<li> <a id="PlayButton"><b>Play Button</b></a>: Pushing this button starts or stops playing the video. The playback speed 
+can be set with the View->Preview Options menu item. </li>
+<li> <a id="AutomaticTimeline"><b>Automatic Predictions Timeline</b>: This timeline shows the classifier's
+behavior label predictions for a window of frames centered on the current frame. The x-axis corresponds to 
+time, and the color indicates the predicted behavior class. The size of this window can be set using the 
+<a href="#ZoomButtons">Zoom Buttons</a> or through the View->Timeline View Options menu item. Within this timeline, 
+there are three rows:<br>
+a. <a id="BinaryPredictions"><b>Binary Predictions</b></a>: The classifier's predictions of whether the behavior is or is not being performed in
+each frame. Usually, if the current classifier has predicted the current window of frames, then this timeline will
+be saturated red (behavior) or blue (not-behavior). If this timeline is black, then predictions may not have been 
+generated for these frames. Pressing the <a href="#PredictButton">Predict Button</a> will apply the current classifier 
+to a window of frames around the current frame and fill in this timeline. (Note that leaving a gap between the behavior 
+and none thresholds can also result in frames that are predicted as unknown and are also colored black, but in general
+such thresholds are not used.) This timeline is generated by thresholding the Raw Scores timeline below, usually at 0. <br>
+b. <a id="RawScores"><b>Raw Scores</b></a>: The raw output from the current classifier. Red indicates that the behavior is predicted, and blue
+that None is predicted. The saturation of the color indicates the classifier's confidence. If this timeline is all 
+black, then predictions may not have been generated for these frames. Pressing the <a href="#PredictButton">Predict 
+Button</a> will apply the current classifier to a window of frames around the current frame and fill in this timeline. <br>
+c. <a id="ConfigurableScoresAndPredictions"><b>Configurable Scores and Predictions</b></a>: This timeline is again broken into two sub-timelines. 
+The first sub-timeline shows raw scores and the second sub-timeline shows the binary, thresholded version of these predictions.
+The following choices are available:
+<ul>
+<li><i>None</i>: Nothing is shown.</li>
+<li><i>Validated</i>: The out-of-training-set scores and predictions produced using 
+<a href="#Evaluating.html#CrossValidation">cross calidation</a>.</li>
+<li><i>Old</i>: The scores and predictions from the previous classifier.</li>
+<li><i>Loaded</i>: The scores and predictions <a href="SavingAndLoading.html#LoadingLabels">loaded</a> from external files.</li>
+<li><i>Postprocessed</i>: The current scores and the predictions that result from <a href="Training.html#PostProcessing">Post
+Processing</a>.</li>
+</ul>
+</li>
+<li><a id="TrainButton"><b>Train Button</b></a>: Pressing this button trains a new classifier using the current labels.</li>
+<li><a id="PredictButton"><b>Predict Button</b></a>: Pressing this button computes the classifier's raw scores and predictions for a 
+window of frames around the current frame.</li>
+<li><a id="PerFrameFeatureTimeline"><b>Per-Frame Feature Timeline</b></a>: This timeline shows the value of the selected per-frame feature over a window of 
+frames around the current frame. The x-axis corresponds to time, the y-axis to the per-frame feature value. The y-axis
+limits can be set using the <a href="#ZoomButtons">Zoom</a> and <a href="#PanButtons">Pan</a> buttons. </li>
+<li><a id="TimelineCurrentFrame"><b>Timeline Current Frame</b></a>: This line indicates the current frame in the timelines. </li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated December 5, 2012</i>
+</center>
+</footer>
+
+</html>
