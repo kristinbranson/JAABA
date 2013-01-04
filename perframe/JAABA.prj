@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.exe" build-checksum="1197196871" preferred-package-location="C:\Code\Jdetect\perframe">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.exe" build-checksum="1488781675" preferred-package-location="C:\Code\Jdetect\perframe">
     <param.project.name>C:\Code\Jdetect\perframe\JAABA.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA</param.appname>
@@ -239,6 +239,7 @@
       <file>C:\Code\Jdetect\misc\hungarian.m</file>
       <file>C:\Code\Jdetect\misc\imscwrite.m</file>
       <file>C:\Code\Jdetect\misc\isabspath.m</file>
+      <file>C:\Code\Jdetect\misc\isdisplay.m</file>
       <file>C:\Code\Jdetect\misc\isglobalpath.m</file>
       <file>C:\Code\Jdetect\misc\isnaturalnumber.m</file>
       <file>C:\Code\Jdetect\misc\IsNiceFileName.m</file>

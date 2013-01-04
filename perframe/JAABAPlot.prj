@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABAPlot" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABAPlot.prj" build-checksum="2804399935">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABAPlot" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABAPlot.prj" build-checksum="3683598887">
     <param.project.name>C:\Code\Jdetect\perframe\JAABAPlot.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABAPlot</param.appname>
@@ -60,7 +60,10 @@
     <fileset.main>
       <file>${PROJECT_ROOT}\JAABAPlot_compiled.m</file>
     </fileset.main>
-    <fileset.resources />
+    <fileset.resources>
+      <file>${PROJECT_ROOT}\compute_perframe_features</file>
+      <file>${PROJECT_ROOT}\larva_compute_perframe_features</file>
+    </fileset.resources>
     <fileset.package />
     <build-deliverables>
       <file name="readme.txt" location="${PROJECT_ROOT}\JAABAPlot\distrib" optional="true">C:\Code\Jdetect\perframe\JAABAPlot\distrib\readme.txt</file>
@@ -71,7 +74,6 @@
       <root>C:\Program Files\MATLAB\R2012a</root>
       <path>
         <directory>${PROJECT_ROOT}\params</directory>
-        <directory>C:\Code\Jdetect\plot</directory>
         <directory>${PROJECT_ROOT}\larva_compute_perframe_features</directory>
         <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
         <directory>C:\Code\Jdetect\filehandling</directory>
