@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+</head>
+</body>
+<center><h1> Advanced Navigation</h1></center>
+
+<p>To navigate the movie in ways other than simply moving forward and backward
+in time, you can use left and right arrow keys with <b>control</b> (or
+		<b>command</b> on MAC) and <b>shift</b> modifier keys.
+<b>Control</b> (or <b>command</b>) modifier keys takes you to the start of the
+next manually labeled bouts or the end of the previous labeled bout.
+<b>Shift</b> lets you navigate in multiple ways, which you can select using
+the <b>Go -> Navigation Preferences</b>. <b> Bouts in current scores </b>
+takes you to the beginning and end of bouts in the predictions, <b>Errors in
+current scores</b> takes you to beginnings and ends of bouts of errors i.e.,
+		frames where the predictions do not match the labels, <b>Errors in
+		validated scores</b> takes you to validation errors, <b> Low
+		Confidence </b> takes you to bouts of low confidence predictions.
+		The confidence thresholds can be set using <b>Classifier -> Set
+		Confidence Thresholds</b>. The predictions for frames that have low
+		confidence are not shown in the automatic predictions timeline.
+		Using <b>Thresholds on perframe</b> you can select a perframe
+		feature and set a threshold and then navigate to frames where the
+		perframe features is either greater than or less than the threshold
+		value.</p>
+
+<p>Also, in the <b>Navigation Preferences</b> you can select how many frames are jumped when using the up and down arrow keys (<b>N. frames jump</b>). You can select which bouts to jump to using the <b>shift</b> and <b>control</b> modifier keys. For example, if you select only chase in <b>Seek to next/previous</b> then <b>control</b> will jump just to the chase bouts.</p>
+
+<p><center><img src="images/NavigationPreferences.png"></center></p>
+
+</body></html>
