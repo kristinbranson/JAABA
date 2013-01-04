@@ -1,0 +1,3 @@
+compiled/ export-ignore
+*/*.prj export-ignore
+.gitignore export-ignore
