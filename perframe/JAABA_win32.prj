@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABAPlot" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABAPlot.prj" build-checksum="3683598887">
-    <param.project.name>C:\Code\Jdetect\perframe\JAABAPlot.prj</param.project.name>
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA_win32" location="E:\Code\Jdetect\perframe" file="E:\Code\Jdetect\perframe\JAABA_win32.prj" build-checksum="1381814502">
+    <param.project.name>E:\Code\Jdetect\perframe\JAABA_win32.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
-    <param.appname>JAABAPlot</param.appname>
-    <param.intermediate>${PROJECT_ROOT}\JAABAPlot\src</param.intermediate>
-    <param.output>${PROJECT_ROOT}\JAABAPlot\distrib</param.output>
+    <param.appname>JAABA_win32</param.appname>
+    <param.intermediate>${PROJECT_ROOT}\JAABA_win32\src</param.intermediate>
+    <param.output>${PROJECT_ROOT}\JAABA_win32\distrib</param.output>
     <param.embed.ctf>true</param.embed.ctf>
     <param.tbx_on_path>
       <item>all</item>
@@ -31,7 +31,9 @@
     <param.disable.display>false</param.disable.display>
     <param.create.log>false</param.create.log>
     <param.log.file />
-    <param.user.defined.mcr.options />
+    <param.user.defined.mcr.options>
+      <item>-startmsg,Starting JAABA. Please wait, this may take a while...</item>
+    </param.user.defined.mcr.options>
     <unset>
       <param.project.name />
       <param.target.type />
@@ -55,19 +57,38 @@
       <param.disable.display />
       <param.create.log />
       <param.log.file />
-      <param.user.defined.mcr.options />
     </unset>
     <fileset.main>
-      <file>${PROJECT_ROOT}\JAABAPlot_compiled.m</file>
+      <file>${PROJECT_ROOT}\StartJAABA_compiled.m</file>
     </fileset.main>
     <fileset.resources>
+      <file>E:\Code\Jdetect\filehandling\parsejpg8.mexw32</file>
+      <file>E:\Code\Jdetect\misc\accummatrix.mexw32</file>
+      <file>${PROJECT_ROOT}\@Trx</file>
       <file>${PROJECT_ROOT}\compute_perframe_features</file>
+      <file>${PROJECT_ROOT}\ComputeDiffNeighborMaxWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeDiffNeighborMeanWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeDiffNeighborMinWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeHarmonicWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeHistWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeMaxDependencyRadius.m</file>
+      <file>${PROJECT_ROOT}\ComputeMaxWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeMeanWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeMinWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputePerFrameTrans.m</file>
+      <file>${PROJECT_ROOT}\ComputePrctileWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeStdWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\ComputeZscoreNeighborsWindowFeatures.m</file>
+      <file>${PROJECT_ROOT}\janelia_logo.png</file>
       <file>${PROJECT_ROOT}\larva_compute_perframe_features</file>
+      <file>${PROJECT_ROOT}\mkshortcut.vbs</file>
+      <file>${PROJECT_ROOT}\version.txt</file>
     </fileset.resources>
     <fileset.package />
     <build-deliverables>
-      <file name="readme.txt" location="${PROJECT_ROOT}\JAABAPlot\distrib" optional="true">C:\Code\Jdetect\perframe\JAABAPlot\distrib\readme.txt</file>
-      <file name="JAABAPlot.exe" location="${PROJECT_ROOT}\JAABAPlot\distrib" optional="false">C:\Code\Jdetect\perframe\JAABAPlot\distrib\JAABAPlot.exe</file>
+      <file name="JAABA_win32.exe" location="${PROJECT_ROOT}\JAABA_win32\distrib" optional="false">E:\Code\Jdetect\perframe\JAABA_win32\distrib\JAABA_win32.exe</file>
+      <file name="readme.txt" location="${PROJECT_ROOT}\JAABA_win32\distrib" optional="true">E:\Code\Jdetect\perframe\JAABA_win32\distrib\readme.txt</file>
     </build-deliverables>
     <workflow />
     <matlab>
@@ -76,8 +97,8 @@
         <directory>${PROJECT_ROOT}\params</directory>
         <directory>${PROJECT_ROOT}\larva_compute_perframe_features</directory>
         <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
-        <directory>C:\Code\Jdetect\filehandling</directory>
-        <directory>C:\Code\Jdetect\misc</directory>
+        <directory>E:\Code\Jdetect\filehandling</directory>
+        <directory>E:\Code\Jdetect\misc</directory>
         <directory>C:\Users\bransonk\Documents\MATLAB</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>
@@ -132,6 +153,9 @@
         <directory>${MATLAB_ROOT}\toolbox\curvefit\curvefitdemos</directory>
         <directory>${MATLAB_ROOT}\toolbox\daq\daq</directory>
         <directory>${MATLAB_ROOT}\toolbox\daq\daqguis</directory>
+        <directory>${MATLAB_ROOT}\toolbox\daq\daqblks\daqblks</directory>
+        <directory>${MATLAB_ROOT}\toolbox\daq\daqblks\daqmasks</directory>
+        <directory>${MATLAB_ROOT}\toolbox\daq\daqblks\daqmex</directory>
         <directory>${MATLAB_ROOT}\toolbox\daq\daqdemos</directory>
         <directory>${MATLAB_ROOT}\toolbox\database\database</directory>
         <directory>${MATLAB_ROOT}\toolbox\database\vqb</directory>
@@ -234,9 +258,9 @@
       <linux>false</linux>
       <solaris>false</solaris>
       <osver>6.1</osver>
-      <os32>false</os32>
-      <os64>true</os64>
-      <arch>win64</arch>
+      <os32>true</os32>
+      <os64>false</os64>
+      <arch>win32</arch>
       <matlab>true</matlab>
     </platform>
   </configuration>
