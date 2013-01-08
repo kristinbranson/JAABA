@@ -3059,6 +3059,8 @@ else
 end
 set(handles.text_status,'ForegroundColor',color,'String',s);
 
+set(handles.figure_JLabel,'Pointer','watch');
+
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JAABA Status','modal');
 end
@@ -3066,6 +3068,7 @@ end
 function ClearStatus(handles)
 
 set(handles.text_status,'ForegroundColor',handles.guidata.idlestatuscolor,'String',handles.guidata.status_bar_text);
+set(handles.figure_JLabel,'Pointer','arrow');
 h = findall(0,'Type','figure','Name','JAABA Status');
 if ~isempty(h), delete(h(ishandle(h))); end
 

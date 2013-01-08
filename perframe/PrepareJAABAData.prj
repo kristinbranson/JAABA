@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="PrepareJAABAData" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\PrepareJAABAData.prj" build-checksum="2950959754">
+  <configuration target="target.standalone" target-name="Console Application" name="PrepareJAABAData" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\PrepareJAABAData.prj" build-checksum="1431587899">
     <param.project.name>C:\Code\Jdetect\perframe\PrepareJAABAData.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>PrepareJAABAData</param.appname>
@@ -78,43 +78,10 @@
       <root>C:\Program Files\MATLAB\R2012a</root>
       <path>
         <directory>${PROJECT_ROOT}\params</directory>
-        <directory>C:\Code\Jdetect\plot</directory>
         <directory>${PROJECT_ROOT}\larva_compute_perframe_features</directory>
         <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
         <directory>C:\Code\Jdetect\filehandling</directory>
         <directory>C:\Code\Jdetect\misc</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\DERIVESTsuite</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\DERIVESTsuite\demo</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\DERIVESTsuite\demo\html</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\DERIVESTsuite\doc</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\data analysis and description</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\function minimization</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\geometry</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\im analysis</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions\plotting</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\basic routines</directory>
-        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\channels</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\classify</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\doc</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\doc\channels</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\doc\classify</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\doc\filters</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\doc\images</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\doc\matlab</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\deprecated</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\m2html</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\m2html\templates</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\m2html\templates\blue</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\m2html\templates\brain</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\m2html\templates\frame</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\m2html\templates\frame-piotr</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\external\other</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\filters</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\images</directory>
-        <directory>${PROJECT_ROOT}\..\..\piotr_toolbox_V3.0\matlab</directory>
         <directory>C:\Users\bransonk\Documents\MATLAB</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>

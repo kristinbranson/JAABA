@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+</head>
+</body>
+<center><h1> Visualizing Classifier </h1></center>
+
+<p>JAABA uses boosting learning algorithm to train classifiers that are used to
+detect behaviors. Boosting works by combining simple rules that are
+typically not very accurate into an accurate rule. In JAABA, we use <b>decision
+stumps</b> as the simple rules. Decision stumps predict by simply comparing
+a window features value to a threshold. With the large number of window features
+we compute, the simple decision stumps are quite effective in learning an
+accurate detector.</p>
+
+<p>As the weak rules are straightforward, it is possible to visualize the
+classifier by looking at the window features that are used by the classifier. When you
+use <b>Classifier -> Visualize Classifier</b>, it tells the window features used
+by the classifier, threshold used on those feature, and the weight placed on
+feature by the current classifier.</p>
+
+<p>Below is an example output. The features are ordered in the descending
+order of the weight that was placed on it. The feature names are listed on the
+right. The parts of the feature names are (in order) per-frame feature name,
+the window feature computation type, transformation type, radius of the
+window, and offset of the window. The leftmost figure shows that the weight that
+is given to the feature by the boosting algorithm. The middle part shows where
+the threshold (as a percentile of the feature value) is selected by the boosting
+algorithm for that features. </p>
+
+<center><img src="images/VisualizeClassifier.png"></center>
+
+</body></html>
