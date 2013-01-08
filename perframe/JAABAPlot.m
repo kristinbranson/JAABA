@@ -931,7 +931,7 @@ for c=1:length(newclassifiers)
     handlesconfigurations{c}=classifier.configfilename;
     [~,~,ext] = fileparts(classifier.configfilename);
     if strcmpi(ext,'.xml');
-      params=ReadXMLParams(handlesconfigurations{c});
+      params=ReadXMLConfigParams(handlesconfigurations{c});
     else
       params = load(handlesconfigurations{c});
     end
@@ -953,7 +953,7 @@ for c=1:length(newclassifiers)
       try
         handlesconfigurations{c}=fullfile(tmp,configfile);
         if strcmpi(ext,'.xml');
-          params=ReadXMLParams(handlesconfigurations{c});
+          params=ReadXMLConfigParams(handlesconfigurations{c});
         else
           params = load(handlesconfigurations{c});
         end
@@ -963,15 +963,6 @@ for c=1:length(newclassifiers)
         continue;
       end
     end
-  end
-  % KB: for backwards compatibility
-  if ~isfield(params.file,'scorefilename'),
-    if iscell(params.behaviors.names),
-      namescurr = params.behaviors.names;
-    else
-      namescurr = {params.behaviors.names};
-    end
-    params.file.scorefilename = ['scores_',namescurr{:},',mat'];    
   end
   if(~isfield(params.behaviors,'names') || ~isfield(params.file,'scorefilename'))
     uiwait(errordlg(['not a valid config file.  skipping ' newclassifiers{c}],''));
@@ -1153,7 +1144,8 @@ parfor ge=1:length(handlesexperimentlist)
     classifier=load(handles.classifierlist{c});
     try
       behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{c}));
-    catch
+    catch ME,
+      warning(getReport(ME));
       parfor_tmp{c}='missing';
       continue;
     end
