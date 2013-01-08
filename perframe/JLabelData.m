@@ -693,7 +693,7 @@ end
       %       try
       [~,~,ext] = fileparts(configfilename);
       if strcmp(ext,'.xml'),
-        configparams = ReadXMLParams(configfilename);
+        configparams = ReadXMLConfigParams(configfilename);
       else
         configparams = load(configfilename);
       end
