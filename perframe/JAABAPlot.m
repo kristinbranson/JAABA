@@ -964,6 +964,15 @@ for c=1:length(newclassifiers)
       end
     end
   end
+  % KB: for backwards compatibility
+  if ~isfield(params.file,'scorefilename'),
+    if iscell(params.behaviors.names),
+      namescurr = params.behaviors.names;
+    else
+      namescurr = {params.behaviors.names};
+    end
+    params.file.scorefilename = ['scores_',namescurr{:},',mat'];    
+  end
   if(~isfield(params.behaviors,'names') || ~isfield(params.file,'scorefilename'))
     uiwait(errordlg(['not a valid config file.  skipping ' newclassifiers{c}],''));
     newclassifiers{c}='';

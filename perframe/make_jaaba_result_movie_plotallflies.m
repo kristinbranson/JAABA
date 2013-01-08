@@ -48,20 +48,20 @@ mencoder_maxnframes = inf;
 %   'Touch',[.5,0,0]
 %   'WingGrooming',[.6353,.1804,.4510]};
 
-behavior2color = {'WingGrooming',[1,.4,.755]
-  'Stop',[0,0,.5156]
-  'WingExtension',[0,0,.875]
-  'AttemptCopulation',[0,.2344,1]
-  'Copulation',[0,.9688,1]
-  'Righting',[.3281,1,.6719]
-  'Backup',[0,.75,0]
-  'Crabwalk',[.9,.9,0]
-  'PivotHead',[1,.75,0]
-  'PivotTail',[1,.5938,0]
-  'Touch',[1,.2188,0]
-  'Chase',[.8594,0,0]
-  'Walk',[.5,0,0]
-  'Jump',[.6353,.1804,.4510]};
+% behavior2color = {'WingGrooming',[1,.4,.755]
+%   'Stop',[0,0,.5156]
+%   'WingExtension',[0,0,.875]
+%   'AttemptCopulation',[0,.2344,1]
+%   'Copulation',[0,.9688,1]
+%   'Righting',[.3281,1,.6719]
+%   'Backup',[0,.75,0]
+%   'Crabwalk',[.9,.9,0]
+%   'PivotHead',[1,.75,0]
+%   'PivotTail',[1,.5938,0]
+%   'Touch',[1,.2188,0]
+%   'Chase',[.8594,0,0]
+%   'Walk',[.5,0,0]
+%   'Jump',[.6353,.1804,.4510]};
 
 
 %  'Crabwalk',[0,.6094,1]
@@ -78,7 +78,7 @@ behavior2color = {'WingGrooming',[1,.4,.755]
   score_norm_prctile,...
   behaviorweight,...
   printnone,...
-  debug,...
+  DEBUG,...
   behavior2color] = ...
   myparse(varargin,'moviefilestr','movie.ufmf','trxfilestr','registered_trx.mat',...
   'aviname','','colors',[],'behavior_cm',@jet,...
@@ -99,7 +99,7 @@ behavior2color = {'WingGrooming',[1,.4,.755]
   'behaviorweight',[],...
   'printnone',false,...
   'debug',false,...
-  'behavior2color',behavior2color);
+  'behavior2color',{});
 
 if ~ischar(compression),
   compression = '';
@@ -110,21 +110,40 @@ if ~isempty(compression) && ~any(strcmpi(compression,allowedcompressions)),
 end
 
 if isempty(behaviors) || isempty(scorefns),
-  for i = 1:numel(classifierparamsfiles),
-    classifierparamsfile = classifierparamsfiles{i};
-    classifierparams = ReadClassifierParamsFile(classifierparamsfile);
-    for j = 1:numel(classifierparams),
-      if iscell(classifierparams(j).behaviors.names),
-        behaviors{end+1} = sprintf('%s_',classifierparams(j).behaviors.names{:}); %#ok<AGROW>
-        behaviors{end} = behaviors{end}(1:end-1);
-      else
-        behaviors{end+1} = classifierparams(j).behaviors.names; %#ok<AGROW>
-      end
-      behaviors{end} = regexprep(behaviors{end},'(_|^)([a-z])','${upper($2)}');
-      scorefns{end+1} = classifierparams(j).file.scorefilename; %#ok<AGROW>
+  classifierparams = ReadClassifierParamsFile(classifierparamsfiles,'isrelativepath',true);
+  for j = 1:numel(classifierparams),
+    if iscell(classifierparams(j).behaviors.names),
+      behaviors{end+1} = sprintf('%s_',classifierparams(j).behaviors.names{:}); %#ok<AGROW>
+      behaviors{end} = behaviors{end}(1:end-1);
+    else
+      behaviors{end+1} = classifierparams(j).behaviors.names; %#ok<AGROW>
     end
+    behaviors{end} = regexprep(behaviors{end},'(_|^)([a-z])','${upper($2)}');
+    scorefns{end+1} = classifierparams(j).file.scorefilename; %#ok<AGROW>
   end
 end
+
+nbehaviors = numel(behaviors);
+
+if isempty(behavior2color),
+  behavior2color = [behaviors(:),mat2cell(jet(nbehaviors)*.9,ones(nbehaviors,1),3)];
+end
+
+idxremove = ~ismember(lower(behaviors),lower(behavior2color(:,1)));
+if any(idxremove),
+  fprintf('Ignoring the following behaviors:\n');
+  fprintf('  %s\n',behaviors{idxremove});
+  behaviors(idxremove) = [];
+  scorefns(idxremove) = [];
+end
+
+idxremove = ~ismember(lower(behavior2color(:,1)),lower(behaviors));
+if any(idxremove),
+  fprintf('Ignoring the following behavior colors:\n');
+  fprintf('  %s\n',behavior2color{idxremove,1});
+  behavior2color(idxremove,:) = [];
+end
+
 nbehaviors = numel(behaviors);
 
 %% open files
@@ -565,7 +584,7 @@ for segi = 1:numel(firstframes),
     isbehavior = tailisbehavior(taillength+1,:);
     
     % sanity check
-    if debug,
+    if DEBUG,
       tmpcolortmp = zeros(nids,3);
       tmptailx = nan(2*taillength+1,nids);
       tmptaily = nan(2*taillength+1,nids);
@@ -767,7 +786,7 @@ for segi = 1:numel(firstframes),
         input('Resize figure 1 to the desired size, hit enter when done.');
         figpos = get(1,'Position');
       end
-      if ~debug,
+      if ~DEBUG,
         set(1,'visible','off');
         if useVideoWriter,
           if strcmpi(compression,'None') || strcmpi(compression,'Uncompressed AVI'),
@@ -793,11 +812,12 @@ for segi = 1:numel(firstframes),
       end
     end
     
-    if ~debug,
+    if ~DEBUG,
     if frame == firstframes(1),
-      gfdata = getframe_initialize(hax);
       fr = getframe_invisible(hax);
       [height,width,~] = size(fr);
+      gfdata = getframe_initialize(hax);
+      [fr,height,width] = getframe_invisible_nocheck(gfdata,[height,width],false,false);
 %       height = ceil(height/4)*4;
 %       width = ceil(width/4)*4;
 %       fr = getframe_invisible(hax,[height,width]);
@@ -826,7 +846,7 @@ end
 
 
 fprintf('Finishing AVI...\n');
-if ~debug,
+if ~DEBUG,
 if useVideoWriter,
   close(aviobj);
 else

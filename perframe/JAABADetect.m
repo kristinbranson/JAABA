@@ -205,12 +205,14 @@ for i = find(docompute),
       end
     end
   end
+  [~,name] = fileparts(classifierfiles{i});
   if nfixtranstypes > 0,
-    [~,name] = fileparts(classifierfiles{i});
     warning('Fixed %d trans_types issues for classifier %s',nfixtranstypes,name);
   end
   
   if ~isfield(classifiers{i},'featurenames'),
+    
+    warning('featurenames field not found in classifier %s (old classifier format), computing featurenames using ComputeWindowFeatures',name);
     
     % all per-frame features for this classifier
     pffs_curr = fieldnames(classifiers{i}.windowfeaturesparams);
