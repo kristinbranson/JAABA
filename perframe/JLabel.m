@@ -1645,7 +1645,7 @@ while true,
 %   try
   [~,~,ext] = fileparts(handles.guidata.configfilename);
   if strcmp(ext,'.xml')
-    JLabelHandle.guidata.configparams = ReadXMLParams(handles.guidata.configfilename);
+    JLabelHandle.guidata.configparams = ReadXMLConfigParams(handles.guidata.configfilename);
   elseif strcmp(ext,'.mat')
     JLabelHandle.guidata.configparams = load(handles.guidata.configfilename);
   else

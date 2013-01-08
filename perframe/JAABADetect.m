@@ -63,7 +63,7 @@ if isempty(configparams),
   for i = 1:nclassifiers,
     [~,~,ext] = fileparts(configfiles{i});
     if strcmpi(ext,'.xml');
-      configparams{i} = ReadXMLParams(configfiles{i});
+      configparams{i} = ReadXMLConfigParams(configfiles{i});
     else
       configparams{i} = load(configfiles{i});
     end
@@ -84,17 +84,18 @@ end
 % scores file name
 scorefilenames = cell(1,nclassifiers);
 for i = 1:nclassifiers,
-  if ~isfield(configparams{i}.file,'scorefilename'),
-    if ~isfield(configparams{i},'behaviors'),
-      error('configparams %d does not have field behaviors',i);
-    elseif ~isfield(configparams{i}.behaviors,'names'),
-      error('configparams{%d}.behaviors does not have field names',i);
-    else
-      scorefilenames{i} = ['scores_',configparams{i}.behaviors.names,'.mat'];
-    end
-  else
+  % obsolete, ReadXMLConfigParams does this
+%   if ~isfield(configparams{i}.file,'scorefilename'),
+%     if ~isfield(configparams{i},'behaviors'),
+%       error('configparams %d does not have field behaviors',i);
+%     elseif ~isfield(configparams{i}.behaviors,'names'),
+%       error('configparams{%d}.behaviors does not have field names',i);
+%     else
+%       scorefilenames{i} = ['scores_',configparams{i}.behaviors.names,'.mat'];
+%     end
+%   else
     scorefilenames{i} = configparams{i}.file.scorefilename;
-  end
+%  end
 end
 
 % find classifiers that are done
