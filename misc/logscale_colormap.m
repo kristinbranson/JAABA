@@ -10,3 +10,4 @@ function cminterp = logscale_colormap(cm,clim,off)
  for i = 1:3,
    cminterp(:,i) = interp1(x,cm(:,i),xinterp,'linear','extrap');
  end
+cminterp = min(1,max(0,cminterp));
