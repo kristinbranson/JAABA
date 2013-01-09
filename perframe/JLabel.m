@@ -97,81 +97,28 @@ if ismac, % On mac change the foreground color to black.
   set(allpopups,'BackgroundColor',[1 1 1]);
 end
 
-%if ~success,
-if true
-  set(handles.guidata.hsplash,'visible','off');
-  %InitializeGui(handles)
-  % enable gui
-  EnableGUI(handles);
+% read configuration
+handles.guidata.configfilename='params/featureConfig.xml';
+[handles,success] = LoadConfig(handles);
+if ~success,
   guidata(hObject,handles);
-  %delete(hObject);
+  delete(hObject);
   return;
 end
 
-set(handles.figure_JLabel,'pointer','watch');
+% Hide the splash window
+set(handles.guidata.hsplash,'visible','off');
 
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
-
-
-
-% get relative locations of stuffs
-% handles = GetGUIPositions(handles);
-% 
-% % initialize data
-% handles = InitializeState(handles);
-% 
-% % initialize plot handles
-% handles = InitializePlots(handles);
-% 
-% % load classifier
-% if ~isempty(handles.guidata.classifierfilename),
-%   if exist(handles.guidata.classifierfilename,'file'),
-%     [success,msg] = handles.guidata.data.SetClassifierFileName(handles.guidata.classifierfilename);
-%     if ~success,
-%       warning(msg);
-%       SetStatus(handles,'Error loading classifier from file');
-%     end
-%   end
-% end
-% 
-% if isempty(handles.guidata.data.expdirs),
-%   guidata(hObject,handles);
-%   menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
-%   handles = guidata(hObject);
-% end
-
-handles = InitSelectionCallbacks(handles);
-
-if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
-  handles = SetCurrentMovie(handles,1);
-else
-  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-end
-
-handles = UpdateGUIGroundTruthMode(handles);
-
-% keypress callback for all non-edit text objects
-RecursiveSetKeyPressFcn(handles.figure_JLabel);
-
-% enable gui
+% Initialize and enable the GUI
+InitializeGui(handles);
 EnableGUI(handles);
 
-if ismac, % On mac change the foreground color to black.
-  allpopups = findall(hObject,'Style','popup');
-  set(allpopups,'ForegroundColor',[0 0 0]);
-  set(allpopups,'BackgroundColor',[1 1 1]);
-end
+% save the window state
+guidata(hObject,handles);
 
-set(handles.figure_JLabel,'pointer','arrow');
+return
 
-% Update handles structure
-guidata(hObject, handles);
-
-% UIWAIT makes JLabel wait for user response (see UIRESUME)
-% UNCOMMENT
-%uiwait(handles.figure_JLabel);
-
+  
 function handles = InitSelectionCallbacks(handles)
 
 handles.guidata.callbacks = struct;
@@ -200,8 +147,8 @@ varargout{1} = hObject;
 function InitializeGui(handles)
 % Initializes the JLabel GUI
 handles = GetGUIPositions(handles);
-handles = InitializeState(handles);
-handles = InitializePlots(handles);
+%handles = InitializeState(handles);
+%handles = InitializePlots(handles);
 guidata(handles.figure_JLabel,handles);
 
 
@@ -369,7 +316,7 @@ hold(handles.guidata.axes_timeline_props(propi),'on');
 % whether the manual and auto match
 handles.guidata.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.incorrectcolor,'HitTest','off','Linewidth',5);
-% new suggestions
+% import suggestions
 handles.guidata.htimeline_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.suggestcolor,'HitTest','off','Linewidth',5);
 
@@ -894,7 +841,7 @@ if handles.guidata.data.ismovie,
     end
   end
 
-  % open new movie
+  % open import movie
   % try
   SetStatus(handles,'Opening movie...');
   if 1,
@@ -1844,7 +1791,7 @@ set(handles.togglebutton_select,'Value',0);
 handles.guidata.NJObj = NextJump();
 handles.guidata.NJObj.SetSeekBehaviorsGo(1:handles.guidata.data.nbehaviors);
 handles.guidata.NJObj.SetPerframefns(handles.guidata.data.allperframefns);
-if isfield(handles.guidata.rc,'navPreferences')
+if isfield(handles.guidata.rc,'navPreferences')  && ~isempty(handles.guidata.rc.navPreferences)
   handles.guidata.NJObj.SetState(handles.guidata.rc.navPreferences);
 end
 
@@ -1939,7 +1886,7 @@ in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate new height for the panel
+% calculate import height for the panel
 
 if ~handles.guidata.data.IsAdvancedMode();
 new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
@@ -3700,7 +3647,9 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guidata.guipos.rightborder
 set(handles.panel_select,'Position',new_select_pos);
 
 %dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
-if ~handles.guidata.data.IsAdvancedMode() || handles.guidata.data.IsGTMode(),
+if isempty(handles.guidata.data) || ...
+   ( ~handles.guidata.data.IsAdvancedMode() || ...
+     handles.guidata.data.IsGTMode() ) ,
   set(handles.panel_similar,'Visible','off');
   new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
     new_select_pos(2) - info_pos(4) - dy_label_select,...
@@ -4276,7 +4225,7 @@ set(hlabel,'Callback',@(hObject,eventdata) timeline_label_prop1_Callback(hObject
 
 handles.guidata.labels_timelines = [hlabel;handles.guidata.labels_timelines];
 
-% add new axes sizes
+% add import axes sizes
 handles.guidata.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guidata.guipos.timeline_heights];
 handles.guidata.guipos.timeline_bottom_borders = handles.guidata.guipos.timeline_bottom_borders([1,2,2:numel(handles.guidata.guipos.timeline_bottom_borders)]);
 handles.guidata.guipos.timeline_left_borders = [pos(1),handles.guidata.guipos.timeline_left_borders];
@@ -5876,7 +5825,7 @@ in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate new height for the panel
+% calculate import height for the panel
 if ~handles.guidata.data.IsAdvancedMode();
 new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
   handles.guidata.data.nbehaviors*in_border_y;
@@ -6580,14 +6529,14 @@ end
 
 
 % --------------------------------------------------------------------
-function menu_file_new_Callback(hObject, eventdata, handles)
-% hObject    handle to New (see GCBO)
+function menu_file_import_Callback(hObject, eventdata, handles)
+% hObject    handle to Import (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % This is part of the "grand unified project" project
 
-% This creates a new project from scratch.
+% This creates a import project from scratch.
 
 % Create the modal window that allows specification of the project, etc.
 [handles,success] = ...

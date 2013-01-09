@@ -606,7 +606,8 @@ end
       end
       
       % make sure everything gets set, one way or another
-      requiredfns = {'moviefilename','trxfilename','labelfilename'}; % 'windowfilename',
+      %requiredfns = {'moviefilename','trxfilename','labelfilename'}; % 'windowfilename',
+      requiredfns = {};
       for i = 1:numel(requiredfns),
         fn = requiredfns{i};
         if isnumeric(obj.(fn)),
