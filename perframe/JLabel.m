@@ -88,27 +88,32 @@ handles.guidata.movie_depth = 1;
 handles.guidata.tempname = tempname();
 ClearStatus(handles);
 
-[handles,success] = JLabelEditFiles('JLabelHandle',handles,...
-  'JLabelSplashHandle',handles.guidata.hsplash);
+%[handles,success] = JLabelEditFiles('JLabelHandle',handles,...
+%  'JLabelSplashHandle',handles.guidata.hsplash);
 
-set(handles.figure_JLabel,'pointer','watch');
+if ismac, % On mac change the foreground color to black.
+  allpopups = findall(hObject,'Style','popup');
+  set(allpopups,'ForegroundColor',[0 0 0]);
+  set(allpopups,'BackgroundColor',[1 1 1]);
+end
 
-if ~success,
+%if ~success,
+if true
+  set(handles.guidata.hsplash,'visible','off');
+  %InitializeGui(handles)
+  % enable gui
+  EnableGUI(handles);
   guidata(hObject,handles);
-  delete(hObject);
+  %delete(hObject);
   return;
 end
+
+set(handles.figure_JLabel,'pointer','watch');
 
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
 
-% read configuration
-[handles,success] = LoadConfig(handles);
-if ~success,
-  guidata(hObject,handles);
-  delete(hObject);
-  return;
-end
+
 
 % get relative locations of stuffs
 % handles = GetGUIPositions(handles);
@@ -138,7 +143,7 @@ end
 
 handles = InitSelectionCallbacks(handles);
 
-if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
   handles = SetCurrentMovie(handles,1);
 else
   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
@@ -151,7 +156,6 @@ RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 % enable gui
 EnableGUI(handles);
-
 
 if ismac, % On mac change the foreground color to black.
   allpopups = findall(hObject,'Style','popup');
@@ -191,6 +195,15 @@ varargout{1} = hObject;
 % end
 % SaveRC(handles);
 % delete(handles.figure_JLabel);
+
+
+function InitializeGui(handles)
+% Initializes the JLabel GUI
+handles = GetGUIPositions(handles);
+handles = InitializeState(handles);
+handles = InitializePlots(handles);
+guidata(handles.figure_JLabel,handles);
+
 
 function handles = InitializePlots(handles)
 
@@ -2048,6 +2061,10 @@ h = [handles.contextmenu_timeline_manual_timeline_options,...
     handles.togglebutton_label_unknown,...
     handles.guidata.menu_view_zoom_options(:)'];
 h = h(~isnan(h));
+
+% panel_previews seems to be empty at startup in mybranch.  Seems like it
+% would normally include handles.axes_preview, but should check this.
+
 hp = [handles.guidata.panel_previews(:)',...
   handles.panel_timelines,...
   handles.panel_learn];
@@ -2228,7 +2245,11 @@ function handles = SaveRC(handles)
   rc.traj_npost = handles.guidata.traj_npost;
   
   % navigation preferences
-  rc.navPreferences = handles.guidata.NJObj.GetState();
+  if isempty(handles.guidata.NJObj)
+    rc.navPreferences = [];
+  else
+    rc.navPreferences = handles.guidata.NJObj.GetState();
+  end
   rc.bottomAutomatic = handles.guidata.bottomAutomatic;
   
   % cache size
@@ -2274,7 +2295,7 @@ if handles.guidata.needsave,
   end
 end
 
-if handles.guidata.data.NeedSaveProject(),
+if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
   res = questdlg(['Current window features do not match the ones in the project file.'...
       'Update the project file with the current window features?'],...
       'Update?','Yes','No','Cancel','Yes');
@@ -6558,3 +6579,86 @@ else
 end
 
 
+% --------------------------------------------------------------------
+function menu_file_new_Callback(hObject, eventdata, handles)
+% hObject    handle to New (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% This is part of the "grand unified project" project
+
+% This creates a new project from scratch.
+
+% Create the modal window that allows specification of the project, etc.
+[handles,success] = ...
+  JLabelEditFiles('JLabelHandle',handles,...
+                  'JLabelSplashHandle',handles.guidata.hsplash);
+
+% If user hits 'Cancel' just return                
+if ~success,
+  guidata(hObject,handles);
+  return;
+end
+
+% Switch to the watch, this could take a while
+set(handles.figure_JLabel,'pointer','watch');
+
+% I don't know what this does --ALT, Jan 8 2013
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+
+% read configuration
+[handles,success] = LoadConfig(handles);
+if ~success,
+  guidata(hObject,handles);
+  %delete(hObject);
+  return;
+end
+
+% get relative locations of stuffs
+% handles = GetGUIPositions(handles);
+% 
+% % initialize data
+% handles = InitializeState(handles);
+% 
+% % initialize plot handles
+% handles = InitializePlots(handles);
+% 
+% % load classifier
+% if ~isempty(handles.guidata.classifierfilename),
+%   if exist(handles.guidata.classifierfilename,'file'),
+%     [success,msg] = handles.guidata.data.SetClassifierFileName(handles.guidata.classifierfilename);
+%     if ~success,
+%       warning(msg);
+%       SetStatus(handles,'Error loading classifier from file');
+%     end
+%   end
+% end
+% 
+% if isempty(handles.guidata.data.expdirs),
+%   guidata(hObject,handles);
+%   menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
+%   handles = guidata(hObject);
+% end
+
+handles = InitSelectionCallbacks(handles);
+
+if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
+  handles = SetCurrentMovie(handles,1);
+else
+  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+end
+
+handles = UpdateGUIGroundTruthMode(handles);
+
+% keypress callback for all non-edit text objects
+RecursiveSetKeyPressFcn(handles.figure_JLabel);
+
+% enable gui
+EnableGUI(handles);
+
+% OK, almost done
+set(handles.figure_JLabel,'pointer','arrow');
+
+% Update handles structure
+guidata(hObject, handles);

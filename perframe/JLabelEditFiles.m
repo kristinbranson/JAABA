@@ -73,13 +73,13 @@ if disableBehavior,
   % Simply edit files, not editing the behavior part
   handles.JLabelHandle = JLabelHandle;
   handles.data = JLabelHandle.guidata.data;
-  if handles.data.IsGTMode()
+  if ~isempty(handles.data) && handles.data.IsGTMode()
     if handles.data.IsAdvancedMode()
       set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
     else
       set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
     end
-  elseif handles.data.IsAdvancedMode()
+  elseif ~isempty(handles.data) && handles.data.IsAdvancedMode()
     set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Advanced')));
   else
     set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Normal')));
@@ -119,7 +119,7 @@ if ~isempty(handles.JLabelSplashHandle) && ishandle(handles.JLabelSplashHandle),
   delete(handles.JLabelSplashHandle);
 end
 
-% UIWAIT makes JLabelEditFiles wait for user response (see UIRESUME)
+% This is a modal window, so don't return until it is closed.
 uiwait(handles.figure_JLabelEditFiles);
 
 
