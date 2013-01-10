@@ -1589,7 +1589,11 @@ for b=bb
   during=cell(1,length(ggee));
   not_during=cell(1,length(ggee));
   parfor ge=ggee
-    if((individual<4)&&(~ismember(ge,selected_exp)))  continue;  end
+    if((individual<4)&&(~ismember(ge,selected_exp)))
+      during{ge}=nan;
+      not_during{ge}=nan;
+      continue;
+    end
 
     behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
     if(behavior_logic>1)
@@ -1617,9 +1621,15 @@ for b=bb
         handles.featurehistogram_perwhat);
   end
 
-  idx=cellfun(@isempty,during);
-  during=during(~idx);
-  not_during=not_during(~idx);
+  i=1;
+  while i<=length(during)
+    if((length(during{i})==1) && isnan(during{i}))
+      during(i)=[];
+      not_during(i)=[];
+    else
+      i=i+1;
+    end
+  end
 
   max(cellfun(@(x) size(x,2),during));
   cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during,'uniformoutput',false);
