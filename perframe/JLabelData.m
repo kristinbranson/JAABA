@@ -2559,6 +2559,17 @@ end
       
     end
     
+    function [success,msg] = AddExpDirIfNotPresentAlready(self,newExpDirName)
+      if ismember(newExpDirName,self.expdirs),
+        % if already present, do nothing
+        success=true;
+        msg='';
+      else
+        % if not present, add
+        [success,msg] = self.AddExpDir(newExpDirName);
+      end
+    end
+    
     function [success,msg] = RemoveExpDirs(obj,expi)
       % [success,msg] = RemoveExpDirs(obj,expi)
     % Removes experiments in expi from the GUI. If the currently loaded
