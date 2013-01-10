@@ -49,8 +49,8 @@ for i = 1:nclassifiers,
     featureconfigidx(i) = j;
   else
     featureconfigidx(i) = numel(unique_featureconfigfiles)+1;
-    unique_featureconfigfiles{end+1} = configparams{i}.file.featureconfigfile;
-    repidx(end+1) = i;
+    unique_featureconfigfiles{end+1} = configparams{i}.file.featureconfigfile; %#ok<AGROW>
+    repidx(end+1) = i; %#ok<AGROW>
   end
   
 end
@@ -99,12 +99,14 @@ tmp = cellfun(@isempty,dependencies);
 idxnodependency = find(tmp);
 idxdependency = find(~tmp);
 classifiersets = {};
+setdependencies = {};
 featureconfigperset = {};
 if ~isempty(idxnodependency),
   [fc,~,setidx] = unique(featureconfigfiles(idxnodependency));
   for i = 1:numel(fc),
     classifiersets{end+1} = idxnodependency(setidx==i); %#ok<AGROW>
     featureconfigperset{end+1} = fc{i}; %#ok<AGROW>
+    setdependencies{end+1} = []; %#ok<AGROW>
   end
 end
 
@@ -121,10 +123,13 @@ order = graphtopoorder(sparse(E));
 for i = idxdependency(order),
   fc = featureconfigfiles{i};
   if ~isempty(classifiersets) && strcmp(featureconfigperset{end},fc) && ...
-      ~any(ismember(classifiersets{end},dependencies{i})),
+      ~any(ismember(classifiersets{end},dependencies{i})) && ...
+      isempty(setdiff(dependencies{i},setdependencies{end})) && ...
+      isempty(setdiff(setdependencies{end},dependencies{i})),
     classifiersets{end}(end+1) = i;
   else
     classifiersets{end+1} = i; %#ok<AGROW>
     featureconfigperset{end+1} = fc; %#ok<AGROW>
+    setdependencies{end+1} = dependencies{i}; %#ok<AGROW>
   end
 end
