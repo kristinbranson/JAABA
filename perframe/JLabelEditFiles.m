@@ -52,6 +52,9 @@ function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to JLabelEditFiles (see VARARGIN)
 
+% for debugging purposes only, make the window non-modal
+set(hObject,'WindowStyle','normal');
+
 % have not pushed the done button yet
 handles.success = false;
 
@@ -104,7 +107,7 @@ else
     set(handles.text_projectfile,'String',handles.configfilename);
   end
   handles.JLabelHandle = JLabelHandle;
-  handles.needJLabelInit = true;
+  handles.needJLabelInit = true;  % likely problematic
   guidata(hObject,handles);
 end
 
@@ -255,7 +258,9 @@ guidata(hObject, handles);
 function UpdateStatusTable(handles)
 
 v = get(handles.listbox_experiment,'Value');
-if isempty(v) || v <= 0 || handles.data.nexps == 0 ,
+expList=get(handles.listbox_experiment,'String');
+nExps=length(expList);
+if isempty(v) || v <= 0 || nExps == 0 ,
   set(handles.uitable_status,'Data',{},'Visible','off');
   return;
 end
@@ -288,6 +293,7 @@ for i = 1:nfiles,
 end
 tableSize = get(handles.uitable_status,'Position');
 set(handles.uitable_status,'Data',data,'Visible','on','ColumnWidth',{150 tableSize(3)-155});
+
 
 % --- Outputs from this function are returned to the command line.
 function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles) 
@@ -325,12 +331,13 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     SetButtonImage(hObject);
 end
 
+%--------------------------------------------------------------------------
+
 % --- Executes on button press in pushbutton_add.
 function pushbutton_add_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_add (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 
 if ~handles.disableBehavior,
   if ~isfield(handles,'configfilename') || isempty(handles.configfilename), 
@@ -339,7 +346,7 @@ if ~handles.disableBehavior,
   end
 end
 
-InitJLabelGui(handles);
+%InitJLabelGui(handles);
 handles = guidata(hObject);
 
 % ask user for experiment directory
@@ -350,7 +357,8 @@ handles = guidata(hObject);
 %   return;
 % end
 
-defaultdir = fileparts(handles.data.defaultpath);
+%defaultdir = fileparts(handles.data.defaultpath);
+defaultdir = pwd;
 
 allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
 if ischar(allexpdirs),
@@ -360,19 +368,20 @@ if isempty(allexpdirs) || ~iscell(allexpdirs),
   return;
 end
 
-set(handles.pushbutton_cancel,'enable','off');
-SetLabelingMode(handles);
+%set(handles.pushbutton_cancel,'enable','off');
+%SetLabelingMode(handles);
 
 for ndx = 1:numel(allexpdirs)
   expdir = allexpdirs{ndx};
-  if ismember(expdir,handles.data.expdirs),
-    uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
-    return;
-  end
+  %if ismember(expdir,handles.data.expdirs),
+  %  uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
+  %  return;
+  %end
   
   SetStatusEditFiles(hObject,sprintf('Adding experiment directory %s',expdir));
   
-  [success,msg] = handles.data.AddExpDir(expdir);
+  %[success,msg] = handles.data.AddExpDir(expdir);
+  success=true;
   if ~success,
     if iscell(msg)
       uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
@@ -383,17 +392,22 @@ for ndx = 1:numel(allexpdirs)
     
     return;
   end
-  
-  set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 
+  % Add this experiment to the listbox, and make it the selection
+  listOld=get(handles.listbox_experiment,'String');
+  listNew=[listOld;{expdir}];
+  nExps=length(listNew);
+  set(handles.listbox_experiment,'String',listNew,'Value',nExps);
 end
 
 SetStatusEditFiles(hObject,'Final update to status table...\n');
 
 % update status table
-UpdateStatusTable(handles);
+%UpdateStatusTable(handles);  % this is a regression --ALT, 01-10-2013
 
 ClearStatusEditFiles(hObject);
+
+%--------------------------------------------------------------------------
 
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
@@ -424,7 +438,6 @@ switch file,
 end
 UpdateStatusTable(handles);
 
-
 % --- Executes on button press in pushbutton_remove.
 function pushbutton_remove_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_remove (see GCBO)
@@ -440,17 +453,52 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 UpdateStatusTable(handles);
 set(handles.pushbutton_cancel,'enable','off');
 
+%--------------------------------------------------------------------------
+
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+newExpDirNameList=get(handles.listbox_experiment,'String');
+figureJLabel=handles.JLabelHandle.figure_JLabel;
+theJLabelGUIData=handles.JLabelHandle.guidata;
+theJLabelGUIData.UpdateGrandleArrays(figureJLabel);
 InitJLabelGui(handles);
 handles = guidata(hObject);
+
+% Add each exp dir in turn
+theJLabelData=theJLabelGUIData.data;
+figureJLabelEditFiles=gcbf;
+nExpsNew=length(newExpDirNameList);
+for i = 1:nExpsNew
+  newExpDirName = newExpDirNameList{i};
+  SetStatusEditFiles(figureJLabelEditFiles, ...
+                     sprintf('Adding experiment directory %s', ...
+                             newExpDirName));
+  [successThis,msgThis] = ...
+    theJLabelData.AddExpDirIfNotPresentAlready(newExpDirName);
+  if ~successThis,
+    % should we try to roll back the state entitely?  Not clear...
+    if iscell(msgThis)
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s', ...
+                             newExpDirName,msgThis{:})));
+    else
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s', ...
+                             newExpDirName,msgThis)));
+    end
+    ClearStatusEditFiles(figureJLabelEditFiles);
+    continue  % keep adding files nonetheless
+  end
+end
+ClearStatusEditFiles(figureJLabelEditFiles);
+
 SetLabelingMode(handles);
 handles.success = true;
 guidata(hObject,handles);
 uiresume(handles.figure_JLabelEditFiles);
+
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_load.
 function pushbutton_load_Callback(hObject, eventdata, handles)
