@@ -109,16 +109,86 @@ end
 % Hide the splash window
 set(handles.guidata.hsplash,'visible','off');
 
-% Initialize and enable the GUI
-InitializeGui(handles);
-EnableGUI(handles);
-
 % save the window state
 guidata(hObject,handles);
 
+% Update the arrays of graphics handles (grandles) within the figure's guidata
+handles.guidata.UpdateGrandleArrays(hObject);
+
+handles=guidata(hObject);
+handles = CreateLabelButtons(handles);
+guidata(hObject,handles);
+
+% Update the enablement of controls
+handles=guidata(hObject);
+EnableGUI(handles);
+
 return
 
+
+% function UpdateGrandleArrays(hObject)
+% % Update the array of grandles within guidata(hObject).guidata.
+% % A "grandle" is a Matlab graphics handle.
+% handles=guidata(hObject);
+% % all axes panels
+% handles.guidata.panel_previews = findobj(handles.figure_JLabel,'-regexp','Tag','panel_axes\d+');
+% % all preview axes
+% handles.guidata.axes_previews = findobj(handles.figure_JLabel,'Tag','axes_preview');
+% % all sliders
+% handles.guidata.slider_previews = findobj(handles.figure_JLabel,'Tag','slider_preview');
+% % all frame number edit boxes
+% handles.guidata.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumber');
+% % all play buttons
+% handles.guidata.pushbutton_playstops = findobj(handles.figure_JLabel,'Tag','pushbutton_playstop');
+% % all timelines
+% handles.guidata.axes_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
+% % handles.guidata.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
+% % Regex messes the order which makes it difficult to remove the last data axes.
+% handles.guidata.labels_timelines(1,1) = handles.timeline_label_prop1;
+% handles.guidata.labels_timelines(2,1) = handles.timeline_label_automatic;
+% handles.guidata.labels_timelines(3,1) = handles.timeline_label_manual;
+% 
+% handles.guidata.axes_timeline_props = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
+% handles.guidata.axes_timeline_labels = setdiff(handles.guidata.axes_timelines,handles.guidata.axes_timeline_props);
+% 
+% if numel(handles.guidata.labels_timelines) ~= numel(handles.guidata.labels_timelines),
+%   error('Number of timeline axes does not match number of timeline labels');
+% end
+% % sort by y-position
+% ys = nan(1,numel(handles.guidata.axes_timelines));
+% for i = 1:numel(handles.guidata.axes_timelines),
+%   pos = get(handles.guidata.axes_timelines(i),'Position');
+%   ys(i) = pos(2);
+% end
+% [~,order] = sort(ys);
+% handles.guidata.axes_timelines = handles.guidata.axes_timelines(order);
+% % sort by y-position. 
+% % Don't touch the last 2 labels that are part of manual and automatic timeline
+% % because they are inside a panel and so pos(2) is relative to the panel.
+% ys = nan(1,numel(handles.guidata.labels_timelines)-2);
+% for i = 1:(numel(handles.guidata.labels_timelines)-2),
+%   pos = get(handles.guidata.labels_timelines(i),'Position');
+%   ys(i) = pos(2);
+% end
+% [~,order] = sort(ys);
+% temp = handles.guidata.labels_timelines(1:end-2);
+% handles.guidata.labels_timelines(1:end-2) = temp(order);
+% 
+% handles.guidata.text_timeline_props = nan(size(handles.guidata.axes_timeline_props));
+% handles.guidata.text_timelines = nan(size(handles.guidata.axes_timelines));
+% [~,idx] = ismember(handles.guidata.axes_timeline_props,handles.guidata.axes_timelines);
+% for ii = 1:numel(handles.guidata.axes_timeline_props),
+%   i = idx(ii);
+%   t = get(handles.guidata.axes_timeline_props(ii),'Tag');
+%   m = regexp(t,'^axes_timeline_prop(.*)$','tokens','once');
+%   t2 = ['text_timeline_prop',m{1}];
+%   handles.guidata.text_timeline_props(ii) = handles.(t2);
+%   handles.guidata.text_timelines(i) = handles.guidata.text_timeline_props(ii);
+% end
+% guidata(hObject,handles);  % write the guidata back to the "object"
+% return
   
+
 function handles = InitSelectionCallbacks(handles)
 
 handles.guidata.callbacks = struct;
@@ -146,7 +216,8 @@ varargout{1} = hObject;
 
 function InitializeGui(handles)
 % Initializes the JLabel GUI
-handles = GetGUIPositions(handles);
+%handles = GetGUIPositions(handles);
+handles=UpdateGrandleArrays(handles)
 %handles = InitializeState(handles);
 %handles = InitializePlots(handles);
 guidata(handles.figure_JLabel,handles);
@@ -1869,8 +1940,21 @@ set(handles.menu_go_next_automatic_bout_start,'Label',...
 set(handles.menu_go_previous_automatic_bout_end,'Label',...
   sprintf('Next %s bout end (shift + left arrow)',jumpType));
 
+
 % create buttons for each label
 function handles = CreateLabelButtons(handles)
+
+% get some freqeuntly used things into local vars
+if isempty(handles.guidata.data)
+  projectPresent=false;
+  nBehaviors=1;  % just for layout purposes
+  isAdvancedMode=false;
+else
+  projectPresent=true;
+  nBehaviors=handles.guidata.data.nbehaviors;
+  isAdvancedMode=handles.guidata.data.IsAdvancedMode();
+end
+isBasicMode=~isAdvancedMode;
 
 % get positions of stuff
 set(handles.panel_labelbuttons,'Units','pixels');
@@ -1887,13 +1971,12 @@ button_width = button1_pos(3);
 button_height = button1_pos(4);
 
 % calculate import height for the panel
-
-if ~handles.guidata.data.IsAdvancedMode();
-new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
-  handles.guidata.data.nbehaviors*in_border_y;
+if isBasicMode
+  new_panel_height = 2*out_border_y + (nBehaviors+1)*button_height + ...
+    nBehaviors*in_border_y;
 else
-new_panel_height = 2*out_border_y + (2*handles.guidata.data.nbehaviors+1)*button_height + ...
-  2*handles.guidata.data.nbehaviors*in_border_y;
+  new_panel_height = 2*out_border_y + (2*nBehaviors+1)*button_height + ...
+    2*nBehaviors*in_border_y;
 end
 % update panel position
 panel_top = panel_pos(2)+panel_pos(4);
@@ -1908,10 +1991,22 @@ new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(
 set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 
 % list of buttons
-handles.guidata.togglebutton_label_behaviors = nan(1,2*handles.guidata.data.nbehaviors);
+handles.guidata.togglebutton_label_behaviors = nan(1,2*nBehaviors);
 
 % update first button
-if handles.guidata.data.IsAdvancedMode()
+if ~projectPresent 
+  % no-anything-yet mode
+  pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
+  set(handles.togglebutton_label_behavior1,...
+    'String','Behavior',...
+    'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+    'FontWeight','bold','BackgroundColor',[0.8 0 0],...
+    'Position',pos,...
+    'UserData',1);
+  handles.guidata.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
+  SetButtonImage(handles.guidata.togglebutton_label_behaviors(1));  
+elseif isAdvancedMode
+  % advanced mode
   new_button1_pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
   set(handles.togglebutton_label_behavior1,...
     'String',sprintf('Important %s',handles.guidata.data.labelnames{1}),...
@@ -1931,7 +2026,8 @@ if handles.guidata.data.IsAdvancedMode()
     'Position',pos,'Tag',sprintf('togglebutton_label_normbehavior1'),...
     'UserData',2);
   SetButtonImage(handles.guidata.togglebutton_label_behaviors(2));
-else
+else  
+  % basic mode
   pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
   set(handles.togglebutton_label_behavior1,...
     'String',sprintf('%s',handles.guidata.data.labelnames{1}),...
@@ -1943,11 +2039,24 @@ else
   SetButtonImage(handles.guidata.togglebutton_label_behaviors(1));
 end
 
-  
-
 % create the rest of the buttons
-for i = 2:handles.guidata.data.nbehaviors,
-  if handles.guidata.data.IsAdvancedMode()
+for i = 2:nBehaviors,
+  if ~projectPresent,
+    % no-data-yet "mode"
+    pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
+      button_width,button_height];
+    handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
+      uicontrol('Style','togglebutton','String','Not behavior',...
+      'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+      'FontWeight','bold','BackgroundColor',[0 0 1],...
+      'Position',pos,...
+      'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
+      'Parent',handles.panel_labelbuttons,...
+      'Tag',sprintf('togglebutton_label_normbehavior%d',i),...
+      'UserData',2*i-1);
+    SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));    
+  elseif isAdvancedMode,
+    % advanced mode
     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
       button_width,button_height];
     handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
@@ -1973,6 +2082,7 @@ for i = 2:handles.guidata.data.nbehaviors,
       'UserData',2*i);
     SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i));
   else
+    % basic mode
     pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
       button_width,button_height];
     handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
@@ -1996,25 +2106,35 @@ set(handles.togglebutton_label_unknown,...
   'UserData',-1);
 SetButtonImage(handles.togglebutton_label_unknown);
 
+handles.guidata.GUIAdvancedMode = isAdvancedMode;
+return
 
-handles.guidata.GUIAdvancedMode = handles.guidata.data.IsAdvancedMode();
 
-  
 function EnableGUI(handles)
+% Updates the enablement of controls according to the number of experiments
+% and the current experiment, and handles.guidata.needsave.  Also, disables
+% File > Save Project...
 
-% these controls require a movie to currently be open
+% these controls require a movie to currently be open, and should be
+% disabled if there's no movie
 h = [handles.contextmenu_timeline_manual_timeline_options,...
-    handles.guidata.togglebutton_label_behaviors(:)',...
-    handles.togglebutton_label_unknown,...
-    handles.guidata.menu_view_zoom_options(:)'];
+     handles.guidata.togglebutton_label_behaviors(:)',...
+     handles.togglebutton_label_unknown,...
+     handles.togglebutton_select,...
+     handles.pushbutton_clearselection, ...
+     handles.pushbutton_playselection, ...
+     handles.bagButton, ...
+     handles.similarFramesButton, ...
+     handles.guidata.menu_view_zoom_options(:)'];
 h = h(~isnan(h));
 
-% panel_previews seems to be empty at startup in mybranch.  Seems like it
-% would normally include handles.axes_preview, but should check this.
-
+% these require a movie to currently be opne and should be _invisible_
+% if there's no movie
 hp = [handles.guidata.panel_previews(:)',...
-  handles.panel_timelines,...
-  handles.panel_learn];
+      handles.panel_timelines,...
+      handles.panel_learn];
+
+% set enablement/visibility according to the current movie index    
 if handles.guidata.expi >= 1 && handles.guidata.expi <= handles.guidata.data.nexps,
   set(h,'Enable','on');
   set(hp,'Visible','on');
@@ -2031,6 +2151,7 @@ else
 end
 
 set(handles.menu_file_save_project,'Enable','off');
+
 
 function handles = LoadRC(handles)
 
