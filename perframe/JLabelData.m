@@ -310,11 +310,13 @@ classdef JLabelData < handle
     
     postprocessparams = []
     version = '';
-end
+  end
   
+  properties (Access=public,Dependent=true)
+    saveableClassifier;
+  end
+
   methods (Access=private)
-    
-    
   end
     
   methods (Access=public,Static=true)
@@ -1963,31 +1965,17 @@ end
       obj.LoadScores(expi,sfn);
     end
     
+    %----------------------------------------------------------------------
+    
     function SaveClassifier(obj)
     % SaveClassifier(obj)
     % This function saves the current classifier to the file
-    % ons.classifierfilename. It first constructs a struct representing the
+    % obj.classifierfilename. It first constructs a struct representing the
     % training data last used to train the classifier, then adds all the
     % data described in obj.classifiervars.       
       
-      s = struct;
-      s.classifierTS = obj.classifierTS;
-      s.trainingdata = obj.SummarizeTrainingData();
       try
-        for i = 1:numel(obj.classifiervars),
-          fn = obj.classifiervars{i};
-          if isfield(s,fn),
-          % elseif isprop(obj,fn),
-          % isprop doesn't work right on 2010b
-          elseif ismember(fn,properties(obj))
-            s.(fn) = obj.(fn);
-          elseif isstruct(obj.windowdata) && isfield(obj.windowdata,fn),
-            s.(fn) = obj.windowdata.(fn);
-          else
-            error('Unknown field %s',fn);
-          end
-            
-        end
+        s=obj.saveableClassifier;
         save(obj.classifierfilename,'-struct','s');
       catch ME,
         errordlg(getReport(ME),'Error saving classifier to file');
@@ -1995,6 +1983,31 @@ end
       
     end
 
+    %----------------------------------------------------------------------
+    
+    function [labels,gtLabels]=storeAndGetLabelsAndGTLabels(self)
+      % Returns a single structure containing all the labels, suitable for
+      % saving.
+    
+      % short-circuit if no labels
+      if isempty(self.labels) && isempty(self.gt_labels), 
+        labels=self.labels;
+        gtLabels=self.gt_labels  
+        return; 
+      end
+          
+      % store labels in labelidx
+      self.StoreLabels();
+      
+      % return the labels
+      labels=self.labels;
+      
+      % and the gt_labels
+      gtLabels=self.gt_labels
+    end
+
+    %----------------------------------------------------------------------
+    
     function SaveLabels(obj,expis)
     % SaveLabels(obj,expis)
     % For each experiment in expis, save the current set of labels to file.
@@ -2061,6 +2074,8 @@ end
       obj.ClearStatus();
     end
 
+    %----------------------------------------------------------------------
+    
     function SaveGTLabels(obj,expis)
     % SaveGTLabels(obj,expis)
     % For each experiment in expis, save the current set of labels to file.
@@ -2118,6 +2133,9 @@ end
 
       obj.ClearStatus();
     end
+
+    %----------------------------------------------------------------------
+    
 
     
 % Experiment handling
@@ -2682,10 +2700,10 @@ end
 % File Handling 
     
 
-    function res = GetFileName(obj,file)
+    function res = GetFileName(obj,fileType)
     % res = GetFileName(obj,file)
-    % Get base name of file of the input type file.
-      switch file,
+    % Get base name of file of the input type fileType.
+      switch fileType,
         case 'movie',
           res = obj.moviefilename;
         case 'trx',
@@ -2705,7 +2723,7 @@ end
         case 'scores',
           res = obj.scorefilename;
         otherwise
-          error('Unknown file type %s',file);
+          error('Unknown file type %s',fileType);
       end
     end
     
@@ -3041,6 +3059,8 @@ end
       obj.savewindowfeatures = false;
     end
     
+    %----------------------------------------------------------------------
+    
     function SaveProject(obj)
       configfilename = obj.configfilename;
       [~,~,ext] = fileparts(configfilename);
@@ -3063,6 +3083,8 @@ end
       save(configfilename,'windowfeatures','-append');
       obj.ResetSaveProject();
     end
+    
+    %----------------------------------------------------------------------
     
     function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
       windowfeaturesparams = obj.windowfeaturesparams; %#ok<PROP>
@@ -6894,6 +6916,31 @@ end
     
   end % End methods
     
+  methods
+    function s=get.saveableClassifier(self)
+      % Extracts all the things needed to save the classifier, stores them
+      % in a scalar struct, which is returned.
+      s = struct;  % struct to be returned
+      s.classifierTS = self.classifierTS;
+      s.trainingdata = self.SummarizeTrainingData();
+      nFields=numel(self.classifiervars);
+      for i = 1:nFields,
+        fn = self.classifiervars{i};  % fn for "field name"
+        if isfield(s,fn),
+          % that field is already present in s, so do nothing
+        % elseif isprop(obj,fn),
+        % isprop doesn't work right on 2010b
+        elseif ismember(fn,properties(self))
+          s.(fn) = self.(fn);
+        elseif isstruct(self.windowdata) && isfield(self.windowdata,fn),
+          s.(fn) = self.windowdata.(fn);
+        else
+          error('Unknown field %s',fn);
+        end
+      end      
+    end  % function
+  end  % End methods block
+  
 end % End class
 
 
