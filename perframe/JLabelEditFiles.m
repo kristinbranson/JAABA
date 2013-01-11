@@ -93,8 +93,8 @@ if disableBehavior,
   guidata(hObject,handles);
   
 else
-  %if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))  
-  if false
+  if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))  
+  %if false
     Q = load('.JLabelrc.mat','configfilename');
     defpath = Q.configfilename;
   else
@@ -125,7 +125,7 @@ end
 %set(hObject,'windowstyle','normal');
 set(hObject,'windowstyle','modal');
 
-% This is a modal window, so don't return until it is closed.
+% Don't need this anymore
 %uiwait(handles.figure_JLabelEditFiles);
 
 return
@@ -339,6 +339,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     SetButtonImage(hObject);
 end
 
+%--------------------------------------------------------------------------
+
 % --- Executes on button press in pushbutton_add.
 function pushbutton_add_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_add (see GCBO)
@@ -409,6 +411,8 @@ UpdateStatusTable(handles);
 
 ClearStatusEditFiles(hObject);
 
+%--------------------------------------------------------------------------
+
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
 file = handles.data.filetypes{row};
@@ -438,6 +442,7 @@ switch file,
 end
 UpdateStatusTable(handles);
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_remove.
 function pushbutton_remove_Callback(hObject, eventdata, handles)
@@ -467,7 +472,15 @@ SetLabelingMode(handles);
 handles.success = true;
 guidata(hObject,handles);
 %uiresume(handles.figure_JLabelEditFiles);
-JLabel('importDone',handles.JLabelHandle);
+if handles.disableBehavior
+  % Means JLabelEditFiles was invoked via File > Edit files... in JLabel
+  % figure
+  JLabel('editFilesDone',handles.JLabelHandle);
+else
+  % Means JLabelEditFiles was invoked via File > Import... in JLabel
+  % figure
+  JLabel('importDone',handles.JLabelHandle);
+end
 delete(gcbf);
 return
 
@@ -570,7 +583,15 @@ function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
 %   return;
 % end
 %uiresume(handles.figure_JLabelEditFiles);
-JLabel('importCanceled',handles.JLabelHandle);
+if handles.disableBehavior
+  % Means JLabelEditFiles was invoked via File > Edit files... in JLabel
+  % figure
+  JLabel('editFilesDone',handles.JLabelHandle);
+else
+  % Means JLabelEditFiles was invoked via File > Import... in JLabel
+  % figure
+  JLabel('importCanceled',handles.JLabelHandle);
+end
 delete(gcbf);
 return
 

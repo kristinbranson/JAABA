@@ -1434,9 +1434,10 @@ function menu_file_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
+%--------------------------------------------------------------------------
 
-% --------------------------------------------------------------------
 function menu_file_editfiles_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_editfiles (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1453,46 +1454,55 @@ function menu_file_editfiles_Callback(hObject, eventdata, handles)
 %     params(end+1:end+2) = {'defaultpath',handles.guidata.defaultpath};
 %   end
 % end
+
 if ~isempty(handles.guidata.expi) && handles.guidata.expi > 0,
-  oldexpdir = handles.guidata.data.expdirs{handles.guidata.expi};
+  handles.guidata.oldexpdir = handles.guidata.data.expdirs{handles.guidata.expi};
 else
-  oldexpdir = '';
+  handles.guidata.oldexpdir = '';
 end
 
 DisableGUI(handles);
-[handles,success] = ...
-  JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
-ReEnableGUI(handles);
+%[handles,success] = ...
+%  JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
 
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles);
 
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
-if ~success,
-  guidata(hObject,handles);
-  return;
-end
- 
+%ReEnableGUI(handles);
 
+% 
+% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+% 
+% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% if ~success,
+%   guidata(hObject,handles);
+%   return;
+% end
+%  
+% 
+% 
+% % save needed if list has changed
+% handles = SetNeedSave(handles);
+% 
+% if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
+%   j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
+%   handles.guidata.expi = j;
+% else
+%   handles = UnsetCurrentMovie(handles);
+%   if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+%     handles = SetCurrentMovie(handles,1);
+%   else
+%     handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+%   end
+% end
+% 
+% handles = UpdateGUIGroundTruthMode(handles);
+% 
+% guidata(hObject,handles);
 
-% save needed if list has changed
-handles = SetNeedSave(handles);
+return
 
-if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
-  j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
-  handles.guidata.expi = j;
-else
-  handles = UnsetCurrentMovie(handles);
-  if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-    handles = SetCurrentMovie(handles,1);
-  else
-    handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-  end
-end
-
-handles = UpdateGUIGroundTruthMode(handles);
-
-guidata(hObject,handles);
+%--------------------------------------------------------------------------
 
 function handles = UpdateMovies(handles)
 
@@ -6524,17 +6534,24 @@ for i = 1:numel(inlabelfilenames),
 end
 handles.guidata.packageoutputdir = outdir;
 
+%--------------------------------------------------------------------------
+
 function DisableGUI(handles)
 
 handles.guidata.henabled = findall(handles.figure_JLabel,'Enable','on');
 handles.guidata.enabled = false;
 set(handles.guidata.henabled,'Enable','off');
 
+return
+
+%--------------------------------------------------------------------------
+
 function ReEnableGUI(handles)
 
 handles.guidata.enabled = true;
 set(handles.guidata.henabled,'Enable','on');
 
+return
 
 % --------------------------------------------------------------------
 function menu_file_save_suggestions_Callback(hObject, eventdata, handles)
@@ -6863,6 +6880,40 @@ return
 % -------------------------------------------------------------------------
 
 function importCanceled(handles)
+
+guidata(handles.figure_JLabel,handles);
+
+return
+
+%--------------------------------------------------------------------------
+
+function editFilesDone(handles)
+
+ReEnableGUI(handles);
+
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+
+handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+
+% save needed if list has changed
+handles = SetNeedSave(handles);
+
+oldexpdir=handles.guidata.oldexpdir;
+if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
+  j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
+  handles.guidata.expi = j;
+else
+  handles = UnsetCurrentMovie(handles);
+  if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+    handles = SetCurrentMovie(handles,1);
+  else
+    handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+  end
+end
+handles.guidata.oldexpdir='';
+
+handles = UpdateGUIGroundTruthMode(handles);
 
 guidata(handles.figure_JLabel,handles);
 
