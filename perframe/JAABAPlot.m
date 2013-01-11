@@ -1921,7 +1921,10 @@ if(iscell(feature_data.data{1}))
 end
 
 k=1;
-data=nan(length(feature_data.data),max(behavior_data.allScores.tEnd));
+T0 = min(behavior_data.allScores.tStart);
+T1 = max(behavior_data.allScores.tEnd);
+%data=nan(length(feature_data.data),max(behavior_data.allScores.tEnd));
+data=nan(length(feature_data.data),T1-T0+1);
 for i=1:length(feature_data.data)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
   if(sum(sexdata{i}) < length(sexdata{i})/2)  continue;  end
@@ -1930,7 +1933,9 @@ for i=1:length(feature_data.data)  % individual
   if tmp==(length(feature_data.data{i})+1)  % n-1 features
     foo=1;
   end
-  data(k,behavior_data.allScores.tStart(i):(behavior_data.allScores.tEnd(i)-foo))=...
+%   data(k,behavior_data.allScores.tStart(i):(behavior_data.allScores.tEnd(i)-foo))=...
+%       feature_data.data{i}(1:(tmp-foo));
+  data(k,behavior_data.allScores.tStart(i)-T0+1:(behavior_data.allScores.tEnd(i)-foo-T0+1))=...
       feature_data.data{i}(1:(tmp-foo));
   k=k+1;
 end
@@ -2721,10 +2726,14 @@ for b=bb
 
   score_file=handles.scorefiles{b};
 
-  cellfun(@(x) size(x{1},2),sexdata,'uniformoutput',false);
-  parfor_tmp_len=max([ans{:}]);
-  behavior_cumulative=nan(length(ggee),parfor_tmp_len);
-  parfor ge=ggee
+  % KB line things up
+  behavior_cumulative=cell(length(ggee),1);
+%   cellfun(@(x) size(x{1},2),sexdata,'uniformoutput',false);
+%   parfor_tmp_len=max([ans{:}]);
+%   behavior_cumulative=nan(length(ggee),parfor_tmp_len);
+  for gei=1:numel(ggee),
+    
+    ge = ggee(gei);
   %for ge=ggee
     if((individual<4)&&(~ismember(ge,selected_exp)))  continue;  end
 
@@ -2734,7 +2743,13 @@ for b=bb
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
     end
 
-    parfor_tmp=zeros(1,parfor_tmp_len);
+    % KB: align video starts
+    T0 = min(behavior_data.allScores.tStart);
+    T1 = max(behavior_data.allScores.tEnd);
+    
+    parfor_tmp_len_curr = T1 - T0 + 1;
+    
+    parfor_tmp=zeros(1,parfor_tmp_len_curr);
     k=0;
     for i=1:length(behavior_data.allScores.t0s)   % individual
       if((individual>3)&&((individual-3)~=i))  continue;  end
@@ -2769,14 +2784,22 @@ for b=bb
         case(3)
           partition_idx = partition_idx & (~sexdata{ge}{i}(1:length(partition_idx)));
       end
-      idx=find(partition_idx);
+      
+      % KB: offset
+      idx = find(partition_idx) + behavior_data.allScores.tStart(i) - T0;
+      %idx=find(partition_idx);
       parfor_tmp(idx)=parfor_tmp(idx)+1;
       k=k+1;
     end
     parfor_tmp./k;
-    behavior_cumulative(ge,:)=conv(ans,ones(1,convolutionwidth),'same')...
+    behavior_cumulative{gei}=conv(ans,ones(1,convolutionwidth),'same')...
         ./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
   end
+  parfor_tmp_len = max( cellfun(@numel, behavior_cumulative) );
+  for gei = 1:numel(ggee),
+    behavior_cumulative{gei} = [behavior_cumulative{gei},nan(1,parfor_tmp_len-numel(behavior_cumulative{gei}))];
+  end
+  behavior_cumulative = cell2mat(behavior_cumulative);
 
   find(~isnan(behavior_cumulative(:,1)));
   behavior_cumulative=behavior_cumulative(ans,:);
