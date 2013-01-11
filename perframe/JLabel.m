@@ -2126,7 +2126,7 @@ set(handles.panel_select,'Position',new_select_pos);
 new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
 set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 
-% update the list of buttons
+% update the array of button handles
 handles.guidata.togglebutton_label_behaviors = nan(1,2*nBehaviors);
   % order is: behavior1
   %           behavior1 maybe ("normbehavior")
@@ -2144,10 +2144,13 @@ for i=1:nBehaviors
     fif(isempty(thisButton),nan,thisButton);
 end
   
-% update the rest of the buttons (which may or may not be present)
+% Update the buttons, creating them de novo if needed
 callback=get(handles.togglebutton_label_behavior1,'Callback');
 for i = 1:nBehaviors,
-  % definitely the behavior
+  %
+  % Set up the "definitely the behavior" button.
+  %
+  % Create the button if needed.
   if isnan(handles.guidata.togglebutton_label_behaviors(2*i-1))
     handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
       uicontrol('Style','togglebutton', ...
@@ -2159,10 +2162,10 @@ for i = 1:nBehaviors,
                 'BackgroundColor',[0 0 1],...
                 'Callback',callback,...
                 'Parent',handles.panel_labelbuttons,...
-                'Tag',sprintf('togglebutton_label_behavior%d',i),...
-                'UserData',2*i-1);
+                'Tag',sprintf('togglebutton_label_behavior%d',i));
     SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
   end
+  % Set the button properties (always)
   if isAdvancedMode
     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
            button_width,button_height];
@@ -2180,9 +2183,14 @@ for i = 1:nBehaviors,
   end
   set(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
       'Position',pos, ...
-      'String',str);
-  % maybe the behavior
+      'String',str, ...
+      'UserData',2*i-1);
+    % Need userdata in above b/c not set in guide for guide-made buttons
+  %  
+  % Set up the "maybe the behavior" button
+  %
   if isAdvancedMode
+    % Create the button if needed.
     if isnan(handles.guidata.togglebutton_label_behaviors(2*i))
       handles.guidata.togglebutton_label_behaviors(2*i) = ...
         uicontrol('Style','togglebutton', ...
@@ -2190,18 +2198,20 @@ for i = 1:nBehaviors,
                   'FontWeight','bold','BackgroundColor',ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)),...
                   'Callback',callback,...
                   'Parent',handles.panel_labelbuttons,...
-                  'Tag',sprintf('togglebutton_label_normbehavior%d',i),...
-                  'UserData',2*i);
+                  'Tag',sprintf('togglebutton_label_normbehavior%d',i));
       SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i));
     end
+    % Set the button properties
     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
            button_width,button_height];
     str=sprintf('%s',handles.guidata.data.labelnames{i});
     set(handles.guidata.togglebutton_label_behaviors(2*i), ...
         'Position',pos, ...
-        'String',str);
+        'String',str, ...
+        'UserData',2*i);
   else
     % basic mode, or no-data-yet
+    % delete the maybe-the-behavior button if it exists
     thisButton=handles.guidata.togglebutton_label_behaviors(2*i);
     if ~isnan(thisButton)
       delete(thisButton)
