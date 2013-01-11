@@ -45,7 +45,7 @@ if ishandle(hsplashstatus),
 else
   fprintf([varargin{1},'\n'],varargin{2:end});
 end
-
+ 
 % --- Executes just before JLabel is made visible.
 function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
