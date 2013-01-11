@@ -180,6 +180,68 @@ classdef JLabelGUIData < handle
     function obj = JLabelGUIData(varargin)
       
     end
+
+    function UpdateGraphicsHandleArrays(self, figure_JLabel)
+      % Update the arrays of grandles within ourself to match the widgets
+      % in the JLabel figure.
+      % all axes panels
+      self.panel_previews = findobj(figure_JLabel,'-regexp','Tag','panel_axes\d+');
+      % all preview axes
+      self.axes_previews = findobj(figure_JLabel,'Tag','axes_preview');
+      % all sliders
+      self.slider_previews = findobj(figure_JLabel,'Tag','slider_preview');
+      % all frame number edit boxes
+      self.edit_framenumbers = findobj(figure_JLabel,'Tag','edit_framenumber');
+      % all play buttons
+      self.pushbutton_playstops = findobj(figure_JLabel,'Tag','pushbutton_playstop');
+      % all timelines
+      self.axes_timelines = findobj(figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
+      % self.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
+      % Regex messes the order which makes it difficult to remove the last data axes.
+      handles=guidata(figure_JLabel);
+      self.labels_timelines(1,1) = handles.timeline_label_prop1;
+      self.labels_timelines(2,1) = handles.timeline_label_automatic;
+      self.labels_timelines(3,1) = handles.timeline_label_manual;
+
+      self.axes_timeline_props = findobj(figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
+      self.axes_timeline_labels = setdiff(self.axes_timelines,self.axes_timeline_props);
+
+      if numel(self.labels_timelines) ~= numel(self.labels_timelines),
+        error('Number of timeline axes does not match number of timeline labels');
+      end
+      % sort by y-position
+      ys = nan(1,numel(self.axes_timelines));
+      for i = 1:numel(self.axes_timelines),
+        pos = get(self.axes_timelines(i),'Position');
+        ys(i) = pos(2);
+      end
+      [~,order] = sort(ys);
+      self.axes_timelines = self.axes_timelines(order);
+      % sort by y-position. 
+      % Don't touch the last 2 labels that are part of manual and automatic timeline
+      % because they are inside a panel and so pos(2) is relative to the panel.
+      ys = nan(1,numel(self.labels_timelines)-2);
+      for i = 1:(numel(self.labels_timelines)-2),
+        pos = get(self.labels_timelines(i),'Position');
+        ys(i) = pos(2);
+      end
+      [~,order] = sort(ys);
+      temp = self.labels_timelines(1:end-2);
+      self.labels_timelines(1:end-2) = temp(order);
+
+      self.text_timeline_props = nan(size(self.axes_timeline_props));
+      self.text_timelines = nan(size(self.axes_timelines));
+      [~,idx] = ismember(self.axes_timeline_props,self.axes_timelines);
+      for ii = 1:numel(self.axes_timeline_props),
+        i = idx(ii);
+        t = get(self.axes_timeline_props(ii),'Tag');
+        m = regexp(t,'^axes_timeline_prop(.*)$','tokens','once');
+        t2 = ['text_timeline_prop',m{1}];
+        self.text_timeline_props(ii) = handles.(t2);
+        self.text_timelines(i) = self.text_timeline_props(ii);
+      end
+    end
+    
     
   end
   
