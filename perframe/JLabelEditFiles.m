@@ -460,14 +460,24 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-newExpDirNameList=get(handles.listbox_experiment,'String');
 figureJLabel=handles.JLabelHandle.figure_JLabel;
 theJLabelGUIData=handles.JLabelHandle.guidata;
 theJLabelGUIData.UpdateGrandleArrays(figureJLabel);
 InitJLabelGui(handles);
 handles = guidata(hObject);
 
+% If a classifier file was specified, load that.
+classifierfilename=get(handles.editClassifier,'String');
+if ~ismepty(classifierfilename)
+  [success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
+  if ~success,
+    uiwait(warndlg(msg,'Error loading classifier file'));
+    return;
+  end
+end
+
 % Add each exp dir in turn
+newExpDirNameList=get(handles.listbox_experiment,'String');
 theJLabelData=theJLabelGUIData.data;
 figureJLabelEditFiles=gcbf;
 nExpsNew=length(newExpDirNameList);
@@ -506,47 +516,55 @@ function pushbutton_load_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-InitJLabelGui(handles);
-handles = guidata(hObject);
+%InitJLabelGui(handles);
+%handles = guidata(hObject);
 
-if handles.data.nexps>0
-  res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
-  if ~strcmpi(res,'Yes'),
-    return;
-  end
-end
+% Need to move this check to the Done button callback.  ALT, Jan 10, 2013
+% if handles.data.nexps>0
+%   res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
+%   if ~strcmpi(res,'Yes'),
+%     return;
+%   end
+% end
+
 [filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
 if ~ischar(filename),
   return;
 end
 classifierfilename = fullfile(pathname,filename);
 if ~exist(classifierfilename,'file'),
-  uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
+  uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading classifier file'));
+  return;
 end
 
-SetLabelingMode(handles);
+%SetLabelingMode(handles);
 
 res = questdlg('Load the labels and the classifier from the file, or just load the classifier?',...
   'Labels?','Load Labels and Classifier','Load Classifier Only','Cancel','Load Labels and Classifier');
 if strcmpi(res,'Cancel'), return, end
-
 classifierlabels = strcmpi(res,'Load Labels and Classifier');
 
-[success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
-if ~success,
-  uiwait(warndlg(msg,'Error loading file list'));
-  return;
-end
-set(handles.pushbutton_load,'enable','off');
+classifierFileStruct = load(classifierfilename);
+expDirNames=classifierFileStruct.expdirs;
+nExps=length(expDirNames);
+
+%[success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
+%if ~success,
+%  uiwait(warndlg(msg,'Error loading file list'));
+%  return;
+%end
+%set(handles.pushbutton_load,'enable','off');
 set(handles.pushbutton_loadwoexp,'enable','off');
-set(handles.pushbutton_cancel,'enable','off');
+%set(handles.pushbutton_cancel,'enable','off');
 
 set(handles.editClassifier,'String',classifierfilename);
-set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
+set(handles.listbox_experiment,'String',expDirNames,'Value',nExps);
 % update status table
-UpdateStatusTable(handles);
-uiwait(helpdlg('Done loading the classifier'));
+%UpdateStatusTable(handles);
+%uiwait(helpdlg('Done loading the classifier'));
+return
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_loadwoexp.
 function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
