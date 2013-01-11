@@ -7,6 +7,9 @@ classdef JLabelGUIData < handle
     defaultpath = '';
     packageoutputdir = '';
     
+    projectParams=[];  % the stuff that has traditionally been stored in
+                       % the project file
+    
     isgroundtruthmode = false;
     
     status_bar_text = '';

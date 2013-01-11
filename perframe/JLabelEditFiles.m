@@ -784,9 +784,11 @@ function pushbutton_edit_project_Callback(hObject, eventdata, handles)
 if isfield(handles,'configfilename') && ~isempty(handles.configfilename)
   [~,~,ext] = fileparts(handles.configfilename);
   if strcmp(ext,'.xml')
-    [~,configfilename] = ProjectSetup('xml_file',handles.configfilename);    
+    [~,configfilename] = ProjectSetup('xml_file',handles.configfilename, ...
+                                      'figureJLabel',handles.JLabelHandle.figure_JLabel);    
   elseif strcmp(ext,'.mat')
-    [~,configfilename] = ProjectSetup('mat_file',handles.configfilename);
+    [~,configfilename] = ProjectSetup('mat_file',handles.configfilename, ...
+                                      'figureJLabel',handles.JLabelHandle.figure_JLabel);
   else
     uiwait(warndlg('Project file has to be either xml or mat file'));
     return;
@@ -806,7 +808,8 @@ function pushbutton_newproject_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[~,configfilename] = ProjectSetup(); 
+[~,configfilename] = ...
+  ProjectSetup('figureJLabel',handles.JLabelHandle.figure_JLabel); 
 if ~ischar(configfilename), return; end;
 
 
