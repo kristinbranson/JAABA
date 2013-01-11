@@ -64,6 +64,7 @@ handles.individuallist={'All' 'Male' 'Female'};
 handles.individualvalue=1;
 %handles.individuals=1;
 handles.sexdata={};
+handles.fps=nan;
 handles.classify_forcecompute=false;
 handles.behaviorbarchart_perwhat=1;
 handles.behaviortimeseries_style=1;
@@ -116,6 +117,7 @@ handles.individuals=handles_saved.individuals;
 handles.individuallist=handles_saved.individuallist;
 handles.individualvalue=handles_saved.individualvalue;
 handles.sexdata=handles_saved.sexdata;
+handles.fps=handles_saved.fps;
 handles.classify_forcecompute=handles_saved.classify_forcecompute;
 handles.behaviorbarchart_perwhat=handles_saved.behaviorbarchart_perwhat;
 handles.behaviortimeseries_style=handles_saved.behaviortimeseries_style;
@@ -712,6 +714,12 @@ parfor n=1:length(newexperiments)
   handlesindividuals(n,:)=parfor_tmp;
 end
 
+if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
+  classifier=load(handles.classifierlist{1});
+  t=load(fullfile(newexperiments{1},classifier.trxfilename));
+  handles.fps=t.trx(1).fps;
+end
+
 %msg{1}='can''t find the configuration file for the following experiments and classifiers:';
 %for n=1:length(newexperiments)
 %  tmp=find(cellfun(@isempty,handlesbehaviors{n}));
@@ -969,6 +977,7 @@ for c=1:length(newclassifiers)
     newclassifiers{c}='';
     continue;
   end
+
   if iscell(params.behaviors.names),
     handlesbehaviorlist{c} = params.behaviors.names{1};
   else
@@ -994,6 +1003,15 @@ for c=1:length(newclassifiers)
     ee=ee+length(handles.experimentlist{g});
   end
   handlesindividuals(:,c)=parfor_tmp;
+
+  if((c==1)&&(isnan(handles.fps)))
+    handlesexperimentlist=[handles.experimentlist{:}];
+    if(length(handlesexperimentlist)>0)
+      t=load(fullfile(handlesexperimentlist{1},classifier.trxfilename));
+      handles.fps=t.trx(1).fps;
+    end
+  end
+
 end
 
 idx=find(~cellfun(@isempty,newclassifiers));
@@ -1058,6 +1076,10 @@ handles.behaviorlist(idx)=[];
 handles.behaviorvalue=max(1,length(handles.behaviorlist));
 handles.scorefiles(idx)=[];
 handles.individuals(:,idx)=[];
+
+if(length(handles.classifierlist)==0)
+  handles.fps=nan;
+end
 
 handles=fillin_individuallist(handles);
 update_figure(handles);
@@ -2016,7 +2038,7 @@ windowradius=handles.featuretimeseries_windowradius;
 h=[];
 for b=bb
 
-  xstr='time (frames)';
+  %xstr='time (sec)';
   units=load(fullfile(handlesexperimentlist{ggee(1)},'perframe',...
       [feature_list{feature_value} '.mat']),'units');
   ystr=get_label(feature_list(feature_value),units.units);
@@ -2035,8 +2057,6 @@ for b=bb
       tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
     end
   end
-
-  print_csv_help(fid,handles.type,tstr,xstr,ystr);
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
@@ -2096,6 +2116,23 @@ for b=bb
     xdata=-windowradius:windowradius;
   end
 
+  time_base=xdata./handles.fps;
+  xstr='time (sec)';
+  if(time_base(end)>300)
+    time_base=time_base./60;
+    xstr='time (min)';
+  end
+  if(time_base(end)>300)
+    time_base=time_base./60;
+    xstr='time (hr)';
+  end
+  if(time_base(end)>120)
+    time_base=time_base./24;
+    xstr='time (d)';
+  end
+
+  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+
   for g=1:length(handles.grouplist)
     color=handles.colors(g,:);
 
@@ -2109,7 +2146,7 @@ for b=bb
       idx=1;
     end
 
-    h(g)=plot_it(xdata,ydata(idx,:),style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
+    h(g)=plot_it(time_base,ydata(idx,:),style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
   end
 
   xlabel(xstr);
@@ -2661,7 +2698,7 @@ h=[];
 for b=bb
 
   tstr='';
-  xstr='time (frames)';
+  %xstr='time';
   ystr=char(strrep(handles.behaviorlist(b),'_','-'));
   switch(handles.behaviorlogic)
     case 2
@@ -2675,8 +2712,6 @@ for b=bb
     ystr=[ystr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
   end
   ystr=[ystr ' (%)'];
-
-  print_csv_help(fid,handles.type,tstr,xstr,ystr);
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
@@ -2745,6 +2780,23 @@ for b=bb
 
   find(~isnan(behavior_cumulative(:,1)));
   behavior_cumulative=behavior_cumulative(ans,:);
+  
+  time_base=(1:size(behavior_cumulative,2))./handles.fps;
+  xstr='time (sec)';
+  if(time_base(end)>300)
+    time_base=time_base./60;
+    xstr='time (min)';
+  end
+  if(time_base(end)>300)
+    time_base=time_base./60;
+    xstr='time (hr)';
+  end
+  if(time_base(end)>120)
+    time_base=time_base./24;
+    xstr='time (d)';
+  end
+
+  print_csv_help(fid,handles.type,tstr,xstr,ystr);
 
   for g=1:length(handles.grouplist)
     color=handles.colors(g,:);
@@ -2759,7 +2811,7 @@ for b=bb
       idx=1;
     end
 
-    h(g)=plot_it(1:size(behavior_cumulative,2),100.*behavior_cumulative(idx,:),...
+    h(g)=plot_it(time_base,100.*behavior_cumulative(idx,:),...
         style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
   end
 
