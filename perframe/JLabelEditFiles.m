@@ -92,7 +92,8 @@ if disableBehavior,
   guidata(hObject,handles);
   
 else
-  if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))
+  %if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))  
+  if false
     Q = load('.JLabelrc.mat','configfilename');
     defpath = Q.configfilename;
   else
@@ -129,6 +130,7 @@ set(handles.pushbutton_selectproject,'enable','off');
 set(handles.pushbutton_edit_project,'enable','off');
 set(handles.pushbutton_newproject,'enable','off');
 
+%--------------------------------------------------------------------------
 
 function InitJLabelGui(handles)
 
@@ -163,7 +165,9 @@ guidata(handles.figure_JLabelEditFiles,handles);
 guidata(JLabelHandle.figure_JLabel,JLabelHandle);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
 set(handles.figure_JLabelEditFiles,'pointer','arrow');
+return
 
+%--------------------------------------------------------------------------
 
 function InitExperimentsGui(hObject,handles,varargin)
 %
@@ -440,6 +444,8 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 UpdateStatusTable(handles);
 set(handles.pushbutton_cancel,'enable','off');
 
+%--------------------------------------------------------------------------
+
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
@@ -451,6 +457,8 @@ SetLabelingMode(handles);
 handles.success = true;
 guidata(hObject,handles);
 uiresume(handles.figure_JLabelEditFiles);
+
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_load.
 function pushbutton_load_Callback(hObject, eventdata, handles)
@@ -695,6 +703,7 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 % update status table
 UpdateStatusTable(handles);
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_selectproject.
 function pushbutton_selectproject_Callback(hObject, eventdata, handles)
@@ -722,6 +731,8 @@ end
 set(handles.text_projectfile,'String',configfilename);
 handles.configfilename = configfilename;
 guidata(hObject,handles);
+
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_edit_project.
 function pushbutton_edit_project_Callback(hObject, eventdata, handles)
