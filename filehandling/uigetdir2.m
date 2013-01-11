@@ -1,4 +1,4 @@
-function [pathname] = uigetdir2(start_path, dialog_title)
+function [pathname] = uigetdir2(start_path, dialog_title, selections)
 % Pick multiple directories and/or files
 
 import javax.swing.JFileChooser;
@@ -15,6 +15,22 @@ if nargin > 1
 end
 
 jchooser.setMultiSelectionEnabled(true);
+
+% set selected file
+if nargin > 2,
+  if ~iscell(selections),
+    selections = {selections};
+  end
+  selections = setdiff(selections,'');
+  selections(cellfun(@isempty,selections)) = [];
+  if ~isempty(selections),
+    clear jselections;
+    for i = 1:numel(selections),
+      jselections(i) = javaObjectEDT('java.io.File',selections{i}); %#ok<AGROW>
+    end
+    jchooser.setSelectedFiles(jselections);
+  end
+end
 
 status = jchooser.showOpenDialog([]);
 
