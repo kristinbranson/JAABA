@@ -73,6 +73,7 @@ classdef JLabelGUIData < handle
     label_imp = [];
     nflies_curr = 0;
 
+    in_border_y = [];
     labelcolors = [];
     labelunknowncolor = [0,0,0];
     flies_extra_markersize = 12;

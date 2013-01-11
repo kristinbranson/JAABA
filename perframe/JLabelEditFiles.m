@@ -43,6 +43,7 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+%--------------------------------------------------------------------------
 
 % --- Executes just before JLabelEditFiles is made visible.
 function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
@@ -120,9 +121,16 @@ if ~isempty(handles.JLabelSplashHandle) && ishandle(handles.JLabelSplashHandle),
   delete(handles.JLabelSplashHandle);
 end
 
-% This is a modal window, so don't return until it is closed.
-uiwait(handles.figure_JLabelEditFiles);
+% for debugging, make this window non-modal
+%set(hObject,'windowstyle','normal');
+set(hObject,'windowstyle','modal');
 
+% This is a modal window, so don't return until it is closed.
+%uiwait(handles.figure_JLabelEditFiles);
+
+return
+
+%--------------------------------------------------------------------------
 
 function DisableBehaviorGui(handles)
 set(handles.text_projectfile,'enable','off');
@@ -165,6 +173,7 @@ guidata(handles.figure_JLabelEditFiles,handles);
 guidata(JLabelHandle.figure_JLabel,JLabelHandle);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
 set(handles.figure_JLabelEditFiles,'pointer','arrow');
+
 return
 
 %--------------------------------------------------------------------------
@@ -301,10 +310,11 @@ function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.JLabelHandle;
-varargout{2} = handles.success;
-delete(hObject);
-
+varargout{1}=hObject;
+%varargout{1} = handles.JLabelHandle;
+%varargout{2} = handles.success;
+%delete(hObject);
+return
 
 % --- Executes on selection change in listbox_experiment.
 function listbox_experiment_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
@@ -456,7 +466,10 @@ handles = guidata(hObject);
 SetLabelingMode(handles);
 handles.success = true;
 guidata(hObject,handles);
-uiresume(handles.figure_JLabelEditFiles);
+%uiresume(handles.figure_JLabelEditFiles);
+JLabel('importDone',handles.JLabelHandle);
+delete(gcbf);
+return
 
 %--------------------------------------------------------------------------
 
@@ -544,6 +557,7 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 % update status table
 UpdateStatusTable(handles);
 
+%--------------------------------------------------------------------------
 
 % --- Executes when user attempts to close figure_JLabelEditFiles.
 function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
@@ -555,8 +569,12 @@ function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
 % if ~strcmpi(res,'Yes'),
 %   return;
 % end
-uiresume(handles.figure_JLabelEditFiles);
+%uiresume(handles.figure_JLabelEditFiles);
+JLabel('importCanceled',handles.JLabelHandle);
+delete(gcbf);
+return
 
+%--------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
@@ -565,7 +583,9 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles);
+return
 
+%--------------------------------------------------------------------------
 
 function SetStatusEditFiles(hObject,s)
 
