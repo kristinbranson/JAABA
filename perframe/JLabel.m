@@ -122,7 +122,7 @@ guidata(hObject,handles);
 % Update the enablement of controls
 handles=guidata(hObject);
 EnableGUI(handles);
-  
+
 return
 
 %--------------------------------------------------------------------------
@@ -1632,6 +1632,8 @@ end
 
 success = true;
 
+%--------------------------------------------------------------------------
+
 function handles = InitializeState(handles)
 
 handles = LoadRC(handles);
@@ -1799,7 +1801,7 @@ set(handles.togglebutton_select,'Value',0);
 handles.guidata.NJObj = NextJump();
 handles.guidata.NJObj.SetSeekBehaviorsGo(1:handles.guidata.data.nbehaviors);
 handles.guidata.NJObj.SetPerframefns(handles.guidata.data.allperframefns);
-if isfield(handles.guidata.rc,'navPreferences')
+if isfield(handles.guidata.rc,'navPreferences')  && ~isempty(handles.guidata.rc.navPreferences)
   handles.guidata.NJObj.SetState(handles.guidata.rc.navPreferences);
 end
 
@@ -1848,6 +1850,8 @@ set(handles.similarFramesButton,'Enable','off');
 handles.guidata.doFastUpdates = true;
 
 SetGUIModeMenuChecks(handles);
+
+%--------------------------------------------------------------------------
 
 function SetGUIModeMenuChecks(handles)
 
