@@ -72,6 +72,8 @@ classdef JLabelGUIData < handle
     label_state = 0;
     label_imp = [];
     nflies_curr = 0;
+    
+    oldexpdir='';  % Used by JLabel's File > Edit files...
 
     in_border_y = [];
     labelcolors = [];
