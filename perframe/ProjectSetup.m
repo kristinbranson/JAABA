@@ -59,13 +59,15 @@ handles.output = hObject;
 handles.defpath = pwd;
 
 params = [];
-[project_params, xml_file, mat_file, visible, outfile] = myparse(varargin,...
+[figureJLabel, project_params, xml_file, mat_file, visible, outfile] = myparse(varargin,...
+  'figureJLabel',[],...
   'project_params',[],...
   'xml_file','',...
   'mat_file','',...
   'visible',true,...
   'outfile',0);
 
+handles.figureJLabel=figureJLabel;
 handles.outfile = outfile;
 
 
@@ -700,6 +702,7 @@ if exist(handles.outfile,'file')
 end
 
 params2save = handles.params(1); %#ok<NASGU>
+JLabel('setProjectParams',handles.figureJLabel,params2save);
 save(handles.outfile,'-struct','params2save');
 
 guidata(hObject,handles);

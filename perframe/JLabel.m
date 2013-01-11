@@ -1572,6 +1572,7 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+%
 function [handles,success] = LoadConfig(handles,forceui)
 
 if ~exist('forceui','var'),
@@ -6928,3 +6929,14 @@ handles = UpdateGUIGroundTruthMode(handles);
 guidata(handles.figure_JLabel,handles);
 
 return
+
+%--------------------------------------------------------------------------
+
+function setProjectParams(figureJLabel,projectParams)
+
+handles=guidata(figureJLabel);
+handles.guidata.projectParams=projectParams;
+
+return
+
+%--------------------------------------------------------------------------
