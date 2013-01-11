@@ -369,7 +369,7 @@ hold(handles.guidata.axes_timeline_props(propi),'on');
 % whether the manual and auto match
 handles.guidata.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.incorrectcolor,'HitTest','off','Linewidth',5);
-% new suggestions
+% import suggestions
 handles.guidata.htimeline_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.suggestcolor,'HitTest','off','Linewidth',5);
 
@@ -894,7 +894,7 @@ if handles.guidata.data.ismovie,
     end
   end
 
-  % open new movie
+  % open import movie
   % try
   SetStatus(handles,'Opening movie...');
   if 1,
@@ -1939,7 +1939,7 @@ in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate new height for the panel
+% calculate import height for the panel
 
 if ~handles.guidata.data.IsAdvancedMode();
 new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
@@ -4276,7 +4276,7 @@ set(hlabel,'Callback',@(hObject,eventdata) timeline_label_prop1_Callback(hObject
 
 handles.guidata.labels_timelines = [hlabel;handles.guidata.labels_timelines];
 
-% add new axes sizes
+% add import axes sizes
 handles.guidata.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guidata.guipos.timeline_heights];
 handles.guidata.guipos.timeline_bottom_borders = handles.guidata.guipos.timeline_bottom_borders([1,2,2:numel(handles.guidata.guipos.timeline_bottom_borders)]);
 handles.guidata.guipos.timeline_left_borders = [pos(1),handles.guidata.guipos.timeline_left_borders];
@@ -5876,7 +5876,7 @@ in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate new height for the panel
+% calculate import height for the panel
 if ~handles.guidata.data.IsAdvancedMode();
 new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
   handles.guidata.data.nbehaviors*in_border_y;
@@ -6578,16 +6578,16 @@ else
   web('-browser','http://jaaba.sourceforge.net/');
 end
 
+% -------------------------------------------------------------------------
 
-% --------------------------------------------------------------------
-function menu_file_new_Callback(hObject, eventdata, handles)
-% hObject    handle to New (see GCBO)
+function menu_file_import_Callback(hObject, eventdata, handles)
+% hObject    handle to Import (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % This is part of the "grand unified project" project
 
-% This creates a new project from scratch.
+% This creates a import project from scratch.
 
 % Create the modal window that allows specification of the project, etc.
 [handles,success] = ...
@@ -6614,32 +6614,6 @@ if ~success,
   %delete(hObject);
   return;
 end
-
-% get relative locations of stuffs
-% handles = GetGUIPositions(handles);
-% 
-% % initialize data
-% handles = InitializeState(handles);
-% 
-% % initialize plot handles
-% handles = InitializePlots(handles);
-% 
-% % load classifier
-% if ~isempty(handles.guidata.classifierfilename),
-%   if exist(handles.guidata.classifierfilename,'file'),
-%     [success,msg] = handles.guidata.data.SetClassifierFileName(handles.guidata.classifierfilename);
-%     if ~success,
-%       warning(msg);
-%       SetStatus(handles,'Error loading classifier from file');
-%     end
-%   end
-% end
-% 
-% if isempty(handles.guidata.data.expdirs),
-%   guidata(hObject,handles);
-%   menu_file_editfiles_Callback(handles.figure_JLabel, [], handles);
-%   handles = guidata(hObject);
-% end
 
 handles = InitSelectionCallbacks(handles);
 
