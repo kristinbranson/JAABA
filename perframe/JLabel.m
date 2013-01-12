@@ -97,14 +97,14 @@ if ismac, % On mac change the foreground color to black.
   set(allpopups,'BackgroundColor',[1 1 1]);
 end
 
-% read configuration
-handles.guidata.configfilename='params/featureConfig.xml';
-[handles,success] = LoadConfig(handles);
-if ~success,
-  guidata(hObject,handles);
-  delete(hObject);
-  return;
-end
+% % read configuration
+% handles.guidata.configfilename='params/featureConfig.xml';
+% [handles,success] = LoadConfig(handles);
+% if ~success,
+%   guidata(hObject,handles);
+%   delete(hObject);
+%   return;
+% end
 
 % Hide the splash window
 set(handles.guidata.hsplash,'visible','off');
@@ -6935,7 +6935,7 @@ return
 function setProjectParams(figureJLabel,projectParams)
 
 handles=guidata(figureJLabel);
-handles.guidata.projectParams=projectParams;
+handles.guidata.configparams=projectParams;
 
 return
 
