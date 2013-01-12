@@ -7,9 +7,6 @@ classdef JLabelGUIData < handle
     defaultpath = '';
     packageoutputdir = '';
     
-    projectParams=[];  % the stuff that has traditionally been stored in
-                       % the project file
-    
     isgroundtruthmode = false;
     
     status_bar_text = '';
@@ -21,7 +18,7 @@ classdef JLabelGUIData < handle
     movie_width = 100;
     movie_filename = [];
     
-    configparams = struct;
+    configparams = struct;  % the stuff read from the project file
 
     panel_previews = [];
     axes_previews = [];
