@@ -6948,7 +6948,9 @@ function menu_file_save_everything_Callback(hObject, eventdata, handles)
 
 jld=handles.guidata.data;  % a reference
 if ~jld.userHasSpecifiedEverythingFileName
-  [filename,pathname] = uiputfile('*.jab','Save Everything','untitled.jab');
+  [filename,pathname] = ...
+    uiputfile({'*.jab','JAABA Files (*.jab)'}, ...
+              'Save Everything','untitled.jab');
   if ~ischar(filename),
     % user hit cancel
     return;
@@ -6967,3 +6969,29 @@ ClearStatus(handles);
 return
 
 % -------------------------------------------------------------------------
+
+function menu_file_open_everything_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_open_everything (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[filename,pathname] = ...
+  uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
+            'Open Everything');
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+fileNameAbs=fullfile(pathname,filename);
+try
+  everythingParams=load('-mat',fileNameAbs);
+catch
+  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+end
+handles.guidata.data=JLabelData(everythingParams);
+handles.guidata.data.specifyEverythingFileNameFromUser(fileNameAbs);
+
+return
+
+% -------------------------------------------------------------------------
+
