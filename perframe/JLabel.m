@@ -6953,9 +6953,9 @@ if ~jld.userHasSpecifiedEverythingFileName
     % user hit cancel
     return;
   end
+  fileNameAbs=fullfile(pathname,filename);
+  jld.specifyEverythingFileNameFromUser(fileNameAbs);
 end
-fileNameAbs=fullfile(pathname,filename);
-jld.specifyEverythingFileNameFromUser(fileNameAbs);
 SetStatus(handles,sprintf('Saving everything to %s',jld.everythingFileName));
 jld.saveEverything();
 %handles.guidata.data.SaveClassifier();
