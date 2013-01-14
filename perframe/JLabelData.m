@@ -7035,7 +7035,8 @@ classdef JLabelData < handle
   
     % ---------------------------------------------------------------------
 
-    function loadEverythingFile
+%     function loadEverythingFile(self)
+%     end
     
   end  % End methods block
   
