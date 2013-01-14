@@ -176,8 +176,11 @@ classdef JLabelData < handle
     % file containing feature parameters
     featureparamsfilename = 0;
     
-    % feature configuration file
+    % feature configuration file name
     featureConfigFile = '';
+    
+    % stuff loaded from featureConfigFile
+    featureConfigParams=[];
     
     % in case we don't want to write to the experiment directory, we will
     % mirror the experiment directory structure in the rootoutput dir
@@ -310,10 +313,16 @@ classdef JLabelData < handle
     
     postprocessparams = []
     version = '';
+    
+    % things related to the everything file
+    userHasSpecifiedEverythingFileName=false;
+    everythingFileName='';  % absolute file name
+    
   end
   
   properties (Access=public,Dependent=true)
     saveableClassifier;
+    configparams;
   end
 
   methods (Access=private)
@@ -675,6 +684,7 @@ classdef JLabelData < handle
     
 % Configuration settings.
 
+    %----------------------------------------------------------------------
 
     function [success,msg] = SetConfigFileName(obj,configfilename)
       % [success,msg] = SetConfigFileName(obj,configfilename)
@@ -797,6 +807,9 @@ classdef JLabelData < handle
         end
         if isfield(configparams.file,'featureconfigfile'),
           [success1,msg] = obj.SetFeatureConfigFile(configparams.file.featureconfigfile);
+            % Among other things, SetFeatureConfigFile() sets
+            % obj.allperframefns to the complete list of per-frame
+            % features, as read from the feature config file.
           if ~success1,
             return;
           end
@@ -872,6 +885,8 @@ classdef JLabelData < handle
       
      
     end
+    
+    % ---------------------------------------------------------------------
     
     function [success,msg] = SetMovieFileName(obj,moviefilename)
     % change/set the name of the movie within the experiment directory
@@ -2974,6 +2989,8 @@ classdef JLabelData < handle
       end
     end
     
+    % ---------------------------------------------------------------------
+    
     function [success,msg] = SetFeatureConfigFile(obj,configfile)
       success = false;
       msg = '';
@@ -2982,6 +2999,7 @@ classdef JLabelData < handle
       
       obj.featureConfigFile = configfile;
       settings = ReadXMLParams(configfile);
+      obj.featureConfigParams=settings;  % save to self
       
       if isfield(settings,'perframe_params'),
         pf_fields = fieldnames(settings.perframe_params);
@@ -2999,6 +3017,8 @@ classdef JLabelData < handle
       success = true;
       
     end
+    
+    % ---------------------------------------------------------------------
     
     function [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
     % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
@@ -6914,9 +6934,25 @@ classdef JLabelData < handle
       scoreNorm = obj.windowdata.scoreNorm;
     end
     
+    function specifyEverythingFileNameFromUser(self,fileNameAbs)
+      self.everythingFileName=fileNameAbs;
+      self.userHasSpecifiedEverythingFileName=true;
+    end
+    
+    function saveEverything(self)
+      if isempty(self.everythingFileName)
+        error('JLabelData.noFileName','No file name specified');
+      end
+      s=struct;
+      s.featureConfigParams=self.featureConfigParams;
+      s.saveableClassifier=self.saveableClassifier;
+      [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
+      s.configparams=self.configparams;
+      save(self.everythingFileName,'-struct','s');
+    end
   end % End methods
     
-  methods
+  methods  % has to have no attributes for getters
     function s=get.saveableClassifier(self)
       % Extracts all the things needed to save the classifier, stores them
       % in a scalar struct, which is returned.
@@ -6938,7 +6974,54 @@ classdef JLabelData < handle
           error('Unknown field %s',fn);
         end
       end      
-    end  % function
+    end  % method
+    
+    % ---------------------------------------------------------------------
+    
+    function configparams=get.configparams(self)
+      configparams=struct();
+      configparams.configfilename=self.configfilename;
+      configparams.behaviors.names=self.labelnames;
+      configparams.file=struct();
+      configparams.file.moviefilename=self.moviefilename;
+      configparams.file.trxfilename=self.trxfilename;
+      configparams.file.labelfilename=self.labelfilename;
+      configparams.file.gt_labelfilename=self.gt_labelfilename;
+      configparams.file.scorefilename=self.scorefilename;
+      configparams.file.clipsdir=self.clipsdir;
+      configparams.file.rootoutputdir=self.rootoutputdir;
+      configparams.file.featureconfigfile=self.featureconfigfile;
+      configparams.featureparamlist=self.allperframefns;
+      
+      configparams.file.featureparamfilename=self.featureparamfilename;
+        % N.B.: Still need to "invert" SetFeatureParamsFileName()
+      
+      configparams.windowfeatures.basicFeatureTable=self.basicFeatureTable;
+      configparams.windowfeatures.featureWindowSize=self.featureWindowSize;
+        % N.B.: Still need to "invert" SetPerFrameParams()
+        
+      configparams.perframe.params=self.perframe_params;
+      configparams.perframe.landmark_params=self.landmark_params;
+      configparams.targets.type=self.targettype;
+      
+      configparams.learning.classifiertype=self.classifiertype;
+        % N.B.: Still need to "invert" SetClassifierType()
+      
+      configparams.scoresinput = self.scoresasinput ;
+      % for features that are based on the score of another classifier, 
+      % delete them from configparam.allperframefns, b/c they're already 
+      % covered in configparams.scoresinput .
+      toDelete=false(size(configparam.allperframefns));
+      for i = 1:numel(self.scoresasinput)
+        [~,name,~] = fileparts(self.scoresasinput(i).scorefilename);
+        isName=strcmp(name,configparam.allperframefns);
+        toDelete=toDelete|isName;
+      end
+      configparam.allperframefns(toDelete)=[];
+      % Probably need to update
+      % configparams.windowfeatures.basicFeatureTable in some way here...
+    end  % method
+    
   end  % End methods block
   
 end % End class

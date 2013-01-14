@@ -333,7 +333,7 @@ hold(handles.guidata.axes_timeline_props(propi),'on');
 % whether the manual and auto match
 handles.guidata.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.incorrectcolor,'HitTest','off','Linewidth',5);
-% import suggestions
+% menu_file_import suggestions
 handles.guidata.htimeline_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.suggestcolor,'HitTest','off','Linewidth',5);
 
@@ -858,7 +858,7 @@ if handles.guidata.data.ismovie,
     end
   end
 
-  % open import movie
+  % open menu_file_import movie
   % try
   SetStatus(handles,'Opening movie...');
   if 1,
@@ -1932,7 +1932,7 @@ set(handles.menu_go_previous_automatic_bout_end,'Label',...
 % button_width = button1_pos(3);
 % button_height = button1_pos(4);
 % 
-% % calculate import height for the panel
+% % calculate menu_file_import height for the panel
 % if isBasicMode
 %   new_panel_height = 2*out_border_y + (nBehaviors+1)*button_height + ...
 %     nBehaviors*in_border_y;
@@ -2107,7 +2107,7 @@ in_border_y = handles.guidata.in_border_y;
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate import height for the panel
+% calculate menu_file_import height for the panel
 if isBasicMode
   new_panel_height = 2*out_border_y + (nBehaviors+1)*button_height + ...
     nBehaviors*in_border_y;
@@ -4472,7 +4472,7 @@ set(hlabel,'Callback',@(hObject,eventdata) timeline_label_prop1_Callback(hObject
 
 handles.guidata.labels_timelines = [hlabel;handles.guidata.labels_timelines];
 
-% add import axes sizes
+% add menu_file_import axes sizes
 handles.guidata.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guidata.guipos.timeline_heights];
 handles.guidata.guipos.timeline_bottom_borders = handles.guidata.guipos.timeline_bottom_borders([1,2,2:numel(handles.guidata.guipos.timeline_bottom_borders)]);
 handles.guidata.guipos.timeline_left_borders = [pos(1),handles.guidata.guipos.timeline_left_borders];
@@ -6072,7 +6072,7 @@ in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate import height for the panel
+% calculate menu_file_import height for the panel
 if ~handles.guidata.data.IsAdvancedMode();
 new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
   handles.guidata.data.nbehaviors*in_border_y;
@@ -6784,13 +6784,13 @@ end
 % -------------------------------------------------------------------------
 
 function menu_file_import_Callback(hObject, eventdata, handles)
-% hObject    handle to Import (see GCBO)
+% hObject    handle to menu_file_import (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % This is part of the "grand unified project" project
 
-% This creates a import project from scratch.
+% This creates a menu_file_import project from scratch.
 
 % Create the modal window that allows specification of the project, etc.
 %[handles,success] = ...
@@ -6939,4 +6939,31 @@ handles.guidata.configparams=projectParams;
 
 return
 
-%--------------------------------------------------------------------------
+% -------------------------------------------------------------------------
+
+function menu_file_save_everything_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_everything (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+jld=handles.guidata.data;  % a reference
+if ~jld.userHasSpecifiedEverythingFileName
+  [filename,pathname] = uiputfile('*.jab','Save Everything','untitled.jab');
+  if ~ischar(filename),
+    % user hit cancel
+    return;
+  end
+end
+fileNameAbs=fullfile(pathname,filename);
+jld.specifyEverythingFileNameFromUser(fileNameAbs);
+SetStatus(handles,sprintf('Saving everything to %s',jld.everythingFileName));
+jld.saveEverything();
+%handles.guidata.data.SaveClassifier();
+%handles.guidata.data.SaveLabels();
+%handles.guidata.data.SaveGTLabels();
+handles = SetSaved(handles);
+ClearStatus(handles);
+
+return
+
+% -------------------------------------------------------------------------
