@@ -464,8 +464,7 @@ classdef JLabelData < handle
     % obj = JLabelData(configfilename,...)
     %
     % constructor: first input should be the config file name. All other
-    % inputs are optional. if configfilename is not input, user will be
-    % prompted for it. 
+    % inputs are optional. if configfilename is not input, throws an error. 
     % 
     % optional inputs: 
     %
@@ -487,16 +486,14 @@ classdef JLabelData < handle
     % classifierfilename: name of classifier file to save/load classifier from
  
       if nargin == 0 || isempty(varargin{1}),
-        [filename,pathname] = uigetfile('*.xml','Choose config XML file');
-        if ~ischar(filename),
-          return;
-        end
-        configfilename = fullfile(pathname,filename);
-        if ~isempty(varargin),
-          varargin = varargin(2:end);
-        end
+        error('JLabelData.zero_args_to_constructor','JLabelData() called with zero args or with an empty first arg.');
       else
-        configfilename = varargin{1};
+        if ischar(varargin{1})
+          configfilename = varargin{1};
+        else
+          configfilename='';
+          everythingParams = varargin{1};
+        end
         varargin = varargin(2:end);
       end
       
@@ -505,9 +502,13 @@ classdef JLabelData < handle
       end
       
       % config file
-      [success,msg] = obj.SetConfigFileName(configfilename);
-      if ~success,
-        error(msg);
+      if isempty(configfilename)
+        obj.initEverything(everythingParams);
+      else  
+        [success,msg] = obj.SetConfigFileName(configfilename);
+        if ~success,
+          error(msg);
+        end
       end
       
       % parse optional arguments in order
@@ -684,7 +685,7 @@ classdef JLabelData < handle
     
 % Configuration settings.
 
-    %----------------------------------------------------------------------
+    % ---------------------------------------------------------------------
 
     function [success,msg] = SetConfigFileName(obj,configfilename)
       % [success,msg] = SetConfigFileName(obj,configfilename)
@@ -705,15 +706,31 @@ classdef JLabelData < handle
       %       try
       [~,~,ext] = fileparts(configfilename);
       if strcmp(ext,'.xml'),
-        configparams = ReadXMLConfigParams(configfilename);
+        configParams = ReadXMLConfigParams(configfilename);
       else
-        configparams = load(configfilename);
+        configParams = load(configfilename);
       end
-      %       catch ME,
-      %         msg = sprintf('Error reading config file %s: %s',configfilename,getReport(ME));
-      %         return;
-      %       end
-      obj.configfilename = configfilename;
+      
+      [success,msg] = SetConfigParams(obj,configParams,configfilename);
+      
+    end
+
+    % ---------------------------------------------------------------------
+
+    function [success,msg] = SetConfigParams(obj,configparams,configfilename)
+      % set default return values
+      success = false;
+      msg = '';
+
+      % if a configfilename is provided, save it, otherwise, set that to
+      % the empty string
+      if nargin>=3
+        obj.configfilename = configfilename;
+      else
+        obj.configfilename = '';
+      end
+        
+      % load in the rest of the stuff
       if isfield(configparams,'behaviors'),
         
         % read in behavior names
@@ -6993,7 +7010,9 @@ classdef JLabelData < handle
       configParams.file.gt_labelfilename=self.gt_labelfilename;
       configParams.file.scorefilename=self.scorefilename;
       configParams.file.clipsdir=self.clipsdir;
-      configParams.file.rootoutputdir=self.rootoutputdir;
+      if ischar(self.rootoutputdir)
+        configParams.file.rootoutputdir=self.rootoutputdir;
+      end
       configParams.file.featureconfigfile=self.featureConfigFile;
       
       configParams.featureparamlist=struct();
@@ -7001,7 +7020,9 @@ classdef JLabelData < handle
         configParams.featureparamlist.(self.allperframefns{i})=struct();
       end
       
-      configParams.file.featureparamfilename=self.featureparamsfilename;
+      if ischar(self.featureparamsfilename)
+        configParams.file.featureparamfilename=self.featureparamsfilename;
+      end  
         % N.B.: Still need to "invert" SetFeatureParamsFileName()
       
       configParams.windowfeatures.basicFeatureTable=self.basicFeatureTable;
@@ -7035,640 +7056,15 @@ classdef JLabelData < handle
   
     % ---------------------------------------------------------------------
 
-%     function loadEverythingFile(self)
-%     end
+    function initEverything(self,everythingParams)  % this should really be private
+      if isfield(everythingParams,'configParams')
+        self.SetConfigParams(everythingParams.configParams);
+      end
+    end
     
+    % ---------------------------------------------------------------------
+
   end  % End methods block
   
 end % End class
 
-
-
-
-% Old commented functions
-
-%{    
-%     function AddWindowDataLabeled(obj,expi,flies)
-%       
-%       if numel(expi) ~= 1,
-%         error('expi must be a scalar');
-%       end
-%       
-%       if nargin < 3,
-%         flies = (1:obj.nflies_per_exp(expi))';
-%       end
-%       
-%       for i = 1:size(flies,1),
-%         flies_curr = flies(i,:);
-%         
-%         % labels for this experiment, fly
-%         labels_curr = obj.GetLabels(expi,flies_curr);
-%         
-%         % no labels?
-%         if isempty(labels_curr.t0s),
-%           continue;
-%         end
-%         
-%         % loop through all behaviors
-%         n = max(labels_curr.t1s);
-%         idx = zeros(1,n);
-%         for j = 1:obj.nbehaviors,
-%           for k = find(strcmp(labels_curr.names,obj.labelnames{j})),
-%             t0 = labels_curr.t0s(k);
-%             t1 = labels_curr.t1s(k);
-%             idx(t0+obj.labels_bin_off:t1+obj.labels_bin_off,j) = j;
-%           end
-%         end
-%         m = nnz(idx);
-%         if obj.expi == expi && all(flies_curr == obj.flies),
-%           obj.windowdata_labeled(:,end+1:end+m) = obj.windowdata_curr(:,idx~=0);
-%         else
-%           windowfilenames = obj.GetFile('window',expi);
-%           % TODO: make this work for multiple flies
-%           windowdata_curr = load(windowfilenames{flies_curr(1)});
-%           obj.windowdata_labeled(:,end+1:end+m) = windowdata_curr(:,idx~=0);
-%         end
-%         obj.exp_labeled(end+1:end+m) = expi;
-%         obj.flies_labeled(end+1:end+m,:) = repmat(flies_curr,[m,1]);
-%         obj.isintrainingset(end+1:end+m) = false;
-%         obj.labelidx_labeled(end+1:end+m) = idx;
-%         
-%       end
-%       
-%     end
-%}
-
-%{
-%       function UpdateWindowDataLabeled(obj)
-% 
-%       % indices into cached data for current experiment and flies
-%       idxcurr = obj.exp_labeled' == obj.expi & all(bsxfun(@eq,obj.flies_labeled,obj.flies),2);
-%       
-%       % frames of current experiment and flies that have old labeled data
-%       
-%       % indices into cached data that are for this exp, these flies, have
-%       % labelidx_cur
-%       idxcurr1 = idxcurr & obj.labelidx_old_labeled ~= 0;
-%       % which frames for expi, flies that have labelidx_cur ~= 0
-%       tsold = obj.ts_labeled(idxcurr1);
-%       % indices into labels_bin that have labelidx_cur ~= 0
-%       idxold = tsold+obj.labels_bin_off;
-%             
-%       % keep/add windowdata if labelidx_cur ~= 0 or if labels_bin ~= 0
-%       % indices into labels_bin for which new labelidx_new ~= 0
-%       cacheidx = any(obj.labels_bin,2);
-%       % or labelidx_cur ~= 0
-%       cacheidx(idxold) = true;
-%       m = nnz(cacheidx);
-% 
-%       % labelidx_cur for these frames
-%       labelidx_cur = zeros(1,m);
-%       labelidx_cur(idxold) = obj.labelidx_old_labeled(idxcurr1);
-%       
-%       % remove all data from the cache for the current exp, flies
-%       obj.windowdata_labeled(:,idxcurr) = [];
-%       obj.exp_labeled(idxcurr) = [];
-%       obj.flies_labeled(idxcurr,:) = [];
-%       obj.labelidx_old_labeled(idx) = [];
-%       obj.labelidx_new_labeled(idx) = [];
-%       obj.ts_labeled(idx) = [];
-%       
-%       % convert labels_bin to integer
-%       n = size(obj.labels_bin,1);
-%       labelidx = zeros(1,n);
-%       for i = 1:obj.nbehaviors,
-%         labelidx(obj.labels_bin(:,i)) = i;
-%       end
-%       
-%       % add this data      
-%       obj.windowdata_labeled(:,end+1:end+m) = obj.windowdata_curr(:,cacheidx);
-%       obj.exp_labeled(end+1:end+m) = obj.expi;
-%       obj.flies_labeled(end+1:end+m,:) = repmat(obj.flies,[m,1]);
-%       obj.labelidx_old_labeled(end+1:end+m) = labelidx_cur;
-%       obj.labelidx_new_labeled(end+1:end+m) = labelidx;
-%       obj.ts_labeled(end+1:end+m) = find(cacheidx) + obj.labels_bin_off;
-% 
-%     end
-%}
-
-%{    
-%     function RemoveFromWindowDataLabeled(obj,expi,flies)
-% 
-%       idx = ismember(obj.exp_labeled,expi);
-%       if nargin >= 3,
-%         idx = idx & ismember(obj.flies_labeled,flies,'rows');
-%       end
-%       obj.windowdata_labeled(:,idx) = [];
-%       obj.exp_labeled(idx) = [];
-%       obj.flies_labeled(idx,:) = [];
-%       obj.isintrainingset(idx) = [];
-%       obj.labelidx_labeled(idx) = [];
-%       
-%     end
-%}
-
-%{
-%     % [success,msg] = LoadTrx(obj,expi)
-%     % Load trajectories for input experiment. This should only be called by
-%     % PreLoad()!. 
-%     function [success,msg] = LoadTrx(obj,expi)
-% 
-%       success = false;
-%       msg = '';
-%       
-%       if numel(expi) ~= 1,
-%         error('expi must be a scalar');
-%       end
-% 
-%       if expi < 1,
-%         msg = 'expi not yet set';
-%         return;
-%       end
-%       
-%       % load trx
-%       try
-%         trxfilename = obj.GetFile('trx',expi);
-%   
-%         hwait = mywaitbar(0,'Loading trx');
-%   
-%         % TODO: remove this
-%         global CACHED_TRX; %#ok<TLEV>
-%         global CACHED_TRX_EXPNAME; %#ok<TLEV>
-%         if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
-%             ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-%           obj.trx = load_tracks(trxfilename);
-%           CACHED_TRX = obj.trx;
-%           CACHED_TRX_EXPNAME = obj.expnames{expi};
-%         else
-%           fprintf('DEBUG: Using CACHED_TRX. REMOVE THIS\n');
-%           obj.trx = CACHED_TRX;
-%         end
-%       catch ME,
-%         msg = sprintf('Error loading trx from file %s: %s',trxfilename,getReport(ME));
-%         if ishandle(hwait),
-%           delete(hwait);
-%           drawnow;
-%         end
-%         return;
-%       end
-% 
-%       if ishandle(hwait),
-%         delete(hwait);
-%         drawnow;
-%       end
-%       success = true;
-%       
-%     end
-%}    
-
-%{ 
-%     function [success,msg] = LoadWindowData(obj,expi,flies)
-% 
-%       success = false;
-%       msg = '';
-%       
-%       windowfilenames = obj.GetFile('window',expi);
-%       % TODO: make this work for multiple flies
-%       try
-%         obj.windowdata_curr = load(windowfilenames{flies(1)});
-%       catch ME,
-%         msg = getReport(ME);
-%         return;
-%       end
-%       
-%       success = true;
-%       
-%     end
-%}    
-
-%{
-    % trx = GetTrx(obj,expi,flies,ts)
-    % Returns the trajectories for the input experiment, flies, and frames.
-    % If this is the currently preloaded experiment, then the preloaded
-    % trajectories are used. Otherwise, the input experiment is preloaded.
-    % If flies is not input, then all flies are returned. If ts is not
-    % input, then all frames are returned. 
-    function trx = GetTrx(obj,expi,flies,ts)
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,1);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-
-      if nargin < 3,
-        trx = obj.trx;
-        return;
-      end
-      
-      if nargin < 4,
-        trx = obj.trx(flies);
-        return;
-      end
-      
-      nflies = numel(flies);
-      c = cell(1,nflies);
-      trx = struct('x',c,'y',c,'a',c,'b',c,'theta',c,'ts',c,'firstframe',c,'endframe',c);
-      for i = 1:numel(flies),
-        fly = flies(i);
-        js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-        trx(i).x = obj.trx(fly).x(js);
-        trx(i).y = obj.trx(fly).y(js);
-        trx(i).a = obj.trx(fly).a(js);
-        trx(i).b = obj.trx(fly).b(js);
-        trx(i).theta = obj.trx(fly).theta(js);
-        trx(i).ts = js-obj.trx(fly).off;
-        trx(i).firstframe = trx(i).ts(1);
-        trx(i).endframe = trx(i).ts(end);
-      end
-    end
-
-    % x = GetTrxX(obj,expi,flies,ts)
-    % Returns the x-positions for the input experiment, flies, and frames.
-    % This is a cell array with an entry for each fly. If flies is not
-    % input, then all flies are returned. If ts is not input, then all
-    % frames are returned. 
-    function x = GetTrxX(obj,expi,flies,ts)
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        if nargin < 3,
-          [success,msg] = obj.PreLoad(expi,1);
-        else
-          [success,msg] = obj.PreLoad(expi,flies(1));
-        end
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-
-      if nargin < 3,
-        x = {obj.trx.x};
-        return;
-      end
-      
-      if nargin < 4,
-        x = {obj.trx(flies).x};
-        return;
-      end
-      
-      nflies = numel(flies);
-      x = cell(1,nflies);
-      for i = 1:numel(flies),
-        fly = flies(i);
-        js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-        x{i} = obj.trx(fly).x(js);
-      end
-    end
-    
-    % x = GetTrxX1(obj,expi,fly,ts)
-    % Returns the x-positions for the input experiment, SINGLE fly, and
-    % frames. If ts is not input, then all frames are returned. 
-    function x = GetTrxX1(obj,expi,fly,ts)
-      
-      if all(expi ~= obj.expi),
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-      
-      if nargin < 4,
-        x = obj.trx(fly).x;
-        return;
-      end
-      
-      x = obj.trx(fly).x(ts + obj.trx(fly).off);
-
-    end
-
-    % y = GetTrxY(obj,expi,flies,ts)
-    % Returns the y-positions for the input experiment, flies, and frames.
-    % This is a cell array with an entry for each fly. If flies is not
-    % input, then all flies are returned. If ts is not input, then all
-    % frames are returned. 
-    function y = GetTrxY(obj,expi,flies,ts)
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,1);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-
-      if nargin < 3,
-        y = {obj.trx.y};
-        return;
-      end
-      
-      if nargin < 4,
-        y = {obj.trx(flies).y};
-        return;
-      end
-      
-      nflies = numel(flies);
-      y = cell(1,nflies);
-      for i = 1:numel(flies),
-        fly = flies(i);
-        js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-        y{i} = obj.trx(fly).y(js);
-      end
-    end
-    
-    % y = GetTrxY1(obj,expi,fly,ts)
-    % Returns the y-positions for the input experiment, SINGLE fly, and
-    % frames. If ts is not input, then all frames are returned. 
-    function y = GetTrxY1(obj,expi,fly,ts)
-      
-      if all(expi ~= obj.expi),
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-      
-      if nargin < 4,
-        y = obj.trx(fly).y;
-        return;
-      end
-      
-      y = obj.trx(fly).y(ts + obj.trx(fly).off);
-
-    end
-
-    % a = GetTrxA(obj,expi,flies,ts)
-    % Returns the quarter major axis lengths for the input experiment,
-    % flies, and frames. This is a cell array with an entry for each fly.
-    % If flies is not input, then all flies are returned. If ts is not
-    % input, then all frames are returned. 
-    function a = GetTrxA(obj,expi,flies,ts)
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,1);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-
-      if nargin < 3,
-        a = {obj.trx.a};
-        return;
-      end
-      
-      if nargin < 4,
-        a = {obj.trx(flies).a};
-        return;
-      end
-      
-      nflies = numel(flies);
-      a = cell(1,nflies);
-      for i = 1:numel(flies),
-        fly = flies(i);
-        js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-        a{i} = obj.trx(fly).a(js);
-      end
-    end
-    
-    % a = GetTrxA1(obj,expi,fly,ts)
-    % Returns the quarter-major-axes for the input experiment, SINGLE fly, and
-    % frames. If ts is not input, then all frames are returned. 
-    function a = GetTrxA1(obj,expi,fly,ts)
-      
-      if all(expi ~= obj.expi),
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-      
-      if nargin < 4,
-        a = obj.trx(fly).a;
-        return;
-      end
-      
-      a = obj.trx(fly).a(ts + obj.trx(fly).off);
-
-    end
-    
-    % b = GetTrxB(obj,expi,flies,ts)
-    % Returns the quarter minor axis lengths for the input experiment,
-    % flies, and frames. This is a cell array with an entry for each fly.
-    % If flies is not input, then all flies are returned. If ts is not
-    % input, then all frames are returned. 
-    function b = GetTrxB(obj,expi,flies,ts)
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,1);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-
-      if nargin < 3,
-        b = {obj.trx.b};
-        return;
-      end
-      
-      if nargin < 4,
-        b = {obj.trx(flies).b};
-        return;
-      end
-      
-      nflies = numel(flies);
-      b = cell(1,nflies);
-      for i = 1:numel(flies),
-        fly = flies(i);
-        js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-        b{i} = obj.trx(fly).b(js);
-      end
-    end
-    
-    % b = GetTrxB1(obj,expi,fly,ts)
-    % Returns the quarter-minor-axes for the input experiment, SINGLE fly, and
-    % frames. If ts is not input, then all frames are returned. 
-    function b = GetTrxB1(obj,expi,fly,ts)
-      
-      if all(expi ~= obj.expi),
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-      
-      if nargin < 4,
-        b = obj.trx(fly).b;
-        return;
-      end
-      
-      b = obj.trx(fly).b(ts + obj.trx(fly).off);
-
-    end
-    
-    % theta = GetTrxTheta(obj,expi,flies,ts)
-    % Returns the orientations for the input experiment,
-    % flies, and frames. This is a cell array with an entry for each fly.
-    % If flies is not input, then all flies are returned. If ts is not
-    % input, then all frames are returned. 
-    function theta = GetTrxTheta(obj,expi,flies,ts)
-      
-      if numel(expi) ~= 1,
-        error('expi must be a scalar');
-      end
-      
-      if expi ~= obj.expi,
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,1);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-
-      if nargin < 3,
-        theta = {obj.trx.theta};
-        return;
-      end
-      
-      if nargin < 4,
-        theta = {obj.trx(flies).theta};
-        return;
-      end
-      
-      nflies = numel(flies);
-      theta = cell(1,nflies);
-      for i = 1:numel(flies),
-        fly = flies(i);
-        js = min(obj.trx(fly).nframes,max(1,ts + obj.trx(fly).off));
-        theta{i} = obj.trx(fly).theta(js);
-      end
-    end
-
-    % theta = GetTrxTheta1(obj,expi,fly,ts)
-    % Returns the orientations for the input experiment, SINGLE fly, and
-    % frames. If ts is not input, then all frames are returned. 
-    function theta = GetTrxTheta1(obj,expi,fly,ts)
-      
-      if all(expi ~= obj.expi),
-        % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
-        if ~success,
-          error('Error loading trx for experiment %d: %s',expi,msg);
-        end
-      end
-      
-      if nargin < 4,
-        theta = obj.trx(fly).theta;
-        return;
-      end
-      
-      theta = obj.trx(fly).theta(ts + obj.trx(fly).off);
-
-    end
-    %}
-
-%{    
-%     function [success,msg] = GenerateWindowFeaturesFiles(obj,expi,doforce)
-%       
-%       success = false;
-%       msg = '';
-%       
-%       if ~exist('doforce','var'),
-%         doforce = false;
-%       end
-% 
-%       hwait = mywaitbar(0,'Computing window features...');
-% 
-%       filenames = obj.GetFile('window',expi);
-%       perframedir = obj.GetFile('perframedir',expi);
-%       for fly = 1:obj.nflies_per_exp(expi),
-%         filename = filenames{fly};
-%         if ~doforce && exist(filename,'file'),
-%           fprintf('File %s exists, skipping\n',filename);
-%           continue;
-%         end
-%         try
-%         X = [];
-%         feature_names = {};
-%         for j = 1:numel(obj.perframefns),
-%           fn = obj.perframefns{j};
-%           perframedata = load(fullfile(perframedir,[fn,'.mat']));
-%           hwait = mywaitbar((fly-1+(j-1)/numel(obj.perframefns))/obj.nflies_per_exp(expi),hwait,...
-%             sprintf('Computing %s window features (%d/%d) for fly %d/%d',fn,j,...
-%             numel(obj.perframefns),fly,numel(perframedata.data)));
-%           [x_curr,feature_names_curr] = ...
-%             ComputeWindowFeatures(perframedata.data{fly},obj.windowfeaturescellparams.(fn){:});
-%           nold = size(X,2);
-%           nnew = size(x_curr,2);
-%           if nold > nnew,
-%             x_curr(:,end+1:end+nold-nnew) = nan;
-%           elseif nnew > nold,
-%             X(:,end+1:end+nnew-nold) = nan;
-%           end
-%           X = [X;x_curr]; %#ok<AGROW>
-%           feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
-%         end
-%         hwait = mywaitbar(fly/obj.nflies_per_exp(expi),hwait,...
-%           sprintf('Saving window features for fly %d/%d to file...',fly,obj.nflies_per_exp(expi)));
-%         save(filename,'X','feature_names');
-%         catch ME,
-%           msg = getReport(ME);
-%           return;
-%         end
-%       end
-%       if exist('hwait','var') && ishandle(hwait),
-%         delete(hwait);
-%       end
-%       
-%     end
-%}
-
-%{    
-%     function [success,msg] = SetWindowFileName(obj,windowfilename)
-%       
-%       success = false;
-%       msg = '';
-% 
-%       if ischar(windowfilename),
-%         obj.windowfilename = windowfilename;
-%         if ischar(obj.windowfilename) && strcmp(windowfilename,obj.windowfilename),
-%           success = true;
-%           return;
-%         end
-% 
-%         % TODO: check window data for existing experiments, remove bad experiments, update
-%         % windowdata_labeled, etc. 
-%         
-%         [success,msg] = obj.UpdateStatusTable('window');
-%       end
-%       
-%     end
-%}
-    
