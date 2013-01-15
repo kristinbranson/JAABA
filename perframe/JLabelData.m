@@ -2625,7 +2625,7 @@ classdef JLabelData < handle
       end
       
       %newExpNumbers = [];
-      newExpNumbers=zeros(1,obj.nexp);
+      newExpNumbers=zeros(1,obj.nexps);
       for ndx = 1:obj.nexps
         if ismember(ndx,expi);
           newExpNumbers(1,ndx) = 0;

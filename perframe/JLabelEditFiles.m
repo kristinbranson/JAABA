@@ -88,7 +88,8 @@ if disableBehavior,
   
   set(handles.text_projectfile,'String',handles.JLabelHandle.guidata.configfilename);
   DisableBehaviorGui(handles);
-  InitExperimentsGui(hObject,handles,JLabelHandle.guidata.data);
+  %InitExperimentsGui(hObject,handles,JLabelHandle.guidata.data);
+  InitExperimentsGui(hObject,handles);
   handles.needJLabelInit = false;
   guidata(hObject,handles);
   
@@ -152,41 +153,51 @@ handles.success = true;
 % End for behavior --
 
 % Initializes the JLabel gui once the user selects the behavior.
-JLabelHandle = handles.JLabelHandle;
-JLabelHandle.guidata.configfilename = handles.configfilename;
+%figureJLabel=handles.JLabelHandle.figure_JLabel;
+%handlesOfJLabelReally=guidata(figureJLabel);
+handlesOfJLabel = handles.JLabelHandle;
+handlesOfJLabel.guidata.configfilename = handles.configfilename;
 [~,~,ext] = fileparts(handles.configfilename);
 if strcmp(ext,'.xml')
-  JLabelHandle.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
+  handlesOfJLabel.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
 elseif strcmp(ext,'.mat')
-  JLabelHandle.guidata.configparams = load(handles.configfilename);
+  handlesOfJLabel.guidata.configparams = load(handles.configfilename);
 else
   errordlg('Project file is not a valid');
 end
+handlesOfJLabel = JLabel('GetGUIPositions',handlesOfJLabel);
+handlesOfJLabel = JLabel('InitializeState',handlesOfJLabel);
+handlesOfJLabel = JLabel('InitializePlots',handlesOfJLabel);
 
-JLabelHandle = JLabel('GetGUIPositions',JLabelHandle);
-JLabelHandle = JLabel('InitializeState',JLabelHandle);
-JLabelHandle = JLabel('InitializePlots',JLabelHandle);
-handles.data = JLabelHandle.guidata.data;
+% figureJLabel=handles.JLabelHandle.figure_JLabel;
+% JLabel('setConfigFileName', ...
+%        figureJLabel, ...
+%        handles.configfilename);
+% handlesOfJLabel=guidata(figureJLabel);
+
+handles.data = handlesOfJLabel.guidata.data;
 SetLabelingMode(handles);
-handles.JLabelHandle = JLabelHandle;
+handles.JLabelHandle = handlesOfJLabel;
 guidata(handles.figure_JLabelEditFiles,handles);
-guidata(JLabelHandle.figure_JLabel,JLabelHandle);
-InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
+guidata(handlesOfJLabel.figure_JLabel,handlesOfJLabel);
+%InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
+InitExperimentsGui(handles.figure_JLabelEditFiles,handles);
 set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 return
 
-%--------------------------------------------------------------------------
+% -------------------------------------------------------------------------
 
-function InitExperimentsGui(hObject,handles,varargin)
+function InitExperimentsGui(hObject,handles)
+%function InitExperimentsGui(hObject,handles,varargin)
 %
 % Remove behavior related parts.
 
 % parse inputs, set defaults
 %
-if isempty(varargin),
-  error('Usage: JLabelEditFiles(configfilename,...)');
-end
+% if isempty(varargin),
+%   error('Usage: JLabelEditFiles(configfilename,...)');
+% end
 
 % if ischar(varargin{1}),
 %   configfilename = varargin{1};
@@ -264,6 +275,7 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+% -------------------------------------------------------------------------
 
 function UpdateStatusTable(handles)
 
