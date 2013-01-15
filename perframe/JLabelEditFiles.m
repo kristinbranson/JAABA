@@ -152,28 +152,39 @@ DisableBehaviorGui(handles);
 handles.success = true;
 % End for behavior --
 
-% Initializes the JLabel gui once the user selects the behavior.
-%figureJLabel=handles.JLabelHandle.figure_JLabel;
-%handlesOfJLabelReally=guidata(figureJLabel);
-handlesOfJLabel = handles.JLabelHandle;
-handlesOfJLabel.guidata.configfilename = handles.configfilename;
-[~,~,ext] = fileparts(handles.configfilename);
-if strcmp(ext,'.xml')
-  handlesOfJLabel.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
-elseif strcmp(ext,'.mat')
-  handlesOfJLabel.guidata.configparams = load(handles.configfilename);
-else
-  errordlg('Project file is not a valid');
-end
-handlesOfJLabel = JLabel('GetGUIPositions',handlesOfJLabel);
-handlesOfJLabel = JLabel('InitializeState',handlesOfJLabel);
-handlesOfJLabel = JLabel('InitializePlots',handlesOfJLabel);
-
+% % Thing that we know works:
+% % Initializes the JLabel gui once the user selects the behavior.
 % figureJLabel=handles.JLabelHandle.figure_JLabel;
-% JLabel('setConfigFileName', ...
-%        figureJLabel, ...
-%        handles.configfilename);
 % handlesOfJLabel=guidata(figureJLabel);
+% %handlesOfJLabel = handles.JLabelHandle;
+% 
+% handlesOfJLabel.guidata.configfilename = handles.configfilename;
+% [~,~,ext] = fileparts(handles.configfilename);
+% if strcmp(ext,'.xml')
+%   handlesOfJLabel.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
+% elseif strcmp(ext,'.mat')
+%   handlesOfJLabel.guidata.configparams = load(handles.configfilename);
+% else
+%   errordlg('Project file is not a valid');
+% end
+% 
+% handlesOfJLabelReally=guidata(figureJLabel);
+% 
+% handlesOfJLabel = JLabel('GetGUIPositions',handlesOfJLabel);
+% handlesOfJLabelReally=guidata(figureJLabel);
+% 
+% handlesOfJLabel = JLabel('InitializeState',handlesOfJLabel);
+% handlesOfJLabelReally=guidata(figureJLabel);
+% 
+% handlesOfJLabel = JLabel('InitializePlots',handlesOfJLabel);
+% handlesOfJLabelReally=guidata(figureJLabel);
+
+% Thing that should work, and is cleaner:
+figureJLabel=handles.JLabelHandle.figure_JLabel;
+JLabel('setConfigFileName', ...
+       figureJLabel, ...
+       handles.configfilename);
+handlesOfJLabel=guidata(figureJLabel);
 
 handles.data = handlesOfJLabel.guidata.data;
 SetLabelingMode(handles);

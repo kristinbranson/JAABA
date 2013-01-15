@@ -1872,6 +1872,10 @@ handles.guidata.doFastUpdates = true;
 
 SetGUIModeMenuChecks(handles);
 
+guidata(handles.figure_JLabel,handles);  % write handles to the guidata
+
+return
+
 %--------------------------------------------------------------------------
 
 function SetGUIModeMenuChecks(handles)
