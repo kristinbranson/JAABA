@@ -180,19 +180,32 @@ handles.success = true;
 % handlesOfJLabelReally=guidata(figureJLabel);
 
 % Thing that should work, and is cleaner:
+
+% Notify JLabel of the configfilename, have it initialize itself
+% accordingly
 figureJLabel=handles.JLabelHandle.figure_JLabel;
 JLabel('setConfigFileName', ...
        figureJLabel, ...
        handles.configfilename);
+     
+% Update our pointer to the JLabelData, which has now changed
 handlesOfJLabel=guidata(figureJLabel);
-
 handles.data = handlesOfJLabel.guidata.data;
+
+% Notify JLabelData of the labeling mode selected in our figure,
+% and disable that selector
 SetLabelingMode(handles);
-handles.JLabelHandle = handlesOfJLabel;
+
+% Update our guidata
+handles.JLabelHandle = guidata(figureJLabel);
 guidata(handles.figure_JLabelEditFiles,handles);
-guidata(handlesOfJLabel.figure_JLabel,handlesOfJLabel);
+%guidata(handlesOfJLabel.figure_JLabel,handlesOfJLabel);
+
+% Modify self as appropraite for the new project configuration
 %InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles);
+
+% Set the pointer back to normal
 set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 return
@@ -686,29 +699,37 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% -------------------------------------------------------------------------
 
 function SetLabelingMode(handles)
 contents = cellstr(get(handles.popupmode,'String'));
 curStr = contents{get(handles.popupmode,'Value')};
-switch curStr,
-  case 'Advanced',
-    handles.data.SetAdvancedMode(true);
-    handles.data.SetGTMode(false);
-  case 'Normal'
-    handles.data.SetAdvancedMode(false);
-    handles.data.SetGTMode(false);
-  case 'Ground Truthing',
-    handles.data.SetAdvancedMode(false);
-    handles.data.SetGTMode(true);
-  case 'Ground Truthing Advanced',
-    handles.data.SetAdvancedMode(true);
-    handles.data.SetGTMode(true);
-end
- 
-handles.data.SetMode();
+
+% switch curStr,
+%   case 'Advanced',
+%     handles.data.SetAdvancedMode(true);
+%     handles.data.SetGTMode(false);
+%   case 'Normal'
+%     handles.data.SetAdvancedMode(false);
+%     handles.data.SetGTMode(false);
+%   case 'Ground Truthing',
+%     handles.data.SetAdvancedMode(false);
+%     handles.data.SetGTMode(true);
+%   case 'Ground Truthing Advanced',
+%     handles.data.SetAdvancedMode(true);
+%     handles.data.SetGTMode(true);
+% end
+
+%figureJLabel=handles.JLabelHandle.figure_JLabel;
+%JLabel('setLabelingMode',figureJLabel,curStr)
+
+handles.data.setLabelingMode(curStr);
+
 set(handles.popupmode,'enable','off');
 
+return
 
+% -------------------------------------------------------------------------
 
 % --- Executes on button press in pushbutton_addlist.
 function pushbutton_addlist_Callback(hObject, eventdata, handles)

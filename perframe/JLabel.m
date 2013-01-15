@@ -7022,3 +7022,30 @@ InitializePlots(handles);
 return
 
 % -------------------------------------------------------------------------
+
+% function setLabelingMode(figureJLabel,modeString)
+% handles=guidata(figureJLabel);
+% data=handles.guidata.data;  % a ref, or empty
+% if isempty(data)
+%   error('JLabel.dataIsEmpty','JLabel data is currently empty');  %#ok
+% else
+%   switch modeString,
+%     case 'Advanced',
+%       data.SetAdvancedMode(true);
+%       data.SetGTMode(false);
+%     case 'Normal'
+%       data.SetAdvancedMode(false);
+%       data.SetGTMode(false);
+%     case 'Ground Truthing',
+%       data.SetAdvancedMode(false);
+%       data.SetGTMode(true);
+%     case 'Ground Truthing Advanced',
+%       data.SetAdvancedMode(true);
+%       data.SetGTMode(true);
+%   end 
+%   data.SetMode();
+% end
+% 
+% return
+
+% -------------------------------------------------------------------------
