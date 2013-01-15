@@ -345,7 +345,7 @@ classdef JLabelData < handle
     function valid = CheckExp(expi)
       if numel(expi) ~= 1,
         error('Usage: expi must be a scalar');
-        valid = false;
+        %valid = false;
       else
         valid = true;
       end
@@ -354,7 +354,7 @@ classdef JLabelData < handle
     function valid = CheckFlies(flies)
       if size(flies,1) ~= 1,
         error('Usage: one set of flies must be selected');
-        valid = false;
+        %valid = false;
       else
         valid = true;
       end
@@ -383,7 +383,7 @@ classdef JLabelData < handle
       fn = curperframefns{j};
       ndx = find(strcmp(fn,allperframefns));
 
-      perframedata = load(perframefile{ndx});
+      perframedata = load(perframefile{ndx});  %#ok
       perframedata = perframedata.data{flies(1)};
       
       t11 = min(t1,numel(perframedata));
@@ -398,10 +398,10 @@ classdef JLabelData < handle
       nold = size(X,1);
       nnew = size(x_curr,2);
       if nold > nnew,
-        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  %#ok
         x_curr(:,end+1:end+nold-nnew) = nan;
       elseif nnew > nold && ~isempty(X),
-        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);
+        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  %#ok
         X(end+1:end+nnew-nold,:) = nan;
       end
       X = [X,x_curr']; %#ok<AGROW>
@@ -486,7 +486,8 @@ classdef JLabelData < handle
     % classifierfilename: name of classifier file to save/load classifier from
  
       if nargin == 0 || isempty(varargin{1}),
-        error('JLabelData.zero_args_to_constructor','JLabelData() called with zero args or with an empty first arg.');
+        error('JLabelData.zero_args_to_constructor',  ...
+              'JLabelData() called with zero args or with an empty first arg.');  %#ok
       else
         if ischar(varargin{1})
           configfilename = varargin{1};
@@ -632,7 +633,7 @@ classdef JLabelData < handle
         fclose(vid);
         obj.version = vv;
       catch ME
-        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);
+        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  %#ok
         obj.version = '0.0';
       end
       
@@ -852,7 +853,7 @@ classdef JLabelData < handle
           configparams.windowfeatures.windowfeaturescellparams = JLabelData.convertParams2CellParams(configparams.windowfeatures.windowfeaturesparams);
 
           obj.SetPerframeParams(configparams.windowfeatures.windowfeaturesparams,...
-            configparams.windowfeatures.windowfeaturescellparams);
+                                configparams.windowfeatures.windowfeaturescellparams);
         end
         
         if isfield(configparams,'perframe'),
@@ -1078,8 +1079,8 @@ classdef JLabelData < handle
     % does not currently update labelidx, and probably should not be called
     % once an experiment is open. 
 
-      success = false;
-      msg = '';
+      %success = false;
+      %msg = '';
 
       obj.scorefilename = scorefilename;
       [success,msg] = obj.UpdateStatusTable('scores');
@@ -1197,7 +1198,8 @@ classdef JLabelData < handle
     % expi into obj.labels. Otherwise, it sets the labels to be empty. This
     % does not currently update the windowdata and labelidx (TODO). 
       
-      success = false; msg = '';
+      %success = false;
+      msg = '';
       labelfilename = obj.GetFile('label',expi);
       
       if exist(labelfilename,'file'),
@@ -1268,7 +1270,8 @@ classdef JLabelData < handle
     % expi into obj.gt_labels. Otherwise, it sets the gt_labels to be empty. This
     % does not currently update the windowdata and labelidx (TODO). 
       
-      success = false; msg = '';
+      %success = false; 
+      msg = '';
       
       labelfilename = obj.GetFile('gt_label',expi);
 
@@ -1369,7 +1372,7 @@ classdef JLabelData < handle
 
       if ischar(clipsdir),
         for i = 1:numel(obj.expdirs),
-          clipsdircurr = fullfile(obj.expdirs{i},clipsdir);
+          %clipsdircurr = fullfile(obj.expdirs{i},clipsdir);
 %           if exist(obj.expdirs{i},'dir') && ~exist(clipsdircurr,'dir'),
 %             mkdir(clipsdircurr);
 %           end
@@ -1828,7 +1831,7 @@ classdef JLabelData < handle
 % Saving and loading    
 
 
-    function SaveScores(obj,allScores,expi,sfn)
+    function SaveScores(obj,allScores,expi,sfn)  %#ok
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
      if nargin< 4
@@ -1836,20 +1839,20 @@ classdef JLabelData < handle
      end
       obj.SetStatus('Saving scores for experiment %s to %s',obj.expnames{expi},sfn);
 
-      didbak = false;
+      %didbak = false;
       if exist(sfn,'file'),
         [didbak,msg] = copyfile(sfn,[sfn,'~']);
         if ~didbak,
-          warning('Could not create backup of %s: %s',sfn,msg);
+          warning('Could not create backup of %s: %s',sfn,msg);  %#ok
         end
       end
-      timestamp = obj.classifierTS;
-      version = obj.version;
+      timestamp = obj.classifierTS;  %#ok
+      version = obj.version;  %#ok
       save(sfn,'allScores','timestamp','version');
       obj.ClearStatus();
     end
     
-    function AddScores(obj,expi,allScores,timestamp,classifierfilename,updateCurrent)
+    function AddScores(obj,expi,allScores,timestamp,classifierfilename,updateCurrent)  %#ok
 %       obj.predictdata.classifierfilenames{expi} = classifierfilename;
       obj.SetStatus('Updating Predictions ...');
       for ndx = 1:numel(allScores.scores)
@@ -2007,7 +2010,7 @@ classdef JLabelData < handle
     % data described in obj.classifiervars.       
       
       try
-        s=obj.saveableClassifier;
+        s=obj.saveableClassifier;  %#ok
         save(obj.classifierfilename,'-struct','s');
       catch ME,
         errordlg(getReport(ME),'Error saving classifier to file');
@@ -2072,7 +2075,7 @@ classdef JLabelData < handle
         if exist(lfn,'file'),
           [didbak,msg] = copyfile(lfn,[lfn,'~']);
           if ~didbak,
-            warning('Could not create backup of %s: %s',lfn,msg);
+            warning('Could not create backup of %s: %s',lfn,msg);  %#ok
           end
         end
 
@@ -2238,7 +2241,7 @@ classdef JLabelData < handle
 
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
-      outclipsdir = fullfile(outexpdir,clipsdir);
+      outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
 %       if ~exist(outclipsdir,'dir'),
 %         [success1,msg1] = mkdir(outexpdir,clipsdir);
 %         if ~success1,
@@ -2484,7 +2487,7 @@ classdef JLabelData < handle
 
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
-      outclipsdir = fullfile(outexpdir,clipsdir);
+      outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
 
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;
@@ -2621,7 +2624,8 @@ classdef JLabelData < handle
         return;
       end
       
-      newExpNumbers = [];
+      %newExpNumbers = [];
+      newExpNumbers=zeros(1,obj.nexp);
       for ndx = 1:obj.nexps
         if ismember(ndx,expi);
           newExpNumbers(1,ndx) = 0;
@@ -2875,7 +2879,7 @@ classdef JLabelData < handle
         if any(strcmp(curpf,{obj.scoresasinput(:).scorefilename})), continue; end
         curtypes = settings.perframe.(curpf).type;
         if any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'))
-          toRemove(end+1) = i;
+          toRemove(end+1) = i;  %#ok
           if isfield(obj.windowfeaturesparams,curpf)
             obj.windowfeaturesparams = rmfield(obj.windowfeaturesparams,curpf);
           end
@@ -3064,8 +3068,9 @@ classdef JLabelData < handle
 
       
 %       try
-        [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
+        [windowfeaturesparams,~,basicFeatureTable,featureWindowSize] = ...
           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
+        % 2nd return above used to be windowfeaturescellparams
 %       catch ME,
 %         msg = sprintf('Error reading feature parameters file %s: %s',...
 %           params.featureparamsfilename,getReport(ME));
@@ -3113,7 +3118,7 @@ classdef JLabelData < handle
       if exist(configfilename,'file')
         [didbak,msg] = copyfile(configfilename,[configfilename '~']);
         if ~didbak,
-          warning('Could not create backup of %s: %s',configfilename,msg);
+          warning('Could not create backup of %s: %s',configfilename,msg);  %#ok
         end
       end
       
@@ -4285,6 +4290,8 @@ classdef JLabelData < handle
       
     end
 
+    % ---------------------------------------------------------------------
+    
     function ClearLabels(obj,expi,flies)
       
       if obj.nexps == 0,
@@ -4299,7 +4306,7 @@ classdef JLabelData < handle
         labelstatsToUse = 'labelstats';
       end
       
-      timestamp = now;
+      %timestamp = now;
       
       % use all experiments by default
       if nargin < 2,
@@ -4365,7 +4372,9 @@ classdef JLabelData < handle
       end
       
     end
-    
+
+    % ---------------------------------------------------------------------
+
     function SetLabel(obj,expi,flies,ts,behaviori,important)
     % SetLabel(obj,expi,flies,ts,behaviori)
     % Set label for experiment expi, flies, and frames ts to behaviori. If
@@ -4551,7 +4560,7 @@ classdef JLabelData < handle
     % forces the function to recalculate all the features even though they
     % were calculated before.
       
-      success = false; msg = '';
+      success = false; msg = '';  %#ok
       
       if ~exist('mode','var'), mode = 'center'; end
       if ~exist('forceCalc','var'), forceCalc = false; end
@@ -4677,15 +4686,15 @@ classdef JLabelData < handle
         % get per-frame data
         ndx = find(strcmp(fn,allperframefns));
         if perframeInMemory,
-          perframedata = perframedata_all{ndx};
+          perframedata = perframedata_all{ndx};  %#ok
         else
-          perframedata = load(perframefile{ndx});
-          perframedata = perframedata.data{flies(1)};
+          perframedata = load(perframefile{ndx});  %#ok
+          perframedata = perframedata.data{flies(1)};  %#ok
         end
         
         i11 = min(i1,numel(perframedata));
         [x_curr,feature_names_curr] = ...
-          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
+          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);  %#ok
         if any(imag(x_curr(:)))
           fprintf('Feature values are complex, check input\n');
         end
@@ -4759,8 +4768,10 @@ classdef JLabelData < handle
       obj.UpdatePredictedIdx();
 
     end
-  
-    function TrimWindowData(obj,doforce)
+
+    % ---------------------------------------------------------------------
+
+    function TrimWindowData(obj,doforce)  %#ok
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
 %       sizeLimit = obj.cacheSize*1e6;
@@ -4790,6 +4801,8 @@ classdef JLabelData < handle
       obj.windowdata.binVals = [];
       
     end
+    
+    % ---------------------------------------------------------------------
     
     function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize,dotrain)
     % Updates the feature params. Called by SelectFeatures
@@ -5047,23 +5060,23 @@ classdef JLabelData < handle
       end
     end
     
-    function res = DoFullTraining(obj,doFastUpdates)
+    function res = DoFullTraining(obj,doFastUpdates)  %#ok
       % Check if we should do fast updates or not.
       res = true; return; % Always do complete training.
-      if ~doFastUpdates, return; end
-      if isempty(obj.classifier), return; end
-      if isempty(obj.windowdata.binVals), return; end
-      
-      if (numel(obj.classifier) - obj.classifier_params.iter)/obj.classifier_params.iter_updates > 4
-        return;
-      end
-      
-      oldNumPts = obj.lastFullClassifierTrainingSize;
-      newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
-      newData = newNumPts - oldNumPts;
-      if (newData/oldNumPts)>0.25, return; end
-      
-      res = false;
+%       if ~doFastUpdates, return; end
+%       if isempty(obj.classifier), return; end
+%       if isempty(obj.windowdata.binVals), return; end
+%       
+%       if (numel(obj.classifier) - obj.classifier_params.iter)/obj.classifier_params.iter_updates > 4
+%         return;
+%       end
+%       
+%       oldNumPts = obj.lastFullClassifierTrainingSize;
+%       newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
+%       newData = newNumPts - oldNumPts;
+%       if (newData/oldNumPts)>0.25, return; end
+%       
+%       res = false;
     end
     
     function PredictLoaded(obj)
@@ -5142,31 +5155,31 @@ classdef JLabelData < handle
       
     end
     
-    function SetTrainingData(obj,trainingdata)
+    function SetTrainingData(obj,trainingdata)  %#ok
     % SetTrainingData(obj,trainingdata)
     % Sets the labelidx_cur of windowdata based on the input training data.
     % This reflects the set of labels the classifier was last trained on. 
       return;
-      for i = 1:numel(trainingdata),
-        [ism,labelidx] = ismember(trainingdata(i).names,obj.labelnames);
-        if any(~ism),
-          tmp = unique(trainingdata(i).names(~ism));
-          error('Unknown labels %s',sprintf('%s ',tmp{:})); %#ok<SPERR>
-        end
-        isexp = obj.windowdata.exp == i;
-        for j = 1:numel(trainingdata(i).t0s),
-          t0 = trainingdata(i).t0s(j);
-          t1 = trainingdata(i).t1s(j);
-          l = labelidx(j);
-          flies = trainingdata(i).flies(j,:);
-          isflies = isexp & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
-          ist = isflies & obj.windowdata.t >= t0 & obj.windowdata.t < t1;
-          if nnz(ist) ~= (t1-t0),
-            uiwait(warndlg('Labels in the classifier do not match the training data'));
-          end
-          obj.windowdata.labelidx_cur(ist) = l;
-        end
-      end
+%       for i = 1:numel(trainingdata),
+%         [ism,labelidx] = ismember(trainingdata(i).names,obj.labelnames);
+%         if any(~ism),
+%           tmp = unique(trainingdata(i).names(~ism));
+%           error('Unknown labels %s',sprintf('%s ',tmp{:})); %#ok<SPERR>
+%         end
+%         isexp = obj.windowdata.exp == i;
+%         for j = 1:numel(trainingdata(i).t0s),
+%           t0 = trainingdata(i).t0s(j);
+%           t1 = trainingdata(i).t1s(j);
+%           l = labelidx(j);
+%           flies = trainingdata(i).flies(j,:);
+%           isflies = isexp & all(bsxfun(@eq,obj.windowdata.flies,flies),2);
+%           ist = isflies & obj.windowdata.t >= t0 & obj.windowdata.t < t1;
+%           if nnz(ist) ~= (t1-t0),
+%             uiwait(warndlg('Labels in the classifier do not match the training data'));
+%           end
+%           obj.windowdata.labelidx_cur(ist) = l;
+%         end
+%       end
             
     end
 
@@ -5483,7 +5496,7 @@ classdef JLabelData < handle
                 obj.predictblocks.expi(end+1) = expi;
                 obj.predictblocks.flies(end+1) = flies;
             else
-                warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);                
+                warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);  %#ok       
             end
           end
           
@@ -5506,16 +5519,16 @@ classdef JLabelData < handle
             
             ndx = find(strcmp(fn,allperframefns));
             if perframeInMemory,
-              perframedata = perframedata_cur{ndx};
+              perframedata = perframedata_cur{ndx};  %#ok
             else
-              perframedata = load(perframefile{ndx});
-              perframedata = perframedata.data{flies(1)};
+              perframedata = load(perframefile{ndx});  %#ok
+              perframedata = perframedata.data{flies(1)};  %#ok
             end
             
             i11 = min(i1,numel(perframedata));
             [x_curr,cur_f] = ...
               ComputeWindowFeatures(perframedata,...
-              windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);
+              windowfeaturescellparams.(fn){:},'t0',i0,'t1',i11);  %#ok
             
             if i11 < i1,
               x_curr(:,end+1:end+i1-i11) = nan;
@@ -5793,6 +5806,7 @@ classdef JLabelData < handle
 
       modLabels = 2*obj.windowdata.labelidx_new(islabeled)-obj.windowdata.labelidx_imp(islabeled);
 
+      crossError=zeros(1,size(crossScores,1));
       for tndx = 1:size(crossScores,1)
         crossError(tndx) = obj.createConfMat(crossScores(tndx,:),modLabels);
       end
@@ -5860,7 +5874,8 @@ classdef JLabelData < handle
       nlLabels = obj.windowdata.labelidx_new(newLabels);
       nlLabels_imp = obj.windowdata.labelidx_imp(newLabels);
       
-      classifierfilename = 'None'; setClassifierfilename = 1;
+      classifierfilename = 'None'; 
+      %setClassifierfilename = 1;
       for curExp = unique(nlexp)'
         curNLexpNdx = nlexp==curExp;
         for curFly = unique(nlflies(curNLexpNdx))';
@@ -5876,9 +5891,9 @@ classdef JLabelData < handle
             return;
           end
           
-          orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];
-          orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];
-          orderedScores = [orderedScores; obj.predictdata{curExp}{curFly}.cur(curScoreNdx(curValidScoreNdx~=0))'];
+          orderedLabels = [orderedLabels; curLabels(loc(loc~=0))];  %#ok
+          orderedLabels_imp = [orderedLabels_imp; curLabels_imp(loc(loc~=0))];  %#ok
+          orderedScores = [orderedScores; obj.predictdata{curExp}{curFly}.cur(curScoreNdx(curValidScoreNdx~=0))'];  %#ok
         end
 %         if setClassifierfilename,
 %           classifierfilename = obj.windowdata.classifierfilenames{curExp};
@@ -5997,10 +6012,10 @@ classdef JLabelData < handle
       [rr rrNdx] = sort(dist2train,'ascend');
       
       if~outOfTraining
-        rr = rr(2:end);
-        curEx = rrNdx(1); rrNdx = rrNdx(2:end);
+        rr = rr(2:end);  %#ok
+        curEx = rrNdx(1); rrNdx = rrNdx(2:end);  %#ok
       else
-        curEx = [];
+        curEx = [];  %#ok
       end
       
       % Find 5 closest pos and neg examples.
@@ -6443,7 +6458,7 @@ classdef JLabelData < handle
           curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
           cumwt = cumsum(curwt);
           sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
-          sumwt = [cumwt(intsize) sumwt];
+          sumwt = [cumwt(intsize) sumwt];  %#ok
           int.wt(1,end+1:end+numT) = sumwt;
           
         end
@@ -6459,7 +6474,7 @@ classdef JLabelData < handle
             
             % Check for overlap
             if any( abs(locsSel-prevlocs) <= intsize), continue, end;
-            prevlocs(end+1) = locsSel;
+            prevlocs(end+1) = locsSel;  %#ok
             if isempty(locsSel), locsSel = numel(cumwt); end
             expi = int.exp(locsSel);
             flies = int.flies(locsSel);
@@ -6684,7 +6699,7 @@ classdef JLabelData < handle
           for j = 1:numel(labels_curr.imp_t0s),
             t0 = labels_curr.imp_t0s(j);
             t1 = labels_curr.imp_t1s(j);
-            labels_imp = [labels_imp t0:t1-1];
+            labels_imp = [labels_imp t0:t1-1];  %#ok
           end
           
           for j = 1:numel(labels_curr.t0s),
@@ -6694,7 +6709,7 @@ classdef JLabelData < handle
             curLabel = 2*repmat(find(strcmp(labels_curr.names{j},obj.labelnames)),1,t1-t0);
             curLabel(ismember(t0:t1-1,labels_imp)) = curLabel(ismember(t0:t1-1,labels_imp)) -1;
             
-            gt_labels = [gt_labels curLabel];
+            gt_labels = [gt_labels curLabel];  %#ok
             
             if hasloaded,
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
@@ -6702,14 +6717,14 @@ classdef JLabelData < handle
               scores = obj.predictdata{expi}{flies}.loaded(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
-              gt_scores = [gt_scores scores(ndxInLoaded)];
+              gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
             else
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
               scores = obj.predictdata{expi}{flies}.cur(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
-              gt_scores = [gt_scores scores(ndxInLoaded)];
+              gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
             end
           end
           
@@ -6757,7 +6772,7 @@ classdef JLabelData < handle
     
     
     function blen = GetPostprocessedBoutLengths(obj)
-      [success,msg] = obj.ApplyPostprocessing();
+      [success,msg] = obj.ApplyPostprocessing();  %#ok
       blen = [];
       if ~success;return; end
       
@@ -6776,8 +6791,8 @@ classdef JLabelData < handle
               curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
               posts = obj.predictdata{endx}{flies}.cur_pp(curidx);
               labeled = bwlabel(posts);
-              aa = regionprops(labeled,'Area');
-              blen = [blen [aa.Area]];
+              aa = regionprops(labeled,'Area');  %#ok
+              blen = [blen [aa.Area]];  %#ok
               
               
             end
@@ -6792,14 +6807,14 @@ classdef JLabelData < handle
             curidx = obj.predictdata{endx}{flies}.loaded_valid;
             curt = obj.predictdata{endx}{flies}.t(curidx);
             if any(curt(2:end)-curt(1:end-1) ~= 1)
-              msg = 'Scores are not in order';
-              success = false;
+              msg = 'Scores are not in order';  %#ok
+              success = false;  %#ok
               return;
             end
-            posts = obj.predictdata{expi}{flies}.loaded_pp(curidx);
+            posts = obj.predictdata{expi}{flies}.loaded_pp(curidx);  %#ok
             labeled = bwlabel(posts);
-            aa = regionprops(labeled,'Area');
-            blen = [blen [aa.Area]];
+            aa = regionprops(labeled,'Area');  %#ok
+            blen = [blen [aa.Area]];  %#ok
           end
         end
         
@@ -6924,7 +6939,7 @@ classdef JLabelData < handle
       
     end
     
-    function posts = ApplyFiltering(obj,curs,params)
+    function posts = ApplyFiltering(obj,curs,params)  %#ok
       % Use filt to find the regions.
       if isempty(curs), posts = curs; return; end
       filts = conv(curs,ones(1,params.filtopts(1).value),'same');
@@ -6962,13 +6977,13 @@ classdef JLabelData < handle
 
     function saveEverything(self)
       if isempty(self.everythingFileName)
-        error('JLabelData.noFileName','No file name specified');
+        error('JLabelData.noFileName','No file name specified');  %#ok
       end
       s=struct;
       s.featureConfigParams=self.featureConfigParams;
       s.saveableClassifier=self.getSaveableClassifier();
       [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
-      s.configParams=self.getConfigParams();
+      s.configParams=self.getConfigParams();  %#ok
       save(self.everythingFileName,'-struct','s');
     end
 
@@ -7027,7 +7042,15 @@ classdef JLabelData < handle
       
       configParams.windowfeatures.basicFeatureTable=self.basicFeatureTable;
       configParams.windowfeatures.featureWindowSize=self.featureWindowSize;
-        % N.B.: Still need to "invert" SetPerFrameParams()
+      configParams.windowfeatures.windowfeaturesparams=self.windowfeaturesparams;
+      % the above might need to be:
+      %configparams.windowfeatures.windowfeaturesparams=JLabelData.convertTransTypes2CellInverse(self.windowfeaturesparams);
+      % I think the line above pseudoinverts what's below 
+%     windowfeaturesparams = JLabelData.convertTransTypes2Cell(configparams.windowfeatures.windowfeaturesparams);
+%     windowfeaturescellparams = JLabelData.convertParams2CellParams(configparams.windowfeatures.windowfeaturesparams);
+%     obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
+%     obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
+%     obj.curperframefns = fieldnames(windowfeaturesparams);
         
       configParams.perframe.params=self.perframe_params;
       configParams.perframe.landmark_params=self.landmark_params;
