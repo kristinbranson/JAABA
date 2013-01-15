@@ -7087,6 +7087,27 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
 
+    function setLabelingMode(self,modeString)
+      switch modeString,
+        case 'Advanced',
+          self.SetAdvancedMode(true);
+          self.SetGTMode(false);
+        case 'Normal'
+          self.SetAdvancedMode(false);
+          self.SetGTMode(false);
+        case 'Ground Truthing',
+          self.SetAdvancedMode(false);
+          self.SetGTMode(true);
+        case 'Ground Truthing Advanced',
+          self.SetAdvancedMode(true);
+          self.SetGTMode(true);
+      end
+      self.SetMode();
+    end
+
+    % ---------------------------------------------------------------------
+      
+
   end  % End methods block
   
 end % End class
