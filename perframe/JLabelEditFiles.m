@@ -312,7 +312,7 @@ if numel(v) > 1,
   v = v(end);
 end
 
-nfiles = numel(handles.data.filetypes);
+nfiles = numel(handles.data.filetypes); 
 data = cell([nfiles,2]);
 data(:,1) = handles.data.filetypes;
 for i = 1:nfiles,
