@@ -9,7 +9,7 @@ classdef JLabelGUIData < handle
     
     isgroundtruthmode = false;
     
-    status_bar_text = '';
+    status_bar_text_when_clear = '';
     idlestatuscolor = [0,1,0];
     busystatuscolor = [1,0,1];
 
