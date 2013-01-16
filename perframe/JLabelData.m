@@ -493,7 +493,7 @@ classdef JLabelData < handle
           configfilename = varargin{1};
         else
           configfilename='';
-          everythingParams = varargin{1};
+          configParams = varargin{1};
         end
         varargin = varargin(2:end);
       end
@@ -504,7 +504,7 @@ classdef JLabelData < handle
       
       % config file
       if isempty(configfilename)
-        obj.initEverything(everythingParams);
+        obj.setConfigParams(configParams);
       else  
         [success,msg] = obj.SetConfigFileName(configfilename);
         if ~success,
@@ -712,13 +712,13 @@ classdef JLabelData < handle
         configParams = load(configfilename);
       end
       
-      [success,msg] = SetConfigParams(obj,configParams,configfilename);
+      [success,msg] = setConfigParams(obj,configParams,configfilename);
       
     end
 
     % ---------------------------------------------------------------------
 
-    function [success,msg] = SetConfigParams(obj,configparams,configfilename)
+    function [success,msg] = setConfigParams(obj,configparams,configfilename)
       % set default return values
       success = false;
       msg = '';
@@ -7079,11 +7079,11 @@ classdef JLabelData < handle
   
     % ---------------------------------------------------------------------
 
-    function initEverything(self,everythingParams)  % this should really be private
-      if isfield(everythingParams,'configParams')
-        self.SetConfigParams(everythingParams.configParams);
-      end
-    end
+%     function initEverything(self,everythingParams)  % this should really be private
+%       if isfield(everythingParams,'configParams')
+%         self.SetConfigParams(everythingParams.configParams);
+%       end
+%     end
     
     % ---------------------------------------------------------------------
 
