@@ -2461,8 +2461,8 @@ end
   end
   
   % load the default configfilename, if present
-  if isfield(handles.guidata.rc,'configfilename'),
-    handles.guidata.configfilename = handles.guidata.rc.configfilename;
+  if isfield(handles.guidata.rc,'defaultconfigfilename'),
+    handles.guidata.defaultconfigfilename = handles.guidata.rc.defaultconfigfilename;
   end
   
   
@@ -2531,7 +2531,7 @@ function handles = SaveRC(handles)
   
   % save the configfilename, if present
   if ~isempty(handles.guidata.configfilename),
-    rc.configfilename = handles.guidata.configfilename;
+    rc.defaultconfigfilename = handles.guidata.configfilename;
   end
   
   save(handles.guidata.rcfilename,'-struct','rc');
@@ -7308,6 +7308,15 @@ function configfilename=getConfigFileName(figureJLabel)
 
 handles=guidata(figureJLabel);
 configfilename=handles.guidata.configfilename;
+
+return
+
+
+% -------------------------------------------------------------------------
+function defaultconfigfilename=getDefaultConfigFileName(figureJLabel)
+
+handles=guidata(figureJLabel);
+defaultconfigfilename=handles.guidata.defaultconfigfilename;
 
 return
 
