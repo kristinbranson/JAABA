@@ -1662,13 +1662,21 @@ handles = LoadRC(handles);
 % whether save is necessary
 handles.guidata.needsave = false;
 
+% sort out whether we have a config file or just config params
+if isempty(handles.guidata.configfilename)
+  configurator=handles.guidata.configparams;
+else
+  configurator=handles.guidata.configfilename;
+end  
+
 % initialize data structure
-handles.guidata.data = JLabelData(handles.guidata.configfilename,...
-  'defaultpath',handles.guidata.defaultpath,...
-  'classifierfilename',handles.guidata.classifierfilename,...
-  'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
-  'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel),...
-  'cacheSize',handles.guidata.cacheSize);
+handles.guidata.data = ...
+  JLabelData(configurator,...
+             'defaultpath',handles.guidata.defaultpath,...
+             'classifierfilename',handles.guidata.classifierfilename,...
+             'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
+             'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel),...
+             'cacheSize',handles.guidata.cacheSize);
 
 % number of flies to label at a time
 handles.guidata.nflies_label = 1;
@@ -6969,12 +6977,27 @@ if ~jld.userHasSpecifiedEverythingFileName
   jld.specifyEverythingFileNameFromUser(fileNameAbs);
 end
 SetStatus(handles,sprintf('Saving everything to %s',jld.everythingFileName));
-jld.saveEverything();
+%jld.saveEverything();  % this doesn't work because not everything we need
+% to save is the JLabelData
+s=struct;
+s.featureConfigParams=jld.featureConfigParams;
+s.saveableClassifier=jld.getSaveableClassifier();
+[s.labels,s.gtLabels]=jld.storeAndGetLabelsAndGTLabels();
+s.configParams=handles.guidata.configparams;  %#ok
+%s.configParams=self.getConfigParams();
+try
+  save(fileNameAbs,'-struct','s');
+catch
+  uiwait(errordlg('Unable to save %s.',self.everythingFileName));
+  ClearStatus(handles);
+  return;
+end
+handles = SetSaved(handles);
+ClearStatus(handles);
+
 %handles.guidata.data.SaveClassifier();
 %handles.guidata.data.SaveLabels();
 %handles.guidata.data.SaveGTLabels();
-handles = SetSaved(handles);
-ClearStatus(handles);
 
 return
 
@@ -6985,6 +7008,7 @@ function menu_file_open_everything_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% Prompt user for filename
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
             'Open Everything');
@@ -6993,12 +7017,19 @@ if ~ischar(filename),
   return;
 end
 fileNameAbs=fullfile(pathname,filename);
+
+% load the file
 try
   everythingParams=load('-mat',fileNameAbs);
-catch
+catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
 end
-handles.guidata.data=JLabelData(everythingParams);
+
+% load in all the bits that need loading, one at a time
+%handles.guidata.data=JLabelData(everythingParams);
+setConfigParams(gcbf,everythingParams.configParams);
+
+% Note that the user has specified the everything file name
 handles.guidata.data.specifyEverythingFileNameFromUser(fileNameAbs);
 
 return
@@ -7019,7 +7050,6 @@ else
   errordlg('Project file is not valid');
 end
 setConfigParams(figureJLabel,configParams);
-
 return
 
 % -------------------------------------------------------------------------
@@ -7035,7 +7065,6 @@ InitializePlots(handles);
 %handles = JLabel('GetGUIPositions',handles);
 %handles = JLabel('InitializeState',handles);
 %handles = JLabel('InitializePlots',handles);
-
 return
 
 % -------------------------------------------------------------------------
