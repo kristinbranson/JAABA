@@ -842,22 +842,16 @@ if isfield(handles,'configfilename') && ~isempty(handles.configfilename)
     ProjectSetup('new',false, ...
                  'xml_file',handles.configfilename, ...
                  'figureJLabel',handles.figureJLabel, ...
-                 'figureJLabelEditFiles',handles.figureJLabelEditFiles);    
+                 'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
   elseif strcmp(ext,'.mat')
     ProjectSetup('new',false, ...
                  'mat_file',handles.configfilename, ...
                  'figureJLabel',handles.figureJLabel, ...
-                 'figureJLabelEditFiles',handles.figureJLabelEditFiles);    
+                 'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
   else
     uiwait(warndlg('Project file has to be either xml or mat file'));
     return;
   end
-end
-
-if ischar(configfilename)
-  handles.configfilename = configfilename;
-  set(handles.text_projectfile,'String',configfilename);
-  guidata(hObject,handles);
 end
 
 return
