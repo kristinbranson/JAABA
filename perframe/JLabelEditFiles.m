@@ -67,7 +67,7 @@ set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing','Ground Tr
 handles.disableBehavior = disableBehavior;
 
 if disableBehavior,
-
+  % we go here if reached via "Edit Files..."
   handles.success = true;
   % Simply edit files, not editing the behavior part
   handles.figureJLabel = figureJLabel;
@@ -88,29 +88,31 @@ if disableBehavior,
   % configfilename=handles.JLabelHandle.guidata.configfilename
   configfilename=JLabel('getConfigFileName',figureJLabel);
   set(handles.text_projectfile,'String',configfilename);
+  handles.configfilename=configfilename;
   DisableBehaviorGui(handles);
   %InitExperimentsGui(hObject,handles,JLabelHandle.guidata.data);
   InitExperimentsGui(hObject,handles);
   handles.needJLabelInit = false;
   guidata(hObject,handles);
-  
 else
+  % We go here if reached via "Import..."
   configfilename=JLabel('getConfigFileName',figureJLabel);
   if ~isempty(configfilename)
-    defpath = configfilename;
-  else
-    defpath = pwd;
-  end
-  
-  handles.configfilename = defpath;
-  if exist(handles.configfilename,'file') && ~exist(handles.configfilename,'dir'),
+    handles.configfilename = configfilename;
     set(handles.text_projectfile,'String',handles.configfilename);
+  else
+    defaultconfigfilename=JLabel('getDefaultConfigFileName',figureJLabel);
+    if isempty(defaultconfigfilename)
+      handles.configfilename = '';
+    else
+      handles.configfilename = defaultconfigfilename;
+      set(handles.text_projectfile,'String',handles.configfilename);
+    end
   end
   handles.figureJLabel = figureJLabel;
   handles.needJLabelInit = true;
   guidata(hObject,handles);
 end
-
 
 % Add color for mac's.
 buttons = findall(hObject,'Style','pushbutton');

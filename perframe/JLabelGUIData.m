@@ -2,6 +2,8 @@ classdef JLabelGUIData < handle
   
   properties (Access=public)
     
+    defaultconfigfilename = '';
+    
     classifierfilename = '';
     configfilename = '';
     defaultpath = '';
