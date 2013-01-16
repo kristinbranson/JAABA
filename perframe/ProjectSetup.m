@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 07-Nov-2012 12:56:26
+% Last Modified by GUIDE v2.5 16-Jan-2013 15:37:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -44,6 +44,7 @@ end
 % End initialization code - DO NOT EDIT
 
 
+% -------------------------------------------------------------------------
 % --- Executes just before ProjectSetup is made visible.
 function ProjectSetup_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
@@ -59,15 +60,29 @@ handles.output = hObject;
 handles.defpath = pwd;
 
 params = [];
-[figureJLabel, project_params, xml_file, mat_file, visible, outfile] = myparse(varargin,...
-  'figureJLabel',[],...
-  'project_params',[],...
-  'xml_file','',...
-  'mat_file','',...
-  'visible',true,...
-  'outfile',0);
+[new, ...
+ figureJLabel, ...
+ figureJLabelEditFiles, ...
+ project_params, ...
+ xml_file, ...
+ mat_file, ...
+ visible, ...
+ outfile] = ...
+   myparse(varargin,...
+           'new',[], ...
+           'figureJLabel',[],...
+           'figureJLabelEditFiles',[],...
+           'project_params',[],...
+           'xml_file','',...
+           'mat_file','',...
+           'visible',true,...
+           'outfile',0);
 
+handles.new=new;  
+  % true iff we are setting up a new project, as opposed to editing an
+  % existing one
 handles.figureJLabel=figureJLabel;
+handles.figureJLabelEditFiles=figureJLabelEditFiles;
 handles.outfile = outfile;
 
 
@@ -110,7 +125,7 @@ if ismac, % On mac change the foreground color to black.
   set(allpopups,'ForegroundColor',[0 0 0]);
 end
 
-curPos = get(handles.figure1,'Position');
+curPos = get(handles.figureProjectSetup,'Position');
 tablePos = get(handles.config_table,'Position');
 reducedWidth = tablePos(1)-15;
 reducedHeight = curPos(4);
@@ -165,14 +180,16 @@ end
 
 % UIWAIT makes ProjectSetup wait for user response (see UIRESUME)
 if ~ischar(handles.outfile),
-  uiwait(handles.figure1);
+  %uiwait(handles.figureProjectSetup);
 else
   params2save = handles.params(1); %#ok<NASGU>
   save(handles.outfile,'-struct','params2save');
 end
 
+return
 
 
+% -------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 function varargout = ProjectSetup_OutputFcn(hObject, ~, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -183,21 +200,27 @@ function varargout = ProjectSetup_OutputFcn(hObject, ~, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 varargout{2} = handles.outfile;
-delete(handles.figure1);
+%delete(handles.figureProjectSetup);
+return
 
+
+% -------------------------------------------------------------------------
 function handles = updatePosition(handles,mode)
 if strcmp(handles.mode,mode), return; end
 if strcmp(handles.mode,'advanced')
-  curPos = get(handles.figure1,'Position');
-  set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
+  curPos = get(handles.figureProjectSetup,'Position');
+  set(handles.figureProjectSetup,'Position',[curPos(1:2) handles.basicSize]);
   set(handles.togglebutton_advanced,'Value',0);
 else
-  curPos = get(handles.figure1,'Position');
-  set(handles.figure1,'Position',[curPos(1:2) handles.advancedSize]);
+  curPos = get(handles.figureProjectSetup,'Position');
+  set(handles.figureProjectSetup,'Position',[curPos(1:2) handles.advancedSize]);
   set(handles.togglebutton_advanced,'Value',1);  
 end
 handles.mode = mode;
+return
 
+
+% -------------------------------------------------------------------------
 function handles = initFeatureconfig(handles)
 if isdeployed,
   filename = deployedRelative2Global('params/featureConfigList.xml');
@@ -210,8 +233,10 @@ animal_types = fieldnames(list);
 handles.list = list;
 handles.animal_types = animal_types;
 set(handles.featureconfigpopup,'String',animal_types);
+return
 
 
+% -------------------------------------------------------------------------
 function handles = initParams(handles)
 handles.params.behaviors.names = {};
 handles.params.file.featureconfigfile = handles.list.(handles.animal_types{1}).file;
@@ -237,6 +262,8 @@ handles.params.file.moviefilename = '';
 handles = addversion(handles);
 handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
 
+
+% -------------------------------------------------------------------------
 function updateText(handles)
 % Copies the parameters in the params structure to the gui.
 
@@ -291,6 +318,7 @@ else
 end
 
 
+% -------------------------------------------------------------------------
 function handles = updateParams(handles)
 
 fnames = {'labelfilename','gt_labelfilename','scorefilename',...
@@ -319,6 +347,7 @@ end
 setConfigTable(handles);
 
 
+% -------------------------------------------------------------------------
 function setConfigTable(handles)
 params = handles.params;
 fields2remove = {'featureparamlist','windowfeatures','scoresinput'};
@@ -332,6 +361,7 @@ data = GetParamsAsTable(params);
 set(handles.config_table,'Data',data);
 
 
+% -------------------------------------------------------------------------
 function data = GetParamsAsTable(configparams)
 data = addToList(configparams,{},'');
 idx = cellfun(@iscell,data(:,2));
@@ -352,6 +382,7 @@ if any(cellfun(@iscell,data(:,2))),
 end
 
 
+% -------------------------------------------------------------------------
 function list = addToList(curStruct,list,pathTillNow)
 if isempty(fieldnames(curStruct)), return; end
 fnames = fieldnames(curStruct);
@@ -373,6 +404,8 @@ for ndx = 1:numel(fnames)
   end
 end
 
+
+% -------------------------------------------------------------------------
 function handles = addversion(handles)
 if ~isfield(handles.params,'ver')
   vid = fopen('version.txt','r');
@@ -381,6 +414,8 @@ if ~isfield(handles.params,'ver')
   handles.params.ver = vv{1};
 end
 
+
+% -------------------------------------------------------------------------
 function editName_Callback(hObject, eventdata, handles)
 % hObject    handle to editName (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -398,6 +433,8 @@ end
 name = regexp(name,',','split');
 name_str = [sprintf('%s_',name{1:end-1}),name{end}];
 handles.params.behaviors.names = name;
+handles.params.file.moviefilename = 'movie.ufmf';
+handles.params.file.trxfilename = 'registered_trx.mat';
 handles.params.file.labelfilename = sprintf('label_%s.mat',name_str);
 handles.params.file.gt_labelfilename = sprintf('gt_label_%s.mat',name_str);
 handles.params.file.scorefilename = sprintf('scores_%s.mat',name_str);
@@ -406,6 +443,7 @@ guidata(hObject,handles);
 setConfigTable(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editName_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editName (see GCBO)
@@ -419,6 +457,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on selection change in featureconfigpopup.
 function featureconfigpopup_Callback(hObject, eventdata, handles)
 % hObject    handle to featureconfigpopup (see GCBO)
@@ -437,6 +476,7 @@ guidata(hObject,handles);
 setConfigTable(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function featureconfigpopup_CreateFcn(hObject, ~, ~)
 % hObject    handle to featureconfigpopup (see GCBO)
@@ -450,7 +490,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
+% -------------------------------------------------------------------------
 function editlabelfilename_Callback(hObject, eventdata, handles) %#ok<DEFNU>
 % hObject    handle to editlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -462,6 +502,7 @@ handles = updateParams(handles);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editlabelfilename_CreateFcn(hObject, eventdata, handles) %#ok<*DEFNU>
 % hObject    handle to editlabelfilename (see GCBO)
@@ -475,7 +516,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
+% -------------------------------------------------------------------------
 function editgtlabelfilename_Callback(hObject, eventdata, handles)
 % hObject    handle to editgtlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -487,6 +528,7 @@ handles = updateParams(handles);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editgtlabelfilename_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editgtlabelfilename (see GCBO)
@@ -500,7 +542,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
+% -------------------------------------------------------------------------
 function editscorefilename_Callback(hObject, eventdata, handles)
 % hObject    handle to editscorefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -512,6 +554,7 @@ handles = updateParams(handles);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editscorefilename_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editscorefilename (see GCBO)
@@ -525,6 +568,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 function editmoviefilename_Callback(hObject, eventdata, handles)
 % hObject    handle to editmoviefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -536,6 +580,7 @@ handles = updateParams(handles);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editmoviefilename_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editmoviefilename (see GCBO)
@@ -549,7 +594,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
+% -------------------------------------------------------------------------
 function edittrxfilename_Callback(hObject, eventdata, handles)
 % hObject    handle to edittrxfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -561,6 +606,7 @@ handles = updateParams(handles);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function edittrxfilename_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to edittrxfilename (see GCBO)
@@ -574,13 +620,15 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on butuiresume(handles.figure1);ton press in pushbutton_setfeatures.
+% -------------------------------------------------------------------------
+% --- Executes on butuiresume(handles.figureProjectSetup);ton press in pushbutton_setfeatures.
 function pushbutton_setfeatures_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_setfeatures (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copyfeatures.
 function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_copyfeatures (see GCBO)
@@ -588,6 +636,7 @@ function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
+% -------------------------------------------------------------------------
 % --- Executes on selection change in listbox_inputscores.
 function listbox_inputscores_Callback(hObject, eventdata, handles)
 % hObject    handle to listbox_inputscores (see GCBO)
@@ -598,6 +647,7 @@ function listbox_inputscores_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from listbox_inputscores
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function listbox_inputscores_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to listbox_inputscores (see GCBO)
@@ -611,6 +661,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_addlist.
 function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addlist (see GCBO)
@@ -660,6 +711,7 @@ guidata(hObject,handles);
 updateText(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_removelist.
 function pushbutton_removelist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_removelist (see GCBO)
@@ -671,6 +723,8 @@ handles.params.scoresinput(curndx) = [];
 guidata(hObject,handles);
 updateText(handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_cancel (see GCBO)
@@ -678,9 +732,14 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.outfile = 0;
 guidata(hObject,handles);
-uiresume(handles.figure1);
+JLabelEditFiles('projectSetupCancelled', ...
+                handles.figureJLabelEditFiles);
+delete(gcbf);              
+%uiresume(handles.figureProjectSetup);
+return
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, ~, handles)
 % hObject    handle to pushbutton_done (see GCBO)
@@ -701,14 +760,22 @@ if exist(handles.outfile,'file')
   end
 end
 
-params2save = handles.params(1); %#ok<NASGU>
+params2save = handles.params(1);
 JLabel('setProjectParams',handles.figureJLabel,params2save);
 save(handles.outfile,'-struct','params2save');
 
 guidata(hObject,handles);
-uiresume(handles.figure1);
+
+JLabelEditFiles('projectSetupDone', ...
+                handles.figureJLabelEditFiles, ...
+                handles.outfile);
+
+delete(gcbf);              
+%uiresume(handles.figureProjectSetup);
+return
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copy.
 function pushbutton_copy_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_copy (see GCBO)
@@ -860,6 +927,8 @@ guidata(hObject,handles);
 updateText(handles);
 setConfigTable(handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in togglebutton_advanced.
 function togglebutton_advanced_Callback(hObject, eventdata, handles)
 % hObject    handle to togglebutton_advanced (see GCBO)
@@ -874,6 +943,8 @@ else
 end
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_perframe.
 function pushbutton_perframe_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_perframe (see GCBO)
@@ -911,7 +982,7 @@ end
 guidata(hObject,handles);
 
 
-
+% -------------------------------------------------------------------------
 function [allPfList selected missing]= GetAllPerframeList(configparams)
 featureconfigfile = configparams.file.featureconfigfile;
 params = ReadXMLParams(featureconfigfile);
@@ -938,7 +1009,7 @@ else
 end
 
 
-
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_addadvanced.
 function pushbutton_addadvanced_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addadvanced (see GCBO)
@@ -955,6 +1026,8 @@ setConfigTable(handles);
 updateText(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_removeadvanced.
 function pushbutton_removeadvanced_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_removeadvanced (see GCBO)
@@ -975,6 +1048,7 @@ updateText(handles);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes when entered data in editable cell(s) in config_table.
 function config_table_CellEditCallback(hObject, eventdata, handles)
 % hObject    handle to config_table (see GCBO)
@@ -996,6 +1070,8 @@ end
 updateText(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function handles = RemoveConfig(handles,name)
 
 [fpath,lastfield] = splitext(name);
@@ -1009,6 +1085,7 @@ else
 end
 
 
+% -------------------------------------------------------------------------
 function handles = EditConfigName(handles,oldName,newName)
 eval_str = sprintf(...
   'value = handles.params.%s;',...
@@ -1017,10 +1094,14 @@ eval(eval_str);
 handles = AddConfig(handles,newName,value);
 handles = RemoveConfig(handles,oldName);
 
+
+% -------------------------------------------------------------------------
 function handles = EditConfigValue(handles,name,value) %#ok<INUSD>
 eval_str = sprintf('handles.params.%s = value;',name);
 eval(eval_str);
 
+
+% -------------------------------------------------------------------------
 function handles = AddConfig(handles,name,value)
 
 if ischar(value) && ~isempty(str2num(value)) %#ok<ST2NM>
@@ -1044,11 +1125,15 @@ end
 eval(sprintf('handles.params.%s = value;',name));
 
 
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to figure1 (see GCBO)
+% -------------------------------------------------------------------------
+% --- Executes when user attempts to close figureProjectSetup.
+function figureProjectSetup_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figureProjectSetup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-uiresume(hObject);
+%uiresume(hObject);
+pushbutton_cancel_Callback(hObject, eventdata, handles)
+
+% -------------------------------------------------------------------------
