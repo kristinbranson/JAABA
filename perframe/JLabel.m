@@ -136,6 +136,33 @@ guidata(hObject,handles);
 handles=guidata(hObject);
 EnableGUI(handles);
 
+% load the RC file (is the time and place?)
+handles = LoadRC(handles);
+
+% % Move the figure to the upper right of the screen
+% xOffset=100;  % pels
+% yOffset=100;  % pels
+% rootUnitsSaved=get(0,'units');
+% figureUnitsSaved=get(hObject,'units');
+% set(0,'units','pixels');
+% set(hObject,'units','pixels');
+% pos=get(hObject,'position');
+% offset=pos(1,2);
+% sz=pos(3:4);
+% monitorPositions=get(0,'monitorposition');
+% if iswin()
+%   % On Windows, Monitor 1 is listed last
+%   monitorPosition=monitorPositions(end,:);
+% else
+%   % On Linux, the primary monitor 1 is listed first
+%   % On Mac, Matlab only recognixes one monitor
+%   monitorPosition=monitorPositions(1,:);
+% end  
+% % translate the mon
+
+% Write the handles to the guidata
+guidata(hObject,handles);
+
 return
 
 
@@ -1686,7 +1713,7 @@ success = true;
 %--------------------------------------------------------------------------
 function handles = InitializeState(handles)
 
-handles = LoadRC(handles);
+%handles = LoadRC(handles);
 
 % whether save is necessary
 handles.guidata.needsave = false;
@@ -2433,6 +2460,12 @@ end
     handles.guidata.cacheSize = 4000;
   end
   
+  % load the default configfilename, if present
+  if isfield(handles.guidata.rc,'configfilename'),
+    handles.guidata.configfilename = handles.guidata.rc.configfilename;
+  end
+  
+  
 % catch ME,
 %   warning('Error loading RC file: %s',getReport(ME));  
 % end
@@ -2495,6 +2528,11 @@ function handles = SaveRC(handles)
   
   % cache size
   rc.cacheSize = handles.guidata.cacheSize;
+  
+  % save the configfilename, if present
+  if ~isempty(handles.guidata.configfilename),
+    rc.configfilename = handles.guidata.configfilename;
+  end
   
   save(handles.guidata.rcfilename,'-struct','rc');
 

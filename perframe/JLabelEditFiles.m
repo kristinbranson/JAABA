@@ -95,10 +95,9 @@ if disableBehavior,
   guidata(hObject,handles);
   
 else
-  if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))  
-  %if false
-    Q = load('.JLabelrc.mat','configfilename');
-    defpath = Q.configfilename;
+  configfilename=JLabel('getConfigFileName',figureJLabel);
+  if ~isempty(configfilename)
+    defpath = configfilename;
   else
     defpath = pwd;
   end
