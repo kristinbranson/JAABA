@@ -880,9 +880,7 @@ return
 
 
 %--------------------------------------------------------------------------
-
-function projectSetupCancelled(figureJLabelEditFiles)
-return
-
+% function projectSetupCancelled(figureJLabelEditFiles)
+% return
 
 %--------------------------------------------------------------------------
