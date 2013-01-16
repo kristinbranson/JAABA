@@ -43,8 +43,8 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes just before JLabelEditFiles is made visible.
 function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
@@ -132,16 +132,16 @@ set(hObject,'windowstyle','modal');
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function DisableBehaviorGui(handles)
 set(handles.text_projectfile,'enable','off');
 set(handles.pushbutton_selectproject,'enable','off');
 set(handles.pushbutton_edit_project,'enable','off');
 set(handles.pushbutton_newproject,'enable','off');
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function InitJLabelGui(handles)
 
 if ~handles.needJLabelInit, return; end
@@ -210,8 +210,8 @@ set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function InitExperimentsGui(hObject,handles)
 %function InitExperimentsGui(hObject,handles,varargin)
 %
@@ -299,8 +299,8 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function UpdateStatusTable(handles)
 
 v = get(handles.listbox_experiment,'Value');
@@ -338,6 +338,8 @@ end
 tableSize = get(handles.uitable_status,'Position');
 set(handles.uitable_status,'Data',data,'Visible','on','ColumnWidth',{150 tableSize(3)-155});
 
+
+% -------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -352,6 +354,8 @@ varargout{1}=hObject;
 %delete(hObject);
 return
 
+
+% -------------------------------------------------------------------------
 % --- Executes on selection change in listbox_experiment.
 function listbox_experiment_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 % hObject    handle to listbox_experiment (see GCBO)
@@ -362,6 +366,8 @@ function listbox_experiment_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 %        contents{get(hObject,'Value')} returns selected item from listbox_experiment
 UpdateStatusTable(handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function listbox_experiment_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 % hObject    handle to listbox_experiment (see GCBO)
@@ -375,8 +381,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     SetButtonImage(hObject);
 end
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_add.
 function pushbutton_add_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_add (see GCBO)
@@ -447,8 +453,8 @@ UpdateStatusTable(handles);
 
 ClearStatusEditFiles(hObject);
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
 file = handles.data.filetypes{row};
@@ -478,8 +484,8 @@ switch file,
 end
 UpdateStatusTable(handles);
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_remove.
 function pushbutton_remove_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_remove (see GCBO)
@@ -495,8 +501,8 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 UpdateStatusTable(handles);
 set(handles.pushbutton_cancel,'enable','off');
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
@@ -520,8 +526,8 @@ end
 delete(gcbf);
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_load.
 function pushbutton_load_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_load (see GCBO)
@@ -567,9 +573,13 @@ set(handles.editClassifier,'String',classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
 UpdateStatusTable(handles);
-uiwait(helpdlg('Done loading the classifier'));
+% Don't need the dialog anymore, b/c using the watch cursor
+%uiwait(helpdlg('Done loading the classifier'));
+
+return
 
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_loadwoexp.
 function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_loadwoexp (see GCBO)
@@ -606,8 +616,8 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 % update status table
 UpdateStatusTable(handles);
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes when user attempts to close figure_JLabelEditFiles.
 function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabelEditFiles (see GCBO)
@@ -631,8 +641,8 @@ end
 delete(gcbf);
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_cancel (see GCBO)
@@ -642,19 +652,23 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles);
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function SetStatusEditFiles(hObject,s)
 
 handles = guidata(hObject);
 set(handles.statusMsg,'String',s);
 set(handles.figure_JLabelEditFiles,'pointer','watch');
 
+
+%--------------------------------------------------------------------------
 function ClearStatusEditFiles(hObject)
 handles = guidata(hObject);
 set(handles.statusMsg,'String','');
 set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
+
+%--------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editClassifier_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editClassifier (see GCBO)
@@ -668,6 +682,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+%--------------------------------------------------------------------------
 % --- Executes on selection change in popupmode.
 function popupmode_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmode (see GCBO)
@@ -686,7 +701,7 @@ else
 end
 
 
-
+%--------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function popupmode_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to popupmode (see GCBO)
@@ -699,8 +714,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function SetLabelingMode(handles)
 contents = cellstr(get(handles.popupmode,'String'));
 curStr = contents{get(handles.popupmode,'Value')};
@@ -729,8 +744,8 @@ set(handles.popupmode,'enable','off');
 
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_addlist.
 function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addlist (see GCBO)
@@ -788,8 +803,8 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 % update status table
 UpdateStatusTable(handles);
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_selectproject.
 function pushbutton_selectproject_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_selectproject (see GCBO)
@@ -817,8 +832,8 @@ set(handles.text_projectfile,'String',configfilename);
 handles.configfilename = configfilename;
 guidata(hObject,handles);
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_edit_project.
 function pushbutton_edit_project_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_edit_project (see GCBO)
@@ -846,6 +861,7 @@ if ischar(configfilename)
 end
 
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_newproject.
 function pushbutton_newproject_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_newproject (see GCBO)
@@ -860,3 +876,5 @@ if ~ischar(configfilename), return; end;
 handles.configfilename = configfilename;
 set(handles.text_projectfile,'String',configfilename);
 guidata(hObject,handles);
+
+%--------------------------------------------------------------------------

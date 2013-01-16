@@ -38,6 +38,8 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+
+% -------------------------------------------------------------------------
 function SetSplashStatus(hsplashstatus,varargin)
 
 if ishandle(hsplashstatus),
@@ -46,6 +48,8 @@ else
   fprintf([varargin{1},'\n'],varargin{2:end});
 end
  
+
+% -------------------------------------------------------------------------
 % --- Executes just before JLabel is made visible.
 function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
@@ -79,7 +83,7 @@ SetSplashStatus(handles.guidata.hsplashstatus,'Initializing Edit Files GUI...');
 handles.output = handles.figure_JLabel;
 % initialize statusbar
 
-handles.guidata.status_bar_text = sprintf('Status: No experiment loaded');
+handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
 handles.guidata.idlestatuscolor = [0,1,0];
 handles.guidata.busystatuscolor = [1,0,1];
 handles.guidata.movie_height = 100;
@@ -134,14 +138,16 @@ EnableGUI(handles);
 
 return
 
-%--------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function handles = InitSelectionCallbacks(handles)
 
 handles.guidata.callbacks = struct;
 handles.guidata.callbacks.figure_WindowButtonMotionFcn = get(handles.figure_JLabel,'WindowButtonMotionFcn');
 set(handles.figure_JLabel,'WindowButtonMotionFcn','');
 
+
+% -------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 function varargout = JLabel_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -161,6 +167,7 @@ varargout{1} = hObject;
 % delete(handles.figure_JLabel);
 
 
+% -------------------------------------------------------------------------
 function InitializeGui(handles)
 % Initializes the JLabel GUI
 handles = GetGUIPositions(handles);
@@ -169,6 +176,7 @@ handles = InitializePlots(handles);
 guidata(handles.figure_JLabel,handles);
 
 
+% -------------------------------------------------------------------------
 function handles = InitializePlots(handles)
 
 handles.guidata.axes_preview_curr = 1;
@@ -416,7 +424,7 @@ handles = UpdateGUIGroundTruthMode(handles);
 % end
 
 
-
+% -------------------------------------------------------------------------
 function cache_thread(N,HWD,cache_filename,movie_filename)
 
 if isempty(movie_filename),
@@ -450,6 +458,7 @@ while true
 end
 
 
+% -------------------------------------------------------------------------
 function UpdatePlots(handles,varargin)
 
 persistent Mframenum Mlastused Mimage movie_filename
@@ -834,6 +843,7 @@ for i = axes,
 end
 
 
+% -------------------------------------------------------------------------
 function [handles,success] = SetCurrentMovie(handles,expi)
 
 success = false;
@@ -1003,6 +1013,8 @@ EnableGUI(handles);
 
 success = true;
 
+
+% -------------------------------------------------------------------------
 function handles = UnsetCurrentMovie(handles)
 
 % close previous movie
@@ -1036,6 +1048,7 @@ end
 EnableGUI(handles);
 
 
+% -------------------------------------------------------------------------
 function i = GetPreviewPanelNumber(hObject)
 
 i = regexp(get(get(hObject,'Parent'),'Tag'),'^panel_axes(\d+)$','tokens','once');
@@ -1047,6 +1060,7 @@ else
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on slider movement.
 function slider_preview_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 % hObject    handle to slider_preview (see GCBO)
@@ -1066,6 +1080,8 @@ i = GetPreviewPanelNumber(hObject);
 % set current frame
 SetCurrentFrame(handles,i,t,hObject);
 
+
+% -------------------------------------------------------------------------
 function handles = SetCurrentFlies(handles,flies,doforce,doupdateplot)
 
 if ~exist('doforce','var'),
@@ -1178,9 +1194,9 @@ end
 % status bar text
 [~,expname] = myfileparts(handles.guidata.data.expdirs{handles.guidata.expi});
 if numel(handles.guidata.flies) == 1,
-  handles.guidata.status_bar_text = sprintf('%s, %s %d',expname,handles.guidata.data.targettype,handles.guidata.flies);
+  handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,handles.guidata.data.targettype,handles.guidata.flies);
 else
-  handles.guidata.status_bar_text = [sprintf('%s, %d',expname,handles.guidata.data.targettype),sprintf(' %d',handles.guidata.flies)];
+  handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,handles.guidata.data.targettype),sprintf(' %d',handles.guidata.flies)];
 end
 
 % make sure frame is within bounds
@@ -1206,6 +1222,8 @@ if doupdateplot,
   UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
 end
 
+
+% -------------------------------------------------------------------------
 function handles = UpdateTimelineIms(handles)
 
 % Note: this function directly accesses handles.guidata.data.labelidx,
@@ -1336,6 +1354,7 @@ labelidx.vals(2:end)~=0 & ...
 labelidx.vals(1:end-1)~=labelidx.vals(2:end));
 
 
+% -------------------------------------------------------------------------
 % set current frame
 function handles = SetCurrentFrame(handles,i,t,hObject,doforce,doupdateplot)
 
@@ -1410,6 +1429,8 @@ if doforce || handles.guidata.ts(i) ~= t,
   
 end
 
+
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function slider_preview_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 % hObject    handle to slider_preview (see GCBO)
@@ -1422,7 +1443,7 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 
-% --------------------------------------------------------------------
+% -------------------------------------------------------------------------
 function pushtool_save_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to pushtool_save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1436,8 +1457,8 @@ function menu_file_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function menu_file_editfiles_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_editfiles (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1503,21 +1524,25 @@ JLabelEditFiles('disableBehavior',true,'figureJLabel',handles.figure_JLabel);
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function handles = UpdateMovies(handles)
 
+
+%--------------------------------------------------------------------------
 function handles = SetNeedSave(handles)
 
 handles.guidata.needsave = true;
 set(handles.menu_file_save,'Enable','on');
 set(handles.menu_file_save_labels,'Enable','on');
 
+% --------------------------------------------------------------------
 function handles = SetSaved(handles)
 
 handles.guidata.needsave = false;
 set(handles.menu_file_save,'Enable','off');
 set(handles.menu_file_save_labels,'Enable','off');
+
 
 % --------------------------------------------------------------------
 function success = menu_file_save_Callback(hObject, eventdata, handles)
@@ -1539,6 +1564,7 @@ handles = SetSaved(handles);
 ClearStatus(handles);
 success = true;
 
+
 % --------------------------------------------------------------------
 function menu_file_exit_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_exit (see GCBO)
@@ -1546,6 +1572,7 @@ function menu_file_exit_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
+
 
 % --------------------------------------------------------------------
 function menu_edit_Callback(hObject, eventdata, handles)
@@ -1567,13 +1594,15 @@ function menu_go_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+
 % --------------------------------------------------------------------
 function menu_edit_undo_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit_undo (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%
+
+% -------------------------------------------------------------------------
 function [handles,success] = LoadConfig(handles,forceui)
 
 if ~exist('forceui','var'),
@@ -1653,8 +1682,8 @@ end
 
 success = true;
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function handles = InitializeState(handles)
 
 handles = LoadRC(handles);
@@ -1885,8 +1914,8 @@ guidata(handles.figure_JLabel,handles);  % write handles to the guidata
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function SetGUIModeMenuChecks(handles)
 
 if handles.guidata.data.IsGTMode(),
@@ -1905,6 +1934,7 @@ set(guimode_menus,'Checked','off');
 set(h,'Checked','on');
 
 
+% -------------------------------------------------------------------------
 function SetJumpGoMenuLabels(handles)
 
 set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.guidata.nframes_jump_go));
@@ -1915,8 +1945,8 @@ set(handles.menu_go_next_automatic_bout_start,'Label',...
 set(handles.menu_go_previous_automatic_bout_end,'Label',...
   sprintf('Next %s bout end (shift + left arrow)',jumpType));
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % function handles = CreateLabelButtons(handles)
 % 
 % % get some freqeuntly used things into local vars
@@ -2090,8 +2120,8 @@ set(handles.menu_go_previous_automatic_bout_end,'Label',...
 % 
 % return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function handles = UpdateLabelButtons(handles)
 
 % get some freqeuntly used things into local vars
@@ -2246,8 +2276,8 @@ handles.guidata.GUIAdvancedMode = isAdvancedMode;
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function EnableGUI(handles)
 % Updates the enablement of controls according to the number of experiments
 % and the current experiment, and handles.guidata.needsave.  Also, disables
@@ -2292,8 +2322,8 @@ set(handles.menu_file_save_project,'Enable','off');
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function handles = LoadRC(handles)
 
 % rc file name
@@ -2407,6 +2437,8 @@ end
 %   warning('Error loading RC file: %s',getReport(ME));  
 % end
 
+
+% -------------------------------------------------------------------------
 function handles = SaveRC(handles)
 
 % try
@@ -2471,6 +2503,7 @@ function handles = SaveRC(handles)
 % end
 
 
+% -------------------------------------------------------------------------
 % --- Executes when user attempts to close figure_JLabel.
 function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -2577,6 +2610,7 @@ function toggletool_zoomout_OffCallback(hObject, eventdata, handles)
 
 set(handles.guidata.hzoom,'Enable','off');
 
+
 % --------------------------------------------------------------------
 function toggletool_zoomout_OnCallback(hObject, eventdata, handles)
 % hObject    handle to toggletool_zoomout (see GCBO)
@@ -2603,6 +2637,7 @@ function toggletool_pan_OnCallback(hObject, eventdata, handles)
 set([handles.toggletool_zoomin,handles.toggletool_zoomout],'State','off');
 zoom(handles.figure_JLabel,'off');
 pan(handles.figure_JLabel,'on');
+
 
 % --------------------------------------------------------------------
 function toggletool_pan_OffCallback(hObject, eventdata, handles)
@@ -2714,6 +2749,8 @@ end
 
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function handles = SetLabelPlot(handles,t0,t1,behaviori,important)
 
 % if behaviori == 0,
@@ -2806,6 +2843,7 @@ handles = SetNeedSave(handles);
 guidata(handles.figure_JLabel,handles);
 
 
+% -------------------------------------------------------------------------
 function handles = SetLabelsPlot(handles,t0,t1,behavioris)
 
 
@@ -2866,6 +2904,7 @@ handles = SetNeedSave(handles);
 guidata(handles.figure_JLabel,handles);
 
 
+% -------------------------------------------------------------------------
 function handles = SetPredictedPlot(handles,t0,t1,behavioris)
 
 if nargin < 2,
@@ -2899,6 +2938,8 @@ end
 
 guidata(handles.figure_JLabel,handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in togglebutton_label_unknown.
 function togglebutton_label_unknown_Callback(hObject, eventdata, handles)
 % hObject    handle to togglebutton_label_unknown (see GCBO)
@@ -3004,6 +3045,8 @@ end
 
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function edit_framenumber_Callback(hObject, eventdata, handles)
 % hObject    handle to edit_framenumber (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -3026,6 +3069,8 @@ else
   guidata(hObject,handles);
 end
 
+
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function edit_framenumber_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to edit_framenumber (see GCBO)
@@ -3060,6 +3105,7 @@ end
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on mouse press over axes background.
 function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to axes_preview (see GCBO)
@@ -3115,6 +3161,7 @@ end
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 function fly_ButtonDownFcn(hObject, eventdata, handles, fly, i)
 
 % TODO: figure out how to do this when multiple flies define a behavior
@@ -3185,6 +3232,7 @@ end
 SetCurrentFlies(handles,fly);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on mouse press over axes background.
 function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to axes_timeline_manual (see GCBO)
@@ -3201,6 +3249,7 @@ t = min(max(handles.guidata.t0_curr,round(pt(1,1))),handles.guidata.t1_curr);%nf
 SetCurrentFrame(handles,1,t,hObject);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_train.
 function pushbutton_train_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_train (see GCBO)
@@ -3216,6 +3265,8 @@ handles = UpdatePrediction(handles);
 handles = SetNeedSave(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function handles = UpdatePrediction(handles)
 
 % update prediction for currently shown timeline
@@ -3235,6 +3286,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
 
+
+% -------------------------------------------------------------------------
 function handles = UpdateErrors(handles)
 
 % update prediction for currently shown timeline
@@ -3249,6 +3302,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_predict.
 function pushbutton_predict_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_predict (see GCBO)
@@ -3258,6 +3313,8 @@ function pushbutton_predict_Callback(hObject, eventdata, handles)
 handles = UpdatePrediction(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on key press with focus on figure_JLabel or any of its controls.
 function figure_JLabel_WindowKeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -3270,37 +3327,48 @@ function figure_JLabel_WindowKeyPressFcn(hObject, eventdata, handles)
 %disp(eventdata.Character);
 %disp(eventdata.Modifier);
 
+
+% -------------------------------------------------------------------------
 function SetStatusCallback(s,h)
 
 handles = guidata(h);
 SetStatus(handles,s);
 
+
+% -------------------------------------------------------------------------
 function ClearStatusCallback(h)
 
 handles = guidata(h);
 ClearStatus(handles);
 
-function SetStatus(handles,s,isbusy)
 
+% -------------------------------------------------------------------------
+function SetStatus(handles,s,isbusy)
 if nargin < 3 || isbusy,
   color = handles.guidata.busystatuscolor;
+  set(handles.figure_JLabel,'Pointer','watch');
 else
   color = handles.guidata.idlestatuscolor;
+  set(handles.figure_JLabel,'Pointer','arrow');
 end
 set(handles.text_status,'ForegroundColor',color,'String',s);
-
-set(handles.figure_JLabel,'Pointer','watch');
-
 if strcmpi(get(handles.figure_JLabel,'Visible'),'off'),
   msgbox(s,'JAABA Status','modal');
 end
+drawnow('update');  % want immediate update
+return
 
+
+% -------------------------------------------------------------------------
 function ClearStatus(handles)
-
-set(handles.text_status,'ForegroundColor',handles.guidata.idlestatuscolor,'String',handles.guidata.status_bar_text);
+set(handles.text_status, ...
+    'ForegroundColor',handles.guidata.idlestatuscolor, ...
+    'String',handles.guidata.status_bar_text_when_clear);
 set(handles.figure_JLabel,'Pointer','arrow');
 h = findall(0,'Type','figure','Name','JAABA Status');
 if ~isempty(h), delete(h(ishandle(h))); end
+drawnow('update');  % want immediate update
+return 
 
 
 % --------------------------------------------------------------------
@@ -3404,6 +3472,7 @@ function menu_file_load_top_Callback(hObject, eventdata, handles)
 % guidata(hObject,handles);
 %}
 
+
 % --------------------------------------------------------------------
 function menu_view_zoom_in_on_fly_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_zoom_in_on_fly (see GCBO)
@@ -3416,6 +3485,8 @@ set(hObject,'Checked','on');
 ZoomInOnFlies(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function ZoomInOnFlies(handles,is)
 
 % WARNING: this function accesses handles.guidata.data.trx directly -- this requires
@@ -3474,6 +3545,8 @@ for i = is,
   end
 end
 
+
+% -------------------------------------------------------------------------
 function KeepFliesInView(handles,is)
 
 % WARNING: this function accesses handles.guidata.data.trx directly -- this requires
@@ -3518,6 +3591,8 @@ for i = is,
   end
 end
 
+
+% -------------------------------------------------------------------------
 function ShowWholeVideo(handles,is)
 
 if nargin < 2,
@@ -3530,6 +3605,7 @@ for i = is,
   set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);  
 end
 
+
 % --------------------------------------------------------------------
 function menu_file_save_labels_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save_labels (see GCBO)
@@ -3538,6 +3614,7 @@ function menu_file_save_labels_Callback(hObject, eventdata, handles)
 
 handles.guidata.data.SaveLabels();
 handles.guidata.data.SaveGTLabels();
+
 
 % --------------------------------------------------------------------
 function menu_edit_clear_all_labels_Callback(hObject, eventdata, handles)
@@ -3560,6 +3637,8 @@ if strcmpi(res,'Yes'),
   UpdatePlots(handles);
 end
 
+
+% -------------------------------------------------------------------------
 function RecursiveSetKeyPressFcn(hfig)
 
 hchil = findall(hfig,'-property','KeyPressFcn');
@@ -3571,6 +3650,8 @@ for i = 1:numel(hchil),
 end
 set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
 
+
+% -------------------------------------------------------------------------
 % --- Executes on key release with focus on figure_JLabel and none of its controls.
 function figure_JLabel_KeyReleaseFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -3584,6 +3665,8 @@ switch eventdata.Key,
     pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
 end
 
+
+% -------------------------------------------------------------------------
 % --- Executes on key press with focus on figure_JLabel and none of its controls.
 function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -3701,6 +3784,7 @@ t = min(max(1,handles.guidata.ts(axesi)+1),handles.guidata.t1_curr);%handles.gui
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 
+
 % --------------------------------------------------------------------
 function menu_go_previous_frame_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_go_previous_frame (see GCBO)
@@ -3756,6 +3840,7 @@ t = handles.guidata.NJObj.Manual_bout_start(handles.guidata.data,handles.guidata
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
+
 
 % --------------------------------------------------------------------
 function menu_go_previous_bout_end_Callback(hObject, eventdata, handles)
@@ -3855,6 +3940,7 @@ end
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes when figure_JLabel is resized.
 function figure_JLabel_ResizeFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -3933,6 +4019,8 @@ new_learn_pos = [figpos(3) - learn_pos(3) - handles.guidata.guipos.rightborder_r
 set(handles.panel_learn,'Position',...
   new_learn_pos);
 
+
+% -------------------------------------------------------------------------
 function handles = GetGUIPositions(handles)
 
 % all axes panels
@@ -4068,6 +4156,8 @@ handles.guidata.guipos.preview_play_bottom_border = play_pos(2);
 handles.guidata.guipos.preview_edit_left_border = edit_pos(1) - play_pos(1) - play_pos(3);
 handles.guidata.guipos.preview_edit_bottom_border = edit_pos(2);
 
+
+% -------------------------------------------------------------------------
 % --- Executes when panel_timelines is resized.
 function panel_timelines_ResizeFcn(hObject, eventdata, handles)
 % hObject    handle to panel_timelines (see GCBO)
@@ -4164,6 +4254,8 @@ set(handles.text_scores,'Position',scores_pos);
 % set(handles.timeline_label_automatic,'Position',new_text_auto_pos);
 %}
 
+
+% -------------------------------------------------------------------------
 % --- Executes when panel_axes1 is resized.
 function panel_axes1_ResizeFcn(hObject, eventdata, handles)
 % hObject    handle to panel_axes1 (see GCBO)
@@ -4280,7 +4372,8 @@ UpdatePlots(handles,...
      'refresh_timeline_selection',false,...
      'refresh_curr_prop',false);
 
-
+   
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_add_timeline.
 function pushbutton_add_timeline_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_add_timeline (see GCBO)
@@ -4289,6 +4382,8 @@ function pushbutton_add_timeline_Callback(hObject, eventdata, handles)
 
 AddPropAxes(handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on selection change in timeline_label_prop1.
 function timeline_label_prop1_Callback(hObject, eventdata, handles)
 % hObject    handle to timeline_label_prop1 (see GCBO)
@@ -4303,8 +4398,7 @@ s = handles.guidata.timeline_prop_options{v};
 if strcmpi(s,handles.guidata.timeline_prop_remove_string),
   RemovePropAxes(handles,propi);
 elseif strcmpi(s,handles.guidata.timeline_prop_help_string),
-  
-  
+  % do nothing
 else
   prop = find(strcmpi(s,handles.guidata.data.allperframefns),1);
   handles.guidata.perframepropis(propi) = prop;
@@ -4328,6 +4422,8 @@ else
   guidata(hObject,handles);
 end
 
+
+% -------------------------------------------------------------------------
 function i = GetTimelinePropNumber(hObject,handles)
 
 t = get(hObject,'Type');
@@ -4353,6 +4449,8 @@ if isempty(i),
   i = 1;
 end
 
+
+% -------------------------------------------------------------------------
 function handles = RemovePropAxes(handles,propi)
 
 % which axes
@@ -4410,6 +4508,7 @@ handles.guidata.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_t
 guidata(handles.figure_JLabel,handles);
 
 
+% -------------------------------------------------------------------------
 function handles = AddPropAxes(handles,prop)
 
 % choose a property
@@ -4512,10 +4611,8 @@ htext = uicontrol(handles.panel_timelines,...
 handles.guidata.text_timeline_props = [htext;handles.guidata.text_timeline_props];
 handles.guidata.text_timelines = [htext,handles.guidata.text_timelines];
 
-
 % hide the xtick labels
 set(handles.guidata.axes_timelines(2),'XTickLabel',{});
-
 
 guidata(handles.figure_JLabel,handles);
 
@@ -4549,6 +4646,7 @@ UpdatePlots(handles,...
   'refresh_curr_prop',true);
 
 
+% -------------------------------------------------------------------------
 function PostZoomCallback(hObject,eventdata,handles)
 
 timelinei = find(eventdata.Axes == handles.guidata.axes_timelines,1);
@@ -4595,6 +4693,7 @@ elseif ~isempty(previewi),
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on mouse press over figure background, over a disabled or
 % --- inactive control, or over an axes background.
 function figure_JLabel_WindowButtonDownFcn(hObject, eventdata, handles)
@@ -4636,6 +4735,7 @@ if ismember(hchil,handles.guidata.axes_timelines),
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on mouse motion over figure - except title and menu.
 function figure_JLabel_WindowButtonMotionFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabel (see GCBO)
@@ -4665,7 +4765,7 @@ if ~isnan(handles.guidata.selection_t0),
 end
   
 
-
+% -------------------------------------------------------------------------
 % --- Executes on mouse press over figure background, over a disabled or
 % --- inactive control, or over an axes background.
 function figure_JLabel_WindowButtonUpFcn(hObject, eventdata, handles)
@@ -4705,6 +4805,8 @@ handles.guidata.selection_t0 = nan;
 handles.guidata.selection_t1 = nan;
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function UpdateSelection(handles)
 
 tmp = handles.guidata.selected_ts + .5*[-1,1];
@@ -4716,6 +4818,8 @@ else
   set(buttons,'Enable','on');
 end
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in togglebutton_select.
 function togglebutton_select_Callback(hObject, eventdata, handles)
 % hObject    handle to togglebutton_select (see GCBO)
@@ -4737,6 +4841,8 @@ else
 end
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_clearselection.
 function pushbutton_clearselection_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_clearselection (see GCBO)
@@ -4755,6 +4861,7 @@ guidata(hObject,handles);
 UpdateSelection(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_playstop.
 function pushbutton_playstop_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_playstop (see GCBO)
@@ -4772,6 +4879,8 @@ else
   play(hObject,handles);
 end
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_playselection.
 function pushbutton_playselection_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_playselection (see GCBO)
@@ -4787,6 +4896,8 @@ else
   play(hObject,handles,handles.guidata.selected_ts(1),handles.guidata.selected_ts(2),true);
 end
 
+
+% -------------------------------------------------------------------------
 function predictTimerCallback(obj,event,hObject,framesPerTick)
   handles = guidata(hObject);
   if handles.guidata.data.IsGTMode(),
@@ -4799,6 +4910,8 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
   PLAY_TIMER_DONE = true;
   
+  
+% -------------------------------------------------------------------------
 function handles = play(hObject,handles,t0,t1,doloop)
 
 clear global PLAY_TIME_DONE CALC_FEATURES
@@ -4944,6 +5057,8 @@ end  % test framerate
 
 stopPlaying(handles);
 
+
+% -------------------------------------------------------------------------
 function handles = stopPlaying(handles)
 
 clear global PLAY_TIMER_DONE;
@@ -4998,6 +5113,8 @@ function contextmenu_timeline_manual_go_previous_bout_end_Callback(hObject, even
 
 menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
 
+
+% -------------------------------------------------------------------------
 function [t0,t1,labelidx,label] = GetBoutProperties(handles,t,labeltype)
 
 if nargin < 3,
@@ -5044,6 +5161,7 @@ if nargout >= 4,
   end
 end
 
+
 % --------------------------------------------------------------------
 function contextmenu_timeline_manual_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_manual (see GCBO)
@@ -5080,6 +5198,7 @@ end
 
 guidata(hObject,handles);
 
+
 % --------------------------------------------------------------------
 function contextmenu_timeline_manual_bookmark_bout_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_manual_bookmark_bout (see GCBO)
@@ -5090,6 +5209,7 @@ clip = handles.bookmark_info;
 clip.t0 = max(handles.guidata.t0_curr,clip.t0-1);
 clip.t1 = min(clip.t1+1,handles.guidata.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
+
 
 % --------------------------------------------------------------------
 function contextmenu_timeline_manual_bookmark_selection_Callback(hObject, eventdata, handles)
@@ -5117,6 +5237,8 @@ guidata(hObject,handles);
 
 AddBookmark(handles,handles.bookmark_info);
 
+
+% -------------------------------------------------------------------------
 function handles = AddBookmark(handles,clip)
 
 fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
@@ -5164,6 +5286,7 @@ function contextmenu_timeline_manual_timeline_options_Callback(hObject, eventdat
 menu_view_timeline_options_Callback(hObject, eventdata, handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in similarFramesButton.
 function similarFramesButton_Callback(hObject, eventdata, handles)
 % hObject    handle to similarFramesButton (see GCBO)
@@ -5176,6 +5299,8 @@ handles = UpdatePrediction(handles);
 curTime = handles.guidata.ts(1);
 handles.guidata.data.SimilarFrames(curTime, handles);
 
+
+% -------------------------------------------------------------------------
 function s = GetTargetInfo(handles,fly)
 
   s = {};
@@ -5221,6 +5346,7 @@ if isempty(t),  return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
 
+
 % --------------------------------------------------------------------
 function menu_go_previous_automatic_bout_end_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_go_previous_automatic_bout_end (see GCBO)
@@ -5256,6 +5382,7 @@ set(hObject,'Checked','on');
 KeepFliesInView(handles);
 guidata(hObject,handles);
 
+
 % --------------------------------------------------------------------
 function menu_view_zoom_static_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_zoom_static (see GCBO)
@@ -5276,6 +5403,7 @@ function contextmenu_timeline_automatic_go_next_bout_start_Callback(hObject, eve
 
 menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
 
+
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_go_previous_bout_end_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_automatic_go_previous_bout_end (see GCBO)
@@ -5283,6 +5411,7 @@ function contextmenu_timeline_automatic_go_previous_bout_end_Callback(hObject, e
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
+
 
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_bookmark_bout_Callback(hObject, eventdata, handles)
@@ -5294,6 +5423,7 @@ clip = handles.bookmark_info;
 clip.t0 = max(handles.guidata.t0_curr,clip.t0-1);
 clip.t1 = min(clip.t1+1,handles.guidata.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
+
 
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_bookmark_selection_Callback(hObject, eventdata, handles)
@@ -5321,6 +5451,7 @@ guidata(hObject,handles);
 
 AddBookmark(handles,handles.bookmark_info);
 
+
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_timeline_options_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_automatic_timeline_options (see GCBO)
@@ -5328,6 +5459,7 @@ function contextmenu_timeline_automatic_timeline_options_Callback(hObject, event
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_view_timeline_options_Callback(hObject, eventdata, handles);
+
 
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_Callback(hObject, eventdata, handles)
@@ -5403,6 +5535,7 @@ UpdatePlots(handles,...
 
 guidata(hObject,handles);
 
+
 % --------------------------------------------------------------------
 function contextmenu_timeline_automatic_accept_bout_Callback(hObject, eventdata, handles)
 % hObject    handle to contextmenu_timeline_automatic_accept_bout (see GCBO)
@@ -5430,6 +5563,7 @@ set(handles.timeline_label_manual,'Value',1);
 UpdatePlotLabels(handles);
 guidata(hObject,handles);
 
+
 % --------------------------------------------------------------------
 function menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_plot_labels_automatic (see GCBO)
@@ -5443,6 +5577,7 @@ set(handles.timeline_label_automatic,'Value',1);
 UpdatePlotLabels(handles);
 guidata(hObject,handles);
 
+% --------------------------------------------------------------------
 function UpdatePlotLabels(handles)
 
 if handles.guidata.plot_labels_manual,
@@ -5517,6 +5652,7 @@ function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
 
 CompressionPreferences(handles.figure_JLabel);
 
+
 % --------------------------------------------------------------------
 function menu_classifier_confThresholds_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_confThresholds (see GCBO)
@@ -5539,7 +5675,7 @@ function menu_classifier_classifyall_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-
+% -------------------------------------------------------------------------
 % --- Executes on button press in bagButton.
 function bagButton_Callback(hObject, eventdata, handles)
 % hObject    handle to bagButton (see GCBO)
@@ -5580,6 +5716,7 @@ end
 guidata(hObject,handles);
 
   
+% -------------------------------------------------------------------------
 % --- Executes when selected object is changed in panel_timeline_select.
 function panel_timeline_select_SelectionChangeFcn(hObject, eventdata, handles)
 % hObject    handle to the selected object in panel_timeline_select 
@@ -5683,6 +5820,7 @@ if numel(crossError)>1
   handles.guidata.open_peripherals(end+1) = f;          
 end
 
+
 % --------------------------------------------------------------------
 function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_classifyCurrentFly (see GCBO)
@@ -5760,6 +5898,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+
 
 % --------------------------------------------------------------------
 function menu_file_loadscorescurrentexprootdir_Callback(hObject, eventdata, handles)
@@ -5931,6 +6070,7 @@ function menu_classifier_setclassifierparameters_Callback(hObject, eventdata, ha
 cohandles = ClassifierOptions(handles.guidata.data);
 handles.guidata.open_peripherals(end+1) = cohandles;
 
+
 % --------------------------------------------------------------------
 function menu_go_switch_target_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_go_switch_target (see GCBO)
@@ -5983,7 +6123,6 @@ function menu_classifier_classifyCurrentMovie_Callback(hObject, eventdata, handl
 % handles    structure with handles and user data (see GUIDATA)
 
 
-
 % --- Executes on selection change in automaticTimelineBottomRowPopup.
 function automaticTimelineBottomRowPopup_Callback(hObject, eventdata, handles)
 % hObject    handle to automaticTimelineBottomRowPopup (see GCBO)
@@ -6004,7 +6143,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_curr_prop',false);
 
 
-
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function automaticTimelineBottomRowPopup_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to automaticTimelineBottomRowPopup (see GCBO)
@@ -6017,6 +6156,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+
+% -------------------------------------------------------------------------
 function handles = UpdateGUIGroundTruthMode(handles)
 
 % things that are invisible in groundtruth-mode
@@ -6049,6 +6190,8 @@ else
 end
 handles = UpdateGUIAdvancedMode(handles);
 
+
+% -------------------------------------------------------------------------
 function handles = UpdateGUIAdvancedMode(handles)
 
 SetGUIModeMenuChecks(handles);
@@ -6188,6 +6331,7 @@ SetButtonImage(handles.togglebutton_label_unknown);
 
 handles.guidata.GUIAdvancedMode = handles.guidata.data.IsAdvancedMode;
 
+
 % --------------------------------------------------------------------
 function menu_edit_guimode_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit_guimode (see GCBO)
@@ -6206,6 +6350,7 @@ handles.guidata.data.SetAdvancedMode(false);
 handles = UpdateGUIGroundTruthMode(handles);
 guidata(hObject,handles);
 
+
 % --------------------------------------------------------------------
 function menu_edit_guimode_advancedtraining_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit_guimode_advancedtraining (see GCBO)
@@ -6216,6 +6361,7 @@ handles.guidata.data.SetGTMode(false);
 handles.guidata.data.SetAdvancedMode(true);
 handles = UpdateGUIGroundTruthMode(handles);
 guidata(hObject,handles);
+
 
 % --------------------------------------------------------------------
 function menu_edit_guimode_groundtruthing_Callback(hObject, eventdata, handles)
@@ -6247,9 +6393,7 @@ else
   set(hObject,'Label','Show Predictions');
   set(h_prediction,'Visible','off');  
 end
-
 set(handles.menu_view_plot_labels_automatic,'Visible','on');
-
 
 
 % --------------------------------------------------------------------
@@ -6388,7 +6532,6 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
-
 
 
 % --------------------------------------------------------------------
@@ -6558,8 +6701,8 @@ for i = 1:numel(inlabelfilenames),
 end
 handles.guidata.packageoutputdir = outdir;
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function DisableGUI(handles)
 
 handles.guidata.henabled = findall(handles.figure_JLabel,'Enable','on');
@@ -6568,14 +6711,15 @@ set(handles.guidata.henabled,'Enable','off');
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function ReEnableGUI(handles)
 
 handles.guidata.enabled = true;
 set(handles.guidata.henabled,'Enable','on');
 
 return
+
 
 % --------------------------------------------------------------------
 function menu_file_save_suggestions_Callback(hObject, eventdata, handles)
@@ -6623,6 +6767,7 @@ function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, h
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.PredictSaveMovie(handles.guidata.expi);
+
 
 % --------------------------------------------------------------------
 function menu_classifier_classifyCurrentMovieSaveNew_Callback(hObject, eventdata, handles)
@@ -6678,6 +6823,7 @@ function menu_file_savescores_default_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.SaveCurScores(handles.guidata.expi);
 
+
 % --------------------------------------------------------------------
 function menu_file_savescores_new_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_savescores_new (see GCBO)
@@ -6725,6 +6871,7 @@ for ndx = 1:handles.guidata.data.nexps,
   handles.guidata.data.PredictSaveMovie(ndx);
 end
 
+
 % --------------------------------------------------------------------
 function menu_classifier_classifyall_new_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_classifyall_new (see GCBO)
@@ -6765,7 +6912,7 @@ function menu_help_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --------------------------------------------------------------------
+% -------------------------------------------------------------------------
 function menu_help_about_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_help_about (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -6774,6 +6921,7 @@ vid = fopen('version.txt','r');
 vv = textscan(vid,'%s');
 fclose(vid);
 helpdlg(sprintf('JAABA (Janelia Automated Animal Behavior Annotator) version:%s',vv{1}{1}));
+
 
 % --------------------------------------------------------------------
 function menu_help_doc_Callback(hObject, eventdata, handles)
@@ -6794,8 +6942,8 @@ else
   web('-browser','http://jaaba.sourceforge.net/');
 end
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function menu_file_import_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_import (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -6857,8 +7005,8 @@ figureJLabelEdit= ...
 
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function importDone(figureJLabel)
 
 % get the handles
@@ -6903,8 +7051,8 @@ guidata(figureJLabel, handles);
 
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function importCanceled(figureJLabel)
 
 %handles=guidata(figureJLabel);
@@ -6912,8 +7060,8 @@ function importCanceled(figureJLabel)
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function editFilesDone(figureJLabel)
 
 handles=guidata(figureJLabel);
@@ -6948,8 +7096,8 @@ guidata(figureJLabel,handles);
 
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function setProjectParams(figureJLabel,projectParams)
 
 handles=guidata(figureJLabel);
@@ -6957,8 +7105,8 @@ handles.guidata.configparams=projectParams;
 
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function menu_file_save_everything_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save_everything (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -7001,8 +7149,8 @@ ClearStatus(handles);
 
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function menu_file_open_everything_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_open_everything (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -7018,6 +7166,9 @@ if ~ischar(filename),
 end
 fileNameAbs=fullfile(pathname,filename);
 
+% Update the status, change the pointer to the watch
+SetStatus(handles,sprintf('Opening %s ...',filename));
+
 % load the file
 try
   everythingParams=load('-mat',fileNameAbs);
@@ -7026,16 +7177,26 @@ catch  %#ok
 end
 
 % load in all the bits that need loading, one at a time
+handles.guidata.status_bar_text_when_clear='';
+  % Don't want to see "No experiment loaded" when status is cleared!
 %handles.guidata.data=JLabelData(everythingParams);
 setConfigParams(gcbf,everythingParams.configParams);
+data=handles.guidata.data;  % ref
+data.setClassifierParams(everythingParams.saveableClassifier, ...
+                         'classifierlabels',true);
+  % 'classifierlabels',true means to load the labels, too.                               
+editFilesDone(gcbf);  % will this update the JLabel display appropriately?
 
 % Note that the user has specified the everything file name
 handles.guidata.data.specifyEverythingFileNameFromUser(fileNameAbs);
 
+% Done, set status message to cleared message, pointer to normal
+ClearStatus(handles);
+
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function setConfigFileName(figureJLabel,configFileName)
 % Initializes the JLabel gui once the user selects the behavior.
 % This assumes that JLabel is curently a blank slate
@@ -7052,8 +7213,8 @@ end
 setConfigParams(figureJLabel,configParams);
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function setConfigParams(figureJLabel,configParams)
 % Initializes the JLabel gui once the user selects the behavior.
 % This assumes that JLabel is curently a blank slate
@@ -7067,8 +7228,8 @@ InitializePlots(handles);
 %handles = JLabel('InitializePlots',handles);
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 % function setLabelingMode(figureJLabel,modeString)
 % handles=guidata(figureJLabel);
 % data=handles.guidata.data;  % a ref, or empty
@@ -7094,8 +7255,8 @@ return
 % 
 % return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function data=getJLabelData(figureJLabel)
 
 handles=guidata(figureJLabel);
@@ -7103,14 +7264,15 @@ data=handles.guidata.data;
 
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function configfilename=getConfigFileName(figureJLabel)
 
 handles=guidata(figureJLabel);
 configfilename=handles.guidata.configfilename;
 
 return
+
 
 % -------------------------------------------------------------------------
 
