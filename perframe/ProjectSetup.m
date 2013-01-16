@@ -732,8 +732,6 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.outfile = 0;
 guidata(hObject,handles);
-JLabelEditFiles('projectSetupCancelled', ...
-                handles.figureJLabelEditFiles);
 delete(gcbf);              
 %uiresume(handles.figureProjectSetup);
 return
