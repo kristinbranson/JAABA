@@ -839,11 +839,15 @@ function pushbutton_edit_project_Callback(hObject, eventdata, handles)
 if isfield(handles,'configfilename') && ~isempty(handles.configfilename)
   [~,~,ext] = fileparts(handles.configfilename);
   if strcmp(ext,'.xml')
-    [~,configfilename] = ProjectSetup('xml_file',handles.configfilename, ...
-                                      'figureJLabel',handles.figureJLabel);    
+    ProjectSetup('new',false, ...
+                 'xml_file',handles.configfilename, ...
+                 'figureJLabel',handles.figureJLabel, ...
+                 'figureJLabelEditFiles',handles.figureJLabelEditFiles);    
   elseif strcmp(ext,'.mat')
-    [~,configfilename] = ProjectSetup('mat_file',handles.configfilename, ...
-                                      'figureJLabel',handles.figureJLabel);
+    ProjectSetup('new',false, ...
+                 'mat_file',handles.configfilename, ...
+                 'figureJLabel',handles.figureJLabel, ...
+                 'figureJLabelEditFiles',handles.figureJLabelEditFiles);    
   else
     uiwait(warndlg('Project file has to be either xml or mat file'));
     return;
@@ -856,6 +860,8 @@ if ischar(configfilename)
   guidata(hObject,handles);
 end
 
+return
+
 
 %--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_newproject.
@@ -863,14 +869,26 @@ function pushbutton_newproject_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_newproject (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+ProjectSetup('new',true, ...
+             'figureJLabel',handles.figureJLabel, ...
+             'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
+return
 
-[~,configfilename] = ...
-  ProjectSetup('figureJLabel',handles.figureJLabel); 
+
+%--------------------------------------------------------------------------
+function projectSetupDone(figureJLabelEditFiles,configfilename)
 if ~ischar(configfilename), return; end;
-
-
+handles=guidata(figureJLabelEditFiles);
 handles.configfilename = configfilename;
 set(handles.text_projectfile,'String',configfilename);
-guidata(hObject,handles);
+guidata(figureJLabelEditFiles,handles);
+return
+
+
+%--------------------------------------------------------------------------
+
+function projectSetupCancelled(figureJLabelEditFiles)
+return
+
 
 %--------------------------------------------------------------------------
