@@ -1465,7 +1465,8 @@ DisableGUI(handles);
 %[handles,success] = ...
 %  JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
 
-JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles);
+%JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles);
+JLabelEditFiles('disableBehavior',true,'figureJLabel',handles.figure_JLabel);
 
 %ReEnableGUI(handles);
 
@@ -6801,8 +6802,7 @@ function menu_file_import_Callback(hObject, eventdata, handles)
 %  JLabelEditFiles('JLabelHandle',handles,...
 %                  'JLabelSplashHandle',handles.guidata.hsplash);
 figureJLabelEdit= ...
-  JLabelEditFiles('JLabelHandle',handles,...
-                  'JLabelSplashHandle',handles.guidata.hsplash);
+  JLabelEditFiles('figureJLabel',handles.figure_JLabel);
 
 % % If user hits 'Cancel' just return                
 % if ~success,
@@ -6851,14 +6851,17 @@ return
 
 % -------------------------------------------------------------------------
 
-function importDone(handles)
+function importDone(figureJLabel)
+
+% get the handles
+handles=guidata(figureJLabel);
 
 % Switch to the watch, this could take a while
-set(handles.figure_JLabel,'pointer','watch');
+set(figureJLabel,'pointer','watch');
 
 % I don't know what this does --ALT, Jan 8 2013
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
 % read configuration
 [handles,success] = LoadConfig(handles);
@@ -6879,35 +6882,38 @@ end
 handles = UpdateGUIGroundTruthMode(handles);
 
 % keypress callback for all non-edit text objects
-RecursiveSetKeyPressFcn(handles.figure_JLabel);
+RecursiveSetKeyPressFcn(figureJLabel);
 
 % enable gui
 EnableGUI(handles);
 
 % OK, almost done
-set(handles.figure_JLabel,'pointer','arrow');
+set(figureJLabel,'pointer','arrow');
 
 % Update handles structure
-guidata(handles.figure_JLabel, handles);
+guidata(figureJLabel, handles);
 
 return
 
 % -------------------------------------------------------------------------
 
-function importCanceled(handles)
+function importCanceled(figureJLabel)
 
-guidata(handles.figure_JLabel,handles);
+%handles=guidata(figureJLabel);
+%guidata(figureJLabel,handles);
 
 return
 
 %--------------------------------------------------------------------------
 
-function editFilesDone(handles)
+function editFilesDone(figureJLabel)
+
+handles=guidata(figureJLabel);
 
 ReEnableGUI(handles);
 
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
@@ -6930,7 +6936,7 @@ handles.guidata.oldexpdir='';
 
 handles = UpdateGUIGroundTruthMode(handles);
 
-guidata(handles.figure_JLabel,handles);
+guidata(figureJLabel,handles);
 
 return
 
@@ -7049,3 +7055,22 @@ return
 % return
 
 % -------------------------------------------------------------------------
+
+function data=getJLabelData(figureJLabel)
+
+handles=guidata(figureJLabel);
+data=handles.guidata.data;
+
+return
+
+% -------------------------------------------------------------------------
+
+function configfilename=getConfigFileName(figureJLabel)
+
+handles=guidata(figureJLabel);
+configfilename=handles.guidata.configfilename;
+
+return
+
+% -------------------------------------------------------------------------
+

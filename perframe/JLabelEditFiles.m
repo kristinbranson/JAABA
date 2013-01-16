@@ -58,12 +58,10 @@ handles.success = false;
 
 %
 [ disableBehavior, ...
-  JLabelHandle,...
-  handles.JLabelSplashHandle] = ...
+  figureJLabel] = ...
   myparse(varargin,...
-  'disableBehavior',false,...
-  'JLabelHandle',[],...
-  'JLabelSplashHandle',[]);
+          'disableBehavior',false,...
+          'figureJLabel',[]);
 
 set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing','Ground Truthing Advanced'});
 handles.disableBehavior = disableBehavior;
@@ -72,8 +70,9 @@ if disableBehavior,
 
   handles.success = true;
   % Simply edit files, not editing the behavior part
-  handles.JLabelHandle = JLabelHandle;
-  handles.data = JLabelHandle.guidata.data;
+  handles.figureJLabel = figureJLabel;
+  %handles.data = JLabelHandle.guidata.data;
+  handles.data = JLabel('getJLabelData',figureJLabel);
   if ~isempty(handles.data) && handles.data.IsGTMode()
     if handles.data.IsAdvancedMode()
       set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
@@ -86,7 +85,9 @@ if disableBehavior,
     set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Normal')));
   end
   
-  set(handles.text_projectfile,'String',handles.JLabelHandle.guidata.configfilename);
+  % configfilename=handles.JLabelHandle.guidata.configfilename
+  configfilename=JLabel('getConfigFileName',figureJLabel);
+  set(handles.text_projectfile,'String',configfilename);
   DisableBehaviorGui(handles);
   %InitExperimentsGui(hObject,handles,JLabelHandle.guidata.data);
   InitExperimentsGui(hObject,handles);
@@ -106,7 +107,7 @@ else
   if exist(handles.configfilename,'file') && ~exist(handles.configfilename,'dir'),
     set(handles.text_projectfile,'String',handles.configfilename);
   end
-  handles.JLabelHandle = JLabelHandle;
+  handles.figureJLabel = figureJLabel;
   handles.needJLabelInit = true;
   guidata(hObject,handles);
 end
@@ -118,9 +119,9 @@ for ndx = 1:numel(buttons)
   SetButtonImage(buttons(ndx));
 end
 
-if ~isempty(handles.JLabelSplashHandle) && ishandle(handles.JLabelSplashHandle),
-  delete(handles.JLabelSplashHandle);
-end
+%if ~isempty(handles.JLabelSplashHandle) && ishandle(handles.JLabelSplashHandle),
+%  delete(handles.JLabelSplashHandle);
+%end
 
 % for debugging, make this window non-modal
 %set(hObject,'windowstyle','normal');
@@ -183,22 +184,21 @@ handles.success = true;
 
 % Notify JLabel of the configfilename, have it initialize itself
 % accordingly
-figureJLabel=handles.JLabelHandle.figure_JLabel;
+figureJLabel=handles.figureJLabel;
 JLabel('setConfigFileName', ...
        figureJLabel, ...
        handles.configfilename);
      
 % Update our pointer to the JLabelData, which has now changed
-handlesOfJLabel=guidata(figureJLabel);
-handles.data = handlesOfJLabel.guidata.data;
+handles.data = JLabel('getJLabelData',figureJLabel);
 
 % Notify JLabelData of the labeling mode selected in our figure,
 % and disable that selector
 SetLabelingMode(handles);
 
 % Update our guidata
-handles.JLabelHandle = guidata(figureJLabel);
-guidata(handles.figure_JLabelEditFiles,handles);
+%handles.JLabelHandle = guidata(figureJLabel);
+%guidata(handles.figure_JLabelEditFiles,handles);
 %guidata(handlesOfJLabel.figure_JLabel,handlesOfJLabel);
 
 % Modify self as appropraite for the new project configuration
@@ -511,11 +511,11 @@ guidata(hObject,handles);
 if handles.disableBehavior
   % Means JLabelEditFiles was invoked via File > Edit files... in JLabel
   % figure
-  JLabel('editFilesDone',handles.JLabelHandle);
+  JLabel('editFilesDone',handles.figureJLabel);
 else
   % Means JLabelEditFiles was invoked via File > Import... in JLabel
   % figure
-  JLabel('importDone',handles.JLabelHandle);
+  JLabel('importDone',handles.figureJLabel);
 end
 delete(gcbf);
 return
@@ -622,11 +622,11 @@ function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
 if handles.disableBehavior
   % Means JLabelEditFiles was invoked via File > Edit files... in JLabel
   % figure
-  JLabel('editFilesDone',handles.JLabelHandle);
+  JLabel('editFilesDone',handles.figureJLabel);
 else
   % Means JLabelEditFiles was invoked via File > Import... in JLabel
   % figure
-  JLabel('importCanceled',handles.JLabelHandle);
+  JLabel('importCanceled',handles.figureJLabel);
 end
 delete(gcbf);
 return
@@ -829,10 +829,10 @@ if isfield(handles,'configfilename') && ~isempty(handles.configfilename)
   [~,~,ext] = fileparts(handles.configfilename);
   if strcmp(ext,'.xml')
     [~,configfilename] = ProjectSetup('xml_file',handles.configfilename, ...
-                                      'figureJLabel',handles.JLabelHandle.figure_JLabel);    
+                                      'figureJLabel',handles.figureJLabel);    
   elseif strcmp(ext,'.mat')
     [~,configfilename] = ProjectSetup('mat_file',handles.configfilename, ...
-                                      'figureJLabel',handles.JLabelHandle.figure_JLabel);
+                                      'figureJLabel',handles.figureJLabel);
   else
     uiwait(warndlg('Project file has to be either xml or mat file'));
     return;
@@ -853,7 +853,7 @@ function pushbutton_newproject_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 [~,configfilename] = ...
-  ProjectSetup('figureJLabel',handles.JLabelHandle.figure_JLabel); 
+  ProjectSetup('figureJLabel',handles.figureJLabel); 
 if ~ischar(configfilename), return; end;
 
 
