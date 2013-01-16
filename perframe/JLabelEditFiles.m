@@ -810,9 +810,8 @@ function pushbutton_selectproject_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))
-  Q = load('.JLabelrc.mat','configfilename');
-  defpath = Q.configfilename;
+if ~isempty(handles.configfilename)
+  defpath = handles.configfilename;
 else
   defpath = pwd;
 end
@@ -822,10 +821,6 @@ if fpath == 0,
 end
 
 configfilename = fullfile(dpath,fpath);
-
-if exist('.JLabelrc.mat','file')
-  save('.JLabelrc.mat','configfilename','-append');
-end
 
 set(handles.text_projectfile,'String',configfilename);
 handles.configfilename = configfilename;
