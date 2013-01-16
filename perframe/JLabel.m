@@ -7012,12 +7012,23 @@ handles=guidata(figureJLabel);
 handles.guidata.configfilename = configFileName;
 [~,~,ext] = fileparts(configFileName);
 if strcmp(ext,'.xml')
-  handles.guidata.configparams = ReadXMLConfigParams(configFileName);
+  configParams = ReadXMLConfigParams(configFileName);
 elseif strcmp(ext,'.mat')
-  handles.guidata.configparams = load(configFileName);
+  configParams = load(configFileName);
 else
   errordlg('Project file is not valid');
 end
+setConfigParams(figureJLabel,configParams);
+
+return
+
+% -------------------------------------------------------------------------
+
+function setConfigParams(figureJLabel,configParams)
+% Initializes the JLabel gui once the user selects the behavior.
+% This assumes that JLabel is curently a blank slate
+handles=guidata(figureJLabel);
+handles.guidata.configparams=configParams;
 GetGUIPositions(handles);
 InitializeState(handles);
 InitializePlots(handles);
