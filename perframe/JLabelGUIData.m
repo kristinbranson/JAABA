@@ -61,7 +61,7 @@ classdef JLabelGUIData < handle
 
     bottomAutomatic = 'None';
 
-    needsave = false;
+    needsave = false;  % true iff there are unsaved changes
     
     data = [];
 
@@ -96,7 +96,10 @@ classdef JLabelGUIData < handle
 
     togglebutton_label_behaviors = [];
     
-    GUIAdvancedMode = false;
+    GUIGroundTruthMode = false;  % true iff the GUI is in ground truth mode, as
+                                 % opposed to labeling mode
+    GUIAdvancedMode = false;  % true iff the GUI is in advanced mode, as
+                              % opposed to basic mode
 
     timeline_prop_remove_string = '<html><body><i>Remove</i></body></html>';
     timeline_prop_help_string = '<html><body><i>Help</i></body></html>';
