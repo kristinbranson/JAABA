@@ -51,16 +51,17 @@ classifierparams = [];
 for i = 1:nbehaviors,
   [~,~,ext] = fileparts(configfiles{i});
   if strcmpi(ext,'.xml'),
-    params = ReadXMLParams(configfiles{i});
+    params = ReadXMLConfigParams(configfiles{i});
   else
     params = load(configfiles{i});
   end
-  if ~isfield(params.file,'scorefilename'),
-    if ~iscell(params.behaviors.names),
-      params.behaviors.names = {params.behaviors.names};
-    end
-    params.file.scorefilename = ['scores',sprintf('_%s',params.behaviors.names{:}),'.mat'];
-  end
+  % obsolete: this was moved to ReadXMLConfigParams
+%   if ~isfield(params.file,'scorefilename'),
+%     if ~iscell(params.behaviors.names),
+%       params.behaviors.names = {params.behaviors.names};
+%     end
+%     params.file.scorefilename = ['scores',sprintf('_%s',params.behaviors.names{:}),'.mat'];
+%   end
   if isrelativepath,
     for j = 1:numel(fnsrelative),
       fn = fnsrelative{j};

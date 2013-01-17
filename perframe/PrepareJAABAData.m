@@ -1043,6 +1043,9 @@ else
   if row > 1 && InputDataType.files(i).isdir,
     [inputparentdir,inputname] = fileparts(inputfile);
     inputfile = uigetdir2(inputparentdir,sprintf('Choose input %s',lower(name)),inputname);
+    if iscell(inputfile),
+      inputfile = inputfile{1};
+    end
     if ~ischar(inputfile),
       return;
     end
