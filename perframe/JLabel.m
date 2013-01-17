@@ -134,7 +134,7 @@ guidata(hObject,handles);
 
 % Update the enablement of controls
 handles=guidata(hObject);
-EnableGUI(handles);
+UpdateEnablementOfGUI(handles);
 
 % load the RC file (is the time and place?)
 handles = LoadRC(handles);
@@ -502,7 +502,7 @@ if strcmp(varargin{1},'CLEAR'),
     Mimage = struct('Data',[]);
     movie_filename = '';
   catch ME,
-    warning('Error when trying to clear UpdatePlots data: %s',getReport(ME));
+    warning('Error when trying to clear UpdatePlots data: %s',getReport(ME));  %#ok
   end
   return;
 end
@@ -533,7 +533,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
       break;
     end
     new_cache_filename = fullfile(tempdir(),['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat']);
-    warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename);
+    warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename);  %#ok
     cache_filename = new_cache_filename;
     fid=fopen(cache_filename,'w');
   end
@@ -705,8 +705,9 @@ for i = axes,
 
       % add to the queue frames subsequent to current frame
       tmp=handles.guidata.nframes_jump_go;
-      j=setdiff([handles.guidata.ts(i)+[1:tmp -1 -tmp]],Mframenum.Data);
-      j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));
+      j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
+                Mframenum.Data);
+      j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));  %#ok
       [y,idx]=sort(Mlastused.Data);
       idx=idx(1:min([length(j) -1+find(isnan(y),1,'first')]));
       if(~isempty(idx))
@@ -898,17 +899,17 @@ if handles.guidata.data.ismovie,
   % open menu_file_import movie
   % try
   SetStatus(handles,'Opening movie...');
-  if 1,
-    [handles.guidata.readframe,handles.guidata.nframes,handles.guidata.movie_fid,handles.guidata.movieheaderinfo] = ...
-      get_readframe_fcn(moviefilename);
-  else
-    fprintf('DEBUG!!!! USING GLOBAL VARIABLE WITH MOVIE READFRAME !!!DEBUG\n');
-    global JLABEL__READFRAME;
-    handles.guidata.readframe = JLABEL__READFRAME.readframe;
-    handles.guidata.nframes = JLABEL__READFRAME.nframes;
-    handles.guidata.movie_fid = JLABEL__READFRAME.movie_fid;
-    handles.guidata.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
-  end
+  %if 1,
+  [handles.guidata.readframe,handles.guidata.nframes,handles.guidata.movie_fid,handles.guidata.movieheaderinfo] = ...
+    get_readframe_fcn(moviefilename);
+  %else
+  %  fprintf('DEBUG!!!! USING GLOBAL VARIABLE WITH MOVIE READFRAME !!!DEBUG\n');
+  %  global JLABEL__READFRAME;
+  %  handles.guidata.readframe = JLABEL__READFRAME.readframe;
+  %  handles.guidata.nframes = JLABEL__READFRAME.nframes;
+  %  handles.guidata.movie_fid = JLABEL__READFRAME.movie_fid;
+  %  handles.guidata.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
+  %end
   im = handles.guidata.readframe(1);
   handles.guidata.movie_depth = size(im,3);
   handles.guidata.movie_width = size(im,2);
@@ -1036,7 +1037,7 @@ for h = handles.guidata.axes_timeline_labels,
 end
 
 % enable GUI components
-EnableGUI(handles);
+UpdateEnablementOfGUI(handles);
 
 success = true;
 
@@ -1072,7 +1073,7 @@ end
 
 
 % enable GUI components
-EnableGUI(handles);
+UpdateEnablementOfGUI(handles);
 
 
 % -------------------------------------------------------------------------
@@ -1080,7 +1081,7 @@ function i = GetPreviewPanelNumber(hObject)
 
 i = regexp(get(get(hObject,'Parent'),'Tag'),'^panel_axes(\d+)$','tokens','once');
 if isempty(i),
-  warning('Could not find index of parent panel');
+  warning('Could not find index of parent panel');  %#ok
   i = 1;
 else
   i = str2double(i{1});
@@ -1945,20 +1946,25 @@ return
 %--------------------------------------------------------------------------
 function SetGUIModeMenuChecks(handles)
 
-if handles.guidata.data.IsGTMode(),
-  return;
+% basic vs advanced mode
+if handles.guidata.GUIAdvancedMode,
+  set(handles.menu_edit_guimode_basic   ,'checked','off');
+  set(handles.menu_edit_guimode_advanced,'checked','on' );
+else
+  set(handles.menu_edit_guimode_basic   ,'checked','on ');
+  set(handles.menu_edit_guimode_advanced,'checked','off');
 end
 
-% gui mode
-guimode_menus = [handles.menu_edit_guimode_advancedtraining,...
-  handles.menu_edit_guimode_basictraining];
-if handles.guidata.data.IsAdvancedMode(),
-  h = handles.menu_edit_guimode_advancedtraining;
+% labeling vs GT mode
+if handles.guidata.GUIGroundTruthMode,
+  set(handles.menu_edit_guimode_labeling    ,'checked','off');
+  set(handles.menu_edit_guimode_ground_truth,'checked','on' );
 else
-  h = handles.menu_edit_guimode_basictraining;
+  set(handles.menu_edit_guimode_labeling    ,'checked','on ');
+  set(handles.menu_edit_guimode_ground_truth,'checked','off');
 end
-set(guimode_menus,'Checked','off');
-set(h,'Checked','on');
+
+return
 
 
 % -------------------------------------------------------------------------
@@ -1974,181 +1980,6 @@ set(handles.menu_go_previous_automatic_bout_end,'Label',...
 
 
 %--------------------------------------------------------------------------
-% function handles = CreateLabelButtons(handles)
-% 
-% % get some freqeuntly used things into local vars
-% if isempty(handles.guidata.data)
-%   projectPresent=false;
-%   nBehaviors=2;  % just for layout purposes
-%   isAdvancedMode=false;
-% else
-%   projectPresent=true;
-%   nBehaviors=handles.guidata.data.nbehaviors;
-%   isAdvancedMode=handles.guidata.data.IsAdvancedMode();
-% end
-% isBasicMode=~isAdvancedMode;
-% 
-% % get positions of stuff
-% set(handles.panel_labelbuttons,'Units','pixels');
-% panel_pos = get(handles.panel_labelbuttons,'Position');
-% select_pos = get(handles.panel_select,'Position');
-% set(handles.togglebutton_label_behavior1,'Units','pixels');
-% button1_pos = get(handles.togglebutton_label_behavior1,'Position');
-% set(handles.togglebutton_label_unknown,'Units','pixels');
-% unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
-% out_border_y = unknown_button_pos(2);
-% out_border_x = unknown_button_pos(1);
-% in_border_y = handles.guidata.in_border_y;
-% button_width = button1_pos(3);
-% button_height = button1_pos(4);
-% 
-% % calculate menu_file_import height for the panel
-% if isBasicMode
-%   new_panel_height = 2*out_border_y + (nBehaviors+1)*button_height + ...
-%     nBehaviors*in_border_y;
-% else
-%   new_panel_height = 2*out_border_y + (2*nBehaviors+1)*button_height + ...
-%     2*nBehaviors*in_border_y;
-% end
-% % update panel position
-% panel_top = panel_pos(2)+panel_pos(4);
-% new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
-% set(handles.panel_labelbuttons,'Position',new_panel_pos);
-% dy_label_select = panel_pos(2) - select_pos(2) - select_pos(4);
-% new_select_pos = [select_pos(1),new_panel_pos(2)-select_pos(4)-dy_label_select,select_pos(3:4)];
-% set(handles.panel_select,'Position',new_select_pos);
-% 
-% % move unknown button to the bottom
-% new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
-% set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
-% 
-% % list of buttons
-% handles.guidata.togglebutton_label_behaviors = nan(1,2*nBehaviors);
-%   % order is: behavior1
-%   %           behavior1 maybe ("normbehavior")
-%   %           behavior2
-%   %           behavior2 maybe ("normbehavior")
-%   %           et cetera
-%     
-% % update first button
-% if ~projectPresent 
-%   % no-anything-yet mode
-%   pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
-%   set(handles.togglebutton_label_behavior1,...
-%     'String','Behavior',...
-%     'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%     'FontWeight','bold','BackgroundColor',[0.7 0 0],...
-%     'Position',pos,...
-%     'UserData',1);
-%   handles.guidata.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
-%   SetButtonImage(handles.guidata.togglebutton_label_behaviors(1));  
-% elseif isAdvancedMode
-%   % advanced mode
-%   new_button1_pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
-%   set(handles.togglebutton_label_behavior1,...
-%     'String',sprintf('Important %s',handles.guidata.data.labelnames{1}),...
-%     'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%     'FontWeight','bold','BackgroundColor',handles.guidata.labelcolors(1,:),...
-%     'Position',new_button1_pos,...
-%     'UserData',1);
-%   handles.guidata.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
-%   SetButtonImage(handles.togglebutton_label_behavior1);
-%   pos = [out_border_x,new_panel_height-out_border_y-2*button_height-in_border_y,button_width,button_height];
-%   handles.guidata.togglebutton_label_behaviors(2) = uicontrol('Style','togglebutton',...
-%     'String',sprintf('%s',handles.guidata.data.labelnames{1}),...
-%     'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%     'FontWeight','bold','BackgroundColor',ShiftColor.decreaseIntensity(handles.guidata.labelcolors(1,:)),...
-%     'Parent',handles.panel_labelbuttons,...
-%     'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
-%     'Position',pos,'Tag',sprintf('togglebutton_label_normbehavior1'),...
-%     'UserData',2);
-%   SetButtonImage(handles.guidata.togglebutton_label_behaviors(2));
-% else  
-%   % basic mode
-%   pos = [out_border_x,new_panel_height-out_border_y-button_height,button_width,button_height];
-%   set(handles.togglebutton_label_behavior1,...
-%     'String',sprintf('%s',handles.guidata.data.labelnames{1}),...
-%     'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%     'FontWeight','bold','BackgroundColor',handles.guidata.labelcolors(1,:),...
-%     'Position',pos,...
-%     'UserData',1);
-%   handles.guidata.togglebutton_label_behaviors(1) = handles.togglebutton_label_behavior1;
-%   SetButtonImage(handles.guidata.togglebutton_label_behaviors(1));
-% end
-% 
-% % create the rest of the buttons
-% for i = 2:nBehaviors,
-%   if ~projectPresent,
-%     % no-data-yet "mode"
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
-%       button_width,button_height];
-%     handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
-%       uicontrol('Style','togglebutton','String','Not behavior',...
-%       'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%       'FontWeight','bold','BackgroundColor',[0 0 1],...
-%       'Position',pos,...
-%       'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
-%       'Parent',handles.panel_labelbuttons,...
-%       'Tag',sprintf('togglebutton_label_behavior%d',i),...
-%       'UserData',2*i-1);
-%     SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));    
-%   elseif isAdvancedMode,
-%     % advanced mode
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
-%       button_width,button_height];
-%     handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
-%       uicontrol('Style','togglebutton','String',sprintf('Important %s',handles.guidata.data.labelnames{i}),...
-%       'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%       'FontWeight','bold','BackgroundColor',handles.guidata.labelcolors(i,:),...
-%       'Position',pos,...
-%       'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
-%       'Parent',handles.panel_labelbuttons,...
-%       'Tag',sprintf('togglebutton_label_behavior%d',i),...
-%       'UserData',2*i-1);
-%     SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
-%       button_width,button_height];
-%     handles.guidata.togglebutton_label_behaviors(2*i) = ...
-%       uicontrol('Style','togglebutton','String',sprintf('%s',handles.guidata.data.labelnames{i}),...
-%       'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%       'FontWeight','bold','BackgroundColor',ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)),...
-%       'Position',pos,...
-%       'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
-%       'Parent',handles.panel_labelbuttons,...
-%       'Tag',sprintf('togglebutton_label_normbehavior%d',i),...
-%       'UserData',2*i);
-%     SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i));
-%   else
-%     % basic mode
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
-%       button_width,button_height];
-%     handles.guidata.togglebutton_label_behaviors(2*i-1) = ...
-%       uicontrol('Style','togglebutton','String',sprintf('%s',handles.guidata.data.labelnames{i}),...
-%       'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%       'FontWeight','bold','BackgroundColor',handles.guidata.labelcolors(i,:),...
-%       'Position',pos,...
-%       'Callback',get(handles.togglebutton_label_behavior1,'Callback'),...
-%       'Parent',handles.panel_labelbuttons,...
-%       'Tag',sprintf('togglebutton_label_behavior%d',i),...
-%       'UserData',2*i-1);
-%     SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
-%   end
-% end
-% 
-% % set props for unknown button
-% set(handles.togglebutton_label_unknown,...
-%   'String','Unknown',...
-%   'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%   'FontWeight','bold','BackgroundColor',handles.guidata.labelunknowncolor,...
-%   'UserData',-1);
-% SetButtonImage(handles.togglebutton_label_unknown);
-% 
-% handles.guidata.GUIAdvancedMode = isAdvancedMode;
-% 
-% return
-
-
-%--------------------------------------------------------------------------
 function handles = UpdateLabelButtons(handles)
 
 % get some freqeuntly used things into local vars
@@ -2159,7 +1990,7 @@ if isempty(handles.guidata.data)
 else
   projectPresent=true;
   nBehaviors=handles.guidata.data.nbehaviors;
-  isAdvancedMode=handles.guidata.data.IsAdvancedMode();
+  isAdvancedMode=handles.guidata.GUIAdvancedMode;
 end
 isBasicMode=~isAdvancedMode;
 
@@ -2305,7 +2136,7 @@ return
 
 
 %--------------------------------------------------------------------------
-function EnableGUI(handles)
+function UpdateEnablementOfGUI(handles)
 % Updates the enablement of controls according to the number of experiments
 % and the current experiment, and handles.guidata.needsave.  Also, disables
 % File > Save Project...
@@ -2338,7 +2169,8 @@ else
   set(hp,'Visible','off');
 end
 
-% whether we need to save
+% Disable the save menu item if things have recently been saved,
+% Enable it if there are unsaved changes
 if handles.guidata.needsave,
   set(handles.menu_file_save,'Enable','on');
 else
@@ -2352,6 +2184,7 @@ return
 
 %--------------------------------------------------------------------------
 function handles = LoadRC(handles)
+% Load the user preferences from the .JLabelrc.mat file.
 
 % rc file name
 if isdeployed,
@@ -3053,7 +2886,7 @@ else
   for j = 1:2*handles.guidata.data.nbehaviors,
     if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
     buttonStr = sprintf('%s',handles.guidata.data.labelnames{ceil(j/2)});
-    if handles.guidata.data.IsAdvancedMode() && mod(j,2); 
+    if handles.guidata.GUIAdvancedMode && mod(j,2); 
       buttonStr = sprintf('Important %s',buttonStr); 
     end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'String',buttonStr,'Enable','on');
@@ -3219,7 +3052,7 @@ end
 
 % Dont switch flies when the label pen is down.
 penDown = false;
-if ~handles.guidata.data.IsAdvancedMode(),
+if ~handles.guidata.GUIAdvancedMode,
   behaviorVals = get(handles.guidata.togglebutton_label_behaviors(1:2:end),'Value');
 else
   behaviorVals = get(handles.guidata.togglebutton_label_behaviors,'Value');
@@ -3777,7 +3610,7 @@ switch eventdata.Key,
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
       return;
     else
-      if ~handles.guidata.data.IsAdvancedMode() && ~mod(buttonNum,2); return; end 
+      if ~handles.guidata.GUIAdvancedMode && ~mod(buttonNum,2); return; end 
       % Don't do anything when unimportant label keys are pressed in the Normal mode
       if handles.guidata.label_state == -1,
         set(handles.togglebutton_label_unknown,'Value',false);
@@ -3926,18 +3759,18 @@ for j = 1:2*handles.guidata.data.nbehaviors
     
   labelStr = handles.guidata.data.labelnames{ceil(j/2)};
   if mod(j,2), 
-    labelStr = ['Important ' labelStr];
+    labelStr = ['Important ' labelStr];  %#ok
   end
-  tprompts{end+1} = labelStr;
+  tprompts{end+1} = labelStr;  %#ok
   
-  if ~handles.guidata.data.IsAdvancedMode() && ~mod(j,2); continue; end
+  if ~handles.guidata.GUIAdvancedMode && ~mod(j,2); continue; end
   % Don't show unimportant keys for Normal mode.
   labelStr = handles.guidata.data.labelnames{ceil(j/2)};
-  if handles.guidata.data.IsAdvancedMode() && mod(j,2), 
-    labelStr = ['Important ' labelStr];
+  if handles.guidata.GUIAdvancedMode && mod(j,2), 
+    labelStr = ['Important ' labelStr];  %#ok
   end
-  prompts{end+1} = labelStr;
-  curShortcuts{end+1} = allShortcuts{j};
+  prompts{end+1} = labelStr;  %#ok
+  curShortcuts{end+1} = allShortcuts{j};  %#ok
 end
 prompts{end+1} = 'Unknown';
 tprompts{end+1} = 'Unknown';
@@ -3948,20 +3781,20 @@ if isempty(sh),
 end
 
 curshortcuts = allShortcuts;
-if ~handles.guidata.data.IsAdvancedMode()
+if ~handles.guidata.GUIAdvancedMode
   curshortcuts(1:2:2*handles.guidata.data.nbehaviors)= sh(1:handles.guidata.data.nbehaviors);
   curshortcuts(2*handles.guidata.data.nbehaviors+1)= sh(handles.guidata.data.nbehaviors+1);
 else
   curshortcuts = sh;
 end
-[uniquekeys,occ,ndx] = unique(curshortcuts);
+[uniquekeys,~,~] = unique(curshortcuts);
 nbeh = handles.guidata.data.nbehaviors;
 if numel(uniquekeys)~= 2*nbeh+1
   overlap = [];
   for ndx = 1:2*nbeh+1
     nb = find(strcmp(curshortcuts{ndx},curshortcuts));
     if numel(nb) > 1,
-      overlap = [overlap ', ' tprompts{ndx} ':' curshortcuts{ndx}];
+      overlap = [overlap ', ' tprompts{ndx} ':' curshortcuts{ndx}];  %#ok
     end
   end
   overlap = overlap(3:end);
@@ -3970,7 +3803,7 @@ if numel(uniquekeys)~= 2*nbeh+1
   return;
 end
 
-if ~handles.guidata.data.IsAdvancedMode()
+if ~handles.guidata.GUIAdvancedMode
   handles.guidata.label_shortcuts(1:2:2*handles.guidata.data.nbehaviors)= sh(1:handles.guidata.data.nbehaviors);
   handles.guidata.label_shortcuts(2*handles.guidata.data.nbehaviors+1)= sh(handles.guidata.data.nbehaviors+1);
 else
@@ -4034,7 +3867,7 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guidata.guipos.rightborder
 set(handles.panel_select,'Position',new_select_pos);
 
 %dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
-if ~handles.guidata.data.IsAdvancedMode() || handles.guidata.data.IsGTMode(),
+if ~handles.guidata.GUIAdvancedMode || handles.guidata.data.IsGTMode(),
   set(handles.panel_similar,'Visible','off');
   new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
     new_select_pos(2) - info_pos(4) - dy_label_select,...
@@ -4484,7 +4317,7 @@ else
   i = [];
 end
 if isempty(i),
-  warning('Could not find index of parent panel');
+  warning('Could not find index of parent panel');  %#ok
   i = 1;
 end
 
@@ -5001,19 +4834,20 @@ while true,
   if exist('PLAY_TIMER_DONE','var') && PLAY_TIMER_DONE
     ticker = tic;
     PLAY_TIMER_DONE = false;
-    predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
-    predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
+    %predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
+    %predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
     handles = SetPredictedPlot(handles);
     handles = UpdateTimelineIms(handles);
 
     guidata(hObject,handles);
-    UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-      'refreshtrx',true,'refreshlabels',true,...
-      'refresh_timeline_manual',false,...
-      'refresh_timeline_xlim',false,...
-      'refresh_timeline_hcurr',false,...
-      'refresh_timeline_selection',false,...
-      'refresh_curr_prop',false);
+    UpdatePlots(handles, ...
+                'refreshim',false,'refreshflies',true,...
+                'refreshtrx',true,'refreshlabels',true,...
+                'refresh_timeline_manual',false,...
+                'refresh_timeline_xlim',false,...
+                'refresh_timeline_hcurr',false,...
+                'refresh_timeline_selection',false,...
+                'refresh_curr_prop',false);
 
   end
   % how long has it been
@@ -5043,7 +4877,7 @@ end
 else  % test framerate
 
 %t_last=t0;
-t=t0;
+t=t0;  %#ok
 while true,
   handles = guidata(hObject);
   if handles.guidata.hplaying ~= hObject,
@@ -5084,7 +4918,7 @@ while true,
   SetCurrentFrame(handles,axi,t,hObject);
   handles = UpdateTimelineIms(handles);
   drawnow;
-if(exist('tocker'))  disp([num2str(1/toc(tocker),2)]);  end
+if(exist('tocker')),  disp(num2str(1/toc(tocker),2));  end
 tocker=tic;
 %if(t-t_last>1)  disp(['skip ' num2str(t-t_last) ' @ ' num2str(t)]);  end
 %if(t==t_last)  disp(['repeat @ ' num2str(t)]);  end
@@ -5096,6 +4930,7 @@ end  % test framerate
 
 stopPlaying(handles);
 
+return
 
 % -------------------------------------------------------------------------
 function handles = stopPlaying(handles)
@@ -5816,7 +5651,7 @@ for col = 1:3
     else
       t2 = sprintf(' (%.1f%%)',crossError(1).frac(row,col)*100);
     end
-    dat{row,col} = sprintf('%s%s',t1,t2);
+    dat{row,col} = sprintf('%s%s',t1,t2);  %#ok
   end
 end
 
@@ -5830,20 +5665,20 @@ for col = 1:3
     else
       t2 = sprintf(' (%.1f%%)',crossError(1).oldFrac(row,col)*100);
     end
-    dat{5+row,col} = sprintf('%s%s',t1,t2);
+    dat{5+row,col} = sprintf('%s%s',t1,t2);  %#ok  
   end
 end
         
 f = figure('Position',[200 200 550 140],'Name','Cross Validation Error');
 t = uitable('Parent',f,'Data',dat([1 3 5 6 8],:),'ColumnName',cnames,... 
             'ColumnWidth',{100},...
-            'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
+            'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok  
 
 handles.guidata.open_peripherals(end+1) = f;          
 if numel(crossError)>1
   for tndx = 1:numel(crossError)
-    errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);
-    errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);
+    errorAll(tndx,1) = crossError(tndx).numbers(2,3)+crossError(tndx).numbers(4,1);  %#ok
+    errorImp(tndx,1) = crossError(tndx).numbers(1,3)+crossError(tndx).numbers(3,1);  %#ok
   end
   totExamplesAll = sum(crossError(1).numbers(2,:))+sum(crossError(1).numbers(4,:));
   totExamplesImp = sum(crossError(1).numbers(1,:))+sum(crossError(1).numbers(3,:));
@@ -6199,53 +6034,94 @@ end
 % -------------------------------------------------------------------------
 function handles = UpdateGUIGroundTruthMode(handles)
 
-% things that are invisible in groundtruth-mode
-hinv_gt = [handles.pushbutton_train,...
-  ...handles.pushbutton_predict,...
-  handles.axes_timeline_auto,handles.guidata.himage_timeline_auto,...
-  handles.guidata.htimeline_errors,handles.guidata.htimeline_suggestions,...
-  handles.automaticTimelinePredictionLabel,...
-  handles.automaticTimelineScoresLabel,...
-  handles.automaticTimelineBottomRowPopup,...
-  handles.timeline_label_automatic,...
-  handles.menu_edit_guimode];
-hvisible_gt = [handles.menu_view_showPredictions, ...
-  handles.menu_view_suggest,...
-  handles.menu_classifier_gt_performance];
+handles=setGUIGroundTruthMode(handles,handles.guidata.GUIGroundTruthMode);
 
+return
+
+
+% -------------------------------------------------------------------------
+function handles = setGUIGroundTruthMode(handles,newMode)
+
+% % in the right mode already?
+% if handles.guidata.GUIGroundTruthMode == newMode
+%    return;
+% end
+
+% set the mode
+handles.guidata.GUIGroundTruthMode=newMode;
+
+% Make all the mode checkmarks self-consistent
+SetGUIModeMenuChecks(handles);
+
+% If no experiments, just return
 if handles.guidata.data.nexps < 1,
   return;
 end
 
-if handles.guidata.data.IsGTMode()
-  set(hinv_gt,'Visible','off');
-  set(hvisible_gt,'Visible','on');
-  % go to advanced mode
-  handles = menu_view_plot_labels_manual_Callback(handles.panel_timeline_select, [], handles);
-else
-  set(hinv_gt,'Visible','on');
-  set(hvisible_gt,'Visible','off');
-  % go to Normal mode
+% specify graphics object visible in only one mode or another
+labelingOnlyGrobjects = [handles.pushbutton_train,...
+                         handles.pushbutton_predict,...
+                         handles.axes_timeline_auto, ...
+                         handles.guidata.himage_timeline_auto,...
+                         handles.guidata.htimeline_errors, ...
+                         handles.guidata.htimeline_suggestions,...
+                         handles.automaticTimelinePredictionLabel,...
+                         handles.automaticTimelineScoresLabel,...
+                         handles.automaticTimelineBottomRowPopup,...
+                         handles.timeline_label_automatic, ...
+                         handles.text_scores];
+groundTruthOnlyGrobjects = [handles.menu_view_showPredictions, ...
+                            handles.menu_view_suggest,...
+                            handles.menu_classifier_gt_performance];
+
+% Determine whether the visibility f each groups should be 'on' or 'off'                          
+isGTMode=handles.guidata.data.IsGTMode();
+visibilityOfLabelingOnlyGrobjects=fif(isGTMode,'off','on');
+visibilityOfGroundTruthOnlyGrobjects=fif(isGTMode,'on','off');
+              
+% Set the mode of each group accordingly
+set(labelingOnlyGrobjects,'Visible',visibilityOfLabelingOnlyGrobjects);
+set(groundTruthOnlyGrobjects,'Visible',visibilityOfGroundTruthOnlyGrobjects);
+
+% For axes, set the mode of their children accordingly
+for h=labelingOnlyGrobjects
+  if strcmpi(get(h,'type'),'axes')
+    set(get(h,'children'),'visible',visibilityOfLabelingOnlyGrobjects)
+  end
 end
-handles = UpdateGUIAdvancedMode(handles);
+for h=groundTruthOnlyGrobjects
+  if strcmpi(get(h,'type'),'axes')
+    set(get(h,'children'),'visible',visibilityOfGroundTruthOnlyGrobjects)
+  end
+end
+
+% Don't think we need to do this here
+%handles = UpdateGUIAdvancedMode(handles);
+
+return
 
 
 % -------------------------------------------------------------------------
 function handles = UpdateGUIAdvancedMode(handles)
 
+handles=setGUIAdvancedMode(handles,handles.guidata.GUIAdvancedMode);
+
+return
+
+
+% -------------------------------------------------------------------------
+function handles = setGUIAdvancedMode(handles,newMode)
+
+% % in the right mode already?
+% if handles.guidata.GUIAdvancedMode == newMode
+%    return;
+% end
+
+% set the mode
+handles.guidata.GUIAdvancedMode=newMode;
+
+% make sure the menu checkboxes are self-consistent
 SetGUIModeMenuChecks(handles);
-
-% in the right mode already?
-
-if ~handles.guidata.data.IsAdvancedMode() || handles.guidata.data.IsGTMode(),
-  set(handles.panel_similar,'Visible','off');
-else
-  set(handles.panel_similar,'Visible','on');
-end
-
-if handles.guidata.GUIAdvancedMode == handles.guidata.data.IsAdvancedMode()
-   return;
-end
 
 % get positions of stuff
 set(handles.panel_labelbuttons,'Units','pixels');
@@ -6268,11 +6144,11 @@ button_width = button1_pos(3);
 button_height = button1_pos(4);
 
 % calculate menu_file_import height for the panel
-if ~handles.guidata.data.IsAdvancedMode();
-new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
+if ~handles.guidata.GUIAdvancedMode;
+  new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
   handles.guidata.data.nbehaviors*in_border_y;
 else
-new_panel_height = 2*out_border_y + (2*handles.guidata.data.nbehaviors+1)*button_height + ...
+  new_panel_height = 2*out_border_y + (2*handles.guidata.data.nbehaviors+1)*button_height + ...
   2*handles.guidata.data.nbehaviors*in_border_y;
 end
 
@@ -6291,7 +6167,7 @@ new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(
 set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 
 % create or remove buttons
-if ~handles.guidata.data.IsAdvancedMode(),
+if ~handles.guidata.GUIAdvancedMode,
   % delete extra buttons
   h = handles.guidata.togglebutton_label_behaviors(2:2:end);
   h = h(ishandle(h));
@@ -6318,7 +6194,7 @@ end
 
 % update the buttons
 for i = 1:handles.guidata.data.nbehaviors,
-  if handles.guidata.data.IsAdvancedMode(),
+  if handles.guidata.GUIAdvancedMode,
     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
       button_width,button_height];
     set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
@@ -6368,49 +6244,7 @@ set(handles.togglebutton_label_unknown,...
   'UserData',-1);
 SetButtonImage(handles.togglebutton_label_unknown);
 
-handles.guidata.GUIAdvancedMode = handles.guidata.data.IsAdvancedMode;
-
-
-% --------------------------------------------------------------------
-function menu_edit_guimode_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function menu_edit_guimode_basictraining_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_basictraining (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.guidata.data.SetGTMode(false);
-handles.guidata.data.SetAdvancedMode(false);
-handles = UpdateGUIGroundTruthMode(handles);
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function menu_edit_guimode_advancedtraining_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_advancedtraining (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.guidata.data.SetGTMode(false);
-handles.guidata.data.SetAdvancedMode(true);
-handles = UpdateGUIGroundTruthMode(handles);
-guidata(hObject,handles);
-
-
-% --------------------------------------------------------------------
-function menu_edit_guimode_groundtruthing_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_groundtruthing (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.guidata.data.SetGTMode(true);
-handles = UpdateGUIGroundTruthMode(handles);
-guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -6628,14 +6462,14 @@ for col = 1:3
     else
       t2 = sprintf(' (%.1f%%)',crossError.frac(row,col)*100);
     end
-    dat{row,col} = sprintf('%s%s',t1,t2);
+    dat{row,col} = sprintf('%s%s',t1,t2);  %#ok
   end
 end
 
         
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
-            'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);
+            'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok
 
 
 % --------------------------------------------------------------------
@@ -6996,8 +6830,7 @@ function menu_file_import_Callback(hObject, eventdata, handles)
 %[handles,success] = ...
 %  JLabelEditFiles('JLabelHandle',handles,...
 %                  'JLabelSplashHandle',handles.guidata.hsplash);
-figureJLabelEdit= ...
-  JLabelEditFiles('figureJLabel',handles.figure_JLabel);
+JLabelEditFiles('figureJLabel',handles.figure_JLabel);
 
 % % If user hits 'Cancel' just return                
 % if ~success,
@@ -7080,7 +6913,7 @@ handles = UpdateGUIGroundTruthMode(handles);
 RecursiveSetKeyPressFcn(figureJLabel);
 
 % enable gui
-EnableGUI(handles);
+UpdateEnablementOfGUI(handles);
 
 % OK, almost done
 set(figureJLabel,'pointer','arrow');
@@ -7174,7 +7007,7 @@ s.configParams=handles.guidata.configparams;  %#ok
 %s.configParams=self.getConfigParams();
 try
   save(fileNameAbs,'-struct','s');
-catch
+catch  %#ok
   uiwait(errordlg('Unable to save %s.',self.everythingFileName));
   ClearStatus(handles);
   return;
@@ -7323,4 +7156,53 @@ return
 
 
 % -------------------------------------------------------------------------
+function menu_edit_guimode_labeling_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_labeling (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+handles.guidata.data.SetGTMode(false);
+handles = setGUIGroundTruthMode(handles,false);
+guidata(hObject,handles);
+
+return
+
+
+% -------------------------------------------------------------------------
+function menu_edit_guimode_ground_truth_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_ground_truth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.guidata.data.SetGTMode(true);
+handles = setGUIGroundTruthMode(handles,true);
+guidata(hObject,handles);
+
+return
+
+
+% -------------------------------------------------------------------------
+function menu_edit_guimode_basic_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_basic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles = setGUIAdvancedMode(handles,false);
+guidata(hObject,handles);
+
+return
+
+
+% -------------------------------------------------------------------------
+function menu_edit_guimode_advanced_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_advanced (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles = setGUIAdvancedMode(handles,true);
+guidata(hObject,handles);
+
+return
+
+
+% -------------------------------------------------------------------------

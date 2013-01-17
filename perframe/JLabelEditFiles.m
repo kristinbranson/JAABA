@@ -63,6 +63,10 @@ handles.success = false;
           'disableBehavior',false,...
           'figureJLabel',[]);
 
+% Just hide the mode stuff entirely        
+set(handles.popupmode,'Visible','off');
+set(handles.labeling_mode_text,'Visible','off');
+        
 set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing','Ground Truthing Advanced'});
 handles.disableBehavior = disableBehavior;
 
@@ -238,22 +242,22 @@ set(handles.editClassifier,'String',handles.data.classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',numel(handles.data.expdirs));
 set(handles.statusMsg,'String','');
 
-if handles.data.IsGTMode(),
-  if handles.data.IsAdvancedMode()
-    popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced'));
-  else
-    popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
-  end
-
-elseif handles.data.IsAdvancedMode(),
-  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Advanced'));
-else
-  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Normal'));
-end
-set(handles.popupmode,'Value',popupNdx);
-if handles.data.IsModeSet(),
-  set(handles.popupmode,'Enable','off');
-end
+% if handles.data.IsGTMode(),
+%   if handles.data.IsAdvancedMode()
+%     popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced'));
+%   else
+%     popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
+%   end
+% 
+% elseif handles.data.IsAdvancedMode(),
+%   popupNdx = find(strcmp(get(handles.popupmode,'String'),'Advanced'));
+% else
+%   popupNdx = find(strcmp(get(handles.popupmode,'String'),'Normal'));
+% end
+% set(handles.popupmode,'Value',popupNdx);
+% if handles.data.IsModeSet(),
+%   set(handles.popupmode,'Enable','off');
+% end
 
 if handles.data.nexps>0
   set(handles.pushbutton_load,'Enable','off');
@@ -718,28 +722,10 @@ end
 
 % -------------------------------------------------------------------------
 function SetLabelingMode(handles)
-contents = cellstr(get(handles.popupmode,'String'));
-curStr = contents{get(handles.popupmode,'Value')};
+%contents = cellstr(get(handles.popupmode,'String'));
+%curStr = contents{get(handles.popupmode,'Value')};
 
-% switch curStr,
-%   case 'Advanced',
-%     handles.data.SetAdvancedMode(true);
-%     handles.data.SetGTMode(false);
-%   case 'Normal'
-%     handles.data.SetAdvancedMode(false);
-%     handles.data.SetGTMode(false);
-%   case 'Ground Truthing',
-%     handles.data.SetAdvancedMode(false);
-%     handles.data.SetGTMode(true);
-%   case 'Ground Truthing Advanced',
-%     handles.data.SetAdvancedMode(true);
-%     handles.data.SetGTMode(true);
-% end
-
-%figureJLabel=handles.JLabelHandle.figure_JLabel;
-%JLabel('setLabelingMode',figureJLabel,curStr)
-
-handles.data.setLabelingMode(curStr);
+%handles.data.setLabelingMode(curStr);
 
 set(handles.popupmode,'enable','off');
 
