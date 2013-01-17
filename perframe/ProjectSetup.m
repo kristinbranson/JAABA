@@ -59,56 +59,22 @@ set(hObject,'Visible','off');
 handles.output = hObject;
 handles.defpath = pwd;
 
-params = [];
 [new, ...
  figureJLabel, ...
  figureJLabelEditFiles, ...
- project_params, ...
- xml_file, ...
- mat_file, ...
- visible, ...
- outfile] = ...
+ configParams] = ...
    myparse(varargin,...
            'new',[], ...
            'figureJLabel',[],...
            'figureJLabelEditFiles',[],...
-           'project_params',[],...
-           'xml_file','',...
-           'mat_file','',...
-           'visible',true,...
-           'outfile',0);
+           'configParams',[]);
 
 handles.new=new;  
   % true iff we are setting up a new project, as opposed to editing an
   % existing one
 handles.figureJLabel=figureJLabel;
 handles.figureJLabelEditFiles=figureJLabelEditFiles;
-handles.outfile = outfile;
-
-
-if ~isempty(project_params);
-  params = project_params;
-end
-if ~isempty(xml_file),
-  if ~exist(xml_file,'file'),
-    errordlg('Cannot open the xml file');
-    error('Cannot open the xml file');
-  end
-  params = ReadXMLParams(xml_file);
-  [dpath,fpath,~] = fileparts(xml_file);
-  handles.defpath = fullfile(dpath,[fpath '.mat']);
-  if ~iscell(params.behaviors.names),
-    params.behaviors.names = {params.behaviors.names};
-  end
-end
-if ~isempty(mat_file),
-  if ~exist(mat_file,'file')
-    errordlg('Cannot open the mat file');
-    error('Cannot open the mat file');
-  end
-  handles.defpath = mat_file;
-  params = load(mat_file);
-end
+handles.configParams = configParams;
 
 buttons = findall(hObject,'Style','pushbutton');
 for ndx = 1:numel(buttons)
@@ -136,31 +102,31 @@ set(handles.togglebutton_advanced,'Value',0);
 handles = updatePosition(handles,'basic');
 
 handles = initFeatureconfig(handles);
-if ~isempty(params)
-  handles.params = params;
+if ~isempty(configParams)
+  handles.configParams = configParams;
   handles = addversion(handles);
-  if isfield(params,'windowfeatures')
-      handles.params.windowfeatures = params.windowfeatures;
-  elseif isfield(params.file,'featureparamfilename')
+  if isfield(configParams,'windowfeatures')
+      handles.configParams.windowfeatures = configParams.windowfeatures;
+  elseif isfield(configParams.file,'featureparamfilename')
     [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
-      ReadPerFrameParams(params.file.featureparamfilename,params.file.featureconfigfile);
-    handles.params.windowfeatures.windowfeaturesparams = windowfeaturesparams;
-    handles.params.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
-    handles.params.windowfeatures.basicFeatureTable = basicFeatureTable;
-    handles.params.windowfeatures.featureWindowSize = featureWindowSize;
-    handles.params.file = rmfield(handles.params.file,'featureparamfilename');
+      ReadPerFrameParams(configParams.file.featureparamfilename,configParams.file.featureconfigfile);
+    handles.configParams.windowfeatures.windowfeaturesparams = windowfeaturesparams;
+    handles.configParams.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
+    handles.configParams.windowfeatures.basicFeatureTable = basicFeatureTable;
+    handles.configParams.windowfeatures.featureWindowSize = featureWindowSize;
+    handles.configParams.file = rmfield(handles.configParams.file,'featureparamfilename');
   else
     uiwait(warndlg(['The selected configuration file does not have any '...
       'window features. Not copying the window features']));
   end
   
-  if ~isfield(params.file,'scorefilename')
-    name_str = [sprintf('%s_',handles.params.behaviors.names{1:end-1}),handles.params.behaviors.names{end}];
-    handles.params.file.scorefilename = sprintf('scores_%s',name_str);
+  if ~isfield(configParams.file,'scorefilename')
+    name_str = [sprintf('%s_',handles.configParams.behaviors.names{1:end-1}),handles.configParams.behaviors.names{end}];
+    handles.configParams.file.scorefilename = sprintf('scores_%s',name_str);
   end
   
-  if ~isfield(params,'scoresinput')
-    handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+  if ~isfield(configParams,'scoresinput')
+    handles.configParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
   end
 else
   handles = initParams(handles);
@@ -173,33 +139,22 @@ guidata(hObject, handles);
 
 updateText(handles);
 
-if visible,
-  set(hObject,'Visible','on');
-end
-
-
-% UIWAIT makes ProjectSetup wait for user response (see UIRESUME)
-if ~ischar(handles.outfile),
-  %uiwait(handles.figureProjectSetup);
-else
-  params2save = handles.params(1); %#ok<NASGU>
-  save(handles.outfile,'-struct','params2save');
-end
+set(hObject,'Visible','on');
 
 return
 
 
 % -------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
-function varargout = ProjectSetup_OutputFcn(hObject, ~, handles) 
+function ProjectSetup_OutputFcn(hObject, ~, handles)  %#ok
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
-varargout{2} = handles.outfile;
+%varargout{1} = handles.output;
+%varargout{2} = handles.outfile;
 %delete(handles.figureProjectSetup);
 return
 
@@ -238,37 +193,37 @@ return
 
 % -------------------------------------------------------------------------
 function handles = initParams(handles)
-handles.params.behaviors.names = {};
-handles.params.file.featureconfigfile = handles.list.(handles.animal_types{1}).file;
-handles.params.behaviors.type = handles.list.(handles.animal_types{1}).animal;
-handles.params.file.perframedir = 'perframe';
-handles.params.file.clipsdir = 'clips';
-handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
-handles.params.windowfeatures = struct;
-handles.params.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
-handles.params.behaviors.unknowncolor = [0,0,0];
-handles.params.trx.colormap = 'jet';
-handles.params.trx.colormap_multiplier = 0.7;
-handles.params.trx.extra_linestyle = '-';
-handles.params.trx.extra_marker = '.';
-handles.params.trx.extra_markersize = 12;
-handles.params.labels.colormap = 'line';
-handles.params.labels.linewidth = 3;
-handles.params.file.labelfilename = '';
-handles.params.file.gt_labelfilename = '';
-handles.params.file.scorefilename = '';
-handles.params.file.trxfilename = '';
-handles.params.file.moviefilename = '';
+handles.configParams.behaviors.names = {};
+handles.configParams.file.featureconfigfile = handles.list.(handles.animal_types{1}).file;
+handles.configParams.behaviors.type = handles.list.(handles.animal_types{1}).animal;
+handles.configParams.file.perframedir = 'perframe';
+handles.configParams.file.clipsdir = 'clips';
+handles.configParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+handles.configParams.windowfeatures = struct;
+handles.configParams.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
+handles.configParams.behaviors.unknowncolor = [0,0,0];
+handles.configParams.trx.colormap = 'jet';
+handles.configParams.trx.colormap_multiplier = 0.7;
+handles.configParams.trx.extra_linestyle = '-';
+handles.configParams.trx.extra_marker = '.';
+handles.configParams.trx.extra_markersize = 12;
+handles.configParams.labels.colormap = 'line';
+handles.configParams.labels.linewidth = 3;
+handles.configParams.file.labelfilename = '';
+handles.configParams.file.gt_labelfilename = '';
+handles.configParams.file.scorefilename = '';
+handles.configParams.file.trxfilename = '';
+handles.configParams.file.moviefilename = '';
 handles = addversion(handles);
-handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+handles.configParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
 
 
 % -------------------------------------------------------------------------
 function updateText(handles)
-% Copies the parameters in the params structure to the gui.
+% Copies the parameters in the configParams structure to the gui.
 
-if isfield(handles.params.behaviors,'names');
-  names = handles.params.behaviors.names;
+if isfield(handles.configParams.behaviors,'names');
+  names = handles.configParams.behaviors.names;
   if numel(names)>0
     namestr = [sprintf('%s,',names{1:end-1}),names{end}];
   else
@@ -287,8 +242,8 @@ boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
 for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
-  if isfield(handles.params.file,curf);
-    set(handles.(curbox),'String',handles.params.file.(curf));
+  if isfield(handles.configParams.file,curf);
+    set(handles.(curbox),'String',handles.configParams.file.(curf));
   else
     set(handles.(curbox),'String','');
   end
@@ -298,19 +253,19 @@ alltypes = fieldnames(handles.list);
 listndx = [];
 for andx = 1:numel(alltypes)
   curfname = handles.list.(alltypes{andx}).file;
-  if strcmp(handles.params.file.featureconfigfile,curfname);
+  if strcmp(handles.configParams.file.featureconfigfile,curfname);
     listndx = andx;
   end
 end
 if ~isempty(listndx),
   set(handles.featureconfigpopup,'Value',listndx);
 else
-  uiwait(warndlg(['The feature config file used (', handles.params.file.featureconfigfile,...
+  uiwait(warndlg(['The feature config file used (', handles.configParams.file.featureconfigfile,...
     ') does not exist.']));
   return;
 end
 
-clist = {handles.params.scoresinput(:).classifierfile};
+clist = {handles.configParams.scoresinput(:).classifierfile};
 if isempty(clist),
   set(handles.listbox_inputscores,'String',{});
 else
@@ -334,13 +289,13 @@ for ndx = 1:numel(fnames)
       uiwait(warndlg(sprintf(...
           ['The name specified for %s cannot have special characters.'...
           'Please use only alphanumeric characters and underscore'],curf)));
-      set(handles.(curbox),'String',handles.params.file.(curf));
+      set(handles.(curbox),'String',handles.configParams.file.(curf));
       continue;
   end
 
   
   if ~isempty(str)
-    handles.params.file.(curf) = str;
+    handles.configParams.file.(curf) = str;
   end
 end
 
@@ -349,21 +304,21 @@ setConfigTable(handles);
 
 % -------------------------------------------------------------------------
 function setConfigTable(handles)
-params = handles.params;
+configParams = handles.configParams;
 fields2remove = {'featureparamlist','windowfeatures','scoresinput'};
 for ndx = 1:numel(fields2remove)
-  if isfield(params,fields2remove{ndx}),
-    params = rmfield(params,fields2remove{ndx});
+  if isfield(configParams,fields2remove{ndx}),
+    configParams = rmfield(configParams,fields2remove{ndx});
   end
   
 end
-data = GetParamsAsTable(params);
+data = GetParamsAsTable(configParams);
 set(handles.config_table,'Data',data);
 
 
 % -------------------------------------------------------------------------
-function data = GetParamsAsTable(configparams)
-data = addToList(configparams,{},'');
+function data = GetParamsAsTable(configParams)
+data = addToList(configParams,{},'');
 idx = cellfun(@iscell,data(:,2));
 if any(idx),
   for i = find(idx(:)'),
@@ -407,11 +362,11 @@ end
 
 % -------------------------------------------------------------------------
 function handles = addversion(handles)
-if ~isfield(handles.params,'ver')
+if ~isfield(handles.configParams,'ver')
   vid = fopen('version.txt','r');
   vv = textscan(vid,'%s');
   fclose(vid);
-  handles.params.ver = vv{1};
+  handles.configParams.ver = vv{1};
 end
 
 
@@ -432,12 +387,12 @@ end
     
 name = regexp(name,',','split');
 name_str = [sprintf('%s_',name{1:end-1}),name{end}];
-handles.params.behaviors.names = name;
-handles.params.file.moviefilename = 'movie.ufmf';
-handles.params.file.trxfilename = 'registered_trx.mat';
-handles.params.file.labelfilename = sprintf('label_%s.mat',name_str);
-handles.params.file.gt_labelfilename = sprintf('gt_label_%s.mat',name_str);
-handles.params.file.scorefilename = sprintf('scores_%s.mat',name_str);
+handles.configParams.behaviors.names = name;
+handles.configParams.file.moviefilename = 'movie.ufmf';
+handles.configParams.file.trxfilename = 'registered_trx.mat';
+handles.configParams.file.labelfilename = sprintf('label_%s.mat',name_str);
+handles.configParams.file.gt_labelfilename = sprintf('gt_label_%s.mat',name_str);
+handles.configParams.file.scorefilename = sprintf('scores_%s.mat',name_str);
 updateText(handles);
 guidata(hObject,handles);
 setConfigTable(handles);
@@ -469,8 +424,8 @@ function featureconfigpopup_Callback(hObject, eventdata, handles)
 
 contents = cellstr(get(hObject,'String'));
 curtype = contents{get(hObject,'Value')};
-handles.params.file.featureconfigfile = handles.list.(curtype).file;
-handles.params.behaviors.type = handles.list.(curtype).animal;
+handles.configParams.file.featureconfigfile = handles.list.(curtype).file;
+handles.configParams.behaviors.type = handles.list.(curtype).animal;
 guidata(hObject,handles);
 
 setConfigTable(handles);
@@ -706,7 +661,7 @@ else
   end
 end
 
-handles.params.scoresinput(end+1) = curs;
+handles.configParams.scoresinput(end+1) = curs;
 guidata(hObject,handles);
 updateText(handles);
 
@@ -719,7 +674,7 @@ function pushbutton_removelist_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 curndx = get(handles.listbox_inputscores,'Value');
 if isempty(curndx), return; end
-handles.params.scoresinput(curndx) = [];
+handles.configParams.scoresinput(curndx) = [];
 guidata(hObject,handles);
 updateText(handles);
 
@@ -744,32 +699,11 @@ function pushbutton_done_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fname,pname] = uiputfile('*.mat','Select a location to store the project',....
-  handles.defpath);
-
-if fname == 0; return; end;
-
-handles.outfile = fullfile(pname,fname);
-
-if exist(handles.outfile,'file')
-  [didback,msg] = copyfile(handles.outfile,[handles.outfile '~']);
-  if ~didback,
-    warning('Could not create backup of %s: %s',handles.outfile,msg);
-  end
-end
-
-params2save = handles.params(1);
-JLabel('setProjectParams',handles.figureJLabel,params2save);
-save(handles.outfile,'-struct','params2save');
-
-guidata(hObject,handles);
-
 JLabelEditFiles('projectSetupDone', ...
                 handles.figureJLabelEditFiles, ...
-                handles.outfile);
-
+                handles.configParams, ...
+                handles.new);
 delete(gcbf);              
-%uiresume(handles.figureProjectSetup);
 return
 
 
@@ -815,52 +749,52 @@ if ismember('Target Type',sellist)
       ') does not exist. Cannot import from the project']));
     return;
   end
-  handles.params.file.featureconfigfile = origparams.file.featureconfigfile;
+  handles.configParams.file.featureconfigfile = origparams.file.featureconfigfile;
 end
 
 
 if ismember('Behavior Name and File Names',sellist)
-  origfeatureconfigfile = handles.params.file.featureconfigfile;
-  handles.params.file = origparams.file;
-  handles.params.file.featureconfigfile = origfeatureconfigfile;
+  origfeatureconfigfile = handles.configParams.file.featureconfigfile;
+  handles.configParams.file = origparams.file;
+  handles.configParams.file.featureconfigfile = origfeatureconfigfile;
   if iscell(origparams.behaviors.names),
-    handles.params.behaviors.names = origparams.behaviors.names;
+    handles.configParams.behaviors.names = origparams.behaviors.names;
   else
-    handles.params.behaviors.names = {origparams.behaviors.names};
+    handles.configParams.behaviors.names = {origparams.behaviors.names};
   end
   if ~isfield(origparams.file,'scorefilename')
-     name = handles.params.behaviors.names;
+     name = handles.configParams.behaviors.names;
      name_str = [sprintf('%s_',name{1:end-1}),name{end}];
-     handles.params.file.scorefilename =  sprintf('scores_%s.mat',name_str);
+     handles.configParams.file.scorefilename =  sprintf('scores_%s.mat',name_str);
   end
 end
 
 if ismember('Window Features',sellist),
   if isfield(origparams,'windowfeatures')
     
-    if ~strcmp(handles.params.file.featureconfigfile,origparams.file.featureconfigfile),
+    if ~strcmp(handles.configParams.file.featureconfigfile,origparams.file.featureconfigfile),
       res = questdlg(['Target type are not the same for the current project '...
         'and the original project. Are you sure you want to import the window features?'],...
         'Import Window features','Yes','No','No');
       if strcmp(res,'Yes')
-        handles.params.windowfeatures = origparams.windowfeatures;
+        handles.configParams.windowfeatures = origparams.windowfeatures;
       end
     else
-      handles.params.windowfeatures = origparams.windowfeatures;
+      handles.configParams.windowfeatures = origparams.windowfeatures;
     end
   elseif isfield(origparams.file,'featureparamfilename')
     uiwait(warndlg(['The selected configuration file does not have any '...
       'window features, but points to a file that does have the window features. '...
       'Loading the window features from the referenced file:' origparams.file.featureparamfilename]));
     [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
-      ReadPerFrameParams(origparams.file.featureparamfilename,handles.params.file.featureconfigfile); 
+      ReadPerFrameParams(origparams.file.featureparamfilename,handles.configParams.file.featureconfigfile); 
 
-    handles.params.windowfeatures.windowfeaturesparams = windowfeaturesparams;
-    handles.params.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
-    handles.params.windowfeatures.basicFeatureTable = basicFeatureTable;
-    handles.params.windowfeatures.featureWindowSize = featureWindowSize;
-    if isfield(handles.params.file,'featureparamfilename'),
-        handles.params.file = rmfield(handles.params.file,'featureparamfilename');
+    handles.configParams.windowfeatures.windowfeaturesparams = windowfeaturesparams;
+    handles.configParams.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
+    handles.configParams.windowfeatures.basicFeatureTable = basicFeatureTable;
+    handles.configParams.windowfeatures.featureWindowSize = featureWindowSize;
+    if isfield(handles.configParams.file,'featureparamfilename'),
+        handles.configParams.file = rmfield(handles.configParams.file,'featureparamfilename');
     end
   else
     uiwait(warndlg(['The selected configuration file does not have any '...
@@ -872,15 +806,15 @@ if ismember('List of perframe features',sellist)
   
   if isfield(origparams,'featureparamlist')
     
-    if ~strcmp(handles.params.file.featureconfigfile,origparams.file.featureconfigfile),
+    if ~strcmp(handles.configParams.file.featureconfigfile,origparams.file.featureconfigfile),
       res = questdlg(['Target type are not the same for the current project '...
         'and the original project. Are you sure you want to import the list of perframe features?'],...
         'Import list of perframe features','Yes','No','No');
       if strcmp(res,'Yes')
-        handles.params.featureparamlist = origparams.featureparamlist;
+        handles.configParams.featureparamlist = origparams.featureparamlist;
       end
     else
-      handles.params.featureparamlist= origparams.featureparamlist;
+      handles.configParams.featureparamlist= origparams.featureparamlist;
       
     end
   end
@@ -889,7 +823,7 @@ end
 if ismember('Classifier files used as input', sellist);
   if isfield(origparams,'scoresinput')
     
-    handles.params.scoresinput = origparams.scoresinput;
+    handles.configParams.scoresinput = origparams.scoresinput;
   end
 end
 
@@ -903,10 +837,10 @@ if ismember('Advanced Parameters',sellist),
     'plot.trx.extra_linestyle',...
     'plot.labels.colormap',...
     'plot.labels.linewidth',...
-    'perframe.params.fov',...
-    'perframe.params.nbodylengths_near',...
-    'perframe.params.thetafil',...
-    'perframe.params.max_dnose2ell_anglerange',...
+    'perframe.configParams.fov',...
+    'perframe.configParams.nbodylengths_near',...
+    'perframe.configParams.thetafil',...
+    'perframe.configParams.max_dnose2ell_anglerange',...
     'perframe.landmark_params.arena_center_mm_x',...
     'perframe.landmark_params.arena_center_mm_y',...
     'perframe.landmark_params.arena_radius_mm',...
@@ -914,7 +848,7 @@ if ismember('Advanced Parameters',sellist),
   
   for str = adv_params(:)',
     try %#ok<TRYNC>
-      eval(sprintf('handles.params.%s = origparams.%s;',str{1},str{1}));
+      eval(sprintf('handles.configParams.%s = origparams.%s;',str{1},str{1}));
     end
   end
 
@@ -949,7 +883,7 @@ function pushbutton_perframe_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[allpflist,selected,missing] = GetAllPerframeList(handles.params);
+[allpflist,selected,missing] = GetAllPerframeList(handles.configParams);
 if ~isempty(missing),
    list = missing{1};
   for ndx = 2:numel(missing)
@@ -973,7 +907,7 @@ if ok,
   for ndx = sel(:)'
     tstruct.(allpflist{ndx}) = 1;
   end
-  handles.params.featureparamlist = tstruct;
+  handles.configParams.featureparamlist = tstruct;
   
 end
 
@@ -983,8 +917,8 @@ guidata(hObject,handles);
 % -------------------------------------------------------------------------
 function [allPfList selected missing]= GetAllPerframeList(configparams)
 featureconfigfile = configparams.file.featureconfigfile;
-params = ReadXMLParams(featureconfigfile);
-allPfList = fieldnames(params.perframe);
+configParams = ReadXMLParams(featureconfigfile);
+allPfList = fieldnames(configParams.perframe);
 selected = false(numel(allPfList),1);
 missing = {};
 if isfield(configparams,'featureparamlist');
@@ -1074,10 +1008,10 @@ function handles = RemoveConfig(handles,name)
 
 [fpath,lastfield] = splitext(name);
 if isempty(lastfield)
-  handles.params = rmfield(handles.params,fpath);
+  handles.configParams = rmfield(handles.configParams,fpath);
 else
   evalStr = sprintf(...
-    'handles.params.%s = rmfield(handles.params.%s,lastfield(2:end));',...
+    'handles.configParams.%s = rmfield(handles.configParams.%s,lastfield(2:end));',...
     fpath,fpath);
   eval(evalStr);
 end
@@ -1086,7 +1020,7 @@ end
 % -------------------------------------------------------------------------
 function handles = EditConfigName(handles,oldName,newName)
 eval_str = sprintf(...
-  'value = handles.params.%s;',...
+  'value = handles.configParams.%s;',...
   oldName);
 eval(eval_str);
 handles = AddConfig(handles,newName,value);
@@ -1095,7 +1029,7 @@ handles = RemoveConfig(handles,oldName);
 
 % -------------------------------------------------------------------------
 function handles = EditConfigValue(handles,name,value) %#ok<INUSD>
-eval_str = sprintf('handles.params.%s = value;',name);
+eval_str = sprintf('handles.configParams.%s = value;',name);
 eval(eval_str);
 
 
@@ -1107,7 +1041,7 @@ if ischar(value) && ~isempty(str2num(value)) %#ok<ST2NM>
 end
 
 iname = fliplr(name);
-curstruct = handles.params;
+curstruct = handles.configParams;
 while true,
   [iname,lastfield] = splitext(iname);
   if isempty(lastfield)
@@ -1120,7 +1054,7 @@ while true,
   end
 end
 
-eval(sprintf('handles.params.%s = value;',name));
+eval(sprintf('handles.configParams.%s = value;',name));
 
 
 % -------------------------------------------------------------------------

@@ -101,11 +101,11 @@ else
     handles.configfilename = configfilename;
     set(handles.text_projectfile,'String',handles.configfilename);
   else
-    defaultconfigfilename=JLabel('getDefaultConfigFileName',figureJLabel);
-    if isempty(defaultconfigfilename)
+    previousConfigFileName=JLabel('getPreviousConfigFileName',figureJLabel);
+    if isempty(previousConfigFileName)
       handles.configfilename = '';
     else
-      handles.configfilename = defaultconfigfilename;
+      handles.configfilename = previousConfigFileName;
       set(handles.text_projectfile,'String',handles.configfilename);
     end
   end
@@ -839,20 +839,21 @@ function pushbutton_edit_project_Callback(hObject, eventdata, handles)
 if isfield(handles,'configfilename') && ~isempty(handles.configfilename)
   [~,~,ext] = fileparts(handles.configfilename);
   if strcmp(ext,'.xml')
-    ProjectSetup('new',false, ...
-                 'xml_file',handles.configfilename, ...
-                 'figureJLabel',handles.figureJLabel, ...
-                 'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
+    configParams = ReadXMLParams(xml_file);
+    if ~iscell(configParams.behaviors.names),
+      configParams.behaviors.names = {configParams.behaviors.names};
+    end
   elseif strcmp(ext,'.mat')
-    ProjectSetup('new',false, ...
-                 'mat_file',handles.configfilename, ...
-                 'figureJLabel',handles.figureJLabel, ...
-                 'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
+    configParams = load(handles.configfilename);
   else
     uiwait(warndlg('Project file has to be either xml or mat file'));
     return;
   end
-end
+end   
+ProjectSetup('new',false, ...
+             'configParams', configParams, ...
+             'figureJLabel',handles.figureJLabel, ...
+             'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
 
 return
 
@@ -870,12 +871,60 @@ return
 
 
 %--------------------------------------------------------------------------
-function projectSetupDone(figureJLabelEditFiles,configfilename)
-if ~ischar(configfilename), return; end;
+function projectSetupDone(figureJLabelEditFiles,configParams,new)
+% Tells the JLabelEditFiles "object" that the user just clicked "Done" in
+% the Project Setup figure.
+% configParams are the just-set-up project params
+% new is a boolean, true iff the user pressed "New Project" to setup the
+%   project
+
+% if no valid config params, just return
+if isempty(configParams), return; end;
+
+% get the guidata
 handles=guidata(figureJLabelEditFiles);
-handles.configfilename = configfilename;
-set(handles.text_projectfile,'String',configfilename);
+
+% make sure we have a file name in configfilename
+if new,
+  %previousConfigFileName= ...
+  %  JLabel('getPreviousConfigFileName',handles.figureJLabel);
+  primaryBehaviorName=strtrim(configParams.behaviors.names{1});
+  suggestedFileName=sprintf('%s_project.mat',primaryBehaviorName);
+  % a new project, need to get a file name
+  [fname,pname] = ...
+    uiputfile('*.mat', ...
+              'Select a location to store the project file',....
+              suggestedFileName);
+  if fname == 0; return; end;
+  configFileName=fullfile(pname,fname);
+  if exist(configFileName,'file')
+    [didback,msg] = copyfile(configFileName,[configFileName '~']);
+    if ~didback,
+      warning('Could not create backup of %s: %s',configFileName,msg);  %#ok
+    end
+  end
+else
+  configFileName=handles.configfilename;
+end
+
+% try to save to $configfilename
+try
+  save(configFileName,'-struct','configParams');
+catch  %#ok
+  uiwait(errordlg('Unable to save project file %s.',fname));
+  return;
+end
+
+% if save worked, commit the configfilename (only matters if new)
+handles.configfilename=configFileName;
+%JLabel('setProjectParams',handles.figureJLabel,configParams);
+
+% update the UI
+set(handles.text_projectfile,'String',configFileName);
+
+% store the guidata
 guidata(figureJLabelEditFiles,handles);
+
 return
 
 
