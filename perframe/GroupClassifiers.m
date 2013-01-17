@@ -23,6 +23,10 @@ for i = 1:nclassifiers,
     if ~strcmp(configparams{i}.file.perframedir,configparams_global.file.perframedir),
       continue;
     end
+    if ~(isfield(configparams_global,'perframe')&& isfield(configparams_global.perframe,'params')),
+      didmatch = true;
+      break;
+    end
     fns1 = fieldnames(configparams_global.perframe.params);
     fns2 = fieldnames(configparams{i}.perframe.params);
     fns = intersect(fns1,fns2);
