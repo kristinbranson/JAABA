@@ -1,6 +1,14 @@
+function scores = JAABADetect(expdir,varargin)
+% Run classifiers trained from JAABA on experiments
 % scores = JAABADetect(expdir,'classifierfiles',classifierfiles,'configfiles',configfiles)
 % scores = JAABADetect(expdir,'classifierparamsfile',classifierparamsfile)
-function scores = JAABADetect(expdir,varargin)
+% expdir (String) -- is the experiment directory. 
+% classifierfiles (Cell array of Strings) -- locations of the classifiers
+% for the behaviors that you want to detect.
+% configfiles (Cell array of strings) -- locations of the project files
+% that were used to train the classifiers.
+% Example usage:
+% JAABADetect('testExp','classifierfiles',{'ChaseClassifier.mat'},'configfiles',{'ChaseProject.mat'});
 
 [blockSize,classifierfiles,configfiles,classifierparamsfile,configparams,forcecompute,DEBUG,isrelativepath,fnsrelative] = ...
   myparse(varargin,'blockSize',10000,...
@@ -27,6 +35,7 @@ if ischar(classifierparamsfile),
   configparams = ReadClassifierParamsFile(classifierparamsfile,'isrelativepath',isrelativepath,'fnsrelative',fnsrelative);
   classifierfiles = {configparams.classifierfile};
   configfiles = {configparams.configfile};
+%{  
 %   if ~exist(classifierparamsfile,'file'),
 %     error('File %s does not exist',classifierparamsfile);
 %   end
@@ -47,6 +56,7 @@ if ischar(classifierparamsfile),
 %     configfiles{end+1} = ws{2}; %#ok<AGROW>
 %   end
 %   fclose(fid);
+%}
 end
 
 nclassifiers = numel(classifierfiles);
