@@ -298,9 +298,12 @@ classdef JLabelData < handle
     doUpdate = true;
     
     % Ground truthing or not
-    gtMode = false;
-    advancedMode = false;
-    modeSet = false;
+    gtMode = false;  % Seems like it would make sense to not have
+                     % JLabelData know about this---it's really more
+                     % a property of the View, not the Model, it seems to
+                     % me.  --ALT, Jan 17 2013
+    %advancedMode = false;
+    %modeSet = false;
     
     % Ground truthing suggestion
     randomGTSuggestions = {};
@@ -6772,21 +6775,21 @@ classdef JLabelData < handle
     function gtMode =  IsGTMode(obj)
       gtMode = obj.gtMode;
     end
-    function advancedMode = IsAdvancedMode(obj)
-      advancedMode = obj.advancedMode;
-    end
-    function modeSet = IsModeSet(obj)
-      modeSet = obj.modeSet;
-    end
+    %function advancedMode = IsAdvancedMode(obj)
+    %  advancedMode = obj.advancedMode;
+    %end
+    %function modeSet = IsModeSet(obj)
+    %  modeSet = obj.modeSet;
+    %end
     function SetGTMode(obj,val)
       obj.gtMode = val;
     end
-    function SetAdvancedMode(obj,val)
-      obj.advancedMode = val;
-    end
-    function SetMode(obj)
-      obj.modeSet = true;
-    end
+    %function SetAdvancedMode(obj,val)
+    %  obj.advancedMode = val;
+    %end
+    %function SetMode(obj)
+    %  obj.modeSet = true;
+    %end
     
 
 % Post Processing functions
@@ -7116,23 +7119,23 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
 
-    function setLabelingMode(self,modeString)
-      switch modeString,
-        case 'Advanced',
-          self.SetAdvancedMode(true);
-          self.SetGTMode(false);
-        case 'Normal'
-          self.SetAdvancedMode(false);
-          self.SetGTMode(false);
-        case 'Ground Truthing',
-          self.SetAdvancedMode(false);
-          self.SetGTMode(true);
-        case 'Ground Truthing Advanced',
-          self.SetAdvancedMode(true);
-          self.SetGTMode(true);
-      end
-      self.SetMode();
-    end
+%     function setLabelingMode(self,modeString)
+%       switch modeString,
+%         case 'Advanced',
+%           self.SetAdvancedMode(true);
+%           self.SetGTMode(false);
+%         case 'Normal'
+%           self.SetAdvancedMode(false);
+%           self.SetGTMode(false);
+%         case 'Ground Truthing',
+%           self.SetAdvancedMode(false);
+%           self.SetGTMode(true);
+%         case 'Ground Truthing Advanced',
+%           self.SetAdvancedMode(true);
+%           self.SetGTMode(true);
+%       end
+%       self.SetMode();
+%     end
 
     % ---------------------------------------------------------------------
       
