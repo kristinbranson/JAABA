@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+
+    <absdtheta trans_types="relative" type="locomotion"/>
+    
+    <absdv_cor trans_types="relative" type="locomotion"/>
+        
+    <area trans_types="none,relative" type="appearance"/>
+        
+    <corfrac_maj trans_types="none,abs" type="locomotion"/>
+    
+    <corfrac_min trans_types="flip,abs" type="locomotion"/>
+    
+    <darea trans_types="none,abs" type="appearance"/>
+        
+    <dtheta trans_types="flip,abs" type="locomotion"/>
+    
+    <du_cor trans_types="none,abs,relative" type="locomotion"/>
+    
+    <du_ctr trans_types="none,abs,relative" type="locomotion"/>
+    
+    <dv_cor trans_types="flip,abs" type="locomotion"/>
+    
+    <dv_ctr trans_types="flip,abs" type="locomotion"/>
+    
+    <flipdv_cor trans_types="relative" type="locomotion"/>
+    
+    <phi trans_types="none" type="position"/>
+    
+    <velmag trans_types="none,relative" type="locomotion"/>
+    
+    <velmag_ctr trans_types="none,relative" type="locomotion"/>
+    
+    <yaw trans_types="flip,abs" type="locomotion"/>
+    
+    <acc_curv trans_types="none,flip,abs" type="unknown"/>
+    <acc_ddtheta trans_types="none,flip,abs" type="unknown"/>
+    <acc_deltatheta trans_types="none,flip,abs" type="unknown"/>
+    <bend trans_types="none,flip,abs" type="appearance"/>
+    <centroidvelforward_bodydir trans_types="none,abs,relative" type="locomotion"/>
+    <centroidvelforward_headdir trans_types="none,abs,relative" type="locomotion"/>
+    <centroidvelforward_taildir trans_types="none,abs,relative" type="locomotion"/>
+    <centroidvelsideways_bodydir trans_types="none,abs,relative" type="locomotion"/>
+    <centroidvelsideways_headdir trans_types="none,abs,relative" type="locomotion"/>
+    <centroidvelsideways_taildir trans_types="none,abs,relative" type="locomotion"/>
+    <cov_covMajor trans_types="none,relative" type="appearance"/>
+    <cov_covMinor trans_types="none,relative" type="appearance"/>
+    <cov_covRatio trans_types="none,relative" type="appearance"/>
+    <cov_covTheta trans_types="none,relative" type="arena"/>
+    <dbend trans_types="abs,flip" type="locomotion"/>
+    <dcovRatio trans_types="none" type="appearance"/>
+    <dheaddir trans_types="abs,none,flip" type="locomotion"/>
+    <dspinelength trans_types="none,abs,flip" type="appearance"/>
+    <dtaildir trans_types="abs,none,flip" type="locomotion"/>
+    <headdir trans_types="none" type="arena"/>
+    <headspeed trans_types="none" type="locomotion"/>
+    <headvelforward_headdir trans_types="none,abs" type="locomotion"/>
+    <headvelsideways_headdir trans_types="none,abs" type="locomotion"/>
+    <lrdtheta trans_types="none,abs" type="unknown"/>
+    <midspeed trans_types="none" type="locomotion"/>
+    <midvelforward_headdir trans_types="none,abs" type="locomotion"/>
+    <midvelsideways_headdir trans_types="none,abs" type="locomotion"/>
+    <pathLength trans_types="none" type="distance"/>
+    <sarea trans_types="none" type="appearance"/>
+    <spinelength trans_types="none" type="appearance"/>
+    <taildir trans_types="none" type="arena"/>
+    <tailspeed trans_types="none" type="locomotion"/>
+    <tailvelforward_headdir trans_types="none,abs" type="locomotion"/>
+    <tailvelsideways_headdir trans_types="none,abs" type="locomotion"/>
+    <vel_adjspeed trans_types="none" type="locomotion"/>
+    <vel_speed trans_types="none" type="locomotion"/>
+    <vel_theta trans_types="none" type="arena"/>    
+  </perframe>
+</params>

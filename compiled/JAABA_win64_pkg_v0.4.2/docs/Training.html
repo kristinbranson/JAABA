@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<!--- OLD FORMATTING
+<style type="text/css">
+table {
+background-color:yellow;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+--->
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
+</head>
+</body>
+<h1><a href="index.html">JAABA</a>: Creating a Behavior Classifier</h1>
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#AddingLabels">Adding or Changing Labels</a></li>
+<li><a href="#KeyboardShortcuts">Label Keyboard Shortcuts</a></li>
+<li><a href="#Training">Training</a></li>
+<li><a href="#SelectFeaturesQuick">Select Features (Quick)</a></li>
+<li><a href="#Predictions">Examining the Classifier's Predictions</a></li>
+<li><a href="#Memory">Memory Usage</a></li>
+<li><a href="#Retraining">Retraining</a></li>
+<li><a href="#Guidelines">Labeling Guidelines</a></li>
+<li><a href="#PostProcessing">Post-Processing Predictions</a>
+<ul>
+<li><a href="#Types">Types of Post-Processing</a></li>
+</ul>
+</li>
+<li><a href="#ClassifierParameters">Classifier Parameters (Advanced)</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="AddingLabels">Adding or Changing Labels</a></h2>
+
+<p> JAABA creates classifiers that predict <b>whether or not</b> the animal(s) are performing a given behavior (specified in the <a href="NewProject.html">Project Configuration</a>) in each frame. In the screen capture below, we are labeling whether the flies are <i>Chasing</i> or not. Thus, the label for each animal in each frame can have one of three values, and there are three buttons on the top-right side of the <a href="GUIOverview.html">JAABA interface</a> corresponding to these. 
+<ul>
+<li> <b>[Behavior]</b>: The top-most button is used to label the frame as the behavior for the current project. It will have the name specified in the project configuration, for example <i>Chase</i> in the screen capture below. </li>
+<li> <b>None</b>: The middle button is used to label a frame as <b>not</b> the behavior for the current project, e.g. not chasing.</li>
+<li> <b>Unknown</b>: The bottom button is used to label a frame as either unknown or unlabeled. All frames start as unknown, thus this button can be used to <b>erase</b> labels added previously. </li>
+</ul>
+
+<p>To add or change labels, click the relevant button to put the <b>labeling pen down</b>, then navigate forward or backward in time. The frames being labeled will be outlined in a dashed white box. Click the relevant button again to pick the <b>labeling pen up</b>. All the frames between the pen-down and pen-up frames will be labeled.
+
+<center><img src="images/JLabel-chaseLabel.png" width="743" height="562">
+<br>
+<i>JAABA interface screencap while labeling a bout of chase</i>
+</center>
+
+<hr class="h2-divider">
+
+<h2><a id="KeyboardShortcuts">Label Keyboard Shortcuts</a></h2>
+
+You can assign keyboard shortcuts to each of the label buttons. The shortcuts can be assigned using <b>Edit -> Label Shortcuts..</b>. For example, we like to assign:
+<ul>
+<li> [Behavior]: <b>z</b></li>
+<li> None: <b>x</b></li>
+<li> Unknown: <b>c</b></li>
+</ul>
+</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Training">Training</a></h2>
+
+<p>Once you have <a href="#AddingLabels">labeled</a> a few bouts of both the behavior and none (i.e., not
+the behavior), you can train a classifier by pushing the <b>Train</b> button.</p> The status bar of the
+main JAABA interface will indicate that training is occurring. This should take 15-60 seconds, depending
+on the complexity of the project. 
+
+<hr class="h2-divider">
+
+<h2><a id="SelectFeaturesQuick">Select Features (Quick)</a></h2>
+
+<p>The first time you train a classifier, JAABA will show the 
+<b><a href="WindowFeatureComputation.html#SelectFeatures">Select Features</a></b> interface 
+and ask you to choose the per-frame and window features JAABA will use. 
+To start quickly, select or deselect categories of per-frame by selecting
+<b>All</b> or <b>None</b> from the <b>Select</b> table column and <b>normal</b> from the <b>Amount</b>
+column. Also set <b>Window Size</b> to a positive integer. Then, push the <b>Done</b> button to 
+continue. </p>
+<p>
+More details on perframe features, window computations and window size can be found 
+<a href=WindowFeatureComputation.html>here</a>.
+</p>
+
+<center>
+<table style="border:0px;margin-bottom:5px;margin-top:5px"; >
+<tr>
+<td>
+<center>
+<a href="images/selectFeautresInitial.png">
+<img src="images/selectFeaturesInitial.png" height="500px"/>
+</a>
+<br>
+<i>Initial</i>
+</center>
+</td>
+<td>
+<center>
+<a href="images/SelectFeaturesSel.png">
+<img src="images/SelectFeaturesSel.png" height="500px"/>
+</a>
+<br>
+<i>Final</i>
+</center>
+</td>
+</tr>
+</table>
+<i>Select Features Dialog</i>
+</center>
+
+<hr class="h2-divider">
+
+<h2><a id="Predictions">Examining the Classifier's Predictions</a></h2>
+
+<p>The middle timeline on the <a href="GUIOverview.html">JAABA interface</a> shows the 
+current classifier's predictions. Some frames will have predictions computed, and some will not. 
+You can compute predictions for frames in the following ways:
+<ul>
+<li>Pushing the <b>Predict</b> button will compute predictions for a window of frames around the
+current frame for the selected animal. </li>
+<li>While the video is <b>playing</b>, predictions will automatically be computed for frames as they
+appear. </li>
+<li>Selecting <b>Classifier->Classify->Current fly</b> will produce predictions for all frames for the selected animal.</li>
+<li>Selecting <b>Classifier->Classify->Current experiment</b> will produce predictions for all frames for all animals in the current video.</li>
+<li>Selecting <b>Classifier->Classify->All experiments</b> will produce predictions for all frames for all animals in all videos.</li>
+</ul>
+</p>
+
+<center>
+<img src="images/Automatic-Tracks.png" width="700">
+<br>
+<i>JAABA Timelines</i>
+</center>
+
+<p>The classifier's predictions are shown in the <b>Automatic Predictions</b> timeline, which
+is subdivided into the following four parts:
+<ul>
+<li> The top line shows the binary <b>predictions</b> of the current classifier.</li>
+<li> The second line shows the continuous <b>scores</b> output by the classifier. The classifier's binary predictions (above) are obtained by thresholding the scores. The magnitude of the scores ranges between 0 and 1 and roughly corresponds to the classifier's confidence. Darker colors indicate low confidence, 
+while brighter colors indicate high confidence.</li>
+<li> What is shown in the bottom two rows can be set using the drop down menu on the left. It can show:
+<ul>
+<li> Predictions and scores of the <b>previously trained classifier</b></li>
+<li> The results of <b><a href="CrossValidation.html">cross-validation</a></b></li>
+<li> Scores <b>loaded</b> from a file. </li>
+</ul>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="Memory">Memory Usage</a></h2>
+
+We compute an extensive set of window features for each frame labeled or predicted. 
+The number of window features for each frame is in the thousands. Computing these window features
+requires time and storing them requires memory, so we compute them as and when necessary.
+Once computed, we store them as long as possible, until the memory used to store them hits a limit. 
+The amount of memory that is used to store window features can be controlled under the menu item
+<b>Edit -> Memory Usage</b>.
+
+<hr class="h2-divider">
+
+<h2><a id="Retraining">Retraining</a></h2>
+
+<p>As you review the predictions, you should label frames whose class is <b>incorrectly predicted</b>
+and for which you are confident of the true class. It's likely that the classifier's predictions 
+are wrong on these frames because there were few similar frames in the training set. Adding such 
+frames to the training set will improve the classifier's prediction on similar frames.</p>
+
+<p>Once you add new labels, you can <b>retrain</b> the classifier by clicking <b>Train</b> again. 
+After retraining, the scores from the previous classifier can be shown at the bottom of the 
+automatic predictions timeline (<b>old</b> in the drop down menu). 
+</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Guidelines">Labeling Guidelines</a></h2>
+
+<p>Machine learning algorithms are <b>sensitive to inconsistently labeled data</b>. If two similar frames are given the same label, the learning algorithm will spend most of its effort (complexity) in separating these similar looking frames. To train an accurate classifier, you should <b>not</b> label frames for which you are unsure of the correct behavior class. A second advantage of this strategy is that labeling is faster and easier, as it takes longer to decide on labels for difficult examples.</p>
+
+<p>Machine learning algorithms also find it difficult to train an accurate classifier if the number of examples from both classes are <b>unbalanced</b>. To create a more balanced training set, once you train an initial classifier, you should try to label only examples that are incorrectly predicted or have low confidence, and train often. This strategy prevents bloating the training set with obvious examples that make up most of the <i>None</i> behavior class. </p>
+
+<hr class="h2-divider">
+
+<h2><a id="PostProcessing">Post-Processing Predictions</a></h2>
+
+<p>Prediction and the scores produced by classifiers are not always smooth and
+sometimes can result in <b>bouts that are shorter than normal behavioral bouts</b>. This is a limitation
+of the type of learning algorithm used by JAABA. JAABA finds a classifier which minimizes the 
+total number of frames classified incorrectly, and all frames are given the same weight. With this
+error criterion, the penalty for an incorrect classification which results in a spurious one-frame-long
+bout of the behavior is the same as the penalty for missing the start of a behavior bout by one frame. </p>
+<p>To address this issue, the user can use post-processing tools to smooth and filter the predictions.
+The post-processing tool can be accessed by selecting the menu iterm <b>Classifier ->Post-Processing</b>.</p>
+
+<hr class="h2-divider">
+
+<h3><a id="Types">Types of Post-Processing</a></h3>
+
+The predictions can be smoothed using the following methods:
+<ul>
+<li><b>Hysteresis</b>: Hysteresis smooths the predictions by first going through all the predicted 
+bouts of the behavior and discarding all bouts that don't have any frames with scores above a
+stricter threshold <code>hthresh</code> > 0. It then goes through all the bouts of None (not-behavior) 
+and discards all the bouts that don't have any frames with scores
+less than a stricter threshold <code>lthresh < 0</code>. The parameters <code>hthresh</code> and  
+<code>hthresh</code> are set by the user.</li>
+<li><b>Filtering</b>: Filtering smooths the predictions by <b>convolving the scores</b> 
+(<b>not</b> the predictions) with a box filter. Thus, the prediction for a given frame is
+the mean of the predictions for the frames in a window around the current frame. The
+predictions are then computed by thresholding the filtered scores at 0. The size of the window
+is set by the user.
+</ul>
+
+<p>In addition, to the above smoothing methods, the user can also set the <b>minimum bout length</b> so as to 
+ignore bouts that have length smaller than the minimum bout length.</p>
+
+<hr class="h2-divider">
+
+<h2><a id="ClassifierParameters">Classifier Parameters (Advanced)</a></h2>
+
+<p>Under the <b>Classifier->Classifier parameters</b> menu you can set:
+<ul>
+<li><b>Iterations</b>: Number of iterations of boosting. We use 100 iterations for most classifiers. 
+Increasing this number results in more complicated classifiers that are slower to train and run. </li>
+<li><b>Iterations for fast updates</b>: Number of iterations of boosting to change when using fast updates. We always use the default value <b>10</b>.</li>
+<li><b>Base Classifier</b>: Type of classifier added in each iteration. Currently, the only option is <b>Decision Stumps</b>.</li>
+<li><b>Sample points</b>: Number of points to sample when finding the best weak rule at each iteration. We always use the default value <b>2,500</b>.</li>
+<li><b>Bins</b>: Number of threshold values to try when finding the best decision stump. We always use the default value <b>30</b>.</li>
+<li><b>Cross-Validation Folds</b>: Number of subsets to split the training data into when performing <a href="CrossValidation.html">Cross Validation</html>.</li>
+</ul>
+</p>
+<center><img src="images/ClassifierOptions.png"></center>
+
+
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+<title>Tree Menu - Make menus that expand when clicked</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta name="description" content="TreeMenu creates tree menus out of UL/LI tags that pop open when clicked.">
+<meta name="author" content="Mack Pexton">
+<link rel="stylesheet" href="acmebase.css" type="text/css">
+
+<style type="text/css">
+/* Menu container */
+.menu	{
+	width:300px;
+	height:175px;
+	border:solid #FF9900 1px;
+	padding:10px 5px 10px 5px;
+	margin:12px 12px 12px 50px;
+	}
+
+/* Menu styles */
+.menu ul
+	{
+	margin:0px;
+	padding:0px;
+	text-decoration:none;
+	}
+.menu li
+	{
+	margin:0px 0px 0px 5px;
+	padding:0px;
+	list-style-type:none;
+	text-align:left;
+	font-family:Arial,Helvetica,sans-serif;
+	font-size:13px;
+	font-weight:normal;
+	}
+
+/* Submenu styles */
+.menu ul ul 
+	{
+	background-color:#F6F6F6;
+	}
+.menu li li
+	{
+	margin:0px 0px 0px 16px;
+	}
+
+/* Symbol styles */
+.menu .symbol-item,
+.menu .symbol-open,
+.menu .symbol-close
+	{
+	float:left;
+	width:16px;
+	height:1em;
+	background-position:left center;
+	background-repeat:no-repeat;
+	}
+.menu .symbol-item  { background-image:url(icons/page.png); }
+.menu .symbol-close { background-image:url(icons/plus.png);}
+.menu .symbol-open  { background-image:url(icons/minus.png); }
+.menu .symbol-item.last  { }
+.menu .symbol-close.last { }
+.menu .symbol-open.last  { }
+
+/* Menu line styles */
+.menu li.item  { font-weight:normal; }
+.menu li.close { font-weight:normal; }
+.menu li.open  { font-weight:bold; }
+.menu li.item.last  { }
+.menu li.close.last { }
+.menu li.open.last  { }
+
+a.go:link, a.go:visited, a.go:active
+        {
+        display:block;
+        height:26px;
+        width:100px;
+        background-color:#FFFFFF;
+        color:#333333;
+        font-family:Arial,Helvetica,sans-serif;
+        font-size:12px;
+        font-weight:bold;
+        text-align:right;
+        text-decoration:none;
+        line-height:26px;
+        padding-right:30px;
+        background-image:url(go.gif);
+        background-position:right;
+        background-repeat:no-repeat;
+        }
+a.go:hover
+        {
+        text-decoration:none;
+        color:#488400;
+        }
+#example3 { width:40%; background-color:#F9F9F9; padding:0px; margin-left:24px; }
+#example3 li { list-style:none; margin:1px 0px; }
+#example3 li a { display:block; height:16px; padding:0px 4px; background-color:#EEEEFF; }
+#example3 li ul { margin:0px; padding:0px; }
+#example3 li ul li a { background-color:#F9F9F9; border-bottom: solid #ECECEC 1px; padding-left:20px; }
+</style>
+
+<script src="TreeMenu.js" type="text/javascript"></script>
+</head>
+
+<body>
+<a name="top"></a>
+<div align="center"><div class="page">
+<div class="banner"><a href="http://www.acmebase.org"><img src="acmebase-banner-page.gif" alt="Home" /></a></div>
+<div class="content">
+
+<!-- Header -->
+<h1>Tree Menu <span class="version">v1.4</span>
+<span class="author"><a href="&#109;ailto&#58;mack&#64;acmebase&#46;org?subject=TreeMenu%20v1.4">Mack Pexton</a></span>
+<span class="date">July 13, 2006</span></h1>
+
+<div class="firstbr"></div>
+
+<!-- Table of Contents -->
+<div class="toc">
+<dl>
+<dt><a href="#introduction">Introduction</a></dt>
+<dt><a href="#download">Download</a></dt>
+<dt><a href="#configuration">Configuration</a></dt>
+<dt><a href="#examples">Examples</a>
+  <dl>
+  <dt><a href="#example-1">Example1: Basic</a></dt>
+  <dt><a href="#example-2">Example2: Simple</a></dt>
+  <dt><a href="#example-3">Example3: Singular</a></dt>
+  <dt><a href="dir.php">Example4: File List</a></dt>
+  </dl></dt>
+</dl>
+</div>
+
+
+<a name="introduction" href="#top" class="h2br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h2>Introduction</h2>
+
+<p>It has become common lore with XHTML/HTML programming community that
+menus should be constructed out of &lt;UL&gt; and &lt;LI&gt; tags and that
+their appearance should be determined by CSS style settings. TreeMenu
+is a JavaScript program that scans a &lt;UL&gt; and &lt;LI&gt; structure
+and makes menus that have submenus which expand or contract when clicked.
+For example:</p>
+
+<div class="menu">
+<ul id="example">
+<li>Blog Sites
+  <ul>
+  <li><a href="http://www.autisticcuckoo.net">Tommy Olsen</a></li>
+  <li><a href="http://www.zeldman.com">Jeffrey Zeldman</a></li>
+  <li><a href="http://www.meyerweb.com">Eric Meyer</a></li>
+  </ul>
+</li>
+<li>Other Sites
+  <ul>
+  <li><a href="http://www.accessify.com/">Accessify</a></li>
+  <li><a href="http://www.w3.org/">World Wide Web Consortium</a>
+    <ul>
+    <li><a href="http://validator.w3.org/">The W3C Markup Validator</a></li>
+    <li><a href="http://jigsaw.w3.org/css-validator/">The W3C CSS Validator</a></li>
+    <li><a href="http://www.w3.org/TR/WAI-WEBCONTENT/">The Web Content Accessibility Guidelines</a></li>
+    </ul>
+  </li>
+  </ul>
+</li>
+</ul>
+<script type="text/javascript">make_tree_menu('example');</script>
+</div>
+
+<p>Clicking on the <img src="icons/plus.png" alt="plus symbol"> symbol expands
+the menu whereas clicking on the <img src="icons/minus.png" alt="plus symbol">
+symbol collapses and hides the submenu.</p>
+
+
+<p>TreeMenus are very easy to set up. First, include the JavaScript code in the
+header section between the &lt;HEAD&gt; and &lt;/HEAD&gt; tags.
+
+<pre>
+  &lt;script src="TreeMenu.js" type="text/javascript"&gt;&lt;/script&gt;
+</pre>
+
+<p>or if you are using the compressed commercial version:</p> 
+
+<pre>
+  &lt;script src="AcmeTreeMenu.js" type="text/javascript"&gt;&lt;/script&gt;
+</pre>
+
+<p>Next, after the menu's &lt;UL&gt;&lt;/UL&gt; tags in the HTML source code,
+enter the following script:</p>
+
+<pre>
+  &lt;script type="text/javascript"&gt;make_tree_menu("menu_id")&lt;/script&gt;
+</pre>
+
+<p>where the "menu_id" is the ID you defined in the menu's top &lt;UL&gt; tag.</p>
+
+<p>That's it. The little <img src="icons/plus.png" alt="plus symbol"> and
+<img src="icons/minus.png" alt="plus symbol"> symbols are automatically added to the
+beginning of the line and all the submenus are opened or closed depending
+upon the state you last left them in.</p>
+
+
+
+<a name="download" href="#top" class="h2br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h2>Download</h2>
+
+<p>A zip file of this document and the the TreeMenu JavaScript source code can be downloaded here:
+<a href="http://www.acmebase.org/tree_menu/TreeMenu-1.4.zip">TreeMenu-1.4.zip</a></p>
+
+<p>A compressed commercial version of TreeMenu (only 4.8KB) can be ordered at:
+<a href="http://order.acmebase.com/order.php?p=acmetreemenu">order.acmebase.com</a></p>
+
+
+
+<a name="configuration" href="#top" class="h2br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h2>Configuration</h2>
+
+<p>There are several configuration settings that alter the behavior of TreeMenu.
+The all have the prefix <code>TreeMenu.</code> in their names. Following is 
+a list of the configuration variables with their initial values.</p>
+
+<pre>
+TreeMenu.ClassOpen = 'open';         // class name added to LI tag's class
+TreeMenu.ClassClose = 'close';       // class name added to LI tag's class
+TreeMenu.ClassItem = 'item';         // class name added to LI tag's class
+TreeMenu.ClassLast = 'last';         // added to last LI and symbol tags' classes
+
+TreeMenu.SymbolTag = 'span';         // symbol inserted at beginning of LI tags
+
+TreeMenu.SymbolClassOpen = 'symbol-open';
+TreeMenu.SymbolClassClose = 'symbol-close';
+TreeMenu.SymbolClassItem = 'symbol-item';
+
+TreeMenu.CookieSaveStates = true;    // flag to use a cookie to save menu state
+TreeMenu.CookieExpire = 90;          // days before cookie saving menu states expires
+</pre>
+
+<p>TreeMenu takes advantage of the ability of HTML elements to
+have two or more class names assigned to them. The <code>ClassOpen</code>,
+<code>ClassClose</code>, and <code>ClassItem</code> class names (if defined)
+are added to the &lt;LI&gt; elements in the menu. They allow the appearance
+of the menu items to change when a submenu is opened or closed.</p>
+
+<p>The last elements in a list quite often have different visual characteristics
+than the other items. TreeMenu adds the class name that is assigned to
+<code>ClassLast</code> to the last menu item's class.  The first elements in a
+list can also have a different appearance, and those elements can be identified
+(in modern browsers) by the CSS <code>:first-child</code> pseudo-element.</p>
+
+<p>Symbols are inserted into the beginning of menu items. The type of symbol
+inserted before each &lt;LI&gt; tag's contents is determined by the class
+variable <code>SymbolTag</code>. It can be either "span" or "div" or it
+can be empty. A symbol is NOT inserted before the &lt;LI&gt; tags if the
+<code>SymbolTag</code> is set to the empty string.</p>
+
+<p>The class name of the inserted symbols is set to either:
+<code>SymbolClassOpen</code>, <code>SymbolClassClose</code>, or
+<code>SymbolClassItem</code> depending upon if the &lt;LI&gt; tag has enclosed
+&lt;UL&gt; tags and whether the saved open/closed state of the &lt;LI&gt;
+tag is 1 or 0. The class name defined by <code>ClassLast</code> is added to
+the symbols inserted into the last menu item.</p>
+
+<p>If a symbol is NOT inserted into the menu items, you must provide your
+own buttons to open and close the menus.You can use regular &lt;A&gt; tags
+to open and close menus by defining them with a click handler like:</p>
+
+<pre>
+  &lt;a href="javascript:void 0" onclick="TreeMenu.toggle(this)"&gt;Submenu&lt;/a&gt;
+</pre>
+
+<p>Menus' open/closed states are saved in a cookie with a name derived from
+the top &lt;UL&gt; tag's id unless the <code>CookieSaveStates</code> is
+set to <code>false</code>.</p>
+
+<p>Using cookies to save menu states introduces some limitations. First,
+cookies can only be so large (about 4000 bytes) so only the states of about
+the first 1000 submenus can be saved. Second, the number of cookies that
+can be saved for any one domain is 20 which restricts the number of menus
+that can be saved.</p>
+
+<p>The <code>make_tree_menu()</code> function has two optional arguments
+which, if set to true, turns off inserting symbols before each line and
+skips saving the open/close menu states in a cookie. They can be used instead
+of setting <code>SymbolTag</code> to the empty string and setting 
+<code>CookieSaveStates</code> to false.</p>
+
+<pre>
+  &lt;script type="text/javascript"&gt;make_tree_menu("menu_id",1,1)&lt;/script&gt;
+</pre>
+
+<p>TreeMenu provides two methods to open or close a menu.
+They are <code>TreeMenu.show(ul)</code> and <code>TreeMenu.hide(ul)</code>.
+I use the <code>TreeMenu.show(ul)</code> method to ensure a menu is open before
+highlighting the current menu item.
+They take only one argument that is the element object or id 
+of the &lt;UL&gt; tag you want to show or hide. They are used like:</p>
+
+<pre>
+  var ul = document.getElementById("id_of_menu_ul_tag");
+  TreeMenu.show(ul);
+  TreeMenu.hide(ul);
+</pre>
+
+<p>The <code>TreeMenu.show_all(ul)</code> and <code>TreeMenu.hide_all(ul)</code> methods opens
+and closes all the menus under the specified &lt;UL&gt; tag.</p>
+
+<p>As of TreeMenu v1.3, there is a <code>TreeMenu.reset(ul)</code> method that removes
+the cookie saving the state of the menus thereby returning the menus to their
+default state the next time the page is refreshed.</p>
+
+<p>Multiple menus can be made and each menu can have a different settings for
+the configuration variables.</p>
+
+<p>The first &lt;UL&gt; tag in a menu needs to be named with an ID attribute.
+Menus sharing the same ID name on all pages within a domain share the same menu states.
+In other words, menus opened by the user stay open when navigating from page to page.</p>
+
+
+
+<a name="examples" href="#top" class="h2br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h2>Examples</h2>
+
+<a name="example-1" href="#top" class="h3br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h3>Example 1: Basic</h3>
+
+<p>This menu is the same as the first example menu in the introduction.</p>
+
+<div class="menu" style="float:left;">
+<ul id="example1">
+<li>Blog Sites
+  <ul>
+  <li><a href="http://www.autisticcuckoo.net">Tommy Olsen</a></li>
+  <li><a href="http://www.zeldman.com">Jeffrey Zeldman</a></li>
+  <li><a href="http://www.meyerweb.com">Eric Meyer</a></li>
+  </ul>
+</li>
+<li>Other Sites
+  <ul>
+  <li><a href="http://www.accessify.com/">Accessify</a></li>
+  <li><a href="http://www.w3.org/">World Wide Web Consortium</a>
+    <ul>
+    <li><a href="http://validator.w3.org/">The W3C Markup Validator</a></li>
+    <li><a href="http://jigsaw.w3.org/css-validator/">The W3C CSS Validator</a></li>
+    <li><a href="http://www.w3.org/TR/WAI-WEBCONTENT/">The Web Content Accessibility Guidelines</a></li>
+    </ul>
+  </li>
+  </ul>
+</li>
+</ul>
+<script type="text/javascript">make_tree_menu('example1');</script>
+</div>
+
+<div style="margin-top:18px;">
+<button onclick="TreeMenu.show_all(document.getElementById('example1'))">Show All</button><br />
+<button onclick="TreeMenu.hide_all(document.getElementById('example1'))">Hide All</button><br />
+<button onclick="TreeMenu.reset(document.getElementById('example1'));location.reload();">Reset</button><br />
+</div>
+
+<p style="clear:both;">The menu was created from the following &lt;UL&gt; and &lt;LI&gt; tags.</p>
+
+<pre style="font-size:85%;">
+&lt;div class="menu"&gt;
+&lt;ul id="example1"&gt;
+&lt;li&gt;Blog Sites
+  &lt;ul&gt;
+  &lt;li&gt;&lt;a href="http://www.autisticcuckoo.net"&gt;Tommy Olsen&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href="http://www.zeldman.com"&gt;Jeffrey Zeldman&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href="http://www.meyerweb.com"&gt;Eric Meyer&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;Other Sites
+  &lt;ul&gt;
+  &lt;li&gt;&lt;a href="http://www.accessify.com/"&gt;Accessify&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href="http://www.w3.org/"&gt;World Wide Web Consortium&lt;/a&gt;
+    &lt;ul&gt;
+    &lt;li&gt;&lt;a href="http://validator.w3.org/"&gt;The W3C Markup Validator&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href="http://jigsaw.w3.org/css-validator/"&gt;The W3C CSS Validator&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href="http://www.w3.org/TR/WAI-WEBCONTENT/"&gt;The Web Content Accessibility
+Guidelines&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script type="text/javascript"&gt;make_tree_menu('example1');&lt;/script&gt;
+&lt;/div class="menu"&gt;
+</pre>
+
+<p>The images used in menu and the menu indentations are defined in the following CSS styles.
+I enclose my menus in &lt;DIV&gt; tags to make the style settings more generic and
+flexible.</p>
+
+<pre style="font-size:85%;">
+/* Menu container */
+.menu	{
+	width:300px;
+	height:175px;
+	border:solid #FF9900 1px;
+	padding:10px 5px 10px 5px;
+	margin:12px 12px 12px 50px;
+	}
+
+/* Menu styles */
+.menu ul
+	{
+	margin:0px;
+	padding:0px;
+	}
+.menu li
+	{
+	margin:0px 0px 0px 5px;
+	padding:0px;
+	list-style-type:none;
+	text-align:left;
+	font-family:Arial,Helvetica,sans-serif;
+	font-size:13px;
+	font-weight:normal;
+	}
+
+/* Submenu styles */
+.menu ul ul 
+	{
+	background-color:#F6F6F6;
+	}
+.menu li li
+	{
+	margin:0px 0px 0px 16px;
+	}
+
+/* Symbol styles */
+.menu .symbol-item,
+.menu .symbol-open,
+.menu .symbol-close
+	{
+	float:left;
+	width:16px;
+	height:1em;
+	background-position:left center;
+	background-repeat:no-repeat;
+	}
+.menu .symbol-item  { background-image:url(icons/page.png); }
+.menu .symbol-open  { background-image:url(icons/minus.png); }
+.menu .symbol-close { background-image:url(icons/plus.png);}
+
+/* Menu line styles */
+.menu li.open  { font-weight:bold; }
+.menu li.close { font-weight:normal; }
+</pre>
+
+<p>The buttons "Show All", "Hide All", and "Reset" demonstrate the 
+<code>TreeMenu.show_all(ul)</code>, <code>TreeMenu.hide_all(ul)</code>, 
+and the <code>TreeMenu.reset(ul)</code> methods which opens or closes
+all the menus and removes the cookie preserving the users current
+menu states so the menus are displayed in their original default form.</p>
+
+
+
+
+<a name="example-2" href="#top" class="h3br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h3>Example 2: Simple</h3>
+
+<p>The following example shows the simplest of menus. There are not any CSS
+style settings, only the browser default settings are used. The menu 
+consists of only &lt;UL&gt;, &lt;LI&gt; and &lt;A&gt; tags. No symbols are
+inserted at the beginning of each menu item. The bullets are the browser's
+standard bullet symbols.</p>
+
+<p>Since symbols are not automatically inserted to open
+and collapse a menu, &lt;A&gt; tags have been defined with an
+<code>onclick="TreeMenu.toggle(this)"</code>
+attribute to open and close the menus.</p>
+
+<ul id="example2">
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">JavaScript</a>
+  <ul>
+  <li><a href='http://javascript.internet.com/'>JavaScript Source</a></li>
+  <li><a href='http://www.webreference.com/js/'>WebReference JavaScript Articles</a></li>
+  <li><a href='http://www.javascript.com/'>JavaScript.com</a></li>
+  </ul>
+</li>
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">Web Development</a>
+  <ul>
+  <li><a href='http://www.webreference.com/'>Web Reference</a></li>
+  <li><a href='http://www.webdeveloper.com/'>Web Developer</a></li>
+  <li><a href='http://wdvl.com/'>WDVL</a></li>
+  </ul>
+</li>
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">Forums</a>
+  <ul>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=5'>XML</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=2'>HTML</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=3'>JavaScript</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=4'>Perl</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=16'>PHP</a></li>
+  </ul>
+</li>
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">Miscellaneous Web Sites</a>
+  <ul>
+  <li><a href='http://www.thecounter.com/'>The Counter</a></li>
+  <li><a href='http://www.theguestbook.com/'>The Guestbook</a></li>
+  <li><a href='http://www.thelist.com/'>The List of ISPs</a></li>
+  <li><a href='http://jobs.internet.com/'>Internet Jobs</a></li>
+  </ul>
+</li>
+</ul>
+<script type="text/javascript">make_tree_menu('example2',1);</script>
+
+<p>The above menus were created from the following &lt;UL&gt; and &lt;LI&gt; tags.
+The second argument to <code>make_tree_menu()</code> that is set to 1 prevents
+the symbols from being automatically inserted at the beginning of the lines. We could
+have set the configuration variable <code>TreeMenu.SymbolTag = '';</code> which
+would have also prevented the insertion of symbols.</p>
+
+<pre style="font-size:85%;">
+&lt;ul id="example2"&gt;
+&lt;li&gt;&lt;a href="javascript:void 0" onclick="TreeMenu.toggle(this)"&gt;JavaScript&lt;/a&gt;
+  &lt;ul&gt;
+  &lt;li&gt;&lt;a href='http://javascript.internet.com/'&gt;JavaScript Source&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.webreference.com/js/'&gt;WebReference JavaScript Articles&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.javascript.com/'&gt;JavaScript.com&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="javascript:void 0" onclick="TreeMenu.toggle(this)"&gt;Web Development&lt;/a&gt;
+  &lt;ul&gt;
+  &lt;li&gt;&lt;a href='http://www.webreference.com/'&gt;Web Reference&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.webdeveloper.com/'&gt;Web Developer&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://wdvl.com/'&gt;WDVL&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="javascript:void 0" onclick="TreeMenu.toggle(this)"&gt;Forums&lt;/a&gt;
+  &lt;ul&gt;
+  &lt;li&gt;&lt;a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=5'&gt;XML&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=2'&gt;HTML&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=3'&gt;JavaScript&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=4'&gt;Perl&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=16'&gt;PHP&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="javascript:void 0" onclick="TreeMenu.toggle(this)"&gt;Miscellaneous Web Sites&lt;/a&gt;
+  &lt;ul&gt;
+  &lt;li&gt;&lt;a href='http://www.thecounter.com/'&gt;The Counter&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.theguestbook.com/'&gt;The Guestbook&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://www.thelist.com/'&gt;The List of ISPs&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href='http://jobs.internet.com/'&gt;Internet Jobs&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script type="text/javascript"&gt;make_tree_menu('example2',1)&lt;/script&gt;
+</pre>
+
+
+
+
+<a name="example-3" href="#top" class="h3br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h3>Example 3: Singular</h3>
+
+<p>This next example is like the previous with one exception (aside from different css settings):
+the call to <code>make_tree_menu()</code>
+has its fourth argument set to <code>true</code>, which is the same as setting the configuration variable
+<code>TreeMenu.Singular</code> to <code>true</code>. It allows only one menu (per level) to be open at a time.</p>
+
+<pre>
+  &lt;script type="text/javascript"&gt;make_tree_menu("menu_id",1,0,1)&lt;/script&gt;
+</pre>
+
+<div style="height:180px;">
+
+<ul id="example3">
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">JavaScript</a>
+  <ul>
+  <li><a href='http://javascript.internet.com/'>JavaScript Source</a></li>
+  <li><a href='http://www.webreference.com/js/'>WebReference JavaScript Articles</a></li>
+  <li><a href='http://www.javascript.com/'>JavaScript.com</a></li>
+  </ul>
+</li>
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">Web Development</a>
+  <ul>
+  <li><a href='http://www.webreference.com/'>Web Reference</a></li>
+  <li><a href='http://www.webdeveloper.com/'>Web Developer</a></li>
+  <li><a href='http://wdvl.com/'>WDVL</a></li>
+  </ul>
+</li>
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">Forums</a>
+  <ul>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=5'>XML</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=2'>HTML</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=3'>JavaScript</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=4'>Perl</a></li>
+  <li><a href='http://www.webdeveloper.com/forum/forumdisplay.php?s=&forumid=16'>PHP</a></li>
+  </ul>
+</li>
+<li><a href="javascript:void 0" onclick="TreeMenu.toggle(this)">Miscellaneous Web Sites</a>
+  <ul>
+  <li><a href='http://www.thecounter.com/'>The Counter</a></li>
+  <li><a href='http://www.theguestbook.com/'>The Guestbook</a></li>
+  <li><a href='http://www.thelist.com/'>The List of ISPs</a></li>
+  <li><a href='http://jobs.internet.com/'>Internet Jobs</a></li>
+  </ul>
+</li>
+</ul>
+<script type="text/javascript">make_tree_menu('example3',1,0,1);</script>
+
+</div>
+
+
+
+
+<a name="example-4" href="#top" class="h3br" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+<h3>Example 4: File List</h3>
+
+<p>The fourth example is a PHP program that produces a listing of files and folders on the server. Together with
+TreeMenu, the folders expand and collapse as in Window's Explorer.</p>
+
+
+<div align="center"><a href="dir.php" class="go">File Listing</a></div>
+
+
+<a name="bottom" href="#top" class="lastbr" title="Top of page."><img src="top.gif" border="0" alt="Top"></a>
+</div>
+
+<div class="footer">
+</div>
+</div></div>
+
+</body>
+</html>
