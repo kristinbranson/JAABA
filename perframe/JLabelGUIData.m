@@ -9,7 +9,7 @@ classdef JLabelGUIData < handle
     defaultpath = '';
     packageoutputdir = '';
     
-    isgroundtruthmode = false;
+    %isgroundtruthmode = false;  % never used
     
     status_bar_text_when_clear = '';
     idlestatuscolor = [0,1,0];
@@ -96,8 +96,9 @@ classdef JLabelGUIData < handle
 
     togglebutton_label_behaviors = [];
     
-    GUIGroundTruthMode = false;  % true iff the GUI is in ground truth mode, as
-                                 % opposed to labeling mode
+    GUIGroundTruthingMode = [];  % true iff the GUI is in ground truth mode, as
+                                 % opposed to labeling mode.  Empty if
+                                 % no project is currently loaded.
     GUIAdvancedMode = false;  % true iff the GUI is in advanced mode, as
                               % opposed to basic mode
 
