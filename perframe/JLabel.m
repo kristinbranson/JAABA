@@ -130,9 +130,10 @@ handles=guidata(hObject);
 handles = UpdateLabelButtons(handles);
 guidata(hObject,handles);
 
-% Update the enablement of controls
+% Update aspects of the GUI to match the current "model" state
 handles=guidata(hObject);
-UpdateEnablementOfGUI(handles);
+UpdateGUIToMatchMovieState(handles);
+UpdateGUIToMatchOpenFileState(handles);
 
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
@@ -439,7 +440,7 @@ end
 set(handles.guidata.htrx,'EraseMode','none');
 set(handles.guidata.hfly_markers,'EraseMode','none');
 
-handles = UpdateGUIGroundTruthingMode(handles);
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
 %for i = 1:numel(handles.guidata.axes_timelines),
 %  setAxesZoomMotion(handles.guidata.hzoom,handles.guidata.axes_timelines(i),'horizontal');
@@ -1038,7 +1039,8 @@ for h = handles.guidata.axes_timeline_labels,
 end
 
 % enable GUI components
-UpdateEnablementOfGUI(handles);
+UpdateGUIToMatchMovieState(handles);
+%UpdateGUIToMatchOpenFileState(handles);
 
 success = true;
 
@@ -1072,9 +1074,10 @@ if ~isempty(handles.guidata.hfly_markers),
   handles.guidata.hfly_markers = [];
 end
 
+% % Update the GUI
+% UpdateGUIToMatchMovieState(handles);
 
-% enable GUI components
-UpdateEnablementOfGUI(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -1511,7 +1514,7 @@ else
   handles.guidata.oldexpdir = '';
 end
 
-DisableGUI(handles);
+%DisableGUI(handles);
 %[handles,success] = ...
 %  JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
 
@@ -2136,11 +2139,42 @@ handles.guidata.GUIAdvancedMode = isAdvancedMode;
 return
 
 
+% %--------------------------------------------------------------------------
+% function UpdateEnablementOfGUI(handles)
+% % Updates the enablement of controls according to the number of experiments
+% % and the current experiment, and handles.guidata.needsave.  Also, disables
+% % File > Save Project...
+% 
+% UpdateGUIToMatchMovieState(handles);
+% 
+% % Disable the save menu item if things have recently been saved,
+% % Enable it if there are unsaved changes
+% UpdateGUIToMatchOpenFileState(handles);
+% 
+% return
+
+
 %--------------------------------------------------------------------------
-function UpdateEnablementOfGUI(handles)
-% Updates the enablement of controls according to the number of experiments
-% and the current experiment, and handles.guidata.needsave.  Also, disables
-% File > Save Project...
+function UpdateGUIToMatchOpenFileState(handles)
+
+% Disable the save menu item if things have recently been saved,
+% Enable it if there are unsaved changes
+thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
+needsave=handles.guidata.needsave;
+set(handles.menu_file_new,'Enable',on(~thereIsAnOpenFile));  
+set(handles.menu_file_open,'Enable',on(~thereIsAnOpenFile));  
+set(handles.menu_file_open_in_ground_truthing_mode,'Enable',on(~thereIsAnOpenFile));  
+set(handles.menu_file_save,'Enable',on(thereIsAnOpenFile&&needsave));
+set(handles.menu_file_save_as,'Enable',on(thereIsAnOpenFile));
+set(handles.menu_file_close,'Enable',on(thereIsAnOpenFile));
+
+return
+
+
+%--------------------------------------------------------------------------
+function UpdateGUIToMatchMovieState(handles)
+% Updates the visbility of controls depending on whether there is a valid
+% current experiment.  (I.e., a movie showing)
 
 % these controls require a movie to currently be open, and should be
 % disabled if there's no movie
@@ -2155,7 +2189,7 @@ h = [handles.contextmenu_timeline_manual_timeline_options,...
      handles.guidata.menu_view_zoom_options(:)'];
 h = h(~isnan(h));
 
-% these require a movie to currently be opne and should be _invisible_
+% these require a movie to currently be open and should be _invisible_
 % if there's no movie
 hp = [handles.guidata.panel_previews(:)',...
       handles.panel_timelines,...
@@ -2169,17 +2203,6 @@ else
   set(h,'Enable','off');
   set(hp,'Visible','off');
 end
-
-% Disable the save menu item if things have recently been saved,
-% Enable it if there are unsaved changes
-thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
-needsave=handles.guidata.needsave;
-set(handles.menu_file_new,'Enable',on(~thereIsAnOpenFile));  
-set(handles.menu_file_open,'Enable',on(~thereIsAnOpenFile));  
-set(handles.menu_file_open_in_ground_truthing_mode,'Enable',on(~thereIsAnOpenFile));  
-set(handles.menu_file_save,'Enable',on(thereIsAnOpenFile&&needsave));
-set(handles.menu_file_save_as,'Enable',on(thereIsAnOpenFile));
-set(handles.menu_file_close,'Enable',on(thereIsAnOpenFile));
 
 return
 
@@ -3013,9 +3036,9 @@ function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % that we've preloaded the right experiment and flies. 
 % REMOVED!
 
-if ~handles.guidata.enabled,
-  return;
-end
+% if ~handles.guidata.enabled,
+%   return;
+% end
 
 % double-click does nothing
 if strcmpi(get(handles.figure_JLabel,'SelectionType'),'open'),
@@ -3063,9 +3086,9 @@ function fly_ButtonDownFcn(hObject, eventdata, handles, fly, i)
 
 % TODO: figure out how to do this when multiple flies define a behavior
 
-if ~handles.guidata.enabled,
-  return;
-end
+% if ~handles.guidata.enabled,
+%   return;
+% end
 
 % check for double click
 if ~strcmpi(get(handles.figure_JLabel,'SelectionType'),'open') || ...
@@ -3136,9 +3159,9 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~handles.guidata.enabled,
-  return;
-end
+% if ~handles.guidata.enabled,
+%   return;
+% end
 
 pt = get(hObject,'CurrentPoint');
 t = min(max(handles.guidata.t0_curr,round(pt(1,1))),handles.guidata.t1_curr);%nframes);
@@ -3160,7 +3183,7 @@ handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
 handles.guidata.needsave=true;
-UpdateEnablementOfGUI(handles);
+UpdateGUIToMatchOpenFileState(handles);
 guidata(hObject,handles);
 
 
@@ -3574,9 +3597,9 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~handles.guidata.enabled,
-  return;
-end
+% if ~handles.guidata.enabled,
+%   return;
+% end
 
 if strcmpi(eventdata.Modifier,'control')
   switch eventdata.Key,
@@ -4599,9 +4622,9 @@ function figure_JLabel_WindowButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~handles.guidata.enabled,
-  return;
-end
+% if ~handles.guidata.enabled,
+%   return;
+% end
 
 hchil = gco;
 if ismember(hchil,handles.guidata.axes_timelines),
@@ -6058,23 +6081,12 @@ end
 
 
 % -------------------------------------------------------------------------
-function handles = UpdateGUIGroundTruthingMode(handles)
+function handles = UpdateGUIToMatchGroundTruthingMode(handles)
+% Updates the graphics objects as needed to match the current labeling mode 
+% (normal or ground-truthing)
 
-handles=setGUIGroundTruthingMode(handles,handles.guidata.GUIGroundTruthingMode);
-
-return
-
-
-% -------------------------------------------------------------------------
-function handles=setGUIGroundTruthingMode(handles,newMode)
-
-% % in the right mode already?
-% if handles.guidata.GUIGroundTruthingMode == newMode
-%    return;
-% end
-
-% set the mode
-handles.guidata.GUIGroundTruthingMode=newMode;
+% get the mode
+mode=handles.guidata.GUIGroundTruthingMode;
 
 % Make all the mode checkmarks self-consistent
 SetGUIModeMenuChecks(handles);
@@ -6101,12 +6113,12 @@ groundTruthOnlyGrobjects = [handles.menu_view_showPredictions, ...
                             handles.menu_classifier_gt_performance];
 
 % Determine whether the visibility of each groups should be 'on' or 'off'                          
-if isempty(newMode)
+if isempty(mode)
   visibilityOfLabelingOnlyGrobjects='off';
   visibilityOfGroundTruthOnlyGrobjects='off';
 else
-  visibilityOfLabelingOnlyGrobjects=fif(newMode,'off','on');
-  visibilityOfGroundTruthOnlyGrobjects=fif(newMode,'on','off');
+  visibilityOfLabelingOnlyGrobjects=fif(mode,'off','on');
+  visibilityOfGroundTruthOnlyGrobjects=fif(mode,'on','off');
 end
 
 % Set the mode of each group accordingly
@@ -6132,23 +6144,10 @@ return
 
 
 % -------------------------------------------------------------------------
-function handles = UpdateGUIAdvancedMode(handles)
+function handles = UpdateGUIToMatchAdvancedMode(handles)
 
-handles=setGUIAdvancedMode(handles,handles.guidata.GUIAdvancedMode);
-
-return
-
-
-% -------------------------------------------------------------------------
-function handles = setGUIAdvancedMode(handles,newMode)
-
-% % in the right mode already?
-% if handles.guidata.GUIAdvancedMode == newMode
-%    return;
-% end
-
-% set the mode
-handles.guidata.GUIAdvancedMode=newMode;
+% get the current mode
+mode=handles.guidata.GUIAdvancedMode;
 
 % make sure the menu checkboxes are self-consistent
 SetGUIModeMenuChecks(handles);
@@ -6174,7 +6173,7 @@ button_width = button1_pos(3);
 button_height = button1_pos(4);
 
 % calculate menu_file_open_old_school_files height for the panel
-if ~handles.guidata.GUIAdvancedMode;
+if ~mode;
   new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
   handles.guidata.data.nbehaviors*in_border_y;
 else
@@ -6197,7 +6196,7 @@ new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(
 set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 
 % create or remove buttons
-if ~handles.guidata.GUIAdvancedMode,
+if ~mode,
   % delete extra buttons
   h = handles.guidata.togglebutton_label_behaviors(2:2:end);
   h = h(ishandle(h));
@@ -6224,7 +6223,7 @@ end
 
 % update the buttons
 for i = 1:handles.guidata.data.nbehaviors,
-  if handles.guidata.GUIAdvancedMode,
+  if mode,
     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
       button_width,button_height];
     set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
@@ -6605,23 +6604,23 @@ end
 handles.guidata.packageoutputdir = outdir;
 
 
-%--------------------------------------------------------------------------
-function DisableGUI(handles)
+% %--------------------------------------------------------------------------
+% function DisableGUI(handles)
+% 
+% handles.guidata.henabled = findall(handles.figure_JLabel,'Enable','on');
+% handles.guidata.enabled = false;
+% set(handles.guidata.henabled,'Enable','off');
+% 
+% return
 
-handles.guidata.henabled = findall(handles.figure_JLabel,'Enable','on');
-handles.guidata.enabled = false;
-set(handles.guidata.henabled,'Enable','off');
 
-return
-
-
-%--------------------------------------------------------------------------
-function ReEnableGUI(handles)
-
-handles.guidata.enabled = true;
-set(handles.guidata.henabled,'Enable','on');
-
-return
+% %--------------------------------------------------------------------------
+% function ReEnableGUI(handles)
+% 
+% handles.guidata.enabled = true;
+% set(handles.guidata.henabled,'Enable','on');
+% 
+% return
 
 
 % --------------------------------------------------------------------
@@ -6937,7 +6936,7 @@ else
   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
 end
 
-handles = UpdateGUIGroundTruthingMode(handles);
+handles = UpdateViewToGroundTruthingMode(handles);
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(figureJLabel);
@@ -6945,8 +6944,9 @@ RecursiveSetKeyPressFcn(figureJLabel);
 % save needed, since this is an import
 handles.guidata.needsave=true;
 
-% enable gui
-UpdateEnablementOfGUI(handles);
+% Update certain aspect of the GUI to match the current "model" state
+UpdateGUIToMatchMovieState(handles);
+UpdateGUIToMatchOpenFileState(handles);
 
 % OK, almost done
 set(figureJLabel,'pointer','arrow');
@@ -6962,7 +6962,7 @@ function editFilesDone(figureJLabel)
 
 handles=guidata(figureJLabel);
 
-ReEnableGUI(handles);
+%ReEnableGUI(handles);
 
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
@@ -6988,9 +6988,11 @@ handles.guidata.oldexpdir='';
 
 handles.guidata.thereIsAnOpenFile=true;
 
-handles = UpdateGUIGroundTruthingMode(handles);
+handles = UpdateViewToGroundTruthingMode(handles);
 
-UpdateEnablementOfGUI(handles);
+% Update the GUI match the current "model" state
+UpdateGUIToMatchMovieState(handles);
+UpdateGUIToMatchOpenFileState(handles);
 
 guidata(figureJLabel,handles);
 
@@ -7062,7 +7064,7 @@ catch  %#ok
 end
 saved=true;
 handles.guidata.needsaved=false;
-UpdateEnablementOfGUI(handles);
+UpdateGUIToMatchOpenFileState(handles);
 ClearStatus(handles);
 guidata(figureJLabel,handles);
 
@@ -7094,9 +7096,12 @@ function openEverythingFile(figureJLabel,groundTruthingMode)
 handles=guidata(figureJLabel);
 
 % Prompt user for filename
+title=fif(groundTruthingMode, ...
+          'Open in Grought-Truthing Mode...', ...
+          'Open...');
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
-            'Open Everything');
+            title);
 if ~ischar(filename),
   % user hit cancel
   return;
@@ -7129,7 +7134,9 @@ data=handles.guidata.data;  % ref
 data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
-handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
+handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
+%handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
 guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Now load the classifier, which includes the experiments, and load the
@@ -7137,35 +7144,38 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 data.setClassifierParams(everythingParams.saveableClassifier, ...
                          'classifierlabels',true);
   
-ReEnableGUI(handles);
-
+% Set the functions that end up getting called when we call SetStatus()
+% and ClearStatus()
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
+% Copy the default path out of the JLabelData.
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
-% save needed if list has changed
-handles.guidata.needsave=true;
+% Note that there are no unsaved changes.
+handles.guidata.needsave=false;
 
-oldexpdir=handles.guidata.oldexpdir;
-if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
-  j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
-  handles.guidata.expi = j;
+% Set the current movie.
+handles = UnsetCurrentMovie(handles);
+if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+  handles = SetCurrentMovie(handles,1);
 else
-  handles = UnsetCurrentMovie(handles);
-  if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-    handles = SetCurrentMovie(handles,1);
-  else
-    handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-  end
+  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
 end
+
+% clear the old experiment directory
 handles.guidata.oldexpdir='';
 
+% Note that there is currently an open file.
 handles.guidata.thereIsAnOpenFile=true;
 
-handles = UpdateGUIGroundTruthingMode(handles);
+% Updates the graphics objects to match the current labeling mode (normal
+% or ground-truthing)
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
-UpdateEnablementOfGUI(handles);
+% Update the GUI match the current "model" state
+UpdateGUIToMatchMovieState(handles);
+UpdateGUIToMatchOpenFileState(handles);
 
 % Note that the user has specified the everything file name
 handles.guidata.data.specifyEverythingFileNameFromUser(fileNameAbs);
@@ -7271,7 +7281,8 @@ function menu_edit_guimode_normal_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.data.SetGTMode(false);
-handles = setGUIGroundTruthingMode(handles,false);
+handles.guidata.GUIGroundTruthingMode=false;
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
 guidata(hObject,handles);
 
 return
@@ -7284,7 +7295,8 @@ function menu_edit_guimode_ground_truth_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.data.SetGTMode(true);
-handles = setGUIGroundTruthingMode(handles,true);
+handles.guidata.GUIGroundTruthingMode=true;
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
 guidata(hObject,handles);
 
 return
@@ -7296,7 +7308,9 @@ function menu_edit_guimode_basic_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles = setGUIAdvancedMode(handles,false);
+%handles = setGUIAdvancedMode(handles,false);
+handles.guidata.GUIAdvancedMode=false;
+handles=UpdateGUIToMatchAdvancedMode(handles);
 guidata(hObject,handles);
 
 return
@@ -7308,7 +7322,9 @@ function menu_edit_guimode_advanced_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles = setGUIAdvancedMode(handles,true);
+%handles = setGUIAdvancedMode(handles,true);
+handles.guidata.GUIAdvancedMode=true;
+handles=UpdateGUIToMatchAdvancedMode(handles);
 guidata(hObject,handles);
 
 return
@@ -7364,14 +7380,16 @@ return
 
 % -------------------------------------------------------------------------
 function setGroundTruthingMode(figureJLabel,groundTruthingMode)
+% Intended to be called by other "objects" (like JLabelEditFiles) when
+% they was to set the labeling mode in JLabel, and thereby in the
+% single JLabelData object, if present.
 handles=guidata(figureJLabel);
 % Tell the data about the new mode
 data=handles.guidata.data;  % ref
 data.SetGTMode(groundTruthingMode);
-% Set the GUI to match the labeling mode
-handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
+handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
 guidata(figureJLabel,handles);  % write the handles back to the figure
-
 return
 
 
@@ -7479,9 +7497,10 @@ handles=guidata(hObject);
 handles = UpdateLabelButtons(handles);
 guidata(hObject,handles);
 
-% Update the enablement of controls
+% Update the GUI match the current "model" state
 handles=guidata(hObject);
-UpdateEnablementOfGUI(handles);
+UpdateGUIToMatchMovieState(handles);
+UpdateGUIToMatchOpenFileState(handles);
 
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
