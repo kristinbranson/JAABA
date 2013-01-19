@@ -56,6 +56,11 @@ function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<
 % have not pushed the done button yet
 handles.success = false;
 
+% Certain actions trigger the mode popup menu to be disabled, thereby
+% fixing the mode.
+handles.modeFixed=false;
+handles.groundTruthingMode=false;
+
 %
 [ disableBehavior, ...
   figureJLabel] = ...
@@ -63,11 +68,22 @@ handles.success = false;
           'disableBehavior',false,...
           'figureJLabel',[]);
 
-% Just hide the mode stuff entirely        
-set(handles.popupmode,'Visible','off');
-set(handles.labeling_mode_text,'Visible','off');
+% % Just hide the mode stuff entirely        
+% set(handles.popupmode,'Visible','off');
+% set(handles.labeling_mode_text,'Visible','off');
         
-set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing','Ground Truthing Advanced'});
+set(handles.popupmode,'String', ...
+                      {'Normal', ...
+                       'Ground Truthing'});
+if handles.groundTruthingMode,
+  set(handles.popupmode,'value',2);
+else
+  set(handles.popupmode,'value',1);
+end
+                     
+% disableBehvaior is true iff the part of the UI for choosing the
+% behavior/project should be disabled, such as when JLabelEditFiles is
+% reached from JLabel's File > Edit files... menu
 handles.disableBehavior = disableBehavior;
 
 if disableBehavior,
@@ -76,17 +92,14 @@ if disableBehavior,
   % Simply edit files, not editing the behavior part
   handles.figureJLabel = figureJLabel;
   %handles.data = JLabelHandle.guidata.data;
+  
+  % get the current labeling mode for JLabel "object", set the popup to
+  % match
   handles.data = JLabel('getJLabelData',figureJLabel);
-  if ~isempty(handles.data) && handles.data.IsGTMode()
-    if handles.data.IsAdvancedMode()
-      set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
-    else
-      set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
-    end
-  elseif ~isempty(handles.data) && handles.data.IsAdvancedMode()
-    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Advanced')));
+  if JLabel('isGroundTruthingMode',figureJLabel)
+    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing')));
   else
-    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Normal')));
+    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Labeling')));
   end
   
   % configfilename=handles.JLabelHandle.guidata.configfilename
@@ -99,7 +112,7 @@ if disableBehavior,
   handles.needJLabelInit = false;
   guidata(hObject,handles);
 else
-  % We go here if reached via "Import..."
+  % We go here if reached via "Open old-school files..."
   configfilename=JLabel('getConfigFileName',figureJLabel);
   if ~isempty(configfilename)
     handles.configfilename = configfilename;
@@ -158,35 +171,6 @@ DisableBehaviorGui(handles);
 handles.success = true;
 % End for behavior --
 
-% % Thing that we know works:
-% % Initializes the JLabel gui once the user selects the behavior.
-% figureJLabel=handles.JLabelHandle.figure_JLabel;
-% handlesOfJLabel=guidata(figureJLabel);
-% %handlesOfJLabel = handles.JLabelHandle;
-% 
-% handlesOfJLabel.guidata.configfilename = handles.configfilename;
-% [~,~,ext] = fileparts(handles.configfilename);
-% if strcmp(ext,'.xml')
-%   handlesOfJLabel.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
-% elseif strcmp(ext,'.mat')
-%   handlesOfJLabel.guidata.configparams = load(handles.configfilename);
-% else
-%   errordlg('Project file is not a valid');
-% end
-% 
-% handlesOfJLabelReally=guidata(figureJLabel);
-% 
-% handlesOfJLabel = JLabel('GetGUIPositions',handlesOfJLabel);
-% handlesOfJLabelReally=guidata(figureJLabel);
-% 
-% handlesOfJLabel = JLabel('InitializeState',handlesOfJLabel);
-% handlesOfJLabelReally=guidata(figureJLabel);
-% 
-% handlesOfJLabel = JLabel('InitializePlots',handlesOfJLabel);
-% handlesOfJLabelReally=guidata(figureJLabel);
-
-% Thing that should work, and is cleaner:
-
 % Notify JLabel of the configfilename, have it initialize itself
 % accordingly
 figureJLabel=handles.figureJLabel;
@@ -197,17 +181,14 @@ JLabel('setConfigFileName', ...
 % Update our pointer to the JLabelData, which has now changed
 handles.data = JLabel('getJLabelData',figureJLabel);
 
-% Notify JLabelData of the labeling mode selected in our figure,
-% and disable that selector
-SetLabelingMode(handles);
+% Disable that selector for choose labeling mode
+handles=fixLabelingMode(handles);
 
-% Update our guidata
-%handles.JLabelHandle = guidata(figureJLabel);
-%guidata(handles.figure_JLabelEditFiles,handles);
-%guidata(handlesOfJLabel.figure_JLabel,handlesOfJLabel);
+% Notify JLabel of the labeling mode selected in our figure, which will
+% propagate that to the JLabelData
+JLabel('setGroundTruthingMode',figureJLabel,handles.groundTruthingMode);
 
 % Modify self as appropraite for the new project configuration
-%InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles);
 
 % Set the pointer back to normal
@@ -218,22 +199,7 @@ return
 
 % -------------------------------------------------------------------------
 function InitExperimentsGui(hObject,handles)
-%function InitExperimentsGui(hObject,handles,varargin)
-%
 % Remove behavior related parts.
-
-% parse inputs, set defaults
-%
-% if isempty(varargin),
-%   error('Usage: JLabelEditFiles(configfilename,...)');
-% end
-
-% if ischar(varargin{1}),
-%   configfilename = varargin{1};
-%   handles.data = JLabelData(configfilename,varargin{2:end});
-% else
-%   handles.data = varargin{1};
-% end
 
 handles.data.SetStatusFn( @(s) SetStatusEditFiles(handles.figure_JLabelEditFiles,s));
 handles.data.SetClearStatusFn( @() ClearStatusEditFiles(handles.figure_JLabelEditFiles));
@@ -242,22 +208,22 @@ set(handles.editClassifier,'String',handles.data.classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',numel(handles.data.expdirs));
 set(handles.statusMsg,'String','');
 
-% if handles.data.IsGTMode(),
-%   if handles.data.IsAdvancedMode()
+%figureJLabel=handles.figureJLabel;
+% if JLabel('isGroundTruthingMode',figureJLabel),
+%   if JLabel('isAdvancedMode',figureJLabel),
 %     popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced'));
 %   else
 %     popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
 %   end
-% 
-% elseif handles.data.IsAdvancedMode(),
+% elseif JLabel('isAdvancedMode',figureJLabel),
 %   popupNdx = find(strcmp(get(handles.popupmode,'String'),'Advanced'));
 % else
 %   popupNdx = find(strcmp(get(handles.popupmode,'String'),'Normal'));
 % end
 % set(handles.popupmode,'Value',popupNdx);
-% if handles.data.IsModeSet(),
-%   set(handles.popupmode,'Enable','off');
-% end
+%if handles.modeFixed,
+%  set(handles.popupmode,'Enable','off');
+%end
 
 if handles.data.nexps>0
   set(handles.pushbutton_load,'Enable','off');
@@ -307,6 +273,8 @@ guidata(hObject, handles);
 
 % -------------------------------------------------------------------------
 function UpdateStatusTable(handles)
+% Update the table labeled "Experiment details:", based on the currently
+% selected experiment and the the information in handles.data.
 
 v = get(handles.listbox_experiment,'Value');
 if isempty(v) || v <= 0 || handles.data.nexps == 0 ,
@@ -394,7 +362,6 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
 if ~handles.disableBehavior,
   if ~isfield(handles,'configfilename') || isempty(handles.configfilename), 
     uiwait(warndlg('Select a project before adding an experiment'));
@@ -424,7 +391,7 @@ if isempty(allexpdirs) || ~iscell(allexpdirs),
 end
 
 set(handles.pushbutton_cancel,'enable','off');
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
 
 for ndx = 1:numel(allexpdirs)
   expdir = allexpdirs{ndx};
@@ -515,7 +482,8 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 InitJLabelGui(handles);
 handles = guidata(hObject);
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
+% add something here to tell JLabel what mode it should be in?
 handles.success = true;
 guidata(hObject,handles);
 %uiresume(handles.figure_JLabelEditFiles);
@@ -557,7 +525,7 @@ if ~exist(classifierfilename,'file'),
   uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
 
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
 
 res = questdlg('Load the labels and the classifier from the file, or just load the classifier?',...
   'Labels?','Load Labels and Classifier','Load Classifier Only','Cancel','Load Labels and Classifier');
@@ -604,7 +572,7 @@ if ~exist(classifierfilename,'file'),
   return;
 end
 
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
 if ~success,
@@ -641,7 +609,7 @@ if handles.disableBehavior
 else
   % Means JLabelEditFiles was invoked via File > Import... in JLabel
   % figure
-  JLabel('importCanceled',handles.figureJLabel);
+  % nothing to do
 end
 delete(gcbf);
 return
@@ -693,17 +661,18 @@ function popupmode_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmode contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmode
-
-contents = cellstr(get(hObject,'String'));
-curstr = contents{get(hObject,'Value')};
-if any(strcmpi(curstr,{ 'Ground Truthing','Ground Truthing Advanced'})),
+% 1 = Labeling mode (i.e. normal)
+% 2 = Ground-truthing mode
+i=get(hObject,'Value');
+if (i==2),
+  handles.groundTruthingMode=true;
   set(handles.pushbutton_load,'Enable','off');
 else
+  handles.groundTruthingMode=false;
   set(handles.pushbutton_load,'Enable','on');
 end
+guidata(gcbf,handles);
+return
 
 
 %--------------------------------------------------------------------------
@@ -721,13 +690,14 @@ end
 
 
 % -------------------------------------------------------------------------
-function SetLabelingMode(handles)
+function handles=fixLabelingMode(handles)
 %contents = cellstr(get(handles.popupmode,'String'));
 %curStr = contents{get(handles.popupmode,'Value')};
 
 %handles.data.setLabelingMode(curStr);
-
+handles.modeFixed=true;
 set(handles.popupmode,'enable','off');
+guidata(handles.figure_JLabelEditFiles,handles);  % commit the handles
 
 return
 
@@ -762,7 +732,7 @@ if fid<0,
 end
 
 set(handles.pushbutton_cancel,'enable','off');
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
 
 expdir = fgetl(fid);
 
