@@ -1558,19 +1558,19 @@ return
 function handles = UpdateMovies(handles)
 
 
-%--------------------------------------------------------------------------
-function handles = SetNeedSave(handles)
+% %--------------------------------------------------------------------------
+% function handles = SetNeedSave(handles)
+% 
+% handles.guidata.needsave = true;
+% set(handles.menu_file_save_classifier_and_labels,'Enable','on');
+% set(handles.menu_file_save_labels,'Enable','on');
 
-handles.guidata.needsave = true;
-set(handles.menu_file_save_classifier_and_labels,'Enable','on');
-set(handles.menu_file_save_labels,'Enable','on');
-
-% --------------------------------------------------------------------
-function handles = SetSaved(handles)
-
-handles.guidata.needsave = false;
-set(handles.menu_file_save_classifier_and_labels,'Enable','off');
-set(handles.menu_file_save_labels,'Enable','off');
+% % --------------------------------------------------------------------
+% function handles = SetSaved(handles)
+% 
+% handles.guidata.needsave = false;
+% set(handles.menu_file_save_classifier_and_labels,'Enable','off');
+% set(handles.menu_file_save_labels,'Enable','off');
 
 
 % --------------------------------------------------------------------
@@ -1589,7 +1589,7 @@ SetStatus(handles,sprintf('Saving classifier to %s',handles.guidata.data.classif
 handles.guidata.data.SaveClassifier();
 handles.guidata.data.SaveLabels();
 handles.guidata.data.SaveGTLabels();
-handles = SetSaved(handles);
+%handles = SetSaved(handles);
 ClearStatus(handles);
 success = true;
 
@@ -1714,11 +1714,6 @@ success = true;
 
 %--------------------------------------------------------------------------
 function handles = InitializeState(handles)
-
-%handles = LoadRC(handles);
-
-% whether save is necessary
-handles.guidata.needsave = false;
 
 % sort out whether we have a config file or just config params
 if isempty(handles.guidata.configfilename)
@@ -2177,23 +2172,14 @@ end
 
 % Disable the save menu item if things have recently been saved,
 % Enable it if there are unsaved changes
-if thereIsAnOpenFile,
-  set(handles.menu_file_new,'Enable','off');  
-  set(handles.menu_file_close,'Enable','on');
-  if handles.guidata.needsave,
-    set(handles.menu_file_save_classifier_and_labels,'Enable','on');
-  else
-    set(handles.menu_file_save_classifier_and_labels,'Enable','off');
-  end
-else
-  % no file currently open
-  set(handles.menu_file_new,'Enable','on');  
-  set(handles.menu_file_open,'Enable','on');  
-  set(handles.menu_file_open_in_ground_truthing_mode,'Enable','on');  
-  set(handles.menu_file_save_classifier_and_labels,'Enable','off');
-  set(handles.menu_file_save_as,'Enable','off');
-  set(handles.menu_file_close,'Enable','off');
-end
+thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
+needsave=handles.guidata.needsave;
+set(handles.menu_file_new,'Enable',on(~thereIsAnOpenFile));  
+set(handles.menu_file_open,'Enable',on(~thereIsAnOpenFile));  
+set(handles.menu_file_open_in_ground_truthing_mode,'Enable',on(~thereIsAnOpenFile));  
+set(handles.menu_file_save,'Enable',on(thereIsAnOpenFile&&needsave));
+set(handles.menu_file_save_as,'Enable',on(thereIsAnOpenFile));
+set(handles.menu_file_close,'Enable',on(thereIsAnOpenFile));
 
 return
 
@@ -2390,6 +2376,36 @@ function handles = SaveRC(handles)
 %   warning('Error saving RC file: %s',getReport(ME));
 % end
 
+% -------------------------------------------------------------------------
+function proceed=checkForUnsavedChangesAndDealIfNeeded(figureJLabel)
+% Check for unsaved changes, and if there are unsaved changes, ask the user
+% if she wants to do a save.  Returns true if everything is copacetic and
+% the caller should proceed with whatever they were going to do.  Returns
+% false if the user wanted to save but there was an error, or if the user
+% hit cancel, and therefore the caller should _not_ proceed with whatever
+% they were going to do.
+handles=guidata(figureJLabel);
+if handles.guidata.needsave,
+  res = questdlg('There are unsaved changes.  Save?','Save?','Save','Discard','Cancel','Save');
+  if strcmpi(res,'Save'),
+    useFileNameIfPresent=true;
+    saved=saveEverythingFile(gcbf,useFileNameIfPresent);
+    if saved,
+      proceed=true;
+    else
+      proceed=false;
+    end
+  elseif strcmpi(res,'Discard'),
+    proceed=true;    
+  elseif strcmpi(res,'Cancel'),
+    proceed=false;
+  else
+    error('JLabel.internalError','Internal error.  Please report to the JAABA developers.');  %#ok
+  end
+else
+  proceed=true;
+end
+return
 
 % -------------------------------------------------------------------------
 % --- Executes when user attempts to close figure_JLabel.
@@ -2411,19 +2427,12 @@ if exist(cachefilename,'file'),
   delete(cachefilename);
 end
 
-% check if we need to save
-if handles.guidata.needsave,
-  res = questdlg('Save classifier and labels before quitting?','Save?','Yes','No','Cancel','Yes');
-  if strcmpi(res,'Yes'),
-    success = menu_file_save_Callback(hObject, eventdata, handles);
-    if ~success,
-      return;
-    end
-    handles = guidata(hObject);
-  elseif strcmpi(res,'Cancel'),
-    return;
-  end
+% Check if we need to save.
+proceed=checkForUnsavedChangesAndDealIfNeeded(gcbf);
+if ~proceed,
+  return;
 end
+handles=guidata(gcbf);
 
 if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
   res = questdlg(['Current window features do not match the ones in the project file.'...
@@ -2724,7 +2733,7 @@ handles.guidata.labels_plot.isstart(off0:off1) = ...
 
 handles = UpdateErrors(handles);
 
-handles = SetNeedSave(handles);
+%handles = SetNeedSave(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -2785,7 +2794,7 @@ handles.guidata.labels_plot.isstart(off0:off1) = ...
 
 handles = UpdateErrors(handles);
 
-handles = SetNeedSave(handles);
+%handles = SetNeedSave(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -3150,7 +3159,8 @@ handles.guidata.data.Train(handles.guidata.doFastUpdates);
 handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
-handles = SetNeedSave(handles);
+handles.guidata.needsave=true;
+UpdateEnablementOfGUI(handles);
 guidata(hObject,handles);
 
 
@@ -6911,7 +6921,7 @@ set(figureJLabel,'pointer','watch');
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
-% read configuration
+% read project configuration
 [handles,success] = LoadConfig(handles);
 if ~success,
   guidata(hObject,handles);
@@ -6931,6 +6941,9 @@ handles = UpdateGUIGroundTruthingMode(handles);
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(figureJLabel);
+
+% save needed, since this is an import
+handles.guidata.needsave=true;
 
 % enable gui
 UpdateEnablementOfGUI(handles);
@@ -6957,7 +6970,7 @@ handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
 % save needed if list has changed
-handles = SetNeedSave(handles);
+handles.guidata.needsave=true;
 
 oldexpdir=handles.guidata.oldexpdir;
 if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
@@ -6973,7 +6986,11 @@ else
 end
 handles.guidata.oldexpdir='';
 
+handles.guidata.thereIsAnOpenFile=true;
+
 handles = UpdateGUIGroundTruthingMode(handles);
+
+UpdateEnablementOfGUI(handles);
 
 guidata(figureJLabel,handles);
 
@@ -6990,45 +7007,64 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_file_save_everything_Callback(hObject, eventdata, handles)
+function menu_file_save_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save_classifier_and_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+useFileNameIfSet=true;
+saveEverythingFile(gcbf,useFileNameIfSet);
+return
 
-jld=handles.guidata.data;  % a reference
-if ~jld.userHasSpecifiedEverythingFileName
+
+% -------------------------------------------------------------------------
+function menu_file_save_as_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_classifier_and_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+useFileNameIfSet=false;
+saveEverythingFile(gcbf,useFileNameIfSet);
+return
+
+
+% -------------------------------------------------------------------------
+function saved=saveEverythingFile(figureJLabel,useFileNameIfSet)
+% Method to handle both Save and Save As...
+
+saved=false;  % default return
+handles=guidata(figureJLabel);
+data=handles.guidata.data;  % reference
+if useFileNameIfSet && data.userHasSpecifiedEverythingFileName
+  % do nothing
+else
   [filename,pathname] = ...
     uiputfile({'*.jab','JAABA Files (*.jab)'}, ...
-              'Save Everything','untitled.jab');
+              'Save Everything',data.everythingFileName);
   if ~ischar(filename),
     % user hit cancel
     return;
   end
   fileNameAbs=fullfile(pathname,filename);
-  jld.specifyEverythingFileNameFromUser(fileNameAbs);
+  data.specifyEverythingFileNameFromUser(fileNameAbs);
 end
-SetStatus(handles,sprintf('Saving everything to %s',jld.everythingFileName));
-%jld.saveEverything();  % this doesn't work because not everything we need
-% to save is the JLabelData
+handles=guidata(figureJLabel);
+SetStatus(handles,sprintf('Saving everything to %s...',data.everythingFileName));
 s=struct;
-s.featureConfigParams=jld.featureConfigParams;
-s.saveableClassifier=jld.getSaveableClassifier();
-[s.labels,s.gtLabels]=jld.storeAndGetLabelsAndGTLabels();
+s.featureConfigParams=data.featureConfigParams;
+s.saveableClassifier=data.getSaveableClassifier();
+[s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
 s.configParams=handles.guidata.configparams;  %#ok
-%s.configParams=self.getConfigParams();
 try
-  save(fileNameAbs,'-struct','s');
+  save('-mat',fileNameAbs,'-struct','s');
 catch  %#ok
   uiwait(errordlg('Unable to save %s.',self.everythingFileName));
   ClearStatus(handles);
   return;
 end
-handles = SetSaved(handles);
+saved=true;
+handles.guidata.needsaved=false;
+UpdateEnablementOfGUI(handles);
 ClearStatus(handles);
-
-%handles.guidata.data.SaveClassifier();
-%handles.guidata.data.SaveLabels();
-%handles.guidata.data.SaveGTLabels();
+guidata(figureJLabel,handles);
 
 return
 
@@ -7101,10 +7137,35 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 data.setClassifierParams(everythingParams.saveableClassifier, ...
                          'classifierlabels',true);
   
-% Use the method called after editing files in the old-school interface to
-% update the GUI to reflect the current state of the JLabelData object.
-editFilesDone(gcbf);
-handles=guidata(figureJLabel);  % make sure handles is up-to-date
+ReEnableGUI(handles);
+
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+
+handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+
+% save needed if list has changed
+handles.guidata.needsave=true;
+
+oldexpdir=handles.guidata.oldexpdir;
+if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
+  j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
+  handles.guidata.expi = j;
+else
+  handles = UnsetCurrentMovie(handles);
+  if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+    handles = SetCurrentMovie(handles,1);
+  else
+    handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+  end
+end
+handles.guidata.oldexpdir='';
+
+handles.guidata.thereIsAnOpenFile=true;
+
+handles = UpdateGUIGroundTruthingMode(handles);
+
+UpdateEnablementOfGUI(handles);
 
 % Note that the user has specified the everything file name
 handles.guidata.data.specifyEverythingFileNameFromUser(fileNameAbs);
@@ -7331,21 +7392,12 @@ if exist(cachefilename,'file'),
   delete(cachefilename);
 end
 
-% Check if we need to save
-if handles.guidata.needsave,
-  res = questdlg('There are unsaved changes.  Save?','Save?','Save','Discard','Cancel','Save');
-  if strcmpi(res,'Save'),
-    success = menu_file_save_Callback(hObject, eventdata, handles);
-    if ~success,
-      return;
-    end
-  elseif strcmpi(res,'Cancel'),
-    return;
-  end
+% Check if we need to save.
+proceed=checkForUnsavedChangesAndDealIfNeeded(gcbf);
+if ~proceed,
+  return;
 end
-
-% Re-load the guidata, which may have changed
-handles = guidata(hObject);
+handles = guidata(hObject);  % re-load handles, may have changed
 
 % Check if any of the project things have changed, and if so, see if user
 % wants to save.  (How should this work in the context of the everything
@@ -7447,12 +7499,5 @@ function menu_file_new_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 return
 
-
-% --------------------------------------------------------------------
-function menu_file_save_as_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_as (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-return
 
 
