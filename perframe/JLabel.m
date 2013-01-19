@@ -64,14 +64,12 @@ handles.guidata = JLabelGUIData();
 [handles.guidata.classifierfilename,...
   handles.guidata.configfilename,...
   handles.guidata.defaultpath,...
-  handles.guidata.isgroundtruthmode,...
   handles.guidata.hsplash,...
   handles.guidata.hsplashstatus] = ...
   myparse(varargin,...
   'classifierfilename','',...
   'configfilename','',...
   'defaultpath','',...
-  'groundtruthmode',false,...
   'hsplash',[],...
   'hsplashstatus',[]);
 
@@ -368,7 +366,7 @@ hold(handles.guidata.axes_timeline_props(propi),'on');
 % whether the manual and auto match
 handles.guidata.htimeline_errors = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.incorrectcolor,'HitTest','off','Linewidth',5);
-% menu_file_import suggestions
+% menu_file_open_old_school_files suggestions
 handles.guidata.htimeline_suggestions = plot(handles.axes_timeline_manual,nan,nan,'-',...
   'color',handles.guidata.suggestcolor,'HitTest','off','Linewidth',5);
 
@@ -438,7 +436,7 @@ end
 set(handles.guidata.htrx,'EraseMode','none');
 set(handles.guidata.hfly_markers,'EraseMode','none');
 
-handles = UpdateGUIGroundTruthMode(handles);
+handles = UpdateGUIGroundTruthingMode(handles);
 
 %for i = 1:numel(handles.guidata.axes_timelines),
 %  setAxesZoomMotion(handles.guidata.hzoom,handles.guidata.axes_timelines(i),'horizontal');
@@ -896,7 +894,7 @@ if handles.guidata.data.ismovie,
     end
   end
 
-  % open menu_file_import movie
+  % open menu_file_open_old_school_files movie
   % try
   SetStatus(handles,'Opening movie...');
   %if 1,
@@ -1546,7 +1544,7 @@ JLabelEditFiles('disableBehavior',true,'figureJLabel',handles.figure_JLabel);
 %   end
 % end
 % 
-% handles = UpdateGUIGroundTruthMode(handles);
+% handles = UpdateGUIGroundTruthingMode(handles);
 % 
 % guidata(hObject,handles);
 
@@ -1938,7 +1936,7 @@ handles.guidata.doFastUpdates = true;
 
 SetGUIModeMenuChecks(handles);
 
-guidata(handles.figure_JLabel,handles);  % write handles to the guidata
+%guidata(handles.figure_JLabel,handles);  % write handles to the guidata
 
 return
 
@@ -1956,12 +1954,17 @@ else
 end
 
 % labeling vs GT mode
-if handles.guidata.GUIGroundTruthMode,
-  set(handles.menu_edit_guimode_labeling    ,'checked','off');
-  set(handles.menu_edit_guimode_ground_truth,'checked','on' );
+if isempty(handles.guidata.GUIGroundTruthingMode)
+  set(handles.menu_edit_guimode_normal      ,'checked','off');
+  set(handles.menu_edit_guimode_ground_truth,'checked','off' );
 else
-  set(handles.menu_edit_guimode_labeling    ,'checked','on ');
-  set(handles.menu_edit_guimode_ground_truth,'checked','off');
+  if handles.guidata.GUIGroundTruthingMode,
+    set(handles.menu_edit_guimode_normal    ,'checked','off');
+    set(handles.menu_edit_guimode_ground_truth,'checked','on' );
+  else
+    set(handles.menu_edit_guimode_normal    ,'checked','on ');
+    set(handles.menu_edit_guimode_ground_truth,'checked','off');
+  end
 end
 
 return
@@ -2008,7 +2011,7 @@ in_border_y = handles.guidata.in_border_y;
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate menu_file_import height for the panel
+% calculate menu_file_open_old_school_files height for the panel
 if isBasicMode
   new_panel_height = 2*out_border_y + (nBehaviors+1)*button_height + ...
     nBehaviors*in_border_y;
@@ -4456,7 +4459,7 @@ set(hlabel,'Callback',@(hObject,eventdata) timeline_label_prop1_Callback(hObject
 
 handles.guidata.labels_timelines = [hlabel;handles.guidata.labels_timelines];
 
-% add menu_file_import axes sizes
+% add menu_file_open_old_school_files axes sizes
 handles.guidata.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guidata.guipos.timeline_heights];
 handles.guidata.guipos.timeline_bottom_borders = handles.guidata.guipos.timeline_bottom_borders([1,2,2:numel(handles.guidata.guipos.timeline_bottom_borders)]);
 handles.guidata.guipos.timeline_left_borders = [pos(1),handles.guidata.guipos.timeline_left_borders];
@@ -6032,23 +6035,23 @@ end
 
 
 % -------------------------------------------------------------------------
-function handles = UpdateGUIGroundTruthMode(handles)
+function handles = UpdateGUIGroundTruthingMode(handles)
 
-handles=setGUIGroundTruthMode(handles,handles.guidata.GUIGroundTruthMode);
+handles=setGUIGroundTruthingMode(handles,handles.guidata.GUIGroundTruthingMode);
 
 return
 
 
 % -------------------------------------------------------------------------
-function handles = setGUIGroundTruthMode(handles,newMode)
+function handles=setGUIGroundTruthingMode(handles,newMode)
 
 % % in the right mode already?
-% if handles.guidata.GUIGroundTruthMode == newMode
+% if handles.guidata.GUIGroundTruthingMode == newMode
 %    return;
 % end
 
 % set the mode
-handles.guidata.GUIGroundTruthMode=newMode;
+handles.guidata.GUIGroundTruthingMode=newMode;
 
 % Make all the mode checkmarks self-consistent
 SetGUIModeMenuChecks(handles);
@@ -6074,11 +6077,15 @@ groundTruthOnlyGrobjects = [handles.menu_view_showPredictions, ...
                             handles.menu_view_suggest,...
                             handles.menu_classifier_gt_performance];
 
-% Determine whether the visibility f each groups should be 'on' or 'off'                          
-isGTMode=handles.guidata.data.IsGTMode();
-visibilityOfLabelingOnlyGrobjects=fif(isGTMode,'off','on');
-visibilityOfGroundTruthOnlyGrobjects=fif(isGTMode,'on','off');
-              
+% Determine whether the visibility of each groups should be 'on' or 'off'                          
+if isempty(newMode)
+  visibilityOfLabelingOnlyGrobjects='off';
+  visibilityOfGroundTruthOnlyGrobjects='off';
+else
+  visibilityOfLabelingOnlyGrobjects=fif(newMode,'off','on');
+  visibilityOfGroundTruthOnlyGrobjects=fif(newMode,'on','off');
+end
+
 % Set the mode of each group accordingly
 set(labelingOnlyGrobjects,'Visible',visibilityOfLabelingOnlyGrobjects);
 set(groundTruthOnlyGrobjects,'Visible',visibilityOfGroundTruthOnlyGrobjects);
@@ -6143,7 +6150,7 @@ in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 button_width = button1_pos(3);
 button_height = button1_pos(4);
 
-% calculate menu_file_import height for the panel
+% calculate menu_file_open_old_school_files height for the panel
 if ~handles.guidata.GUIAdvancedMode;
   new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
   handles.guidata.data.nbehaviors*in_border_y;
@@ -6817,14 +6824,14 @@ end
 
 
 % -------------------------------------------------------------------------
-function menu_file_import_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_import (see GCBO)
+function menu_file_open_old_school_files_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_open_old_school_files (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % This is part of the "grand unified project" project
 
-% This creates a menu_file_import project from scratch.
+% This creates a menu_file_open_old_school_files project from scratch.
 
 % Create the modal window that allows specification of the project, etc.
 %[handles,success] = ...
@@ -6861,7 +6868,7 @@ JLabelEditFiles('figureJLabel',handles.figure_JLabel);
 %   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
 % end
 % 
-% handles = UpdateGUIGroundTruthMode(handles);
+% handles = UpdateGUIGroundTruthingMode(handles);
 % 
 % % keypress callback for all non-edit text objects
 % RecursiveSetKeyPressFcn(handles.figure_JLabel);
@@ -6907,7 +6914,7 @@ else
   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
 end
 
-handles = UpdateGUIGroundTruthMode(handles);
+handles = UpdateGUIGroundTruthingMode(handles);
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(figureJLabel);
@@ -6920,15 +6927,6 @@ set(figureJLabel,'pointer','arrow');
 
 % Update handles structure
 guidata(figureJLabel, handles);
-
-return
-
-
-% -------------------------------------------------------------------------
-function importCanceled(figureJLabel)
-
-%handles=guidata(figureJLabel);
-%guidata(figureJLabel,handles);
 
 return
 
@@ -6962,7 +6960,7 @@ else
 end
 handles.guidata.oldexpdir='';
 
-handles = UpdateGUIGroundTruthMode(handles);
+handles = UpdateGUIGroundTruthingMode(handles);
 
 guidata(figureJLabel,handles);
 
@@ -7027,6 +7025,24 @@ function menu_file_open_everything_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_open_everything (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+openEverythingFile(gcbf,false);  % false means labeling mode
+return
+
+
+% -------------------------------------------------------------------------
+function menu_file_open_everything_in_ground_truthing_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_open_everything (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+openEverythingFile(gcbf,true);  % true means ground-truthing mode
+return
+
+
+% -------------------------------------------------------------------------
+function openEverythingFile(figureJLabel,groundTruthingMode)
+
+% get handles
+handles=guidata(figureJLabel);
 
 % Prompt user for filename
 [filename,pathname] = ...
@@ -7046,24 +7062,45 @@ try
   everythingParams=load('-mat',fileNameAbs);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+  ClearStatus(handles);
+  return;
 end
 
-% load in all the bits that need loading, one at a time
+% Don't want to see "No experiment loaded" when status is cleared!
 handles.guidata.status_bar_text_when_clear='';
-  % Don't want to see "No experiment loaded" when status is cleared!
-%handles.guidata.data=JLabelData(everythingParams);
+guidata(figureJLabel,handles);  % sync the guidata to handles
+
+% First set the project parameters, which will initialize the JLabelData
 setConfigParams(gcbf,everythingParams.configParams);
+handles=guidata(figureJLabel);  % make sure handles is up-to-date
+
+% Need to set the labeling mode in the JLabelData, before the experiments 
+% are loaded.
 data=handles.guidata.data;  % ref
+data.SetGTMode(groundTruthingMode);
+
+% Set the GUI to match the labeling mode
+handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
+guidata(figureJLabel,handles);  % write the handles back to the figure
+
+% Now load the classifier, which includes the experiments, and load the
+% labels also.  ('classifierlabels',true means to load the labels, too.)
 data.setClassifierParams(everythingParams.saveableClassifier, ...
                          'classifierlabels',true);
-  % 'classifierlabels',true means to load the labels, too.                               
-editFilesDone(gcbf);  % will this update the JLabel display appropriately?
+  
+% Use the method called after editing files in the old-school interface to
+% update the GUI to reflect the current state of the JLabelData object.
+editFilesDone(gcbf);
+handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Note that the user has specified the everything file name
 handles.guidata.data.specifyEverythingFileNameFromUser(fileNameAbs);
 
 % Done, set status message to cleared message, pointer to normal
 ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
 
 return
 
@@ -7092,12 +7129,10 @@ function setConfigParams(figureJLabel,configParams)
 % This assumes that JLabel is curently a blank slate
 handles=guidata(figureJLabel);
 handles.guidata.configparams=configParams;
-GetGUIPositions(handles);
-InitializeState(handles);
-InitializePlots(handles);
-%handles = JLabel('GetGUIPositions',handles);
-%handles = JLabel('InitializeState',handles);
-%handles = JLabel('InitializePlots',handles);
+handles=GetGUIPositions(handles);
+handles=InitializeState(handles);
+handles=InitializePlots(handles);
+guidata(figureJLabel,handles);
 return
 
 
@@ -7156,13 +7191,13 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_edit_guimode_labeling_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_labeling (see GCBO)
+function menu_edit_guimode_normal_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_guimode_normal (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.data.SetGTMode(false);
-handles = setGUIGroundTruthMode(handles,false);
+handles = setGUIGroundTruthingMode(handles,false);
 guidata(hObject,handles);
 
 return
@@ -7175,7 +7210,7 @@ function menu_edit_guimode_ground_truth_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.data.SetGTMode(true);
-handles = setGUIGroundTruthMode(handles,true);
+handles = setGUIGroundTruthingMode(handles,true);
 guidata(hObject,handles);
 
 return
@@ -7206,3 +7241,61 @@ return
 
 
 % -------------------------------------------------------------------------
+function ret=isBasicMode(figureJLabel)
+handles=guidata(figureJLabel);
+ret=~handles.guidata.GUIAdvancedMode;
+return
+
+
+% -------------------------------------------------------------------------
+function ret=isAdvancedMode(figureJLabel)
+handles=guidata(figureJLabel);
+ret=handles.guidata.GUIAdvancedMode;
+return
+
+
+% -------------------------------------------------------------------------
+function ret=isLabelingMode(figureJLabel)
+handles=guidata(figureJLabel);
+ret=~handles.guidata.GUIGroundTruthingMode;
+return
+
+
+% -------------------------------------------------------------------------
+function ret=isGroundTruthingMode(figureJLabel)
+handles=guidata(figureJLabel);
+ret=handles.guidata.GUIGroundTruthingMode;
+return
+
+
+% -------------------------------------------------------------------------
+
+% function modesString=getModesString(figureJLabel)
+% 
+% if isGroundTruthingMode(figureJLabel),
+%   if isAdvancedMode(figureJLabel),
+%     modesString = 'Ground Truthing Advanced';
+%   else
+%     modesString = 'Ground Truthing';
+%   end
+% else
+%   if isAdvancedMode(figureJLabel),
+%     modesString = 'Labeling Advanced';
+%   else
+%     modesString = 'Labeling Basic';
+%   end
+% end  
+% 
+% return
+
+% -------------------------------------------------------------------------
+function setGroundTruthingMode(figureJLabel,groundTruthingMode)
+handles=guidata(figureJLabel);
+% Tell the data about the new mode
+data=handles.guidata.data;  % ref
+data.SetGTMode(groundTruthingMode);
+% Set the GUI to match the labeling mode
+handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
+guidata(figureJLabel,handles);  % write the handles back to the figure
+
+return
