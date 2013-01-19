@@ -20,6 +20,7 @@ classdef JLabelGUIData < handle
     movie_width = 100;
     movie_filename = [];
     
+    thereIsAnOpenFile=false;
     configparams = struct;  % the stuff read from the project file
 
     panel_previews = [];

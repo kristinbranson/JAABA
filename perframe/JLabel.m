@@ -134,6 +134,9 @@ guidata(hObject,handles);
 handles=guidata(hObject);
 UpdateEnablementOfGUI(handles);
 
+% Clear the current fly info
+set(handles.text_selection_info,'string','');
+
 % load the RC file (is the time and place?)
 handles = LoadRC(handles);
 
@@ -1559,20 +1562,20 @@ function handles = UpdateMovies(handles)
 function handles = SetNeedSave(handles)
 
 handles.guidata.needsave = true;
-set(handles.menu_file_save,'Enable','on');
+set(handles.menu_file_save_classifier_and_labels,'Enable','on');
 set(handles.menu_file_save_labels,'Enable','on');
 
 % --------------------------------------------------------------------
 function handles = SetSaved(handles)
 
 handles.guidata.needsave = false;
-set(handles.menu_file_save,'Enable','off');
+set(handles.menu_file_save_classifier_and_labels,'Enable','off');
 set(handles.menu_file_save_labels,'Enable','off');
 
 
 % --------------------------------------------------------------------
-function success = menu_file_save_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save (see GCBO)
+function success = menu_file_save_classifier_and_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_classifier_and_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -2174,13 +2177,23 @@ end
 
 % Disable the save menu item if things have recently been saved,
 % Enable it if there are unsaved changes
-if handles.guidata.needsave,
-  set(handles.menu_file_save,'Enable','on');
+if thereIsAnOpenFile,
+  set(handles.menu_file_new,'Enable','off');  
+  set(handles.menu_file_close,'Enable','on');
+  if handles.guidata.needsave,
+    set(handles.menu_file_save_classifier_and_labels,'Enable','on');
+  else
+    set(handles.menu_file_save_classifier_and_labels,'Enable','off');
+  end
 else
-  set(handles.menu_file_save,'Enable','off');
+  % no file currently open
+  set(handles.menu_file_new,'Enable','on');  
+  set(handles.menu_file_open,'Enable','on');  
+  set(handles.menu_file_open_in_ground_truthing_mode,'Enable','on');  
+  set(handles.menu_file_save_classifier_and_labels,'Enable','off');
+  set(handles.menu_file_save_as,'Enable','off');
+  set(handles.menu_file_close,'Enable','off');
 end
-
-set(handles.menu_file_save_project,'Enable','off');
 
 return
 
@@ -6978,7 +6991,7 @@ return
 
 % -------------------------------------------------------------------------
 function menu_file_save_everything_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_everything (see GCBO)
+% hObject    handle to menu_file_save_classifier_and_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -7021,8 +7034,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_file_open_everything_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_open_everything (see GCBO)
+function menu_file_open_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 openEverythingFile(gcbf,false);  % false means labeling mode
@@ -7030,8 +7043,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_file_open_everything_in_ground_truthing_mode_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_open_everything (see GCBO)
+function menu_file_open_in_ground_truthing_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 openEverythingFile(gcbf,true);  % true means ground-truthing mode
@@ -7299,3 +7312,147 @@ handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
 guidata(figureJLabel,handles);  % write the handles back to the figure
 
 return
+
+
+% --------------------------------------------------------------------
+function menu_file_close_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_close (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Release the thread cache
+delete(handles.guidata.cache_thread);
+handles.guidata.cache_thread = [];
+UpdatePlots(handles,'CLEAR');
+%clear functions  % BJA: need to clear persistent vars in UpdatePlots
+if ispc, pause(.1); end
+cachefilename = ['cache-' num2str(feature('getpid')) '.dat'];
+if exist(cachefilename,'file'),
+  delete(cachefilename);
+end
+
+% Check if we need to save
+if handles.guidata.needsave,
+  res = questdlg('There are unsaved changes.  Save?','Save?','Save','Discard','Cancel','Save');
+  if strcmpi(res,'Save'),
+    success = menu_file_save_Callback(hObject, eventdata, handles);
+    if ~success,
+      return;
+    end
+  elseif strcmpi(res,'Cancel'),
+    return;
+  end
+end
+
+% Re-load the guidata, which may have changed
+handles = guidata(hObject);
+
+% Check if any of the project things have changed, and if so, see if user
+% wants to save.  (How should this work in the context of the everything
+% files?)
+if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
+  res = questdlg(['Current window features do not match the ones in the project file.'...
+      'Update the project file with the current window features?'],...
+      'Update?','Yes','No','Cancel','Yes');
+  if strcmpi(res,'Yes')
+    menu_file_save_project_Callback(hObject,eventdata,handles);
+  elseif strcmpi(res,'Cancel');
+    return;
+  end    
+end  
+
+% Close any open movie files
+if ~isempty(handles.guidata.movie_fid) && ...
+    handles.guidata.movie_fid > 1 && ...
+    ~isempty(fopen(handles.guidata.movie_fid)),
+  fclose(handles.guidata.movie_fid);
+  handles.guidata.movie_fid = [];
+end
+
+% Turn off zooming
+zoom(handles.figure_JLabel,'off');
+
+% Close any open peripherals
+for ndx = 1:numel(handles.guidata.open_peripherals)
+  if ishandle(handles.guidata.open_peripherals(ndx)),
+    delete(handles.guidata.open_peripherals(ndx));
+  end
+end
+
+% Release the JLabelData
+if ~isempty(handles.guidata.data)
+  handles.guidata.data=[];
+end
+
+% save things we want to reinstate
+in_border_y=handles.guidata.in_border_y;
+
+% delete graphics objects that were created on the fly
+buttons=handles.guidata.togglebutton_label_behaviors(2:end);
+delete(buttons(ishandle(buttons)));
+panels=handles.guidata.panel_previews;
+delete(panels(ishandle(panels)));
+
+% Release and re-generate handles.guidata
+handles.guidata=[];
+handles.guidata = JLabelGUIData();
+
+% init stuff
+handles.output = handles.figure_JLabel;
+handles.guidata.classifierfilename='';
+handles.guidata.configfilename='';
+handles.guidata.defaultpath='';
+%handles.guidata.hsplash=[];
+%handles.guidata.hsplashstatus=[];
+handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
+handles.guidata.idlestatuscolor = [0,1,0];
+handles.guidata.busystatuscolor = [1,0,1];
+handles.guidata.movie_height = 100;
+handles.guidata.movie_width = 100;
+handles.guidata.movie_depth = 1;
+handles.guidata.tempname = tempname();
+ClearStatus(handles);
+
+% save the window state
+guidata(hObject,handles);
+
+% Update the arrays of graphics handles (grandles) within the figure's guidata
+handles.guidata.UpdateGraphicsHandleArrays(hObject);
+
+% Get some figure dimensions useful when we need to redo the layout
+handles.guidata.in_border_y = in_border_y;
+
+% Create the label buttons
+handles=guidata(hObject);
+handles = UpdateLabelButtons(handles);
+guidata(hObject,handles);
+
+% Update the enablement of controls
+handles=guidata(hObject);
+UpdateEnablementOfGUI(handles);
+
+% Clear the current fly info
+set(handles.text_selection_info,'string','');
+
+% Write the handles to the guidata
+guidata(hObject,handles);
+
+return
+
+
+% --------------------------------------------------------------------
+function menu_file_new_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_new (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+return
+
+
+% --------------------------------------------------------------------
+function menu_file_save_as_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_save_as (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+return
+
+
