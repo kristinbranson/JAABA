@@ -401,6 +401,7 @@ set(handles.guidata.hzoom,'ActionPostCallback',@(hObject,eventdata) PostZoomCall
 set(handles.guidata.hpan,'ActionPostCallback',@(hObject,eventdata) PostZoomCallback(hObject,eventdata,guidata(eventdata.Axes)));
 
 % manual timeline
+delete(get(handles.axes_timeline_manual,'children'));
 timeline_axes_color = get(handles.panel_timelines,'BackgroundColor');
 %handles.guidata.himage_timeline_manual = image(zeros([1,1,3]),'Parent',handles.axes_timeline_manual);
 handles.guidata.himage_timeline_manual = ...
@@ -431,6 +432,7 @@ setAxesZoomMotion(handles.guidata.hzoom,handles.axes_timeline_manual,'horizontal
 setAllowAxesPan(handles.guidata.hpan,handles.axes_timeline_manual,false);
 
 % auto timeline
+delete(get(handles.axes_timeline_auto,'children'));
 ydata_im = [2/3,4/3];
 %handles.guidata.himage_timeline_auto = image(zeros([3,1,3]),'Parent',handles.axes_timeline_auto);
 handles.guidata.himage_timeline_auto = ...
@@ -466,6 +468,7 @@ set(handles.axes_timeline_prop1, ...
     'box','on');
 
 % properties
+delete(get(handles.axes_timeline_prop1,'children'));
 propi = 1;
 %handles.guidata.htimeline_data(propi) = plot(handles.guidata.axes_timeline_props(propi),nan,nan,'w.-','HitTest','off');
 handles.guidata.htimeline_data(propi) = ...
@@ -2390,6 +2393,9 @@ isMovieShowing=handles.guidata.expi >= 1 && ...
                handles.guidata.expi <= handles.guidata.data.nexps;
 set(grobjectsEnabledIffMovie,'Enable',on(isMovieShowing));
 set(grobjectsVisibileIffMovie,'Visible',on(isMovieShowing));
+% % for debugging:
+% set(grobjectsEnabledIffMovie,'Enable','on');
+% set(grobjectsVisibileIffMovie,'Visible','on');
 
 return
 
@@ -7681,6 +7687,12 @@ for ndx = 1:numel(handles.guidata.open_peripherals)
     delete(handles.guidata.open_peripherals(ndx));
   end
 end
+
+% delete whatever is in the various axes
+delete(get(handles.axes_preview,'children'));
+delete(get(handles.axes_timeline_manual,'children'));
+delete(get(handles.axes_timeline_auto,'children'));
+delete(get(handles.axes_timeline_prop1,'children'));
 
 % Release the JLabelData
 if ~isempty(handles.guidata.data)
