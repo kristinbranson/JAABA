@@ -181,7 +181,7 @@ JLabel('setConfigFileName', ...
 % Update our pointer to the JLabelData, which has now changed
 handles.data = JLabel('getJLabelData',figureJLabel);
 
-% Disable that selector for choose labeling mode
+% Disable that selector for choosing labeling mode
 handles=fixLabelingMode(handles);
 
 % Notify JLabel of the labeling mode selected in our figure, which will
