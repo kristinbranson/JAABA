@@ -318,7 +318,7 @@ classdef JLabelData < handle
     version = '';
     
     % things related to the everything file
-    userHasSpecifiedEverythingFileName=false;
+    %userHasSpecifiedEverythingFileName=false;
     everythingFileName='';  % absolute file name
     
   end
@@ -7000,24 +7000,21 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
 
-    function specifyEverythingFileNameFromUser(self,fileNameAbs)
-      self.everythingFileName=fileNameAbs;
-      self.userHasSpecifiedEverythingFileName=true;
-    end
+    % function specifyEverythingFileNameFromUser(self,fileNameAbs)
+    %   self.everythingFileName=fileNameAbs;
+    %   self.userHasSpecifiedEverythingFileName=true;
+    % end
     
     % ---------------------------------------------------------------------
 
-    function saveEverything(self)
-      if isempty(self.everythingFileName)
-        error('JLabelData.noFileName','No file name specified');  %#ok
-      end
-      s=struct;
-      s.featureConfigParams=self.featureConfigParams;
-      s.saveableClassifier=self.getSaveableClassifier();
-      [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
-      s.configParams=self.getConfigParams();  %#ok
-      save(self.everythingFileName,'-struct','s');
-    end
+    % function saveEverything(self,fileNameAbs)
+    %   s=struct;
+    %   s.featureConfigParams=self.featureConfigParams;
+    %   s.saveableClassifier=self.getSaveableClassifier();
+    %   [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
+    %   s.configParams=self.getConfigParams();  %#ok
+    %   save(fileNameAbs,'-struct','s');
+    % end
 
     % ---------------------------------------------------------------------
     
