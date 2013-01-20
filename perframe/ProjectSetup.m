@@ -134,6 +134,13 @@ end
 
 setConfigTable(handles);
 
+if isempty(figureJLabelEditFiles)
+  % this means ProjectSetup() was called directly from JLabel
+  if new
+    set(hObject,'name','New...');
+  end
+end
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -699,10 +706,19 @@ function pushbutton_done_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-JLabelEditFiles('projectSetupDone', ...
-                handles.figureJLabelEditFiles, ...
-                handles.configParams, ...
-                handles.new);
+if isempty(handles.figureJLabelEditFiles)
+  % this means ProjectSetup() was called directly from JLabel
+  JLabel('projectSetupDone', ...
+         handles.figureJLabel, ...
+         handles.configParams, ...
+         handles.new);
+else
+  % this means ProjectSetup() was called from JLabelEditFiles
+  JLabelEditFiles('projectSetupDone', ...
+                  handles.figureJLabelEditFiles, ...
+                  handles.configParams, ...
+                  handles.new);
+end                
 delete(gcbf);              
 return
 
