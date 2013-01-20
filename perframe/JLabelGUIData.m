@@ -21,6 +21,16 @@ classdef JLabelGUIData < handle
     movie_filename = [];
     
     thereIsAnOpenFile=false;
+    everythingFileNameAbs='';  % the name of the everything file, if one
+                               % is open.  We need this here b/c a new
+                               % everything file doesn't have a JLabelData
+                               % object yet.
+    userHasSpecifiedEverythingFileName=false;  % true iff the everything
+                                               % file name was specified by
+                                               % the user, as opposed to
+                                               % being chosen by default
+                                               % when a new file was
+                                               % created
     configparams = struct;  % the stuff read from the project file
 
     panel_previews = [];
