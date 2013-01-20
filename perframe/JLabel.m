@@ -6313,7 +6313,7 @@ mode=handles.guidata.GUIGroundTruthingMode;
 SetGUIModeMenuChecks(handles);
 
 % If no experiments, just return
-if handles.guidata.data.nexps < 1,
+if isempty(handles.guidata.data) || handles.guidata.data.nexps < 1,
   return;
 end
 
@@ -7164,6 +7164,8 @@ RecursiveSetKeyPressFcn(figureJLabel);
 
 % save needed, since this is an import
 handles.guidata.thereIsAnOpenFile=true;
+handles.guidata.everythingFileNameAbs=fullfile(pwd(),'untitled.jab');
+handles.guidata.userHasSpecifiedEverythingFileName=false;
 handles.guidata.needsave=true;
 
 % Update certain aspect of the GUI to match the current "model" state
@@ -7265,27 +7267,35 @@ end
 saved=false;  % default return
 handles=guidata(figureJLabel);
 data=handles.guidata.data;  % reference
-if saveAs || ~data.userHasSpecifiedEverythingFileName
+if saveAs || ~handles.guidata.userHasSpecifiedEverythingFileName
   windowTitle=fif(saveAs, ...
                   'Save As...', ...
                   'Save...');
   [filename,pathname] = ...
     uiputfile({'*.jab','JAABA Files (*.jab)'}, ...
               windowTitle, ...
-              data.everythingFileName);
+              handles.guidata.everythingFileNameAbs);
   if ~ischar(filename),
     % user hit cancel
     return;
   end
   fileNameAbs=fullfile(pathname,filename);
-  data.specifyEverythingFileNameFromUser(fileNameAbs);
+  handles.guidata.everythingFileNameAbs=fileNameAbs;
+  handles.guidata.userHasSpecifiedEverythingFileName=true;
 end
 handles=guidata(figureJLabel);
-SetStatus(handles,sprintf('Saving everything to %s...',data.everythingFileName));
+SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
 s=struct;
-s.featureConfigParams=data.featureConfigParams;
-s.saveableClassifier=data.getSaveableClassifier();
-[s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
+if isempty(data)
+  s.featureConfigParams=[];
+  s.saveableClassifier=[];
+  s.labels=[];
+  s.gtLabels=[];
+else  
+  s.featureConfigParams=data.featureConfigParams;
+  s.saveableClassifier=data.getSaveableClassifier();
+  [s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
+end
 s.configParams=handles.guidata.configparams;  %#ok
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -7384,9 +7394,6 @@ handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 % Copy the default path out of the JLabelData.
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
-% Note that there are no unsaved changes.
-handles.guidata.needsave=false;
-
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
 if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
@@ -7398,8 +7405,11 @@ end
 % clear the old experiment directory
 handles.guidata.oldexpdir='';
 
-% Note that there is currently an open file.
+% Note that there is currently an open file, and note its name
 handles.guidata.thereIsAnOpenFile=true;
+handles.guidata.everythingFileNameAbs=fileNameAbs;
+handles.guidata.userHasSpecifiedEverythingFileName=true;
+handles.guidata.needsave=false;
 
 % Updates the graphics objects to match the current labeling mode (normal
 % or ground-truthing)
@@ -7408,9 +7418,6 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 % Update the GUI match the current "model" state
 UpdateGUIToMatchMovieState(handles);
 UpdateGUIToMatchOpenFileState(handles);
-
-% Note that the user has specified the everything file name
-handles.guidata.data.specifyEverythingFileNameFromUser(fileNameAbs);
 
 % Done, set status message to cleared message, pointer to normal
 fileNameRel=fileNameRelFromAbs(fileNameAbs);
@@ -7749,6 +7756,9 @@ ClearStatus(handles);
 
 % Note that there is currently no open file.
 handles.guidata.thereIsAnOpenFile=false;
+% these next three aren't strictly necessary
+handles.guidata.everythingFileNameAbs='';
+handles.guidata.userHasSpecifiedEverythingFileName=false;
 handles.guidata.needsave=false;
 
 % Update the GUI to match the current "model" state
@@ -7770,4 +7780,62 @@ function menu_file_new_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_new (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+newEverythingFile(gcbf);
+return
+
+
+% -------------------------------------------------------------------------
+function newEverythingFile(figureJLabel)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% Make up a filename
+fileNameAbs=fullfile(pwd(),'untitled.jab');
+
+% Update the status, change the pointer to the watch
+%SetStatus(handles,sprintf('Opening %s ...',filename));
+
+% Don't want to see "No experiment loaded" when status is cleared!
+handles.guidata.status_bar_text_when_clear='';
+guidata(figureJLabel,handles);  % sync the guidata to handles
+
+% the ground-truthing mode is false (i.e. normal) for all new files
+handles.guidata.GUIGroundTruthingMode=false;
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
+guidata(figureJLabel,handles);  % write the handles back to the figure
+
+% % Set the current movie.
+% handles = UnsetCurrentMovie(handles);
+% if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+%   handles = SetCurrentMovie(handles,1);
+% else
+%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+% end
+
+% clear the old experiment directory
+handles.guidata.oldexpdir='';
+
+% Note that there is currently an open file, and note the name
+handles.guidata.thereIsAnOpenFile=true;
+handles.guidata.everythingFileNameAbs=fileNameAbs;
+handles.guidata.userHasSpecifiedEverythingFileName=false;
+handles.guidata.needsave=true;
+
+% Updates the graphics objects to match the current labeling mode (normal
+% or ground-truthing)
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
+
+% Update the GUI match the current "model" state
+UpdateGUIToMatchMovieState(handles);
+UpdateGUIToMatchOpenFileState(handles);
+
+% Done, set status message to cleared message, pointer to normal
+fileNameRel=fileNameRelFromAbs(fileNameAbs);
+handles.guidata.status_bar_text_when_clear=fileNameRel;
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
 return
