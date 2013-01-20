@@ -7790,33 +7790,77 @@ function newEverythingFile(figureJLabel)
 % get handles
 handles=guidata(figureJLabel);
 
-% Make up a filename
+% launch the project setup GUI
+ProjectSetup('new',true, ...
+             'figureJLabel',handles.figure_JLabel, ...
+             'figureJLabelEditFiles',[]);
+           
+return
+
+% -------------------------------------------------------------------------
+
+function projectSetupDone(figureJLabel,configParams,new)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% Is this a new project, or did the user modify the existing project?
+if ~new,
+  error('JLabel.internalError','Internal error: Not implemented yet.');  %#ok
+end
+
+% If we get here, it's a new everything file
+
+% Make up filename
 fileNameAbs=fullfile(pwd(),'untitled.jab');
 
-% Update the status, change the pointer to the watch
-%SetStatus(handles,sprintf('Opening %s ...',filename));
+% % Update the status, change the pointer to the watch
+% SetStatus(handles,sprintf('Opening %s ...',filename));
 
 % Don't want to see "No experiment loaded" when status is cleared!
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
-% the ground-truthing mode is false (i.e. normal) for all new files
-handles.guidata.GUIGroundTruthingMode=false;
+% First set the project parameters, which will initialize the JLabelData
+setConfigParams(figureJLabel,configParams);
+handles=guidata(figureJLabel);  % make sure handles is up-to-date
+
+% Need to set the labeling mode in the JLabelData, before the experiments 
+% are loaded.
+groundTruthingMode=false;  % all new files start in labeling mode
+data=handles.guidata.data;  % ref
+data.SetGTMode(groundTruthingMode);
+
+% Set the GUI to match the labeling mode
+handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 guidata(figureJLabel,handles);  % write the handles back to the figure
 
-% % Set the current movie.
-% handles = UnsetCurrentMovie(handles);
-% if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-%   handles = SetCurrentMovie(handles,1);
-% else
-%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-% end
+% % Now load the classifier, which includes the experiments, and load the
+% % labels also.  ('classifierlabels',true means to load the labels, too.)
+% data.setClassifierParams(everythingParams.saveableClassifier, ...
+%                          'classifierlabels',true);
+
+% Set the functions that end up getting called when we call SetStatus()
+% and ClearStatus()
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+
+% Copy the default path out of the JLabelData.
+handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+
+% Set the current movie.
+handles = UnsetCurrentMovie(handles);
+if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+  handles = SetCurrentMovie(handles,1);
+else
+  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+end
 
 % clear the old experiment directory
 handles.guidata.oldexpdir='';
 
-% Note that there is currently an open file, and note the name
+% Note that there is currently an open file, and note its name
 handles.guidata.thereIsAnOpenFile=true;
 handles.guidata.everythingFileNameAbs=fileNameAbs;
 handles.guidata.userHasSpecifiedEverythingFileName=false;
@@ -7839,3 +7883,7 @@ ClearStatus(handles);
 guidata(figureJLabel,handles);
 
 return
+
+
+
+
