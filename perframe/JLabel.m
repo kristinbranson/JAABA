@@ -1,5 +1,5 @@
 function varargout = JLabel(varargin)
-% JLabel: Start up the JAABA program
+% JLabel: Start up the JAABA programi
 %
 % This program is part of JAABA.
 %
@@ -248,6 +248,7 @@ for i = 1:numel(handles.guidata.axes_previews),
   % image in axes_preview
   %handles.guidata.himage_previews(i) = imagesc(0,'Parent',handles.guidata.axes_previews(i),[0,255]);
   set(handles.guidata.axes_previews(i), ...
+      'ydir','reverse', ...
       'clim',[0,255], ...
       'layer','top', ...
       'box','on');
@@ -7250,30 +7251,29 @@ if saveAs || ~handles.guidata.userHasSpecifiedEverythingFileName
   fileNameAbs=fullfile(pathname,filename);
   handles.guidata.everythingFileNameAbs=fileNameAbs;
   handles.guidata.userHasSpecifiedEverythingFileName=true;
+else
+  fileNameAbs=handles.guidata.everythingFileNameAbs;
 end
+fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
 s=struct;
-if isempty(data)
-  s.featureConfigParams=[];
-  s.saveableClassifier=[];
-  s.labels=[];
-  s.gtLabels=[];
-else  
-  s.featureConfigParams=data.featureConfigParams;
-  s.saveableClassifier=data.getSaveableClassifier();
-  [s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
-end
+s.featureConfigParams=data.featureConfigParams;
+s.saveableClassifier=data.getSaveableClassifier();
+[s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
 s.configParams=handles.guidata.configparams;  %#ok
 try
   save('-mat',fileNameAbs,'-struct','s');
 catch  %#ok
-  uiwait(errordlg('Unable to save %s.',self.everythingFileName));
+  uiwait(errordlg(sprintf('Unable to save %s.', ...
+                          fileNameRel), ...
+                  'Unable to Save'));
   ClearStatus(handles);
   return;
 end
 saved=true;
 handles.guidata.needsave=false;
+handles.guidata.status_bar_text_when_clear=fileNameRel;
 UpdateGUIToMatchOpenFileState(handles);
 ClearStatus(handles);
 guidata(figureJLabel,handles);
