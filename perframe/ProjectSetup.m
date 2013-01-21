@@ -134,11 +134,21 @@ end
 
 setConfigTable(handles);
 
+% Change the window title to "New..." under some circumstance
 if isempty(figureJLabelEditFiles)
   % this means ProjectSetup() was called directly from JLabel
   if new
     set(hObject,'name','New...');
   end
+end
+
+% Make invisible some controls if called directly from JLabel
+if isempty(figureJLabelEditFiles)
+  % this means ProjectSetup() was called directly from JLabel
+  set(handles.textLabelFileName,'visible','off');
+  set(handles.textGTLabelFileName,'visible','off');
+  set(handles.editlabelfilename,'visible','off');
+  set(handles.editgtlabelfilename,'visible','off');
 end
 
 % Update handles structure
