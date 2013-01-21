@@ -22,7 +22,7 @@ function varargout = JModifyFiles(varargin)
 
 % Edit the above text to modify the response to help JModifyFiles
 
-% Last Modified by GUIDE v2.5 20-Jan-2013 19:58:45
+% Last Modified by GUIDE v2.5 21-Jan-2013 00:37:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -88,46 +88,46 @@ data.SetClearStatusFn( @() ClearStatusEditFiles(figureJModifyFiles));
 
 % Initialize some things
 listbox_experiment=getGuidataField(figureJModifyFiles,'listbox_experiment');
-statusMsg=getGuidataField(figureJModifyFiles,'statusMsg');
+statusMessageTextbox=getGuidataField(figureJModifyFiles,'statusMessageTextbox');
 set(listbox_experiment,'String',data.expdirs,'Value',numel(data.expdirs));
-set(statusMsg,'String','');
+set(statusMessageTextbox,'String','');
 
-% Specify height of a row in pixels
-table_row_height_px = 22;
-
-% Specify sizes for generate buttons
-generate_button_border_y_px = 1;
-generate_button_border_x_px = 5;
-generate_button_width_px = 100;
-generate_button_height_px = table_row_height_px - generate_button_border_y_px;
-
-% Create buttons for generating the files
-uitable_status=getGuidataField(figureJModifyFiles,'uitable_status');
-pos_table = get(uitable_status,'Position');
-top_table = pos_table(2)+pos_table(4);
-right_table = pos_table(1)+pos_table(3);
-for i = 1:numel(data.filetypes),
-  if JLabelData.CanGenerateFile(data.filetypes{i}),
-    pos = [right_table + generate_button_border_x_px,...
-      top_table - (i-1)*table_row_height_px - ...
-      generate_button_height_px - generate_button_border_y_px/2,...
-      generate_button_width_px,...
-      generate_button_height_px];
-    buttonColor = get(figureJModifyFiles,'Color');
-    pushbutton_generate = ...
-      uicontrol('Style','pushbutton', ...
-                'Units','Pixels',...
-                'Parent',figureJModifyFiles,...
-                'String','Generate', ...
-                'Position',pos, ...
-                'FontUnits','pixels', ...
-                'FontSize',14,...
-                'tag',sprintf('pushbutton_generate_%d',i),...
-                'Callback',@(hObject,eventdata) JModifyFiles('pushbutton_generate_Callback',hObject,eventdata,guidata(hObject),i),...
-                'Backgroundcolor',buttonColor);
-    setGuidataField(figureJModifyFiles,'pushbutton_generate',pushbutton_generate);              
-  end
-end
+% % Specify height of a row in pixels
+% table_row_height_px = 22;
+% 
+% % Specify sizes for generate buttons
+% generate_button_border_y_px = 1;
+% generate_button_border_x_px = 5;
+% generate_button_width_px = 100;
+% generate_button_height_px = table_row_height_px - generate_button_border_y_px;
+% 
+% % Create buttons for generating the files
+% uitable_status=getGuidataField(figureJModifyFiles,'uitable_status');
+% pos_table = get(uitable_status,'Position');
+% top_table = pos_table(2)+pos_table(4);
+% right_table = pos_table(1)+pos_table(3);
+% for i = 1:numel(data.filetypes),
+%   if JLabelData.CanGenerateFile(data.filetypes{i}),
+%     pos = [right_table + generate_button_border_x_px,...
+%            top_table - (i-1)*table_row_height_px - ...
+%            generate_button_height_px - generate_button_border_y_px/2,...
+%            generate_button_width_px,...
+%            generate_button_height_px];
+%     buttonColor = get(figureJModifyFiles,'Color');
+%     pushbutton_generate = ...
+%       uicontrol('Style','pushbutton', ...
+%                 'Units','Pixels',...
+%                 'Parent',figureJModifyFiles,...
+%                 'String','Generate', ...
+%                 'Position',pos, ...
+%                 'FontUnits','pixels', ...
+%                 'FontSize',14,...
+%                 'tag',sprintf('pushbutton_generate_%d',i),...
+%                 'Callback',@(hObject,eventdata) JModifyFiles('pushbutton_generate_Callback',hObject,eventdata,guidata(hObject),i),...
+%                 'Backgroundcolor',buttonColor);
+%     setGuidataField(figureJModifyFiles,'pushbutton_generate',pushbutton_generate);              
+%   end
+% end
 
 % initialize status table
 UpdateStatusTable(figureJModifyFiles);
@@ -172,7 +172,8 @@ function listbox_experiment_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 
 % Hint: listbox controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+if ispc && isequal(get(hObject,'BackgroundColor'), ...
+                   get(0,'defaultUicontrolBackgroundColor'))
   set(hObject,'BackgroundColor','white');
   SetButtonImage(hObject);
 end
@@ -228,31 +229,31 @@ ClearStatusEditFiles(figureJModifyFiles);
 return
 
 
-%--------------------------------------------------------------------------
-function pushbutton_generate_Callback(hObject, eventdata, handles, row)
-listbox_experiment=getGuidataField(figureJModifyFiles,'listbox_experiment');
-data=getGuidataField(gcbf,'data');  % ref
-file = data.filetypes{row};
-if ~JLabelData.CanGenerateFile(file),
-  return;
-end
-v = get(listbox_experiment,'Value');
-if isempty(v),
-  return;
-end
-if numel(v) > 1,
-  v = v(end);
-end
-expname = data.expnames{v};
-switch file,
-  case 'perframedir',
-    [success,msg] = data.GeneratePerFrameFiles(v);
-    if ~success,
-      uiwait(warndlg(sprintf('Error generating %s files for %s: %s',file,expname,msg)));
-    end
-end
-UpdateStatusTable(hObject);
-return
+% %--------------------------------------------------------------------------
+% function pushbutton_generate_Callback(hObject, eventdata, handles, row)
+% listbox_experiment=getGuidataField(figureJModifyFiles,'listbox_experiment');
+% data=getGuidataField(gcbf,'data');  % ref
+% file = data.filetypes{row};
+% if ~JLabelData.CanGenerateFile(file),
+%   return;
+% end
+% v = get(listbox_experiment,'Value');
+% if isempty(v),
+%   return;
+% end
+% if numel(v) > 1,
+%   v = v(end);
+% end
+% expname = data.expnames{v};
+% switch file,
+%   case 'perframedir',
+%     [success,msg] = data.GeneratePerFrameFiles(v);
+%     if ~success,
+%       uiwait(warndlg(sprintf('Error generating %s files for %s: %s',file,expname,msg)));
+%     end
+% end
+% UpdateStatusTable(hObject);
+% return
 
 
 %--------------------------------------------------------------------------
@@ -261,7 +262,7 @@ function pushbutton_remove_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_remove (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-listbox_experiment=getGuidataField(figureJModifyFiles,'listbox_experiment');
+listbox_experiment=getGuidataField(gcbf,'listbox_experiment');
 data=getGuidataField(gcbf,'data');  % ref
 v = get(listbox_experiment,'Value');
 if isempty(v),
@@ -280,8 +281,8 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-figureJLabel=getGuidataField(figureJModifyFiles,'figureJLabel');
-listChanged=setGuidataField(gcbf,'listChanged');
+figureJLabel=getGuidataField(gcbf,'figureJLabel');
+listChanged=getGuidataField(gcbf,'listChanged');
 JLabel('modifyFilesDone',figureJLabel,listChanged);
 delete(gcbf);
 return
@@ -289,7 +290,7 @@ return
 
 %--------------------------------------------------------------------------
 % --- Executes when user attempts to close figureJModifyFiles.
-function figureJModifyFiles_CloseRequestFcn(hObject, eventdata, handles)
+function figure_JModifyFiles_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to figureJModifyFiles (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -301,16 +302,18 @@ return
 
 %--------------------------------------------------------------------------
 function SetStatusEditFiles(figureJModifyFiles,s)
-statusMsg=getGuidataField(figureJModifyFiles,'statusMsg');
-set(statusMsg,'String',s);
+statusMessageTextbox=getGuidataField(figureJModifyFiles, ...
+                                     'statusMessageTextbox');
+set(statusMessageTextbox,'String',s);
 set(figureJModifyFiles,'pointer','watch');
 return
 
 
 %--------------------------------------------------------------------------
 function ClearStatusEditFiles(figureJModifyFiles)
-statusMsg=getGuidataField(figureJModifyFiles,'statusMsg');
-set(statusMsg,'String','');
+statusMessageTextbox=getGuidataField(figureJModifyFiles, ...
+                                     'statusMessageTextbox');
+set(statusMessageTextbox,'String','');
 set(figureJModifyFiles,'pointer','arrow');
 return
 
@@ -380,7 +383,7 @@ uitable_status=getGuidataField(figureJModifyFiles,'uitable_status');
 
 v = get(listbox_experiment,'Value');
 if isempty(v) || v <= 0 || data.nexps == 0 ,
-  set(uitable_status,'Data',{},'Visible','off');
+  set(uitable_status,'Data',{},'Enable','off');
   return;
 end
 if numel(v) > 1,
@@ -388,8 +391,8 @@ if numel(v) > 1,
 end
 
 nfiles = numel(data.filetypes); 
-data = cell([nfiles,2]);
-data(:,1) = data.filetypes;
+tableData = cell([nfiles,2]);
+tableData(:,1) = data.filetypes;
 for i = 1:nfiles,
   file = data.filetypes{i};
   [file_exists,timestamp] = data.FileExists(file,v);
@@ -398,20 +401,20 @@ for i = 1:nfiles,
   end
   if data.IsRequiredFile(file),
     if file_exists,
-      data{i,2} = sprintf('<html><font color="green">%s</font></html>',timestamp);
+      tableData{i,2} = sprintf('<html><font color="green">%s</font></html>',timestamp);
     else
-      data{i,2} = '<html><font color="red">Missing</font></html>';
+      tableData{i,2} = '<html><font color="red">Missing</font></html>';
     end
   else
     if file_exists,
-      data{i,2} = timestamp;
+      tableData{i,2} = timestamp;
     else
-      data{i,2} = 'Absent';
+      tableData{i,2} = 'Absent';
     end
   end
 end
 tableSize = get(uitable_status,'Position');
-set(uitable_status,'Data',data,'Visible','on','ColumnWidth',{150 tableSize(3)-155});
+set(uitable_status,'Data',tableData, ...
+                   'Enable','on', ...
+                   'ColumnWidth',{150 tableSize(3)-155});
 return
-
-
