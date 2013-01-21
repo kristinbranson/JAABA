@@ -723,26 +723,52 @@ for i = axes,
     end
     inbounds = handles.guidata.data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
       handles.guidata.data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
+    
+    % indices that will be removed
+    goodidx = find(handles.guidata.idx2fly~=0);
+    idxremove = goodidx(find(~inbounds(handles.guidata.idx2fly(goodidx))));
+    fliesadd = find(inbounds & handles.guidata.fly2idx==0);
+    if ~isempty(idxremove),
+      handles.guidata.fly2idx(~inbounds) = 0;
+      handles.guidata.idx2fly(idxremove) = 0;
+    end
+    idxfree = find(handles.guidata.idx2fly==0);
+    if ~isempty(fliesadd),
+      for j = 1:numel(fliesadd),
+        fly = fliesadd(j);
+        handles.guidata.fly2idx(fly) = idxfree(j);
+        handles.guidata.idx2fly(idxfree(j)) = fly;
+        set(handles.guidata.hflies(idxfree(j),i),'Color',handles.guidata.fly_colors(fly,:));
+        set(handles.guidata.hflies_extra(idxfree(j),i),...
+          'Color',handles.guidata.fly_colors(fly,:),...
+          'MarkerFaceColor',handles.guidata.fly_colors(fly,:));
+        set(handles.guidata.hfly_markers(idxfree(j),i),...
+          'Color',handles.guidata.fly_colors(fly,:));
+      end
+    end
     if handles.doplottracks,
-      set(handles.guidata.hflies(~inbounds,i),'Visible','off');
-      set(handles.guidata.hflies_extra(~inbounds,i),'Visible','off');
-      set(handles.guidata.hfly_markers(~inbounds,i),'Visible','off');
-      set(handles.guidata.hflies(inbounds,i),'Visible','on');
-      set(handles.guidata.hflies_extra(inbounds,i),'Visible','on');
-      set(handles.guidata.hfly_markers(inbounds,i),'Visible','on');
+      isinvisible = handles.guidata.idx2fly == 0;
+      set(handles.guidata.hflies(isinvisible,i),'Visible','off');
+      set(handles.guidata.hflies_extra(isinvisible,i),'Visible','off');
+      set(handles.guidata.hfly_markers(isinvisible,i),'Visible','off');
+      set(handles.guidata.hflies(~isinvisible,i),'Visible','on');
+      set(handles.guidata.hflies_extra(~isinvisible,i),'Visible','on');
+      set(handles.guidata.hfly_markers(~isinvisible,i),'Visible','on');
     end
     for fly = find(inbounds),
 
       t = handles.guidata.ts(i);
       pos = handles.guidata.data.GetTrxPos1(handles.guidata.expi,fly,t);
-      UpdateTargetPosition(handles.guidata.data.targettype,handles.guidata.hflies(fly,i),handles.guidata.hflies_extra(fly,i),pos);
+      j = handles.guidata.fly2idx(fly);
+      UpdateTargetPosition(handles.guidata.data.targettype,handles.guidata.hflies(j,i),...
+        handles.guidata.hflies_extra(j,i),pos);
 
-      set(handles.guidata.hfly_markers(fly,i),'XData',pos.x,'YData',pos.y);
+      set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.guidata.data.GetSex1(handles.guidata.expi,fly,t);
       if lower(sexcurr(1)) == 'm',
-        set(handles.guidata.hfly_markers(fly,i),'Visible','on');
+        set(handles.guidata.hfly_markers(j,i),'Visible','on');
       else
-        set(handles.guidata.hfly_markers(fly,i),'Visible','off');
+        set(handles.guidata.hfly_markers(j,i),'Visible','off');
       end
 %       updatefly(handles.guidata.hflies(fly,i),...
 %         handles.guidata.data.GetTrxX1(handles.guidata.expi,fly,t),...
@@ -758,17 +784,17 @@ for i = axes,
 %         handles.guidata.data.trx(fly).b(j));
       %updatefly(handles.guidata.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.guidata.flies),
-        set(handles.guidata.hflies(fly,i),'LineWidth',3);
+        set(handles.guidata.hflies(j,i),'LineWidth',3);
         if labelidx <= 0,
-          set(handles.guidata.hflies(fly,i),'Color',handles.guidata.labelunknowncolor);
-          set(handles.guidata.hflies_extra(fly,i),'Color',handles.guidata.labelunknowncolor,...
+          set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelunknowncolor);
+          set(handles.guidata.hflies_extra(j,i),'Color',handles.guidata.labelunknowncolor,...
             'MarkerFaceColor',handles.guidata.labelunknowncolor);
         else
-          set(handles.guidata.hflies(fly,i),'Color',handles.guidata.labelcolors(labelidx,:),...
+          set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelcolors(labelidx,:),...
             'MarkerFaceColor',handles.guidata.labelcolors(labelidx,:));
         end
       else
-        set(handles.guidata.hflies(fly,i),'LineWidth',1);
+        set(handles.guidata.hflies(j,i),'LineWidth',1);
       end
     end
     
@@ -943,6 +969,16 @@ if isnan(handles.guidata.zoom_fly_radius(1)),
   handles.guidata.zoom_fly_radius = nanmean([handles.guidata.data.trx.a])*20 + [0,0];
 end
 
+% count the maximum number of flies in any frames
+off = 1-min(handles.guidata.data.firstframes_per_exp{expi});
+nflies_per_frame = zeros(1,max(handles.guidata.data.endframes_per_exp{expi}+off));
+for fly = 1:handles.guidata.data.nflies_per_exp(expi),
+  i0 = handles.guidata.data.firstframes_per_exp{expi}(fly)+off;
+  i1 = handles.guidata.data.endframes_per_exp{expi}(fly)+off;
+  nflies_per_frame(i0:i1) = nflies_per_frame(i0:i1) + 1;
+end
+maxnflies_curr = max(nflies_per_frame);
+
 handles.guidata.expi = expi;
 
 ClearStatus(handles);
@@ -967,13 +1003,15 @@ if ~isempty(handles.guidata.hfly_markers),
 end
 
 % update plotted trx handles, as number of flies will change
-handles.guidata.hflies = zeros(handles.guidata.nflies_curr,numel(handles.guidata.axes_previews));
-handles.guidata.hflies_extra = zeros(handles.guidata.nflies_curr,numel(handles.guidata.axes_previews));
-handles.guidata.hfly_markers = zeros(handles.guidata.nflies_curr,numel(handles.guidata.axes_previews));
+handles.guidata.hflies = nan(maxnflies_curr,numel(handles.guidata.axes_previews));
+handles.guidata.hflies_extra = nan(maxnflies_curr,numel(handles.guidata.axes_previews));
+handles.guidata.hfly_markers = nan(maxnflies_curr,numel(handles.guidata.axes_previews));
+handles.guidata.idx2fly = zeros(1,maxnflies_curr);
+handles.guidata.fly2idx = zeros(1,handles.guidata.nflies_curr);
 
 for i = 1:numel(handles.guidata.axes_previews),
   % fly current positions
-  for fly = 1:handles.guidata.nflies_curr,
+  for fly = 1:maxnflies_curr,
     handles.guidata.hflies(fly,i) = plot(handles.guidata.axes_previews(i),nan,nan,'-',...
       'color',handles.guidata.fly_colors(fly,:),'linewidth',3,...
       'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
@@ -1191,9 +1229,13 @@ inbounds = handles.guidata.data.firstframes_per_exp{handles.guidata.expi} <= han
   handles.guidata.data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
 
 for i = 1:numel(handles.guidata.axes_previews),
-  for fly = find(inbounds),
-    set(handles.guidata.hflies(fly,i),'Color',handles.guidata.fly_colors(fly,:));
-    set(handles.guidata.hflies_extra(fly,i),'Color',handles.guidata.fly_colors(fly,:),...
+  for j = 1:numel(handles.guidata.idx2fly),
+    fly = handles.guidata.idx2fly(j);
+    if fly == 0 || ~inbounds(fly),
+      continue;
+    end
+    set(handles.guidata.hflies(j,i),'Color',handles.guidata.fly_colors(fly,:));
+    set(handles.guidata.hflies_extra(j,i),'Color',handles.guidata.fly_colors(fly,:),...
       'MarkerFaceColor',handles.guidata.fly_colors(fly,:));
   end
 end
@@ -2885,7 +2927,9 @@ end
 guidata(hObject,handles);
 
 
-function fly_ButtonDownFcn(hObject, eventdata, handles, fly, i)
+function fly_ButtonDownFcn(hObject, eventdata, handles, flyi, i)
+
+fly = handles.guidata.idx2fly(flyi);
 
 % TODO: figure out how to do this when multiple flies define a behavior
 
