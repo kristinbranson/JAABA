@@ -1677,8 +1677,8 @@ return
 
 
 %--------------------------------------------------------------------------
-function menu_file_editfiles_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_editfiles (see GCBO)
+function menu_file_modify_files_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_modify_files (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % if isfield(handles,'data'),
@@ -1694,51 +1694,16 @@ function menu_file_editfiles_Callback(hObject, eventdata, handles)
 %   end
 % end
 
+% store the name of the current experiment, so that we can
+% stay with it (if possible) after the user modifies the list of 
+% experiment dirs
 if ~isempty(handles.guidata.expi) && handles.guidata.expi > 0,
   handles.guidata.oldexpdir = handles.guidata.data.expdirs{handles.guidata.expi};
 else
   handles.guidata.oldexpdir = '';
 end
 
-%DisableGUI(handles);
-%[handles,success] = ...
-%  JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles); %params{:});
-
-%JLabelEditFiles('disableBehavior',true,'JLabelHandle',handles);
-JLabelEditFiles('disableBehavior',true,'figureJLabel',handles.figure_JLabel);
-
-%ReEnableGUI(handles);
-
-% 
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
-% 
-% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
-% if ~success,
-%   guidata(hObject,handles);
-%   return;
-% end
-%  
-% 
-% 
-% % save needed if list has changed
-% handles = SetNeedSave(handles);
-% 
-% if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
-%   j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
-%   handles.guidata.expi = j;
-% else
-%   handles = UnsetCurrentMovie(handles);
-%   if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-%     handles = SetCurrentMovie(handles,1);
-%   else
-%     handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-%   end
-% end
-% 
-% handles = UpdateGUIGroundTruthingMode(handles);
-% 
-% guidata(hObject,handles);
+JModifyFiles('figureJLabel',handles.figure_JLabel);
 
 return
 
@@ -7182,20 +7147,24 @@ return
 
 
 %--------------------------------------------------------------------------
-function editFilesDone(figureJLabel)
+function modifyFilesDone(figureJLabel,listChanged)
 
+% get out the guidata
 handles=guidata(figureJLabel);
 
-%ReEnableGUI(handles);
-
+% direct SetStatus() and ClearStatus() back to JLabel figure
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
+% Update our copy of the default path
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
 % save needed if list has changed
-handles.guidata.needsave=true;
+if listChanged,
+  handles.guidata.needsave=true;
+end
 
+% Make sure the current experiment stays the same.
 oldexpdir=handles.guidata.oldexpdir;
 if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
   j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
@@ -7208,16 +7177,15 @@ else
     handles = SetCurrentMovie(handles,handles.guidata.data.expi);
   end
 end
+
+% Don't need this anymore, so clear it
 handles.guidata.oldexpdir='';
 
-handles.guidata.thereIsAnOpenFile=true;
-
-handles = UpdateViewToGroundTruthingMode(handles);
-
-% Update the GUI match the current "model" state
+% Update the GUI to match the current "model" state
 UpdateGUIToMatchMovieState(handles);
 UpdateGUIToMatchOpenFileState(handles);
 
+% write the guidata back
 guidata(figureJLabel,handles);
 
 return
@@ -7761,6 +7729,10 @@ handles.guidata.everythingFileNameAbs='';
 handles.guidata.userHasSpecifiedEverythingFileName=false;
 handles.guidata.needsave=false;
 
+% Set the GT state back to "none"
+handles.guidata.GUIGroundTruthingMode=[];
+UpdateGUIToMatchGroundTruthingMode(handles);
+
 % Update the GUI to match the current "model" state
 %handles=guidata(hObject);
 UpdateGUIToMatchMovieState(handles);
@@ -7812,7 +7784,15 @@ end
 % If we get here, it's a new everything file
 
 % Make up filename
-fileNameAbs=fullfile(pwd(),'untitled.jab');
+if isfield(configParams,'behaviors') && ...
+   isfield(configParams.behaviors,'names') && ...
+   ~isempty(configParams.behaviors.names)
+  behaviorName=configParams.behaviors.names{1};
+  fileNameRel=sprintf('%s.jab',behaviorName);
+else
+  fileNameRel='untitled.jab';
+end
+fileNameAbs=fullfile(pwd(),fileNameRel);
 
 % % Update the status, change the pointer to the watch
 % SetStatus(handles,sprintf('Opening %s ...',filename));
@@ -7883,7 +7863,3 @@ ClearStatus(handles);
 guidata(figureJLabel,handles);
 
 return
-
-
-
-
