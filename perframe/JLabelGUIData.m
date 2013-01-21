@@ -171,6 +171,11 @@ classdef JLabelGUIData < handle
     cacheSize = 4000;
      
     tempname = [];
+    
+    % which flies are being plotted
+    fly2idx = [];
+    idx2fly = [];
+    
   end
      
   methods (Access=public)
