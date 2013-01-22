@@ -134,8 +134,7 @@ handles.guidata.in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_bu
 
 % Update aspects of the GUI to match the current "model" state
 handles=guidata(hObject);
-UpdateGUIToMatchMovieState(handles);
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(hObject);
@@ -1230,8 +1229,7 @@ for h = handles.guidata.axes_timeline_labels,
 end
 
 % enable GUI components
-UpdateGUIToMatchMovieState(handles);
-%UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 success = true;
 
@@ -2309,35 +2307,107 @@ return
 % 
 % % Disable the save menu item if things have recently been saved,
 % % Enable it if there are unsaved changes
-% UpdateGUIToMatchOpenFileState(handles);
+% UpdateGUIToMatchFileAndExperimentState(handles);
+% 
+% return
+
+
+% %--------------------------------------------------------------------------
+% function UpdateGUIToMatchOpenFileState(handles)
+% 
+% % Disable the save menu item if things have recently been saved,
+% % Enable it if there are unsaved changes
+% thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
+% needsave=handles.guidata.needsave;
+% set(handles.menu_file_new,'Enable',offIff(thereIsAnOpenFile));  
+% set(handles.menu_file_open,'Enable',offIff(thereIsAnOpenFile));  
+% set(handles.menu_file_open_in_ground_truthing_mode, ...
+%     'Enable',offIff(thereIsAnOpenFile));  
+% set(handles.menu_file_save,'Enable',onIff(thereIsAnOpenFile&&needsave));
+% set(handles.menu_file_save_as,'Enable',onIff(thereIsAnOpenFile));
+% set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
+% set(handles.menu_file_import_old_style_project, ...
+%     'Enable',offIff(thereIsAnOpenFile));
+% 
+% return
+
+
+% %--------------------------------------------------------------------------
+% function UpdateGUIToMatchMovieState(handles)
+% % Updates the visbility of controls depending on whether there is a valid
+% % current experiment.  (I.e., a movie showing)
+% 
+% % these controls require a movie to currently be open, and should be
+% % disabled if there's no movie
+% grobjectsEnabledIffMovie = ...
+%   [handles.contextmenu_timeline_manual_timeline_options,...
+%    handles.guidata.togglebutton_label_behaviors,...
+%    handles.togglebutton_label_unknown,...
+%    handles.togglebutton_select,...
+%    handles.pushbutton_clearselection, ...
+%    handles.pushbutton_playselection, ...
+%    handles.bagButton, ...
+%    handles.similarFramesButton, ...
+%    handles.guidata.menu_view_zoom_options(:)'];
+% grobjectsEnabledIffMovie = ...
+%   grobjectsEnabledIffMovie(~isnan(grobjectsEnabledIffMovie));
+% 
+% % these require a movie to currently be open and should be _invisible_
+% % if there's no movie
+% grobjectsVisibileIffMovie = [handles.guidata.panel_previews,...
+%                              handles.panel_timelines,...
+%                              handles.panel_learn ...
+%                              handles.panel_labelbuttons ...
+%                              handles.panel_select ...
+%                              handles.panel_selection_info];
+% 
+% % set enablement/visibility according to the current movie index    
+% isMovieShowing=handles.guidata.expi >= 1 && ...
+%                handles.guidata.expi <= handles.guidata.data.nexps;
+% set(grobjectsEnabledIffMovie,'Enable',onIff(isMovieShowing));
+% set(grobjectsVisibileIffMovie,'Visible',onIff(isMovieShowing));
+% % % for debugging:
+% % set(grobjectsEnabledIffMovie,'Enable','on');
+% % set(grobjectsVisibileIffMovie,'Visible','on');
+% set(handles.menu_file_import_old_style_classifier, ...
+%     'Enable',offIff(isMovieShowing));
 % 
 % return
 
 
 %--------------------------------------------------------------------------
-function UpdateGUIToMatchOpenFileState(handles)
+function UpdateGUIToMatchFileAndExperimentState(handles)
+% Set enablement and visibility of various controls depending on
+% whether a file is currently open, and whether that file contains more
+% than zero experiments.
 
-% Disable the save menu item if things have recently been saved,
-% Enable it if there are unsaved changes
+% Calculate some logical values that determine enablement and visibility of
+% things.
 thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
 needsave=handles.guidata.needsave;
-set(handles.menu_file_new,'Enable',on(~thereIsAnOpenFile));  
-set(handles.menu_file_open,'Enable',on(~thereIsAnOpenFile));  
-set(handles.menu_file_open_in_ground_truthing_mode,'Enable',on(~thereIsAnOpenFile));  
-set(handles.menu_file_save,'Enable',on(thereIsAnOpenFile&&needsave));
-set(handles.menu_file_save_as,'Enable',on(thereIsAnOpenFile));
-set(handles.menu_file_close,'Enable',on(thereIsAnOpenFile));
+if isempty(handles.guidata.data)
+  nExps=0;
+else
+  nExps=handles.guidata.data.nexps;
+end
+someExperimentIsCurrent=handles.guidata.expi >= 1 && ...
+                        handles.guidata.expi <= nExps;
 
-return
+% Update the File menu items.
+set(handles.menu_file_new,'Enable',offIff(thereIsAnOpenFile));  
+set(handles.menu_file_open,'Enable',offIff(thereIsAnOpenFile));  
+set(handles.menu_file_open_in_ground_truthing_mode, ...
+    'Enable',offIff(thereIsAnOpenFile));  
+set(handles.menu_file_save,'Enable',onIff(thereIsAnOpenFile&&needsave));
+set(handles.menu_file_save_as,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_import_old_style_project, ...
+    'Enable',offIff(thereIsAnOpenFile));
+set(handles.menu_file_import_old_style_classifier, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
 
-
-%--------------------------------------------------------------------------
-function UpdateGUIToMatchMovieState(handles)
-% Updates the visbility of controls depending on whether there is a valid
-% current experiment.  (I.e., a movie showing)
-
-% these controls require a movie to currently be open, and should be
-% disabled if there's no movie
+% These controls require a movie to currently be open, and should be
+% disabled if there's no movie.
 grobjectsEnabledIffMovie = ...
   [handles.contextmenu_timeline_manual_timeline_options,...
    handles.guidata.togglebutton_label_behaviors,...
@@ -2350,24 +2420,17 @@ grobjectsEnabledIffMovie = ...
    handles.guidata.menu_view_zoom_options(:)'];
 grobjectsEnabledIffMovie = ...
   grobjectsEnabledIffMovie(~isnan(grobjectsEnabledIffMovie));
+set(grobjectsEnabledIffMovie,'Enable',onIff(someExperimentIsCurrent));
 
-% these require a movie to currently be open and should be _invisible_
-% if there's no movie
+% These require a movie to currently be open and should be _invisible_
+% if there's no movie.
 grobjectsVisibileIffMovie = [handles.guidata.panel_previews,...
                              handles.panel_timelines,...
                              handles.panel_learn ...
                              handles.panel_labelbuttons ...
                              handles.panel_select ...
                              handles.panel_selection_info];
-
-% set enablement/visibility according to the current movie index    
-isMovieShowing=handles.guidata.expi >= 1 && ...
-               handles.guidata.expi <= handles.guidata.data.nexps;
-set(grobjectsEnabledIffMovie,'Enable',on(isMovieShowing));
-set(grobjectsVisibileIffMovie,'Visible',on(isMovieShowing));
-% % for debugging:
-% set(grobjectsEnabledIffMovie,'Enable','on');
-% set(grobjectsVisibileIffMovie,'Visible','on');
+set(grobjectsVisibileIffMovie,'Visible',onIff(someExperimentIsCurrent));
 
 return
 
@@ -3347,7 +3410,7 @@ handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
 handles.guidata.needsave=true;
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 guidata(hObject,handles);
 
 
@@ -7114,16 +7177,17 @@ set(figureJLabel,'pointer','watch');
 handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
-% read project configuration
-[handles,success] = LoadConfig(handles);
-if ~success,
-  guidata(hObject,handles);
-  %delete(hObject);
-  return;
-end
+% % read project configuration
+% [handles,success] = LoadConfig(handles);
+% if ~success,
+%   guidata(hObject,handles);
+%   %delete(hObject);
+%   return;
+% end
 
 handles = InitSelectionCallbacks(handles);
 
+handles = UnsetCurrentMovie(handles);
 if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
   handles = SetCurrentMovie(handles,1);
 else
@@ -7142,8 +7206,7 @@ handles.guidata.userHasSpecifiedEverythingFileName=false;
 handles.guidata.needsave=true;
 
 % Update certain aspect of the GUI to match the current "model" state
-UpdateGUIToMatchMovieState(handles);
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 % OK, almost done
 set(figureJLabel,'pointer','arrow');
@@ -7190,8 +7253,7 @@ end
 handles.guidata.oldexpdir='';
 
 % Update the GUI to match the current "model" state
-UpdateGUIToMatchMovieState(handles);
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 % write the guidata back
 guidata(figureJLabel,handles);
@@ -7281,7 +7343,7 @@ end
 saved=true;
 handles.guidata.needsave=false;
 handles.guidata.status_bar_text_when_clear=fileNameRel;
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 ClearStatus(handles);
 guidata(figureJLabel,handles);
 
@@ -7314,7 +7376,7 @@ handles=guidata(figureJLabel);
 
 % Prompt user for filename
 title=fif(groundTruthingMode, ...
-          'Open in Grought-Truthing Mode...', ...
+          'Open in Ground-Truthing Mode...', ...
           'Open...');
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
@@ -7391,8 +7453,7 @@ handles.guidata.needsave=false;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI match the current "model" state
-UpdateGUIToMatchMovieState(handles);
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 % Done, set status message to cleared message, pointer to normal
 fileNameRel=fileNameRelFromAbs(fileNameAbs);
@@ -7650,7 +7711,7 @@ handles = guidata(hObject);  % re-load handles, may have changed
 
 % Unset the current movie
 handles=UnsetCurrentMovie(handles);
-UpdateGUIToMatchMovieState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 % Close any open movie files
 if ~isempty(handles.guidata.movie_fid) && ...
@@ -7742,8 +7803,7 @@ UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI to match the current "model" state
 %handles=guidata(hObject);
-UpdateGUIToMatchMovieState(handles);
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
@@ -7776,8 +7836,8 @@ ProjectSetup('new',true, ...
            
 return
 
-% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
 function projectSetupDone(figureJLabel,configParams,new)
 
 % get handles
@@ -7858,12 +7918,213 @@ handles.guidata.needsave=true;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI match the current "model" state
-UpdateGUIToMatchMovieState(handles);
-UpdateGUIToMatchOpenFileState(handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
 
 % Done, set status message to cleared message, pointer to normal
 fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles.guidata.status_bar_text_when_clear=fileNameRel;
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+return
+
+
+% --------------------------------------------------------------------
+function menu_file_import_old_style_project_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_old_style_project (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+importOldStyleProject(hObject)
+return
+
+
+% --------------------------------------------------------------------
+function importOldStyleProject(figureJLabel)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% Prompt user for filename
+title='Import Old-Style Project...';
+
+[filename,pathname] = ...
+  uigetfile({'*.mat','JAABA Old-Style Project Files (*.mat)'}, ...
+            title);
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+configFileNameAbs=fullfile(pathname,filename);
+
+% Update the status, change the pointer to the watch
+SetStatus(handles,sprintf('Opening %s ...',filename));
+
+% load the file
+try
+  configParams=load('-mat',configFileNameAbs);
+catch  %#ok
+  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+  ClearStatus(handles);
+  return;
+end
+
+% Don't want to see "No experiment loaded" when status is cleared!
+handles.guidata.status_bar_text_when_clear='';
+guidata(figureJLabel,handles);  % sync the guidata to handles
+
+% First set the project parameters, which will initialize the JLabelData
+setConfigParams(gcbf,configParams);
+handles=guidata(figureJLabel);  % make sure handles is up-to-date
+
+% Need to set the labeling mode in the JLabelData, before the experiments 
+% are loaded.
+groundTruthingMode=false;  % Always start in normal mode on import
+data=handles.guidata.data;  % ref
+data.SetGTMode(groundTruthingMode);
+
+% Set the GUI to match the labeling mode
+handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
+%handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
+guidata(figureJLabel,handles);  % write the handles back to the figure
+
+% Don't load the classifier, b/c there isn't one yet
+% % Now load the classifier, which includes the experiments, and load the
+% % labels also.  ('classifierlabels',true means to load the labels, too.)
+% data.setClassifierParams(everythingParams.saveableClassifier, ...
+%                          'classifierlabels',true);
+
+% Set the functions that end up getting called when we call SetStatus()
+% and ClearStatus()
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+
+% Copy the default path out of the JLabelData.
+handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+
+% Set the current movie.
+handles = UnsetCurrentMovie(handles);
+if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+  handles = SetCurrentMovie(handles,1);
+else
+  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+end
+
+% clear the old experiment directory
+handles.guidata.oldexpdir='';
+
+% Make up a file name for the everything file
+path=fileparts(configFileNameAbs);
+fileNameRel='untitled.jab';
+fileNameAbs=fullfile(path,fileNameRel);
+
+% Note that there is currently an open file, and note its name
+handles.guidata.thereIsAnOpenFile=true;
+handles.guidata.everythingFileNameAbs=fileNameAbs;
+handles.guidata.userHasSpecifiedEverythingFileName=false;
+handles.guidata.needsave=true;
+
+% Updates the graphics objects to match the current labeling mode (normal
+% or ground-truthing)
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
+
+% Update the GUI match the current "model" state
+UpdateGUIToMatchFileAndExperimentState(handles);
+
+% Done, set status message to cleared message, pointer to normal
+handles.guidata.status_bar_text_when_clear=fileNameRel;
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+return
+
+
+% --------------------------------------------------------------------
+function menu_file_import_old_style_classifier_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_old_style_classifier (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+importOldStyleClassifier(hObject);
+return
+
+
+% -------------------------------------------------------------------------
+function importOldStyleClassifier(figureJLabel)
+
+% get the handles, data
+handles = guidata(figureJLabel);
+data=handles.guidata.data;  % a ref
+
+% Have the user choose the classifier file
+[filename,pathname] = uigetfile('*.mat','Import classifier...');
+if ~ischar(filename),
+  return;
+end
+classifierFileNameAbs = fullfile(pathname,filename);
+
+% Ask the the user if they want both labels and classifier, or just the 
+% classifier
+res = questdlg(['Import the labels and the classifier, ' ...
+                'or just the classifier?'], ...
+               'Import Labels?', ...
+               'Load Labels and Classifier', ...
+               'Load Classifier Only', ...
+               'Cancel', ...
+               'Load Labels and Classifier');
+if strcmpi(res,'Cancel'), return, end
+loadLabels = strcmpi(res,'Load Labels and Classifier');
+
+% Load the classifier file
+try
+  classifierParams=load('-mat',classifierFileNameAbs);
+catch  %#ok
+  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+  ClearStatus(handles);
+  return;
+end
+
+% Now load the classifier, which includes the experiments, and load the
+% labels also.  ('classifierlabels', if true, loads the labels also)
+data.setClassifierParams(classifierParams, ...
+                         'classifierlabels',loadLabels);
+
+% Set the functions that end up getting called when we call SetStatus()
+% and ClearStatus()
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+
+% Copy the default path out of the JLabelData.
+handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+
+% Set the current movie.
+handles = UnsetCurrentMovie(handles);
+if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+  handles = SetCurrentMovie(handles,1);
+else
+  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+end
+
+% clear the old experiment directory
+handles.guidata.oldexpdir='';
+
+% Note that there are now unsaved changes
+handles.guidata.needsave=true;
+
+% Updates the graphics objects to match the current labeling mode (normal
+% or ground-truthing)
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
+
+% Update the GUI match the current "model" state
+UpdateGUIToMatchFileAndExperimentState(handles);
+
+% Done, set status message to cleared message, pointer to normal
+%fileNameAbs=handles.guidata.everythingFileNameAbs;
+%fileNameRel=fileNameRelFromAbs(fileNameAbs);
+%handles.guidata.status_bar_text_when_clear=fileNameRel;
 ClearStatus(handles);
 
 % write the handles back to figure

@@ -1,4 +1,4 @@
-function str=on(test)
+function str=onIff(test)
 
 if test,
   str='on';
