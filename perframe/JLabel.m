@@ -2405,6 +2405,7 @@ set(handles.menu_file_import_old_style_project, ...
     'Enable',offIff(thereIsAnOpenFile));
 set(handles.menu_file_import_old_style_classifier, ...
     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
+set(handles.menu_file_modify_files,'Enable',onIff(thereIsAnOpenFile));
 
 % These controls require a movie to currently be open, and should be
 % disabled if there's no movie.
