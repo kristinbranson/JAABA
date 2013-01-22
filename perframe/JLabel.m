@@ -1717,12 +1717,13 @@ return
 function handles = UpdateMovies(handles)
 
 
-% %--------------------------------------------------------------------------
-% function handles = SetNeedSave(handles)
-% 
-% handles.guidata.needsave = true;
-% set(handles.menu_file_save_classifier_and_labels,'Enable','on');
-% set(handles.menu_file_save_labels,'Enable','on');
+%--------------------------------------------------------------------------
+function handles = SetNeedSave(handles)
+handles.guidata.needsave = true;
+UpdateGUIToMatchFileAndExperimentState(handles);
+%set(handles.menu_file_save_classifier_and_labels,'Enable','on');
+%set(handles.menu_file_save_labels,'Enable','on');
+return
 
 % % --------------------------------------------------------------------
 % function handles = SetSaved(handles)
@@ -2984,7 +2985,7 @@ handles.guidata.labels_plot.isstart(off0:off1) = ...
 
 handles = UpdateErrors(handles);
 
-%handles = SetNeedSave(handles);
+handles = SetNeedSave(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -3045,7 +3046,7 @@ handles.guidata.labels_plot.isstart(off0:off1) = ...
 
 handles = UpdateErrors(handles);
 
-%handles = SetNeedSave(handles);
+handles = SetNeedSave(handles);
 
 %handles.lastframe_labeled = t;
 
