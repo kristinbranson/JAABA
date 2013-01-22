@@ -137,6 +137,9 @@ handles=guidata(hObject);
 UpdateGUIToMatchMovieState(handles);
 UpdateGUIToMatchOpenFileState(handles);
 
+% keypress callback for all non-edit text objects
+RecursiveSetKeyPressFcn(hObject);
+
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
 
@@ -594,6 +597,9 @@ if ~isempty(handles.guidata.hflies_extra),
 end
 set(handles.guidata.htrx,'EraseMode','none');
 set(handles.guidata.hfly_markers,'EraseMode','none');
+
+% keypress callback for all non-edit text objects
+RecursiveSetKeyPressFcn(handles.figure_JLabel);
 
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
@@ -3762,7 +3768,8 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 if strcmpi(eventdata.Modifier,'control')
   switch eventdata.Key,
     case 't',
-      if ~handles.guidata.data.IsGTMode(),
+      if ~isempty(handles.guidata.GUIGroundTruthingMode) && ...
+         ~handles.guidata.GUIGroundTruthingMode,
         pushbutton_train_Callback(hObject,eventdata,handles);
       end
       
@@ -7125,8 +7132,8 @@ end
 
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
-% keypress callback for all non-edit text objects
-RecursiveSetKeyPressFcn(figureJLabel);
+% % keypress callback for all non-edit text objects
+% RecursiveSetKeyPressFcn(figureJLabel);
 
 % save needed, since this is an import
 handles.guidata.thereIsAnOpenFile=true;
