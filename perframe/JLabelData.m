@@ -2835,6 +2835,12 @@ end
         
       end
       obj.allperframefns(toRemove) = [];
+      
+      
+%       newparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
+%       newcellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
+%       obj.UpdatePerframeParams(newparams,newcellparams,obj.basicFeatureTable,obj.featureWindowSize);
+      
       obj.windowfeaturesparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
       obj.windowfeaturescellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
 
@@ -2880,8 +2886,19 @@ end
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
+
       
       if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
+        if expi>1,
+          success = false;
+          msg = ['Landmark params were not defined in the configuration file or in the trx file for the current experiment. '...
+              'Cannot compute arena perframe features for the experiment and removing it'];
+          if isInteractive && ishandle(hwait),
+              delete(hwait);
+          end
+          return;
+        end
+
         if isInteractive,
           uiwait(warndlg(['Landmark params were not defined in the configuration file'...
             ' or in the trx file. Not computing arena features and removing them from the perframe list']));
