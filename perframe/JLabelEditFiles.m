@@ -44,6 +44,7 @@ end
 % End initialization code - DO NOT EDIT
 
 
+%--------------------------------------------------------------------------
 % --- Executes just before JLabelEditFiles is made visible.
 function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
@@ -52,65 +53,83 @@ function JLabelEditFiles_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to JLabelEditFiles (see VARARGIN)
 
-% for debugging purposes only, make the window non-modal
-set(hObject,'WindowStyle','normal');
-
 % have not pushed the done button yet
 handles.success = false;
 
+% Certain actions trigger the mode popup menu to be disabled, thereby
+% fixing the mode.
+handles.modeFixed=false;
+handles.groundTruthingMode=false;
+
 %
 [ disableBehavior, ...
-  JLabelHandle,...
-  handles.JLabelSplashHandle] = ...
+  figureJLabel] = ...
   myparse(varargin,...
-  'disableBehavior',false,...
-  'JLabelHandle',[],...
-  'JLabelSplashHandle',[]);
+          'disableBehavior',false,...
+          'figureJLabel',[]);
 
-set(handles.popupmode,'String',{'Normal','Advanced','Ground Truthing','Ground Truthing Advanced'});
+% % Just hide the mode stuff entirely        
+% set(handles.popupmode,'Visible','off');
+% set(handles.labeling_mode_text,'Visible','off');
+        
+set(handles.popupmode,'String', ...
+                      {'Normal', ...
+                       'Ground Truthing'});
+if handles.groundTruthingMode,
+  set(handles.popupmode,'value',2);
+else
+  set(handles.popupmode,'value',1);
+end
+                     
+% disableBehvaior is true iff the part of the UI for choosing the
+% behavior/project should be disabled, such as when JLabelEditFiles is
+% reached from JLabel's File > Edit files... menu
 handles.disableBehavior = disableBehavior;
 
 if disableBehavior,
-
+  % we go here if reached via "Edit Files..."
   handles.success = true;
   % Simply edit files, not editing the behavior part
-  handles.JLabelHandle = JLabelHandle;
-  handles.data = JLabelHandle.guidata.data;
-  if ~isempty(handles.data) && handles.data.IsGTMode()
-    if handles.data.IsAdvancedMode()
-      set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
-    else
-      set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced')));
-    end
-  elseif ~isempty(handles.data) && handles.data.IsAdvancedMode()
-    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Advanced')));
+  handles.figureJLabel = figureJLabel;
+  %handles.data = JLabelHandle.guidata.data;
+  
+  % get the current labeling mode for JLabel "object", set the popup to
+  % match
+  handles.data = JLabel('getJLabelData',figureJLabel);
+  if JLabel('isGroundTruthingMode',figureJLabel)
+    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Ground Truthing')));
   else
-    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Normal')));
+    set(handles.popupmode,'Value',find(strcmp(get(handles.popupmode,'String'),'Labeling')));
   end
   
-  set(handles.text_projectfile,'String',handles.JLabelHandle.guidata.configfilename);
+  % configfilename=handles.JLabelHandle.guidata.configfilename
+  configfilename=JLabel('getConfigFileName',figureJLabel);
+  set(handles.text_projectfile,'String',configfilename);
+  handles.configfilename=configfilename;
   DisableBehaviorGui(handles);
-  InitExperimentsGui(hObject,handles,JLabelHandle.guidata.data);
+  %InitExperimentsGui(hObject,handles,JLabelHandle.guidata.data);
+  InitExperimentsGui(hObject,handles);
   handles.needJLabelInit = false;
   guidata(hObject,handles);
-  
 else
-  if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))
-    Q = load('.JLabelrc.mat','configfilename');
-    defpath = Q.configfilename;
-  else
-    defpath = pwd;
-  end
-  
-  handles.configfilename = defpath;
-  if exist(handles.configfilename,'file') && ~exist(handles.configfilename,'dir'),
+  % We go here if reached via "Open old-school files..."
+  configfilename=JLabel('getConfigFileName',figureJLabel);
+  if ~isempty(configfilename)
+    handles.configfilename = configfilename;
     set(handles.text_projectfile,'String',handles.configfilename);
+  else
+    previousConfigFileName=JLabel('getPreviousConfigFileName',figureJLabel);
+    if isempty(previousConfigFileName)
+      handles.configfilename = '';
+    else
+      handles.configfilename = previousConfigFileName;
+      set(handles.text_projectfile,'String',handles.configfilename);
+    end
   end
-  handles.JLabelHandle = JLabelHandle;
-  handles.needJLabelInit = true;  % likely problematic
+  handles.figureJLabel = figureJLabel;
+  handles.needJLabelInit = true;
   guidata(hObject,handles);
 end
-
 
 % Add color for mac's.
 buttons = findall(hObject,'Style','pushbutton');
@@ -118,14 +137,21 @@ for ndx = 1:numel(buttons)
   SetButtonImage(buttons(ndx));
 end
 
-if ~isempty(handles.JLabelSplashHandle) && ishandle(handles.JLabelSplashHandle),
-  delete(handles.JLabelSplashHandle);
-end
+%if ~isempty(handles.JLabelSplashHandle) && ishandle(handles.JLabelSplashHandle),
+%  delete(handles.JLabelSplashHandle);
+%end
 
-% This is a modal window, so don't return until it is closed.
-uiwait(handles.figure_JLabelEditFiles);
+% for debugging, make this window non-modal
+%set(hObject,'windowstyle','normal');
+set(hObject,'windowstyle','modal');
+
+% Don't need this anymore
+%uiwait(handles.figure_JLabelEditFiles);
+
+return
 
 
+%--------------------------------------------------------------------------
 function DisableBehaviorGui(handles)
 set(handles.text_projectfile,'enable','off');
 set(handles.pushbutton_selectproject,'enable','off');
@@ -133,6 +159,7 @@ set(handles.pushbutton_edit_project,'enable','off');
 set(handles.pushbutton_newproject,'enable','off');
 
 
+%--------------------------------------------------------------------------
 function InitJLabelGui(handles)
 
 if ~handles.needJLabelInit, return; end
@@ -144,46 +171,35 @@ DisableBehaviorGui(handles);
 handles.success = true;
 % End for behavior --
 
-% Initializes the JLabel gui once the user selects the behavior.
-JLabelHandle = handles.JLabelHandle;
-JLabelHandle.guidata.configfilename = handles.configfilename;
-[~,~,ext] = fileparts(handles.configfilename);
-if strcmp(ext,'.xml')
-  JLabelHandle.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
-elseif strcmp(ext,'.mat')
-  JLabelHandle.guidata.configparams = load(handles.configfilename);
-else
-  errordlg('Project file is not a valid');
-end
+% Notify JLabel of the configfilename, have it initialize itself
+% accordingly
+figureJLabel=handles.figureJLabel;
+JLabel('setConfigFileName', ...
+       figureJLabel, ...
+       handles.configfilename);
+     
+% Update our pointer to the JLabelData, which has now changed
+handles.data = JLabel('getJLabelData',figureJLabel);
 
-JLabelHandle = JLabel('GetGUIPositions',JLabelHandle);
-JLabelHandle = JLabel('InitializeState',JLabelHandle);
-JLabelHandle = JLabel('InitializePlots',JLabelHandle);
-handles.data = JLabelHandle.guidata.data;
-SetLabelingMode(handles);
-handles.JLabelHandle = JLabelHandle;
-guidata(handles.figure_JLabelEditFiles,handles);
-guidata(JLabelHandle.figure_JLabel,JLabelHandle);
-InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
+% Disable that selector for choosing labeling mode
+handles=fixLabelingMode(handles);
+
+% Notify JLabel of the labeling mode selected in our figure, which will
+% propagate that to the JLabelData
+JLabel('setGroundTruthingMode',figureJLabel,handles.groundTruthingMode);
+
+% Modify self as appropraite for the new project configuration
+InitExperimentsGui(handles.figure_JLabelEditFiles,handles);
+
+% Set the pointer back to normal
 set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
+return
 
-function InitExperimentsGui(hObject,handles,varargin)
-%
+
+% -------------------------------------------------------------------------
+function InitExperimentsGui(hObject,handles)
 % Remove behavior related parts.
-
-% parse inputs, set defaults
-%
-if isempty(varargin),
-  error('Usage: JLabelEditFiles(configfilename,...)');
-end
-
-% if ischar(varargin{1}),
-%   configfilename = varargin{1};
-%   handles.data = JLabelData(configfilename,varargin{2:end});
-% else
-%   handles.data = varargin{1};
-% end
 
 handles.data.SetStatusFn( @(s) SetStatusEditFiles(handles.figure_JLabelEditFiles,s));
 handles.data.SetClearStatusFn( @() ClearStatusEditFiles(handles.figure_JLabelEditFiles));
@@ -192,22 +208,22 @@ set(handles.editClassifier,'String',handles.data.classifierfilename);
 set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',numel(handles.data.expdirs));
 set(handles.statusMsg,'String','');
 
-if handles.data.IsGTMode(),
-  if handles.data.IsAdvancedMode()
-    popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced'));
-  else
-    popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
-  end
-
-elseif handles.data.IsAdvancedMode(),
-  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Advanced'));
-else
-  popupNdx = find(strcmp(get(handles.popupmode,'String'),'Normal'));
-end
-set(handles.popupmode,'Value',popupNdx);
-if handles.data.IsModeSet(),
-  set(handles.popupmode,'Enable','off');
-end
+%figureJLabel=handles.figureJLabel;
+% if JLabel('isGroundTruthingMode',figureJLabel),
+%   if JLabel('isAdvancedMode',figureJLabel),
+%     popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing Advanced'));
+%   else
+%     popupNdx = find(strcmp(get(handles.popupmode,'String'),'Ground Truthing'));
+%   end
+% elseif JLabel('isAdvancedMode',figureJLabel),
+%   popupNdx = find(strcmp(get(handles.popupmode,'String'),'Advanced'));
+% else
+%   popupNdx = find(strcmp(get(handles.popupmode,'String'),'Normal'));
+% end
+% set(handles.popupmode,'Value',popupNdx);
+%if handles.modeFixed,
+%  set(handles.popupmode,'Enable','off');
+%end
 
 if handles.data.nexps>0
   set(handles.pushbutton_load,'Enable','off');
@@ -255,12 +271,13 @@ end
 guidata(hObject, handles);
 
 
+% -------------------------------------------------------------------------
 function UpdateStatusTable(handles)
+% Update the table labeled "Experiment details:", based on the currently
+% selected experiment and the the information in handles.data.
 
 v = get(handles.listbox_experiment,'Value');
-expList=get(handles.listbox_experiment,'String');
-nExps=length(expList);
-if isempty(v) || v <= 0 || nExps == 0 ,
+if isempty(v) || v <= 0 || handles.data.nexps == 0 ,
   set(handles.uitable_status,'Data',{},'Visible','off');
   return;
 end
@@ -268,7 +285,7 @@ if numel(v) > 1,
   v = v(end);
 end
 
-nfiles = numel(handles.data.filetypes);
+nfiles = numel(handles.data.filetypes); 
 data = cell([nfiles,2]);
 data(:,1) = handles.data.filetypes;
 for i = 1:nfiles,
@@ -295,6 +312,7 @@ tableSize = get(handles.uitable_status,'Position');
 set(handles.uitable_status,'Data',data,'Visible','on','ColumnWidth',{150 tableSize(3)-155});
 
 
+% -------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -303,11 +321,14 @@ function varargout = JLabelEditFiles_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.JLabelHandle;
-varargout{2} = handles.success;
-delete(hObject);
+varargout{1}=hObject;
+%varargout{1} = handles.JLabelHandle;
+%varargout{2} = handles.success;
+%delete(hObject);
+return
 
 
+% -------------------------------------------------------------------------
 % --- Executes on selection change in listbox_experiment.
 function listbox_experiment_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 % hObject    handle to listbox_experiment (see GCBO)
@@ -318,6 +339,8 @@ function listbox_experiment_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 %        contents{get(hObject,'Value')} returns selected item from listbox_experiment
 UpdateStatusTable(handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function listbox_experiment_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 % hObject    handle to listbox_experiment (see GCBO)
@@ -331,8 +354,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     SetButtonImage(hObject);
 end
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_add.
 function pushbutton_add_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_add (see GCBO)
@@ -346,7 +369,7 @@ if ~handles.disableBehavior,
   end
 end
 
-%InitJLabelGui(handles);
+InitJLabelGui(handles);
 handles = guidata(hObject);
 
 % ask user for experiment directory
@@ -357,8 +380,7 @@ handles = guidata(hObject);
 %   return;
 % end
 
-%defaultdir = fileparts(handles.data.defaultpath);
-defaultdir = pwd;
+defaultdir = fileparts(handles.data.defaultpath);
 
 allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
 if ischar(allexpdirs),
@@ -368,20 +390,19 @@ if isempty(allexpdirs) || ~iscell(allexpdirs),
   return;
 end
 
-%set(handles.pushbutton_cancel,'enable','off');
-%SetLabelingMode(handles);
+set(handles.pushbutton_cancel,'enable','off');
+handles=fixLabelingMode(handles);
 
 for ndx = 1:numel(allexpdirs)
   expdir = allexpdirs{ndx};
-  %if ismember(expdir,handles.data.expdirs),
-  %  uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
-  %  return;
-  %end
+  if ismember(expdir,handles.data.expdirs),
+    uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
+    return;
+  end
   
   SetStatusEditFiles(hObject,sprintf('Adding experiment directory %s',expdir));
   
-  %[success,msg] = handles.data.AddExpDir(expdir);
-  success=true;
+  [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
     if iscell(msg)
       uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
@@ -392,23 +413,20 @@ for ndx = 1:numel(allexpdirs)
     
     return;
   end
+  
+  set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 
-  % Add this experiment to the listbox, and make it the selection
-  listOld=get(handles.listbox_experiment,'String');
-  listNew=[listOld;{expdir}];
-  nExps=length(listNew);
-  set(handles.listbox_experiment,'String',listNew,'Value',nExps);
 end
 
 SetStatusEditFiles(hObject,'Final update to status table...\n');
 
 % update status table
-%UpdateStatusTable(handles);  % this is a regression --ALT, 01-10-2013
+UpdateStatusTable(handles);
 
 ClearStatusEditFiles(hObject);
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
 file = handles.data.filetypes{row};
@@ -438,6 +456,8 @@ switch file,
 end
 UpdateStatusTable(handles);
 
+
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_remove.
 function pushbutton_remove_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_remove (see GCBO)
@@ -453,119 +473,86 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 UpdateStatusTable(handles);
 set(handles.pushbutton_cancel,'enable','off');
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-figureJLabel=handles.JLabelHandle.figure_JLabel;
-theJLabelGUIData=handles.JLabelHandle.guidata;
-theJLabelGUIData.UpdateGrandleArrays(figureJLabel);
 InitJLabelGui(handles);
 handles = guidata(hObject);
-
-% If a classifier file was specified, load that.
-classifierfilename=get(handles.editClassifier,'String');
-if ~ismepty(classifierfilename)
-  [success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
-  if ~success,
-    uiwait(warndlg(msg,'Error loading classifier file'));
-    return;
-  end
-end
-
-% Add each exp dir in turn
-newExpDirNameList=get(handles.listbox_experiment,'String');
-theJLabelData=theJLabelGUIData.data;
-figureJLabelEditFiles=gcbf;
-nExpsNew=length(newExpDirNameList);
-for i = 1:nExpsNew
-  newExpDirName = newExpDirNameList{i};
-  SetStatusEditFiles(figureJLabelEditFiles, ...
-                     sprintf('Adding experiment directory %s', ...
-                             newExpDirName));
-  [successThis,msgThis] = ...
-    theJLabelData.AddExpDirIfNotPresentAlready(newExpDirName);
-  if ~successThis,
-    % should we try to roll back the state entitely?  Not clear...
-    if iscell(msgThis)
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s', ...
-                             newExpDirName,msgThis{:})));
-    else
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s', ...
-                             newExpDirName,msgThis)));
-    end
-    ClearStatusEditFiles(figureJLabelEditFiles);
-    continue  % keep adding files nonetheless
-  end
-end
-ClearStatusEditFiles(figureJLabelEditFiles);
-
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
+% add something here to tell JLabel what mode it should be in?
 handles.success = true;
 guidata(hObject,handles);
-uiresume(handles.figure_JLabelEditFiles);
+%uiresume(handles.figure_JLabelEditFiles);
+if handles.disableBehavior
+  % Means JLabelEditFiles was invoked via File > Edit files... in JLabel
+  % figure
+  JLabel('editFilesDone',handles.figureJLabel);
+else
+  % Means JLabelEditFiles was invoked via File > Import... in JLabel
+  % figure
+  JLabel('importDone',handles.figureJLabel);
+end
+delete(gcbf);
+return
+
 
 %--------------------------------------------------------------------------
-
 % --- Executes on button press in pushbutton_load.
 function pushbutton_load_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_load (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%InitJLabelGui(handles);
-%handles = guidata(hObject);
+InitJLabelGui(handles);
+handles = guidata(hObject);
 
-% Need to move this check to the Done button callback.  ALT, Jan 10, 2013
-% if handles.data.nexps>0
-%   res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
-%   if ~strcmpi(res,'Yes'),
-%     return;
-%   end
-% end
-
+if handles.data.nexps>0
+  res = questdlg('Really load experiment list from classifier file? All changes will be lost','Really load?','Yes','No','Cancel','Yes');
+  if ~strcmpi(res,'Yes'),
+    return;
+  end
+end
 [filename,pathname] = uigetfile('*.mat','Classifier mat file'); %,handles.classifierfilename);
 if ~ischar(filename),
   return;
 end
 classifierfilename = fullfile(pathname,filename);
 if ~exist(classifierfilename,'file'),
-  uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading classifier file'));
-  return;
+  uiwait(warndlg(sprintf('Classifier mat file %s does not exist',classifierfilename),'Error loading file list'));
 end
 
-%SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
 
 res = questdlg('Load the labels and the classifier from the file, or just load the classifier?',...
   'Labels?','Load Labels and Classifier','Load Classifier Only','Cancel','Load Labels and Classifier');
 if strcmpi(res,'Cancel'), return, end
+
 classifierlabels = strcmpi(res,'Load Labels and Classifier');
 
-classifierFileStruct = load(classifierfilename);
-expDirNames=classifierFileStruct.expdirs;
-nExps=length(expDirNames);
-
-%[success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
-%if ~success,
-%  uiwait(warndlg(msg,'Error loading file list'));
-%  return;
-%end
-%set(handles.pushbutton_load,'enable','off');
+[success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
+if ~success,
+  uiwait(warndlg(msg,'Error loading file list'));
+  return;
+end
+set(handles.pushbutton_load,'enable','off');
 set(handles.pushbutton_loadwoexp,'enable','off');
-%set(handles.pushbutton_cancel,'enable','off');
+set(handles.pushbutton_cancel,'enable','off');
 
 set(handles.editClassifier,'String',classifierfilename);
-set(handles.listbox_experiment,'String',expDirNames,'Value',nExps);
+set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);
 % update status table
-%UpdateStatusTable(handles);
+UpdateStatusTable(handles);
+% Don't need the dialog anymore, b/c using the watch cursor
 %uiwait(helpdlg('Done loading the classifier'));
+
 return
 
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_loadwoexp.
 function pushbutton_loadwoexp_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_loadwoexp (see GCBO)
@@ -585,7 +572,7 @@ if ~exist(classifierfilename,'file'),
   return;
 end
 
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
 
 [success,msg] = handles.data.SetClassifierFileNameWoExp(classifierfilename);  
 if ~success,
@@ -603,6 +590,7 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 UpdateStatusTable(handles);
 
 
+%--------------------------------------------------------------------------
 % --- Executes when user attempts to close figure_JLabelEditFiles.
 function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to figure_JLabelEditFiles (see GCBO)
@@ -613,9 +601,21 @@ function figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles)
 % if ~strcmpi(res,'Yes'),
 %   return;
 % end
-uiresume(handles.figure_JLabelEditFiles);
+%uiresume(handles.figure_JLabelEditFiles);
+if handles.disableBehavior
+  % Means JLabelEditFiles was invoked via File > Edit files... in JLabel
+  % figure
+  JLabel('editFilesDone',handles.figureJLabel);
+else
+  % Means JLabelEditFiles was invoked via File > Import... in JLabel
+  % figure
+  % nothing to do
+end
+delete(gcbf);
+return
 
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_cancel (see GCBO)
@@ -623,19 +623,25 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles);
+return
 
 
+%--------------------------------------------------------------------------
 function SetStatusEditFiles(hObject,s)
 
 handles = guidata(hObject);
 set(handles.statusMsg,'String',s);
 set(handles.figure_JLabelEditFiles,'pointer','watch');
 
+
+%--------------------------------------------------------------------------
 function ClearStatusEditFiles(hObject)
 handles = guidata(hObject);
 set(handles.statusMsg,'String','');
 set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
+
+%--------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editClassifier_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editClassifier (see GCBO)
@@ -649,25 +655,27 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+%--------------------------------------------------------------------------
 % --- Executes on selection change in popupmode.
 function popupmode_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmode contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmode
-
-contents = cellstr(get(hObject,'String'));
-curstr = contents{get(hObject,'Value')};
-if any(strcmpi(curstr,{ 'Ground Truthing','Ground Truthing Advanced'})),
+% 1 = Labeling mode (i.e. normal)
+% 2 = Ground-truthing mode
+i=get(hObject,'Value');
+if (i==2),
+  handles.groundTruthingMode=true;
   set(handles.pushbutton_load,'Enable','off');
 else
+  handles.groundTruthingMode=false;
   set(handles.pushbutton_load,'Enable','on');
 end
+guidata(gcbf,handles);
+return
 
 
-
+%--------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function popupmode_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to popupmode (see GCBO)
@@ -681,29 +689,20 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-function SetLabelingMode(handles)
-contents = cellstr(get(handles.popupmode,'String'));
-curStr = contents{get(handles.popupmode,'Value')};
-switch curStr,
-  case 'Advanced',
-    handles.data.SetAdvancedMode(true);
-    handles.data.SetGTMode(false);
-  case 'Normal'
-    handles.data.SetAdvancedMode(false);
-    handles.data.SetGTMode(false);
-  case 'Ground Truthing',
-    handles.data.SetAdvancedMode(false);
-    handles.data.SetGTMode(true);
-  case 'Ground Truthing Advanced',
-    handles.data.SetAdvancedMode(true);
-    handles.data.SetGTMode(true);
-end
- 
-handles.data.SetMode();
+% -------------------------------------------------------------------------
+function handles=fixLabelingMode(handles)
+%contents = cellstr(get(handles.popupmode,'String'));
+%curStr = contents{get(handles.popupmode,'Value')};
+
+%handles.data.setLabelingMode(curStr);
+handles.modeFixed=true;
 set(handles.popupmode,'enable','off');
+guidata(handles.figure_JLabelEditFiles,handles);  % commit the handles
+
+return
 
 
-
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_addlist.
 function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addlist (see GCBO)
@@ -733,7 +732,7 @@ if fid<0,
 end
 
 set(handles.pushbutton_cancel,'enable','off');
-SetLabelingMode(handles);
+handles=fixLabelingMode(handles);
 
 expdir = fgetl(fid);
 
@@ -762,15 +761,15 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 UpdateStatusTable(handles);
 
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_selectproject.
 function pushbutton_selectproject_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_selectproject (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if exist('.JLabelrc.mat','file') && ~isempty(whos('configfilename','-file','.JLabelrc.mat'))
-  Q = load('.JLabelrc.mat','configfilename');
-  defpath = Q.configfilename;
+if ~isempty(handles.configfilename)
+  defpath = handles.configfilename;
 else
   defpath = pwd;
 end
@@ -781,14 +780,12 @@ end
 
 configfilename = fullfile(dpath,fpath);
 
-if exist('.JLabelrc.mat','file')
-  save('.JLabelrc.mat','configfilename','-append');
-end
-
 set(handles.text_projectfile,'String',configfilename);
 handles.configfilename = configfilename;
 guidata(hObject,handles);
 
+
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_edit_project.
 function pushbutton_edit_project_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_edit_project (see GCBO)
@@ -798,32 +795,97 @@ function pushbutton_edit_project_Callback(hObject, eventdata, handles)
 if isfield(handles,'configfilename') && ~isempty(handles.configfilename)
   [~,~,ext] = fileparts(handles.configfilename);
   if strcmp(ext,'.xml')
-    [~,configfilename] = ProjectSetup('xml_file',handles.configfilename);    
+    configParams = ReadXMLParams(xml_file);
+    if ~iscell(configParams.behaviors.names),
+      configParams.behaviors.names = {configParams.behaviors.names};
+    end
   elseif strcmp(ext,'.mat')
-    [~,configfilename] = ProjectSetup('mat_file',handles.configfilename);
+    configParams = load(handles.configfilename);
   else
     uiwait(warndlg('Project file has to be either xml or mat file'));
     return;
   end
-end
+end   
+ProjectSetup('new',false, ...
+             'configParams', configParams, ...
+             'figureJLabel',handles.figureJLabel, ...
+             'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
 
-if ischar(configfilename)
-  handles.configfilename = configfilename;
-  set(handles.text_projectfile,'String',configfilename);
-  guidata(hObject,handles);
-end
+return
 
 
+%--------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_newproject.
 function pushbutton_newproject_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_newproject (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+ProjectSetup('new',true, ...
+             'figureJLabel',handles.figureJLabel, ...
+             'figureJLabelEditFiles',handles.figure_JLabelEditFiles);    
+return
 
-[~,configfilename] = ProjectSetup(); 
-if ~ischar(configfilename), return; end;
+
+%--------------------------------------------------------------------------
+function projectSetupDone(figureJLabelEditFiles,configParams,new)
+% Tells the JLabelEditFiles "object" that the user just clicked "Done" in
+% the Project Setup figure.
+% configParams are the just-set-up project params
+% new is a boolean, true iff the user pressed "New Project" to setup the
+%   project
+
+% if no valid config params, just return
+if isempty(configParams), return; end;
+
+% get the guidata
+handles=guidata(figureJLabelEditFiles);
+
+% make sure we have a file name in configfilename
+if new,
+  %previousConfigFileName= ...
+  %  JLabel('getPreviousConfigFileName',handles.figureJLabel);
+  primaryBehaviorName=strtrim(configParams.behaviors.names{1});
+  suggestedFileName=sprintf('%s_project.mat',primaryBehaviorName);
+  % a new project, need to get a file name
+  [fname,pname] = ...
+    uiputfile('*.mat', ...
+              'Select a location to store the project file',....
+              suggestedFileName);
+  if fname == 0; return; end;
+  configFileName=fullfile(pname,fname);
+  if exist(configFileName,'file')
+    [didback,msg] = copyfile(configFileName,[configFileName '~']);
+    if ~didback,
+      warning('Could not create backup of %s: %s',configFileName,msg);  %#ok
+    end
+  end
+else
+  configFileName=handles.configfilename;
+end
+
+% try to save to $configfilename
+try
+  save(configFileName,'-struct','configParams');
+catch  %#ok
+  uiwait(errordlg('Unable to save project file %s.',fname));
+  return;
+end
+
+% if save worked, commit the configfilename (only matters if new)
+handles.configfilename=configFileName;
+%JLabel('setProjectParams',handles.figureJLabel,configParams);
+
+% update the UI
+set(handles.text_projectfile,'String',configFileName);
+
+% store the guidata
+guidata(figureJLabelEditFiles,handles);
+
+return
 
 
-handles.configfilename = configfilename;
-set(handles.text_projectfile,'String',configfilename);
-guidata(hObject,handles);
+%--------------------------------------------------------------------------
+% function projectSetupCancelled(figureJLabelEditFiles)
+% return
+
+%--------------------------------------------------------------------------
