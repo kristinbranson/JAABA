@@ -188,7 +188,7 @@ handles=fixLabelingMode(handles);
 % propagate that to the JLabelData
 JLabel('setGroundTruthingMode',figureJLabel,handles.groundTruthingMode);
 
-% Modify self as appropraite for the new project configuration
+% Modify self as appropriate for the new project configuration
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles);
 
 % Set the pointer back to normal
