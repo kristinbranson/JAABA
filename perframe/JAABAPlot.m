@@ -604,29 +604,22 @@ end
 
 
 % ---
-function ret_val=check_for_diff_and_return_intersection(arg)
+function feature_intersection=check_for_diff_and_return_intersection(arg)
 
 if(length(arg)==0)  ret_val=[];  return;  end
 if(length(arg)==1)  ret_val=arg{1};  return;  end
 
-flatten=[arg{:}];
-anotb=setdiff(flatten,arg{end});
-bnota=setdiff(arg{end},flatten);
-if(numel(anotb)>0)
-  tmp=char(anotb);
-  tmp=[tmp repmat(', ',size(tmp,1),1)];
-  tmp=reshape(tmp',1,numel(tmp));
-  tmp=tmp(1:end-2);
-  warning([tmp ' are/is in prior experiments but not new one.  proceeding with intersection.']);
+feature_union=unique([arg{:}]);
+feature_intersection=arg{1};
+for i=2:length(arg)
+  feature_intersection=intersect(feature_intersection,arg{i});
 end
-if(numel(bnota)>0)
-  tmp=char(bnota);
-  tmp=[tmp repmat(', ',size(tmp,1),1)];
-  tmp=reshape(tmp',1,numel(tmp));
-  tmp=tmp(1:end-2);
-  warning([tmp ' are/is in new experiment but not prior ones.  proceeding with intersection.']);
+if(numel(feature_intersection)<numel(feature_union))
+  char(setdiff(feature_union,feature_intersection));
+  [ans repmat(', ',size(ans,1),1)];
+  reshape(ans',1,numel(ans));
+  uiwait(errordlg(['feature(s) ' ans(1:end-2) ' are/is not in all experiments and so will be ignored.']));
 end
-ret_val=intersect(arg{end},flatten);
 
 
 % ---
@@ -2731,7 +2724,8 @@ for b=bb
 %   cellfun(@(x) size(x{1},2),sexdata,'uniformoutput',false);
 %   parfor_tmp_len=max([ans{:}]);
 %   behavior_cumulative=nan(length(ggee),parfor_tmp_len);
-  for gei=1:numel(ggee),
+  parfor gei=1:numel(ggee),
+  %for gei=1:numel(ggee),
     
     ge = ggee(gei);
   %for ge=ggee
