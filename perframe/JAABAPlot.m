@@ -212,6 +212,9 @@ if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
   handles.fps=t.trx(1).fps;
 end
 
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
+
 
 % ---
 function update_figure(handles)
