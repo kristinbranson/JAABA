@@ -1489,28 +1489,28 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
     not_during{i}=feature_data.data{i}((~partition_idx) & sexdata{i}(1:length(partition_idx)));
   else  % per bout
     partition_idx=[0 partition_idx 0];
-    start=1+find(~partition_idx(1:(end-1)) &  partition_idx(2:end))-1;
-    stop =  find( partition_idx(1:(end-1)) & ~partition_idx(2:end))-1;
-    during{i}=nan;  not_during{i}=nan;
+    start=find(~partition_idx(1:(end-1)) &  partition_idx(2:end));
+    stop =find( partition_idx(1:(end-1)) & ~partition_idx(2:end));
+    during{i}=[];  not_during{i}=[];
     if(length(start)>0)
       for j=1:length(start)
-        if(sum(sexdata{i}(start(j):stop(j))) < ((stop(j)-start(j)+1)/2))  continue;  end
+        if(sum(sexdata{i}(start(j):(stop(j)-1))) < ((stop(j)-start(j))/2))  continue;  end
         switch(perwhat)
           case 2
-            during{i}(j)=mean(feature_data.data{i}(start(j):stop(j)));
+            during{i}(j)=mean(feature_data.data{i}(start(j):(stop(j)-1)));
           case 3
-            during{i}(j)=median(feature_data.data{i}(start(j):stop(j)));
+            during{i}(j)=median(feature_data.data{i}(start(j):(stop(j)-1)));
           case 4
-            during{i}(j)=max(feature_data.data{i}(start(j):stop(j)));
+            during{i}(j)=max(feature_data.data{i}(start(j):(stop(j)-1)));
           case 5
-            during{i}(j)=min(feature_data.data{i}(start(j):stop(j)));
+            during{i}(j)=min(feature_data.data{i}(start(j):(stop(j)-1)));
           case 6
-            during{i}(j)=std(feature_data.data{i}(start(j):stop(j)));
+            during{i}(j)=std(feature_data.data{i}(start(j):(stop(j)-1)));
         end
       end
       if(length(start)>1)
         for j=1:(length(start)-1)
-          if(sum(sexdata{i}(stop(j):start(j+1))) < ((start(j+1)-stop(j)+1)/2))  continue;  end
+          if(sum(sexdata{i}(stop(j):(start(j+1)-1))) < ((start(j+1)-stop(j))/2))  continue;  end
           switch(perwhat)
             case 2
               not_during{i}(j)=mean(feature_data.data{i}(stop(j):start(j+1)));
@@ -1612,6 +1612,7 @@ for b=bb
 
   during=cell(1,length(ggee));
   not_during=cell(1,length(ggee));
+  %for ge=ggee
   parfor ge=ggee
     if((individual<4)&&(~ismember(ge,selected_exp)))
       during{ge}=nan;
