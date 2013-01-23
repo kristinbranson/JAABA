@@ -206,6 +206,12 @@ if(individuals)
   handles=fillin_individuallist(handles);
 end
 
+if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
+  classifier=load(handles.classifierlist{1});
+  t=load(fullfile(handlesexperimentlist{1},classifier.trxfilename));
+  handles.fps=t.trx(1).fps;
+end
+
 
 % ---
 function update_figure(handles)
