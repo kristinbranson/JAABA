@@ -2332,7 +2332,7 @@ end
 
 
 % ---
-function [h,h2]=errorbarplot(x,b,dp,dn,color)
+function [h,h2]=errorbarplot(x,b,dn,dp,color)
 
 h = bar(x,b,'grouped');
 set(h,'facecolor',color);
@@ -2365,7 +2365,7 @@ end;
 %errdata=[.1 .2; .3 .4; .5 .6];
 
 hold on;
-h2=errorbar(xb, b, dp, dn);
+h2=errorbar(xb, b, dn, dp);
 set(h2(1),'linewidth',1);            % This changes the thickness of the errorbars
 set(h2(1),'color','k');              % This changes the color of the errorbars
 set(h2(1),'linestyle','none');       % This removes the connecting
@@ -2529,7 +2529,7 @@ for b=bb
         table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
         [ct{g},dp{g},dn{g}]=...
             calculate_ct_d(table_data{end}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
-        h(g)=errorbarplot(g,ct{g},dp{g}-ct{g},dn{g}-ct{g},color);
+        h(g)=errorbarplot(g,ct{g},ct{g}-dn{g},dp{g}-ct{g},color);
       case 3  % per fly, grouped
         cumsum(cellfun(@length,frames_labelled(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
