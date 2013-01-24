@@ -1018,7 +1018,10 @@ classdef JLabelData < handle
       end
       
     end
+
     
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = SetLabelFileName(obj,labelfilename)
     % [success,msg] = SetLabelFileName(obj,labelfilename)
     % set the name of the label file within the experiment directory. this
@@ -1026,7 +1029,7 @@ classdef JLabelData < handle
     % once an experiment is open. 
       
       success = false;
-      msg = '';
+      msg = 'Error in JLabelData.SetLabelFileName()';
 
       if ischar(labelfilename),
         if ischar(obj.labelfilename) && strcmp(labelfilename,obj.labelfilename),
@@ -1044,10 +1047,26 @@ classdef JLabelData < handle
         
         obj.labelfilename = labelfilename;
         [success,msg] = obj.UpdateStatusTable('label');   
+      else
+        
       end
       
     end
 
+    
+    
+    % ---------------------------------------------------------------------
+    function setLabelsFromStructForAllExps(self,labelsForAll)
+      for expi = 1:self.nexps,
+        self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
+        self.labelfilename = 0;
+        self.UpdateStatusTable('label');   
+      end
+    end
+
+    
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = SetGTLabelFileName(obj,gt_labelfilename)
     % [success,msg] = SetGTLabelFileName(obj,labelfilename)
     % set the name of the *ground truth* label file within the experiment directory. this
@@ -1206,7 +1225,10 @@ classdef JLabelData < handle
       msg = '';
       labelfilename = obj.GetFile('label',expi);
       
-      if exist(labelfilename,'file'),
+      % if the labelfilename is zero, it means we're using the new
+      % "everything" file, and we shouldn't load labels from the experiment
+      % dir.
+      if ischar(labelfilename) && exist(labelfilename,'file'),
 
         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
         
@@ -1237,7 +1259,7 @@ classdef JLabelData < handle
           obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
         else
           obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-          obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+          obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));    % all the labeled frames. 
         end
         %         catch ME,
         %           msg = getReport(ME);
@@ -1268,6 +1290,49 @@ classdef JLabelData < handle
       
     end
  
+    
+    
+    % ---------------------------------------------------------------------
+    function loadLabelsFromStructForOneExp(self,expi,labels)
+      % Load the labels for a single experiment into self from
+      % classifierParams.
+            
+      self.SetStatus('Loading labels for %s',self.expdirs{expi});
+
+      %loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+      self.labels(expi).t0s = labels.t0s;
+      self.labels(expi).t1s = labels.t1s;
+      self.labels(expi).names = labels.names;
+      self.labels(expi).flies = labels.flies;
+      self.labels(expi).off = labels.off;
+      self.labelstats(expi).nflies_labeled = size(labels.flies,1);
+      self.labelstats(expi).nbouts_labeled = numel([labels.t0s{:}]);
+      if iscell(labels.timestamp)
+        self.labels(expi).timestamp = labels.timestamp;
+      else
+        for ndx = 1:numel(labels.flies)
+          nBouts = numel(labels.t0s{ndx});
+          if isempty(labels.timestamp)
+            self.labels(expi).timestamp{ndx}(1:nBouts) = now;
+          else
+            self.labels(expi).timestamp{ndx}(1:nBouts) = labels.timestamp;
+          end
+        end
+      end
+      if isfield(labels,'imp_t0s');
+        self.labels(expi).imp_t0s = loadedimp.imp_t0s;
+        self.labels(expi).imp_t1s = loadedimp.imp_t1s;
+      else
+        self.labels(expi).imp_t0s = cell(1,numel(labels.flies));
+        self.labels(expi).imp_t1s = cell(1,numel(labels.flies));
+      end
+
+      self.ClearStatus();
+    end
+ 
+    
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = LoadGTLabelsFromFile(obj,expi)
     % [success,msg] = LoadGTLabelsFromFile(obj,expi)
     % If the label file exists, this function loads labels for experiment
@@ -1279,7 +1344,10 @@ classdef JLabelData < handle
       
       labelfilename = obj.GetFile('gt_label',expi);
 
-      if exist(labelfilename,'file'),
+      % if the labelfilename is zero, it means we're using the new
+      % "everything" file, and we shouldn't load labels from the experiment
+      % dir.
+      if ischar(labelfilename) && exist(labelfilename,'file'),
         
         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
         
@@ -1473,39 +1541,47 @@ classdef JLabelData < handle
       end
     end  % method
 
+
     
     % ---------------------------------------------------------------------
-    function [success,msg] = setClassifierParams(obj,classifierParams,varargin)
-    % [success,msg] = SetClassifierFileName(obj,classifierfilename)
-    % Sets the name of the classifier file. If the classifier file exists, 
-    % it loads the data stored in the file. This involves removing all the
-    % experiments and data currently loaded, setting the config file,
-    % setting all the file names set in the config file, setting the
-    % experiments to be those listed in the classifier file, clearing all
-    % the previously computed window data and computing the window data for
-    % all the labeled frames. 
+    function [success,msg] = setClassifierParams(obj, ...
+                                                 classifierParams, ...
+                                                 labels, ...
+                                                 gtLabels, ...
+                                                 varargin)
+      % [success,msg] = SetClassifierFileName(obj,classifierfilename)
+      % Sets the name of the classifier file. If the classifier file exists,
+      % it loads the data stored in the file. This involves removing all the
+      % experiments and data currently loaded, setting the config file,
+      % setting all the file names set in the config file, setting the
+      % experiments to be those listed in the classifier file, clearing all
+      % the previously computed window data and computing the window data for
+      % all the labeled frames.
       
       [classifierlabels,doreadconfigfile,classifierfilename] = ...
         myparse(varargin,...
                 'classifierlabels',false, ...
                 'doreadconfigfile',true, ...
-                'classifierfilename','');
+                'classifierfilename',0);
     
       success = false;  %#ok
       msg = '';  %#ok
       
       obj.classifierfilename = classifierfilename;
-      loadeddata = classifierParams;
 
-      if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+      if ischar(classifierParams.labelfilename) && ~strcmp(classifierParams.labelfilename,obj.labelfilename),
         success = false;
         msg = sprintf(['Label file name specified for the project (%s) don''t match' ...
           ' the label file name used to train the classifier (%s). Not loading the classifier'],...
-          obj.labelfilename,loadeddata.labelfilename);
+          obj.labelfilename,classifierParams.labelfilename);
         return;
       end
 
-      obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
+      if ischar(classifierfilename)
+        obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
+      else
+        obj.SetStatus('Loading classifier...');
+      end
 
       % remove all experiments
       obj.RemoveExpDirs(1:obj.nexps);
@@ -1513,53 +1589,57 @@ classdef JLabelData < handle
       if doreadconfigfile,
         % set config file
         %     if ~strcmp(obj.configfilename,'configfilename'),
-        %       obj.SetConfigFileName(loadeddata.configfilename);
+        %       obj.SetConfigFileName(classifierParams.configfilename);
         %     end
 
         % set movie
-        [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
+        [success,msg] = obj.SetMovieFileName(classifierParams.moviefilename);
         if ~success,error(msg);end
 
         % trx
-        [success,msg] = obj.SetTrxFileName(loadeddata.trxfilename);
+        [success,msg] = obj.SetTrxFileName(classifierParams.trxfilename);
         if ~success,error(msg);end
 
         % label
-        [success,msg] = obj.SetLabelFileName(loadeddata.labelfilename);
-        if ~success,error(msg);end
+        if ischar(classifierParams.labelfilename)
+          [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
+          if ~success,error(msg);end
+        else
+          obj.setLabelsFromStructForAllExps(labels);
+        end
 
         % perframedir
-        [success,msg] = obj.SetPerFrameDir(loadeddata.perframedir);
+        [success,msg] = obj.SetPerFrameDir(classifierParams.perframedir);
         if ~success,error(msg);end
 
         % clipsdir
-        [success,msg] = obj.SetClipsDir(loadeddata.clipsdir);
+        [success,msg] = obj.SetClipsDir(classifierParams.clipsdir);
         if ~success,error(msg);end
-
       end
 
       % featureparamsfilename
-%           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
+%           [success,msg] = obj.SetFeatureParamsFileName(classifierParams.featureparamsfilename);
 %           if ~success,error(msg);end
-      % load actual window features params instead of filename.
-      if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
-          'basicFeatureTable','featureWindowSize'}))
 
-        loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
-        loadeddata.windowfeaturescellparams = JLabelData.convertParams2CellParams(loadeddata.windowfeaturesparams);
-        if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-                isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
+      % load actual window features params instead of filename.
+      if all( isfield(classifierParams,{'windowfeaturesparams','windowfeaturescellparams',...
+                                  'basicFeatureTable','featureWindowSize'}))
+
+        classifierParams.windowfeaturesparams = JLabelData.convertTransTypes2Cell(classifierParams.windowfeaturesparams);
+        classifierParams.windowfeaturescellparams = JLabelData.convertParams2CellParams(classifierParams.windowfeaturesparams);
+        if ~( isequal(obj.windowfeaturesparams,classifierParams.windowfeaturesparams) && ...
+                isequal(obj.featureWindowSize,classifierParams.featureWindowSize)),
             str = sprintf('Window feature parameters in the configuration file');
             str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
             str = sprintf('%s\nUsing parameters stored in the classifier file',str);
             uiwait(warndlg(str));
-            obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
-                loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
-                loadeddata.featureWindowSize);
+            obj.UpdatePerframeParams(classifierParams.windowfeaturesparams,...
+                classifierParams.windowfeaturescellparams,classifierParams.basicFeatureTable,...
+                classifierParams.featureWindowSize);
         end
       end
 
-      if ~isfield(loadeddata,'featurenames')
+      if ~isfield(classifierParams,'featurenames')
         feature_names = {};
         for j = 1:numel(obj.curperframefns),
           fn = obj.curperframefns{j};
@@ -1570,34 +1650,33 @@ classdef JLabelData < handle
         end
         obj.windowdata.featurenames = feature_names;
       else
-        obj.windowdata.featurenames = loadeddata.featurenames;
+        obj.windowdata.featurenames = classifierParams.featurenames;
       end
 
 
       % rootoutputdir
-%           [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
+%           [success,msg] = obj.SetRootOutputDir(classifierParams.rootoutputdir);
 %           if ~success,error(msg); end
 
       % set experiment directories
-      if classifierlabels && isfield(loadeddata,'labels'),
-        [success,msg] = obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
-          loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
-          loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
+      if classifierlabels && isfield(classifierParams,'labels'),
+        [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
+          classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
+          classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
         if ~success,error(msg); end
-        obj.labels = loadeddata.labels;
+        obj.labels = classifierParams.labels;
         [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(obj.expi,obj.flies);
         obj.labelidx_off = 1 - obj.t0_curr;
         [success,msg] = obj.PreLoadLabeledData();
         if ~success,error(msg); end
         obj.labelsLoadedFromClassifier = true;
-
       else
         if classifierlabels,
           uiwait(warndlg('The classifier file didn''t have any labels. Loading the current labels'));
         end
-        [success,msg] = obj.SetExpDirs(loadeddata.expdirs,loadeddata.outexpdirs,...
-          loadeddata.nflies_per_exp,loadeddata.sex_per_exp,loadeddata.frac_sex_per_exp,...
-          loadeddata.firstframes_per_exp,loadeddata.endframes_per_exp);
+        [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
+          classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
+          classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
         if ~success,error(msg); end
       end
       [success,msg] = obj.UpdateStatusTable();
@@ -1610,24 +1689,24 @@ classdef JLabelData < handle
       [success,msg] = obj.PreLoadLabeledData();
       if ~success,error(msg);end
 
-      obj.classifier = loadeddata.classifier;
-      obj.classifiertype = loadeddata.classifiertype;
-      obj.classifierTS = loadeddata.classifierTS;
-      obj.windowdata.scoreNorm = loadeddata.scoreNorm;
-      obj.confThresholds = loadeddata.confThresholds;
-      if isfield(loadeddata,'postprocessparams')
-        obj.postprocessparams = loadeddata.postprocessparams;
+      obj.classifier = classifierParams.classifier;
+      obj.classifiertype = classifierParams.classifiertype;
+      obj.classifierTS = classifierParams.classifierTS;
+      obj.windowdata.scoreNorm = classifierParams.scoreNorm;
+      obj.confThresholds = classifierParams.confThresholds;
+      if isfield(classifierParams,'postprocessparams')
+        obj.postprocessparams = classifierParams.postprocessparams;
       end
 
-      paramFields = fieldnames(loadeddata.classifier_params);
+      paramFields = fieldnames(classifierParams.classifier_params);
       for ndx = 1:numel(paramFields)
-        obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
+        obj.classifier_params.(paramFields{ndx}) = classifierParams.classifier_params.(paramFields{ndx});
       end
       % predict for all loaded examples
       obj.PredictLoaded();
 
       % set labelidx_cur
-      obj.SetTrainingData(loadeddata.trainingdata);
+      obj.SetTrainingData(classifierParams.trainingdata);
 
 %           if strcmp(obj.classifiertype,'boosting'),
 %             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
@@ -1654,8 +1733,9 @@ classdef JLabelData < handle
       obj.ClearStatus();
       obj.classifierfilename = classifierfilename;
       obj.FindFastPredictParams();
-    end  % method
+    end  % setClassifierParams() method
 
+    
     
     % ---------------------------------------------------------------------
     function [success,msg] = SetClassifierFileNameWoExp(obj,classifierfilename)
@@ -2830,6 +2910,12 @@ classdef JLabelData < handle
       % initialize timestamp = -inf if we never set
       timestamp = -inf;
 
+      % non-char filename signals it's absence
+      if ~ischar(fn)
+        filename=fn;
+        return
+      end
+      
       % loop through directories to look in
       for j = 1:numel(expdirs_try),
         expdir = expdirs_try{j}; 
@@ -3297,8 +3383,10 @@ classdef JLabelData < handle
             if iscell(fn),
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || ...
                 all(cellfun(@(s) exist(s,'file'),fn));
-            else
+            elseif ischar(fn),
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
+            else
+              obj.fileexists(expi,filei) = false;
             end
             if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file)
               missingfiles{expi}{end+1} = file;
