@@ -6330,7 +6330,7 @@ function automaticTimelineBottomRowPopup_Callback(hObject, eventdata, handles)
 
 contents = cellstr(get(hObject,'String'));
 handles.guidata.bottomAutomatic = contents{get(hObject,'Value')};
-set(handles.automaticTimelineBottomRowPopup,'BackgroundColor',[50 50 50]/256);
+%set(handles.automaticTimelineBottomRowPopup,'BackgroundColor',[50 50 50]/256);
 handles = UpdateTimelineIms(handles);
 guidata(hObject,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
