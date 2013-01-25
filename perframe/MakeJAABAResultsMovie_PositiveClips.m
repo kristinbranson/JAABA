@@ -1,4 +1,4 @@
-function MakeJAABAResultsMovie_PositiveClips(expdir,scorefn,varargin)
+function aviname = MakeJAABAResultsMovie_PositiveClips(expdir,scorefn,varargin)
 
 %%
 
@@ -360,6 +360,7 @@ for j = 1:nframesout,
   
   if isfirstframe,
     if ~debug,
+      
       if useVideoWriter,
         if strcmpi(compression,'None') || strcmpi(compression,'Uncompressed AVI'),
           profile = 'Uncompressed AVI';
@@ -387,10 +388,21 @@ for j = 1:nframesout,
   end
 
   if ~debug,
+    
+    if isfirstframe,
+      fr = getframe_invisible(hfig);
+      [height,width,~] = size(fr);
+      gfdata = getframe_initialize(hfig);
+      [fr,height,width] = getframe_invisible_nocheck(gfdata,[height,width],false,false);
+    else
+      fr = getframe_invisible_nocheck(gfdata,[height,width],false);
+    end
+
+    
     if useVideoWriter,
-      fr = getframe(hfig);
-      height = size(fr.cdata,1);
-      width = size(fr.cdata,2);
+%       fr = getframe(hfig);
+%       height = size(fr.cdata,1);
+%       width = size(fr.cdata,2);
       writeVideo(aviobj,fr);
     else
       aviobj = addframe(aviobj,hfig);
