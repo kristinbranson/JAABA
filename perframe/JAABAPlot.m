@@ -1013,7 +1013,14 @@ for c=1:length(newclassifiers)
     handlesexperimentlist=[handles.experimentlist{:}];
     if(length(handlesexperimentlist)>0)
       t=load(fullfile(handlesexperimentlist{1},classifier.trxfilename));
-      handles.fps=t.trx(1).fps;
+      if isfield(t.trx(1),'fps'),
+        handles.fps=t.trx(1).fps;
+      elseif isfield(t.trx(1),'dt'),
+        handles.fps = 1/mean(t.trx(1).dt(1:10));
+      else
+        uiwait(warndlg('Trx file does not have fps. Assuming fps as 30'));
+        handles.fps = 30;
+      end
     end
   end
 
