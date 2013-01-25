@@ -134,7 +134,8 @@ end
 % Add color for mac's.
 buttons = findall(hObject,'Style','pushbutton');
 for ndx = 1:numel(buttons)
-  SetButtonImage(buttons(ndx));
+  % SetButtonImage(buttons(ndx));
+  adjustNonLabelButtonColor(buttons(ndx));
 end
 
 %if ~isempty(handles.JLabelSplashHandle) && ishandle(handles.JLabelSplashHandle),
@@ -349,9 +350,9 @@ function listbox_experiment_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 
 % Hint: listbox controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-    SetButtonImage(hObject);
+if ispc && isequal(get(hObject,'BackgroundColor'),get(0,'defaultUicontrolBackgroundColor'))
+  set(hObject,'BackgroundColor','white');
+  SetButtonImage(hObject);
 end
 
 
