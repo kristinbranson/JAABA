@@ -74,7 +74,8 @@ setGuidataField(figureJModifyFiles,'data',data);
 % Add color for Macs.
 buttons = findall(figureJModifyFiles,'Style','pushbutton');
 for i = 1:numel(buttons)
-  SetButtonImage(buttons(i));
+  %SetButtonImage(buttons(i));
+  adjustNonLabelButtonColor(buttons(i));
 end
 
 % Make the window modal (But... Does it really to be modal?)

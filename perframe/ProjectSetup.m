@@ -78,12 +78,14 @@ handles.configParams = configParams;
 
 buttons = findall(hObject,'Style','pushbutton');
 for ndx = 1:numel(buttons)
-  SetButtonImage(buttons(ndx));
+  %SetButtonImage(buttons(ndx));
+  adjustNonLabelButtonColor(buttons(ndx));
 end
 
 buttons = findall(hObject,'Style','togglebutton');
 for ndx = 1:numel(buttons)
-  SetButtonImage(buttons(ndx));
+  %SetButtonImage(buttons(ndx));
+  adjustNonLabelButtonColor(buttons(ndx));
 end
 
 if ismac, % On mac change the foreground color to black.
