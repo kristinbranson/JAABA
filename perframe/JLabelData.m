@@ -6358,7 +6358,7 @@ end
       for expi = 1:obj.nexps,
         for flies = 1:obj.nflies_per_exp(expi)
           numpos = numpos + nnz(obj.predictdata{expi}{flies}.loaded>0);
-          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded>0);
+          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded<0);
         end
       end
       poswt = numneg/(numneg+numpos);
