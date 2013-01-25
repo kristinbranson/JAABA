@@ -3335,6 +3335,7 @@ end
             end
           end
         end
+        
         obj.nflies_per_exp(expi) = numel(trx);
         obj.firstframes_per_exp{expi} = [trx.firstframe];
         obj.endframes_per_exp{expi} = [trx.endframe];
