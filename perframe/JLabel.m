@@ -5111,7 +5111,7 @@ CALC_FEATURES = false;
 axi = 1;
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 %SetButtonImage(handles.pushbutton_playstop);
-adjustNonLabelButtonColor(handles.pushbutton_playstop);
+adjustNonLabelButtonColor(hObject);
 
 if ~handles.guidata.data.IsGTMode()
   handles = UpdatePrediction(handles);
