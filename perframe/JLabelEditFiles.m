@@ -694,6 +694,7 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 
 % update status table
 UpdateStatusTable(handles);
+ClearStatusEditFiles(hObject);
 
 
 % --- Executes on button press in pushbutton_selectproject.
