@@ -2835,6 +2835,12 @@ end
         
       end
       obj.allperframefns(toRemove) = [];
+      
+      
+%       newparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
+%       newcellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
+%       obj.UpdatePerframeParams(newparams,newcellparams,obj.basicFeatureTable,obj.featureWindowSize);
+      
       obj.windowfeaturesparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
       obj.windowfeaturescellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
 
@@ -2880,8 +2886,19 @@ end
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
+
       
       if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
+        if expi>1,
+          success = false;
+          msg = ['Landmark params were not defined in the configuration file or in the trx file for the current experiment. '...
+              'Cannot compute arena perframe features for the experiment and removing it'];
+          if isInteractive && ishandle(hwait),
+              delete(hwait);
+          end
+          return;
+        end
+
         if isInteractive,
           uiwait(warndlg(['Landmark params were not defined in the configuration file'...
             ' or in the trx file. Not computing arena features and removing them from the perframe list']));
@@ -3318,6 +3335,7 @@ end
             end
           end
         end
+        
         obj.nflies_per_exp(expi) = numel(trx);
         obj.firstframes_per_exp{expi} = [trx.firstframe];
         obj.endframes_per_exp{expi} = [trx.endframe];
@@ -6358,7 +6376,7 @@ end
       for expi = 1:obj.nexps,
         for flies = 1:obj.nflies_per_exp(expi)
           numpos = numpos + nnz(obj.predictdata{expi}{flies}.loaded>0);
-          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded>0);
+          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded<0);
         end
       end
       poswt = numneg/(numneg+numpos);

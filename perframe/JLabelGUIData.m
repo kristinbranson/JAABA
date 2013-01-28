@@ -75,6 +75,7 @@ classdef JLabelGUIData < handle
 
     labelcolors = [];
     labelunknowncolor = [0,0,0];
+    nextra_markers = 1;
     flies_extra_markersize = 12;
     flies_extra_marker = 'o';
     flies_extra_linestyle = '-';
@@ -171,6 +172,11 @@ classdef JLabelGUIData < handle
     cacheSize = 4000;
      
     tempname = [];
+    
+    % which flies are being plotted
+    fly2idx = [];
+    idx2fly = [];
+    
   end
      
   methods (Access=public)
