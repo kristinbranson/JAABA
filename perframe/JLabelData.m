@@ -2624,7 +2624,7 @@ end
       obj.windowdata.binVals=[];
 
       for curex = sort(expi(:)','descend'), %#ok<UDIM>
-        if numel(obj.predictdata)>expi
+        if numel(obj.predictdata)>=curex,
           obj.predictdata(expi) = [];
         end
       end
