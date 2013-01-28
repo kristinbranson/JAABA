@@ -59,6 +59,7 @@ if doedgedetect,
   [r,c] = find(bw);
 else
   bw = im;
+  [r,c] = find(bw);
 end
 
 % find circles using the hough transform
