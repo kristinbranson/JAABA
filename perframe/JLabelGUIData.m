@@ -75,6 +75,7 @@ classdef JLabelGUIData < handle
 
     labelcolors = [];
     labelunknowncolor = [0,0,0];
+    nextra_markers = 1;
     flies_extra_markersize = 12;
     flies_extra_marker = 'o';
     flies_extra_linestyle = '-';
