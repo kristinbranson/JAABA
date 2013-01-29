@@ -1297,7 +1297,7 @@ classdef JLabelData < handle
       % Load the labels for a single experiment into self from
       % classifierParams.
             
-      self.SetStatus('Loading labels for %s',self.expdirs{expi});
+      %self.SetStatus('Loading labels for %s',self.expdirs{expi});
 
       %loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
       self.labels(expi).t0s = labels.t0s;
@@ -1320,8 +1320,8 @@ classdef JLabelData < handle
         end
       end
       if isfield(labels,'imp_t0s');
-        self.labels(expi).imp_t0s = loadedimp.imp_t0s;
-        self.labels(expi).imp_t1s = loadedimp.imp_t1s;
+        self.labels(expi).imp_t0s = labels.imp_t0s;
+        self.labels(expi).imp_t1s = labels.imp_t1s;
       else
         self.labels(expi).imp_t0s = cell(1,numel(labels.flies));
         self.labels(expi).imp_t1s = cell(1,numel(labels.flies));
@@ -1534,21 +1534,18 @@ classdef JLabelData < handle
       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
         classifierParams = load(self.classifierfilename);
         [success,msg]= ...
-          self.setClassifierParams(classifierParams, ...
-                                   'classifierfilename',classifierfilename, ...
-                                   'classifierlabels',classifierlabels, ...
-                                   'doreadconfigfile',doreadconfigfile);
+          self.setClassifierParamsOld(classifierParams, ...
+                                      'classifierfilename',classifierfilename, ...
+                                      'classifierlabels',classifierlabels, ...
+                                      'doreadconfigfile',doreadconfigfile);
       end
     end  % method
 
-
     
     % ---------------------------------------------------------------------
-    function [success,msg] = setClassifierParams(obj, ...
-                                                 classifierParams, ...
-                                                 labels, ...
-                                                 gtLabels, ...
-                                                 varargin)
+    function [success,msg] = setClassifierParamsOld(obj, ...
+                                                    classifierParams, ...
+                                                    varargin)
       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
       % Sets the name of the classifier file. If the classifier file exists,
       % it loads the data stored in the file. This involves removing all the
@@ -1601,12 +1598,8 @@ classdef JLabelData < handle
         if ~success,error(msg);end
 
         % label
-        if ischar(classifierParams.labelfilename)
-          [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
-          if ~success,error(msg);end
-        else
-          obj.setLabelsFromStructForAllExps(labels);
-        end
+        [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
+        if ~success,error(msg);end
 
         % perframedir
         [success,msg] = obj.SetPerFrameDir(classifierParams.perframedir);
@@ -1733,9 +1726,121 @@ classdef JLabelData < handle
       obj.ClearStatus();
       obj.classifierfilename = classifierfilename;
       obj.FindFastPredictParams();
-    end  % setClassifierParams() method
+    end  % setClassifierParamsOld() method
 
     
+    % ---------------------------------------------------------------------
+    function setLabelsAndClassifier(self, ...
+                                    labels, ...
+                                    gtLabels, ...  
+                                    classifierParams)  %#ok
+      % [success,msg] = SetClassifierFileName(obj,classifierfilename)
+      % Sets the name of the classifier file. If the classifier file exists,
+      % it loads the data stored in the file. This involves removing all the
+      % experiments and data currently loaded, setting the config file,
+      % setting all the file names set in the config file, setting the
+      % experiments to be those listed in the classifier file, clearing all
+      % the previously computed window data and computing the window data for
+      % all the labeled frames.
+          
+      % new-style everything files don't use classifier file names
+      self.classifierfilename = 0;
+
+      % Update the status bar
+      self.SetStatus('Loading classifier and labels...');
+
+      % remove all experiments, if presents
+      self.RemoveExpDirs(1:self.nexps);
+
+      % set movie
+      [success,msg] = self.SetMovieFileName(classifierParams.moviefilename);
+      if ~success,error(msg);end
+      
+      % trx
+      [success,msg] = self.SetTrxFileName(classifierParams.trxfilename);
+      if ~success,error(msg);end
+
+%       % label
+%       if ischar(classifierParams.labelfilename)
+%         [success,msg] = self.SetLabelFileName(classifierParams.labelfilename);
+%         if ~success,error(msg);end
+%       else
+%         self.setLabelsFromStructForAllExps(labels);
+%       end
+      
+      % perframedir
+      [success,msg] = self.SetPerFrameDir(classifierParams.perframedir);
+      if ~success,error(msg);end
+      
+      % clipsdir
+      [success,msg] = self.SetClipsDir(classifierParams.clipsdir);
+      if ~success,error(msg);end
+
+      % load the feature names
+      self.windowdata.featurenames = classifierParams.featurenames;
+
+      % set experiment directories
+      [success,msg] = ...
+        self.SetExpDirs(classifierParams.expdirs, ...
+                        classifierParams.outexpdirs, ...
+                        classifierParams.nflies_per_exp, ...
+                        classifierParams.sex_per_exp, ...
+                        classifierParams.frac_sex_per_exp, ...
+                        classifierParams.firstframes_per_exp, ...
+                        classifierParams.endframes_per_exp);
+      if ~success,error(msg); end
+      
+      % Update the status table
+      [success,msg] = self.UpdateStatusTable();
+      if ~success, error(msg); end
+
+      % update cached data
+      [success,msg] = self.PreLoadLabeledData();
+      if ~success,error(msg);end
+
+      % set the labels
+      self.setLabelsFromStructForAllExps(labels);
+
+      % Read certain fields out of the classifier, setting them in self
+      self.classifier = classifierParams.classifier;
+      self.classifiertype = classifierParams.classifiertype;
+      self.classifierTS = classifierParams.classifierTS;
+      self.windowdata.scoreNorm = classifierParams.scoreNorm;
+      self.confThresholds = classifierParams.confThresholds;
+      if isfield(classifierParams,'postprocessparams')
+        self.postprocessparams = classifierParams.postprocessparams;
+      end
+
+      % Read the classifier_params field out of the classifier.  This
+      % contains things like the number of iterations used for training,
+      % the number of folds used for cross-validation, etc.
+      self.classifier_params=classifierParams.classifier_params;
+      
+      % predict for all loaded examples
+      self.PredictLoaded();
+
+      % set labelidx_cur
+      self.SetTrainingData(classifierParams.trainingdata);
+
+      % make sure inds is ordered correctly
+      if ~isempty(self.classifier),
+        switch self.classifiertype,
+          case 'ferns',
+            waslabeled = self.windowdata.labelidx_cur ~= 0;
+            self.classifier.inds = self.predict_cache.last_predicted_inds(waslabeled,:);
+        end
+      end
+
+      % clear the cached per-frame, trx data
+      self.ClearCachedPerExpData();
+
+      % Set the status bar back to the default message
+      self.ClearStatus();
+      
+      % No idea what this does
+      self.FindFastPredictParams();
+    end  % setLabelsAndClassifier() method
+
     
     % ---------------------------------------------------------------------
     function [success,msg] = SetClassifierFileNameWoExp(obj,classifierfilename)
@@ -2137,14 +2242,15 @@ classdef JLabelData < handle
       % Returns a single structure containing all the labels, suitable for
       % saving.
     
-      % short-circuit if no labels
-      if isempty(self.labels) && isempty(self.gt_labels), 
-        labels=self.labels;
-        gtLabels=self.gt_labels;
-        return; 
-      end
+      %% short-circuit if no labels
+      %if isempty(self.labels) && isempty(self.gt_labels), 
+      %  labels=self.labels;
+      %  gtLabels=self.gt_labels;
+      %  return; 
+      %end
           
-      % store labels in labelidx
+      % Take the labels currently only in labelidx, and commit them to
+      % self.labels
       self.StoreLabels();
       
       % return the labels
@@ -4316,6 +4422,8 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function StoreLabels(obj)
     % Store labels cached in labelidx for the current experiment and flies
     % to labels structure. This is when the timestamp on labels gets
@@ -4348,6 +4456,8 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function StoreLabels1(obj,expi,flies,labelidx,labelidx_off)
       
       % update labels
@@ -4399,6 +4509,8 @@ classdef JLabelData < handle
             
     end
 
+    
+    % ---------------------------------------------------------------------
     function isstart = IsLabelStart(obj,expi,flies,ts)
       
       if obj.expi == expi && all(flies == obj.flies),
@@ -7098,15 +7210,15 @@ classdef JLabelData < handle
       scoreNorm = obj.windowdata.scoreNorm;
     end
     
+    
     % ---------------------------------------------------------------------
-
     % function specifyEverythingFileNameFromUser(self,fileNameAbs)
     %   self.everythingFileName=fileNameAbs;
     %   self.userHasSpecifiedEverythingFileName=true;
     % end
     
+    
     % ---------------------------------------------------------------------
-
     % function saveEverything(self,fileNameAbs)
     %   s=struct;
     %   s.featureConfigParams=self.featureConfigParams;
@@ -7116,11 +7228,12 @@ classdef JLabelData < handle
     %   save(fileNameAbs,'-struct','s');
     % end
 
-    % ---------------------------------------------------------------------
     
+    % ---------------------------------------------------------------------    
     function s=getSaveableClassifier(self)
       % Extracts all the things needed to save the classifier, stores them
       % in a scalar struct, which is returned.
+      self.StoreLabels();  % flush the cache
       s = struct;  % struct to be returned
       s.classifierTS = self.classifierTS;
       s.trainingdata = self.SummarizeTrainingData();
@@ -7141,8 +7254,8 @@ classdef JLabelData < handle
       end      
     end  % method
     
-    % ---------------------------------------------------------------------
     
+    % ---------------------------------------------------------------------
     function configParams=getConfigParams(self)
       configParams=struct();
       configParams.configfilename=self.configfilename;
