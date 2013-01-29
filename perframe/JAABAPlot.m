@@ -1016,9 +1016,15 @@ for c=1:length(newclassifiers)
       if isfield(t.trx(1),'fps'),
         handles.fps=t.trx(1).fps;
       elseif isfield(t.trx(1),'dt'),
-        handles.fps = 1/mean(t.trx(1).dt(1:10));
+        fps = 1/mean(t.trx(1).dt(1:10));
+        if ~isnan(fps)
+          handles.fps = fps;
+        else
+          uiwait(warndlg('Trx file does not have recording fps (frames per second). Assuming fps as 30'));
+          handles.fps = 30;
+        end
       else
-        uiwait(warndlg('Trx file does not have fps. Assuming fps as 30'));
+        uiwait(warndlg('Trx file does not have recording fps (frames per second). Assuming fps as 30'));
         handles.fps = 30;
       end
     end
