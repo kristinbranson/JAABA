@@ -1807,14 +1807,6 @@ classdef JLabelData < handle
       [success,msg] = self.SetTrxFileName(classifierParams.trxfilename);
       if ~success,error(msg);end
 
-%       % label
-%       if ischar(classifierParams.labelfilename)
-%         [success,msg] = self.SetLabelFileName(classifierParams.labelfilename);
-%         if ~success,error(msg);end
-%       else
-%         self.setLabelsFromStructForAllExps(labels);
-%       end
-      
       % perframedir
       [success,msg] = self.SetPerFrameDir(classifierParams.perframedir);
       if ~success,error(msg);end
@@ -7301,7 +7293,10 @@ classdef JLabelData < handle
         else
           error('Unknown field %s',fn);
         end
-      end      
+      end  
+      % we don't want the labels in with the classifier structure for the
+      % purposes of saving
+      s=rmfield(s,'labels');
     end  % method
     
     
@@ -7370,15 +7365,14 @@ classdef JLabelData < handle
     end  % method
   
     % ---------------------------------------------------------------------
-
 %     function initEverything(self,everythingParams)  % this should really be private
 %       if isfield(everythingParams,'configParams')
 %         self.SetConfigParams(everythingParams.configParams);
 %       end
 %     end
     
-    % ---------------------------------------------------------------------
 
+    % ---------------------------------------------------------------------
 %     function setLabelingMode(self,modeString)
 %       switch modeString,
 %         case 'Advanced',
