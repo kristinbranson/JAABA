@@ -1067,6 +1067,17 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
+    function setGTLabelsFromStructForAllExps(self,gtLabelsForAll)
+      for expi = 1:self.nexps,
+        self.loadGTLabelsFromStructForOneExp(expi,gtLabelsForAll(expi));
+        self.gt_labelfilename = 0;
+        self.UpdateStatusTable('gt_label');   
+      end
+    end
+
+    
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = SetGTLabelFileName(obj,gt_labelfilename)
     % [success,msg] = SetGTLabelFileName(obj,labelfilename)
     % set the name of the *ground truth* label file within the experiment directory. this
@@ -1294,12 +1305,10 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function loadLabelsFromStructForOneExp(self,expi,labels)
-      % Load the labels for a single experiment into self from
-      % classifierParams.
+      % Load the labels for a single experiment into self.
             
-      %self.SetStatus('Loading labels for %s',self.expdirs{expi});
+      self.SetStatus('Loading labels for %s',self.expdirs{expi});
 
-      %loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
       self.labels(expi).t0s = labels.t0s;
       self.labels(expi).t1s = labels.t1s;
       self.labels(expi).names = labels.names;
@@ -1325,6 +1334,44 @@ classdef JLabelData < handle
       else
         self.labels(expi).imp_t0s = cell(1,numel(labels.flies));
         self.labels(expi).imp_t1s = cell(1,numel(labels.flies));
+      end
+
+      self.ClearStatus();
+    end
+ 
+    
+    
+    % ---------------------------------------------------------------------
+    function loadGTLabelsFromStructForOneExp(self,expi,gtLabels)
+      % Load the GT labels for a single experiment into self.
+            
+      self.SetStatus('Loading GT labels for %s',self.expdirs{expi});
+
+      self.gt_labels(expi).t0s = gtLabels.t0s;
+      self.gt_labels(expi).t1s = gtLabels.t1s;
+      self.gt_labels(expi).names = gtLabels.names;
+      self.gt_labels(expi).flies = gtLabels.flies;
+      self.gt_labels(expi).off = gtLabels.off;
+      self.gt_labelstats(expi).nflies_labeled = size(gtLabels.flies,1);
+      self.gt_labelstats(expi).nbouts_labeled = numel([gtLabels.t0s{:}]);
+      if iscell(gtLabels.timestamp)
+        self.gt_labels(expi).timestamp = gtLabels.timestamp;
+      else
+        for ndx = 1:numel(gtLabels.flies)
+          nBouts = numel(gtLabels.t0s{ndx});
+          if isempty(gtLabels.timestamp)
+            self.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+          else
+            self.gt_labels(expi).timestamp{ndx}(1:nBouts) = gtLabels.timestamp;
+          end
+        end
+      end
+      if isfield(gtLabels,'imp_t0s');
+        self.gt_labels(expi).imp_t0s = gtLabels.imp_t0s;
+        self.gt_labels(expi).imp_t1s = gtLabels.imp_t1s;
+      else
+        self.gt_labels(expi).imp_t0s = cell(1,numel(gtLabels.flies));
+        self.gt_labels(expi).imp_t1s = cell(1,numel(gtLabels.flies));
       end
 
       self.ClearStatus();
@@ -1733,7 +1780,7 @@ classdef JLabelData < handle
     function setLabelsAndClassifier(self, ...
                                     labels, ...
                                     gtLabels, ...  
-                                    classifierParams)  %#ok
+                                    classifierParams)
       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
       % Sets the name of the classifier file. If the classifier file exists,
       % it loads the data stored in the file. This involves removing all the
@@ -1800,6 +1847,9 @@ classdef JLabelData < handle
 
       % set the labels
       self.setLabelsFromStructForAllExps(labels);
+
+      % set the GT labels
+      self.setGTLabelsFromStructForAllExps(gtLabels);
 
       % Read certain fields out of the classifier, setting them in self
       self.classifier = classifierParams.classifier;
