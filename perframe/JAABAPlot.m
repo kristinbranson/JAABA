@@ -624,8 +624,8 @@ end
 % ---
 function feature_intersection=check_for_diff_and_return_intersection(arg)
 
-if(length(arg)==0)  ret_val=[];  return;  end
-if(length(arg)==1)  ret_val=arg{1};  return;  end
+if(length(arg)==0)  feature_intersection=[];  return;  end
+if(length(arg)==1)  feature_intersection=arg{1};  return;  end
 
 feature_union=unique([arg{:}]);
 feature_intersection=arg{1};
