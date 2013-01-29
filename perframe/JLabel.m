@@ -676,6 +676,7 @@ if strcmp(varargin{1},'CLEAR'),
   return;
 end
 
+% If the movie has changed, want to re-initialize the frame cache
 if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
@@ -718,7 +719,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   handles.guidata.cache_thread=batch(@cache_thread,0,...
     {N,HWD,cache_filename,handles.guidata.movie_filename},...
     'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
-  if(ismac),  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
+  %if(ismac),  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
 end
 
 % WARNING: we directly access handles.guidata.data.trx for speed here -- 
@@ -7455,10 +7456,9 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Now load the classifier, which includes the experiments, and load the
 % labels also.  ('classifierlabels',true means to load the labels, too.)
-data.setClassifierParams(everythingParams.saveableClassifier, ...
-                         everythingParams.labels, ...
-                         everythingParams.gtLabels, ...
-                         'classifierlabels',true);
+data.setLabelsAndClassifier(everythingParams.labels, ...
+                            everythingParams.gtLabels, ...
+                            everythingParams.saveableClassifier);
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
@@ -8126,8 +8126,8 @@ end
 
 % Now load the classifier, which includes the experiments, and load the
 % labels also.  ('classifierlabels', if true, loads the labels also)
-data.setClassifierParams(classifierParams, ...
-                         'classifierlabels',loadLabels);
+data.setClassifierParamsOld(classifierParams, ...
+                            'classifierlabels',loadLabels);
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
