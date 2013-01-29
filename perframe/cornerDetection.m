@@ -1,4 +1,3 @@
-%% Corner Detection for Vivek
 function [success, C] = cornerDetection(moviefile,frameRange,showResult)
 % function C = cornerDetection(moviefile,frameRange,showResult)
 % Detects corners 
