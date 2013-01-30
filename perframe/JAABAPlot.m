@@ -699,12 +699,21 @@ handlesindividuals=zeros(length(newexperiments),length(handles.scorefiles));
 parfor n=1:length(newexperiments)
 %for n=1:length(newexperiments)
   tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
-  [handlesfeatures{n}{1:length(tmp)}]=deal(tmp.name);
-  handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
+  if isempty(tmp),
+      handlesfeatures{n} = {};
+  else
+      [handlesfeatures{n}{1:length(tmp)}]=deal(tmp.name);
+      handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
+  end
 
-  sexdata=load(fullfile(newexperiments{n},'perframe','sex.mat'));
-  sexdata.data=cellfun(@(x) strcmp(x,'M'),sexdata.data,'uniformoutput',false);
-  handlessexdata(n)={sexdata.data};
+  sexdatafile = fullfile(newexperiments{n},'perframe','sex.mat');
+  if exist(sexdatafile,'file'),
+      sexdata=load(sexdatafile);
+      sexdata.data=cellfun(@(x) strcmp(x,'M'),sexdata.data,'uniformoutput',false);
+      handlessexdata(n)={sexdata.data};
+  else
+      handlessexdata{n} = {};
+  end
 
   behavior_data=[];
   parfor_tmp=zeros(1,length(handles.scorefiles));
