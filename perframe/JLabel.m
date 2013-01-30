@@ -2541,7 +2541,9 @@ if behaviori > 0,
     k0 = t0+handles.guidata.labels_plot_off;
     k2 = t1+handles.guidata.labels_plot_off+1;
     xplot = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),min(t0:t1+1,handles.guidata.t1_curr));
+    xplot = xplot(:)';
     yplot = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),min(t0:t1+1,handles.guidata.t1_curr));
+    yplot = yplot(:)';
     handles.guidata.labels_plot.x(:,k0:k2-1,behaviori,l) = [xplot(1:end-1);xplot(2:end)];
     handles.guidata.labels_plot.y(:,k0:k2-1,behaviori,l) = [yplot(1:end-1);yplot(2:end)];      
 
@@ -2657,10 +2659,10 @@ for behaviori = 1:handles.guidata.data.nbehaviors,
     ks = t0-1+handles.guidata.labels_plot_off+bidx;
     xplot0 = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),t0-1+bidx);
     xplot1 = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),min(t0+bidx,handles.guidata.t1_curr));
-    handles.guidata.labels_plot.predx(:,ks,behaviori,l) = [xplot0;xplot1];
+    handles.guidata.labels_plot.predx(:,ks,behaviori,l) = [xplot0(:)';xplot1(:)'];
     yplot0 = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),t0-1+bidx);
     yplot1 = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),min(t0+bidx,handles.guidata.t1_curr));
-    handles.guidata.labels_plot.predy(:,ks,behaviori,l) = [yplot0;yplot1];
+    handles.guidata.labels_plot.predy(:,ks,behaviori,l) = [yplot0(:)';yplot1(:)'];
   end
   
 end
