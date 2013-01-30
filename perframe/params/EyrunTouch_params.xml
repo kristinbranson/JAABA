@@ -2,7 +2,7 @@
 <params>
    <targets type="wingedfly"/>
    <behaviors labelcolors="0.7,0,0,0,0,0.7" names="touch" unknowncolor="0,0,0"/>
-   <file featureconfigfile="params\featureConfigEyrun.xml" featureparamfilename="WindowFeatures_EyrunTest.xml" gt_labelfilename="labeled_touch.mat" labelfilename="labeled_touch.mat" moviefilename="movie.seq" perframedir="perframe" rootoutputdir="" scorefilename="scores_touch.mat" trxfilename="trx.mat" windowfilename="windowfeatures.mat"/>
+   <file featureconfigfile="params\featureConfigEyrun2.xml" featureparamfilename="WindowFeatures_EyrunTest.xml" gt_labelfilename="labeled_touch.mat" labelfilename="labeled_touch.mat" moviefilename="movie.seq" perframedir="perframe" rootoutputdir="" scorefilename="scores_touch.mat" trxfilename="trx.mat" windowfilename="windowfeatures.mat"/>
    <plot>
       <trx colormap="jet" colormap_multiplier="0.7" extra_marker="."/>
       <labels colormap="line" linewidth="3"/>
