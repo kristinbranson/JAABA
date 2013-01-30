@@ -64,8 +64,8 @@
   <perframe>
 
     <area_mm trans_types="relative,none" type="appearance"/>
-    <bias trans_types="none,abs,flip" type="unknown"/>
-    <cast trans_types="none,abs,relative,flip" type="unknown"/>
+    <bias trans_types="none,relative" type="locomotion"/>
+    <cast trans_types="none,abs,relative,flip" type="appearance"/>
     <crabspeed trans_types="none,relative" type="locomotion"/>
     <curve trans_types="none,relative" type="appearance"/>
     <dir trans_types="none,relative" type="locomotion"/>
