@@ -133,8 +133,8 @@ fclose(fid);
               [tmp,count,~,nextindex] = sscanf(l,'%f',nspinepts*2);
               if count == nspinepts*2,
                 readspine = true;
-                xspine = tmp(1:2:end-1)+x;
-                yspine = tmp(2:2:end-1)+y;
+                xspine = tmp(1:2:end-1);
+                yspine = tmp(2:2:end);
               else
                 warning('Error parsing spine points');
               end
@@ -194,6 +194,11 @@ fclose(fid);
       b = data_curr(8);
       length = data_curr(9);
       width = data_curr(10);
+      
+      if readspine,
+        xspine = xspine + x;
+        yspine = yspine + y;
+      end
       
       if isempty(idi),
         idi = numel(ids) + 1;
@@ -315,7 +320,7 @@ fclose(fid);
     if havereadspine,
       for tmpi = 1:numel(trx),
         nframescurr = trx(tmpi).nframes;
-        nadd = nframescurr - size(trx(ympi).xspine,2);
+        nadd = nframescurr - size(trx(tmpi).xspine,2);
         if nadd > 0,
           trx(tmpi).xspine(:,end+1:end+nadd) = nan;
           trx(tmpi).yspine(:,end+1:end+nadd) = nan;
