@@ -220,13 +220,13 @@ handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',
 handles.params.windowfeatures = struct;
 handles.params.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
 handles.params.behaviors.unknowncolor = [0,0,0];
-handles.params.trx.colormap = 'jet';
-handles.params.trx.colormap_multiplier = 0.7;
-handles.params.trx.extra_linestyle = '-';
-handles.params.trx.extra_marker = '.';
-handles.params.trx.extra_markersize = 12;
-handles.params.labels.colormap = 'line';
-handles.params.labels.linewidth = 3;
+handles.params.plot.trx.colormap = 'jet';
+handles.params.plot.trx.colormap_multiplier = 0.7;
+handles.params.plot.trx.extra_linestyle = '-';
+handles.params.plot.trx.extra_marker = '.';
+handles.params.plot.trx.extra_markersize = 12;
+handles.params.plot.labels.colormap = 'line';
+handles.params.plot.labels.linewidth = 3;
 handles.params.file.labelfilename = '';
 handles.params.file.gt_labelfilename = '';
 handles.params.file.scorefilename = '';
@@ -791,7 +791,9 @@ if ismember('Window Features',sellist),
     handles.params.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
     handles.params.windowfeatures.basicFeatureTable = basicFeatureTable;
     handles.params.windowfeatures.featureWindowSize = featureWindowSize;
-    handles.params.file = rmfield(handles.params.file,'featureparamfilename');    
+    if isfield(handles.params.file,'featureparamfilename'),
+        handles.params.file = rmfield(handles.params.file,'featureparamfilename');
+    end
   else
     uiwait(warndlg(['The selected configuration file does not have any '...
       'window features. Not copying the window features']));
@@ -828,6 +830,7 @@ if ismember('Advanced Parameters',sellist),
     'behaviors.unknowncolor',...
     'plot.trx.colormap',...
     'plot.trx.colormap_multiplier',...
+    'plot.trx.nextra_markers',...
     'plot.trx.extra_marker',...
     'plot.trx.extra_markersize',...
     'plot.trx.extra_linestyle',...

@@ -1,7 +1,10 @@
-function img = getframe_invisible_nocheck(gfdata,sz,removeborder)
+function [img,nr,nc] = getframe_invisible_nocheck(gfdata,sz,removeborder,doresize)
 
 if nargin < 3,
   removeborder = true;
+end
+if nargin < 4,
+  doresize = true;
 end
 
 GRAYBORDER = 204;
@@ -9,6 +12,7 @@ GRAYBORDER = 204;
 hfig = gfdata.hfig;
 
 img = hardcopy(gfdata.hardcopy_args{:});
+set(hfig,'Units',gfdata.units,'Position',gfdata.pos);
 if numel(img) == 1,
   fprintf('Could not grab invisible figure. Making visible temporarily.\n');
   set(hfig,'visible','on');
@@ -24,6 +28,10 @@ if removeborder,
 end
 
 [nr,nc,tmp] = size(img);
+if ~doresize,
+  sz(1) = nr; sz(2) = nc;
+end
+
 maxfirstcol = nc - sz(2) + 1;
 maxfirstrow = nr - sz(1) + 1;
 if maxfirstcol <= 0 || maxfirstrow <= 0,
@@ -33,8 +41,8 @@ if removeborder,
   firstcol = min(find(~all(isallgray,1),1),maxfirstcol);
   firstrow = min(find(~all(isallgray,2),1),maxfirstrow);
 else
-  firstcol = gfdata.firstcol;
-  firstrow = gfdata.firstrow;
+  firstcol = 1;
+  firstrow = 1;
 end
 lastcol = firstcol + sz(2) - 1;
 lastrow = firstrow + sz(1) - 1;
@@ -42,8 +50,8 @@ if removeborder,
   lastcol0 = find(~all(isallgray,1),1,'last');
   lastrow0 = find(~all(isallgray,2),1,'last');
 else
-  lastcol0 = gfdata.lastcol;
-  lastrow0 = gfdata.lastrow;
+  lastcol0 = nc;
+  lastrow0 = nr;
 end
 if lastrow ~= lastrow0 || lastcol ~= lastcol0,
   fprintf('input width = %d, actual width = %d, input height = %d, actual height = %d\n',...

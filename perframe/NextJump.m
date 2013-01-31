@@ -364,6 +364,7 @@ classdef NextJump < handle
       predictedidx(scores<0) = 2;
       
       erroridx = labelidx.vals ~=predictedidx;
+      erroridx(~labelidx.imp) = 0;
       
       j = find(erroridx ~= erroridx(1),1);
       if isempty(j), return; end
@@ -387,6 +388,7 @@ classdef NextJump < handle
       predictedidx(scores>0) = 1;
       predictedidx(scores<0) = 2;
       erroridx = labelidx.vals ~=predictedidx;
+      erroridx(~labelidx.imp) = 0;
       j = find(erroridx~= erroridx(end),1,'last');
       if isempty(j), return; end
       

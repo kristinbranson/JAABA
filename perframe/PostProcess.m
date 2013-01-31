@@ -190,7 +190,7 @@ histscores = histscores./max(histscores)*0.9*ylim(2);
 plot(handles.axes2,xLocs,histscores,'Color',max(handles.posColor,handles.negColor));
 end;
 handles.JLabelHandle = JLabel('SetNeedSave',handles.JLabelHandle);
-guidata(handles.JLabelHandle.figure1,handles.JLabelHandle);
+guidata(handles.JLabelHandle.figure_JLabel,handles.JLabelHandle);
 
 % --- Executes on button press in pushbutton_cancel.
 function pushbutton_cancel_Callback(hObject, eventdata, handles)
@@ -217,7 +217,7 @@ JLabel('UpdatePlots',handles.JLabelHandle,'refreshim',false,'refreshflies',false
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
 handles.JLabelHandle = JLabel('SetNeedSave',handles.JLabelHandle);
-guidata(handles.JLabelHandel.figure1,handles.JLabelHandle);
+guidata(handles.JLabelHandle.figure_JLabel,handles.JLabelHandle);
 delete(handles.figure1);
 
 

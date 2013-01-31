@@ -133,6 +133,7 @@ set(handles.pushbutton_newproject,'enable','off');
 function InitJLabelGui(handles)
 
 if ~handles.needJLabelInit, return; end
+set(handles.figure_JLabelEditFiles,'pointer','watch');
 handles.needJLabelInit = false;
 
 % For behavior --
@@ -145,7 +146,7 @@ JLabelHandle = handles.JLabelHandle;
 JLabelHandle.guidata.configfilename = handles.configfilename;
 [~,~,ext] = fileparts(handles.configfilename);
 if strcmp(ext,'.xml')
-  JLabelHandle.guidata.configparams = ReadXMLParams(handles.configfilename);
+  JLabelHandle.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
 elseif strcmp(ext,'.mat')
   JLabelHandle.guidata.configparams = load(handles.configfilename);
 else
@@ -161,6 +162,7 @@ handles.JLabelHandle = JLabelHandle;
 guidata(handles.figure_JLabelEditFiles,handles);
 guidata(JLabelHandle.figure_JLabel,JLabelHandle);
 InitExperimentsGui(handles.figure_JLabelEditFiles,handles,handles.data);
+set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 
 function InitExperimentsGui(hObject,handles,varargin)
@@ -270,7 +272,7 @@ for i = 1:nfiles,
   if file_exists,
     timestamp = datestr(timestamp);%,'yyyymmddTHHMMSS');
   end
-  if JLabelData.IsRequiredFile(file),
+  if handles.data.IsRequiredFile(file),
     if file_exists,
       data{i,2} = sprintf('<html><font color="green">%s</font></html>',timestamp);
     else
@@ -348,7 +350,12 @@ handles = guidata(hObject);
 %   return;
 % end
 
-allexpdirs = uigetdir2(handles.data.defaultpath,'Add experiment directory');
+defaultdir = fileparts(handles.data.defaultpath);
+
+allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
+if ischar(allexpdirs),
+  allexpdirs = {allexpdirs};
+end
 if isempty(allexpdirs) || ~iscell(allexpdirs),
   return;
 end
@@ -363,10 +370,17 @@ for ndx = 1:numel(allexpdirs)
     return;
   end
   
+  SetStatusEditFiles(hObject,sprintf('Adding experiment directory %s',expdir));
   
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    if iscell(msg)
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+    else
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    end
+    ClearStatusEditFiles(hObject);
+    
     return;
   end
   
@@ -374,9 +388,12 @@ for ndx = 1:numel(allexpdirs)
 
 end
 
+SetStatusEditFiles(hObject,'Final update to status table...\n');
+
 % update status table
 UpdateStatusTable(handles);
 
+ClearStatusEditFiles(hObject);
 
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
@@ -461,11 +478,11 @@ end
 
 SetLabelingMode(handles);
 
-res = questdlg('Load labels that were used to train the classifier or current labels?',...
-  'Labels?','Classifier Labels','Current Labels','Cancel','Classifier Labels');
+res = questdlg('Load the labels and the classifier from the file, or just load the classifier?',...
+  'Labels?','Load Labels and Classifier','Load Classifier Only','Cancel','Load Labels and Classifier');
 if strcmpi(res,'Cancel'), return, end
 
-classifierlabels = strcmpi(res,'Classifier Labels');
+classifierlabels = strcmpi(res,'Load Labels and Classifier');
 
 [success,msg] = handles.data.SetClassifierFileName(classifierfilename,'classifierlabels',classifierlabels);
 if ~success,
@@ -543,13 +560,15 @@ figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles);
 
 
 function SetStatusEditFiles(hObject,s)
+
 handles = guidata(hObject);
 set(handles.statusMsg,'String',s);
+set(handles.figure_JLabelEditFiles,'pointer','watch');
 
 function ClearStatusEditFiles(hObject)
 handles = guidata(hObject);
 set(handles.statusMsg,'String','');
-
+set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 % --- Executes during object creation, after setting all properties.
 function editClassifier_CreateFcn(hObject, eventdata, handles)
@@ -572,6 +591,15 @@ function popupmode_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmode contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmode
+
+contents = cellstr(get(hObject,'String'));
+curstr = contents{get(hObject,'Value')};
+if any(strcmpi(curstr,{ 'Ground Truthing','Ground Truthing Advanced'})),
+  set(handles.pushbutton_load,'Enable','off');
+else
+  set(handles.pushbutton_load,'Enable','on');
+end
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -616,11 +644,11 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-oldv = get(handles.listbox_experiment,'Value');
-
-if ~handles.disableBehavior && isempty(handles.projmanager.GetCurrentProject()), 
-  uiwait(warndlg('Select a project before adding an experiment'));
-  return
+if ~handles.disableBehavior,
+  if ~isfield(handles,'configfilename') || isempty(handles.configfilename), 
+    uiwait(warndlg('Select a project before adding an experiment'));
+    return;
+  end
 end
 
 InitJLabelGui(handles);
@@ -632,7 +660,6 @@ listfile = fullfile(pname,listfile);
 if ~ischar(listfile),
   return;
 end
-'xml_file',handles.projectfilename
 fid = fopen(listfile,'r');
 if fid<0, 
   uiwait(warndlg(sprintf('Cannot open %s for reading',listfile)));
@@ -650,8 +677,7 @@ while(ischar(expdir))
     expdir = fgetl(fid);
     continue;
   end
-  
-  
+    
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
     uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
@@ -668,6 +694,7 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 
 % update status table
 UpdateStatusTable(handles);
+ClearStatusEditFiles(hObject);
 
 
 % --- Executes on button press in pushbutton_selectproject.

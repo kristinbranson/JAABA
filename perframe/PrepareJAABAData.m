@@ -232,10 +232,12 @@ set(handles.pushbutton_ReadFPS,'Visible',handles.visible_read_fps);
 function handles = UpdateOutputFilesTable(handles)
 
 data = get(handles.uitable_OutputFiles,'data');
-data{1,2} = handles.ExperimentDirectory;
-data{2,2} = handles.moviefilestr;
-data{3,2} = handles.trxfilestr;
-data{4,2} = handles.perframedirstr;
+[parentdir,expname] = fileparts(handles.ExperimentDirectory);
+data{1,2} = parentdir;
+data{2,2} = expname;
+data{3,2} = handles.moviefilestr;
+data{4,2} = handles.trxfilestr;
+data{5,2} = handles.perframedirstr;
 set(handles.uitable_OutputFiles,'data',data);
 
 function handles = CreateInputDataTypeRadioButtons(handles)
@@ -1043,6 +1045,9 @@ else
   if row > 1 && InputDataType.files(i).isdir,
     [inputparentdir,inputname] = fileparts(inputfile);
     inputfile = uigetdir2(inputparentdir,sprintf('Choose input %s',lower(name)),inputname);
+    if iscell(inputfile),
+      inputfile = inputfile{1};
+    end
     if ~ischar(inputfile),
       return;
     end
@@ -1337,13 +1342,16 @@ end
 if ~exist(parentdir,'dir'),
   parentdir = pwd;
 end
-expdir = uigetdir2(parentdir,'Choose experiment directory',expname);
-if ~ischar(expdir),
+parentdir = uigetdir2(parentdir,'Choose parent directory for output experiment');
+if iscell(parentdir),
+  parentdir = parentdir{1};
+end
+if ~ischar(parentdir),
   return;
 end
-handles.ExperimentDirectory = expdir;
+handles.ExperimentDirectory = fullfile(parentdir,expname);
 data = get(hObject,'Data');
-data{1,2} = handles.ExperimentDirectory;
+data{1,2} = parentdir;
 set(hObject,'Data',data);
 guidata(hObject,handles);
 
@@ -1368,16 +1376,18 @@ if col ~= 2,
   return;
 end
 data = get(hObject,'Data');
-if isempty(eventdata.NewData),
+[parentdir,expname] = myfileparts(handles.ExperimentDirectory);
+if isempty(eventdata.NewData) && row > 1 || ...
+    ((row == 3) && ~handles.InputDataTypes.(handles.InputDataType).videorequired),
   switch row,
-    case 1,
-      data{1,2} = handles.ExperimentDirectory;
     case 2,
-      data{2,2} = handles.moviefilestr;
+      data{2,2} = expname;
     case 3,
-      data{3,2} = handles.trxfilestr;
+      data{3,2} = handles.moviefilestr;
     case 4,
-      data{4,2} = handles.perframedirstr;
+      data{4,2} = handles.trxfilestr;
+    case 5,
+      data{5,2} = handles.perframedirstr;
   end
   set(hObject,'Data',data);
   return;
@@ -1385,31 +1395,39 @@ end
 
 if row == 1,
   % make sure experiment directory is legal
-  [parentdir,expname] = myfileparts(eventdata.NewData);
+  oldparentdir = parentdir;
+  parentdir = eventdata.NewData;
+  %[parentdir,expname] = myfileparts(eventdata.NewData);
   if ~isempty(parentdir) && ~exist(parentdir,'dir'),
     res = questdlg(sprintf('Parent directory %s does not exist. Create?',parentdir));
     if ~strcmpi(res,'Yes'),
-      data{1,2} = handles.ExperimentDirectory;
+      data{1,2} = oldparentdir;
       set(hObject,'Data',data);
       return;
     end
     [success,msg] = mkdir(parentdir);
     if ~success,
       uiwait(warndlg(msg));
-      data{1,2} = handles.ExperimentDirectory;
+      data{1,2} = oldparentdir;
       set(hObject,'Data',data);
       return;
     end
   end
+  handles.ExperimentDirectory = fullfile(parentdir,expname);
+  guidata(hObject,handles);
+  return;
+elseif row == 2,
+  oldexpname = expname;
+  expname = eventdata.NewData;
   if ~IsNiceFileName(expname),
     res = questdlg(sprintf('Experiment name %s is not a great file name. Are you sure you want to use it?',expname));
     if ~strcmpi(res,'Yes'),
-      data{1,2} = handles.ExperimentDirectory;
+      data{1,2} = oldexpname;
       set(hObject,'Data',data);
       return;
     end
   end
-  handles.ExperimentDirectory = eventdata.NewData;
+  handles.ExperimentDirectory = fullfile(parentdir,expname);
   guidata(hObject,handles);
   return;
 else
@@ -1423,10 +1441,10 @@ else
     res = 'Yes';
   end
   if strcmpi(res,'Yes'),
-    if row == 2,
+    if row == 3,
       [isokext,msg] = CheckOutputFileExtensions(handles,...
         'moviefilestr',name);
-    elseif row == 3,
+    elseif row == 4,
       [isokext,msg] = CheckOutputFileExtensions(handles,...
         'trxfilestr',name);
     else
@@ -1438,22 +1456,22 @@ else
   end
   if ~strcmpi(res,'Yes'),
     switch row,
-      case 2,
-        data{2,2} = handles.moviefilestr;
       case 3,
-        data{3,2} = handles.trxfilestr;
+        data{3,2} = handles.moviefilestr;
       case 4,
-        data{4,2} = handles.perframedirstr;
+        data{4,2} = handles.trxfilestr;
+      case 5,
+        data{5,2} = handles.perframedirstr;
     end
     set(hObject,'Data',data);
     return;
   end
   switch row,
-    case 2,
-      handles.moviefilestr = name;
     case 3,
-      handles.trxfilestr = name;
+      handles.moviefilestr = name;
     case 4,
+      handles.trxfilestr = name;
+    case 5,
       handles.perframedirstr = name;
   end
   guidata(hObject,handles);

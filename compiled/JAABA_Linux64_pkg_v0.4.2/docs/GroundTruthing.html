@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<!---
+
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+
+--->
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+</head>
+
+<body>
+<h1><a href="index.html">JAABA</a>: Ground Truthing </h1>
+
+<p>
+JAABA's ground-truthing mode is designed to quantitatively measure the classifier's performance.
+The classifier's performance is measured by its accuracy at predicting the behavior class for frames
+it was not trained on. To do this, the user manually labels a random selection of frames without 
+looking at the classifier's predictions on these frames. These labels are used as the <b>ground truth</b> 
+against which the classifier's predictions are compared. Note that these labels are not added to training set.
+</p>
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Starting">Starting JAABA in Ground-Truthing Mode</a></li>
+<li><a href="#Classifier">Selecting the Classifier</a></li>
+<li><a href="#Labeling">Labeling in Ground-Truthing Mode</a></li>
+<li><a href="#SelectingFrames">Selecting Frames to Ground Truth</a></li>
+<li><a href="#Performance">Ground Truth Performance</a></li>
+<li><a href="#Viewing">Viewing Predictions</a></li>
+<li><a href="#Saving">Saving Labels</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="Starting">Starting JAABA in Ground-Truthing Mode</a></h2>
+
+<p>To start JAABA in ground-truthing mode, in the inital <b>Edit Files</b> dialog that is displayed
+immediately after starting JAABA, selecting the desired projcet, then select
+<b>Ground Truthing</b> as the <b>Labeling Mode</b> in the initial. After selecting
+ground-truthing mode, add experiments for which you would like to check
+the classifier's performance and then click Done.
+</p>
+<center>
+<a href="images/EditFilesGT.png"><img src="images/EditFilesGT.png"></a>
+<br>
+<i>Screen capture of Edit Files dialog indicating where to select <b>Ground Truthing</b> mode</i>
+</center>
+
+<hr class="h2-divider">
+
+<h2><a id="Classifier">Selecting the Classifier</a></h3>
+
+<p>The classifier on which you want to compute the performance can be loaded at the
+initial gui using the <b>Load w/o exps</b> button. This will load the classifier but
+not the experiments that were used to train the classifier. The classifier can
+also be loaded later using <b>File -> Load Classifier -> without experiments</b>. 
+</p>
+
+<p> Alternatively, if you have already produced predictions using the desired classifier for the
+experiments you want to ground truth, you can instead load these scores into JAABA. This can be
+done in the main JAABA interface by selecting the menu item <b>File -> Load Scores</b>. If the scores 
+are not saved at the default location then you'll have to load scores individually for each experiment. If
+both the classifier and scores are loaded then the performance is computed for the loaded classifier.
+</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Labeling">Labeling in Ground-Truthing Mode</a></h2>
+
+<p> In ground-truthing mode, you can label trajectories for flies as you
+would in the normal training mode. These labels are used as the <b>ground truth</b> against which
+the classifier's predictions are compared. If the ground-truthing mode is started in
+advanced mode (recommended), JAABA provides <b>5 buttons</b> to label behavior: <b>Important [Behavior]</b>,
+<b>[Behavior]</b>, <b>Important None</b>, <b>None</b> and <b>Unknown</b>.</p>
+
+<p>Frames that are clearly the behavior or clearly not the behavior should be labeled as 
+<b>Important [Behavior]</b> and <b>Important None</b>, respectively. A high error rate on these <b>important</b>
+frames would cause you to be reluctant to use the classifier.</p>
+
+<p> Frames in which the behavior or not-behavior is somewhat present but are on border should
+be labeled as <b>[Behavior]</b> and <b>None</b>. These are frames for which either the user
+is not confident in the behavior class or frames for which there are other reasons the classifier
+might find the frame difficult (e.g. tracking is poor for that frame). The user is less demanding 
+about classifier's performance and would be satisified if the classifier got these mostly right.
+</p>
+
+<p> If JAABA is started in normal ground-truthing mode, only 3 buttons are
+provided: <b>[Behavior]</b>, <b>None</b> and <b>Unknown</b>. Frames labeled as 
+<b>[Behavior]</b> and <b>None</b> are treated as <b>Important [Behavior]</b> and 
+<b>Important None</b> while reporting the ground-truth performance. </p>
+
+<hr class="h2-divider">
+
+<h2><a id="SelectingFrames">Selecting Frames to Ground Truth</a></h2>
+
+<p>
+To get an accurate estimate of JAABA's performance, we suggest using an unbiased method 
+to choose frames to label. JAABA provides 2 methods to randomly select frames for labeling. 
+<ul>
+<li><b>Random</b>: The user can ask JAABA to suggest random intervals to label by selecting
+<b>View->Ground Truth Suggestion -> Random</b>. The user is prompted for the size of the interval and the
+number of such intervals. Then, JAABA randomly selects such intervals for the user to label.</li>
+<li><b>Balanced Random</b>: For behaviors that occur rarely, if frames are selected randomly, there will be
+very few positive frames to label. Thus, the number of frames that the user needs to label to obtain an 
+accurate estimate of the false negative rate will be quite large. In such cases, users can select 
+<b>View-> Ground Truth Suggestion - Balanced Random</b>. As with Random, this will ask the user for the 
+size of the interval and the number of intervals per experiment. However, in <b>Balanced Random</b>, 
+JAABA selects intervals to label randomly, but increases the weight of intervals that contain predicted
+positive frames. The weight of a given interval is the sum of the weights of its constituent frames, and 
+the weights of individual frames are set so that the total weight of predicted positive and predicted 
+negative examples is the same. To use this method of suggestion, the scores must already be computed
+and loaded for all the movies.</li>
+</ul>
+</p>
+
+<p>The suggested intervals are shown by a <b>cyan line</b> below the manual label
+timeline. The <b>Switch Target</b> interface gives information about the number of
+frames that have been suggested by JAABA for each animal. To search for the suggested intervals,
+users can set the <b>Shift + Arrow</b> keys to jump to suggested intervals by selecting the menu item
+<b>Go-> Navigation Preferences</b>, then setting <b>Shift + Arrows jumps to ..</b> to
+<b>Ground Truth Suggestions</b>.
+
+<hr class="h2-divider">
+
+<h2><a id="Performance">Ground Truth Performance</a></h2>
+
+<p> After labeling ground truth, the user can get a measure of the classifier's accuracy on
+the ground-truth labels by selecting the menu item 
+<b>Classifier-> Compute Ground Truth Performance</b>. If a
+classifier is loaded then JAABA will use the classifier's predictions to compute
+the performance. If the scores are loaded then they are used to compute the
+performance. If both scores and classifier are loaded in, then JAABA uses scores
+to compute the performance. JAABA will return a table showing the types of errors made.</p>
+<center><a href="images/CVOut.png"><img src="images/GTPerformance.png"></a><br>
+<i>Screen capture of the ground-truth accuracy table</i></center>
+
+<p>The <b>columns</b> of the table correspond to the classifiers' <b>predictions</b>, 
+and the <b>rows</b> correspond to the <b>manual labels</b>. Each element of the table corresponds
+to the number and (percent) of frames with the given type of manual labels that have the given prediction.
+Percentages are computed over rows. </p>
+<p>The columns are:
+<ol>
+<li> <b>[Behavior] Predicted</b>: Frames predicted as the project behavior, <i>Chase</i> in the 
+example table below.</li>
+<li> <b>Not Predicted</b>: Depending on the classifier parameters set, some frames may not be predicted
+on. This will happen for frames whose scores lie between the scores threshold that are set using 
+<b>Classifier -> Set confidence thresholds</b>. These thresholds are both by default 0, thus
+there is a prediction for each frame and the middle column should be all zeros.  </li>
+<li> <b>None Predicted</b>: Frames predicted as not the behavior.</li>
+</ol>
+</p>
+<p>The rows are:
+<ol>
+<li><b>[Behavior] Important</b>: Frames that were labeled as important examples of the behavior (<i>Chase</i> below). 
+<li><b>[Behavior]</b>: Frames that were labeled as the behavior (<i>e.g. Chase</i>), regardless of
+their importance.<li>
+<li><b>None Important</b>: Frames that were labeled as important examples of not the behavior.</li>
+<li><b>None All</b>: Frames that were labeled as not the behavior, regardless of their importance.</li>
+</ol>
+
+<hr class="h2-divider">
+
+<h2><a id="Viewing">Viewing Predictions</a></h2>
+
+<p>By default, classifier's predictions are hidden so that they don't bias the
+users labeling. If the user wants to see the predictions for some reason (e.g. to make sure that the 
+correct files are loaded in), they can select <b>View -> Show Predictions</b>.
+</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Saving">Saving Labels</a></h2>
+
+The user can save the ground-truth labels by selecting the menu item <b>File->Save Labels</b>. This will save the
+labels to the <b>ground-truth label file</b> specified during the project setup by 
+<b>Ground Truth Label File Name</b>. The saved labels can be used 
+to measure the performance of a different classifier (for the same project and behavior) later. We,
+however, recommend not to test ground-truth too often as this may cause the
+user to select a classifier that over-fits to the ground-truth labels.
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</html>
