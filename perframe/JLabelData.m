@@ -507,7 +507,7 @@ classdef JLabelData < handle
       
       % config file
       if isempty(configfilename)
-        obj.setConfigParams(configParams);
+        obj.setProjectParams(configParams);
       else  
         [success,msg] = obj.SetConfigFileName(configfilename);
         if ~success,
@@ -716,13 +716,13 @@ classdef JLabelData < handle
         configParams = load(configfilename);
       end
       
-      [success,msg] = setConfigParams(obj,configParams,configfilename);
+      [success,msg] = setProjectParams(obj,configParams,configfilename);
       
     end
 
     % ---------------------------------------------------------------------
 
-    function [success,msg] = setConfigParams(obj,configparams,configfilename)
+    function [success,msg] = setProjectParams(obj,configparams,configfilename)
       % set default return values
       success = false;
       msg = '';
@@ -7301,7 +7301,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function configParams=getConfigParams(self)
+    function configParams=getProjectParams(self)
       configParams=struct();
       configParams.configfilename=self.configfilename;
       configParams.behaviors.names=self.labelnames;
