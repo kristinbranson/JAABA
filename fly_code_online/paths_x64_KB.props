@@ -3,12 +3,12 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Program Files\opencv\opencv-2.3.0\include\opencv;C:\Program Files\opencv\opencv-2.3.0\modules\core\include;C:\Program Files (x86)\Visual Leak Detector\include;C:\Program Files\MATLAB\R2011b\extern\include</IncludePath>
-    <LibraryPath>$(WindowsSdkDir)lib\x64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(VSInstallDir);$(VSInstallDir)lib\amd64;$(FrameworkSDKDir)\lib\amd64;$(SolutionDir)\lib\amd64;$(SolutionDir)\online_structured_svm\lib\amd64;C:\Program Files\opencv\opencv-2.3.0\build\lib\Debug;C:\Program Files (x86)\Visual Leak Detector\lib\Win64;C:\Program Files\MATLAB\R2011b\extern\lib\win64\microsoft;</LibraryPath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Code\OpenCV\OpenCV2.3\opencv\include\opencv;C:\Code\OpenCV\OpenCV2.3\build\include;C:\Program Files (x86)\Visual Leak Detector\include;C:\Program Files\MATLAB\R2011b\extern\include</IncludePath>
+    <LibraryPath>$(WindowsSdkDir)lib\x64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(VSInstallDir);$(VSInstallDir)lib\amd64;$(FrameworkSDKDir)\lib\amd64;$(SolutionDir)\lib\amd64;$(SolutionDir)\online_structured_svm\lib\amd64;C:\Code\OpenCV\OpenCV2.3\build\x64\vc10\lib;C:\Program Files (x86)\Visual Leak Detector\lib\Win64;C:\Program Files\MATLAB\R2011b\extern\lib\win64\microsoft;</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opencv_core230d.lib;opencv_imgproc230d.lib;opencv_highgui230d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opencv_core230.lib;opencv_imgproc230.lib;opencv_highgui230.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ClCompile>
       <OpenMPSupport>true</OpenMPSupport>

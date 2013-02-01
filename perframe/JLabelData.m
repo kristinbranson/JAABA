@@ -4174,7 +4174,7 @@ end
             
       % preload labeled window data while we have the per-frame data loaded
       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
-      if ~obj.IsGTMode(),
+      if ~obj.IsGTMode() && ~ismember(lower(obj.classifiertype),{'structured_svm'}),
         [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
         if ~success,
           warning(msg);

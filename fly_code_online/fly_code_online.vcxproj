@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -55,7 +55,7 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="paths_x64.props" />
+    <Import Project="paths_x64_KB.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -67,10 +67,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Program Files (x86)\Visual Leak Detector\include;$(ProjectDir)\online_structured_svm\json;$(ProjectDir)\online_structured_svm\include;$(ProjectDir)\behavior\include;$(ProjectDir)\blob\include;</IncludePath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Program Files (x86)\Visual Leak Detector\include;$(ProjectDir)\online_structured_svm\json;$(ProjectDir)\online_structured_svm\include;$(ProjectDir)\behavior\include;$(ProjectDir)\blob\include;C:\Code\OpenCV\OpenCV2.3\opencv\include\opencv;C:\Code\OpenCV\OpenCV2.3\build\include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Program Files (x86)\Visual Leak Detector\include;$(ProjectDir)\online_structured_svm\json;$(ProjectDir)\online_structured_svm\include;$(ProjectDir)\behavior\include;$(ProjectDir)\blob\include;C:\Program Files (x86)\opencv\include\opencv;C:\Program Files (x86)\opencv\build\include;</IncludePath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;C:\Program Files (x86)\Visual Leak Detector\include;$(ProjectDir)\online_structured_svm\json;$(ProjectDir)\online_structured_svm\include;$(ProjectDir)\behavior\include;$(ProjectDir)\blob\include;C:\Code\OpenCV\OpenCV2.3\opencv\include\opencv;C:\Code\OpenCV\OpenCV2.3\build\include</IncludePath>
     <OutDir>$(SolutionDir)\lib\$(Platform)\</OutDir>
     <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
