@@ -132,10 +132,10 @@ set(handles.togglebutton_label_unknown,'Units','pixels');
 unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
 handles.guidata.in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 
-% % Update the label buttons
-% handles=guidata(hObject);
-% handles = UpdateLabelButtons(handles);
-% guidata(hObject,handles);
+% Update the label buttons, to get everything into a self-consistent state
+handles = UpdateLabelButtons(handles);
+handles=StoreGUIPositionsInternally(handles);
+handles=updateRightSidePanelPositions(handles);
 
 % Update aspects of the GUI to match the current "model" state
 handles=guidata(hObject);
@@ -206,16 +206,7 @@ varargout{1} = hObject;
 
 
 % -------------------------------------------------------------------------
-function InitializeGui(handles)
-% Initializes the JLabel GUI
-handles = GetGUIPositions(handles);
-handles = InitializeState(handles);
-handles = InitializePlots(handles);
-guidata(handles.figure_JLabel,handles);
-
-
-% -------------------------------------------------------------------------
-function handles = InitializePlots(handles)
+function handles = InitializePlotsGivenProjectParams(handles)
 
 handles.guidata.axes_preview_curr = 1;
 if numel(handles.guidata.axes_previews) > numel(handles.guidata.ts),
@@ -1879,7 +1870,7 @@ success = true;
 
 
 %--------------------------------------------------------------------------
-function handles = InitializeState(handles)
+function handles = InitializeStateGivenProjectParams(handles)
 
 % sort out whether we have a config file or just config params
 if isempty(handles.guidata.configfilename)
@@ -2123,7 +2114,7 @@ if isempty(handles.guidata.GUIGroundTruthingMode)
   set(handles.menu_edit_guimode_normal      ,'checked','off');
   set(handles.menu_edit_guimode_ground_truth,'checked','off' );
 else
-  if handles.guidata.GUIGroundTruthingMode,
+  if handles.guidata.GUIGroundTruthingMode,e
     set(handles.menu_edit_guimode_normal    ,'checked','off');
     set(handles.menu_edit_guimode_ground_truth,'checked','on' );
   else
@@ -2149,17 +2140,27 @@ set(handles.menu_go_previous_automatic_bout_end,'Label',...
 
 %--------------------------------------------------------------------------
 function handles = UpdateLabelButtons(handles)
+% Makes sure the label buttons are appropriate for the current behavior and
+% the the current mode.
 
 % get some freqeuntly used things into local vars
 if isempty(handles.guidata.data)
   projectPresent=false;
   nBehaviors=2;  % just for layout purposes
-  isAdvancedMode=handles.guidata.GUIAdvancedMode;
+  labelColors=[1 0 0 ; ...
+               0 0 1];
+  behaviorNameCapitalized={'Abiding'; ...
+                           'None'};           
 else
   projectPresent=true;
   nBehaviors=handles.guidata.data.nbehaviors;
-  isAdvancedMode=handles.guidata.GUIAdvancedMode;
+  labelColors=handles.guidata.labelcolors;
+  behaviorNameCapitalized=cell(nBehaviors,1);
+  for i=1:nBehaviors
+    behaviorNameCapitalized{i}=upperFirstLowerRest(handles.guidata.data.labelnames{i});
+  end
 end
+isAdvancedMode=handles.guidata.GUIAdvancedMode;
 isBasicMode=~isAdvancedMode;
 
 % get positions of stuff
@@ -2237,28 +2238,23 @@ for i = 1:nBehaviors,
   if isAdvancedMode
     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
            button_width,button_height];
-    behaviorName=upperFirstLowerRest(handles.guidata.data.labelnames{i});
-    str=sprintf('Important %s',behaviorName);
+    buttonLabel=sprintf('Important %s',behaviorNameCapitalized{i});
   else
     % basic mode, or no project present
     pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
            button_width,button_height];
-    if projectPresent
-      str=upperFirstLowerRest(handles.guidata.data.labelnames{i});
-    else
-      str=fif(i==1,'Behavior','None');
-    end
+    buttonLabel=behaviorNameCapitalized{i};
   end
   set(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
       'Position',pos, ...
-      'String',str, ...
+      'String',buttonLabel, ...
       'UserData',2*i-1);
     % Need userdata in above b/c not set in guide for guide-made buttons
   setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
-                      handles.guidata.labelcolors(i,:));
+                      labelColors(i,:));
   
   %  
-  % Set up the "maybe the behavior" button
+  % Set up the "maybe the behavior" buttons
   %
   if isAdvancedMode
     % Create the button if needed.
@@ -2277,13 +2273,13 @@ for i = 1:nBehaviors,
     % Set the button properties
     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
            button_width,button_height];
-    str=sprintf('%s',handles.guidata.data.labelnames{i});
+    buttonLabel=behaviorNameCapitalized{i};
     set(handles.guidata.togglebutton_label_behaviors(2*i), ...
         'Position',pos, ...
-        'String',str, ...
+        'String',buttonLabel, ...
         'UserData',2*i);
     setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i), ...
-                        ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)));
+                        ShiftColor.decreaseIntensity(labelColors(i,:)));
   else
     % basic mode, or no-data-yet
     % delete the maybe-the-behavior button if it exists
@@ -4128,21 +4124,52 @@ if figpos(3) < minw || figpos(4) < minh,
   set(handles.figure_JLabel,'Position',figpos);
 end
 
-labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
-select_pos = get(handles.panel_select,'Position');
-learn_pos = get(handles.panel_learn,'Position');
-similar_pos = get(handles.panel_similar,'Position');
-info_pos = get(handles.panel_selection_info,'Position');
+handles = updateRightSidePanelPositions(handles);
 
-width_leftpanels = figpos(3) - handles.guidata.guipos.leftborder_leftpanels - ...
-  handles.guidata.guipos.leftborder_rightpanels - handles.guidata.guipos.width_rightpanels - ...
-  handles.guidata.guipos.rightborder_rightpanels;
-h = figpos(4) - handles.guidata.guipos.bottomborder_bottompanels - ...
-  handles.guidata.guipos.topborder_toppanels - handles.guidata.guipos.bottomborder_previewpanels;
+return
+
+
+% -------------------------------------------------------------------------
+function handles = updateRightSidePanelPositions(handles)
+% Update the position and visibility of the labelbuttons, select, learn, 
+% similar, and selection info panels based on the current mode.
+
+originalUnits=get(handles.figure_JLabel,'units');
+set(handles.figure_JLabel,'Units','pixels');
+figpos = get(handles.figure_JLabel,'Position');
+set(handles.figure_JLabel,'Units',originalUnits);
+
+panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+panel_select_pos = get(handles.panel_select,'Position');
+panel_learn_pos = get(handles.panel_learn,'Position');
+panel_similar_pos = get(handles.panel_similar,'Position');
+panel_info_pos = get(handles.panel_selection_info,'Position');
+
+panel_timelines_pos = get(handles.panel_timelines,'Position');
+panel_previews_pos = cell(size(handles.guidata.panel_previews));
+for i = 1:numel(handles.guidata.panel_previews),
+  panel_previews_pos{i} = get(handles.guidata.panel_previews(i),'Position');
+end
+
+leftborder_leftpanels = panel_timelines_pos(1);
+leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
+width_rightpanels = panel_labelbuttons_pos(3);
+rightborder_rightpanels = figpos(3) - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
+bottomborder_bottompanels = panel_timelines_pos(2);
+topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
+bottomborder_previewpanels = panel_previews_pos{end}(2) - (panel_timelines_pos(2)+panel_timelines_pos(4));
+
+width_leftpanels = figpos(3) - ...
+                   leftborder_leftpanels - ...
+                   leftborder_rightpanels - ...
+                   width_rightpanels - ...
+                   rightborder_rightpanels;
+h = figpos(4) - bottomborder_bottompanels - ...
+    topborder_toppanels - bottomborder_previewpanels;
 height_timelines = h*handles.guidata.guipos.frac_height_timelines;
 height_previews = h - height_timelines;
-timelines_pos = [handles.guidata.guipos.leftborder_leftpanels,handles.guidata.guipos.bottomborder_bottompanels,...
-  width_leftpanels,height_timelines];
+timelines_pos = [leftborder_leftpanels,bottomborder_bottompanels,...
+                 width_leftpanels,height_timelines];
 set(handles.panel_timelines,'Position',timelines_pos);
 % TODO: deal with multiple preview panels
 preview_pos = [handles.guidata.guipos.leftborder_leftpanels,...
@@ -4150,103 +4177,45 @@ preview_pos = [handles.guidata.guipos.leftborder_leftpanels,...
   width_leftpanels,height_previews];
 set(handles.guidata.panel_previews(1),'Position',preview_pos);
 
-label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-  figpos(4) - labelbuttons_pos(4) - handles.guidata.guipos.topborder_toppanels,...
-  labelbuttons_pos(3:4)];
+label_pos = [figpos(3) - panel_labelbuttons_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+  figpos(4) - panel_labelbuttons_pos(4) - handles.guidata.guipos.topborder_toppanels,...
+  panel_labelbuttons_pos(3:4)];
 set(handles.panel_labelbuttons,'Position',label_pos);
 
-dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
-new_select_pos = [figpos(3) - select_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-  label_pos(2) - select_pos(4) - dy_label_select,...
-  select_pos(3:4)];
+dy_label_select = panel_labelbuttons_pos(2) - panel_select_pos(2) - panel_select_pos(4);
+new_select_pos = [figpos(3) - panel_select_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+  label_pos(2) - panel_select_pos(4) - dy_label_select,...
+  panel_select_pos(3:4)];
 set(handles.panel_select,'Position',new_select_pos);
 
-%dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
-if ~handles.guidata.GUIAdvancedMode || handles.guidata.data.IsGTMode(),
-  set(handles.panel_similar,'Visible','off');
-  new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-    new_select_pos(2) - info_pos(4) - dy_label_select,...
-    info_pos(3:4)];
-  set(handles.panel_selection_info,'Position',new_info_pos);
-else
-  new_similar_pos = [figpos(3) - similar_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-    new_select_pos(2) - similar_pos(4) - dy_label_select,...
-    similar_pos(3:4)];
-  set(handles.panel_similar,'Position',new_similar_pos,'Visible','on');
-  new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-    new_similar_pos(2) - info_pos(4) - dy_label_select,...
-    info_pos(3:4)];
-  set(handles.panel_selection_info,'Position',new_info_pos);
-end
+new_info_pos = ...
+  [figpos(3) - panel_info_pos(3) - rightborder_rightpanels,...
+   new_select_pos(2) - panel_info_pos(4) - dy_label_select,...
+   panel_info_pos(3:4)];
+set(handles.panel_selection_info,'Position',new_info_pos);
 
+% % Update the positions+visibility of the similar frames panel, taking the mode into account
+% if ~handles.guidata.GUIAdvancedMode || handles.guidata.GUIGroundTruthingMode,
+%   % set(handles.panel_similar,'Visible','off');
+% else
+%   % set(handles.panel_similar,'Visible','on');
+%   % new_similar_pos = ...
+%   %   [figpos(3) - similar_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+%   %    new_select_pos(2) - similar_pos(4) - dy_label_select,...
+%   %    similar_pos(3:4)];
+%   % set(handles.panel_similar,'Position',new_similar_pos,'Visible','on');
+% end
 
-new_learn_pos = [figpos(3) - learn_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-  handles.guidata.guipos.bottomborder_bottompanels,...
-  learn_pos(3:4)];
-set(handles.panel_learn,'Position',...
-  new_learn_pos);
+panel_learn_pos_new = [figpos(3) - panel_learn_pos(3) - rightborder_rightpanels,...
+                       bottomborder_bottompanels,...
+                       panel_learn_pos(3:4)];
+set(handles.panel_learn,'Position',panel_learn_pos_new);
+
+return
 
 
 % -------------------------------------------------------------------------
-function handles = GetGUIPositions(handles)
-
-% None of this stuff should be necessary, and if it were, should do it by
-% calling handles.guidata.UpdateGraphicsHandleArrays(figure_JLabel)
-% % all axes panels
-% handles.guidata.panel_previews = findobj(handles.figure_JLabel,'-regexp','Tag','panel_axes\d+');
-% % all preview axes
-% handles.guidata.axes_previews = findobj(handles.figure_JLabel,'Tag','axes_preview');
-% % all sliders
-% handles.guidata.slider_previews = findobj(handles.figure_JLabel,'Tag','slider_preview');
-% % all frame number edit boxes
-% handles.guidata.edit_framenumbers = findobj(handles.figure_JLabel,'Tag','edit_framenumber');
-% % all play buttons
-% handles.guidata.pushbutton_playstops = findobj(handles.figure_JLabel,'Tag','pushbutton_playstop');
-% % all timelines
-% handles.guidata.axes_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
-% % handles.guidata.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
-% % Regex messes the order which makes it difficult to remove the last data axes.
-% handles.guidata.labels_timelines(1,1) = handles.timeline_label_prop1;
-% handles.guidata.labels_timelines(2,1) = handles.timeline_label_automatic;
-% handles.guidata.labels_timelines(3,1) = handles.timeline_label_manual;
-% 
-% handles.guidata.axes_timeline_props = findobj(handles.figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
-% handles.guidata.axes_timeline_labels = setdiff(handles.guidata.axes_timelines,handles.guidata.axes_timeline_props);
-% 
-% if numel(handles.guidata.labels_timelines) ~= numel(handles.guidata.labels_timelines),
-%   error('Number of timeline axes does not match number of timeline labels');
-% end
-% % sort by y-position
-% ys = nan(1,numel(handles.guidata.axes_timelines));
-% for i = 1:numel(handles.guidata.axes_timelines),
-%   pos = get(handles.guidata.axes_timelines(i),'Position');
-%   ys(i) = pos(2);
-% end
-% [~,order] = sort(ys);
-% handles.guidata.axes_timelines = handles.guidata.axes_timelines(order);
-% % sort by y-position. 
-% % Don't touch the last 2 labels that are part of manual and automatic timeline
-% % because they are inside a panel and so pos(2) is relative to the panel.
-% ys = nan(1,numel(handles.guidata.labels_timelines)-2);
-% for i = 1:(numel(handles.guidata.labels_timelines)-2),
-%   pos = get(handles.guidata.labels_timelines(i),'Position');
-%   ys(i) = pos(2);
-% end
-% [~,order] = sort(ys);
-% temp = handles.guidata.labels_timelines(1:end-2);
-% handles.guidata.labels_timelines(1:end-2) = temp(order);
-% 
-% handles.guidata.text_timeline_props = nan(size(handles.guidata.axes_timeline_props));
-% handles.guidata.text_timelines = nan(size(handles.guidata.axes_timelines));
-% [~,idx] = ismember(handles.guidata.axes_timeline_props,handles.guidata.axes_timelines);
-% for ii = 1:numel(handles.guidata.axes_timeline_props),
-%   i = idx(ii);
-%   t = get(handles.guidata.axes_timeline_props(ii),'Tag');
-%   m = regexp(t,'^axes_timeline_prop(.*)$','tokens','once');
-%   t2 = ['text_timeline_prop',m{1}];
-%   handles.guidata.text_timeline_props(ii) = handles.(t2);
-%   handles.guidata.text_timelines(i) = handles.guidata.text_timeline_props(ii);
-% end
+function handles = StoreGUIPositionsInternally(handles)
 
 figpos = get(handles.figure_JLabel,'Position');
 panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
@@ -4324,6 +4293,8 @@ handles.guidata.guipos.preview_play_left_border = play_pos(1) - slider_pos(1) - 
 handles.guidata.guipos.preview_play_bottom_border = play_pos(2);
 handles.guidata.guipos.preview_edit_left_border = edit_pos(1) - play_pos(1) - play_pos(3);
 handles.guidata.guipos.preview_edit_bottom_border = edit_pos(2);
+
+return
 
 
 % -------------------------------------------------------------------------
@@ -6429,142 +6400,152 @@ mode=handles.guidata.GUIAdvancedMode;
 % make sure the menu checkboxes are self-consistent
 SetGUIModeMenuChecks(handles);
 
-% get positions of stuff
-set(handles.panel_labelbuttons,'Units','pixels');
-panel_pos = get(handles.panel_labelbuttons,'Position');
-select_pos = get(handles.panel_select,'Position');
-if ishandle(handles.togglebutton_label_behavior1)
-  set(handles.togglebutton_label_behavior1,'Units','pixels');
-end
-if ~isnan(handles.guidata.togglebutton_label_behaviors(end))
-  button1_pos = get(handles.guidata.togglebutton_label_behaviors(end),'Position');
-else
-  button1_pos = get(handles.guidata.togglebutton_label_behaviors(end-1),'Position');
-end  
-set(handles.togglebutton_label_unknown,'Units','pixels');
-unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
-out_border_y = unknown_button_pos(2);
-out_border_x = unknown_button_pos(1);
-in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
-button_width = button1_pos(3);
-button_height = button1_pos(4);
+% If no file is open, can return now
+%if ~handles.guidata.thereIsAnOpenFile
+%  return
+%end
 
-% calculate menu_file_open_old_school_files height for the panel
-if ~mode;
-  new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
-  handles.guidata.data.nbehaviors*in_border_y;
-else
-  new_panel_height = 2*out_border_y + (2*handles.guidata.data.nbehaviors+1)*button_height + ...
-  2*handles.guidata.data.nbehaviors*in_border_y;
-end
+% update the label buttons and the panel positions, even if there's no open
+% file and therefore they're invisble
+handles=UpdateLabelButtons(handles);
+handles = updateRightSidePanelPositions(handles);
 
-% update panel position
-panel_top = panel_pos(2)+panel_pos(4);
-new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
-set(handles.panel_labelbuttons,'Position',new_panel_pos);
-dy_label_select = panel_pos(2) - select_pos(2) - select_pos(4);
-new_select_pos = [select_pos(1),new_panel_pos(2)-select_pos(4)-dy_label_select,select_pos(3:4)];
-set(handles.panel_select,'Position',new_select_pos);
-
-figure_JLabel_ResizeFcn(handles.panel_labelbuttons, [], handles);
-
-% move unknown button to the bottom
-new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
-set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
-
-% create or remove buttons
-if ~mode,
-  % delete extra buttons
-  h = handles.guidata.togglebutton_label_behaviors(2:2:end);
-  h = h(ishandle(h));
-  if ~isempty(h),
-    delete(h);
-  end
-  handles.guidata.togglebutton_label_behaviors(2:2:end) = nan;
-else
-  % create extra buttons
-  for i = 1:handles.guidata.data.nbehaviors,
-    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
-      button_width,button_height];
-    handles.guidata.togglebutton_label_behaviors(2*i) = ...
-      uicontrol('Style','togglebutton','String',sprintf('Important %s',handles.guidata.data.labelnames{i}),...
-      'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-      'FontWeight','bold','BackgroundColor',ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)),...
-      'Position',pos,...
-      'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
-      'Parent',handles.panel_labelbuttons,...
-      'Tag',sprintf('togglebutton_label_behavior%d',i),...
-      'UserData',2*i);
-  end
-end
-
-% update the buttons
-for i = 1:handles.guidata.data.nbehaviors,
-  if mode,
-    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
-      button_width,button_height];
-    set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
-      'String',sprintf('Important %s',handles.guidata.data.labelnames{i}),...
-      'Units','pixels', ...
-      'FontUnits','pixels', ...
-      'FontSize',14,...
-      'FontWeight','bold', ...
-      'Position',pos,...
-      'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
-      'Parent',handles.panel_labelbuttons,...
-      'Tag',sprintf('togglebutton_label_behavior%d',i),...
-      'UserData',2*i-1);
-    %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
-    setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
-                        handles.guidata.labelcolors(i,:));
-    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
-      button_width,button_height];
-    set(handles.guidata.togglebutton_label_behaviors(2*i),...
-      'String',sprintf('%s',handles.guidata.data.labelnames{i}),...
-      'Units','pixels', ...
-      'FontUnits','pixels', ...
-      'FontSize',14, ...
-      'FontWeight','bold', ...
-      'Position',pos,...
-      'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
-      'Parent',handles.panel_labelbuttons,...
-      'Tag',sprintf('togglebutton_label_normbehavior%d',i),...
-      'UserData',2*i);
-    %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i));
-    setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i), ...
-                        ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)));
-  else
-    pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
-      button_width,button_height];
-    set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
-      'String',sprintf('%s',handles.guidata.data.labelnames{i}),...
-      'Units','pixels', ...
-      'FontUnits','pixels', ...
-      'FontSize',14, ...
-      'FontWeight','bold', ...
-      'Position',pos, ...
-      'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'), ...
-      'Parent',handles.panel_labelbuttons, ...
-      'Tag',sprintf('togglebutton_label_normbehavior%d',i), ...
-      'UserData',2*i-1);
-    %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
-    setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
-                        handles.guidata.labelcolors(i,:));
-  end
-  
-end
-
-% set props for unknown button
-set(handles.togglebutton_label_unknown,...
-    'String','Unknown',...
-    'Units','pixels', ...
-    'FontUnits','pixels', ...
-    'FontSize',14, ...
-    'FontWeight','bold', ...
-    'UserData',-1);
-%SetButtonImage(handles.togglebutton_label_unknown);
-setLabelButtonColor(handles.togglebutton_label_unknown, ...
-                    handles.guidata.labelunknowncolor);
+% % get positions of stuff
+% set(handles.panel_labelbuttons,'Units','pixels');
+% panel_pos = get(handles.panel_labelbuttons,'Position');
+% select_pos = get(handles.panel_select,'Position');
+% if ishandle(handles.togglebutton_label_behavior1)
+%   set(handles.togglebutton_label_behavior1,'Units','pixels');
+% end
+% if ~isnan(handles.guidata.togglebutton_label_behaviors(end))
+%   button1_pos = get(handles.guidata.togglebutton_label_behaviors(end),'Position');
+% else
+%   button1_pos = get(handles.guidata.togglebutton_label_behaviors(end-1),'Position');
+% end  
+% set(handles.togglebutton_label_unknown,'Units','pixels');
+% unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
+% out_border_y = unknown_button_pos(2);
+% out_border_x = unknown_button_pos(1);
+% in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
+% button_width = button1_pos(3);
+% button_height = button1_pos(4);
+% 
+% % calculate menu_file_open_old_school_files height for the panel
+% if ~mode;
+%   new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
+%   handles.guidata.data.nbehaviors*in_border_y;
+% else
+%   new_panel_height = 2*out_border_y + (2*handles.guidata.data.nbehaviors+1)*button_height + ...
+%   2*handles.guidata.data.nbehaviors*in_border_y;
+% end
+% 
+% % update panel position
+% panel_top = panel_pos(2)+panel_pos(4);
+% new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
+% set(handles.panel_labelbuttons,'Position',new_panel_pos);
+% dy_label_select = panel_pos(2) - select_pos(2) - select_pos(4);
+% new_select_pos = [select_pos(1),new_panel_pos(2)-select_pos(4)-dy_label_select,select_pos(3:4)];
+% set(handles.panel_select,'Position',new_select_pos);
+% 
+% figure_JLabel_ResizeFcn(handles.panel_labelbuttons, [], handles);
+% 
+% % move unknown button to the bottom
+% new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
+% set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
+% 
+% % create or remove buttons
+% if ~mode,
+%   % delete extra buttons
+%   h = handles.guidata.togglebutton_label_behaviors(2:2:end);
+%   h = h(ishandle(h));
+%   if ~isempty(h),
+%     delete(h);
+%   end
+%   handles.guidata.togglebutton_label_behaviors(2:2:end) = nan;
+% else
+%   % create extra buttons
+%   for i = 1:handles.guidata.data.nbehaviors,
+%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
+%       button_width,button_height];
+%     handles.guidata.togglebutton_label_behaviors(2*i) = ...
+%       uicontrol('Style','togglebutton','String',sprintf('Important %s',handles.guidata.data.labelnames{i}),...
+%       'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
+%       'FontWeight','bold','BackgroundColor',ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)),...
+%       'Position',pos,...
+%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
+%       'Parent',handles.panel_labelbuttons,...
+%       'Tag',sprintf('togglebutton_label_behavior%d',i),...
+%       'UserData',2*i);
+%   end
+% end
+% 
+% % update the buttons
+% for i = 1:handles.guidata.data.nbehaviors,
+%   if mode,
+%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
+%       button_width,button_height];
+%     set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
+%       'String',sprintf('Important %s',handles.guidata.data.labelnames{i}),...
+%       'Units','pixels', ...
+%       'FontUnits','pixels', ...
+%       'FontSize',14,...
+%       'FontWeight','bold', ...
+%       'Position',pos,...
+%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
+%       'Parent',handles.panel_labelbuttons,...
+%       'Tag',sprintf('togglebutton_label_behavior%d',i),...
+%       'UserData',2*i-1);
+%     %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
+%     setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
+%                         handles.guidata.labelcolors(i,:));
+%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
+%       button_width,button_height];
+%     set(handles.guidata.togglebutton_label_behaviors(2*i),...
+%       'String',sprintf('%s',handles.guidata.data.labelnames{i}),...
+%       'Units','pixels', ...
+%       'FontUnits','pixels', ...
+%       'FontSize',14, ...
+%       'FontWeight','bold', ...
+%       'Position',pos,...
+%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
+%       'Parent',handles.panel_labelbuttons,...
+%       'Tag',sprintf('togglebutton_label_normbehavior%d',i),...
+%       'UserData',2*i);
+%     %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i));
+%     setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i), ...
+%                         ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)));
+%   else
+%     pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
+%       button_width,button_height];
+%     set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
+%       'String',sprintf('%s',handles.guidata.data.labelnames{i}),...
+%       'Units','pixels', ...
+%       'FontUnits','pixels', ...
+%       'FontSize',14, ...
+%       'FontWeight','bold', ...
+%       'Position',pos, ...
+%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'), ...
+%       'Parent',handles.panel_labelbuttons, ...
+%       'Tag',sprintf('togglebutton_label_normbehavior%d',i), ...
+%       'UserData',2*i-1);
+%     %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
+%     setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
+%                         handles.guidata.labelcolors(i,:));
+%   end
+%   
+% end
+% 
+% % set props for unknown button
+% set(handles.togglebutton_label_unknown,...
+%     'String','Unknown',...
+%     'Units','pixels', ...
+%     'FontUnits','pixels', ...
+%     'FontSize',14, ...
+%     'FontWeight','bold', ...
+%     'UserData',-1);
+% %SetButtonImage(handles.togglebutton_label_unknown);
+% setLabelButtonColor(handles.togglebutton_label_unknown, ...
+%                     handles.guidata.labelunknowncolor);
 
 return
 
@@ -7366,7 +7347,7 @@ s=struct;
 s.featureConfigParams=data.featureConfigParams;
 s.saveableClassifier=data.getSaveableClassifier();
 [s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
-s.configParams=handles.guidata.configparams;  %#ok
+s.projectParams=handles.guidata.configparams;  %#ok
 try
   save('-mat',fileNameAbs,'-struct','s');
 catch  %#ok
@@ -7440,7 +7421,7 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-setConfigParams(gcbf,everythingParams.configParams);
+setProjectParams(gcbf,everythingParams.projectParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7504,32 +7485,32 @@ return
 
 
 % -------------------------------------------------------------------------
-function setConfigFileName(figureJLabel,configFileName)
+function setProjectFileName(figureJLabel,configFileName)
 % Initializes the JLabel gui once the user selects the behavior.
 % This assumes that JLabel is curently a blank slate
 handles=guidata(figureJLabel);
-handles.guidata.configfilename = configFileName;
+handles.guidata.configfilename = configFileName;  % should go away eventually...
 [~,~,ext] = fileparts(configFileName);
 if strcmp(ext,'.xml')
-  configParams = ReadXMLConfigParams(configFileName);
+  projectParams = ReadXMLConfigParams(configFileName);
 elseif strcmp(ext,'.mat')
-  configParams = load(configFileName);
+  projectParams = load(configFileName);
 else
   errordlg('Project file is not valid');
 end
-setConfigParams(figureJLabel,configParams);
+setProjectParams(figureJLabel,projectParams);
 return
 
 
 % -------------------------------------------------------------------------
-function setConfigParams(figureJLabel,configParams)
+function setProjectParams(figureJLabel,projectParams)
 % Initializes the JLabel gui once the user selects the behavior.
 % This assumes that JLabel is curently a blank slate
 handles=guidata(figureJLabel);
-handles.guidata.configparams=configParams;
-handles=GetGUIPositions(handles);
-handles=InitializeState(handles);
-handles=InitializePlots(handles);
+handles.guidata.configparams=projectParams;
+handles=StoreGUIPositionsInternally(handles);
+handles=InitializeStateGivenProjectParams(handles);
+handles=InitializePlotsGivenProjectParams(handles);
 guidata(figureJLabel,handles);
 return
 
@@ -7875,7 +7856,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function projectSetupDone(figureJLabel,configParams,new)
+function projectSetupDone(figureJLabel,projectParams,new)
 
 % get handles
 handles=guidata(figureJLabel);
@@ -7888,10 +7869,10 @@ end
 % If we get here, it's a new everything file
 
 % Make up filename
-if isfield(configParams,'behaviors') && ...
-   isfield(configParams.behaviors,'names') && ...
-   ~isempty(configParams.behaviors.names)
-  behaviorName=configParams.behaviors.names{1};
+if isfield(projectParams,'behaviors') && ...
+   isfield(projectParams.behaviors,'names') && ...
+   ~isempty(projectParams.behaviors.names)
+  behaviorName=projectParams.behaviors.names{1};
   fileNameRel=sprintf('%s.jab',behaviorName);
 else
   fileNameRel='untitled.jab';
@@ -7906,7 +7887,7 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-setConfigParams(figureJLabel,configParams);
+setProjectParams(figureJLabel,projectParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7993,14 +7974,14 @@ if ~ischar(filename),
   % user hit cancel
   return;
 end
-configFileNameAbs=fullfile(pathname,filename);
+projectFileNameAbs=fullfile(pathname,filename);
 
 % Update the status, change the pointer to the watch
 SetStatus(handles,sprintf('Opening %s ...',filename));
 
 % load the file
 try
-  configParams=load('-mat',configFileNameAbs);
+  projectParams=load('-mat',projectFileNameAbs);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
   ClearStatus(handles);
@@ -8012,7 +7993,7 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-setConfigParams(gcbf,configParams);
+setProjectParams(gcbf,projectParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -8053,7 +8034,7 @@ end
 handles.guidata.oldexpdir='';
 
 % Make up a file name for the everything file
-path=fileparts(configFileNameAbs);
+path=fileparts(projectFileNameAbs);
 fileNameRel='untitled.jab';
 fileNameAbs=fullfile(path,fileNameRel);
 

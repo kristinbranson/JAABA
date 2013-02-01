@@ -828,7 +828,7 @@ return
 
 
 %--------------------------------------------------------------------------
-function projectSetupDone(figureJLabelEditFiles,configParams,new)
+function projectSetupDone(figureJLabelEditFiles,projectParams,new)
 % Tells the JLabelEditFiles "object" that the user just clicked "Done" in
 % the Project Setup figure.
 % configParams are the just-set-up project params
@@ -836,7 +836,7 @@ function projectSetupDone(figureJLabelEditFiles,configParams,new)
 %   project
 
 % if no valid config params, just return
-if isempty(configParams), return; end;
+if isempty(projectParams), return; end;
 
 % get the guidata
 handles=guidata(figureJLabelEditFiles);
@@ -845,7 +845,7 @@ handles=guidata(figureJLabelEditFiles);
 if new,
   %previousConfigFileName= ...
   %  JLabel('getPreviousConfigFileName',handles.figureJLabel);
-  primaryBehaviorName=strtrim(configParams.behaviors.names{1});
+  primaryBehaviorName=strtrim(projectParams.behaviors.names{1});
   suggestedFileName=sprintf('%s_project.mat',primaryBehaviorName);
   % a new project, need to get a file name
   [fname,pname] = ...
@@ -853,31 +853,31 @@ if new,
               'Select a location to store the project file',....
               suggestedFileName);
   if fname == 0; return; end;
-  configFileName=fullfile(pname,fname);
-  if exist(configFileName,'file')
-    [didback,msg] = copyfile(configFileName,[configFileName '~']);
+  projectFileName=fullfile(pname,fname);
+  if exist(projectFileName,'file')
+    [didback,msg] = copyfile(projectFileName,[projectFileName '~']);
     if ~didback,
-      warning('Could not create backup of %s: %s',configFileName,msg);  %#ok
+      warning('Could not create backup of %s: %s',projectFileName,msg);
     end
   end
 else
-  configFileName=handles.configfilename;
+  projectFileName=handles.configfilename;
 end
 
 % try to save to $configfilename
 try
-  save(configFileName,'-struct','configParams');
+  save(projectFileName,'-struct','projectParams');
 catch  %#ok
   uiwait(errordlg('Unable to save project file %s.',fname));
   return;
 end
 
 % if save worked, commit the configfilename (only matters if new)
-handles.configfilename=configFileName;
+handles.configfilename=projectFileName;
 %JLabel('setProjectParams',handles.figureJLabel,configParams);
 
 % update the UI
-set(handles.text_projectfile,'String',configFileName);
+set(handles.text_projectfile,'String',projectFileName);
 
 % store the guidata
 guidata(figureJLabelEditFiles,handles);
