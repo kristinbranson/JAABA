@@ -1680,8 +1680,8 @@ return
 
 
 %--------------------------------------------------------------------------
-function menu_file_modify_files_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_modify_files (see GCBO)
+function menu_file_modify_experiment_list_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_modify_experiment_list (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % if isfield(handles,'data'),
@@ -1719,21 +1719,21 @@ function handles = UpdateMovies(handles)
 function handles = SetNeedSave(handles)
 handles.guidata.needsave = true;
 UpdateGUIToMatchFileAndExperimentState(handles);
-%set(handles.menu_file_save_classifier_and_labels,'Enable','on');
-%set(handles.menu_file_save_labels,'Enable','on');
+%set(handles.menu_file_export_classifier_and_labels,'Enable','on');
+%set(handles.menu_file_export_labels,'Enable','on');
 return
 
 % % --------------------------------------------------------------------
 % function handles = SetSaved(handles)
 % 
 % handles.guidata.needsave = false;
-% set(handles.menu_file_save_classifier_and_labels,'Enable','off');
-% set(handles.menu_file_save_labels,'Enable','off');
+% set(handles.menu_file_export_classifier_and_labels,'Enable','off');
+% set(handles.menu_file_export_labels,'Enable','off');
 
 
 % --------------------------------------------------------------------
-function success = menu_file_save_classifier_and_labels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_classifier_and_labels (see GCBO)
+function success = menu_file_export_classifier_and_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_classifier_and_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1753,8 +1753,8 @@ success = true;
 
 
 % --------------------------------------------------------------------
-function menu_file_exit_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_exit (see GCBO)
+function menu_file_quit_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_quit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -2407,7 +2407,9 @@ end
 someExperimentIsCurrent=handles.guidata.expi >= 1 && ...
                         handles.guidata.expi <= nExps;
 
+%                      
 % Update the File menu items.
+%
 set(handles.menu_file_new,'Enable',offIff(thereIsAnOpenFile));  
 set(handles.menu_file_open,'Enable',offIff(thereIsAnOpenFile));  
 set(handles.menu_file_open_in_ground_truthing_mode, ...
@@ -2419,7 +2421,41 @@ set(handles.menu_file_import_old_style_project, ...
     'Enable',offIff(thereIsAnOpenFile));
 set(handles.menu_file_import_old_style_classifier, ...
     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
-set(handles.menu_file_modify_files,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
+% Import Scores... and it's submenu items
+set(handles.menu_file_import_scores, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_import_scores_curr_exp_default_loc, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_import_scores_curr_exp_diff_loc, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_import_scores_all_exp_default_loc, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+% Export things    
+set(handles.menu_file_export_classifier_and_labels, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));  % Should we enable iff a classifier or labels exist?
+set(handles.menu_file_export_labels, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));  % Should we enable iff labels exist?
+% Export scores... and it's submenu items    
+% These may need refining
+set(handles.menu_file_export_scores, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_export_scores_curr_exp_default_loc, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_export_scores_curr_exp_diff_loc, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_export_scores_all_exp_default_loc, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_export_scores_all_exp_diff_loc, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+% The rest of the File menu items
+% These may need refining
+set(handles.menu_file_export_ground_truthing_suggestions, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+set(handles.menu_file_export_labels, ...
+    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+
+
 
 % These controls require a movie to currently be open, and should be
 % disabled if there's no movie.
@@ -3769,14 +3805,14 @@ for i = is,
 end
 
 
-% --------------------------------------------------------------------
-function menu_file_save_labels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_labels (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.guidata.data.SaveLabels();
-handles.guidata.data.SaveGTLabels();
+% % --------------------------------------------------------------------
+% function menu_file_export_labels_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_export_labels (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% handles.guidata.data.SaveLabels();
+% handles.guidata.data.SaveGTLabels();
 
 
 % --------------------------------------------------------------------
@@ -6015,15 +6051,15 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_file_loadScores_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_loadScores (see GCBO)
+function menu_file_import_scores_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_scores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function menu_file_loadscorescurrentexpdefault_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_loadscorescurrentexpdefault (see GCBO)
+function menu_file_import_scores_curr_exp_default_loc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_scores_curr_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6046,8 +6082,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_file_loadscorescurrentexpselect_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_loadscorescurrentexpselect (see GCBO)
+function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_scores_curr_exp_diff_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 tstring = sprintf('Scores file for %s',handles.guidata.data.expnames{handles.guidata.data.expi});
@@ -6073,8 +6109,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_file_loadscorescurrentexprootdir_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_loadscorescurrentexprootdir (see GCBO)
+function menu_file_import_scores_curr_exp_diff_rootdir_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_scores_curr_exp_diff_rootdir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 tstring = sprintf('Root dir to load scores for current experiment');
@@ -6107,8 +6143,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_file_loadscoresAlldefault_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_loadscoresAlldefault (see GCBO)
+function menu_file_import_scores_all_exp_default_loc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_scores_all_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.guidata.data.nexps,
@@ -6132,8 +6168,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_file_loadscoresAllselect_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_loadscoresAllselect (see GCBO)
+function menu_file_import_scores_all_exp_diff_rootdir_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_scores_all_exp_diff_rootdir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6643,8 +6679,8 @@ ShowWholeVideo(handles);
 
 
 % --------------------------------------------------------------------
-function menu_file_package_labels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_package_labels (see GCBO)
+function menu_file_export_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6754,8 +6790,8 @@ handles.guidata.packageoutputdir = outdir;
 
 
 % --------------------------------------------------------------------
-function menu_file_save_suggestions_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_suggestions (see GCBO)
+function menu_file_export_ground_truthing_suggestions_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_ground_truthing_suggestions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 expi = handles.guidata.expi;
@@ -6842,23 +6878,23 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_file_savescores_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_savescores (see GCBO)
+function menu_file_export_scores_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_scores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function menu_file_savescores_default_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_savescores_default (see GCBO)
+function menu_file_export_scores_curr_exp_default_loc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_scores_curr_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.SaveCurScores(handles.guidata.expi);
 
 
 % --------------------------------------------------------------------
-function menu_file_savescores_new_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_savescores_new (see GCBO)
+function menu_file_export_scores_curr_exp_diff_loc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_scores_curr_exp_diff_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 expi = handles.guidata.expi;
@@ -6871,8 +6907,8 @@ handles.guidata.data.SaveCurScores(handles.guidata.expi,fullfile(pname,fname));
 
 
 % --------------------------------------------------------------------
-function menu_file_savescores_alldefault_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_savescores_alldefault (see GCBO)
+function menu_file_export_scores_all_exp_default_loc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_scores_all_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.guidata.data.nexps
@@ -6881,8 +6917,8 @@ end
 
 
 % --------------------------------------------------------------------
-function menu_file_savescores_allnew_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_savescores_allnew (see GCBO)
+function menu_file_export_scores_all_exp_diff_loc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_scores_all_exp_diff_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 fname = inputdlg('Save the scores in the experiment directory to file.. ' );
@@ -7145,7 +7181,7 @@ return
 
 % -------------------------------------------------------------------------
 function menu_file_save_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_classifier_and_labels (see GCBO)
+% hObject    handle to menu_file_export_classifier_and_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saveAs=false;
@@ -7155,7 +7191,7 @@ return
 
 % -------------------------------------------------------------------------
 function menu_file_save_as_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_save_classifier_and_labels (see GCBO)
+% hObject    handle to menu_file_export_classifier_and_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saveAs=true;
