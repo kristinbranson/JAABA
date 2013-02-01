@@ -136,9 +136,10 @@ handles.guidata.in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_bu
 handles = UpdateLabelButtons(handles);
 handles=StoreGUIPositionsInternally(handles);
 handles=updateRightSidePanelPositions(handles);
+%guidata(hObject,handles);
 
 % Update aspects of the GUI to match the current "model" state
-handles=guidata(hObject);
+%handles=guidata(hObject);
 UpdateGUIToMatchFileAndExperimentState(handles);
 
 % keypress callback for all non-edit text objects
@@ -662,7 +663,7 @@ if strcmp(varargin{1},'CLEAR'),
     Mimage = struct('Data',[]);
     movie_filename = '';
   catch ME,
-    warning('Error when trying to clear UpdatePlots data: %s',getReport(ME));  %#ok
+    warning('Error when trying to clear UpdatePlots data: %s',getReport(ME)); 
   end
   return;
 end
@@ -678,9 +679,9 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
     delete(handles.guidata.cache_thread);
     handles.guidata.cache_thread = [];
   end
-  Mframenum = struct('Data',[]); %#ok<NASGU>
-  Mlastused = struct('Data',[]); %#ok<NASGU>
-  Mimage = struct('Data',[]); %#ok<NASGU>
+  Mframenum = struct('Data',[]); 
+  Mlastused = struct('Data',[]);
+  Mimage = struct('Data',[]); 
   
   cache_filename= [handles.guidata.tempname 'cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
@@ -694,7 +695,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
       break;
     end
     new_cache_filename = fullfile(tempdir(),['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat']);
-    warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename);  %#ok
+    warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename); 
     cache_filename = new_cache_filename;
     fid=fopen(cache_filename,'w');
   end
@@ -1271,7 +1272,7 @@ function i = GetPreviewPanelNumber(hObject)
 
 i = regexp(get(get(hObject,'Parent'),'Tag'),'^panel_axes(\d+)$','tokens','once');
 if isempty(i),
-  warning('Could not find index of parent panel');  %#ok
+  warning('Could not find index of parent panel'); 
   i = 1;
 else
   i = str2double(i{1});
@@ -2145,14 +2146,14 @@ function handles = UpdateLabelButtons(handles)
 
 % get some freqeuntly used things into local vars
 if isempty(handles.guidata.data)
-  projectPresent=false;
+  %projectPresent=false;
   nBehaviors=2;  % just for layout purposes
   labelColors=[1 0 0 ; ...
                0 0 1];
   behaviorNameCapitalized={'Abiding'; ...
                            'None'};           
 else
-  projectPresent=true;
+  %projectPresent=true;
   nBehaviors=handles.guidata.data.nbehaviors;
   labelColors=handles.guidata.labelcolors;
   behaviorNameCapitalized=cell(nBehaviors,1);
@@ -4124,7 +4125,7 @@ if figpos(3) < minw || figpos(4) < minh,
   set(handles.figure_JLabel,'Position',figpos);
 end
 
-handles = updateRightSidePanelPositions(handles);
+handles = updateRightSidePanelPositions(handles);  %#ok
 
 return
 
@@ -4142,7 +4143,7 @@ set(handles.figure_JLabel,'Units',originalUnits);
 panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
 panel_select_pos = get(handles.panel_select,'Position');
 panel_learn_pos = get(handles.panel_learn,'Position');
-panel_similar_pos = get(handles.panel_similar,'Position');
+%panel_similar_pos = get(handles.panel_similar,'Position');
 panel_info_pos = get(handles.panel_selection_info,'Position');
 
 panel_timelines_pos = get(handles.panel_timelines,'Position');
@@ -4585,7 +4586,7 @@ else
   i = [];
 end
 if isempty(i),
-  warning('Could not find index of parent panel');  %#ok
+  warning('Could not find index of parent panel');
   i = 1;
 end
 
@@ -6394,158 +6395,13 @@ return
 % -------------------------------------------------------------------------
 function handles = UpdateGUIToMatchAdvancedMode(handles)
 
-% get the current mode
-mode=handles.guidata.GUIAdvancedMode;
-
 % make sure the menu checkboxes are self-consistent
 SetGUIModeMenuChecks(handles);
-
-% If no file is open, can return now
-%if ~handles.guidata.thereIsAnOpenFile
-%  return
-%end
 
 % update the label buttons and the panel positions, even if there's no open
 % file and therefore they're invisble
 handles=UpdateLabelButtons(handles);
 handles = updateRightSidePanelPositions(handles);
-
-% % get positions of stuff
-% set(handles.panel_labelbuttons,'Units','pixels');
-% panel_pos = get(handles.panel_labelbuttons,'Position');
-% select_pos = get(handles.panel_select,'Position');
-% if ishandle(handles.togglebutton_label_behavior1)
-%   set(handles.togglebutton_label_behavior1,'Units','pixels');
-% end
-% if ~isnan(handles.guidata.togglebutton_label_behaviors(end))
-%   button1_pos = get(handles.guidata.togglebutton_label_behaviors(end),'Position');
-% else
-%   button1_pos = get(handles.guidata.togglebutton_label_behaviors(end-1),'Position');
-% end  
-% set(handles.togglebutton_label_unknown,'Units','pixels');
-% unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
-% out_border_y = unknown_button_pos(2);
-% out_border_x = unknown_button_pos(1);
-% in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
-% button_width = button1_pos(3);
-% button_height = button1_pos(4);
-% 
-% % calculate menu_file_open_old_school_files height for the panel
-% if ~mode;
-%   new_panel_height = 2*out_border_y + (handles.guidata.data.nbehaviors+1)*button_height + ...
-%   handles.guidata.data.nbehaviors*in_border_y;
-% else
-%   new_panel_height = 2*out_border_y + (2*handles.guidata.data.nbehaviors+1)*button_height + ...
-%   2*handles.guidata.data.nbehaviors*in_border_y;
-% end
-% 
-% % update panel position
-% panel_top = panel_pos(2)+panel_pos(4);
-% new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
-% set(handles.panel_labelbuttons,'Position',new_panel_pos);
-% dy_label_select = panel_pos(2) - select_pos(2) - select_pos(4);
-% new_select_pos = [select_pos(1),new_panel_pos(2)-select_pos(4)-dy_label_select,select_pos(3:4)];
-% set(handles.panel_select,'Position',new_select_pos);
-% 
-% figure_JLabel_ResizeFcn(handles.panel_labelbuttons, [], handles);
-% 
-% % move unknown button to the bottom
-% new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
-% set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
-% 
-% % create or remove buttons
-% if ~mode,
-%   % delete extra buttons
-%   h = handles.guidata.togglebutton_label_behaviors(2:2:end);
-%   h = h(ishandle(h));
-%   if ~isempty(h),
-%     delete(h);
-%   end
-%   handles.guidata.togglebutton_label_behaviors(2:2:end) = nan;
-% else
-%   % create extra buttons
-%   for i = 1:handles.guidata.data.nbehaviors,
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
-%       button_width,button_height];
-%     handles.guidata.togglebutton_label_behaviors(2*i) = ...
-%       uicontrol('Style','togglebutton','String',sprintf('Important %s',handles.guidata.data.labelnames{i}),...
-%       'ForegroundColor','w','Units','pixels','FontUnits','pixels','FontSize',14,...
-%       'FontWeight','bold','BackgroundColor',ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)),...
-%       'Position',pos,...
-%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
-%       'Parent',handles.panel_labelbuttons,...
-%       'Tag',sprintf('togglebutton_label_behavior%d',i),...
-%       'UserData',2*i);
-%   end
-% end
-% 
-% % update the buttons
-% for i = 1:handles.guidata.data.nbehaviors,
-%   if mode,
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
-%       button_width,button_height];
-%     set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
-%       'String',sprintf('Important %s',handles.guidata.data.labelnames{i}),...
-%       'Units','pixels', ...
-%       'FontUnits','pixels', ...
-%       'FontSize',14,...
-%       'FontWeight','bold', ...
-%       'Position',pos,...
-%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
-%       'Parent',handles.panel_labelbuttons,...
-%       'Tag',sprintf('togglebutton_label_behavior%d',i),...
-%       'UserData',2*i-1);
-%     %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
-%     setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
-%                         handles.guidata.labelcolors(i,:));
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
-%       button_width,button_height];
-%     set(handles.guidata.togglebutton_label_behaviors(2*i),...
-%       'String',sprintf('%s',handles.guidata.data.labelnames{i}),...
-%       'Units','pixels', ...
-%       'FontUnits','pixels', ...
-%       'FontSize',14, ...
-%       'FontWeight','bold', ...
-%       'Position',pos,...
-%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'),...
-%       'Parent',handles.panel_labelbuttons,...
-%       'Tag',sprintf('togglebutton_label_normbehavior%d',i),...
-%       'UserData',2*i);
-%     %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i));
-%     setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i), ...
-%                         ShiftColor.decreaseIntensity(handles.guidata.labelcolors(i,:)));
-%   else
-%     pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
-%       button_width,button_height];
-%     set(handles.guidata.togglebutton_label_behaviors(2*i-1),...
-%       'String',sprintf('%s',handles.guidata.data.labelnames{i}),...
-%       'Units','pixels', ...
-%       'FontUnits','pixels', ...
-%       'FontSize',14, ...
-%       'FontWeight','bold', ...
-%       'Position',pos, ...
-%       'Callback',get(handles.guidata.togglebutton_label_behaviors(1),'Callback'), ...
-%       'Parent',handles.panel_labelbuttons, ...
-%       'Tag',sprintf('togglebutton_label_normbehavior%d',i), ...
-%       'UserData',2*i-1);
-%     %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i-1));
-%     setLabelButtonColor(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
-%                         handles.guidata.labelcolors(i,:));
-%   end
-%   
-% end
-% 
-% % set props for unknown button
-% set(handles.togglebutton_label_unknown,...
-%     'String','Unknown',...
-%     'Units','pixels', ...
-%     'FontUnits','pixels', ...
-%     'FontSize',14, ...
-%     'FontWeight','bold', ...
-%     'UserData',-1);
-% %SetButtonImage(handles.togglebutton_label_unknown);
-% setLabelButtonColor(handles.togglebutton_label_unknown, ...
-%                     handles.guidata.labelunknowncolor);
 
 return
 
