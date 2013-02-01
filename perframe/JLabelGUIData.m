@@ -197,8 +197,7 @@ classdef JLabelGUIData < handle
     
     
     % Constructor
-    function obj = JLabelGUIData(varargin)
-      
+    function obj = JLabelGUIData()
     end
 
     function UpdateGraphicsHandleArrays(self, figure_JLabel)
