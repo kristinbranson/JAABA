@@ -124,7 +124,7 @@ classdef JLabelGUIData < handle
     
     max_click_dist_preview = .025^2;
     
-    preview_zoom_mode = 'center_on_fly';
+    preview_zoom_mode = 'follow_fly';
     zoom_fly_radius = nan(1,2);
     
     menu_view_zoom_options = [];
@@ -321,6 +321,16 @@ classdef JLabelGUIData < handle
         t2 = ['text_timeline_prop',m{1}];
         self.text_timeline_props(ii) = handles.(t2);
         self.text_timelines(i) = self.text_timeline_props(ii);
+      end
+    end
+    
+    function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
+      if self.thereIsAnOpenFile && ~isempty(self.data)
+        nExp=self.data.nexps;
+        someExperimentIsCurrent=(1<=self.expi) && ...
+                                (self.expi<=nExp) ;
+      else
+        someExperimentIsCurrent=false;
       end
     end
     
