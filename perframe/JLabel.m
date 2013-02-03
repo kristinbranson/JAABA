@@ -3736,11 +3736,10 @@ guidata(hObject,handles);
 
 
 % -------------------------------------------------------------------------
-function ZoomInOnFlies(handles,is)
-
-% WARNING: this function accesses handles.guidata.data.trx directly -- this requires
-% the correct experiment to be loaded
-% REMOVED!
+function ZoomInOnFlies(handles,indicesOfPreviewAxes)
+% Modify the limits of the given preview axes to get all of the current 
+% flies centered in the axes, without changing the zoom level.  
+% (I think.  --ALT; Feb 3, 2013)
 
 someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
@@ -3748,12 +3747,12 @@ if ~someExperimentIsCurrent,
 end
   
 if nargin < 2,
-  is = 1:numel(handles.guidata.axes_previews);
+  indicesOfPreviewAxes = 1:numel(handles.guidata.axes_previews);
 end
 
 xs = nan(1,numel(handles.guidata.flies));
 ys = nan(1,numel(handles.guidata.flies));
-for i = is,
+for i = indicesOfPreviewAxes,
   firstframes = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(handles.guidata.flies);
   endframes = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(handles.guidata.flies);
   %inds = handles.guidata.ts(i)-firstframes+1;
@@ -3801,11 +3800,10 @@ end
 
 
 % -------------------------------------------------------------------------
-function KeepFliesInView(handles,is)
-
-% WARNING: this function accesses handles.guidata.data.trx directly -- this requires
-% the correct experiment to be loaded
-% REMOVED!
+function KeepFliesInView(handles,indicesOfPreviewAxes)
+% Modify the limits of the given preview axes to get all of the current 
+% flies in view, without changing the zoom level.  (I think.  ALT; Feb 3,
+% 2013)
 
 someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
@@ -3813,42 +3811,56 @@ if ~someExperimentIsCurrent,
 end
 
 if nargin < 2,
-  is = 1:numel(handles.guidata.axes_previews);
+  indicesOfPreviewAxes = 1:numel(handles.guidata.axes_previews);
 end
 
-xs = nan(1,numel(handles.guidata.flies));
-ys = nan(1,numel(handles.guidata.flies));
-for i = is,
-  firstframes = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(handles.guidata.flies);
-  endframes = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(handles.guidata.flies);
+% get the vars we need to mess with a lot
+flies=handles.guidata.flies;  % indices of the current flies
+nFlies=numel(flies);
+expi=handles.guidata.expi;
+zoom_fly_radius=handles.guidata.zoom_fly_radius;  % 2x1
+movie_width=handles.guidata.movie_width;
+movie_height=handles.guidata.movie_height;
+
+xs = nan(1,nFlies);
+ys = nan(1,nFlies);
+for i = indicesOfPreviewAxes,
+  firstframes = handles.guidata.data.firstframes_per_exp{expi}(flies);
+  endframes = handles.guidata.data.endframes_per_exp{expi}(flies);
   %inds = handles.guidata.ts(i)-firstframes+1;
-  for j = 1:numel(handles.guidata.flies),
+  for j = 1:nFlies,
     if handles.guidata.ts(i) < firstframes(j) || handles.guidata.ts(i) > endframes(j),
       continue;
     end
-    xs(j) = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(j),handles.guidata.ts(i));
-    ys(j) = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(j),handles.guidata.ts(i));
-    %xs(j) = handles.guidata.data.trx(handles.guidata.flies(j)).x(inds(j));
-    %ys(j) = handles.guidata.data.trx(handles.guidata.flies(j)).y(inds(j));
+    xs(j) = handles.guidata.data.GetTrxValues('X1',expi,flies(j),handles.guidata.ts(i));
+    ys(j) = handles.guidata.data.GetTrxValues('Y1',expi,flies(j),handles.guidata.ts(i));
+    %xs(j) = handles.guidata.data.trx(flies(j)).x(inds(j));
+    %ys(j) = handles.guidata.data.trx(flies(j)).y(inds(j));
   end
-  xlim = get(handles.guidata.axes_previews(i),'XLim');
+  xl = get(handles.guidata.axes_previews(i),'XLim');
   % a little border at the edge of the image
   border = .1;
-  dx = diff(xlim);
-  xlim(1) = xlim(1) + dx*border;
-  xlim(2) = xlim(2) - dx*border;
-  ylim = get(handles.guidata.axes_previews(i),'YLim');
-  dy = diff(ylim);
-  ylim(1) = ylim(1) + dy*border;
-  ylim(2) = ylim(2) - dy*border;
-  if min(xs) < xlim(1) || min(ys) < ylim(1) || ...
-      max(xs) > xlim(2) || max(ys) > ylim(2),
+  dx = diff(xl);
+  xl(1) = xl(1) + dx*border;
+  xl(2) = xl(2) - dx*border;
+  yl = get(handles.guidata.axes_previews(i),'YLim');
+  dy = diff(yl);
+  yl(1) = yl(1) + dy*border;
+  yl(2) = yl(2) - dy*border;
+  % If any of the flies is out of view, re-center on the fly, without
+  % changing the size of the viewport
+  if min(xs) < xl(1) || min(ys) < yl(1) || ...
+      max(xs) > xl(2) || max(ys) > yl(2),
     % center on flies
-    newxlim = [max([.5,xs-handles.guidata.zoom_fly_radius(1)]),min([handles.guidata.movie_width+.5,xs+handles.guidata.zoom_fly_radius(1)])];
-    newylim = [max([.5,ys-handles.guidata.zoom_fly_radius(2)]),min([handles.guidata.movie_height+.5,ys+handles.guidata.zoom_fly_radius(2)])];
+    newxlim = [max([.5,xs-zoom_fly_radius(1)]), ...
+               min([movie_width+.5,xs+zoom_fly_radius(1)])];
+    newylim = [max([.5,ys-zoom_fly_radius(2)]), ...
+               min([movie_height+.5,ys+zoom_fly_radius(2)])];
     set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);    
   end
 end
+
+return
 
 
 % -------------------------------------------------------------------------
@@ -7423,6 +7435,12 @@ handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 % Copy the default path out of the JLabelData.
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
+% Note that there is currently an open file, and note its name
+handles.guidata.thereIsAnOpenFile=true;
+handles.guidata.everythingFileNameAbs=fileNameAbs;
+handles.guidata.userHasSpecifiedEverythingFileName=true;
+handles.guidata.needsave=false;
+
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
 if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
@@ -7434,11 +7452,11 @@ end
 % clear the old experiment directory
 handles.guidata.oldexpdir='';
 
-% Note that there is currently an open file, and note its name
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fileNameAbs;
-handles.guidata.userHasSpecifiedEverythingFileName=true;
-handles.guidata.needsave=false;
+% % Note that there is currently an open file, and note its name
+% handles.guidata.thereIsAnOpenFile=true;
+% handles.guidata.everythingFileNameAbs=fileNameAbs;
+% handles.guidata.userHasSpecifiedEverythingFileName=true;
+% handles.guidata.needsave=false;
 
 % Updates the graphics objects to match the current labeling mode (normal
 % or ground-truthing)
