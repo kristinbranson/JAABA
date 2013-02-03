@@ -141,6 +141,7 @@ handles=updateRightSidePanelPositions(handles);
 % Update aspects of the GUI to match the current "model" state
 %handles=guidata(hObject);
 UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateGUIToMatchPreviewZoomMode(handles)
 
 % keypress callback for all non-edit text objects
 RecursiveSetKeyPressFcn(hObject);
@@ -1999,10 +2000,10 @@ set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 handles.guidata.max_click_dist_preview = .005^2;
 
 % zoom state
-handles.guidata.preview_zoom_mode = 'follow_fly';
+%handles.guidata.preview_zoom_mode = 'follow_fly';
 handles.guidata.zoom_fly_radius = nan(1,2);
 %set(handles.guidata.menu_view_keep_target_in_view,'Checked','off');
-%set(handles.guidata.menu_view_center_on_curr_target,'Checked','off');
+%set(handles.guidata.menu_view_center_on_target,'Checked','off');
 %set(handles.guidata.menu_view_static_view,'Checked','off');
 %set(handles.menu_view_keep_target_in_view,'Checked','on');
 
@@ -2454,6 +2455,8 @@ set(handles.menu_edit_label_shortcuts,'Enable',onIff(thereIsAnOpenFile));
 %
 % Update the View menu items
 %
+set(handles.menu_view_show_whole_frame, ...
+    'Enable',onIff(someExperimentIsCurrent));  
 set(handles.menu_view_show_bookmarked_clips, ...
     'Enable',onIff(thereIsAnOpenFile));  
 set(handles.menu_view_show_predictions, ...
@@ -3721,14 +3724,13 @@ function menu_file_load_top_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_view_center_on_curr_target_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_center_on_curr_target (see GCBO)
+function menu_view_center_on_target_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_center_on_target (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.preview_zoom_mode = 'center_on_fly';
-set(setdiff(handles.guidata.menu_view_zoom_options,hObject),'Checked','off');
-set(hObject,'Checked','on');
+UpdateGUIToMatchPreviewZoomMode(handles)
 ZoomInOnFlies(handles);
 guidata(hObject,handles);
 
@@ -3740,6 +3742,11 @@ function ZoomInOnFlies(handles,is)
 % the correct experiment to be loaded
 % REMOVED!
 
+someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+if ~someExperimentIsCurrent,
+  return
+end
+  
 if nargin < 2,
   is = 1:numel(handles.guidata.axes_previews);
 end
@@ -3799,6 +3806,11 @@ function KeepFliesInView(handles,is)
 % WARNING: this function accesses handles.guidata.data.trx directly -- this requires
 % the correct experiment to be loaded
 % REMOVED!
+
+someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+if ~someExperimentIsCurrent,
+  return
+end
 
 if nargin < 2,
   is = 1:numel(handles.guidata.axes_previews);
@@ -3967,10 +3979,10 @@ switch eventdata.Key,
     end
   
   case 'uparrow',
-    menu_go_back_X_frames_Callback(hObject, eventdata, handles);
+    menu_go_back_several_frames_Callback(hObject, eventdata, handles);
     
   case 'downarrow',
-    menu_go_forward_X_frames_Callback(hObject, eventdata, handles);
+    menu_go_forward_several_frames_Callback(hObject, eventdata, handles);
 
     
   case handles.guidata.label_shortcuts,
@@ -5627,8 +5639,7 @@ function menu_view_keep_target_in_view_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.preview_zoom_mode = 'follow_fly';
-set(setdiff(handles.guidata.menu_view_zoom_options,hObject),'Checked','off');
-set(hObject,'Checked','on');
+UpdateGUIToMatchPreviewZoomMode(handles)
 KeepFliesInView(handles);
 guidata(hObject,handles);
 
@@ -5640,8 +5651,7 @@ function menu_view_static_view_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.preview_zoom_mode = 'static';
-set(setdiff(handles.guidata.menu_view_zoom_options,hObject),'Checked','off');
-set(handles.menu_view_static_view,'Checked','on');
+UpdateGUIToMatchPreviewZoomMode(handles)
 guidata(hObject,handles);
 
 
@@ -6477,6 +6487,27 @@ return
 
 
 % -------------------------------------------------------------------------
+function UpdateGUIToMatchPreviewZoomMode(handles)
+
+switch handles.guidata.preview_zoom_mode,
+  case 'follow_fly',
+    set(handles.menu_view_keep_target_in_view,'checked','on' );
+    set(handles.menu_view_center_on_target,   'checked','off');
+    set(handles.menu_view_static_view,        'checked','off');
+  case 'center_on_fly',
+    set(handles.menu_view_keep_target_in_view,'checked','off');
+    set(handles.menu_view_center_on_target,   'checked','on' );
+    set(handles.menu_view_static_view,        'checked','off');
+  case 'static',
+    set(handles.menu_view_keep_target_in_view,'checked','off');
+    set(handles.menu_view_center_on_target,   'checked','off');
+    set(handles.menu_view_static_view,        'checked','on' );
+end
+
+return
+
+
+% -------------------------------------------------------------------------
 function handles = UpdateGUIToMatchAdvancedMode(handles)
 
 % make sure the menu checkboxes are self-consistent
@@ -6722,8 +6753,11 @@ function menu_view_show_whole_frame_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % set to static view
-menu_view_zoom_static_Callback(hObject, eventdata, handles);
+menu_view_static_view_Callback(hObject, eventdata, handles);
+% and now set the view to the whole frame
 ShowWholeVideo(handles);
+
+return
 
 
 % --------------------------------------------------------------------
