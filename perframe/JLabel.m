@@ -151,27 +151,6 @@ set(handles.text_selection_info,'string','');
 % load the RC file (is the time and place?)
 handles = LoadRC(handles);
 
-% % Move the figure to the upper right of the screen
-% xOffset=100;  % pels
-% yOffset=100;  % pels
-% rootUnitsSaved=get(0,'units');
-% figureUnitsSaved=get(hObject,'units');
-% set(0,'units','pixels');
-% set(hObject,'units','pixels');
-% pos=get(hObject,'position');
-% offset=pos(1,2);
-% sz=pos(3:4);
-% monitorPositions=get(0,'monitorposition');
-% if iswin()
-%   % On Windows, Monitor 1 is listed last
-%   monitorPosition=monitorPositions(end,:);
-% else
-%   % On Linux, the primary monitor 1 is listed first
-%   % On Mac, Matlab only recognixes one monitor
-%   monitorPosition=monitorPositions(1,:);
-% end  
-% % translate the mon
-
 % Write the handles to the guidata
 guidata(hObject,handles);
 
@@ -516,8 +495,8 @@ handles.guidata.htimeline_gt_suggestions = ...
        'HitTest','off', ...
        'Linewidth',5);
 
-handles.guidata.menu_view_zoom_options = setdiff(findall(handles.menu_view_zoom,'Type','uimenu'),...
-  handles.menu_view_zoom);
+%handles.guidata.menu_view_zoom_options = setdiff(findall(handles.menu_view_zoom,'Type','uimenu'),...
+%  handles.menu_view_zoom);
 
 % suggest timeline
 % handles.himage_timeline_suggest = image(zeros([1,1,3]),'Parent',handles.axes_timeline_suggest);
@@ -582,7 +561,7 @@ linkaxes(handles.guidata.axes_timelines,'x');
 
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
 if handles.guidata.data.IsGTMode(),
-  set(handles.menu_view_plot_labels_automatic,'Visible','off');
+  set(handles.menu_view_automatic_labels,'Visible','off');
 end
 
 % for faster refreshing
@@ -2022,9 +2001,10 @@ handles.guidata.max_click_dist_preview = .005^2;
 % zoom state
 handles.guidata.preview_zoom_mode = 'follow_fly';
 handles.guidata.zoom_fly_radius = nan(1,2);
-handles.guidata.menu_view_zoom_options = findall(handles.menu_view_zoom,'Type','uimenu');
-set(handles.guidata.menu_view_zoom_options,'Checked','off');
-set(handles.menu_view_zoom_keep_target_in_view,'Checked','on');
+%set(handles.guidata.menu_view_keep_target_in_view,'Checked','off');
+%set(handles.guidata.menu_view_center_on_curr_target,'Checked','off');
+%set(handles.guidata.menu_view_static_view,'Checked','off');
+%set(handles.menu_view_keep_target_in_view,'Checked','on');
 
 % last clicked object
 handles.guidata.selection_t0 = nan;
@@ -2066,7 +2046,7 @@ handles.guidata.hplaying = nan;
 %handles.guidata.traj_npost = 25;
 
 % whether to show trajectories
-set(handles.menu_view_plottracks,'Checked','on');
+set(handles.menu_view_plot_tracks,'Checked','on');
 handles.doplottracks = true;
 
 % bookmarked clips windows
@@ -2075,8 +2055,8 @@ handles.guidata.bookmark_windows = [];
 % whether to plot manual labels or automatic labels
 handles.guidata.plot_labels_manual = true;
 handles.guidata.plot_labels_automatic = false;
-set(handles.menu_view_plot_labels_manual,'Checked','on');
-set(handles.menu_view_plot_labels_automatic,'Checked','off');
+set(handles.menu_view_manual_labels,'Checked','on');
+set(handles.menu_view_automatic_labels,'Checked','off');
 
 buttonNames = {'pushbutton_train','pushbutton_predict',...
               'togglebutton_select','pushbutton_clearselection',...
@@ -2103,24 +2083,24 @@ function SetGUIModeMenuChecks(handles)
 
 % basic vs advanced mode
 if handles.guidata.GUIAdvancedMode,
-  set(handles.menu_edit_guimode_basic   ,'checked','off');
-  set(handles.menu_edit_guimode_advanced,'checked','on' );
+  set(handles.menu_edit_basic_mode   ,'checked','off');
+  set(handles.menu_edit_advanced_mode,'checked','on' );
 else
-  set(handles.menu_edit_guimode_basic   ,'checked','on ');
-  set(handles.menu_edit_guimode_advanced,'checked','off');
+  set(handles.menu_edit_basic_mode   ,'checked','on ');
+  set(handles.menu_edit_advanced_mode,'checked','off');
 end
 
 % labeling vs GT mode
 if isempty(handles.guidata.GUIGroundTruthingMode)
-  set(handles.menu_edit_guimode_normal      ,'checked','off');
-  set(handles.menu_edit_guimode_ground_truth,'checked','off' );
+  set(handles.menu_edit_normal_mode      ,'checked','off');
+  set(handles.menu_edit_ground_truthing_mode,'checked','off' );
 else
-  if handles.guidata.GUIGroundTruthingMode,e
-    set(handles.menu_edit_guimode_normal    ,'checked','off');
-    set(handles.menu_edit_guimode_ground_truth,'checked','on' );
+  if handles.guidata.GUIGroundTruthingMode,
+    set(handles.menu_edit_normal_mode    ,'checked','off');
+    set(handles.menu_edit_ground_truthing_mode,'checked','on' );
   else
-    set(handles.menu_edit_guimode_normal    ,'checked','on ');
-    set(handles.menu_edit_guimode_ground_truth,'checked','off');
+    set(handles.menu_edit_normal_mode    ,'checked','on ');
+    set(handles.menu_edit_ground_truthing_mode,'checked','off');
   end
 end
 
@@ -2130,8 +2110,8 @@ return
 % -------------------------------------------------------------------------
 function SetJumpGoMenuLabels(handles)
 
-set(handles.menu_go_forward_X_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.guidata.nframes_jump_go));
-set(handles.menu_go_back_X_frames,'Label',sprintf('Back %d frames (up arrow)',handles.guidata.nframes_jump_go));
+set(handles.menu_go_forward_several_frames,'Label',sprintf('Forward %d frames (down arrow)',handles.guidata.nframes_jump_go));
+set(handles.menu_go_back_several_frames,'Label',sprintf('Back %d frames (up arrow)',handles.guidata.nframes_jump_go));
 jumpType = handles.guidata.NJObj.GetCurrentType();
 set(handles.menu_go_next_automatic_bout_start,'Label',...
   sprintf('Next %s bout start (shift + right arrow)',jumpType));
@@ -2398,14 +2378,25 @@ function UpdateGUIToMatchFileAndExperimentState(handles)
 % Calculate some logical values that determine enablement and visibility of
 % things.
 thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
-needsave=handles.guidata.needsave;
-if isempty(handles.guidata.data)
-  nExps=0;
+openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.guidata.needsave;
+if thereIsAnOpenFile
+  if isempty(handles.guidata.data)
+    nExps=0;
+  else
+    nExps=handles.guidata.data.nexps;
+  end
 else
-  nExps=handles.guidata.data.nexps;
+  nExps=0;
 end
-someExperimentIsCurrent=handles.guidata.expi >= 1 && ...
+someExperimentIsCurrent=thereIsAnOpenFile && ...
+                        handles.guidata.expi >= 1 && ...
                         handles.guidata.expi <= nExps;
+inGroundTruthingMode=thereIsAnOpenFile && ...
+                     handles.guidata.GUIGroundTruthingMode;
+%inNormalMode=~inGroundTruthingMode;
+classifierExists=someExperimentIsCurrent && ...
+                 ~isempty(handles.guidata.data) && ...
+                 ~isempty(handles.guidata.data.classifier);
 
 %                      
 % Update the File menu items.
@@ -2414,7 +2405,7 @@ set(handles.menu_file_new,'Enable',offIff(thereIsAnOpenFile));
 set(handles.menu_file_open,'Enable',offIff(thereIsAnOpenFile));  
 set(handles.menu_file_open_in_ground_truthing_mode, ...
     'Enable',offIff(thereIsAnOpenFile));  
-set(handles.menu_file_save,'Enable',onIff(thereIsAnOpenFile&&needsave));
+set(handles.menu_file_save,'Enable',onIff(openFileHasUnsavedChanges));
 set(handles.menu_file_save_as,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_import_old_style_project, ...
@@ -2424,38 +2415,95 @@ set(handles.menu_file_import_old_style_classifier, ...
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
 % Import Scores... and it's submenu items
 set(handles.menu_file_import_scores, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_import_scores_curr_exp_default_loc, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_import_scores_curr_exp_diff_loc, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_import_scores_all_exp_default_loc, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 % Export things    
 set(handles.menu_file_export_classifier_and_labels, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));  % Should we enable iff a classifier or labels exist?
+    'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff a classifier or labels exist?
 set(handles.menu_file_export_labels, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));  % Should we enable iff labels exist?
+    'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff labels exist?
 % Export scores... and it's submenu items    
 % These may need refining
 set(handles.menu_file_export_scores, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_export_scores_curr_exp_default_loc, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_export_scores_curr_exp_diff_loc, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_export_scores_all_exp_default_loc, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_export_scores_all_exp_diff_loc, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 % The rest of the File menu items
 % These may need refining
 set(handles.menu_file_export_ground_truthing_suggestions, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 set(handles.menu_file_export_labels, ...
-    'Enable',onIff(thereIsAnOpenFile&&(nExps>0)));
+    'Enable',onIff(someExperimentIsCurrent));
 
+%  
+% Update the Edit menu items
+%
+set(handles.menu_edit_label_shortcuts,'Enable',onIff(thereIsAnOpenFile));  
 
+%
+% Update the View menu items
+%
+set(handles.menu_view_show_bookmarked_clips, ...
+    'Enable',onIff(thereIsAnOpenFile));  
+set(handles.menu_view_show_predictions, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_view_suggest_gt_intervals, ...
+    'Visible',onIff(inGroundTruthingMode));  
+
+%
+% Update the Go menu items
+%
+set(handles.menu_go_switch_target, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_next_frame, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_previous_frame, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_forward_several_frames, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_back_several_frames, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_next_manual_bout_start, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_previous_manual_bout_end, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_next_automatic_bout_start, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_go_previous_automatic_bout_end, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+
+%
+% Update the Classifier menu items
+%
+set(handles.menu_classifier_select_features, ...
+    'Enable',onIff(thereIsAnOpenFile));  
+set(handles.menu_classifier_classify, ...
+    'Enable',onIff(someExperimentIsCurrent));  
+set(handles.menu_classifier_set_confidence_thresholds, ...
+    'Enable',onIff(classifierExists));  
+set(handles.menu_classifier_cross_validate, ...
+    'Enable',onIff(classifierExists));  
+set(handles.menu_classifier_evaluate_on_new_labels, ...
+    'Enable',onIff(classifierExists));  
+set(handles.menu_classifier_parameters, ...
+    'Enable',onIff(classifierExists));  
+set(handles.menu_classifier_visualize, ...
+    'Enable',onIff(classifierExists));  
+set(handles.menu_classifier_compute_gt_performance, ...
+    'Enable',onIff(classifierExists));  
+set(handles.menu_classifier_post_processing, ...
+    'Enable',onIff(classifierExists));  
 
 % These controls require a movie to currently be open, and should be
 % disabled if there's no movie.
@@ -3283,8 +3331,8 @@ end
 
 
 % --------------------------------------------------------------------
-function menu_view_timeline_options_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_timeline_options (see GCBO)
+function menu_view_timeline_view_options_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_timeline_view_options (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3673,8 +3721,8 @@ function menu_file_load_top_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_view_zoom_in_on_fly_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_zoom_in_on_fly (see GCBO)
+function menu_view_center_on_curr_target_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_center_on_curr_target (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -3894,7 +3942,7 @@ if strcmpi(eventdata.Modifier,'control')
     case 'j',
       menu_go_switch_target_Callback(hObject,eventdata,handles);
     case 'k'
-      menu_view_plottracks_Callback(handles.menu_view_plottracks,eventdata,handles);
+      menu_view_plottracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
   end
 end
 
@@ -3999,8 +4047,8 @@ SetCurrentFrame(handles,axesi,t,hObject);
 
 
 % --------------------------------------------------------------------
-function menu_go_forward_X_frames_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_go_forward_X_frames (see GCBO)
+function menu_go_forward_several_frames_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_forward_several_frames (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -4013,8 +4061,8 @@ SetCurrentFrame(handles,axesi,t,hObject);
 
 
 % --------------------------------------------------------------------
-function menu_go_back_X_frames_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_go_back_X_frames (see GCBO)
+function menu_go_back_several_frames_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_back_several_frames (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -4027,8 +4075,8 @@ SetCurrentFrame(handles,axesi,t,hObject);
 
 
 % --------------------------------------------------------------------
-function menu_go_next_bout_start_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_go_next_bout_start (see GCBO)
+function menu_go_next_manual_bout_start_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_next_manual_bout_start (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -4043,8 +4091,8 @@ SetCurrentFrame(handles,axesi,t,hObject);
 
 
 % --------------------------------------------------------------------
-function menu_go_previous_bout_end_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_go_previous_bout_end (see GCBO)
+function menu_go_previous_manual_bout_end_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_previous_manual_bout_end (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -5276,12 +5324,12 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function menu_view_plottracks_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_plottracks (see GCBO)
+function menu_view_plot_tracks_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_plot_tracks (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-v = get(handles.menu_view_plottracks,'Checked');
+v = get(handles.menu_view_plot_tracks,'Checked');
 
 if strcmpi(v,'on'),
   h = findall(handles.guidata.axes_previews,'Type','line','Visible','on');
@@ -5573,8 +5621,8 @@ function menu_view_zoom_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_view_zoom_keep_target_in_view_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_zoom_keep_target_in_view (see GCBO)
+function menu_view_keep_target_in_view_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_keep_target_in_view (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -5586,14 +5634,14 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function menu_view_zoom_static_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_zoom_static (see GCBO)
+function menu_view_static_view_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_static_view (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.guidata.preview_zoom_mode = 'static';
 set(setdiff(handles.guidata.menu_view_zoom_options,hObject),'Checked','off');
-set(handles.menu_view_zoom_static,'Checked','on');
+set(handles.menu_view_static_view,'Checked','on');
 guidata(hObject,handles);
 
 
@@ -5753,8 +5801,8 @@ function menu_view_plot_labels_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function handles = menu_view_plot_labels_manual_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_plot_labels_manual (see GCBO)
+function handles = menu_view_manual_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_manual_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -5767,8 +5815,8 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_plot_labels_automatic (see GCBO)
+function menu_view_automatic_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_automatic_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -5784,21 +5832,21 @@ function UpdatePlotLabels(handles)
 
 if handles.guidata.plot_labels_manual,
   set(handles.guidata.hlabels,'Visible','on');
-  set(handles.menu_view_plot_labels_manual,'Checked','on');
+  set(handles.menu_view_manual_labels,'Checked','on');
   set(handles.timeline_label_manual,'ForegroundColor',handles.guidata.emphasiscolor,'FontWeight','bold');
 else
   set(handles.guidata.hlabels,'Visible','off');
-  set(handles.menu_view_plot_labels_manual,'Checked','off');
-  set(handles.menu_view_plot_labels_manual,'Checked','off');
+  set(handles.menu_view_manual_labels,'Checked','off');
+  set(handles.menu_view_manual_labels,'Checked','off');
   set(handles.timeline_label_manual,'ForegroundColor',handles.guidata.unemphasiscolor,'FontWeight','normal');
 end
 if handles.guidata.plot_labels_automatic,
   set(handles.guidata.hpredicted,'Visible','on');
-  set(handles.menu_view_plot_labels_automatic,'Checked','on');
+  set(handles.menu_view_automatic_labels,'Checked','on');
   set(handles.timeline_label_automatic,'ForegroundColor',handles.guidata.emphasiscolor,'FontWeight','bold');
 else
   set(handles.guidata.hpredicted,'Visible','off');
-  set(handles.menu_view_plot_labels_automatic,'Checked','off');
+  set(handles.menu_view_automatic_labels,'Checked','off');
   set(handles.timeline_label_automatic,'ForegroundColor',handles.guidata.unemphasiscolor,'FontWeight','normal');
 end
 
@@ -5856,8 +5904,8 @@ CompressionPreferences(handles.figure_JLabel);
 
 
 % --------------------------------------------------------------------
-function menu_classifier_confThresholds_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_confThresholds (see GCBO)
+function menu_classifier_set_confidence_thresholds_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_set_confidence_thresholds (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.ROCCurve(hObject);
@@ -5871,8 +5919,8 @@ function menu_classifier_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_classifier_classifyall_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_classifyall (see GCBO)
+function menu_classifier_classify_all_experiments_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classify_all_experiments (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -5904,8 +5952,8 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
-function menu_classifier_selFeatures_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_selFeatures (see GCBO)
+function menu_classifier_select_features_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_select_features (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.ShowSelectFeatures();
@@ -5936,8 +5984,8 @@ end
 
 
 % --------------------------------------------------------------------
-function crossValidate_Callback(hObject, eventdata, handles)
-% hObject    handle to crossValidate (see GCBO)
+function menu_classifier_cross_validate_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_cross_validate (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6030,8 +6078,8 @@ end
 
 
 % --------------------------------------------------------------------
-function menu_classifier_classifyCurrentFly_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_classifyCurrentFly (see GCBO)
+function menu_classifier_classify_current_fly_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classify_current_fly (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 t0 =handles.guidata.t0_curr;
@@ -6207,8 +6255,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_classifier_testnewlabels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_testnewlabels (see GCBO)
+function menu_classifier_evaluate_on_new_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_evaluate_on_new_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6271,8 +6319,8 @@ handles.guidata.data.SetClassifierFileNameWoExp(classifiername);
 
 
 % --------------------------------------------------------------------
-function menu_classifier_setclassifierparameters_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_setclassifierparameters (see GCBO)
+function menu_classifier_parameters_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_parameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 cohandles = ClassifierOptions(handles.guidata.data);
@@ -6325,8 +6373,8 @@ function menu_classifier_classify_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function menu_classifier_classifyCurrentMovie_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_classifyCurrentMovie (see GCBO)
+function menu_classifier_classify_current_experiment_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_classify_current_experiment (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6393,9 +6441,9 @@ labelingOnlyGrobjects = [handles.pushbutton_train,...
                          handles.automaticTimelineBottomRowPopup,...
                          handles.timeline_label_automatic, ...
                          handles.text_scores];
-groundTruthOnlyGrobjects = [handles.menu_view_showPredictions, ...
-                            handles.menu_view_suggest,...
-                            handles.menu_classifier_gt_performance];
+groundTruthOnlyGrobjects = [handles.menu_view_show_predictions, ...
+                            handles.menu_view_suggest_gt_intervals,...
+                            handles.menu_classifier_compute_gt_performance];
 
 % Determine whether the visibility of each groups should be 'on' or 'off'                          
 if isempty(mode)
@@ -6443,8 +6491,8 @@ return
 
 
 % --------------------------------------------------------------------
-function menu_view_showPredictions_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_showPredictions (see GCBO)
+function menu_view_show_predictions_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_show_predictions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6461,19 +6509,19 @@ else
   set(hObject,'Label','Show Predictions');
   set(h_prediction,'Visible','off');  
 end
-set(handles.menu_view_plot_labels_automatic,'Visible','on');
+set(handles.menu_view_automatic_labels,'Visible','on');
 
 
 % --------------------------------------------------------------------
-function menu_view_suggest_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest (see GCBO)
+function menu_view_suggest_gt_intervals_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_gt_intervals (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function menu_view_suggest_random_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest_random (see GCBO)
+function menu_view_suggest_gt_intervals_random_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_gt_intervals_random (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6493,11 +6541,11 @@ end
 
 handles.guidata.data.SuggestRandomGT(perfly,perexp);
 
-set(handles.menu_view_suggest_random,'Checked','on');
-set(handles.menu_view_suggest_threshold,'Checked','off');
-set(handles.menu_view_suggest_file,'Checked','off');
-set(handles.menu_view_suggest_balanced,'Checked','off');
-set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
+set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
@@ -6511,8 +6559,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   
   
 % --------------------------------------------------------------------
-function menu_view_suggest_threshold_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest_threshold (see GCBO)
+function menu_view_suggest_gt_intervals_threshold_on_scores_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_gt_intervals_threshold_on_scores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6528,11 +6576,11 @@ end
 
 handles.guidata.data.SuggestThresholdGT(threshold);
 
-set(handles.menu_view_suggest_random,'Checked','off');
-set(handles.menu_view_suggest_threshold,'Checked','on');
-set(handles.menu_view_suggest_balanced,'Checked','off');
-set(handles.menu_view_suggest_file,'Checked','off');
-set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','on');
+set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
@@ -6546,15 +6594,15 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_view_suggest_none_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest_none (see GCBO)
+function menu_view_suggest_gt_intervals_none_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_gt_intervals_none (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-set(handles.menu_view_suggest_random,'Checked','off');
-set(handles.menu_view_suggest_threshold,'Checked','off');
-set(handles.menu_view_suggest_file,'Checked','off');
-set(handles.menu_view_suggest_balanced,'Checked','off');
-set(handles.menu_view_suggest_none,'Checked','on');
+set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_none,'Checked','on');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
 
 handles = UpdateTimelineIms(handles);
@@ -6569,8 +6617,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_view_suggest_balanced_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest_balanced (see GCBO)
+function menu_view_suggest_gt_intervals_balanced_random_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_gt_intervals_balanced_random (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6587,11 +6635,11 @@ end
 [success,msg ] = handles.guidata.data.SuggestBalancedGT(intsize,numint);
 if ~success, warndlg(msg); return; end
 
-set(handles.menu_view_suggest_random,'Checked','off');
-set(handles.menu_view_suggest_threshold,'Checked','off');
-set(handles.menu_view_suggest_file,'Checked','off');
-set(handles.menu_view_suggest_balanced,'Checked','on');
-set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','on');
+set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6603,8 +6651,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_view_suggest_file_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest_file (see GCBO)
+function menu_view_suggest_gt_intervals_load_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_suggest_gt_intervals_load (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6615,12 +6663,12 @@ if ~filename, return, end;
 
 handles.guidata.data.SuggestLoadedGT(handles.guidata.expi,fullfile(pathname,filename));
 
-set(handles.menu_view_suggest_random,'Checked','off');
-set(handles.menu_view_suggest_threshold,'Checked','off');
-set(handles.menu_view_suggest_file,'Checked','on');
-set(handles.menu_view_suggest_none,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_load,'Checked','on');
+set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
-set(handles.menu_view_suggest_file,'Checked','off');
+set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -6633,8 +6681,8 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
 
 
 % --------------------------------------------------------------------
-function menu_classifier_gt_performance_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_gt_performance (see GCBO)
+function menu_classifier_compute_gt_performance_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_compute_gt_performance (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 crossError = handles.guidata.data.GetGTPerformance();
@@ -6668,8 +6716,8 @@ t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,...
 
 
 % --------------------------------------------------------------------
-function menu_view_zoom_showwholevideo_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_zoom_showwholevideo (see GCBO)
+function menu_view_show_whole_frame_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_show_whole_frame (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6804,8 +6852,8 @@ handles.guidata.data.SaveSuggestionGT(expi,outfile);
 
 
 % --------------------------------------------------------------------
-function menu_edit_cache_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_cache (see GCBO)
+function menu_edit_memory_usage_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_memory_usage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 curval = sprintf('%d',handles.guidata.data.cacheSize);
@@ -6820,8 +6868,8 @@ handles.guidata.data.cacheSize = round(sz);
 
 
 % --------------------------------------------------------------------
-function menu_classifier_postprocess_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_postprocess (see GCBO)
+function menu_classifier_post_processing_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_post_processing (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -6992,8 +7040,8 @@ helpdlg(sprintf('JAABA (Janelia Automated Animal Behavior Annotator) version:%s'
 
 
 % --------------------------------------------------------------------
-function menu_help_doc_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_help_doc (see GCBO)
+function menu_help_documentation_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_help_documentation (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -7462,8 +7510,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_edit_guimode_normal_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_normal (see GCBO)
+function menu_edit_normal_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_normal_mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -7476,8 +7524,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_edit_guimode_ground_truth_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_ground_truth (see GCBO)
+function menu_edit_ground_truthing_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_ground_truthing_mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -7490,8 +7538,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_edit_guimode_basic_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_basic (see GCBO)
+function menu_edit_basic_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_basic_mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -7504,8 +7552,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_edit_guimode_advanced_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_guimode_advanced (see GCBO)
+function menu_edit_advanced_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_advanced_mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
