@@ -243,7 +243,8 @@ classdef JLabelData < handle
     % ComputeWindowFeatures
     windowfeaturescellparams = {};
     
-    savewindowfeatures = false;
+    %savewindowfeatures = false;  % whether unsaved changes have been made
+    %                             % to the features
     
     % State of the basic/compact feature table.
     basicFeatureTable = {};
@@ -401,10 +402,10 @@ classdef JLabelData < handle
       nold = size(X,1);
       nnew = size(x_curr,2);
       if nold > nnew,
-        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  %#ok
+        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  
         x_curr(:,end+1:end+nold-nnew) = nan;
       elseif nnew > nold && ~isempty(X),
-        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  %#ok
+        warning('Number of examples for per-frame feature %s does not match number of examples for previous features',fn);  
         X(end+1:end+nnew-nold,:) = nan;
       end
       X = [X,x_curr']; %#ok<AGROW>
@@ -433,7 +434,13 @@ classdef JLabelData < handle
       end
     end
     
+    
+    % ---------------------------------------------------------------------
     function cellparams = convertParams2CellParams(params)
+      % Convert the windowFeatureParams structure, which stores a 'list' of
+      % per-frame features and the parameters that determine how each is
+      % converted to a set of window features, to it's corresponding
+      % cell-based form, which is apparently sometimes useful.
       cellparams = struct;
       fns1 = fieldnames(params);
       for i1 = 1:numel(fns1),
@@ -452,17 +459,11 @@ classdef JLabelData < handle
         end
         cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
       end
+    end  % method
 
-    end
-    
-  end
+  end  % class methods
   
   methods (Access=public)
-
-
-% Constructor
-
-
     function obj = JLabelData(varargin)
     % obj = JLabelData(configfilename,...)
     %
@@ -637,7 +638,7 @@ classdef JLabelData < handle
         fclose(vid);
         obj.version = vv;
       catch ME
-        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  %#ok
+        warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  
         obj.version = '0.0';
       end
       
@@ -1852,7 +1853,17 @@ classdef JLabelData < handle
       if isfield(classifierParams,'postprocessparams')
         self.postprocessparams = classifierParams.postprocessparams;
       end
-
+      
+      % Read the per-frame features to be used by a classifier
+      self.SetPerframeParams(classifierParams.windowfeaturesparams, ...
+                             JLabelData.convertParams2CellParams(self.windowfeaturesparams));
+      %self.windowfeaturesparams=classifierParams.windowfeaturesparams;
+      %self.windowfeaturescellparams= ...
+      %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
+      %self.curperframefns=fieldnames(self.windowfeaturesparams);
+      self.basicFeatureTable=classifierParams.basicFeatureTable;
+      self.featureWindowSize=classifierParams.featureWindowSize;
+      
       % Read the classifier_params field out of the classifier.  This
       % contains things like the number of iterations used for training,
       % the number of folds used for cross-validation, etc.
@@ -2103,7 +2114,7 @@ classdef JLabelData < handle
       if exist(sfn,'file'),
         [didbak,msg] = copyfile(sfn,[sfn,'~']);
         if ~didbak,
-          warning('Could not create backup of %s: %s',sfn,msg);  %#ok
+          warning('Could not create backup of %s: %s',sfn,msg);  
         end
       end
       timestamp = obj.classifierTS;  %#ok
@@ -2284,7 +2295,7 @@ classdef JLabelData < handle
       % Returns a single structure containing all the labels, suitable for
       % saving.
     
-      %% short-circuit if no labels
+      % % short-circuit if no labels
       %if isempty(self.labels) && isempty(self.gt_labels), 
       %  labels=self.labels;
       %  gtLabels=self.gt_labels;
@@ -2336,7 +2347,7 @@ classdef JLabelData < handle
         if exist(lfn,'file'),
           [didbak,msg] = copyfile(lfn,[lfn,'~']);
           if ~didbak,
-            warning('Could not create backup of %s: %s',lfn,msg);  %#ok
+            warning('Could not create backup of %s: %s',lfn,msg);  
           end
         end
 
@@ -3364,6 +3375,8 @@ classdef JLabelData < handle
       success = true;
     end
     
+    
+    % ---------------------------------------------------------------------
     function SetPerframeParams(obj,windowfeaturesparams,windowfeaturescellparams)
       obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
       obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
@@ -3371,14 +3384,15 @@ classdef JLabelData < handle
     end  
     
     
-    function ret = NeedSaveProject(obj)
-      ret = obj.savewindowfeatures;
-    end
-    
-    function ResetSaveProject(obj)
-      obj.savewindowfeatures = false;
-    end
-    
+    % ---------------------------------------------------------------------
+%     function ret = NeedSaveProject(obj)
+%       ret = obj.savewindowfeatures;
+%     end
+%     
+%     function ResetSaveProject(obj)
+%       obj.savewindowfeatures = false;
+%     end
+
     %----------------------------------------------------------------------
     
     function SaveProject(obj)
@@ -3396,21 +3410,23 @@ classdef JLabelData < handle
       if exist(configfilename,'file')
         [didbak,msg] = copyfile(configfilename,[configfilename '~']);
         if ~didbak,
-          warning('Could not create backup of %s: %s',configfilename,msg);  %#ok
+          warning('Could not create backup of %s: %s',configfilename,msg);  
         end
       end
       
       save(configfilename,'windowfeatures','-append');
-      obj.ResetSaveProject();
+      %obj.ResetSaveProject();
     end
     
-    %----------------------------------------------------------------------
     
+    % ---------------------------------------------------------------------
     function [windowfeaturesparams,windowfeaturescellparams] = GetPerframeParams(obj)
       windowfeaturesparams = obj.windowfeaturesparams; %#ok<PROP>
       windowfeaturescellparams = obj.windowfeaturescellparams; %#ok<PROP>
     end  
     
+    
+    % ---------------------------------------------------------------------
     function [filenames,timestamps] = GetPerframeFiles(obj,expi,dowrite)
     % [filenames,timestamps] = GetPerFrameFiles(obj,file,expi)
     % Get the full path to the per-frame mat files for experiment expi
@@ -3465,6 +3481,8 @@ classdef JLabelData < handle
       end
     end
     
+    
+    % ---------------------------------------------------------------------
     function [success,msg,missingfiles] = UpdateStatusTable(obj,filetypes,expis)
     % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
     % Update the tables of what files exist for what experiments. This
@@ -5088,8 +5106,8 @@ classdef JLabelData < handle
       
     end
     
-    % ---------------------------------------------------------------------
     
+    % ---------------------------------------------------------------------
     function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize,dotrain)
     % Updates the feature params. Called by SelectFeatures
       if ~isempty(obj.classifier),
@@ -5107,7 +5125,7 @@ classdef JLabelData < handle
         obj.basicFeatureTable = basicFeatureTable;
         obj.featureWindowSize = featureWindowSize;
       end
-      obj.savewindowfeatures = true;
+      %obj.savewindowfeatures = true;  
 
       obj.ClearWindowData();
       obj.classifier = [];
@@ -5120,6 +5138,8 @@ classdef JLabelData < handle
       % TODO: remove clearwindow features.
     end
     
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = PreLoadLabeledData(obj)
     % [success,msg] = PreLoadLabeledData(obj)
     % This function precomputes any missing window data for all labeled
@@ -5149,13 +5169,6 @@ classdef JLabelData < handle
       end
       success = true;
       
-    end
-    
-    function ShowSelectFeatures(obj)
-      obj.SetStatus('Set the window computation features...');
-      selHandle = SelectFeatures(obj,obj.scoresasinput);
-      uiwait(selHandle);
-      obj.ClearStatus();
     end
     
     function wsize = GetFeatureWindowSize(obj)
@@ -5782,7 +5795,7 @@ classdef JLabelData < handle
                 obj.predictblocks.expi(end+1) = expi;
                 obj.predictblocks.flies(end+1) = flies;
             else
-                warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);  %#ok       
+                warning('Trying to add interval to predict with t0 = %d > t1 = %d, not doing this. MAYANK, IS THIS RIGHT??',t0,t1);         
             end
           end
           
@@ -5941,7 +5954,7 @@ classdef JLabelData < handle
       allScores.postprocessparams = obj.postprocessparams;
       
       for flies = 1:numFlies
-        [i0s i1s] = get_interval_ends(allScores.scores{flies}>0);
+        [i0s,i1s] = get_interval_ends(allScores.scores{flies}>0);
         allScores.t0s{flies} = i0s;
         allScores.t1s{flies} = i1s;
       end
@@ -6295,7 +6308,7 @@ classdef JLabelData < handle
         diffMat(:,ndx) = abs(obj.distMat(:,ndx)-curD(ndx));
       end
       dist2train = nanmean(diffMat,2)*200;
-      [rr rrNdx] = sort(dist2train,'ascend');
+      [rr,rrNdx] = sort(dist2train,'ascend');
       
       if~outOfTraining
         rr = rr(2:end);  %#ok
@@ -6814,7 +6827,7 @@ classdef JLabelData < handle
               suggestedidx( obj.predictdata{expi}{fly}.t) = ...
                 obj.NormalizeScores(obj.predictdata{expi}{fly}.loaded) > ...
                 -obj.thresholdGTSuggestions;
-              [t0s t1s] = get_interval_ends(suggestedidx);
+              [t0s,t1s] = get_interval_ends(suggestedidx);
               for ndx = 1:numel(t0s)
                 if t1s(ndx)< T0, continue ; end
                 fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,t0s(ndx),t1s(ndx));

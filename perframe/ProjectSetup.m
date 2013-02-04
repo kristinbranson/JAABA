@@ -76,22 +76,8 @@ handles.figureJLabel=figureJLabel;
 handles.figureJLabelEditFiles=figureJLabelEditFiles;
 handles.configParams = configParams;
 
-buttons = findall(hObject,'Style','pushbutton');
-for ndx = 1:numel(buttons)
-  %SetButtonImage(buttons(ndx));
-  adjustNonLabelButtonColor(buttons(ndx));
-end
-
-buttons = findall(hObject,'Style','togglebutton');
-for ndx = 1:numel(buttons)
-  %SetButtonImage(buttons(ndx));
-  adjustNonLabelButtonColor(buttons(ndx));
-end
-
-if ismac, % On mac change the foreground color to black.
-  allpopups = findall(hObject,'Style','popup');
-  set(allpopups,'ForegroundColor',[0 0 0]);
-end
+% Change a few things so they still work well on Mac
+adjustColorsIfMac(hObject);
 
 curPos = get(handles.figureProjectSetup,'Position');
 tablePos = get(handles.config_table,'Position');

@@ -97,15 +97,7 @@ ClearStatus(handles);
 %  'JLabelSplashHandle',handles.guidata.hsplash);
 
 % Change a few things so they still work well on Mac
-if ismac(),
-  allpopups = findall(hObject,'type','uicontrol','Style','popup');
-  set(allpopups,'ForegroundColor',[0 0 0], ...
-                'BackgroundColor',[1 1 1]);
-  pushbuttons=findall(hObject,'type','uicontrol','Style','pushbutton');
-  adjustNonLabelButtonColor(pushbuttons)
-  togglebuttons=findall(hObject,'type','uicontrol','Style','togglebutton');
-  adjustNonLabelButtonColor(togglebuttons)
-end
+adjustColorsIfMac(hObject);
 
 % % read configuration
 % handles.guidata.configfilename='params/featureConfig.xml';
@@ -2053,11 +2045,12 @@ handles.doplottracks = true;
 % bookmarked clips windows
 handles.guidata.bookmark_windows = [];
 
-% whether to plot manual labels or automatic labels
-handles.guidata.plot_labels_manual = true;
-handles.guidata.plot_labels_automatic = false;
-set(handles.menu_view_manual_labels,'Checked','on');
-set(handles.menu_view_automatic_labels,'Checked','off');
+% Just leave these alone, since they're already set
+% % whether to plot manual labels or automatic labels
+% handles.guidata.plot_labels_manual = true;
+% handles.guidata.plot_labels_automatic = false;
+% set(handles.menu_view_manual_labels,'Checked','on');
+% set(handles.menu_view_automatic_labels,'Checked','off');
 
 buttonNames = {'pushbutton_train','pushbutton_predict',...
               'togglebutton_select','pushbutton_clearselection',...
@@ -2389,9 +2382,7 @@ if thereIsAnOpenFile
 else
   nExps=0;
 end
-someExperimentIsCurrent=thereIsAnOpenFile && ...
-                        handles.guidata.expi >= 1 && ...
-                        handles.guidata.expi <= nExps;
+someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
                      handles.guidata.GUIGroundTruthingMode;
 %inNormalMode=~inGroundTruthingMode;
@@ -2786,18 +2777,16 @@ if ~proceed,
 end
 handles=guidata(gcbf);
 
-if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
-  res = questdlg(['Current window features do not match the ones in the project file.'...
-      'Update the project file with the current window features?'],...
-      'Update?','Yes','No','Cancel','Yes');
-  if strcmpi(res,'Yes')
-    menu_file_save_project_Callback(hObject,eventdata,handles);
-  elseif strcmpi(res,'Cancel');
-    return;
-  end
-    
-    
-end  
+% if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
+%   res = questdlg(['Current window features do not match the ones in the project file.'...
+%       'Update the project file with the current window features?'],...
+%       'Update?','Yes','No','Cancel','Yes');
+%   if strcmpi(res,'Yes')
+%     menu_file_save_project_Callback(hObject,eventdata,handles);
+%   elseif strcmpi(res,'Cancel');
+%     return;
+%   end
+% end  
 
 if ~isempty(handles.guidata.movie_fid) && ...
     handles.guidata.movie_fid > 1 && ~isempty(fopen(handles.guidata.movie_fid)),
@@ -5849,40 +5838,61 @@ set(handles.timeline_label_automatic,'Value',1);
 UpdatePlotLabels(handles);
 guidata(hObject,handles);
 
+
 % --------------------------------------------------------------------
 function UpdatePlotLabels(handles)
 
+% Always update the menu item checkboxes
+set(handles.menu_view_manual_labels, ...
+    'Checked',onIff(handles.guidata.plot_labels_manual));
+set(handles.menu_view_automatic_labels, ...
+    'Checked',onIff(handles.guidata.plot_labels_automatic));
+
+% If there's no current experiment, we're done  
+someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+if ~someExperimentIsCurrent,
+  return
+end
+
 if handles.guidata.plot_labels_manual,
   set(handles.guidata.hlabels,'Visible','on');
-  set(handles.menu_view_manual_labels,'Checked','on');
-  set(handles.timeline_label_manual,'ForegroundColor',handles.guidata.emphasiscolor,'FontWeight','bold');
+  set(handles.timeline_label_manual, ...
+      'ForegroundColor',handles.guidata.emphasiscolor, ...
+      'FontWeight','bold');
 else
   set(handles.guidata.hlabels,'Visible','off');
-  set(handles.menu_view_manual_labels,'Checked','off');
-  set(handles.menu_view_manual_labels,'Checked','off');
-  set(handles.timeline_label_manual,'ForegroundColor',handles.guidata.unemphasiscolor,'FontWeight','normal');
+  set(handles.timeline_label_manual, ...
+      'ForegroundColor',handles.guidata.unemphasiscolor, ...
+      'FontWeight','normal');
 end
 if handles.guidata.plot_labels_automatic,
   set(handles.guidata.hpredicted,'Visible','on');
-  set(handles.menu_view_automatic_labels,'Checked','on');
-  set(handles.timeline_label_automatic,'ForegroundColor',handles.guidata.emphasiscolor,'FontWeight','bold');
+  set(handles.timeline_label_automatic, ...
+      'ForegroundColor',handles.guidata.emphasiscolor, ...
+      'FontWeight','bold');
 else
   set(handles.guidata.hpredicted,'Visible','off');
-  set(handles.menu_view_automatic_labels,'Checked','off');
-  set(handles.timeline_label_automatic,'ForegroundColor',handles.guidata.unemphasiscolor,'FontWeight','normal');
+  set(handles.timeline_label_automatic, ...
+      'ForegroundColor',handles.guidata.unemphasiscolor, ...
+      'FontWeight','normal');
 end
 
 UpdatePlots(handles,...
-  'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_auto',false,...
-  'refresh_timeline_suggest',false,...
-  'refresh_timeline_error',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_props',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+            'refreshim',false, ...
+            'refreshflies',true, ...
+            'refreshtrx',false, ...
+            'refreshlabels',true,...
+            'refresh_timeline_manual',false,...
+            'refresh_timeline_auto',false,...
+            'refresh_timeline_suggest',false,...
+            'refresh_timeline_error',false,...
+            'refresh_timeline_xlim',false,...
+            'refresh_timeline_hcurr',false,...
+            'refresh_timeline_props',false,...
+            'refresh_timeline_selection',false,...
+            'refresh_curr_prop',false);
+
+return
 
 
 % --------------------------------------------------------------------
@@ -5978,14 +5988,16 @@ function menu_classifier_select_features_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_select_features (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.ShowSelectFeatures();
-handles = UpdatePrediction(handles);
-
-if handles.guidata.data.NeedSaveProject();
-  set(handles.menu_file_save_project,'Enable','on');
+% handles=ShowSelectFeatures(handles);
+selHandle=SelectFeatures(handles.figure_JLabel);
+uiwait(selHandle);
+someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+if ~someExperimentIsCurrent,
+  return
 end
-
+handles = UpdatePrediction(handles);
 guidata(hObject,handles);
+return
 
   
 % -------------------------------------------------------------------------
@@ -7329,11 +7341,13 @@ end
 fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
+% construct the structure that will be saved in the everything file
 s=struct;
 s.featureConfigParams=data.featureConfigParams;
 s.saveableClassifier=data.getSaveableClassifier();
 [s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
 s.projectParams=handles.guidata.configparams;  %#ok
+% write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
 catch  %#ok
@@ -8141,3 +8155,26 @@ ClearStatus(handles);
 guidata(figureJLabel,handles);
 
 return
+
+
+% ------------------------------------------------------------------------ 
+function ShowSelectFeatures(handles)
+%SetStatus('Set the window computation features...');
+selHandle=SelectFeatures(handles.figure_JLabel);
+uiwait(selHandle);
+%ClearStatus(handles);
+
+return    
+
+
+% ------------------------------------------------------------------------ 
+function perFrameFeaturesMayHaveChanged(figureJLabel)
+% Called by SelectFeatures after the user clicks on "Done", tells us that
+% the per-frame features may have been changed.
+handles=guidata(figureJLabel);
+handles.guidata.needsave=true;
+guidata(figureJLabel,handles);
+UpdateGUIToMatchFileAndExperimentState(handles);
+
+return    
+
