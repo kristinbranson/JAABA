@@ -5989,14 +5989,14 @@ function menu_classifier_select_features_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % handles=ShowSelectFeatures(handles);
-selHandle=SelectFeatures(handles.figure_JLabel);
-uiwait(selHandle);
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
-if ~someExperimentIsCurrent,
-  return
-end
-handles = UpdatePrediction(handles);
-guidata(hObject,handles);
+SelectFeatures(handles.figure_JLabel);
+% uiwait(selHandle);
+% someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+% if ~someExperimentIsCurrent,
+%   return
+% end
+% handles = UpdatePrediction(handles);
+% guidata(hObject,handles);
 return
 
   
@@ -8157,14 +8157,14 @@ guidata(figureJLabel,handles);
 return
 
 
-% ------------------------------------------------------------------------ 
-function ShowSelectFeatures(handles)
-%SetStatus('Set the window computation features...');
-selHandle=SelectFeatures(handles.figure_JLabel);
-uiwait(selHandle);
-%ClearStatus(handles);
-
-return    
+% % ------------------------------------------------------------------------ 
+% function ShowSelectFeatures(handles)
+% %SetStatus('Set the window computation features...');
+% SelectFeatures(handles.figure_JLabel);
+% %uiwait(selHandle);
+% %ClearStatus(handles);
+% 
+% return    
 
 
 % ------------------------------------------------------------------------ 
@@ -8173,8 +8173,12 @@ function perFrameFeaturesMayHaveChanged(figureJLabel)
 % the per-frame features may have been changed.
 handles=guidata(figureJLabel);
 handles.guidata.needsave=true;
-guidata(figureJLabel,handles);
 UpdateGUIToMatchFileAndExperimentState(handles);
+someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+if someExperimentIsCurrent,
+  handles = UpdatePrediction(handles);
+end
+guidata(figureJLabel,handles);
 
 return    
 
