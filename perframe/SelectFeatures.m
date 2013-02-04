@@ -44,7 +44,7 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before SelectFeatures is made visible.
+% --- Executes just before SelectFeatures is made visible.-----------------
 function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
@@ -52,14 +52,13 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to SelectFeatures (see VARARGIN)
 
-if ismac, % On mac change the foreground color to black.
-  allpopups = findall(hObject,'Style','popup');
-  set(allpopups,'ForegroundColor',[0 0 0]);
-end
+% Change a few things so they still work well on Mac
+adjustColorsIfMac(hObject);
 
 % Choose default command line output for SelectFeatures
-set(hObject,'Visible','off');
-JLDobj = varargin{1};
+figureJLabel = varargin{1};
+handles.figureJLabel=figureJLabel;
+JLDobj = JLabel('getJLabelData',figureJLabel);
 handles.output = hObject;
 
 handles.mode = 'basic';
@@ -71,17 +70,21 @@ handles.advancedSize = curPos(3:4);
 handles.basicSize = [reducedWidth reducedHeight];
 set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
 
-handles.scoresasinput = varargin{2};
+%handles.scoresasinput = varargin{2};
+handles.scoresasinput = JLDobj.scoresasinput;
 
 % Update handles structure
 guidata(hObject, handles);
 
 set(handles.pfTable,'UserData',0);
 setJLDobj(hObject,JLDobj);
-set(hObject,'Visible','on');
-removeRowHeaders(hObject); pause(0.5);
+set(hObject,'Visible','on');  % have to do this b/c of Java hacking
+removeRowHeaders(hObject); 
+pause(0.5);
 % uiwait(hObject);
 % UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
+
+return
 
 
 % --- Outputs from this function are returned to the command line.
@@ -93,7 +96,10 @@ function varargout = SelectFeatures_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+return
 
+
+% -------------------------------------------------------------------------
 function setJLDobj(hObject,JLDobj)
 % Set the JLabelDataObject.
 handles = guidata(hObject);
@@ -115,10 +121,13 @@ handles.defaultWinParams = {10,1,3,{'none'},0};
 
 guidata(hObject,handles);
 
-[params,~] = handles.JLDobj.GetPerframeParams();
-initData(hObject,params);
+windowFeatureParams = handles.JLDobj.GetPerframeParams();
+initData(hObject,windowFeatureParams);
+
+return
 
 
+% -------------------------------------------------------------------------
 function createWindowTable(hObject)
 % Sets values for the window table.
 
@@ -286,6 +295,7 @@ uipanel_tabs_SelectionChangeFcn(handles.uipanel_tabs, struct('NewValue',handles.
 
 guidata(hObject,handles);
 
+% -------------------------------------------------------------------------
 % Initialize the data structure.
 function initData(hObject,params)
 readFeatureConfiguration(hObject);
@@ -429,6 +439,8 @@ createCopyFromMenus(hObject);
 createDescriptionPanels(hObject);
 compatibleBasicAdvanced(handles);
 
+
+% -------------------------------------------------------------------------
 function readFeatureConfiguration(hObject)
 % Reads the configuration file that sets the default parameters.
 
@@ -920,20 +932,23 @@ else
   set(handles.extraParamStatic,'String','Feature Specific');
 end
 
-function [params, cellparams] = convertData(handles)
+
+% -------------------------------------------------------------------------
+function [windowFeatureParams, windowFeatureParamsInCellForm] = ...
+  convertData(handles)
 % Converts the data into format used by JLabelData.
 
-params = struct;
+windowFeatureParams = struct;
 
 for ndx = 1:numel(handles.pfList)
   curPf = handles.pfList{ndx};
   if ~handles.data{ndx}.valid; continue;end
   curD = handles.data{ndx};
-  params.(curPf).sanitycheck = curD.sanitycheck;
+  windowFeatureParams.(curPf).sanitycheck = curD.sanitycheck;
   
   for winParamsNdx = 1:numel(handles.winParams)
     curType = handles.winParams{winParamsNdx};
-    params.(curPf).(curType) = curD.default.values.(curType);
+    windowFeatureParams.(curPf).(curType) = curD.default.values.(curType);
   end
   
   for winfnNdx = 2:numel(handles.windowComp)
@@ -942,13 +957,13 @@ for ndx = 1:numel(handles.pfList)
     if curD.(curFn).valid,
       for winParamsNdx = 1:numel(handles.winParams)
         curType = handles.winParams{winParamsNdx};
-        params.(curPf).(curFn).(curType) =...
+        windowFeatureParams.(curPf).(curFn).(curType) =...
             curD.(curFn).values.(curType);
       end
       if ~isempty(handles.winextraParams{winfnNdx})
         extraParam = handles.winextraParams{winfnNdx};
         extraParamVal = curD.(curFn).values.(extraParam);
-        params.(curPf).(curFn).(extraParam) = extraParamVal;
+        windowFeatureParams.(curPf).(curFn).(extraParam) = extraParamVal;
       end
     end
     
@@ -956,26 +971,14 @@ for ndx = 1:numel(handles.pfList)
 
 end
 
-% Code from ReadPerFrameParams.
-cellparams = struct;
-fns1 = fieldnames(params);
-for i1 = 1:numel(fns1),
-  fn1 = fns1{i1};
-  fns2 = fieldnames(params.(fn1));
-  cellparams.(fn1) = {};
-  feature_types = {};
-  for i2 = 1:numel(fns2),
-    fn2 = fns2{i2};
-    if ~isstruct(params.(fn1).(fn2)),
-      cellparams.(fn1)(end+1:end+2) = {fn2,params.(fn1).(fn2)};
-    else
-      cellparams.(fn1)(end+1:end+2) = {[fn2,'_params'],struct2paramscell(params.(fn1).(fn2))};
-      feature_types{end+1} = fn2; %#ok<AGROW>
-    end
-  end
-  cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
-end
+% Convert the params to their cell-based form.
+windowFeatureParamsInCellForm= ...
+  JLabelData.convertParams2CellParams(windowFeatureParams);
 
+return
+
+
+% -------------------------------------------------------------------------
 function docNode = createParamsXML(params,basicData,inFeatureWindowSize)
 docNode = com.mathworks.xml.XMLUtils.createDocument('configuration');
 toc = docNode.getDocumentElement;
@@ -1283,6 +1286,7 @@ uiresume(handles.figure1);
 delete(handles.figure1);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_done.
 function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
@@ -1291,12 +1295,18 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = str2double(get(handles.editSize,'String'));
-[params,cellParams] = convertData(handles);
+[windowFeatureParams,windowFeatureParamsInCellForm] = convertData(handles);
 set(handles.output,'Visible','off');
-handles.JLDobj.UpdatePerframeParams(params,cellParams,basicData,featureWindowSize);
+handles.JLDobj.UpdatePerframeParams(windowFeatureParams, ...
+                                    windowFeatureParamsInCellForm, ...
+                                    basicData, ...
+                                    featureWindowSize);
+% notify the JLabel 'object' that the per-frame features may have changed                                  
+JLabel('perFrameFeaturesMayHaveChanged',handles.figureJLabel);                                  
+return
 
 
-
+% -------------------------------------------------------------------------
 function ExtraParams_Callback(hObject, eventdata, handles)
 % hObject    handle to ExtraParams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
