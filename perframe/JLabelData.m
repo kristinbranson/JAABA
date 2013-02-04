@@ -854,11 +854,11 @@ classdef JLabelData < handle
         if isfield(configparams,'windowfeatures') && isfield(configparams.windowfeatures,'basicFeatureTable')
           obj.basicFeatureTable = configparams.windowfeatures.basicFeatureTable;
           obj.featureWindowSize = configparams.windowfeatures.featureWindowSize;
-          configparams.windowfeatures.windowfeaturesparams = JLabelData.convertTransTypes2Cell(configparams.windowfeatures.windowfeaturesparams);
-          configparams.windowfeatures.windowfeaturescellparams = JLabelData.convertParams2CellParams(configparams.windowfeatures.windowfeaturesparams);
-
-          obj.SetPerframeParams(configparams.windowfeatures.windowfeaturesparams,...
-                                configparams.windowfeatures.windowfeaturescellparams);
+          configparams.windowfeatures.windowfeaturesparams = ...
+            JLabelData.convertTransTypes2Cell(configparams.windowfeatures.windowfeaturesparams);
+          configparams.windowfeatures.windowfeaturescellparams = ...
+            JLabelData.convertParams2CellParams(configparams.windowfeatures.windowfeaturesparams);
+          obj.SetPerframeParams(configparams.windowfeatures.windowfeaturesparams);
         end
         
         if isfield(configparams,'perframe'),
@@ -1675,8 +1675,8 @@ classdef JLabelData < handle
             str = sprintf('%s\nUsing parameters stored in the classifier file',str);
             uiwait(warndlg(str));
             obj.UpdatePerframeParams(classifierParams.windowfeaturesparams,...
-                classifierParams.windowfeaturescellparams,classifierParams.basicFeatureTable,...
-                classifierParams.featureWindowSize);
+                                     classifierParams.basicFeatureTable,...
+                                     classifierParams.featureWindowSize);
         end
       end
 
@@ -1856,10 +1856,9 @@ classdef JLabelData < handle
       
       % Read the per-frame features to be used by a classifier
       windowFeaturesParams=classifierParams.windowfeaturesparams;
-      windowFeaturesCellParams= ...
-        JLabelData.convertParams2CellParams(windowFeaturesParams);
-      self.SetPerframeParams(windowFeaturesParams, ...
-                             windowFeaturesCellParams);
+      %windowFeaturesCellParams= ...
+      %  JLabelData.convertParams2CellParams(windowFeaturesParams);
+      self.SetPerframeParams(windowFeaturesParams);
       %self.windowfeaturesparams=classifierParams.windowfeaturesparams;
       %self.windowfeaturescellparams= ...
       %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
@@ -1963,7 +1962,7 @@ classdef JLabelData < handle
                 str = sprintf('%s\nUsing parameters stored in the classifier file',str);
                 uiwait(warndlg(str));
                 obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
-                  loadeddata.windowfeaturescellparams,loadeddata.basicFeatureTable,...
+                  loadeddata.basicFeatureTable,...
                   loadeddata.featureWindowSize,false);
             else
               obj.MoveCurPredictionsToOld();
@@ -3369,9 +3368,9 @@ classdef JLabelData < handle
 %         return;
 %       end
       windowfeaturesparams = JLabelData.convertTransTypes2Cell(windowfeaturesparams);
-      windowfeaturescellparams = JLabelData.convertParams2CellParams(windowfeaturesparams);
+      %windowfeaturescellparams = JLabelData.convertParams2CellParams(windowfeaturesparams);
 
-      obj.SetPerframeParams(windowfeaturesparams,windowfeaturescellparams); %#ok<PROP>
+      obj.SetPerframeParams(windowfeaturesparams);
       obj.featureparamsfilename = featureparamsfilename;
       obj.basicFeatureTable = basicFeatureTable;
       obj.featureWindowSize = featureWindowSize;
@@ -3380,10 +3379,12 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function SetPerframeParams(obj,windowfeaturesparams,windowfeaturescellparams)
-      obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
-      obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
-      obj.curperframefns = fieldnames(windowfeaturesparams);
+    function SetPerframeParams(obj,windowFeaturesParams)
+      obj.windowfeaturesparams = windowFeaturesParams;
+      windowFeaturesCellParams= ...
+        JLabelData.convertParams2CellParams(windowFeaturesParams);
+      obj.windowfeaturescellparams = windowFeaturesCellParams;
+      obj.curperframefns = fieldnames(windowFeaturesParams);
     end  
     
     
@@ -5111,7 +5112,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function UpdatePerframeParams(obj,params,cellParams,basicFeatureTable,featureWindowSize,dotrain)
+    function UpdatePerframeParams(obj,params,basicFeatureTable,featureWindowSize,dotrain)
     % Updates the feature params. Called by SelectFeatures
       if ~isempty(obj.classifier),
         hasClassifier = true;
@@ -5123,7 +5124,7 @@ classdef JLabelData < handle
         dotrain = true;
       end
       
-      obj.SetPerframeParams(params,cellParams);
+      obj.SetPerframeParams(params);
       if nargin>2
         obj.basicFeatureTable = basicFeatureTable;
         obj.featureWindowSize = featureWindowSize;

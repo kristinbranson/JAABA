@@ -934,8 +934,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function [windowFeatureParams, windowFeatureParamsInCellForm] = ...
-  convertData(handles)
+function windowFeatureParams = convertData(handles)
 % Converts the data into format used by JLabelData.
 
 windowFeatureParams = struct;
@@ -970,10 +969,6 @@ for ndx = 1:numel(handles.pfList)
   end
 
 end
-
-% Convert the params to their cell-based form.
-windowFeatureParamsInCellForm= ...
-  JLabelData.convertParams2CellParams(windowFeatureParams);
 
 return
 
@@ -1295,10 +1290,9 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = str2double(get(handles.editSize,'String'));
-[windowFeatureParams,windowFeatureParamsInCellForm] = convertData(handles);
+windowFeaturesParams = convertData(handles);
 set(handles.output,'Visible','off');
-handles.JLDobj.UpdatePerframeParams(windowFeatureParams, ...
-                                    windowFeatureParamsInCellForm, ...
+handles.JLDobj.UpdatePerframeParams(windowFeaturesParams, ...
                                     basicData, ...
                                     featureWindowSize);
 % notify the JLabel 'object' that the per-frame features may have changed                                  
@@ -1353,7 +1347,7 @@ if ~fName
   return;
 end
 
-[params,~] = convertData(handles);
+params = convertData(handles);
 basicData = get(handles.basicTable,'Data');
 featureWindowSize = round(str2double(get(handles.editSize,'String')));
 docNode = createParamsXML(params,basicData,featureWindowSize);
@@ -1781,7 +1775,7 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % end
 % 
 % featureconfigfile = configparams.file.featureparamfilename;
-% [params,~] = convertData(handles);
+% params = convertData(handles);
 % basicData = get(handles.basicTable,'Data');
 % featureWindowSize = round(str2double(get(handles.editSize,'String')));
 % docNode = createParamsXML(params,basicData,featureWindowSize);
