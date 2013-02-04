@@ -71,7 +71,7 @@ classdef JLabelData < handle
     % frame t of the movie. labelidx(i) == 0 corresponds to
     % unlabeled/unknown, otherwise labelidx(i) corresponds to behavior
     % labelnames{labelidx{i})
-    labelidx = struct('val',[],'imp',[],'timestamp',[]);
+    labelidx = struct('vals',[],'imp',[],'timestamp',[]);
     labelidx_off = 0;
     
     labelsLoadedFromClassifier = false;
@@ -2306,7 +2306,7 @@ classdef JLabelData < handle
           
       % Take the labels currently only in labelidx, and commit them to
       % self.labels
-      self.StoreLabels();
+      self.StoreLabelsAndThatsAll();
       
       % return the labels
       labels=self.labels;
@@ -2337,7 +2337,7 @@ classdef JLabelData < handle
       end
       
       % store labels in labelidx
-      obj.StoreLabels();
+      obj.StoreLabelsAndPreLoadWindowData();
       
       for i = expis,
         
@@ -2398,7 +2398,7 @@ classdef JLabelData < handle
       end
       
       % store labels in labelidx
-      obj.StoreLabels();
+      obj.StoreLabelsAndPreLoadWindowData();
       
       for i = expis,
 
@@ -4039,7 +4039,7 @@ classdef JLabelData < handle
 
       if ~isempty(obj.expi) && obj.expi > 0,
         % store labels currently in labelidx to labels
-        obj.StoreLabels();
+        obj.StoreLabelsAndPreLoadWindowData();
       end
       
       if diffexpi,
@@ -4455,7 +4455,8 @@ classdef JLabelData < handle
 
       % cache these labels if current experiment and flies selected
       if expi == obj.expi && all(flies == obj.flies),
-        obj.StoreLabels();
+        obj.StoreLabelsAndPreLoadWindowData();
+        %obj.StoreLabelsAndThatsAll();
       end
       
       if obj.IsGTMode()
@@ -4486,19 +4487,31 @@ classdef JLabelData < handle
       
     end
 
+
+    % ---------------------------------------------------------------------
+    function StoreLabelsAndThatsAll(obj)
+      % Store labels cached in labelidx for the current experiment and flies
+      % to labels structure. This is when the timestamp on labels gets
+      % updated. 
+      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
+        return;
+      end      
+      obj.StoreLabelsForGivenAnimal(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
+    end
+      
     
     % ---------------------------------------------------------------------
-    function StoreLabels(obj)
+    function StoreLabelsAndPreLoadWindowData(obj)
     % Store labels cached in labelidx for the current experiment and flies
     % to labels structure. This is when the timestamp on labels gets
-    % updated. 
+    % updated.  Also preloads the window data if not in GT mode.
       
       % flies not yet initialized
       if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
         return;
       end
       
-      obj.StoreLabels1(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
+      obj.StoreLabelsAndThatsAll();
             
       % preload labeled window data while we have the per-frame data loaded
       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
@@ -4508,6 +4521,7 @@ classdef JLabelData < handle
           warning(msg);
         end
       end
+      
       % update windowdata's labelidx_new
       if ~isempty(obj.windowdata.exp),
         idxcurr = obj.windowdata.exp == obj.expi & ...
@@ -4522,7 +4536,7 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function StoreLabels1(obj,expi,flies,labelidx,labelidx_off)
+    function StoreLabelsForGivenAnimal(obj,expi,flies,labelidx,labelidx_off)
       
       % update labels
       newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
@@ -4698,7 +4712,7 @@ classdef JLabelData < handle
         labelidx.vals(ts+1-T0) = behaviori;
         labelidx.imp(ts+1-T0) = important;
         labelidx.timestamp(ts+1-T0) = now;
-        obj.StoreLabels1(expi,flies,labelidx,1-T0);        
+        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);        
       end
       
     end
@@ -4874,8 +4888,14 @@ classdef JLabelData < handle
       if ~exist('forceCalc','var'), forceCalc = false; end
       
       % Check if the features have been configured.
+      % I really don't like this.  The JLabelData is pretty close to being a
+      % model in the MVC sense.  As such, it shouldn't be creating a view.
+      % Not clear to me what the best way to fix this is, though.
+      % --ALT, Feb 4, 2013
       if isempty(fieldnames(obj.windowfeaturesparams))
-        obj.ShowSelectFeatures();
+        figureJLabel=findall(0,'tag','figure_JLabel');
+        figureSelectFeatures=SelectFeatures(figureJLabel);
+        uiwait(figureSelectFeatures);
         if isempty(fieldnames(obj.windowfeaturesparams))
           error('No features selected!');
         end
@@ -5136,7 +5156,7 @@ classdef JLabelData < handle
       obj.classifier_old = [];
       obj.PreLoadLabeledData();
       if hasClassifier && dotrain,
-        obj.StoreLabels();
+        obj.StoreLabelsAndPreLoadWindowData();
         obj.Train();
       end
       % TODO: remove clearwindow features.
@@ -6041,7 +6061,7 @@ classdef JLabelData < handle
     function [success,msg,crossError,tlabels] = CrossValidate(obj,varargin)
     % Cross validate on bouts.
       
-      obj.StoreLabels();
+      obj.StoreLabelsAndPreLoadWindowData();
       
       [success,msg] = obj.PreLoadLabeledData();
       if ~success, 
@@ -6147,7 +6167,7 @@ classdef JLabelData < handle
     end
     
     function newError = TestOnNewLabels(obj)
-      obj.StoreLabels();
+      obj.StoreLabelsAndPreLoadWindowData();
       [success,msg] = obj.PreLoadLabeledData();
       if ~success,
         warning(msg);
@@ -6221,7 +6241,7 @@ classdef JLabelData < handle
 
     function DoBagging(obj)
 
-      obj.StoreLabels();
+      obj.StoreLabelsAndPreLoadWindowData();
       [success,msg] = obj.PreLoadLabeledData();
       if ~success, warning(msg);return;end
 
@@ -6434,7 +6454,7 @@ classdef JLabelData < handle
       % and change in scores.
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
       
-      obj.StoreLabels();
+      obj.StoreLabelsAndPreLoadWindowData();
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
       if ism,
         flyStats.nbouts = numel(obj.labels(expi).t0s{j});
@@ -6957,7 +6977,7 @@ classdef JLabelData < handle
     
     function crossError = GetGTPerformance(obj)
       % Computes the performance on the GT data.
-      obj.StoreLabels();
+      obj.StoreLabelsAndPreLoadWindowData();
       crossError.numbers = zeros(4,3);
       crossError.frac = zeros(4,3);
 
@@ -7292,7 +7312,7 @@ classdef JLabelData < handle
     function s=getSaveableClassifier(self)
       % Extracts all the things needed to save the classifier, stores them
       % in a scalar struct, which is returned.
-      self.StoreLabels();  % flush the cache
+      self.StoreLabelsAndThatsAll();  % make sure current labels are committed
       s = struct;  % struct to be returned
       s.classifierTS = self.classifierTS;
       s.trainingdata = self.SummarizeTrainingData();
@@ -7381,7 +7401,8 @@ classdef JLabelData < handle
       % configparams.windowfeatures.basicFeatureTable in some way here...
     end  % method
   
-    % ---------------------------------------------------------------------
+    
+%     % ---------------------------------------------------------------------
 %     function initEverything(self,everythingParams)  % this should really be private
 %       if isfield(everythingParams,'configParams')
 %         self.SetConfigParams(everythingParams.configParams);
@@ -7389,7 +7410,7 @@ classdef JLabelData < handle
 %     end
     
 
-    % ---------------------------------------------------------------------
+%     % ---------------------------------------------------------------------
 %     function setLabelingMode(self,modeString)
 %       switch modeString,
 %         case 'Advanced',
@@ -7408,10 +7429,71 @@ classdef JLabelData < handle
 %       self.SetMode();
 %     end
 
-    % ---------------------------------------------------------------------
-      
 
-  end  % End methods block
+    % ---------------------------------------------------------------------
+    function result=getPerFrameFeatureSetIsNonEmpty(self)
+      % Returns true iff the current set of per-frame features in use
+      % is non-empty, i.e. contains at least one per-frame feature.
+      result=~isempty(fieldnames(self.windowfeaturesparams));
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function atLeastOneNormalLabelExists=getAtLeastOneNormalLabelExists(self)
+      % Returns true iff at least one normal (non-GT) label exists.
+      atLeastOneNormalLabelExists=false;
+      for i=1:self.nexps
+        if ~isempty(self.labels(i).t0s)
+          atLeastOneNormalLabelExists=true;
+          break
+        end
+      end
+      % If we haven't found any labels yet, check labelidx
+      if ~atLeastOneNormalLabelExists,
+        if any(self.labelidx.vals),
+          atLeastOneNormalLabelExists=true;
+        end
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function atLeastOneNormalLabelOfEachClassExists= ...
+      getAtLeastOneNormalLabelOfEachClassExists(self)
+      % Returns true iff at least one normal (non-GT) label exists for each
+      % class, e.g. at least one walking label and at least one not-walking
+      % label.
+      atLeastOneNormalLabelOfEachClassExists=false;
+      labelNamesSeenSoFar=cell(1,0);
+      for i=1:self.nexps
+        if isempty(self.labels(i).names),
+          labelNamesThis=cell(1,0);
+        else
+          labelNamesThis=self.labels(i).names{1};
+        end
+        labelNamesSeenThis=unique(labelNamesThis);
+        labelNamesSeenSoFar=union(labelNamesSeenSoFar,labelNamesSeenThis);
+        if length(labelNamesSeenSoFar)>=2
+          atLeastOneNormalLabelOfEachClassExists=true;
+          break
+        end
+      end
+      % If we haven't seen two different labels so far, check labelidx
+      if length(labelNamesSeenSoFar)<2,
+        valsInLabelIndex=unique(self.labelidx.vals);
+        valsInLabelIndex=valsInLabelIndex(valsInLabelIndex>0);
+          % ignore unknowns
+        labelNamesInLabelIndex=self.labelnames(valsInLabelIndex);
+        labelNamesSeenSoFar=union(labelNamesSeenSoFar,labelNamesInLabelIndex);
+        if length(labelNamesSeenSoFar)>=2
+          atLeastOneNormalLabelOfEachClassExists=true;
+        end
+      end        
+    end
+    
+    
+    % ---------------------------------------------------------------------
+end  % End methods block
   
 end % End class
 
