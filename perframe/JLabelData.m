@@ -1855,8 +1855,11 @@ classdef JLabelData < handle
       end
       
       % Read the per-frame features to be used by a classifier
-      self.SetPerframeParams(classifierParams.windowfeaturesparams, ...
-                             JLabelData.convertParams2CellParams(self.windowfeaturesparams));
+      windowFeaturesParams=classifierParams.windowfeaturesparams;
+      windowFeaturesCellParams= ...
+        JLabelData.convertParams2CellParams(windowFeaturesParams);
+      self.SetPerframeParams(windowFeaturesParams, ...
+                             windowFeaturesCellParams);
       %self.windowfeaturesparams=classifierParams.windowfeaturesparams;
       %self.windowfeaturescellparams= ...
       %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
