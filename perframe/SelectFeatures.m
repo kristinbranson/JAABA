@@ -152,6 +152,7 @@ set(handles.windowTable,'CellEditCallback',@windowEdit);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 function createPfTable(hObject)
 % Sets the values for feature table.
 
@@ -179,6 +180,8 @@ set(handles.pfTable,'CellEditCallback',@pfEdit);
 disableWindowTable(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function createFeatureTable(hObject)
 handles = guidata(hObject);
 
@@ -218,6 +221,8 @@ set(handles.basicTable,'ColumnWidth',{85,65,75});
 set(handles.basicTable,'CellSelectionCallback',@basicSelect);
 set(handles.basicTable,'CellEditCallback',@basicEdit);
 
+
+% -------------------------------------------------------------------------
 function removeRowHeaders(hObject)
 % Tweaking the table. Use underlying java objects to do that. Found
 % this at http://undocumentedmatlab.com/blog/uitable-sorting/
@@ -270,6 +275,7 @@ rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
 rowHeader.setSize(newWidth,height); 
 
 
+% -------------------------------------------------------------------------
 function createCopyFromMenus(hObject)
 
 handles = guidata(hObject);
@@ -282,6 +288,8 @@ set(handles.popupmenu_copy_windowtypes,'String',...
   [handles.pfList;{'---'}],...
   'Value',numel(handles.pfList)+1);
 
+
+% -------------------------------------------------------------------------
 function createDescriptionPanels(hObject)
 
 handles = guidata(hObject);
@@ -294,6 +302,7 @@ set(handles.togglebutton_tabperframehistogram,'Value',1);
 uipanel_tabs_SelectionChangeFcn(handles.uipanel_tabs, struct('NewValue',handles.togglebutton_tabdescription), handles);
 
 guidata(hObject,handles);
+
 
 % -------------------------------------------------------------------------
 % Initialize the data structure.
@@ -599,9 +608,11 @@ set(handles.editSize,'String',...
   num2str(handles.categ.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
 
 
-
+% -------------------------------------------------------------------------
 function basicSelect(hObject,eventData)
 
+
+% -------------------------------------------------------------------------
 function basicEdit(hObject,eventData)
 
 % the user selects the category
@@ -649,6 +660,8 @@ elseif eventData.Indices(2) == 3
   end
 end
 
+
+% -------------------------------------------------------------------------
 function handles = applyCategoryType(handles,basicNdx)
 basicData = get(handles.basicTable,'Data');
 curType = handles.pftypeList{basicNdx};
@@ -671,6 +684,8 @@ for ndx = 1:numel(handles.pfList)
   end
 end
 
+
+% -------------------------------------------------------------------------
 function compatibleBasicAdvanced(handles)
 basicTable = get(handles.basicTable,'Data');
 incompatible = '';
@@ -694,6 +709,8 @@ if numel(incompatible)>0
     'Mismatch in categories and perframe features'));
 end
 
+
+% -------------------------------------------------------------------------
 function pfSelect(hObject,eventData)
 % Called when user selects cells in pfTable.
 
@@ -741,6 +758,7 @@ guidata(hObject,handles);
 % set(hObject,'UserData',0);
 
 
+% -------------------------------------------------------------------------
 function pfEdit(hObject,eventData)
 % When a perframe feature is added or removed.
 
@@ -825,6 +843,7 @@ setWindowTable(handles,handles.pfNdx);
 % set(hObject,'UserData',0);
 
 
+% -------------------------------------------------------------------------
 function setWindowTable(handles,pfNdx)
 % Sets the data in window table based on selections made in pfTable.
 enableWindowTable(handles);
@@ -850,6 +869,7 @@ jtable = jscrollpane.getViewport.getView;
 jtable.changeSelection(0,0, false, false);
 
 
+% -------------------------------------------------------------------------
 function windowSelect(hObject,eventData)
 % Called when user selects cells in windowTable.
 
@@ -877,6 +897,7 @@ end
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 function windowEdit(hObject,eventData)
 % Called when a window function is edited.
 
@@ -894,6 +915,8 @@ else
   disableWinParams(handles);
 end
 
+
+% -------------------------------------------------------------------------
 function setCategoryToCustom(handles)
 curTypes = find(ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx})));
 basicData = get(handles.basicTable,'Data');
@@ -903,6 +926,7 @@ end
 set(handles.basicTable,'Data',basicData);
 
 
+% -------------------------------------------------------------------------
 function setWinParams(handles,winNdx)
 
 curFn = handles.windowComp{winNdx};
@@ -995,15 +1019,20 @@ toc.appendChild(createXMLNode(docNode,'params',params));
 % end
 
 
+% -------------------------------------------------------------------------
 function disableWindowTable(handles)
 set(handles.windowTable,'enable','off');
 set(handles.pushbutton_copy_windowtypes,'enable','off');
 disableWinParams(handles);
 
+
+% -------------------------------------------------------------------------
 function enableWindowTable(handles)
 set(handles.windowTable,'enable','on');
 set(handles.pushbutton_copy_windowtypes,'enable','on');
 
+
+% -------------------------------------------------------------------------
 function disableWinParams(handles)
 set(handles.MinWindow,'enable','off');
 set(handles.MaxWindow,'enable','off');
@@ -1016,6 +1045,8 @@ set(handles.TransRel,'enable','off');
 set(handles.ExtraParams,'enable','off');
 set(handles.pushbutton_copy_windowparams,'enable','off');
 
+
+% -------------------------------------------------------------------------
 function enableWinParams(handles)
 defBack = get(handles.text5,'BackgroundColor');
 defFore = [0 0 0];
@@ -1036,6 +1067,8 @@ set(handles.TransAbs,'enable','on');
 set(handles.TransRel,'enable','on');
 set(handles.pushbutton_copy_windowparams,'enable','on');
 
+
+% -------------------------------------------------------------------------
 function MinWindow_Callback(hObject, eventdata, handles)
 % hObject    handle to MinWindow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1067,6 +1100,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 function MaxWindow_Callback(hObject, eventdata, handles)
 % hObject    handle to MaxWindow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1084,6 +1118,7 @@ handles.data{handles.pfNdx}.(curFn).values.max_window_radius = curVal;
 guidata(hObject,handles);
 setCategoryToCustom(handles);
 
+
 % --- Executes during object creation, after setting all properties.
 function MaxWindow_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to MaxWindow (see GCBO)
@@ -1097,6 +1132,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 function WindowStep_Callback(hObject, eventdata, handles)
 % hObject    handle to WindowStep (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1128,6 +1164,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 function WindowOffsets_Callback(hObject, eventdata, handles)
 % hObject    handle to WindowOffsets (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1158,6 +1195,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in TransNone.
 function TransNone_Callback(hObject, eventdata, handles)
 % hObject    handle to TransNone (see GCBO)
@@ -1186,6 +1225,7 @@ guidata(hObject,handles);
 setCategoryToCustom(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in TransFlip.
 function TransFlip_Callback(hObject, eventdata, handles)
 % hObject    handle to TransFlip (see GCBO)
@@ -1214,6 +1254,7 @@ guidata(hObject,handles);
 setCategoryToCustom(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in TransAbs.
 function TransAbs_Callback(hObject, eventdata, handles)
 % hObject    handle to TransAbs (see GCBO)
@@ -1243,6 +1284,7 @@ guidata(hObject,handles);
 setCategoryToCustom(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in TransRel.
 function TransRel_Callback(hObject, eventdata, handles)
 % hObject    handle to TransRel (see GCBO)
@@ -1272,6 +1314,7 @@ guidata(hObject,handles);
 setCategoryToCustom(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in push_cancel.
 function push_cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to push_cancel (see GCBO)
@@ -1334,6 +1377,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in Save.
 function Save_Callback(hObject, eventdata, handles)
 % hObject    handle to Save (see GCBO)
@@ -1355,6 +1399,7 @@ fName = fullfile(pName,fName);
 xmlwrite(fName,docNode);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in Load.
 function Load_Callback(hObject, eventdata, handles)
 % hObject    handle to Load (see GCBO)
@@ -1373,6 +1418,7 @@ set(handles.basicTable,'Data',basicTable);
 set(handles.editSize,'String',num2str(windowSize));
 
 
+% -------------------------------------------------------------------------
 % --- Executes on selection change in popupmenu_copy_windowparams.
 function popupmenu_copy_windowparams_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmenu_copy_windowparams (see GCBO)
@@ -1383,6 +1429,7 @@ function popupmenu_copy_windowparams_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from popupmenu_copy_windowparams
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function popupmenu_copy_windowparams_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to popupmenu_copy_windowparams (see GCBO)
@@ -1396,6 +1443,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copy_windowparams.
 function pushbutton_copy_windowparams_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_copy_windowparams (see GCBO)
@@ -1427,6 +1475,7 @@ guidata(hObject,handles);
 setCategoryToCustom(handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on selection change in popupmenu_copy_windowtypes.
 function popupmenu_copy_windowtypes_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmenu_copy_windowtypes (see GCBO)
@@ -1437,6 +1486,7 @@ function popupmenu_copy_windowtypes_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from popupmenu_copy_windowtypes
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function popupmenu_copy_windowtypes_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to popupmenu_copy_windowtypes (see GCBO)
@@ -1450,6 +1500,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copy_windowtypes.
 function pushbutton_copy_windowtypes_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_copy_windowtypes (see GCBO)
@@ -1491,6 +1542,7 @@ guidata(hObject,handles);
 setCategoryToCustom(handles);
 
 
+% -------------------------------------------------------------------------
 function handles = CopyWindowParams(handles,pfNdxFrom,winfnNdxFrom,pfNdxTo,winfnNdxTo)
 
 curFnFrom = handles.windowComp{winfnNdxFrom};
@@ -1519,6 +1571,8 @@ if handles.data{pfNdxTo}.(curFnTo).valid,
   enableWinParams(handles);
 end
 
+
+% -------------------------------------------------------------------------
 function handles = CopyDefaultWindowParams(handles,category,pfNdxTo,winfnNdx)
 
 curFn = handles.windowComp{winfnNdx};
@@ -1540,6 +1594,8 @@ if ~isempty(handles.winextraParams{winfnNdx})
     handles.categ.(category).(curFn).values.(extraParam);
 end
 
+
+% -------------------------------------------------------------------------
 % --- Executes when selected object is changed in uipanel_tabs.
 function uipanel_tabs_SelectionChangeFcn(hObject, eventdata, handles)
 % hObject    handle to the selected object in uipanel_tabs 
@@ -1558,6 +1614,8 @@ end
 handles = UpdateDescriptionPanels(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function handles = UpdateDescriptionPanels(handles)
 
 if isempty(handles.pfNdx),
@@ -1574,46 +1632,46 @@ else
 end
 
 % histogram if necessary
-if strcmpi(handles.currentTab,'perframehistogram'),
-  if handles.histogramData.lastPfNdx ~= handles.pfNdx || ...
-    ~strcmpi(handles.histogramData.lastType,'perframe'),
-    
-    i = find(handles.histogramData.perframe_idx == handles.pfNdx,1);
-    if isempty(i),
-      i = numel(handles.histogramData.perframe_idx)+1;
-      [handles.histogramData.hhist,...
-        ~,~,hleg,hxlabel,hylabel,...
-        handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
-        handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
-        HistogramPerFrameFeature(handles.JLDobj,handles.pfList{handles.pfNdx},...
-        'axes',handles.axes_histogram,...
-        'unknowncolor','w',...
-        'labelcolors',jet(handles.JLDobj.nbehaviors)*.7);
-      handles.histogramData.perframe_idx(i) = handles.pfNdx;
-    else
-      [handles.histogramData.hhist,...
-        ~,~,hleg,hxlabel,hylabel,...
-        handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
-        handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
-        HistogramPerFrameFeature(handles.JLDobj,handles.pfList{handles.pfNdx},...
-        'axes',handles.axes_histogram,...
-        'edges',handles.histogramData.edges{i},...
-        'frac',handles.histogramData.frac{i},...
-        'frac_outside',handles.histogramData.frac_outside{i},...
-        'unknowncolor','w',...
-        'labelcolors',jet(handles.JLDobj.nbehaviors)*.7);
-    end
-    handles.histogramData.lastPfNdx = handles.pfNdx;
-    handles.histogramData.lastType = 'perframe';
-    textcolor = get(handles.togglebutton_tabdescription,'ForegroundColor');
-    set(handles.axes_histogram,'XColor',textcolor,'YColor',textcolor,'Color','k','Box','off');
-    set(hxlabel,'Color',textcolor);
-    set(hylabel,'Color',textcolor);
-    set(hleg,'Color','k','TextColor',textcolor,'Box','off','Location','Best');
+if strcmpi(handles.currentTab,'perframehistogram') && ...
+   (handles.histogramData.lastPfNdx ~= handles.pfNdx || ...
+    ~strcmpi(handles.histogramData.lastType,'perframe') ) && ...
+   (handles.JLDobj.nexps>0),    
+  i = find(handles.histogramData.perframe_idx == handles.pfNdx,1);
+  if isempty(i),
+    i = numel(handles.histogramData.perframe_idx)+1;
+    [handles.histogramData.hhist,...
+      ~,~,hleg,hxlabel,hylabel,...
+      handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
+      handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
+      HistogramPerFrameFeature(handles.JLDobj,handles.pfList{handles.pfNdx},...
+      'axes',handles.axes_histogram,...
+      'unknowncolor','w',...
+      'labelcolors',jet(handles.JLDobj.nbehaviors)*.7);
+    handles.histogramData.perframe_idx(i) = handles.pfNdx;
+  else
+    [handles.histogramData.hhist,...
+      ~,~,hleg,hxlabel,hylabel,...
+      handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
+      handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
+      HistogramPerFrameFeature(handles.JLDobj,handles.pfList{handles.pfNdx},...
+      'axes',handles.axes_histogram,...
+      'edges',handles.histogramData.edges{i},...
+      'frac',handles.histogramData.frac{i},...
+      'frac_outside',handles.histogramData.frac_outside{i},...
+      'unknowncolor','w',...
+      'labelcolors',jet(handles.JLDobj.nbehaviors)*.7);
   end
+  handles.histogramData.lastPfNdx = handles.pfNdx;
+  handles.histogramData.lastType = 'perframe';
+  textcolor = get(handles.togglebutton_tabdescription,'ForegroundColor');
+  set(handles.axes_histogram,'XColor',textcolor,'YColor',textcolor,'Color','k','Box','off');
+  set(hxlabel,'Color',textcolor);
+  set(hylabel,'Color',textcolor);
+  set(hleg,'Color','k','TextColor',textcolor,'Box','off','Location','Best');
 end
 
 
+% -------------------------------------------------------------------------
 function editSize_Callback(hObject, eventdata, handles)
 % hObject    handle to editSize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1650,6 +1708,7 @@ guidata(hObject,handles);
 createPfTable(handles.pfTable);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function editSize_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editSize (see GCBO)
@@ -1663,6 +1722,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in togglebuttonMode.
 function togglebuttonMode_Callback(hObject, eventdata, handles)
 % hObject    handle to togglebuttonMode (see GCBO)
@@ -1681,6 +1741,7 @@ else
 end
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_hist.
 function pushbutton_hist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_hist (see GCBO)
@@ -1735,10 +1796,12 @@ if ~isempty(handles.pfNdx)
 end
 
 
+% -------------------------------------------------------------------------
 function CloseRequestFcn(hObject,eventdata,handles)
 push_cancel_callback(hObject,eventdata,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_ok.
 function pushbutton_ok_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_ok (see GCBO)
