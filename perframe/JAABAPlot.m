@@ -1427,7 +1427,7 @@ tstr=strrep(tstr,'%','%%');
 xstr=strrep(xstr,'%','%%');
 ystr=strrep(ystr,'%','%%');
 
-fprintf(fid,['%% type=' type '\n%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel=' ystr '\n%%\n']);
+fprintf(fid,['%% type=' type '\n%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel=' ystr '\n\n']);
 
 %for g=1:length(handles.grouplist)
 %  fprintf(fid,['%% xdata, group ' handles.grouplist{g} ...
@@ -1485,9 +1485,6 @@ switch(style)
         str_dp='75%%';
         str_dn='25%%';
     end
-    %plot(xdata,data_dp,color,'linewidth',linewidth);
-    %plot(xdata,data_dn,color,'linewidth',linewidth);
-    %plot(xdata,data_ct,color,'linewidth',3*linewidth);
     h=plot(xdata,data_ct,'color',color,'linewidth',3*linewidth);
     idx=isnan(data_dp) | isnan(data_dn);
     xdata=xdata(~idx);  data_dp=data_dp(~idx);  data_dn=data_dn(~idx);
@@ -1507,7 +1504,7 @@ switch(style)
     h=plot(xdata,ydata','color',color,'linewidth',linewidth);
     h=h(1);
     for e=1:size(ydata,1)
-      fprintf(fid,['%% ydata, exp ' experimentlist{e} '\n']);
+      fprintf(fid,['%% ydata, experiment ' experimentlist{e} '\n']);
       fprintf(fid,'%g, ',ydata(e,:));  fprintf(fid,'\n');
     end
 end
@@ -1680,14 +1677,14 @@ for b=bb
 
   score_file=handles.scorefiles{b};
 
-  during=cell(1,length(ggee));
-  not_during=cell(1,length(ggee));
+  during_data=cell(1,length(ggee));
+  not_during_data=cell(1,length(ggee));
   %for ge=ggee
   parfor ge=ggee
     %if((individual<4)&&(~ismember(ge,selected_exp)))
     if(ischar(individual)&&(~ismember(ge,selected_exp)))
-      during{ge}=nan;
-      not_during{ge}=nan;
+      during_data{ge}=nan;
+      not_during_data{ge}=nan;
       continue;
     end
 
@@ -1715,39 +1712,42 @@ for b=bb
     %tmploop=nan;  if(individual>3)  tmploop=individual-3;  end
     tmploop=nan;  if isnumeric(individual)  tmploop=individual;  end
 
-    [during{ge} not_during{ge}]=calculate_feature_histogram(...
+    [during_data{ge} not_during_data{ge}]=calculate_feature_histogram(...
         behavior_data,behavior_logic,behavior_data2,feature_data,tmp2,tmploop,...
         handles.featurehistogram_perwhat);
   end
 
+  % why do this?
   i=1;
-  while i<=length(during)
-    if((length(during{i})==1) && isnan(during{i}))
-      during(i)=[];
-      not_during(i)=[];
+  while i<=length(during_data)
+    if((length(during_data{i})==1) && isnan(during_data{i}))
+      during_data(i)=[];
+      not_during_data(i)=[];
     else
       i=i+1;
     end
   end
 
-  max(cellfun(@(x) size(x,2),during));
-  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during,'uniformoutput',false);
-  during=cat(1,ans{:});
-  max(cellfun(@(x) size(x,2),not_during));
-  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during,'uniformoutput',false);
-  not_during=cat(1,ans{:});
+  max(cellfun(@(x) size(x,2),during_data));
+  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],during_data,'uniformoutput',false);
+  %cellfun(@(x) [x nan(1,ans-size(x,2))],during_data,'uniformoutput',false);
+  during_data=cat(1,ans{:});
+  max(cellfun(@(x) size(x,2),not_during_data));
+  cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during_data,'uniformoutput',false);
+  %cellfun(@(x) [x nan(1,ans-size(x,2))],not_during_data,'uniformoutput',false);
+  not_during_data=cat(1,ans{:});
 
   low=[];  high=[];  nearzero=[];
-  if(~isempty(during))
-    low=min(min(during));
-    high=max(max(during));
-    unique(reshape(abs(during),1,prod(size(during))));
+  if(~isempty(during_data))
+    low=min(min(during_data));
+    high=max(max(during_data));
+    unique(reshape(abs(during_data),1,prod(size(during_data))));
     nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
   end
-  if(notduring && ~isempty(not_during))
-    low=min([low min(not_during)]);
-    high=max([high max(not_during)]);
-    unique(reshape(abs(not_during),1,prod(size(not_during))));
+  if(notduring && ~isempty(not_during_data))
+    low=min([low min(not_during_data)]);
+    high=max([high max(not_during_data)]);
+    unique(reshape(abs(not_during_data),1,prod(size(not_during_data))));
     tmp=ans(1);  if(ans(1)==0)  tmp=ans(2);  end
     nearzero=min(tmp,nearzero);
   end
@@ -1783,29 +1783,61 @@ for b=bb
     end
 
     if(notduring)
-      if(~isempty(not_during(idx,:)))
-        hist_not_during=hist(not_during(idx,:)',bins);
-        if(size(not_during,1)==1)  hist_not_during=hist_not_during';  end
+      fprintf(fid,['%% not during\n']);
+      %if(~isempty(not_during_data(idx,:)))
+      if(~isempty(not_during_data))
+        hist_not_during=hist(not_during_data(idx,:)',bins);
+        if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
         hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
         hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
         plot_it(bins,hist_not_during',style,centraltendency,dispersion,color,1,...
           fid,handlesexperimentlist(idx));
-      else
-        plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
-          fid,handlesexperimentlist(idx));
+%      else
+%        plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
+%          fid,handlesexperimentlist(idx));
       end
     end
-    if(~isempty(during(idx,:)))
-      hist_during=hist(during(idx,:)',bins);
+    fprintf(fid,['%% during\n']);
+    %if(~isempty(during_data(idx,:)))
+    if(~isempty(during_data))
+      hist_during=hist(during_data(idx,:)',bins);
       if(size(hist_during,1)==1)  hist_during=hist_during';  end
       hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
       hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
       linewidth=1;  if(notduring)  linewidth=2;  end
       h(g)=plot_it(bins,hist_during',style,centraltendency,dispersion,color,linewidth,...
           fid,handlesexperimentlist(idx));
+%    else
+%      h(g)=plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
+%          fid,handlesexperimentlist(idx));
+    end
+  end
+
+  fprintf(fid,'\n%% raw data\n');
+  for g=1:length(handles.grouplist)
+    if ischar(individual)
+      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
     else
-      h(g)=plot_it(nan,nan,style,centraltendency,dispersion,color,1,...
-          fid,handlesexperimentlist(idx));
+      find(cumsum_num_exp_per_group<ggee,1,'last');
+      if(ans~=g)  continue;  end
+      idx=1;
+    end
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+    for e=1:length(idx)
+      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+      if(notduring)
+        fprintf(fid,'%% not during\n');
+        if(~isempty(not_during_data))
+          fprintf(fid,'%g, ',not_during_data(idx(e),:));
+        end
+        fprintf(fid,'\n');
+      end
+      fprintf(fid,'%% during\n');
+      if(~isempty(during_data))
+        fprintf(fid,'%g, ',during_data(idx(e),:));
+      end
+      fprintf(fid,'\n');
+      fprintf(fid,'\n');
     end
   end
 
@@ -2142,6 +2174,7 @@ for b=bb
 
   score_file=handles.scorefiles{b};
 
+  raw_data=cell(1,length(handlesexperimentlist));
   data=cell(1,length(handlesexperimentlist));
   parfor ge=ggee
   %for ge=ggee
@@ -2174,12 +2207,14 @@ for b=bb
 
     if(timing==1)
       calculate_entiretimeseries(behavior_data,feature_data,tmp2,tmp,xoffset);
-      conv(nanmean(ans,1),ones(1,convolutionwidth),'same');
+      raw_data{ge}=nanmean(ans,1);
+      conv(raw_data{ge},ones(1,convolutionwidth),'same');
       data{ge}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
     else
       calculate_triggeredtimeseries(behavior_data,behavior_logic,behavior_data2,...
           feature_data,tmp2,tmp,timing,windowradius,subtractmean);
-      data{ge}=nanmean(ans,1);
+      raw_data{ge}=nanmean(ans,1);
+      data{ge}=raw_data{ge};
     end
   end
 
@@ -2234,8 +2269,6 @@ for b=bb
   for g=1:length(handles.grouplist)
     color=handles.colors(g,:);
 
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-
     %if(individual<4)
     if ischar(individual)
       idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -2245,7 +2278,26 @@ for b=bb
       idx=1;
     end
 
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
     h(g)=plot_it(time_base,ydata(idx,:),style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
+  end
+
+  fprintf(fid,'\n%% raw data\n');
+  for g=1:length(handles.grouplist)
+    if ischar(individual)
+      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+    else
+      find(cumsum_num_exp_per_group<ggee,1,'last');
+      if(ans~=g)  continue;  end
+      idx=1;
+    end
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+    for e=1:length(idx)
+      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+      fprintf(fid,'%g, ',raw_data{idx(e)});
+      fprintf(fid,'\n');
+      fprintf(fid,'\n');
+    end
   end
 
   xlabel(xstr);
@@ -2685,6 +2737,28 @@ for b=bb
       k=round(cumsum(k)-k/2);
   end
 
+  fprintf(fid,'\n%% raw data\n');
+  for g=1:length(handles.grouplist)
+    if ischar(individual)
+      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+    else
+      find(cumsum_num_exp_per_group<ggee,1,'last');
+      if(ans~=g)  continue;  end
+      idx=1;
+    end
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+    for e=1:length(idx)
+      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+      fprintf(fid,'%% frames labelled\n');
+      fprintf(fid,'%d, ',frames_labelled{idx(e)});
+      fprintf(fid,'\n');
+      fprintf(fid,'%% frames total\n');
+      fprintf(fid,'%d, ',frames_total{idx(e)});
+      fprintf(fid,'\n');
+      fprintf(fid,'\n');
+    end
+  end
+
   if(isempty(k))  k=1:length(frames_labelled);  end
   ylabel(ystr);
   set(gca,'xtick',k,'xticklabel',xticklabels);
@@ -2695,7 +2769,7 @@ for b=bb
   else
     axis([vat(1) vat(2) 0 vat(4)]);
   end
-  fprintf(fid,'\n');
+  %fprintf(fid,'\n');
 
 end
 idx=find(h>0);
@@ -2711,39 +2785,43 @@ end
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && ischar(individual))
   tmp={'behavior'};
   for b=1:length(table_data)
-    tmp{4*b+1,1}=handles.behaviorlist{bb(b)};
+    tmp{5*b+1,1}=handles.behaviorlist{bb(b)};
     for g=1:length(table_data{b})
-      if(b==1)  tmp{1,g+1}=handles.grouplist{g};  end
-      [~,p,~,~]=kstest(table_data{b}{g});
-      tmp{4*b+1,g+1}=p;
+      if(b==1)  tmp{2,g}=handles.grouplist{g};  end
+      p=nan;
+      if(sum(~isnan(table_data{b}{g}))>0)
+        [~,p,~,~]=kstest(table_data{b}{g});
+      end
+      tmp{5*b+2,g}=p;
     end
-    if(b==1)  tmp{1,g+2}='(K-S normal)';  end
+    if(b==1)  tmp{2,g+1}='(K-S normal)';  end
     k=1;
     for g=1:length(table_data{b})-1
       for g2=(g+1):length(table_data{b})
         if(b==1)
-          tmp{2,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
-          tmp{3,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
+          tmp{3,k}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
+          tmp{4,k}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
         end
-        tmp{4*b+2,k+1}=ranksum(table_data{b}{g},table_data{b}{g2});
-        [~,tmp{4*b+3,k+1}]=ttest2(table_data{b}{g},table_data{b}{g2});
+        tmp{5*b+3,k}=ranksum(table_data{b}{g},table_data{b}{g2});
+        [~,tmp{5*b+4,k}]=ttest2(table_data{b}{g},table_data{b}{g2});
         k=k+1;
       end
     end
     if(b==1)
-      tmp{2,k+1}='(ranksum)';
-      tmp{3,k+1}='(t-test)';
+      tmp{3,k}='(ranksum)';
+      tmp{4,k}='(t-test)';
     end
   end
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,1});      fprintf(fid,'\n');
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,2:end});  fprintf(fid,'\n');
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{2,2:end});  fprintf(fid,'\n');
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{3,2:end});  fprintf(fid,'\n\n');
-  for i=2:((size(tmp,1)+1)/4)
-    fprintf(fid,'%s, ',tmp{4*(i-1)+1,1});      fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{4*(i-1)+1,2:end});  fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{4*(i-1)+2,2:end});  fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{4*(i-1)+3,2:end});  fprintf(fid,'\n\n');
+  fprintf(fid,'%% statistics\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{1,1});      fprintf(fid,'\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{2,:});  fprintf(fid,'\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{3,:});  fprintf(fid,'\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{4,:});  fprintf(fid,'\n\n');
+  for i=2:((size(tmp,1)+1)/5)
+    fprintf(fid,'%s, ',tmp{5*(i-1)+1,1});      fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{5*(i-1)+2,:});  fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{5*(i-1)+3,:});  fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{5*(i-1)+4,:});  fprintf(fid,'\n\n');
   end
   set(handles.Table,'Data',tmp);
   set(handles.Table,'ColumnWidth','auto');
@@ -2822,6 +2900,7 @@ for b=bb
 
   score_file=handles.scorefiles{b};
 
+  raw_data=cell(length(ggee),1);
   behavior_cumulative=cell(length(ggee),1);
   parfor gei=1:numel(ggee),
   %for gei=1:numel(ggee),
@@ -2894,9 +2973,11 @@ for b=bb
       parfor_tmp(idx)=parfor_tmp(idx)+1;
       k=k+1;
     end
-    parfor_tmp./k;
-    behavior_cumulative{gei}=conv(ans,ones(1,convolutionwidth),'same')...
-        ./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
+    raw_data{gei}=parfor_tmp./k;
+    %behavior_cumulative{gei}=conv(raw_data{gei},ones(1,convolutionwidth),'same')...
+    %    ./conv(ones(1,length(raw_data{gei})),ones(1,convolutionwidth),'same');
+    conv(raw_data{gei},ones(1,convolutionwidth),'same');
+    behavior_cumulative{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
   end
   parfor_tmp_len = min( cellfun(@numel, behavior_cumulative) );
   %parfor_tmp_len = max( cellfun(@numel, behavior_cumulative) );
@@ -2953,6 +3034,24 @@ for b=bb
 
     h(g)=plot_it(time_base,100.*behavior_cumulative(idx,:),...
         style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
+  end
+
+  fprintf(fid,'\n%% raw data\n');
+  for g=1:length(handles.grouplist)
+    if ischar(individual)
+      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+    else
+      find(cumsum_num_exp_per_group<ggee,1,'last');
+      if(ans~=g)  continue;  end
+      idx=1;
+    end
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+    for e=1:length(idx)
+      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+      fprintf(fid,'%g, ',raw_data{idx(e)});
+      fprintf(fid,'\n');
+      fprintf(fid,'\n');
+    end
   end
 
   xlabel(xstr);
@@ -3196,6 +3295,27 @@ for b=bb
       k=round(cumsum(k)-k/2);
   end
 
+  fprintf(fid,'\n%% raw data\n');
+  for g=1:length(handles.grouplist)
+    if ischar(individual)
+      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+    else
+      find(cumsum_num_exp_per_group<ggee,1,'last');
+      if(ans~=g)  continue;  end
+      idx=1;
+    end
+    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+    for e=1:length(idx)
+      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+      for i=1:length(length_data{idx(e)})
+        fprintf(fid,'%% individual %d\n',i);
+        fprintf(fid,'%g, ',length_data{idx(e)}{i}./handles.fps);
+        fprintf(fid,'\n');
+        fprintf(fid,'\n');
+      end
+    end
+  end
+
   if(isempty(k))  k=1:length(length_data);  end
   ylabel(ystr);
   set(gca,'xtick',k,'xticklabel',xticklabels);
@@ -3222,39 +3342,42 @@ end
 if ischar(individual)
   tmp={'behavior'};
   for b=1:length(table_data)
-    tmp{4*b+1,1}=handles.behaviorlist{bb(b)};
+    tmp{5*b+1,1}=handles.behaviorlist{bb(b)};
     for g=1:length(table_data{b})
-      if(b==1)  tmp{1,g+1}=handles.grouplist{g};  end
-      [~,p,~,~]=kstest(table_data{b}{g});
-      tmp{4*b+1,g+1}=p;
+      if(b==1)  tmp{2,g}=handles.grouplist{g};  end
+      p=nan;
+      if(sum(~isnan(table_data{b}{g}))>0)
+        [~,p,~,~]=kstest(table_data{b}{g});
+      end
+      tmp{5*b+2,g}=p;
     end
-    if(b==1)  tmp{1,g+2}='(K-S normal)';  end
+    if(b==1)  tmp{2,g+1}='(K-S normal)';  end
     k=1;
     for g=1:length(table_data{b})-1
       for g2=(g+1):length(table_data{b})
         if(b==1)
-          tmp{2,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
-          tmp{3,k+1}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
+          tmp{3,k}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
+          tmp{4,k}=strcat(handles.grouplist{g},'-',handles.grouplist{g2});
         end
-        tmp{4*b+2,k+1}=ranksum(table_data{b}{g},table_data{b}{g2});
-        [~,tmp{4*b+3,k+1}]=ttest2(table_data{b}{g},table_data{b}{g2});
+        tmp{5*b+3,k}=ranksum(table_data{b}{g},table_data{b}{g2});
+        [~,tmp{5*b+4,k}]=ttest2(table_data{b}{g},table_data{b}{g2});
         k=k+1;
       end
     end
     if(b==1)
-      tmp{2,k+1}='(ranksum)';
-      tmp{3,k+1}='(t-test)';
+      tmp{3,k}='(ranksum)';
+      tmp{4,k}='(t-test)';
     end
   end
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,1});      fprintf(fid,'\n');
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{1,2:end});  fprintf(fid,'\n');
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{2,2:end});  fprintf(fid,'\n');
-  fprintf(fid,'%%');  fprintf(fid,'%s, ',tmp{3,2:end});  fprintf(fid,'\n\n');
-  for i=2:((size(tmp,1)+1)/4)
-    fprintf(fid,'%s, ',tmp{4*(i-1)+1,1});      fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{4*(i-1)+1,2:end});  fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{4*(i-1)+2,2:end});  fprintf(fid,'\n');
-    fprintf(fid,'%g, ',tmp{4*(i-1)+3,2:end});  fprintf(fid,'\n\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{1,1});      fprintf(fid,'\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{2,:});  fprintf(fid,'\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{3,:});  fprintf(fid,'\n');
+  fprintf(fid,'%% ');  fprintf(fid,'%s, ',tmp{4,:});  fprintf(fid,'\n\n');
+  for i=2:((size(tmp,1)+1)/5)
+    fprintf(fid,'%s, ',tmp{5*(i-1)+1,1});      fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{5*(i-1)+2,:});  fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{5*(i-1)+3,:});  fprintf(fid,'\n');
+    fprintf(fid,'%g, ',tmp{5*(i-1)+4,:});  fprintf(fid,'\n\n');
   end
   set(handles.Table,'Data',tmp);
   set(handles.Table,'ColumnWidth','auto');
