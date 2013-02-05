@@ -2966,9 +2966,9 @@ for b=bb
         case(1)
           idx = find(partition_idx);
         case(2)
-          idx = find(partition_idx) - behavior_data.allScores.tStart(i);
+          idx = find(partition_idx) - behavior_data.allScores.tStart(i) + 1;
         case(3)
-          idx = find(partition_idx) - min(behavior_data.allScores.tStart);
+          idx = find(partition_idx) - min(behavior_data.allScores.tStart) + 1;
       end
       parfor_tmp(idx)=parfor_tmp(idx)+1;
       k=k+1;
