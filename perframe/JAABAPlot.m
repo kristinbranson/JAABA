@@ -286,6 +286,7 @@ if((sum(cellfun(@length,handles.experimentlist))==0) || (isempty(handles.classif
   set(handles.BehaviorTimeSeries,'enable','off');
   set(handles.FeatureHistogram,'enable','off');
   set(handles.FeatureTimeSeries,'enable','off');
+  set(handles.BoutStats,'enable','off');
   set(handles.IndividualList,'enable','off');
 else
   set(handles.InterestingFeatureHistograms,'enable','on');
@@ -293,6 +294,7 @@ else
   set(handles.BehaviorTimeSeries,'enable','on');
   set(handles.FeatureHistogram,'enable','on');
   set(handles.FeatureTimeSeries,'enable','on');
+  set(handles.BoutStats,'enable','on');
   set(handles.IndividualList,'enable','on');
 end
 
