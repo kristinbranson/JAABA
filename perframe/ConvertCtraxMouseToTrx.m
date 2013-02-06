@@ -11,7 +11,7 @@ function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSi
 % method: 'manual','auto', 'both'. Both will try out auto and if it fails
 % will ask for for manual intervention.
 % sex: animals sex - optional 
-
+% frames2sel: Frames to use for corner detection.
 
 % intrxfile = 'trx.mat';
 % moviefilename = 'movie.mov';
