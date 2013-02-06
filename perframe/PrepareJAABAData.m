@@ -1441,10 +1441,10 @@ else
     res = 'Yes';
   end
   if strcmpi(res,'Yes'),
-    if row == 2,
+    if row == 3,
       [isokext,msg] = CheckOutputFileExtensions(handles,...
         'moviefilestr',name);
-    elseif row == 3,
+    elseif row == 4,
       [isokext,msg] = CheckOutputFileExtensions(handles,...
         'trxfilestr',name);
     else
@@ -1456,22 +1456,22 @@ else
   end
   if ~strcmpi(res,'Yes'),
     switch row,
-      case 2,
-        data{2,2} = handles.moviefilestr;
       case 3,
-        data{3,2} = handles.trxfilestr;
+        data{3,2} = handles.moviefilestr;
       case 4,
-        data{4,2} = handles.perframedirstr;
+        data{4,2} = handles.trxfilestr;
+      case 5,
+        data{5,2} = handles.perframedirstr;
     end
     set(hObject,'Data',data);
     return;
   end
   switch row,
-    case 2,
-      handles.moviefilestr = name;
     case 3,
-      handles.trxfilestr = name;
+      handles.moviefilestr = name;
     case 4,
+      handles.trxfilestr = name;
+    case 5,
       handles.perframedirstr = name;
   end
   guidata(hObject,handles);
