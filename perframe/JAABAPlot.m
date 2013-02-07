@@ -5021,11 +5021,17 @@ function MenuFileUpdate_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
+drawnow;
+
 handles=update_experiment_data(handles,true,true,true);
 update_figure(handles);
-set(handles.figure1,'pointer','arrow');
 guidata(hObject, handles);
+
+set(handles.Status,'string','Ready.','foregroundcolor','g');
+set(handles.figure1,'pointer','arrow');
+drawnow;
 
 
 % --------------------------------------------------------------------
