@@ -7381,11 +7381,13 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
 % construct the structure that will be saved in the everything file
-s=struct;
+s=struct();
 s.featureConfigParams=data.featureConfigParams;
-s.saveableClassifier=data.getSaveableClassifier();
+s=mergeStructures(s,data.getSaveableClassifier());
+s=mergeStructures(s,handles.guidata.configparams);
+s.labelGraphicParams=s.labels;  % get out of way
 [s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
-s.projectParams=handles.guidata.configparams;  %#ok
+s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
 % write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -7460,7 +7462,8 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-setProjectParams(gcbf,everythingParams.projectParams);
+projectParams=projectParamsFromEverythingParams(everythingParams);
+setProjectParams(gcbf,projectParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7476,9 +7479,10 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Now load the classifier, which includes the experiments, and load the
 % labels also.  ('classifierlabels',true means to load the labels, too.)
+classifierParams=classifierParamsFromEverythingParams(everythingParams);
 data.setLabelsAndClassifier(everythingParams.labels, ...
                             everythingParams.gtLabels, ...
-                            everythingParams.saveableClassifier);
+                            classifierParams);
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
@@ -8221,3 +8225,76 @@ guidata(figureJLabel,handles);
 
 return    
 
+
+% ------------------------------------------------------------------------ 
+function projectParams=projectParamsFromEverythingParams(everythingParams)
+
+fieldNamesToKeep={'behaviors' , ...
+                  'file' , ...
+                  'scoresinput' , ...
+                  'windowfeatures' , ...
+                  'trx' , ...
+                  'labelGraphicParams' , ...
+                  'ver' }';
+
+projectParams=struct();
+for i=1:length(fieldNamesToKeep)
+  fieldNameThis=fieldNamesToKeep{i};
+  if strcmp(fieldNameThis,'labelGraphicParams')
+    projectParams.labels=everythingParams.(fieldNameThis);
+  else
+    projectParams.(fieldNameThis)=everythingParams.(fieldNameThis);
+  end
+end
+
+return
+
+
+% ------------------------------------------------------------------------ 
+function classifierParams=classifierParamsFromEverythingParams(everythingParams)
+
+fieldNamesToKeep={'classifierTS' , ...
+                  'trainingdata' , ...
+                  'expdirs' , ...
+                  'expnames' , ...
+                  'nflies_per_exp' , ...
+                  'sex_per_exp' , ...
+                  'frac_sex_per_exp' , ...
+                  'firstframes_per_exp' , ...
+                  'endframes_per_exp' , ...
+                  'classifiertype' , ...
+                  'classifier' , ...
+                  'classifier_params' , ...
+                  'confThresholds' , ...
+                  'scoreNorm' , ...
+                  'windowfeaturesparams' , ...
+                  'windowfeaturescellparams' , ...
+                  'basicFeatureTable' , ...
+                  'featureWindowSize' , ...
+                  'postprocessparams' , ...
+                  'featurenames' , ...
+                  'scoresasinput' }';
+
+classifierParams=struct();
+for i=1:length(fieldNamesToKeep)
+  fieldNameThis=fieldNamesToKeep{i};
+  classifierParams.(fieldNameThis)=everythingParams.(fieldNameThis);
+end
+
+return
+
+
+% ------------------------------------------------------------------------ 
+function sOut=mergeStructures(s1,s2)
+% Merge the scalar structures s1 and s2.  The output structure has all the
+% fields of both s1 and s2.  If s1 and s2 have common fields, that values
+% from s2 "overwrite" those of s1.
+
+sOut=s1;
+fieldNames=fieldnames(s2);
+for i=1:length(fieldNames)
+  fieldName=fieldNames{i};
+  sOut.(fieldName)=s2.(fieldName);
+end
+
+return
