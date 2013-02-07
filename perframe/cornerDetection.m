@@ -1,24 +1,20 @@
-function [success, C] = cornerDetection(moviefile,frameRange,showResult)
+function [success, C] = cornerDetection(I,saveFileName)
 % function C = cornerDetection(moviefile,frameRange,showResult)
 % Detects corners 
 % frameRange is the range of the frames to be used to detect corners.
 % Show results shows the result of corner detection.
 
-count = 0;
-success = false;
 
-[readfcn,nframes,fid,headerinfo] = get_readframe_fcn(...
-  moviefile);
-while count < 10,
-%% Read a frame.
-count = count+1;
-
-if isempty(frameRange),
-  frameRange = 1:nframes;
-end
-
-rfr = randsample(frameRange,1);
-I = readfcn(rfr);
+% [readfcn,nframes,fid,~] = get_readframe_fcn(...
+%   moviefile);
+% %% Read a frame.
+% 
+% if isempty(frameRange),
+%   frameRange = 1:nframes;
+% end
+% 
+% rfr = randsample(frameRange,1);
+% I = readfcn(rfr);
 
 
 %%
@@ -35,6 +31,55 @@ for ndx = 1:numel(bwcenter)
 xc(ndx) = bwcenter(ndx).Centroid(1);
 yc(ndx) = bwcenter(ndx).Centroid(2);
 end
+
+
+dd = zeros(numel(xc),numel(xc));
+for ndx = 1:numel(xc)
+  dd(ndx,:) = sqrt( (xc - xc(ndx)).^2 + (yc-yc(ndx)).^2);
+end
+
+Isz = size(I,1);
+
+success = false;
+selidx = [];
+for tol = 1:0.5:7
+  for sz = round(0.7*Isz):(tol/2):round(Isz)
+      ff = abs(dd-sz)<tol;
+      if nnz(sum(ff)>1) >= 4
+        curidx = find(sum(ff)>1);
+        allcombs = nchoosek(curidx,4);
+        for combn = 1:size(allcombs,1);
+          selidx = allcombs(combn,:);
+          curm = dd(selidx,selidx);
+          if (nnz( abs(curm-sz)<tol) == 8) && (nnz( curm>1.4*sz)==4) ,
+            success = true;
+            break
+          end
+        end
+        if success, break; end
+      end
+  end
+  if success; break; end
+  
+end
+
+if ~success,
+  C = [];
+  return;
+end
+
+topleft = selidx( (xc(selidx)<Isz/2) & (yc(selidx)<Isz/2));
+topright = selidx( (xc(selidx)>Isz/2) & (yc(selidx)<Isz/2));
+bottomleft = selidx( (xc(selidx)<Isz/2) & (yc(selidx)>Isz/2));
+bottomright = selidx( (xc(selidx)>Isz/2) & (yc(selidx)>Isz/2));
+
+if isempty(topleft) || isempty(topright) || isempty(bottomleft) || isempty(bottomright)
+ success = false;
+ C = [];
+ return;
+end
+
+%{
 xc(small2rem) = size(I,2)/2;
 yc(small2rem) = size(I,1)/2;
 minx = min(xc);
@@ -63,19 +108,17 @@ if numel(topleft)>1 || numel(topright) > 1 || numel(bottomleft)>1 || numel(botto
   bottomleft = bottomleft(argmax([bwcenter(bottomleft).Area]));
   bottomright = bottomright(argmax([bwcenter(bottomright).Area]));
 end
-  
 success = true; break;
 end
+%}  
 
-if fid> 0,
-  fclose(fid);
-end
 
 if ~success,
   C = [];
   return;
 end
 
+%{
 % selImg = (bwl == topleft) | (bwl == bottomleft) | (bwl == topright) | (bwl == bottomright);
 % 
 % 
@@ -84,20 +127,29 @@ end
 % corner_idx = find(corner_peaks == true);
 % [xx yy] = ind2sub(size(I(:,:,1)),corner_idx);
 % C = [];
+%}
 C(:,1) = yc([topleft topright bottomleft bottomright]);
 C(:,2) = xc([topleft topright bottomleft bottomright]);
 
-if showResult,
-  figure;
-  imshow(I);
-  hold on
-  plot(C(:,2), C(:,1), 'r*');
+for ndx = 1:4
+  I(round(C(ndx,1) + [-1:1]),round(C(ndx,2)+[-1:1]),1) = 256;
+  I(round(C(ndx,1) + [-1:1]),round(C(ndx,2)+[-1:1]),2) = 0;
+  I(round(C(ndx,1) + [-1:1]),round(C(ndx,2)+[-1:1]),3) = 0;
 end
+imwrite(I,saveFileName);
+  
+
+
+%% Detect corners based on square constraint.
 
 %{
 
+%}
+
+
 %% Detect corners
 
+%{
 C = corner(I(:,:,1),'Harris',4,'SensitivityFactor',0.001);
 
 %% Show Corners
@@ -132,3 +184,4 @@ imshow(RGB);
 title('Corner Points');
 linkaxes(hx);
 %}
+
