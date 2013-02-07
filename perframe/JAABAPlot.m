@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 06-Feb-2013 15:30:55
+% Last Modified by GUIDE v2.5 07-Feb-2013 16:41:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -4947,6 +4947,61 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
+function MenuHelp_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHelp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuHelpDocumentation_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHelpDocumentation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+html_file = 'http://jaaba.sourceforge.net/PlottingResults.html';
+if isdeployed,
+  [stat,msg] = myweb_nocheck(html_file);
+  if stat ~= 0,
+    errordlg({'Please see documentation at http://jaaba.sourceforge.net'
+      'Error opening webpage within MATLAB:'
+      msg});
+  end
+else
+  web('-browser',html_file);
+end
+
+
+% --------------------------------------------------------------------
+function MenuHelpBugReport_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHelpBugReport (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+{...
+'Having problems?  Before contacting us first try:'...
+''...
+'1. Going to the file menu and choosing update.  Does that fix it?'...
+'2. Going to the file menu and choosing reset.  Add all of your experiments and try again.  Fixed?'...
+'3. If you quit out of JAABAPlot and restart, does it still happen?  Does quiting out of Matlab help?  Rebooting your computer?'...
+''...
+'If it still doesn''t work, please e-mail our Google newsgroup with the following information:'...
+''...
+'1. Are you using JAABA on Windows, Mac, or Linux?'...
+'2. Are you using the compiled version or running it within Matlab?'...
+'3. What version of JAABA are you using?'...
+'4. What exactly is the problem?  What did you expect JAABAPlot to do?'...
+'5. What is the sequence of steps leading up to the problem?  That is, the order of buttons you push.'...
+'6. Does it happen every time?'...
+'7. JAABAPlot creates a file called most_recent_config.mat.  Please attach it.'...
+'8. Please also cut and paste any red error messages on the Matlab command line.  Or a screenshot if you''re using the compiled version.'...
+''...
+'JAABAPlot is still a work in progress and we appreciate your feedback.'...
+};
+msgbox(ans,'Bug Report');
+
+
+% --------------------------------------------------------------------
 function MenuFileReset_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuFileReset (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -5086,22 +5141,3 @@ h=msgbox(tmp,'Parameters','replace');
 %for each bout, as well as the overall mode of the per-bout modes.
 %
 %Selecting a cell in the table plots a histogram of the closest indidividual.
-
-
-% --- Executes on button press in pushbutton_help.
-function pushbutton_help_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_help (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-html_file = 'http://jaaba.sourceforge.net/PlottingResults.html';
-if isdeployed,
-  [stat,msg] = myweb_nocheck(html_file);
-  if stat ~= 0,
-    errordlg({'Please see documentation at http://jaaba.sourceforge.net'
-      'Error opening webpage within MATLAB:'
-      msg});
-  end
-else
-  web('-browser',html_file);
-end
