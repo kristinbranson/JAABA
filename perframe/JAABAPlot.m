@@ -952,7 +952,7 @@ function GroupNew_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 inputdlg({'Name:'},'Create new experiment group');
-if(isempty(ans))  return;  end
+if((isempty(ans))||strcmp(ans,''))  return;  end
 defaultcolors=[1 0 0;  0 0.5 0;  0 0 1;  0 1 1;  1 0 1;  0.749 0.749 0;  0 0 0];
 handles.colors(end+1,:)=uisetcolor(defaultcolors(1+mod(length(handles.grouplist),size(defaultcolors,1)),:));
 handles.grouplist{end+1}=char(ans);
