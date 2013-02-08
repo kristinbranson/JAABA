@@ -3156,64 +3156,74 @@ for b=bb
     end
 
     if(xoffset==1)
-      parfor_tmp=zeros(1,max(behavior_data.allScores.tEnd));
+      parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd));
     else
-      parfor_tmp=zeros(1,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart));
+      parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart));
     end
 
-    k=0;
+    %k=0;
     for i=1:length(behavior_data.allScores.t0s)   % individual
       %if((individual>3)&&((individual-3)~=i))  continue;  end
       if(isnumeric(individual)&&(individual~=i))  continue;  end
 
-      tmp1=zeros(1,max(behavior_data.allScores.tEnd));
+      tmp1=zeros(1,behavior_data.allScores.tEnd(i));
       tmp1(behavior_data.allScores.t0s{i})=1;
       tmp1(behavior_data.allScores.t1s{i})=-1;
       tmp1=logical(cumsum(tmp1));
 
       tmp2=[];
       if(behavior_logic>1)
-        tmp2=zeros(1,max(behavior_data.allScores.tEnd));
+        tmp2=zeros(1,behavior_data.allScores.tEnd(i));
         tmp2(behavior_data2.allScores.t0s{i})=1;
         tmp2(behavior_data2.allScores.t1s{i})=-1;
         tmp2=logical(cumsum(tmp2));
       end
 
-      partition_idx=[];
+      partition_idx=zeros(2,length(tmp1));
       switch(behavior_logic)
         case(1)
-          partition_idx=tmp1;
+          partition_idx(1,:)=tmp1;
         case(2)
-          partition_idx=tmp1 & tmp2;
+          partition_idx(1,:)=tmp1 & tmp2;
         case(3)
-          partition_idx=tmp1 & ~tmp2;
+          partition_idx(1,:)=tmp1 & ~tmp2;
         case(4)
-          partition_idx=tmp1 | tmp2;
+          partition_idx(1,:)=tmp1 | tmp2;
       end
-      behavior_data.allScores.tStart(i):behavior_data.allScores.tEnd(i);
+      partition_idx(2,behavior_data.allScores.tStart(i):behavior_data.allScores.tEnd(i))=1;
+
+      [ones(1,behavior_data.allScores.tEnd(i))];
       switch(individual)
         %case(2)
         case('M')
           %partition_idx = partition_idx & sexdata{ge}{i}(1:length(partition_idx));
-          partition_idx(ans) = partition_idx(ans) & sexdata{ge}{i};
+          %partition_idx(ans) = partition_idx(ans) & sexdata{ge}{i};
+          [ones(1,behavior_data.allScores.tStart(i)-1) sexdata{ge}{i}];
         %case(3)
         case('F')
-          partition_idx(ans) = partition_idx(ans) & (~sexdata{ge}{i});
+          %partition_idx(ans) = partition_idx(ans) & (~sexdata{ge}{i});
+          [ones(1,behavior_data.allScores.tStart(i)-1) ~sexdata{ge}{i}];
       end
+      partition_idx(1,:) = partition_idx(1,:) & ans;
+      partition_idx(2,:) = partition_idx(2,:) & ans;
       
-      idx=[];
+      idx1 = find(partition_idx(1,:));
+      idx2 = find(partition_idx(2,:));
       switch(xoffset)
         case(1)
-          idx = find(partition_idx);
         case(2)
-          idx = find(partition_idx) - behavior_data.allScores.tStart(i) + 1;
+          idx1 = idx1 - behavior_data.allScores.tStart(i) + 1;
+          idx2 = idx2 - behavior_data.allScores.tStart(i) + 1;
         case(3)
-          idx = find(partition_idx) - min(behavior_data.allScores.tStart) + 1;
+          idx1 = idx1 - min(behavior_data.allScores.tStart) + 1;
+          idx2 = idx2 - min(behavior_data.allScores.tStart) + 1;
       end
-      parfor_tmp(idx)=parfor_tmp(idx)+1;
-      k=k+1;
+      parfor_tmp(1,idx1)=parfor_tmp(1,idx1)+1;
+      parfor_tmp(2,idx2)=parfor_tmp(2,idx2)+1;
+      %k=k+1;
     end
-    raw_data{gei}=parfor_tmp./k;
+    %raw_data{gei}=parfor_tmp./k;
+    raw_data{gei}=parfor_tmp(1,:)./parfor_tmp(2,:);
     %behavior_cumulative{gei}=conv(raw_data{gei},ones(1,convolutionwidth),'same')...
     %    ./conv(ones(1,length(raw_data{gei})),ones(1,convolutionwidth),'same');
     conv(raw_data{gei},ones(1,convolutionwidth),'same');
