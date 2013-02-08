@@ -7479,10 +7479,8 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Now load the classifier, which includes the experiments, and load the
 % labels also.  ('classifierlabels',true means to load the labels, too.)
-classifierParams=classifierParamsFromEverythingParams(everythingParams);
-data.setLabelsAndClassifier(everythingParams.labels, ...
-                            everythingParams.gtLabels, ...
-                            classifierParams);
+%classifierParams=classifierParamsFromEverythingParams(everythingParams);
+data.setLabelsAndClassifier(everythingParams);
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
