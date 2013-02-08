@@ -1802,9 +1802,7 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function setLabelsAndClassifier(self, ...
-                                    labels, ...
-                                    gtLabels, ...  
-                                    classifierParams)
+                                    everythingParams)
       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
       % Sets the name of the classifier file. If the classifier file exists,
       % it loads the data stored in the file. This involves removing all the
@@ -1813,7 +1811,7 @@ classdef JLabelData < handle
       % experiments to be those listed in the classifier file, clearing all
       % the previously computed window data and computing the window data for
       % all the labeled frames.
-          
+      
       % new-style everything files don't use classifier file names
       self.classifierfilename = 0;
 
@@ -1824,33 +1822,33 @@ classdef JLabelData < handle
       self.RemoveExpDirs(1:self.nexps);
 
       % set movie
-      [success,msg] = self.SetMovieFileName(classifierParams.moviefilename);
+      [success,msg] = self.SetMovieFileName(everythingParams.file.moviefilename);
       if ~success,error(msg);end
       
       % trx
-      [success,msg] = self.SetTrxFileName(classifierParams.trxfilename);
+      [success,msg] = self.SetTrxFileName(everythingParams.file.trxfilename);
       if ~success,error(msg);end
 
       % perframedir
-      [success,msg] = self.SetPerFrameDir(classifierParams.perframedir);
+      [success,msg] = self.SetPerFrameDir(everythingParams.file.perframedir);
       if ~success,error(msg);end
       
       % clipsdir
-      [success,msg] = self.SetClipsDir(classifierParams.clipsdir);
+      [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
       if ~success,error(msg);end
 
       % load the feature names
-      self.windowdata.featurenames = classifierParams.featurenames;
+      self.windowdata.featurenames = everythingParams.featurenames;
 
       % set experiment directories
       [success,msg] = ...
-        self.SetExpDirs(classifierParams.expdirs, ...
-                        classifierParams.outexpdirs, ...
-                        classifierParams.nflies_per_exp, ...
-                        classifierParams.sex_per_exp, ...
-                        classifierParams.frac_sex_per_exp, ...
-                        classifierParams.firstframes_per_exp, ...
-                        classifierParams.endframes_per_exp);
+        self.SetExpDirs(everythingParams.expdirs, ...
+                        everythingParams.expdirs, ...
+                        everythingParams.nflies_per_exp, ...
+                        everythingParams.sex_per_exp, ...
+                        everythingParams.frac_sex_per_exp, ...
+                        everythingParams.firstframes_per_exp, ...
+                        everythingParams.endframes_per_exp);
       if ~success,error(msg); end
       
       % Update the status table
@@ -1862,23 +1860,23 @@ classdef JLabelData < handle
       if ~success,error(msg);end
 
       % set the labels
-      self.setLabelsFromStructForAllExps(labels);
+      self.setLabelsFromStructForAllExps(everythingParams.labels);
 
       % set the GT labels
-      self.setGTLabelsFromStructForAllExps(gtLabels);
+      self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
 
       % Read certain fields out of the classifier, setting them in self
-      self.classifier = classifierParams.classifier;
-      self.classifiertype = classifierParams.classifiertype;
-      self.classifierTS = classifierParams.classifierTS;
-      self.windowdata.scoreNorm = classifierParams.scoreNorm;
-      self.confThresholds = classifierParams.confThresholds;
-      if isfield(classifierParams,'postprocessparams')
-        self.postprocessparams = classifierParams.postprocessparams;
+      self.classifier = everythingParams.classifier;
+      self.classifiertype = everythingParams.classifiertype;
+      self.classifierTS = everythingParams.classifierTS;
+      self.windowdata.scoreNorm = everythingParams.scoreNorm;
+      self.confThresholds = everythingParams.confThresholds;
+      if isfield(everythingParams,'postprocessparams')
+        self.postprocessparams = everythingParams.postprocessparams;
       end
       
       % Read the per-frame features to be used by a classifier
-      windowFeaturesParams=classifierParams.windowfeaturesparams;
+      windowFeaturesParams=everythingParams.windowfeaturesparams;
       %windowFeaturesCellParams= ...
       %  JLabelData.convertParams2CellParams(windowFeaturesParams);
       self.SetPerframeParams(windowFeaturesParams);
@@ -1886,19 +1884,19 @@ classdef JLabelData < handle
       %self.windowfeaturescellparams= ...
       %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
       %self.curperframefns=fieldnames(self.windowfeaturesparams);
-      self.basicFeatureTable=classifierParams.basicFeatureTable;
-      self.featureWindowSize=classifierParams.featureWindowSize;
+      self.basicFeatureTable=everythingParams.basicFeatureTable;
+      self.featureWindowSize=everythingParams.featureWindowSize;
       
       % Read the classifier_params field out of the classifier.  This
       % contains things like the number of iterations used for training,
       % the number of folds used for cross-validation, etc.
-      self.classifier_params=classifierParams.classifier_params;
+      self.classifier_params=everythingParams.classifier_params;
       
       % predict for all loaded examples
       self.PredictLoaded();
 
       % set labelidx_cur
-      self.SetTrainingData(classifierParams.trainingdata);
+      self.SetTrainingData(everythingParams.trainingdata);
 
       % make sure inds is ordered correctly
       if ~isempty(self.classifier),
