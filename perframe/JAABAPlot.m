@@ -3219,11 +3219,10 @@ for b=bb
     conv(raw_data{gei},ones(1,convolutionwidth),'same');
     behavior_cumulative{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
   end
-  parfor_tmp_len = min( cellfun(@numel, behavior_cumulative) );
-  %parfor_tmp_len = max( cellfun(@numel, behavior_cumulative) );
+  parfor_tmp_len = max( cellfun(@numel, behavior_cumulative) );
   for gei = 1:numel(ggee),
-    behavior_cumulative{gei} = behavior_cumulative{gei}(1:parfor_tmp_len);
-       %[behavior_cumulative{gei},nan(1,parfor_tmp_len-numel(behavior_cumulative{gei}))];
+    behavior_cumulative{gei} = ...
+       [behavior_cumulative{gei},nan(1,parfor_tmp_len-numel(behavior_cumulative{gei}))];
   end
   behavior_cumulative = cell2mat(behavior_cumulative);
 
