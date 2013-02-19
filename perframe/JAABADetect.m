@@ -354,6 +354,11 @@ for seti = 1:numel(classifiersets),
       scores{i}{flies} = nan(1,tEnd-off);
     end
     
+    if tEnd < 2,
+      fprintf('Trajectory length too short. Not classifying\n');
+      continue;
+    end
+    
     % one block of frames at a time
     for t0 = tStart:blockSize:tEnd,
       

@@ -124,8 +124,11 @@ for radiusi = 1:nradii,
     % so for r = 0, off = 1, we want [t+1,t+1]
     % which corresponds to res(t+r+off)
     % so we want to grab for 1+r+off through N+r+off
-    res1 = x_trans - padgrab2(res,nan,1,ntrans,1+r+off,N+r+off);
-    
+    if ~isempty(x_trans),
+      res1 = x_trans - padgrab2(res,nan,1,ntrans,1+r+off,N+r+off);
+    else
+      res1 = zeros(size(x_trans));
+    end
     %if ismember('none',trans_types),
     if bitand(1,trans_types),
       
