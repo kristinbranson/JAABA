@@ -18,3 +18,4 @@ for ndx = 1:numel(Q.allScores.scores)
     fprintf(fid,'%d,%d,%.4f\n',ndx,t,Q.allScores.scores{ndx}(t));
   end
 end
+fclose(fid);
