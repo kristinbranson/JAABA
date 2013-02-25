@@ -4017,8 +4017,8 @@ elseif(strcmp(handles.table,'histogram'))
       handles.behaviorlogic=1;
       handles.featurevalue=handles.table_data(eventdata.Indices(end,1),6);
       handles.individual=1;
-      handles.featurehistogram_notduring=isnan(handles.table_data(eventdata.Indices(end,1),3));
-      menu_featurehistogram_notduring_set(handles.featurehistogram_notduring);
+      handles.featurehistogram_comparison=2*isnan(handles.table_data(eventdata.Indices(end,1),3));
+      menu_featurehistogram_comparison_set(handles.featurehistogram_comparison);
       FeatureHistogram_Callback(hObject, eventdata, handles);
   end
   update_figure(handles);
@@ -5100,7 +5100,8 @@ switch handles.type
     tmp{end+1}=['perwhat = ' featurehistogram_perwhat{handles.featurehistogram_perwhat}];
     tmp{end+1}=['style = ' style{handles.featurehistogram_style}];
     tmp{end+1}=['logbinsize=' num2str(handles.featurehistogram_logbinsize)];
-    tmp{end+1}=['notduring=' num2str(handles.featurehistogram_notduring)];
+    tmp{end+1}=['allframes=' num2str(handles.featurehistogram_comparison==1)];
+    tmp{end+1}=['notduring=' num2str(handles.featurehistogram_comparison==2)];
     tmp{end+1}=['nbins=' num2str(handles.featurehistogram_nbins)];
   case 'feature time series'
     tmp{end+1}=['timing = ' featuretimeseries_timing{handles.featuretimeseries_timing}];
