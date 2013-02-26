@@ -2080,7 +2080,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   t = timer('TimerFcn',{@progress_bar,h}, 'Period', 3, 'ExecutionMode', 'fixedRate');
   start(t);
 
-  table_data=zeros(nexperiments,nbehaviors,nfeatures,6);
+  table_data=zeros(nexperiments,nbehaviors,nfeatures,9);
   parfor ge=1:nexperiments
   %for ge=1:nexperiments
     behavior_data={};
@@ -2088,7 +2088,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       behavior_data{b}=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
     end
     bad{ge}={};
-    parfor_tmp=zeros(nbehaviors,nfeatures,6);
+    parfor_tmp=zeros(nbehaviors,nfeatures,9);
     for f=1:nfeatures
       if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
       feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
@@ -2102,8 +2102,9 @@ if(isempty(handles.interestingfeaturehistograms_cache))
 
         [during not_during]=calculate_feature_histogram(behavior_data{b},1,[],...
             feature_data,sexdata,nan,handles.featurehistogram_perwhat);
-        parfor_tmp(b,f,:)=[mean(during) mean(not_during) ...
-            std(during) std(not_during) length(during) length(not_during)];
+        parfor_tmp(b,f,:)=[mean(during) mean(not_during) mean([during not_during]) ...
+            std(during) std(not_during) std([during not_during]) ...
+            length(during) length(not_during) length([during not_during])];
       end
       fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
     end
@@ -2128,13 +2129,23 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     gg=cumsum_num_selexp_per_group(g)+(1:length(handles.experimentlist{g}));
     tmp2=[tmp2; ...
         repmat(g,nbehaviors*nfeatures,1) ...
-        reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
-        nan(nbehaviors*nfeatures,1) ...
-        reshape(squeeze(sum(table_data(gg,:,:,6))),nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
+        repmat(-2,nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,8))),nbehaviors*nfeatures,1) ...
         reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
         reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
         reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,2)))./ ...
-          sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg,:,:,4).^2))/2))', ...
+          sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,5).^2))/2))', ...
+          nbehaviors*nfeatures,1)];
+    tmp2=[tmp2; ...
+        repmat(g,nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
+        repmat(-1,nbehaviors*nfeatures,1) ...
+        reshape(squeeze(sum(table_data(gg,:,:,9))),nbehaviors*nfeatures,1) ...
+        reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
+        reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
+        reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,3)))./ ...
+          sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,6).^2))/2))', ...
           nbehaviors*nfeatures,1)];
 
     if(g==length(handles.grouplist))  break;  end
@@ -2142,13 +2153,13 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       gg2=cumsum_num_selexp_per_group(g2)+(1:length(handles.experimentlist{g2}));
       tmp2=[tmp2; ...
           repmat(g,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,5))),nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
           repmat(g2,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg2,:,:,5))),nbehaviors*nfeatures,1) ...
+          reshape(squeeze(sum(table_data(gg2,:,:,7))),nbehaviors*nfeatures,1) ...
           reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
           reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
           reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
-            sqrt((mean(table_data(gg,:,:,3).^2)+mean(table_data(gg2,:,:,3).^2))/2))', ...
+            sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg2,:,:,4).^2))/2))', ...
             nbehaviors*nfeatures,1)];
     end
   end
@@ -2173,15 +2184,16 @@ tmp2=sortrows(tmp2,-7);
 tmp=cell(size(tmp2,1),7);
 tmp(:,1)=handles.grouplist(tmp2(:,1));
 tmp(:,2)=cellstr(num2str(tmp2(:,2),'%-d'));
-idx=~isnan(tmp2(:,3));
-tmp(idx,3)=handles.grouplist(tmp2(idx,3));
+idx=(tmp2(:,3)>0);  tmp(idx,3)=handles.grouplist(tmp2(idx,3));
+idx=(tmp2(:,3)==-1);  tmp(idx,3)=cellstr('all frames');
+idx=(tmp2(:,3)==-2);  tmp(idx,3)=cellstr('not during');
 tmp(:,4)=cellstr(num2str(tmp2(:,4),'%-d'));
 tmp(:,5)=handles.behaviorlist(tmp2(:,5));
 tmp(:,6)=handles.featurelist(tmp2(:,6));
-tmp(:,7)=num2cell(tmp2(:,7));
+tmp(:,7)=cellstr(num2str(tmp2(:,7)));
 set(handles.Table,'Data',tmp);
 set(handles.Table,'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd'''});
-set(handles.Table,'ColumnWidth',{75 50 75 50 150 100 75});
+set(handles.Table,'ColumnWidth',num2cell(7*max(cellfun(@length,tmp))));
 set(handles.Table,'RowStriping','on','BackgroundColor',[1 1 1; 0.95 0.95 0.95]);
 
 handles.table_data=tmp2;
@@ -3994,18 +4006,17 @@ elseif(strcmp(handles.table,'histogram'))
   switch(eventdata.Indices(end,2))
     case {1,3}
       group=handles.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
-      if(isnan(group))
-        questdlg('Remove all during / not-during comparisons from table?','','Yes','No','No');
-      else
-        questdlg(['Remove all ' handles.grouplist{group} ' groups from table?'],'','Yes','No','No');
+      switch(group)
+        case(-1)
+          questdlg('Remove all during / all-frames comparisons from table?','','Yes','No','No');
+        case(-2)
+          questdlg('Remove all during / not-during comparisons from table?','','Yes','No','No');
+        otherwise
+          questdlg(['Remove all ' handles.grouplist{group} ' groups from table?'],'','Yes','No','No');
       end
       if(strcmp(ans,'No'))  return;  end
       tmp=get(handles.Table,'Data');
-      if(isnan(group))
-        idx=find((~isnan(handles.table_data(:,1)))&(~isnan(handles.table_data(:,3))));
-      else
-        idx=find((handles.table_data(:,1)~=group)&(handles.table_data(:,3)~=group));
-      end
+      idx=find((handles.table_data(:,1)~=group)&(handles.table_data(:,3)~=group));
       set(handles.Table,'Data',tmp(idx,:));
       handles.table_data=handles.table_data(idx,:);
     case {2,4}
@@ -4038,7 +4049,10 @@ elseif(strcmp(handles.table,'histogram'))
       handles.behaviorlogic=1;
       handles.featurevalue=handles.table_data(eventdata.Indices(end,1),6);
       handles.individual=1;
-      handles.featurehistogram_comparison=2*isnan(handles.table_data(eventdata.Indices(end,1),3));
+      handles.featurehistogram_comparison=0;
+      if(handles.table_data(eventdata.Indices(end,1),3)<0)
+        handles.featurehistogram_comparison=-handles.table_data(eventdata.Indices(end,1),3);
+      end
       menu_featurehistogram_comparison_set(handles.featurehistogram_comparison);
       FeatureHistogram_Callback(hObject, eventdata, handles);
   end
