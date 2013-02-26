@@ -287,6 +287,8 @@ classdef JLabelData < handle
     frameFig = [];
     distMat = [];
     bagModels = {};
+    fastPredictBag = struct('classifier',[],'windowfeaturescellparams',[],...
+      'wfs',[],'pffs',[],'ts',[],'tempname',[],'curF',[],'dist',[]);
 
     % Confidence Thresholds
     confThresholds = zeros(1,0);
@@ -4941,7 +4943,7 @@ end
 %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
           
           obj.FindFastPredictParams();
-          obj.PredictLoaded();
+%          obj.PredictLoaded();
       end
 
       obj.ClearStatus();
@@ -5813,9 +5815,7 @@ end
     
 % Show similar frames
     
-
-    function DoBagging(obj)
-
+    function DoFastBagging(obj)
       obj.StoreLabels();
       [success,msg] = obj.PreLoadLabeledData();
       if ~success, warning(msg);return;end
@@ -5826,21 +5826,304 @@ end
       if ~strcmp(obj.classifiertype,'boosting'); return; end
       if isempty(obj.classifier), obj.Train;             end
 
-      bouts = struct('ndx',[],'label',[],'timestamp',[]);
-      for expNdx = 1:obj.nexps
-        for flyNdx = 1:obj.nflies_per_exp(expNdx)
-          curLabels = obj.GetLabels(expNdx,flyNdx);
-          for boutNum = 1:numel(curLabels.t0s)
-            bouts.ndx(end+1,:) = obj.FlyNdx(expNdx,flyNdx) & ...
-              obj.windowdata.t >= curLabels.t0s(boutNum) & ...
-              obj.windowdata.t < curLabels.t1s(boutNum);
-            bouts.label(end+1) = find(strcmp(obj.labelnames,curLabels.names{boutNum}));
-            bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
+      bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
+
+      bmodel = fastBag(obj.windowdata.X(islabeled,:),...
+        obj.windowdata.labelidx_new(islabeled),...
+        obj.windowdata.binVals,bins,obj.classifier_params);
+      
+      obj.bagModels = bmodel;
+      obj.distMat = BagDistMat(obj.windowdata.X,{obj.bagModels});
+
+      
+      % Find the parameters for fast prediction.
+      feature_names = obj.windowdata.featurenames;
+      
+      % which features are actually used
+      dims = [obj.bagModels(:).dim];
+      feature_names = feature_names(dims);
+      
+      % put these in with the rest of the classifiers' window features
+      wfs = {};
+      for j = 1:numel(feature_names),
+        wfidxcurr = find(WindowFeatureNameCompare(feature_names{j},wfs),1);
+        if isempty(wfidxcurr),
+          wfidxcurr = numel(wfs)+1;
+          wfs{wfidxcurr} = feature_names{j}; %#ok<AGROW>
+        end
+      end
+      
+      wf2pff = cellfun(@(x)x{1},wfs,'UniformOutput',false);
+      [pffs,~,wf2pffidx] = unique(wf2pff);
+      
+      windowfeaturescellparams = struct;
+      for pfi = 1:numel(pffs),
+        pf = pffs{pfi};
+        wfidx_cur = wf2pffidx==pfi;
+        windowfeaturescellparams.(pf) = WindowFeatureName2Params(wfs(wfidx_cur));
+      end
+      
+      classifiers_indexed = obj.bagModels;
+      for j = 1:numel(classifiers_indexed),
+        classifiers_indexed(j).dim = j;
+      end
+      
+      obj.fastPredictBag.classifier = classifiers_indexed;
+      obj.fastPredictBag.windowfeaturescellparams = windowfeaturescellparams;
+      obj.fastPredictBag.wfs = feature_names;
+      obj.fastPredictBag.pffs = pffs;
+      obj.fastPredictBag.ts = obj.classifierTS;
+      obj.fastPredictBag.tempname = tempname;
+ 
+      features_names_sel = {};
+      for ndx = 1:numel(pffs)
+        pfndx = find(strcmp(pffs{ndx},obj.allperframefns));
+        perframedata = obj.perframedata{pfndx};
+        [~,curf] = ComputeWindowFeatures([0,0],...
+          windowfeaturescellparams.(pffs{ndx}){:});
+        feature_names_curr = cellfun(@(x) [{pffs{ndx}},x],curf,'UniformOutput',false);
+        features_names_sel = [features_names_sel,feature_names_curr]; %#ok<AGROW>
+     end
+      
+      
+      wfidx = nan(1,numel(wfs));
+      for j = 1:numel(wfs),
+        idxcurr = find(WindowFeatureNameCompare(wfs{j},features_names_sel));
+        if numel(idxcurr) ~= 1,
+          error('Error matching wfs for classifier with window features computed');
+        end
+        wfidx(j) = idxcurr;
+      end
+      obj.fastPredictBag.wfidx = wfidx;
+
+      
+      obj.fastPredictBag.dist = cell(1,obj.nexps);
+      
+    end
+    
+
+    function [success,msg] = SetCurrentFlyForBag(obj,exp,fly,t)
+      obj.fastPredictBag.curexp = exp;
+      obj.fastPredictBag.fly = fly;
+      obj.fastPredictBag.t = t;
+      
+      
+      [success,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(exp,fly,t);
+      curX = X((t0:t1)==t,:);
+      curF = zeros(1,numel(obj.bagModels));
+      for ndx = 1:numel(obj.bagModels);
+        curWk = obj.bagModels(ndx);
+        dd = curX(:,curWk.dim)*curWk.dir;
+        tt = curWk.tr*curWk.dir;
+        curF(ndx) = sign( (dd>tt) - 0.5) * curWk.alpha;
+      end
+      obj.fastPredictBag.curF = curF;
+    end
+
+    
+    function [success,msg,dist] = ComputeBagFeatures(obj,curexp,curfly,curF)
+    % Use the fast feature computation to find the bag features..
+      success = true; msg = '';
+      featureFileName = sprintf('%s_%s_%d',obj.fastPredictBag.tempname,obj.expnames{curexp},curfly);
+      if exist(featureFileName,'file'),
+        load(featureFileName,'dX'),
+        dist = sum(abs(dX - repmat(curF,[size(dX,1) 1]))); %#ok<NODEF>
+        return;
+      end
+      
+      perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(curexp,curfly);
+      perframefile = obj.GetPerframeFiles(curexp);
+
+      
+      T0 = obj.GetTrxFirstFrame(curexp,curfly);
+      T1 = obj.GetTrxEndFrame(curexp,curfly);
+      
+      
+      
+      perframedata_cur = obj.perframedata;
+      windowfeaturescellparams = obj.fastPredictBag.windowfeaturescellparams;
+      pffs = obj.fastPredictBag.pffs;
+      allperframefns = obj.allperframefns;
+
+      X_all = [];
+      for t0 = T0:(2*obj.predictwindowdatachunk_radius):T1
+       t1 = min(T1,t0+2*obj.predictwindowdatachunk_radius-1);
+       
+       % for the parfor loop.
+       x_curr_all = cell(1,numel(pffs));
+       X = [];
+       parfor j = 1:numel(pffs),
+         
+         fn = pffs{j};
+         
+         ndx = find(strcmp(fn,allperframefns));
+         if perframeInMemory,
+           perframedata = perframedata_cur{ndx};
+         else
+           perframedata = load(perframefile{ndx});
+           perframedata = perframedata.data{flies(1)};
+         end
+         
+         t11 = min(t1,numel(perframedata));
+         [x_curr,~] = ...
+           ComputeWindowFeatures(perframedata,...
+           windowfeaturescellparams.(fn){:},'t0',t0,'t1',t11);
+         
+         if t11 < t1,
+           x_curr(:,end+1:end+t1-t11) = nan;
+         end
+         
+         x_curr_all{j} = single(x_curr);
+       end
+       
+       
+       for j = 1:numel(pffs),
+         fn = pffs{j};
+         x_curr = x_curr_all{j};
+         % add the window data for this per-frame feature to X
+         nold = size(X,1);
+         nnew = size(x_curr,2);
+         if nold > nnew,
+           warning(['Number of examples for per-frame feature %s does not '...
+             'match number of examples for previous features'],fn);
+           x_curr(:,end+1:end+nold-nnew) = nan;
+         elseif nnew > nold && ~isempty(X),
+           warning(['Number of examples for per-frame feature %s does not '...
+             'match number of examples for previous features'],fn);
+           X(end+1:end+nnew-nold,:) = nan;
+         end
+         X = [X,x_curr']; %#ok<AGROW>
+       end
+       
+       X_all = [X_all;X];
+      end
+     
+      dX = zeros(size(X_all,1),numel(obj.fastPredictBag.classifier));
+      for ndx = 1:numel(obj.fastPredict.classifier)
+        curWk = obj.fastPredict.classifier(ndx);
+        dd = X_all(:,curWk.dim)*curWk.dir;
+        tt = curWk.tr*curWk.dir;
+        dX(:,ndx) = sign( (dd>tt)-0.5 )*curWk.alpha;
+        
+      end
+     save(featureFileName,'dX');
+     dist = sum(abs(dX - repmat(curF,[size(dX,1) 1])));
+    end
+    
+    
+
+    function [success,msg] = ComputeBagDistFly(obj,expi,fly)
+      [success,msg,dist] = obj.ComputeBagFeatures(expi,fly,obj.fastPredictBag.curF);
+      obj.fastPredictBag.dist{expi}{fly} = dist;
+    end
+
+    
+    function [success,msg] = ComputeBagDistExp(obj,curexp,curfly,curt,expi)
+      for ndx = 1:numel(obj.nflies_per_exp(expi))
+        [success,msg,dist] = obj.ComputeBagFeatures(expi,ndx,obj.fastPredict.curF);
+        obj.fastPredictBag.dist{expi}{ndx} = dist;
+      end
+      
+    end
+    
+    function [nextT,distT] = FindNextClosest(obj,dist,curV,dir)
+
+      nextT = []; distT = [];
+      switch dir
+        case 'next'
+          
+          if max(dist) > curV,
+            tt = dist-curV;
+            tt(tt<=0) = inf;
+            [~,nextT] = min(tt);
+            distT = dist(nextT);
+          end
+          
+        case 'prev'
+
+          if min(dist) < curV,
+            tt = dist-curV;
+            tt(tt>=0) = -inf;
+            [~,nextT] = max(tt);
+            distT = dist(nextT);
+          end
+        
+      end
+      
+    end
+    
+    function [nextT, distT] = NextClosestBagFly(obj,dir,curt,expi,flies)
+      nextT = []; distT =[];
+      if isempty(obj.fastPredictBag.dist{expi}) || isempty(obj.fastPredictBag.dist{expi}{flies}) 
+        [success,msg] = obj.ComputeBagDistFly(expi,flies);
+        if ~success,
+          uiwait(warndlg(msg)); 
+          return;
+        end
+      end
+      dist = obj.fastPredictBag.dist{expi}{flies};
+      
+      T0 = obj.firstframes_per_exp{expi}(flies);
+      curV = sum(abs(obj.fastPredictBag.dist{expi}{flies}(curt-T0+1)-obj.fastPredictBag.curF));
+
+      [nextT, distT] = obj.FindNextClosest(dist,curV,dir);
+      nextT= nextT+T0-1;
+    end
+    
+    function [bestnextT,bestdistT,bestfly] = NextClosestBagExp(obj,dir,curt,expi)
+      
+      bestnextT = []; bestfly = [];
+      switch dir
+        case 'next'
+          bestdistT = inf;
+        case 'prev' 
+          bestdistT = -inf;
+        otherwise
+          uiwait(warndlg('Undefined direction'));
+          bestdistT = [];
+          return;
+      end
+      
+      for fly = 1:obj.nflies_per_exp(expi)
+        [nextT, distT] = obj.NextClosestBagFly(dir,curt,expi,fly);
+        if isempty(distT),
+          uiwait(warndlg('Could not compute distance to fly:%d in exp:%s', fly, obj.expnames{expi}));
+          bestnextT = []; bestfly = []; bestdistT = [];
+          return;
+        end
+        if strcmp(dir,'next')
+          if distT < bestdistT
+            bestdistT = distT;
+            bestnextT = nextT;
+            bestfly = fly;
+          end
+        else
+          if distT > bestdistT
+            bestdistT = distT;
+            bestnextT = nextT;
+            bestfly = fly;
           end
           
         end
       end
-
+      
+    end
+    
+    
+    function DoBagging(obj)
+      
+      obj.StoreLabels();
+      [success,msg] = obj.PreLoadLabeledData();
+      if ~success, warning(msg);return;end
+      
+      islabeled = obj.windowdata.labelidx_new ~= 0;
+      
+      if ~any(islabeled),                        return; end
+      if ~strcmp(obj.classifiertype,'boosting'); return; end
+      if isempty(obj.classifier), obj.Train;             end
+      
+      bouts = obj.getLabeledBouts();
+      
       obj.SetStatus('Bagging the classifier with %d examples...',nnz(islabeled));
       
       obj.windowdata.binVals = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
@@ -5868,7 +6151,7 @@ end
     
     function SimilarFrames(obj,curTime,JLabelHandles)
       if isempty(obj.frameFig) || ~ishandle(obj.frameFig),
-          obj.InitSimilarFrames(JLabelHandles), 
+        obj.InitSimilarFrames(JLabelHandles),
       end
       
       distNdx = find( (obj.windowdata.distNdx.exp == obj.expi) & ...
@@ -5878,8 +6161,8 @@ end
       windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
         (obj.windowdata.flies == obj.flies) & ...
         (obj.windowdata.t == curTime) ,1);
-
-
+      
+      
       if isempty(distNdx) % The example was not part of the training data.
         outOfTraining = 1;
         [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(obj.expi,obj.flies,curTime);
