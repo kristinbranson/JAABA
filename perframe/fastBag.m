@@ -1,7 +1,8 @@
 function bmodel = fastBag(data,labels,binVals,bins,params)
 
 numIters = 100;
-wkSamples = 10;
+wkSamples = 50;
+numPerm = 300;
 
 numEx = size(data,1);
 posEx = labels == 1;
@@ -22,7 +23,7 @@ clk = tic;
 
 scores = zeros(numEx,1);
 wt = initWt;
-bmodel = {};
+bcellmodel = {};
 for itt = 1:numIters
   wkRule = findWeakRuleBagged(data,modLabels,wt,binVals,bins,params,wkSamples);
 
@@ -36,13 +37,13 @@ for itt = 1:numIters
     else
       tt = ((data(:,dim)<= tr)-0.5)*2;
     end
-    curError = sum( (tt.*labels).*wt);
-    if(curError<0);
-      curError = -curError;
+    curError = sum( ((tt.*modLabels)<0).*wt);
+    if(curError>0.5);
+      curError = 1-curError;
       wkRule.dir(ndx) = -wkRule.dir(ndx);
     end
   
-    wkRule.error(ndx) = 0.5-curError/2;
+    wkRule.error(ndx) = curError;
     wkRule.alpha(ndx) = 1-2*wkRule.error(ndx);
     extraScores = extraScores + tt*wkRule.alpha(ndx);
   
@@ -50,9 +51,9 @@ for itt = 1:numIters
   
   scores = scores+extraScores/wkSamples;
 
-  bmodel{itt} = wkRule;
+  bcellmodel{itt} = wkRule;
   
-  tt = scores.*labels;
+  tt = scores.*modLabels;
   wt = initWt./(1+exp(tt));
   wt = wt./sum(wt);
 
@@ -64,6 +65,59 @@ for itt = 1:numIters
   end
   
 end
+
+bmodel = []; count = 1;
+for ndx = 1:numel(bcellmodel)
+  for bndx = 1:numel(bcellmodel{ndx}.dim)
+    bmodel(count).dim = bcellmodel{ndx}.dim(bndx);
+    bmodel(count).error = bcellmodel{ndx}.error(bndx);
+    bmodel(count).dir = bcellmodel{ndx}.dir(bndx);
+    bmodel(count).tr = bcellmodel{ndx}.tr(bndx);
+    bmodel(count).alpha = bcellmodel{ndx}.alpha(bndx);
+    count = count+1;
+  end
+end
+
+%{
+newalpha = zeros(1,numel(bmodel));
+for ndx = 1:numPerm
+  curidx = randperm(numel(bmodel));
+  scores = zeros(numEx,1);
+  curalpha = zeros(1,numel(bmodel));
+  wt = initWt;
+  for bndx = curidx(:)'
+
+    tr = bmodel(bndx).tr;
+    dir = bmodel(bndx).dir;
+    dim = bmodel(bndx).dim;
+    if dir>0,
+      tt = ((data(:,dim)> tr)-0.5)*2;
+    else
+      tt = ((data(:,dim)<= tr)-0.5)*2;
+    end
+    curError = sum( (tt.*modLabels).*wt);
+    if(curError<0);
+      curError = 0;
+    end
+  
+    curError = 0.5-curError/2;
+    curalpha(bndx) = 1-2*curError;
+    scores = scores + tt*curalpha(bndx);
+    tt = scores.*modLabels;
+    wt = initWt./(1+exp(tt));
+    wt = wt./sum(wt);
+    
+  end
+  newalpha = newalpha + curalpha;
+  
+end
+newalpha = newalpha/numPerm;
+for ndx = 1:numel(bmodel),
+  bmodel(ndx).oldalpha = bmodel(ndx).alpha;
+  bmodel(ndx).alpha = newalpha(ndx);
+end
+%}
+
 end
 
 
@@ -111,12 +165,12 @@ parfor dim = 1:numDim
   posRight = sum(posCount)-posLeft;
   negLeft = cumsum(negCount);
   negRight = sum(negCount)-negLeft;
-  binErr = posRight+negLeft-posLeft-negRight;
-  negErr = binErr<0;
-  binErr(negErr) = -binErr(negErr);
+  binErr = (posLeft+negRight)/2;
+  negErr = binErr>0.5;
+  binErr(negErr) = 1-binErr(negErr);
   dir(negErr) = -1;
   
-  err = 0.5-binErr/2;
+  err = binErr;
   [curBestErr(dim) binNo(dim)]= min(err(1:end-1));
   bestDir(dim) = dir(binNo(dim));
 end
