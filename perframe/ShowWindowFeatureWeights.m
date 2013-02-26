@@ -6,6 +6,9 @@ if isempty(data.classifier),
   warndlg('Classifier is empty'); 
 end
 
+% make sure the window data is in place --added by ALT, Feb 26 2013
+data.StoreLabelsAndPreLoadWindowData();
+
 [hax,hfig,figpos,...
   nfeatures_show] = ...
   myparse(varargin,'axes',[],'figure',[],...
