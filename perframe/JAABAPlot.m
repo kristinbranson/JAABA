@@ -1772,9 +1772,11 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='feature histogram';
 
-h=figure('toolbar','figure');  hold on;
-guidata(h,handles);
-uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
+figure('toolbar','figure');  hold on;
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
+uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
@@ -2012,23 +2014,24 @@ else
 end
 
 if(ischar(individual) && ((length(handles.grouplist)>1) || (comparison>0)))
-  tmp=calculate_statistics2(table_data,handles.behaviorlist(bb),handles.grouplist,...
+  handles.statistics=calculate_statistics2(table_data,handles.behaviorlist(bb),handles.grouplist,...
       comparison,fid,handles.prefs_pvalue);
-  set(handles.Table,'Data',tmp);
-  set(handles.Table,'ColumnWidth','auto');
-  set(handles.Table,'ColumnName',{''});
-else
-  set(handles.Table,'Data',[]);
-  set(handles.Table,'ColumnName',{});
+%  set(handles.Table,'Data',tmp);
+%  set(handles.Table,'ColumnWidth','auto');
+%  set(handles.Table,'ColumnName',{''});
+%else
+%  set(handles.Table,'Data',[]);
+%  set(handles.Table,'ColumnName',{});
 end
 
 fclose(fid);
 
+guidata(gcf,handles);
+guidata(hObject,handles);
+
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
-
-%guidata(hObject,handles);
 
 
 % ---
@@ -2309,9 +2312,11 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='feature time series';
 
-h=figure('toolbar','figure');  hold on;
-guidata(h,handles);
-uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
+figure('toolbar','figure');  hold on;
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
+%uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+%    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(handles.featuretimeseries_timing==1)  bb=1;  end
@@ -2484,6 +2489,9 @@ else
 end
 
 fclose(fid);
+
+guidata(gcf,handles);
+guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -2825,9 +2833,11 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='behavior bar chart';
 
-h=figure('toolbar','figure');  hold on;
-guidata(h,handles);
-uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
+figure('toolbar','figure');  hold on;
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
+uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
@@ -3062,17 +3072,19 @@ end
 
 %if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
 if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && ischar(individual) && (length(handles.grouplist)>1))
-  tmp=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,fid,handles.prefs_pvalue);
-  set(handles.Table,'Data',tmp);
-  set(handles.Table,'ColumnWidth','auto');
-  set(handles.Table,'ColumnName',{''});
-else
-  set(handles.Table,'Data',[]);
-  set(handles.Table,'ColumnName',{});
+  handles.statistics=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,...
+      fid,handles.prefs_pvalue);
+%  set(handles.Table,'Data',tmp);
+%  set(handles.Table,'ColumnWidth','auto');
+%  set(handles.Table,'ColumnName',{''});
+%else
+%  set(handles.Table,'Data',[]);
+%  set(handles.Table,'ColumnName',{});
 end
 
 fclose(fid);
 
+guidata(gcf,handles);
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
@@ -3113,9 +3125,11 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='behavior time series';
 
-h=figure('toolbar','figure');  hold on;
-guidata(h,handles);
-uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
+figure('toolbar','figure');  hold on;
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
+%uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+%    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
@@ -3319,6 +3333,9 @@ end
 
 fclose(fid);
 
+guidata(gcf,handles);
+guidata(hObject,handles);
+
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
@@ -3410,9 +3427,11 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='bout stats';
 
-h=figure('toolbar','figure');  hold on;
-guidata(h,handles);
-uicontrol(h,'style','pushbutton','string','?','position',[10 10 20 20],'callback',@figure_info_callback);
+figure('toolbar','figure');  hold on;
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
+uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
@@ -3589,17 +3608,19 @@ end
 
 %if(individual<4)
 if(ischar(individual) && (length(handles.grouplist)>1))
-  tmp=calculate_statistics(table_data,handles.behaviorlist,bb,handles.grouplist,fid,handles.prefs_pvalue);
-  set(handles.Table,'Data',tmp);
-  set(handles.Table,'ColumnWidth','auto');
-  set(handles.Table,'ColumnName',{''});
-else
-  set(handles.Table,'Data',[]);
-  set(handles.Table,'ColumnName',{});
+  handles.statistics=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,...
+      fid,handles.prefs_pvalue);
+%  set(handles.Table,'Data',tmp);
+%  set(handles.Table,'ColumnWidth','auto');
+%  set(handles.Table,'ColumnName',{''});
+%else
+%  set(handles.Table,'Data',[]);
+%  set(handles.Table,'ColumnName',{});
 end
 
 fclose(fid);
 
+guidata(gcf,handles);
 guidata(hObject,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
@@ -5075,7 +5096,22 @@ function MenuFile_Callback(hObject, eventdata, handles)
 
 
 % ---
-function figure_info_callback(src,evt)
+function figure_stats_callback(src,evt)
+
+handles=guidata(src);
+
+len=max(cellfun(@(x) length(regexprep(num2str(x),'<[^<]*>','*')),handles.statistics));
+hf=figure('menubar','none','toolbar','none','numbertitle','off','name',['statistics for Figure ' num2str(gcbf)]);
+posF=get(hf,'position');
+ht=uitable('data',handles.statistics,'columnwidth',num2cell(8*len),'rowname',[],'columnname',[]);
+extT=get(ht,'extent');
+set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(hf,'position',[posF(1) posF(2) 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+
+
+
+% ---
+function figure_params_callback(src,evt)
 
 handles=guidata(src);
 
@@ -5129,7 +5165,7 @@ for g=1:length(handles.grouplist)
   tmp{end+1}='';
 end
 
-h=msgbox(tmp,'Parameters','replace');
+h=msgbox(tmp,['parameters for Figure ' num2str(gcbf)],'replace');
 
 
 
