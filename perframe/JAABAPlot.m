@@ -2136,7 +2136,11 @@ if(isempty(handles.interestingfeaturehistograms_cache))
         reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
         reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,2)))./ ...
           sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,5).^2))/2))', ...
-          nbehaviors*nfeatures,1)];
+          nbehaviors*nfeatures,1) ...
+        nan(nbehaviors*nfeatures,1)];
+%        reshape(cellfun(@(x,y) ranksum(x,y),...
+%          squeeze(num2cell(table_data(gg,:,:,1),1)),squeeze(num2cell(table_data(gg,:,:,2),1))), ...
+%          nbehaviors*nfeatures,1)];
     tmp2=[tmp2; ...
         repmat(g,nbehaviors*nfeatures,1) ...
         reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
@@ -2146,7 +2150,11 @@ if(isempty(handles.interestingfeaturehistograms_cache))
         reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
         reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,3)))./ ...
           sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,6).^2))/2))', ...
-          nbehaviors*nfeatures,1)];
+          nbehaviors*nfeatures,1) ...
+        nan(nbehaviors*nfeatures,1)];
+%        reshape(cellfun(@(x,y) ranksum(x,y),...
+%          squeeze(num2cell(table_data(gg,:,:,1),1)),squeeze(num2cell(table_data(gg,:,:,3),1))), ...
+%          nbehaviors*nfeatures,1)];
 
     if(g==length(handles.grouplist))  break;  end
     for g2=(g+1):length(handles.grouplist)
@@ -2160,7 +2168,13 @@ if(isempty(handles.interestingfeaturehistograms_cache))
           reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
           reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
             sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg2,:,:,4).^2))/2))', ...
+            nbehaviors*nfeatures,1) ...
+          reshape(squeeze((mean(table_data(gg,:,:,3))-mean(table_data(gg2,:,:,3)))./ ...
+            sqrt((mean(table_data(gg,:,:,6).^2)+mean(table_data(gg2,:,:,6).^2))/2))', ...
             nbehaviors*nfeatures,1)];
+%          reshape(cellfun(@(x,y) ranksum(x,y),...
+%            squeeze(num2cell(table_data(gg,:,:,1),1)),squeeze(num2cell(table_data(gg2,:,:,1),1))), ...
+%            nbehaviors*nfeatures,1)];
     end
   end
   handles.interestingfeaturehistograms_cache=tmp2;
@@ -2178,10 +2192,11 @@ if(handles.interestingfeaturehistograms_omitinf)
 end
 if(handles.interestingfeaturehistograms_absdprime)
   tmp2(:,7)=abs(tmp2(:,7));
+  tmp2(:,8)=abs(tmp2(:,8));
 end
 tmp2=sortrows(tmp2,-7);
 
-tmp=cell(size(tmp2,1),7);
+tmp=cell(size(tmp2,1),8);
 tmp(:,1)=handles.grouplist(tmp2(:,1));
 tmp(:,2)=cellstr(num2str(tmp2(:,2),'%-d'));
 idx=(tmp2(:,3)>0);  tmp(idx,3)=handles.grouplist(tmp2(idx,3));
@@ -2191,8 +2206,10 @@ tmp(:,4)=cellstr(num2str(tmp2(:,4),'%-d'));
 tmp(:,5)=handles.behaviorlist(tmp2(:,5));
 tmp(:,6)=handles.featurelist(tmp2(:,6));
 tmp(:,7)=cellstr(num2str(tmp2(:,7)));
+idx=find(~isnan(tmp2(:,8)));
+tmp(idx,8)=cellstr(num2str(tmp2(idx,8)));
 set(handles.Table,'Data',tmp);
-set(handles.Table,'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd'''});
+set(handles.Table,'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd''' 'd''-AF'});
 set(handles.Table,'ColumnWidth',num2cell(7*max(cellfun(@length,tmp))));
 set(handles.Table,'RowStriping','on','BackgroundColor',[1 1 1; 0.95 0.95 0.95]);
 
@@ -4049,12 +4066,30 @@ elseif(strcmp(handles.table,'histogram'))
       handles.behaviorlogic=1;
       handles.featurevalue=handles.table_data(eventdata.Indices(end,1),6);
       handles.individual=1;
-      handles.featurehistogram_comparison=0;
+      handles.featurehistogram_comparison=1;
       if(handles.table_data(eventdata.Indices(end,1),3)<0)
         handles.featurehistogram_comparison=-handles.table_data(eventdata.Indices(end,1),3);
       end
       menu_featurehistogram_comparison_set(handles.featurehistogram_comparison);
       FeatureHistogram_Callback(hObject, eventdata, handles);
+    case {8}
+      if(isnan(handles.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2))))
+        questdlg(['Remove all rows for which d''-AF is NaN?'],'','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find(~isnan(handles.table_data(:,8)));
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      else
+        crit=handles.table_data(eventdata.Indices(end,1),7) ./ handles.table_data(eventdata.Indices(end,1),8);
+        questdlg(['Remove all rows for which the ratio of d'' to d''-AF is less than ' num2str(crit) '?'],...
+            '','Yes','No','No');
+        if(strcmp(ans,'No'))  return;  end
+        tmp=get(handles.Table,'Data');
+        idx=find((handles.table_data(:,7)./handles.table_data(:,8))>=crit);
+        set(handles.Table,'Data',tmp(idx,:));
+        handles.table_data=handles.table_data(idx,:);
+      end
   end
   update_figure(handles);
 
