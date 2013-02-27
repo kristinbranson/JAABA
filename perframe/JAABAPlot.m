@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 07-Feb-2013 16:41:21
+% Last Modified by GUIDE v2.5 27-Feb-2013 13:54:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,6 +56,8 @@ handles.behaviorlist={};
 handles.behaviorvalue=1;
 handles.behaviorlogic=1;
 handles.behaviorvalue2=1;
+handles.behaviornormalizenot=0;
+handles.behaviorvalue3=1;
 handles.features={};
 handles.featurelist={};
 handles.featurevalue=1;
@@ -115,6 +117,8 @@ handles.behaviorlist=handles_saved.behaviorlist;
 handles.behaviorvalue=handles_saved.behaviorvalue;
 handles.behaviorlogic=handles_saved.behaviorlogic;
 handles.behaviorvalue2=handles_saved.behaviorvalue2;
+handles.behaviornormalizenot=handles_saved.behaviornormalizenot;
+handles.behaviorvalue3=handles_saved.behaviorvalue3;
 handles.features=handles_saved.features;
 handles.featurelist=handles_saved.featurelist;
 handles.featurevalue=handles_saved.featurevalue;
@@ -255,21 +259,30 @@ else
 end
 if(sum(cellfun(@length,handles.experimentlist))==0)
   set(handles.FeatureList,'enable','off');
+  set(handles.ClassifierAuto,'enable','off');
   set(handles.ClassifierCheck,'enable','off');
 else
   set(handles.FeatureList,'enable','on');
+  set(handles.ClassifierAuto,'enable','on');
   set(handles.ClassifierCheck,'enable','on');
 end
 if(isempty(handles.classifierlist))
   set(handles.ClassifierList,'enable','off');
   set(handles.ClassifierDelete,'enable','off');
   set(handles.BehaviorList,'enable','off');
+  set(handles.BehaviorList3,'enable','off');
   set(handles.BehaviorLogic,'enable','off');
 else
   set(handles.ClassifierList,'enable','on');
   set(handles.ClassifierDelete,'enable','on');
   set(handles.BehaviorList,'enable','on');
+  set(handles.BehaviorList3,'enable','on');
   set(handles.BehaviorLogic,'enable','on');
+end
+if(~isempty(handles.classifierlist) && (handles.behaviorvalue3>1))
+  set(handles.BehaviorNormalizeNot,'enable','on');
+else
+  set(handles.BehaviorNormalizeNot,'enable','off');
 end
 if(handles.behaviorlogic==1)
   set(handles.BehaviorList2,'enable','off');
@@ -325,11 +338,14 @@ end
 if(isempty(handles.behaviorlist))
   set(handles.BehaviorList,'String',{''},'Value',1);
   set(handles.BehaviorList2,'String',{''},'Value',1);
+  set(handles.BehaviorList3,'String',{''},'Value',1);
 else
-  set(handles.BehaviorList,'String',handles.behaviorlist,'Value',handles.behaviorvalue);
+  set(handles.BehaviorList,'String',{handles.behaviorlist{:} 'All behaviors'},'Value',handles.behaviorvalue);
   set(handles.BehaviorList2,'String',handles.behaviorlist,'Value',handles.behaviorvalue2);
+  set(handles.BehaviorList3,'String',{'All frames' handles.behaviorlist{:}},'Value',handles.behaviorvalue3);
 end
-  set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
+set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
+set(handles.BehaviorNormalizeNot,'Value',handles.behaviornormalizenot);
 if(isempty(handles.featurelist))
   set(handles.FeatureList,'String',{''},'Value',1);
 else
@@ -614,6 +630,49 @@ function BehaviorList2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on selection change in BehaviorList3.
+function BehaviorList3_Callback(hObject, eventdata, handles)
+% hObject    handle to BehaviorList3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns BehaviorList3 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from BehaviorList3
+
+handles.behaviorvalue3=get(handles.BehaviorList3,'Value');
+if(handles.behaviorvalue3==1)
+  set(handles.BehaviorNormalizeNot,'enable','off');
+else
+  set(handles.BehaviorNormalizeNot,'enable','on');
+end
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function BehaviorList3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to BehaviorList3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in BehaviorNormalizeNot.
+function BehaviorNormalizeNot_Callback(hObject, eventdata, handles)
+% hObject    handle to BehaviorNormalizeNot (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of BehaviorNormalizeNot
+
+handles.behaviornormalizenot=get(handles.BehaviorNormalizeNot,'Value');
+guidata(hObject,handles);
 
 
 % --- Executes on selection change in ExperimentList.
@@ -1090,7 +1149,7 @@ end
 idx=find(~cellfun(@isempty,newclassifiers));
 handles.classifierlist={handles.classifierlist{:} newclassifiers{idx}};
 handles.configurations={handles.configurations{:} handlesconfigurations{idx}};
-handles.behaviorlist={handles.behaviorlist{1:(end-1)} handlesbehaviorlist{idx} 'All'};
+handles.behaviorlist={handles.behaviorlist{:} handlesbehaviorlist{idx}};
 handles.scorefiles={handles.scorefiles{:} handlesscorefiles{idx}};
 handles.individuals=[handles.individuals handlesindividuals(:,idx)];
 
@@ -1146,7 +1205,12 @@ handles.classifierlist(idx)=[];
 handles.classifiervalue=1:max(1,length(handles.classifierlist));
 handles.configurations(idx)=[];
 handles.behaviorlist(idx)=[];
-handles.behaviorvalue=max(1,length(handles.behaviorlist));
+%handles.behaviorvalue=max(1,length(handles.behaviorlist));
+%handles.behaviorvalue2=max(1,length(handles.behaviorlist));
+%handles.behaviorvalue3=max(1,length(handles.behaviorlist));
+handles.behaviorvalue=1;
+handles.behaviorvalue2=1;
+handles.behaviorvalue3=1;
 handles.scorefiles(idx)=[];
 handles.individuals(:,idx)=[];
 
@@ -1548,6 +1612,8 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
       partition_idx=tmp1 & ~tmp2;
     case(4)
       partition_idx=tmp1 | tmp2;
+    case(5)
+      partition_idx=tmp1 | ~tmp2;
   end
   if length(partition_idx)==(length(feature_data.data{i})+1)  % n-1 features
     partition_idx=partition_idx(1:end-1);
@@ -2069,7 +2135,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   handlesexperimentlist=handlesexperimentlist(selected_exp);
 
   nexperiments=length(handlesexperimentlist);
-  nbehaviors=length(handles.behaviorlist)-1;
+  nbehaviors=length(handles.behaviorlist);
   nfeatures=length(handles.featurelist);
 
   h=waitbar(0,'This will likely take awhile...',...
@@ -2873,6 +2939,10 @@ if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
+score_file3=[];
+if(handles.behaviorvalue3>1)
+  score_file3=handles.scorefiles{handles.behaviorvalue3-1};
+end
 sexdata=handles.sexdata;
 perwhat=handles.behaviorbarchart_perwhat;
 
@@ -2913,10 +2983,13 @@ for b=bb
     if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
 
     behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
+    behavior_data2=[];
     if(behavior_logic>1)
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
-    else
-      behavior_data2=[];
+    end
+    behavior_data3=[];
+    if(handles.behaviorvalue3>1)
+      behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
     end
 
     frames_labelled=nan(1,length(behavior_data.allScores.t0s));
@@ -2934,6 +3007,16 @@ for b=bb
         tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
         tmp2=logical(cumsum(tmp2));
       end
+      tmp3=[];
+      if(handles.behaviorvalue3>1)
+        tmp3=zeros(1,behavior_data3.allScores.tEnd(i)-behavior_data3.allScores.tStart(i)+1);
+        tmp3(behavior_data3.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+        tmp3(behavior_data3.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+        tmp3=logical(cumsum(tmp3));
+        if(handles.behaviornormalizenot)
+          tmp3=~tmp3;
+        end
+      end
       partition_idx=[];
       switch(behavior_logic)
         case(1)
@@ -2944,10 +3027,16 @@ for b=bb
           partition_idx=tmp1 & ~tmp2;
         case(4)
           partition_idx=tmp1 | tmp2;
+        case(5)
+          partition_idx=tmp1 | ~tmp2;
       end
       sex(i)=sum(sexdata{ge}{i}(1:length(partition_idx))) > (length(partition_idx)/2);
       frames_labelled(i)=sum(partition_idx);
-      frames_total(i)=length(partition_idx);
+      if(handles.behaviorvalue3==1)
+        frames_total(i)=length(partition_idx);
+      else
+        frames_total(i)=sum(tmp3);
+      end
     end
 
     collated_data{ge}={frames_labelled frames_total sex};
@@ -3165,6 +3254,10 @@ if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
+score_file3=[];
+if(handles.behaviorvalue3>1)
+  score_file3=handles.scorefiles{handles.behaviorvalue3-1};
+end
 sexdata=handles.sexdata;
 convolutionwidth=handles.prefs_convolutionwidth;
 style=handles.behaviortimeseries_style;
@@ -3197,6 +3290,10 @@ for b=bb
     if(behavior_logic>1)
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
     end
+    behavior_data3=[];
+    if(handles.behaviorvalue3>1)
+      behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
+    end
 
     if(xoffset==1)
       parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd));
@@ -3216,10 +3313,21 @@ for b=bb
 
       tmp2=[];
       if(behavior_logic>1)
-        tmp2=zeros(1,behavior_data.allScores.tEnd(i));
+        tmp2=zeros(1,behavior_data2.allScores.tEnd(i));
         tmp2(behavior_data2.allScores.t0s{i})=1;
         tmp2(behavior_data2.allScores.t1s{i})=-1;
         tmp2=logical(cumsum(tmp2));
+      end
+
+      tmp3=[];
+      if(handles.behaviorvalue3>1)
+        tmp3=zeros(1,behavior_data3.allScores.tEnd(i));
+        tmp3(behavior_data3.allScores.t0s{i})=1;
+        tmp3(behavior_data3.allScores.t1s{i})=-1;
+        tmp3=logical(cumsum(tmp3));
+        if(handles.behaviornormalizenot)
+          tmp3=~tmp3;
+        end
       end
 
       partition_idx=zeros(2,length(tmp1));
@@ -3232,19 +3340,20 @@ for b=bb
           partition_idx(1,:)=tmp1 & ~tmp2;
         case(4)
           partition_idx(1,:)=tmp1 | tmp2;
+        case(5)
+          partition_idx(1,:)=tmp1 | ~tmp2;
       end
-      partition_idx(2,behavior_data.allScores.tStart(i):behavior_data.allScores.tEnd(i))=1;
+      if(handles.behaviorvalue3==1)
+        partition_idx(2,behavior_data.allScores.tStart(i):behavior_data.allScores.tEnd(i))=1;
+      else
+        partition_idx(2,:)=tmp3;
+      end
 
       [ones(1,behavior_data.allScores.tEnd(i))];
       switch(individual)
-        %case(2)
         case('M')
-          %partition_idx = partition_idx & sexdata{ge}{i}(1:length(partition_idx));
-          %partition_idx(ans) = partition_idx(ans) & sexdata{ge}{i};
           [ones(1,behavior_data.allScores.tStart(i)-1) sexdata{ge}{i}];
-        %case(3)
         case('F')
-          %partition_idx(ans) = partition_idx(ans) & (~sexdata{ge}{i});
           [ones(1,behavior_data.allScores.tStart(i)-1) ~sexdata{ge}{i}];
       end
       partition_idx(1,:) = partition_idx(1,:) & ans;
@@ -3263,13 +3372,12 @@ for b=bb
       end
       parfor_tmp(1,idx1)=parfor_tmp(1,idx1)+1;
       parfor_tmp(2,idx2)=parfor_tmp(2,idx2)+1;
-      %k=k+1;
     end
-    %raw_data{gei}=parfor_tmp./k;
     raw_data{gei}=parfor_tmp(1,:)./parfor_tmp(2,:);
-    %behavior_cumulative{gei}=conv(raw_data{gei},ones(1,convolutionwidth),'same')...
-    %    ./conv(ones(1,length(raw_data{gei})),ones(1,convolutionwidth),'same');
-    conv(raw_data{gei},ones(1,convolutionwidth),'same');
+%    conv(raw_data{gei},ones(1,convolutionwidth),'same');
+%    behavior_cumulative{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
+    conv(parfor_tmp(1,:),ones(1,convolutionwidth),'same') ./ ...
+       conv(parfor_tmp(2,:),ones(1,convolutionwidth),'same');
     behavior_cumulative{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
   end
   parfor_tmp_len = max( cellfun(@numel, behavior_cumulative) );
@@ -3401,6 +3509,8 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
       partition_idx=tmp1 & ~tmp2;
     case(4)
       partition_idx=tmp1 | tmp2;
+    case(5)
+      partition_idx=tmp1 | ~tmp2;
   end
 
   partition_idx=[0 partition_idx 0];
