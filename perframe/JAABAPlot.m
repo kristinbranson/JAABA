@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 27-Feb-2013 13:54:24
+% Last Modified by GUIDE v2.5 27-Feb-2013 17:23:14
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -2992,6 +2992,8 @@ for b=bb
       behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
     end
 
+    traj_len=behavior_data.allScores.tEnd-behavior_data.allScores.tStart;
+
     frames_labelled=nan(1,length(behavior_data.allScores.t0s));
     frames_total=nan(1,length(behavior_data.allScores.t0s));
     sex=nan(1,length(behavior_data.allScores.t0s));
@@ -3039,7 +3041,7 @@ for b=bb
       end
     end
 
-    collated_data{ge}={frames_labelled frames_total sex};
+    collated_data{ge}={frames_labelled frames_total sex traj_len};
   end
 
   idx=cellfun(@isempty,collated_data);
@@ -3050,17 +3052,19 @@ for b=bb
     case 'A'
       frames_labelled=cellfun(@(x) x{1},collated_data,'uniformoutput',false);
       frames_total=cellfun(@(x) x{2},collated_data,'uniformoutput',false);
+      traj_len=cellfun(@(x) x{4},collated_data,'uniformoutput',false);
     case {'M'}
-      %frames_labelled=cellfun(@(x) x{1}(x{3}==(3-individual)),collated_data,'uniformoutput',false);
-      %frames_total=cellfun(@(x) x{2}(x{3}==(3-individual)),collated_data,'uniformoutput',false);
       frames_labelled=cellfun(@(x) x{1}(x{3}==1),collated_data,'uniformoutput',false);
       frames_total=cellfun(@(x) x{2}(x{3}==1),collated_data,'uniformoutput',false);
+      traj_len=cellfun(@(x) x{4}(x{3}==1),collated_data,'uniformoutput',false);
     case {'F'}
       frames_labelled=cellfun(@(x) x{1}(x{3}==0),collated_data,'uniformoutput',false);
       frames_total=cellfun(@(x) x{2}(x{3}==0),collated_data,'uniformoutput',false);
+      traj_len=cellfun(@(x) x{4}(x{3}==0),collated_data,'uniformoutput',false);
     otherwise
       frames_labelled=cellfun(@(x) x{1}(individual),collated_data,'uniformoutput',false);
       frames_total=cellfun(@(x) x{2}(individual),collated_data,'uniformoutput',false);
+      traj_len=cellfun(@(x) x{4}(individual),collated_data,'uniformoutput',false);
   end
 
   exp_separators=[];  maxy=0;  k=[];  m=0;  table_data{end+1}=[];
@@ -3120,6 +3124,18 @@ for b=bb
         fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}{:}]);
         fprintf(fid,'\n');
+      case 5  % per fly, trajectory length
+        cumsum(cellfun(@length,traj_len(idx)))';
+        exp_separators=[exp_separators; ans+sum(k)];
+        table_data{end}{g}=[traj_len{idx}];
+        maxy=max([maxy table_data{end}{g}]);
+        h(g)=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
+            'barwidth',1,'edgecolor','none');
+        set(h(g),'facecolor',color);
+        k(end+1)=length(table_data{end}{g});
+        fprintf(fid,['%% data, %s\n'],xticklabels{g});
+        fprintf(fid,'%g, ',[table_data{end}{g}]);
+        fprintf(fid,'\n');
     end
   end
 
@@ -3132,7 +3148,7 @@ for b=bb
       fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT\n']);  fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
-    case 3  % per fly, grouped
+    case {3,5}  % per fly, grouped
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
       hh=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
@@ -4659,11 +4675,13 @@ set(handles.MenuBehaviorBarChartPerGroup,'Checked','off');
 set(handles.MenuBehaviorBarChartPerExperimentCTD,'Checked','off');
 set(handles.MenuBehaviorBarChartPerFlyGrouped,'Checked','off');
 set(handles.MenuBehaviorBarChartPerFlyScatter,'Checked','off');
+set(handles.MenuBehaviorBarChartPerFlyTrajectoryLength,'Checked','off');
 switch(arg)
   case(1), set(handles.MenuBehaviorBarChartPerGroup,'Checked','on');
   case(2), set(handles.MenuBehaviorBarChartPerExperimentCTD,'Checked','on');
   case(3), set(handles.MenuBehaviorBarChartPerFlyGrouped,'Checked','on');
   case(4), set(handles.MenuBehaviorBarChartPerFlyScatter,'Checked','on');
+  case(5), set(handles.MenuBehaviorBarChartPerFlyTrajectoryLength,'Checked','on');
 end
 
 
@@ -4707,6 +4725,17 @@ function MenuBehaviorBarChartPerFlyScatter_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.behaviorbarchart_perwhat=4;
+menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function MenuBehaviorBarChartPerFlyTrajectoryLength_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorBarChartPerFlyTrajectoryLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.behaviorbarchart_perwhat=5;
 menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
 guidata(hObject,handles);
 
