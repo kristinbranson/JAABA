@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 27-Feb-2013 17:23:14
+% Last Modified by GUIDE v2.5 28-Feb-2013 11:03:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1845,7 +1845,7 @@ uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
     'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
-if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
@@ -2415,7 +2415,7 @@ uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
 
 bb=handles.behaviorvalue;
 if(handles.featuretimeseries_timing==1)  bb=1;  end
-if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
@@ -2935,7 +2935,7 @@ uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
     'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
-if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
@@ -2946,7 +2946,7 @@ end
 sexdata=handles.sexdata;
 perwhat=handles.behaviorbarchart_perwhat;
 
-h=[];
+h={};
 table_data={};
 for b=bb
 
@@ -3085,32 +3085,35 @@ for b=bb
     switch(handles.behaviorbarchart_perwhat)
       case 1  % per group
         table_data{end}(g)=100*sum([frames_labelled{idx}])./sum([frames_total{idx}]);
-        h(g)=bar(g,table_data{end}(g));
-        set(h(g),'facecolor',color);
+        h{g}=bar(g,table_data{end}(g));
+        set(h{g},'facecolor',color);
       case 2  % per experiment, error bars
         table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
         [ct(g),dp(g),dn(g)]=...
             calculate_ct_d(table_data{end}{g},handles.prefs_centraltendency,handles.prefs_dispersion);
-        h(g)=errorbarplot(g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
-      case 3  % per fly, grouped
+        h{g}=errorbarplot(g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
+      case 3  % per experiment, box
+        table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
+        h{g}=boxplot(table_data{end}{g},'positions',g,'widths',0.5,'colors',color);
+      case 4  % per fly, grouped
         cumsum(cellfun(@length,frames_labelled(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=100.*[frames_labelled{idx}]./[frames_total{idx}];
         maxy=max([maxy table_data{end}{g}]);
-        h(g)=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
+        h{g}=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
             'barwidth',1,'edgecolor','none');
-        set(h(g),'facecolor',color);
+        set(h{g},'facecolor',color);
         k(end+1)=length(table_data{end}{g});
         fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}]);
         fprintf(fid,'\n');
-      case 4  % per fly, stern-style
+      case 5  % per fly, stern-style
         table_data{end}{g}=cell(1,length(frames_labelled(idx)));
         for e=idx
           table_data{end}{g}{e}=100.*frames_labelled{e}./frames_total{e};
           [ct,dp,dn]=calculate_ct_d(table_data{end}{g}{e},...
               handles.prefs_centraltendency,handles.prefs_dispersion);
-          h(g)=plot(m,ct,'o','color',color);
+          h{g}=plot(m,ct,'o','color',color);
           plot([m m],[dp dn],'-','color',color);
           plot(m+(1:length(table_data{end}{g}{e})),table_data{end}{g}{e},'.','color',color);
           m=m+16+length(table_data{end}{g}{e});
@@ -3124,14 +3127,14 @@ for b=bb
         fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}{:}]);
         fprintf(fid,'\n');
-      case 5  % per fly, trajectory length
+      case 6  % per fly, trajectory length
         cumsum(cellfun(@length,traj_len(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=[traj_len{idx}];
         maxy=max([maxy table_data{end}{g}]);
-        h(g)=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
+        h{g}=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
             'barwidth',1,'edgecolor','none');
-        set(h(g),'facecolor',color);
+        set(h{g},'facecolor',color);
         k(end+1)=length(table_data{end}{g});
         fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}]);
@@ -3148,7 +3151,7 @@ for b=bb
       fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT\n']);  fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
-    case {3,5}  % per fly, grouped
+    case {4,6}  % per fly, grouped
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
       hh=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
@@ -3156,7 +3159,7 @@ for b=bb
       set(hh,'edgecolor','none');
       set(gca,'children',flipud(get(gca,'children')));
       k=round(cumsum(k)-k/2);
-    case 4  % per fly, stern-style
+    case 5  % per fly, stern-style
       k=round(cumsum(k)-k/2);
   end
 
@@ -3187,7 +3190,7 @@ for b=bb
   set(gca,'xtick',k,'xticklabel',xticklabels);
   axis tight;  vt=axis;
   axisalmosttight;  vat=axis;
-  if(handles.behaviorbarchart_perwhat==3)
+  if(handles.behaviorbarchart_perwhat==4)
     axis([vat(1) vat(2) 0 vt(4)]);
   else
     axis([vat(1) vat(2) 0 vat(4)]);
@@ -3195,17 +3198,15 @@ for b=bb
   %fprintf(fid,'\n');
 
 end
-idx=find(h>0);
-%if(individual<4)
-if ischar(individual)
-  legend(h(idx),handles.grouplist);
-else
-  %legend(h(idx),handles.individuallist(individual+cumsum_num_indi_per_exp(ggee)));
-  legend(h(idx),handles.individuallist(handles.individualvalue));
-end
+%idx=find(~cellfun(@isempty,h));
+%if ischar(individual)
+%  legend(cellfun(@(x) x(1),h(idx)),handles.grouplist);
+%else
+%  legend(cellfun(@(x) x(1),h(idx)),handles.individuallist(handles.individualvalue));
+%end
 
 %if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && (individual<4))
-if((ismember(handles.behaviorbarchart_perwhat,[2 3])) && ischar(individual) && (length(handles.grouplist)>1))
+if((ismember(handles.behaviorbarchart_perwhat,[2 3 4])) && ischar(individual) && (length(handles.grouplist)>1))
   handles.statistics=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,...
       fid,handles.prefs_pvalue);
 %  set(handles.Table,'Data',tmp);
@@ -3266,7 +3267,7 @@ uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
 %    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
-if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
@@ -3589,7 +3590,7 @@ uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
     'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
-if(bb==length(handles.behaviorlist))  bb=1:(bb-1);  end
+if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
@@ -3752,14 +3753,12 @@ for b=bb
   fprintf(fid,'\n');
 
 end
-idx=find(h>0);
-%if(individual<4)
-if ischar(individual)
-  legend(h(idx),handles.grouplist);
-else
-  %legend(h(idx),handles.individuallist(individual+cumsum_num_indi_per_exp(ggee)));
-  legend(h(idx),handles.individuallist(handles.individualvalue));
-end
+%idx=find(h>0);
+%if ischar(individual)
+%  legend(h(idx),handles.grouplist);
+%else
+%  legend(h(idx),handles.individuallist(handles.individualvalue));
+%end
 
 %if(individual<4)
 if(ischar(individual) && (length(handles.grouplist)>1))
@@ -4673,15 +4672,17 @@ handles=guidata(gcf);
 
 set(handles.MenuBehaviorBarChartPerGroup,'Checked','off');
 set(handles.MenuBehaviorBarChartPerExperimentCTD,'Checked','off');
+set(handles.MenuBehaviorBarChartPerExperimentBox,'Checked','off');
 set(handles.MenuBehaviorBarChartPerFlyGrouped,'Checked','off');
 set(handles.MenuBehaviorBarChartPerFlyScatter,'Checked','off');
 set(handles.MenuBehaviorBarChartPerFlyTrajectoryLength,'Checked','off');
 switch(arg)
   case(1), set(handles.MenuBehaviorBarChartPerGroup,'Checked','on');
   case(2), set(handles.MenuBehaviorBarChartPerExperimentCTD,'Checked','on');
-  case(3), set(handles.MenuBehaviorBarChartPerFlyGrouped,'Checked','on');
-  case(4), set(handles.MenuBehaviorBarChartPerFlyScatter,'Checked','on');
-  case(5), set(handles.MenuBehaviorBarChartPerFlyTrajectoryLength,'Checked','on');
+  case(3), set(handles.MenuBehaviorBarChartPerExperimentBox,'Checked','on');
+  case(4), set(handles.MenuBehaviorBarChartPerFlyGrouped,'Checked','on');
+  case(5), set(handles.MenuBehaviorBarChartPerFlyScatter,'Checked','on');
+  case(6), set(handles.MenuBehaviorBarChartPerFlyTrajectoryLength,'Checked','on');
 end
 
 
@@ -4708,12 +4709,23 @@ guidata(hObject,handles);
 
 
 % --------------------------------------------------------------------
+function MenuBehaviorBarChartPerExperimentBox_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuBehaviorBarChartPerExperimentBox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.behaviorbarchart_perwhat=3;
+menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
 function MenuBehaviorBarChartPerFlyGrouped_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuBehaviorBarChartPerFlyGrouped (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.behaviorbarchart_perwhat=3;
+handles.behaviorbarchart_perwhat=4;
 menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
 guidata(hObject,handles);
 
@@ -4724,7 +4736,7 @@ function MenuBehaviorBarChartPerFlyScatter_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.behaviorbarchart_perwhat=4;
+handles.behaviorbarchart_perwhat=5;
 menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
 guidata(hObject,handles);
 
@@ -4735,7 +4747,7 @@ function MenuBehaviorBarChartPerFlyTrajectoryLength_Callback(hObject, eventdata,
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.behaviorbarchart_perwhat=5;
+handles.behaviorbarchart_perwhat=6;
 menu_behaviorbarchart_perwhat_set(handles.behaviorbarchart_perwhat);
 guidata(hObject,handles);
 
