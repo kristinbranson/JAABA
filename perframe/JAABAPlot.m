@@ -19,7 +19,7 @@ function varargout = JAABAPlot(varargin)
 % GNU General Public License (version 3 pasted in LICENSE.txt) for 
 % more details.
 
-% Last Modified by GUIDE v2.5 28-Feb-2013 11:03:15
+% Last Modified by GUIDE v2.5 28-Feb-2013 11:58:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1018,18 +1018,20 @@ handles.grouplist{end+1}=char(ans);
 handles.groupvalue=length(handles.grouplist);
 handles.experimentlist{handles.groupvalue}={};
 handles.experimentvalue{handles.groupvalue}=[];
-%tmp=length(handles.grouplist);
-%    {handles.colors{2,1+mod(0:length(handles.grouplist)-1,length(handles.colors))}}',...
-%cellstr(strcat(repmat('<html><font color="',tmp,1),...
-%    reshape(dec2hex(round(handles.colors'*255),2)',6,size(handles.colors,1))',...
-%    repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
-%set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
-%set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue},...
-%    'Value',handles.experimentvalue{handles.groupvalue});
-%set(handles.GroupList,'enable','on');
-%set(handles.ExperimentAdd,'enable','on');
-%set(handles.ExperimentDelete,'enable','on');
-%set(handles.ExperimentMove,'enable','on');
+update_figure(handles);
+guidata(hObject,handles);
+
+
+% --- Executes on button press in GroupChange.
+function GroupChange_Callback(hObject, eventdata, handles)
+% hObject    handle to GroupChange (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+inputdlg({'Name:'},'New name for this group');
+if((isempty(ans))||strcmp(ans,''))  return;  end
+handles.colors(handles.groupvalue,:)=uisetcolor(handles.colors(handles.groupvalue,:));
+handles.grouplist{handles.groupvalue}=char(ans);
 update_figure(handles);
 guidata(hObject,handles);
 
