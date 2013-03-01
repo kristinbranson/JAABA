@@ -59,6 +59,17 @@ if dosave_d,
   data = angle; %#ok<NASGU>
   units = parseunits('rad'); %#ok<NASGU>
   filename = trx.GetPerFrameFile('angleonclosestfly',n);
+  if exist(filename,'file'),
+    delete(filename);
+  else
+    if isunix,
+      [res,link] = unix(sprintf('readlink %s',filename));
+      if ~res && ~isempty(link),
+        warning('Deleting broken soft link from %s to %s.\n',filename,link);
+        unix(sprintf('rm %s',filename));
+      end
+    end
+  end
   save(filename,'data','units');
 end
 
