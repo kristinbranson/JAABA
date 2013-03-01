@@ -1,6 +1,6 @@
 function [issuccess,msgs] = CheckScores(expdirs,classifierparamsfiles,classifierparams)
 
-if nargin < 3,
+if nargin < 3 || isempty(classifierparams),
   classifierparams = ReadClassifierParamsFile(classifierparamsfiles);
 end
 nbehaviors = numel(classifierparams);
