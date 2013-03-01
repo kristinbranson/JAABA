@@ -7382,7 +7382,7 @@ handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
 % construct the structure that will be saved in the everything file
 s=struct();
-s.featureConfigParams=data.featureConfigParams;
+%s.featureConfigParams=data.featureConfigParams;
 s=mergeStructures(s,data.getSaveableClassifier());
 s=mergeStructures(s,handles.guidata.configparams);
 s.labelGraphicParams=s.labels;  % get out of way
@@ -7506,12 +7506,6 @@ end
 
 % clear the old experiment directory
 handles.guidata.oldexpdir='';
-
-% % Note that there is currently an open file, and note its name
-% handles.guidata.thereIsAnOpenFile=true;
-% handles.guidata.everythingFileNameAbs=fileNameAbs;
-% handles.guidata.userHasSpecifiedEverythingFileName=true;
-% handles.guidata.needsave=false;
 
 % Updates the graphics objects to match the current labeling mode (normal
 % or ground-truthing)
@@ -8230,10 +8224,10 @@ function projectParams=projectParamsFromEverythingParams(everythingParams)
 fieldNamesToKeep={'behaviors' , ...
                   'file' , ...
                   'scoresinput' , ...
-                  'windowfeatures' , ...
                   'trx' , ...
                   'labelGraphicParams' , ...
                   'ver' }';
+%                  'windowfeatures' , ...
 
 projectParams=struct();
 for i=1:length(fieldNamesToKeep)
@@ -8244,6 +8238,7 @@ for i=1:length(fieldNamesToKeep)
     projectParams.(fieldNameThis)=everythingParams.(fieldNameThis);
   end
 end
+%projectParams.windowfeatures=[];
 
 return
 
