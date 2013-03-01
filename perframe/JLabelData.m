@@ -1838,7 +1838,7 @@ classdef JLabelData < handle
       if ~success,error(msg);end
 
       % load the feature names
-      self.windowdata.featurenames = everythingParams.featurenames;
+      %self.windowdata.featurenames = everythingParams.featurenames;
 
       % set experiment directories
       [success,msg] = ...
@@ -1886,6 +1886,17 @@ classdef JLabelData < handle
       %self.curperframefns=fieldnames(self.windowfeaturesparams);
       self.basicFeatureTable=everythingParams.basicFeatureTable;
       self.featureWindowSize=everythingParams.featureWindowSize;
+      
+      % Set the window feature names
+      feature_names = {};
+      for j = 1:numel(self.curperframefns),
+        fn = self.curperframefns{j};
+        [~,feature_names_curr_proto] = ComputeWindowFeatures([0,0],...
+                                                             self.windowfeaturescellparams.(fn){:});
+        feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
+        feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+      end
+      self.windowdata.featurenames = feature_names;
       
       % Read the classifier_params field out of the classifier.  This
       % contains things like the number of iterations used for training,
@@ -7348,12 +7359,12 @@ classdef JLabelData < handle
                         'confThresholds', ...
                         'scoreNorm', ...
                         'windowfeaturesparams', ...
-                        'windowfeaturescellparams',...
                         'basicFeatureTable', ...
                         'featureWindowSize', ...
                         'postprocessparams',...
-                        'featurenames', ...
                         'scoresasinput'};
+%                        'featurenames', ...
+%                        'windowfeaturescellparams',...
 
       self.StoreLabelsAndThatsAll();  % make sure current labels are committed
       s = struct();  % struct to be returned
