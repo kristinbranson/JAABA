@@ -1691,7 +1691,7 @@ function handles = UpdateMovies(handles)
 function handles = SetNeedSave(handles)
 handles.guidata.needsave = true;
 UpdateGUIToMatchFileAndExperimentState(handles);
-%set(handles.menu_file_export_classifier_and_labels,'Enable','on');
+%set(handles.menu_file_export_classifier,'Enable','on');
 %set(handles.menu_file_export_labels,'Enable','on');
 return
 
@@ -1699,29 +1699,19 @@ return
 % function handles = SetSaved(handles)
 % 
 % handles.guidata.needsave = false;
-% set(handles.menu_file_export_classifier_and_labels,'Enable','off');
+% set(handles.menu_file_export_classifier,'Enable','off');
 % set(handles.menu_file_export_labels,'Enable','off');
 
 
 % --------------------------------------------------------------------
-function success = menu_file_export_classifier_and_labels_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_classifier_and_labels (see GCBO)
+function success = menu_file_export_classifier_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_export_classifier (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[filename,pathname] = uiputfile('*.mat','Save classifier',handles.guidata.data.classifierfilename);
-if ~ischar(filename),
-  success = false;
-  return;
-end
-handles.guidata.data.classifierfilename = fullfile(pathname,filename);
-SetStatus(handles,sprintf('Saving classifier to %s',handles.guidata.data.classifierfilename));
-handles.guidata.data.SaveClassifier();
-handles.guidata.data.SaveLabels();
-handles.guidata.data.SaveGTLabels();
-%handles = SetSaved(handles);
-ClearStatus(handles);
-success = true;
+success=exportEverythingFile(gcbf,'Classifier');
+
+return
 
 
 % --------------------------------------------------------------------
@@ -2427,10 +2417,10 @@ set(handles.menu_file_import_scores_curr_exp_diff_loc, ...
 set(handles.menu_file_import_scores_all_exp_default_loc, ...
     'Enable',onIff(someExperimentIsCurrent));
 % Export things    
-set(handles.menu_file_export_classifier_and_labels, ...
+set(handles.menu_file_export_classifier, ...
     'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff a classifier or labels exist?
-set(handles.menu_file_export_labels, ...
-    'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff labels exist?
+%set(handles.menu_file_export_labels, ...
+%    'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff labels exist?
 % Export scores... and it's submenu items    
 % These may need refining
 set(handles.menu_file_export_scores, ...
@@ -2447,8 +2437,8 @@ set(handles.menu_file_export_scores_all_exp_diff_loc, ...
 % These may need refining
 set(handles.menu_file_export_ground_truthing_suggestions, ...
     'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_labels, ...
-    'Enable',onIff(someExperimentIsCurrent));
+% set(handles.menu_file_export_labels, ...
+%     'Enable',onIff(someExperimentIsCurrent));
 
 %  
 % Update the Edit menu items
@@ -6829,90 +6819,9 @@ function menu_file_export_labels_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.guidata.data.expdirs),
-  uiwait(warndlg('No label data to package'));
-  return;
-end
+exportEverythingFile(gcbf,'Labels');
 
-inlabelfilenames = {};
-outlabelfilestrs = {};
-labelfilestr = handles.guidata.data.GetFileName('label');
-gtlabelfilestr = handles.guidata.data.GetFileName('gt_label');
-for i = 1:handles.guidata.data.nexps,
-  [~,expname] = myfileparts(handles.guidata.data.expdirs{i});
-  inlabelfilename = handles.guidata.data.GetFile('label',i);
-  if exist(inlabelfilename,'file')
-    inlabelfilenames{end+1} = inlabelfilename; %#ok<AGROW>
-    outlabelfilestrs{end+1} = sprintf('%s_%s',expname,labelfilestr); %#ok<AGROW>
-  end
-  inlabelfilename = handles.guidata.data.GetFile('gt_label',i);
-  if exist(inlabelfilename,'file')
-    inlabelfilenames{end+1} = inlabelfilename; %#ok<AGROW>
-    outlabelfilestrs{end+1} = sprintf('%s_%s',expname,gtlabelfilestr); %#ok<AGROW>
-  end
-end
-
-if isempty(inlabelfilenames),
-  uiwait(warndlg('No label data to package'));
-  return;
-end
-
-% choose an output directory
-if ~isempty(handles.guidata.packageoutputdir),
-  [outparentdir,packagename] = myfileparts(handles.guidata.packageoutputdir);
-else
-  if ~isempty(handles.guidata.expi) && handles.guidata.expi > 0,
-    outparentdir = myfileparts(handles.guidata.data.expdirs{handles.guidata.expi});
-  else
-    outparentdir = myfileparts(handles.guidata.data.expdirs{1});
-  end
-  packagename = sprintf('LastName_FirstName_%s_%s',handles.guidata.configparams.behaviors.names,datestr(now,'yyyymmddTHHMMSS'));
-end
-outparentdir = uigetdir(outparentdir,'Choose parent directory to output label package to');
-if ~ischar(outparentdir),
-  return;
-end
-if ~exist(outparentdir,'dir'),
-  try
-    [success,msg] = mkdir(outparentdir);
-    if ~success,
-      error(msg);
-    end
-  catch ME,
-    errordlg(sprintf('Error making directory %s: %s',outparentdir,getReport(ME)));
-    return;
-  end
-end
-options.Resize='on';
-res = inputdlg({'Package name'},'Choose a name for the package directory',1,{packagename},options);
-if isempty(res),
-  return;
-end
-packagename = res{1};
-outdir = fullfile(outparentdir,packagename);
-if ~exist(outdir,'dir'),
-  try
-    [success,msg] = mkdir(outdir);
-    if ~success,
-      error(msg);
-    end
-  catch ME,
-    errordlg(sprintf('Error making directory %s: %s',outdir,getReport(ME)));
-    return;
-  end
-end
-
-for i = 1:numel(inlabelfilenames),
-  try
-    [success,msg] = copyfile(inlabelfilenames{i},fullfile(outdir,outlabelfilestrs{i}));
-    if ~success,
-      error(msg);
-    end
-  catch ME,
-    errordlg(sprintf('Error copying file %s to %s: %s',inlabelfilenames{i},fullfile(outdir,outlabelfilestrs{i})),getReport(ME));
-  end
-end
-handles.guidata.packageoutputdir = outdir;
+return
 
 
 % %--------------------------------------------------------------------------
@@ -7326,7 +7235,7 @@ return
 
 % -------------------------------------------------------------------------
 function menu_file_save_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_classifier_and_labels (see GCBO)
+% hObject    handle to menu_file_export_classifier (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saveAs=false;
@@ -7336,7 +7245,7 @@ return
 
 % -------------------------------------------------------------------------
 function menu_file_save_as_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_classifier_and_labels (see GCBO)
+% hObject    handle to menu_file_export_classifier (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saveAs=true;
@@ -7380,14 +7289,8 @@ end
 fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
-% construct the structure that will be saved in the everything file
-s=struct();
-%s.featureConfigParams=data.featureConfigParams;
-s=mergeStructures(s,data.getSaveableClassifier());
-s=mergeStructures(s,handles.guidata.configparams);
-s.labelGraphicParams=s.labels;  % get out of way
-[s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
-s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
+% Extract the structure that will be saved in the everything file
+s=handles.guidata.getEverythingStruct();
 % write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -7407,6 +7310,74 @@ guidata(figureJLabel,handles);
 
 return
 
+
+% -------------------------------------------------------------------------
+function saved=exportEverythingFile(figureJLabel,whatToExport)
+
+% Figure out the filterSpec from whatToExport
+if strcmp(whatToExport,'Classifier')
+  filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
+  fileExtension='.jcf';
+elseif strcmp(whatToExport,'Labels')
+  filterSpec={'*.jlb','JAABA Label Files (*.jlb)'};
+  fileExtension='.jlb';
+end
+
+% Figure out the suggested file name
+handles=guidata(figureJLabel);
+everythingFileNameAbs=handles.guidata.everythingFileNameAbs;
+[dirName,fileBaseName]=fileparts(everythingFileNameAbs);
+suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
+
+% Do eveything else.
+saved=false;  % default return
+data=handles.guidata.data;  % reference
+windowTitle=sprintf('Export %s...',whatToExport);
+[filename,pathname] = ...
+  uiputfile(filterSpec, ...
+            windowTitle, ...
+            suggestedFileNameAbs);
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+fileNameAbs=fullfile(pathname,filename);
+fileNameRel=fileNameRelFromAbs(fileNameAbs);
+handles=guidata(figureJLabel);
+SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
+% Extract the structure that will be saved in the everything file
+s=handles.guidata.getEverythingStruct();
+% write the everything structure to disk
+try
+  save('-mat',fileNameAbs,'-struct','s');
+catch  %#ok
+  uiwait(errordlg(sprintf('Unable to save %s.', ...
+                          fileNameRel), ...
+                  'Unable to Save'));
+  ClearStatus(handles);
+  return;
+end
+saved=true;
+UpdateGUIToMatchFileAndExperimentState(handles);
+ClearStatus(handles);
+guidata(figureJLabel,handles);
+
+return
+
+
+% -------------------------------------------------------------------------
+function getEverythingStruct(handles)
+
+% construct the structure that will be saved in the everything file
+s=struct();
+%s.featureConfigParams=data.featureConfigParams;
+s=mergeStructures(s,data.getSaveableClassifier());
+s=mergeStructures(s,handles.guidata.configparams);
+s.labelGraphicParams=s.labels;  % get out of way
+[s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
+s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
+
+return
 
 % -------------------------------------------------------------------------
 function menu_file_open_Callback(hObject, eventdata, handles)
@@ -8277,17 +8248,3 @@ end
 return
 
 
-% ------------------------------------------------------------------------ 
-function sOut=mergeStructures(s1,s2)
-% Merge the scalar structures s1 and s2.  The output structure has all the
-% fields of both s1 and s2.  If s1 and s2 have common fields, that values
-% from s2 "overwrite" those of s1.
-
-sOut=s1;
-fieldNames=fieldnames(s2);
-for i=1:length(fieldNames)
-  fieldName=fieldNames{i};
-  sOut.(fieldName)=s2.(fieldName);
-end
-
-return
