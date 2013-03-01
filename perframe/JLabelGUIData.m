@@ -334,6 +334,16 @@ classdef JLabelGUIData < handle
       end
     end
     
+    function s=getEverythingStruct(self)
+      % Construct the structure that will be saved in the everything file
+      s=struct();
+      %s.featureConfigParams=data.featureConfigParams;
+      s=mergeStructures(s,self.data.getSaveableClassifier());
+      s=mergeStructures(s,self.configparams);
+      s.labelGraphicParams=s.labels;  % get out of way
+      [s.labels,s.gtLabels]=self.data.storeAndGetLabelsAndGTLabels();
+      s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
+    end
   end
   
 end
