@@ -489,6 +489,68 @@ classdef JLabelData < handle
       end
     end  % method
 
+    
+    % --------------------------------------------------------------------------
+    function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex] = ...
+        readTrxInfoFromFile(trxFileName)
+      % Read the trx file
+      [trx,~,success] = load_tracks(trxFileName);
+      if ~success,
+        error('JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile', ...
+              'Unable to read .trx file');
+      end
+      
+      % Set the returned things which can be read directly from the .trx
+      % file
+      nFlies = numel(trx);
+      firstFrames = [trx.firstframe];
+      endFrames = [trx.endframe];
+      hasArenaParams=isfield(trx,'arena');
+      hasSex = isfield(trx,'sex');
+        
+      % Compute fracSex and sex from the trx file contents
+      fracSex = struct('M',repmat({nan},[1 nFlies]), ...
+                       'F',repmat({nan},[1 nFlies]));
+      sex = repmat({'?'},[1 nFlies]);
+      if hasSex,
+        % this track file has sex
+        if nFlies==0,
+          hasPerFrameSex=true;  % vacuous truth
+        else
+          hasPerFrameSex = iscell(trx(1).sex);
+        end
+        if hasPerFrameSex,
+          % this trx file has per-frame sex
+          for iFly = 1:nFlies,
+            n = numel(trx(iFly).sex);
+            nMale = nnz(strcmpi(trx(iFly).sex,'M'));
+            nFemale = nnz(strcmpi(trx(iFly).sex,'F'));
+            fracSex(iFly).M = nMale/n;
+            fracSex(iFly).F = nFemale/n;
+            if nMale > nFemale,
+              sex{iFly} = 'M';
+            elseif nFemale > nMale,
+              sex{iFly} = 'F';
+            else
+              sex{iFly} = '?';
+            end
+          end
+        else
+          % this trx files does not have per-frame sex
+          for iFly = 1:nFlies,
+            sex{iFly} = trx(iFly).sex;
+            if strcmpi(trx(iFly).sex,'M'),
+              fracSex(iFly).M = 1;
+              fracSex(iFly).F = 0;
+            elseif strcmpi(trx(iFly).sex,'F'),
+              fracSex(iFly).M = 0;
+              fracSex(iFly).F = 1;
+            end
+          end
+        end
+      end
+    end  % method
+    
   end  % class methods
   
   methods (Access=public)
@@ -1729,7 +1791,7 @@ classdef JLabelData < handle
 
       % set experiment directories
       if classifierlabels && isfield(classifierParams,'labels'),
-        [success,msg] = obj.SetExpDirsOld(classifierParams.expdirs,classifierParams.outexpdirs,...
+        [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
         if ~success,error(msg); end
@@ -1743,7 +1805,7 @@ classdef JLabelData < handle
         if classifierlabels,
           uiwait(warndlg('The classifier file didn''t have any labels. Loading the current labels'));
         end
-        [success,msg] = obj.SetExpDirsOld(classifierParams.expdirs,classifierParams.outexpdirs,...
+        [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
         if ~success,error(msg); end
@@ -1847,13 +1909,13 @@ classdef JLabelData < handle
 
       % set experiment directories
       [success,msg] = ...
-        self.SetExpDirs(everythingParams.expdirs, ...
-                        everythingParams.expdirs, ...
-                        everythingParams.nflies_per_exp, ...
-                        everythingParams.sex_per_exp, ...
-                        everythingParams.frac_sex_per_exp, ...
-                        everythingParams.firstframes_per_exp, ...
-                        everythingParams.endframes_per_exp);
+        self.SetExpDirsNew(everythingParams.expdirs, ...
+                           everythingParams.expdirs, ...
+                           everythingParams.nflies_per_exp, ...
+                           everythingParams.sex_per_exp, ...
+                           everythingParams.frac_sex_per_exp, ...
+                           everythingParams.firstframes_per_exp, ...
+                           everythingParams.endframes_per_exp);
       if ~success,error(msg); end
       
       % Update the status table
@@ -2076,6 +2138,88 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
+    function [success,msg] = SetExpDirsNew(obj,expdirs,outexpdirs,nflies_per_exp,...
+        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+    % [success,msg] = SetExpDirsNew(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
+    % Changes what experiments are currently being used for this
+    % classifier. This function calls RemoveExpDirs to remove all current
+    % experiments not in expdirs, then calls AddExpDirs to add the new
+    % experiment directories. 
+
+      success = false;
+      msg = '';
+      
+      if isnumeric(expdirs),
+        return;
+      end
+      
+      if nargin < 2,
+        error('Usage: obj.SetExpDirsNew(expdirs,[outexpdirs],[nflies_per_exp])');
+      end
+      
+      isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
+      isnflies = nargin > 3 && ~isempty(nflies_per_exp);
+      issex = nargin > 4 && ~isempty(sex_per_exp);
+      isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
+      isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
+      isendframes = nargin > 7 && ~isempty(endframes_per_exp);
+      
+      % check inputs
+      
+      % sizes must match
+      if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
+        error('expdirs and outexpdirs do not match size');
+      end
+      if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
+        error('expdirs and nflies_per_exp do not match size');
+      end
+      
+      oldexpdirs = obj.expdirs;
+      
+      % remove oldexpdirs
+      
+      [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
+      if ~success1,
+        return;
+      end
+
+      % add new expdirs
+      idx = find(~ismember(expdirs,oldexpdirs));
+      success = true;
+      for i = idx,
+        params = cell(1,nargin-1);
+        params{1} = expdirs{i};
+        if isoutexpdirs,
+          params{2} = outexpdirs{i};
+        end
+        if isnflies,
+          params{3} = nflies_per_exp(i);
+        end
+        if issex,
+          params{4} = sex_per_exp{i};
+        end
+        if isfracsex,
+          params{5} = frac_sex_per_exp{i};
+        end
+        if isfirstframes,
+          params{6} = firstframes_per_exp{i};
+        end
+        if isendframes,
+          params{7} = endframes_per_exp{i};
+        end
+        [success1,msg1] = obj.AddExpDirNew(params{:});
+        success = success && success1;
+        if isempty(msg),
+          msg = msg1;
+        else
+          msg = sprintf('%s\n%s',msg,msg1);
+        end        
+      end
+
+    end
+
+
+    % ---------------------------------------------------------------------
     function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
         sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
     % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
@@ -2146,88 +2290,6 @@ classdef JLabelData < handle
           params{7} = endframes_per_exp{i};
         end
         [success1,msg1] = obj.AddExpDir(params{:});
-        success = success && success1;
-        if isempty(msg),
-          msg = msg1;
-        else
-          msg = sprintf('%s\n%s',msg,msg1);
-        end        
-      end
-
-    end
-
-
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetExpDirsOld(obj,expdirs,outexpdirs,nflies_per_exp,...
-        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
-    % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
-    % Changes what experiments are currently being used for this
-    % classifier. This function calls RemoveExpDirs to remove all current
-    % experiments not in expdirs, then calls AddExpDirs to add the new
-    % experiment directories. 
-
-      success = false;
-      msg = '';
-      
-      if isnumeric(expdirs),
-        return;
-      end
-      
-      if nargin < 2,
-        error('Usage: obj.SetExpDirsOld(expdirs,[outexpdirs],[nflies_per_exp])');
-      end
-      
-      isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
-      isnflies = nargin > 3 && ~isempty(nflies_per_exp);
-      issex = nargin > 4 && ~isempty(sex_per_exp);
-      isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
-      isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
-      isendframes = nargin > 7 && ~isempty(endframes_per_exp);
-      
-      % check inputs
-      
-      % sizes must match
-      if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
-        error('expdirs and outexpdirs do not match size');
-      end
-      if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
-        error('expdirs and nflies_per_exp do not match size');
-      end
-      
-      oldexpdirs = obj.expdirs;
-      
-      % remove oldexpdirs
-      
-      [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
-      if ~success1,
-        return;
-      end
-
-      % add new expdirs
-      idx = find(~ismember(expdirs,oldexpdirs));
-      success = true;
-      for i = idx,
-        params = cell(1,nargin-1);
-        params{1} = expdirs{i};
-        if isoutexpdirs,
-          params{2} = outexpdirs{i};
-        end
-        if isnflies,
-          params{3} = nflies_per_exp(i);
-        end
-        if issex,
-          params{4} = sex_per_exp{i};
-        end
-        if isfracsex,
-          params{5} = frac_sex_per_exp{i};
-        end
-        if isfirstframes,
-          params{6} = firstframes_per_exp{i};
-        end
-        if isendframes,
-          params{7} = endframes_per_exp{i};
-        end
-        [success1,msg1] = obj.AddExpDirOld(params{:});
         success = success && success1;
         if isempty(msg),
           msg = msg1;
@@ -2590,15 +2652,15 @@ classdef JLabelData < handle
 
 
     % ---------------------------------------------------------------------
-    function [success,msg] = AddExpDir(obj, ...
-                                       expdir, ...
-                                       outexpdir, ...
-                                       nflies_per_exp, ...
-                                       sex_per_exp, ...
-                                       frac_sex_per_exp, ...
-                                       firstframes_per_exp, ...
-                                       endframes_per_exp, ...
-                                       interactivemode)
+    function [success,msg] = AddExpDirNew(obj, ...
+                                          expdir, ...
+                                          outexpdir, ...
+                                          nflies_per_exp, ...
+                                          sex_per_exp, ...
+                                          frac_sex_per_exp, ...
+                                          firstframes_per_exp, ...
+                                          endframes_per_exp, ...
+                                          interactivemode)
       % Add a new experiment to the GUI.  This does not change self.expi,
       % and does not not do any preloading.
       
@@ -2667,21 +2729,6 @@ classdef JLabelData < handle
       %obj.rootoutputdir = rootoutputdir;
       obj.outexpdirs{end+1} = outexpdir;
       
-      % load labels for this experiment
-      obj.SetStatus('Loading labels from file for %s...',expname);
-      [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.SetStatus('Failed to load labels for %s...',expname);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.SetStatus('Failed to load labels for %s...',expname);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-
       % Update the status table        
       obj.SetStatus('Updating status table for %s...',expname);
       [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
@@ -2801,7 +2848,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = AddExpDirOld(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,...
+    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,...
         frac_sex_per_exp,firstframes_per_exp,endframes_per_exp,interactivemode)
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
@@ -2812,7 +2859,7 @@ classdef JLabelData < handle
       if isnumeric(expdir), return; end
       
       if nargin < 2,
-        error('Usage: obj.AddExpDirOld(expdir,[outexpdir],[nflies_per_exp])');
+        error('Usage: obj.AddExpDir(expdir,[outexpdir],[nflies_per_exp])');
       end
 
       if ~exist('interactivemode','var'),
@@ -3241,14 +3288,14 @@ classdef JLabelData < handle
       
     end
     
-%     function [success,msg] = AddExpDirOldIfNotPresentAlready(self,newExpDirName)
+%     function [success,msg] = AddExpDirIfNotPresentAlready(self,newExpDirName)
 %       if ismember(newExpDirName,self.expdirs),
 %         % if already present, do nothing
 %         success=true;
 %         msg='';
 %       else
 %         % if not present, add
-%         [success,msg] = self.AddExpDirOld(newExpDirName);
+%         [success,msg] = self.AddExpDir(newExpDirName);
 %       end
 %     end
     
@@ -3579,7 +3626,7 @@ classdef JLabelData < handle
         'perframe_params',obj.perframe_params,...
         'rootwritedir',obj.rootoutputdir);
       
-      perframetrx.AddExpDirOld(expdir,'dooverwrite',dooverwrite,'openmovie',false);
+      perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
       
       if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
@@ -3982,6 +4029,7 @@ classdef JLabelData < handle
 % Tracking information   
 
 
+    % --------------------------------------------------------------------------
     function [success,msg] = GetTrxInfo(obj,expi,canusecache,trx)
     % [success,msg] = GetTrxInfo(obj,expi)
     % Fills in nflies_per_exp, firstframes_per_exp, and endframes_per_exp
@@ -4091,6 +4139,8 @@ classdef JLabelData < handle
       
     end
 
+    
+    % --------------------------------------------------------------------------
     function out = GetTrxValues(obj,infoType,expi,flies,ts)
     % A generic function that return track info.
 
