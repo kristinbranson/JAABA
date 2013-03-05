@@ -1,4 +1,8 @@
-function bmodel = fastBag(data,labels,binVals,bins,params)
+function bmodel = fastBag(data,labels,binVals,bins,params,obj)
+
+if nargin < 6
+  obj = [];
+end
 
 numIters = 100;
 wkSamples = 50;
@@ -60,8 +64,14 @@ for itt = 1:numIters
   if mod(itt,10)==0,
     etime = toc(clk);
     perct = itt/numIters*100;
-    fprintf('%d%% done. Time Remaining:%.2f\n',...
-      round(perct),etime*(100-perct)/perct);
+    if ~isempty(obj),
+      obj.SetStatus('Bagging: %d%% done. Time Remaining:%ds\n',...
+        round(perct),round(etime*(100-perct)/perct));
+    else
+      fprintf('Bagging: %d%% done. Time Remaining:%d\n',...
+        round(perct),round(etime*(100-perct)/perct));
+    end
+
   end
   
 end

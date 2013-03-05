@@ -1278,11 +1278,14 @@ switch handles.guidata.bottomAutomatic
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
   case 'None'
     scores_bottom = zeros(size(scores));
+  case 'Distance'
+    dist = handles.guidata.data.GetDistance(handles.guidata.expi,handles.guidata.flies);
+    scores_bottom = zeros(size(scores));
   otherwise
     warndlg('Undefined scores type to display for the bottom part of the automatic');
 end
 
-if ~strcmp(handles.guidata.bottomAutomatic,'Postprocessed')
+if ~(any(strcmp(handles.guidata.bottomAutomatic,{'Postprocessed','Distance'})))
 prediction_bottom = zeros(size(scores_bottom));
 prediction_bottom(scores_bottom>0) = 1;
 prediction_bottom(scores_bottom<0) = 2;
@@ -1305,10 +1308,15 @@ for behaviori = 1:handles.guidata.data.nbehaviors
       handles.guidata.labels_plot.predicted_im(4,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
     
       % bottom row scores.
-      handles.guidata.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.guidata.scorecolor(bottomScoreNdx,channel,1);
-      handles.guidata.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
-        handles.guidata.labelcolors(behaviori,channel);
-    
+      if strcmp(handles.guidata.bottomAutomatic,'Distance'),
+        handles.guidata.labels_plot.predicted_im(5:6,:,channel) = repmat(1-dist(:)',[2 1 1]);
+        handles.guidata.labels_plot.predicted_im(5:6,isnan(dist),channel) = 0;
+        
+      else
+        handles.guidata.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.guidata.scorecolor(bottomScoreNdx,channel,1);
+        handles.guidata.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
+          handles.guidata.labelcolors(behaviori,channel);
+      end
   end    
   
 end
@@ -6553,5 +6561,3 @@ if isdeployed,
 else
   web('-browser','http://jaaba.sourceforge.net/');
 end
-
-

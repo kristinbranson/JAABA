@@ -22,7 +22,7 @@ function varargout = CompareFrames(varargin)
 
 % Edit the above text to modify the response to help CompareFrames
 
-% Last Modified by GUIDE v2.5 26-Feb-2013 13:40:05
+% Last Modified by GUIDE v2.5 05-Mar-2013 10:32:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -68,11 +68,21 @@ handles.expnum = expnum;
 handles.fly = fly;
 handles.t = t;
 
+set(handles.figure1,'Pointer','watch');
+
+set(handles.edit_ignore,'String','0'); 
 handles = CacheFrames(handles);
 handles = initialize(handles);
 
 % Update handles structure
 guidata(hObject, handles);
+set(handles.figure1,'Pointer','arrow');
+
+fgColor = get(handles.text_status,'ForegroundColor');
+bgColor = get(handles.text_status,'BackgroundColor');
+set([handles.uipanel_jump,handles.radiobutton_all,handles.radiobutton_behavior,handles.radiobutton_none],....
+  'BackgroundColor',bgColor,'ForegroundColor',fgColor);
+set(handles.radiobutton_all,'Value',1);
 
 % UIWAIT makes CompareFrames wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -118,10 +128,22 @@ handles.trxcache = handles.data.GetTrxValues('Trx',handles.expnum,handles.fly,ts
 handles.labelsCache = handles.data.GetLabelIdx(handles.expnum,handles.fly,ts(1),ts(end));
 handles.predCache = handles.data.GetPredictedIdx(handles.expnum,handles.fly,ts(1),ts(end));
 handles.scoresCache = handles.data.NormalizeScores(handles.predCache.scoresidx);
+handles.pfList = handles.data.curperframefns;
+handles.pfcache = {};
+for ndx = 1:numel(handles.data.perframedata)
+  handles.pfcache{ndx} = handles.data.perframedata{ndx}(handles.ts-firstFrame+1);
+end
+set(handles.popupmenu_pf,'String',handles.pfList);
+set(handles.text_info,'String',sprintf('Animal:%d, Frame:%d, Exp-Number:%d Exp-Name:%s',handles.fly,handles.t,handles.expnum,handles.data.expnames{handles.expnum}));
+
+
+
+
 
 function handles = initialize(handles)
 
-set(handles.popupmenu_jump,'String',{'Current Fly','Current Experiment','All experiments'},'Value',1);
+set(handles.popupmenu_jump,'String',{'Current Fly','CStatic Texturrent Experiment','All experiments','Training Data'},'Value',1);
+handles.align = get(handles.radiobutton_align,'Value');
 
 handles.curFrame = handles.centralframe;
 handles.himage_preview = imagesc(0,'Parent',handles.axes_preview,[0,255]);
@@ -136,61 +158,115 @@ handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
   handles.JLabelH.guidata.ts);
 
 handles.trx_plot = plot(handles.axes_preview,nan,nan,'-o','MarkerSize',3);
-handles.fly_plot = plot(handles.axes_preview,nan,nan);
+handles.fly_plot = plot(handles.axes_preview,nan,nan,'r','LineWidth',2);
 handles.fly_plot_extra = plot(handles.axes_preview,nan,nan);
 
 handles.timeline = imagesc(0,'Parent',handles.axes_timeline,[0,255]);
 set(handles.timeline,'HitTest','off');
+fgColor = get(handles.text_status,'ForegroundColor');
+set(handles.axes_timeline,'XColor',fgColor,'YColor',fgColor);
 hold(handles.axes_timeline,'on');
 handles.centerline = plot(handles.axes_timeline,[nan nan],[0.5 3.5],'g');
 handles.curline = plot(handles.axes_timeline,[nan nan],[0.5 3.5],'y');
 
-UpdatePlots(handles,handles.centralframe);
+handles.pf_plot = plot(handles.axes_pf,nan,nan,'-o','MarkerSize',3);
+set(handles.axes_pf,'Color',get(handles.text_status,'BackgroundColor'),'XColor',fgColor,'YColor',fgColor);
+set(handles.pf_plot,'Color',fgColor);
+
+handles.jumpList = [];
+handles.jumpNum = 0;
 handles.maxFrame = numel(handles.ts);
 handles.minFrame = 1;
+
+UpdatePlots(handles,handles.centralframe);
 UpdateTimeline(handles);
+popupmenu_pf_Callback(handles.popupmenu_pf,[],handles);
 
 
 
 
-function ChangeFly(handles)
-
-
-
-function Jump(handles,jtype)
+function handles = Jump(handles,jtype)
 sel = get(handles.popupmenu_jump,'Value');
 curT = handles.JLabelH.guidata.ts;
 curFly = handles.data.flies;
 curExp = handles.data.expi;
-
-if sel == 1
+ignore = str2double(get(handles.edit_ignore,'String'));
+if strcmp(jtype,'prev'),
+  if (handles.jumpNum ==0),
+    return;
+  end
+  handles.jumpNum = handles.jumpNum - 1;
+  if handles.jumpNum == 0
+    pushbutton_reset_Callback(handles.figure1, [], handles)
+    return;
+  end
+  JLabel('SetCurrentMovie',handles.JLabelH, handles.jumpList(handles.jumpNum).exp);
+  JLabel('SetCurrentFlies',handles.JLabelH, handles.jumpList(handles.jumpNum).fly);
+  JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+    handles.jumpList(handles.jumpNum).t,handles.JLabelH.figure_JLabel);
   
-  [nextT distT] = handles.data.NextClosestBagFly(jtype,curT,curExp,curFly);
-  if isempty(nextT), return; end
-  JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
-    nextT,handles.JLabelH.figure_JLabel);
-
-elseif sel ==2
-
-  [nextT distT,newfly] = handles.data.NextClosestBagExp(jtype,curT,curExp);
-  if isempty(nextT), return; end
-  JLabel('SetCurrentFlies',handles.JLabelH, newfly);
-  JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
-    nextT,handles.JLabelH.figure_JLabel);
-
 else
+  
+  nextT = curT; newFly = curFly; newExp = curExp;
+  
+  jumpList = handles.jumpList(1:handles.jumpNum);
+  jumpList(end+1).exp = handles.expnum;
+  jumpList(end).fly = handles.fly;
+  jumpList(end).t = handles.t;
+  jumpList(end).dist = 0;
+  if sel == 1
+    
+    [nextT distT] = handles.data.NextClosestBagFly(...
+      jtype,curT,curExp,curFly,[],ignore,jumpList,handles.jump_restrict);
+    if isempty(nextT), return; end
+    JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+      nextT,handles.JLabelH.figure_JLabel);
+    
+  elseif sel ==2
+    
+    [nextT distT,newFly] = handles.data.NextClosestBagExp(...
+      jtype,curT,curExp,curFly,ignore,jumpList,handles.jump_restrict);
+    if isempty(nextT), return; end
+    JLabel('SetCurrentFlies',handles.JLabelH, newFly);
+    JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+      nextT,handles.JLabelH.figure_JLabel);
+    
+  elseif sel == 3
+    
+  elseif sel == 4
+    [nextT distT,newFly,newExp] = handles.data.NextClosestBagTraining(...
+      jtype,curT,curExp,curFly,ignore,jumpList,handles.jump_restrict);
+    if isempty(nextT), return; end
+    JLabel('SetCurrentMovie',handles.JLabelH, newExp);
+    JLabel('SetCurrentFlies',handles.JLabelH, newFly);
+    JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+      nextT,handles.JLabelH.figure_JLabel);
+    
+    
+  end
+  handles.jumpNum = handles.jumpNum + 1;
+  handles.jumpList(handles.jumpNum).exp = newExp;
+  handles.jumpList(handles.jumpNum).fly = newFly;
+  handles.jumpList(handles.jumpNum).t = nextT;
+  handles.jumpList(handles.jumpNum).dist = distT;
   
 end
 
-
-
-function align()
+handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
+  handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
+  handles.JLabelH.guidata.ts+handles.centralframe-handles.curFrame);
+handles.curFrame = handles.centralframe;
+UpdatePlots(handles,handles.centralframe);
 
 
 function matchZoom(handles)
 sz = get(handles.JLabelH.axes_preview,'Position');
 xlim = get(handles.JLabelH.axes_preview,'XLim');
-scale = sz(3)/(xlim(2)-xlim(1));
+ylim = get(handles.JLabelH.axes_preview,'YLim');
+scalex = sz(3)/(xlim(2)-xlim(1));
+scaley = sz(4)/(ylim(2)-ylim(1));
+
+scale = min(scalex,scaley);
 this_sz = get(handles.axes_preview,'Position');
 xsz = this_sz(3)/scale;
 ysz = this_sz(4)/scale;
@@ -234,8 +310,8 @@ if handles.align,
 else
   set(handles.trx_plot,'XData',handles.trxcache.x-x+size(img,2)/2,...
                        'Ydata',handles.trxcache.y-y+size(img,1)/2);  
-  pos.x = handles.trxcache.x(t);
-  pos.y = handles.trxcache.y(t);
+  pos.x = handles.trxcache.x(t) - handles.trxcache.x(handles.centralframe)+size(img,2)/2;
+  pos.y = handles.trxcache.y(t) - handles.trxcache.y(handles.centralframe)+size(img,1)/2;
   pos.theta = handles.trxcache.theta(t);
   pos.a = handles.trxcache.a(t);
   pos.b = handles.trxcache.b(t);
@@ -249,6 +325,14 @@ set(handles.centerline,'XData',[handles.centralframe handles.centralframe]);
 UpdateTargetPosition(handles.data.targettype,handles.fly_plot,...
   handles.fly_plot_extra,pos);
 matchZoom(handles);
+if handles.jumpNum > 0
+  status_str = sprintf('Jump Order:%d \n Distance:%.2f', ...
+    handles.jumpNum,handles.jumpList(handles.jumpNum).dist);
+else
+  status_str = sprintf('Jump Order:0 \n Distance:0');
+end
+
+set(handles.text_status,'String',status_str);
 
 
 function UpdateTimeline(handles)
@@ -262,9 +346,9 @@ for behaviori = 1:handles.data.nbehaviors
   
   for channel = 1:3
     timg(1,idx,channel) = curcolor(channel);
-    timg(3,idxPred,channel) = curcolor(channel);
+    timg(2,idxPred,channel) = curcolor(channel);
     scoreNdx = ceil(handles.scoresCache(idxPred)*31)+32;
-    timg(2,idxPred,channel) = handles.JLabelH.guidata.scorecolor(scoreNdx,channel,1);
+    timg(3,idxPred,channel) = handles.JLabelH.guidata.scorecolor(scoreNdx,channel,1);
   end
   
   
@@ -272,8 +356,9 @@ end
 
 set(handles.timeline,'CData',timg);
 set(handles.axes_timeline,'XLim',[1 numel(handles.ts)]);
+set(handles.axes_pf,'XLim',[1 numel(handles.ts)]);
 set(handles.axes_timeline,'YLim',[0.5 3.5]);
-set(handles.axes_timeline,'YTick',[1 2 3],'YTickLabel',{'Manual','Scores','Predictions'});
+set(handles.axes_timeline,'YTick',[1 2 3],'YTickLabel',{'Manual','Predictions','Scores'});
 
 xticks = 0:10:handles.centralframe;
 xticks = [-fliplr(xticks(2:end)) xticks] + handles.centralframe;
@@ -285,7 +370,7 @@ for ndx = 1:numel(xticks)
   xtickLabel{end+1} = sprintf('%d',xticks(ndx) - handles.centralframe + handles.t);
 end
 set(handles.axes_timeline,'XTick',xticks,'XTickLabel',xtickLabel);
-
+set(handles.axes_pf,'Xtick',xticks,'XTickLabel',{});
 
 % --- Executes on button press in pushbutton_close.
 function pushbutton_close_Callback(hObject, eventdata, handles)
@@ -302,6 +387,7 @@ function popupmenu_jump_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_jump contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmenu_jump
+pushbutton_reset_Callback(hObject, eventdata, handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -348,10 +434,14 @@ function play(hObject)
 
 handles = guidata(hObject);
 curFrame = handles.curFrame;
-jlabelframe = handles.JLabelH.guidata.ts;
+if handles.jumpNum < 1,
+  jlabelframe = handles.t;
+else
+  jlabelframe = handles.jumpList(handles.jumpNum).t;
+end
 handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
   handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
-  handles.JLabelH.guidata.ts+handles.centralframe-curFrame);
+  jlabelframe);
 guidata(hObject,handles);
 
 lastFrame = curFrame;
@@ -360,8 +450,11 @@ while true
   if handles.play 
     ticker = tic;
     UpdatePlots(handles,curFrame);
-    JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
-      jlabelframe+curFrame-handles.curFrame,handles.JLabelH.figure_JLabel);
+    if get(handles.radiobutton_sync,'Value');
+      
+      JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+        jlabelframe+curFrame-handles.centralframe,handles.JLabelH.figure_JLabel);
+    end
     lastFrame = curFrame;
     dt_sec = toc(ticker);
     dt = dt_sec*handles.play_FPS;
@@ -420,20 +513,30 @@ function pushbutton_allexp_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on button press in align.
-function align_Callback(hObject, eventdata, handles)
-% hObject    handle to align (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of align
-
-
 % --- Executes on button press in pushbutton_setcurrent.
 function pushbutton_setcurrent_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_setcurrent (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+set(handles.figure1,'Pointer','watch');
+drawnow();
+expnum = handles.JLabelH.guidata.expi;
+fly = handles.JLabelH.guidata.flies;
+t = handles.JLabelH.guidata.ts;
+
+handles.expnum = expnum;
+handles.fly = fly;
+handles.t = t;
+
+handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t)
+
+handles = CacheFrames(handles);
+handles = initialize(handles);
+
+guidata(hObject,handles);
+set(handles.figure1,'Pointer','arrow');
+
 
 
 % --- Executes on key press with focus on figure1 or any of its controls.
@@ -445,6 +548,9 @@ function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
+set(handles.figure1,'Pointer','watch');
+drawnow();
+
 switch eventdata.Key
   
   case 'leftarrow'
@@ -452,28 +558,40 @@ switch eventdata.Key
     if handles.curFrame < 1
       return;
     end
-    jlabelframe = handles.JLabelH.guidata.ts-1;
+    if handles.jumpNum < 1
+      jlabelframe = handles.t + handles.curFrame - handles.centralframe;
+    else
+      jlabelframe = handles.jumpList(handles.jumpNum).t + handles.curFrame - handles.centralframe;;
+    end
     UpdatePlots(handles,handles.curFrame);
-    JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+    if get(handles.radiobutton_sync,'Value');
+      JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
       jlabelframe,handles.JLabelH.figure_JLabel);
+    end
     
   case 'rightarrow'
     handles.curFrame = handles.curFrame + 1;
     if handles.curFrame > numel(handles.ts)
       return;
     end
-    jlabelframe = handles.JLabelH.guidata.ts+1;
     UpdatePlots(handles,handles.curFrame);
-    JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
-      jlabelframe,handles.JLabelH.figure_JLabel);
-    
+    if get(handles.radiobutton_sync,'Value');
+      if handles.jumpNum < 1
+        jlabelframe = handles.t + handles.curFrame - handles.centralframe;
+      else
+        jlabelframe = handles.jumpList(handles.jumpNum).t + handles.curFrame - handles.centralframe;;
+      end
+      JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+        jlabelframe,handles.JLabelH.figure_JLabel);
+    end    
   case 'uparrow'
-    Jump(handles,'next');
+    handles = Jump(handles,'next');
   case 'downarrow'
-    Jump(handles,'prev');
+    handles = Jump(handles,'prev');
   
 end
 guidata(hObject,handles);
+set(handles.figure1,'Pointer','arrow');
 
 
 % --- Executes on button press in pushbutton_Bag.
@@ -481,5 +599,171 @@ function pushbutton_Bag_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_Bag (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+set(handles.figure1,'Pointer','watch');
+drawnow();
 handles.data.DoFastBagging();
 handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t)
+set(handles.figure1,'Pointer','arrow');
+
+
+
+function edit_ignore_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_ignore (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_ignore as text
+%        str2double(get(hObject,'String')) returns contents of edit_ignore as a double
+
+
+val = str2double(get(hObject,'String'));
+if isempty(val) || (round(val)-val)~=0 || val < 0,
+  uiwait(warndlg('Frames to ignore should be 0 or positive integer'));
+  set(hObject,'String','0');
+end
+pushbutton_reset_Callback(hObject,eventdata,handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_ignore_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_ignore (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_reset.
+function pushbutton_reset_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_reset (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+JLabel('SetCurrentMovie',handles.JLabelH, handles.expnum);
+JLabel('SetCurrentFlies',handles.JLabelH, handles.fly);
+JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+  handles.t,handles.JLabelH.figure_JLabel);
+handles.jumpList = [];
+handles.jumpNum = 0;
+handles.curFrame = handles.centralframe;
+
+handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
+  handles.expnum,handles.fly,handles.t);
+
+guidata(hObject,handles);
+UpdatePlots(handles,handles.centralframe);
+
+% --- Executes on button press in radiobutton_sync.
+function radiobutton_sync_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton_sync (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton_sync
+if handles.jumpNum > 0,
+  jlabelframe = handles.jumpList(handles.jumpNum).t;
+else
+  jlabelframe = handles.t;
+end
+
+if ~get(hObject,'Value');
+  JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+    jlabelframe,handles.JLabelH.figure_JLabel);
+  handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
+    handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
+    handles.JLabelH.guidata.ts);
+else
+  JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+    jlabelframe + handles.curFrame-handles.centralframe,handles.JLabelH.figure_JLabel);
+  handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
+    handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
+    handles.JLabelH.guidata.ts+handles.centralframe-handles.curFrame);
+  
+end
+guidata(hObject,handles);
+
+% --- Executes on button press in radiobutton_align.
+function radiobutton_align_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton_align (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton_align
+handles.align = get(hObject,'Value');
+guidata(hObject,handles);
+UpdatePlots(handles,handles.curFrame);
+
+
+% --- Executes on button press in pushbutton_central.
+function pushbutton_central_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_central (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.curFrame = handles.centralframe;
+UpdatePlots(handles,handles.curFrame);
+if get(handles.radiobutton_sync,'Value');
+  if handles.jumpNum < 1
+    jlabelframe = handles.t;
+  else
+    jlabelframe = handles.jumpList(handles.jumpNum).t;
+  end
+  JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
+    jlabelframe,handles.JLabelH.figure_JLabel);
+end
+guidata(hObject,handles);
+
+% --- Executes on selection change in popupmenu_pf.
+function popupmenu_pf_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_pf (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_pf contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_pf
+ndx = get(hObject,'Value');
+ylim(1) = min(handles.pfcache{ndx});
+ylim(2) = max(handles.pfcache{ndx});
+set(handles.axes_pf,'YLim',ylim);
+set(handles.pf_plot,'YData',handles.pfcache{ndx},'XData',1:numel(handles.ts));
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_pf_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_pf (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes when selected object is changed in uipanel_jump.
+function uipanel_jump_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in uipanel_jump 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.figure1,'Pointer','watch');
+drawnow();
+
+switch get(eventdata.NewValue,'Tag') % Get Tag of selected object.
+    case 'radiobutton_all'
+      handles.jump_restrict = 'all';
+    case 'radiobutton_behavior'
+      handles.jump_restrict = 'behavior';
+    case 'togglebutton_none'
+      handles.jump_restrict = 'none';
+end
+
+pushbutton_reset_Callback(hObject,eventdata,handles);
+guidata(hObject,handles);
+set(handles.figure1,'Pointer','arrow');
