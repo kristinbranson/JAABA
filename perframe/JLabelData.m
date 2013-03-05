@@ -1673,7 +1673,7 @@ classdef JLabelData < handle
         [success,msg] = obj.SetTrxFileName(classifierParams.trxfilename);
         if ~success,error(msg);end
 
-        % label
+        % labelPreLoad
         [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
         if ~success,error(msg);end
 
@@ -1870,14 +1870,21 @@ classdef JLabelData < handle
       % set the GT labels
       self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
 
-      % bring labelidx into sync with the labels proper
-      [self.labelidx,self.t0_curr,self.t1_curr] = self.GetLabelIdx(self.expi,self.flies);
-      self.labelidx_off = 1 - self.t0_curr;
-      
-      % update cached data
-      [success,msg] = self.PreLoadLabeledData();
-      if ~success,error(msg);end   
-      
+      % Preload the first track of the first video, which sets the current
+      % experiment and track to experiment 1, track 1
+      if (self.nexps>0)
+        self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
+        [success1,msg1] = self.PreLoad(1,1);
+        if ~success1,
+          msg = sprintf('Error getting basic trx info: %s',msg1);
+          self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
+          uiwait(warndlg(msg));
+          self.RemoveExpDirs(1:obj.nexps);
+          self.ClearStatus();
+          return;
+        end
+      end
+                  
       % Read certain fields out of the classifier, setting them in self
       self.classifier = everythingParams.classifier;
       self.classifiertype = everythingParams.classifiertype;
@@ -1916,9 +1923,9 @@ classdef JLabelData < handle
       % the number of folds used for cross-validation, etc.
       self.classifier_params=everythingParams.classifier_params;
       
-      %% update cached data
-      %[success,msg] = self.PreLoadLabeledData();
-      %if ~success,error(msg);end   
+      % update cached data
+      [success,msg] = self.PreLoadLabeledData();
+      if ~success,error(msg);end   
       
       % predict for all loaded examples
       self.PredictLoaded();
@@ -1941,7 +1948,7 @@ classdef JLabelData < handle
       % Set the status bar back to the default message
       self.ClearStatus();
       
-      % No idea what this does
+      % No idea what this does -- ALT, Mar 5, 2013
       self.FindFastPredictParams();
     end  % setLabelsAndClassifier() method
 
@@ -2592,46 +2599,43 @@ classdef JLabelData < handle
                                        firstframes_per_exp, ...
                                        endframes_per_exp, ...
                                        interactivemode)
-      % Add a new experiment to the GUI.  If this is the first experiment,
-      % then it will be preloaded. 
-
+      % Add a new experiment to the GUI.  This does not change self.expi,
+      % and does not not do any preloading.
+      
+      % Set default return values
       success = false; msg = '';
       
+      % If the experiment dir name is numeric, return without doing anything.
       if isnumeric(expdir), return; end
       
-      if nargin < 2,
-        error('Usage: obj.AddExpDirs(expdir,[outexpdir],[nflies_per_exp])');
-      end
-
+      % interactive mode is the default
       if ~exist('interactivemode','var'),
         interactivemode = true;
       end
-      
-      obj.SetStatus('Checking that %s exists...',expdir);
-      
+
       % make sure directory exists
+      obj.SetStatus('Checking that %s exists...',expdir);
       if ~exist(expdir,'file'),
         msg = sprintf('expdir %s does not exist',expdir);
         return;
       end
       
-      isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
-      istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
+      % Is there an output directory?
+      isoutexpdir = (nargin > 2) && ~isnumeric(outexpdir);
+      
+      % Did the caller provide extra information about the tracks
+      istrxinfo = (nargin > 7) && ~isempty(nflies_per_exp);
 
-      % base name
+      % Extract the base name of the experiment
       [~,expname] = myfileparts(expdir);
       
-      % expnames and rootoutputdir must match
+      % expnames and rootoutputdir must match (do we still need this?)
       if isoutexpdir,
         [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
         if ~strcmp(expname,outname),
           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
           return;
         end
-%         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
-%           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
-%           return;
-%         end
       elseif ~ischar(obj.rootoutputdir),
         outexpdir = expdir;
         rootoutputdir = 0;
@@ -2655,13 +2659,6 @@ classdef JLabelData < handle
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
       outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
-%       if ~exist(outclipsdir,'dir'),
-%         [success1,msg1] = mkdir(outexpdir,clipsdir);
-%         if ~success1,
-%           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
-%           return;
-%         end
-%       end
 
       % okay, checks succeeded, start storing stuff
       obj.nexps = obj.nexps + 1;
@@ -2669,10 +2666,9 @@ classdef JLabelData < handle
       obj.expnames{end+1} = expname;
       %obj.rootoutputdir = rootoutputdir;
       obj.outexpdirs{end+1} = outexpdir;
-
-      obj.SetStatus('Loading labels from file for %s...',expname);
       
       % load labels for this experiment
+      obj.SetStatus('Loading labels from file for %s...',expname);
       [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
       if ~success1,
         obj.SetStatus('Failed to load labels for %s...',expname);
@@ -2686,6 +2682,7 @@ classdef JLabelData < handle
         return;
       end
 
+      % Update the status table        
       obj.SetStatus('Updating status table for %s...',expname);
       [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
       missingfiles = missingfiles{obj.nexps};
@@ -2707,6 +2704,7 @@ classdef JLabelData < handle
         return;
       end
       
+      % If some files are missing, and we can generate them, do so
       if obj.filesfixable && ~obj.allfilesexist,
         obj.SetStatus('Some files missing for %s...',expname);
         if interactivemode && isdisplay(),
@@ -2727,7 +2725,6 @@ classdef JLabelData < handle
         else
           res = 'Yes';
         end
-        
         if strcmpi(res,'Yes'),
           obj.SetStatus('Generating missing files for %s...',expname);
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
@@ -2739,7 +2736,6 @@ classdef JLabelData < handle
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
-          
         else
           obj.SetStatus('Not generating missing files for %s, not adding...',expname);
           obj.RemoveExpDirs(obj.nexps);
@@ -2747,8 +2743,7 @@ classdef JLabelData < handle
         end
       end
       
-      % Convert the scores file into perframe files.
-      
+      % Convert the scores file into perframe files.      
       for i = 1:numel(obj.scoresasinput)
         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
@@ -2760,52 +2755,22 @@ classdef JLabelData < handle
           end
       end
       
-%       for i = 1:numel(obj.allperframefns),
-%         fn = obj.allperframefns{i};
-%         if numel(fn)>7 && strcmpi('score',fn(1:5))
-%           [success,msg] = obj.ScoresToPerframe(obj.nexps,fn);
-%           if ~success,
-%             obj.RemoveExpDirs(obj.nexps);
-%             return;
-%           end
-%         end
-%       end
-%       
-      % preload this experiment if this is the first experiment added
-      if obj.nexps == 1,
-        % TODO: make this work with multiple flies
-        obj.SetStatus('Pre-loading first experiment %s expname...',expname);
-        [success1,msg1] = obj.PreLoad(1,1);
-        if ~success1,
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
-          %uiwait(warndlg(msg));
-          obj.RemoveExpDirs(obj.nexps);
-          %obj.ClearStatus();
-          return;
-        end
-      elseif istrxinfo,
+      % Set the fields describing the tracks, either using info provided by
+      % the caller, or by reading from the trx file.
+      if istrxinfo,
         obj.nflies_per_exp(end+1) = nflies_per_exp;
         obj.sex_per_exp{end+1} = sex_per_exp;
         obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
         obj.firstframes_per_exp{end+1} = firstframes_per_exp;
         obj.endframes_per_exp{end+1} = endframes_per_exp;
-        
-%         if obj.nexps == 1 % This will set hassex and hasperframesex.
-%           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
-%           if ~success1,
-%             msg = sprintf('Error getting basic trx info: %s',msg1);
-%             obj.RemoveExpDirs(obj.nexps);
-%             return;
-%           end
-%         end
-        
       else
+        % Init the relevant fields to default values
         obj.nflies_per_exp(end+1) = nan;
         obj.sex_per_exp{end+1} = {};
         obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
         obj.firstframes_per_exp{end+1} = [];
         obj.endframes_per_exp{end+1} = [];
+        % Read from the trx file
         obj.SetStatus('Getting basic trx info for %s...',expname);
         [success1,msg1] = obj.GetTrxInfo(obj.nexps);
         if ~success1,
@@ -2816,28 +2781,20 @@ classdef JLabelData < handle
         end
       end
       
+      % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
       if numel(obj.predictdata)<obj.nexps
         obj.SetStatus('Initializing prediction data for %s...',expname);
         obj.InitPredictiondata(obj.nexps);
       end
-      
-      obj.SetStatus('Pre-loading labeled data for %s...',expname);
-      [success1,msg1] = obj.PreLoadLabeledData();
-      if ~success1,
-        msg = msg1;
-        obj.SetStatus('Error pre-loading labeled data for %s...',expname);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
-      
-      % save default path
+            
+      % Set the default path to the experiment direcotry
       obj.defaultpath = expdir;
 
+      % Update the status
       obj.SetStatus('Successfully added experiment %s...',expdir);
       
+      % Declare victory
       success = true;
-      
     end
    
     
@@ -4857,7 +4814,7 @@ classdef JLabelData < handle
 
       % cache these labels if current experiment and flies selected
       if expi == obj.expi && all(flies == obj.flies),
-        obj.StoreLabelsAndPreLoadWindowData();  % seems wrong
+        %obj.StoreLabelsAndPreLoadWindowData();  % seems wrong
         obj.StoreLabelsAndThatsAll();
       end
       
