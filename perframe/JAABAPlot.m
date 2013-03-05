@@ -3034,6 +3034,10 @@ for b=bb
         case(5)
           partition_idx=tmp1 | ~tmp2;
       end
+      if numel(partition_idx) > numel(sexdata{ge}{i}),
+        warning('More frames of behaviors detected than frames in trajectory by %d',numel(partition_idx)-numel(sexdata{ge}{i}));
+        partition_idx = partition_idx(1:numel(sexdata{ge}{i}));
+      end
       sex(i)=sum(sexdata{ge}{i}(1:length(partition_idx))) > (length(partition_idx)/2);
       frames_labelled(i)=sum(partition_idx);
       if(handles.behaviorvalue3==1)
