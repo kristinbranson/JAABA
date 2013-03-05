@@ -403,7 +403,7 @@ for ndx = 1:numel(allexpdirs)
   
   SetStatusEditFiles(hObject,sprintf('Adding experiment directory %s',expdir));
   
-  [success,msg] = handles.data.AddExpDirOld(expdir);
+  [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
     if iscell(msg)
       uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
@@ -744,7 +744,7 @@ while(ischar(expdir))
     continue;
   end
     
-  [success,msg] = handles.data.AddExpDirOld(expdir);
+  [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
     uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
     expdir = fgetl(fid);
