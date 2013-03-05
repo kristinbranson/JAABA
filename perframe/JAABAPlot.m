@@ -1256,6 +1256,10 @@ parfor ge=1:length(handlesexperimentlist)
   classifiers_found{ge}={};
   classifiers_notfound{ge}={};
   for p=1:length(possiblescorefiles)
+    scoresfilename = fullfile(handlesexperimentlist{ge},possiblescorefiles{p});
+    if ~exist(scoresfilename,'file'),
+      continue;
+    end
     tmp=load(fullfile(handlesexperimentlist{ge},possiblescorefiles{p}));
     if(~isfield(tmp,'classifierfilename'))
       continue;
