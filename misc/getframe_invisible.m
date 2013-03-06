@@ -33,6 +33,7 @@ end
 
 pixelsperinch = get(0,'screenpixelsperInch');
 pos =  get(hfig,'position');
+units = get(hfig,'units');
 % If units are normalized, then re-scale paperposition calculation
 % to use pixel values based on the screen size.
 if strcmp(get(hfig, 'units'), 'normalized')
@@ -51,6 +52,8 @@ end
 warnstate = warning('off');
 noanimate('save',get(haxes,'parent'));
 img = hardcopy(haxes, ['-d' renderer], ['-r' num2str(round(pixelsperinch))]);
+set(hfig,'Units',units,'Position',pos);
+
 if numel(img) == 1,
   fprintf('Could not grab invisible figure. Making visible temporarily.\n');
   set(hfig,'visible','on');

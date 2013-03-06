@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<!--- OLD FORMATTING
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+--->
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
+
+</head>
+
+<body>
+<h1> <a href="index.html">JAABA</a> Features </h1>
+
+<b>TODO: describe per-frame features</b>
+
+<p><b>Per-frame features</b> are computed from the input trajectories, and give information 
+about the animal's state in the current frame. To classify behaviors, it also is necessary to
+provide contextual information about what the animal was doing in the frames before
+and after the current frame. For example, to detect whether an animal is walking, the speed in
+just the current frame is informative, but information about the speed in frames around the
+current frame, such as the mean or standard deviation of the speed in a <b>window of frames around
+the current frame</b>, can greatly improve performance. On top of the per-frame features, JAABA 
+computes a large, fast, general-purpose set of <b>window features</b> to include this context.</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Contents">Contents</a></h2>
+<ul>
+<li><a href="#Types">Window Feature Types</a></li>
+<li><a href="#Transformations">Window Feature Transformations</a></li>
+<li><a href="#Templates">Window Feature Templates</a></li>
+<li><a href="#Files">Window Feature Computation Files</a></li>
+<li><a href="#SelectFeatures">Select Features</a></li>
+<ul>
+<li><a href="#BasicMode">Basic Mode</a></li>
+<li><a href="#AdvancedMode">Advanced Mode</a></li>
+<li><a href="#Buttons">Select Features Buttons</a></li>
+</ul>
+<li><a href="#Examples">Example Files</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="Types">Window Feature Types</a></h2>
+
+<p>Each window feature is computed from a window of frames for a single per-frame feature. At each frame, for each 
+per-frame feature, we compute around 100-200 window features (depending on the per-frame feature and the JAABA 
+settings). A window feature is defined by <b>which per-frame feature</b> it operates on, 
+<b>which window of frames</b> it operates on (relative to the current frame), and 
+<b>what function</b> it computes from this window of frames. Each window feature is thus defined by
+the following parameters:
+<ul>
+<li> <b>Type</b>: The type of computation that is performed on the window of data, for example, mean or
+standard deviation. The full list is given below.</li>
+<li> <b>Transformation</b>: It is often beneficial to perform some simple transformations on the data, either
+directly on the per-frame feature before computing the window feature, or after. For example, the <code>dtheta</code>
+per-frame feature is the difference in the animal's orientation between the next and previous frames. The sign of 
+this per-frame feature is usually irrelevant, as it corresponds to whether the animal is turning left or right. 
+Thus, we may want to use the <b>absolute value</b> transformation on this per-frame feature to symmetrize the 
+feature. If we are computing e.g. the mean of the window, there will be less noise if we compute the absolute
+value <b>after</b> computing the mean. Depending on the type of window feature, the transformations may be
+computed before or after the window computation. A list of the types of window feature transformations is given
+<a href="#Transformations">below</a>. 
+<li> <b>Radius</b>: The radius of the window in frames. The total size
+of the window is <b>2*radius+1</b>, thus a radius of 0 corresponds to just a single frame.</li>
+<li> <b>Offset</b>: The where the window is in time, relative to the current frame. An offset of 0 means
+that the window is centered on the current frame. An offset of -1 means that the window ends on the
+current frame, that is, it is offset by <i>-radius</i> frames. An offset of 1 means the window starts at 
+the current frame, that is, it is offset by <i>radius</i> frames. In general, the window for frame <i>t</i> is 
+centered at <i>t + offset*radius</i>.</li>
+<li> <b>Other parameters</b>: Depending on the type of window feature, other parameters may be required. These
+are described in the table below. 
+</ul>
+</p>
+
+<p> The table below lists the type of window computations that are used in JAABA:
+<table border="1" style="margin-top:2em">
+<tr>
+<th>Type </th><th> Description </th></tr>
+<tr><td><b>mean</b></td><td>  Mean of the per-frame feature within the window.
+</td></tr> 
+<tr><td><b>min</b></td><td>  Minimum of the per-frame feature within the window.
+</td></tr>
+<tr><td><b>max</b></td><td>   Maximum of the per-frame feature within the window.
+</td></tr>
+<tr><td><b>std</b></td><td>    Standard deviation of the per-frame feature within the window.
+</td></tr>
+<tr><td><b>hist</b></td><td>  This window feature requires as a parameter the edges of the
+histogram bins for the given per-frame feature. This actually corresponds to a group of window
+features, as, for each bin of the histogram, there is a separate window feature, which is the
+fraction of per-frame data within the current window which falls within the given bin. </td></tr>
+<tr><td><b>harmonic</b></td><td> Convolution of the data in the current window with a cosine
+function. This feature requires an extra parameter <b>num_harmonic</b> specifying the number of "bumps"
+within the filter (half the number of periods). </td></tr>
+<tr><td><b>change</b></td><td>  Difference between the average value of the given per-frame
+feature in a small window at the end and the average value of a given per-frame
+feature in a small window at the start of the window. This feature requires an
+extra parameter <b>change_window_radii</b> specifying the radius of the smaller window.</td></tr>
+<tr><td><b>diff_neighbor_mean</b></td><td> Difference between the current frame's per-frame
+feature and the mean of the per-frame feature in the window.</td></tr>
+<tr><td><b>diff_neighbor_min</b></td><td> Difference between the current frame's per-frame
+feature and the minimum of the per-frame feature in the window.</td></tr>
+<tr><td><b>diff_neighbor_max</b></td><td> Difference between the current frame's per-frame
+feature and the maximum of the per-frame feature in the window.</td></tr>
+<tr><td><b>zscore_neighbors</b></td><td> Current frame's per-frame feature normalized by the
+mean and standard deviation of the per-frame feature in the window (subtract the mean then 
+divide by the standard deviation).</td></tr>
+</table>
+
+<hr class="h2-divider">
+
+<h2><a id="Transformations">Window Feature Transformations</a></h2>
+<p>
+For some per-frame features, we transform the features in some subset of the following ways:
+<ul>
+<li><b>Absolute value</b>: Depending on the window feature type,
+we either take the absolute value of the per-frame feature before the window feature computation
+or the abolute value of the result of the window feature computation. Absolute-transformed 
+features are used for per-frame
+features like change in orientation where the sign, indicating turning left or
+turning right, is often not discriminatory. 
+<li><b>Relative value</b>: Normalize the per-frame feature by the distribution of that
+per-frame feature over <b>the animal's entire trajectory</b>. This is useful, for example, 
+if walking speed is consistent for a given animal or subgroup of animals, but varies
+greatly between animals or groups of animals we want to apply the classifier to. Consider, for
+example, locomotion-impaired animals. In such cases, the speed at which the animal is perceived 
+to walk or chase is much slower compared to "normal" animals. Converting feature values into 
+relative values enables the classifier to detect behaviors for such cases, and generalize better 
+to types of animals outside of the training set. We transform a feature value into a
+relative value by finding the <b>percent of feature values</b> over the whole
+trajectory that are smaller than the current value. For example, if the feature
+value of the current frame is the median then its relative transformed value is
+50. If 10% of the features values over the animal's trajectory are smaller than the
+current value then the relative value is 10. In other words, the relative value
+of a feature value is its <b>percentile value within its trajectory</b>. 
+<li><b>Flipped value</b>: Flip all the per-frame feature values by the sign of the per-frame feature
+in the current frame. Flip-transformed features are used
+in similar cases to absolute-transformed features, but allow the sign to be
+preserved within a window. </li>
+</ul>
+</p>
+<p>
+For the absolute value and "flip" transformations, we do this by either taking the transformation of the per-frame data first, then computing the window function on the transformed data, or we do this by computing the window function first, then computing the transformation on the output of the window data. Whether we do the transformation first or not depends on the window feature.
+</p>
+<p>
+We do the transformation first for the <code>min</code>, <code>max</code>, <code>hist</code>, 
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code> window feature types. We do the transformation 
+after for the <code>mean</code>, <code>prctile</code>, <code>change</code>, <code>harmonic</code>, 
+<code>diff_neighbor_mean</code>, and <code>zscore_neighbors</code> window feature types. We do 
+<b>not</b> do the transformation for the <code>std</code> feature types.</p>
+<p>For the relative transformation, we always do the transformation first.</p>
+
+<hr class="h2-divider">
+
+<h2><a id="Templates">Window Feature Templates</a></h2>
+
+<p>
+For each per-frame feature, we need to specify a large number of parameters to define which window features
+should be computed from it. We found that we almost always set these features in one of a few ways, and thus 
+created templates for the parameters. Thus, for each per-frame feature, we specify a template as to which types of 
+window features to compute. 
+</p>
+
+<p>The table below specifies the templates that we use.
+<table border="1">
+<tr> <th style="width:10%">Template Name</th>
+<th style="width:35%">Window Feature Types Used</th>
+<th style="width:10%">Window Radii</th>
+<th style="width:10%">Window Offsets</th>
+<th style="width:35%">Extra Parameters</th>
+</tr>
+<tr> <td> <b>Normal</b></td>
+<td> <code>mean</code>, <code>min</code>, <code>max</code>, 
+<code>change</code>, <code>std</code>, <code>harmonic</code>, <code>diff_neighbor_mean</code>,
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code>, <code>zscore_neighbors</code></td>
+<td>  1, <code>wradius</code>/2, <code>wradius</code> </td>
+<td> 0, -1,1 </td>
+<td> <ul>
+<li><code>mean</code>: Window radii are instead 0, <code>wradius</code>/2 and <code>wradius</code></li>
+<li><code>change</code>: The change small window radii are 1 and 3</code></li>
+<li><code>harmonic</code>: The number of harmonics ("bumps") is 3</code></li> 
+</ul></td>
+</tr>
+<tr> <td> More </td>
+<td> <b><code>hist</code></b>, <code>mean</code>, <code>min</code>, <code>max</code>, 
+<code>change</code>, <code>std</code>, <code>harmonic</code>, <code>diff_neighbor_mean</code>,
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code>, <code>zscore_neighbors</code></td>
+<td>  1, <code>wradius</code>/2, <code>wradius</code> </td>
+<td> 0, -1,1 </td>
+<td> <ul>
+<li><code>hist</code>: Bin edges are chosen so that the number of bins is 5</li>
+<li><code>mean</code>: Window radii are instead 0, <code>wradius</code>/2 and <code>wradius</code></li>
+<li><code>change</code>: The change small window radii are 1 and 3</code></li>
+<li><code>harmonic</code>: The number of harmonics ("bumps") is 1,2,3,4, and 5</code></li> 
+</ul></td>
+</tr>
+<tr> <td> Less </td>
+<td> <code>mean</code>, <code>min</code>, <code>max</code>, 
+<code>change</code>, <code>std</code>, <code>harmonic</code>, <code>diff_neighbor_mean</code>,
+<code>diff_neighbor_min</code>, <code>diff_neighbor_max</code>, <code>zscore_neighbors</code></td>
+<td>  1, <code>wradius</code> </td>
+<td> 0, -1,1 </td>
+<td> <ul>
+<li><code>mean</code>: Window radii are instead 0 and <code>wradius</code></li>
+<li><code>change</code>: The change small window radii are 1 and 3</code></li>
+<li><code>harmonic</code>: The number of harmonics ("bumps") is 3</code></li> 
+</ul></td>
+</tr>
+</table>
+<p>In the above table, <code>wradius</code> is a parameter specified by the user. It is roughly the
+radius of window size that the user thinks should be sufficient to capture the behavior. </p>
+
+<hr class="h2-divider">
+
+
+<h2><a id="SelectFeatures">Select Features</a></h2>
+<p>
+The <b>Select Features</b> dialog is a GUI the user can use to edit the
+window feature computation parameters for the current project. This interface
+can be accessed from the main JAABA window by selecting the menu item <b>Classifier->Select Features</b>.
+</p>
+
+<h3><a id="BasicMode">Basic Mode</a></h3>
+<p>In basic mode, the user can select the classes of per-frame features and the
+window feature templates to be used for the class. The list of per-frame feature that belong to a particular class
+depends on the animal (Target-Type) that was selected for the project. Scores is a special class that 
+has all the per-frame features that are the predictions of the previously trained classifiers. 
+The list of per-frame features that belong to this particular class correspond to the list of the previously trained 
+classifiers that were selected during project setup. 
+
+</p> 
+<center><img src="images/SelectFeaturesBasic.png">
+<br>
+<i>Screen capture of the Select Features dialog in Basic mode</i>
+</center>
+
+<h3><a id="AdvancedMode">Advanced Mode</a></h3>
+<p>
+In advanced mode, the user can set all the window feature parameters for each per-frame
+feature separately. The advanced mode also shows the histograms of the per-frame features
+over labeled data for all animals and unlabeled data for the currently selected animal. If
+the user changes any parameter for a per-frame feature then the window
+computation template for the corresponding class of per-frame features is set to <b>custom</b>.
+</p>
+<center><img src="images/SelectFeaturesAdvanced.png"><br>
+<i>Screen capture of the Select Features dialog in Advanced mode</i></center>
+
+<h3><a id="Buttons">Select Features Buttons</a></h3>
+
+<ul>
+<li> <b>Advanced &gt / Basic &lt </b>: Toggles between advanced and basic modes</li>
+<li> <b>Find hist bins</b>: If user has selected to compute
+histogram (<code>hist</code>) features for any per-frame feature, then the 
+<b>Find hist bins</b> button will set the bin edges at the 
+5, 15, 30, 50, 70, 85, and 90th prctiles of the per-frame features over all the flies 
+and all the experiments that are currently loaded in.</li>
+<li> <b>Done</b>: Save the changes and return to JAABA. Also, if applicable, all
+window features are recomputed for all the labeled frames. When you quit JAABA, it'll ask you if you 
+want to save the changes you made to window features to the project file so that the same window feature
+settings will be used when you select the same project. The window feature settings are also saved in the classifier file when you save a classifier and they are loaded in when you load the classifier.
+</li>
+<li> <b>Cancel</b>: Discard the changes made by the user and return back to main JAABA window</li>
+</ul>
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+</html>
+<!--<hr class="h2-divider">
+
+<h2><a id="Examples">Example Files</a></h2>
+<p> Example feature config file </p>
+<pre>
+&lt?xml version="1.0"?&gt
+&ltparams&gt
+  &ltdefaults&gt
+  &ltnormal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  &gt
+    &ltmean min_window_radius="0"/&gt
+    &ltmin/&gt
+    &ltmax/&gt
+    &ltchange change_window_radii="1,3"/&gt
+    &ltstd/&gt
+    &ltharmonic num_harmonic="3"/&gt
+    &ltdiff_neighbor_mean/&gt
+    &ltdiff_neighbor_min/&gt
+    &ltdiff_neighbor_max/&gt
+    &ltzscore_neighbors/&gt
+  &lt/normal&gt
+  
+  &ltmore
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  &gt
+    &ltmean min_window_radius="0"/&gt
+    &ltmin/&gt
+    &ltmax/&gt
+    &lthist hist_edges="-1,1"/&gt
+    &ltchange change_window_radii="1,3"/&gt
+    &ltstd/&gt
+    &ltharmonic num_harmonic="5"/&gt
+    &ltdiff_neighbor_mean/&gt
+    &ltdiff_neighbor_min/&gt
+    &ltdiff_neighbor_max/&gt
+    &ltzscore_neighbors/&gt
+  &lt/more&gt  
+  
+  &ltless
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  &gt
+    &ltmean min_window_radius="0"/&gt
+    &ltmin/&gt
+    &ltmax/&gt
+    &ltchange change_window_radii="1,3"/&gt
+    &ltstd/&gt
+    &ltharmonic num_harmonic="3"/&gt
+    &ltdiff_neighbor_mean/&gt
+    &ltdiff_neighbor_min/&gt
+    &ltdiff_neighbor_max/&gt
+    &ltzscore_neighbors/&gt
+  &lt/less&gt
+  
+  &lt/defaults&gt
+  
+  &ltperframe&gt
+    
+    &lta_mm trans_types="none,abs" type="appearance"/&gt
+    
+    &ltabsanglefrom1to2_nose2ell  trans_types="none" type="social"/&gt
+
+    &ltabsdtheta trans_types="relative" type="locomotion"/&gt
+    
+    &ltabsdv_cor trans_types="relative" type="locomotion"/&gt
+    
+    &ltabsphidiff_anglesub trans_types="none" type="social"/&gt
+    
+    &ltabsphidiff_nose2ell trans_types="none" type="social"/&gt
+    
+    &ltabsthetadiff_anglesub trans_types="none" type="social"/&gt
+    
+    &ltabsthetadiff_nose2ell trans_types="none" type="social"/&gt
+    
+    &ltangle2wall trans_types="flip,abs" type="arena"/&gt
+    
+    &ltanglefrom1to2_anglesub trans_types="flip,abs" type="social"/&gt
+    
+    &ltanglefrom1to2_nose2ell  trans_types="flip,abs" type="social"/&gt
+    
+    &ltangleonclosestfly trans_types="flip,abs" type="social"/&gt
+    
+    &ltanglesub trans_types="none" type="social"/&gt
+    
+    &ltarea trans_types="none,relative" type="appearance"/&gt
+    
+    &ltarena_angle trans_types="none" type="position"/&gt
+    
+    &ltarena_r trans_types="none" type="arena,position"/&gt
+    
+    &ltb_mm trans_types="none,abs" type="appearance"/&gt
+    
+    &ltclosestfly_anglesub trans_types="none" type="identity"/&gt
+    
+    &ltclosestfly_center  trans_types="none" type="identity"/&gt
+    
+    &ltclosestfly_ell2nose  trans_types="none" type="identity"/&gt
+    
+    &ltclosestfly_nose2ell  trans_types="none" type="identity"/&gt
+    
+    &ltcorfrac_maj trans_types="none,abs" type="locomotion"/&gt
+    
+    &ltcorfrac_min trans_types="flip,abs" type="locomotion"/&gt
+    
+    &ltdangle2wall trans_types="flip,abs" type="arena"/&gt
+    
+    &ltdanglesub trans_types="none,abs" type="social"/&gt
+    
+    &ltdarea trans_types="none,abs" type="appearance"/&gt
+    
+    &ltda trans_types="none,abs" type="appearance"/&gt
+    
+    &ltdb trans_types="none,abs" type="appearance"/&gt
+
+    &ltdcenter trans_types="none,relative" type="social"/&gt
+    
+    &ltddcenter trans_types="none,abs" type="social"/&gt
+    
+    &ltddist2wall trans_types="none" type="arena"/&gt
+    
+    &ltdecc trans_types="none,abs" type="appearance"/&gt
+    
+    &ltdell2nose trans_types="none,relative" type="social"/&gt
+    
+    &ltdnose2ell_angle_30tomin30 trans_types="none" type="social"/&gt
+    
+    &ltdnose2ell_angle_min20to20 trans_types="none" type="social"/&gt
+    
+    &ltdnose2ell_angle_min30to30 trans_types="none" type="social"/&gt
+    
+    &ltdist2wall trans_types="none,relative" type="arena"/&gt
+    
+    &ltdnose2ell trans_types="none,relative" type="social"/&gt
+    
+    &ltdnose2tail trans_types="none,relative" type="social"/&gt
+    
+    &ltdphi trans_types="none,abs" type="position,locomotion"/&gt
+    
+    &ltdtheta trans_types="flip,abs" type="locomotion"/&gt
+    
+    &ltdu_cor trans_types="none,abs,relative" type="locomotion"/&gt
+    
+    &ltdu_ctr trans_types="none,abs,relative" type="locomotion"/&gt
+    
+    &ltdu_tail trans_types="none,abs,relative" type="locomotion"/&gt
+    
+    &ltdv_cor trans_types="flip,abs" type="locomotion"/&gt
+    
+    &ltdv_ctr trans_types="flip,abs" type="locomotion"/&gt
+    
+    &ltdv_tail trans_types="flip,abs" type="locomotion"/&gt
+    
+    &ltecc trans_types="none,abs" type="appearance"/&gt
+    
+    &ltflipdv_cor trans_types="relative" type="locomotion"/&gt
+    
+    &ltmagveldiff_anglesub trans_types="none,relative" type="social"/&gt
+    
+    &ltmagveldiff_nose2ell trans_types="none,relative" type="social"/&gt
+    
+    &ltnflies_close trans_types="none" type="social"/&gt
+
+    &ltnflies_close_03 trans_types="none" type="social"/&gt
+
+    &ltnflies_close_04 trans_types="none" type="social"/&gt
+
+    &ltnflies_close_05 trans_types="none" type="social"/&gt
+    
+    &ltnflies_close_07 trans_types="none" type="social"/&gt
+
+    &ltnflies_close_10 trans_types="none" type="social"/&gt
+    
+    &ltnflies_close_15 trans_types="none" type="social"/&gt
+
+    &ltphi trans_types="none" type="position"/&gt
+    
+    &ltphisideways trans_types="none" type="locomotion"/&gt
+    
+    &ltvelmag trans_types="none,relative" type="locomotion"/&gt
+    
+    &ltvelmag_ctr trans_types="none,relative" type="locomotion"/&gt
+    
+    &ltvelmag_nose trans_types="none,relative" type="locomotion"/&gt
+    
+    &ltvelmag_tail trans_types="none,relative" type="locomotion"/&gt
+    
+    &ltveltoward_anglesub trans_types="none,relative" type="social"/&gt
+    
+    &ltveltoward_nose2ell trans_types="none,relative" type="social"/&gt
+    
+    &ltyaw trans_types="flip,abs" type="locomotion"/&gt
+    
+    &ltabsyaw trans_types="none" type="compatbility"/&gt
+    
+  &lt/perframe&gt
+&lt/params&gt
+</pre>
+
+-->
