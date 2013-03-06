@@ -72,6 +72,8 @@ handles.t = t;
 set(handles.figure1,'Pointer','watch');
 
 set(handles.edit_ignore,'String','0'); 
+set(handles.radiobutton_behavior,'String',handles.data.labelnames{1});
+
 handles = CacheFrames(handles);
 handles = initialize(handles);
 
@@ -133,7 +135,8 @@ handles.trxcache = handles.data.GetTrxValues('Trx',handles.expnum,handles.fly,ts
 handles.labelsCache = handles.data.GetLabelIdx(handles.expnum,handles.fly,ts(1),ts(end));
 handles.predCache = handles.data.GetPredictedIdx(handles.expnum,handles.fly,ts(1),ts(end));
 handles.scoresCache = handles.data.NormalizeScores(handles.predCache.scoresidx);
-handles.pfList = handles.data.curperframefns;
+handles.pfList = handles.data.allperframefns;
+
 handles.pfcache = {};
 for ndx = 1:numel(handles.data.perframedata)
   handles.pfcache{ndx} = handles.data.perframedata{ndx}(handles.ts-firstFrame+1);
