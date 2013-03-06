@@ -22,7 +22,7 @@ function varargout = CompareFrames(varargin)
 
 % Edit the above text to modify the response to help CompareFrames
 
-% Last Modified by GUIDE v2.5 05-Mar-2013 10:32:52
+% Last Modified by GUIDE v2.5 06-Mar-2013 13:50:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,6 +63,7 @@ handles.output = hObject;
 
 handles.JLabelH = JLabelH;
 handles.data = handles.JLabelH.guidata.data;
+handles.JLabelH.guidata.NJObj.SetCompareFramesHandle(hObject);
 
 handles.expnum = expnum;
 handles.fly = fly;
@@ -74,15 +75,19 @@ set(handles.edit_ignore,'String','0');
 handles = CacheFrames(handles);
 handles = initialize(handles);
 
-% Update handles structure
-guidata(hObject, handles);
 set(handles.figure1,'Pointer','arrow');
 
 fgColor = get(handles.text_status,'ForegroundColor');
 bgColor = get(handles.text_status,'BackgroundColor');
-set([handles.uipanel_jump,handles.radiobutton_all,handles.radiobutton_behavior,handles.radiobutton_none],....
+set([handles.uipanel_jump,handles.radiobutton_all,...
+    handles.radiobutton_behavior,handles.radiobutton_none,...
+    handles.radiobutton_shortcut],....
   'BackgroundColor',bgColor,'ForegroundColor',fgColor);
 set(handles.radiobutton_all,'Value',1);
+handles.jump_restrict = 'all';
+
+% Update handles structure
+guidata(hObject, handles);
 
 % UIWAIT makes CompareFrames wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -142,7 +147,7 @@ set(handles.text_info,'String',sprintf('Animal:%d, Frame:%d, Exp-Number:%d Exp-N
 
 function handles = initialize(handles)
 
-set(handles.popupmenu_jump,'String',{'Current Fly','CStatic Texturrent Experiment','All experiments','Training Data'},'Value',1);
+set(handles.popupmenu_jump,'String',{'Current Fly','Current Experiment','All experiments','Training Data'},'Value',1);
 handles.align = get(handles.radiobutton_align,'Value');
 
 handles.curFrame = handles.centralframe;
@@ -760,10 +765,22 @@ switch get(eventdata.NewValue,'Tag') % Get Tag of selected object.
       handles.jump_restrict = 'all';
     case 'radiobutton_behavior'
       handles.jump_restrict = 'behavior';
-    case 'togglebutton_none'
+    case 'radiobutton_none'
       handles.jump_restrict = 'none';
 end
 
 pushbutton_reset_Callback(hObject,eventdata,handles);
 guidata(hObject,handles);
 set(handles.figure1,'Pointer','arrow');
+
+
+% --- Executes on button press in radiobutton_shortcut.
+function radiobutton_shortcut_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton_shortcut (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton_shortcut
+if get(hObject,'Value')
+  handles.JLabelH.guidata.NJObj.SetCurrentType('Jump To Similar Frames');
+end
