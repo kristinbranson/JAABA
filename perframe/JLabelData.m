@@ -1909,13 +1909,7 @@ classdef JLabelData < handle
 
       % set experiment directories
       [success,msg] = ...
-        self.SetExpDirsNew(everythingParams.expdirs, ...
-                           everythingParams.expdirs, ...
-                           everythingParams.nflies_per_exp, ...
-                           everythingParams.sex_per_exp, ...
-                           everythingParams.frac_sex_per_exp, ...
-                           everythingParams.firstframes_per_exp, ...
-                           everythingParams.endframes_per_exp);
+        self.SetExpDirsNew(everythingParams.expdirs);
       if ~success,error(msg); end
       
       % Update the status table
@@ -2138,9 +2132,7 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function [success,msg] = SetExpDirsNew(obj,expdirs,outexpdirs,nflies_per_exp,...
-        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
-    % [success,msg] = SetExpDirsNew(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
+    function [success,msg] = SetExpDirsNew(obj,expdirs)
     % Changes what experiments are currently being used for this
     % classifier. This function calls RemoveExpDirs to remove all current
     % experiments not in expdirs, then calls AddExpDirs to add the new
@@ -2154,26 +2146,9 @@ classdef JLabelData < handle
       end
       
       if nargin < 2,
-        error('Usage: obj.SetExpDirsNew(expdirs,[outexpdirs],[nflies_per_exp])');
+        error('Usage: obj.SetExpDirsNew(expdirs)');
       end
-      
-      isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
-      isnflies = nargin > 3 && ~isempty(nflies_per_exp);
-      issex = nargin > 4 && ~isempty(sex_per_exp);
-      isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
-      isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
-      isendframes = nargin > 7 && ~isempty(endframes_per_exp);
-      
-      % check inputs
-      
-      % sizes must match
-      if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
-        error('expdirs and outexpdirs do not match size');
-      end
-      if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
-        error('expdirs and nflies_per_exp do not match size');
-      end
-      
+                  
       oldexpdirs = obj.expdirs;
       
       % remove oldexpdirs
@@ -2187,27 +2162,7 @@ classdef JLabelData < handle
       idx = find(~ismember(expdirs,oldexpdirs));
       success = true;
       for i = idx,
-        params = cell(1,nargin-1);
-        params{1} = expdirs{i};
-        if isoutexpdirs,
-          params{2} = outexpdirs{i};
-        end
-        if isnflies,
-          params{3} = nflies_per_exp(i);
-        end
-        if issex,
-          params{4} = sex_per_exp{i};
-        end
-        if isfracsex,
-          params{5} = frac_sex_per_exp{i};
-        end
-        if isfirstframes,
-          params{6} = firstframes_per_exp{i};
-        end
-        if isendframes,
-          params{7} = endframes_per_exp{i};
-        end
-        [success1,msg1] = obj.AddExpDirNew(params{:});
+        [success1,msg1] = obj.AddExpDirNew(expdirs{i});
         success = success && success1;
         if isempty(msg),
           msg = msg1;
@@ -2654,12 +2609,6 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function [success,msg] = AddExpDirNew(obj, ...
                                           expdir, ...
-                                          outexpdir, ...
-                                          nflies_per_exp, ...
-                                          sex_per_exp, ...
-                                          frac_sex_per_exp, ...
-                                          firstframes_per_exp, ...
-                                          endframes_per_exp, ...
                                           interactivemode)
       % Add a new experiment to the GUI.  This does not change self.expi,
       % and does not not do any preloading.
@@ -2683,10 +2632,10 @@ classdef JLabelData < handle
       end
       
       % Is there an output directory?
-      isoutexpdir = (nargin > 2) && ~isnumeric(outexpdir);
+      isoutexpdir = false;
       
       % Did the caller provide extra information about the tracks
-      istrxinfo = (nargin > 7) && ~isempty(nflies_per_exp);
+      istrxinfo = false;
 
       % Extract the base name of the experiment
       [~,expname] = myfileparts(expdir);
@@ -2805,17 +2754,17 @@ classdef JLabelData < handle
       % Set the fields describing the tracks, either using info provided by
       % the caller, or by reading from the trx file.
       if istrxinfo,
-        obj.nflies_per_exp(end+1) = nflies_per_exp;
-        obj.sex_per_exp{end+1} = sex_per_exp;
-        obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
-        obj.firstframes_per_exp{end+1} = firstframes_per_exp;
-        obj.endframes_per_exp{end+1} = endframes_per_exp;
+        obj.nflies_per_exp(end+1) = nFlies;
+        obj.sex_per_exp{end+1} = sex;
+        obj.frac_sex_per_exp{end+1} = fracSex;
+        obj.firstframes_per_exp{end+1} = firstFrames;
+        obj.endframes_per_exp{end+1} = endFrames;
       else
         % Read from the trx file
         obj.SetStatus('Getting basic trx info for %s...',expname);
         trxFileNameAbs = fullfile(expdir,obj.GetFileName('trx'));
         try
-          [nFliesThis,firstFramesThis,endFramesThis,~,~,fracSexThis,sexThis] = ...
+          [nFlies,firstFrames,endFrames,~,~,fracSex,sex] = ...
             JLabelData.readTrxInfoFromFile(trxFileNameAbs);
         catch err
            if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
@@ -2827,11 +2776,29 @@ classdef JLabelData < handle
              rethrow(err);
            end
         end
-        obj.nflies_per_exp(end+1) = nFliesThis;
-        obj.sex_per_exp{end+1} = sexThis;
-        obj.frac_sex_per_exp{end+1} = fracSexThis;
-        obj.firstframes_per_exp{end+1} = firstFramesThis;
-        obj.endframes_per_exp{end+1} = endFramesThis;
+        obj.nflies_per_exp(end+1) = nFlies;
+        obj.sex_per_exp{end+1} = sex;
+        obj.frac_sex_per_exp{end+1} = fracSex;
+        obj.firstframes_per_exp{end+1} = firstFrames;
+        obj.endframes_per_exp{end+1} = endFrames;
+      end
+      
+      % Initialize the labels
+      iExp=obj.nexps;
+      labelType={'labels' 'gt_labels'};
+      for iLabelType=1:length(labelType)
+        labelTypeThis=labelType{iLabelType};
+        obj.(labelTypeThis)(iExp).t0s = {};
+        obj.(labelTypeThis)(iExp).t1s = {};
+        obj.(labelTypeThis)(iExp).names = {};
+        obj.(labelTypeThis)(iExp).flies = [];
+        obj.(labelTypeThis)(iExp).off = [];
+        obj.(labelTypeThis)(iExp).timestamp = {};
+        obj.(labelTypeThis)(iExp).imp_t0s = {};
+        obj.(labelTypeThis)(iExp).imp_t1s = {};
+        labelStatsTypeThis=fif(strcmp(labelTypeThis,'labels'),'labelstats','gt_labelstats');
+        obj.(labelStatsTypeThis)(iExp).nflies_labeled = 0;
+        obj.(labelStatsTypeThis)(iExp).nbouts_labeled = 0;
       end
       
       % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
@@ -5180,7 +5147,16 @@ classdef JLabelData < handle
     % in the input ts missing window data. 
       
       success = false; msg = '';
+
+      % If there are no per-frame features, declare victory.
+      if isempty(fieldnames(obj.windowfeaturesparams)) ,
+        success=true;
+        return
+      end
+      
+      % Check that the given experiment index and target indices are valid
       obj.CheckExp(expi); obj.CheckFlies(flies);
+      
       
       % which frames don't have window data yet
       if isempty(obj.windowdata.exp),
@@ -7735,11 +7711,6 @@ classdef JLabelData < handle
       % in a scalar struct, which is returned.
       classifierVars = {'expdirs', ...
                         'expnames',...
-                        'nflies_per_exp', ...
-                        'sex_per_exp', ...
-                        'frac_sex_per_exp',...
-                        'firstframes_per_exp', ...
-                        'endframes_per_exp',...
                         'classifiertype', ...
                         'classifier', ...
                         'trainingdata', ...
@@ -7752,6 +7723,11 @@ classdef JLabelData < handle
                         'featureWindowSize', ...
                         'postprocessparams',...
                         'scoresasinput'};
+%                         'nflies_per_exp', ...
+%                         'sex_per_exp', ...
+%                         'frac_sex_per_exp',...
+%                         'firstframes_per_exp', ...
+%                         'endframes_per_exp',...
 %                        'featurenames', ...
 %                        'windowfeaturescellparams',...
 
