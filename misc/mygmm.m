@@ -1,4 +1,4 @@
-% [mu,S,priors,post,nll] = mygmm(X,k,...)
+% [mu,S,priors,post,nll,mix] = mygmm(X,k,...)
 % Input:
 % X: N x D matrix of N D-dimensional data points
 % k: number of clusters
@@ -12,7 +12,7 @@
 % 'Start' = 'furthestfirst'
 % 'distance' = 'sqEuclidean'
 % 'weights' = []
-function [mu,S,priors,post,nll] = mygmm(X,k,varargin)
+function [mu,S,priors,post,nll,mixsave] = mygmm(X,k,varargin)
 
 [nreplicates,covartype,display,precision,resetcovar,maxiters,start,distance,weights] = ...
     myparse(varargin,'Replicates',1,'CovarType','full',...

@@ -695,7 +695,7 @@ end
       %       try
       [~,~,ext] = fileparts(configfilename);
       if strcmp(ext,'.xml'),
-        configparams = ReadXMLParams(configfilename);
+        configparams = ReadXMLConfigParams(configfilename);
       else
         configparams = load(configfilename);
       end
@@ -840,7 +840,7 @@ end
           if isfield(configparams.targets,'type'),
             obj.targettype = configparams.targets.type;
           end
-        else isfield(configparams.behaviors,'type'),
+        elseif isfield(configparams.behaviors,'type'),
             obj.targettype = configparams.behaviors.type;
         end
         
@@ -2126,7 +2126,7 @@ end
 
 
     function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,...
-        frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+        frac_sex_per_exp,firstframes_per_exp,endframes_per_exp,interactivemode)
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
     % Add a new experiment to the GUI. If this is the first experiment,
     % then it will be preloaded. 
@@ -2139,6 +2139,12 @@ end
         error('Usage: obj.AddExpDirs(expdir,[outexpdir],[nflies_per_exp])');
       end
 
+      if ~exist('interactivemode','var'),
+        interactivemode = true;
+      end
+      
+      obj.SetStatus('Checking that %s exists...',expdir);
+      
       % make sure directory exists
       if ~exist(expdir,'file'),
         msg = sprintf('expdir %s does not exist',expdir);
@@ -2199,23 +2205,29 @@ end
       obj.expnames{end+1} = expname;
       %obj.rootoutputdir = rootoutputdir;
       obj.outexpdirs{end+1} = outexpdir;
+
+      obj.SetStatus('Loading labels from file for %s...',expname);
       
       % load labels for this experiment
       [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
       if ~success1,
+        obj.SetStatus('Failed to load labels for %s...',expname);
         obj.RemoveExpDirs(obj.nexps);
         return;
       end
       [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
       if ~success1,
+        obj.SetStatus('Failed to load labels for %s...',expname);
         obj.RemoveExpDirs(obj.nexps);
         return;
       end
 
+      obj.SetStatus('Updating status table for %s...',expname);
       [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
       missingfiles = missingfiles{obj.nexps};
       if ~success1,
         msg = msg1;
+        obj.SetStatus('Bad experiment directory %s...',expdir);
         obj.RemoveExpDirs(obj.nexps);
         return;
       end
@@ -2224,6 +2236,7 @@ end
       if ~obj.filesfixable,
         msg = sprintf(['Experiment %s is missing required files that cannot '...
           'be generated within this interface. Removing...'],expdir);
+        obj.SetStatus('Bad experiment directory %s...',expdir);
         success = false;
         % undo
         obj.RemoveExpDirs(obj.nexps);
@@ -2231,7 +2244,8 @@ end
       end
       
       if obj.filesfixable && ~obj.allfilesexist,
-        if ~isdeployed 
+        obj.SetStatus('Some files missing for %s...',expname);
+        if interactivemode && isdisplay(),
           if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
             if numel(missingfiles)>10,
               missingfiles = missingfiles(1:10);
@@ -2251,16 +2265,19 @@ end
         end
         
         if strcmpi(res,'Yes'),
+          obj.SetStatus('Generating missing files for %s...',expname);
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
             msg = sprintf(['Error generating missing required files %s '...
               'for experiment %s: %s. Removing...'],...
               sprintf(' %s',missingfiles{:}),expdir,msg);
+            obj.SetStatus('Error generating missing files for %s...',expname);
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
           
         else
+          obj.SetStatus('Not generating missing files for %s, not adding...',expname);
           obj.RemoveExpDirs(obj.nexps);
           return;
         end
@@ -2269,9 +2286,11 @@ end
       % Convert the scores file into perframe files.
       
       for i = 1:numel(obj.scoresasinput)
+        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
           obj.scoresasinput(i).ts);
           if ~success,
+            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
@@ -2291,12 +2310,14 @@ end
       % preload this experiment if this is the first experiment added
       if obj.nexps == 1,
         % TODO: make this work with multiple flies
+        obj.SetStatus('Pre-loading first experiment %s expname...',expname);
         [success1,msg1] = obj.PreLoad(1,1);
         if ~success1,
           msg = sprintf('Error getting basic trx info: %s',msg1);
-          uiwait(warndlg(msg));
+          obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
+          %uiwait(warndlg(msg));
           obj.RemoveExpDirs(obj.nexps);
-          obj.ClearStatus();
+          %obj.ClearStatus();
           return;
         end
       elseif istrxinfo,
@@ -2321,21 +2342,26 @@ end
         obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
         obj.firstframes_per_exp{end+1} = [];
         obj.endframes_per_exp{end+1} = [];
+        obj.SetStatus('Getting basic trx info for %s...',expname);
         [success1,msg1] = obj.GetTrxInfo(obj.nexps);
         if ~success1,
           msg = sprintf('Error getting basic trx info: %s',msg1);
+          obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
           obj.RemoveExpDirs(obj.nexps);
           return;
         end
       end
       
       if numel(obj.predictdata)<obj.nexps
+        obj.SetStatus('Initializing prediction data for %s...',expname);
         obj.InitPredictiondata(obj.nexps);
       end
       
+      obj.SetStatus('Pre-loading labeled data for %s...',expname);
       [success1,msg1] = obj.PreLoadLabeledData();
       if ~success1,
         msg = msg1;
+        obj.SetStatus('Error pre-loading labeled data for %s...',expname);
         obj.RemoveExpDirs(obj.nexps);
         return;
       end
@@ -2343,6 +2369,8 @@ end
       
       % save default path
       obj.defaultpath = expdir;
+
+      obj.SetStatus('Successfully added experiment %s...',expdir);
       
       success = true;
       
@@ -2598,7 +2626,7 @@ end
       obj.windowdata.binVals=[];
 
       for curex = sort(expi(:)','descend'), %#ok<UDIM>
-        if numel(obj.predictdata)>expi
+        if numel(obj.predictdata)>=curex,
           obj.predictdata(expi) = [];
         end
       end
@@ -2809,6 +2837,12 @@ end
         
       end
       obj.allperframefns(toRemove) = [];
+      
+      
+%       newparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
+%       newcellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
+%       obj.UpdatePerframeParams(newparams,newcellparams,obj.basicFeatureTable,obj.featureWindowSize);
+      
       obj.windowfeaturesparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
       obj.windowfeaturescellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
 
@@ -2854,8 +2888,19 @@ end
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
+
       
       if isempty(fieldnames(obj.landmark_params)) && ~perframetrx.HasLandmarkParams && obj.arenawarn,
+        if expi>1,
+          success = false;
+          msg = ['Landmark params were not defined in the configuration file or in the trx file for the current experiment. '...
+              'Cannot compute arena perframe features for the experiment and removing it'];
+          if isInteractive && ishandle(hwait),
+              delete(hwait);
+          end
+          return;
+        end
+
         if isInteractive,
           uiwait(warndlg(['Landmark params were not defined in the configuration file'...
             ' or in the trx file. Not computing arena features and removing them from the perframe list']));
@@ -3292,6 +3337,7 @@ end
             end
           end
         end
+        
         obj.nflies_per_exp(expi) = numel(trx);
         obj.firstframes_per_exp{expi} = [trx.firstframe];
         obj.endframes_per_exp{expi} = [trx.endframe];
@@ -6667,12 +6713,12 @@ end
         obj.setstatusfn(sprintf(varargin{:}));
         drawnow;
       end
-      allF = findall(0,'type','figure');
-      jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
-      jfig = allF(jfigNdx);
-      if ~isempty(jfig),
-        set(jfig,'pointer','watch');
-      end
+%       allF = findall(0,'type','figure');
+%       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+%       jfig = allF(jfigNdx);
+%       if ~isempty(jfig),
+%         set(jfig,'pointer','watch');
+%       end
     end
     
     function ClearStatus(obj)
@@ -6683,12 +6729,12 @@ end
         obj.clearstatusfn();
         drawnow;
       end
-      allF = findall(0,'type','figure');
-      jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
-      jfig = allF(jfigNdx);
-      if ~isempty(jfig),
-        set(jfig,'pointer','arrow');
-      end
+%       allF = findall(0,'type','figure');
+%       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+%       jfig = allF(jfigNdx);
+%       if ~isempty(jfig),
+%         set(jfig,'pointer','arrow');
+%       end
       
     end
     
@@ -6785,7 +6831,7 @@ end
       for expi = 1:obj.nexps,
         for flies = 1:obj.nflies_per_exp(expi)
           numpos = numpos + nnz(obj.predictdata{expi}{flies}.loaded>0);
-          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded>0);
+          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded<0);
         end
       end
       poswt = numneg/(numneg+numpos);

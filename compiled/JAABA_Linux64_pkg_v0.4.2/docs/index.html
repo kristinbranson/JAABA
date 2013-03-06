@@ -1,0 +1,328 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+<title>JAABA Documentation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
+<!-- OLD FORMATTING STUFF COMMENTED OUT FOR NOW
+
+<link rel="stylesheet" href="acmebase.css" type="text/css">
+
+<style type="text/css">
+
+/* Menu container */
+.menu	{
+width:300px;
+height:280px;
+border:solid #FF9900 1px;
+padding:10px 5px 10px 5px;
+margin:12px 12px 12px 50px;
+}
+
+/* Menu styles */
+.menu ul
+{
+margin:0px;
+padding:0px;
+}
+.menu li
+{
+margin:0px 0px 0px 5px;
+padding:0px;
+		list-style-type:none;
+		text-align:left;
+		font-family:Arial,Helvetica,sans-serif;
+		font-size:13px;
+		font-weight:normal;
+}
+
+/* Submenu styles */
+.menu ul ul 
+{
+	background-color:#F6F6F6;
+}
+.menu li li
+{
+margin:0px 0px 0px 16px;
+}
+
+/* Symbol styles */
+.menu .symbol-item,
+	.menu .symbol-open,
+	.menu .symbol-close
+{
+float:left;
+width:16px;
+height:1em;
+	   background-position:left center;
+	   background-repeat:no-repeat;
+}
+.menu .symbol-item  { background-image:url(icons/page.png); }
+.menu .symbol-open  { background-image:url(icons/minus.png); }
+.menu .symbol-close { background-image:url(icons/plus.png);}
+
+/* Menu line styles */
+.menu li.open  { font-weight:bold; }
+.menu li.close { font-weight:normal; }
+</style>
+
+<script src="TreeMenu.js" type="text/javascript"></script>
+
+-->
+
+</head>
+
+<body>
+<center><h1>JAABA - Janelia Automatic Animal Behavior Annotator</h1></center>
+
+<p>The Janelia Automatic Animal Behavior Annotator (JAABA) is a machine learning-based system that enables researchers to automatically compute interpretable, quantitative statistics describing video of behaving animals. Through our system, users encode their intuition about the structure of behavior by labeling the behavior of the animal, e.g. walking, grooming, or following, in a small set of video frames. JAABA uses machine learning techniques to convert these manual labels into behavior detectors that can then be used to automatically classify the behaviors of animals in large data sets with high throughput. Our system combines an intuitive graphical user interface, a fast and powerful machine learning algorithm, and visualizations of the classifier into an interactive, usable system for creating automatic behavior detectors. JAABA is complementary to video-based tracking methods, and we envision that it will facilitate extraction of detailed, scientifically meaningful measurements of the behavioral effects in large experiments. </p>
+
+<p>JAABA is an open-source, freely available program developed by members of the <a href="http://www.janelia.org/lab/branson-lab">Branson lab at HHMI Janelia Farm</a>. It is described in detail in the paper <a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.2281.html">"JAABA: Interactive machine learning for automatic annotation of animal behavior"</a>, Kabra, Robie, et al., <i>Nature Methods</i>, 2012. </p>
+
+<center><b>This webpage is currently under development. We will add more documentation shortly.</b></center>
+
+<hr class="h2-divider">
+
+<h2>Links</h2>
+
+<ul>
+<li> <b>Download</b> executables, sample data, and source code releases: 
+<a href="https://sourceforge.net/projects/jaaba/files/">https://sourceforge.net/projects/jaaba/files/</a></li>
+<li> <b>Git repository</b> with the latest version of the code:
+<a href="https://github.com/kristinbranson/JAABA">https://github.com/kristinbranson/JAABA</a></li>
+<li> <b>JAABA mailing list</b>: <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">https://groups.google.com/forum/?fromgroups#!forum/jaaba</a></li>
+<li> <b>JAABA paper</b>: <a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.2281.html">"JAABA: Interactive machine learning for automatic annotation of animal behavior"</a>, Kabra, Robie, et al., <i>Nature Methods</i>, 2012</li>
+<li> <b>Branson lab</b> at HHMI Janelia Farm: <a href="http://www.janelia.org/lab/branson-lab">http://www.janelia.org/lab/branson-lab</a></li>
+<li> <b>Contact information</b>: Kristin Branson bransonk@janelia.hhmi.org</li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+
+<ul id="Contents">
+
+<li><h3><a href="GettingStarted.html">Getting Started</a></h3>
+<ul>
+<li><a href="GettingStarted.html#Itinerary">Suggested Itinerary</a></li>
+<li><a href="GettingStarted.html#DemoVideo">Video Tutorial</a></li>
+<li><a href="GettingStarted.html#SampleData">Sample Data</a></li>
+</ul>
+</li>
+<li><h3><a href="Installation.html">Installation </a></h3></li>
+<ul>
+<li><a href="Installation.html#ComputerRequirements">Minimum Computer Requirements</a></li>
+<li><a href="Installation.html#Executables">Installation and Start-up: Easy</a></li>
+<ul>
+<li><a href="Installation.html#ExecutablesSoftwareRequirements">Software Requirements (Easy)</a></li>
+<li><a href="Installation.html#ExecutablesInstallation">Installation (Easy)</a></li>
+<li><a href="Installation.html#ExecutablesStartUp">Start-Up (Easy)</a></li>
+</ul>
+<li><a href="Installation.html#Source">Installation and Start-up: Advanced</a></li>
+<ul>
+<li><a href="Installation.html#SourceSoftwareRequirements">Software Requirements (Advanced)</a></li>
+<li><a href="Installation.html#SourceInstallation">Installation (Advanced)</a></li>
+<li><a href="Installation.html#SourceStartUp">Start-Up (Advanced)</a></li>
+</ul>
+</ul>
+</li>
+
+<li><h3><a href="DataFormatting.html">Preparing Data for JAABA</a></h3>
+<ul>
+  <li><a class="reference" href="DataFormatting.html#ExperimentDirectoryStructure">Experiment Directory Structure</a></li>
+  <li><a class="reference" href="DataFormatting.html#PrepareJAABADataGUI">PrepareJAABAData GUI</a>
+  <ul>
+    <li><a class="reference" href="DataFormatting.html#PrepareJAABADataGUI_Usage">Usage</a></li>
+    <li><a class="reference" href="DataFormatting.html#PrepareJAABADataInputDataType">Input Data Type</a></li>
+    <li><a class="reference" href="DataFormatting.html#PrepareJAABADataInputFiles">Input Files</a></li>
+    <li><a class="reference" href="DataFormatting.html#PrepareJAABADataOutputFiles">Output Files</a></li>
+    <li><a class="reference" href="DataFormatting.html#PrepareJAABADataConversion">Conversion</a></li>
+    <li><a class="reference" href="DataFormatting.html#PrepareJAABADataOptions">Options</a></li>
+    <li><a class="reference" href="DataFormatting.html#PrepareJAABADataSaveLoad">Save and Load</a></li>
+  </ul>
+  </li>
+  <li><a class="reference" href="DataFormatting.html#TracksFileStructure">Tracks File Structure</a></li>
+  <li><a class="reference" href="DataFormatting.html#PerFrameDirectoryStructure">Per-Frame Directory Structure</a></li>
+</ul>
+</li>
+<li><h3><a href="NewProject.html">Creating New Projects</a></h3>
+<ul>
+<li><a href="NewProject.html#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
+<li><a href="NewProject.html#ScoresAsInput">Using Output of Previously Trained Classifiers</a></li>
+</ul>
+</li>
+
+<li><h3><a href="AddExperiments.html">Adding Experiments to Projects</a></h3></li>
+<li><h3><a href="GUIOverview.html">GUI Overview</a></h3>
+<ul>
+<li><a class="reference" href="Main">Main JAABA Interface</a></li>
+</ul>
+</li>
+<li><h3><a href="BasicNavigation.html">Navigating within and between Videos</a></h3>
+<ul>
+<li> <a href="BasicNavigation.html#Time">Navigating in Time</a></li>
+<li><a href="BasicNavigation.html#SwitchTarget">Switching to Different Animals and Videos</a></li>
+<li> <a href="BasicNavigation.html#Space">Navigating in Space</a> </li>
+<li> <a href="BasicNavigation.html#Advanced">Navigation Preferences</a></li>
+</ul>
+</li>
+
+<!--- KB: Added this to basic navigation
+<li><h3><a href="Viewing.html"> Movie Viewing Options </a></h3></li>
+--->
+
+<!--- KB: Added this to GUI Overview
+<li><h3><a href="StatusBar.html"> Status Bar </a></h3></li>
+--->
+
+<!--- KB: Moved to Training
+<li><h3><a href="Labeling.html"> Labeling Trajectories </a></h3>
+<ul>
+<li><a href="#AddingLabels">Adding or Changing Labels</a></li>
+<li><a href="#KeyboardShortcuts">Keyboard Shortcuts</a></li>
+</ul>
+</li>
+--->
+
+<li><h3><a href="Training.html">Training</a></h3>
+<ul>
+<li><a href="Training.html#AddingLabels">Adding or Changing Labels</a></li>
+<li><a href="Training.html#KeyboardShortcuts">Label Keyboard Shortcuts</a></li>
+<li><a href="Training.html#Training">Training</a></li>
+<li><a href="Training.html#SelectFeaturesQuick">Select Features (Quick)</a></li>
+<li><a href="Training.html#Predictions">Examining the Classifier's Predictions</a></li>
+<li><a href="Training.html#Memory">Memory Usage</a></li>
+<li><a href="Training.html#Retraining">Retraining</a></li>
+<li><a href="Training.html#Guidelines">Labeling Guidelines</a></li>
+<li><a href="Training.html#PostProcessing">Post-Processing Predictions</a>
+<ul>
+<li><a href="Training.html#Types">Types of Post-Processing</a></li>
+</ul>
+</li>
+<li><a href="Training.html#ClassifierParameters">Classifier Parameters (Advanced)</a></li>
+</ul>
+</li>
+
+<li><h3><a href="Evaluating.html">Evaluating a Behavior Classifier</a></h3></li>
+<ul>
+<li><a href="Evaluating.html#CrossValidation">Cross Validation</a></li>
+<li><a href="Evaluating.html#Visualizing">Visualizing the Classifier</a></li>
+</ul>
+
+<!--- KB: moved to Evaluating.html
+<li><h3><a href="CrossValidation.html">Cross Validation </a></h3></li>
+--->
+
+<!--- KB: Moved to Training.html
+
+<li><h3><a href="ClassifierParameters.html">Classifier Parameters </a></h3></li>
+
+--->
+
+<!--- KB: moved to Evaluating.html
+<li><h3><a href="VisualizingClassifier.html">Visualizing Classifier </a></h3></li>
+--->
+
+<!--- KB: Added this to basic navigation
+<li><h3><a href="AdvancedNavigation.html">Advanced Navigation</a></h3></li>
+--->
+
+<li><h3><a href="SavingAndLoading.html">Saving and Loading Results</a></h3>
+<ul>
+<li><a href="SavingAndLoading.html#LabelsAndClassifiers">Labels and Classifiers</a>
+<ul>
+<li><a href="SavingAndLoading.html#SavingLabels">Saving Labels</a></li>
+<li><a href="SavingAndLoading.html#LoadingLabels">Loading Labels</a></li>
+<li><a href="SavingAndLoading.html#SavingClassifier">Saving the Classifier and Labels</a></li>
+<li><a href="SavingAndLoading.html#LoadingClassifier">Loading a Classifier</a></li>
+</ul>
+<li><a href="SavingAndLoading.html#Predictions">Classifier's Predictions</a></li>
+<ul>
+<li><a href="SavingAndLoading.html#SavingPredictions">Saving Predictions</a></li>
+<li><a href="SavingAndLoading.html#LoadingPredictions">Loading Predictions</a></li>
+</ul>
+</ul>
+</li>
+
+<li><h3><a href="WindowFeatureComputation.html">Features</a></h3>
+<ul>
+<li><a href="WindowFeatureComputation.html#Types">Window Feature Types</a></li>
+<li><a href="WindowFeatureComputation.html#Transformations">Window Feature Transformations</a></li>
+<li><a href="WindowFeatureComputation.html#Templates">Window Feature Templates</a></li>
+<li><a href="WindowFeatureComputation.html#Files">Window Feature Computation Files</a></li>
+<li><a href="WindowFeatureComputation.html#SelectFeatures">Select Features</a></li>
+<ul>
+<li><a href="WindowFeatureComputation.html#BasicMode">Basic Mode</a></li>
+<li><a href="WindowFeatureComputation.html#AdvancedMode">Advanced Mode</a></li>
+<li><a href="WindowFeatureComputation.html#Buttons">Select Features Buttons</a></li>
+</ul>
+<li><a href="WindowFeatureComputation.html#Examples">Example Files</a></li>
+</ul>
+</li>
+
+<li><h3><a href="GroundTruthing.html">Ground-Truthing Mode</a></h3>
+<ul>
+<li><a href="GroundTruthing.html#Starting">Starting JAABA in Ground-Truthing Mode</a></li>
+<li><a href="GroundTruthing.html#Classifier">Selecting the Classifier</a></li>
+<li><a href="GroundTruthing.html#Labeling">Labeling in Ground-Truthing Mode</a></li>
+<li><a href="GroundTruthing.html#SelectingFrames">Selecting Frames to Ground Truth</a></li>
+<li><a href="GroundTruthing.html#Performance">Ground Truth Performance</a></li>
+<li><a href="GroundTruthing.html#Viewing">Viewing Predictions</a></li>
+<li><a href="GroundTruthing.html#Saving">Saving Labels</a></li>
+</ul>
+</li>
+
+<!--- KB: Added to training
+<li><h3><a href="PostProcessing.html">Post Processing</a></h3></li>
+--->
+
+<li><h3><a href="PlottingResults.html">Plotting JAABA's Output</a></h3>
+<ul>
+  <li><a class="reference" href="PlottingResults.html#LoadingExperiments">Loading Experiments</a></li>
+  <li><a class="reference" href="PlottingResults.html#LoadingClassifiers">Loading Classifiers</a></li>
+  <li><a class="reference" href="PlottingResults.html#BehaviorStatistics">Behavior Statistics</a></li>
+  <li><a class="reference" href="PlottingResults.html#FeatureStatistics">Feature Statistics</a></li>
+  <li><a class="reference" href="PlottingResults.html#InterestingDifferences">Interesting Differences</a></li>
+</ul>
+
+
+</ul>
+
+<hr class="h2-divider">
+
+<h2>Acknowledgments</h2>
+
+<p>JAABA was developed by Mayank Kabra, Alice Robie, and Kristin Branson with
+help from Marta Rivera-Alba, Steven Branson, Ben Arthur, Jinyang Liu, 
+Roian Egnor, Andrew Miller. It was funded by the Howard Hughes Medical
+Institute.</p>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</body>
+</html>

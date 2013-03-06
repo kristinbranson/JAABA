@@ -1,0 +1,59 @@
+/*
+ * AcmeBase documentation styles
+ */
+
+body { background-color:#EEEEEE; }
+body, td, th { font-family:Arial,Helvetia,sans-serif; font-size:13px; }
+a:link, a:visited, a:active 
+	{ color:blue; text-decoration:none; }
+a:hover { color:#FF00FF; text-decoration:none; }
+h1 { font-family:Arial,Helvetica,sans-serif;
+        font-size:28px; font-style:normal; font-weight:bold;
+        color:#666666; text-align:left; margin:0px 0px 20px 0px; }
+h2 { font-family:Arial,Helvetica,sans-serif;
+        font-size:24px; font-style:normal; font-weight:bold;
+        color:#6699CC; text-align:left; margin:39px 0px 18px 0px; }
+h3 { font-family:Arial,Helvetica,sans-serif;
+        font-size:16px; font-style:normal; font-weight:bold;
+        color:#FF9900; text-align:left; margin:26px 0px 12px 0px; }
+p { font-size:13px; line-height:16px; margin:12px 20px 6px 20px; }
+li { margin-top:1ex; }
+dd { font-size:13px; margin-bottom:1ex; margin-left:40px; }
+dt { font-size:13px; font-weight:bold; margin-left:20px; }
+dt a { font-weight:normal; }
+pre { font-size:13px; margin:12px 0px 12px 20px; padding:6px; background-color:#FFFFDD; overflow:hidden; width:720px; }
+code { font-size:13px; }
+form h3 { color:#000000; text-align:center; }
+form th { text-align:right; font-weight:normal; }
+
+.page { text-align:left; width:800px; background-color:#FFFFFF; margin:10px; }
+.banner { background-color:#99CC33; }
+.banner img { border-style:none; }
+.content { margin:0px 20px; }
+.footer { border-bottom:solid #99CC33 20px; height:13px; margin-top:20px; width:800px; }
+
+.firstbr, .lastbr, .h2br, .h3br
+	{
+	height:13px;
+	float:right;
+	display:block;
+	margin:0px 6px 12px 0px;
+	}
+.h2br	{ margin-top:3em; }
+.h3br img { display:none; }
+.toc	{ margin-left:50px; text-align:center; }
+.toc dl { text-align:left; }
+.toc dl dt { margin:0px; padding:0px; }
+.toc dl dl { margin:0px; padding:0px; }
+.toc dl dl dt { margin: 0px 0px 0px 16px; padding:0px; }
+.version { font-size:22px; }
+.author { font-size:16px; font-weight:normal; display:block; }
+.date { font-size:16px; font-weight:normal; display:block; float:right; margin-top:-40px; }
+.note { font-size:14px; color:darkgreen; border:solid darkgreen 1px; margin:0px 30px; padding:16px 6px; }
+
+@media print {
+        body { background-color:#FFFFFF; }
+        .page { width:700px; margin:0px; }
+        .content { margin:0px; }
+	.firstbr img, .lastbr img, .h2br img, .h3br img { display:none; }
+        }

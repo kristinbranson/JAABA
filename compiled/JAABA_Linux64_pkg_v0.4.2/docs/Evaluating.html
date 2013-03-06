@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
+</head>
+</body>
+<h1><a href="index.html">JAABA</a>: Evaluating a Behavior Classifier</h1>
+
+<p>There are several methods for estimating how well your behavior classifier is working. The first
+method you should use is to 
+<a href="Training.html#Predictions"><b>examine the classifier's predictions</b></a> 
+on frames different from the training data. Machine learning classifiers will perform very well on 
+the labeled data they were trained on, well on data similar to the labeled data, and not well on 
+data very different from the training data. Thus, we recommend seeking to and examining the classifier's
+predictions for different parts of the video for the current fly, different flies, and different
+videos. See <a href="BasicNavigation.html">Navigating within and between Videos</a>. </p>
+<p>The most complete, but most labor-intensive method for evaluating a behavior classifier is to <a href="GroundTruthing.html"><b>Ground Truth</b></a> it. That is, to <b>manually label</b> frames outside of the training 
+data while <b>not</b> looking at JAABA's predictions, and compare these manual labels to JAABA's predictions. We
+describe how to ground truth a classifier <a href="GroundTruthing.html">here</a>. 
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#CrossValidation">Cross Validation</a></li>
+<li><a href="#Visualizing">Visualizing the Classifier</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="CrossValidation">Cross Validation</a></h2>
+
+<p>Cross Validation is a quick way to quantitatively measure the classifier's accuracy
+on frames outside the training data set. In cross validation, a subset of the
+training data is held out for testing and the rest of the training data is used 
+for training. In k-fold cross validation, 1/k of the training data is held out for
+testing and the testing is done k times so that each training example gets tested 
+once. </p>
+
+<p>Select the <b>Classifier -> Cross Validate</b> menu item to perform cross validation with
+the current set of labeled data.</p>
+
+<p>In JAABA, cross validation is done over bouts, i.e., either the whole labeled bout will
+be part of the training set or it will be part of the test set. By default,
+JAABA does 7-fold cross validation, thus you need at least 7 bouts each of the
+behavior and not-behavior to do cross validation.</p>
+
+<p>After cross validation is performed, it returns a table showing the types of errors the
+classifiers made. The <b>columns</b> of the table correspond to the classifiers' <b>predictions</b>, 
+and the <b>rows</b> correspond to the <b>manual labels</b>. Each element of the table corresponds
+to the number and (percent) of frames with the given type of manual labels that have the given prediction.
+Percentages are computed over rows. </p>
+<p>The columns are:
+<ol>
+<li> <b>[Behavior] Predicted</b>: Frames predicted as the project behavior, <i>Chase</i> in the 
+example table below.</li>
+<li> <b>Not Predicted</b>: Depending on the classifier parameters set, some frames may not be predicted
+on. This will happen for frames whose scores lie between the scores threshold that are set using 
+<b>Classifier -> Set confidence thresholds</b>. These thresholds are both by default 0, thus
+there is a prediction for each frame and the middle column should be all zeros.  </li>
+<li> <b>None Predicted</b>: Frames predicted as not the behavior.</li>
+</ol>
+</p>
+<p>The rows are:
+<ol>
+<li><b>[Behavior] Important</b>: Frames that were labeled as important examples of the behavior (<i>Chase</i> below). In JAABA's standard usage, all frames are currently labeled as important.</li>
+<li><b>[Behavior] All</b>: Frames that were labeled as the behavior (<i>e.g. Chase</i>), regardless of
+their importance.<li>
+<li><b>None Important</b>: Frames that were labeled as important examples of not the behavior.</li>
+<li><b>None All</b>: Frames that were labeled as not the behavior, regardless of their importance.</li>
+</ol>
+</p>
+<p> The <b>bottom 4 rows</b> have the same format as the top 4 rows, but the
+cross-validation numbers are computed only for the <b>old</b> labels. <b>Old</b> labels are 
+the labels that were used to train the classifier just before the current classifier in the
+current JAABA session. Comparing the cross validation error rates on old labels gives the
+user an idea how much the addition of new labels has improved the performance as compared
+to the previous training set.</p>
+<p>Cross validation can, in some cases, give an underestimate of the accuracy of the classifier. 
+Suppose that you trained a classifier, found a bout of frames for which its prediction was
+incorrect, and labeled these frames. These frames will almost certainly be classified 
+incorrectly during cross validation because the training set used to predict these frames will
+be a subset of the training set used to train the original classifier.</p>
+
+<p>The predictions and scores for all the labeled frames produced using cross validation can 
+be displayed at the bottom of the <a href="Training.html#Predictions">scores timeline</a> by 
+selecting <b>Cross validation</b> 
+from the drop-down menu left of the scores timeline. Note that cross validation is done using 
+the labels that were used to train the latest classifier. Labels added after training a 
+classifier are not used to in cross validation.</p>
+
+<center><a href="images/CVOut.png"><img src="images/CVOut.png"></a>
+<br>
+<i>Screencap showing the output of cross validation</i>
+</center>
+
+<hr class="h2-divider">
+
+<h2> <a id="Visualizing">Visualizing the Classifier</a> </h2>
+
+<p>JAABA uses the boosting learning algorithm to train a behavior classifier. Boosting works 
+by combining many simple rules that are typically not very accurate on their own into one accurate rule. 
+In JAABA, we use <b>decision stumps</b> as the simple rules. Decision stumps predict by simply comparing
+a window feature's value to a threshold. As JAABA computes and examines a large number of window features, 
+combining these simple decision stumps is quite effective in learning an accurate detector.</p>
+
+<p>Because of the simplicity of the weak rules, it is possible to visualize the
+classifier by looking at the window features it uses. When you select the menu item
+<b>Classifier -> Visualize Classifier</b>, it will create a figure showing
+<ul>
+<li> Which window features are used by the classifier,</li>
+<li> The classifier's predictions based on each feature on its own, and </li>
+<li> The weight placed on each feature.</li>
+</ul>
+</p>
+
+<p>Below is an example output. The features are ordered in descending
+order of the weight that was placed on it. The feature names are listed on the
+right. The parts of the feature names are (in order):
+<ol>
+<li> Per-frame feature name</li>
+<li> Window feature computation type</li>
+<li> Transformation type</li>
+<li> Radius of the window</li>
+<li> Offset of the window</li>
+<li> Any other parameters to the window feature.</li>
+</ol>
+</p>
+<p>The <b>left</b> plot shows the <b>weight</b> (<i>y</i>-axis) that is given to each feature 
+(<i>x</i>-axis) by the boosting algorithm. The middle plot shows the predictions of the classifier
+based on each feature on its own. To put all the features on the same axis, we plot the predictions 
+in terms of percentiles of the feature value observed (<i>x</i>-axis). </p>
+
+<center><img src="images/VisualizeClassifier.png"></center>
+
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+</center>
+</footer>
+
+
+</html>
