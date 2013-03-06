@@ -3546,13 +3546,16 @@ handles = SetPredictedPlot(handles);
 
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+UpdatePlots(handles, ...
+            'refreshim',false, ...
+            'refreshflies',true,  ...
+            'refreshtrx',true, ...
+            'refreshlabels',true,...
+            'refresh_timeline_manual',false,...
+            'refresh_timeline_xlim',false,...
+            'refresh_timeline_hcurr',false,...
+            'refresh_timeline_selection',false,...
+            'refresh_curr_prop',false);
 
 
 % -------------------------------------------------------------------------
@@ -6040,9 +6043,9 @@ function panel_timeline_select_SelectionChangeFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if  strcmp(get(eventdata.NewValue,'tag'),'timeline_label_manual')
-  menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
+  menu_view_manual_labels_Callback(hObject, eventdata, handles);
 else
-  menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
+  menu_view_automatic_labels_Callback(hObject, eventdata, handles);
 end
 
 
@@ -8248,3 +8251,97 @@ end
 return
 
 
+% --------------------------------------------------------------------
+function menu_file_import_classifier_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_classifier (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+importClassifierFile(hObject)
+return
+
+
+% -------------------------------------------------------------------------
+function importClassifierFile(figureJLabel)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% Prompt user for filename
+title='Import Classifier...';
+[filename,pathname] = ...
+  uigetfile({'*.jcf','JAABA Classifier Files (*.jcf)'}, ...
+            title);
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+fileNameAbs=fullfile(pathname,filename);
+
+% Update the status, change the pointer to the watch
+SetStatus(handles,sprintf('Importing classifier from %s ...',filename));
+
+% load the file
+try
+  classifierParams=load('-mat',fileNameAbs);
+catch  %#ok
+  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+  ClearStatus(handles);
+  return;
+end
+
+% % First set the project parameters, which will initialize the JLabelData
+% projectParams=projectParamsFromEverythingParams(classifierParams);
+% setProjectParams(gcbf,projectParams);
+% handles=guidata(figureJLabel);  % make sure handles is up-to-date
+% 
+% % Need to set the labeling mode in the JLabelData, before the experiments 
+% % are loaded.
+% data=handles.guidata.data;  % ref
+% data.SetGTMode(groundTruthingMode);
+% 
+% % Set the GUI to match the labeling mode
+% handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% %handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
+% guidata(figureJLabel,handles);  % write the handles back to the figure
+
+% Load the classifier, which includes the experiments, and load the
+data=handles.guidata.data;  % ref
+data.setClassifier(classifierParams);
+
+% Set the functions that end up getting called when we call SetStatus()
+% and ClearStatus()
+handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+
+% Copy the default path out of the JLabelData.
+handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+
+% Note that we now need saving
+handles.guidata.needsave=true;
+
+% % Set the current movie.
+% handles = UnsetCurrentMovie(handles);
+% if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+%   handles = SetCurrentMovie(handles,1);
+% else
+%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+% end
+
+% clear the old experiment directory
+handles.guidata.oldexpdir='';
+
+% Updates the graphics objects to match the current labeling mode (normal
+% or ground-truthing)
+handles = UpdateGUIToMatchGroundTruthingMode(handles);
+
+% Update the GUI match the current "model" state
+UpdateGUIToMatchFileAndExperimentState(handles);
+
+% Done, set status message to cleared message, pointer to normal
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+return
