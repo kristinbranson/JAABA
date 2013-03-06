@@ -6247,9 +6247,9 @@ end
       
       labels = obj.windowdata.labelidx_new;
       if strcmp(jumpRestrict,'behavior')
-        dist(labels == 2) = inf;
+        dist(labels ~= 1) = inf;
       elseif strcmp(jumpRestrict,'none')
-        dist(labels == 1) = inf;
+        dist(labels ~= 2) = inf;
       end
       
       nextNdx = [];
