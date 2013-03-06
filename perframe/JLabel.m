@@ -54,6 +54,16 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to JLabel (see VARARGIN)
 
+
+% To help with merging with Adam -- Mayank, 6 march 2012 
+set(handles.automaticTimelineBottomRowPopup,'String',...
+ {'None','Validated','Old','Loaded','Postprocessed','Distance'});
+
+handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
+ 'Label','Find Similar Frames','Callback',...
+@menu_classifier_compareFrames_Callback);
+
+
 handles.guidata = JLabelGUIData();
 
 % parse optional inputs
@@ -160,6 +170,7 @@ if ismac, % On mac change the foreground color to black.
 end
 
 set(handles.figure_JLabel,'pointer','arrow');
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -6561,3 +6572,11 @@ if isdeployed,
 else
   web('-browser','http://jaaba.sourceforge.net/');
 end
+
+
+function menu_classifier_compareFrames_Callback(hObject,eventdata)
+handles = guidata(hObject);
+if isempty(handles.guidata.expi) || handles.guidata.expi<1, return, end
+chandles = CompareFrames('JLabelH',handles,'expnum',handles.guidata.expi,...
+  'fly',handles.guidata.flies,'t',handles.guidata.ts);
+handles.guidata.open_peripherals(end+1) = chandles;
