@@ -2811,21 +2811,27 @@ classdef JLabelData < handle
         obj.firstframes_per_exp{end+1} = firstframes_per_exp;
         obj.endframes_per_exp{end+1} = endframes_per_exp;
       else
-        % Init the relevant fields to default values
-        obj.nflies_per_exp(end+1) = nan;
-        obj.sex_per_exp{end+1} = {};
-        obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
-        obj.firstframes_per_exp{end+1} = [];
-        obj.endframes_per_exp{end+1} = [];
         % Read from the trx file
         obj.SetStatus('Getting basic trx info for %s...',expname);
-        [success1,msg1] = obj.GetTrxInfo(obj.nexps);
-        if ~success1,
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
-          obj.RemoveExpDirs(obj.nexps);
-          return;
+        trxFileNameAbs = fullfile(expdir,obj.GetFileName('trx'));
+        try
+          [nFliesThis,firstFramesThis,endFramesThis,~,~,fracSexThis,sexThis] = ...
+            JLabelData.readTrxInfoFromFile(trxFileNameAbs);
+        catch err
+           if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
+             msg = sprintf('Error getting basic trx info: %s',msg1);
+             obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
+             obj.RemoveExpDirs(obj.nexps);
+             return;
+           else
+             rethrow(err);
+           end
         end
+        obj.nflies_per_exp(end+1) = nFliesThis;
+        obj.sex_per_exp{end+1} = sexThis;
+        obj.frac_sex_per_exp{end+1} = fracSexThis;
+        obj.firstframes_per_exp{end+1} = firstFramesThis;
+        obj.endframes_per_exp{end+1} = endFramesThis;
       end
       
       % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
