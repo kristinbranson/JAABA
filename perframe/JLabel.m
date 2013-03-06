@@ -7369,20 +7369,6 @@ return
 
 
 % -------------------------------------------------------------------------
-function getEverythingStruct(handles)
-
-% construct the structure that will be saved in the everything file
-s=struct();
-%s.featureConfigParams=data.featureConfigParams;
-s=mergeStructures(s,data.getSaveableClassifier());
-s=mergeStructures(s,handles.guidata.configparams);
-s.labelGraphicParams=s.labels;  % get out of way
-[s.labels,s.gtLabels]=data.storeAndGetLabelsAndGTLabels();
-s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
-
-return
-
-% -------------------------------------------------------------------------
 function menu_file_open_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
