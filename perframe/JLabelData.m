@@ -4989,7 +4989,7 @@ end
 %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
           
           obj.FindFastPredictParams();
-%          obj.PredictLoaded();
+          obj.PredictLoaded();
       end
 
       obj.ClearStatus();
@@ -5891,26 +5891,12 @@ end
       
       % which features are actually used
       dims = [obj.bagModels(:).dim];
+
+
+      wfidxcurr = unique(dims,'stable');
+      wfs = feature_names(wfidxcurr);
       feature_names = feature_names(dims);
-      
-      % put these in with the rest of the classifiers' window features
-      wfs = {}; 
-      ttt = tic;
-      for j = 1:numel(feature_names),
-        
-        if(mod(j,100)==0)
-          telapsed = toc(ttt);
-          obj.SetStatus('Matching feature names: %d%% done. Time Remaining:%ds',...
-            round(j/numel(feature_names)*100),round(telapsed/j*(numel(feature_names)-j)));
-        end
-        
-        wfidxcurr = find(WindowFeatureNameCompare(feature_names{j},wfs),1);
-        if isempty(wfidxcurr),
-          wfidxcurr = numel(wfs)+1;
-          wfs{wfidxcurr} = feature_names{j}; %#ok<AGROW>
-        end
-      end
-      
+            
       wf2pff = cellfun(@(x)x{1},wfs,'UniformOutput',false);
       [pffs,~,wf2pffidx] = unique(wf2pff);
       
@@ -5939,22 +5925,50 @@ end
           windowfeaturescellparams.(pffs{ndx}){:});
         feature_names_curr = cellfun(@(x) [{pffs{ndx}},x],curf,'UniformOutput',false);
         features_names_sel = [features_names_sel,feature_names_curr]; %#ok<AGROW>
-     end
+      end
       
+      
+      %%      
       ttt = tic;
       wfidx = nan(1,numel(feature_names));
+      matched = false(1,numel(dims));
       for j = 1:numel(feature_names),
+        if matched(j), continue, end
+        
         idxcurr = find(WindowFeatureNameCompare(feature_names{j},features_names_sel));
         if numel(idxcurr) ~= 1,
           error('Error matching wfs for classifier with window features computed');
         end
-        wfidx(j) = idxcurr;
+        curidx = dims==dims(j);
+        matched(curidx) = true;
+        wfidx(curidx) = idxcurr;
         if(mod(j,100)==0)
           telapsed = toc(ttt);
           obj.SetStatus('Indexing the feature names ... %d%% done: Time Remaining:%ds',...
-            round(j/numel(feature_names)*100),round(telapsed/j*(numel(feature_names)-j)));
+            round(nnz(matched)/numel(matched)*100),round(telapsed/nnz(matched)*(numel(matched)-nnz(matched))));
         end
       end
+  
+      newwfidx = wfidx;
+      
+      %%
+%       ttt = tic;
+%       wfidx = nan(1,numel(feature_names));
+%       for j = 1:numel(feature_names),
+%         
+%         idxcurr = find(WindowFeatureNameCompare(feature_names{j},features_names_sel));
+%         if numel(idxcurr) ~= 1,
+%           error('Error matching wfs for classifier with window features computed');
+%         end
+%         wfidx(j) = idxcurr;
+%         if(mod(j,100)==0)
+%           telapsed = toc(ttt);
+%           obj.SetStatus('Indexing the feature names ... %d%% done: Time Remaining:%ds',...
+%             round(j/numel(feature_names)*100),round(telapsed/j*(numel(feature_names)-j)));
+%         end
+%       end
+
+%%      
       obj.fastPredictBag.wfidx = wfidx;
 
       
