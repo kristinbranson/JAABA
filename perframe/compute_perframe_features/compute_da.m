@@ -6,7 +6,11 @@ nflies = numel(flies);
 data = cell(1,nflies);
 for i = 1:nflies,
   fly = flies(i);
-  data{i} = diff(trx(fly).a_mm)./trx(fly).dt;
+  if numel(trx(fly).dt)>0
+    data{i} = diff(trx(fly).a_mm)./trx(fly).dt;
+  else
+    data{i} = [];
+  end
 end
 units = parseunits('mm/s');
 

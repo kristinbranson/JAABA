@@ -146,7 +146,7 @@ JLabelHandle = handles.JLabelHandle;
 JLabelHandle.guidata.configfilename = handles.configfilename;
 [~,~,ext] = fileparts(handles.configfilename);
 if strcmp(ext,'.xml')
-  JLabelHandle.guidata.configparams = ReadXMLParams(handles.configfilename);
+  JLabelHandle.guidata.configparams = ReadXMLConfigParams(handles.configfilename);
 elseif strcmp(ext,'.mat')
   JLabelHandle.guidata.configparams = load(handles.configfilename);
 else
@@ -353,6 +353,9 @@ handles = guidata(hObject);
 defaultdir = fileparts(handles.data.defaultpath);
 
 allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
+if ischar(allexpdirs),
+  allexpdirs = {allexpdirs};
+end
 if isempty(allexpdirs) || ~iscell(allexpdirs),
   return;
 end
@@ -367,6 +370,7 @@ for ndx = 1:numel(allexpdirs)
     return;
   end
   
+  SetStatusEditFiles(hObject,sprintf('Adding experiment directory %s',expdir));
   
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
@@ -375,6 +379,8 @@ for ndx = 1:numel(allexpdirs)
     else
       uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
     end
+    ClearStatusEditFiles(hObject);
+    
     return;
   end
   
@@ -382,9 +388,12 @@ for ndx = 1:numel(allexpdirs)
 
 end
 
+SetStatusEditFiles(hObject,'Final update to status table...\n');
+
 % update status table
 UpdateStatusTable(handles);
 
+ClearStatusEditFiles(hObject);
 
 function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 
@@ -551,13 +560,15 @@ figure_JLabelEditFiles_CloseRequestFcn(hObject, eventdata, handles);
 
 
 function SetStatusEditFiles(hObject,s)
+
 handles = guidata(hObject);
 set(handles.statusMsg,'String',s);
+set(handles.figure_JLabelEditFiles,'pointer','watch');
 
 function ClearStatusEditFiles(hObject)
 handles = guidata(hObject);
 set(handles.statusMsg,'String','');
-
+set(handles.figure_JLabelEditFiles,'pointer','arrow');
 
 % --- Executes during object creation, after setting all properties.
 function editClassifier_CreateFcn(hObject, eventdata, handles)
@@ -666,8 +677,7 @@ while(ischar(expdir))
     expdir = fgetl(fid);
     continue;
   end
-  
-  
+    
   [success,msg] = handles.data.AddExpDir(expdir);
   if ~success,
     uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
@@ -684,6 +694,7 @@ set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.dat
 
 % update status table
 UpdateStatusTable(handles);
+ClearStatusEditFiles(hObject);
 
 
 % --- Executes on button press in pushbutton_selectproject.

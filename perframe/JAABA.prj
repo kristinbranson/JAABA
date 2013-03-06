@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.exe" build-checksum="3167464889" preferred-package-location="C:\Code\Jdetect\perframe">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.exe" build-checksum="1488781675" preferred-package-location="C:\Code\Jdetect\perframe">
     <param.project.name>C:\Code\Jdetect\perframe\JAABA.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA</param.appname>
@@ -102,9 +102,7 @@
       <file>C:\Code\Jdetect\filehandling\mmfwriter2.m</file>
       <file>C:\Code\Jdetect\filehandling\mmfwritertrans.m</file>
       <file>C:\Code\Jdetect\filehandling\mtrax2fixedtrx.m</file>
-      <file>C:\Code\Jdetect\filehandling\parsejpg8.mexw32</file>
       <file>C:\Code\Jdetect\filehandling\parsejpg8.mexw64</file>
-      <file>C:\Code\Jdetect\filehandling\playfmf.fig</file>
       <file>C:\Code\Jdetect\filehandling\playfmf.m</file>
       <file>C:\Code\Jdetect\filehandling\plot2svg.m</file>
       <file>C:\Code\Jdetect\filehandling\r_readseqinfo.m</file>
@@ -117,7 +115,6 @@
       <file>C:\Code\Jdetect\filehandling\readmtrax.m</file>
       <file>C:\Code\Jdetect\filehandling\ReadMWTBlobFile.m</file>
       <file>C:\Code\Jdetect\filehandling\save_tracks.m</file>
-      <file>C:\Code\Jdetect\filehandling\SaveFMFSettings.fig</file>
       <file>C:\Code\Jdetect\filehandling\SaveFMFSettings.m</file>
       <file>C:\Code\Jdetect\filehandling\sbfmf_read_frame.m</file>
       <file>C:\Code\Jdetect\filehandling\sbfmf_read_header.m</file>
@@ -138,6 +135,7 @@
       <file>C:\Code\Jdetect\filehandling\ufmf_write_header.m</file>
       <file>C:\Code\Jdetect\filehandling\ufmf_write_keyframe.m</file>
       <file>C:\Code\Jdetect\filehandling\UFMFDescription.txt</file>
+      <file>C:\Code\Jdetect\filehandling\uigetdir2.m</file>
       <file>C:\Code\Jdetect\filehandling\videoioreadframe.m</file>
       <file>C:\Code\Jdetect\misc\accummatrix.mexw64</file>
       <file>C:\Code\Jdetect\misc\angle_subtract.m</file>
@@ -238,11 +236,10 @@
       <file>C:\Code\Jdetect\misc\gridaxes.m</file>
       <file>C:\Code\Jdetect\misc\histn.m</file>
       <file>C:\Code\Jdetect\misc\houghcirclepeaks.m</file>
-      <file>C:\Code\Jdetect\misc\houghcircles.mexa64</file>
-      <file>C:\Code\Jdetect\misc\houghcircles.mexw32</file>
       <file>C:\Code\Jdetect\misc\hungarian.m</file>
       <file>C:\Code\Jdetect\misc\imscwrite.m</file>
       <file>C:\Code\Jdetect\misc\isabspath.m</file>
+      <file>C:\Code\Jdetect\misc\isdisplay.m</file>
       <file>C:\Code\Jdetect\misc\isglobalpath.m</file>
       <file>C:\Code\Jdetect\misc\isnaturalnumber.m</file>
       <file>C:\Code\Jdetect\misc\IsNiceFileName.m</file>

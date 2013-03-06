@@ -8,8 +8,8 @@
 function varargout = myfileparts(name)
 
 % remove trailing \ or /
-if nargin > 1 && numel(name) > 2 && ...
-    (name(end) == filesep || name(end) == '\'),
+if nargin >= 1 && numel(name) > 2 && ...
+    (name(end) == filesep || name(end) == '/'),
   name = name(1:end-1);
 end
 

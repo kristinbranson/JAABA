@@ -525,7 +525,11 @@ end
 
 % Now for each different perframe feature read the type default trans_types.
 perframeL = handles.JLDobj.allperframefns;
-scores_perframe = {handles.scoresasinput(:).scorefilename};
+if isempty(handles.scoresasinput),
+  scores_perframe = {};
+else
+  scores_perframe = {handles.scoresasinput(:).scorefilename};
+end
 transType = struct;
 pftype = struct;
 

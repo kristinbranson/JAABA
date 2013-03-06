@@ -101,6 +101,12 @@ function savefig(fname, varargin)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
+  [fpath,fname1,ext] = fileparts(fname);
+  if ismember(lower(ext),{'.eps','.jpeg','.pdf','.png','.tiff','.jpg'}),
+    fname = fullfile(fpath,fname1);
+  end
+  
+
 	op_dbg=		false;												% Default value.
 	
 	% Compression
@@ -168,10 +174,12 @@ function savefig(fname, varargin)
 	res=		'';
 	types=		{};
 	crop=		false;
+    
 	for n= 1:length(varargin)											% Read options.
 		if(ischar(varargin{n}))
 			switch(lower(varargin{n}))
-			case {'eps','jpeg','pdf','png','tiff'},		types{end+1}=	lower(varargin{n});
+			case {'eps','jpeg','pdf','png','tiff'},		
+        types{end+1}=	lower(varargin{n});
 			case '-rgb',				color=	'rgb';	deps= {'-depsc2'};
 			case '-cmyk',				color=	'cmyk';	deps= {'-depsc2', '-cmyk'};
 			case '-gray',				color=	'gray';	deps= {'-deps2'};
@@ -218,7 +226,7 @@ function savefig(fname, varargin)
 	% Output eps from Matlab.
 	renderer=	['-' lower(get(fighdl, 'Renderer'))];					% Use same as in figure.
 	if(strcmpi(renderer, '-none')), renderer=	'-painters';	end		% We need a valid renderer.
-	print(fighdl, deps{:}, '-noui', renderer, res, [fname '-temp']);	% Output the eps.
+	print(fighdl, deps{:}, '-noui', renderer, res, [fname '-temp.eps']);	% Output the eps.
 	
 	% Convert to other formats.
 	for n= 1:length(types)												% Output them.
@@ -235,8 +243,13 @@ function savefig(fname, varargin)
 		if (strcmp(types{n}, 'pdf')),	cmp= gsCompr;		end			% Lossy compr only for pdf.
 		if (strcmp(types{n}, 'eps')),	cmp= '';			end			% eps can't use lossless.
 		cmd=	sprintf('%s %s %s -f "%s-temp.eps"', gs, cmd, cmp, fname);% Add up.
-			status= system(cmd);										% Run Ghostscript.
-			if (op_dbg || status), 		display (cmd),		end
+			[status,msg]= system(cmd);										% Run Ghostscript.
+      if (op_dbg || status),
+        display (cmd);
+        if status,
+          fprintf('Gives error: %s\n',msg);
+        end
+      end
 	end
 	delete([fname '-temp.eps']);										% Clean up.
 end
