@@ -5991,6 +5991,16 @@ end
       obj.fastPredictBag.dist = {};
       obj.fastPredictBag.trainDist = {};
     end
+    
+    function [success,msg] = UnsetCurrentFlyForBag(obj)
+      obj.fastPredictBag.curexp = [];
+      obj.fastPredictBag.fly = [];
+      obj.fastPredictBag.t = [];
+      obj.fastPredictBag.dist = {};
+      obj.fastPredictBag.trainDist = {};
+      obj.fastPredictBag.curF = [];
+      
+    end
 
     
     function [success,msg,dist] = ComputeBagFeatures(obj,curexp,curfly,curF)
@@ -6148,7 +6158,7 @@ end
         dist = obj.fastPredictBag.dist{expi}{flies};
         dist = dist/distNorm;
         dist(dist>1) = 1;
-      elseif ~isempty(obj.bagModels),
+      elseif ~isempty(obj.bagModels) && ~isempty(obj.fastPredictBag.curexp),
         obj.ComputeBagDistanceTraining();
         distNorm = median(obj.fastPredictBag.trainDist);
         T0 = obj.firstframes_per_exp{expi}(flies);
