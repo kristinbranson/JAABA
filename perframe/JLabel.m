@@ -1833,18 +1833,19 @@ success = true;
 
 
 %--------------------------------------------------------------------------
-function handles = InitializeStateGivenProjectParams(handles)
+function handles = InitializeStateGivenProjectParams(handles,featureConfigParams)
 
 % sort out whether we have a config file or just config params
 if isempty(handles.guidata.configfilename)
-  configurator=handles.guidata.configparams;
+  configThing=handles.guidata.configparams;
 else
-  configurator=handles.guidata.configfilename;
+  configThing=handles.guidata.configfilename;
 end  
 
 % initialize data structure
 handles.guidata.data = ...
-  JLabelData(configurator,...
+  JLabelData(configThing,...
+             featureConfigParams, ...
              'defaultpath',handles.guidata.defaultpath,...
              'classifierfilename',handles.guidata.classifierfilename,...
              'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
@@ -7423,7 +7424,7 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
 projectParams=projectParamsFromEverythingParams(everythingParams);
-setProjectParams(gcbf,projectParams);
+setProjectParams(gcbf,projectParams,everythingParams.featureConfigParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7504,13 +7505,13 @@ return
 
 
 % -------------------------------------------------------------------------
-function setProjectParams(figureJLabel,projectParams)
+function setProjectParams(figureJLabel,projectParams,featureConfigParams)
 % Initializes the JLabel gui once the user selects the behavior.
 % This assumes that JLabel is curently a blank slate
 handles=guidata(figureJLabel);
 handles.guidata.configparams=projectParams;
 handles=StoreGUIPositionsInternally(handles);
-handles=InitializeStateGivenProjectParams(handles);
+handles=InitializeStateGivenProjectParams(handles,featureConfigParams);
 handles=InitializePlotsGivenProjectParams(handles);
 guidata(figureJLabel,handles);
 return
@@ -7982,7 +7983,7 @@ SetStatus(handles,sprintf('Opening %s ...',filename));
 
 % load the file
 try
-  projectParams=load('-mat',projectFileNameAbs);
+  projectParamsWithFeatureConfigFileName=load('-mat',projectFileNameAbs);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
   ClearStatus(handles);
@@ -7993,8 +7994,19 @@ end
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
+% Get the feature config file name
+featureConfigFileName=projectParamsWithFeatureConfigFileName.file.featureconfigfile;
+
+% remove feature config file name from the project params
+projectParams=projectParamsWithFeatureConfigFileName;
+projectParams.file=rmfield(projectParams.file,'featureconfigfile');
+
+% read the feature config file
+featureConfigFileNameAbs = deployedRelative2Global(featureConfigFileName);
+featureConfigParams = ReadXMLParams(featureConfigFileNameAbs);
+
 % First set the project parameters, which will initialize the JLabelData
-setProjectParams(gcbf,projectParams);
+setProjectParams(gcbf,projectParams,featureConfigParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
