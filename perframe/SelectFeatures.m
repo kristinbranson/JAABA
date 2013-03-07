@@ -121,8 +121,9 @@ handles.defaultWinParams = {10,1,3,{'none'},0};
 
 guidata(hObject,handles);
 
-windowFeatureParams = handles.JLDobj.GetPerframeParams();
-initData(hObject,windowFeatureParams);
+windowFeatureParams = JLDobj.GetPerframeParams();
+featureConfigParams= JLDobj.featureConfigParams;
+initData(hObject,windowFeatureParams,featureConfigParams);
 
 return
 
@@ -306,8 +307,8 @@ guidata(hObject,handles);
 
 % -------------------------------------------------------------------------
 % Initialize the data structure.
-function initData(hObject,params)
-readFeatureConfiguration(hObject);
+function initData(hObject,params,featureConfigParams)
+readFeatureConfiguration(hObject,featureConfigParams);
 createFeatureTable(hObject);
 
 handles = guidata(hObject);
@@ -450,13 +451,14 @@ compatibleBasicAdvanced(handles);
 
 
 % -------------------------------------------------------------------------
-function readFeatureConfiguration(hObject)
+function readFeatureConfiguration(hObject,featureConfigParams)
 % Reads the configuration file that sets the default parameters.
 
 handles = guidata(hObject);
 
-configfile = handles.JLDobj.featureConfigFile;
-settings = ReadXMLParams(configfile);
+%configfile = handles.JLDobj.featureConfigFile;
+%settings = ReadXMLParams(configfile);
+settings=featureConfigParams;
 
 % Read the default parameters for different categories.
 categories = fieldnames(settings.defaults);

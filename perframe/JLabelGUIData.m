@@ -337,7 +337,7 @@ classdef JLabelGUIData < handle
     function s=getEverythingStruct(self)
       % Construct the structure that will be saved in the everything file
       s=struct();
-      %s.featureConfigParams=data.featureConfigParams;
+      s.featureConfigParams=self.data.featureConfigParams;
       s=mergeStructures(s,self.data.getSaveableClassifier());
       s=mergeStructures(s,self.configparams);
       s.labelGraphicParams=s.labels;  % get out of way

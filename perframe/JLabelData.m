@@ -582,19 +582,28 @@ classdef JLabelData < handle
       if nargin == 0 || isempty(varargin{1}),
         error('JLabelData.zero_args_to_constructor',  ...
               'JLabelData() called with zero args or with an empty first arg.');  %#ok
-      else
-        if ischar(varargin{1})
-          configfilename = varargin{1};
-        else
-          configfilename='';
-          configParams = varargin{1};
-        end
-        varargin = varargin(2:end);
       end
       
+      % get the project file name or the project params
+      if ischar(varargin{1})
+        configfilename = varargin{1};
+      else
+        configfilename='';
+        configParams = varargin{1};
+      end
+      varargin = varargin(2:end);
+
+      % get the feature configuration
+      featureConfigParams=varargin{1};
+      varargin = varargin(2:end);
+
+      % rest of args should be key-value pairs
       if mod(numel(varargin),2) ~= 0,
         error('Number of inputs to JLabelData constructor must be even');
       end
+      
+      % feature config file
+      obj.setFeatureConfiguration(featureConfigParams);
       
       % config file
       if isempty(configfilename)
@@ -918,15 +927,15 @@ classdef JLabelData < handle
             uiwait(warndlg(msg1));
           end
         end
-        if isfield(configparams.file,'featureconfigfile'),
-          [success1,msg] = obj.SetFeatureConfigFile(configparams.file.featureconfigfile);
-            % Among other things, SetFeatureConfigFile() sets
-            % obj.allperframefns to the complete list of per-frame
-            % features, as read from the feature config file.
-          if ~success1,
-            return;
-          end
-        end
+%         if isfield(configparams.file,'featureconfigfile'),
+%           [success1,msg] = obj.SetFeatureConfigFile(configparams.file.featureconfigfile);
+%             % Among other things, SetFeatureConfigFile() sets
+%             % obj.allperframefns to the complete list of per-frame
+%             % features, as read from the feature config file.
+%           if ~success1,
+%             return;
+%           end
+%         end
         if isfield(configparams,'featureparamlist'),
           % read allperframefns from config file
           obj.allperframefns = intersect(obj.allperframefns,...
@@ -3676,27 +3685,23 @@ classdef JLabelData < handle
         msg = ME.message;
       end
     end
+
     
-    % ---------------------------------------------------------------------
-    
-    function [success,msg] = SetFeatureConfigFile(obj,configfile)
+    % ---------------------------------------------------------------------    
+    function [success,msg] = setFeatureConfiguration(obj,featureConfigParams)
       success = false;
       msg = '';
       
-      configfile = deployedRelative2Global(configfile);
+      obj.featureConfigParams=featureConfigParams;  % save to self
       
-      obj.featureConfigFile = configfile;
-      settings = ReadXMLParams(configfile);
-      obj.featureConfigParams=settings;  % save to self
-      
-      if isfield(settings,'perframe_params'),
-        pf_fields = fieldnames(settings.perframe_params);
+      if isfield(featureConfigParams,'perframe_params'),
+        pf_fields = fieldnames(featureConfigParams.perframe_params);
         for ndx = 1:numel(pf_fields),
-          obj.perframe_params.(pf_fields{ndx}) = settings.perframe_params.(pf_fields{ndx});
+          obj.perframe_params.(pf_fields{ndx}) = featureConfigParams.perframe_params.(pf_fields{ndx});
         end
       end
 
-      obj.allperframefns =  fieldnames(settings.perframe);
+      obj.allperframefns =  fieldnames(featureConfigParams.perframe);
       
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
@@ -3704,6 +3709,19 @@ classdef JLabelData < handle
       end
       success = true;
       
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetFeatureConfigFile(obj,featureConfigFileName)
+      success = false;
+      msg = '';
+      
+      featureConfigFileName = deployedRelative2Global(featureConfigFileName);
+      
+      obj.featureConfigFile = featureConfigFileName;
+      settings = ReadXMLParams(featureConfigFileName);
+      [success,msg]=obj.setFeatureConfiguration(featureConfigParams);
     end
     
     % ---------------------------------------------------------------------
