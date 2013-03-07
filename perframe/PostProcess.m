@@ -131,7 +131,7 @@ else
   
   % wsize = handles.data.GetFeatureWindowSize();
   wsize = handles.data.featureWindowSize();
-  edges = [1 2 round(wsize/2) wsize 2*wsize 4*wsize 8*wsize inf];
+  edges = unique([1 2 round(wsize/2) wsize 2*wsize 4*wsize 8*wsize inf]);
   
   vals = histc(blen,edges);
   vals(end) = [];

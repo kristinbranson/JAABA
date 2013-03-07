@@ -5883,7 +5883,6 @@ end
         obj.windowdata.binVals,bins,obj.classifier_params,obj);
       
       obj.bagModels = bmodel;
-      obj.distMat = BagDistMat(obj.windowdata.X,{obj.bagModels});
 
       obj.SetStatus('Computing parameters for fast distance computation..');
       % Find the parameters for fast prediction.
@@ -5928,7 +5927,6 @@ end
       end
       
       
-      %%      
       ttt = tic;
       wfidx = nan(1,numel(feature_names));
       matched = false(1,numel(dims));
@@ -5949,9 +5947,6 @@ end
         end
       end
   
-      newwfidx = wfidx;
-      
-      %%
 %       ttt = tic;
 %       wfidx = nan(1,numel(feature_names));
 %       for j = 1:numel(feature_names),
@@ -5968,7 +5963,6 @@ end
 %         end
 %       end
 
-%%      
       obj.fastPredictBag.wfidx = wfidx;
 
       
