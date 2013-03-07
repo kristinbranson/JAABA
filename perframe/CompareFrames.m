@@ -55,6 +55,8 @@ function CompareFrames_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for CompareFrames
 handles.output = hObject;
 
+handles.cropSz = 201;
+
 [JLabelH,expnum,fly,t] = myparse(varargin,...
   'JLabelH',[],...
   'expnum',0,...
@@ -68,6 +70,8 @@ handles.JLabelH.guidata.NJObj.SetCompareFramesHandle(hObject);
 handles.expnum = expnum;
 handles.fly = fly;
 handles.t = t;
+handles.theta = handles.data.GetTrxValues('Theta1',expnum,fly,t);
+
 
 set(handles.figure1,'Pointer','watch');
 
@@ -161,10 +165,6 @@ axis(handles.axes_preview,'off');
 hold(handles.axes_preview,'on');
 colormap(handles.axes_preview,'gray');
 
-handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
-  handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
-  handles.JLabelH.guidata.ts);
-
 handles.trx_plot = plot(handles.axes_preview,nan,nan,'-o','MarkerSize',3);
 handles.fly_plot = plot(handles.axes_preview,nan,nan,'r','LineWidth',2);
 handles.fly_plot_extra = plot(handles.axes_preview,nan,nan);
@@ -195,9 +195,16 @@ popupmenu_pf_Callback(handles.popupmenu_pf,[],handles);
 
 function handles = Jump(handles,jtype)
 sel = get(handles.popupmenu_jump,'Value');
-curT = handles.JLabelH.guidata.ts;
-curFly = handles.data.flies;
-curExp = handles.data.expi;
+if handles.jumpNum<1,
+  curT = handles.t;
+  curExp = handles.expnum;
+  curFly = handles.fly;
+else
+  curT = handles.jumpList(handles.jumpNum).t;
+  curFly = handles.jumpList(handles.jumpNum).fly;
+  curExp = handles.jumpList(handles.jumpNum).exp;
+end
+
 ignore = str2double(get(handles.edit_ignore,'String'));
 if strcmp(jtype,'prev'),
   if (handles.jumpNum ==0),
@@ -222,6 +229,7 @@ else
   jumpList(end).fly = handles.fly;
   jumpList(end).t = handles.t;
   jumpList(end).dist = 0;
+  jumpList(end).theta = handles.theta;
   if sel == 1
     
     [nextT distT] = handles.data.NextClosestBagFly(...
@@ -257,12 +265,10 @@ else
   handles.jumpList(handles.jumpNum).fly = newFly;
   handles.jumpList(handles.jumpNum).t = nextT;
   handles.jumpList(handles.jumpNum).dist = distT;
-  
+  handles.jumpList(handles.jumpNum).theta = handles.data.GetTrxValues('Theta1',newExp,newFly,nextT);
+
 end
 
-handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
-  handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
-  handles.JLabelH.guidata.ts+handles.centralframe-handles.curFrame);
 handles.curFrame = handles.centralframe;
 UpdatePlots(handles,handles.centralframe);
 
@@ -279,9 +285,8 @@ this_sz = get(handles.axes_preview,'Position');
 xsz = this_sz(3)/scale;
 ysz = this_sz(4)/scale;
 
-isz = size(handles.imgcache(:,:,:,1));
-x = isz(2)/2;
-y = isz(1)/2;
+x = handles.cropSz/2;
+y = handles.cropSz/2;
 xlim = [x-xsz/2,x+xsz/2];
 ylim = [y-ysz/2,y+ysz/2];
 
@@ -295,20 +300,41 @@ theta = handles.trxcache.theta(handles.centralframe);
 x = handles.trxcache.x(handles.centralframe);
 y = handles.trxcache.y(handles.centralframe);
 
-theta_jlabel = handles.theta_jlabel;
+if handles.jumpNum < 1,
+  theta_jlabel = handles.theta;
+else
+  theta_jlabel = handles.jumpList(handles.jumpNum).theta;
+end
 
-xtr = size(img,2)/2 - x;
-ytr = size(img,1)/2 - y;
-tform = maketform('affine',[1 0 0; 0 1 0; xtr ytr 1]);
-timg = imtransform(img,tform,'XData',[1 size(img,2)],'YData',[1 size(img,1)]);
+smsz = (handles.cropSz-1)/2;
+[h,w,d] = size(img);
+padImg = zeros(h+100,w+100,d);
+padImg(smsz + (1:h),smsz+(1:w),:) = img;
+timg = padImg(round(y) + smsz+ (-smsz:smsz),round(x)+ smsz + (-smsz:smsz),:);
+
+% tform = maketform('affine',[1 0 0; 0 1 0; xtr ytr 1]);
+% timg = imtransform(img,tform,'XData',[1 size(img,2)],'YData',[1 size(img,1)]);
 
 if handles.align,
+%   dtheta = theta-theta_jlabel;
+%   timg = imrotate(timg,dtheta*180/pi,'bilinear','crop');
+%   rotmat = [cos(-dtheta) sin(-dtheta); -sin(-dtheta) cos(-dtheta)];
+%   temp = [(handles.trxcache.x-x)' (handles.trxcache.y-y)']*rotmat;
+%   rotatedtrxx = temp(:,1)+size(img,2)/2; 
+%   rotatedtrxy = temp(:,2)+size(img,1)/2;
+%   set(handles.trx_plot,'XData',rotatedtrxx,'Ydata',rotatedtrxy);
+%   pos.x = rotatedtrxx(t);
+%   pos.y = rotatedtrxy(t);
+%   pos.theta = handles.trxcache.theta(t)-dtheta;
+%   pos.a = handles.trxcache.a(t);
+%   pos.b = handles.trxcache.b(t);
+
   dtheta = theta-theta_jlabel;
   timg = imrotate(timg,dtheta*180/pi,'bilinear','crop');
   rotmat = [cos(-dtheta) sin(-dtheta); -sin(-dtheta) cos(-dtheta)];
   temp = [(handles.trxcache.x-x)' (handles.trxcache.y-y)']*rotmat;
-  rotatedtrxx = temp(:,1)+size(img,2)/2; 
-  rotatedtrxy = temp(:,2)+size(img,1)/2;
+  rotatedtrxx = temp(:,1)+smsz; 
+  rotatedtrxy = temp(:,2)+smsz;
   set(handles.trx_plot,'XData',rotatedtrxx,'Ydata',rotatedtrxy);
   pos.x = rotatedtrxx(t);
   pos.y = rotatedtrxy(t);
@@ -316,10 +342,10 @@ if handles.align,
   pos.a = handles.trxcache.a(t);
   pos.b = handles.trxcache.b(t);
 else
-  set(handles.trx_plot,'XData',handles.trxcache.x-x+size(img,2)/2,...
-                       'Ydata',handles.trxcache.y-y+size(img,1)/2);  
-  pos.x = handles.trxcache.x(t) - handles.trxcache.x(handles.centralframe)+size(img,2)/2;
-  pos.y = handles.trxcache.y(t) - handles.trxcache.y(handles.centralframe)+size(img,1)/2;
+  set(handles.trx_plot,'XData',handles.trxcache.x-x+smsz,...
+                       'Ydata',handles.trxcache.y-y+smsz);  
+  pos.x = handles.trxcache.x(t) - handles.trxcache.x(handles.centralframe)+smsz;
+  pos.y = handles.trxcache.y(t) - handles.trxcache.y(handles.centralframe)+smsz;
   pos.theta = handles.trxcache.theta(t);
   pos.a = handles.trxcache.a(t);
   pos.b = handles.trxcache.b(t);
@@ -341,6 +367,9 @@ else
 end
 
 set(handles.text_status,'String',status_str);
+
+
+
 
 
 function UpdateTimeline(handles)
@@ -379,6 +408,22 @@ for ndx = 1:numel(xticks)
 end
 set(handles.axes_timeline,'XTick',xticks,'XTickLabel',xtickLabel);
 set(handles.axes_pf,'Xtick',xticks,'XTickLabel',{});
+
+
+function check = CheckBag(handles)
+check = false;
+  if isempty(handles.data.bagModels),
+    uiwait(warndlg('You need to bag!'));
+    return;
+  end
+  
+  if handles.data.fastPredictBag.ts < handles.data.classifierTS
+    uiwait(warndlg('Bagging was done before the current classifier was trained. Things maybe out of sync'));
+    return;
+  end
+  
+check = true;
+
 
 % --- Executes on button press in pushbutton_close.
 function pushbutton_close_Callback(hObject, eventdata, handles)
@@ -447,9 +492,6 @@ if handles.jumpNum < 1,
 else
   jlabelframe = handles.jumpList(handles.jumpNum).t;
 end
-handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
-  handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
-  jlabelframe);
 guidata(hObject,handles);
 
 lastFrame = curFrame;
@@ -593,10 +635,15 @@ switch eventdata.Key
         jlabelframe,handles.JLabelH.figure_JLabel);
     end    
   case 'uparrow'
-    handles = Jump(handles,'next');
+    if CheckBag(handles)
+      handles = Jump(handles,'next');
+      JLabel('UpdatePrediction',handles.JLabelH);
+    end
   case 'downarrow'
-    handles = Jump(handles,'prev');
-  
+    if CheckBag(handles)
+      handles = Jump(handles,'prev');
+      JLabel('UpdatePrediction',handles.JLabelH);
+    end
 end
 guidata(hObject,handles);
 set(handles.figure1,'Pointer','arrow');
@@ -613,7 +660,7 @@ drawnow();
 handles.data.DoFastBagging();
 handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t)
 set(handles.figure1,'Pointer','arrow');
-
+pushbutton_reset_Callback(hObject, eventdata, handles)
 
 
 function edit_ignore_Callback(hObject, eventdata, handles)
@@ -658,11 +705,10 @@ handles.jumpList = [];
 handles.jumpNum = 0;
 handles.curFrame = handles.centralframe;
 
-handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
-  handles.expnum,handles.fly,handles.t);
-
 guidata(hObject,handles);
 UpdatePlots(handles,handles.centralframe);
+JLabel('UpdatePrediction',handles.JLabelH);
+
 
 % --- Executes on button press in radiobutton_sync.
 function radiobutton_sync_Callback(hObject, eventdata, handles)
@@ -680,15 +726,9 @@ end
 if ~get(hObject,'Value');
   JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
     jlabelframe,handles.JLabelH.figure_JLabel);
-  handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
-    handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
-    handles.JLabelH.guidata.ts);
 else
   JLabel('SetCurrentFrame',handles.JLabelH, 1, ...
     jlabelframe + handles.curFrame-handles.centralframe,handles.JLabelH.figure_JLabel);
-  handles.theta_jlabel = handles.data.GetTrxValues('Theta1',...
-    handles.JLabelH.guidata.expi,handles.JLabelH.guidata.flies,...
-    handles.JLabelH.guidata.ts+handles.centralframe-handles.curFrame);
   
 end
 guidata(hObject,handles);
