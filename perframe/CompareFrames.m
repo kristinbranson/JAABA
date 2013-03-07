@@ -22,7 +22,7 @@ function varargout = CompareFrames(varargin)
 
 % Edit the above text to modify the response to help CompareFrames
 
-% Last Modified by GUIDE v2.5 06-Mar-2013 13:50:17
+% Last Modified by GUIDE v2.5 07-Mar-2013 13:50:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,6 +78,7 @@ set(handles.figure1,'Pointer','watch');
 set(handles.edit_ignore,'String','0'); 
 set(handles.radiobutton_behavior,'String',handles.data.labelnames{1});
 
+handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t)
 handles = CacheFrames(handles);
 handles = initialize(handles);
 
@@ -94,6 +95,7 @@ handles.jump_restrict = 'all';
 
 % Update handles structure
 guidata(hObject, handles);
+JLabel('UpdatePrediction',handles.JLabelH);
 
 % UIWAIT makes CompareFrames wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -827,3 +829,24 @@ function radiobutton_shortcut_Callback(hObject, eventdata, handles)
 if get(hObject,'Value')
   handles.JLabelH.guidata.NJObj.SetCurrentType('Jump To Similar Frames');
 end
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.data.UnsetCurrentFlyForBag();
+JLabel('UpdatePrediction',handles.JLabelH);
+
+% Hint: delete(hObject) closes the figure
+delete(hObject);
+
+
+% --- Executes during object deletion, before destroying properties.
+function figure1_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
