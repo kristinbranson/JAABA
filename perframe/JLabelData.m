@@ -3720,7 +3720,7 @@ classdef JLabelData < handle
       featureConfigFileName = deployedRelative2Global(featureConfigFileName);
       
       obj.featureConfigFile = featureConfigFileName;
-      settings = ReadXMLParams(featureConfigFileName);
+      featureConfigParams = ReadXMLParams(featureConfigFileName);
       [success,msg]=obj.setFeatureConfiguration(featureConfigParams);
     end
     

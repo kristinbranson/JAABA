@@ -7858,7 +7858,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function projectSetupDone(figureJLabel,projectParams,new)
+function projectSetupDone(figureJLabel,featureConfigParams,projectParams,new)
 
 % get handles
 handles=guidata(figureJLabel);
@@ -7889,7 +7889,7 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-setProjectParams(figureJLabel,projectParams);
+setProjectParams(figureJLabel,projectParams,featureConfigParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
