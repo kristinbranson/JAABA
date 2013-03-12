@@ -707,12 +707,14 @@ function pushbutton_done_Callback(hObject, ~, handles)
 if isempty(handles.figureJLabelEditFiles)
   % this means ProjectSetup() was called directly from JLabel
   configParams=handles.configParams;
-  %rmfield(configParams.file,'featureconfigfile');  
-    % should uncomment the above eventually, but not now, ALT Jan 24, 2013
+  featureConfigFileName=configParams.file.featureconfigfile; 
+  featureConfigParams = ReadXMLParams(featureConfigFileName);
+  configParams.file=rmfield(configParams.file,'featureconfigfile');  
   configParams.file=rmfield(configParams.file,'labelfilename');
   configParams.file=rmfield(configParams.file,'gt_labelfilename');
   JLabel('projectSetupDone', ...
          handles.figureJLabel, ...
+         featureConfigParams, ...
          configParams, ...
          handles.new);
 else
