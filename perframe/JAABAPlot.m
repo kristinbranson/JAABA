@@ -961,7 +961,7 @@ if(isempty(directory))  directory=pwd;  end
 
 newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
 if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
-if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
+if((length(newexperiments)==1)&&exist(newexperiments{1},'file'))
   newexperiments=textread(newexperiments{1},'%s');
 end
 tmp=ismember(newexperiments,[handles.experimentlist{:}]);
@@ -1327,7 +1327,12 @@ tmp=directory;
 [newclassifiers directory]=uigetfile(directory,'Select classifier files','multiselect','on');
 if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
 if(~iscell(newclassifiers))  newclassifiers={newclassifiers};  end
-newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
+if((length(newclassifiers)==1)&&(~strcmp(newclassifiers{1}((end-3):end),'.mat'))&&...
+      exist(fullfile(directory,newclassifiers{1}),'file'))
+  newclassifiers=textread(fullfile(directory,newclassifiers{1}),'%s');
+else
+  newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
+end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
