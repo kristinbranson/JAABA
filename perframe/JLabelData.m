@@ -2316,6 +2316,7 @@ end
         obj.SetStatus('Pre-loading first experiment %s expname...',expname);
         [success1,msg1] = obj.PreLoad(1,1);
         if ~success1,
+          success = false;
           msg = sprintf('Error getting basic trx info: %s',msg1);
           obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
           %uiwait(warndlg(msg));
