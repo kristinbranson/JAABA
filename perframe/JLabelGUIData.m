@@ -340,6 +340,9 @@ classdef JLabelGUIData < handle
       s.featureConfigParams=self.data.featureConfigParams;
       s=mergeStructures(s,self.data.getSaveableClassifier());
       s=mergeStructures(s,self.configparams);
+      s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresasinput
+      s.trxGraphicParams=s.trx;
+      s=rmfield(s,'trx');  % such a superficial field should not be called 'trx'
       s.labelGraphicParams=s.labels;  % get out of way
       [s.labels,s.gtLabels]=self.data.storeAndGetLabelsAndGTLabels();
       s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
