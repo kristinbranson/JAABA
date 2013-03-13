@@ -141,6 +141,9 @@ classdef JLabelData < handle
     % Classifiers Time Stamp
     classifierTS = 0;
     
+    % training statistics
+    trainstats = [];
+    
     % parameters to learning the classifier. struct fields depend on type
     % of classifier.
     % TODO
@@ -4956,7 +4959,7 @@ end
               obj.ClearStatus();
               return;
             end
-            [obj.classifier, ~] =...
+            [obj.classifier, ~, trainstats] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
                                  obj.windowdata.binVals,...
@@ -4972,12 +4975,25 @@ end
             bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             
             obj.classifier_old = obj.classifier;
-            [obj.classifier, ~] = boostingUpdate(obj.windowdata.X(islabeled,:),...
+            [obj.classifier, ~, trainstats] = boostingUpdate(obj.windowdata.X(islabeled,:),...
                                           obj.windowdata.labelidx_new(islabeled),...
                                           obj.classifier,obj.windowdata.binVals,...
                                           bins,obj.classifier_params);
           end
           obj.classifierTS = now();
+          
+          % store training statistics
+          if isempty(obj.trainstats),
+            obj.trainstats = trainstats;
+            obj.trainstats.timestamps = obj.classifierTS;
+          else
+            trainstatfns = fieldnames(trainstats);
+            for fni = 1:numel(trainstatfns),
+              obj.trainstats.(trainstatfns{fni})(end+1) = trainstats.(trainstatfns{fni});
+            end
+            obj.trainstats.timestamps(end+1) = obj.classifierTS;
+          end
+                    
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_cur;
           obj.windowdata.labelidx_cur = obj.windowdata.labelidx_new;
           
