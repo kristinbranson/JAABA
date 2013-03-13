@@ -3724,8 +3724,8 @@ classdef JLabelData < handle
       [success,msg]=obj.setFeatureConfiguration(featureConfigParams);
     end
     
-    % ---------------------------------------------------------------------
     
+    % ---------------------------------------------------------------------
     function [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
     % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
     % Sets the name of the file describing the features to use to
