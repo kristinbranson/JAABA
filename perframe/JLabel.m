@@ -7424,7 +7424,7 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
 projectParams=projectParamsFromEverythingParams(everythingParams);
-setProjectParams(gcbf,projectParams,everythingParams.featureConfigParams);
+setProjectParams(gcbf,projectParams,everythingParams.classifier.featureConfigParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7438,10 +7438,10 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 %handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
 guidata(figureJLabel,handles);  % write the handles back to the figure
 
-% Now load the classifier, which includes the experiments, and load the
-% labels also.  ('classifierlabels',true means to load the labels, too.)
-%classifierParams=classifierParamsFromEverythingParams(everythingParams);
-data.setLabelsAndClassifier(everythingParams);
+% Load the labels and classifier
+%data.setLabelsAndClassifier(everythingParams);
+data.setAllLabels(everythingParams);
+data.setClassifier(everythingParams.classifier);
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
@@ -8195,11 +8195,11 @@ function projectParams=projectParamsFromEverythingParams(everythingParams)
 
 fieldNamesToKeep={'behaviors' , ...
                   'file' , ...
-                  'scoresasinput' , ...
                   'trxGraphicParams' , ...
                   'labelGraphicParams' , ...
                   'ver' }';
 %                  'windowfeatures' , ...
+%                  'scoresasinput' , ...
 
 projectParams=struct();
 for i=1:length(fieldNamesToKeep)

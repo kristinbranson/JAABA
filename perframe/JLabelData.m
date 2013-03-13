@@ -351,6 +351,40 @@ classdef JLabelData < handle
     everythingFileName='';  % absolute file name
     
   end
+
+  properties (Access=private,Constant=true)
+    % these two properties together define the mapping between
+    % field names in a classifier struct and field names in JLabelData.
+    % Used in setClassifier() and getClassifier() methods.
+    fieldNamesInSelf = {'targettype', ...
+                        'labelnames', ...
+                        'featureConfigParams', ...
+                        'classifiertype', ...
+                        'classifier', ...
+                        'classifier_params',...
+                        'classifierTS', ...
+                        'confThresholds', ...
+                        'scoreNorm', ...
+                        'windowfeaturesparams', ...
+                        'basicFeatureTable', ...
+                        'featureWindowSize', ...
+                        'postprocessparams',...
+                        'scoresasinput'};
+    fieldNamesInClassifier = {'targetType', ...
+                              'behaviorName', ...
+                              'featureConfigParams', ...
+                              'type', ...
+                              'params', ...
+                              'trainingParams',...
+                              'timeStamp', ...
+                              'confThresholds', ...
+                              'scoreNorm', ...
+                              'windowFeaturesParams', ...
+                              'basicFeatureTable', ...
+                              'featureWindowSize', ...
+                              'postProcessParams',...
+                              'scoresAsInput'};
+  end
   
 %   properties (Access=public,Dependent=true)
 %     saveableClassifier;
@@ -2017,6 +2051,143 @@ classdef JLabelData < handle
       % No idea what this does -- ALT, Mar 5, 2013
       self.FindFastPredictParams();
     end  % setLabelsAndClassifier() method
+
+    
+    % ---------------------------------------------------------------------
+    function setAllLabels(self, ...
+                          everythingParams)
+      
+      % Update the status bar
+      self.SetStatus('Loading labels...');
+
+      % remove all experiments, if presents
+      self.RemoveExpDirs(1:self.nexps);
+
+      % set movie
+      [success,msg] = self.SetMovieFileName(everythingParams.file.moviefilename);
+      if ~success,error(msg);end
+      
+      % trx
+      [success,msg] = self.SetTrxFileName(everythingParams.file.trxfilename);
+      if ~success,error(msg);end
+
+      % perframedir
+      [success,msg] = self.SetPerFrameDir(everythingParams.file.perframedir);
+      if ~success,error(msg);end
+      
+      % clipsdir
+      [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
+      if ~success,error(msg);end
+
+      % set experiment directories
+      [success,msg] = ...
+        self.SetExpDirsNew(everythingParams.expdirs);
+      if ~success,error(msg); end
+      
+      % Update the status table
+      [success,msg] = self.UpdateStatusTable();
+      if ~success, error(msg); end
+
+      % set the labels
+      self.setLabelsFromStructForAllExps(everythingParams.labels);
+
+      % set the GT labels
+      self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
+
+      % Preload the first track of the first video, which sets the current
+      % experiment and track to experiment 1, track 1
+      if (self.nexps>0)
+        self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
+        [success1,msg1] = self.PreLoad(1,1);
+        if ~success1,
+          msg = sprintf('Error getting basic trx info: %s',msg1);
+          self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
+          uiwait(warndlg(msg));
+          self.RemoveExpDirs(1:obj.nexps);
+          self.ClearStatus();
+          return;
+        end
+      end
+                  
+      % update cached data
+      [success,msg] = self.PreLoadLabeledData();
+      if ~success,error(msg);end   
+      
+      % clear the cached per-frame, trx data
+      self.ClearCachedPerExpData();
+
+      % Set the status bar back to the default message
+      self.ClearStatus();
+    end  % setLabels() method
+
+    
+    % ---------------------------------------------------------------------
+    function setClassifier(self, ...
+                           classifier)
+      
+      % get the mapping of field names
+      fieldNamesInSelf = JLabelData.fieldNamesInSelf;
+      fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
+
+      % new-style everything files don't use classifier file names
+      self.classifierfilename = 0;
+
+      % Update the status bar
+      self.SetStatus('Loading classifier...');
+
+      % for each classifier field, store it in self
+      nFields=numel(fieldNamesInSelf);
+      for i = 1:nFields,
+        fieldNameInSelf = fieldNamesInSelf{i};
+        fieldNameInClassifier = fieldNamesInClassifier{i};
+        if strcmp(fieldNameInClassifier,'targetType')
+          % do nothing
+        elseif strcmp(fieldNameInClassifier,'behaviorName')
+          % do nothing
+        elseif strcmp(fieldNameInClassifier,'scoreNorm')
+          % this one lives in self.windowdata
+          self.windowdata.(fieldNameInSelf)=classifier.(fieldNameInClassifier);
+        elseif strcmp(fieldNameInClassifier,'windowFeaturesParams')
+          % this one is special
+          self.SetPerframeParams(classifier.(fieldNameInClassifier));
+        else    
+          % the usual case---just map one field name to the other
+          self.(fieldNameInSelf)=classifier.(fieldNameInClassifier);
+        end
+      end
+            
+      % Set the window feature names
+      feature_names = {};
+      for j = 1:numel(self.curperframefns),
+        fn = self.curperframefns{j};
+        [~,feature_names_curr_proto] = ComputeWindowFeatures([0,0],...
+                                                             self.windowfeaturescellparams.(fn){:});
+        feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
+        feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+      end
+      self.windowdata.featurenames = feature_names;
+            
+      % predict for all loaded examples
+      self.PredictLoaded();
+
+      % make sure inds is ordered correctly
+      if ~isempty(self.classifier),
+        switch self.classifiertype,
+          case 'ferns',
+            waslabeled = self.windowdata.labelidx_cur ~= 0;
+            self.classifier.inds = self.predict_cache.last_predicted_inds(waslabeled,:);
+        end
+      end
+
+      % clear the cached per-frame, trx data
+      self.ClearCachedPerExpData();
+
+      % Set the status bar back to the default message
+      self.ClearStatus();
+      
+      % No idea what this does -- ALT, Mar 5, 2013
+      self.FindFastPredictParams();
+    end  % setClassifier() method
 
     
     % ---------------------------------------------------------------------
@@ -7725,51 +7896,40 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------    
-    function s=getSaveableClassifier(self)
-      % Extracts all the things needed to save the classifier, stores them
+    function classifier=getClassifier(self)
+      % Extracts the classifier parameters, stores them
       % in a scalar struct, which is returned.
-      classifierVars = {'expdirs', ...
-                        'classifiertype', ...
-                        'classifier', ...
-                        'classifier_params',...
-                        'classifierTS', ...
-                        'confThresholds', ...
-                        'scoreNorm', ...
-                        'windowfeaturesparams', ...
-                        'basicFeatureTable', ...
-                        'featureWindowSize', ...
-                        'postprocessparams',...
-                        'scoresasinput'};
-%                        'expnames',...
-%                         'nflies_per_exp', ...
-%                         'sex_per_exp', ...
-%                         'frac_sex_per_exp',...
-%                         'firstframes_per_exp', ...
-%                         'endframes_per_exp',...
-%                        'featurenames', ...
-%                        'windowfeaturescellparams',...
-%                        'trainingdata', ...
+      
+      % get the mapping of field names
+      fieldNamesInSelf = JLabelData.fieldNamesInSelf;
+      fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
 
-      self.StoreLabelsAndThatsAll();  % make sure current labels are committed
-      s = struct();  % struct to be returned
-      s.classifierTS = self.classifierTS;
-      %s.trainingdata = self.SummarizeTrainingData();
-      nFields=numel(classifierVars);
+      % make sure current labels are committed
+      self.StoreLabelsAndThatsAll();
+      
+      % build the classifier structure
+      classifier = struct();  % struct to be returned
+      % for each classifier field, store it in the classifier struct
+      nFields=numel(fieldNamesInSelf);
       for i = 1:nFields,
-        fn = classifierVars{i};  % fn for "field name"
-        if isfield(s,fn),
-          % that field is already present in s, so do nothing
-        elseif ismember(fn,properties(self))
-          s.(fn) = self.(fn);
-        elseif isstruct(self.windowdata) && isfield(self.windowdata,fn),
-          s.(fn) = self.windowdata.(fn);
-        else
-          error('Unknown field %s',fn);
+        fieldNameInSelf = fieldNamesInSelf{i};
+        fieldNameInClassifier = fieldNamesInClassifier{i};
+        if strcmp(fieldNameInClassifier,'behaviorName')
+          % this one is special---just want the behavior name, don't
+          % want 'None'
+          if isempty(self.labelnames)
+            classifier.(fieldNameInClassifier)='';
+          else
+            classifier.(fieldNameInClassifier)=self.(fieldNameInSelf){1};  % first one is the behavior name
+          end
+        elseif strcmp(fieldNameInClassifier,'scoreNorm')
+          % this one lives in self.windowdata
+          classifier.(fieldNameInClassifier)=self.windowdata.(fieldNameInSelf);
+        else    
+          % the usual case---just map one field name to the other
+          classifier.(fieldNameInClassifier)=self.(fieldNameInSelf);
         end
       end  
-      % we don't want the labels in with the classifier structure for the
-      % purposes of saving
-      %s=rmfield(s,'labels');
     end  % method
     
     
