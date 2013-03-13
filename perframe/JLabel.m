@@ -8206,6 +8206,8 @@ for i=1:length(fieldNamesToKeep)
   fieldNameThis=fieldNamesToKeep{i};
   if strcmp(fieldNameThis,'labelGraphicParams')
     projectParams.labels=everythingParams.(fieldNameThis);
+  elseif strcmp(fieldNameThis,'trxGraphicParams')
+    projectParams.trx=everythingParams.(fieldNameThis);
   else
     projectParams.(fieldNameThis)=everythingParams.(fieldNameThis);
   end
