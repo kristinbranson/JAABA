@@ -337,10 +337,11 @@ classdef JLabelGUIData < handle
     function s=getEverythingStruct(self)
       % Construct the structure that will be saved in the everything file
       s=struct();
-      s.featureConfigParams=self.data.featureConfigParams;
-      s=mergeStructures(s,self.data.getSaveableClassifier());
+      %s=mergeStructures(s,self.data.getSaveableClassifier());
+      s.classifier=self.data.getClassifier();
+      s.expdirs=self.data.expdirs;
       s=mergeStructures(s,self.configparams);
-      s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresasinput
+      %  s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresasinput
       s.trxGraphicParams=s.trx;
       s=rmfield(s,'trx');  % such a superficial field should not be called 'trx'
       s.labelGraphicParams=s.labels;  % get out of way
