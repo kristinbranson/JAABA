@@ -341,7 +341,12 @@ classdef JLabelGUIData < handle
       s.classifier=self.data.getClassifier();
       s.expdirs=self.data.expdirs;
       s=mergeStructures(s,self.configparams);
-      %  s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresasinput
+      if isfield(s,'scoresinput')
+        s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresAsInput in classifier
+      end
+      if isfield(s,'windowfeatures')
+        s=rmfield(s,'windowfeatures');  % from configparams, redundant with windowFeaturesParams in classifier
+      end
       s.trxGraphicParams=s.trx;
       s=rmfield(s,'trx');  % such a superficial field should not be called 'trx'
       s.labelGraphicParams=s.labels;  % get out of way
