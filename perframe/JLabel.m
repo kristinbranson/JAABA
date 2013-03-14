@@ -1709,7 +1709,7 @@ function success = menu_file_export_classifier_Callback(hObject, eventdata, hand
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-success=exportEverythingFile(gcbf,'Classifier');
+success=exportClassifierFile(gcbf);
 
 return
 
@@ -7370,6 +7370,55 @@ return
 
 
 % -------------------------------------------------------------------------
+function saved=exportClassifierFile(figureJLabel)
+
+% Set these things
+filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
+fileExtension='.jcf';
+
+% Figure out the suggested file name
+handles=guidata(figureJLabel);
+everythingFileNameAbs=handles.guidata.everythingFileNameAbs;
+[dirName,fileBaseName]=fileparts(everythingFileNameAbs);
+suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
+
+% Do eveything else.
+saved=false;  % default return
+data=handles.guidata.data;  % reference
+windowTitle=sprintf('Export Classifier...');
+[filename,pathname] = ...
+  uiputfile(filterSpec, ...
+            windowTitle, ...
+            suggestedFileNameAbs);
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+fileNameAbs=fullfile(pathname,filename);
+fileNameRel=fileNameRelFromAbs(fileNameAbs);
+handles=guidata(figureJLabel);
+SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
+% Extract the structure that will be saved in the file
+classifier=handles.guidata.data.getClassifier();
+% write the classifier structure to disk
+try
+  save('-mat',fileNameAbs,'-struct','classifier');
+catch  %#ok
+  uiwait(errordlg(sprintf('Unable to save %s.', ...
+                          fileNameRel), ...
+                  'Unable to Save'));
+  ClearStatus(handles);
+  return;
+end
+saved=true;
+UpdateGUIToMatchFileAndExperimentState(handles);
+ClearStatus(handles);
+guidata(figureJLabel,handles);
+
+return
+
+
+% -------------------------------------------------------------------------
 function menu_file_open_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -8269,7 +8318,7 @@ SetStatus(handles,sprintf('Importing classifier from %s ...',filename));
 
 % load the file
 try
-  classifierParams=load('-mat',fileNameAbs);
+  classifier=load('-mat',fileNameAbs);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
   ClearStatus(handles);
@@ -8292,9 +8341,9 @@ end
 % %handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
 % guidata(figureJLabel,handles);  % write the handles back to the figure
 
-% Load the classifier, which includes the experiments, and load the
+% Set the classifier in the JLabelData object
 data=handles.guidata.data;  % ref
-data.setClassifier(classifierParams);
+data.setClassifier(classifier);
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
