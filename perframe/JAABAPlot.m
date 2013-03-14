@@ -90,7 +90,7 @@ handles.absdprime=1;
 handles.centraltendency=1;
 handles.dispersion=1;
 handles.xoffset=1;
-handles.convolutionwidth=1000;
+handles.convolutionwidth=10;
 handles.pvalue=0.01;
 handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
@@ -2721,7 +2721,7 @@ end
 style=handles.featuretimeseries_style;
 centraltendency=handles.centraltendency;
 dispersion=handles.dispersion;
-convolutionwidth=handles.convolutionwidth;
+convolutionwidth=round(handles.convolutionwidth*handles.fps);
 subtractmean=handles.subtractmean;
 windowradius=handles.windowradius;
 behaviornot=handles.behaviornot;
@@ -3572,7 +3572,7 @@ if(handles.behaviorvalue3>1)
   score_file3=handles.scorefiles{handles.behaviorvalue3-1};
 end
 sexdata=handles.sexdata;
-convolutionwidth=handles.convolutionwidth;
+convolutionwidth=round(handles.convolutionwidth*handles.fps);
 style=handles.behaviortimeseries_style;
 centraltendency=handles.centraltendency;
 dispersion=handles.dispersion;
