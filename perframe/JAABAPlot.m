@@ -295,12 +295,12 @@ end
 if(isempty(handles.grouplist))
   set(handles.GroupList,'enable','off');
   set(handles.GroupChange,'enable','off');
-  set(handles.ExperimentAdd,'enable','off');
+%  set(handles.ExperimentAdd,'enable','off');
   set(handles.ExperimentDelete,'enable','off');
 else
   set(handles.GroupList,'enable','on');
   set(handles.GroupChange,'enable','on');
-  set(handles.ExperimentAdd,'enable','on');
+%  set(handles.ExperimentAdd,'enable','on');
   set(handles.ExperimentDelete,'enable','on');
 end
 if(sum(cellfun(@length,handles.experimentlist))==0)
@@ -961,8 +961,22 @@ if(isempty(directory))  directory=pwd;  end
 
 newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
 if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
-if((length(newexperiments)==1)&&exist(newexperiments{1},'file'))
+[directory,~,~]=fileparts(newexperiments{1});
+if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
   newexperiments=textread(newexperiments{1},'%s');
+  sum(cellfun(@exist,newexperiments)~=0);
+  if(ans==(length(newexperiments)/2))
+    newgroups=newexperiments(2:2:end);
+    newexperiments=newexperiments(1:2:end);
+  elseif(ans==(length(newexperiments)/3))
+    newgroups=newexperiments(2:3:end);
+    newcolors=newexperiments(3:3:end);
+    newexperiments=newexperiments(1:3:end);
+  end
+end
+if((length(handles.grouplist)==0)&&(~exist('newgroups','var')))
+  uiwait(errordlg('Add a new group before adding ungrouped experiments'));
+  return;
 end
 tmp=ismember(newexperiments,[handles.experimentlist{:}]);
 if(sum(tmp)>0)
@@ -971,15 +985,37 @@ if(sum(tmp)>0)
   msg(3:(2+sum(tmp)))=newexperiments(tmp);
   uiwait(errordlg(msg));
   newexperiments(tmp)=[];
+  if(exist('newgroups','var'))  newgroups(tmp)=[];  end
+  if(exist('newcolors','var'))  newcolors(tmp)=[];  end
 end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
 drawnow;
 
-[directory,~,~]=fileparts(newexperiments{1});
-handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
-handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
+if(~exist('newgroups','var'))
+  handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
+  handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
+else
+  [newgroups,i]=sort(newgroups);
+  newexperiments=newexperiments(i);
+  if(exist('newcolors','var'))  newcolors=newcolors(i);  end
+  [ng,ia,ic]=unique(newgroups);
+  for ngi=1:length(ng)
+    k=length(handles.grouplist);
+    handles.grouplist{k+1}=ng{ngi};
+    if(exist('newcolors','var'))
+      handles.colors(k+1,1)=hex2dec(newcolors{ia(ngi)}(1:2))/255;
+      handles.colors(k+1,2)=hex2dec(newcolors{ia(ngi)}(3:4))/255;
+      handles.colors(k+1,3)=hex2dec(newcolors{ia(ngi)}(5:6))/255;
+    else
+      handles.colors(k+1,:)=[0 0 0];
+    end
+    find(cellfun(@(x) strcmp(x,ng{ngi}),newgroups));
+    handles.experimentlist{k+1}={newexperiments{ans}};
+    handles.experimentvalue{k+1}=1:length(handles.experimentlist{k+1});
+  end
+end
 
 handlesfeatures=cell(1,length(newexperiments));
 handlessexdata=cell(1,length(newexperiments));
@@ -1031,15 +1067,17 @@ handles.sexdata={handles.sexdata{:} handlessexdata{:}};
 handles.individuals_behavior=[handles.individuals_behavior; handlesindividualsbehavior];
 handles.individuals_feature=[handles.individuals_feature handlesindividualsfeature];
 
-tmp=length(handles.features);
-idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-length(newexperiments)) ...
-    ((tmp-length(newexperiments)+1) : tmp) ...
-    ((tmp-length(newexperiments)-sum(cellfun(@length,handles.experimentlist((handles.groupvalue+1):end)))+1) : ...
-        (tmp-length(newexperiments)))];
-handles.features=handles.features(idx);
-handles.sexdata=handles.sexdata(idx);
-handles.individuals_behavior=handles.individuals_behavior(idx,:);
-handles.individuals_feature=handles.individuals_feature(idx);
+if(~exist('newgroups','var'))
+  tmp=length(handles.features);
+  idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-length(newexperiments)) ...
+      ((tmp-length(newexperiments)+1) : tmp) ...
+      ((tmp-length(newexperiments)-sum(cellfun(@length,handles.experimentlist((handles.groupvalue+1):end)))+1) : ...
+          (tmp-length(newexperiments)))];
+  handles.features=handles.features(idx);
+  handles.sexdata=handles.sexdata(idx);
+  handles.individuals_behavior=handles.individuals_behavior(idx,:);
+  handles.individuals_feature=handles.individuals_feature(idx);
+end
 
 handles.featurelist=check_for_diff_and_return_intersection(handles.features);
 handles=fillin_individuallist(handles);
@@ -1210,7 +1248,7 @@ function GroupChange_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-inputdlg({'Name:'},'New name for this group');
+inputdlg({'Name:'},'New name for this group',1,handles.grouplist(handles.groupvalue));
 if((isempty(ans))||strcmp(ans,''))  return;  end
 handles.colors(handles.groupvalue,:)=uisetcolor(handles.colors(handles.groupvalue,:));
 handles.grouplist{handles.groupvalue}=char(ans);
@@ -1328,7 +1366,7 @@ tmp=directory;
 if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
 if(~iscell(newclassifiers))  newclassifiers={newclassifiers};  end
 if((length(newclassifiers)==1)&&(~strcmp(newclassifiers{1}((end-3):end),'.mat'))&&...
-      exist(fullfile(directory,newclassifiers{1}),'file'))
+      (exist(fullfile(directory,newclassifiers{1}))==2))
   newclassifiers=textread(fullfile(directory,newclassifiers{1}),'%s');
 else
   newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
