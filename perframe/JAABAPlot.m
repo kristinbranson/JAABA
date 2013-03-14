@@ -2342,17 +2342,17 @@ for b=bb
     end
   end
 
-  title(tstr);
-  xlabel(xstr);
-  ylabel(ystr);
+  title(tstr,'interpreter','none');
+  xlabel(xstr,'interpreter','none');
+  ylabel(ystr,'interpreter','none');
   axis tight;  zoom reset;
 end
 
 idx=find(h>0);
 if ischar(individual)
-  legend(h(idx),handles.grouplist);
+  legend(h(idx),handles.grouplist,'interpreter','none');
 else
-  legend(h(idx),handles.individuallist(handles.individualvalue));
+  legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
 if(ischar(individual) && ((length(handles.grouplist)>1) || (comparison>0)))
@@ -2864,17 +2864,17 @@ for b=bb
     end
   end
 
-  xlabel(xstr);
-  ylabel(ystr);
-  title(tstr);
+  xlabel(xstr,'interpreter','none');
+  ylabel(ystr,'interpreter','none');
+  title(tstr,'interpreter','none');
   axis tight;  zoom reset;
 
 end
 idx=find(h>0);
 if ischar(individual)
-  legend(h(idx),handles.grouplist);
+  legend(h(idx),handles.grouplist,'interpreter','none');
 else
-  legend(h(idx),handles.individuallist(handles.individualvalue));
+  legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
 fclose(fid);
@@ -3488,7 +3488,7 @@ for b=bb
   end
 
   if(isempty(k))  k=1:length(frames_labelled);  end
-  ylabel(ystr);
+  ylabel(ystr,'interpreter','none');
   set(gca,'xtick',k,'xticklabel',xticklabels);
   axis tight;  vt=axis;
   axisalmosttight;  vat=axis;
@@ -3772,18 +3772,18 @@ for b=bb
     end
   end
 
-  xlabel(xstr);
-  ylabel(ystr);
+  xlabel(xstr,'interpreter','none');
+  ylabel(ystr,'interpreter','none');
   axis tight;  zoom reset;
 
 end
 idx=find(h>0);
 %if(individual<4)
 if ischar(individual)
-  legend(h(idx),handles.grouplist);
+  legend(h(idx),handles.grouplist,'interpreter','none');
 else
   %legend(h(idx),handles.individuallist(individual+cumsum_num_indi_per_exp(ggee)));
-  legend(h(idx),handles.individuallist(handles.individualvalue));
+  legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
 fclose(fid);
@@ -4040,8 +4040,8 @@ for b=bb
   end
 
   if(isempty(k))  k=1:length(length_data);  end
-  title(tstr);
-  ylabel(ystr);
+  title(tstr,'interpreter','none');
+  ylabel(ystr,'interpreter','none');
   set(gca,'xtick',k,'xticklabel',xticklabels);
   axis tight;  vt=axis;
   axisalmosttight;  vat=axis;
