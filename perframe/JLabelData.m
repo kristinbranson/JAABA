@@ -89,7 +89,7 @@ classdef JLabelData < handle
     labelidx = struct('vals',[],'imp',[],'timestamp',[]);
     labelidx_off = 0;
     
-    labelsLoadedFromClassifier = false;
+    %labelsLoadedFromClassifier = false;
     % first frame that all flies currently selected are tracked
     t0_curr = 0;
     % last frame that all flies currently selected are tracked
@@ -238,38 +238,38 @@ classdef JLabelData < handle
     % whether sex is computed on a per-frame basis
     hasperframesex = false;
     
-    % constant: stuff stored in classifier mat file
-    classifiervars = {'expdirs', ...
-                      'outexpdirs', ...
-                      'expnames',...
-                      'nflies_per_exp', ...
-                      'sex_per_exp', ...
-                      'frac_sex_per_exp',...
-                      'firstframes_per_exp', ...
-                      'endframes_per_exp',...
-                      'moviefilename', ...
-                      'trxfilename', ...
-                      'labelfilename', ...
-                      'perframedir', ...
-                      'clipsdir',...
-                      'configfilename', ...
-                      'rootoutputdir', ...
-                      'classifiertype', ...
-                      'classifier', ...
-                      'trainingdata', ...
-                      'classifier_params',...
-                      'classifierTS', ...
-                      'confThresholds', ...
-                      'scoreNorm', ...
-                      'windowfeaturesparams', ...
-                      'windowfeaturescellparams',...
-                      'basicFeatureTable', ...
-                      'featureWindowSize', ...
-                      'postprocessparams',...
-                      'featurenames', ...
-                      'scorefilename', ...
-                      'labels', ...
-                      'scoresasinput'};
+%     % constant: stuff stored in classifier mat file
+%     classifiervars = {'expdirs', ...
+%                       'outexpdirs', ...
+%                       'expnames',...
+%                       'nflies_per_exp', ...
+%                       'sex_per_exp', ...
+%                       'frac_sex_per_exp',...
+%                       'firstframes_per_exp', ...
+%                       'endframes_per_exp',...
+%                       'moviefilename', ...
+%                       'trxfilename', ...
+%                       'labelfilename', ...
+%                       'perframedir', ...
+%                       'clipsdir',...
+%                       'configfilename', ...
+%                       'rootoutputdir', ...
+%                       'classifiertype', ...
+%                       'classifier', ...
+%                       'trainingdata', ...
+%                       'classifier_params',...
+%                       'classifierTS', ...
+%                       'confThresholds', ...
+%                       'scoreNorm', ...
+%                       'windowfeaturesparams', ...
+%                       'windowfeaturescellparams',...
+%                       'basicFeatureTable', ...
+%                       'featureWindowSize', ...
+%                       'postprocessparams',...
+%                       'featurenames', ...
+%                       'scorefilename', ...
+%                       'labels', ...
+%                       'scoresasinput'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -703,14 +703,14 @@ classdef JLabelData < handle
         end
       end
 
-      % featureparamsfilename
-      i = find(strcmpi(s,'featureparamsfilename'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetFeatureParamsFileName(v{i});
-        if ~success,
-          error(msg);
-        end
-      end
+%       % featureparamsfilename
+%       i = find(strcmpi(s,'featureparamsfilename'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetFeatureParamsFileName(v{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
       
       % rootoutputdir
       i = find(strcmpi(s,'rootoutputdir'),1);
@@ -977,12 +977,12 @@ classdef JLabelData < handle
           msg = '';
         end
 
-        if isfield(projectParams.file,'featureparamfilename') && ~isempty(projectParams.file.featureparamfilename),
-          [success1,msg] = obj.SetFeatureParamsFileName(projectParams.file.featureparamfilename);
-          if ~success1,
-            return;
-          end
-        end
+%         if isfield(projectParams.file,'featureparamfilename') && ~isempty(projectParams.file.featureparamfilename),
+%           [success1,msg] = obj.SetFeatureParamsFileName(projectParams.file.featureparamfilename);
+%           if ~success1,
+%             return;
+%           end
+%         end
         
         if isfield(projectParams,'windowfeatures') && isfield(projectParams.windowfeatures,'basicFeatureTable')
           obj.basicFeatureTable = projectParams.windowfeatures.basicFeatureTable;
@@ -2663,136 +2663,134 @@ classdef JLabelData < handle
       gtLabels=self.gt_labels;
     end
 
-    %----------------------------------------------------------------------
     
-    function SaveLabels(obj,expis)
-    % SaveLabels(obj,expis)
-    % For each experiment in expis, save the current set of labels to file.
-    % A backup of old labels is made if they exist and stored in
-    % <labelfilename>~
-    
-      if isempty(obj.labels), return; end
-    
-      if nargin<2
-        expis = 1:obj.nexps;
-      end
-      
-      if obj.labelsLoadedFromClassifier,
-        res = questdlg(['Labels were loaded from the classifier. Saving the'...
-          ' labels will overwrite the current labels. Overwrite?'],...
-          'Overwrite Current Labels?','Yes','No','Cancel','No');
-        if ~strcmpi(res,'Yes'), return, end
-      end
-      
-      % store labels in labelidx
-      obj.StoreLabelsAndPreLoadWindowData();
-      
-      for i = expis,
-        
-        
-        lfn = GetFile(obj,'label',i,true);
-        obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
+%     %----------------------------------------------------------------------
+%     function SaveLabels(obj,expis)
+%     % SaveLabels(obj,expis)
+%     % For each experiment in expis, save the current set of labels to file.
+%     % A backup of old labels is made if they exist and stored in
+%     % <labelfilename>~
+%     
+%       if isempty(obj.labels), return; end
+%     
+%       if nargin<2
+%         expis = 1:obj.nexps;
+%       end
+%       
+% %       if obj.labelsLoadedFromClassifier,
+% %         res = questdlg(['Labels were loaded from the classifier. Saving the'...
+% %           ' labels will overwrite the current labels. Overwrite?'],...
+% %           'Overwrite Current Labels?','Yes','No','Cancel','No');
+% %         if ~strcmpi(res,'Yes'), return, end
+% %       end
+%       
+%       % store labels in labelidx
+%       obj.StoreLabelsAndPreLoadWindowData();
+%       
+%       for i = expis,
+%         
+%         
+%         lfn = GetFile(obj,'label',i,true);
+%         obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
+% 
+%         didbak = false;
+%         if exist(lfn,'file'),
+%           [didbak,msg] = copyfile(lfn,[lfn,'~']);
+%           if ~didbak,
+%             warning('Could not create backup of %s: %s',lfn,msg);  
+%           end
+%         end
+% 
+%         t0s = obj.labels(i).t0s; %#ok<NASGU>
+%         t1s = obj.labels(i).t1s; %#ok<NASGU>
+%         names = obj.labels(i).names; %#ok<NASGU>
+%         flies = obj.labels(i).flies; %#ok<NASGU>
+%         off = obj.labels(i).off; %#ok<NASGU>
+%         timestamp = obj.labels(i).timestamp; %#ok<NASGU>
+%         imp_t0s = obj.labels(i).imp_t0s; %#ok<NASGU>
+%         imp_t1s = obj.labels(i).imp_t1s; %#ok<NASGU>
+%         
+%         version = obj.version; %#ok<NASGU>
+%         try
+%           save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
+%         catch ME,
+%           if didbak,
+%             [didundo,msg] = copyfile([lfn,'~'],lfn);
+%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
+%           end
+%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
+%         end
+%       end
+% 
+%       
+%       [success,msg] = obj.UpdateStatusTable('label');
+%       if ~success,
+%         error(msg);
+%       end
+% 
+%       obj.ClearStatus();
+%     end
 
-        didbak = false;
-        if exist(lfn,'file'),
-          [didbak,msg] = copyfile(lfn,[lfn,'~']);
-          if ~didbak,
-            warning('Could not create backup of %s: %s',lfn,msg);  
-          end
-        end
 
-        t0s = obj.labels(i).t0s; %#ok<NASGU>
-        t1s = obj.labels(i).t1s; %#ok<NASGU>
-        names = obj.labels(i).names; %#ok<NASGU>
-        flies = obj.labels(i).flies; %#ok<NASGU>
-        off = obj.labels(i).off; %#ok<NASGU>
-        timestamp = obj.labels(i).timestamp; %#ok<NASGU>
-        imp_t0s = obj.labels(i).imp_t0s; %#ok<NASGU>
-        imp_t1s = obj.labels(i).imp_t1s; %#ok<NASGU>
-        
-        version = obj.version; %#ok<NASGU>
-        try
-          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
-        catch ME,
-          if didbak,
-            [didundo,msg] = copyfile([lfn,'~'],lfn);
-            if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
-          end
-          errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
-        end
-      end
+%     %----------------------------------------------------------------------    
+%     function SaveGTLabels(obj,expis)
+%     % SaveGTLabels(obj,expis)
+%     % For each experiment in expis, save the current set of labels to file.
+%     % A backup of old labels is made if they exist and stored in
+%     % <labelfilename>~
+% 
+%       if isempty(obj.gt_labels), return; end
+%       
+%       if nargin<2
+%         expis = 1:obj.nexps;
+%       end
+%       
+%       % store labels in labelidx
+%       obj.StoreLabelsAndPreLoadWindowData();
+%       
+%       for i = expis,
+% 
+%         lfn = GetFile(obj,'gt_label',i,true);
+%         obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
+% 
+%         didbak = false;
+%         if exist(lfn,'file'),
+%           [didbak,msg] = copyfile(lfn,[lfn,'~']);
+%           if ~didbak,
+%             warning('Could not create backup of %s: %s',lfn,msg); %#ok<WNTAG>
+%           end
+%         end
+% 
+%         t0s = obj.gt_labels(i).t0s; %#ok<NASGU>
+%         t1s = obj.gt_labels(i).t1s; %#ok<NASGU>
+%         names = obj.gt_labels(i).names; %#ok<NASGU>
+%         flies = obj.gt_labels(i).flies; %#ok<NASGU>
+%         off = obj.gt_labels(i).off; %#ok<NASGU>
+%         timestamp = obj.gt_labels(i).timestamp; %#ok<NASGU>
+%         imp_t0s = obj.gt_labels(i).imp_t0s; %#ok<NASGU>
+%         imp_t1s = obj.gt_labels(i).imp_t1s; %#ok<NASGU>
+%         
+%         version = obj.version; %#ok<NASGU>
+%         try
+%           save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
+%         catch ME,
+%           if didbak,
+%             [didundo,msg] = copyfile([lfn,'~'],lfn);
+%             if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
+%           end
+%           errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
+%         end
+%       end
+% 
+%       
+%       [success,msg] = obj.UpdateStatusTable('gt_label');
+%       if ~success,
+%         error(msg);
+%       end
+% 
+%       obj.ClearStatus();
+%     end
 
-      
-      [success,msg] = obj.UpdateStatusTable('label');
-      if ~success,
-        error(msg);
-      end
-
-      obj.ClearStatus();
-    end
-
-    %----------------------------------------------------------------------
-    
-    function SaveGTLabels(obj,expis)
-    % SaveGTLabels(obj,expis)
-    % For each experiment in expis, save the current set of labels to file.
-    % A backup of old labels is made if they exist and stored in
-    % <labelfilename>~
-
-      if isempty(obj.gt_labels), return; end
-      
-      if nargin<2
-        expis = 1:obj.nexps;
-      end
-      
-      % store labels in labelidx
-      obj.StoreLabelsAndPreLoadWindowData();
-      
-      for i = expis,
-
-        lfn = GetFile(obj,'gt_label',i,true);
-        obj.SetStatus('Saving labels for experiment %s to %s',obj.expnames{i},lfn);
-
-        didbak = false;
-        if exist(lfn,'file'),
-          [didbak,msg] = copyfile(lfn,[lfn,'~']);
-          if ~didbak,
-            warning('Could not create backup of %s: %s',lfn,msg); %#ok<WNTAG>
-          end
-        end
-
-        t0s = obj.gt_labels(i).t0s; %#ok<NASGU>
-        t1s = obj.gt_labels(i).t1s; %#ok<NASGU>
-        names = obj.gt_labels(i).names; %#ok<NASGU>
-        flies = obj.gt_labels(i).flies; %#ok<NASGU>
-        off = obj.gt_labels(i).off; %#ok<NASGU>
-        timestamp = obj.gt_labels(i).timestamp; %#ok<NASGU>
-        imp_t0s = obj.gt_labels(i).imp_t0s; %#ok<NASGU>
-        imp_t1s = obj.gt_labels(i).imp_t1s; %#ok<NASGU>
-        
-        version = obj.version; %#ok<NASGU>
-        try
-          save(lfn,'t0s','t1s','names','flies','off','timestamp','imp_t0s','imp_t1s','version');
-        catch ME,
-          if didbak,
-            [didundo,msg] = copyfile([lfn,'~'],lfn);
-            if ~didundo, warning('Error copying backup file for %s: %s',lfn,msg); end %#ok<WNTAG>
-          end
-          errordlg(sprintf('Error saving label file %s: %s.',lfn,getReport(ME)),'Error saving labels');
-        end
-      end
-
-      
-      [success,msg] = obj.UpdateStatusTable('gt_label');
-      if ~success,
-        error(msg);
-      end
-
-      obj.ClearStatus();
-    end
-
-    %----------------------------------------------------------------------
-    
 
     
 % Experiment handling
@@ -3895,60 +3893,60 @@ classdef JLabelData < handle
     end
     
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetFeatureConfigFile(obj,featureConfigFileName)
-      featureConfigFileName = deployedRelative2Global(featureConfigFileName);      
-      obj.featureConfigFile = featureConfigFileName;
-      featureConfigParams = ReadXMLParams(featureConfigFileName);
-      [success,msg]=obj.setFeatureConfiguration(featureConfigParams);
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetFeatureConfigFile(obj,featureConfigFileName)
+%       featureConfigFileName = deployedRelative2Global(featureConfigFileName);      
+%       obj.featureConfigFile = featureConfigFileName;
+%       featureConfigParams = ReadXMLParams(featureConfigFileName);
+%       [success,msg]=obj.setFeatureConfiguration(featureConfigParams);
+%     end
     
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
-    % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
-    % Sets the name of the file describing the features to use to
-    % featureparamsfilename. These parameters are read in. Currently, the
-    % window data and classifier, predictions are not changed. (TODO)
-
-    success = false;
-      msg = '';
-      
-      if ischar(obj.featureparamsfilename) && strcmp(featureparamsfilename,obj.featureparamsfilename),
-        success = true;
-        return;
-      end
-      
-      if obj.nexps > 0,
-        msg = 'Currently, feature params file can only be changed when no experiments are loaded';
-        return;
-      end
-      
-      if ~exist(featureparamsfilename,'file'),
-        success = true; 
-        msg = '';
-        return;
-      end
-
-      
-%       try
-        [windowfeaturesparams,~,basicFeatureTable,featureWindowSize] = ...
-          ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
-        % 2nd return above used to be windowfeaturescellparams
-%       catch ME,
-%         msg = sprintf('Error reading feature parameters file %s: %s',...
-%           params.featureparamsfilename,getReport(ME));
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
+%     % [success,msg] = SetFeatureParamsFileName(obj,featureparamsfilename)
+%     % Sets the name of the file describing the features to use to
+%     % featureparamsfilename. These parameters are read in. Currently, the
+%     % window data and classifier, predictions are not changed. (TODO)
+% 
+%     success = false;
+%       msg = '';
+%       
+%       if ischar(obj.featureparamsfilename) && strcmp(featureparamsfilename,obj.featureparamsfilename),
+%         success = true;
 %         return;
 %       end
-      windowfeaturesparams = JLabelData.convertTransTypes2Cell(windowfeaturesparams);
-      %windowfeaturescellparams = JLabelData.convertParams2CellParams(windowfeaturesparams);
-
-      obj.SetPerframeParams(windowfeaturesparams);
-      obj.featureparamsfilename = featureparamsfilename;
-      obj.basicFeatureTable = basicFeatureTable;
-      obj.featureWindowSize = featureWindowSize;
-      success = true;
-    end
+%       
+%       if obj.nexps > 0,
+%         msg = 'Currently, feature params file can only be changed when no experiments are loaded';
+%         return;
+%       end
+%       
+%       if ~exist(featureparamsfilename,'file'),
+%         success = true; 
+%         msg = '';
+%         return;
+%       end
+% 
+%       
+% %       try
+%         [windowfeaturesparams,~,basicFeatureTable,featureWindowSize] = ...
+%           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
+%         % 2nd return above used to be windowfeaturescellparams
+% %       catch ME,
+% %         msg = sprintf('Error reading feature parameters file %s: %s',...
+% %           params.featureparamsfilename,getReport(ME));
+% %         return;
+% %       end
+%       windowfeaturesparams = JLabelData.convertTransTypes2Cell(windowfeaturesparams);
+%       %windowfeaturescellparams = JLabelData.convertParams2CellParams(windowfeaturesparams);
+% 
+%       obj.SetPerframeParams(windowfeaturesparams);
+%       obj.featureparamsfilename = featureparamsfilename;
+%       obj.basicFeatureTable = basicFeatureTable;
+%       obj.featureWindowSize = featureWindowSize;
+%       success = true;
+%     end
     
     
     % ---------------------------------------------------------------------
