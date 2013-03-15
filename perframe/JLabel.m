@@ -2362,15 +2362,15 @@ function UpdateGUIToMatchFileAndExperimentState(handles)
 data=handles.guidata.data;  % a ref, or empty
 thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
 openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.guidata.needsave;
-if thereIsAnOpenFile
-  if isempty(data)
-    nExps=0;
-  else
-    nExps=handles.guidata.data.nexps;
-  end
-else
-  nExps=0;
-end
+% if thereIsAnOpenFile
+%   if isempty(data)
+%     nExps=0;
+%   else
+%     nExps=handles.guidata.data.nexps;
+%   end
+% else
+%   nExps=0;
+% end
 someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
                      handles.guidata.GUIGroundTruthingMode;
@@ -7268,7 +7268,7 @@ end
 % Do eveything else.
 saved=false;  % default return
 handles=guidata(figureJLabel);
-data=handles.guidata.data;  % reference
+%data=handles.guidata.data;  % reference
 if saveAs || ~handles.guidata.userHasSpecifiedEverythingFileName
   windowTitle=fif(saveAs, ...
                   'Save As...', ...
@@ -7291,7 +7291,7 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
 % Extract the structure that will be saved in the everything file
-s=handles.guidata.getEverythingStruct();
+s=handles.guidata.getEverythingStruct();  %#ok
 % write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -7332,7 +7332,7 @@ suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
 
 % Do eveything else.
 saved=false;  % default return
-data=handles.guidata.data;  % reference
+%data=handles.guidata.data;  % reference
 windowTitle=sprintf('Export %s...',whatToExport);
 [filename,pathname] = ...
   uiputfile(filterSpec, ...
@@ -7347,7 +7347,7 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
 % Extract the structure that will be saved in the everything file
-s=handles.guidata.getEverythingStruct();
+s=handles.guidata.getEverythingStruct();  %#ok
 % write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -7381,7 +7381,7 @@ suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
 
 % Do eveything else.
 saved=false;  % default return
-data=handles.guidata.data;  % reference
+%data=handles.guidata.data;  % reference
 windowTitle=sprintf('Export Classifier...');
 [filename,pathname] = ...
   uiputfile(filterSpec, ...
@@ -7396,7 +7396,7 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
 % Extract the structure that will be saved in the file
-classifier=handles.guidata.data.getClassifier();
+classifier=handles.guidata.data.getClassifier();  %#ok
 % write the classifier structure to disk
 try
   save('-mat',fileNameAbs,'-struct','classifier');
@@ -8329,7 +8329,7 @@ data.setClassifier(classifier);
 % Note that we now need saving
 handles.guidata.needsave=true;
 
-% Not sure what this does
+% Not sure what this does  --ALT, March 15, 2013
 handles = SetPredictedPlot(handles);
 
 % Update the image that represents the prediction
