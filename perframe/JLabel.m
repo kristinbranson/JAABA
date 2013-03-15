@@ -1829,19 +1829,11 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 
 
 %--------------------------------------------------------------------------
-function handles = InitializeStateGivenProjectParams(handles,featureConfigParams)
-
-% sort out whether we have a config file or just config params
-% if isempty(handles.guidata.configfilename)
-%   projectThing=handles.guidata.configparams;
-% else
-%   projectThing=handles.guidata.configfilename;
-% end  
-projectThing=handles.guidata.configparams;
+function handles = InitializeStateGivenProjectParams(handles,projectParams,featureConfigParams)
 
 % initialize data structure
 handles.guidata.data = ...
-  JLabelData(projectThing,...
+  JLabelData(projectParams,...
              featureConfigParams, ...
              'defaultpath',handles.guidata.defaultpath,...
              'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
@@ -1870,16 +1862,16 @@ handles.guidata.label_imp = [];
 handles.guidata.nflies_curr = 0;
 
 % label colors
-if isfield(handles.guidata.configparams,'behaviors') && ...
-    isfield(handles.guidata.configparams.behaviors,'labelcolors'),
-  labelcolors = handles.guidata.configparams.behaviors.labelcolors;
+if isfield(projectParams,'behaviors') && ...
+    isfield(projectParams.behaviors,'labelcolors'),
+  labelcolors = projectParams.behaviors.labelcolors;
   if numel(labelcolors) >= 3*handles.guidata.data.nbehaviors,
     handles.guidata.labelcolors = reshape(labelcolors(1:3*handles.guidata.data.nbehaviors),[handles.guidata.data.nbehaviors,3]);
   else
     uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
-    if isfield(handles.guidata.configparams,'labels') && ...
-        isfield(handles.guidata.configparams.labels,'colormap'),
-      cm = handles.guidata.configparams.labels.colormap;
+    if isfield(projectParams,'labels') && ...
+        isfield(projectParams.labels,'colormap'),
+      cm = projectParams.labels.colormap;
     else
       cm = 'lines';
     end
@@ -1895,9 +1887,9 @@ if isfield(handles.guidata.configparams,'behaviors') && ...
   end
 end
 handles.guidata.labelunknowncolor = [0,0,0];
-if isfield(handles.guidata.configparams,'behaviors') && ...
-    isfield(handles.guidata.configparams.behaviors,'unknowncolor'),
-  unknowncolor = handles.guidata.configparams.behaviors.unknowncolor;
+if isfield(projectParams,'behaviors') && ...
+    isfield(projectParams.behaviors,'unknowncolor'),
+  unknowncolor = projectParams.behaviors.unknowncolor;
   if numel(unknowncolor) >= 3,
     handles.guidata.labelunknowncolor = reshape(unknowncolor(1:3),[1,3]);
   else
@@ -1905,22 +1897,22 @@ if isfield(handles.guidata.configparams,'behaviors') && ...
   end
 end
 handles.guidata.flies_extra_markersize = 12;
-if isfield(handles.guidata.configparams,'plot') && ...
-    isfield(handles.guidata.configparams.plot,'trx') && ...
-    isfield(handles.guidata.configparams.plot.trx,'extra_markersize'),
-  handles.guidata.flies_extra_markersize = handles.guidata.configparams.plot.trx.extra_markersize(1);
+if isfield(projectParams,'plot') && ...
+    isfield(projectParams.plot,'trx') && ...
+    isfield(projectParams.plot.trx,'extra_markersize'),
+  handles.guidata.flies_extra_markersize = projectParams.plot.trx.extra_markersize(1);
 end
 handles.guidata.flies_extra_marker = 'o';
-if isfield(handles.guidata.configparams,'plot') && ...
-    isfield(handles.guidata.configparams.plot,'trx') && ...
-    isfield(handles.guidata.configparams.plot.trx,'extra_marker'),
-  handles.guidata.flies_extra_marker = handles.guidata.configparams.plot.trx.extra_marker;
+if isfield(projectParams,'plot') && ...
+    isfield(projectParams.plot,'trx') && ...
+    isfield(projectParams.plot.trx,'extra_marker'),
+  handles.guidata.flies_extra_marker = projectParams.plot.trx.extra_marker;
 end
 handles.guidata.flies_extra_linestyle = '-';
-if isfield(handles.guidata.configparams,'plot') && ...
-    isfield(handles.guidata.configparams.plot,'trx') && ...
-    isfield(handles.guidata.configparams.plot.trx,'extra_linestyle'),
-  handles.guidata.flies_extra_linestyle = handles.guidata.configparams.plot.trx.extra_linestyle;
+if isfield(projectParams,'plot') && ...
+    isfield(projectParams.plot,'trx') && ...
+    isfield(projectParams.plot.trx,'extra_linestyle'),
+  handles.guidata.flies_extra_linestyle = projectParams.plot.trx.extra_linestyle;
 end
 
 for channel = 1:3
@@ -7555,9 +7547,9 @@ function setProjectParams(figureJLabel,projectParams,featureConfigParams)
 % Initializes the JLabel gui once the user selects the behavior.
 % This assumes that JLabel is curently a blank slate
 handles=guidata(figureJLabel);
-handles.guidata.configparams=projectParams;
+%handles.guidata.configparams=projectParams;
 handles=StoreGUIPositionsInternally(handles);
-handles=InitializeStateGivenProjectParams(handles,featureConfigParams);
+handles=InitializeStateGivenProjectParams(handles,projectParams,featureConfigParams);
 handles=InitializePlotsGivenProjectParams(handles);
 guidata(figureJLabel,handles);
 return
