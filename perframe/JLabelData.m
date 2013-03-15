@@ -202,8 +202,8 @@ classdef JLabelData < handle
     % this can be the same as the input root directory
     rootoutputdir = 0;
 
-    % name of classifier file to save/load classifier from
-    classifierfilename = '';
+    % % name of classifier file to save/load classifier from
+    % classifierfilename = '';
     
     % experiment info: expi indexes the following
     
@@ -720,14 +720,14 @@ classdef JLabelData < handle
         end
       end
       
-      % classifier
-      i = find(strcmpi(s,'classifierfilename'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetClassifierFileName(v{i});
-        if ~success,
-          error(msg);
-        end
-      end
+%       % classifier
+%       i = find(strcmpi(s,'classifierfilename'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetClassifierFileName(v{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
       
       % default path
       i = find(strcmpi(s,'defaultpath'),1);
@@ -1694,219 +1694,219 @@ classdef JLabelData < handle
     end    
 
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetClassifierFileName(self,classifierfilename,varargin)
-    % [success,msg] = SetClassifierFileName(obj,classifierfilename)
-    % Sets the name of the classifier file. If the classifier file exists, 
-    % it loads the data stored in the file. This involves removing all the
-    % experiments and data currently loaded, setting the config file,
-    % setting all the file names set in the config file, setting the
-    % experiments to be those listed in the classifier file, clearing all
-    % the previously computed window data and computing the window data for
-    % all the labeled frames. 
-      [classifierlabels,doreadconfigfile] = ...
-        myparse(varargin,...
-                'classifierlabels',false,...
-                'doreadconfigfile',true);
-      success = false;
-      msg = '';
-      self.classifierfilename = classifierfilename;
-      if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
-        classifierParams = load(self.classifierfilename);
-        [success,msg]= ...
-          self.setClassifierParamsOld(classifierParams, ...
-                                      'classifierfilename',classifierfilename, ...
-                                      'classifierlabels',classifierlabels, ...
-                                      'doreadconfigfile',doreadconfigfile);
-      end
-    end  % method
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetClassifierFileName(self,classifierfilename,varargin)
+%     % [success,msg] = SetClassifierFileName(obj,classifierfilename)
+%     % Sets the name of the classifier file. If the classifier file exists, 
+%     % it loads the data stored in the file. This involves removing all the
+%     % experiments and data currently loaded, setting the config file,
+%     % setting all the file names set in the config file, setting the
+%     % experiments to be those listed in the classifier file, clearing all
+%     % the previously computed window data and computing the window data for
+%     % all the labeled frames. 
+%       [classifierlabels,doreadconfigfile] = ...
+%         myparse(varargin,...
+%                 'classifierlabels',false,...
+%                 'doreadconfigfile',true);
+%       success = false;
+%       msg = '';
+%       self.classifierfilename = classifierfilename;
+%       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
+%         classifierParams = load(self.classifierfilename);
+%         [success,msg]= ...
+%           self.setClassifierParamsOld(classifierParams, ...
+%                                       'classifierfilename',classifierfilename, ...
+%                                       'classifierlabels',classifierlabels, ...
+%                                       'doreadconfigfile',doreadconfigfile);
+%       end
+%     end  % method
 
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = setClassifierParamsOld(obj, ...
-                                                    classifierParams, ...
-                                                    varargin)
-      % [success,msg] = SetClassifierFileName(obj,classifierfilename)
-      % Sets the name of the classifier file. If the classifier file exists,
-      % it loads the data stored in the file. This involves removing all the
-      % experiments and data currently loaded, setting the config file,
-      % setting all the file names set in the config file, setting the
-      % experiments to be those listed in the classifier file, clearing all
-      % the previously computed window data and computing the window data for
-      % all the labeled frames.
-      
-      [classifierlabels,doreadconfigfile,classifierfilename] = ...
-        myparse(varargin,...
-                'classifierlabels',false, ...
-                'doreadconfigfile',true, ...
-                'classifierfilename',0);
-    
-      success = false;  %#ok
-      msg = '';  %#ok
-      
-      obj.classifierfilename = classifierfilename;
-
-      if ischar(classifierParams.labelfilename) && ~strcmp(classifierParams.labelfilename,obj.labelfilename),
-        success = false;
-        msg = sprintf(['Label file name specified for the project (%s) don''t match' ...
-          ' the label file name used to train the classifier (%s). Not loading the classifier'],...
-          obj.labelfilename,classifierParams.labelfilename);
-        return;
-      end
-
-      if ischar(classifierfilename)
-        obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
-      else
-        obj.SetStatus('Loading classifier...');
-      end
-
-      % remove all experiments
-      obj.RemoveExpDirs(1:obj.nexps);
-
-      if doreadconfigfile,
-        % set config file
-        %     if ~strcmp(obj.configfilename,'configfilename'),
-        %       obj.SetConfigFileName(classifierParams.configfilename);
-        %     end
-
-        % set movie
-        [success,msg] = obj.SetMovieFileName(classifierParams.moviefilename);
-        if ~success,error(msg);end
-
-        % trx
-        [success,msg] = obj.SetTrxFileName(classifierParams.trxfilename);
-        if ~success,error(msg);end
-
-        % labelPreLoad
-        [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
-        if ~success,error(msg);end
-
-        % perframedir
-        [success,msg] = obj.SetPerFrameDir(classifierParams.perframedir);
-        if ~success,error(msg);end
-
-        % clipsdir
-        [success,msg] = obj.SetClipsDir(classifierParams.clipsdir);
-        if ~success,error(msg);end
-      end
-
-      % featureparamsfilename
-%           [success,msg] = obj.SetFeatureParamsFileName(classifierParams.featureparamsfilename);
-%           if ~success,error(msg);end
-
-      % load actual window features params instead of filename.
-      if all( isfield(classifierParams,{'windowfeaturesparams','windowfeaturescellparams',...
-                                  'basicFeatureTable','featureWindowSize'}))
-
-        classifierParams.windowfeaturesparams = JLabelData.convertTransTypes2Cell(classifierParams.windowfeaturesparams);
-        classifierParams.windowfeaturescellparams = JLabelData.convertParams2CellParams(classifierParams.windowfeaturesparams);
-        if ~( isequal(obj.windowfeaturesparams,classifierParams.windowfeaturesparams) && ...
-                isequal(obj.featureWindowSize,classifierParams.featureWindowSize)),
-            str = sprintf('Window feature parameters in the configuration file');
-            str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
-            str = sprintf('%s\nUsing parameters stored in the classifier file',str);
-            uiwait(warndlg(str));
-            obj.UpdatePerframeParams(classifierParams.windowfeaturesparams,...
-                                     classifierParams.basicFeatureTable,...
-                                     classifierParams.featureWindowSize);
-        end
-      end
-
-      if ~isfield(classifierParams,'featurenames')
-        feature_names = {};
-        for j = 1:numel(obj.curperframefns),
-          fn = obj.curperframefns{j};
-          [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
-            obj.windowfeaturescellparams.(fn){:});
-          feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
-          feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
-        end
-        obj.windowdata.featurenames = feature_names;
-      else
-        obj.windowdata.featurenames = classifierParams.featurenames;
-      end
-
-
-      % rootoutputdir
-%           [success,msg] = obj.SetRootOutputDir(classifierParams.rootoutputdir);
-%           if ~success,error(msg); end
-
-      % set experiment directories
-      if classifierlabels && isfield(classifierParams,'labels'),
-        [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
-          classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
-          classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
-        if ~success,error(msg); end
-        obj.labels = classifierParams.labels;
-        [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(obj.expi,obj.flies);
-        obj.labelidx_off = 1 - obj.t0_curr;
-        [success,msg] = obj.PreLoadPeriLabelWindowData();
-        if ~success,error(msg); end
-        obj.labelsLoadedFromClassifier = true;
-      else
-        if classifierlabels,
-          uiwait(warndlg('The classifier file didn''t have any labels. Loading the current labels'));
-        end
-        [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
-          classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
-          classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
-        if ~success,error(msg); end
-      end
-      [success,msg] = obj.UpdateStatusTable();
-      if ~success, error(msg); end
-
-      % update cached data
-%           obj.windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
-%             'labelidx_cur',[],'labelidx_new',[],'featurenames',{{}},...
-%             'predicted',[],'predicted_probs',[],'isvalidprediction',[]);
-      [success,msg] = obj.PreLoadPeriLabelWindowData();
-      if ~success,error(msg);end
-
-      obj.classifier = classifierParams.classifier;
-      obj.classifiertype = classifierParams.classifiertype;
-      obj.classifierTS = classifierParams.classifierTS;
-      obj.windowdata.scoreNorm = classifierParams.scoreNorm;
-      obj.confThresholds = classifierParams.confThresholds;
-      if isfield(classifierParams,'postprocessparams')
-        obj.postprocessparams = classifierParams.postprocessparams;
-      end
-
-      paramFields = fieldnames(classifierParams.classifier_params);
-      for ndx = 1:numel(paramFields)
-        obj.classifier_params.(paramFields{ndx}) = classifierParams.classifier_params.(paramFields{ndx});
-      end
-      % predict for all loaded examples
-      obj.PredictLoaded();
-
-      % set labelidx_cur
-      obj.SetTrainingData(classifierParams.trainingdata);
-
-%           if strcmp(obj.classifiertype,'boosting'),
-%             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
-%           end
-
-      % make sure inds is ordered correctly
-      if ~isempty(obj.classifier),
-        switch obj.classifiertype,
-
-          case 'ferns',
-            waslabeled = obj.windowdata.labelidx_cur ~= 0;
-            obj.classifier.inds = obj.predict_cache.last_predicted_inds(waslabeled,:);
-
-        end
-      end
-
-      % clear the cached per-frame, trx data
-      obj.ClearCachedPerExpData();
-
-%         catch ME,
-%           errordlg(getReport(ME),'Error loading classifier from file');
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = setClassifierParamsOld(obj, ...
+%                                                     classifierParams, ...
+%                                                     varargin)
+%       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
+%       % Sets the name of the classifier file. If the classifier file exists,
+%       % it loads the data stored in the file. This involves removing all the
+%       % experiments and data currently loaded, setting the config file,
+%       % setting all the file names set in the config file, setting the
+%       % experiments to be those listed in the classifier file, clearing all
+%       % the previously computed window data and computing the window data for
+%       % all the labeled frames.
+%       
+%       [classifierlabels,doreadconfigfile,classifierfilename] = ...
+%         myparse(varargin,...
+%                 'classifierlabels',false, ...
+%                 'doreadconfigfile',true, ...
+%                 'classifierfilename',0);
+%     
+%       success = false;  %#ok
+%       msg = '';  %#ok
+%       
+%       obj.classifierfilename = classifierfilename;
+% 
+%       if ischar(classifierParams.labelfilename) && ~strcmp(classifierParams.labelfilename,obj.labelfilename),
+%         success = false;
+%         msg = sprintf(['Label file name specified for the project (%s) don''t match' ...
+%           ' the label file name used to train the classifier (%s). Not loading the classifier'],...
+%           obj.labelfilename,classifierParams.labelfilename);
+%         return;
+%       end
+% 
+%       if ischar(classifierfilename)
+%         obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
+%       else
+%         obj.SetStatus('Loading classifier...');
+%       end
+% 
+%       % remove all experiments
+%       obj.RemoveExpDirs(1:obj.nexps);
+% 
+%       if doreadconfigfile,
+%         % set config file
+%         %     if ~strcmp(obj.configfilename,'configfilename'),
+%         %       obj.SetConfigFileName(classifierParams.configfilename);
+%         %     end
+% 
+%         % set movie
+%         [success,msg] = obj.SetMovieFileName(classifierParams.moviefilename);
+%         if ~success,error(msg);end
+% 
+%         % trx
+%         [success,msg] = obj.SetTrxFileName(classifierParams.trxfilename);
+%         if ~success,error(msg);end
+% 
+%         % labelPreLoad
+%         [success,msg] = obj.SetLabelFileName(classifierParams.labelfilename);
+%         if ~success,error(msg);end
+% 
+%         % perframedir
+%         [success,msg] = obj.SetPerFrameDir(classifierParams.perframedir);
+%         if ~success,error(msg);end
+% 
+%         % clipsdir
+%         [success,msg] = obj.SetClipsDir(classifierParams.clipsdir);
+%         if ~success,error(msg);end
+%       end
+% 
+%       % featureparamsfilename
+% %           [success,msg] = obj.SetFeatureParamsFileName(classifierParams.featureparamsfilename);
+% %           if ~success,error(msg);end
+% 
+%       % load actual window features params instead of filename.
+%       if all( isfield(classifierParams,{'windowfeaturesparams','windowfeaturescellparams',...
+%                                   'basicFeatureTable','featureWindowSize'}))
+% 
+%         classifierParams.windowfeaturesparams = JLabelData.convertTransTypes2Cell(classifierParams.windowfeaturesparams);
+%         classifierParams.windowfeaturescellparams = JLabelData.convertParams2CellParams(classifierParams.windowfeaturesparams);
+%         if ~( isequal(obj.windowfeaturesparams,classifierParams.windowfeaturesparams) && ...
+%                 isequal(obj.featureWindowSize,classifierParams.featureWindowSize)),
+%             str = sprintf('Window feature parameters in the configuration file');
+%             str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
+%             str = sprintf('%s\nUsing parameters stored in the classifier file',str);
+%             uiwait(warndlg(str));
+%             obj.UpdatePerframeParams(classifierParams.windowfeaturesparams,...
+%                                      classifierParams.basicFeatureTable,...
+%                                      classifierParams.featureWindowSize);
 %         end
-
-      obj.ClearStatus();
-      obj.classifierfilename = classifierfilename;
-      obj.FindFastPredictParams();
-    end  % setClassifierParamsOld() method
+%       end
+% 
+%       if ~isfield(classifierParams,'featurenames')
+%         feature_names = {};
+%         for j = 1:numel(obj.curperframefns),
+%           fn = obj.curperframefns{j};
+%           [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
+%             obj.windowfeaturescellparams.(fn){:});
+%           feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
+%           feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+%         end
+%         obj.windowdata.featurenames = feature_names;
+%       else
+%         obj.windowdata.featurenames = classifierParams.featurenames;
+%       end
+% 
+% 
+%       % rootoutputdir
+% %           [success,msg] = obj.SetRootOutputDir(classifierParams.rootoutputdir);
+% %           if ~success,error(msg); end
+% 
+%       % set experiment directories
+%       if classifierlabels && isfield(classifierParams,'labels'),
+%         [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
+%           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
+%           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
+%         if ~success,error(msg); end
+%         obj.labels = classifierParams.labels;
+%         [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(obj.expi,obj.flies);
+%         obj.labelidx_off = 1 - obj.t0_curr;
+%         [success,msg] = obj.PreLoadPeriLabelWindowData();
+%         if ~success,error(msg); end
+%         obj.labelsLoadedFromClassifier = true;
+%       else
+%         if classifierlabels,
+%           uiwait(warndlg('The classifier file didn''t have any labels. Loading the current labels'));
+%         end
+%         [success,msg] = obj.SetExpDirs(classifierParams.expdirs,classifierParams.outexpdirs,...
+%           classifierParams.nflies_per_exp,classifierParams.sex_per_exp,classifierParams.frac_sex_per_exp,...
+%           classifierParams.firstframes_per_exp,classifierParams.endframes_per_exp);
+%         if ~success,error(msg); end
+%       end
+%       [success,msg] = obj.UpdateStatusTable();
+%       if ~success, error(msg); end
+% 
+%       % update cached data
+% %           obj.windowdata = struct('X',[],'exp',[],'flies',[],'t',[],...
+% %             'labelidx_cur',[],'labelidx_new',[],'featurenames',{{}},...
+% %             'predicted',[],'predicted_probs',[],'isvalidprediction',[]);
+%       [success,msg] = obj.PreLoadPeriLabelWindowData();
+%       if ~success,error(msg);end
+% 
+%       obj.classifier = classifierParams.classifier;
+%       obj.classifiertype = classifierParams.classifiertype;
+%       obj.classifierTS = classifierParams.classifierTS;
+%       obj.windowdata.scoreNorm = classifierParams.scoreNorm;
+%       obj.confThresholds = classifierParams.confThresholds;
+%       if isfield(classifierParams,'postprocessparams')
+%         obj.postprocessparams = classifierParams.postprocessparams;
+%       end
+% 
+%       paramFields = fieldnames(classifierParams.classifier_params);
+%       for ndx = 1:numel(paramFields)
+%         obj.classifier_params.(paramFields{ndx}) = classifierParams.classifier_params.(paramFields{ndx});
+%       end
+%       % predict for all loaded examples
+%       obj.PredictLoaded();
+% 
+%       % set labelidx_cur
+%       obj.SetTrainingData(classifierParams.trainingdata);
+% 
+% %           if strcmp(obj.classifiertype,'boosting'),
+% %             [obj.windowdata.binVals, obj.windowdata.bins] = findThresholds(obj.windowdata.X);
+% %           end
+% 
+%       % make sure inds is ordered correctly
+%       if ~isempty(obj.classifier),
+%         switch obj.classifiertype,
+% 
+%           case 'ferns',
+%             waslabeled = obj.windowdata.labelidx_cur ~= 0;
+%             obj.classifier.inds = obj.predict_cache.last_predicted_inds(waslabeled,:);
+% 
+%         end
+%       end
+% 
+%       % clear the cached per-frame, trx data
+%       obj.ClearCachedPerExpData();
+% 
+% %         catch ME,
+% %           errordlg(getReport(ME),'Error loading classifier from file');
+% %         end
+% 
+%       obj.ClearStatus();
+%       obj.classifierfilename = classifierfilename;
+%       obj.FindFastPredictParams();
+%     end  % setClassifierParamsOld() method
 
     
     % ---------------------------------------------------------------------
@@ -1921,8 +1921,8 @@ classdef JLabelData < handle
       % the previously computed window data and computing the window data for
       % all the labeled frames.
       
-      % new-style everything files don't use classifier file names
-      self.classifierfilename = 0;
+      % % new-style everything files don't use classifier file names
+      % self.classifierfilename = 0;
 
       % Update the status bar
       self.SetStatus('Loading classifier and labels...');
@@ -2130,7 +2130,7 @@ classdef JLabelData < handle
       fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
 
       % new-style everything files don't use classifier file names
-      self.classifierfilename = 0;
+      %self.classifierfilename = 0;
 
       % Update the status bar
       self.SetStatus('Loading classifier...');
@@ -2196,126 +2196,126 @@ classdef JLabelData < handle
     end  % setClassifier() method
 
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetClassifierFileNameWoExp(obj,classifierfilename)
-
-      success = false;
-      msg = '';
-      
-      obj.classifierfilename = classifierfilename;
-      if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
-%         try
-
-          loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
-
-          if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
-            success = false;
-            msg = ['Label files specified for the project doesn''t match the labelfiles '...
-              'used to train the classifier. Not loading the classifier'];
-            return;
-          end
-          
-          obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
-
-          % remove all experiments
-          % obj.RemoveExpDirs(1:obj.nexps);
-
-          % set config file
-%           if ~strcmp(obj.configfilename,'configfilename'),
-%             obj.SetConfigFileName(loadeddata.configfilename);
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetClassifierFileNameWoExp(obj,classifierfilename)
+% 
+%       success = false;
+%       msg = '';
+%       
+%       obj.classifierfilename = classifierfilename;
+%       if ~isempty(classifierfilename) && exist(classifierfilename,'file'),
+% %         try
+% 
+%           loadeddata = load(obj.classifierfilename); %,obj.classifiervars{:});
+% 
+%           if ~strcmp(loadeddata.labelfilename,obj.labelfilename),
+%             success = false;
+%             msg = ['Label files specified for the project doesn''t match the labelfiles '...
+%               'used to train the classifier. Not loading the classifier'];
+%             return;
 %           end
-
-          % set movie
-          [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
-          if ~success,error(msg);end
-
-          % trx
-          [success,msg] = obj.SetTrxFileName(loadeddata.trxfilename);
-          if ~success,error(msg);end
-      
-          % label
-          [success,msg] = obj.SetLabelFileName(loadeddata.labelfilename);
-          if ~success,error(msg);end
-      
-          % perframedir
-          [success,msg] = obj.SetPerFrameDir(loadeddata.perframedir);
-          if ~success,error(msg);end
-
-          % clipsdir
-          [success,msg] = obj.SetClipsDir(loadeddata.clipsdir);
-          if ~success,error(msg);end
-
-          % featureparamsfilename
-%           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
+%           
+%           obj.SetStatus('Loading classifier from %s',obj.classifierfilename);
+% 
+%           % remove all experiments
+%           % obj.RemoveExpDirs(1:obj.nexps);
+% 
+%           % set config file
+% %           if ~strcmp(obj.configfilename,'configfilename'),
+% %             obj.SetConfigFileName(loadeddata.configfilename);
+% %           end
+% 
+%           % set movie
+%           [success,msg] = obj.SetMovieFileName(loadeddata.moviefilename);
 %           if ~success,error(msg);end
-
-          % load actual window features params instead of filename.
-          if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
-              'basicFeatureTable','featureWindowSize'}))
-            loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
-            loadeddata.windowfeaturescellparams = JLabelData.convertParams2CellParams(loadeddata.windowfeaturesparams);
-            if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-                  isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
-                str = sprintf('Window feature parameters in the configuration file');
-                str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
-                str = sprintf('%s\nUsing parameters stored in the classifier file',str);
-                uiwait(warndlg(str));
-                obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
-                  loadeddata.basicFeatureTable,...
-                  loadeddata.featureWindowSize,false);
-            else
-              obj.MoveCurPredictionsToOld();
-              
-              obj.windowdata.scoreNorm = [];
-              % To later find out where each example came from.
-              
-              %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
-              
-              obj.FindFastPredictParams();
-              obj.PredictLoaded();
-
-            end
-          end
-          
-          if ~isfield(loadeddata,'featurenames')
-            feature_names = {};
-            for j = 1:numel(obj.curperframefns),
-              fn = obj.curperframefns{j};
-              [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
-                obj.windowfeaturescellparams.(fn){:});
-              feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
-              feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
-            end
-            obj.windowdata.featurenames = feature_names;
-          else
-            obj.windowdata.featurenames = loadeddata.featurenames;
-          end
-          
-          % rootoutputdir
-%           [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
-%           if ~success,error(msg); end
-
-          [success,msg] = obj.UpdateStatusTable();
-          if ~success, error(msg); end
-                         
-
-          obj.classifier = loadeddata.classifier;
-          obj.classifiertype = loadeddata.classifiertype;
-          obj.classifierTS = loadeddata.classifierTS;
-          obj.classifier_params = loadeddata.classifier_params;
-          obj.windowdata.scoreNorm = loadeddata.scoreNorm;
-          obj.confThresholds = loadeddata.confThresholds;
-          obj.classifierfilename = classifierfilename;
-          paramFields = fieldnames(loadeddata.classifier_params);
-          for ndx = 1:numel(paramFields)
-            obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
-          end
-          % obj.ClearCachedPerExpData();
-          obj.ClearStatus();
-          obj.FindFastPredictParams();
- 
-      end
-    end
+% 
+%           % trx
+%           [success,msg] = obj.SetTrxFileName(loadeddata.trxfilename);
+%           if ~success,error(msg);end
+%       
+%           % label
+%           [success,msg] = obj.SetLabelFileName(loadeddata.labelfilename);
+%           if ~success,error(msg);end
+%       
+%           % perframedir
+%           [success,msg] = obj.SetPerFrameDir(loadeddata.perframedir);
+%           if ~success,error(msg);end
+% 
+%           % clipsdir
+%           [success,msg] = obj.SetClipsDir(loadeddata.clipsdir);
+%           if ~success,error(msg);end
+% 
+%           % featureparamsfilename
+% %           [success,msg] = obj.SetFeatureParamsFileName(loadeddata.featureparamsfilename);
+% %           if ~success,error(msg);end
+% 
+%           % load actual window features params instead of filename.
+%           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
+%               'basicFeatureTable','featureWindowSize'}))
+%             loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
+%             loadeddata.windowfeaturescellparams = JLabelData.convertParams2CellParams(loadeddata.windowfeaturesparams);
+%             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
+%                   isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
+%                 str = sprintf('Window feature parameters in the configuration file');
+%                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
+%                 str = sprintf('%s\nUsing parameters stored in the classifier file',str);
+%                 uiwait(warndlg(str));
+%                 obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
+%                   loadeddata.basicFeatureTable,...
+%                   loadeddata.featureWindowSize,false);
+%             else
+%               obj.MoveCurPredictionsToOld();
+%               
+%               obj.windowdata.scoreNorm = [];
+%               % To later find out where each example came from.
+%               
+%               %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
+%               
+%               obj.FindFastPredictParams();
+%               obj.PredictLoaded();
+% 
+%             end
+%           end
+%           
+%           if ~isfield(loadeddata,'featurenames')
+%             feature_names = {};
+%             for j = 1:numel(obj.curperframefns),
+%               fn = obj.curperframefns{j};
+%               [~,feature_names_curr] = ComputeWindowFeatures([0,0],...
+%                 obj.windowfeaturescellparams.(fn){:});
+%               feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr,'UniformOutput',false);
+%               feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+%             end
+%             obj.windowdata.featurenames = feature_names;
+%           else
+%             obj.windowdata.featurenames = loadeddata.featurenames;
+%           end
+%           
+%           % rootoutputdir
+% %           [success,msg] = obj.SetRootOutputDir(loadeddata.rootoutputdir);
+% %           if ~success,error(msg); end
+% 
+%           [success,msg] = obj.UpdateStatusTable();
+%           if ~success, error(msg); end
+%                          
+% 
+%           obj.classifier = loadeddata.classifier;
+%           obj.classifiertype = loadeddata.classifiertype;
+%           obj.classifierTS = loadeddata.classifierTS;
+%           obj.classifier_params = loadeddata.classifier_params;
+%           obj.windowdata.scoreNorm = loadeddata.scoreNorm;
+%           obj.confThresholds = loadeddata.confThresholds;
+%           obj.classifierfilename = classifierfilename;
+%           paramFields = fieldnames(loadeddata.classifier_params);
+%           for ndx = 1:numel(paramFields)
+%             obj.classifier_params.(paramFields{ndx}) = loadeddata.classifier_params.(paramFields{ndx});
+%           end
+%           % obj.ClearCachedPerExpData();
+%           obj.ClearStatus();
+%           obj.FindFastPredictParams();
+%  
+%       end
+%     end
 
     
     % ---------------------------------------------------------------------
@@ -2618,21 +2618,21 @@ classdef JLabelData < handle
     
     %----------------------------------------------------------------------
     
-    function SaveClassifier(obj)
-    % SaveClassifier(obj)
-    % This function saves the current classifier to the file
-    % obj.classifierfilename. It first constructs a struct representing the
-    % training data last used to train the classifier, then adds all the
-    % data described in obj.classifiervars.       
-      
-      try
-        s=obj.saveableClassifier;  %#ok
-        save(obj.classifierfilename,'-struct','s');
-      catch ME,
-        errordlg(getReport(ME),'Error saving classifier to file');
-      end      
-      
-    end
+%     function SaveClassifier(obj)
+%     % SaveClassifier(obj)
+%     % This function saves the current classifier to the file
+%     % obj.classifierfilename. It first constructs a struct representing the
+%     % training data last used to train the classifier, then adds all the
+%     % data described in obj.classifiervars.       
+%       
+%       try
+%         s=obj.saveableClassifier;  %#ok
+%         save(obj.classifierfilename,'-struct','s');
+%       catch ME,
+%         errordlg(getReport(ME),'Error saving classifier to file');
+%       end      
+%       
+%     end
 
     %----------------------------------------------------------------------
     
@@ -6699,6 +6699,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function newError = TestOnNewLabels(obj)
       obj.StoreLabelsAndPreLoadWindowData();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
@@ -6772,6 +6774,7 @@ classdef JLabelData < handle
 % Show similar frames
     
 
+    % ---------------------------------------------------------------------
     function DoBagging(obj)
 
       obj.StoreLabelsAndPreLoadWindowData();

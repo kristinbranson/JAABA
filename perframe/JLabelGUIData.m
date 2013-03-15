@@ -5,7 +5,7 @@ classdef JLabelGUIData < handle
     previousConfigFileName = '';
     
     classifierfilename = '';
-    configfilename = '';
+    %configfilename = '';
     defaultpath = '';
     packageoutputdir = '';
     
