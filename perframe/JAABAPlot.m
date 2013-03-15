@@ -379,11 +379,9 @@ switch(handles.analysis)
   case 'feature_histogram'
     set(handles.FeatureHistogram,'backgroundcolor',fg);
     set(handles.FeatureHistogram,'foregroundcolor',bg);
-    set(handles.StyleList,'string',...
-        {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means'},...
+    set(handles.StyleList,'string',handles.featurehistogram_stylelist,...
         'value',handles.featurehistogram_style);
-    set(handles.StyleList2,'string',...
-        {'per Frame','Mean per Bout','Median per Bout','Max per Bout','Min per Bout','Std. Dev. per Bout'},...
+    set(handles.StyleList2,'string',handles.featurehistogram_stylelist2,...
         'value',handles.featurehistogram_perwhat);
     if(strcmp(get(handles.FeatureHistogram,'enable'),'off'))
       analysis2='';
@@ -400,11 +398,9 @@ switch(handles.analysis)
   case 'feature_timeseries'
     set(handles.FeatureTimeSeries,'backgroundcolor',fg);
     set(handles.FeatureTimeSeries,'foregroundcolor',bg);
-    set(handles.StyleList,'string',...
-        {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means'},...
+    set(handles.StyleList,'string',handles.featuretimeseries_stylelist,...
         'value',handles.featuretimeseries_style);
-    set(handles.StyleList2,'string',...
-        {'Entire Recording','Onset Triggered','Offset Triggered'},...
+    set(handles.StyleList2,'string',handles.featuretimeseries_stylelist2,...
         'value',handles.featuretimeseries_timing);
     if(strcmp(get(handles.FeatureTimeSeries,'enable'),'off'))
       analysis2='';
@@ -420,9 +416,7 @@ switch(handles.analysis)
   case 'behavior_barchart'
     set(handles.BehaviorBarChart,'backgroundcolor',fg);
     set(handles.BehaviorBarChart,'foregroundcolor',bg);
-    set(handles.StyleList,'string',...
-        {'per Group','per Experiment, CT & D','per Experiment, box',...
-         'per Fly, grouped','per Fly, scatter','per Fly, trajectory length'},...
+    set(handles.StyleList,'string',handles.behaviorbarchart_stylelist,...
         'value',handles.behaviorbarchart_perwhat);
     set(handles.StyleList2,'string',{''},'value',1);
     if(strcmp(get(handles.BehaviorBarChart,'enable'),'off'))
@@ -435,8 +429,7 @@ switch(handles.analysis)
   case 'behavior_timeseries'
     set(handles.BehaviorTimeSeries,'backgroundcolor',fg);
     set(handles.BehaviorTimeSeries,'foregroundcolor',bg);
-    set(handles.StyleList,'string',...
-        {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means'},...
+    set(handles.StyleList,'string',handles.behaviortimeseries_stylelist,...
         'value',handles.behaviortimeseries_style);
     set(handles.StyleList2,'string',{''},'value',1);
     if(strcmp(get(handles.BehaviorTimeSeries,'enable'),'off'))
@@ -450,11 +443,9 @@ switch(handles.analysis)
   case 'bout_stats'
     set(handles.BoutStats,'backgroundcolor',fg);
     set(handles.BoutStats,'foregroundcolor',bg);
-    set(handles.StyleList,'string',...
-        {'per Experiment, CT & D', 'per Fly, grouped'},...
+    set(handles.StyleList,'string',handles.boutstats_stylelist,...
         'value',handles.boutstats_style);
-    set(handles.StyleList2,'string',...
-        {'Bout Length','Inter-bout Length'},...
+    set(handles.StyleList2,'string',handles.boutstats_stylelist2,...
         'value',handles.boutstats_style2);
     if(strcmp(get(handles.BoutStats,'enable'),'off'))
       analysis2='';
@@ -601,6 +592,24 @@ if(exist('matlabpool')==2 && matlabpool('size')==0)
   end
 
 end
+
+handles.featurehistogram_stylelist=...
+    {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means'};
+handles.featurehistogram_stylelist2=...
+    {'per Frame','Mean per Bout','Median per Bout','Max per Bout','Min per Bout','Std. Dev. per Bout'};
+handles.featuretimeseries_stylelist=...
+    {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means'};
+handles.featuretimeseries_stylelist2=...
+    {'Entire Recording','Onset Triggered','Offset Triggered'};
+handles.behaviorbarchart_stylelist=...
+    {'per Group','per Experiment, CT & D','per Experiment, box',...
+     'per Fly, grouped','per Fly, scatter','per Fly, trajectory length'};
+handles.behaviortimeseries_stylelist=...
+    {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means'};
+handles.boutstats_stylelist=...
+    {'per Experiment, CT & D', 'per Fly, grouped'};
+handles.boutstats_stylelist2=...
+    {'Bout Length','Inter-bout Length'};
 
 if isdeployed,
   handles.rcfilename = deployedRelative2Global('most_recent_config.mat');
@@ -974,6 +983,7 @@ if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
     newexperiments=newexperiments(1:3:end);
   end
 end
+newexperiments=[cellfun(@(x) regexprep(x,'/$',''),newexperiments,'uniformoutput',false)];
 if((length(handles.grouplist)==0)&&(~exist('newgroups','var')))
   uiwait(errordlg('Add a new group before adding ungrouped experiments'));
   return;
@@ -1553,12 +1563,24 @@ if(length(handles.experimentlist)>1)
   table=tmp2;
 end
 
-figure;
-uitable('units','normalized','position',[0 0 1 1],...
-    'Data',table,'ColumnName',{''},'RowName',[]);
+%figure('menubar','none','toolbar','none','numbertitle','off',...
+%    'name','classifier check');
+%uitable('units','normalized','position',[0 0 1 1],...
+%    'Data',table,'ColumnName',{''},'RowName',[]);
 %6*max(cellfun(@length,table),[],1);
 %set(t,'ColumnWidth',mat2cell(ans,1,ones(1,length(ans))));
 %set(handles.Table,'ColumnWidth','auto');
+
+hf=figure('menubar','none','toolbar','none','numbertitle','off',...
+    'name','classifier check');
+ht=uitable('data',table,'columnwidth',num2cell(8*max(cellfun(@length,table))),...
+    'rowname',[],'columnname',{''},'rowstriping','off');
+extT=get(ht,'extent');
+posF=get(hf,'position');
+%set(hf,'position',[posF(1) posF(2) 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(hf,'position',[posF(1) posF(2) min(posF(3),16*(posF(4)<extT(4))+extT(3)) min(posF(4),extT(4))]);
+%set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(ht,'units','normalized','position',[0 0 1 1]);
 
 %handles.table_data=table;
 %handles.table='classifier';
@@ -2135,10 +2157,6 @@ fid=fopen('most_recent_figure.csv','w');
 handles.type='feature histogram';
 
 figure('toolbar','figure');  hold on;
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
-    'callback',@figure_params_callback);
-uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
-    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
@@ -2355,7 +2373,11 @@ else
   legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
 if(ischar(individual) && ((length(handles.grouplist)>1) || (comparison>0)))
+  uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+      'callback',@figure_stats_callback);
   if((length(bb)==1) && (bb==0))
     {'all frames'};
   else
@@ -2563,12 +2585,19 @@ idx=find(~isnan(tmp2(:,8)));
 tmp(idx,8)=cellstr(num2str(tmp2(idx,8)));
 
 handles2.figure1=handles.figure1;
-handles2.figure2=figure;
-handles2.Table=uitable('Data',tmp,'units','normalized','position',[0 0 1 1],...
+handles2.figure2=figure('menubar','none','toolbar','none','numbertitle','off',...
+    'name','interesting feature histograms');
+handles2.Table=uitable('Data',tmp,...
     'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd''' 'd''-AF'},...
     'ColumnWidth',num2cell(7*max(cellfun(@length,tmp))),...
-    'RowStriping','on','BackgroundColor',[1 1 1; 0.95 0.95 0.95],...
+    'RowName',[],'RowStriping','on','BackgroundColor',[1 1 1; 0.95 0.95 0.95],...
     'CellSelectionCallback',@CellSelectionCallback);
+extT=get(handles2.Table,'extent');
+posF=get(handles2.figure2,'position');
+%set(hf,'position',[posF(1) posF(2) 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(handles2.figure2,'position',[posF(1) posF(2) min(posF(3),16*(posF(4)<extT(4))+extT(3)) min(posF(4),extT(4))]);
+%set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(handles2.Table,'units','normalized','position',[0 0 1 1]);
 handles2.table_data=tmp2;
 handles2.table='histogram';
 guidata(handles2.figure2,handles2);
@@ -2696,10 +2725,6 @@ fid=fopen('most_recent_figure.csv','w');
 handles.type='feature time series';
 
 figure('toolbar','figure');  hold on;
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
-    'callback',@figure_params_callback);
-%uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
-%    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(handles.featuretimeseries_timing==1)  bb=1;  end
@@ -2876,6 +2901,9 @@ if ischar(individual)
 else
   legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
+
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
 
 fclose(fid);
 
@@ -3231,7 +3259,7 @@ if(handles.behaviorvalue3>1)
   score_file3=handles.scorefiles{handles.behaviorvalue3-1};
 end
 sexdata=handles.sexdata;
-perwhat=handles.behaviorbarchart_perwhat;
+%perwhat=handles.behaviorbarchart_perwhat;
 behaviornot=handles.behaviornot;
 
 h={};
@@ -3557,10 +3585,6 @@ fid=fopen('most_recent_figure.csv','w');
 handles.type='behavior time series';
 
 figure('toolbar','figure');  hold on;
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
-    'callback',@figure_params_callback);
-%uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
-%    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
@@ -3786,6 +3810,9 @@ else
   legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
+
 fclose(fid);
 
 guidata(gcf,handles);
@@ -3884,10 +3911,6 @@ fid=fopen('most_recent_figure.csv','w');
 handles.type='bout stats';
 
 figure('toolbar','figure');  hold on;
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
-    'callback',@figure_params_callback);
-uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
-    'callback',@figure_stats_callback);
 
 bb=handles.behaviorvalue;
 if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
@@ -4060,7 +4083,11 @@ end
 %  legend(h(idx),handles.individuallist(handles.individualvalue));
 %end
 
+uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
 if(ischar(individual) && (length(handles.grouplist)>1))
+  uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+      'callback',@figure_stats_callback);
   handles.statistics=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,...
       fid,handles.pvalue);
 %  set(handles.Table,'Data',tmp);
@@ -4597,13 +4624,16 @@ function figure_stats_callback(src,evt)
 handles=guidata(src);
 
 len=max(cellfun(@(x) length(regexprep(num2str(x),'<[^<]*>','*')),handles.statistics));
-hf=figure('menubar','none','toolbar','none','numbertitle','off','name',['statistics for Figure ' num2str(gcbf)]);
-posF=get(hf,'position');
+hf=figure('menubar','none','toolbar','none','numbertitle','off',...
+    'name',['statistics for Figure ' num2str(gcbf)]);
 ht=uitable('data',handles.statistics,'columnwidth',num2cell(8*len),...
-    'rowname',[],'columnname',[],'units','normalized','position',[0 0 1 1]);
-%extT=get(ht,'extent');
-%set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+    'rowname',[],'columnname',[],'rowstriping','off');
+extT=get(ht,'extent');
+posF=get(hf,'position');
 %set(hf,'position',[posF(1) posF(2) 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(hf,'position',[posF(1) posF(2) min(posF(3),16*(posF(4)<extT(4))+extT(3)) min(posF(4),extT(4))]);
+%set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(ht,'units','normalized','position',[0 0 1 1]);
 
 
 
@@ -4614,36 +4644,36 @@ handles=guidata(src);
 
 CT={'Mean' 'Median' 'Mode'};
 D={'Std. Dev.' 'Std. Err.' '5%-95%' '25%-75%'};
-style={'Central Tendency' 'Central Tendency & Dispersion' 'Overlayed per-Exp Means'};
-behaviorbarchart_perwhat={'per Group' 'per Experiment' 'per Fly' 'per Fly'};
-featurehistogram_perwhat={'per Frame' 'Mean per Bout' 'Median per Bout' 'Max per Bout' 'Min per Bout' 'Std. Dev. per Bout'};
-featuretimeseries_timing={'Entire Recording' 'Onset Triggered' 'Offset Triggered'};
+%style={'Central Tendency' 'Central Tendency & Dispersion' 'Overlayed per-Exp Means'};
+%behaviorbarchart_perwhat={'per Group' 'per Experiment' 'per Fly' 'per Fly'};
+%featurehistogram_perwhat={'per Frame' 'Mean per Bout' 'Median per Bout' 'Max per Bout' 'Min per Bout' 'Std. Dev. per Bout'};
+%featuretimeseries_timing={'Entire Recording' 'Onset Triggered' 'Offset Triggered'};
 xoffset={'none', 'start', 'min(start)'};
-boutstats_style={'per Experiment, CT&D' 'per Fly, grouped'};
-boutstats_style2={'Bout Length' 'Inter-Bout Length'};
+%boutstats_style={'per Experiment, CT&D' 'per Fly, grouped'};
+%boutstats_style2={'Bout Length' 'Inter-Bout Length'};
 
 tmp={};
 
 switch handles.type
-  case 'behavior bar chart'
-    tmp{end+1}=['perwhat = ' behaviorbarchart_perwhat{handles.behaviorbarchart_perwhat}];
-  case 'behavior time series'
-    tmp{end+1}=['style = ' style{handles.behaviortimeseries_style}];
   case 'feature histogram'
-    tmp{end+1}=['perwhat = ' featurehistogram_perwhat{handles.featurehistogram_perwhat}];
-    tmp{end+1}=['style = ' style{handles.featurehistogram_style}];
+    tmp{end+1}=['perwhat = ' handles.featurehistogram_stylelist{handles.featurehistogram_perwhat}];
+    tmp{end+1}=['style = ' handles.featurehistogram_stylelist2{handles.featurehistogram_style}];
     tmp{end+1}=['logbinsize=' num2str(handles.logbinsize)];
     tmp{end+1}=['allframes=' num2str(handles.comparison==1)];
     tmp{end+1}=['notduring=' num2str(handles.comparison==2)];
     tmp{end+1}=['nbins=' num2str(handles.nbins)];
   case 'feature time series'
-    tmp{end+1}=['timing = ' featuretimeseries_timing{handles.featuretimeseries_timing}];
-    tmp{end+1}=['style = ' style{handles.featuretimeseries_style}];
+    tmp{end+1}=['style = ' handles.featuretimeseries_stylelist{handles.featuretimeseries_style}];
+    tmp{end+1}=['timing = ' handles.featuretimeseries_stylelist2{handles.featuretimeseries_timing}];
     tmp{end+1}=['subtractmean=' num2str(handles.subtractmean)];
     tmp{end+1}=['windowradius=' num2str(handles.windowradius)];
+  case 'behavior bar chart'
+    tmp{end+1}=['perwhat = ' handles.behaviorbarchart_stylelist{handles.behaviorbarchart_perwhat}];
+  case 'behavior time series'
+    tmp{end+1}=['style = ' handles.behaviortimeseries_stylelist{handles.behaviortimeseries_style}];
   case 'bout stats'
-    tmp{end+1}=['style = ' boutstats_style{handles.boutstats_style}];
-    tmp{end+1}=['style2 = ' boutstats_style2{handles.boutstats_style2}];
+    tmp{end+1}=['style = ' handles.boutstats_stylelist{handles.boutstats_style}];
+    tmp{end+1}=['style2 = ' handles.boutstats_stylelist2{handles.boutstats_style2}];
 end
 tmp{end+1}='';
 
@@ -4662,7 +4692,16 @@ for g=1:length(handles.grouplist)
   tmp{end+1}='';
 end
 
-h=msgbox(tmp,['parameters for Figure ' num2str(gcbf)],'replace');
+hf=figure('menubar','none','toolbar','none','numbertitle','off',...
+    'name',['parameters for Figure ' num2str(gcbf)]);
+ht=uitable('data',tmp','columnwidth',num2cell(8*max(cellfun(@length,tmp))),...
+    'rowname',[],'columnname',[],'rowstriping','off');
+extT=get(ht,'extent');
+posF=get(hf,'position');
+%set(hf,'position',[posF(1) posF(2) 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(hf,'position',[posF(1) posF(2) min(posF(3),16*(posF(4)<extT(4))+extT(3)) min(posF(4),extT(4))]);
+%set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
+set(ht,'units','normalized','position',[0 0 1 1]);
 
 
 
