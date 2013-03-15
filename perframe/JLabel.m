@@ -62,13 +62,11 @@ handles.guidata = JLabelGUIData();
 
 % parse optional inputs
 [handles.guidata.classifierfilename,...
-  handles.guidata.configfilename,...
   handles.guidata.defaultpath,...
   handles.guidata.hsplash,...
   handles.guidata.hsplashstatus] = ...
   myparse(varargin,...
   'classifierfilename','',...
-  'configfilename','',...
   'defaultpath','',...
   'hsplash',[],...
   'hsplashstatus',[]);
@@ -1751,96 +1749,97 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% -------------------------------------------------------------------------
-function [handles,success] = LoadConfig(handles,forceui)
-
-if ~exist('forceui','var'),
-  forceui = false;
-end
-
-% initialize output to success = false
-success = false;
-
-% get config file
-havefilename = false;
-if ~forceui && ~isempty(handles.guidata.configfilename),
-  havefilename = true;
-end
-
-% default config file name
-if isempty(handles.guidata.configfilename),
-  defaultconfigfilename = fullfile(handles.guidata.defaultpath,'JLabelConfig.xml');
-else
-  defaultpath = myfileparts(handles.guidata.configfilename);
-  if exist(defaultpath,'file'),
-    handles.guidata.defaultpath = defaultpath;
-  end
-  defaultconfigfilename = handles.guidata.configfilename;
-end
-
-% loop until we have a valid config file
-while true,
-
-  if ~havefilename,
-    
-    if ~exist(defaultconfigfilename,'file'),
-      defaultconfigfilename = handles.guidata.defaultpath;
-    end
-  
-    % get from user
-    [filename,pathname] = uigetfile('*.xml','Choose XML config file',defaultconfigfilename);
-    
-    % if cancel clicked, just return
-    if ~ischar(filename),
-      return;
-    end
-    
-    handles.guidata.configfilename = fullfile(pathname,filename);
-
-    % store path as default
-    handles.guidata.defaultpath = pathname;
-
-  end
-  
-  % make sure the file exists
-  if ~exist(handles.guidata.configfilename,'file'),
-    havefilename = false;
-    uiwait(warndlg(sprintf('File %s does not exist',handles.guidata.configfilename),'Error reading config file'));
-    continue;
-  end
-    
-%   try
-  [~,~,ext] = fileparts(handles.guidata.configfilename);
-  if strcmp(ext,'.xml')
-    JLabelHandle.guidata.configparams = ReadXMLConfigParams(handles.guidata.configfilename);
-  elseif strcmp(ext,'.mat')
-    JLabelHandle.guidata.configparams = load(handles.guidata.configfilename);
-  else
-    errordlg('Project file is not a valid');
-  end
-%   catch ME,
-%     uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.guidata.configfilename,getReport(ME)),'Error reading config file'));
+% % -------------------------------------------------------------------------
+% function [handles,success] = LoadConfig(handles,forceui)
+% 
+% if ~exist('forceui','var'),
+%   forceui = false;
+% end
+% 
+% % initialize output to success = false
+% success = false;
+% 
+% % get config file
+% havefilename = false;
+% % if ~forceui && ~isempty(handles.guidata.configfilename),
+% %   havefilename = true;
+% % end
+% 
+% % default config file name
+% if isempty(handles.guidata.configfilename),
+%   defaultconfigfilename = fullfile(handles.guidata.defaultpath,'JLabelConfig.xml');
+% else
+%   defaultpath = myfileparts(handles.guidata.configfilename);
+%   if exist(defaultpath,'file'),
+%     handles.guidata.defaultpath = defaultpath;
+%   end
+%   defaultconfigfilename = handles.guidata.configfilename;
+% end
+% 
+% % loop until we have a valid config file
+% while true,
+% 
+%   if ~havefilename,
+%     
+%     if ~exist(defaultconfigfilename,'file'),
+%       defaultconfigfilename = handles.guidata.defaultpath;
+%     end
+%   
+%     % get from user
+%     [filename,pathname] = uigetfile('*.xml','Choose XML config file',defaultconfigfilename);
+%     
+%     % if cancel clicked, just return
+%     if ~ischar(filename),
+%       return;
+%     end
+%     
+%     handles.guidata.configfilename = fullfile(pathname,filename);
+% 
+%     % store path as default
+%     handles.guidata.defaultpath = pathname;
+% 
+%   end
+%   
+%   % make sure the file exists
+%   if ~exist(handles.guidata.configfilename,'file'),
 %     havefilename = false;
+%     uiwait(warndlg(sprintf('File %s does not exist',handles.guidata.configfilename),'Error reading config file'));
 %     continue;
 %   end
-  
-  % success -- break
-  break;
-
-end
-
-success = true;
+%     
+% %   try
+%   [~,~,ext] = fileparts(handles.guidata.configfilename);
+%   if strcmp(ext,'.xml')
+%     JLabelHandle.guidata.configparams = ReadXMLConfigParams(handles.guidata.configfilename);
+%   elseif strcmp(ext,'.mat')
+%     JLabelHandle.guidata.configparams = load(handles.guidata.configfilename);
+%   else
+%     errordlg('Project file is not a valid');
+%   end
+% %   catch ME,
+% %     uiwait(warndlg(sprintf('Error reading configuration from file %s: %s',handles.guidata.configfilename,getReport(ME)),'Error reading config file'));
+% %     havefilename = false;
+% %     continue;
+% %   end
+%   
+%   % success -- break
+%   break;
+% 
+% end
+% 
+% success = true;
 
 
 %--------------------------------------------------------------------------
 function handles = InitializeStateGivenProjectParams(handles,featureConfigParams)
 
 % sort out whether we have a config file or just config params
-if isempty(handles.guidata.configfilename)
-  projectThing=handles.guidata.configparams;
-else
-  projectThing=handles.guidata.configfilename;
-end  
+% if isempty(handles.guidata.configfilename)
+%   projectThing=handles.guidata.configparams;
+% else
+%   projectThing=handles.guidata.configfilename;
+% end  
+projectThing=handles.guidata.configparams;
 
 % initialize data structure
 handles.guidata.data = ...
@@ -2726,10 +2725,10 @@ function handles = SaveRC(handles)
   % cache size
   rc.cacheSize = handles.guidata.cacheSize;
   
-  % save the configfilename, if present
-  if ~isempty(handles.guidata.configfilename),
-    rc.previousConfigFileName = handles.guidata.configfilename;
-  end
+  % % save the configfilename, if present
+  % if ~isempty(handles.guidata.configfilename),
+  %   rc.previousConfigFileName = handles.guidata.configfilename;
+  % end
   
   save(handles.guidata.rcfilename,'-struct','rc');
 
@@ -7602,13 +7601,13 @@ data=handles.guidata.data;
 return
 
 
-% -------------------------------------------------------------------------
-function configfilename=getConfigFileName(figureJLabel)
-
-handles=guidata(figureJLabel);
-configfilename=handles.guidata.configfilename;
-
-return
+% % -------------------------------------------------------------------------
+% function configfilename=getConfigFileName(figureJLabel)
+% 
+% handles=guidata(figureJLabel);
+% configfilename=handles.guidata.configfilename;
+% 
+% return
 
 
 % -------------------------------------------------------------------------
