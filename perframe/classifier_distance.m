@@ -2,7 +2,7 @@
 %% Set the classifier and find a bagging model.
 
 SetUpJAABAPath;
-clfile = '/groups/branson/home/robiea/Code_versioned/Jdetect_github/Jdetect/perframe/ChaseAR_newv9.mat';
+clfile = '/groups/branson/home/robiea/Code_versioned/Jdetect_github/Jdetect/perframe/BodyTurnsv2p1.mat';
 cl = load(clfile);
 configfile = cl.configfilename;
 data = JLabelData(configfile,'openmovie',false);
@@ -282,8 +282,9 @@ z = figure;
 corr_newalpha = [];
 corr_oldalpha = [];
 
-for rep = 1:5
-  selext = randsample(mostmistakes,1);
+for rep = 1:numel(mostmistakes) % 1:5
+  selext = rep;
+%   selext = randsample(mostmistakes,1);
   mean_dist = zeros(size(data.windowdata.X,1),1);
   for bndx = 1:numel(oldBagModels)
     distMat = BagDistMat(data.windowdata.X,oldBagModels(bndx));
@@ -295,14 +296,14 @@ for rep = 1:5
   
   mean_dist(idx2rem) = [];
   mean_distfast(idx2rem) = [];
-  figure(z); subplot(2,5,rep); scatter(mean_dist,mean_distfast,'.');
-  title(sprintf('Corrcoef: %5f',corr(mean_dist,mean_distfast)));
+%   figure(z); subplot(2,5,rep); scatter(mean_dist,mean_distfast,'.');
+%   title(sprintf('Corrcoef: %5f',corr(mean_dist,mean_distfast)));
   corr_newalpha(rep) = corr(mean_dist,mean_distfast);
 
   mean_distfast = sum(abs(distmatfast_old-repmat(distmatfast_old(selext,:),size(distmatfast_old,1),1)),2);
   mean_distfast(idx2rem) = [];
-  figure(z); subplot(2,5,5+rep); scatter(mean_dist,mean_distfast,'.');
-  title(sprintf('Corrcoef: %5f',corr(mean_dist,mean_distfast)));
+%   figure(z); subplot(2,5,5+rep); scatter(mean_dist,mean_distfast,'.');
+%   title(sprintf('Corrcoef: %5f',corr(mean_dist,mean_distfast)));
   corr_oldalpha(rep) = corr(mean_dist,mean_distfast);
 end
 
