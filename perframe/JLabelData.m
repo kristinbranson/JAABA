@@ -170,15 +170,16 @@ classdef JLabelData < handle
     % configfilename = '';
     
     % constant: files per experiment directory
-    filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir','scores'};
+    %filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir','scores'};
+    filetypes = {'movie','trx','perframedir','clipsdir','scores'};
     
     % config parameters
     
     % locations of files within experiment directories
     moviefilename = 0;
     trxfilename = 0;
-    labelfilename = 0;
-    gt_labelfilename = 0;
+    %labelfilename = 0;
+    %gt_labelfilename = 0;
     scorefilename = 0;
     perframedir = 0;
     clipsdir = 0;
@@ -675,14 +676,14 @@ classdef JLabelData < handle
         end
       end
       
-      % label
-      i = find(strcmpi(s,'labelfilename'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetLabelFileName(v{i});
-        if ~success,
-          error(msg);
-        end
-      end
+%       % label
+%       i = find(strcmpi(s,'labelfilename'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetLabelFileName(v{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
 
       % perframedir
       i = find(strcmpi(s,'perframedir'),1);
@@ -854,7 +855,7 @@ classdef JLabelData < handle
 
     % ---------------------------------------------------------------------
 
-    function [success,msg] = setProjectParams(obj,configparams)
+    function [success,msg] = setProjectParams(obj,projectParams)
     % function [success,msg] = setProjectParams(obj,configparams,configfilename)
       % set default return values
       success = false;
@@ -869,11 +870,11 @@ classdef JLabelData < handle
 %       end
         
       % load in the rest of the stuff
-      if isfield(configparams,'behaviors'),
+      if isfield(projectParams,'behaviors'),
         
         % read in behavior names
-        if isfield(configparams.behaviors,'names'),
-          obj.labelnames = configparams.behaviors.names;
+        if isfield(projectParams.behaviors,'names'),
+          obj.labelnames = projectParams.behaviors.names;
           if ~iscell(obj.labelnames),
             obj.labelnames = {obj.labelnames};
           end
@@ -907,33 +908,33 @@ classdef JLabelData < handle
         
       end
 
-      if isfield(configparams,'file'),
-        if isfield(configparams.file,'moviefilename'),
-          [success1,msg] = obj.SetMovieFileName(configparams.file.moviefilename);
+      if isfield(projectParams,'file'),
+        if isfield(projectParams.file,'moviefilename'),
+          [success1,msg] = obj.SetMovieFileName(projectParams.file.moviefilename);
           if ~success1,
             return;
           end
         end
-        if isfield(configparams.file,'trxfilename'),
-          [success1,msg] = obj.SetTrxFileName(configparams.file.trxfilename);
+        if isfield(projectParams.file,'trxfilename'),
+          [success1,msg] = obj.SetTrxFileName(projectParams.file.trxfilename);
           if ~success1,
             return;
           end
         end
-        if isfield(configparams.file,'labelfilename'),
-          [success1,msg] = obj.SetLabelFileName(configparams.file.labelfilename);
-          if ~success1,
-            return;
-          end
-        end
-        if isfield(configparams.file,'gt_labelfilename'),
-          [success1,msg] = obj.SetGTLabelFileName(configparams.file.gt_labelfilename);
-          if ~success1,
-            return;
-          end
-        end
-        if isfield(configparams.file,'scorefilename'),
-          scorefilename = configparams.file.scorefilename;
+%         if isfield(configparams.file,'labelfilename'),
+%           [success1,msg] = obj.SetLabelFileName(configparams.file.labelfilename);
+%           if ~success1,
+%             return;
+%           end
+%         end
+%         if isfield(configparams.file,'gt_labelfilename'),
+%           [success1,msg] = obj.SetGTLabelFileName(configparams.file.gt_labelfilename);
+%           if ~success1,
+%             return;
+%           end
+%         end
+        if isfield(projectParams.file,'scorefilename'),
+          scorefilename = projectParams.file.scorefilename;
         else
           scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
         end
@@ -942,20 +943,20 @@ classdef JLabelData < handle
           return;
         end
         
-        if isfield(configparams.file,'perframedir'),
-          [success1,msg] = obj.SetPerFrameDir(configparams.file.perframedir);
+        if isfield(projectParams.file,'perframedir'),
+          [success1,msg] = obj.SetPerFrameDir(projectParams.file.perframedir);
           if ~success1,
             return;
           end
         end
-        if isfield(configparams.file,'clipsdir') && ~isempty(configparams.file.clipsdir),
-          [success1,msg] = obj.SetClipsDir(configparams.file.clipsdir);
+        if isfield(projectParams.file,'clipsdir') && ~isempty(projectParams.file.clipsdir),
+          [success1,msg] = obj.SetClipsDir(projectParams.file.clipsdir);
           if ~success1,
             return;
           end
         end
-        if isfield(configparams.file,'rootoutputdir') && ~isempty(configparams.file.rootoutputdir),
-          [success1,msg1] = obj.SetRootOutputDir(configparams.file.rootoutputdir);
+        if isfield(projectParams.file,'rootoutputdir') && ~isempty(projectParams.file.rootoutputdir),
+          [success1,msg1] = obj.SetRootOutputDir(projectParams.file.rootoutputdir);
           if ~success1,
             uiwait(warndlg(msg1));
           end
@@ -969,60 +970,60 @@ classdef JLabelData < handle
 %             return;
 %           end
 %         end
-        if isfield(configparams,'featureparamlist'),
+        if isfield(projectParams,'featureparamlist'),
           % read allperframefns from config file
           obj.allperframefns = intersect(obj.allperframefns,...
-                              fieldnames(configparams.featureparamlist));
+                              fieldnames(projectParams.featureparamlist));
           msg = '';
         end
 
-        if isfield(configparams.file,'featureparamfilename') && ~isempty(configparams.file.featureparamfilename),
-          [success1,msg] = obj.SetFeatureParamsFileName(configparams.file.featureparamfilename);
+        if isfield(projectParams.file,'featureparamfilename') && ~isempty(projectParams.file.featureparamfilename),
+          [success1,msg] = obj.SetFeatureParamsFileName(projectParams.file.featureparamfilename);
           if ~success1,
             return;
           end
         end
         
-        if isfield(configparams,'windowfeatures') && isfield(configparams.windowfeatures,'basicFeatureTable')
-          obj.basicFeatureTable = configparams.windowfeatures.basicFeatureTable;
-          obj.featureWindowSize = configparams.windowfeatures.featureWindowSize;
-          configparams.windowfeatures.windowfeaturesparams = ...
-            JLabelData.convertTransTypes2Cell(configparams.windowfeatures.windowfeaturesparams);
-          configparams.windowfeatures.windowfeaturescellparams = ...
-            JLabelData.convertParams2CellParams(configparams.windowfeatures.windowfeaturesparams);
-          obj.SetPerframeParams(configparams.windowfeatures.windowfeaturesparams);
+        if isfield(projectParams,'windowfeatures') && isfield(projectParams.windowfeatures,'basicFeatureTable')
+          obj.basicFeatureTable = projectParams.windowfeatures.basicFeatureTable;
+          obj.featureWindowSize = projectParams.windowfeatures.featureWindowSize;
+          projectParams.windowfeatures.windowfeaturesparams = ...
+            JLabelData.convertTransTypes2Cell(projectParams.windowfeatures.windowfeaturesparams);
+          projectParams.windowfeatures.windowfeaturescellparams = ...
+            JLabelData.convertParams2CellParams(projectParams.windowfeatures.windowfeaturesparams);
+          obj.SetPerframeParams(projectParams.windowfeatures.windowfeaturesparams);
         end
         
-        if isfield(configparams,'perframe'),
-          if isfield(configparams.perframe,'params'),
-            pf_fields = fieldnames(configparams.perframe.params);
+        if isfield(projectParams,'perframe'),
+          if isfield(projectParams.perframe,'params'),
+            pf_fields = fieldnames(projectParams.perframe.params);
             for ndx = 1:numel(pf_fields),
-              obj.perframe_params.(pf_fields{ndx}) = configparams.perframe.params.(pf_fields{ndx});
+              obj.perframe_params.(pf_fields{ndx}) = projectParams.perframe.params.(pf_fields{ndx});
             end
           end
-          if isfield(configparams.perframe,'landmark_params'),
-            obj.landmark_params = configparams.perframe.landmark_params;
+          if isfield(projectParams.perframe,'landmark_params'),
+            obj.landmark_params = projectParams.perframe.landmark_params;
           end
         end
-        if isfield(configparams,'targets'),
-          if isfield(configparams.targets,'type'),
-            obj.targettype = configparams.targets.type;
+        if isfield(projectParams,'targets'),
+          if isfield(projectParams.targets,'type'),
+            obj.targettype = projectParams.targets.type;
           end
-        elseif isfield(configparams.behaviors,'type'),
-            obj.targettype = configparams.behaviors.type;
+        elseif isfield(projectParams.behaviors,'type'),
+            obj.targettype = projectParams.behaviors.type;
         end
         
       end
       
       
-      if isfield(configparams,'learning'),
-        if isfield(configparams.learning,'classifiertype'),
-          obj.SetClassifierType(configparams.learning.classifiertype);
+      if isfield(projectParams,'learning'),
+        if isfield(projectParams.learning,'classifiertype'),
+          obj.SetClassifierType(projectParams.learning.classifiertype);
         end
       end
       
-      if isfield(configparams,'scoresinput'),
-        obj.scoresasinput = configparams.scoresinput;
+      if isfield(projectParams,'scoresinput'),
+        obj.scoresasinput = projectParams.scoresinput;
         for ndx = 1:numel(obj.scoresasinput)
           [~,name,~] = fileparts(obj.scoresasinput(ndx).scorefilename);
           obj.allperframefns{end+1} = name;
@@ -1154,37 +1155,37 @@ classdef JLabelData < handle
 
     
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetLabelFileName(obj,labelfilename)
-    % [success,msg] = SetLabelFileName(obj,labelfilename)
-    % set the name of the label file within the experiment directory. this
-    % does not currently update labelidx, and probably should not be called
-    % once an experiment is open. 
-      
-      success = false;
-      msg = 'Error in JLabelData.SetLabelFileName()';
-
-      if ischar(labelfilename),
-        if ischar(obj.labelfilename) && strcmp(labelfilename,obj.labelfilename),
-          success = true;
-          return;
-        end
-
-        % reload labels from file
-        for expi = 1:obj.nexps,
-          [success1,msg] = obj.LoadLabelsFromFile(expi);
-          if ~success1,
-            return;
-          end
-        end
-        
-        obj.labelfilename = labelfilename;
-        [success,msg] = obj.UpdateStatusTable('label');   
-      else
-        
-      end
-      
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetLabelFileName(obj,labelfilename)
+%     % [success,msg] = SetLabelFileName(obj,labelfilename)
+%     % set the name of the label file within the experiment directory. this
+%     % does not currently update labelidx, and probably should not be called
+%     % once an experiment is open. 
+%       
+%       success = false;
+%       msg = 'Error in JLabelData.SetLabelFileName()';
+% 
+%       if ischar(labelfilename),
+%         if ischar(obj.labelfilename) && strcmp(labelfilename,obj.labelfilename),
+%           success = true;
+%           return;
+%         end
+% 
+%         % reload labels from file
+%         for expi = 1:obj.nexps,
+%           [success1,msg] = obj.LoadLabelsFromFile(expi);
+%           if ~success1,
+%             return;
+%           end
+%         end
+%         
+%         obj.labelfilename = labelfilename;
+%         [success,msg] = obj.UpdateStatusTable('label');   
+%       else
+%         
+%       end
+%       
+%     end
 
     
     
@@ -1192,7 +1193,7 @@ classdef JLabelData < handle
     function setLabelsFromStructForAllExps(self,labelsForAll)
       for expi = 1:self.nexps,
         self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
-        self.labelfilename = 0;
+        %self.labelfilename = 0;
         self.UpdateStatusTable('label');   
       end
     end
@@ -1203,43 +1204,45 @@ classdef JLabelData < handle
     function setGTLabelsFromStructForAllExps(self,gtLabelsForAll)
       for expi = 1:self.nexps,
         self.loadGTLabelsFromStructForOneExp(expi,gtLabelsForAll(expi));
-        self.gt_labelfilename = 0;
+        %self.gt_labelfilename = 0;
         self.UpdateStatusTable('gt_label');   
       end
     end
 
     
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetGTLabelFileName(obj,gt_labelfilename)
-    % [success,msg] = SetGTLabelFileName(obj,labelfilename)
-    % set the name of the *ground truth* label file within the experiment directory. this
-    % does not currently update labelidx, and probably should not be called
-    % once an experiment is open. 
-
-      success = false;
-      msg = '';
-
-      if ischar(gt_labelfilename),
-        if ischar(obj.gt_labelfilename) && strcmp(gt_labelfilename,obj.gt_labelfilename),
-          success = true;
-          return;
-        end
-
-        % reload labels from file
-        for expi = 1:obj.nexps,
-          [success1,msg] = obj.LoadLabelsFromFile(expi);
-          if ~success1,
-            return;
-          end
-        end
-        
-        obj.gt_labelfilename = gt_labelfilename;
-        [success,msg] = obj.UpdateStatusTable('gt_label');   
-      end
-      
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetGTLabelFileName(obj,gt_labelfilename)
+%     % [success,msg] = SetGTLabelFileName(obj,labelfilename)
+%     % set the name of the *ground truth* label file within the experiment directory. this
+%     % does not currently update labelidx, and probably should not be called
+%     % once an experiment is open. 
+% 
+%       success = false;
+%       msg = '';
+% 
+%       if ischar(gt_labelfilename),
+%         if ischar(obj.gt_labelfilename) && strcmp(gt_labelfilename,obj.gt_labelfilename),
+%           success = true;
+%           return;
+%         end
+% 
+%         % reload labels from file
+%         for expi = 1:obj.nexps,
+%           [success1,msg] = obj.LoadLabelsFromFile(expi);
+%           if ~success1,
+%             return;
+%           end
+%         end
+%         
+%         obj.gt_labelfilename = gt_labelfilename;
+%         [success,msg] = obj.UpdateStatusTable('gt_label');   
+%       end
+%       
+%     end
     
+
+    % ---------------------------------------------------------------------
     function [success,msg] = SetScoresFileName(obj,scorefilename)
     % [success,msg] = SetGTLabelFileName(obj,labelfilename)
     % set the name of the *ground truth* label file within the experiment directory. this
@@ -1254,6 +1257,8 @@ classdef JLabelData < handle
       
     end
 
+
+    % ---------------------------------------------------------------------
     function [success,msg] = SetClassifierType(obj,classifiertype)
 
       success = true;
@@ -1268,6 +1273,8 @@ classdef JLabelData < handle
       
     end
     
+
+    % ---------------------------------------------------------------------
     function [success,msg] = LoadLabelsFromExternalFile(obj,expdir,labelfilename)
       
       success = false; msg = '';
@@ -1433,7 +1440,6 @@ classdef JLabelData < handle
       success = true;
       
     end
- 
     
     
     % ---------------------------------------------------------------------
@@ -1471,7 +1477,6 @@ classdef JLabelData < handle
 
       self.ClearStatus();
     end
- 
     
     
     % ---------------------------------------------------------------------
@@ -1510,7 +1515,6 @@ classdef JLabelData < handle
       self.ClearStatus();
     end
  
-    
     
     % ---------------------------------------------------------------------
     function [success,msg] = LoadGTLabelsFromFile(obj,expi)
@@ -2830,7 +2834,7 @@ classdef JLabelData < handle
       
       % expnames and rootoutputdir must match (do we still need this?)
       if isoutexpdir,
-        [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
+        [rootoutputdir,outname] = myfileparts(outexpdir);
         if ~strcmp(expname,outname),
           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
           return;
@@ -3593,10 +3597,10 @@ classdef JLabelData < handle
           res = obj.moviefilename;
         case 'trx',
           res = obj.trxfilename;
-        case 'label',
-          res = obj.labelfilename;
-        case 'gt_label',
-            res = obj.gt_labelfilename;            
+%         case 'label',
+%           res = obj.labelfilename;
+%         case 'gt_label',
+%             res = obj.gt_labelfilename;            
         case {'perframedir','perframe'},
           res = obj.perframedir;
         case {'clipsdir','clips'},
@@ -3893,11 +3897,7 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function [success,msg] = SetFeatureConfigFile(obj,featureConfigFileName)
-      success = false;
-      msg = '';
-      
-      featureConfigFileName = deployedRelative2Global(featureConfigFileName);
-      
+      featureConfigFileName = deployedRelative2Global(featureConfigFileName);      
       obj.featureConfigFile = featureConfigFileName;
       featureConfigParams = ReadXMLParams(featureConfigFileName);
       [success,msg]=obj.setFeatureConfiguration(featureConfigParams);
@@ -7810,35 +7810,35 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function configParams=getProjectParams(self)
-      configParams=struct();
+    function projectParams=getProjectParams(self)
+      projectParams=struct();
       %configParams.configfilename=self.configfilename;
-      configParams.behaviors.names=self.labelnames;
-      configParams.file=struct();
-      configParams.file.moviefilename=self.moviefilename;
-      configParams.file.trxfilename=self.trxfilename;
-      configParams.file.labelfilename=self.labelfilename;
-      configParams.file.gt_labelfilename=self.gt_labelfilename;
-      configParams.file.scorefilename=self.scorefilename;
-      configParams.file.clipsdir=self.clipsdir;
+      projectParams.behaviors.names=self.labelnames;
+      projectParams.file=struct();
+      projectParams.file.moviefilename=self.moviefilename;
+      projectParams.file.trxfilename=self.trxfilename;
+      %projectParams.file.labelfilename=self.labelfilename;
+      %projectParams.file.gt_labelfilename=self.gt_labelfilename;
+      projectParams.file.scorefilename=self.scorefilename;
+      projectParams.file.clipsdir=self.clipsdir;
       if ischar(self.rootoutputdir)
-        configParams.file.rootoutputdir=self.rootoutputdir;
+        projectParams.file.rootoutputdir=self.rootoutputdir;
       end
-      configParams.file.featureconfigfile=self.featureConfigFile;
+      projectParams.file.featureconfigfile=self.featureConfigFile;
       
-      configParams.featureparamlist=struct();
+      projectParams.featureparamlist=struct();
       for i=1:length(self.allperframefns)
-        configParams.featureparamlist.(self.allperframefns{i})=struct();
+        projectParams.featureparamlist.(self.allperframefns{i})=struct();
       end
       
       if ischar(self.featureparamsfilename)
-        configParams.file.featureparamfilename=self.featureparamsfilename;
+        projectParams.file.featureparamfilename=self.featureparamsfilename;
       end  
         % N.B.: Still need to "invert" SetFeatureParamsFileName()
       
-      configParams.windowfeatures.basicFeatureTable=self.basicFeatureTable;
-      configParams.windowfeatures.featureWindowSize=self.featureWindowSize;
-      configParams.windowfeatures.windowfeaturesparams=self.windowfeaturesparams;
+      projectParams.windowfeatures.basicFeatureTable=self.basicFeatureTable;
+      projectParams.windowfeatures.featureWindowSize=self.featureWindowSize;
+      projectParams.windowfeatures.windowfeaturesparams=self.windowfeaturesparams;
       % the above might need to be:
       %configparams.windowfeatures.windowfeaturesparams=JLabelData.convertTransTypes2CellInverse(self.windowfeaturesparams);
       % I think the line above pseudoinverts what's below 
@@ -7848,26 +7848,26 @@ classdef JLabelData < handle
 %     obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
 %     obj.curperframefns = fieldnames(windowfeaturesparams);
         
-      configParams.perframe.params=self.perframe_params;
-      configParams.perframe.landmark_params=self.landmark_params;
-      configParams.targets.type=self.targettype;
+      projectParams.perframe.params=self.perframe_params;
+      projectParams.perframe.landmark_params=self.landmark_params;
+      projectParams.targets.type=self.targettype;
       
-      configParams.learning.classifiertype=self.classifiertype;
+      projectParams.learning.classifiertype=self.classifiertype;
         % N.B.: Still need to "invert" SetClassifierType()
       
-      configParams.scoresinput = self.scoresasinput ;
+      projectParams.scoresinput = self.scoresasinput ;
       % for features that are based on the score of another classifier, 
       % delete them from configparam.allperframefns, b/c they're already 
       % covered in configparams.scoresinput .
-      perFrameFunctionNames=fieldnames(configParams.featureparamlist);
+      perFrameFunctionNames=fieldnames(projectParams.featureparamlist);
       toDelete=false(size(perFrameFunctionNames));
       for i = 1:numel(self.scoresasinput)
         [~,name,~] = fileparts(self.scoresasinput(i).scorefilename);
         isName=strcmp(name,perFrameFunctionNames);
         toDelete=toDelete|isName;
       end
-      configParams.featureparamlist= ...
-        rmfield(configParams.featureparamlist, ...
+      projectParams.featureparamlist= ...
+        rmfield(projectParams.featureparamlist, ...
                 perFrameFunctionNames(toDelete));
       % Probably need to update
       % configparams.windowfeatures.basicFeatureTable in some way here...
