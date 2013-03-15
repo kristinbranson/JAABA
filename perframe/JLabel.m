@@ -8000,217 +8000,217 @@ guidata(figureJLabel,handles);
 return
 
 
-% --------------------------------------------------------------------
-function menu_file_import_old_style_project_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_import_old_style_project (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-importOldStyleProject(hObject)
-return
-
-
-% --------------------------------------------------------------------
-function importOldStyleProject(figureJLabel)
-
-% get handles
-handles=guidata(figureJLabel);
-
-% Prompt user for filename
-title='Import Old-Style Project...';
-
-[filename,pathname] = ...
-  uigetfile({'*.mat','JAABA Old-Style Project Files (*.mat)'}, ...
-            title);
-if ~ischar(filename),
-  % user hit cancel
-  return;
-end
-projectFileNameAbs=fullfile(pathname,filename);
-
-% Update the status, change the pointer to the watch
-SetStatus(handles,sprintf('Opening %s ...',filename));
-
-% load the file
-try
-  projectParamsWithFeatureConfigFileName=load('-mat',projectFileNameAbs);
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
-  ClearStatus(handles);
-  return;
-end
-
-% Don't want to see "No experiment loaded" when status is cleared!
-handles.guidata.status_bar_text_when_clear='';
-guidata(figureJLabel,handles);  % sync the guidata to handles
-
-% Get the feature config file name
-featureConfigFileName=projectParamsWithFeatureConfigFileName.file.featureconfigfile;
-
-% remove feature config file name from the project params
-projectParams=projectParamsWithFeatureConfigFileName;
-projectParams.file=rmfield(projectParams.file,'featureconfigfile');
-
-% read the feature config file
-featureConfigFileNameAbs = deployedRelative2Global(featureConfigFileName);
-featureConfigParams = ReadXMLParams(featureConfigFileNameAbs);
-
-% First set the project parameters, which will initialize the JLabelData
-setProjectParams(gcbf,projectParams,featureConfigParams);
-handles=guidata(figureJLabel);  % make sure handles is up-to-date
-
-% Need to set the labeling mode in the JLabelData, before the experiments 
-% are loaded.
-groundTruthingMode=false;  % Always start in normal mode on import
-data=handles.guidata.data;  % ref
-data.SetGTMode(groundTruthingMode);
-
-% Set the GUI to match the labeling mode
-handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-%handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
-guidata(figureJLabel,handles);  % write the handles back to the figure
-
-% Don't load the classifier, b/c there isn't one yet
+% % --------------------------------------------------------------------
+% function menu_file_import_old_style_project_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_import_old_style_project (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% importOldStyleProject(hObject)
+% return
+% 
+% 
+% % --------------------------------------------------------------------
+% function importOldStyleProject(figureJLabel)
+% 
+% % get handles
+% handles=guidata(figureJLabel);
+% 
+% % Prompt user for filename
+% title='Import Old-Style Project...';
+% 
+% [filename,pathname] = ...
+%   uigetfile({'*.mat','JAABA Old-Style Project Files (*.mat)'}, ...
+%             title);
+% if ~ischar(filename),
+%   % user hit cancel
+%   return;
+% end
+% projectFileNameAbs=fullfile(pathname,filename);
+% 
+% % Update the status, change the pointer to the watch
+% SetStatus(handles,sprintf('Opening %s ...',filename));
+% 
+% % load the file
+% try
+%   projectParamsWithFeatureConfigFileName=load('-mat',projectFileNameAbs);
+% catch  %#ok
+%   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+%   ClearStatus(handles);
+%   return;
+% end
+% 
+% % Don't want to see "No experiment loaded" when status is cleared!
+% handles.guidata.status_bar_text_when_clear='';
+% guidata(figureJLabel,handles);  % sync the guidata to handles
+% 
+% % Get the feature config file name
+% featureConfigFileName=projectParamsWithFeatureConfigFileName.file.featureconfigfile;
+% 
+% % remove feature config file name from the project params
+% projectParams=projectParamsWithFeatureConfigFileName;
+% projectParams.file=rmfield(projectParams.file,'featureconfigfile');
+% 
+% % read the feature config file
+% featureConfigFileNameAbs = deployedRelative2Global(featureConfigFileName);
+% featureConfigParams = ReadXMLParams(featureConfigFileNameAbs);
+% 
+% % First set the project parameters, which will initialize the JLabelData
+% setProjectParams(gcbf,projectParams,featureConfigParams);
+% handles=guidata(figureJLabel);  % make sure handles is up-to-date
+% 
+% % Need to set the labeling mode in the JLabelData, before the experiments 
+% % are loaded.
+% groundTruthingMode=false;  % Always start in normal mode on import
+% data=handles.guidata.data;  % ref
+% data.SetGTMode(groundTruthingMode);
+% 
+% % Set the GUI to match the labeling mode
+% handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% %handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
+% guidata(figureJLabel,handles);  % write the handles back to the figure
+% 
+% % Don't load the classifier, b/c there isn't one yet
+% % % Now load the classifier, which includes the experiments, and load the
+% % % labels also.  ('classifierlabels',true means to load the labels, too.)
+% % data.setClassifierParams(everythingParams.saveableClassifier, ...
+% %                          'classifierlabels',true);
+% 
+% % Set the functions that end up getting called when we call SetStatus()
+% % and ClearStatus()
+% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% 
+% % Copy the default path out of the JLabelData.
+% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% 
+% % Set the current movie.
+% handles = UnsetCurrentMovie(handles);
+% if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+%   handles = SetCurrentMovie(handles,1);
+% else
+%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+% end
+% 
+% % clear the old experiment directory
+% handles.guidata.oldexpdir='';
+% 
+% % Make up a file name for the everything file
+% path=fileparts(projectFileNameAbs);
+% fileNameRel='untitled.jab';
+% fileNameAbs=fullfile(path,fileNameRel);
+% 
+% % Note that there is currently an open file, and note its name
+% handles.guidata.thereIsAnOpenFile=true;
+% handles.guidata.everythingFileNameAbs=fileNameAbs;
+% handles.guidata.userHasSpecifiedEverythingFileName=false;
+% handles.guidata.needsave=true;
+% 
+% % Updates the graphics objects to match the current labeling mode (normal
+% % or ground-truthing)
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% 
+% % Update the GUI match the current "model" state
+% UpdateGUIToMatchFileAndExperimentState(handles);
+% 
+% % Done, set status message to cleared message, pointer to normal
+% handles.guidata.status_bar_text_when_clear=fileNameRel;
+% ClearStatus(handles);
+% 
+% % write the handles back to figure
+% guidata(figureJLabel,handles);
+% 
+% return
+% 
+% 
+% % --------------------------------------------------------------------
+% function menu_file_import_old_style_classifier_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_import_old_style_classifier (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% importOldStyleClassifier(hObject);
+% return
+% 
+% 
+% % -------------------------------------------------------------------------
+% function importOldStyleClassifier(figureJLabel)
+% 
+% % get the handles, data
+% handles = guidata(figureJLabel);
+% data=handles.guidata.data;  % a ref
+% 
+% % Have the user choose the classifier file
+% [filename,pathname] = uigetfile('*.mat','Import classifier...');
+% if ~ischar(filename),
+%   return;
+% end
+% classifierFileNameAbs = fullfile(pathname,filename);
+% 
+% % Ask the the user if they want both labels and classifier, or just the 
+% % classifier
+% res = questdlg(['Import the labels and the classifier, ' ...
+%                 'or just the classifier?'], ...
+%                'Import Labels?', ...
+%                'Load Labels and Classifier', ...
+%                'Load Classifier Only', ...
+%                'Cancel', ...
+%                'Load Labels and Classifier');
+% if strcmpi(res,'Cancel'), return, end
+% loadLabels = strcmpi(res,'Load Labels and Classifier');
+% 
+% % Load the classifier file
+% try
+%   classifierParams=load('-mat',classifierFileNameAbs);
+% catch  %#ok
+%   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+%   ClearStatus(handles);
+%   return;
+% end
+% 
 % % Now load the classifier, which includes the experiments, and load the
-% % labels also.  ('classifierlabels',true means to load the labels, too.)
-% data.setClassifierParams(everythingParams.saveableClassifier, ...
-%                          'classifierlabels',true);
-
-% Set the functions that end up getting called when we call SetStatus()
-% and ClearStatus()
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% Copy the default path out of the JLabelData.
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
-
-% Set the current movie.
-handles = UnsetCurrentMovie(handles);
-if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-  handles = SetCurrentMovie(handles,1);
-else
-  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-end
-
-% clear the old experiment directory
-handles.guidata.oldexpdir='';
-
-% Make up a file name for the everything file
-path=fileparts(projectFileNameAbs);
-fileNameRel='untitled.jab';
-fileNameAbs=fullfile(path,fileNameRel);
-
-% Note that there is currently an open file, and note its name
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fileNameAbs;
-handles.guidata.userHasSpecifiedEverythingFileName=false;
-handles.guidata.needsave=true;
-
-% Updates the graphics objects to match the current labeling mode (normal
-% or ground-truthing)
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-
-% Update the GUI match the current "model" state
-UpdateGUIToMatchFileAndExperimentState(handles);
-
-% Done, set status message to cleared message, pointer to normal
-handles.guidata.status_bar_text_when_clear=fileNameRel;
-ClearStatus(handles);
-
-% write the handles back to figure
-guidata(figureJLabel,handles);
-
-return
-
-
-% --------------------------------------------------------------------
-function menu_file_import_old_style_classifier_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_import_old_style_classifier (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-importOldStyleClassifier(hObject);
-return
-
-
-% -------------------------------------------------------------------------
-function importOldStyleClassifier(figureJLabel)
-
-% get the handles, data
-handles = guidata(figureJLabel);
-data=handles.guidata.data;  % a ref
-
-% Have the user choose the classifier file
-[filename,pathname] = uigetfile('*.mat','Import classifier...');
-if ~ischar(filename),
-  return;
-end
-classifierFileNameAbs = fullfile(pathname,filename);
-
-% Ask the the user if they want both labels and classifier, or just the 
-% classifier
-res = questdlg(['Import the labels and the classifier, ' ...
-                'or just the classifier?'], ...
-               'Import Labels?', ...
-               'Load Labels and Classifier', ...
-               'Load Classifier Only', ...
-               'Cancel', ...
-               'Load Labels and Classifier');
-if strcmpi(res,'Cancel'), return, end
-loadLabels = strcmpi(res,'Load Labels and Classifier');
-
-% Load the classifier file
-try
-  classifierParams=load('-mat',classifierFileNameAbs);
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
-  ClearStatus(handles);
-  return;
-end
-
-% Now load the classifier, which includes the experiments, and load the
-% labels also.  ('classifierlabels', if true, loads the labels also)
-data.setClassifierParamsOld(classifierParams, ...
-                            'classifierlabels',loadLabels);
-
-% Set the functions that end up getting called when we call SetStatus()
-% and ClearStatus()
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% Copy the default path out of the JLabelData.
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
-
-% Set the current movie.
-handles = UnsetCurrentMovie(handles);
-if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-  handles = SetCurrentMovie(handles,1);
-else
-  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-end
-
-% clear the old experiment directory
-handles.guidata.oldexpdir='';
-
-% Note that there are now unsaved changes
-handles.guidata.needsave=true;
-
-% Updates the graphics objects to match the current labeling mode (normal
-% or ground-truthing)
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-
-% Update the GUI match the current "model" state
-UpdateGUIToMatchFileAndExperimentState(handles);
-
-% Done, set status message to cleared message, pointer to normal
-%fileNameAbs=handles.guidata.everythingFileNameAbs;
-%fileNameRel=fileNameRelFromAbs(fileNameAbs);
-%handles.guidata.status_bar_text_when_clear=fileNameRel;
-ClearStatus(handles);
-
-% write the handles back to figure
-guidata(figureJLabel,handles);
-
-return
+% % labels also.  ('classifierlabels', if true, loads the labels also)
+% data.setClassifierParamsOld(classifierParams, ...
+%                             'classifierlabels',loadLabels);
+% 
+% % Set the functions that end up getting called when we call SetStatus()
+% % and ClearStatus()
+% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% 
+% % Copy the default path out of the JLabelData.
+% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% 
+% % Set the current movie.
+% handles = UnsetCurrentMovie(handles);
+% if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+%   handles = SetCurrentMovie(handles,1);
+% else
+%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+% end
+% 
+% % clear the old experiment directory
+% handles.guidata.oldexpdir='';
+% 
+% % Note that there are now unsaved changes
+% handles.guidata.needsave=true;
+% 
+% % Updates the graphics objects to match the current labeling mode (normal
+% % or ground-truthing)
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% 
+% % Update the GUI match the current "model" state
+% UpdateGUIToMatchFileAndExperimentState(handles);
+% 
+% % Done, set status message to cleared message, pointer to normal
+% %fileNameAbs=handles.guidata.everythingFileNameAbs;
+% %fileNameRel=fileNameRelFromAbs(fileNameAbs);
+% %handles.guidata.status_bar_text_when_clear=fileNameRel;
+% ClearStatus(handles);
+% 
+% % write the handles back to figure
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 % % ------------------------------------------------------------------------ 
