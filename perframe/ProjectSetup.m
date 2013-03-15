@@ -59,21 +59,13 @@ set(hObject,'Visible','off');
 handles.output = hObject;
 handles.defpath = pwd;
 
-[new, ...
- figureJLabel, ...
- figureJLabelEditFiles, ...
+[figureJLabel, ...
  configParams] = ...
    myparse(varargin,...
-           'new',[], ...
            'figureJLabel',[],...
-           'figureJLabelEditFiles',[],...
            'configParams',[]);
 
-handles.new=new;  
-  % true iff we are setting up a new project, as opposed to editing an
-  % existing one
 handles.figureJLabel=figureJLabel;
-handles.figureJLabelEditFiles=figureJLabelEditFiles;
 handles.configParams = configParams;
 
 % Change a few things so they still work well on Mac
@@ -122,22 +114,14 @@ end
 
 setConfigTable(handles);
 
-% Change the window title to "New..." under some circumstance
-if isempty(figureJLabelEditFiles)
-  % this means ProjectSetup() was called directly from JLabel
-  if new
-    set(hObject,'name','New...');
-  end
-end
+% Change the window title to "New..."
+set(hObject,'name','New...');
 
-% Make invisible some controls if called directly from JLabel
-if isempty(figureJLabelEditFiles)
-  % this means ProjectSetup() was called directly from JLabel
-  set(handles.textLabelFileName,'visible','off');
-  set(handles.textGTLabelFileName,'visible','off');
-  set(handles.editlabelfilename,'visible','off');
-  set(handles.editgtlabelfilename,'visible','off');
-end
+% Make invisible some controls, they're not used anymore
+set(handles.textLabelFileName,'visible','off');
+set(handles.textGTLabelFileName,'visible','off');
+set(handles.editlabelfilename,'visible','off');
+set(handles.editgtlabelfilename,'visible','off');
 
 % Update handles structure
 guidata(hObject, handles);
@@ -704,26 +688,16 @@ function pushbutton_done_Callback(hObject, ~, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.figureJLabelEditFiles)
-  % this means ProjectSetup() was called directly from JLabel
-  configParams=handles.configParams;
-  featureConfigFileName=configParams.file.featureconfigfile; 
-  featureConfigParams = ReadXMLParams(featureConfigFileName);
-  configParams.file=rmfield(configParams.file,'featureconfigfile');  
-  %configParams.file=rmfield(configParams.file,'labelfilename');
-  %configParams.file=rmfield(configParams.file,'gt_labelfilename');
-  JLabel('projectSetupDone', ...
-         handles.figureJLabel, ...
-         featureConfigParams, ...
-         configParams, ...
-         handles.new);
-else
-  % this means ProjectSetup() was called from JLabelEditFiles
-  JLabelEditFiles('projectSetupDone', ...
-                  handles.figureJLabelEditFiles, ...
-                  handles.configParams, ...
-                  handles.new);
-end                
+configParams=handles.configParams;
+featureConfigFileName=configParams.file.featureconfigfile; 
+featureConfigParams = ReadXMLParams(featureConfigFileName);
+configParams.file=rmfield(configParams.file,'featureconfigfile');  
+%configParams.file=rmfield(configParams.file,'labelfilename');
+%configParams.file=rmfield(configParams.file,'gt_labelfilename');
+JLabel('newFileSetupDone', ...
+       handles.figureJLabel, ...
+       featureConfigParams, ...
+       configParams);
 delete(gcbf);              
 return
 

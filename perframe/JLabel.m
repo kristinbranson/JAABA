@@ -7896,25 +7896,16 @@ function newEverythingFile(figureJLabel)
 handles=guidata(figureJLabel);
 
 % launch the project setup GUI
-ProjectSetup('new',true, ...
-             'figureJLabel',handles.figure_JLabel, ...
-             'figureJLabelEditFiles',[]);
+ProjectSetup('figureJLabel',handles.figure_JLabel);
            
 return
 
 
 % -------------------------------------------------------------------------
-function projectSetupDone(figureJLabel,featureConfigParams,projectParams,new)
+function newFileSetupDone(figureJLabel,featureConfigParams,projectParams)
 
 % get handles
 handles=guidata(figureJLabel);
-
-% Is this a new project, or did the user modify the existing project?
-if ~new,
-  error('JLabel.internalError','Internal error: Not implemented yet.');  %#ok
-end
-
-% If we get here, it's a new everything file
 
 % Make up filename
 if isfield(projectParams,'behaviors') && ...
