@@ -22,7 +22,7 @@ function varargout = CompareFrames(varargin)
 
 % Edit the above text to modify the response to help CompareFrames
 
-% Last Modified by GUIDE v2.5 06-Mar-2013 13:50:17
+% Last Modified by GUIDE v2.5 08-Mar-2013 10:40:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -77,7 +77,9 @@ set(handles.figure1,'Pointer','watch');
 
 set(handles.edit_ignore,'String','0'); 
 set(handles.radiobutton_behavior,'String',handles.data.labelnames{1});
+set(handles.popupmenu_jump,'String',{'Current Fly','Current Experiment','All experiments','Training Data'},'Value',1);
 
+handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t)
 handles = CacheFrames(handles);
 handles = initialize(handles);
 
@@ -94,6 +96,7 @@ handles.jump_restrict = 'all';
 
 % Update handles structure
 guidata(hObject, handles);
+JLabel('UpdatePrediction',handles.JLabelH);
 
 % UIWAIT makes CompareFrames wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -154,7 +157,6 @@ set(handles.text_info,'String',sprintf('Animal:%d, Frame:%d, Exp-Number:%d Exp-N
 
 function handles = initialize(handles)
 
-set(handles.popupmenu_jump,'String',{'Current Fly','Current Experiment','All experiments','Training Data'},'Value',1);
 handles.align = get(handles.radiobutton_align,'Value');
 
 handles.curFrame = handles.centralframe;
@@ -308,7 +310,7 @@ end
 
 smsz = (handles.cropSz-1)/2;
 [h,w,d] = size(img);
-padImg = zeros(h+100,w+100,d);
+padImg = zeros(h+2*smsz,w+2*smsz,d);
 padImg(smsz + (1:h),smsz+(1:w),:) = img;
 timg = padImg(round(y) + smsz+ (-smsz:smsz),round(x)+ smsz + (-smsz:smsz),:);
 
@@ -333,8 +335,8 @@ if handles.align,
   timg = imrotate(timg,dtheta*180/pi,'bilinear','crop');
   rotmat = [cos(-dtheta) sin(-dtheta); -sin(-dtheta) cos(-dtheta)];
   temp = [(handles.trxcache.x-x)' (handles.trxcache.y-y)']*rotmat;
-  rotatedtrxx = temp(:,1)+smsz; 
-  rotatedtrxy = temp(:,2)+smsz;
+  rotatedtrxx = temp(:,1)+smsz+0.5; 
+  rotatedtrxy = temp(:,2)+smsz+0.5;
   set(handles.trx_plot,'XData',rotatedtrxx,'Ydata',rotatedtrxy);
   pos.x = rotatedtrxx(t);
   pos.y = rotatedtrxy(t);
@@ -342,8 +344,8 @@ if handles.align,
   pos.a = handles.trxcache.a(t);
   pos.b = handles.trxcache.b(t);
 else
-  set(handles.trx_plot,'XData',handles.trxcache.x-x+smsz,...
-                       'Ydata',handles.trxcache.y-y+smsz);  
+  set(handles.trx_plot,'XData',handles.trxcache.x-x+smsz+0.5,...
+                       'Ydata',handles.trxcache.y-y+smsz+0.5);  
   pos.x = handles.trxcache.x(t) - handles.trxcache.x(handles.centralframe)+smsz;
   pos.y = handles.trxcache.y(t) - handles.trxcache.y(handles.centralframe)+smsz;
   pos.theta = handles.trxcache.theta(t);
@@ -578,6 +580,7 @@ t = handles.JLabelH.guidata.ts;
 handles.expnum = expnum;
 handles.fly = fly;
 handles.t = t;
+handles.theta = handles.data.GetTrxValues('Theta1',expnum,fly,t);
 
 handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t)
 
@@ -585,6 +588,7 @@ handles = CacheFrames(handles);
 handles = initialize(handles);
 
 guidata(hObject,handles);
+pushbutton_reset_Callback(hObject, eventdata, handles)
 set(handles.figure1,'Pointer','arrow');
 
 
@@ -606,6 +610,7 @@ switch eventdata.Key
   case 'leftarrow'
     handles.curFrame = handles.curFrame - 1;
     if handles.curFrame < 1
+      set(handles.figure1,'Pointer','arrow');
       return;
     end
     if handles.jumpNum < 1
@@ -622,6 +627,7 @@ switch eventdata.Key
   case 'rightarrow'
     handles.curFrame = handles.curFrame + 1;
     if handles.curFrame > numel(handles.ts)
+      set(handles.figure1,'Pointer','arrow');
       return;
     end
     UpdatePlots(handles,handles.curFrame);
@@ -827,3 +833,23 @@ function radiobutton_shortcut_Callback(hObject, eventdata, handles)
 if get(hObject,'Value')
   handles.JLabelH.guidata.NJObj.SetCurrentType('Jump To Similar Frames');
 end
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.data.UnsetCurrentFlyForBag();
+JLabel('UpdatePrediction',handles.JLabelH);
+
+% Hint: delete(hObject) closes the figure
+delete(hObject);
+
+
+% --- Executes during object deletion, before destroying properties.
+function figure1_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

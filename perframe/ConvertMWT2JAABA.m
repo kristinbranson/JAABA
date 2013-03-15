@@ -402,41 +402,50 @@ if ~exist(trxfile,'file'),
 end
 
 %% copy/soft-link movie
+
 if ~isempty(inmoviefile),
-  if dosoftlink,
-    if isunix,
-      cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
-      unix(cmd);
-      % test to make sure it worked
-      [status,result] = unix(sprintf('readlink %s',moviefile));
-      result = strtrim(result);
-      if status ~= 0 || ~strcmp(result,inmoviefile),
-        warndlg(sprintf('Failed to make soft link, copying %s to %s instead',inmoviefile,moviefile));
-        dosoftlink = false;
-      end
-    elseif ispc,
-      cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
-      fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
-      system(cmd);
-      % test to make sure that worked
-      [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
-      if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
-        warndlg(sprintf('Failed to make shortcut, copying %s to %s instead',inmoviefile,moviefile));
-        dosoftlink = false;
-      end
-    else
-      warndlg(sprintf('Unknown OS, not soft-linking movie file %s',inmoviefile));
-      dosoftlink = false;
-    end
-  end
   
-  if ~dosoftlink,
-    [success1,msg1] = copyfile(inmoviefile,moviefile);
-    if ~success1,
-      msg = msg1;
-      success = false;
-      return;
+  if strcmp(fullfile(inmoviefile),fullfile(moviefile)),
+    fprintf('Input and out movie files are the same, not copying/linking.\n');
+  else
+    
+    
+    if dosoftlink,
+      if isunix,
+        cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
+        unix(cmd);
+        % test to make sure it worked
+        [status,result] = unix(sprintf('readlink %s',moviefile));
+        result = strtrim(result);
+        if status ~= 0 || ~strcmp(result,inmoviefile),
+          warndlg(sprintf('Failed to make soft link, copying %s to %s instead',inmoviefile,moviefile));
+          dosoftlink = false;
+        end
+      elseif ispc,
+        cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
+        fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
+        system(cmd);
+        % test to make sure that worked
+        [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
+        if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
+          warndlg(sprintf('Failed to make shortcut, copying %s to %s instead',inmoviefile,moviefile));
+          dosoftlink = false;
+        end
+      else
+        warndlg(sprintf('Unknown OS, not soft-linking movie file %s',inmoviefile));
+        dosoftlink = false;
+      end
     end
+    
+    if ~dosoftlink,
+      [success1,msg1] = copyfile(inmoviefile,moviefile);
+      if ~success1,
+        msg = msg1;
+        success = false;
+        return;
+      end
+    end
+    
   end
 end
 
