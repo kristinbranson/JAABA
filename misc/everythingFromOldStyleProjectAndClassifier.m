@@ -4,7 +4,7 @@ function everythingParams= ...
                                            
 everythingParams=struct();
 
-% get the featureConfigParams
+% get the featureConfigParams from the relevant file
 featureConfigFileNameRel=projectParams.file.featureconfigfile;
 pathToMisc=fileparts(mfilename());
 pathToJaaba=fileparts(pathToMisc);
@@ -25,16 +25,40 @@ everythingParams.labelGraphicParams=projectParams.labels;
 
 % copy the experiment dirs, labels over
 if isempty(classifierParams)
+  % if no classifierParams provided
   everythingParams.expdirs={};
   everythingParams.labels=struct([]);
   everythingParams.gtLabels=struct([]);
   classifier=struct();
-  classifier.type='';
+  classifier.animalType=projectParams.behaviors.type;
   classifier.featureConfigParams=featureConfigParams;
-  classifier.windowFeaturesParams=struct([]);
-  classifier.scoresAsInput=struct([]);
+  classifier.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
+  classifier.basicFeatureTable=projectParams.windowfeatures.basicFeatureTable;
+  classifier.featureWindowSize=projectParams.windowfeatures.featureWindowSize;
+  classifier.scoresAsInput=struct('classifierfile',{}, ...
+                                  'ts',{}, ...
+                                  'scorefilename',{});
+  if ~isempty(projectParams.behaviors.names)                             
+    classifier.behaviorName=projectParams.behaviors.names{1};
+  else
+    classifier.behaviorName='';
+  end
+  classifier.type='boosting';  % e.g., 'boosting'
+  classifier.params=struct([]);
+  classifier.confThresholds=[0 0];
+  classifier.scoreNorm=[];
+  classifier.postProcessParams=struct([]);
+  classifier.trainingParams=struct('iter',100, ...
+                                   'iter_updates',10, ...
+                                   'numSample',2500, ...
+                                   'numBins',30, ...
+                                   'CVfolds',7, ...
+                                   'baseClassifierTypes','Decision Stumps', ...
+                                   'baseClassifierSelected',1);
+  classifier.timeStamp=0;
   everythingParams.classifier=classifier;                            
 else
+  % The usual case: caller provided a non-empty classifierParams
   everythingParams.expdirs=classifierParams.expdirs;
   everythingParams.labels=classifierParams.labels;
   if isfield(classifierParams,'gt_labels')
@@ -57,9 +81,15 @@ else
 
   % copy the classifier params proper over
   classifier=struct();
+  classifier.animalType=projectParams.behaviors.type;
   classifier.featureConfigParams=featureConfigParams;
   classifier.windowFeaturesParams=classifierParams.windowfeaturesparams;
   classifier.scoresAsInput=classifierParams.scoresasinput;
+  if ~isempty(projectParams.behaviors.names)                             
+    classifier.behaviorName=projectParams.behaviors.names{1};
+  else
+    classifier.behaviorName='';
+  end
   classifier.type=classifierParams.classifiertype;
   classifier.params=classifierParams.classifier;
   classifier.trainingParams=classifierParams.classifier_params;
