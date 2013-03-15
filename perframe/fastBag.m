@@ -88,7 +88,7 @@ for ndx = 1:numel(bcellmodel)
   end
 end
 
-%{
+% {
 newalpha = zeros(1,numel(bmodel));
 for ndx = 1:numPerm
   curidx = randperm(numel(bmodel));

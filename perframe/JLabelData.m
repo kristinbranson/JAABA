@@ -2970,8 +2970,12 @@ end
       try
         save(scoresFileOut,'-struct','OUT');
       catch ME,
-        success = false;
-        msg = ME.message;
+        questmsg = sprintf('Could not create perframe file from scores file:%s. Continue',fn);
+        button = questdlg(questmsg,'Continue','Yes');
+        if ~strcmp(button,'Yes')
+          success = false;
+          msg = ME.message;
+        end
       end
     end
     
@@ -5883,6 +5887,7 @@ end
         obj.windowdata.binVals,bins,obj.classifier_params,obj);
       
       obj.bagModels = bmodel;
+%       obj.bagModels = obj.classifier;
 
       obj.SetStatus('Computing parameters for fast distance computation..');
       % Find the parameters for fast prediction.
