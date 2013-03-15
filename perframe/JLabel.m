@@ -61,15 +61,13 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 handles.guidata = JLabelGUIData();
 
 % parse optional inputs
-[handles.guidata.classifierfilename,...
-  handles.guidata.defaultpath,...
-  handles.guidata.hsplash,...
-  handles.guidata.hsplashstatus] = ...
+[handles.guidata.defaultpath,...
+ handles.guidata.hsplash,...
+ handles.guidata.hsplashstatus] = ...
   myparse(varargin,...
-  'classifierfilename','',...
-  'defaultpath','',...
-  'hsplash',[],...
-  'hsplashstatus',[]);
+          'defaultpath','',...
+          'hsplash',[],...
+          'hsplashstatus',[]);
 
 if isempty(handles.guidata.hsplash),
   [handles.guidata.hsplash,handles.guidata.hsplashstatus] = JAABASplashScreen();
@@ -1846,10 +1844,10 @@ handles.guidata.data = ...
   JLabelData(projectThing,...
              featureConfigParams, ...
              'defaultpath',handles.guidata.defaultpath,...
-             'classifierfilename',handles.guidata.classifierfilename,...
              'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
              'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel),...
              'cacheSize',handles.guidata.cacheSize);
+%             'classifierfilename',handles.guidata.classifierfilename,...
 
 % number of flies to label at a time
 handles.guidata.nflies_label = 1;
@@ -6355,33 +6353,33 @@ dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.
 helpdlg(dialogStr,'Performance on new labeled data');
 
 
-% --------------------------------------------------------------------
-function menu_file_load_exps_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_load_exps (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-filename = handles.guidata.data.classifierfilename;
-[filename,pathname] = uigetfile('*.mat','Load classifier',filename);
-if ~ischar(filename),
-  return;
-end
-classifiername = fullfile(pathname,filename);
-handles.guidata.data.SetClassifierFileName(classifiername);
+% % --------------------------------------------------------------------
+% function menu_file_load_exps_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_load_exps (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% filename = handles.guidata.data.classifierfilename;
+% [filename,pathname] = uigetfile('*.mat','Load classifier',filename);
+% if ~ischar(filename),
+%   return;
+% end
+% classifiername = fullfile(pathname,filename);
+% handles.guidata.data.SetClassifierFileName(classifiername);
 
 
-% --------------------------------------------------------------------
-function menu_file_load_woexps_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_load_woexps (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-filename = handles.guidata.data.classifierfilename;
-[filename,pathname] = uigetfile('*.mat','Load classifier',filename);
-if ~ischar(filename),
-  return;
-end
-classifiername = fullfile(pathname,filename);
-handles.guidata.data.SetClassifierFileNameWoExp(classifiername);
+% % --------------------------------------------------------------------
+% function menu_file_load_woexps_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_load_woexps (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% filename = handles.guidata.data.classifierfilename;
+% [filename,pathname] = uigetfile('*.mat','Load classifier',filename);
+% if ~ischar(filename),
+%   return;
+% end
+% classifiername = fullfile(pathname,filename);
+% handles.guidata.data.SetClassifierFileNameWoExp(classifiername);
 
 
 % --------------------------------------------------------------------
