@@ -710,8 +710,8 @@ if isempty(handles.figureJLabelEditFiles)
   featureConfigFileName=configParams.file.featureconfigfile; 
   featureConfigParams = ReadXMLParams(featureConfigFileName);
   configParams.file=rmfield(configParams.file,'featureconfigfile');  
-  configParams.file=rmfield(configParams.file,'labelfilename');
-  configParams.file=rmfield(configParams.file,'gt_labelfilename');
+  %configParams.file=rmfield(configParams.file,'labelfilename');
+  %configParams.file=rmfield(configParams.file,'gt_labelfilename');
   JLabel('projectSetupDone', ...
          handles.figureJLabel, ...
          featureConfigParams, ...
