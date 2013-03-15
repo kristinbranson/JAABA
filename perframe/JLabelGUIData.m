@@ -74,7 +74,7 @@ classdef JLabelGUIData < handle
 
     needsave = false;  % true iff there are unsaved changes
     
-    data = [];
+    data = [];  % the JLabelData object
 
     nflies_label = 1;
     classifier = [];
