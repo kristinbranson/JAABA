@@ -31,7 +31,7 @@ classdef JLabelGUIData < handle
                                                % being chosen by default
                                                % when a new file was
                                                % created
-    configparams = struct;  % the stuff read from the project file
+    %configparams = struct;  % the stuff read from the project file
 
     panel_previews = [];
     axes_previews = [];
@@ -340,7 +340,9 @@ classdef JLabelGUIData < handle
       %s=mergeStructures(s,self.data.getSaveableClassifier());
       s.classifier=self.data.getClassifier();
       s.expdirs=self.data.expdirs;
-      s=mergeStructures(s,self.configparams);
+      %projectParamsLame=self.data.getProjectParamsLame();
+      projectParams=self.data.getProjectParams();
+      s=mergeStructures(s,projectParams);
       if isfield(s,'scoresinput')
         s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresAsInput in classifier
       end

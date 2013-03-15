@@ -174,6 +174,7 @@ classdef JLabelData < handle
     filetypes = {'movie','trx','perframedir','clipsdir','scores'};
     
     % config parameters
+    %projectParams=[];
     
     % locations of files within experiment directories
     moviefilename = 0;
@@ -361,6 +362,13 @@ classdef JLabelData < handle
     %userHasSpecifiedEverythingFileName=false;
     everythingFileName='';  % absolute file name
     
+    % you could argue that these are view-related, and so shouldn't be in
+    % here, but they get saved to the everything file, so we'll include
+    % them here.
+    labelGraphicParams=[];
+    trxGraphicParams=[];
+    labelcolors = [];
+    unknowncolor = [0 0 0];
   end
 
   properties (Access=private,Constant=true)
@@ -630,7 +638,7 @@ classdef JLabelData < handle
       end
       
       % get the project params
-      configParams = varargin{1};
+      projectParams = varargin{1};
       varargin = varargin(2:end);
 
       % get the feature configuration
@@ -646,7 +654,7 @@ classdef JLabelData < handle
       obj.setFeatureConfiguration(featureConfigParams);
       
       % config file
-      obj.setProjectParams(configParams);
+      obj.setProjectParams(projectParams);
       
       % parse optional arguments in order
       s = varargin(1:2:end);
@@ -853,8 +861,8 @@ classdef JLabelData < handle
 %       
 %     end
 
-    % ---------------------------------------------------------------------
 
+    % ---------------------------------------------------------------------
     function [success,msg] = setProjectParams(obj,projectParams)
     % function [success,msg] = setProjectParams(obj,configparams,configfilename)
       % set default return values
@@ -869,6 +877,13 @@ classdef JLabelData < handle
 %         obj.configfilename = '';
 %       end
         
+      % get some silly stuff out of projectParams
+      %obj.projectParams=projectParams;
+      obj.labelGraphicParams=projectParams.labels;
+      obj.trxGraphicParams=projectParams.trx;
+      obj.labelcolors=projectParams.behaviors.labelcolors;
+      obj.unknowncolor=projectParams.behaviors.unknowncolor;
+      
       % load in the rest of the stuff
       if isfield(projectParams,'behaviors'),
         
@@ -887,26 +902,14 @@ classdef JLabelData < handle
         end
         
         obj.nbehaviors = numel(obj.labelnames);
+
         % allocate configdence thresholds
         obj.confThresholds = zeros(1,obj.nbehaviors);
-
-%         % colors
-%         if isfield(configparams.behaviors,'labelcolors'),
-%           if numel(configparams.behaviors.labelcolors) == obj.nbehaviors*3,
-%             obj.labelcolors = configparams.behaviors.labelcolors;
-%           end
-%         end
-%         if isfield(configparams.behaviors,'unknowncolor'),
-%           if numel(configparams.behaviors.unknowncolor) == 3,
-%             obj.unknowncolor = configparams.behaviors.unknowncolor;
-%           end
-%         end
         
         % rearrange so that None is the last label
         nonei = find(strcmpi('None',obj.labelnames),1);
         obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
-        
-      end
+      end  % if isfield(projectParams,'behaviors'),
 
       if isfield(projectParams,'file'),
         if isfield(projectParams.file,'moviefilename'),
@@ -1038,12 +1041,16 @@ classdef JLabelData < handle
           end
         end
       end
-      
-     
-    end
+    end  % method
+    
     
     % ---------------------------------------------------------------------
+    function projectParams = getProjectParamsLame(self)
+      projectParams=self.projectParams;
+    end
+      
     
+    % ---------------------------------------------------------------------
     function [success,msg] = SetMovieFileName(obj,moviefilename)
     % change/set the name of the movie within the experiment directory
     % will fail if movie files don't exist for any of the current
@@ -7810,65 +7817,19 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function projectParams=getProjectParams(self)
       projectParams=struct();
-      %configParams.configfilename=self.configfilename;
+      projectParams.behaviors.type=self.targettype;
       projectParams.behaviors.names=self.labelnames;
+      projectParams.behaviors.labelcolors=self.labelcolors;
+      projectParams.behaviors.unknowncolor=self.unknowncolor;
       projectParams.file=struct();
       projectParams.file.moviefilename=self.moviefilename;
       projectParams.file.trxfilename=self.trxfilename;
-      %projectParams.file.labelfilename=self.labelfilename;
-      %projectParams.file.gt_labelfilename=self.gt_labelfilename;
       projectParams.file.scorefilename=self.scorefilename;
-      projectParams.file.clipsdir=self.clipsdir;
-      if ischar(self.rootoutputdir)
-        projectParams.file.rootoutputdir=self.rootoutputdir;
-      end
-      projectParams.file.featureconfigfile=self.featureConfigFile;
-      
-      projectParams.featureparamlist=struct();
-      for i=1:length(self.allperframefns)
-        projectParams.featureparamlist.(self.allperframefns{i})=struct();
-      end
-      
-      if ischar(self.featureparamsfilename)
-        projectParams.file.featureparamfilename=self.featureparamsfilename;
-      end  
-        % N.B.: Still need to "invert" SetFeatureParamsFileName()
-      
-      projectParams.windowfeatures.basicFeatureTable=self.basicFeatureTable;
-      projectParams.windowfeatures.featureWindowSize=self.featureWindowSize;
-      projectParams.windowfeatures.windowfeaturesparams=self.windowfeaturesparams;
-      % the above might need to be:
-      %configparams.windowfeatures.windowfeaturesparams=JLabelData.convertTransTypes2CellInverse(self.windowfeaturesparams);
-      % I think the line above pseudoinverts what's below 
-%     windowfeaturesparams = JLabelData.convertTransTypes2Cell(configparams.windowfeatures.windowfeaturesparams);
-%     windowfeaturescellparams = JLabelData.convertParams2CellParams(configparams.windowfeatures.windowfeaturesparams);
-%     obj.windowfeaturesparams = windowfeaturesparams; %#ok<PROP>
-%     obj.windowfeaturescellparams = windowfeaturescellparams; %#ok<PROP>
-%     obj.curperframefns = fieldnames(windowfeaturesparams);
-        
-      projectParams.perframe.params=self.perframe_params;
-      projectParams.perframe.landmark_params=self.landmark_params;
-      projectParams.targets.type=self.targettype;
-      
-      projectParams.learning.classifiertype=self.classifiertype;
-        % N.B.: Still need to "invert" SetClassifierType()
-      
+      projectParams.file.clipsdir=self.clipsdir;                  
+      projectParams.file.perframedir=self.perframedir;                  
       projectParams.scoresinput = self.scoresasinput ;
-      % for features that are based on the score of another classifier, 
-      % delete them from configparam.allperframefns, b/c they're already 
-      % covered in configparams.scoresinput .
-      perFrameFunctionNames=fieldnames(projectParams.featureparamlist);
-      toDelete=false(size(perFrameFunctionNames));
-      for i = 1:numel(self.scoresasinput)
-        [~,name,~] = fileparts(self.scoresasinput(i).scorefilename);
-        isName=strcmp(name,perFrameFunctionNames);
-        toDelete=toDelete|isName;
-      end
-      projectParams.featureparamlist= ...
-        rmfield(projectParams.featureparamlist, ...
-                perFrameFunctionNames(toDelete));
-      % Probably need to update
-      % configparams.windowfeatures.basicFeatureTable in some way here...
+      projectParams.labels=self.labelGraphicParams;
+      projectParams.trx=self.trxGraphicParams;
     end  % method
   
     
