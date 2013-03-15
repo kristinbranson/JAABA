@@ -166,8 +166,8 @@ classdef JLabelData < handle
     % stuff cached during prediction
     predict_cache = struct;
     
-    % name of file containing config parameters
-    configfilename = '';
+    % % name of file containing config parameters
+    % configfilename = '';
     
     % constant: files per experiment directory
     filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir','scores'};
@@ -599,9 +599,9 @@ classdef JLabelData < handle
   
   methods (Access=public)
     function obj = JLabelData(varargin)
-    % obj = JLabelData(configfilename,...)
+    % obj = JLabelData(configParams,...)
     %
-    % constructor: first input should be the config file name. All other
+    % constructor: first input should be the config params. All other
     % inputs are optional. if configfilename is not input, throws an error. 
     % 
     % optional inputs: 
@@ -628,13 +628,8 @@ classdef JLabelData < handle
               'JLabelData() called with zero args or with an empty first arg.');  %#ok
       end
       
-      % get the project file name or the project params
-      if ischar(varargin{1})
-        configfilename = varargin{1};
-      else
-        configfilename='';
-        configParams = varargin{1};
-      end
+      % get the project params
+      configParams = varargin{1};
       varargin = varargin(2:end);
 
       % get the feature configuration
@@ -650,14 +645,7 @@ classdef JLabelData < handle
       obj.setFeatureConfiguration(featureConfigParams);
       
       % config file
-      if isempty(configfilename)
-        obj.setProjectParams(configParams);
-      else  
-        [success,msg] = obj.SetConfigFileName(configfilename);
-        if ~success,
-          error(msg);
-        end
-      end
+      obj.setProjectParams(configParams);
       
       % parse optional arguments in order
       s = varargin(1:2:end);
@@ -836,48 +824,49 @@ classdef JLabelData < handle
 
     % ---------------------------------------------------------------------
 
-    function [success,msg] = SetConfigFileName(obj,configfilename)
-      % [success,msg] = SetConfigFileName(obj,configfilename)
-      % Set and read config file.
-      % Reads the XML config file, then sets all the file names and paths.
-      % I think this currently needs to be called before experiments, labels
-      % are loaded in, as locations of files, behaviors can be modified by
-      % this step.
-      % labelnames, nbehaviors are also set by the config file. If not
-      % included explicitly, the 'None' behavior is added. 'None' is put at
-      % the end of the behavior list.
-      
-      success = false;
-      msg = '';
-      if ~ischar(configfilename),
-        return;
-      end
-      %       try
-      [~,~,ext] = fileparts(configfilename);
-      if strcmp(ext,'.xml'),
-        configParams = ReadXMLConfigParams(configfilename);
-      else
-        configParams = load(configfilename);
-      end
-      
-      [success,msg] = setProjectParams(obj,configParams,configfilename);
-      
-    end
+%     function [success,msg] = SetConfigFileName(obj,configfilename)
+%       % [success,msg] = SetConfigFileName(obj,configfilename)
+%       % Set and read config file.
+%       % Reads the XML config file, then sets all the file names and paths.
+%       % I think this currently needs to be called before experiments, labels
+%       % are loaded in, as locations of files, behaviors can be modified by
+%       % this step.
+%       % labelnames, nbehaviors are also set by the config file. If not
+%       % included explicitly, the 'None' behavior is added. 'None' is put at
+%       % the end of the behavior list.
+%       
+%       success = false;
+%       msg = '';
+%       if ~ischar(configfilename),
+%         return;
+%       end
+%       %       try
+%       [~,~,ext] = fileparts(configfilename);
+%       if strcmp(ext,'.xml'),
+%         configParams = ReadXMLConfigParams(configfilename);
+%       else
+%         configParams = load(configfilename);
+%       end
+%       
+%       [success,msg] = setProjectParams(obj,configParams,configfilename);
+%       
+%     end
 
     % ---------------------------------------------------------------------
 
-    function [success,msg] = setProjectParams(obj,configparams,configfilename)
+    function [success,msg] = setProjectParams(obj,configparams)
+    % function [success,msg] = setProjectParams(obj,configparams,configfilename)
       % set default return values
       success = false;
       msg = '';
 
-      % if a configfilename is provided, save it, otherwise, set that to
-      % the empty string
-      if nargin>=3
-        obj.configfilename = configfilename;
-      else
-        obj.configfilename = '';
-      end
+%       % if a configfilename is provided, save it, otherwise, set that to
+%       % the empty string
+%       if nargin>=3
+%         obj.configfilename = configfilename;
+%       else
+%         obj.configfilename = '';
+%       end
         
       % load in the rest of the stuff
       if isfield(configparams,'behaviors'),
@@ -3982,28 +3971,28 @@ classdef JLabelData < handle
 
     %----------------------------------------------------------------------
     
-    function SaveProject(obj)
-      configfilename = obj.configfilename;
-      [~,~,ext] = fileparts(configfilename);
-      if strcmp(ext,'.xml'),
-        uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
-        return;
-      end
-      windowfeatures = struct();
-      windowfeatures.windowfeaturesparams = obj.windowfeaturesparams;
-      windowfeatures.windowfeaturescellparams = obj.windowfeaturescellparams;
-      windowfeatures.basicFeatureTable = obj.basicFeatureTable;
-      windowfeatures.featureWindowSize=obj.featureWindowSize;  %#ok<STRNU>
-      if exist(configfilename,'file')
-        [didbak,msg] = copyfile(configfilename,[configfilename '~']);
-        if ~didbak,
-          warning('Could not create backup of %s: %s',configfilename,msg);  
-        end
-      end
-      
-      save(configfilename,'windowfeatures','-append');
-      %obj.ResetSaveProject();
-    end
+%     function SaveProject(obj)
+%       configfilename = obj.configfilename;
+%       [~,~,ext] = fileparts(configfilename);
+%       if strcmp(ext,'.xml'),
+%         uiwait(warndlg('Project file is saved in the old format. Cannot save the window features to the project file'));
+%         return;
+%       end
+%       windowfeatures = struct();
+%       windowfeatures.windowfeaturesparams = obj.windowfeaturesparams;
+%       windowfeatures.windowfeaturescellparams = obj.windowfeaturescellparams;
+%       windowfeatures.basicFeatureTable = obj.basicFeatureTable;
+%       windowfeatures.featureWindowSize=obj.featureWindowSize;  %#ok<STRNU>
+%       if exist(configfilename,'file')
+%         [didbak,msg] = copyfile(configfilename,[configfilename '~']);
+%         if ~didbak,
+%           warning('Could not create backup of %s: %s',configfilename,msg);  
+%         end
+%       end
+%       
+%       save(configfilename,'windowfeatures','-append');
+%       %obj.ResetSaveProject();
+%     end
     
     
     % ---------------------------------------------------------------------
@@ -7893,7 +7882,7 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function configParams=getProjectParams(self)
       configParams=struct();
-      configParams.configfilename=self.configfilename;
+      %configParams.configfilename=self.configfilename;
       configParams.behaviors.names=self.labelnames;
       configParams.file=struct();
       configParams.file.moviefilename=self.moviefilename;
