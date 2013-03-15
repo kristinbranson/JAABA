@@ -32,12 +32,25 @@ if isempty(classifierParams)
   classifier=struct();
   classifier.animalType=projectParams.behaviors.type;
   classifier.featureConfigParams=featureConfigParams;
-  classifier.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
-  classifier.basicFeatureTable=projectParams.windowfeatures.basicFeatureTable;
-  classifier.featureWindowSize=projectParams.windowfeatures.featureWindowSize;
-  classifier.scoresAsInput=struct('classifierfile',{}, ...
-                                  'ts',{}, ...
-                                  'scorefilename',{});
+  if isfield(projectParams.windowfeatures,'windowfeaturesparams')
+    classifier.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
+  else
+    classifier.windowFeaturesParams=struct([]);    
+  end
+  if isfield(projectParams.windowfeatures,'basicFeatureTable')
+    classifier.basicFeatureTable=projectParams.windowfeatures.basicFeatureTable;
+  else
+    classifier.basicFeatureTable={};    
+  end
+  if isfield(projectParams.windowfeatures,'featureWindowSize')
+    classifier.featureWindowSize=projectParams.windowfeatures.featureWindowSize;
+  else
+    classifier.featureWindowSize=10;  % the default
+  end    
+  classifier.scoresAsInput=projectParams.scoresinput;
+  %classifier.scoresAsInput=struct('classifierfile',{}, ...
+  %                                'ts',{}, ...
+  %                                'scorefilename',{});
   if ~isempty(projectParams.behaviors.names)                             
     classifier.behaviorName=projectParams.behaviors.names{1};
   else
@@ -84,7 +97,9 @@ else
   classifier.animalType=projectParams.behaviors.type;
   classifier.featureConfigParams=featureConfigParams;
   classifier.windowFeaturesParams=classifierParams.windowfeaturesparams;
-  classifier.scoresAsInput=classifierParams.scoresasinput;
+  classifier.basicFeatureTable=classifierParams.basicFeatureTable;
+  classifier.featureWindowSize=classifierParams.featureWindowSize;
+  classifier.scoresAsInput=projectParams.scoresinput;
   if ~isempty(projectParams.behaviors.names)                             
     classifier.behaviorName=projectParams.behaviors.names{1};
   else
@@ -92,13 +107,11 @@ else
   end
   classifier.type=classifierParams.classifiertype;
   classifier.params=classifierParams.classifier;
-  classifier.trainingParams=classifierParams.classifier_params;
-  classifier.scoreNorm=classifierParams.scoreNorm;
-  classifier.timeStamp=classifierParams.classifierTS;
   classifier.confThresholds=classifierParams.confThresholds;
-  classifier.basicFeatureTable=classifierParams.basicFeatureTable;
-  classifier.featureWindowSize=classifierParams.featureWindowSize;
+  classifier.scoreNorm=classifierParams.scoreNorm;
   classifier.postProcessParams=classifierParams.postprocessparams;
+  classifier.trainingParams=classifierParams.classifier_params;
+  classifier.timeStamp=classifierParams.classifierTS;
   everythingParams.classifier=classifier;                              
 end
 
