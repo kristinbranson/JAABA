@@ -336,24 +336,7 @@ classdef JLabelGUIData < handle
     
     function s=getEverythingStruct(self)
       % Construct the structure that will be saved in the everything file
-      s=struct();
-      %s=mergeStructures(s,self.data.getSaveableClassifier());
-      s.classifier=self.data.getClassifier();
-      s.expdirs=self.data.expdirs;
-      %projectParamsLame=self.data.getProjectParamsLame();
-      projectParams=self.data.getProjectParams();
-      s=mergeStructures(s,projectParams);
-      if isfield(s,'scoresinput')
-        s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresAsInput in classifier
-      end
-      if isfield(s,'windowfeatures')
-        s=rmfield(s,'windowfeatures');  % from configparams, redundant with windowFeaturesParams in classifier
-      end
-      s.trxGraphicParams=s.trx;
-      s=rmfield(s,'trx');  % such a superficial field should not be called 'trx'
-      s.labelGraphicParams=s.labels;  % get out of way
-      [s.labels,s.gtLabels]=self.data.storeAndGetLabelsAndGTLabels();
-      s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
+      s=self.data.getEverythingStruct();
     end
   end
   

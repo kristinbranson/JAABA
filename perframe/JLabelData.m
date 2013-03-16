@@ -9,6 +9,7 @@ classdef JLabelData < handle
     
     % currently selected  experiment
     expi = 0;
+    
     % currently selected flies
     flies = [];
     
@@ -172,9 +173,6 @@ classdef JLabelData < handle
     % constant: files per experiment directory
     %filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir','scores'};
     filetypes = {'movie','trx','perframedir','clipsdir','scores'};
-    
-    % config parameters
-    %projectParams=[];
     
     % locations of files within experiment directories
     moviefilename = 0;
@@ -1044,10 +1042,10 @@ classdef JLabelData < handle
     end  % method
     
     
-    % ---------------------------------------------------------------------
-    function projectParams = getProjectParamsLame(self)
-      projectParams=self.projectParams;
-    end
+%     % ---------------------------------------------------------------------
+%     function projectParams = getProjectParamsLame(self)
+%       projectParams=self.projectParams;
+%     end
       
     
     % ---------------------------------------------------------------------
@@ -7924,6 +7922,29 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
+    function s=getEverythingStruct(self)
+      % Construct the structure that will be saved in the everything file
+      s=struct();
+      %s=mergeStructures(s,self.data.getSaveableClassifier());
+      s.classifier=self.getClassifier();
+      s.expdirs=self.expdirs;
+      %projectParamsLame=self.data.getProjectParamsLame();
+      projectParams=self.getProjectParams();
+      s=mergeStructures(s,projectParams);
+      if isfield(s,'scoresinput')
+        s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresAsInput in classifier
+      end
+      if isfield(s,'windowfeatures')
+        s=rmfield(s,'windowfeatures');  % from configparams, redundant with windowFeaturesParams in classifier
+      end
+      s.trxGraphicParams=s.trx;
+      s=rmfield(s,'trx');  % such a superficial field should not be called 'trx'
+      s.labelGraphicParams=s.labels;  % get out of way
+      [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
+      s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
+    end
+
+    
 end  % End methods block
   
 end % End class
