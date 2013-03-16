@@ -175,7 +175,7 @@ varargout{1} = hObject;
 
 
 % -------------------------------------------------------------------------
-function handles = InitializePlotsGivenProjectParams(handles)
+function handles = InitializePlotsAfterBasicParamsSet(handles)
 
 handles.guidata.axes_preview_curr = 1;
 if numel(handles.guidata.axes_previews) > numel(handles.guidata.ts),
@@ -1829,11 +1829,11 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 
 
 %--------------------------------------------------------------------------
-function handles = InitializeStateGivenProjectParams(handles,projectParams,featureConfigParams)
+function handles = InitializeStateGivenBasicParams(handles,basicParams,featureConfigParams)
 
 % initialize data structure
 handles.guidata.data = ...
-  JLabelData(projectParams,...
+  JLabelData(basicParams,...
              featureConfigParams, ...
              'defaultpath',handles.guidata.defaultpath,...
              'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
@@ -1862,16 +1862,16 @@ handles.guidata.label_imp = [];
 handles.guidata.nflies_curr = 0;
 
 % label colors
-if isfield(projectParams,'behaviors') && ...
-    isfield(projectParams.behaviors,'labelcolors'),
-  labelcolors = projectParams.behaviors.labelcolors;
+if isfield(basicParams,'behaviors') && ...
+    isfield(basicParams.behaviors,'labelcolors'),
+  labelcolors = basicParams.behaviors.labelcolors;
   if numel(labelcolors) >= 3*handles.guidata.data.nbehaviors,
     handles.guidata.labelcolors = reshape(labelcolors(1:3*handles.guidata.data.nbehaviors),[handles.guidata.data.nbehaviors,3]);
   else
     uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
-    if isfield(projectParams,'labels') && ...
-        isfield(projectParams.labels,'colormap'),
-      cm = projectParams.labels.colormap;
+    if isfield(basicParams,'labels') && ...
+        isfield(basicParams.labels,'colormap'),
+      cm = basicParams.labels.colormap;
     else
       cm = 'lines';
     end
@@ -1887,9 +1887,9 @@ if isfield(projectParams,'behaviors') && ...
   end
 end
 handles.guidata.labelunknowncolor = [0,0,0];
-if isfield(projectParams,'behaviors') && ...
-    isfield(projectParams.behaviors,'unknowncolor'),
-  unknowncolor = projectParams.behaviors.unknowncolor;
+if isfield(basicParams,'behaviors') && ...
+    isfield(basicParams.behaviors,'unknowncolor'),
+  unknowncolor = basicParams.behaviors.unknowncolor;
   if numel(unknowncolor) >= 3,
     handles.guidata.labelunknowncolor = reshape(unknowncolor(1:3),[1,3]);
   else
@@ -1897,22 +1897,22 @@ if isfield(projectParams,'behaviors') && ...
   end
 end
 handles.guidata.flies_extra_markersize = 12;
-if isfield(projectParams,'plot') && ...
-    isfield(projectParams.plot,'trx') && ...
-    isfield(projectParams.plot.trx,'extra_markersize'),
-  handles.guidata.flies_extra_markersize = projectParams.plot.trx.extra_markersize(1);
+if isfield(basicParams,'plot') && ...
+    isfield(basicParams.plot,'trx') && ...
+    isfield(basicParams.plot.trx,'extra_markersize'),
+  handles.guidata.flies_extra_markersize = basicParams.plot.trx.extra_markersize(1);
 end
 handles.guidata.flies_extra_marker = 'o';
-if isfield(projectParams,'plot') && ...
-    isfield(projectParams.plot,'trx') && ...
-    isfield(projectParams.plot.trx,'extra_marker'),
-  handles.guidata.flies_extra_marker = projectParams.plot.trx.extra_marker;
+if isfield(basicParams,'plot') && ...
+    isfield(basicParams.plot,'trx') && ...
+    isfield(basicParams.plot.trx,'extra_marker'),
+  handles.guidata.flies_extra_marker = basicParams.plot.trx.extra_marker;
 end
 handles.guidata.flies_extra_linestyle = '-';
-if isfield(projectParams,'plot') && ...
-    isfield(projectParams.plot,'trx') && ...
-    isfield(projectParams.plot.trx,'extra_linestyle'),
-  handles.guidata.flies_extra_linestyle = projectParams.plot.trx.extra_linestyle;
+if isfield(basicParams,'plot') && ...
+    isfield(basicParams.plot,'trx') && ...
+    isfield(basicParams.plot.trx,'extra_linestyle'),
+  handles.guidata.flies_extra_linestyle = basicParams.plot.trx.extra_linestyle;
 end
 
 for channel = 1:3
@@ -7461,8 +7461,8 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-projectParams=projectParamsFromEverythingParams(everythingParams);
-setProjectParams(gcbf,projectParams,everythingParams.classifier.featureConfigParams);
+basicParams=basicParamsFromEverythingParams(everythingParams);
+setBasicParams(gcbf,basicParams,everythingParams.classifier.featureConfigParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7543,14 +7543,14 @@ return
 
 
 % -------------------------------------------------------------------------
-function setProjectParams(figureJLabel,projectParams,featureConfigParams)
+function setBasicParams(figureJLabel,basicParams,featureConfigParams)
 % Initializes the JLabel gui once the user selects the behavior.
 % This assumes that JLabel is curently a blank slate
 handles=guidata(figureJLabel);
 %handles.guidata.configparams=projectParams;
 handles=StoreGUIPositionsInternally(handles);
-handles=InitializeStateGivenProjectParams(handles,projectParams,featureConfigParams);
-handles=InitializePlotsGivenProjectParams(handles);
+handles=InitializeStateGivenBasicParams(handles,basicParams,featureConfigParams);
+handles=InitializePlotsAfterBasicParamsSet(handles);
 guidata(figureJLabel,handles);
 return
 
@@ -7894,16 +7894,16 @@ return
 
 
 % -------------------------------------------------------------------------
-function newFileSetupDone(figureJLabel,featureConfigParams,projectParams)
+function newFileSetupDone(figureJLabel,featureConfigParams,basicParams)
 
 % get handles
 handles=guidata(figureJLabel);
 
 % Make up filename
-if isfield(projectParams,'behaviors') && ...
-   isfield(projectParams.behaviors,'names') && ...
-   ~isempty(projectParams.behaviors.names)
-  behaviorName=projectParams.behaviors.names{1};
+if isfield(basicParams,'behaviors') && ...
+   isfield(basicParams.behaviors,'names') && ...
+   ~isempty(basicParams.behaviors.names)
+  behaviorName=basicParams.behaviors.names{1};
   fileNameRel=sprintf('%s.jab',behaviorName);
 else
   fileNameRel='untitled.jab';
@@ -7918,7 +7918,7 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-setProjectParams(figureJLabel,projectParams,featureConfigParams);
+setBasicParams(figureJLabel,basicParams,featureConfigParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -8220,15 +8220,15 @@ return
 
 
 % ------------------------------------------------------------------------ 
-function projectParams=projectParamsFromEverythingParams(everythingParams)
+function basicParams=basicParamsFromEverythingParams(everythingParams)
 
-projectParams=struct();
-projectParams.behaviors=everythingParams.behaviors;
-projectParams.file=everythingParams.file;
-projectParams.ver=everythingParams.ver;
-projectParams.labels=everythingParams.labelGraphicParams;
-projectParams.trx=everythingParams.trxGraphicParams;
-projectParams.scoresinput=everythingParams.classifier.scoresAsInput;
+basicParams=struct();
+basicParams.behaviors=everythingParams.behaviors;
+basicParams.file=everythingParams.file;
+%basicParams.ver=everythingParams.ver;
+basicParams.labels=everythingParams.labelGraphicParams;
+basicParams.trx=everythingParams.trxGraphicParams;
+basicParams.scoresinput=everythingParams.classifier.scoresAsInput;
 
 return
 

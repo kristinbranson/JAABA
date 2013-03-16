@@ -636,7 +636,7 @@ classdef JLabelData < handle
       end
       
       % get the project params
-      projectParams = varargin{1};
+      basicParams = varargin{1};
       varargin = varargin(2:end);
 
       % get the feature configuration
@@ -652,7 +652,7 @@ classdef JLabelData < handle
       obj.setFeatureConfiguration(featureConfigParams);
       
       % config file
-      obj.setProjectParams(projectParams);
+      obj.setBasicParams(basicParams);
       
       % parse optional arguments in order
       s = varargin(1:2:end);
@@ -861,7 +861,7 @@ classdef JLabelData < handle
 
 
     % ---------------------------------------------------------------------
-    function [success,msg] = setProjectParams(obj,projectParams)
+    function [success,msg] = setBasicParams(obj,basicParams)
     % function [success,msg] = setProjectParams(obj,configparams,configfilename)
       % set default return values
       success = false;
@@ -877,17 +877,17 @@ classdef JLabelData < handle
         
       % get some silly stuff out of projectParams
       %obj.projectParams=projectParams;
-      obj.labelGraphicParams=projectParams.labels;
-      obj.trxGraphicParams=projectParams.trx;
-      obj.labelcolors=projectParams.behaviors.labelcolors;
-      obj.unknowncolor=projectParams.behaviors.unknowncolor;
+      obj.labelGraphicParams=basicParams.labels;
+      obj.trxGraphicParams=basicParams.trx;
+      obj.labelcolors=basicParams.behaviors.labelcolors;
+      obj.unknowncolor=basicParams.behaviors.unknowncolor;
       
       % load in the rest of the stuff
-      if isfield(projectParams,'behaviors'),
+      if isfield(basicParams,'behaviors'),
         
         % read in behavior names
-        if isfield(projectParams.behaviors,'names'),
-          obj.labelnames = projectParams.behaviors.names;
+        if isfield(basicParams.behaviors,'names'),
+          obj.labelnames = basicParams.behaviors.names;
           if ~iscell(obj.labelnames),
             obj.labelnames = {obj.labelnames};
           end
@@ -907,17 +907,17 @@ classdef JLabelData < handle
         % rearrange so that None is the last label
         nonei = find(strcmpi('None',obj.labelnames),1);
         obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
-      end  % if isfield(projectParams,'behaviors'),
+      end  % if isfield(basicParams,'behaviors'),
 
-      if isfield(projectParams,'file'),
-        if isfield(projectParams.file,'moviefilename'),
-          [success1,msg] = obj.SetMovieFileName(projectParams.file.moviefilename);
+      if isfield(basicParams,'file'),
+        if isfield(basicParams.file,'moviefilename'),
+          [success1,msg] = obj.SetMovieFileName(basicParams.file.moviefilename);
           if ~success1,
             return;
           end
         end
-        if isfield(projectParams.file,'trxfilename'),
-          [success1,msg] = obj.SetTrxFileName(projectParams.file.trxfilename);
+        if isfield(basicParams.file,'trxfilename'),
+          [success1,msg] = obj.SetTrxFileName(basicParams.file.trxfilename);
           if ~success1,
             return;
           end
@@ -934,8 +934,8 @@ classdef JLabelData < handle
 %             return;
 %           end
 %         end
-        if isfield(projectParams.file,'scorefilename'),
-          scorefilename = projectParams.file.scorefilename;
+        if isfield(basicParams.file,'scorefilename'),
+          scorefilename = basicParams.file.scorefilename;
         else
           scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
         end
@@ -944,20 +944,20 @@ classdef JLabelData < handle
           return;
         end
         
-        if isfield(projectParams.file,'perframedir'),
-          [success1,msg] = obj.SetPerFrameDir(projectParams.file.perframedir);
+        if isfield(basicParams.file,'perframedir'),
+          [success1,msg] = obj.SetPerFrameDir(basicParams.file.perframedir);
           if ~success1,
             return;
           end
         end
-        if isfield(projectParams.file,'clipsdir') && ~isempty(projectParams.file.clipsdir),
-          [success1,msg] = obj.SetClipsDir(projectParams.file.clipsdir);
+        if isfield(basicParams.file,'clipsdir') && ~isempty(basicParams.file.clipsdir),
+          [success1,msg] = obj.SetClipsDir(basicParams.file.clipsdir);
           if ~success1,
             return;
           end
         end
-        if isfield(projectParams.file,'rootoutputdir') && ~isempty(projectParams.file.rootoutputdir),
-          [success1,msg1] = obj.SetRootOutputDir(projectParams.file.rootoutputdir);
+        if isfield(basicParams.file,'rootoutputdir') && ~isempty(basicParams.file.rootoutputdir),
+          [success1,msg1] = obj.SetRootOutputDir(basicParams.file.rootoutputdir);
           if ~success1,
             uiwait(warndlg(msg1));
           end
@@ -971,10 +971,10 @@ classdef JLabelData < handle
 %             return;
 %           end
 %         end
-        if isfield(projectParams,'featureparamlist'),
+        if isfield(basicParams,'featureparamlist'),
           % read allperframefns from config file
           obj.allperframefns = intersect(obj.allperframefns,...
-                              fieldnames(projectParams.featureparamlist));
+                              fieldnames(basicParams.featureparamlist));
           msg = '';
         end
 
@@ -985,46 +985,46 @@ classdef JLabelData < handle
 %           end
 %         end
         
-        if isfield(projectParams,'windowfeatures') && isfield(projectParams.windowfeatures,'basicFeatureTable')
-          obj.basicFeatureTable = projectParams.windowfeatures.basicFeatureTable;
-          obj.featureWindowSize = projectParams.windowfeatures.featureWindowSize;
-          projectParams.windowfeatures.windowfeaturesparams = ...
-            JLabelData.convertTransTypes2Cell(projectParams.windowfeatures.windowfeaturesparams);
-          projectParams.windowfeatures.windowfeaturescellparams = ...
-            JLabelData.convertParams2CellParams(projectParams.windowfeatures.windowfeaturesparams);
-          obj.SetPerframeParams(projectParams.windowfeatures.windowfeaturesparams);
+        if isfield(basicParams,'windowfeatures') && isfield(basicParams.windowfeatures,'basicFeatureTable')
+          obj.basicFeatureTable = basicParams.windowfeatures.basicFeatureTable;
+          obj.featureWindowSize = basicParams.windowfeatures.featureWindowSize;
+          basicParams.windowfeatures.windowfeaturesparams = ...
+            JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
+          basicParams.windowfeatures.windowfeaturescellparams = ...
+            JLabelData.convertParams2CellParams(basicParams.windowfeatures.windowfeaturesparams);
+          obj.SetPerframeParams(basicParams.windowfeatures.windowfeaturesparams);
         end
         
-        if isfield(projectParams,'perframe'),
-          if isfield(projectParams.perframe,'params'),
-            pf_fields = fieldnames(projectParams.perframe.params);
+        if isfield(basicParams,'perframe'),
+          if isfield(basicParams.perframe,'params'),
+            pf_fields = fieldnames(basicParams.perframe.params);
             for ndx = 1:numel(pf_fields),
-              obj.perframe_params.(pf_fields{ndx}) = projectParams.perframe.params.(pf_fields{ndx});
+              obj.perframe_params.(pf_fields{ndx}) = basicParams.perframe.params.(pf_fields{ndx});
             end
           end
-          if isfield(projectParams.perframe,'landmark_params'),
-            obj.landmark_params = projectParams.perframe.landmark_params;
+          if isfield(basicParams.perframe,'landmark_params'),
+            obj.landmark_params = basicParams.perframe.landmark_params;
           end
         end
-        if isfield(projectParams,'targets'),
-          if isfield(projectParams.targets,'type'),
-            obj.targettype = projectParams.targets.type;
+        if isfield(basicParams,'targets'),
+          if isfield(basicParams.targets,'type'),
+            obj.targettype = basicParams.targets.type;
           end
-        elseif isfield(projectParams.behaviors,'type'),
-            obj.targettype = projectParams.behaviors.type;
+        elseif isfield(basicParams.behaviors,'type'),
+            obj.targettype = basicParams.behaviors.type;
         end
         
       end
       
       
-      if isfield(projectParams,'learning'),
-        if isfield(projectParams.learning,'classifiertype'),
-          obj.SetClassifierType(projectParams.learning.classifiertype);
+      if isfield(basicParams,'learning'),
+        if isfield(basicParams.learning,'classifiertype'),
+          obj.SetClassifierType(basicParams.learning.classifiertype);
         end
       end
       
-      if isfield(projectParams,'scoresinput'),
-        obj.scoresasinput = projectParams.scoresinput;
+      if isfield(basicParams,'scoresinput'),
+        obj.scoresasinput = basicParams.scoresinput;
         for ndx = 1:numel(obj.scoresasinput)
           [~,name,~] = fileparts(obj.scoresasinput(ndx).scorefilename);
           obj.allperframefns{end+1} = name;
@@ -7812,23 +7812,23 @@ classdef JLabelData < handle
     end  % method
     
     
-    % ---------------------------------------------------------------------
-    function projectParams=getProjectParams(self)
-      projectParams=struct();
-      projectParams.behaviors.type=self.targettype;
-      projectParams.behaviors.names=self.labelnames;
-      projectParams.behaviors.labelcolors=self.labelcolors;
-      projectParams.behaviors.unknowncolor=self.unknowncolor;
-      projectParams.file=struct();
-      projectParams.file.moviefilename=self.moviefilename;
-      projectParams.file.trxfilename=self.trxfilename;
-      projectParams.file.scorefilename=self.scorefilename;
-      projectParams.file.clipsdir=self.clipsdir;                  
-      projectParams.file.perframedir=self.perframedir;                  
-      projectParams.scoresinput = self.scoresasinput ;
-      projectParams.labels=self.labelGraphicParams;
-      projectParams.trx=self.trxGraphicParams;
-    end  % method
+%     % ---------------------------------------------------------------------
+%     function projectParams=getProjectParams(self)
+%       projectParams=struct();
+%       projectParams.behaviors.type=self.targettype;
+%       projectParams.behaviors.names=self.labelnames;
+%       projectParams.behaviors.labelcolors=self.labelcolors;
+%       projectParams.behaviors.unknowncolor=self.unknowncolor;
+%       projectParams.file=struct();
+%       projectParams.file.moviefilename=self.moviefilename;
+%       projectParams.file.trxfilename=self.trxfilename;
+%       projectParams.file.scorefilename=self.scorefilename;
+%       projectParams.file.clipsdir=self.clipsdir;                  
+%       projectParams.file.perframedir=self.perframedir;                  
+%       projectParams.scoresinput = self.scoresasinput ;
+%       projectParams.labels=self.labelGraphicParams;
+%       projectParams.trx=self.trxGraphicParams;
+%     end  % method
   
     
 %     % ---------------------------------------------------------------------
@@ -7925,22 +7925,29 @@ classdef JLabelData < handle
     function s=getEverythingStruct(self)
       % Construct the structure that will be saved in the everything file
       s=struct();
-      %s=mergeStructures(s,self.data.getSaveableClassifier());
-      s.classifier=self.getClassifier();
+
+      % Get the "fundamental" (once project) parameters, put them in s
+      s.behaviors.type=self.targettype;
+      s.behaviors.names=self.labelnames;
+      s.behaviors.labelcolors=self.labelcolors;
+      s.behaviors.unknowncolor=self.unknowncolor;
+      s.file=struct();
+      s.file.moviefilename=self.moviefilename;
+      s.file.trxfilename=self.trxfilename;
+      s.file.scorefilename=self.scorefilename;
+      s.file.clipsdir=self.clipsdir;                  
+      s.file.perframedir=self.perframedir;                  
+      s.labelGraphicParams=self.labelGraphicParams;
+      s.trxGraphicParams=self.trxGraphicParams;
+
+      % Get the labels, put them in s
       s.expdirs=self.expdirs;
-      %projectParamsLame=self.data.getProjectParamsLame();
-      projectParams=self.getProjectParams();
-      s=mergeStructures(s,projectParams);
-      if isfield(s,'scoresinput')
-        s=rmfield(s,'scoresinput');  % from configparams, redundant with scoresAsInput in classifier
-      end
-      if isfield(s,'windowfeatures')
-        s=rmfield(s,'windowfeatures');  % from configparams, redundant with windowFeaturesParams in classifier
-      end
-      s.trxGraphicParams=s.trx;
-      s=rmfield(s,'trx');  % such a superficial field should not be called 'trx'
-      s.labelGraphicParams=s.labels;  % get out of way
       [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
+
+      % Put the classifier in s
+      s.classifier=self.getClassifier();
+
+      % Slap on a version number
       s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
     end
 
