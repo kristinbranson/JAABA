@@ -619,6 +619,11 @@ function UpdatePlots(handles,varargin)
 
 persistent Mframenum Mlastused Mimage movie_filename
 
+% if no experiments are loaded, nothing to do
+if isempty(handles.guidata.data) || handles.guidata.data.nexps==0 ,
+  return
+end
+
 if strcmp(varargin{1},'CLEAR'),
   %fprintf('Clearing UpdatePlots data\n');
   try
@@ -1424,6 +1429,9 @@ function handles = UpdateTimelineIms(handles)
 %   handles.guidata.data.Preload(handles.guidata.expi,handles.guidata.flies);
 % end
 
+if handles.guidata.data.nexps==0 ,
+  return
+end
 handles.guidata.labels_plot.im(:) = 0;
 labelidx = handles.guidata.data.GetLabelIdx(handles.guidata.expi,handles.guidata.flies);
 
@@ -3161,6 +3169,9 @@ guidata(handles.figure_JLabel,handles);
 % -------------------------------------------------------------------------
 function handles = SetPredictedPlot(handles,t0,t1,behavioris)
 
+if (handles.guidata.data.nexps==0)
+  return
+end
 if nargin < 2,
   [prediction,t0,t1] = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies);
 elseif nargin < 4,
