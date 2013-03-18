@@ -77,7 +77,7 @@ SetSplashStatus(handles.guidata.hsplashstatus,'Initializing Edit Files GUI...');
 handles.output = handles.figure_JLabel;
 % initialize statusbar
 
-handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
+%handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
 handles.guidata.idlestatuscolor = [0,1,0];
 handles.guidata.busystatuscolor = [1,0,1];
 handles.guidata.movie_height = 100;
@@ -86,7 +86,8 @@ handles.guidata.movie_depth = 1;
 handles.guidata.tempname = tempname();
 
 % Set the initial clear status message
-handles.guidata.status_bar_text_when_clear='No file open.';
+syncStatusBarTextWhenClear(handles);
+%handles.guidata.status_bar_text_when_clear='No file open.';
 ClearStatus(handles);
 
 %[handles,success] = JLabelEditFiles('JLabelHandle',handles,...
@@ -1234,6 +1235,8 @@ if ~isempty(handles.guidata.hfly_markers),
   handles.guidata.hfly_markers = [];
 end
 
+syncStatusBarTextWhenClear(handles)
+
 % % Update the GUI
 % UpdateGUIToMatchMovieState(handles);
 
@@ -1386,12 +1389,14 @@ for i = 1:numel(handles.guidata.axes_previews),
 end
 
 % status bar text
-[~,expname] = myfileparts(handles.guidata.data.expdirs{handles.guidata.expi});
-if numel(handles.guidata.flies) == 1,
-  handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,handles.guidata.data.targettype,handles.guidata.flies);
-else
-  handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,handles.guidata.data.targettype),sprintf(' %d',handles.guidata.flies)];
-end
+% [~,expname] = myfileparts(handles.guidata.data.expdirs{handles.guidata.expi});
+% if numel(handles.guidata.flies) == 1,
+%   handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,handles.guidata.data.targettype,handles.guidata.flies);
+% else
+%   handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,handles.guidata.data.targettype),sprintf(' %d',handles.guidata.flies)];
+%     % I don't understand the line above.  targettype is a string! ---ALT, march 18, 2013
+% end
+syncStatusBarTextWhenClear(handles);
 
 % make sure frame is within bounds
 isset = handles.guidata.ts ~= 0;
@@ -3645,13 +3650,49 @@ drawnow('update');  % want immediate update
 return 
 
 
+% -------------------------------------------------------------------------
+function syncStatusBarTextWhenClear(handles)
+% Set the status bar text displayed when the status bar is in the "clear"
+% state to the default clear message, which is something along the lines of
+% "<file name>: <experiment dir name>, Fly <target index>"
+% It figures this out by looking at various fields in handles.guidata and
+% handles.guidata.data.
+
+thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
+if thereIsAnOpenFile ,
+  fileNameAbs=handles.guidata.everythingFileNameAbs;
+  fileNameRel=fileNameRelFromAbs(fileNameAbs);
+  someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+  if someExperimentIsCurrent ,
+    iCurrentExp=handles.guidata.expi;
+    expDirNameAbs=handles.guidata.data.expdirs{iCurrentExp};
+    expName=fileNameRelFromAbs(expDirNameAbs);
+    targetType=handles.guidata.data.targettype;
+    nTargetsInThisExp=handles.guidata.nflies_curr;
+    if nTargetsInThisExp==0 ,
+      statusBarText=sprintf('%s: %s',fileNameRel,expName);
+    else
+      iCurrentTarget=handles.guidata.flies;
+      statusBarText = sprintf('%s: %s, %s %d',fileNameRel,expName,targetType,iCurrentTarget);
+    end
+  else
+    statusBarText=fileNameRel;
+  end
+else
+  statusBarText='No file open.';
+end
+handles.guidata.status_bar_text_when_clear=statusBarText;
+
+return 
+
+
 % --------------------------------------------------------------------
 function menu_file_load_top_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_load_top (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%{
+
 % --------------------------------------------------------------------
 % function menu_go_switch_experiment_Callback(hObject, eventdata, handles)
 % % hObject    handle to menu_go_switch_experiment (see GCBO)
@@ -7204,12 +7245,15 @@ if listChanged,
   handles.guidata.needsave=true;
 end
 
-% Make sure the current experiment stays the same.
+% Make sure the current experiment stays the same, if possible.
 oldexpdir=handles.guidata.oldexpdir;
 if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
+  % if the old experiment dir exists and is still in the experiment list
   j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
   handles.guidata.expi = j;
 else
+  % either there were no experiments before, or the old experiment is now
+  % among the current experiment list
   handles = UnsetCurrentMovie(handles);
   if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
     handles = SetCurrentMovie(handles,1);
@@ -7223,6 +7267,9 @@ handles.guidata.oldexpdir='';
 
 % Update the GUI to match the current "model" state
 UpdateGUIToMatchFileAndExperimentState(handles);
+
+% Set the status message back to the clear message.
+ClearStatus(handles);
 
 % write the guidata back
 guidata(figureJLabel,handles);
@@ -7309,7 +7356,8 @@ catch  %#ok
 end
 saved=true;
 handles.guidata.needsave=false;
-handles.guidata.status_bar_text_when_clear=fileNameRel;
+%handles.guidata.status_bar_text_when_clear=fileNameRel;
+syncStatusBarTextWhenClear(handles);
 UpdateGUIToMatchFileAndExperimentState(handles);
 ClearStatus(handles);
 guidata(figureJLabel,handles);
@@ -7527,8 +7575,9 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 UpdateGUIToMatchFileAndExperimentState(handles);
 
 % Done, set status message to cleared message, pointer to normal
-fileNameRel=fileNameRelFromAbs(fileNameAbs);
-handles.guidata.status_bar_text_when_clear=fileNameRel;
+%fileNameRel=fileNameRelFromAbs(fileNameAbs);
+%handles.guidata.status_bar_text_when_clear=fileNameRel;
+syncStatusBarTextWhenClear(handles);
 ClearStatus(handles);
 
 % write the handles back to figure
@@ -7814,7 +7863,8 @@ if ~isempty(handles.guidata.data)
 end
 
 % Set the clear status message
-handles.guidata.status_bar_text_when_clear='No file open.';
+%handles.guidata.status_bar_text_when_clear='No file open.';
+syncStatusBarTextWhenClear(handles);
 ClearStatus(handles);
 
 % % save things we want to reinstate
@@ -7983,8 +8033,9 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 UpdateGUIToMatchFileAndExperimentState(handles);
 
 % Done, set status message to cleared message, pointer to normal
-fileNameRel=fileNameRelFromAbs(fileNameAbs);
-handles.guidata.status_bar_text_when_clear=fileNameRel;
+%fileNameRel=fileNameRelFromAbs(fileNameAbs);
+%handles.guidata.status_bar_text_when_clear=fileNameRel;
+syncStatusBarTextWhenClear(handles);
 ClearStatus(handles);
 
 % write the handles back to figure
