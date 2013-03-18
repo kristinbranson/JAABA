@@ -2398,7 +2398,7 @@ set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 %     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_import_classifier, ...
-    'Enable',onIff(someExperimentIsCurrent));
+    'Enable',onIff(thereIsAnOpenFile));
 % Import Scores... and it's submenu items
 set(handles.menu_file_import_scores, ...
     'Enable',onIff(someExperimentIsCurrent));
