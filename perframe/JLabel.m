@@ -1699,15 +1699,15 @@ return
 % set(handles.menu_file_export_labels,'Enable','off');
 
 
-% --------------------------------------------------------------------
-function success = menu_file_export_classifier_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_export_classifier (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-success=exportClassifierFile(gcbf);
-
-return
+% % --------------------------------------------------------------------
+% function success = menu_file_export_classifier_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_export_classifier (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% success=exportClassifierFile(gcbf);
+% 
+% return
 
 
 % --------------------------------------------------------------------
@@ -2407,8 +2407,8 @@ set(handles.menu_file_import_scores_curr_exp_diff_loc, ...
 set(handles.menu_file_import_scores_all_exp_default_loc, ...
     'Enable',onIff(someExperimentIsCurrent));
 % Export things    
-set(handles.menu_file_export_classifier, ...
-    'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff a classifier or labels exist?
+%set(handles.menu_file_export_classifier, ...
+%    'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff a classifier or labels exist?
 %set(handles.menu_file_export_labels, ...
 %    'Enable',onIff(someExperimentIsCurrent));  % Should we enable iff labels exist?
 % Export scores... and it's submenu items    
@@ -7358,53 +7358,53 @@ guidata(figureJLabel,handles);
 return
 
 
-% -------------------------------------------------------------------------
-function saved=exportClassifierFile(figureJLabel)
-
-% Set these things
-filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
-fileExtension='.jcf';
-
-% Figure out the suggested file name
-handles=guidata(figureJLabel);
-everythingFileNameAbs=handles.guidata.everythingFileNameAbs;
-[dirName,fileBaseName]=fileparts(everythingFileNameAbs);
-suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
-
-% Do eveything else.
-saved=false;  % default return
-%data=handles.guidata.data;  % reference
-windowTitle=sprintf('Export Classifier...');
-[filename,pathname] = ...
-  uiputfile(filterSpec, ...
-            windowTitle, ...
-            suggestedFileNameAbs);
-if ~ischar(filename),
-  % user hit cancel
-  return;
-end
-fileNameAbs=fullfile(pathname,filename);
-fileNameRel=fileNameRelFromAbs(fileNameAbs);
-handles=guidata(figureJLabel);
-SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
-% Extract the structure that will be saved in the file
-classifier=handles.guidata.data.getClassifier();  %#ok
-% write the classifier structure to disk
-try
-  save('-mat',fileNameAbs,'-struct','classifier');
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to save %s.', ...
-                          fileNameRel), ...
-                  'Unable to Save'));
-  ClearStatus(handles);
-  return;
-end
-saved=true;
-UpdateGUIToMatchFileAndExperimentState(handles);
-ClearStatus(handles);
-guidata(figureJLabel,handles);
-
-return
+% % -------------------------------------------------------------------------
+% function saved=exportClassifierFile(figureJLabel)
+% 
+% % Set these things
+% filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
+% fileExtension='.jcf';
+% 
+% % Figure out the suggested file name
+% handles=guidata(figureJLabel);
+% everythingFileNameAbs=handles.guidata.everythingFileNameAbs;
+% [dirName,fileBaseName]=fileparts(everythingFileNameAbs);
+% suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
+% 
+% % Do eveything else.
+% saved=false;  % default return
+% %data=handles.guidata.data;  % reference
+% windowTitle=sprintf('Export Classifier...');
+% [filename,pathname] = ...
+%   uiputfile(filterSpec, ...
+%             windowTitle, ...
+%             suggestedFileNameAbs);
+% if ~ischar(filename),
+%   % user hit cancel
+%   return;
+% end
+% fileNameAbs=fullfile(pathname,filename);
+% fileNameRel=fileNameRelFromAbs(fileNameAbs);
+% handles=guidata(figureJLabel);
+% SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
+% % Extract the structure that will be saved in the file
+% classifier=handles.guidata.data.getClassifier();  %#ok
+% % write the classifier structure to disk
+% try
+%   save('-mat',fileNameAbs,'-struct','classifier');
+% catch  %#ok
+%   uiwait(errordlg(sprintf('Unable to save %s.', ...
+%                           fileNameRel), ...
+%                   'Unable to Save'));
+%   ClearStatus(handles);
+%   return;
+% end
+% saved=true;
+% UpdateGUIToMatchFileAndExperimentState(handles);
+% ClearStatus(handles);
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 % -------------------------------------------------------------------------
@@ -8272,12 +8272,12 @@ function menu_file_import_classifier_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_import_classifier (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-importClassifierFile(hObject)
+importClassifier(hObject)
 return
 
 
 % -------------------------------------------------------------------------
-function importClassifierFile(figureJLabel)
+function importClassifier(figureJLabel)
 
 % get handles
 handles=guidata(figureJLabel);
@@ -8285,7 +8285,7 @@ handles=guidata(figureJLabel);
 % Prompt user for filename
 title='Import Classifier...';
 [filename,pathname] = ...
-  uigetfile({'*.jcf','JAABA Classifier Files (*.jcf)'}, ...
+  uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
             title);
 if ~ischar(filename),
   % user hit cancel
@@ -8298,7 +8298,7 @@ SetStatus(handles,sprintf('Importing classifier from %s ...',filename));
 
 % load the file
 try
-  classifier=load('-mat',fileNameAbs);
+  everythingParams=load('-mat',fileNameAbs);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
   ClearStatus(handles);
@@ -8307,7 +8307,7 @@ end
 
 % Set the classifier in the JLabelData object
 data=handles.guidata.data;  % ref
-data.setClassifier(classifier);
+data.setClassifier(everythingParams.classifier);
 
 % Note that we now need saving
 handles.guidata.needsave=true;
@@ -8337,4 +8337,3 @@ UpdatePlots(handles, ...
 ClearStatus(handles);
 
 return
-
