@@ -5839,7 +5839,8 @@ classdef JLabelData < handle
       end
 
       if ~any(islabeled),
-        uiwait(warndlg('No frames have been labeled. Not doing any training'));
+        %uiwait(warndlg('No frames have been labeled. Not doing any training'));
+        % Let the user figure this out.
         return;
       end
       
