@@ -3724,7 +3724,8 @@ classdef JLabelData < handle
     end
     
     function RemoveArenaPFs(obj)
-      settings = ReadXMLParams(obj.featureConfigFile);
+      %settings = ReadXMLParams(obj.featureConfigFile);
+      settings = obj.featureConfigParams;
       toRemove = [];
       for i = 1:numel(obj.allperframefns)
         curpf = obj.allperframefns{i};
