@@ -189,10 +189,10 @@ classdef JLabelData < handle
     openmovie = true;
     
     % file containing feature parameters
-    featureparamsfilename = 0;
+    %featureparamsfilename = 0;
     
     % feature configuration file name
-    featureConfigFile = '';
+    %featureConfigFile = '';
     
     % stuff loaded from featureConfigFile
     featureConfigParams=[];
