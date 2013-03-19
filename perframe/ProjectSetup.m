@@ -611,48 +611,64 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_addlist (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[fnames,pname] = uigetfile('*.mat','Classifier whose scores should be used as input');
-if fnames == 0; return; end;
 
-cfile = fullfile(pname,fnames);
-classifier = load(cfile);
-curs = struct;
-curs.classifierfile = cfile;
-if isfield(classifier,'classifierTS');
-  curs.ts = classifier.classifierTS;
+[fname,pname] = ...
+  uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
+            'Add .jab file containing classifier to be used as input');
+if fname == 0; return; end;
+
+fileNameAbs = fullfile(pname,fname);
+everythingParams = load(fileNameAbs,'-mat');
+if isempty(everythingParams.classifier)
+  uiwait(errordlg(sprintf('%s does not contain a classifier.',fname), ...
+                  'Error', ...
+                  'modal'));
+  return
+end               
+
+% [fnames,pname] = uigetfile('*.mat','Classifier whose scores should be used as input');
+% if fnames == 0; return; end;
+% 
+% cfile = fullfile(pname,fnames);
+% classifier = load(cfile);
+
+curs = struct;  % this is the thing we'll return
+
+% Add the .jab file name, with maybe not the best field name
+curs.classifierfile = fileNameAbs;
+
+% Add the classifier time stamp
+classifier=everythingParams.classifier;
+if isfield(classifier,'timeStamp');
+  curs.ts = classifier.timeStamp;
 else
-  uiwait(warndlg(['The selected file does not have all the required fields,'...
-    ' Check to make sure it is a classifier file']));
-  return;
+  uiwait(errordlg('The classifier in the selected field lacks a timstamp.  Aborting.', ...
+                  'Error', ...
+                  'modal'));
+  return
 end
 
-if isfield(classifier,'scorefilename')
+% Add the name of the score file (without the .mat extension)
+if isfield(classifier,'file') && isfield(classifier.file,'scorefilename')
   scorefilename = classifier.scorefilename;
-  [~,scorefilename,~] = fileparts(scorefilename);
-  curs.scorefilename = scorefilename;
+  [~,scoreBaseName] = fileparts(scorefilename);
+  curs.scorefilename = scoreBaseName;
+elseif isfield(everythingParams,'behaviors') && ...
+       isfield(everythingParams.behaviors,'names') && ...
+       ~isempty(everythingParams.behaviors.names)
+  behaviorName=everythingParams.behaviors.names{1};
+  curs.scorefilename = sprintf('scores_%s',behaviorName);
 else
-  configfile = classifier.configfilename;
-  if exist(configfile,'file')
-    configparams = ReadXMLParams(configfile);
-    if isfield(configparams,'scorefilename');
-      scorefilename = configparams.file.scorefilename;
-      [~,scorefilename,~] = fileparts(scorefilename);
-      curs.scorefilename = scorefilename;
-    else
-      curs.scorefilename = sprintf('scores_%s',configparams.behaviors.names);
-    end
-  else
-    sname = inputdlg(['Cannot find the config file pointed by the classifier.'...
-      'Input the file name used to stored the scores computed by the classifier'],...
-      'Score file name');
-    if isempty(sname), return; end
-    curs.scorefilename = sname;
-  end
+  uiwait(errordlg('Unable to determine score file name.  Aborting.', ...
+                  'Error', ...
+                  'modal'));
+  return
 end
 
 handles.configParams.scoresinput(end+1) = curs;
 guidata(hObject,handles);
 updateText(handles);
+return
 
 
 % -------------------------------------------------------------------------
