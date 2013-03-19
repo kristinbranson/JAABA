@@ -373,9 +373,7 @@ classdef JLabelData < handle
     % these two properties together define the mapping between
     % field names in a classifier struct and field names in JLabelData.
     % Used in setClassifier() and getClassifier() methods.
-    fieldNamesInSelf = {'targettype', ...
-                        'labelnames', ...
-                        'featureConfigParams', ...
+    fieldNamesInSelf = {'featureConfigParams', ...
                         'classifiertype', ...
                         'classifier', ...
                         'classifier_params',...
@@ -387,9 +385,7 @@ classdef JLabelData < handle
                         'featureWindowSize', ...
                         'postprocessparams',...
                         'scoresasinput'};
-    fieldNamesInClassifier = {'animalType', ...
-                              'behaviorName', ...
-                              'featureConfigParams', ...
+    fieldNamesInClassifier = {'featureConfigParams', ...
                               'type', ...
                               'params', ...
                               'trainingParams',...
@@ -2149,13 +2145,7 @@ classdef JLabelData < handle
       for i = 1:nFields,
         fieldNameInSelf = fieldNamesInSelf{i};
         fieldNameInClassifier = fieldNamesInClassifier{i};
-        if strcmp(fieldNameInClassifier,'animalType')
-          % do nothing --- the current animalType overrides the one in the
-          % classifier
-        elseif strcmp(fieldNameInClassifier,'behaviorName')
-          % do nothing -- the current behaviorName overrides the one in the
-          % classifier
-        elseif strcmp(fieldNameInClassifier,'scoreNorm')
+        if strcmp(fieldNameInClassifier,'scoreNorm')
           % this one lives in self.windowdata
           self.windowdata.(fieldNameInSelf)=classifier.(fieldNameInClassifier);
         elseif strcmp(fieldNameInClassifier,'windowFeaturesParams')
@@ -7794,15 +7784,7 @@ classdef JLabelData < handle
       for i = 1:nFields,
         fieldNameInSelf = fieldNamesInSelf{i};
         fieldNameInClassifier = fieldNamesInClassifier{i};
-        if strcmp(fieldNameInClassifier,'behaviorName')
-          % this one is special---just want the behavior name, don't
-          % want 'None'
-          if isempty(self.labelnames)
-            classifier.(fieldNameInClassifier)='';
-          else
-            classifier.(fieldNameInClassifier)=self.(fieldNameInSelf){1};  % first one is the behavior name
-          end
-        elseif strcmp(fieldNameInClassifier,'scoreNorm')
+        if strcmp(fieldNameInClassifier,'scoreNorm')
           % this one lives in self.windowdata
           classifier.(fieldNameInClassifier)=self.windowdata.(fieldNameInSelf);
         else    
