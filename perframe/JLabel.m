@@ -2380,9 +2380,10 @@ someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
                      handles.guidata.GUIGroundTruthingMode;
 %inNormalMode=~inGroundTruthingMode;
-classifierExists=someExperimentIsCurrent && ...
-                 ~isempty(data) && ...
+classifierExists=~isempty(data) && ...
                  ~isempty(data.classifier);
+classifierExistsAndSomeExperimentIsCurrent= ...
+  classifierExists && someExperimentIsCurrent ;
 % atLeastOneNormalLabelExists= ...
 %   ~isempty(data) && ...
 %   data.getAtLeastOneNormalLabelExists();
@@ -2492,21 +2493,23 @@ set(handles.menu_go_previous_automatic_bout_end, ...
 set(handles.menu_classifier,'enable',onIff(labelPenIsUp));
 set(handles.menu_classifier_select_features, ...
     'Enable',onIff(thereIsAnOpenFile));  
+set(handles.menu_classifier_training_parameters, ...
+    'Enable',onIff(thereIsAnOpenFile));  
 set(handles.menu_classifier_classify, ...
-    'Enable',onIff(classifierExists));  
+    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
 set(handles.menu_classifier_set_confidence_thresholds, ...
-    'Enable',onIff(classifierExists));  
+    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
 set(handles.menu_classifier_cross_validate, ...
-    'Enable',onIff(classifierExists));  
+    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
 set(handles.menu_classifier_evaluate_on_new_labels, ...
-    'Enable',onIff(classifierExists));  
-set(handles.menu_classifier_parameters, ...
-    'Enable',onIff(classifierExists));  
+    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
 set(handles.menu_classifier_visualize, ...
     'Enable',onIff(classifierExists));  
 set(handles.menu_classifier_compute_gt_performance, ...
-    'Enable',onIff(classifierExists));  
+    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
 set(handles.menu_classifier_post_processing, ...
+    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
+set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
 
 % These controls require a movie to currently be open, and should be
@@ -2544,7 +2547,7 @@ set(handles.pushbutton_train, ...
 
 % The Predict button is enabled iff a classifier exists.
 set(handles.pushbutton_predict, ...
-    'enable',onIff(classifierExists));
+    'enable',onIff(classifierExistsAndSomeExperimentIsCurrent));
 
 return
 
@@ -6429,8 +6432,8 @@ helpdlg(dialogStr,'Performance on new labeled data');
 
 
 % --------------------------------------------------------------------
-function menu_classifier_parameters_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_parameters (see GCBO)
+function menu_classifier_training_parameters_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_training_parameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 cohandles = ClassifierOptions(handles.guidata.data);
@@ -8396,6 +8399,98 @@ UpdatePlots(handles, ...
             'refresh_timeline_hcurr',false,...
             'refresh_timeline_selection',false,...
             'refresh_curr_prop',false);
+
+% Done, set status message to cleared message, pointer to normal
+ClearStatus(handles);
+
+return
+
+
+% --------------------------------------------------------------------
+function menu_classifier_clear_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_clear (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Make sure the user _really_ wants to clear the classifier
+res = questdlg('Are you sure you want to clear the current classifier?', ...
+               'Really Clear the Classifier?', ...
+               'Clear','Cancel', ...
+               'Cancel');
+if strcmpi(res,'Clear'),
+  proceed=true;
+elseif strcmpi(res,'Cancel'),
+  proceed=false;
+else
+  error('JLabel.internalError','Internal error.  Please report to the JAABA developers.');  %#ok
+end
+
+% Clear the classifier, if called for
+if proceed ,
+  clearClassifier(hObject);
+end
+
+return
+
+
+% -------------------------------------------------------------------------
+function clearClassifier(figureJLabel)
+% Deletes the current classifier
+
+% get handles
+handles=guidata(figureJLabel);
+
+% Update the status, change the pointer to the watch
+SetStatus(handles,'Clearing classifier...');
+
+% Get the current classifier
+data=handles.guidata.data;  % ref
+classifier=data.getClassifier();
+
+% Set the core classifier fields to default
+classifier.type='boosting';
+classifier.params=struct([]);
+classifier.timeStamp=0;
+classifier.confThresholds=[0 0];
+classifier.scoreNorm=[];
+classifier.windowFeaturesParams = struct([]);
+classifier.basicFeatureTable={};
+classifier.featureWindowSize=10;  % default
+classifier.postProcessParams=struct([]);
+classifier.scoresAsInput=struct('classifierfile',{}, ...
+                                'ts',{}, ...
+                                'scorefilename',{});
+
+% Set the classifier in the JLabelData object
+data.setClassifier(classifier);
+
+% Note that we now need saving
+handles.guidata.needsave=true;
+
+% Not sure what this does  --ALT, March 15, 2013
+handles = SetPredictedPlot(handles);
+
+% Update the image that represents the prediction
+handles = UpdateTimelineIms(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+% Update the graphics objects that need updating
+UpdatePlots(handles, ...
+            'refreshim',false, ...
+            'refreshflies',true,  ...
+            'refreshtrx',true, ...
+            'refreshlabels',true,...
+            'refresh_timeline_manual',false,...
+            'refresh_timeline_xlim',false,...
+            'refresh_timeline_hcurr',false,...
+            'refresh_timeline_selection',false,...
+            'refresh_curr_prop',false);
+
+% Update the enablement, etc of controls to reflect the fact that 
+% there is no classifier
+UpdateGUIToMatchFileAndExperimentState(handles)
 
 % Done, set status message to cleared message, pointer to normal
 ClearStatus(handles);
