@@ -4126,7 +4126,11 @@ end
         labelsToUse = obj.labels;
       end
 
-      [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
+      if ~isempty(labelsToUse(expi).flies),	
+        [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
+      else
+	ism = false
+      end
       if ism,
         labels_curr.t0s = labelsToUse(expi).t0s{fliesi};
         labels_curr.t1s = labelsToUse(expi).t1s{fliesi};
