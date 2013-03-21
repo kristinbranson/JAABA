@@ -5675,8 +5675,7 @@ classdef JLabelData < handle
         
       end
       
-      % NB: must change back to parfor!!!
-      for j = 1:numel(curperframefns),
+      parfor j = 1:numel(curperframefns),
         fn = curperframefns{j};
         
         % get per-frame data
