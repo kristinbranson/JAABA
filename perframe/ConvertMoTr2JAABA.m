@@ -229,94 +229,112 @@ msg{end+1} = sprintf('Saved trx to file %s.',trxfile);
 
 %% copy/soft-link movie
 
-if dosoftlink,
-  if exist(moviefile,'file'),
-    delete(moviefile);
+if strcmp(fullfile(inmoviefile),fullfile(moviefile)),
+  msg{end+1} = 'Input and out movie files are the same, not copying/linking.';
+else
+  
+  
+  if dosoftlink,
+    if exist(moviefile,'file'),
+      delete(moviefile);
+    end
+    if isunix,
+      cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
+      unix(cmd);
+      % test to make sure it worked
+      [status,result] = unix(sprintf('readlink %s',moviefile));
+      result = strtrim(result);
+      if status ~= 0 || ~strcmp(result,inmoviefile),
+        res = questdlg(sprintf('Failed to make soft link. Copy %s to %s instead?',inmoviefile,moviefile));
+        if ~strcmpi(res,'Yes'),
+          msg = sprintf('Failed to make soft link from %s to %s.',inmoviefile,moviefile);
+          return;
+        end
+        dosoftlink = false;
+      end
+    elseif ispc,
+      if exist([moviefile,'.lnk'],'file'),
+        delete([moviefile,'.lnk']);
+      end
+      cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
+      fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
+      system(cmd);
+      % test to make sure that worked
+      [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
+      if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
+        res = questdlg(sprintf('Failed to make shortcut. Copy %s to %s instead?',inmoviefile,moviefile));
+        if ~strcmpi(res,'Yes'),
+          msg = sprintf('Failed to make shortcut from %s to %s.',inmoviefile,moviefile);
+          return;
+        end
+        dosoftlink = false;
+      end
+    else
+      res = questdlg(sprintf('Unknown OS, cannot soft-link movie file %s. Copy instead?',inmoviefile));
+      if ~strcmpi(res,'Yes'),
+        msg = sprintf('Failed to make softlink from %s to %s.',inmoviefile,moviefile);
+        return;
+      end
+      dosoftlink = false;
+    end
+    if dosoftlink,
+      msg{end+1} = sprintf('Made a link to movie file %s at %s',inmoviefile,moviefile);
+    end
   end
-  if isunix,
-    cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
-    unix(cmd);
-    % test to make sure it worked
-    [status,result] = unix(sprintf('readlink %s',moviefile));
-    result = strtrim(result);
-    if status ~= 0 || ~strcmp(result,inmoviefile),
-      res = questdlg(sprintf('Failed to make soft link. Copy %s to %s instead?',inmoviefile,moviefile));
-      if ~strcmpi(res,'Yes'),
-        msg = sprintf('Failed to make soft link from %s to %s.',inmoviefile,moviefile);
-        return;
+  
+  if ~dosoftlink,
+    if ispc,
+      if exist([moviefile,'.lnk'],'file'),
+        delete([moviefile,'.lnk']);
       end
-      dosoftlink = false;
     end
-  elseif ispc,
-    if exist([moviefile,'.lnk'],'file'),
-      delete([moviefile,'.lnk']);
+    if exist(moviefile,'file'),
+      delete(moviefile);
     end
-    cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
-    fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
-    system(cmd);
-    % test to make sure that worked
-    [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
-    if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
-      res = questdlg(sprintf('Failed to make shortcut. Copy %s to %s instead?',inmoviefile,moviefile));
-      if ~strcmpi(res,'Yes'),
-        msg = sprintf('Failed to make shortcut from %s to %s.',inmoviefile,moviefile);
-        return;
-      end
-      dosoftlink = false;
-    end
-  else
-    res = questdlg(sprintf('Unknown OS, cannot soft-link movie file %s. Copy instead?',inmoviefile));
-    if ~strcmpi(res,'Yes'),
-      msg = sprintf('Failed to make softlink from %s to %s.',inmoviefile,moviefile);
+    [success1,msg1] = copyfile(inmoviefile,moviefile);
+    if ~success1,
+      msg = msg1;
+      success = false;
       return;
     end
-    dosoftlink = false;
-  end  
-  if dosoftlink,
-    msg{end+1} = sprintf('Made a link to movie file %s at %s',inmoviefile,moviefile);
+    msg{end+1} = sprintf('Copied movie file %s to %s',inmoviefile,moviefile);
   end
-end
   
-if ~dosoftlink,
-  if ispc,
-    if exist([moviefile,'.lnk'],'file'),
-      delete([moviefile,'.lnk']);
-    end
-  end
-  if exist(moviefile,'file'),
-    delete(moviefile);
-  end
-  [success1,msg1] = copyfile(inmoviefile,moviefile);
-  if ~success1,
-    msg = msg1;
-    success = false;
-    return;
-  end
-  msg{end+1} = sprintf('Copied movie file %s to %s',inmoviefile,moviefile);
 end
 
 %% copy/soft-link index file
 
 if isempty(frameinterval),
   
-  if dosoftlink,
-    if ispc,
-      cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',seqindexfile,outseqindexfile);
-      fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',outseqindexfile,seqindexfile);
-    else
-      cmd = sprintf('ln -s "%s" "%s"',seqindexfile,outseqindexfile);
-      fprintf('Soft-linking from "%s" with target "%s"\n',outseqindexfile,seqindexfile);
-    end
-    system(cmd);
-    
+  if strcmp(fullfile(seqindexfile),fullfile(outseqindexfile)),
+    msg{end+1} = 'Input and out seq index files are the same, not copying/linking.';
   else
-    
-    fprintf('Copying "%s" to "%s"\n',seqindexfile,outseqindexfile);
-    copyfile(seqindexfile,outseqindexfile);
-
-  end
   
+    if dosoftlink,
+      if ispc,
+        cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',seqindexfile,outseqindexfile);
+        fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',outseqindexfile,seqindexfile);
+      else
+        cmd = sprintf('ln -s "%s" "%s"',seqindexfile,outseqindexfile);
+        fprintf('Soft-linking from "%s" with target "%s"\n',outseqindexfile,seqindexfile);
+      end
+      system(cmd);
+      
+    else
+      
+      fprintf('Copying "%s" to "%s"\n',seqindexfile,outseqindexfile);
+      copyfile(seqindexfile,outseqindexfile);
+      
+    end
+    
+  end
+    
 else
+  
+  if strcmp(fullfile(seqindexfile),fullfile(outseqindexfile)),
+    msg = 'Input and output seq index file names are the same, but trying to crop seq file. Data will be lost, so this is not allowed.';
+    return;
+  end
   
   % load in index file
   indexdata = load(seqindexfile);
