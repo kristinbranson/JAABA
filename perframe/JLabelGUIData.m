@@ -338,6 +338,89 @@ classdef JLabelGUIData < handle
       % Construct the structure that will be saved in the everything file
       s=self.data.getEverythingParams();
     end
+    
+    function setLayout(self,figureJLabel)
+      % Calculates various aspects of the layout, sets a bunch of stuff in
+      % self appropriately.      
+      handles=guidata(figureJLabel);  
+        % note that we only read from handles, and we never write it back
+        % to the figure
+      figpos = get(figureJLabel,'Position');
+      panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+      % panel_learn_pos = get(handles.panel_learn,'Position');
+      panel_timelines_pos = get(handles.panel_timelines,'Position');
+      panel_previews_pos = cell(size(self.panel_previews));
+      for i = 1:numel(self.panel_previews),
+        panel_previews_pos{i} = get(self.panel_previews(i),'Position');
+      end
+      self.guipos.width_rightpanels = panel_labelbuttons_pos(3);
+      self.guipos.rightborder_rightpanels = figpos(3) - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
+      self.guipos.leftborder_leftpanels = panel_timelines_pos(1);
+      self.guipos.leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
+      self.guipos.topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
+      if self.guipos.topborder_toppanels < 0
+        self.guipos.topborder_toppanels = 15;
+      end
+      self.guipos.bottomborder_bottompanels = panel_timelines_pos(2);
+      self.guipos.bottomborder_previewpanels = panel_previews_pos{end}(2) - (panel_timelines_pos(2)+panel_timelines_pos(4));
+      self.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos{1}(4));
+
+      self.guipos.timeline_bottom_borders = nan(1,numel(self.axes_timelines));
+      self.guipos.timeline_left_borders = nan(1,numel(self.axes_timelines));
+      self.guipos.timeline_label_middle_offsets = nan(1,numel(self.axes_timelines));
+      pos0 = get(self.axes_timelines(1),'Position');
+      self.guipos.timeline_bottom_borders(1) = pos0(2);
+      self.guipos.timeline_heights(1) = pos0(4);
+      self.guipos.timeline_xpos = pos0(1);
+      self.guipos.timeline_rightborder = panel_timelines_pos(3) - pos0(1) - pos0(3);
+      for i = 2:numel(self.axes_timelines),
+        pos1 = get(self.axes_timelines(i),'Position');
+        self.guipos.timeline_bottom_borders(i) = pos1(2) - pos0(2) - pos0(4);
+        self.guipos.timeline_heights(i) = pos1(4);
+        pos0 = pos1;
+      end
+      self.guipos.timeline_top_border = panel_timelines_pos(4) - pos1(2) - pos1(4);
+      self.guipos.timeline_heights = self.guipos.timeline_heights / sum(self.guipos.timeline_heights);
+      for i = 1:numel(self.axes_timelines),
+        ax_pos = get(self.axes_timelines(i),'Position');
+        label_pos = get(self.labels_timelines(i),'Position');
+        self.guipos.timeline_left_borders(i) = label_pos(1);
+        m = ax_pos(2) + ax_pos(4)/2;
+        self.guipos.timeline_label_middle_offsets(i) = label_pos(2)-m;
+      end
+      ax_pos = get(handles.axes_timeline_prop1,'Position');
+      self.guipos.timeline_prop_height = ax_pos(4);
+      pos = get(handles.timeline_label_prop1,'Position');
+      self.guipos.timeline_prop_label_left_border = pos(1);
+      self.guipos.timeline_prop_label_size = pos(3:4);
+      self.guipos.timeline_prop_label_callback = get(handles.timeline_label_prop1,'Callback');
+      self.guipos.timeline_prop_fontsize = get(handles.timeline_label_prop1,'FontSize');
+      m = ax_pos(2) + ax_pos(4)/2;
+      self.guipos.timeline_prop_label_middle_offset = pos(2)-m;
+
+      pos = get(handles.text_timeline_prop1,'Position');
+      self.guipos.text_timeline_prop_right_border = ax_pos(1) - pos(1) - pos(3);
+      self.guipos.text_timeline_prop_size = pos(3:4);
+      self.guipos.text_timeline_prop_middle_offset = pos(2)-m;
+      self.guipos.text_timeline_prop_fontsize = get(handles.text_timeline_prop1,'FontSize');
+      self.guipos.text_timeline_prop_bgcolor = get(handles.text_timeline_prop1,'BackgroundColor');
+      self.guipos.text_timeline_prop_fgcolor = get(handles.text_timeline_prop1,'ForegroundColor');
+
+      axes_pos = get(handles.axes_preview,'Position');
+      slider_pos = get(handles.slider_preview,'Position');
+      edit_pos = get(handles.edit_framenumber,'Position');
+      play_pos = get(handles.pushbutton_playstop,'Position');
+      self.guipos.preview_axes_top_border = panel_previews_pos{end}(4) - axes_pos(4) - axes_pos(2);
+      self.guipos.preview_axes_bottom_border = axes_pos(2);
+      self.guipos.preview_axes_left_border = axes_pos(1);
+      self.guipos.preview_axes_right_border = panel_previews_pos{end}(3) - axes_pos(1) - axes_pos(3);
+      self.guipos.preview_slider_left_border = slider_pos(1);
+      self.guipos.preview_slider_right_border = panel_previews_pos{end}(3) - slider_pos(1) - slider_pos(3);
+      self.guipos.preview_slider_bottom_border = slider_pos(2);
+      self.guipos.preview_play_left_border = play_pos(1) - slider_pos(1) - slider_pos(3);
+      self.guipos.preview_play_bottom_border = play_pos(2);
+      self.guipos.preview_edit_left_border = edit_pos(1) - play_pos(1) - play_pos(3);
+      self.guipos.preview_edit_bottom_border = edit_pos(2);
+    end  % method    
   end
-  
 end
