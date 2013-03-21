@@ -7346,7 +7346,7 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
 % Extract the structure that will be saved in the everything file
-s=handles.guidata.getEverythingStruct();  %#ok
+s=handles.guidata.getEverythingParams();  %#ok
 % write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -7403,7 +7403,7 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
 % Extract the structure that will be saved in the everything file
-s=handles.guidata.getEverythingStruct();  %#ok
+s=handles.guidata.getEverythingParams();  %#ok
 % write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -8340,11 +8340,11 @@ function basicParams=basicParamsFromEverythingParams(everythingParams)
 
 basicParams=struct();
 basicParams.featureLexiconName=everythingParams.featureLexiconName;
-basicParams.behaviors=everythingParams.behaviors;
+basicParams.behaviors=rmfield(everythingParams.behaviors,'type');  % featureLexiconName implies the type
 basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
 basicParams.file=everythingParams.file;
-basicParams.labels=everythingParams.labelGraphicParams;
-basicParams.trx=everythingParams.trxGraphicParams;
+basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
+basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
 basicParams.scoresinput=everythingParams.classifier.scoresAsInput;
 
 return

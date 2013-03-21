@@ -81,33 +81,17 @@ handles=setBasicAndAdvancedSizesToMatchFigure(handles);
 handles.mode = 'basic';
 handles = updateFigurePosition(handles);
 
-% Initialize the lists of possible feature lexicons names, the
-% animal types they go with, and the names of the XML files that describe 
-% them
-handles = initFeatureLexiconLists(handles);
+% Initialize the list of possible feature lexicon names
+handles.featureLexiconNameList = getFeatureLexiconListsFromXML();
 
 % Populate the featureLexiconName popuplist with options
 set(handles.featureconfigpopup,'String',handles.featureLexiconNameList);
 
 % Either copy or 
 if isempty(basicParams)
-  handles.basicParams = newBasicParams('flies');  % the default
+  handles.basicParams = newBasicParams('flies');  % the default featureLexiconName
 else  
   handles.basicParams = basicParams;
-  %handles = addversion(handles);
-  % Get rid of 'None' from the list of behavior names
-%   if ~isempty(basicParams.behaviors.names)
-%     handles.basicParams.behaviors.names = basicParams.behaviors.names(1);
-%   end
-%   
-%   if ~isfield(basicParams.file,'scorefilename')
-%     name_str = [sprintf('%s_',handles.basicParams.behaviors.names{1:end-1}),handles.basicParams.behaviors.names{end}];
-%     handles.basicParams.file.scorefilename = sprintf('scores_%s',name_str);
-%   end
-%   
-%   if ~isfield(basicParams,'scoresinput')
-%     handles.basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
-%   end
 end
 
 % Update the configuration table in the GUI
@@ -194,20 +178,20 @@ basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{})
 %basicParams.windowfeatures = struct;
 basicParams.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
 basicParams.behaviors.unknowncolor = [0,0,0];
-basicParams.trx.colormap = 'jet';
-basicParams.trx.colormap_multiplier = 0.7;
-basicParams.trx.extra_linestyle = '-';
-basicParams.trx.extra_marker = '.';
-basicParams.trx.extra_markersize = 12;
-basicParams.labels.colormap = 'line';
-basicParams.labels.linewidth = 3;
+basicParams.trxGraphicParams.colormap = 'jet';
+basicParams.trxGraphicParams.colormap_multiplier = 0.7;
+basicParams.trxGraphicParams.extra_linestyle = '-';
+basicParams.trxGraphicParams.extra_marker = '.';
+basicParams.trxGraphicParams.extra_markersize = 12;
+basicParams.labelGraphicParams.colormap = 'line';
+basicParams.labelGraphicParams.linewidth = 3;
 %basicParams.file.labelfilename = '';
 %basicParams.file.gtlabelfilename = '';
 basicParams.file.scorefilename = '';
 basicParams.file.trxfilename = '';
 basicParams.file.moviefilename = '';
 %handles = addversion(handles);
-basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+%basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
 return
 
 
@@ -215,6 +199,7 @@ return
 function updateEditsListboxesAndPopupmenus(handles)
 % Copies the parameters in the basicParams structure to the gui.
 
+% update the behavior name editbox
 if isfield(handles.basicParams.behaviors,'names');
   names = handles.basicParams.behaviors.names;
   if numel(names)>0
@@ -227,11 +212,11 @@ else
   set(handles.editName,'String','');
 end
 
+% Update all the editboxes
 fnames = {'labelfilename','gtlabelfilename','scorefilename',...
   'moviefilename','trxfilename'};
 boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
   'editmoviefilename','edittrxfilename'};
-
 for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
@@ -269,32 +254,6 @@ updateFileNameEdit(handles,editName);
 updateConfigTable(handles);
 return
 
-% fnames = {'labelfilename','gtlabelfilename','scorefilename',...
-%   'moviefilename','trxfilename'};
-% boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
-%   'editmoviefilename','edittrxfilename'};
-% 
-% for ndx = 1:numel(fnames)
-%   curf = fnames{ndx};
-%   curbox = boxnames{ndx};
-%   str = strtrim(get(handles.(curbox),'String'));
-%   if ~isempty(str) && ~IsNiceFileName(str),
-%       uiwait(warndlg(sprintf(...
-%           ['The name specified for %s cannot have special characters.'...
-%           'Please use only alphanumeric characters and underscore'],curf)));
-%       set(handles.(curbox),'String',handles.basicParams.file.(curf));
-%       continue;
-%   end
-% 
-%   
-%   if ~isempty(str)
-%     handles.basicParams.file.(curf) = str;
-%   end
-% end
-% 
-% updateConfigTable(handles);
-% return
-
 
 % -------------------------------------------------------------------------
 function [handles,whatHappened] = setFileName(handles,varName,newFileName)
@@ -302,11 +261,6 @@ function [handles,whatHappened] = setFileName(handles,varName,newFileName)
 % is a string that can be 'notChanged', 'emptyEntry','changed', or
 % 'invalidEntry', depending.
 
-% fnames = {'labelfilename','gtlabelfilename','scorefilename',...
-%   'moviefilename','trxfilename'};
-% boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
-%   'editmoviefilename','edittrxfilename'};
-% editName=sprintf('edit%s',varName);
 fileName=handles.basicParams.file.(varName);
 if isequal(newFileName,fileName)
   whatHappened='notChanged';
@@ -461,17 +415,14 @@ function featureconfigpopup_Callback(hObject, eventdata, handles)
 % hObject    handle to featureconfigpopup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns featureconfigpopup contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from featureconfigpopup
-
-featureLexiconNameList = get(hObject,'String');
-featureLexiconNameNew = featureLexiconNameList{get(hObject,'Value')};
+iFeatureLexicon=get(hObject,'Value');
+featureLexiconNameNew = handles.featureLexiconNameList{iFeatureLexicon};
 handles.basicParams.featureLexiconName=featureLexiconNameNew;
-%handles.basicParams.behaviors.type = handles.featureLexiconFileLookup.(featureLexiconNameNew).animal;
+%animalTypeNew=handles.featureLexiconAnimalTypeList{iFeatureLexicon};
+%handles.basicParams.behaviors.type=animalTypeNew;
 guidata(hObject,handles);
-
 updateConfigTable(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -992,7 +943,7 @@ guidata(hObject,handles);
 
 
 % -------------------------------------------------------------------------
-function [allPfList selected missing]= GetAllPerframeList(basicParams)
+function [allPfList,selected,missing]= GetAllPerframeList(basicParams)
 featureconfigfile = basicParams.file.featureconfigfile;
 basicParams = ReadXMLParams(featureconfigfile);
 allPfList = fieldnames(basicParams.perframe);
@@ -1020,7 +971,7 @@ end
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_addadvanced.
-function pushbutton_addadvanced_Callback(hObject, eventdata, handles)
+function pushbutton_addadvanced_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_addadvanced (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1038,7 +989,7 @@ guidata(hObject,handles);
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_removeadvanced.
-function pushbutton_removeadvanced_Callback(hObject, eventdata, handles)
+function pushbutton_removeadvanced_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_removeadvanced (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1055,6 +1006,7 @@ end
 updateConfigTable(handles);
 updateEditsListboxesAndPopupmenus(handles);
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
