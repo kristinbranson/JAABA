@@ -883,7 +883,6 @@ classdef JLabelData < handle
             
       % load in the rest of the stuff
       if isfield(basicParams,'behaviors'),
-        
         % read in behavior names
         if isfield(basicParams.behaviors,'names'),
           obj.labelnames = basicParams.behaviors.names;
@@ -1040,6 +1039,9 @@ classdef JLabelData < handle
           end
         end
       end
+      
+      % Re-load the perframe feature signals, since the PFFs may have changed
+      obj.loadPerframeData(obj.expi,obj.flies);
     end  % method
     
     
@@ -2078,7 +2080,7 @@ classdef JLabelData < handle
                           everythingParams)
       
       % Update the status bar
-      self.SetStatus('Loading labels...');
+      %self.SetStatus('Loading labels...');
 
       % remove all experiments, if present
       self.RemoveExpDirs(1:self.nexps);
@@ -2138,7 +2140,7 @@ classdef JLabelData < handle
       self.ClearCachedPerExpData();
 
       % Set the status bar back to the default message
-      self.ClearStatus();
+      %self.ClearStatus();
     end  % setLabels() method
 
     
@@ -3928,13 +3930,9 @@ classdef JLabelData < handle
       % Update obj.allperframefns based on the new feature lexicon
       obj.allperframefns =  fieldnames(featureLexicon.perframe);
       
-      % If the lexicon contains no features, signal an error state on
-      % return
-      if isempty(obj.allperframefns)
-        msg = 'No perframefns defined';
-        return;
-      end
-      
+      % % Re-load the perframe feature signals, since the PFFs may have changed
+      % obj.loadPerframeData(obj.expi,obj.flies);
+
       % Clear the classifier, since the feature lexicon has changed
       % This also clears the features currently in use by the classifier
       % trainer
@@ -4718,21 +4716,8 @@ classdef JLabelData < handle
       
       % load perframedata
       obj.SetStatus('Loading per-frame data for %s, flies %s',obj.expdirs{expi},mat2str(flies));
-      file = obj.GetPerframeFiles(expi);
-      for j = 1:numel(obj.allperframefns),
-        if ~exist(file{j},'file'),
-          success = false;
-          msg = sprintf('Per-frame data file %s does not exist',file{j});
-          return;
-        end
-%         try
-          tmp = load(file{j});
-          obj.perframedata{j} = tmp.data{flies(1)};
-          obj.perframeunits{j} = tmp.units;
-%         catch ME,
-%           msg = getReport(ME);
-%         end
-      end
+      [success,msg]=obj.loadPerframeData(expi,flies);
+      if ~success, return;  end
       
       obj.expi = expi;
       obj.flies = flies;
@@ -4744,7 +4729,43 @@ classdef JLabelData < handle
       obj.ClearStatus();
            
       success = true;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg]=loadPerframeData(obj,expi,indicesOfTargets)
+      % Loads the per-frame features for experiment expi and target
+      % iTarget into obj.perframedata and obj.perframeunits      
+      % This is a private method.
       
+      % Test for various degenerate cases 
+      if isempty(indicesOfTargets)
+        success=true;  msg='';
+        return
+      end
+      iTarget=indicesOfTargets(1);
+      if expi<0 
+        success=true;  msg='';
+        return
+      end        
+      % If we got here, expi and iTarget are non-degenerate
+      perframeFileNameList = obj.GetPerframeFiles(expi);
+      nPerframeFeatures=numel(obj.allperframefns);
+      obj.perframedata=cell(1,nPerframeFeatures);
+      obj.perframeunits=cell(1,nPerframeFeatures);      
+      for j = 1:nPerframeFeatures,
+        perframeFileName=perframeFileNameList{j};
+        if ~exist(perframeFileName,'file'),
+          success = false;
+          msg = sprintf('Per-frame data file %s does not exist',perframeFileNameList{j});
+          return;
+        end
+        tmp = load(perframeFileName);
+        obj.perframedata{j} = tmp.data{iTarget};
+        obj.perframeunits{j} = tmp.units;
+      end
+      success=true;
+      msg='';
     end
     
     function ClearCachedPerExpData(obj)
@@ -5654,7 +5675,8 @@ classdef JLabelData < handle
         
       end
       
-      parfor j = 1:numel(curperframefns),
+      % NB: must change back to parfor!!!
+      for j = 1:numel(curperframefns),
         fn = curperframefns{j};
         
         % get per-frame data
