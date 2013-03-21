@@ -827,6 +827,9 @@ if(sum(tmp)>0)
   uiwait(errordlg(msg));
   newexperiments(tmp)=[];
 end
+if isempty(newexperiments),
+  return;
+end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
