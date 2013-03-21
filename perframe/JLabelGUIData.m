@@ -620,7 +620,7 @@ classdef JLabelGUIData < handle
 
       % whether to show trajectories
       %set(handles.menu_view_plot_tracks,'Checked','on');
-      handles.doplottracks = true;
+      %handles.doplottracks = true;
 
       % bookmarked clips windows
       self.bookmark_windows = [];
