@@ -334,9 +334,9 @@ classdef JLabelGUIData < handle
       end
     end
     
-    function s=getEverythingStruct(self)
+    function s=getEverythingParams(self)
       % Construct the structure that will be saved in the everything file
-      s=self.data.getEverythingStruct();
+      s=self.data.getEverythingParams();
     end
   end
   
