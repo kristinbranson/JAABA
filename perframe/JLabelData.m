@@ -4215,7 +4215,11 @@ end
         labelstatsToUse = 'labelstats';
       end
       
-      [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+      if isempty(obj.(labelsToUse)(expi).flies),
+	ism = false;
+      else
+        [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+      end
       if ~ism,
         j = size(obj.(labelsToUse)(expi).flies,1)+1;
       end
@@ -4248,7 +4252,12 @@ end
           labelsToUse = 'labels';
         end
 
-        [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+        if isempty(obj.(labelsToUse)(expi).flies)
+          ism = false;
+        else
+          [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+	end
+
         if ism,
           isstart = ismember(ts,obj.(labelsToUse)(expi).t0s{fliesi});
         else
