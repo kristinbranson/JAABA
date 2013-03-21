@@ -1,4 +1,4 @@
-function best = findWeakRuleSamples(data,labels,dist,binVals,bins,params)
+function [best,curSel] = findWeakRuleSamples(data,labels,dist,binVals,bins,params)
 
 numDim = size(data,2);
 
@@ -48,7 +48,7 @@ else
   
   curBins = bins;
   curLabels = labels;
-  
+  curSel = true(size(labels));
 end
 
 % KB: precompute these
