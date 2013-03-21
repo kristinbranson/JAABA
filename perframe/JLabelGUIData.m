@@ -194,12 +194,12 @@ classdef JLabelGUIData < handle
   end
      
   methods (Access=public)
-    
-    
-    % Constructor
     function obj = JLabelGUIData()
+      % Constructor
     end
 
+    
+    % ---------------------------------------------------------------------    
     function UpdateGraphicsHandleArrays(self, figure_JLabel)
       % Update the arrays of grandles within ourself to match the widgets
       % in the JLabel figure.
@@ -262,6 +262,7 @@ classdef JLabelGUIData < handle
     end
     
     
+    % ---------------------------------------------------------------------    
     function UpdateGrandleArrays(self, figure_JLabel)
       % Update the arrays of grandles within ourself to match the widgets
       % in the JLabel figure.
@@ -324,6 +325,8 @@ classdef JLabelGUIData < handle
       end
     end
     
+    
+    % ---------------------------------------------------------------------
     function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
       if self.thereIsAnOpenFile && ~isempty(self.data)
         nExp=self.data.nexps;
@@ -334,11 +337,15 @@ classdef JLabelGUIData < handle
       end
     end
     
+    
+    % ---------------------------------------------------------------------    
     function s=getEverythingParams(self)
       % Construct the structure that will be saved in the everything file
       s=self.data.getEverythingParams();
     end
     
+    
+    % ---------------------------------------------------------------------
     function setLayout(self,figureJLabel)
       % Calculates various aspects of the layout, sets a bunch of stuff in
       % self appropriately.      
@@ -422,5 +429,227 @@ classdef JLabelGUIData < handle
       self.guipos.preview_edit_left_border = edit_pos(1) - play_pos(1) - play_pos(3);
       self.guipos.preview_edit_bottom_border = edit_pos(2);
     end  % method    
+    
+    
+    % ---------------------------------------------------------------------
+    function initializeGivenBasicParams(self,basicParams,figureJLabel)
+      % initialize data structure
+      self.data = ...
+        JLabelData(basicParams, ...
+                   'defaultpath',self.defaultpath,...
+                   'setstatusfn',@(s) SetStatusCallback(s,figureJLabel),...
+                   'clearstatusfn',@() ClearStatusCallback(figureJLabel),...
+                   'cacheSize',self.cacheSize);
+      %             'classifierfilename',self.classifierfilename,...
+
+      % number of flies to label at a time
+      self.nflies_label = 1;
+
+      % learned classifier
+      self.classifier = [];
+
+      % currently shown experiment
+      self.expi = 0;
+      % currently labeled flies
+      self.flies = 1:self.nflies_label;
+      % currently shown frame
+      self.ts = 0;
+
+      % current behavior labeling state: nothing down
+      self.label_state = 0;
+      self.label_imp = [];
+
+      % number of flies for the current movie
+      self.nflies_curr = 0;
+
+      % label colors
+      if isfield(basicParams,'behaviors') && ...
+          isfield(basicParams.behaviors,'labelcolors'),
+        labelcolors = basicParams.behaviors.labelcolors;
+        if numel(labelcolors) >= 3*self.data.nbehaviors,
+          self.labelcolors = reshape(labelcolors(1:3*self.data.nbehaviors),[self.data.nbehaviors,3]);
+        else
+          uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
+          if isfield(basicParams,'labels') && ...
+              isfield(basicParams.labels,'colormap'),
+            cm = basicParams.labels.colormap;
+          else
+            cm = 'lines';
+          end
+          if ~exist(cm,'file'),
+            cm = 'lines';
+          end
+      %     try
+            self.labelcolors = eval(sprintf('%s(%d)',cm,self.data.nbehaviors));
+      %     catch ME,
+      %       uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
+      %       self.labelcolors = lines(self.data.nbehaviors);
+      %     end
+        end
+      end
+      self.labelunknowncolor = [0,0,0];
+      if isfield(basicParams,'behaviors') && ...
+          isfield(basicParams.behaviors,'unknowncolor'),
+        unknowncolor = basicParams.behaviors.unknowncolor;
+        if numel(unknowncolor) >= 3,
+          self.labelunknowncolor = reshape(unknowncolor(1:3),[1,3]);
+        else
+          uiwait(warndlg('Error parsing unknown color from config file, automatically assigning','Error parsing config unknown colors'));
+        end
+      end
+      self.flies_extra_markersize = 12;
+      if isfield(basicParams,'plot') && ...
+          isfield(basicParams.plot,'trx') && ...
+          isfield(basicParams.plot.trx,'extra_markersize'),
+        self.flies_extra_markersize = basicParams.plot.trx.extra_markersize(1);
+      end
+      self.flies_extra_marker = 'o';
+      if isfield(basicParams,'plot') && ...
+          isfield(basicParams.plot,'trx') && ...
+          isfield(basicParams.plot.trx,'extra_marker'),
+        self.flies_extra_marker = basicParams.plot.trx.extra_marker;
+      end
+      self.flies_extra_linestyle = '-';
+      if isfield(basicParams,'plot') && ...
+          isfield(basicParams.plot,'trx') && ...
+          isfield(basicParams.plot.trx,'extra_linestyle'),
+        self.flies_extra_linestyle = basicParams.plot.trx.extra_linestyle;
+      end
+
+      for channel = 1:3
+        midValue = self.labelunknowncolor(channel);
+        startValue = self.labelcolors(2,channel);
+        endValue = self.labelcolors(1,channel);
+        self.scorecolor(1:32,channel,1) = (midValue-startValue)*(0:31)/31+startValue;
+        self.scorecolor(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
+      end
+      for ndx = 1:63
+        self.scorecolor(ndx,:,2) = ShiftColor.shiftColorFwd(self.scorecolor(ndx,:,1));
+        self.scorecolor(ndx,:,3) = ShiftColor.shiftColorBkwd(self.scorecolor(ndx,:,1));  
+      end
+
+      self.correctcolor = [0,.7,0];
+      self.incorrectcolor = [.7,.7,0];
+      self.suggestcolor = [0,.7,.7];
+
+      self.selection_color = [1,.6,0];
+      self.selection_alpha = .5;
+
+      % color for showing which labels are being plotted
+      self.emphasiscolor = [.7,.7,0];
+      self.unemphasiscolor = [1,1,1];
+
+      % create buttons for each label, as needed
+      %handles = UpdateLabelButtons(handles);
+
+      % timeline properties
+      self.timeline_prop_remove_string = '<html><body><i>Remove</i></body></html>';
+      self.timeline_prop_help_string = '<html><body><i>Help</i></body></html>';
+      self.timeline_prop_options = ...
+        {self.timeline_prop_remove_string,...
+        self.timeline_prop_help_string};
+
+      if ~isempty(self.data.allperframefns)
+        for i = 1:numel(self.data.allperframefns),
+          self.timeline_prop_options{end+1} = self.data.allperframefns{i};
+        end
+        self.d = self.data.allperframefns(1);
+        self.perframepropis = 1;
+        %set(handles.timeline_label_prop1,'String',self.timeline_prop_options,'Value',3);
+        self.timeline_data_ylims = nan(2,numel(self.data.allperframefns));
+      end
+
+%       % Setup the popup menu for bottom row of the automatic timeline.
+%       bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
+%       set(handles.automaticTimelineBottomRowPopup,'Value', ...
+%         find(strcmp(bottomRowTypes,self.bottomAutomatic)));
+%       set(handles.automaticTimelinePredictionLabel,'FontSize',10);
+%       set(handles.automaticTimelineScoresLabel,'FontSize',10);
+%       set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
+
+      % maximum distance squared in fraction of axis to change frames when
+      % clicking on preview window
+      self.max_click_dist_preview = .005^2;
+
+      % zoom state
+      %self.preview_zoom_mode = 'follow_fly';
+      self.zoom_fly_radius = nan(1,2);
+      %set(self.menu_view_keep_target_in_view,'Checked','off');
+      %set(self.menu_view_center_on_target,'Checked','off');
+      %set(self.menu_view_static_view,'Checked','off');
+      %set(handles.menu_view_keep_target_in_view,'Checked','on');
+
+      % last clicked object
+      self.selection_t0 = nan;
+      self.selection_t1 = nan;
+      self.selected_ts = nan(1,2);
+      self.buttondown_t0 = nan;
+      self.buttondown_axes = nan;
+      %set([handles.pushbutton_playselection,handles.pushbutton_clearselection],'Enable','off');
+
+      % not selecting
+      self.selecting = false;
+      %set(handles.togglebutton_select,'Value',0);
+
+      % initialize nextjump obj;
+      self.NJObj = NextJump();
+      self.NJObj.SetSeekBehaviorsGo(1:self.data.nbehaviors);
+      self.NJObj.SetPerframefns(self.data.allperframefns);
+      if isfield(self.rc,'navPreferences')  && ~isempty(self.rc.navPreferences)
+        self.NJObj.SetState(self.rc.navPreferences);
+      end
+
+      % initialize labels for navigation
+      %SetJumpGoMenuLabels(handles)
+
+      % label shortcuts
+      if numel(self.label_shortcuts) ~= 2*self.data.nbehaviors + 1,
+        if self.data.nbehaviors == 2,
+          self.label_shortcuts = {'z','a','x','s','c'}';
+        else
+          self.label_shortcuts = cellstr(num2str((1:2*self.data.nbehaviors+1)'));
+        end
+      end
+
+      % play/stop
+      self.hplaying = nan;
+      %self.play_FPS = 2;
+
+      %self.traj_nprev = 25;
+      %self.traj_npost = 25;
+
+      % whether to show trajectories
+      %set(handles.menu_view_plot_tracks,'Checked','on');
+      handles.doplottracks = true;
+
+      % bookmarked clips windows
+      self.bookmark_windows = [];
+
+      % Just leave these alone, since they're already set
+      % % whether to plot manual labels or automatic labels
+      % self.plot_labels_manual = true;
+      % self.plot_labels_automatic = false;
+      % set(handles.menu_view_manual_labels,'Checked','on');
+      % set(handles.menu_view_automatic_labels,'Checked','off');
+
+%       buttonNames = {'pushbutton_train','pushbutton_predict',...
+%                     'togglebutton_select','pushbutton_clearselection',...
+%                     'pushbutton_playselection','pushbutton_playstop',...
+%                     'similarFramesButton','bagButton'};
+% 
+%       for buttonNum = 1:numel(buttonNames)
+%         %SetButtonImage(handles.(buttonNames{buttonNum}));
+%         adjustNonLabelButtonColor(handles.(buttonNames{buttonNum}));
+%       end
+
+      self.doFastUpdates = true;
+      %set(handles.similarFramesButton,'Enable','off');
+
+      %SetGUIModeMenuChecks(handles);
+
+      %guidata(handles.figure_JLabel,handles);  % write handles to the guidata
+
+    end
+    
   end
 end
