@@ -1018,11 +1018,11 @@ classdef JLabelData < handle
       end
       
       
-      if isfield(basicParams,'learning'),
-        if isfield(basicParams.learning,'classifiertype'),
-          obj.SetClassifierType(basicParams.learning.classifiertype);
-        end
-      end
+%       if isfield(basicParams,'learning'),
+%         if isfield(basicParams.learning,'classifiertype'),
+%           obj.SetClassifierType(basicParams.learning.classifiertype);
+%         end
+%       end
       
       if isfield(basicParams,'scoresinput'),
         obj.scoresasinput = basicParams.scoresinput;
@@ -1275,20 +1275,20 @@ classdef JLabelData < handle
     end
 
 
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetClassifierType(obj,classifiertype)
-
-      success = true;
-      msg = '';
-      
-      % TODO: retrain classifier if necessary
-      if strcmpi(classifiertype,obj.classifiertype),
-        return;
-      end
-      
-      obj.classifiertype = classifiertype;
-      
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetClassifierType(obj,classifiertype)
+% 
+%       success = true;
+%       msg = '';
+%       
+%       % TODO: retrain classifier if necessary
+%       if strcmpi(classifiertype,obj.classifiertype),
+%         return;
+%       end
+%       
+%       obj.classifiertype = classifiertype;
+%       
+%     end
     
 
     % ---------------------------------------------------------------------
@@ -1930,147 +1930,147 @@ classdef JLabelData < handle
 %     end  % setClassifierParamsOld() method
 
     
-    % ---------------------------------------------------------------------
-    function setLabelsAndClassifier(self, ...
-                                    everythingParams)
-      % [success,msg] = SetClassifierFileName(obj,classifierfilename)
-      % Sets the name of the classifier file. If the classifier file exists,
-      % it loads the data stored in the file. This involves removing all the
-      % experiments and data currently loaded, setting the config file,
-      % setting all the file names set in the config file, setting the
-      % experiments to be those listed in the classifier file, clearing all
-      % the previously computed window data and computing the window data for
-      % all the labeled frames.
-      
-      % % new-style everything files don't use classifier file names
-      % self.classifierfilename = 0;
-
-      % Update the status bar
-      self.SetStatus('Loading classifier and labels...');
-
-      % remove all experiments, if presents
-      self.RemoveExpDirs(1:self.nexps);
-
-%       % set movie
-%       [success,msg] = self.SetMovieFileName(everythingParams.file.moviefilename);
-%       if ~success,error(msg);end
+%     % ---------------------------------------------------------------------
+%     function setLabelsAndClassifier(self, ...
+%                                     everythingParams)
+%       % [success,msg] = SetClassifierFileName(obj,classifierfilename)
+%       % Sets the name of the classifier file. If the classifier file exists,
+%       % it loads the data stored in the file. This involves removing all the
+%       % experiments and data currently loaded, setting the config file,
+%       % setting all the file names set in the config file, setting the
+%       % experiments to be those listed in the classifier file, clearing all
+%       % the previously computed window data and computing the window data for
+%       % all the labeled frames.
 %       
-%       % trx
-%       [success,msg] = self.SetTrxFileName(everythingParams.file.trxfilename);
-%       if ~success,error(msg);end
+%       % % new-style everything files don't use classifier file names
+%       % self.classifierfilename = 0;
 % 
-%       % perframedir
-%       [success,msg] = self.SetPerFrameDir(everythingParams.file.perframedir);
-%       if ~success,error(msg);end
+%       % Update the status bar
+%       self.SetStatus('Loading classifier and labels...');
+% 
+%       % remove all experiments, if presents
+%       self.RemoveExpDirs(1:self.nexps);
+% 
+% %       % set movie
+% %       [success,msg] = self.SetMovieFileName(everythingParams.file.moviefilename);
+% %       if ~success,error(msg);end
+% %       
+% %       % trx
+% %       [success,msg] = self.SetTrxFileName(everythingParams.file.trxfilename);
+% %       if ~success,error(msg);end
+% % 
+% %       % perframedir
+% %       [success,msg] = self.SetPerFrameDir(everythingParams.file.perframedir);
+% %       if ~success,error(msg);end
+% %       
+% %       % clipsdir
+% %       [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
+% %       if ~success,error(msg);end
+% 
+%       % load the feature names
+%       %self.windowdata.featurenames = everythingParams.featurenames;
+% 
+%       % set experiment directories
+%       [success,msg] = ...
+%         self.SetExpDirsNew(everythingParams.expdirs);
+%       if ~success,error(msg); end
 %       
-%       % clipsdir
-%       [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
-%       if ~success,error(msg);end
-
-      % load the feature names
-      %self.windowdata.featurenames = everythingParams.featurenames;
-
-      % set experiment directories
-      [success,msg] = ...
-        self.SetExpDirsNew(everythingParams.expdirs);
-      if ~success,error(msg); end
-      
-      % Update the status table
-      [success,msg] = self.UpdateStatusTable();
-      if ~success, error(msg); end
-
-%       % update cached data  -- original location (does nothing)
+%       % Update the status table
+%       [success,msg] = self.UpdateStatusTable();
+%       if ~success, error(msg); end
+% 
+% %       % update cached data  -- original location (does nothing)
+% %       [success,msg] = self.PreLoadPeriLabelWindowData();
+% %       if ~success,error(msg);end   
+%       
+%       % set the labels
+%       self.setLabelsFromStructForAllExps(everythingParams.labels);
+% 
+%       % set the GT labels
+%       self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
+% 
+%       % Preload the first track of the first video, which sets the current
+%       % experiment and track to experiment 1, track 1
+%       if (self.nexps>0)
+%         self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
+%         [success1,msg1] = self.PreLoad(1,1);
+%         if ~success1,
+%           msg = sprintf('Error getting basic trx info: %s',msg1);
+%           self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
+%           uiwait(warndlg(msg));
+%           self.RemoveExpDirs(1:obj.nexps);
+%           self.ClearStatus();
+%           return;
+%         end
+%       end
+%                   
+%       % Read certain fields out of the classifier, setting them in self
+%       self.classifier = everythingParams.classifier.params;
+%       self.classifiertype = everythingParams.classifier.type;
+%       self.classifierTS = everythingParams.classifier.timeStamp;
+%       self.windowdata.scoreNorm = everythingParams.classifier.scoreNorm;
+%       self.confThresholds = everythingParams.classifier.confThresholds;
+%       if isfield(everythingParams,'postprocessparams')
+%         self.postprocessparams = everythingParams.classifier.postProcessParams;
+%       end
+%       
+%       % Read the per-frame features to be used by a classifier
+%       windowFeaturesParams=everythingParams.classifier.windowFeaturesParams;
+%       %windowFeaturesCellParams= ...
+%       %  JLabelData.convertParams2CellParams(windowFeaturesParams);
+%       self.SetPerframeParams(windowFeaturesParams);
+%       %self.windowfeaturesparams=classifierParams.windowfeaturesparams;
+%       %self.windowfeaturescellparams= ...
+%       %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
+%       %self.curperframefns=fieldnames(self.windowfeaturesparams);
+%       self.basicFeatureTable=everythingParams.classifier.basicFeatureTable;
+%       self.featureWindowSize=everythingParams.classifier.featureWindowSize;
+%       
+%       % Set the window feature names
+%       feature_names = {};
+%       for j = 1:numel(self.curperframefns),
+%         fn = self.curperframefns{j};
+%         [~,feature_names_curr_proto] = ComputeWindowFeatures([0,0],...
+%                                                              self.windowfeaturescellparams.(fn){:});
+%         feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
+%         feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+%       end
+%       self.windowdata.featurenames = feature_names;
+%       
+%       % Read the classifier_params field out of the classifier.  This
+%       % contains things like the number of iterations used for training,
+%       % the number of folds used for cross-validation, etc.
+%       self.classifier_params=everythingParams.classifier.trainingParams;
+%       
+%       % update cached data
 %       [success,msg] = self.PreLoadPeriLabelWindowData();
 %       if ~success,error(msg);end   
-      
-      % set the labels
-      self.setLabelsFromStructForAllExps(everythingParams.labels);
-
-      % set the GT labels
-      self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
-
-      % Preload the first track of the first video, which sets the current
-      % experiment and track to experiment 1, track 1
-      if (self.nexps>0)
-        self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
-        [success1,msg1] = self.PreLoad(1,1);
-        if ~success1,
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
-          uiwait(warndlg(msg));
-          self.RemoveExpDirs(1:obj.nexps);
-          self.ClearStatus();
-          return;
-        end
-      end
-                  
-      % Read certain fields out of the classifier, setting them in self
-      self.classifier = everythingParams.classifier.params;
-      self.classifiertype = everythingParams.classifier.type;
-      self.classifierTS = everythingParams.classifier.timeStamp;
-      self.windowdata.scoreNorm = everythingParams.classifier.scoreNorm;
-      self.confThresholds = everythingParams.classifier.confThresholds;
-      if isfield(everythingParams,'postprocessparams')
-        self.postprocessparams = everythingParams.classifier.postProcessParams;
-      end
-      
-      % Read the per-frame features to be used by a classifier
-      windowFeaturesParams=everythingParams.classifier.windowFeaturesParams;
-      %windowFeaturesCellParams= ...
-      %  JLabelData.convertParams2CellParams(windowFeaturesParams);
-      self.SetPerframeParams(windowFeaturesParams);
-      %self.windowfeaturesparams=classifierParams.windowfeaturesparams;
-      %self.windowfeaturescellparams= ...
-      %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
-      %self.curperframefns=fieldnames(self.windowfeaturesparams);
-      self.basicFeatureTable=everythingParams.classifier.basicFeatureTable;
-      self.featureWindowSize=everythingParams.classifier.featureWindowSize;
-      
-      % Set the window feature names
-      feature_names = {};
-      for j = 1:numel(self.curperframefns),
-        fn = self.curperframefns{j};
-        [~,feature_names_curr_proto] = ComputeWindowFeatures([0,0],...
-                                                             self.windowfeaturescellparams.(fn){:});
-        feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
-        feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
-      end
-      self.windowdata.featurenames = feature_names;
-      
-      % Read the classifier_params field out of the classifier.  This
-      % contains things like the number of iterations used for training,
-      % the number of folds used for cross-validation, etc.
-      self.classifier_params=everythingParams.classifier.trainingParams;
-      
-      % update cached data
-      [success,msg] = self.PreLoadPeriLabelWindowData();
-      if ~success,error(msg);end   
-      
-      % predict for all loaded examples
-      self.PredictLoaded();
-
-      % SetTrainingData() does nothing
-      % % set labelidx_cur
-      % self.SetTrainingData(everythingParams.trainingdata);
-
-      % make sure inds is ordered correctly
-      if ~isempty(self.classifier),
-        switch self.classifiertype,
-          case 'ferns',
-            waslabeled = self.windowdata.labelidx_cur ~= 0;
-            self.classifier.inds = self.predict_cache.last_predicted_inds(waslabeled,:);
-        end
-      end
-
-      % clear the cached per-frame, trx data
-      self.ClearCachedPerExpData();
-
-      % Set the status bar back to the default message
-      self.ClearStatus();
-      
-      % No idea what this does -- ALT, Mar 5, 2013
-      self.FindFastPredictParams();
-    end  % setLabelsAndClassifier() method
+%       
+%       % predict for all loaded examples
+%       self.PredictLoaded();
+% 
+%       % SetTrainingData() does nothing
+%       % % set labelidx_cur
+%       % self.SetTrainingData(everythingParams.trainingdata);
+% 
+%       % make sure inds is ordered correctly
+%       if ~isempty(self.classifier),
+%         switch self.classifiertype,
+%           case 'ferns',
+%             waslabeled = self.windowdata.labelidx_cur ~= 0;
+%             self.classifier.inds = self.predict_cache.last_predicted_inds(waslabeled,:);
+%         end
+%       end
+% 
+%       % clear the cached per-frame, trx data
+%       self.ClearCachedPerExpData();
+% 
+%       % Set the status bar back to the default message
+%       self.ClearStatus();
+%       
+%       % No idea what this does -- ALT, Mar 5, 2013
+%       self.FindFastPredictParams();
+%     end  % setLabelsAndClassifier() method
 
     
     % ---------------------------------------------------------------------
@@ -2143,18 +2143,12 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function setClassifier(self, ...
-                           classifier)
+    function setClassifier(self,classifier)
+      % Sets the model classifier to the given classifier.
       
       % get the mapping of field names
       fieldNamesInSelf = JLabelData.fieldNamesInSelf;
       fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
-
-      % new-style everything files don't use classifier file names
-      %self.classifierfilename = 0;
-
-      % Update the status bar
-      self.SetStatus('Loading classifier...');
 
       % for each classifier field, store it in self
       nFields=numel(fieldNamesInSelf);
@@ -2172,7 +2166,7 @@ classdef JLabelData < handle
           self.(fieldNameInSelf)=classifier.(fieldNameInClassifier);
         end
       end
-            
+
       % Set the window feature names
       feature_names = {};
       for j = 1:numel(self.curperframefns),
@@ -2198,19 +2192,34 @@ classdef JLabelData < handle
       self.PredictLoaded();
 
       % clear the cached per-frame, trx data
-      self.ClearCachedPerExpData();
-
-      % Set the status bar back to the default message
-      self.ClearStatus();
-      
-%       % This is what goes down after training a new classifier:
-%           obj.MoveCurPredictionsToOld();
-%           obj.windowdata.scoreNorm = [];
-%           obj.FindFastPredictParams();
-%           obj.PredictLoaded();
-      
+      self.ClearCachedPerExpData();      
     end  % setClassifier() method
 
+    
+    % ---------------------------------------------------------------------
+    function clearClassifier(self)
+      % Reset the classifier to a tabular rasa state
+      
+      % Get the current classifier
+      classifier=self.getClassifier();
+
+      % Set the core classifier fields to default
+      classifier.type='boosting';
+      classifier.params=struct([]);
+      classifier.timeStamp=0;
+      classifier.confThresholds=[0 0];
+      classifier.scoreNorm=[];
+      classifier.windowFeaturesParams = struct([]);
+      classifier.basicFeatureTable={};
+      classifier.featureWindowSize=10;  % default
+      classifier.postProcessParams=[];
+      classifier.scoresAsInput=struct('classifierfile',{}, ...
+                                      'ts',{}, ...
+                                      'scorefilename',{});
+
+      % Set the classifier in the JLabelData object
+      self.setClassifier(classifier);
+    end  
     
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = SetClassifierFileNameWoExp(obj,classifierfilename)
@@ -3883,32 +3892,57 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------    
     function [success,msg] = setFeatureLexicon(obj,featureLexiconName)
       % this is intended to be a private method
+      % This sets the feature lexicon to the one named by
+      % featureLexiconName
+      
+      % Setup the default return values
       success = false;
       msg = '';
 
+      % Only do stuff if the new lexicon name is different than the current
+      % one
+      if isequal(featureLexiconName,obj.featureLexiconName)
+        success=true;
+        return
+      end
+      
+      % Get the lexicon itself and the associated animal type
       [featureLexicon,animalType]= ...
         featureLexiconFromFeatureLexiconName(featureLexiconName);     
 
+      % Store the lexicon-associated stuff in obj
       obj.featureLexiconName=featureLexiconName;
-      obj.featureLexicon=featureLexicon;  % save to self
+      obj.featureLexicon=featureLexicon;  % save to obj
       obj.targettype=animalType;
       
+      % Update obj.perframe_params based on the new feature lexicon
       if isfield(featureLexicon,'perframe_params'),
-        pf_fields = fieldnames(featureLexicon.perframe_params);
-        for ndx = 1:numel(pf_fields),
-          obj.perframe_params.(pf_fields{ndx}) = featureLexicon.perframe_params.(pf_fields{ndx});
-        end
+        obj.perframe_params=featureLexicon.perframe_params;
+        % pf_fields = fieldnames(featureLexicon.perframe_params);
+        % for ndx = 1:numel(pf_fields),
+        %   obj.perframe_params.(pf_fields{ndx}) = ...
+        %     featureLexicon.perframe_params.(pf_fields{ndx});
+        % end
       end
 
+      % Update obj.allperframefns based on the new feature lexicon
       obj.allperframefns =  fieldnames(featureLexicon.perframe);
       
+      % If the lexicon contains no features, signal an error state on
+      % return
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
         return;
       end
-      success = true;
       
-    end
+      % Clear the classifier, since the feature lexicon has changed
+      % This also clears the features currently in use by the classifier
+      % trainer
+      obj.clearClassifier();
+      
+      % If we got this far, all is good
+      success = true;
+    end  % method
     
     
 %     % ---------------------------------------------------------------------

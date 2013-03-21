@@ -8493,26 +8493,8 @@ handles=guidata(figureJLabel);
 % Update the status, change the pointer to the watch
 SetStatus(handles,'Clearing classifier...');
 
-% Get the current classifier
-data=handles.guidata.data;  % ref
-classifier=data.getClassifier();
-
-% Set the core classifier fields to default
-classifier.type='boosting';
-classifier.params=struct([]);
-classifier.timeStamp=0;
-classifier.confThresholds=[0 0];
-classifier.scoreNorm=[];
-classifier.windowFeaturesParams = struct([]);
-classifier.basicFeatureTable={};
-classifier.featureWindowSize=10;  % default
-classifier.postProcessParams=struct([]);
-classifier.scoresAsInput=struct('classifierfile',{}, ...
-                                'ts',{}, ...
-                                'scorefilename',{});
-
-% Set the classifier in the JLabelData object
-data.setClassifier(classifier);
+% Clear the current classifier in the model
+handles.guidata.data.clearClassifier();
 
 % Note that we now need saving
 handles.guidata.needsave=true;
