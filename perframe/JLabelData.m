@@ -3,6 +3,7 @@ classdef JLabelData < handle
   properties (Access=public)
 
     % type of target (mainly used for plotting)
+    % this should be a type of animal, and should be singular, not plural
     targettype = 'fly';
     
     % current selection
@@ -18,6 +19,14 @@ classdef JLabelData < handle
 
     % last-used per-frame data (one fly)
     perframedata = {};
+    
+    % A feature lexicon is the universe of possible features available.
+    % The features used when training a classifier for a particular
+    % behavior are a subset of the feature lexicon, and the features
+    % used by a particular trained classifier will be a further subset.
+    % Each possible feature lexicon has a name, such as 'flies', or
+    % 'vivek_mice'
+    featureLexiconName='';
     
     % computed and cached window features
     windowdata = struct('X',single([]),'exp',[],'flies',[],'t',[],...
@@ -195,7 +204,7 @@ classdef JLabelData < handle
     %featureConfigFile = '';
     
     % stuff loaded from featureConfigFile
-    featureConfigParams=[];
+    featureLexicon=[];
     
     % in case we don't want to write to the experiment directory, we will
     % mirror the experiment directory structure in the rootoutput dir
@@ -373,8 +382,7 @@ classdef JLabelData < handle
     % these two properties together define the mapping between
     % field names in a classifier struct and field names in JLabelData.
     % Used in setClassifier() and getClassifier() methods.
-    fieldNamesInSelf = {'featureConfigParams', ...
-                        'classifiertype', ...
+    fieldNamesInSelf = {'classifiertype', ...
                         'classifier', ...
                         'classifier_params',...
                         'classifierTS', ...
@@ -385,8 +393,7 @@ classdef JLabelData < handle
                         'featureWindowSize', ...
                         'postprocessparams',...
                         'scoresasinput'};
-    fieldNamesInClassifier = {'featureConfigParams', ...
-                              'type', ...
+    fieldNamesInClassifier = {'type', ...
                               'params', ...
                               'trainingParams',...
                               'timeStamp', ...
@@ -635,17 +642,10 @@ classdef JLabelData < handle
       basicParams = varargin{1};
       varargin = varargin(2:end);
 
-      % get the feature configuration
-      featureConfigParams=varargin{1};
-      varargin = varargin(2:end);
-
       % rest of args should be key-value pairs
       if mod(numel(varargin),2) ~= 0,
         error('Number of inputs to JLabelData constructor must be even');
       end
-      
-      % feature config file
-      obj.setFeatureConfiguration(featureConfigParams);
       
       % config file
       obj.setBasicParams(basicParams);
@@ -871,12 +871,18 @@ classdef JLabelData < handle
 %         obj.configfilename = '';
 %       end
         
+      % feature config file
+      obj.setFeatureLexicon(basicParams.featureLexiconName);
+
       % get some silly stuff out of projectParams
       %obj.projectParams=projectParams;
       obj.labelGraphicParams=basicParams.labels;
       obj.trxGraphicParams=basicParams.trx;
       obj.labelcolors=basicParams.behaviors.labelcolors;
       obj.unknowncolor=basicParams.behaviors.unknowncolor;
+      
+      % get a non-silly thing and put it in self
+      obj.featureLexiconName=basicParams.featureLexiconName;
       
       % load in the rest of the stuff
       if isfield(basicParams,'behaviors'),
@@ -1038,11 +1044,22 @@ classdef JLabelData < handle
     end  % method
     
     
-%     % ---------------------------------------------------------------------
-%     function projectParams = getProjectParamsLame(self)
-%       projectParams=self.projectParams;
-%     end
-      
+    % ---------------------------------------------------------------------
+    function basicParams = getBasicParams(obj)
+      basicParams=struct();
+      basicParams.featureLexiconName=obj.featureLexiconName;
+      basicParams.behaviors.type=obj.targettype;
+      basicParams.behaviors.names=obj.labelnames(1);
+      basicParams.behaviors.labelcolors=obj.labelcolors;
+      basicParams.behaviors.unknowncolor=obj.unknowncolor;
+      basicParams.file.moviefilename=obj.moviefilename;
+      basicParams.file.trxfilename=obj.trxfilename;
+      basicParams.file.scorefilename=obj.scorefilename;
+      basicParams.scoresinput=obj.scoresasinput;
+      basicParams.labels=obj.labelGraphicParams;
+      basicParams.trx=obj.trxGraphicParams;
+    end
+    
     
     % ---------------------------------------------------------------------
     function [success,msg] = SetMovieFileName(obj,moviefilename)
@@ -3725,7 +3742,7 @@ classdef JLabelData < handle
     
     function RemoveArenaPFs(obj)
       %settings = ReadXMLParams(obj.featureConfigFile);
-      settings = obj.featureConfigParams;
+      settings = obj.featureLexicon;
       toRemove = [];
       for i = 1:numel(obj.allperframefns)
         curpf = obj.allperframefns{i};
@@ -3865,20 +3882,25 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureConfiguration(obj,featureConfigParams)
+    function [success,msg] = setFeatureLexicon(obj,featureLexiconName)
+      % this is intended to be a private method
       success = false;
       msg = '';
+
+      [featureLexicon,animalType]= ...
+        featureLexiconFromFeatureLexiconName(featureLexiconName);     
+                                        
+      obj.featureLexicon=featureLexicon;  % save to self
+      obj.targettype=animalType;
       
-      obj.featureConfigParams=featureConfigParams;  % save to self
-      
-      if isfield(featureConfigParams,'perframe_params'),
-        pf_fields = fieldnames(featureConfigParams.perframe_params);
+      if isfield(featureLexicon,'perframe_params'),
+        pf_fields = fieldnames(featureLexicon.perframe_params);
         for ndx = 1:numel(pf_fields),
-          obj.perframe_params.(pf_fields{ndx}) = featureConfigParams.perframe_params.(pf_fields{ndx});
+          obj.perframe_params.(pf_fields{ndx}) = featureLexicon.perframe_params.(pf_fields{ndx});
         end
       end
 
-      obj.allperframefns =  fieldnames(featureConfigParams.perframe);
+      obj.allperframefns =  fieldnames(featureLexicon.perframe);
       
       if isempty(obj.allperframefns)
         msg = 'No perframefns defined';
@@ -3893,8 +3915,8 @@ classdef JLabelData < handle
 %     function [success,msg] = SetFeatureConfigFile(obj,featureConfigFileName)
 %       featureConfigFileName = deployedRelative2Global(featureConfigFileName);      
 %       obj.featureConfigFile = featureConfigFileName;
-%       featureConfigParams = ReadXMLParams(featureConfigFileName);
-%       [success,msg]=obj.setFeatureConfiguration(featureConfigParams);
+%       featureLexicon = ReadXMLParams(featureConfigFileName);
+%       [success,msg]=obj.setFeatureLexicon(featureLexicon);
 %     end
     
     
@@ -7758,7 +7780,7 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     % function saveEverything(self,fileNameAbs)
     %   s=struct;
-    %   s.featureConfigParams=self.featureConfigParams;
+    %   s.featureLexicon=self.featureLexicon;
     %   s.saveableClassifier=self.getSaveableClassifier();
     %   [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
     %   s.configParams=self.getConfigParams();  %#ok
@@ -7910,12 +7932,12 @@ classdef JLabelData < handle
       % Construct the structure that will be saved in the everything file
       s=struct();
 
-      % Get the "fundamental" (once project) parameters, put them in s
+      % Get a bunch of parameters, put them in s
+      s.featureLexiconName=self.featureLexiconName;
       s.behaviors.type=self.targettype;
       s.behaviors.names=self.labelnames;
       s.behaviors.labelcolors=self.labelcolors;
       s.behaviors.unknowncolor=self.unknowncolor;
-      s.file=struct();
       s.file.moviefilename=self.moviefilename;
       s.file.trxfilename=self.trxfilename;
       s.file.scorefilename=self.scorefilename;

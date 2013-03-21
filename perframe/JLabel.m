@@ -129,7 +129,7 @@ handles=updateRightSidePanelPositions(handles);
 
 % Update aspects of the GUI to match the current "model" state
 %handles=guidata(hObject);
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 UpdateGUIToMatchPreviewZoomMode(handles)
 
 % keypress callback for all non-edit text objects
@@ -1201,7 +1201,7 @@ for h = handles.guidata.axes_timeline_labels,
 end
 
 % enable GUI components
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 success = true;
 
@@ -1699,7 +1699,7 @@ function handles = UpdateMovies(handles)
 %--------------------------------------------------------------------------
 function handles = SetNeedSave(handles)
 handles.guidata.needsave = true;
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 %set(handles.menu_file_export_classifier,'Enable','on');
 %set(handles.menu_file_export_labels,'Enable','on');
 return
@@ -1842,12 +1842,11 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 
 
 %--------------------------------------------------------------------------
-function handles = InitializeStateGivenBasicParams(handles,basicParams,featureConfigParams)
+function handles = InitializeStateGivenBasicParams(handles,basicParams)
 
 % initialize data structure
 handles.guidata.data = ...
-  JLabelData(basicParams,...
-             featureConfigParams, ...
+  JLabelData(basicParams, ...
              'defaultpath',handles.guidata.defaultpath,...
              'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
              'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel),...
@@ -2357,7 +2356,7 @@ return
 
 
 %--------------------------------------------------------------------------
-function UpdateGUIToMatchFileAndExperimentState(handles)
+function UpdateEnablementAndVisibilityOfControls(handles)
 % Set enablement and visibility of various controls depending on
 % whether a file is currently open, and whether that file contains more
 % than zero experiments.
@@ -2410,6 +2409,7 @@ set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 %     'Enable',offIff(thereIsAnOpenFile));
 % set(handles.menu_file_import_old_style_classifier, ...
 %     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
+set(handles.menu_file_basic_settings,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_import_classifier, ...
     'Enable',onIff(thereIsAnOpenFile));
@@ -2959,7 +2959,7 @@ if get(hObject,'Value'),
               'refresh_timeline_selection',false,...
               'refresh_curr_prop',false);
 
-   UpdateGUIToMatchFileAndExperimentState(handles);
+   UpdateEnablementAndVisibilityOfControls(handles);
    % set(handles.menu_file,'enable','off');
    % set(handles.menu_edit,'enable','off');
    % set(handles.menu_go,'enable','off');
@@ -3007,7 +3007,7 @@ else % label pen is up.
   set(handles.togglebutton_label_unknown,'Value',0,'Enable','on');
   %set(handles.guidata.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.guidata.data.labelnames{behaviori}));
 
-  UpdateGUIToMatchFileAndExperimentState(handles);
+  UpdateEnablementAndVisibilityOfControls(handles);
   %set(handles.menu_file,'enable','on');
   %set(handles.menu_edit,'enable','on');
   %set(handles.menu_go,'enable','on');
@@ -3541,7 +3541,7 @@ handles = SetPredictedPlot(handles);
 % predict for current window
 handles = UpdatePrediction(handles);
 handles.guidata.needsave=true;
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 guidata(hObject,handles);
 
 
@@ -4042,7 +4042,7 @@ switch eventdata.Key,
   
   case 'leftarrow',
     if ~isempty(eventdata.Modifier) && any(strcmpi(eventdata.Modifier,{'control','command'})),
-      menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
+      menu_go_previous_manual_bout_end_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
     else
@@ -4051,7 +4051,7 @@ switch eventdata.Key,
      
   case 'rightarrow',
     if ~isempty(eventdata.Modifier) && any(strcmpi(eventdata.Modifier,{'control','command'})),
-      menu_go_next_bout_start_Callback(hObject,eventdata,handles);
+      menu_go_next_manual_bout_start_Callback(hObject,eventdata,handles);
     elseif strcmpi(eventdata.Modifier,'shift'),
       menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
     else
@@ -7219,7 +7219,7 @@ handles.guidata.userHasSpecifiedEverythingFileName=false;
 handles.guidata.needsave=true;
 
 % Update certain aspect of the GUI to match the current "model" state
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 % OK, almost done
 set(figureJLabel,'pointer','arrow');
@@ -7269,7 +7269,7 @@ end
 handles.guidata.oldexpdir='';
 
 % Update the GUI to match the current "model" state
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 % Set the status message back to the clear message.
 ClearStatus(handles);
@@ -7361,7 +7361,7 @@ saved=true;
 handles.guidata.needsave=false;
 %handles.guidata.status_bar_text_when_clear=fileNameRel;
 syncStatusBarTextWhenClear(handles);
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 ClearStatus(handles);
 guidata(figureJLabel,handles);
 
@@ -7415,7 +7415,7 @@ catch  %#ok
   return;
 end
 saved=true;
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 ClearStatus(handles);
 guidata(figureJLabel,handles);
 
@@ -7526,7 +7526,7 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
 basicParams=basicParamsFromEverythingParams(everythingParams);
-setBasicParams(gcbf,basicParams,everythingParams.classifier.featureConfigParams);
+initBasicParams(gcbf,basicParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7575,7 +7575,7 @@ handles.guidata.oldexpdir='';
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI match the current "model" state
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 % Done, set status message to cleared message, pointer to normal
 %fileNameRel=fileNameRelFromAbs(fileNameAbs);
@@ -7608,16 +7608,30 @@ return
 
 
 % -------------------------------------------------------------------------
-function setBasicParams(figureJLabel,basicParams,featureConfigParams)
-% Initializes the JLabel gui once the user selects the behavior.
-% This assumes that JLabel is curently a blank slate
+function initBasicParams(figureJLabel,basicParams)
+% Initializes the JLabel GUI on return from ProjectSetup after the user
+% selects New...
 handles=guidata(figureJLabel);
-%handles.guidata.configparams=projectParams;
 handles=StoreGUIPositionsInternally(handles);
-handles=InitializeStateGivenBasicParams(handles,basicParams,featureConfigParams);
+handles=InitializeStateGivenBasicParams(handles,basicParams);
 handles=InitializePlotsAfterBasicParamsSet(handles);
 guidata(figureJLabel,handles);
 return
+
+
+% % -------------------------------------------------------------------------
+% function setBasicParams(figureJLabel,basicParams,featureConfigParams)
+% % Sets the basic parameters on return from ProjectSetup after the user
+% % selects Basic Settings...
+% handles=guidata(figureJLabel);
+% %handles=StoreGUIPositionsInternally(handles);
+% data=handles.guidata.data;  % a ref
+% data.setBasicParams(basicParams,featureConfigParams);
+% %handles=InitializeStateGivenBasicParams(handles,basicParams,featureConfigParams);
+% %handles=InitializePlotsAfterBasicParamsSet(handles);
+% %guidata(figureJLabel,handles);
+% 
+% return
 
 
 % -------------------------------------------------------------------------
@@ -7834,7 +7848,7 @@ handles = guidata(hObject);  % re-load handles, may have changed
 
 % Unset the current movie
 handles=UnsetCurrentMovie(handles);
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 % Close any open movie files
 if ~isempty(handles.guidata.movie_fid) && ...
@@ -7927,7 +7941,7 @@ UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI to match the current "model" state
 %handles=guidata(hObject);
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
@@ -7960,7 +7974,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function newFileSetupDone(figureJLabel,featureConfigParams,basicParams)
+function newFileSetupDone(figureJLabel,basicParams)
 
 % get handles
 handles=guidata(figureJLabel);
@@ -7984,7 +7998,7 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-setBasicParams(figureJLabel,basicParams,featureConfigParams);
+initBasicParams(figureJLabel,basicParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -8033,11 +8047,46 @@ handles.guidata.needsave=true;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI match the current "model" state
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 % Done, set status message to cleared message, pointer to normal
 %fileNameRel=fileNameRelFromAbs(fileNameAbs);
 %handles.guidata.status_bar_text_when_clear=fileNameRel;
+syncStatusBarTextWhenClear(handles);
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+return
+
+
+% -------------------------------------------------------------------------
+function basicSettingsChanged(figureJLabel,basicParams)
+
+% get handles
+handles=guidata(figureJLabel);
+data=handles.guidata.data;  % a ref
+
+% Set the functions that end up getting called when we call SetStatus()
+% and ClearStatus()
+data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+
+% Set the feature dictionary, basic params in JLabelData
+data.setBasicParams(basicParams);
+
+% Set the GUI to match the labeling mode
+% Main point of this is to set the proper behavior names on the 
+% labeling buttons.
+handles = UpdateLabelButtons(handles);
+%handles = UpdateGUIToMatchGroundTruthingMode(handles);
+guidata(figureJLabel,handles);  % write the handles back to the figure
+
+% Note that we now need saving
+handles.guidata.needsave=true;
+
+% Done, set status message to cleared message, pointer to normal
 syncStatusBarTextWhenClear(handles);
 ClearStatus(handles);
 
@@ -8276,7 +8325,7 @@ function perFrameFeaturesMayHaveChanged(figureJLabel)
 % the per-frame features may have been changed.
 handles=guidata(figureJLabel);
 handles.guidata.needsave=true;
-UpdateGUIToMatchFileAndExperimentState(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 if someExperimentIsCurrent,
   handles = UpdatePrediction(handles);
@@ -8290,9 +8339,10 @@ return
 function basicParams=basicParamsFromEverythingParams(everythingParams)
 
 basicParams=struct();
+basicParams.featureLexiconName=everythingParams.featureLexiconName;
 basicParams.behaviors=everythingParams.behaviors;
+basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
 basicParams.file=everythingParams.file;
-%basicParams.ver=everythingParams.ver;
 basicParams.labels=everythingParams.labelGraphicParams;
 basicParams.trx=everythingParams.trxGraphicParams;
 basicParams.scoresinput=everythingParams.classifier.scoresAsInput;
@@ -8490,9 +8540,33 @@ UpdatePlots(handles, ...
 
 % Update the enablement, etc of controls to reflect the fact that 
 % there is no classifier
-UpdateGUIToMatchFileAndExperimentState(handles)
+UpdateEnablementAndVisibilityOfControls(handles)
 
 % Done, set status message to cleared message, pointer to normal
 ClearStatus(handles);
 
 return
+
+
+% --------------------------------------------------------------------
+function menu_file_basic_settings_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_new (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+basicSettings(gcbf);
+return
+
+
+% -------------------------------------------------------------------------
+function basicSettings(figureJLabel)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% launch the project setup GUI
+basicParams=handles.guidata.data.getBasicParams();
+ProjectSetup('figureJLabel',handles.figure_JLabel, ...
+             'basicParams',basicParams);
+           
+return
+
