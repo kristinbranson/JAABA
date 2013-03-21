@@ -7704,11 +7704,6 @@ if ~isempty(handles.guidata.data)
   handles.guidata.data=[];
 end
 
-% Set the clear status message
-%handles.guidata.status_bar_text_when_clear='No file open.';
-syncStatusBarTextWhenClear(handles);
-ClearStatus(handles);
-
 % % save things we want to reinstate
 % in_border_y=handles.guidata.in_border_y;
 
@@ -7770,6 +7765,11 @@ UpdateEnablementAndVisibilityOfControls(handles);
 
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
+
+% Set the clear status message
+%handles.guidata.status_bar_text_when_clear='No file open.';
+syncStatusBarTextWhenClear(handles);
+ClearStatus(handles);
 
 % Write the handles to the guidata
 guidata(hObject,handles);
