@@ -100,6 +100,10 @@ updateConfigTable(handles);
 % Set the window title
 set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
 
+% Set the current score-as-feature file
+fileNameList = {handles.basicParams.scoresinput(:).classifierfile};
+handles.indexOfScoresAsInputFile=fif(isempty(fileNameList),[],1);
+  
 % Update handles structure
 guidata(hObject, handles);
 
@@ -232,12 +236,12 @@ indexOffeatureLexicon=find(strcmp(handles.basicParams.featureLexiconName,handles
 set(handles.featureconfigpopup,'Value',indexOffeatureLexicon);
 
 % Update the list of scores-an-inputs
-clist = {handles.basicParams.scoresinput(:).classifierfile};
-if isempty(clist),
-  set(handles.listbox_inputscores,'String',{});
-else
-  set(handles.listbox_inputscores,'String',clist,'Value',1);
-end
+fileNameList = {handles.basicParams.scoresinput(:).classifierfile};
+set(handles.listbox_inputscores,'String',fileNameList);
+set(handles.listbox_inputscores,'Value',handles.indexOfScoresAsInputFile);
+
+% Disble the Remove button iff the list of scores-as-inputs is empty
+set(handles.pushbutton_removelist,'enable',offIff(isempty(fileNameList)));
 
 return
 
@@ -596,10 +600,8 @@ function listbox_inputscores_Callback(hObject, eventdata, handles)
 % hObject    handle to listbox_inputscores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_inputscores contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_inputscores
-
+handles.indexOfScoresAsInputFile=get(hObject,'Value');
+return
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
@@ -687,11 +689,20 @@ function pushbutton_removelist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_removelist (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-curndx = get(handles.listbox_inputscores,'Value');
-if isempty(curndx), return; end
-handles.basicParams.scoresinput(curndx) = [];
+i = handles.indexOfScoresAsInputFile;
+if isempty(i), return; end
+nScoresAsInput=length(handles.basicParams.scoresinput);
+handles.basicParams.scoresinput(i) = [];
+if (i==nScoresAsInput)
+  i=i-1
+  if i==0
+    i=[];
+  end
+end
+handles.indexOfScoresAsInputFile=i;
 guidata(hObject,handles);
 updateEditsListboxesAndPopupmenus(handles);
+return
 
 
 % -------------------------------------------------------------------------
