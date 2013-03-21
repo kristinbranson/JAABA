@@ -998,6 +998,9 @@ if(sum(tmp)>0)
   if(exist('newgroups','var'))  newgroups(tmp)=[];  end
   if(exist('newcolors','var'))  newcolors(tmp)=[];  end
 end
+if isempty(newexperiments),
+  return;
+end
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
