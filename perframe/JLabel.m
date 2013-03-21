@@ -1870,21 +1870,26 @@ set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 
 SetJumpGoMenuLabels(handles)
 
+handles.doplottracks = true;
 %set(handles.menu_view_plot_tracks,'Checked','on');  %via update
 
+buttonNames = {'pushbutton_train','pushbutton_predict',...
+               'togglebutton_select','pushbutton_clearselection',...
+               'pushbutton_playselection','pushbutton_playstop',...
+               'similarFramesButton','bagButton'};
 for buttonNum = 1:numel(buttonNames)
   adjustNonLabelButtonColor(handles.(buttonNames{buttonNum}));
 end
 
 %set(handles.similarFramesButton,'Enable','off');  % via update
 
-SetGUIModeMenuChecks(handles);
+updateCheckMarksInMenus(handles);
 
 return
 
 
 %--------------------------------------------------------------------------
-function SetGUIModeMenuChecks(handles)
+function updateCheckMarksInMenus(handles)
 
 % basic vs advanced mode
 if handles.guidata.GUIAdvancedMode,
@@ -6354,7 +6359,7 @@ function handles = UpdateGUIToMatchGroundTruthingMode(handles)
 mode=handles.guidata.GUIGroundTruthingMode;
 
 % Make all the mode checkmarks self-consistent
-SetGUIModeMenuChecks(handles);
+updateCheckMarksInMenus(handles);
 
 % If no experiments, just return
 if isempty(handles.guidata.data) || handles.guidata.data.nexps < 1,
@@ -6433,7 +6438,7 @@ return
 function handles = UpdateGUIToMatchAdvancedMode(handles)
 
 % make sure the menu checkboxes are self-consistent
-SetGUIModeMenuChecks(handles);
+updateCheckMarksInMenus(handles);
 
 % update the label buttons and the panel positions, even if there's no open
 % file and therefore they're invisble
