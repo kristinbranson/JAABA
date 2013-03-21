@@ -1844,222 +1844,41 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 %--------------------------------------------------------------------------
 function handles = InitializeStateGivenBasicParams(handles,basicParams)
 
-% initialize data structure
-handles.guidata.data = ...
-  JLabelData(basicParams, ...
-             'defaultpath',handles.guidata.defaultpath,...
-             'setstatusfn',@(s) SetStatusCallback(s,handles.figure_JLabel),...
-             'clearstatusfn',@() ClearStatusCallback(handles.figure_JLabel),...
-             'cacheSize',handles.guidata.cacheSize);
-%             'classifierfilename',handles.guidata.classifierfilename,...
-
-% number of flies to label at a time
-handles.guidata.nflies_label = 1;
-
-% learned classifier
-handles.guidata.classifier = [];
-
-% currently shown experiment
-handles.guidata.expi = 0;
-% currently labeled flies
-handles.guidata.flies = 1:handles.guidata.nflies_label;
-% currently shown frame
-handles.guidata.ts = 0;
-
-% current behavior labeling state: nothing down
-handles.guidata.label_state = 0;
-handles.guidata.label_imp = [];
-
-% number of flies for the current movie
-handles.guidata.nflies_curr = 0;
-
-% label colors
-if isfield(basicParams,'behaviors') && ...
-    isfield(basicParams.behaviors,'labelcolors'),
-  labelcolors = basicParams.behaviors.labelcolors;
-  if numel(labelcolors) >= 3*handles.guidata.data.nbehaviors,
-    handles.guidata.labelcolors = reshape(labelcolors(1:3*handles.guidata.data.nbehaviors),[handles.guidata.data.nbehaviors,3]);
-  else
-    uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
-    if isfield(basicParams,'labels') && ...
-        isfield(basicParams.labels,'colormap'),
-      cm = basicParams.labels.colormap;
-    else
-      cm = 'lines';
-    end
-    if ~exist(cm,'file'),
-      cm = 'lines';
-    end
-%     try
-      handles.guidata.labelcolors = eval(sprintf('%s(%d)',cm,handles.guidata.data.nbehaviors));
-%     catch ME,
-%       uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
-%       handles.guidata.labelcolors = lines(handles.guidata.data.nbehaviors);
-%     end
-  end
-end
-handles.guidata.labelunknowncolor = [0,0,0];
-if isfield(basicParams,'behaviors') && ...
-    isfield(basicParams.behaviors,'unknowncolor'),
-  unknowncolor = basicParams.behaviors.unknowncolor;
-  if numel(unknowncolor) >= 3,
-    handles.guidata.labelunknowncolor = reshape(unknowncolor(1:3),[1,3]);
-  else
-    uiwait(warndlg('Error parsing unknown color from config file, automatically assigning','Error parsing config unknown colors'));
-  end
-end
-handles.guidata.flies_extra_markersize = 12;
-if isfield(basicParams,'plot') && ...
-    isfield(basicParams.plot,'trx') && ...
-    isfield(basicParams.plot.trx,'extra_markersize'),
-  handles.guidata.flies_extra_markersize = basicParams.plot.trx.extra_markersize(1);
-end
-handles.guidata.flies_extra_marker = 'o';
-if isfield(basicParams,'plot') && ...
-    isfield(basicParams.plot,'trx') && ...
-    isfield(basicParams.plot.trx,'extra_marker'),
-  handles.guidata.flies_extra_marker = basicParams.plot.trx.extra_marker;
-end
-handles.guidata.flies_extra_linestyle = '-';
-if isfield(basicParams,'plot') && ...
-    isfield(basicParams.plot,'trx') && ...
-    isfield(basicParams.plot.trx,'extra_linestyle'),
-  handles.guidata.flies_extra_linestyle = basicParams.plot.trx.extra_linestyle;
-end
-
-for channel = 1:3
-  midValue = handles.guidata.labelunknowncolor(channel);
-  startValue = handles.guidata.labelcolors(2,channel);
-  endValue = handles.guidata.labelcolors(1,channel);
-  handles.guidata.scorecolor(1:32,channel,1) = (midValue-startValue)*(0:31)/31+startValue;
-  handles.guidata.scorecolor(32:63,channel,1) = (endValue-midValue)*(0:31)/31+midValue;
-end
-for ndx = 1:63
-  handles.guidata.scorecolor(ndx,:,2) = ShiftColor.shiftColorFwd(handles.guidata.scorecolor(ndx,:,1));
-  handles.guidata.scorecolor(ndx,:,3) = ShiftColor.shiftColorBkwd(handles.guidata.scorecolor(ndx,:,1));  
-end
-
-handles.guidata.correctcolor = [0,.7,0];
-handles.guidata.incorrectcolor = [.7,.7,0];
-handles.guidata.suggestcolor = [0,.7,.7];
-
-handles.guidata.selection_color = [1,.6,0];
-handles.guidata.selection_alpha = .5;
-
-% color for showing which labels are being plotted
-handles.guidata.emphasiscolor = [.7,.7,0];
-handles.guidata.unemphasiscolor = [1,1,1];
+% Tell JLabelGUIData to init itself
+handles.guidata.initializeGivenBasicParams(basicParams,handles.figure_JLabel);
 
 % create buttons for each label, as needed
-%handles = CreateLabelButtons(handles);
 handles = UpdateLabelButtons(handles);
 
-% timeline properties
-handles.guidata.timeline_prop_remove_string = '<html><body><i>Remove</i></body></html>';
-handles.guidata.timeline_prop_help_string = '<html><body><i>Help</i></body></html>';
-handles.guidata.timeline_prop_options = ...
-  {handles.guidata.timeline_prop_remove_string,...
-  handles.guidata.timeline_prop_help_string};
-
+% Set this thing
 if ~isempty(handles.guidata.data.allperframefns)
-  for i = 1:numel(handles.guidata.data.allperframefns),
-    handles.guidata.timeline_prop_options{end+1} = handles.guidata.data.allperframefns{i};
-  end
-  handles.guidata.d = handles.guidata.data.allperframefns(1);
-  handles.guidata.perframepropis = 1;
   set(handles.timeline_label_prop1,'String',handles.guidata.timeline_prop_options,'Value',3);
-  handles.guidata.timeline_data_ylims = nan(2,numel(handles.guidata.data.allperframefns));
 end
 
 % Setup the popup menu for bottom row of the automatic timeline.
 bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
 set(handles.automaticTimelineBottomRowPopup,'Value', ...
-  find(strcmp(bottomRowTypes,handles.guidata.bottomAutomatic)));
+                  find(strcmp(bottomRowTypes,handles.guidata.bottomAutomatic)));
 set(handles.automaticTimelinePredictionLabel,'FontSize',10);
 set(handles.automaticTimelineScoresLabel,'FontSize',10);
 set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
 
-% maximum distance squared in fraction of axis to change frames when
-% clicking on preview window
-handles.guidata.max_click_dist_preview = .005^2;
+% set([handles.pushbutton_playselection, ...
+%      handles.pushbutton_clearselection],'Enable','off');  
 
-% zoom state
-%handles.guidata.preview_zoom_mode = 'follow_fly';
-handles.guidata.zoom_fly_radius = nan(1,2);
-%set(handles.guidata.menu_view_keep_target_in_view,'Checked','off');
-%set(handles.guidata.menu_view_center_on_target,'Checked','off');
-%set(handles.guidata.menu_view_static_view,'Checked','off');
-%set(handles.menu_view_keep_target_in_view,'Checked','on');
+%set(handles.togglebutton_select,'Value',0); 
 
-% last clicked object
-handles.guidata.selection_t0 = nan;
-handles.guidata.selection_t1 = nan;
-handles.guidata.selected_ts = nan(1,2);
-handles.guidata.buttondown_t0 = nan;
-handles.guidata.buttondown_axes = nan;
-set([handles.pushbutton_playselection,handles.pushbutton_clearselection],'Enable','off');
-
-% not selecting
-handles.guidata.selecting = false;
-set(handles.togglebutton_select,'Value',0);
-
-% initialize nextjump obj;
-handles.guidata.NJObj = NextJump();
-handles.guidata.NJObj.SetSeekBehaviorsGo(1:handles.guidata.data.nbehaviors);
-handles.guidata.NJObj.SetPerframefns(handles.guidata.data.allperframefns);
-if isfield(handles.guidata.rc,'navPreferences')  && ~isempty(handles.guidata.rc.navPreferences)
-  handles.guidata.NJObj.SetState(handles.guidata.rc.navPreferences);
-end
-
-% initialize labels for navigation
 SetJumpGoMenuLabels(handles)
 
-% label shortcuts
-if numel(handles.guidata.label_shortcuts) ~= 2*handles.guidata.data.nbehaviors + 1,
-  if handles.guidata.data.nbehaviors == 2,
-    handles.guidata.label_shortcuts = {'z','a','x','s','c'}';
-  else
-    handles.guidata.label_shortcuts = cellstr(num2str((1:2*handles.guidata.data.nbehaviors+1)'));
-  end
-end
+%set(handles.menu_view_plot_tracks,'Checked','on');  %via update
 
-% play/stop
-handles.guidata.hplaying = nan;
-%handles.guidata.play_FPS = 2;
-
-%handles.guidata.traj_nprev = 25;
-%handles.guidata.traj_npost = 25;
-
-% whether to show trajectories
-set(handles.menu_view_plot_tracks,'Checked','on');
-handles.doplottracks = true;
-
-% bookmarked clips windows
-handles.guidata.bookmark_windows = [];
-
-% Just leave these alone, since they're already set
-% % whether to plot manual labels or automatic labels
-% handles.guidata.plot_labels_manual = true;
-% handles.guidata.plot_labels_automatic = false;
-% set(handles.menu_view_manual_labels,'Checked','on');
-% set(handles.menu_view_automatic_labels,'Checked','off');
-
-buttonNames = {'pushbutton_train','pushbutton_predict',...
-              'togglebutton_select','pushbutton_clearselection',...
-              'pushbutton_playselection','pushbutton_playstop',...
-              'similarFramesButton','bagButton'};
-  
 for buttonNum = 1:numel(buttonNames)
-  %SetButtonImage(handles.(buttonNames{buttonNum}));
   adjustNonLabelButtonColor(handles.(buttonNames{buttonNum}));
 end
 
-set(handles.similarFramesButton,'Enable','off');
-handles.guidata.doFastUpdates = true;
+%set(handles.similarFramesButton,'Enable','off');  % via update
 
 SetGUIModeMenuChecks(handles);
-
-%guidata(handles.figure_JLabel,handles);  % write handles to the guidata
 
 return
 
