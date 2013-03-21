@@ -1,8 +1,8 @@
 function [bagModels trainDistMat] = doBaggingBouts(data,labels,obj,binVals,params,bouts)
 
-boostIterations = 25;
+boostIterations = 100;
 % Learn classifier with all the data.
-numRepeat = 200;
+numRepeat = 150;
 
 posBouts = bouts.label == 1;
 negBouts = ~posBouts;

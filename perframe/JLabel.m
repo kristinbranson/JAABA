@@ -54,6 +54,16 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to JLabel (see VARARGIN)
 
+
+% To help with merging with Adam -- Mayank, 6 march 2012 
+set(handles.automaticTimelineBottomRowPopup,'String',...
+ {'None','Validated','Old','Loaded','Postprocessed','Distance'});
+
+handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
+ 'Label','Find Similar Frames','Callback',...
+@menu_classifier_compareFrames_Callback);
+
+
 handles.guidata = JLabelGUIData();
 
 % parse optional inputs
@@ -160,6 +170,7 @@ if ismac, % On mac change the foreground color to black.
 end
 
 set(handles.figure_JLabel,'pointer','arrow');
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -1324,11 +1335,14 @@ switch handles.guidata.bottomAutomatic
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
   case 'None'
     scores_bottom = zeros(size(scores));
+  case 'Distance'
+    dist = handles.guidata.data.GetDistance(handles.guidata.expi,handles.guidata.flies);
+    scores_bottom = zeros(size(scores));
   otherwise
     warndlg('Undefined scores type to display for the bottom part of the automatic');
 end
 
-if ~strcmp(handles.guidata.bottomAutomatic,'Postprocessed')
+if ~(any(strcmp(handles.guidata.bottomAutomatic,{'Postprocessed','Distance'})))
 prediction_bottom = zeros(size(scores_bottom));
 prediction_bottom(scores_bottom>0) = 1;
 prediction_bottom(scores_bottom<0) = 2;
@@ -1351,10 +1365,15 @@ for behaviori = 1:handles.guidata.data.nbehaviors
       handles.guidata.labels_plot.predicted_im(4,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
     
       % bottom row scores.
-      handles.guidata.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.guidata.scorecolor(bottomScoreNdx,channel,1);
-      handles.guidata.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
-        handles.guidata.labelcolors(behaviori,channel);
-    
+      if strcmp(handles.guidata.bottomAutomatic,'Distance'),
+        handles.guidata.labels_plot.predicted_im(5:6,:,channel) = repmat(1-dist(:)',[2 1 1]);
+        handles.guidata.labels_plot.predicted_im(5:6,isnan(dist),channel) = 0;
+        
+      else
+        handles.guidata.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.guidata.scorecolor(bottomScoreNdx,channel,1);
+        handles.guidata.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
+          handles.guidata.labelcolors(behaviori,channel);
+      end
   end    
   
 end
@@ -6647,3 +6666,9 @@ else
 end
 
 
+function menu_classifier_compareFrames_Callback(hObject,eventdata)
+handles = guidata(hObject);
+if isempty(handles.guidata.expi) || handles.guidata.expi<1, return, end
+chandles = CompareFrames('JLabelH',handles,'expnum',handles.guidata.expi,...
+  'fly',handles.guidata.flies,'t',handles.guidata.ts);
+handles.guidata.open_peripherals(end+1) = chandles;
