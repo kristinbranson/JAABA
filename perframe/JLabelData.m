@@ -870,20 +870,17 @@ classdef JLabelData < handle
 %       else
 %         obj.configfilename = '';
 %       end
-        
+      
       % feature config file
       obj.setFeatureLexicon(basicParams.featureLexiconName);
 
       % get some silly stuff out of projectParams
       %obj.projectParams=projectParams;
-      obj.labelGraphicParams=basicParams.labels;
-      obj.trxGraphicParams=basicParams.trx;
+      obj.labelGraphicParams=basicParams.labelGraphicParams;
+      obj.trxGraphicParams=basicParams.trxGraphicParams;
       obj.labelcolors=basicParams.behaviors.labelcolors;
       obj.unknowncolor=basicParams.behaviors.unknowncolor;
-      
-      % get a non-silly thing and put it in self
-      obj.featureLexiconName=basicParams.featureLexiconName;
-      
+            
       % load in the rest of the stuff
       if isfield(basicParams,'behaviors'),
         
@@ -1008,13 +1005,15 @@ classdef JLabelData < handle
             obj.landmark_params = basicParams.perframe.landmark_params;
           end
         end
-        if isfield(basicParams,'targets'),
-          if isfield(basicParams.targets,'type'),
-            obj.targettype = basicParams.targets.type;
-          end
-        elseif isfield(basicParams.behaviors,'type'),
-            obj.targettype = basicParams.behaviors.type;
-        end
+%         % If basicParams stores an explicit targettype, it overrides the
+%         % one implied by the featureLexiconName
+%         if isfield(basicParams,'targets'),
+%           if isfield(basicParams.targets,'type'),
+%             obj.targettype = basicParams.targets.type;
+%           end
+%         elseif isfield(basicParams.behaviors,'type'),
+%             obj.targettype = basicParams.behaviors.type;
+%         end
         
       end
       
@@ -1048,7 +1047,7 @@ classdef JLabelData < handle
     function basicParams = getBasicParams(obj)
       basicParams=struct();
       basicParams.featureLexiconName=obj.featureLexiconName;
-      basicParams.behaviors.type=obj.targettype;
+      %basicParams.behaviors.type=obj.targettype;
       basicParams.behaviors.names=obj.labelnames(1);
       basicParams.behaviors.labelcolors=obj.labelcolors;
       basicParams.behaviors.unknowncolor=obj.unknowncolor;
@@ -1056,8 +1055,8 @@ classdef JLabelData < handle
       basicParams.file.trxfilename=obj.trxfilename;
       basicParams.file.scorefilename=obj.scorefilename;
       basicParams.scoresinput=obj.scoresasinput;
-      basicParams.labels=obj.labelGraphicParams;
-      basicParams.trx=obj.trxGraphicParams;
+      basicParams.labelGraphicParams=obj.labelGraphicParams;
+      basicParams.trxGraphicParams=obj.trxGraphicParams;
     end
     
     
@@ -3889,7 +3888,8 @@ classdef JLabelData < handle
 
       [featureLexicon,animalType]= ...
         featureLexiconFromFeatureLexiconName(featureLexiconName);     
-                                        
+
+      obj.featureLexiconName=featureLexiconName;
       obj.featureLexicon=featureLexicon;  % save to self
       obj.targettype=animalType;
       
@@ -7928,7 +7928,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function s=getEverythingStruct(self)
+    function s=getEverythingParams(self)
       % Construct the structure that will be saved in the everything file
       s=struct();
 
