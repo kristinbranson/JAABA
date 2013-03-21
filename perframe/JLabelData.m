@@ -863,14 +863,6 @@ classdef JLabelData < handle
       success = false;
       msg = '';
 
-%       % if a configfilename is provided, save it, otherwise, set that to
-%       % the empty string
-%       if nargin>=3
-%         obj.configfilename = configfilename;
-%       else
-%         obj.configfilename = '';
-%       end
-      
       % feature config file
       obj.setFeatureLexicon(basicParams.featureLexiconName);
 
@@ -899,8 +891,9 @@ classdef JLabelData < handle
         
         obj.nbehaviors = numel(obj.labelnames);
 
-        % allocate configdence thresholds
-        obj.confThresholds = zeros(1,obj.nbehaviors);
+        % allocate confidence thresholds
+        %obj.confThresholds = zeros(1,obj.nbehaviors);
+        % we do this elsewhere now
         
         % rearrange so that None is the last label
         nonei = find(strcmpi('None',obj.labelnames),1);
