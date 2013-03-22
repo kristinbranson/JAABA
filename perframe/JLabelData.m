@@ -4684,7 +4684,7 @@ classdef JLabelData < handle
         return
       end
       iTarget=indicesOfTargets(1);
-      if expi<0 
+      if isempty(expi) || ~((1<=expi)&&(expi<=obj.nexps))
         success=true;  msg='';
         return
       end        
