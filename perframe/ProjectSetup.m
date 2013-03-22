@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 16-Jan-2013 15:37:04
+% Last Modified by GUIDE v2.5 22-Mar-2013 11:16:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -911,9 +911,10 @@ function togglebutton_advanced_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of togglebutton_advanced
-handles.mode=fif(get(hObject,'Value'),'basic','advanced');
+handles.mode=fif(get(hObject,'Value'),'advanced','basic');
 handles = updateFigurePosition(handles);
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -1108,4 +1109,3 @@ function figureProjectSetup_CloseRequestFcn(hObject, eventdata, handles)
 % Hint: delete(hObject) closes the figure
 %uiresume(hObject);
 pushbutton_cancel_Callback(hObject, eventdata, handles)
-
