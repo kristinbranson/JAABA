@@ -675,6 +675,30 @@ end
       nflies = obj.nflies_per_exp(expi);
     end
     
+    function firstframes = GetFirstFrames(obj,expi,flies)
+      
+      if nargin < 2,
+        firstframes = obj.firstframes_per_exp;
+      elseif nargin < 3,
+        firstframes = obj.firstframes_per_exp(expi);
+      else
+        firstframes = obj.firstframes_per_exp{expi}(flies);
+      end
+      
+    end
+
+    function endframes = GetEndFrames(obj,expi,flies)
+      
+      if nargin < 2,
+        endframes = obj.endframes_per_exp;
+      elseif nargin < 3,
+        endframes = obj.endframes_per_exp(expi);
+      else
+        endframes = obj.endframes_per_exp{expi}(flies);
+      end
+      
+    end
+
     
 % Configuration settings.
 
@@ -2986,8 +3010,16 @@ end
     function [success,msg] = SetFeatureConfigFile(obj,configfile)
       success = false;
       msg = '';
+
+      if ~isdeployed && ~exist(configfile,'file') && ~isglobalpath(configfile),
+        currpath = mfilename('fullpath');
+        currpath = fileparts(currpath);
+        configfile = fullfile(currpath,configfile);
+      end
+
       
       configfile = deployedRelative2Global(configfile);
+      
       
       obj.featureConfigFile = configfile;
       settings = ReadXMLParams(configfile);
@@ -3982,7 +4014,7 @@ end
       prediction.predictedidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
         -sign(obj.predictdata{expi}{flies}.cur(idxcurr))*0.5+1.5;
       prediction.scoresidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
-        sign(obj.predictdata{expi}{flies}.cur(idxcurr));
+        obj.predictdata{expi}{flies}.cur(idxcurr);
     end
     
     function scores = GetValidatedScores(obj,expi,flies,T0,T1)
@@ -4129,7 +4161,7 @@ end
       if ~isempty(labelsToUse(expi).flies),	
         [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
       else
-	ism = false
+        ism = false;
       end
       if ism,
         labels_curr.t0s = labelsToUse(expi).t0s{fliesi};
@@ -4356,6 +4388,33 @@ end
         labelidx.timestamp(ts+1-T0) = now;
         obj.StoreLabels1(expi,flies,labelidx,1-T0);        
       end
+      
+    end
+    
+    function SetLabel_KB(obj,expi,flies,ts,behaviori,important)
+
+      % SetLabel_KB(obj,expi,flies,ts,behaviori)
+      % Set label for experiment expi, flies, and frames ts to behaviori.
+      % Store everywhere.
+      
+      % store in labelidx
+      if obj.IsCurFly(expi,flies),
+        obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
+        obj.labelidx.imp(ts+obj.labelidx_off) = important;
+        obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
+      end      
+
+      % store in labels
+      [labelidx,T0] = obj.GetLabelIdx(expi,flies);
+      labelidx.vals(ts+1-T0) = behaviori;
+      labelidx.imp(ts+1-T0) = important;
+      labelidx.timestamp(ts+1-T0) = now;
+      obj.StoreLabels1(expi,flies,labelidx,1-T0);
+      
+      % store in windowdata
+      idxcurr = obj.windowdata.exp == expi & obj.windowdata.flies == flies & ismember(obj.windowdata.t,ts);
+      obj.windowdata.labelidx_new(idxcurr) = behaviori;
+      obj.windowdata.labelidx_imp(idxcurr) = important;
       
     end
     
@@ -5703,6 +5762,29 @@ end
             bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
           end
           
+        end
+      end
+      
+    end
+    
+    function bouts = GetLabeledBouts_KB(obj)
+      
+      bouts = struct('t0s',[],'t1s',[],'flies',[],'expis',[],'timestamps',[],'names',{{}});
+      for expi = 1:numel(obj.labels),
+        for flyi = 1:size(obj.labels(expi).flies,1),
+          flies = obj.labels(expi).flies(flyi,:);
+          t0s = obj.labels(expi).t0s{flyi};
+          t1s = obj.labels(expi).t1s{flyi};
+          if isempty(t0s),
+            continue;
+          end
+          n = numel(t0s);
+          bouts.t0s(end+1:end+n) = t0s;
+          bouts.t1s(end+1:end+n) = t1s;
+          bouts.flies(end+1:end+n,:) = flies;
+          bouts.expis(end+1:end+n) = expi;
+          bouts.timestamps(end+1:end+n) = obj.labels(expi).timestamp{flyi};
+          bouts.names(end+1:end+n) = obj.labels(expi).names{flyi};
         end
       end
       
