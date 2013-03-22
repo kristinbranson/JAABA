@@ -2234,6 +2234,7 @@ set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 % set(handles.menu_file_import_old_style_classifier, ...
 %     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
 set(handles.menu_file_basic_settings,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_change_target_type,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_import_classifier, ...
     'Enable',onIff(thereIsAnOpenFile));
@@ -7899,7 +7900,10 @@ data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
 % Set the feature dictionary, basic params in JLabelData
-data.setBasicParams(basicParams);
+[success,msg]=data.setBasicParams(basicParams);
+if ~success,
+  uiwait(errordlg(msg,'Error Setting Basic Parameters','modal'));
+end
 
 % % Re-load the perframe feature signals, since the PFFs may have changed
 % data.loadPerframeData(data.expi,data.flies);
@@ -8380,3 +8384,44 @@ ProjectSetup('figureJLabel',handles.figure_JLabel, ...
            
 return
 
+
+% --------------------------------------------------------------------
+function menu_file_change_target_type_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_change_target_type (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+featureLexiconName=handles.guidata.data.featureLexiconName;
+ChangeFeatureLexiconDialog(featureLexiconName,handles.figure_JLabel);
+return
+
+
+% -------------------------------------------------------------------------
+function changeFeatureLexiconDone(figureJLabel,newFeatureLexiconName)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% if new same as old, do nothing
+data=handles.guidata.data;  % a ref
+if isequal(newFeatureLexiconName,data.featureLexiconName)
+  return
+end
+
+% Set the feature dictionary, basic params in JLabelData
+[success,msg]=data.setFeatureLexicon(newFeatureLexiconName);
+if ~success,
+  uiwait(errordlg(msg,'Error Changing Target Type','modal'));
+end
+
+% Note that we now need saving
+handles.guidata.needsave=true;
+
+% Done, set status message to cleared message, pointer to normal
+syncStatusBarTextWhenClear(handles);
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+return
