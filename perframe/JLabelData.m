@@ -858,7 +858,6 @@ classdef JLabelData < handle
 
     % ---------------------------------------------------------------------
     function [success,msg] = setBasicParams(obj,basicParams)
-    % function [success,msg] = setProjectParams(obj,configparams,configfilename)
       % set default return values
       success = false;
       msg = '';
@@ -873,7 +872,7 @@ classdef JLabelData < handle
       obj.labelcolors=basicParams.behaviors.labelcolors;
       obj.unknowncolor=basicParams.behaviors.unknowncolor;
             
-      % load in the rest of the stuff
+      % load in the rest of the stuff, depending on the fields present
       if isfield(basicParams,'behaviors'),
         % read in behavior names
         if isfield(basicParams.behaviors,'names'),
@@ -887,14 +886,8 @@ classdef JLabelData < handle
           end
         else
           obj.labelnames = {'Behavior','None'};
-        end
-        
+        end        
         obj.nbehaviors = numel(obj.labelnames);
-
-        % allocate confidence thresholds
-        %obj.confThresholds = zeros(1,obj.nbehaviors);
-        % we do this elsewhere now
-        
         % rearrange so that None is the last label
         nonei = find(strcmpi('None',obj.labelnames),1);
         obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
@@ -913,18 +906,6 @@ classdef JLabelData < handle
             return;
           end
         end
-%         if isfield(configparams.file,'labelfilename'),
-%           [success1,msg] = obj.SetLabelFileName(configparams.file.labelfilename);
-%           if ~success1,
-%             return;
-%           end
-%         end
-%         if isfield(configparams.file,'gt_labelfilename'),
-%           [success1,msg] = obj.SetGTLabelFileName(configparams.file.gt_labelfilename);
-%           if ~success1,
-%             return;
-%           end
-%         end
         if isfield(basicParams.file,'scorefilename'),
           scorefilename = basicParams.file.scorefilename;
         else
@@ -934,7 +915,6 @@ classdef JLabelData < handle
         if ~success1,
           return;
         end
-        
         if isfield(basicParams.file,'perframedir'),
           [success1,msg] = obj.SetPerFrameDir(basicParams.file.perframedir);
           if ~success1,
@@ -953,29 +933,12 @@ classdef JLabelData < handle
             uiwait(warndlg(msg1));
           end
         end
-%         if isfield(configparams.file,'featureconfigfile'),
-%           [success1,msg] = obj.SetFeatureConfigFile(configparams.file.featureconfigfile);
-%             % Among other things, SetFeatureConfigFile() sets
-%             % obj.allperframefns to the complete list of per-frame
-%             % features, as read from the feature config file.
-%           if ~success1,
-%             return;
-%           end
-%         end
         if isfield(basicParams,'featureparamlist'),
           % read allperframefns from config file
           obj.allperframefns = intersect(obj.allperframefns,...
-                              fieldnames(basicParams.featureparamlist));
+                                         fieldnames(basicParams.featureparamlist));
           msg = '';
         end
-
-%         if isfield(projectParams.file,'featureparamfilename') && ~isempty(projectParams.file.featureparamfilename),
-%           [success1,msg] = obj.SetFeatureParamsFileName(projectParams.file.featureparamfilename);
-%           if ~success1,
-%             return;
-%           end
-%         end
-        
         if isfield(basicParams,'windowfeatures') && isfield(basicParams.windowfeatures,'basicFeatureTable')
           obj.basicFeatureTable = basicParams.windowfeatures.basicFeatureTable;
           obj.featureWindowSize = basicParams.windowfeatures.featureWindowSize;
@@ -985,7 +948,6 @@ classdef JLabelData < handle
             JLabelData.convertParams2CellParams(basicParams.windowfeatures.windowfeaturesparams);
           obj.SetPerframeParams(basicParams.windowfeatures.windowfeaturesparams);
         end
-        
         if isfield(basicParams,'perframe'),
           if isfield(basicParams.perframe,'params'),
             pf_fields = fieldnames(basicParams.perframe.params);
@@ -996,26 +958,8 @@ classdef JLabelData < handle
           if isfield(basicParams.perframe,'landmark_params'),
             obj.landmark_params = basicParams.perframe.landmark_params;
           end
-        end
-%         % If basicParams stores an explicit targettype, it overrides the
-%         % one implied by the featureLexiconName
-%         if isfield(basicParams,'targets'),
-%           if isfield(basicParams.targets,'type'),
-%             obj.targettype = basicParams.targets.type;
-%           end
-%         elseif isfield(basicParams.behaviors,'type'),
-%             obj.targettype = basicParams.behaviors.type;
-%         end
-        
-      end
-      
-      
-%       if isfield(basicParams,'learning'),
-%         if isfield(basicParams.learning,'classifiertype'),
-%           obj.SetClassifierType(basicParams.learning.classifiertype);
-%         end
-%       end
-      
+        end  % isfield(basicParams,'perframe'),
+      end  % isfield(basicParams,'file'),
       if isfield(basicParams,'scoresinput'),
         obj.scoresasinput = basicParams.scoresinput;
         for ndx = 1:numel(obj.scoresasinput)
@@ -1031,7 +975,7 @@ classdef JLabelData < handle
             obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
           end
         end
-      end
+      end  % if isfield(basicParams,'scoresinput'),
       
       % Re-load the perframe feature signals, since the PFFs may have changed
       obj.loadPerframeData(obj.expi,obj.flies);
@@ -1081,6 +1025,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function [successes,msg] = CheckMovies(obj,expis)
     % [successes,msg] = CheckMovies(obj,expis)
     % check that the movie files exist and can be read for the input
@@ -1143,6 +1089,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = SetTrxFileName(obj,trxfilename)
       % [success,msg] = SetTrxFileName(obj,trxfilename)
     % set the name of the trx file within the experiment directory. this
@@ -3886,7 +3834,6 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------    
     function [success,msg] = setFeatureLexicon(obj,featureLexiconName)
-      % this is intended to be a private method
       % This sets the feature lexicon to the one named by
       % featureLexiconName
       
@@ -3923,8 +3870,8 @@ classdef JLabelData < handle
       % Update obj.allperframefns based on the new feature lexicon
       obj.allperframefns =  fieldnames(featureLexicon.perframe);
       
-      % % Re-load the perframe feature signals, since the PFFs may have changed
-      % obj.loadPerframeData(obj.expi,obj.flies);
+      % Re-load the perframe feature signals, since the PFFs may have changed
+      obj.loadPerframeData(obj.expi,obj.flies);
 
       % Clear the classifier, since the feature lexicon has changed
       % This also clears the features currently in use by the classifier
