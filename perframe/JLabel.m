@@ -625,7 +625,7 @@ if isempty(handles.guidata.data) || handles.guidata.data.nexps==0 ,
   return
 end
 
-if strcmp(varargin{1},'CLEAR'),
+if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
   %fprintf('Clearing UpdatePlots data\n');
   try
     if isfield(handles,'guidata') && ~isempty(handles.guidata.cache_thread),
@@ -2233,7 +2233,7 @@ set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 %     'Enable',offIff(thereIsAnOpenFile));
 % set(handles.menu_file_import_old_style_classifier, ...
 %     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
-set(handles.menu_file_basic_settings,'Enable',onIff(thereIsAnOpenFile));
+%set(handles.menu_file_basic_settings,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_target_type,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_import_classifier, ...
@@ -8408,6 +8408,9 @@ if isequal(newFeatureLexiconName,data.featureLexiconName)
   return
 end
 
+% Update the status, change the pointer to the watch
+SetStatus(handles,'Changing target type...');
+
 % Set the feature dictionary, basic params in JLabelData
 [success,msg]=data.setFeatureLexicon(newFeatureLexiconName);
 if ~success,
@@ -8416,6 +8419,10 @@ end
 
 % Note that we now need saving
 handles.guidata.needsave=true;
+
+% Update the plots
+%UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
+UpdatePlots(handles);
 
 % Done, set status message to cleared message, pointer to normal
 syncStatusBarTextWhenClear(handles);

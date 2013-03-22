@@ -51,13 +51,13 @@ classdef ChangeFeatureLexiconDialog < handle
                                         'visible','off', ...
                                         'fontsize',12);
       extent=get(self.popupMenuLabelText,'extent');
-      extentSize=extent(3:4)
-      popupMenuLabelTextSize=extentSize+2  % pad a little
+      extentSize=extent(3:4);
+      popupMenuLabelTextSize=extentSize+2;  % pad a little
       
       % calculate placement of popupmenu and label
-      popupMenuAndLabelWidth=popupMenuLabelTextSize(1)+interLabelPopupMenuWidth+popupMenuWidth
-      popupMenuLabelTextXOffset=(figureWidth-popupMenuAndLabelWidth)/2
-      popupMenuXOffset=popupMenuLabelTextXOffset+popupMenuLabelTextSize(1)+interLabelPopupMenuWidth
+      popupMenuAndLabelWidth=popupMenuLabelTextSize(1)+interLabelPopupMenuWidth+popupMenuWidth;
+      popupMenuLabelTextXOffset=(figureWidth-popupMenuAndLabelWidth)/2;
+      popupMenuXOffset=popupMenuLabelTextXOffset+popupMenuLabelTextSize(1)+interLabelPopupMenuWidth;
       popupMenuLabelTextYOffset=popupMenuYOffset+(popupMenuHeight-popupMenuLabelTextSize(2))/2;
       
       % calculate placement of buttons
@@ -107,13 +107,13 @@ classdef ChangeFeatureLexiconDialog < handle
       featureLexiconNameList=self.featureLexiconNameList;
       % get the currently selected feature lexicon name
       featureLexiconName=featureLexiconNameList{get(self.featureLexiconPopupMenu,'value')};
+      % Delete the figure
+      delete(self.graphicsObject);
       % Call the appropriate function to notify the JLabel "object" that 
       % we're done.
       JLabel('changeFeatureLexiconDone', ...
              figureJLabel, ...
              featureLexiconName);
-      % Delete the figure
-      delete(self.graphicsObject);
     end
   end
 end
