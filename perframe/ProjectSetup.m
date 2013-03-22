@@ -601,6 +601,7 @@ function listbox_inputscores_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.indexOfScoresAsInputFile=get(hObject,'Value');
+guidata(hObject,handles);
 return
 
 % -------------------------------------------------------------------------
@@ -654,7 +655,7 @@ classifier=everythingParams.classifier;
 if isfield(classifier,'timeStamp');
   curs.ts = classifier.timeStamp;
 else
-  uiwait(errordlg('The classifier in the selected field lacks a timstamp.  Aborting.', ...
+  uiwait(errordlg('The classifier in the selected field lacks a timestamp.  Aborting.', ...
                   'Error', ...
                   'modal'));
   return
@@ -678,8 +679,9 @@ else
 end
 
 handles.basicParams.scoresinput(end+1) = curs;
-guidata(hObject,handles);
+handles.indexOfScoresAsInputFile = length(handles.basicParams.scoresinput);
 updateEditsListboxesAndPopupmenus(handles);
+guidata(hObject,handles);
 return
 
 
@@ -694,7 +696,7 @@ if isempty(i), return; end
 nScoresAsInput=length(handles.basicParams.scoresinput);
 handles.basicParams.scoresinput(i) = [];
 if (i==nScoresAsInput)
-  i=i-1
+  i=i-1;
   if i==0
     i=[];
   end
@@ -703,7 +705,6 @@ handles.indexOfScoresAsInputFile=i;
 guidata(hObject,handles);
 updateEditsListboxesAndPopupmenus(handles);
 return
-
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_cancel.
