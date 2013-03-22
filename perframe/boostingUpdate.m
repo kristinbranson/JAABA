@@ -1,4 +1,4 @@
-function [newModel,scores] = boostingUpdate(data,labels,oldModel,binVals,bins,params)
+function [newModel,scores,stats] = boostingUpdate(data,labels,oldModel,binVals,bins,params)
 
 % Learn classifier with all the data.
 
@@ -24,6 +24,12 @@ modLabels = sign( (labels==1)-0.5);
 
 updatedModel = updateOldWeights(data,modLabels,oldModel,wt);
 [newModel,scores] = addNewRules(data,modLabels,updatedModel,binVals,bins,wt,params);
+
+if nargout >= 3,
+  % compute some statistics of how well training worked
+  stats = ComputeBoostingStats(scores,labels);
+end
+
 
 
 function updatedModel = updateOldWeights(data,labels,oldModel,exWt)

@@ -48,7 +48,7 @@ for i = 1:numel(traj_fns),
         warning('Could not delete file %s: %s',filename,getReport(ME));
       end
     end
-    if dooverwrite || fileexists,
+    if dooverwrite || ~fileexists,
       save(filename,'data','units');
     end
   catch %#ok<CTCH>
