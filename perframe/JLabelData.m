@@ -2970,7 +2970,7 @@ end
       try
         save(scoresFileOut,'-struct','OUT');
       catch ME,
-        questmsg = sprintf('Could not create perframe file from scores file:%s. Continue',fn);
+        questmsg = sprintf('Could not write perframe file from scores file:%s. Continue',fn);
         button = questdlg(questmsg,'Continue','Yes');
         if ~strcmp(button,'Yes')
           success = false;
