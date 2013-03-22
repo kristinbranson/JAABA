@@ -605,6 +605,11 @@ classdef JLabelData < handle
       end
     end  % method
     
+    
+    % ---------------------------------------------------------------------
+    function result=isValidBehaviorName(behaviorName)
+      result=~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once'));
+    end
   end  % class methods
   
   methods (Access=public)
@@ -999,6 +1004,25 @@ classdef JLabelData < handle
     end
     
     
+    % ---------------------------------------------------------------------
+    function setBehaviorName(obj,behaviorName)
+      % Set the behavior name, a string
+      if JLabelData.isValidBehaviorName(behaviorName), ...
+        obj.labelnames = {behaviorName 'None'};
+        obj.nbehaviors = 2;
+      else
+        error('JLabelData:invalidBehaviorName','Invalid behavior name');
+      end
+    end
+        
+        
+    % ---------------------------------------------------------------------
+    function behaviorName=getBehaviorName(obj)
+      % Get the behavior name, a string
+      behaviorName=obj.labelnames{1};
+    end
+        
+        
     % ---------------------------------------------------------------------
     function [success,msg] = SetMovieFileName(obj,moviefilename)
     % change/set the name of the movie within the experiment directory

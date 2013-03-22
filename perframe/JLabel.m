@@ -2235,6 +2235,7 @@ set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 %     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
 %set(handles.menu_file_basic_settings,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_target_type,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_change_behavior_name,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_import_classifier, ...
     'Enable',onIff(thereIsAnOpenFile));
@@ -8423,6 +8424,55 @@ handles.guidata.needsave=true;
 % Update the plots
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
 UpdatePlots(handles);
+
+% Done, set status message to cleared message, pointer to normal
+syncStatusBarTextWhenClear(handles);
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+return
+
+
+% --------------------------------------------------------------------
+function menu_file_change_behavior_name_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_change_target_type (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+behaviorName=handles.guidata.data.getBehaviorName();
+ChangeBehaviorNameDialog(behaviorName,handles.figure_JLabel);
+return
+
+
+% -------------------------------------------------------------------------
+function changeBehaviorNameDone(figureJLabel,newBehaviorName)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% if new same as old, do nothing
+data=handles.guidata.data;  % a ref
+if isequal(newBehaviorName,data.getBehaviorName())
+  return
+end
+  
+% Update the status, change the pointer to the watch
+SetStatus(handles,'Changing behavior name...');
+
+% Set the behavior name in JLabelData
+data.setBehaviorName(newBehaviorName);
+
+% Note that we now need saving
+handles.guidata.needsave=true;
+
+% Update the names on the labeling buttons
+handles = UpdateLabelButtons(handles);
+
+% Update the plots
+%UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
+%UpdatePlots(handles);
 
 % Done, set status message to cleared message, pointer to normal
 syncStatusBarTextWhenClear(handles);
