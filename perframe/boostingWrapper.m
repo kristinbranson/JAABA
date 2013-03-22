@@ -1,4 +1,4 @@
-function [allDataModel outScores] = boostingWrapper(data,labels,obj,binVals,bins,params)
+function [allDataModel outScores, stats] = boostingWrapper(data,labels,obj,binVals,bins,params)
 
 boostIterations = params.iter;
 % Learn classifier with all the data.
@@ -18,6 +18,11 @@ modLabels = sign( (labels==1)-0.5);
 wt = getWeights(modLabels);
 
 [outScores, allDataModel] = loglossboostLearnRandomFeatures(data,modLabels,boostIterations,wt,binVals,bins,params,obj);
+
+if nargout >= 3,
+  % compute some statistics of how well training worked
+  stats = ComputeBoostingStats(outScores,labels);
+end
 
 return;
 

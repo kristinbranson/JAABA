@@ -141,6 +141,9 @@ classdef JLabelData < handle
     % Classifiers Time Stamp
     classifierTS = 0;
     
+    % training statistics
+    trainstats = [];
+    
     % parameters to learning the classifier. struct fields depend on type
     % of classifier.
     % TODO
@@ -2313,6 +2316,7 @@ end
         obj.SetStatus('Pre-loading first experiment %s expname...',expname);
         [success1,msg1] = obj.PreLoad(1,1);
         if ~success1,
+          success = false;
           msg = sprintf('Error getting basic trx info: %s',msg1);
           obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
           %uiwait(warndlg(msg));
@@ -4122,7 +4126,11 @@ end
         labelsToUse = obj.labels;
       end
 
-      [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
+      if ~isempty(labelsToUse(expi).flies),	
+        [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
+      else
+	ism = false
+      end
       if ism,
         labels_curr.t0s = labelsToUse(expi).t0s{fliesi};
         labels_curr.t1s = labelsToUse(expi).t1s{fliesi};
@@ -4207,7 +4215,11 @@ end
         labelstatsToUse = 'labelstats';
       end
       
-      [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+      if isempty(obj.(labelsToUse)(expi).flies),
+	ism = false;
+      else
+        [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+      end
       if ~ism,
         j = size(obj.(labelsToUse)(expi).flies,1)+1;
       end
@@ -4240,7 +4252,12 @@ end
           labelsToUse = 'labels';
         end
 
-        [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+        if isempty(obj.(labelsToUse)(expi).flies)
+          ism = false;
+        else
+          [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+	end
+
         if ism,
           isstart = ismember(ts,obj.(labelsToUse)(expi).t0s{fliesi});
         else
@@ -4960,7 +4977,7 @@ end
               obj.ClearStatus();
               return;
             end
-            [obj.classifier, ~] =...
+            [obj.classifier, ~, trainstats] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
                                  obj.windowdata.binVals,...
@@ -4976,12 +4993,25 @@ end
             bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             
             obj.classifier_old = obj.classifier;
-            [obj.classifier, ~] = boostingUpdate(obj.windowdata.X(islabeled,:),...
+            [obj.classifier, ~, trainstats] = boostingUpdate(obj.windowdata.X(islabeled,:),...
                                           obj.windowdata.labelidx_new(islabeled),...
                                           obj.classifier,obj.windowdata.binVals,...
                                           bins,obj.classifier_params);
           end
           obj.classifierTS = now();
+          
+          % store training statistics
+          if isempty(obj.trainstats),
+            obj.trainstats = trainstats;
+            obj.trainstats.timestamps = obj.classifierTS;
+          else
+            trainstatfns = fieldnames(trainstats);
+            for fni = 1:numel(trainstatfns),
+              obj.trainstats.(trainstatfns{fni})(end+1) = trainstats.(trainstatfns{fni});
+            end
+            obj.trainstats.timestamps(end+1) = obj.classifierTS;
+          end
+                    
           obj.windowdata.labelidx_old = obj.windowdata.labelidx_cur;
           obj.windowdata.labelidx_cur = obj.windowdata.labelidx_new;
           
