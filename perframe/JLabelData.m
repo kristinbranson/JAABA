@@ -7977,6 +7977,40 @@ classdef JLabelData < handle
     end
 
     
+    % ---------------------------------------------------------------------
+    function setScoresAsFeatures(obj, ...
+                                 scoresAsFeaturesFileNameList, ...
+                                 timeStampListNew, ...
+                                 scoreBaseNameListNew)
+      % package up the three lists into a struct array
+      scoresAsInput= ...
+        struct('classifierfile',scoresAsFeaturesFileNameList, ...
+               'ts',num2cell(timeStampListNew), ...
+               'scorefilename',scoreBaseNameListNew);
+      % store in self
+      obj.scoresasinput = scoresAsInput;
+      
+      % Need to do something smarter below, b/c allperframefns, etc may
+      % already contain some scores-as-features
+      
+      % add the scores to the list of all per-frame functions
+      for ndx = 1:numel(scoresAsInput)
+        [~,name,~] = fileparts(obj.scoresasinput(ndx).scorefilename);
+        obj.allperframefns{end+1} = name;
+      end
+      % Update the basic feature table
+      if ~isempty(obj.basicFeatureTable),
+        scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
+        if isempty(scoresbasicndx),
+          obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
+        else
+          obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
+        end
+      end
+      % Re-load the perframe feature signals, since the PFFs may have changed
+      obj.loadPerframeData(obj.expi,obj.flies);
+    end
+    
 end  % End methods block
   
 end % End class

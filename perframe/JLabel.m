@@ -2317,6 +2317,8 @@ set(handles.menu_go_previous_automatic_bout_end, ...
 % Update the Classifier menu items
 %
 set(handles.menu_classifier,'enable',onIff(labelPenIsUp));
+set(handles.menu_classifier_change_scores_as_features, ...
+    'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_classifier_select_features, ...
     'Enable',onIff(thereIsAnOpenFile));  
 set(handles.menu_classifier_training_parameters, ...
@@ -8469,6 +8471,62 @@ handles.guidata.needsave=true;
 
 % Update the names on the labeling buttons
 handles = UpdateLabelButtons(handles);
+
+% Update the plots
+%UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
+%UpdatePlots(handles);
+
+% Done, set status message to cleared message, pointer to normal
+syncStatusBarTextWhenClear(handles);
+ClearStatus(handles);
+
+% write the handles back to figure
+guidata(figureJLabel,handles);
+
+return
+
+
+% --------------------------------------------------------------------
+function menu_classifier_change_scores_as_features_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_change_scores_as_features (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+scoresAsFeaturesFileNameList={handles.guidata.data.scoresasinput(:).classifierfile};
+timeStampList=[handles.guidata.data.scoresasinput(:).ts];
+scoreBaseNameList={handles.guidata.data.scoresasinput(:).scorefilename};
+ChangeScoresAsFeaturesDialog(scoresAsFeaturesFileNameList, ...
+                             timeStampList, ...
+                             scoreBaseNameList, ...
+                             handles.figure_JLabel);
+return
+
+
+% -------------------------------------------------------------------------
+function changeScoresAsFeaturesDone(figureJLabel, ...
+                                    scoresAsFeaturesFileNameListNew, ...
+                                    timeStampListNew, ...
+                                    scoreBaseNameListNew)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% if new same as old, do nothing
+data=handles.guidata.data;  % a ref
+scoresAsFeaturesFileNameList={data.scoresasinput(:).classifierfile};
+if isequal(scoresAsFeaturesFileNameListNew,scoresAsFeaturesFileNameList)
+  return
+end
+
+% Update the status, change the pointer to the watch
+SetStatus(handles,'Changing scores-as-features list...');
+
+% Set the behavior name in JLabelData
+data.setScoresAsFeatures(scoresAsFeaturesFileNameListNew, ...
+                         timeStampListNew, ...
+                         scoreBaseNameListNew);
+
+% Note that we now need saving
+handles.guidata.needsave=true;
 
 % Update the plots
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
