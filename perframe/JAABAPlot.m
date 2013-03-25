@@ -1858,7 +1858,7 @@ fprintf(fid,['%% type=' type '\n%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel
 
 
 % ---
-function h=plot_it(xdata,ydata,style,centraltendency,dispersion,color,linewidth,fid,experimentlist)
+function h=plot_it(ha,xdata,ydata,style,centraltendency,dispersion,color,linewidth,fid,experimentlist)
 
 fprintf(fid,'%% xdata\n');  fprintf(fid,'%g, ',xdata);  fprintf(fid,'\n');
 if(style~=3)
@@ -1876,7 +1876,7 @@ if(style~=3)
 end
 switch(style)
   case 1
-    h=plot(xdata,data_ct,'color',color,'linewidth',linewidth);
+    h=plot(ha,xdata,data_ct,'color',color,'linewidth',linewidth);
     fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
   case 2
     switch(dispersion)
@@ -1903,23 +1903,23 @@ switch(style)
         str_dp='75%%';
         str_dn='25%%';
     end
-    h=plot(xdata,data_ct,'color',color,'linewidth',3*linewidth);
+    h=plot(ha,xdata,data_ct,'color',color,'linewidth',3*linewidth);
     idx=isnan(data_dp) | isnan(data_dn);
     xdata=xdata(~idx);  data_dp=data_dp(~idx);  data_dn=data_dn(~idx);
     color2=(get(h,'color')+[4 4 4])/5;
     k=1;  m=0;  step=10000;
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
-      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none');
+      patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
       k=k+step+1;  m=m+1;
     end
-    get(gca,'children');  set(gca,'children',circshift(ans,-m));  % send to back
+    get(ha,'children');  set(ha,'children',circshift(ans,-m));  % send to back
     %get(gca,'children');  set(gca,'children',ans([m+1 1:m (m+2):end]));  % send to back
     fprintf(fid,['%% ydata, ' str_dp '\n']);  fprintf(fid,'%g, ',data_dp);  fprintf(fid,'\n');
     fprintf(fid,['%% ydata, ' str_dn '\n']);  fprintf(fid,'%g, ',data_dn);  fprintf(fid,'\n');
     fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
   case 3
-    h=plot(xdata,ydata','color',color,'linewidth',linewidth);
+    h=plot(ha,xdata,ydata','color',color,'linewidth',linewidth);
     h=h(1);
     for e=1:size(ydata,1)
       fprintf(fid,['%% ydata, experiment ' experimentlist{e} '\n']);
@@ -2197,7 +2197,7 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='feature histogram';
 
-figure('toolbar','figure');  hold on;
+hf=figure('toolbar','figure');
 
 bb=handles.behaviorvalue;
 if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
@@ -2245,9 +2245,11 @@ for b=bb
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
-    subplot(ceil(length(bb)/ans),ans,b);
+    ha=subplot(ceil(length(bb)/ans),ans,b,'parent',hf);
+  else
+    ha=subplot(1,1,1,'parent',hf);
   end
-  hold on;
+  hold(ha,'on');
 
   score_file=[];
   if(b>0)  score_file=handles.scorefiles{b};  end
@@ -2325,7 +2327,7 @@ for b=bb
         bins=[fliplr(-logspace(log10(nearzero),log10(abs(low)),nbins)) ...
             logspace(log10(nearzero),log10(abs(high)),nbins)];
       end
-      plot(bins,zeros(1,length(bins)),'k.');
+      plot(ha,bins,zeros(1,length(bins)),'k.');
     else
       bins=linspace(low,high,nbins);
     end
@@ -2351,7 +2353,7 @@ for b=bb
         if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
         hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
         hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
-        plot_it(bins,hist_not_during',style,centraltendency,dispersion,color,1,...
+        plot_it(ha,bins,hist_not_during',style,centraltendency,dispersion,color,1,...
           fid,handlesexperimentlist(idx));
       end
     end
@@ -2362,7 +2364,7 @@ for b=bb
       hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
       hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
       linewidth=1;  if(comparison>0)  linewidth=2;  end
-      h(g)=plot_it(bins,hist_during',style,centraltendency,dispersion,color,linewidth,...
+      h(g)=plot_it(ha,bins,hist_during',style,centraltendency,dispersion,color,linewidth,...
           fid,handlesexperimentlist(idx));
     end
   end
@@ -2401,24 +2403,24 @@ for b=bb
     end
   end
 
-  title(tstr,'interpreter','none');
-  xlabel(xstr,'interpreter','none');
-  ylabel(ystr,'interpreter','none');
-  axis tight;  zoom reset;
+  title(ha,tstr,'interpreter','none');
+  xlabel(ha,xstr,'interpreter','none');
+  ylabel(ha,ystr,'interpreter','none');
+  axis(ha,'tight');  zoom(ha,'reset');
 end
 
 idx=find(h>0);
 if ischar(individual)
-  legend(h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
+  legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
       handles.grouplist,'uniformoutput',false)],'interpreter','none');
 else
-  legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
+  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
 if(ischar(individual) && ((length(handles.grouplist)>1) || (comparison>0)))
-  uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+  uicontrol(hf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
       'callback',@figure_stats_callback);
   if((length(bb)==1) && (bb==0))
     {'all frames'};
@@ -2431,7 +2433,7 @@ end
 
 fclose(fid);
 
-guidata(gcf,handles);
+guidata(handles.figure1,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -2779,7 +2781,7 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='feature time series';
 
-figure('toolbar','figure');  hold on;
+hf=figure('toolbar','figure');
 
 bb=handles.behaviorvalue;
 if(handles.featuretimeseries_style2==1)  bb=1;  end
@@ -2811,9 +2813,11 @@ for b=bb
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
-    subplot(ceil(length(bb)/ans),ans,b);
+    ha=subplot(ceil(length(bb)/ans),ans,b,'parent',hf);
+  else
+    ha=subplot(1,1,1,'parent',hf);
   end
-  hold on;
+  hold(ha,'on');
 
   score_file=[];
   if(b>0)  score_file=handles.scorefiles{b};  end
@@ -2923,7 +2927,7 @@ for b=bb
     end
 
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    h(g)=plot_it(time_base,ydata(idx,:),style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
+    h(g)=plot_it(ha,time_base,ydata(idx,:),style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
   end
 
   fprintf(fid,'\n%% raw data\n');
@@ -2944,26 +2948,26 @@ for b=bb
     end
   end
 
-  xlabel(xstr,'interpreter','none');
-  ylabel(ystr,'interpreter','none');
-  title(tstr,'interpreter','none');
-  axis tight;  zoom reset;
+  xlabel(ha,xstr,'interpreter','none');
+  ylabel(ha,ystr,'interpreter','none');
+  title(ha,tstr,'interpreter','none');
+  axis(ha,'tight');;  zoom(ha,'reset');
 
 end
 idx=find(h>0);
 if ischar(individual)
-  legend(h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
+  legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
       handles.grouplist,'uniformoutput',false)],'interpreter','none');
 else
-  legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
+  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
 
 fclose(fid);
 
-guidata(gcf,handles);
+guidata(handles.figure1,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -3121,9 +3125,9 @@ end
 
 
 % ---
-function [h,h2]=errorbarplot(x,b,dn,dp,color)
+function [h,h2]=errorbarplot(ha,x,b,dn,dp,color)
 
-h = bar(x,b,'grouped');
+h = bar(ha,x,b,'grouped');
 set(h,'facecolor',color);
 fxdata = get(h, 'XData');
 fydata = get(h ,'YData');
@@ -3153,8 +3157,8 @@ end;
 
 %errdata=[.1 .2; .3 .4; .5 .6];
 
-hold on;
-h2=errorbar(xb, b, dn, dp);
+hold(ha,'on');
+h2=errorbar(ha,xb, b, dn, dp);
 set(h2(1),'linewidth',1);            % This changes the thickness of the errorbars
 set(h2(1),'color','k');              % This changes the color of the errorbars
 set(h2(1),'linestyle','none');       % This removes the connecting
@@ -3299,11 +3303,7 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='behavior bar chart';
 
-figure('toolbar','figure');  hold on;
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
-    'callback',@figure_params_callback);
-uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
-    'callback',@figure_stats_callback);
+hf=figure('toolbar','figure');
 
 bb=handles.behaviorvalue;
 if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
@@ -3343,9 +3343,11 @@ for b=bb
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
-    subplot(ceil(length(bb)/ans),ans,b);
+    ha=subplot(ceil(length(bb)/ans),ans,b,'parent',hf);
+  else
+    ha=subplot(1,1,1,'parent',hf);
   end
-  hold on;
+  hold(ha,'on');
 
   score_file=handles.scorefiles{b};
 
@@ -3471,22 +3473,22 @@ for b=bb
     switch(handles.behaviorbarchart_style)
       case 1  % per group
         table_data{end}(g)=100*sum([frames_labelled{idx}])./sum([frames_total{idx}]);
-        h{g}=bar(g,table_data{end}(g));
+        h{g}=bar(ha,g,table_data{end}(g));
         set(h{g},'facecolor',color);
       case 2  % per experiment, error bars
         table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
         [ct(g),dp(g),dn(g)]=...
             calculate_ct_d(table_data{end}{g},handles.centraltendency,handles.dispersion);
-        h{g}=errorbarplot(g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
+        h{g}=errorbarplot(ha,g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
       case 3  % per experiment, box
         table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
-        h{g}=boxplot(table_data{end}{g},'positions',g,'widths',0.5,'colors',color);
+        h{g}=boxplot(ha,table_data{end}{g},'positions',g,'widths',0.5,'colors',color);
       case 4  % per fly, grouped
         cumsum(cellfun(@length,frames_labelled(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=100.*[frames_labelled{idx}]./[frames_total{idx}];
         maxy=max([maxy table_data{end}{g}]);
-        h{g}=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
+        h{g}=bar(ha,(1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
             'barwidth',1,'edgecolor','none');
         set(h{g},'facecolor',color);
         k(end+1)=length(table_data{end}{g});
@@ -3499,15 +3501,15 @@ for b=bb
           table_data{end}{g}{e}=100.*frames_labelled{e}./frames_total{e};
           [ct,dp,dn]=calculate_ct_d(table_data{end}{g}{e},...
               handles.centraltendency,handles.dispersion);
-          h{g}=plot(m,ct,'o','color',color);
-          plot([m m],[dp dn],'-','color',color);
-          plot(m+(1:length(table_data{end}{g}{e})),table_data{end}{g}{e},'.','color',color);
+          h{g}=plot(ha,m,ct,'o','color',color);
+          plot(ha,[m m],[dp dn],'-','color',color);
+          plot(ha,m+(1:length(table_data{end}{g}{e})),table_data{end}{g}{e},'.','color',color);
           m=m+16+length(table_data{end}{g}{e});
         end
         [ct,dp,dn]=calculate_ct_d([table_data{end}{g}{:}],...
             handles.centraltendency,handles.dispersion);
-        plot(m,ct,'o','color',color,'markersize',9);
-        plot([m m],[dp dn],'-','color',color,'linewidth',3);
+        plot(ha,m,ct,'o','color',color,'markersize',9);
+        plot(ha,[m m],[dp dn],'-','color',color,'linewidth',3);
         m=m+24;
         k(end+1)=24+16*length(table_data{end}{g})+length([table_data{end}{g}{:}]);
         fprintf(fid,['%% data, %s\n'],xticklabels{g});
@@ -3518,7 +3520,7 @@ for b=bb
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=[traj_len{idx}];
         maxy=max([maxy table_data{end}{g}]);
-        h{g}=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
+        h{g}=bar(ha,(1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
             'barwidth',1,'edgecolor','none');
         set(h{g},'facecolor',color);
         k(end+1)=length(table_data{end}{g});
@@ -3541,9 +3543,9 @@ for b=bb
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
       hh=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
-          [0.95 0.95 0.95]);
+          [0.95 0.95 0.95],'parent',ha);
       set(hh,'edgecolor','none');
-      set(gca,'children',flipud(get(gca,'children')));
+      set(ha,'children',flipud(get(ha,'children')));
       k=round(cumsum(k)-k/2);
     case 5  % per fly, stern-style
       k=round(cumsum(k)-k/2);
@@ -3572,14 +3574,14 @@ for b=bb
   end
 
   if(isempty(k))  k=1:length(frames_labelled);  end
-  ylabel(ystr,'interpreter','none');
-  set(gca,'xtick',k,'xticklabel',xticklabels);
-  axis tight;  vt=axis;
+  ylabel(ha,ystr,'interpreter','none');
+  set(ha,'xtick',k,'xticklabel',xticklabels);
+  axis(ha,'tight');  vt=axis;
   axisalmosttight;  vat=axis;
   if(handles.behaviorbarchart_style==4)
-    axis([vat(1) vat(2) 0 vt(4)]);
+    axis(ha,[vat(1) vat(2) 0 vt(4)]);
   else
-    axis([vat(1) vat(2) 0 vat(4)]);
+    axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
   %fprintf(fid,'\n');
 
@@ -3605,7 +3607,7 @@ end
 
 fclose(fid);
 
-guidata(gcf,handles);
+guidata(handles.figure1,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -3640,7 +3642,7 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='behavior time series';
 
-figure('toolbar','figure');  hold on;
+hf=figure('toolbar','figure');
 
 bb=handles.behaviorvalue;
 if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
@@ -3664,9 +3666,11 @@ for b=bb
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
-    subplot(ceil(length(bb)/ans),ans,b);
+    ha=subplot(ceil(length(bb)/ans),ans,b,'parent',hf);
+  else
+    ha=subplot(1,1,1,'parent',hf);
   end
-  hold on;
+  hold(ha,'on');
 
   score_file=handles.scorefiles{b};
 
@@ -3830,7 +3834,7 @@ for b=bb
       idx=1;
     end
 
-    h(g)=plot_it(time_base,100.*behavior_cumulative(idx,:),...
+    h(g)=plot_it(ha,time_base,100.*behavior_cumulative(idx,:),...
         style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
   end
 
@@ -3852,27 +3856,26 @@ for b=bb
     end
   end
 
-  xlabel(xstr,'interpreter','none');
-  ylabel(ystr,'interpreter','none');
-  axis tight;  zoom reset;
+  xlabel(ha,xstr,'interpreter','none');
+  ylabel(ha,ystr,'interpreter','none');
+  axis(ha,'tight');  zoom(ha,'reset');
 
 end
 idx=find(h>0);
 %if(individual<4)
 if ischar(individual)
-  legend(h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
+  legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
       handles.grouplist,'uniformoutput',false)],'interpreter','none');
 else
-  %legend(h(idx),handles.individuallist(individual+cumsum_num_indi_per_exp(ggee)));
-  legend(h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
+  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
 
 fclose(fid);
 
-guidata(gcf,handles);
+guidata(handles.figure1,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -3967,7 +3970,7 @@ fid=fopen('most_recent_figure.csv','w');
 
 handles.type='bout stats';
 
-figure('toolbar','figure');  hold on;
+hf=figure('toolbar','figure');
 
 bb=handles.behaviorvalue;
 if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
@@ -3983,9 +3986,11 @@ for b=bb
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
-    subplot(ceil(length(bb)/ans),ans,b);
+    ha=subplot(ceil(length(bb)/ans),ans,b,'parent',hf);
+  else
+    ha=subplot(1,1,1,'parent',hf);
   end
-  hold on;
+  hold(ha,'on');
 
   score_file=handles.scorefiles{b};
 
@@ -4066,13 +4071,13 @@ for b=bb
         table_data{end}{g}=cellfun(@(x) nanmean([x{:}]./handles.fps),length_data(idx));
         [ct(g),dp(g),dn(g)]=...
             calculate_ct_d(table_data{end}{g},handles.centraltendency,handles.dispersion);
-        h(g)=errorbarplot(g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
+        h(g)=errorbarplot(ha,g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
       case 2  % per fly, grouped
         cumsum(cellfun(@length,length_data(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=cellfun(@nanmean,[length_data{idx}])./handles.fps;
         maxy=max([maxy table_data{end}{g}]);
-        h(g)=bar((1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
+        h(g)=bar(ha,(1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
             'barwidth',1,'edgecolor','none');
         set(h(g),'facecolor',color);
         k(end+1)=length(table_data{end}{g});
@@ -4092,9 +4097,9 @@ for b=bb
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
       hh=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
-          [0.95 0.95 0.95]);
+          [0.95 0.95 0.95],'parent',ha);
       set(hh,'edgecolor','none');
-      set(gca,'children',flipud(get(gca,'children')));
+      set(ha,'children',flipud(get(ha,'children')));
       k=round(cumsum(k)-k/2);
   end
 
@@ -4120,15 +4125,15 @@ for b=bb
   end
 
   if(isempty(k))  k=1:length(length_data);  end
-  title(tstr,'interpreter','none');
-  ylabel(ystr,'interpreter','none');
-  set(gca,'xtick',k,'xticklabel',xticklabels);
-  axis tight;  vt=axis;
+  title(ha,tstr,'interpreter','none');
+  ylabel(ha,ystr,'interpreter','none');
+  set(ha,'xtick',k,'xticklabel',xticklabels);
+  axis(ha,'tight');  vt=axis;
   axisalmosttight;  vat=axis;
   if(handles.boutstats_style==2)
-    axis([vat(1) vat(2) 0 vt(4)]);
+    axis(ha,[vat(1) vat(2) 0 vt(4)]);
   else
-    axis([vat(1) vat(2) 0 vat(4)]);
+    axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
   fprintf(fid,'\n');
 
@@ -4140,10 +4145,10 @@ end
 %  legend(h(idx),handles.individuallist(handles.individualvalue));
 %end
 
-uicontrol(gcf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
 if(ischar(individual) && (length(handles.grouplist)>1))
-  uicontrol(gcf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+  uicontrol(hf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
       'callback',@figure_stats_callback);
   handles.statistics=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,...
       fid,handles.pvalue);
@@ -4157,7 +4162,7 @@ end
 
 fclose(fid);
 
-guidata(gcf,handles);
+guidata(handles.figure1,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -4535,7 +4540,7 @@ questdlg('Close all figures?','','Yes','No','No');
 if(strcmp(ans,'No'))  return;  end
 hh=findobj('type','figure');
 for h=1:length(hh)
-  if(hh(h)~=gcf)  close(hh(h));  end
+  if(hh(h)~=handles.figure1)  close(hh(h));  end
 end
 
 
