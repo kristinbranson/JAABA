@@ -1006,6 +1006,65 @@ set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
 drawnow;
 
+handlesfeatures=cell(1,length(newexperiments));
+handlessexdata=cell(1,length(newexperiments));
+handlesindividualsbehavior=zeros(length(newexperiments),length(handles.scorefiles));
+handlesindividualsfeature=zeros(1,length(newexperiments));
+idx_error=false(1,length(newexperiments));
+parfor n=1:length(newexperiments)
+%for n=1:length(newexperiments)
+  tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
+  if isempty(tmp),
+    handlesfeatures{n} = {};
+  else
+    [handlesfeatures{n}{1:length(tmp)}]=deal(tmp.name);
+    handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
+  end
+
+  fullfile(newexperiments{n},'perframe','sex.mat');
+  if(exist(ans,'file'))
+    tmp=load(ans);
+    cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
+    handlessexdata(n)={ans};
+  else
+    tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
+    if(~isempty(tmp))
+      tmp=load(fullfile(newexperiments{n},'perframe',tmp(1).name));
+      cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
+      handlessexdata(n)={ans};
+    else
+      idx_error(n)=true;
+      continue;
+    end
+  end
+
+  behavior_data=[];
+  parfor_tmp=zeros(1,length(handles.scorefiles));
+  for s=1:length(handles.scorefiles)
+    classifier=load(handles.classifierlist{s});
+    parfor_tmp(s)=get_nindividuals_behavior(newexperiments{n},handles.scorefiles{s},...
+        classifier.classifierTS);
+  end
+  handlesindividualsbehavior(n,:)=parfor_tmp;
+
+  handlesindividualsfeature(n)=get_nindividuals_feature(newexperiments{n},handlesfeatures{n});
+end
+
+if(sum(idx_error)>0)
+  uiwait(errordlg([{'skipping the following experiments because they have not been tracked:  ' '' ...
+      newexperiments{idx_error}}],''));  drawnow;
+  newexperiments=newexperiments(~idx_error);
+  handlesfeatures=handlesfeatures(~idx_error);
+  handlessexdata=handlessexdata(~idx_error);
+  if(~isempty(handlesindividualsbehavior))  handlesindividualsbehavior=handlesindividualsbehavior(~idx_error);  end
+  handlesindividualsfeature=handlesindividualsfeature(~idx_error);
+  if(exist('newgroups','var'))  newgroups=newgroups(~idx_error);  end
+  if(exist('newcolors','var'))  newcolors=newcolors(~idx_error);  end
+end
+if isempty(newexperiments),
+  return;
+end
+
 if(~exist('newgroups','var'))
   handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
   handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
@@ -1028,44 +1087,6 @@ else
     handles.experimentlist{k+1}={newexperiments{ans}};
     handles.experimentvalue{k+1}=1:length(handles.experimentlist{k+1});
   end
-end
-
-handlesfeatures=cell(1,length(newexperiments));
-handlessexdata=cell(1,length(newexperiments));
-handlesindividualsbehavior=zeros(length(newexperiments),length(handles.scorefiles));
-handlesindividualsfeature=zeros(1,length(newexperiments));
-parfor n=1:length(newexperiments)
-%for n=1:length(newexperiments)
-  tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
-  if isempty(tmp),
-    handlesfeatures{n} = {};
-  else
-    [handlesfeatures{n}{1:length(tmp)}]=deal(tmp.name);
-    handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
-  end
-
-  fullfile(newexperiments{n},'perframe','sex.mat');
-  if(exist(ans,'file'))
-    tmp=load(ans);
-    cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
-    handlessexdata(n)={ans};
-  else
-    tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
-    tmp=load(fullfile(newexperiments{n},'perframe',tmp(1).name));
-    cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
-    handlessexdata(n)={ans};
-  end
-
-  behavior_data=[];
-  parfor_tmp=zeros(1,length(handles.scorefiles));
-  for s=1:length(handles.scorefiles)
-    classifier=load(handles.classifierlist{s});
-    parfor_tmp(s)=get_nindividuals_behavior(newexperiments{n},handles.scorefiles{s},...
-        classifier.classifierTS);
-  end
-  handlesindividualsbehavior(n,:)=parfor_tmp;
-
-  handlesindividualsfeature(n)=get_nindividuals_feature(newexperiments{n},handlesfeatures{n});
 end
 
 if(isnan(handles.fps))
