@@ -4414,7 +4414,8 @@ elseif(strcmp(handles2.table,'histogram'))
       set(handles2.Table,'Data',tmp(idx,:));
       handles2.table_data=handles2.table_data(idx,:);
     case {5}
-      questdlg(['Remove all ' handles.behaviorlist{handles2.table_data(eventdata.Indices(end,1),5)} ...
+      not_txt='';  if(handles2.table_data(eventdata.Indices(end,1),5)<0)  not_txt='not ';  end
+      questdlg(['Remove all ' not_txt handles.behaviorlist{abs(handles2.table_data(eventdata.Indices(end,1),5))} ...
           ' behaviors from table?'],'','Yes','No','No');
       if(strcmp(ans,'No'))  return;  end
       tmp=get(handles2.Table,'Data');
