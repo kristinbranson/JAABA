@@ -400,8 +400,12 @@ switch(handles.analysis)
     set(handles.FeatureTimeSeries,'foregroundcolor',bg);
     set(handles.StyleList,'string',handles.featuretimeseries_stylelist,...
         'value',handles.featuretimeseries_style);
-    set(handles.StyleList2,'string',handles.featuretimeseries_stylelist2,...
-        'value',handles.featuretimeseries_style2);
+    if(length(handles.classifierlist)>0)
+      set(handles.StyleList2,'string',handles.featuretimeseries_stylelist2,...
+          'value',handles.featuretimeseries_style2);
+    else
+      set(handles.StyleList2,'string',{''},'value',1);
+    end
     if(strcmp(get(handles.FeatureTimeSeries,'enable'),'off'))
       analysis2='';
     else
