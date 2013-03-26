@@ -2174,15 +2174,15 @@ classdef JLabelData < handle
       classifier.type='boosting';
       classifier.params=struct([]);
       classifier.timeStamp=0;
-      classifier.confThresholds=[0 0];
+      %classifier.confThresholds=[0 0];
       classifier.scoreNorm=[];
-      classifier.windowFeaturesParams = struct([]);
-      classifier.basicFeatureTable={};
-      classifier.featureWindowSize=10;  % default
-      classifier.postProcessParams=[];
-      classifier.scoresAsInput=struct('classifierfile',{}, ...
-                                      'ts',{}, ...
-                                      'scorefilename',{});
+      %classifier.windowFeaturesParams = struct([]);
+      %classifier.basicFeatureTable={};
+      %classifier.featureWindowSize=10;  % default
+      %classifier.postProcessParams=[];
+      %classifier.scoresAsInput=struct('classifierfile',{}, ...
+      %                                'ts',{}, ...
+      %                                'scorefilename',{});
 
       % Set the classifier in the JLabelData object
       self.setClassifier(classifier);
@@ -7978,26 +7978,49 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function setScoresAsFeatures(obj, ...
-                                 scoresAsFeaturesFileNameList, ...
-                                 timeStampListNew, ...
-                                 scoreBaseNameListNew)
-      % package up the three lists into a struct array
-      scoresAsInput= ...
-        struct('classifierfile',scoresAsFeaturesFileNameList, ...
-               'ts',num2cell(timeStampListNew), ...
-               'scorefilename',scoreBaseNameListNew);
-      % store in self
-      obj.scoresasinput = scoresAsInput;
+    function setScoresAsInput(obj, ...
+                              scoresAsInputFileNameListNew, ...
+                              timeStampListNew, ...
+                              scoreBaseNameListNew)
+
+      %
+      % Update obj.scoresasinput
+      %
+                            
+      % get the current scoresasinput
+      scoresAsInputOld=obj.scoresasinput;
+
+      % collect the new ones into a scoresAsInput structure array
+      scoresAsInputNew= ...
+        collectScoresAsInput(scoresAsInputFileNameListNew, ...
+                             timeStampListNew, ...
+                             scoreBaseNameListNew);
       
-      % Need to do something smarter below, b/c allperframefns, etc may
-      % already contain some scores-as-features
+      % store scoresasinput in self
+      obj.scoresasinput = scoresAsInputNew;
       
-      % add the scores to the list of all per-frame functions
-      for ndx = 1:numel(scoresAsInput)
-        [~,name,~] = fileparts(obj.scoresasinput(ndx).scorefilename);
-        obj.allperframefns{end+1} = name;
-      end
+      
+      %
+      % Update obj.allperframefns
+      %
+
+      % Get the old list of per-frame features
+      featureNamesInLexiconOld=obj.allperframefns;
+
+      % determine the feature names in the new lexicon
+      featureNamesInLexiconNew= ...
+        featureNamesNewFromOld(featureNamesInLexiconOld, ...
+                               scoresAsInputOld, ...
+                               scoresAsInputNew);
+                                   
+      % Commit to self
+      obj.allperframefns=featureNamesInLexiconNew;
+                 
+      
+      %
+      % Do other stuff that needs doing
+      %
+      
       % Update the basic feature table
       if ~isempty(obj.basicFeatureTable),
         scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
@@ -8006,10 +8029,15 @@ classdef JLabelData < handle
         else
           obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
         end
+        % how do we know that "Custom" is the right answer?      
       end
+      
       % Re-load the perframe feature signals, since the PFFs may have changed
       obj.loadPerframeData(obj.expi,obj.flies);
-    end
+
+      % need to clear the classifier
+      obj.clearClassifier();
+    end  % method
     
 end  % End methods block
   
