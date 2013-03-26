@@ -3644,7 +3644,11 @@ end
 %end
 
 %if((ismember(handles.behaviorbarchart_style,[2 3])) && (individual<4))
+uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
+    'callback',@figure_params_callback);
 if((ismember(handles.behaviorbarchart_style,[2 3 4])) && ischar(individual) && (length(handles.grouplist)>1))
+  uicontrol(hf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
+      'callback',@figure_stats_callback);
   handles.statistics=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,...
       fid,handles.pvalue);
 %  set(handles.Table,'Data',tmp);
