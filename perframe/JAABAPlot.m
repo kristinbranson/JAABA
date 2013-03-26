@@ -308,12 +308,12 @@ end
 if(isempty(handles.grouplist))
   set(handles.GroupList,'enable','off');
   set(handles.GroupChange,'enable','off');
-%  set(handles.ExperimentAdd,'enable','off');
+  set(handles.ExperimentAdd,'enable','off');
   set(handles.ExperimentDelete,'enable','off');
 else
   set(handles.GroupList,'enable','on');
   set(handles.GroupChange,'enable','on');
-%  set(handles.ExperimentAdd,'enable','on');
+  set(handles.ExperimentAdd,'enable','on');
   set(handles.ExperimentDelete,'enable','on');
 end
 if(sum(cellfun(@length,handles.experimentlist))==0)
@@ -976,35 +976,10 @@ end
 set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
 
 
-% --- Executes on button press in ExperimentAdd.
-function ExperimentAdd_Callback(hObject, eventdata, handles)
-% hObject    handle to ExperimentAdd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user experiment (see GUIDATA)
+% ---
+function handles=experiment_add(handles,newexperiments,newgroups,newcolors)
 
-persistent directory
-if(isempty(directory))  directory=pwd;  end
-
-newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
-if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
-[directory,~,~]=fileparts(newexperiments{1});
-if((length(newexperiments)==1)&&(exist(newexperiments{1})==2))
-  newexperiments=textread(newexperiments{1},'%s');
-  sum(cellfun(@exist,newexperiments)~=0);
-  if(ans==(length(newexperiments)/2))
-    newgroups=newexperiments(2:2:end);
-    newexperiments=newexperiments(1:2:end);
-  elseif(ans==(length(newexperiments)/3))
-    newgroups=newexperiments(2:3:end);
-    newcolors=newexperiments(3:3:end);
-    newexperiments=newexperiments(1:3:end);
-  end
-end
 newexperiments=[cellfun(@(x) regexprep(x,'/$',''),newexperiments,'uniformoutput',false)];
-if((length(handles.grouplist)==0)&&(~exist('newgroups','var')))
-  uiwait(errordlg('Add a new group before adding ungrouped experiments'));
-  return;
-end
 tmp=ismember(newexperiments,[handles.experimentlist{:}]);
 if(sum(tmp)>0)
   msg{1}='The following experiments have already been added:';
@@ -1012,8 +987,8 @@ if(sum(tmp)>0)
   msg(3:(2+sum(tmp)))=newexperiments(tmp);
   uiwait(errordlg(msg));
   newexperiments(tmp)=[];
-  if(exist('newgroups','var'))  newgroups(tmp)=[];  end
-  if(exist('newcolors','var'))  newcolors(tmp)=[];  end
+  if(~isempty(newgroups))  newgroups(tmp)=[];  end
+  if(~isempty(newcolors))  newcolors(tmp)=[];  end
 end
 if isempty(newexperiments),
   return;
@@ -1075,25 +1050,25 @@ if(sum(idx_error)>0)
   handlessexdata=handlessexdata(~idx_error);
   if(~isempty(handlesindividualsbehavior))  handlesindividualsbehavior=handlesindividualsbehavior(~idx_error);  end
   handlesindividualsfeature=handlesindividualsfeature(~idx_error);
-  if(exist('newgroups','var'))  newgroups=newgroups(~idx_error);  end
-  if(exist('newcolors','var'))  newcolors=newcolors(~idx_error);  end
+  if(~isempty(newgroups))  newgroups=newgroups(~idx_error);  end
+  if(~isempty(newcolors))  newcolors=newcolors(~idx_error);  end
 end
 if isempty(newexperiments),
   return;
 end
 
-if(~exist('newgroups','var'))
+if(isempty(newgroups))
   handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
   handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
 else
   [newgroups,i]=sort(newgroups);
   newexperiments=newexperiments(i);
-  if(exist('newcolors','var'))  newcolors=newcolors(i);  end
+  if(~isempty(newcolors))  newcolors=newcolors(i);  end
   [ng,ia,ic]=unique(newgroups);
   for ngi=1:length(ng)
     k=length(handles.grouplist);
     handles.grouplist{k+1}=ng{ngi};
-    if(exist('newcolors','var'))
+    if(~isempty(newcolors))
       handles.colors(k+1,1)=hex2dec(newcolors{ia(ngi)}(1:2))/255;
       handles.colors(k+1,2)=hex2dec(newcolors{ia(ngi)}(3:4))/255;
       handles.colors(k+1,3)=hex2dec(newcolors{ia(ngi)}(5:6))/255;
@@ -1118,7 +1093,7 @@ handles.sexdata={handles.sexdata{:} handlessexdata{:}};
 handles.individuals_behavior=[handles.individuals_behavior; handlesindividualsbehavior];
 handles.individuals_feature=[handles.individuals_feature handlesindividualsfeature];
 
-if(~exist('newgroups','var'))
+if(isempty(newgroups))
   tmp=length(handles.features);
   idx=[1 : (sum(cellfun(@length,handles.experimentlist(1:handles.groupvalue)))-length(newexperiments)) ...
       ((tmp-length(newexperiments)+1) : tmp) ...
@@ -1138,11 +1113,63 @@ handles.interestingfeaturetimeseries_cache=[];
 
 update_figure(handles);
 
-guidata(hObject,handles);
-
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
+
+
+% --- Executes on button press in ExperimentBatch.
+function ExperimentBatch_Callback(hObject, eventdata, handles)
+% hObject    handle to ExperimentBatch (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user experiment (see GUIDATA)
+
+persistent directory
+if(isempty(directory))  directory=pwd;  end
+
+tmp=directory;
+[newexperiments directory]=uigetfile(fullfile(directory,'*.*'),'Select batch file');
+if(isnumeric(newexperiments)&&(newexperiments==0))  directory=tmp; return;  end
+newexperiments=textread(fullfile(directory,newexperiments),'%s');
+sum(cellfun(@exist,newexperiments)~=0);
+if(ans==(length(newexperiments)/2))
+  newgroups=newexperiments(2:2:end);
+  newcolors=[];
+  newexperiments=newexperiments(1:2:end);
+elseif(ans==(length(newexperiments)/3))
+  newgroups=newexperiments(2:3:end);
+  newcolors=newexperiments(3:3:end);
+  newexperiments=newexperiments(1:3:end);
+else
+  newgroups=[];
+  newcolors=[];
+end
+if((length(handles.grouplist)==0)&&(isempty(newgroups)))
+  uiwait(errordlg('Add a new group before adding ungrouped experiments'));
+  return;
+end
+
+handles=experiment_add(handles,newexperiments,newgroups,newcolors);
+
+guidata(hObject,handles);
+
+
+% --- Executes on button press in ExperimentAdd.
+function ExperimentAdd_Callback(hObject, eventdata, handles)
+% hObject    handle to ExperimentAdd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user experiment (see GUIDATA)
+
+persistent directory
+if(isempty(directory))  directory=pwd;  end
+
+newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
+if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
+[directory,~,~]=fileparts(newexperiments{1});
+
+handles=experiment_add(handles,newexperiments,[],[]);
+
+guidata(hObject,handles);
 
 
 % --- Executes on button press in ExperimentDelete.
@@ -1403,6 +1430,34 @@ handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
 
 
+% --- Executes on button press in ClassifierBatch.
+function ClassifierBatch_Callback(hObject, eventdata, handles)
+% hObject    handle to ClassifierBatch (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+persistent directory
+if(isempty(directory))  directory=pwd;  end
+
+tmp=directory;
+[newclassifiers directory]=uigetfile(fullfile(directory,'*.*'),'Select classifier files');
+if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
+newclassifiers=textread(fullfile(directory,newclassifiers),'%s');
+
+set(handles.Status,'string','Thinking...','foregroundcolor','b');
+set(handles.figure1,'pointer','watch');
+drawnow;
+
+handles=classifier_add(handles,newclassifiers);
+update_figure(handles);
+
+guidata(hObject,handles);
+
+set(handles.Status,'string','Ready.','foregroundcolor','g');
+set(handles.figure1,'pointer','arrow');
+drawnow;
+
+
 % --- Executes on button press in ClassifierAdd.
 function ClassifierAdd_Callback(hObject, eventdata, handles)
 % hObject    handle to ClassifierAdd (see GCBO)
@@ -1416,12 +1471,7 @@ tmp=directory;
 [newclassifiers directory]=uigetfile(directory,'Select classifier files','multiselect','on');
 if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
 if(~iscell(newclassifiers))  newclassifiers={newclassifiers};  end
-if((length(newclassifiers)==1)&&(~strcmp(newclassifiers{1}((end-3):end),'.mat'))&&...
-      (exist(fullfile(directory,newclassifiers{1}))==2))
-  newclassifiers=textread(fullfile(directory,newclassifiers{1}),'%s');
-else
-  newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
-end
+newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
