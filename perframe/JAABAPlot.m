@@ -1257,7 +1257,7 @@ tmp=[tmp(1:idxT) idxF tmp((idxT+1):end)];
 handles.features=handles.features(tmp);
 handles.sexdata=handles.sexdata(tmp);
 handles.individuals_behavior=handles.individuals_behavior(tmp,:);
-handles.individuals_feature=handles.individuals_feature(tmp,:);
+handles.individuals_feature=handles.individuals_feature(tmp);
 
 handles=fillin_individuallist(handles);
 
