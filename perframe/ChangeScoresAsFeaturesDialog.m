@@ -196,13 +196,16 @@ classdef ChangeScoresAsFeaturesDialog < handle
       i = self.iCurrent;
       if isempty(i), return; end
       nScoresAsInput=length(self.fileNameList);
+      % delete the i'th entries
       self.fileNameList(i) = [];
       self.timeStampList(i) = [];
       self.scoreBaseNameList(i) = [];
+      % update i if we just deleted the n'th element
       if (i==nScoresAsInput)
         i=fif(i>1,i-1,[]);
       end
       self.iCurrent=i;
+      % Update the "view" to reflect the changed "model"
       self.updateView();      
     end
     
@@ -223,6 +226,8 @@ classdef ChangeScoresAsFeaturesDialog < handle
     end
     
     function updateView(self)
+      % Update the "view" to reflect the current "model"
+      
       % Update the list of scores-an-inputs
       set(self.listBox,'String',self.fileNameList);
       set(self.listBox,'Value',self.iCurrent);

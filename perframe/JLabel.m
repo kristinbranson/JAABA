@@ -7305,7 +7305,7 @@ function menu_file_open_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-openEverythingFile(gcbf,false);  % false means labeling mode
+openEverythingFileViaChooser(gcbf,false);  % false means labeling mode
 return
 
 
@@ -7314,15 +7314,12 @@ function menu_file_open_in_ground_truthing_mode_Callback(hObject, eventdata, han
 % hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-openEverythingFile(gcbf,true);  % true means ground-truthing mode
+openEverythingFileViaChooser(gcbf,true);  % true means ground-truthing mode
 return
 
 
 % -------------------------------------------------------------------------
-function openEverythingFile(figureJLabel,groundTruthingMode)
-
-% get handles
-handles=guidata(figureJLabel);
+function openEverythingFileViaChooser(figureJLabel,groundTruthingMode)
 
 % Prompt user for filename
 title=fif(groundTruthingMode, ...
@@ -7337,14 +7334,30 @@ if ~ischar(filename),
 end
 fileNameAbs=fullfile(pathname,filename);
 
+% Call the function that does the real work
+openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
+
+return
+
+
+% -------------------------------------------------------------------------
+function openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
+
+% get handles
+handles=guidata(figureJLabel);
+
+% get just the relative file name
+[~,baseName,ext]=fileparts(fileNameAbs);
+fileNameRel=[baseName ext];
+
 % Update the status, change the pointer to the watch
-SetStatus(handles,sprintf('Opening %s ...',filename));
+SetStatus(handles,sprintf('Opening %s ...',fileNameRel));
 
 % load the file
 try
   everythingParams=load('-mat',fileNameAbs);
 catch  %#ok
-  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+  uiwait(errordlg(sprintf('Unable to load %s.',fileNameRel),'Error'));
   ClearStatus(handles);
   return;
 end
@@ -7355,7 +7368,7 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
 basicParams=basicParamsFromEverythingParams(everythingParams);
-initBasicParams(gcbf,basicParams);
+initBasicParams(figureJLabel,basicParams);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -8521,9 +8534,9 @@ end
 SetStatus(handles,'Changing scores-as-features list...');
 
 % Set the behavior name in JLabelData
-data.setScoresAsFeatures(scoresAsFeaturesFileNameListNew, ...
-                         timeStampListNew, ...
-                         scoreBaseNameListNew);
+data.setScoresAsInput(scoresAsFeaturesFileNameListNew, ...
+                      timeStampListNew, ...
+                      scoreBaseNameListNew);
 
 % Note that we now need saving
 handles.guidata.needsave=true;
