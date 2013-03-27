@@ -90,6 +90,7 @@ handles.absdprime=1;
 handles.centraltendency=1;
 handles.dispersion=1;
 handles.xoffset=1;
+handles.minimumtrajectorylength=1;
 handles.convolutionwidth=10;
 handles.pvalue=0.01;
 handles.interestingfeaturehistograms_cache=[];
@@ -150,6 +151,7 @@ try
   handles.centraltendency=handles_saved.centraltendency;
   handles.dispersion=handles_saved.dispersion;
   handles.xoffset=handles_saved.xoffset;
+  handles.minimumtrajectorylength=handles_saved.minimumtrajectorylength;
   handles.convolutionwidth=handles_saved.convolutionwidth;
   handles.pvalue=handles_saved.pvalue;
   handles.interestingfeaturehistograms_cache=handles_saved.interestingfeaturehistograms_cache;
@@ -365,7 +367,7 @@ set(handles.BehaviorNormalizeNot,'enable','off');   set(handles.BehaviorList2,'e
 set(handles.FeatureList,'enable','off');            set(handles.IndividualList,'enable','off');
 set(handles.ConvolutionWidth,'enable','off');       set(handles.PValue,'enable','off');
 set(handles.NBins,'enable','off');                  set(handles.WindowRadius,'enable','off');
-set(handles.XOffset,'enable','off');
+set(handles.XOffset,'enable','off');                set(handles.MinimumTrajectoryLength,'enable','off');
 set(handles.OmitInf,'enable','off');                set(handles.OmitNaN,'enable','off');
 set(handles.AbsDPrime,'enable','off');              set(handles.SubtractMean,'enable','off');
 set(handles.LogBinSize,'enable','off');             set(handles.AllFrames,'enable','off');
@@ -489,6 +491,7 @@ switch(handles.analysis)
 end
 
 if(~isempty(analysis2))
+  set(handles.MinimumTrajectoryLength,'enable','on');
   if((ismember(analysis2,{'feature_histogram','behavior_barchart','behavior_timeseries','bout_stats'}) || ...
      (strcmp(analysis2,'feature_timeseries')&&(handles.featuretimeseries_style2~=1))) && ...
       (length(handles.behaviorlist)>0))
@@ -563,6 +566,7 @@ end
 menu_classify_forcecompute_set(handles);
 button_comparison_set(handles);
 
+set(handles.MinimumTrajectoryLength,'string',handles.minimumtrajectorylength);
 set(handles.ConvolutionWidth,'string',handles.convolutionwidth);
 set(handles.PValue,'string',handles.pvalue);
 set(handles.NBins,'string',handles.nbins);
@@ -1200,6 +1204,13 @@ if(isempty(handles.experimentlist{handles.groupvalue}))
   handles.experimentvalue(handles.groupvalue)=[];
   handles.grouplist(handles.groupvalue)=[];
   handles.groupvalue=max(1,min([handles.groupvalue length(handles.grouplist)]));
+end
+
+if(isempty(handles.experimentlist))
+  handles.grouplist={};
+  handles.groupvalue=1;
+  handles.experimentlist={{}};
+  handles.experimentvalue={1};
 end
 
 handles.featurelist=check_for_diff_and_return_intersection(handles.features);
@@ -1983,6 +1994,13 @@ fprintf(fid,'\n');
 function [during not_during]=calculate_feature_histogram(behavior_data,behavior_logic,behavior_data2,...
     feature_data,sexdata,individual,perwhat,behaviornot)
 
+%if(isempty(behavior_data.allScores.scores))
+if(isempty(feature_data.data))
+  during=[];
+  not_during=[];
+  return;
+end
+
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
   if(length(vals)>2)  error('uhoh');  end
@@ -2220,6 +2238,34 @@ end
 
 
 % ---
+function [behavior_data,behavior_data2,behavior_data3,feature_data]=...
+    cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,feature_data)
+
+if(~isempty(behavior_data))
+  find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
+  behavior_data.allScores.scores(ans)=[];
+  behavior_data.allScores.t0s(ans)=[];
+  behavior_data.allScores.t1s(ans)=[];
+end
+if(~isempty(behavior_data2))
+  find((behavior_data2.allScores.tEnd-behavior_data2.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
+  behavior_data2.allScores.scores(ans)=[];
+  behavior_data2.allScores.t0s(ans)=[];
+  behavior_data2.allScores.t1s(ans)=[];
+end
+if(~isempty(behavior_data3))
+  find((behavior_data3.allScores.tEnd-behavior_data3.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
+  behavior_data3.allScores.scores(ans)=[];
+  behavior_data3.allScores.t0s(ans)=[];
+  behavior_data3.allScores.t1s(ans)=[];
+end
+if(~isempty(feature_data))
+  find((cellfun(@length,feature_data.data)./handles.fps) < handles.minimumtrajectorylength);
+  feature_data.data(ans)=[];
+end
+
+
+% ---
 function handles=feature_histogram_plot(handles)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
@@ -2304,6 +2350,7 @@ for b=bb
   score_file=[];
   if(b>0)  score_file=handles.scorefiles{b};  end
 
+  num_indi=0;
   during_data=cell(1,length(ggee));
   not_during_data=cell(1,length(ggee));
   %for gei=1:numel(ggee)
@@ -2324,6 +2371,10 @@ for b=bb
     feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
           [feature_list{feature_value} '.mat']));
 
+    [behavior_data,behavior_data2,~,feature_data]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data);
+    num_indi=num_indi+length(feature_data.data);
+
     tmp2=handles.sexdata{ge};
     for i=1:length(tmp2)
       switch(individual)
@@ -2343,6 +2394,14 @@ for b=bb
     if(comparison==1)
       not_during_data{gei}=[during_data{gei} not_during_data{gei}];
     end
+  end
+
+  if(num_indi==0)
+    delete(hf);
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check minimum trajectory length.'));  drawnow;
+    return;
   end
 
   max(cellfun(@(x) size(x,2),during_data));
@@ -2447,9 +2506,9 @@ for b=bb
       fprintf(fid,'\n');
     end
 
-    table_data{end}{g,1}=nanmean(during_data(idx,:),2)';
+    if(~isempty(during_data))  table_data{end}{g,1}=nanmean(during_data(idx,:),2)';  end
     if(comparison>0)
-      table_data{end}{g,2}=nanmean(not_during_data(idx,:),2)';
+      if(~isempty(not_during_data))  table_data{end}{g,2}=nanmean(not_during_data(idx,:),2)';  end
     end
   end
 
@@ -2469,7 +2528,8 @@ end
 
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
-if(ischar(individual) && ((length(handles.grouplist)>1) || (comparison>0)))
+if(ischar(individual) && ((length(handles.grouplist)>1) || (comparison>0)) && ...
+    (~isempty(during_data)) && (~isempty(not_during_data)))
   uicontrol(hf,'style','pushbutton','string','Stats','position',[70 5 50 20],...
       'callback',@figure_stats_callback);
   if((length(bb)==1) && (bb==0))
@@ -2533,19 +2593,25 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   t = timer('TimerFcn',{@progress_bar,h}, 'Period', 3, 'ExecutionMode', 'fixedRate');
   start(t);
 
+  num_indi=0;
   table_data=zeros(nexperiments,max(1,nbehaviors),nfeatures,9);
   parfor ge=1:nexperiments
   %for ge=1:nexperiments
     behavior_data={};
     for b=1:nbehaviors
       behavior_data{b}=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
+      [behavior_data{b},~,~,~]=cull_short_trajectories(handles,behavior_data{b},[],[],[]);
+      num_indi=num_indi+length(behavior_data{b}.allScores.scores);
     end
+
     bad{ge}={};
     parfor_tmp=zeros(nbehaviors,nfeatures,9);
     for f=1:nfeatures
       if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
       feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
           [handles.featurelist{f} '.mat']));
+      [~,~,~,feature_data]=cull_short_trajectories(handles,[],[],[],feature_data);
+
       sexdata={};
       for s=1:length(feature_data.data)
         sexdata{s}=ones(1,length(feature_data.data{s}));
@@ -2586,80 +2652,91 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     return;
   end
 
-  tmp2=[];
-  for g=1:length(handles.grouplist)
-    gg=cumsum_num_selexp_per_group(g)+(1:length(handles.experimentlist{g}));
-    if(nbehaviors>0)
-      tmp2=[tmp2; ...
-          repmat(g,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
-          repmat(-2,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,8))),nbehaviors*nfeatures,1) ...
-          reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
-          reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
-          reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,2)))./ ...
-            sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,5).^2))/2))', ...
-            nbehaviors*nfeatures,1) ...
-          nan(nbehaviors*nfeatures,1)];
-      tmp2=[tmp2; ...
-          repmat(g,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
-          repmat(-1,nbehaviors*nfeatures,1) ...
-          reshape(squeeze(sum(table_data(gg,:,:,9))),nbehaviors*nfeatures,1) ...
-          reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
-          reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
-          reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,3)))./ ...
-            sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,6).^2))/2))', ...
-            nbehaviors*nfeatures,1) ...
-          nan(nbehaviors*nfeatures,1)];
-    end
-
-    if(g==length(handles.grouplist))  break;  end
-    for g2=(g+1):length(handles.grouplist)
-      gg2=cumsum_num_selexp_per_group(g2)+(1:length(handles.experimentlist{g2}));
+  if(num_indi==0)
+    handles.interestingfeaturehistograms_cache=nan;
+  else
+    tmp2=[];
+    for g=1:length(handles.grouplist)
+      gg=cumsum_num_selexp_per_group(g)+(1:length(handles.experimentlist{g}));
       if(nbehaviors>0)
         tmp2=[tmp2; ...
             repmat(g,nbehaviors*nfeatures,1) ...
             reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
-            repmat(g2,nbehaviors*nfeatures,1) ...
-            reshape(squeeze(sum(table_data(gg2,:,:,7))),nbehaviors*nfeatures,1) ...
+            repmat(-2,nbehaviors*nfeatures,1) ...
+            reshape(squeeze(sum(table_data(gg,:,:,8))),nbehaviors*nfeatures,1) ...
             reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
             reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
-              sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg2,:,:,4).^2))/2))', ...
+            reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,2)))./ ...
+              sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,5).^2))/2))', ...
               nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,3))-mean(table_data(gg2,:,:,3)))./ ...
-              sqrt((mean(table_data(gg,:,:,6).^2)+mean(table_data(gg2,:,:,6).^2))/2))', ...
-              nbehaviors*nfeatures,1)];
+            nan(nbehaviors*nfeatures,1)];
         tmp2=[tmp2; ...
             repmat(g,nbehaviors*nfeatures,1) ...
-            reshape(squeeze(sum(table_data(gg,:,:,8))),nbehaviors*nfeatures,1) ...
-            repmat(g2,nbehaviors*nfeatures,1) ...
-            reshape(squeeze(sum(table_data(gg2,:,:,8))),nbehaviors*nfeatures,1) ...
-            reshape(repmat(-(1:nbehaviors),nfeatures,1),nbehaviors*nfeatures,1) ...
+            reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
+            repmat(-1,nbehaviors*nfeatures,1) ...
+            reshape(squeeze(sum(table_data(gg,:,:,9))),nbehaviors*nfeatures,1) ...
+            reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
             reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,2))-mean(table_data(gg2,:,:,2)))./ ...
-              sqrt((mean(table_data(gg,:,:,5).^2)+mean(table_data(gg2,:,:,5).^2))/2))', ...
+            reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg,:,:,3)))./ ...
+              sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg,:,:,6).^2))/2))', ...
               nbehaviors*nfeatures,1) ...
-            reshape(squeeze((mean(table_data(gg,:,:,3))-mean(table_data(gg2,:,:,3)))./ ...
-              sqrt((mean(table_data(gg,:,:,6).^2)+mean(table_data(gg2,:,:,6).^2))/2))', ...
-              nbehaviors*nfeatures,1)];
+            nan(nbehaviors*nfeatures,1)];
       end
-      tmp2=[tmp2; ...
-          repmat(g,nfeatures,1) ...
-          squeeze(sum(table_data(gg,1,:,9))) ...
-          repmat(g2,nfeatures,1) ...
-          squeeze(sum(table_data(gg2,1,:,9))) ...
-          zeros(nfeatures,1) ...
-          (1:nfeatures)' ...
-          squeeze((mean(table_data(gg,1,:,3))-mean(table_data(gg2,1,:,3)))./ ...
-            sqrt((mean(table_data(gg,1,:,6).^2)+mean(table_data(gg2,1,:,6).^2))/2)), ...
-          nan(nfeatures,1)];
+
+      if(g==length(handles.grouplist))  break;  end
+      for g2=(g+1):length(handles.grouplist)
+        gg2=cumsum_num_selexp_per_group(g2)+(1:length(handles.experimentlist{g2}));
+        if(nbehaviors>0)
+          tmp2=[tmp2; ...
+              repmat(g,nbehaviors*nfeatures,1) ...
+              reshape(squeeze(sum(table_data(gg,:,:,7))),nbehaviors*nfeatures,1) ...
+              repmat(g2,nbehaviors*nfeatures,1) ...
+              reshape(squeeze(sum(table_data(gg2,:,:,7))),nbehaviors*nfeatures,1) ...
+              reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
+              reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
+              reshape(squeeze((mean(table_data(gg,:,:,1))-mean(table_data(gg2,:,:,1)))./ ...
+                sqrt((mean(table_data(gg,:,:,4).^2)+mean(table_data(gg2,:,:,4).^2))/2))', ...
+                nbehaviors*nfeatures,1) ...
+              reshape(squeeze((mean(table_data(gg,:,:,3))-mean(table_data(gg2,:,:,3)))./ ...
+                sqrt((mean(table_data(gg,:,:,6).^2)+mean(table_data(gg2,:,:,6).^2))/2))', ...
+                nbehaviors*nfeatures,1)];
+          tmp2=[tmp2; ...
+              repmat(g,nbehaviors*nfeatures,1) ...
+              reshape(squeeze(sum(table_data(gg,:,:,8))),nbehaviors*nfeatures,1) ...
+              repmat(g2,nbehaviors*nfeatures,1) ...
+              reshape(squeeze(sum(table_data(gg2,:,:,8))),nbehaviors*nfeatures,1) ...
+              reshape(repmat(-(1:nbehaviors),nfeatures,1),nbehaviors*nfeatures,1) ...
+              reshape(repmat(1:nfeatures,nbehaviors,1)',nbehaviors*nfeatures,1) ...
+              reshape(squeeze((mean(table_data(gg,:,:,2))-mean(table_data(gg2,:,:,2)))./ ...
+                sqrt((mean(table_data(gg,:,:,5).^2)+mean(table_data(gg2,:,:,5).^2))/2))', ...
+                nbehaviors*nfeatures,1) ...
+              reshape(squeeze((mean(table_data(gg,:,:,3))-mean(table_data(gg2,:,:,3)))./ ...
+                sqrt((mean(table_data(gg,:,:,6).^2)+mean(table_data(gg2,:,:,6).^2))/2))', ...
+                nbehaviors*nfeatures,1)];
+        end
+        tmp2=[tmp2; ...
+            repmat(g,nfeatures,1) ...
+            squeeze(sum(table_data(gg,1,:,9))) ...
+            repmat(g2,nfeatures,1) ...
+            squeeze(sum(table_data(gg2,1,:,9))) ...
+            zeros(nfeatures,1) ...
+            (1:nfeatures)' ...
+            squeeze((mean(table_data(gg,1,:,3))-mean(table_data(gg2,1,:,3)))./ ...
+              sqrt((mean(table_data(gg,1,:,6).^2)+mean(table_data(gg2,1,:,6).^2))/2)), ...
+            nan(nfeatures,1)];
+      end
     end
+    handles.interestingfeaturehistograms_cache=tmp2;
   end
-  handles.interestingfeaturehistograms_cache=tmp2;
 else
   tmp2=handles.interestingfeaturehistograms_cache;
+end
+
+if(isnan(handles.interestingfeaturehistograms_cache))
+  set(handles.Status,'string','Ready.','foregroundcolor','g');
+  set(handles.figure1,'pointer','arrow');
+  uiwait(errordlg('no valid data.  check minimum trajectory length.'));  drawnow;
+  return;
 end
 
 if(handles.omitnan)
@@ -2723,6 +2800,11 @@ function InterestingFeatureTimeSeries_Callback(hObject, eventdata, handles)
 
 % --- 
 function data=calculate_entiretimeseries(behavior_data,feature_data,sexdata,individual,xoffset);
+
+if(isempty(feature_data.data))
+  data=[];
+  return;
+end
 
 if(iscell(feature_data.data{1}))
   vals=unique([feature_data.data{:}]);
@@ -2872,6 +2954,7 @@ for b=bb
   score_file=[];
   if(b>0)  score_file=handles.scorefiles{b};  end
 
+  num_indi=0;
   raw_data=cell(1,length(handlesexperimentlist));
   data=cell(1,length(handlesexperimentlist));
   parfor gei=1:length(ggee)
@@ -2892,6 +2975,10 @@ for b=bb
     feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
         [feature_list{feature_value} '.mat']));
 
+    [behavior_data,behavior_data2,~,feature_data]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data);
+    num_indi=num_indi+length(feature_data.data);
+
     tmp2=sexdata{ge};
     for i=1:length(tmp2)
       switch(individual)
@@ -2907,14 +2994,26 @@ for b=bb
     if(timing==1)
       calculate_entiretimeseries(behavior_data,feature_data,tmp2,tmp,xoffset);
       raw_data{gei}=nanmean(ans,1);
-      conv(raw_data{gei},ones(1,convolutionwidth),'same');
-      data{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
+      if(~isempty(raw_data{gei}))
+        conv(raw_data{gei},ones(1,convolutionwidth),'same');
+        data{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
+      else
+        data{gei}=raw_data{gei};
+      end
     else
       calculate_triggeredtimeseries(behavior_data,behavior_logic,behavior_data2,...
           feature_data,tmp2,tmp,timing,windowradius,subtractmean,behaviornot);
       raw_data{gei}=nanmean(ans,1);
       data{gei}=raw_data{gei};
     end
+  end
+
+  if(num_indi==0)
+    delete(hf);
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check minimum trajectory length.'));  drawnow;
+    return;
   end
 
   if(timing==1)
@@ -3401,6 +3500,7 @@ for b=bb
 
   score_file=handles.scorefiles{b};
 
+  num_indi=0;
   collated_data=cell(1,length(ggee));
   parfor gei=1:numel(ggee)
   %for gei=1:numel(ggee)
@@ -3417,6 +3517,10 @@ for b=bb
     if(handles.behaviorvalue3>1)
       behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
     end
+
+    [behavior_data,behavior_data2,behavior_data3,~]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,[]);
+    num_indi=num_indi+length(behavior_data.allScores.scores);
 
     traj_len=behavior_data.allScores.tEnd-behavior_data.allScores.tStart;
 
@@ -3487,6 +3591,14 @@ for b=bb
   %idx=cellfun(@isempty,collated_data);
   %collated_data=collated_data(~idx);
 
+  if(num_indi==0)
+    delete(hf);
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check minimum trajectory length.'));  drawnow;
+    return;
+  end
+
   switch(individual)
     case 'A'
       frames_labelled=cellfun(@(x) x{1},collated_data,'uniformoutput',false);
@@ -3534,6 +3646,7 @@ for b=bb
         table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
         h{g}=boxplot(ha,table_data{end}{g},'positions',g,'widths',0.5,'colors',color);
       case 4  % per fly, grouped
+        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         cumsum(cellfun(@length,frames_labelled(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=100.*[frames_labelled{idx}]./[frames_total{idx}];
@@ -3542,10 +3655,10 @@ for b=bb
             'barwidth',1,'edgecolor','none');
         set(h{g},'facecolor',color);
         k(end+1)=length(table_data{end}{g});
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}]);
         fprintf(fid,'\n');
       case 5  % per fly, stern-style
+        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         table_data{end}{g}=cell(1,length(frames_labelled(idx)));
         for e=idx
           table_data{end}{g}{e}=100.*frames_labelled{e}./frames_total{e};
@@ -3562,10 +3675,10 @@ for b=bb
         plot(ha,[m m],[dp dn],'-','color',color,'linewidth',3);
         m=m+24;
         k(end+1)=24+16*length(table_data{end}{g})+length([table_data{end}{g}{:}]);
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}{:}]);
         fprintf(fid,'\n');
       case 6  % per fly, trajectory length
+        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         cumsum(cellfun(@length,traj_len(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=[traj_len{idx}];
@@ -3574,7 +3687,6 @@ for b=bb
             'barwidth',1,'edgecolor','none');
         set(h{g},'facecolor',color);
         k(end+1)=length(table_data{end}{g});
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}]);
         fprintf(fid,'\n');
     end
@@ -3728,6 +3840,7 @@ for b=bb
 
   score_file=handles.scorefiles{b};
 
+  num_indi=0;
   raw_data=cell(length(ggee),1);
   behavior_cumulative=cell(length(ggee),1);
   parfor gei=1:numel(ggee),
@@ -3745,6 +3858,10 @@ for b=bb
     if(handles.behaviorvalue3>1)
       behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
     end
+
+    [behavior_data,behavior_data2,behavior_data3,~]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,[]);
+    num_indi=num_indi+length(behavior_data.allScores.scores);
 
     if(xoffset==1)
       parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd));
@@ -3825,19 +3942,19 @@ for b=bb
       parfor_tmp(2,idx2)=parfor_tmp(2,idx2)+1;
     end
     raw_data{gei}=parfor_tmp(1,:)./parfor_tmp(2,:);
-%    conv(raw_data{gei},ones(1,convolutionwidth),'same');
-%    behavior_cumulative{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
     find(parfor_tmp(2,:)==0);  parfor_tmp(2,ans)=nan;
     behavior_cumulative{gei}=conv(parfor_tmp(1,:),ones(1,convolutionwidth),'same') ./ ...
        conv(parfor_tmp(2,:),ones(1,convolutionwidth),'same');
-%    behavior_cumulative{gei}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
   end
-%  parfor_tmp_len = max( cellfun(@numel, behavior_cumulative) );
-%  for gei = 1:numel(ggee),
-%    behavior_cumulative{gei} = ...
-%       [behavior_cumulative{gei},nan(1,parfor_tmp_len-numel(behavior_cumulative{gei}))];
-%  end
-%  behavior_cumulative = cell2mat(behavior_cumulative);
+
+  if(num_indi==0)
+    delete(hf);
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check minimum trajectory length.'));  drawnow;
+    return;
+  end
+
   max(cellfun(@(x) size(x,2),behavior_cumulative));
   cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],behavior_cumulative,'uniformoutput',false);
   behavior_cumulative=cat(1,ans{:});
@@ -3879,7 +3996,6 @@ for b=bb
 
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
 
-    %if(individual<4)
     if ischar(individual)
       idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
     else
@@ -3916,7 +4032,6 @@ for b=bb
 
 end
 idx=find(h>0);
-%if(individual<4)
 if ischar(individual)
   legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
       handles.grouplist,'uniformoutput',false)],'interpreter','none');
@@ -4048,6 +4163,7 @@ for b=bb
 
   score_file=handles.scorefiles{b};
 
+  num_indi=0;
   collated_data=cell(1,length(ggee));
   parfor gei=1:length(ggee)
   %for gei=1:length(ggee)
@@ -4059,9 +4175,20 @@ for b=bb
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
     end
 
+    [behavior_data,behavior_data2,~,~]=cull_short_trajectories(handles,behavior_data,behavior_data2,[],[]);
+    num_indi=num_indi+length(behavior_data.allScores.scores);
+
     [bout_lengths sex inter_bout_lengths inter_sex]=...
         calculate_boutstats(behavior_data,behavior_logic,behavior_data2,sexdata{ge},behaviornot);
     collated_data{gei}={bout_lengths sex inter_bout_lengths inter_sex};
+  end
+
+  if(num_indi==0)
+    delete(hf);
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check minimum trajectory length.'));  drawnow;
+    return;
   end
 
   tstr='';  if(behaviornot)  tstr='NOT ';  end
@@ -4127,6 +4254,7 @@ for b=bb
             calculate_ct_d(table_data{end}{g},handles.centraltendency,handles.dispersion);
         h(g)=errorbarplot(ha,g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
       case 2  % per fly, grouped
+        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         cumsum(cellfun(@length,length_data(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=cellfun(@nanmean,[length_data{idx}])./handles.fps;
@@ -4135,7 +4263,6 @@ for b=bb
             'barwidth',1,'edgecolor','none');
         set(h(g),'facecolor',color);
         k(end+1)=length(table_data{end}{g});
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}]);
         fprintf(fid,'\n');
     end
@@ -4192,12 +4319,6 @@ for b=bb
   fprintf(fid,'\n');
 
 end
-%idx=find(h>0);
-%if ischar(individual)
-%  legend(h(idx),handles.grouplist);
-%else
-%  legend(h(idx),handles.individuallist(handles.individualvalue));
-%end
 
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
@@ -4206,12 +4327,6 @@ if(ischar(individual) && (length(handles.grouplist)>1))
       'callback',@figure_stats_callback);
   handles.statistics=calculate_statistics(table_data,handles.behaviorlist(bb),handles.grouplist,...
       fid,handles.pvalue);
-%  set(handles.Table,'Data',tmp);
-%  set(handles.Table,'ColumnWidth','auto');
-%  set(handles.Table,'ColumnName',{''});
-%else
-%  set(handles.Table,'Data',[]);
-%  set(handles.Table,'ColumnName',{});
 end
 
 fclose(fid);
@@ -4806,6 +4921,7 @@ switch handles.type
     tmp{end+1}=['central tendency = ' CT{handles.centraltendency}];
     tmp{end+1}=['dispersion = '  D{handles.dispersion}];
 end
+tmp{end+1}=['minimum trajectory length = '  num2str(handles.minimumtrajectorylength)];
 tmp{end+1}='';
 
 for g=1:length(handles.grouplist)
@@ -4854,6 +4970,34 @@ set(ht,'units','normalized','position',[0 0 1 1]);
 %for each bout, as well as the overall mode of the per-bout modes.
 %
 %Selecting a cell in the table plots a histogram of the closest indidividual.
+
+
+
+function MinimumTrajectoryLength_Callback(hObject, eventdata, handles)
+% hObject    handle to MinimumTrajectoryLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of MinimumTrajectoryLength as text
+%        str2double(get(hObject,'String')) returns contents of MinimumTrajectoryLength as a double
+
+handles.minimumtrajectorylength=str2num(get(hObject,'String'));
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function MinimumTrajectoryLength_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to MinimumTrajectoryLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 
 
