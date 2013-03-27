@@ -48,7 +48,10 @@ if nargout > 1,
     cellparams.(fn1)(end+1:end+2) = {'feature_types',feature_types};
   end
 end
+return
 
+
+% -------------------------------------------------------------------------
 function [out,outname] = parse(n)
     
 out = struct;
@@ -80,48 +83,22 @@ for i = 0:cs.getLength()-1,
     out.(name) = in;
   end
 end
-    
+return
 
+
+% -------------------------------------------------------------------------
 function outTable = convertToTable(inParams,featureconfigfile)
 % allpf is required in case a new "type" of feature is defined.
 
-settings = ReadXMLParams(featureconfigfile);
-allpf = fieldnames(settings.perframe);
-pftypeList = {};
-for pfndx = 1:numel(allpf)
-  curpf = allpf{pfndx};
-  curtypes  = settings.perframe.(curpf).type; 
-  if ischar(curtypes)
-    curT = curtypes;
-    if ~any(strcmp(pftypeList,curT))
-      pftypeList{end+1} = curT;
-    end
-  else    
-    for tndx = 1:numel(curtypes)
-      curT = curtypes{tndx};
-      if ~any(strcmp(pftypeList,curT))
-        pftypeList{end+1} = curT;
-      end
-    end
-  end
-end
+featureLexicon = ReadXMLParams(featureconfigfile);
+outTable = convertToTableCore(featureLexicon,inParams);
+return
 
-types = fieldnames(inParams);
-outTable = cell(numel(pftypeList),3);
-for ndx = 1:numel(pftypeList)
-  matches = strcmp(types,pftypeList{ndx});
-  if any(matches)
-    mndx = find(matches,1);
-    outTable{ndx,1} = types{mndx};
-    outTable{ndx,2} = inParams.(types{mndx}).mode{1};
-    outTable{ndx,3} = inParams.(types{mndx}).selection{1};  
-  else
-    outTable{ndx,1} = pftypeList{ndx};
-    outTable{ndx,2} = 'None';
-    outTable{ndx,3} = 'normal';  
-  end
-end
 
+
+
+
+% -------------------------------------------------------------------------
 %   function params = convertTransTypes2Cell(params)
 %     % Convert the trans_types field into cell type
 %     if ~isstruct(params),  return; end

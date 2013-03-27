@@ -81,8 +81,6 @@ setJLDobj(hObject,JLDobj);
 set(hObject,'Visible','on');  % have to do this b/c of Java hacking
 removeRowHeaders(hObject); 
 pause(0.5);
-% uiwait(hObject);
-% UIWAIT makes SelectFeatures wait for user response (see UIRESUME)
 
 return
 
@@ -164,9 +162,9 @@ tableData = cell(length(pfList),2);
 for ndx = 1:numel(pfList)
   tableData{ndx,1} = pfList{ndx};
   tableData{ndx,2} = handles.data{ndx}.valid;
-  str = sprintf('%s',handles.pftype.(pfList{ndx}){1});
-  for sndx = 2:numel(handles.pftype.(pfList{ndx}))
-    str = sprintf('%s,%s',str,handles.pftype.(pfList{ndx}){sndx});
+  str = sprintf('%s',handles.pfCategoriesFromName.(pfList{ndx}){1});
+  for sndx = 2:numel(handles.pfCategoriesFromName.(pfList{ndx}))
+    str = sprintf('%s,%s',str,handles.pfCategoriesFromName.(pfList{ndx}){sndx});
   end
   tableData{ndx,3} = str;
 end
@@ -191,8 +189,8 @@ handles = guidata(hObject);
 if ~isempty(handles.JLDobj.basicFeatureTable)
   oldtableData = handles.JLDobj.basicFeatureTable;
   tableData = {};
-  for ndx = 1:numel(handles.pftypeList)
-    curcateg = handles.pftypeList{ndx};
+  for ndx = 1:numel(handles.pfCategoryList)
+    curcateg = handles.pfCategoryList{ndx};
     tableData{ndx,1} = curcateg;
     ondx = find(strcmpi(oldtableData(:,1),curcateg));
     if isempty(ondx),
@@ -205,8 +203,8 @@ if ~isempty(handles.JLDobj.basicFeatureTable)
   
 else
   tableData = {};
-  for ndx = 1:numel(handles.pftypeList)
-    tableData{ndx,1} = handles.pftypeList{ndx};
+  for ndx = 1:numel(handles.pfCategoryList)
+    tableData{ndx,1} = handles.pfCategoryList{ndx};
     tableData{ndx,2} = 'None';
     tableData{ndx,3} = 'normal';
   end
@@ -215,7 +213,7 @@ end
 set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
 set(handles.basicTable,'ColumnFormat',{'char',...
-  {'All' 'None' 'Custom'}, fieldnames(handles.categ)'});
+  {'All' 'None' 'Custom'}, fieldnames(handles.wfParamsFromLevel)'});
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
 
 set(handles.basicTable,'ColumnWidth',{85,65,75});
@@ -316,20 +314,20 @@ if ~isempty(handles.JLDobj.featureWindowSize)
   set(handles.editSize,'String',num2str(handles.JLDobj.featureWindowSize));
   
   curVal = handles.JLDobj.featureWindowSize;
-  categories = fieldnames(handles.categ);
+  wfAmounts = fieldnames(handles.wfParamsFromLevel);
   winComp = handles.windowComp;
 
-  for cndx = 1:numel(categories)
-    curCat = categories{cndx};
+  for cndx = 1:numel(wfAmounts)
+    curCat = wfAmounts{cndx};
     for wndx = 1:numel(winComp)
-      if ~isfield(handles.categ.(curCat),winComp{wndx}); continue; end
-      handles.categ.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+      if ~isfield(handles.wfParamsFromLevel.(curCat),winComp{wndx}); continue; end
+      handles.wfParamsFromLevel.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
     end
   end
 
 end
 
-pfList = fieldnames(handles.pftype);
+pfList = fieldnames(handles.pfCategoriesFromName);
 handles.pfList = pfList;
 data = {};
 validPfs = fieldnames(params);
@@ -492,7 +490,7 @@ if isempty(categories)
     end
     curParams.(curwname).valid = false;
   end
-  handles.categ.(categories{1}) = curParams;
+  handles.wfParamsFromLevel.(categories{1}) = curParams;
   
   
 else
@@ -542,7 +540,7 @@ else
         curParams.(curwname).valid = false;
       end
     end
-    handles.categ.(categories{j}) = curParams;
+    handles.wfParamsFromLevel.(categories{j}) = curParams;
   end
 end
 
@@ -550,7 +548,7 @@ end
 perframeL = handles.JLDobj.allperframefns;
 scores_perframe = {handles.scoresasinput(:).scorefilename};
 transType = struct;
-pftype = struct;
+pfCategoriesFromName = struct;
 
 % perframeL might not contain all the perframe features.
 for pfndx = 1:numel(perframeL)
@@ -558,7 +556,7 @@ for pfndx = 1:numel(perframeL)
   
   if any(strcmp(curpf ,scores_perframe)), % This is a score perframe.
     transType.(curpf) = {'none'};
-    pftype.(curpf) = {'scores'};
+    pfCategoriesFromName.(curpf) = {'scores'};
     continue;
   end
   
@@ -568,38 +566,38 @@ for pfndx = 1:numel(perframeL)
   end
   curtypes  = settings.perframe.(curpf).type; 
   if ischar(curtypes)
-    pftype.(curpf)  = {curtypes}; 
+    pfCategoriesFromName.(curpf)  = {curtypes}; 
   else    
-    pftype.(curpf)  = curtypes; 
+    pfCategoriesFromName.(curpf)  = curtypes; 
   end
 end
 
 fallpf = fieldnames(settings.perframe);
-pftypeList = {};
+pfCategoryList = {};
 for pfndx = 1:numel(fallpf)
   curpf = fallpf{pfndx};
   curtypes  = settings.perframe.(curpf).type; 
   if ischar(curtypes)
     curT = curtypes;
-    if ~any(strcmp(pftypeList,curT))
-      pftypeList{end+1} = curT;
+    if ~any(strcmp(pfCategoryList,curT))
+      pfCategoryList{end+1} = curT;
     end
   else    
     for tndx = 1:numel(curtypes)
       curT = curtypes{tndx};
-      if ~any(strcmp(pftypeList,curT))
-        pftypeList{end+1} = curT;
+      if ~any(strcmp(pfCategoryList,curT))
+        pfCategoryList{end+1} = curT;
       end
     end
   end
 end
-if ~any(strcmp(pftypeList,'scores')),
-  pftypeList{end+1} = 'scores';
+if ~any(strcmp(pfCategoryList,'scores')),
+  pfCategoryList{end+1} = 'scores';
 end
 
 handles.transType = transType;
-handles.pftype = pftype;
-handles.pftypeList = pftypeList;
+handles.pfCategoriesFromName = pfCategoriesFromName;
+handles.pfCategoryList = pfCategoryList;
 
 % basicData = get(handles.basicTable,'Data');
 % scoresBasicNdx = find(strcmpi(basicData{:,1},'scores'));
@@ -607,7 +605,7 @@ handles.pftypeList = pftypeList;
 
 guidata(hObject,handles);
 set(handles.editSize,'String',...
-  num2str(handles.categ.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
+  num2str(handles.wfParamsFromLevel.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
 
 
 % -------------------------------------------------------------------------
@@ -631,7 +629,7 @@ if eventData.Indices(2) ==2
       for ndx = 1:numel(handles.pfList)
         disable = true;
         for tndx = 1:size(basicTable,1)
-          if ~any(strcmp(handles.pftype.(handles.pfList{ndx}),basicTable{tndx,1}));
+          if ~any(strcmp(handles.pfCategoriesFromName.(handles.pfList{ndx}),basicTable{tndx,1}));
             continue;
           end
           if ~strcmp(basicTable{tndx,2},'None'); 
@@ -653,10 +651,12 @@ if eventData.Indices(2) ==2
       close(h);
   end
 elseif eventData.Indices(2) == 3
-% Choose the category.
+  % Set the window-feature level appropriately
   basicTable = get(handles.basicTable,'Data');
-  if strcmp(basicTable{eventData.Indices(1),2},'All') 
-    handles=applyCategoryType(handles,eventData.Indices(1));
+  pfLevel=basicTable{eventData.Indices(1),2};
+  if isequal(pfLevel,'All')
+    categoryIndex=eventData.Indices(1);
+    handles=applyCategoryType(handles,categoryIndex);
     guidata(hObject,handles);
     createPfTable(handles.pfTable);
   end
@@ -664,24 +664,35 @@ end
 
 
 % -------------------------------------------------------------------------
-function handles = applyCategoryType(handles,basicNdx)
+function handles = applyCategoryType(handles,iSelectedCategory)
+% get some variables out of handles
 basicData = get(handles.basicTable,'Data');
-curType = handles.pftypeList{basicNdx};
+wfAmount = basicData{iSelectedCategory,3};  
+  % The amount of window features to use.  Can be 'normal', 'more', or
+  % 'less'
+selectedCategory = handles.pfCategoryList{iSelectedCategory};
+pfList=handles.pfList;
+pfCategoriesFromName=handles.pfCategoriesFromName;
 % Copy the parameters.
-for ndx = 1:numel(handles.pfList)
-  if any(strcmp(handles.pftype.(handles.pfList{ndx}),curType))
-    handles.data{ndx}.valid = true;
+% Iterate over the per-frame features, looking for ones that are
+% within the selected category.
+for iPF = 1:numel(pfList)
+  thisPF=pfList{iPF};
+  categoriesThisPFIsIn=pfCategoriesFromName.(thisPF);
+  if ismember(selectedCategory,categoriesThisPFIsIn)
+    % if the selected category contains this per-frame feature,
+    % do something...
+    handles.data{iPF}.valid = true;
     for winfnNdx = 1:numel(handles.windowComp)
-      category = basicData{basicNdx,3};
       curFn = handles.windowComp{winfnNdx};
-      if ~handles.categ.(category).(curFn).valid
-        handles.data{ndx}.(curFn).valid = false;
+      if ~handles.wfParamsFromLevel.(wfAmount).(curFn).valid
+        handles.data{iPF}.(curFn).valid = false;
         continue;
       end
       handles = CopyDefaultWindowParams(handles,...
-        category, ndx,winfnNdx);
+                                        wfAmount, iPF, winfnNdx);
       curFn = handles.windowComp{winfnNdx};
-      handles.data{ndx}.(curFn).values.trans_types = handles.transType.(handles.pfList{ndx});
+      handles.data{iPF}.(curFn).values.trans_types = handles.transType.(pfList{iPF});
     end
   end
 end
@@ -694,7 +705,7 @@ incompatible = '';
 for ndx = 1:numel(handles.pfList)
   selected = false;
   for bndx = 1:size(basicTable,1)
-    if ~any(strcmp(handles.pftype.(handles.pfList{ndx}),basicTable{bndx,1})),
+    if ~any(strcmp(handles.pfCategoriesFromName.(handles.pfList{ndx}),basicTable{bndx,1})),
       continue;
     end
     if strcmpi(basicTable{bndx,2},'all')
@@ -788,19 +799,19 @@ if ~eventData.NewData,
 end
 
 handles.data{pfNdx}.valid = true;
-curType = handles.pftype.(handles.pfList{pfNdx}){1};
-basicNdx = find(strcmp(handles.pftypeList,curType));
+curType = handles.pfCategoriesFromName.(handles.pfList{pfNdx}){1};
+basicNdx = find(strcmp(handles.pfCategoryList,curType));
 basicData = get(handles.basicTable,'Data');
 handles.data{pfNdx}.valid = true;
 for winfnNdx = 1:numel(handles.windowComp)
-  category = basicData{basicNdx,3};
+  wfAmount = basicData{basicNdx,3};
   curFn = handles.windowComp{winfnNdx};
-  if ~handles.categ.(category).(curFn).valid
+  if ~handles.wfParamsFromLevel.(wfAmount).(curFn).valid
     handles.data{pfNdx}.(curFn).valid = false;
     continue;
   end
   handles = CopyDefaultWindowParams(handles,...
-    category, pfNdx,winfnNdx);
+    wfAmount, pfNdx,winfnNdx);
   curFn = handles.windowComp{winfnNdx};
   handles.data{pfNdx}.(curFn).values.trans_types = handles.transType.(handles.pfList{pfNdx});
 end
@@ -920,7 +931,7 @@ end
 
 % -------------------------------------------------------------------------
 function setCategoryToCustom(handles)
-curTypes = find(ismember(handles.pftypeList,handles.pftype.(handles.pfList{handles.pfNdx})));
+curTypes = find(ismember(handles.pfCategoryList,handles.pfCategoriesFromName.(handles.pfList{handles.pfNdx})));
 basicData = get(handles.basicTable,'Data');
 for ndx = 1:numel(curTypes)
   basicData{curTypes(ndx),2} = 'Custom';
@@ -1575,25 +1586,28 @@ end
 
 
 % -------------------------------------------------------------------------
-function handles = CopyDefaultWindowParams(handles,category,pfNdxTo,winfnNdx)
+function handles = CopyDefaultWindowParams(handles,wfAmount,pfNdxTo,winfnNdx)
+% For the per-frame feature with index pfNDxTo, sets the window features 
+% with type given by index winfnNdx to the amount given by wfAmount (one of
+% 'normal', 'more', or 'less').
 
 curFn = handles.windowComp{winfnNdx};
 % something to copy from?
-if ~isfield(handles.categ.(category),curFn) &&...
+if ~isfield(handles.wfParamsFromLevel.(wfAmount),curFn) &&...
     isfield(handles.data{pfNdxTo},curFn),
     handles.data{pfNdxTo}.(curFn).valid = false;
   return;
 end
-handles.data{pfNdxTo}.(curFn).valid = handles.categ.(category).(curFn).valid;
+handles.data{pfNdxTo}.(curFn).valid = handles.wfParamsFromLevel.(wfAmount).(curFn).valid;
 for winParamsNdx = 1:numel(handles.winParams),
   curType = handles.winParams{winParamsNdx};
   handles.data{pfNdxTo}.(curFn).values.(curType) = ...
-    handles.categ.(category).(curFn).values.(curType);
+    handles.wfParamsFromLevel.(wfAmount).(curFn).values.(curType);
 end
 if ~isempty(handles.winextraParams{winfnNdx})
   extraParam = handles.winextraParams{winfnNdx};
   handles.data{pfNdxTo}.(curFn).values.(extraParam) = ...
-    handles.categ.(category).(curFn).values.(extraParam);
+    handles.wfParamsFromLevel.(wfAmount).(curFn).values.(extraParam);
 end
 
 
@@ -1687,16 +1701,16 @@ if isempty(curVal)||(round(curVal)-curVal)~=0
   return;
 end
 
-% First set the default category values
+% First set the default window feature level values
 
-categories = fieldnames(handles.categ);
+wfAmounts = fieldnames(handles.wfParamsFromLevel);
 winComp = handles.windowComp;
 
-for cndx = 1:numel(categories)
-  curCat = categories{cndx};
+for cndx = 1:numel(wfAmounts)
+  curCat = wfAmounts{cndx};
   for wndx = 1:numel(winComp)
-    if ~isfield(handles.categ.(curCat),winComp{wndx}); continue; end
-    handles.categ.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+    if ~isfield(handles.wfParamsFromLevel.(curCat),winComp{wndx}); continue; end
+    handles.wfParamsFromLevel.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
   end
 end
 
