@@ -8023,13 +8023,19 @@ classdef JLabelData < handle
       
       % Update the basic feature table
       if ~isempty(obj.basicFeatureTable),
-        scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
-        if isempty(scoresbasicndx),
-          obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
+        scoresRowIndex = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
+        if isempty(scoresAsInputNew) && ~isempty(scoresRowIndex)
+          % if no scores as inputs, remove that row from basicFeatureTable,
+          % if it's present
+          obj.basicFeatureTable(scoresRowIndex,:)=[];
         else
-          obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
+          if isempty(scoresRowIndex) ,
+            obj.basicFeatureTable(end+1,:) = {'scores','None','normal'};
+          else
+            obj.basicFeatureTable{scoresRowIndex,2} = 'Custom';
+            % how do we know that "Custom" is the right answer?      
+          end
         end
-        % how do we know that "Custom" is the right answer?      
       end
       
       % Re-load the perframe feature signals, since the PFFs may have changed
