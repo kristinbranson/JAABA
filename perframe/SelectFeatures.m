@@ -103,7 +103,7 @@ function setJLDobj(hObject,JLDobj)
 handles = guidata(hObject);
 handles.JLDobj = JLDobj;
 
-handles.windowComp = {'default','mean','min','max','hist','prctile',...
+handles.wfTypeList = {'default','mean','min','max','hist','prctile',...
    'change','std','harmonic','diff_neighbor_mean',...
    'diff_neighbor_min','diff_neighbor_max','zscore_neighbors'};
 
@@ -133,12 +133,12 @@ function createWindowTable(hObject)
 handles = guidata(hObject);
 
 % Deal with windowTable
- set(handles.windowTable,'RowName', handles.windowComp,...
+ set(handles.windowTable,'RowName', handles.wfTypeList,...
     'ColumnName',{'Computation Type','Select'});
  selVals = [true true true true false false false false false false false false false];
  tableData = {};
- for ndx = 1:numel(handles.windowComp)
-   tableData{ndx,1} = handles.windowComp{ndx};
+ for ndx = 1:numel(handles.wfTypeList)
+   tableData{ndx,1} = handles.wfTypeList{ndx};
    tableData{ndx,2} = selVals(ndx);
  end
  set(handles.windowTable,'Data',...
@@ -213,7 +213,7 @@ end
 set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
 set(handles.basicTable,'ColumnFormat',{'char',...
-  {'All' 'None' 'Custom'}, fieldnames(handles.wfParamsFromLevel)'});
+  {'All' 'None' 'Custom'}, fieldnames(handles.wfParamsFromAmount)'});
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
 
 set(handles.basicTable,'ColumnWidth',{85,65,75});
@@ -280,8 +280,8 @@ function createCopyFromMenus(hObject)
 handles = guidata(hObject);
 % can copy from any window feature type
 set(handles.popupmenu_copy_windowparams,'String',...
-  [handles.windowComp,{'---'}],...
-  'Value',numel(handles.windowComp)+1);
+  [handles.wfTypeList,{'---'}],...
+  'Value',numel(handles.wfTypeList)+1);
 % can copy from any per-frame feature
 set(handles.popupmenu_copy_windowtypes,'String',...
   [handles.pfList;{'---'}],...
@@ -314,14 +314,14 @@ if ~isempty(handles.JLDobj.featureWindowSize)
   set(handles.editSize,'String',num2str(handles.JLDobj.featureWindowSize));
   
   curVal = handles.JLDobj.featureWindowSize;
-  wfAmounts = fieldnames(handles.wfParamsFromLevel);
-  winComp = handles.windowComp;
+  wfAmounts = fieldnames(handles.wfParamsFromAmount);
+  winComp = handles.wfTypeList;
 
   for cndx = 1:numel(wfAmounts)
     curCat = wfAmounts{cndx};
     for wndx = 1:numel(winComp)
-      if ~isfield(handles.wfParamsFromLevel.(curCat),winComp{wndx}); continue; end
-      handles.wfParamsFromLevel.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+      if ~isfield(handles.wfParamsFromAmount.(curCat),winComp{wndx}); continue; end
+      handles.wfParamsFromAmount.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
     end
   end
 
@@ -357,8 +357,8 @@ for ndx = 1:numel(pfList)
     % Find which ones are valid.
     curParam = params.(curPfName);
     validWinfn = fieldnames(curParam);
-    for winfnNdx = 2:numel(handles.windowComp)
-      curFn = handles.windowComp{winfnNdx};
+    for winfnNdx = 2:numel(handles.wfTypeList)
+      curFn = handles.wfTypeList{winfnNdx};
       wNdx = find(strcmp(curFn,validWinfn));
       
       if wNdx,
@@ -408,8 +408,8 @@ for ndx = 1:numel(pfList)
     end
     
     % Copy the default values into the other window params.
-    for winfnNdx = 2:numel(handles.windowComp)
-      curFn = handles.windowComp{winfnNdx};
+    for winfnNdx = 2:numel(handles.wfTypeList)
+      curFn = handles.wfTypeList{winfnNdx};
       data{ndx}.(curFn).valid = false;
       for winParamsNdx = 1:numel(handles.winParams)
         curType = handles.winParams{winParamsNdx};
@@ -476,9 +476,9 @@ if isempty(categories)
   curParams.default.values.sanitycheck = false;
   
   % For each defined window computation.
-  for ndx = 2:numel(handles.windowComp)
+  for ndx = 2:numel(handles.wfTypeList)
     % Copy the default values.
-    curwname = handles.windowComp{ndx};
+    curwname = handles.wfTypeList{ndx};
     for pndx = 1:numel(handles.winParams)
       curwinpname = handles.winParams{pndx};
       curParams.(curwname).values.(curwinpname) = handles.defaultWinParams{pndx};
@@ -490,7 +490,7 @@ if isempty(categories)
     end
     curParams.(curwname).valid = false;
   end
-  handles.wfParamsFromLevel.(categories{1}) = curParams;
+  handles.wfParamsFromAmount.(categories{1}) = curParams;
   
   
 else
@@ -509,9 +509,9 @@ else
     curParams.default.values.sanitycheck = false;
     
     % For each defined window computation.
-    for ndx = 2:numel(handles.windowComp)
+    for ndx = 2:numel(handles.wfTypeList)
       % Copy the default values.
-      curwname = handles.windowComp{ndx};
+      curwname = handles.wfTypeList{ndx};
       for pndx = 1:numel(handles.winParams)
         curwinpname = handles.winParams{pndx};
         curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
@@ -540,7 +540,7 @@ else
         curParams.(curwname).valid = false;
       end
     end
-    handles.wfParamsFromLevel.(categories{j}) = curParams;
+    handles.wfParamsFromAmount.(categories{j}) = curParams;
   end
 end
 
@@ -605,7 +605,7 @@ handles.pfCategoryList = pfCategoryList;
 
 guidata(hObject,handles);
 set(handles.editSize,'String',...
-  num2str(handles.wfParamsFromLevel.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
+  num2str(handles.wfParamsFromAmount.(categories{1}).(handles.wfTypeList{1}).values.max_window_radius));
 
 
 % -------------------------------------------------------------------------
@@ -683,15 +683,15 @@ for iPF = 1:numel(pfList)
     % if the selected category contains this per-frame feature,
     % do something...
     handles.data{iPF}.valid = true;
-    for winfnNdx = 1:numel(handles.windowComp)
-      curFn = handles.windowComp{winfnNdx};
-      if ~handles.wfParamsFromLevel.(wfAmount).(curFn).valid
+    for winfnNdx = 1:numel(handles.wfTypeList)
+      curFn = handles.wfTypeList{winfnNdx};
+      if ~handles.wfParamsFromAmount.(wfAmount).(curFn).valid
         handles.data{iPF}.(curFn).valid = false;
         continue;
       end
       handles = CopyDefaultWindowParams(handles,...
                                         wfAmount, iPF, winfnNdx);
-      curFn = handles.windowComp{winfnNdx};
+      curFn = handles.wfTypeList{winfnNdx};
       handles.data{iPF}.(curFn).values.trans_types = handles.transType.(pfList{iPF});
     end
   end
@@ -803,16 +803,16 @@ curType = handles.pfCategoriesFromName.(handles.pfList{pfNdx}){1};
 basicNdx = find(strcmp(handles.pfCategoryList,curType));
 basicData = get(handles.basicTable,'Data');
 handles.data{pfNdx}.valid = true;
-for winfnNdx = 1:numel(handles.windowComp)
+for winfnNdx = 1:numel(handles.wfTypeList)
   wfAmount = basicData{basicNdx,3};
-  curFn = handles.windowComp{winfnNdx};
-  if ~handles.wfParamsFromLevel.(wfAmount).(curFn).valid
+  curFn = handles.wfTypeList{winfnNdx};
+  if ~handles.wfParamsFromAmount.(wfAmount).(curFn).valid
     handles.data{pfNdx}.(curFn).valid = false;
     continue;
   end
   handles = CopyDefaultWindowParams(handles,...
     wfAmount, pfNdx,winfnNdx);
-  curFn = handles.windowComp{winfnNdx};
+  curFn = handles.wfTypeList{winfnNdx};
   handles.data{pfNdx}.(curFn).values.trans_types = handles.transType.(handles.pfList{pfNdx});
 end
 
@@ -835,8 +835,8 @@ end
 % end
 % 
 % % Copy the default values into the other window params.
-% for winfnNdx = 2:numel(handles.windowComp)
-%   curFn = handles.windowComp{winfnNdx};
+% for winfnNdx = 2:numel(handles.wfTypeList)
+%   curFn = handles.wfTypeList{winfnNdx};
 %   handles.data{pfNdx}.(curFn).valid = false;
 %   for winParamsNdx = 1:numel(handles.winParams)
 %     curType = handles.winParams{winParamsNdx};
@@ -864,8 +864,8 @@ enableWindowTable(handles);
 curData = handles.data{pfNdx};
 
 windowData = {};
-for ndx = 1:length(handles.windowComp)
-  curFunc = handles.windowComp{ndx};
+for ndx = 1:length(handles.wfTypeList)
+  curFunc = handles.wfTypeList{ndx};
   if ~isfield(curData,curFunc),
     warning('This error is occurring!');
     windowData{ndx,1} = curFunc;
@@ -918,7 +918,7 @@ handles = guidata(hObject);
 setCategoryToCustom(handles);
 winNdx = eventData.Indices(1);
 handles.winNdx = winNdx;
-curFn = handles.windowComp{winNdx};
+curFn = handles.wfTypeList{winNdx};
 handles.data{handles.pfNdx}.(curFn).valid = eventData.NewData;
 guidata(hObject,handles);
 if eventData.NewData
@@ -942,7 +942,7 @@ set(handles.basicTable,'Data',basicData);
 % -------------------------------------------------------------------------
 function setWinParams(handles,winNdx)
 
-curFn = handles.windowComp{winNdx};
+curFn = handles.wfTypeList{winNdx};
 curParams = handles.data{handles.pfNdx}.(curFn);
 set(handles.MinWindow,'String',num2str(curParams.values.min_window_radius));
 set(handles.MaxWindow,'String',num2str(curParams.values.max_window_radius));
@@ -987,8 +987,8 @@ for ndx = 1:numel(handles.pfList)
     windowFeatureParams.(curPf).(curType) = curD.default.values.(curType);
   end
   
-  for winfnNdx = 2:numel(handles.windowComp)
-    curFn = handles.windowComp{winfnNdx};
+  for winfnNdx = 2:numel(handles.wfTypeList)
+    curFn = handles.wfTypeList{winfnNdx};
     
     if curD.(curFn).valid,
       for winParamsNdx = 1:numel(handles.winParams)
@@ -1094,7 +1094,7 @@ if isnan(curVal)||(round(curVal)-curVal)~=0
   msgbox('Enter numerical values');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.min_window_radius = curVal;
 guidata(hObject,handles);
 setCategoryToCustom(handles);
@@ -1126,7 +1126,7 @@ if isnan(curVal)||(round(curVal)-curVal)~=0
   msgbox('Enter numerical values');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.max_window_radius = curVal;
 guidata(hObject,handles);
 setCategoryToCustom(handles);
@@ -1158,7 +1158,7 @@ if isnan(curVal) || (round(curVal)-curVal)~=0
   msgbox('Enter an integer value');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.nwindow_radii = curVal;
 guidata(hObject,handles);
 setCategoryToCustom(handles);
@@ -1190,7 +1190,7 @@ if isempty(curVal)
   msgbox('Enter numerical values. eg: "-1 0 1" (without with quotes)');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.window_offsets = curVal;
 guidata(hObject,handles);
 setCategoryToCustom(handles);
@@ -1217,7 +1217,7 @@ function TransNone_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of TransNone
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
@@ -1246,7 +1246,7 @@ function TransFlip_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of TransFlip
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
@@ -1276,7 +1276,7 @@ function TransAbs_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of TransAbs
 
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
@@ -1306,7 +1306,7 @@ function TransRel_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of TransRel
 
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles = guidata(hObject);
 curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 if get(hObject,'Value')
@@ -1371,7 +1371,7 @@ str = get(hObject,'String');
 str = strtrim(str);
 vals = str2num(str);
 extraParam = handles.winextraParams{handles.winNdx};
-curFn = handles.windowComp{handles.winNdx};
+curFn = handles.wfTypeList{handles.winNdx};
 handles.data{handles.pfNdx}.(curFn).values.(extraParam) = vals;
 guidata(hObject,handles);
 setCategoryToCustom(handles);
@@ -1467,7 +1467,7 @@ if isempty(handles.pfNdx) || isempty(handles.winNdx),
   return;
 end
 
-windowComp = handles.windowComp;
+windowComp = handles.wfTypeList;
 
 % which perframe fn are we on?
 pfNdx = handles.pfNdx;
@@ -1525,7 +1525,7 @@ if isempty(handles.pfNdx),
 end
 
 pfList = handles.pfList;
-windowComp = handles.windowComp;
+windowComp = handles.wfTypeList;
 
 % which perframe fn are we copying to?
 pfNdxTo = handles.pfNdx;
@@ -1558,12 +1558,12 @@ setCategoryToCustom(handles);
 % -------------------------------------------------------------------------
 function handles = CopyWindowParams(handles,pfNdxFrom,winfnNdxFrom,pfNdxTo,winfnNdxTo)
 
-curFnFrom = handles.windowComp{winfnNdxFrom};
+curFnFrom = handles.wfTypeList{winfnNdxFrom};
 % something to copy from?
 if ~isfield(handles.data{pfNdxFrom},curFnFrom),
   return;
 end
-curFnTo = handles.windowComp{winfnNdxTo};
+curFnTo = handles.wfTypeList{winfnNdxTo};
 handles.data{pfNdxTo}.(curFnTo).valid = handles.data{pfNdxFrom}.(curFnFrom).valid;
 for winParamsNdx = 1:numel(handles.winParams),
   curType = handles.winParams{winParamsNdx};
@@ -1591,23 +1591,23 @@ function handles = CopyDefaultWindowParams(handles,wfAmount,pfNdxTo,winfnNdx)
 % with type given by index winfnNdx to the amount given by wfAmount (one of
 % 'normal', 'more', or 'less').
 
-curFn = handles.windowComp{winfnNdx};
+wfType = handles.wfTypeList{winfnNdx};
 % something to copy from?
-if ~isfield(handles.wfParamsFromLevel.(wfAmount),curFn) &&...
-    isfield(handles.data{pfNdxTo},curFn),
-    handles.data{pfNdxTo}.(curFn).valid = false;
+if ~isfield(handles.wfParamsFromAmount.(wfAmount),wfType) &&...
+    isfield(handles.data{pfNdxTo},wfType),
+    handles.data{pfNdxTo}.(wfType).valid = false;
   return;
 end
-handles.data{pfNdxTo}.(curFn).valid = handles.wfParamsFromLevel.(wfAmount).(curFn).valid;
+handles.data{pfNdxTo}.(wfType).valid = handles.wfParamsFromAmount.(wfAmount).(wfType).valid;
 for winParamsNdx = 1:numel(handles.winParams),
   curType = handles.winParams{winParamsNdx};
-  handles.data{pfNdxTo}.(curFn).values.(curType) = ...
-    handles.wfParamsFromLevel.(wfAmount).(curFn).values.(curType);
+  handles.data{pfNdxTo}.(wfType).values.(curType) = ...
+    handles.wfParamsFromAmount.(wfAmount).(wfType).values.(curType);
 end
 if ~isempty(handles.winextraParams{winfnNdx})
   extraParam = handles.winextraParams{winfnNdx};
-  handles.data{pfNdxTo}.(curFn).values.(extraParam) = ...
-    handles.wfParamsFromLevel.(wfAmount).(curFn).values.(extraParam);
+  handles.data{pfNdxTo}.(wfType).values.(extraParam) = ...
+    handles.wfParamsFromAmount.(wfAmount).(wfType).values.(extraParam);
 end
 
 
@@ -1703,14 +1703,14 @@ end
 
 % First set the default window feature level values
 
-wfAmounts = fieldnames(handles.wfParamsFromLevel);
-winComp = handles.windowComp;
+wfAmounts = fieldnames(handles.wfParamsFromAmount);
+winComp = handles.wfTypeList;
 
 for cndx = 1:numel(wfAmounts)
   curCat = wfAmounts{cndx};
   for wndx = 1:numel(winComp)
-    if ~isfield(handles.wfParamsFromLevel.(curCat),winComp{wndx}); continue; end
-    handles.wfParamsFromLevel.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+    if ~isfield(handles.wfParamsFromAmount.(curCat),winComp{wndx}); continue; end
+    handles.wfParamsFromAmount.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
   end
 end
 
@@ -1766,7 +1766,7 @@ function pushbutton_hist_Callback(hObject, eventdata, handles)
 
 prcEdges = [5 15 30 50 70 85 95];
 
-histfnNdx = find(strcmp('hist',handles.windowComp));
+histfnNdx = find(strcmp('hist',handles.wfTypeList));
 histExtraName = handles.winextraParams{histfnNdx};
 
 h = waitbar(0,'Computing hist bins');
