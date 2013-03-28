@@ -1908,20 +1908,25 @@ ystr=strrep(ystr,'%','%%');
 
 fprintf(fid,['%% type=' type '\n%% title=' tstr '\n%% xlabel=' xstr '\n%% ylabel=' ystr '\n\n']);
 
-%for g=1:length(handles.grouplist)
-%  fprintf(fid,['%% xdata, group ' handles.grouplist{g} ...
-%             '\n%% ydata1, group ' handles.grouplist{g} ...
-%             '\n%% ydata2, group ' handles.grouplist{g} ...
-%             '\n%%...\n%% ydataN, group ' handles.grouplist{g} '\n']);
-%  if(g<length(handles.grouplist));  fprintf(fid,'%%\n');  end
-%end
-%fprintf(fid,'\n');
+
+% ---
+function print_csv_data(fid,data)
+
+idx=1;
+limit=2^14-1;
+while idx<length(data)
+  fprintf(fid,'%g, ',data(idx:min(idx+limit-1,end)));
+  fprintf(fid,'\n');
+  idx=idx+limit;
+end
 
 
 % ---
 function h=plot_it(ha,xdata,ydata,style,centraltendency,dispersion,color,linewidth,fid,experimentlist)
 
-fprintf(fid,'%% xdata\n');  fprintf(fid,'%g, ',xdata);  fprintf(fid,'\n');
+fprintf(fid,'%% xdata\n');
+print_csv_data(fid,xdata);
+%fprintf(fid,'%g, ',xdata);  fprintf(fid,'\n');
 if(style~=3)
   switch(centraltendency)
     case 1
@@ -1938,7 +1943,9 @@ end
 switch(style)
   case 1
     h=plot(ha,xdata,data_ct,'color',color,'linewidth',linewidth);
-    fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
+    fprintf(fid,['%% ydata, ' str_ct '\n']);
+    print_csv_data(fid,data_ct);
+%    fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
   case 2
     switch(dispersion)
       case 1
@@ -1976,15 +1983,22 @@ switch(style)
     end
     get(ha,'children');  set(ha,'children',circshift(ans,-m));  % send to back
     %get(gca,'children');  set(gca,'children',ans([m+1 1:m (m+2):end]));  % send to back
-    fprintf(fid,['%% ydata, ' str_dp '\n']);  fprintf(fid,'%g, ',data_dp);  fprintf(fid,'\n');
-    fprintf(fid,['%% ydata, ' str_dn '\n']);  fprintf(fid,'%g, ',data_dn);  fprintf(fid,'\n');
-    fprintf(fid,['%% ydata, ' str_ct '\n']);  fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
+    fprintf(fid,['%% ydata, ' str_dp '\n']);
+    print_csv_data(fid,data_dp);
+%    fprintf(fid,'%g, ',data_dp);  fprintf(fid,'\n');
+    fprintf(fid,['%% ydata, ' str_dn '\n']);
+    print_csv_data(fid,data_dn);
+%    fprintf(fid,'%g, ',data_dn);  fprintf(fid,'\n');
+    fprintf(fid,['%% ydata, ' str_ct '\n']);
+    print_csv_data(fid,data_ct);
+%    fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
   case 3
     h=plot(ha,xdata,ydata','color',color,'linewidth',linewidth);
     h=h(1);
     for e=1:size(ydata,1)
       fprintf(fid,['%% ydata, experiment ' experimentlist{e} '\n']);
-      fprintf(fid,'%g, ',ydata(e,:));  fprintf(fid,'\n');
+      print_csv_data(fid,ydata(e,:));
+%      fprintf(fid,'%g, ',ydata(e,:));  fprintf(fid,'\n');
     end
 end
 fprintf(fid,'\n');
@@ -2494,15 +2508,13 @@ for b=bb
       if(comparison>0)
         fprintf(fid,'%% not during\n');
         if(~isempty(not_during_data))
-          fprintf(fid,'%g, ',not_during_data(idx(e),:));
+          fprint_csv(fid,not_during_data(idx(e),:));
         end
-        fprintf(fid,'\n');
       end
       fprintf(fid,'%% during\n');
       if(~isempty(during_data))
-        fprintf(fid,'%g, ',during_data(idx(e),:));
+        fprint_csv(fid,during_data(idx(e),:));
       end
-      fprintf(fid,'\n');
       fprintf(fid,'\n');
     end
 
@@ -3091,8 +3103,7 @@ for b=bb
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
     for e=1:length(idx)
       fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-      fprintf(fid,'%g, ',raw_data{idx(e)});
-      fprintf(fid,'\n');
+      print_csv_data(fid,raw_data{idx(e)});
       fprintf(fid,'\n');
     end
   end
@@ -4020,8 +4031,9 @@ for b=bb
     fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
     for e=1:length(idx)
       fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-      fprintf(fid,'%g, ',raw_data{idx(e)});
-      fprintf(fid,'\n');
+      print_csv_data(fid,raw_data{idx(e)});
+%      fprintf(fid,'%g, ',raw_data{idx(e)});
+%      fprintf(fid,'\n');
       fprintf(fid,'\n');
     end
   end
@@ -4254,7 +4266,6 @@ for b=bb
             calculate_ct_d(table_data{end}{g},handles.centraltendency,handles.dispersion);
         h(g)=errorbarplot(ha,g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
       case 2  % per fly, grouped
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         cumsum(cellfun(@length,length_data(idx)))';
         exp_separators=[exp_separators; ans+sum(k)];
         table_data{end}{g}=cellfun(@nanmean,[length_data{idx}])./handles.fps;
@@ -4263,6 +4274,7 @@ for b=bb
             'barwidth',1,'edgecolor','none');
         set(h(g),'facecolor',color);
         k(end+1)=length(table_data{end}{g});
+        fprintf(fid,['%% data, %s\n'],xticklabels{g});
         fprintf(fid,'%g, ',[table_data{end}{g}]);
         fprintf(fid,'\n');
     end
@@ -4298,8 +4310,7 @@ for b=bb
       fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
       for i=1:length(length_data{idx(e)})
         fprintf(fid,'%% individual %d\n',i);
-        fprintf(fid,'%g, ',length_data{idx(e)}{i}./handles.fps);
-        fprintf(fid,'\n');
+        print_csv_data(fid,length_data{idx(e)}{i}./handles.fps);
         fprintf(fid,'\n');
       end
     end
