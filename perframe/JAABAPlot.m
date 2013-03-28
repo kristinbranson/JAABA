@@ -888,7 +888,9 @@ function BehaviorList3_Callback(hObject, eventdata, handles)
 
 handles.behaviorvalue3=get(handles.BehaviorList3,'Value');
 if(handles.behaviorvalue3==1)
+  handles.behaviornormalizenot=0;
   set(handles.BehaviorNormalizeNot,'enable','off');
+  update_figure(handles);
 else
   set(handles.BehaviorNormalizeNot,'enable','on');
 end
@@ -2555,7 +2557,7 @@ end
 
 fclose(fid);
 
-guidata(handles.figure1,handles);
+guidata(hf,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -3127,7 +3129,7 @@ uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
 
 fclose(fid);
 
-guidata(handles.figure1,handles);
+guidata(hf,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -3784,7 +3786,7 @@ end
 
 fclose(fid);
 
-guidata(handles.figure1,handles);
+guidata(hf,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -4056,7 +4058,7 @@ uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
 
 fclose(fid);
 
-guidata(handles.figure1,handles);
+guidata(hf,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -4342,7 +4344,7 @@ end
 
 fclose(fid);
 
-guidata(handles.figure1,handles);
+guidata(hf,handles);
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -4887,13 +4889,7 @@ handles=guidata(src);
 
 CT={'Mean' 'Median' 'Mode'};
 D={'Std. Dev.' 'Std. Err.' '5%-95%' '25%-75%'};
-%style={'Central Tendency' 'Central Tendency & Dispersion' 'Overlayed per-Exp Means'};
-%behaviorbarchart_style={'per Group' 'per Experiment' 'per Fly' 'per Fly'};
-%featurehistogram_perwhat={'per Frame' 'Mean per Bout' 'Median per Bout' 'Max per Bout' 'Min per Bout' 'Std. Dev. per Bout'};
-%featuretimeseries_timing={'Entire Recording' 'Onset Triggered' 'Offset Triggered'};
 xoffset={'none', 'start', 'min(start)'};
-%boutstats_style={'per Experiment, CT&D' 'per Fly, grouped'};
-%boutstats_style2={'Bout Length' 'Inter-Bout Length'};
 
 tmp={};
 
@@ -4920,12 +4916,18 @@ switch handles.type
     tmp{end+1}=['style = ' handles.behaviorbarchart_stylelist{handles.behaviorbarchart_style}];
     tmp{end+1}=['central tendency = ' CT{handles.centraltendency}];
     tmp{end+1}=['dispersion = '  D{handles.dispersion}];
+    tmp2='';  if(handles.behaviornormalizenot)  tmp2='not ';  end
+    tmp3='all frames';  if(handles.behaviorvalue3>1)  tmp3=handles.behaviorlist(handles.behaviorvalue3-1);  end
+    tmp{end+1}=['normalize = ' tmp2 char(tmp3)];
   case 'behavior time series'
     tmp{end+1}=['style = ' handles.behaviortimeseries_stylelist{handles.behaviortimeseries_style}];
     tmp{end+1}=['conv. width = '  num2str(handles.convolutionwidth) ' sec'];
     tmp{end+1}=['x-offset = '  xoffset{handles.xoffset}];
     tmp{end+1}=['central tendency = ' CT{handles.centraltendency}];
     tmp{end+1}=['dispersion = '  D{handles.dispersion}];
+    tmp2='';  if(handles.behaviornormalizenot)  tmp2='not ';  end
+    tmp3='all frames';  if(handles.behaviorvalue3>1)  tmp3=handles.behaviorlist(handles.behaviorvalue3-1);  end
+    tmp{end+1}=['normalize = ' tmp2 char(tmp3)];
   case 'bout stats'
     tmp{end+1}=['style = ' handles.boutstats_stylelist{handles.boutstats_style}];
     tmp{end+1}=['style2 = ' handles.boutstats_stylelist2{handles.boutstats_style2}];
@@ -4950,9 +4952,7 @@ ht=uitable('data',tmp','columnwidth',num2cell(8*max(cellfun(@length,tmp))),...
     'rowname',[],'columnname',[],'rowstriping','off');
 extT=get(ht,'extent');
 posF=get(hf,'position');
-%set(hf,'position',[posF(1) posF(2) 16*(posF(4)<extT(4))+extT(3) posF(4)]);
 set(hf,'position',[posF(1) posF(2) min(posF(3),16*(posF(4)<extT(4))+extT(3)) min(posF(4),extT(4))]);
-%set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
 set(ht,'units','normalized','position',[0 0 1 1]);
 
 
