@@ -372,8 +372,8 @@ set(handles.OmitInf,'enable','off');                set(handles.OmitNaN,'enable'
 set(handles.AbsDPrime,'enable','off');              set(handles.SubtractMean,'enable','off');
 set(handles.LogBinSize,'enable','off');             set(handles.AllFrames,'enable','off');
 set(handles.NotDuring,'enable','off');
-set(handles.CentralTendency,'enable','off');
-set(handles.Dispersion,'enable','off');
+set(handles.CentralTendency,'enable','off');        set(handles.Dispersion,'enable','off');
+set(handles.Plot,'enable','off');
 
 bg=get(handles.GroupNew,'backgroundcolor');
 fg=get(handles.GroupNew,'foregroundcolor');
@@ -491,6 +491,7 @@ switch(handles.analysis)
 end
 
 if(~isempty(analysis2))
+  set(handles.Plot,'enable','on');
   set(handles.MinimumTrajectoryLength,'enable','on');
   if((ismember(analysis2,{'feature_histogram','behavior_barchart','behavior_timeseries','bout_stats'}) || ...
      (strcmp(analysis2,'feature_timeseries')&&(handles.featuretimeseries_style2~=1))) && ...
@@ -1067,24 +1068,30 @@ if(isempty(newgroups))
   handles.experimentlist{handles.groupvalue}={handles.experimentlist{handles.groupvalue}{:} newexperiments{:}};
   handles.experimentvalue{handles.groupvalue}=1:length(handles.experimentlist{handles.groupvalue});
 else
-  [newgroups,i]=sort(newgroups);
-  newexperiments=newexperiments(i);
-  if(~isempty(newcolors))  newcolors=newcolors(i);  end
-  [ng,ia,ic]=unique(newgroups);
-  for ngi=1:length(ng)
+%  [newgroups,i]=sort(newgroups);
+%  newexperiments=newexperiments(i);
+%  if(~isempty(newcolors))  newcolors=newcolors(i);  end
+  ridx=[];
+  [unique_groups,ia,ic]=unique(newgroups,'stable');
+  for ugi=1:length(unique_groups)
     k=length(handles.grouplist);
-    handles.grouplist{k+1}=ng{ngi};
+    handles.grouplist{k+1}=unique_groups{ugi};
     if(~isempty(newcolors))
-      handles.colors(k+1,1)=hex2dec(newcolors{ia(ngi)}(1:2))/255;
-      handles.colors(k+1,2)=hex2dec(newcolors{ia(ngi)}(3:4))/255;
-      handles.colors(k+1,3)=hex2dec(newcolors{ia(ngi)}(5:6))/255;
+      handles.colors(k+1,1)=hex2dec(newcolors{ia(ugi)}(1:2))/255;
+      handles.colors(k+1,2)=hex2dec(newcolors{ia(ugi)}(3:4))/255;
+      handles.colors(k+1,3)=hex2dec(newcolors{ia(ugi)}(5:6))/255;
     else
       handles.colors(k+1,:)=[0 0 0];
     end
-    find(cellfun(@(x) strcmp(x,ng{ngi}),newgroups));
+    find(cellfun(@(x) strcmp(x,unique_groups{ugi}),newgroups));
     handles.experimentlist{k+1}={newexperiments{ans}};
     handles.experimentvalue{k+1}=1:length(handles.experimentlist{k+1});
+    ridx=[ridx; ans];
   end
+  handlesfeatures=handlesfeatures(ridx);
+  handlessexdata=handlessexdata(ridx);
+  handlesindividualsbehavior=handlesindividualsbehavior(ridx,:);
+  handlesindividualsfeature=handlesindividualsfeature(ridx);
 end
 
 if(isnan(handles.fps))
@@ -1134,9 +1141,9 @@ persistent directory
 if(isempty(directory))  directory=pwd;  end
 
 tmp=directory;
-[newexperiments directory]=uigetfile(fullfile(directory,'*.*'),'Select batch file');
+[newexperiments directory]=uigetfile(fullfile(directory,'*.csv'),'Select batch file');
 if(isnumeric(newexperiments)&&(newexperiments==0))  directory=tmp; return;  end
-newexperiments=textread(fullfile(directory,newexperiments),'%s');
+newexperiments=textread(fullfile(directory,newexperiments),'%s','delimiter',',');
 sum(cellfun(@exist,newexperiments)~=0);
 if(ans==(length(newexperiments)/2))
   newgroups=newexperiments(2:2:end);
@@ -1453,9 +1460,9 @@ persistent directory
 if(isempty(directory))  directory=pwd;  end
 
 tmp=directory;
-[newclassifiers directory]=uigetfile(fullfile(directory,'*.*'),'Select classifier files');
+[newclassifiers directory]=uigetfile(fullfile(directory,'*.csv'),'Select classifier files');
 if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
-newclassifiers=textread(fullfile(directory,newclassifiers),'%s');
+newclassifiers=textread(fullfile(directory,newclassifiers),'%s','delimiter',',');
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
@@ -4779,8 +4786,8 @@ function MenuHelpBugReport_Callback(hObject, eventdata, handles)
 {...
 'Having problems?  Before contacting us first try:'...
 ''...
-'1. Going to the file menu and choosing update.  Does that fix it?'...
-'2. Going to the file menu and choosing reset.  Add all of your experiments and try again.  Fixed?'...
+'1. Going to the file menu and choosing Update.  Does that fix it?'...
+'2. Going to the file menu and choosing Reset.  Add all of your experiments and try again.  Fixed?'...
 '3. If you quit out of JAABAPlot and restart, does it still happen?  Does quiting out of Matlab help?  Rebooting your computer?'...
 ''...
 'If it still doesn''t work, please e-mail our Google newsgroup with the following information:'...
