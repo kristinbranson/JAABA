@@ -2,12 +2,12 @@ classdef FeatureVocabulary < handle
   
   % instance variables
   properties
-    jld  % instance of JLabelData, a ref
-    scoresAsInput  % the scores-as-input structure, detailing the files that
-                   % hold classifiers to be used as inputs, and their
-                   % per-frame feature names
-    windowFeatureParams
-    featureLexicon  % the dictionary of possible per-frame features
+%     jld  % instance of JLabelData, a ref
+%     scoresAsInput  % the scores-as-input structure, detailing the files that
+%                    % hold classifiers to be used as inputs, and their
+%                    % per-frame feature names
+%     windowFeatureParams
+%    featureLexicon  % the dictionary of possible per-frame features
     wfParamsFromAmount  % scalar structure holding the window feature parameters
                         % that go with each of the possible "amount" levels.
                         % e.g. 'normal', 'more', 'less'.
@@ -72,21 +72,20 @@ classdef FeatureVocabulary < handle
     % ---------------------------------------------------------------------
     function self=FeatureVocabulary(jld)
       % Constructor.  jld an instance of JLabelData
-      self.jld=jld;
-      self.scoresAsInput = jld.scoresasinput;
-      self.windowFeatureParams = jld.GetPerframeParams();
-      self.featureLexicon = jld.featureLexicon;
+      %self.jld=jld;
+      scoresAsInput = jld.scoresasinput;
+      windowFeatureParams = jld.GetPerframeParams();
+      featureLexicon = jld.featureLexicon;
       % self.initData();
       % below is what used to be in initData()
-      params = self.windowFeatureParams;
-      self.readFeatureLexicon();
+      self.digestFeatureLexicon(featureLexicon,scoresAsInput,jld.allperframefns);
       %self.createFeatureTable();  % does view stuff
 
       %handles = guidata(hObject);
-      if ~isempty(self.jld.featureWindowSize)
-        %set(self.editSize,'String',num2str(self.jld.featureWindowSize));
+      if ~isempty(jld.featureWindowSize)
+        %set(self.editSize,'String',num2str(jld.featureWindowSize));
 
-        curVal = self.jld.featureWindowSize;
+        curVal = jld.featureWindowSize;
         wfAmounts = fieldnames(self.wfParamsFromAmount);
         winComp = self.wfTypes;
 
@@ -101,7 +100,7 @@ classdef FeatureVocabulary < handle
 
       pfNameList = fieldnames(self.pfCategoriesFromName);
       self.pfNameList = pfNameList;
-      validPfs = fieldnames(params);
+      validPfs = fieldnames(windowFeatureParams);
       wfParamNames = self.wfParamNames;
       nPFNames=length(pfNameList);
       data = cell(1,nPFNames);      
@@ -111,13 +110,13 @@ classdef FeatureVocabulary < handle
         pNdx = find(strcmp(curPfName,validPfs));
         if pNdx
           data{ndx}.valid = true;  
-          data{ndx}.sanitycheck = params.(curPfName).sanitycheck;
+          data{ndx}.sanitycheck = windowFeatureParams.(curPfName).sanitycheck;
 
           % Fill the default values.
           for wfParamNamesNdx = 1:numel(wfParamNames)
             curType = wfParamNames{wfParamNamesNdx};
-            if isfield(params.(curPfName),curType)
-              data{ndx}.default.values.(curType) = params.(curPfName).(curType);
+            if isfield(windowFeatureParams.(curPfName),curType)
+              data{ndx}.default.values.(curType) = windowFeatureParams.(curPfName).(curType);
             else % Fill in the default value
               data{pfNdx}.default.values.(curType) = ...
                   self.defaultWFParams{wfParamNamesNdx};
@@ -128,7 +127,7 @@ classdef FeatureVocabulary < handle
           % Fill for different window function type.
 
           % Find which ones are valid.
-          curParam = params.(curPfName);
+          curParam = windowFeatureParams.(curPfName);
           validWinfn = fieldnames(curParam);
           for winfnNdx = 2:numel(self.wfTypes)
             curFn = self.wfTypes{winfnNdx};
@@ -137,7 +136,7 @@ classdef FeatureVocabulary < handle
             if wNdx,
 
               data{ndx}.(curFn).valid = true;
-              curWinFnParams = params.(curPfName).(curFn);
+              curWinFnParams = windowFeatureParams.(curPfName).(curFn);
               for wfParamNamesNdx = 1:numel(wfParamNames)
                 curType = wfParamNames{wfParamNamesNdx};
                 if isfield(curWinFnParams,curType)
@@ -308,7 +307,7 @@ classdef FeatureVocabulary < handle
       else
         % this means pfName is really an index
         pfIndex=pfName;
-        pfName=self.pfNameList{pfIndex};
+        %pfName=self.pfNameList{pfIndex};
       end
       if ~ischar(wfType)
         % this means wfType is really an index
@@ -417,11 +416,11 @@ classdef FeatureVocabulary < handle
   % private instance methods
   methods (Access=private)
     % ---------------------------------------------------------------------
-    function readFeatureLexicon(self)
+    function digestFeatureLexicon(self,featureLexicon,scoresAsInput,perframeL)
       % Initializes the instance variables wfParamsFromAmount, pfTransTypesFromName,
-      % pfCategoriesFromName, and pfCategoryList, based on values of
-      % featureLexicon and other instance vars.
-      featureLexicon=self.featureLexicon;
+      % pfCategoriesFromName, and pfCategoryList, based on value of
+      % inputs and some instance vars that are should already have been
+      % initialized.
 
       % Read the default parameters for different categories.
       categories = fieldnames(featureLexicon.defaults);
@@ -510,8 +509,8 @@ classdef FeatureVocabulary < handle
       end
 
       % Now for each different perframe feature read the type default trans_types.
-      perframeL = self.jld.allperframefns;
-      scores_perframe = {self.scoresAsInput(:).scorefilename};
+      %perframeL = jld.allperframefns;
+      scores_perframe = {scoresAsInput(:).scorefilename};
       pfTransTypesFromName = struct;
       pfCategoriesFromName = struct;
 
