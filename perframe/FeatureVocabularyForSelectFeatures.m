@@ -1,4 +1,4 @@
-classdef FeatureVocabulary < handle
+classdef FeatureVocabularyForSelectFeatures < handle
   
   % instance variables
   properties
@@ -37,6 +37,7 @@ classdef FeatureVocabulary < handle
   % things that look like instance vars from the outside, but
   % which are calculated on-the-fly
   properties (Dependent=true)
+    wfAmounts
   end
   
   % class constants
@@ -68,9 +69,9 @@ classdef FeatureVocabulary < handle
   
   % -----------------------------------------------------------------------  
   % public instance methods
-  methods (Access=public)
+  methods
     % ---------------------------------------------------------------------
-    function self=FeatureVocabulary(jld)
+    function self=FeatureVocabularyForSelectFeatures(jld)
       % Constructor.  jld an instance of JLabelData
       %self.jld=jld;
       scoresAsInput = jld.scoresasinput;
@@ -409,6 +410,73 @@ classdef FeatureVocabulary < handle
         end
       end
     end  % method    
+    
+    
+    % ---------------------------------------------------------------------
+    function result=get.wfAmounts(self)
+      result=fieldnames(self.wfParamsFromAmount);
+    end  % method      
+
+    
+    % ---------------------------------------------------------------------
+    function result=pfIsInVocabulary(self,pfIndex)
+      if ischar(pfIndex)
+        % means pfIndex is really a per-frame feature name
+        pfName=pfIndex
+        pfIndex=find(strcmp(pfName,self.pfNameList));
+      end
+      result=self.vocabulary{pfIndex}.valid;
+    end  % method      
+
+    
+    % ---------------------------------------------------------------------
+    function result=wfTypeIsInVocabulary(self,pfIndex,wfType)
+      if ischar(pfIndex)
+        % means pfIndex is really a per-frame feature name
+        pfName=pfIndex
+        pfIndex=find(strcmp(pfName,self.pfNameList));
+      end
+      if isnumeric(wfType)
+        % means wfType is really a window feature index
+        wfIndex=wfType;
+        wfType=self.wfTypes{wfIndex};
+      end
+      result=self.vocabulary{pfIndex}.(wfType).valid;
+    end  % method      
+    
+    
+    % ---------------------------------------------------------------------    
+    function windowFeatureParams = getInJLabelDataFormat(self)
+      % Converts the feature vocabulary into the format used by JLabelData,
+      % returns this.
+      windowFeatureParams = struct;
+      for pfIndex = 1:numel(self.pfNameList)
+        pfName = self.pfNameList{pfIndex};
+        if ~self.vocabulary{pfIndex}.valid; continue;end
+        pfParams = self.vocabulary{pfIndex};
+        windowFeatureParams.(pfName).sanitycheck = pfParams.sanitycheck;
+        for wfParamsIndex = 1:numel(self.wfParamNames)
+          wfParamName = self.wfParamNames{wfParamsIndex};
+          windowFeatureParams.(pfName).(wfParamName) = pfParams.default.values.(wfParamName);
+        end
+        for wfTypeIndex = 2:numel(self.wfTypes)
+          wfType = self.wfTypes{wfTypeIndex};
+          if pfParams.(wfType).valid,
+            for wfParamsIndex = 1:numel(self.wfParamNames)
+              wfParamName = self.wfParamNames{wfParamsIndex};
+              windowFeatureParams.(pfName).(wfType).(wfParamName) =...
+                  pfParams.(wfType).values.(wfParamName);
+            end
+            if ~isempty(self.wfExtraParamNames{wfTypeIndex})
+              extraParam = self.wfExtraParamNames{wfTypeIndex};
+              extraParamVal = pfParams.(wfType).values.(extraParam);
+              windowFeatureParams.(pfName).(wfType).(extraParam) = extraParamVal;
+            end
+          end
+        end
+      end
+    end  % method
+    
   end  % public instance methods
   
   
