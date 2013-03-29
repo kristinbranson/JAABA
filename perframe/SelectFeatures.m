@@ -73,13 +73,17 @@ set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
 %handles.scoresasinput = varargin{2};
 handles.scoresasinput = JLDobj.scoresasinput;
 
+% create the object that will serve as the model, or at least part of the
+% model
+handles.featureVocabulary=FeatureVocabulary(JLDobj);
+
 % Update handles structure
 guidata(hObject, handles);
 
 set(handles.pfTable,'UserData',0);
 setJLDobj(hObject,JLDobj);
 set(hObject,'Visible','on');  % have to do this b/c of Java hacking
-removeRowHeaders(hObject); 
+removeRowHeaders(hObject);
 pause(0.5);
 
 return
@@ -213,7 +217,7 @@ end
 set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
 set(handles.basicTable,'ColumnFormat',{'char',...
-  {'All' 'None' 'Custom'}, fieldnames(handles.wfParamsFromLevel)'});
+  {'All' 'None' 'Custom'}, fieldnames(handles.wfParamsFromAmount)'});
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
 
 set(handles.basicTable,'ColumnWidth',{85,65,75});
@@ -314,14 +318,14 @@ if ~isempty(handles.JLDobj.featureWindowSize)
   set(handles.editSize,'String',num2str(handles.JLDobj.featureWindowSize));
   
   curVal = handles.JLDobj.featureWindowSize;
-  wfAmounts = fieldnames(handles.wfParamsFromLevel);
+  wfAmounts = fieldnames(handles.wfParamsFromAmount);
   winComp = handles.windowComp;
 
   for cndx = 1:numel(wfAmounts)
     curCat = wfAmounts{cndx};
     for wndx = 1:numel(winComp)
-      if ~isfield(handles.wfParamsFromLevel.(curCat),winComp{wndx}); continue; end
-      handles.wfParamsFromLevel.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+      if ~isfield(handles.wfParamsFromAmount.(curCat),winComp{wndx}); continue; end
+      handles.wfParamsFromAmount.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
     end
   end
 
@@ -490,7 +494,7 @@ if isempty(categories)
     end
     curParams.(curwname).valid = false;
   end
-  handles.wfParamsFromLevel.(categories{1}) = curParams;
+  handles.wfParamsFromAmount.(categories{1}) = curParams;
   
   
 else
@@ -540,7 +544,7 @@ else
         curParams.(curwname).valid = false;
       end
     end
-    handles.wfParamsFromLevel.(categories{j}) = curParams;
+    handles.wfParamsFromAmount.(categories{j}) = curParams;
   end
 end
 
@@ -605,11 +609,12 @@ handles.pfCategoryList = pfCategoryList;
 
 guidata(hObject,handles);
 set(handles.editSize,'String',...
-  num2str(handles.wfParamsFromLevel.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
+  num2str(handles.wfParamsFromAmount.(categories{1}).(handles.windowComp{1}).values.max_window_radius));
 
 
 % -------------------------------------------------------------------------
-function basicSelect(hObject,eventData)
+function basicSelect(hObject,eventData)  %#ok
+return
 
 
 % -------------------------------------------------------------------------
@@ -625,14 +630,14 @@ if eventData.Indices(2) ==2
 
     case 'None'
       h = waitbar(0,'Unselecting the perframe features');
-      basicTable = get(handles.basicTable,'Data');
+      basicData = get(handles.basicTable,'Data');
       for ndx = 1:numel(handles.pfList)
         disable = true;
-        for tndx = 1:size(basicTable,1)
-          if ~any(strcmp(handles.pfCategoriesFromName.(handles.pfList{ndx}),basicTable{tndx,1}));
+        for tndx = 1:size(basicData,1)
+          if ~any(strcmp(handles.pfCategoriesFromName.(handles.pfList{ndx}),basicData{tndx,1}));
             continue;
           end
-          if ~strcmp(basicTable{tndx,2},'None'); 
+          if ~strcmp(basicData{tndx,2},'None'); 
             disable = false; break; 
           end
         end
@@ -645,18 +650,22 @@ if eventData.Indices(2) ==2
       close(h);
     case 'All'
       h = waitbar(0,'Selecting the perframe features');
-      handles = applyCategoryType(handles,eventData.Indices(1));
+      categoryIndex=eventData.Indices(1);
+      handles = applyCategoryType(handles,categoryIndex);
+      basicData = get(handles.basicTable,'Data');
+      handles.featureVocabulary.setPFCategoryToWFAmount(categoryIndex,basicData{categoryIndex,3});
       guidata(hObject,handles);
       createPfTable(handles.pfTable);
       close(h);
   end
 elseif eventData.Indices(2) == 3
   % Set the window-feature level appropriately
-  basicTable = get(handles.basicTable,'Data');
-  pfLevel=basicTable{eventData.Indices(1),2};
+  basicData = get(handles.basicTable,'Data');
+  pfLevel=basicData{eventData.Indices(1),2};
   if isequal(pfLevel,'All')
     categoryIndex=eventData.Indices(1);
     handles=applyCategoryType(handles,categoryIndex);
+    handles.featureVocabulary.setPFCategoryToWFAmount(categoryIndex,basicData{categoryIndex,3});
     guidata(hObject,handles);
     createPfTable(handles.pfTable);
   end
@@ -685,7 +694,7 @@ for iPF = 1:numel(pfList)
     handles.data{iPF}.valid = true;
     for winfnNdx = 1:numel(handles.windowComp)
       curFn = handles.windowComp{winfnNdx};
-      if ~handles.wfParamsFromLevel.(wfAmount).(curFn).valid
+      if ~handles.wfParamsFromAmount.(wfAmount).(curFn).valid
         handles.data{iPF}.(curFn).valid = false;
         continue;
       end
@@ -749,18 +758,18 @@ else
   ndx = eventData.Indices(1,1);
   handles.pfNdx = ndx;
   if(pfData{ndx,2})
-    setWindowTable(handles,handles.pfNdx);
+    updateWindowTable(handles,handles.pfNdx);
     handles.winNdx = 1;
     winData = get(handles.windowTable,'Data');
 
     if winData{handles.winNdx,2},
-      setWinParams(handles,handles.winNdx);
+      updateWinParams(handles,handles.winNdx);
       enableWinParams(handles);
     else
       disableWinParams(handles);
     end
 
-    setWinParams(handles,handles.winNdx);
+    updateWinParams(handles,handles.winNdx);
   else
     disableWindowTable(handles);
   end
@@ -790,6 +799,27 @@ handles.pfNdx = pfNdx;
 handles.data{pfNdx}.valid = eventData.NewData;
 setCategoryToCustom(handles);
 
+% Update the feature vocabulary
+featureVocabulary=handles.featureVocabulary;  % a ref
+if eventData.NewData
+  % Get the name of the per-frame feature
+  pfData=get(handles.pfTable,'Data');
+  pfName=pfData{pfNdx,1};
+  % Get an amount to set the PF to, based on the Amount displayed in the
+  % basic table for one of the PFs categories
+  pfCategoryNames=featureVocabulary.pfCategoriesFromName.(pfName);
+  pfCategoryName=pfCategoryNames{1};  
+    % Just take the first possible category.  This may cause the other
+    % categories (if there are any) to have their Amount go to Custom, but
+    % that's OK
+  pfCategoryIndex = find(strcmp(pfCategoryName,featureVocabulary.pfCategoryList));
+  basicData = get(handles.basicTable,'Data');
+  wfAmount = basicData{pfCategoryIndex,3};  %#ok
+  featureVocabulary.enablePerframeFeature(pfName,wfAmount);
+else
+  featureVocabulary.disablePerframeFeature(pfName);
+end
+
 % When a feature is unchecked, disable and return
 if ~eventData.NewData, 
   handles.data{pfNdx}.valid = false;
@@ -800,13 +830,13 @@ end
 
 handles.data{pfNdx}.valid = true;
 curType = handles.pfCategoriesFromName.(handles.pfList{pfNdx}){1};
-basicNdx = find(strcmp(handles.pfCategoryList,curType));
+pfCategoryIndex = find(strcmp(handles.pfCategoryList,curType));
 basicData = get(handles.basicTable,'Data');
 handles.data{pfNdx}.valid = true;
 for winfnNdx = 1:numel(handles.windowComp)
-  wfAmount = basicData{basicNdx,3};
+  wfAmount = basicData{pfCategoryIndex,3};  %#ok
   curFn = handles.windowComp{winfnNdx};
-  if ~handles.wfParamsFromLevel.(wfAmount).(curFn).valid
+  if ~handles.wfParamsFromAmount.(wfAmount).(curFn).valid
     handles.data{pfNdx}.(curFn).valid = false;
     continue;
   end
@@ -821,7 +851,7 @@ end
 % % When it already has values
 % if isfield(handles.data{pfNdx},'default')
 %   guidata(hObject,handles);
-%   setWindowTable(handles,handles.pfNdx);
+%   updateWindowTable(handles,handles.pfNdx);
 %   return;
 % end
 % 
@@ -852,12 +882,12 @@ end
 
 
 guidata(hObject,handles);
-setWindowTable(handles,handles.pfNdx);
+updateWindowTable(handles,handles.pfNdx);
 % set(hObject,'UserData',0);
 
 
 % -------------------------------------------------------------------------
-function setWindowTable(handles,pfNdx)
+function updateWindowTable(handles,pfNdx)
 % Sets the data in window table based on selections made in pfTable.
 enableWindowTable(handles);
 
@@ -900,7 +930,7 @@ else
   ndx = eventData.Indices(1,1);
   handles.winNdx = ndx;
   if winData{ndx,2},
-    setWinParams(handles,handles.winNdx);
+    updateWinParams(handles,handles.winNdx);
     enableWinParams(handles);
   else
     disableWinParams(handles);
@@ -918,15 +948,25 @@ handles = guidata(hObject);
 setCategoryToCustom(handles);
 winNdx = eventData.Indices(1);
 handles.winNdx = winNdx;
-curFn = handles.windowComp{winNdx};
-handles.data{handles.pfNdx}.(curFn).valid = eventData.NewData;
+wfType = handles.windowComp{winNdx};
+handles.data{handles.pfNdx}.(wfType).valid = eventData.NewData;
+
+% Enable/disable the selected window-feature type in the model
+pfNdx=handles.pfNdx;
+pfName=handles.featureVocabulary.pfNameList{pfNdx};
+winNdx = eventData.Indices(1);
+handles.winNdx = winNdx;
+wfType = handles.windowComp{winNdx};
+handles.featureVocabulary.setWFTypeEnablement(pfName,wfType,eventData.NewData)
+
 guidata(hObject,handles);
 if eventData.NewData
-  setWinParams(handles,winNdx);
+  updateWinParams(handles,winNdx);
   enableWinParams(handles);
 else
   disableWinParams(handles);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -940,7 +980,9 @@ set(handles.basicTable,'Data',basicData);
 
 
 % -------------------------------------------------------------------------
-function setWinParams(handles,winNdx)
+function updateWinParams(handles,winNdx)
+% Update the GUI controls displaying window parameters to match the current
+% model state.
 
 curFn = handles.windowComp{winNdx};
 curParams = handles.data{handles.pfNdx}.(curFn);
@@ -1094,10 +1136,18 @@ if isnan(curVal)||(round(curVal)-curVal)~=0
   msgbox('Enter numerical values');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
-handles.data{handles.pfNdx}.(curFn).values.min_window_radius = curVal;
+wfType = handles.windowComp{handles.winNdx};
+handles.data{handles.pfNdx}.(wfType).values.min_window_radius = curVal;
+
+% set in featureVocabulary
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = FeatureVocabulary.wfTypes{handles.winNdx};
+wfParamName='min_window_radius';
+handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
+return
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1126,10 +1176,18 @@ if isnan(curVal)||(round(curVal)-curVal)~=0
   msgbox('Enter numerical values');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
-handles.data{handles.pfNdx}.(curFn).values.max_window_radius = curVal;
+wfType = handles.windowComp{handles.winNdx};
+handles.data{handles.pfNdx}.(wfType).values.max_window_radius = curVal;
+
+% set in featureVocabulary
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = FeatureVocabulary.wfTypes{handles.winNdx};
+wfParamName='max_window_radius';
+handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
+return
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1158,10 +1216,18 @@ if isnan(curVal) || (round(curVal)-curVal)~=0
   msgbox('Enter an integer value');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
-handles.data{handles.pfNdx}.(curFn).values.nwindow_radii = curVal;
+wfType = handles.windowComp{handles.winNdx};
+handles.data{handles.pfNdx}.(wfType).values.nwindow_radii = curVal;
+
+% set in featureVocabulary
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = FeatureVocabulary.wfTypes{handles.winNdx};
+wfParamName='nwindow_radii';
+handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
+return
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1190,10 +1256,18 @@ if isempty(curVal)
   msgbox('Enter numerical values. eg: "-1 0 1" (without with quotes)');
 end
 handles = guidata(hObject);
-curFn = handles.windowComp{handles.winNdx};
-handles.data{handles.pfNdx}.(curFn).values.window_offsets = curVal;
+wfType = handles.windowComp{handles.winNdx};
+handles.data{handles.pfNdx}.(wfType).values.window_offsets = curVal;
+
+% set in featureVocabulary
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = FeatureVocabulary.wfTypes{handles.winNdx};
+wfParamName='window_offsets';
+handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
+return
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1234,8 +1308,25 @@ else
     warndlg('Select at least one transformation type');
   end
 end
+
+% update featureVocabulary
+featureVocabulary=handles.featureVocabulary;  % a ref
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = handles.windowComp{handles.winNdx};
+transformation='none';
+if get(hObject,'Value')
+  featureVocabulary.addWFTransformation(pfName,wfType,transformation);
+else
+  featureVocabulary.removeWFTransformation(pfName,wfType,transformation);
+end
+% Update the translation checkbox to reflect the model (the change can fail
+% to happen if the user is trying to turn off the only transformation)
+checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
+%set(hObject,'Value',checked);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -1263,6 +1354,22 @@ else
     warndlg('Select at least one transformation type');
   end
 end
+
+% update featureVocabulary
+featureVocabulary=handles.featureVocabulary;  % a ref
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = handles.windowComp{handles.winNdx};
+transformation='flip';
+if get(hObject,'Value')
+  featureVocabulary.addWFTransformation(pfName,wfType,transformation);
+else
+  featureVocabulary.removeWFTransformation(pfName,wfType,transformation);
+end
+% Update the translation checkbox to reflect the model (the change can fail
+% to happen if the user is trying to turn off the only transformation)
+checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
+%set(hObject,'Value',checked);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
 
@@ -1293,6 +1400,22 @@ else
     warndlg('Select at least one transformation type');
   end
 end
+
+% update featureVocabulary
+featureVocabulary=handles.featureVocabulary;  % a ref
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = handles.windowComp{handles.winNdx};
+transformation='abs';
+if get(hObject,'Value')
+  featureVocabulary.addWFTransformation(pfName,wfType,transformation);
+else
+  featureVocabulary.removeWFTransformation(pfName,wfType,transformation);
+end
+% Update the translation checkbox to reflect the model (the change can fail
+% to happen if the user is trying to turn off the only transformation)
+checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
+%set(hObject,'Value',checked);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
 
@@ -1323,6 +1446,22 @@ else
     warndlg('Select at least one transformation type');
   end
 end
+
+% update featureVocabulary
+featureVocabulary=handles.featureVocabulary;  % a ref
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = handles.windowComp{handles.winNdx};
+transformation='relative';
+if get(hObject,'Value')
+  featureVocabulary.addWFTransformation(pfName,wfType,transformation);
+else
+  featureVocabulary.removeWFTransformation(pfName,wfType,transformation);
+end
+% Update the translation checkbox to reflect the model (the change can fail
+% to happen if the user is trying to turn off the only transformation)
+checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
+%set(hObject,'Value',checked);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
 
@@ -1333,7 +1472,7 @@ function push_cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to push_cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-uiresume(handles.figure1);
+%uiresume(handles.figure1);
 delete(handles.figure1);
 
 
@@ -1371,8 +1510,15 @@ str = get(hObject,'String');
 str = strtrim(str);
 vals = str2num(str);
 extraParam = handles.winextraParams{handles.winNdx};
-curFn = handles.windowComp{handles.winNdx};
-handles.data{handles.pfNdx}.(curFn).values.(extraParam) = vals;
+wfType = handles.windowComp{handles.winNdx};
+handles.data{handles.pfNdx}.(wfType).values.(extraParam) = vals;
+
+% set in featureVocabulary
+pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+wfType = handles.featureVocabulary.wfTypes{handles.winNdx};
+wfParamName=handles.featureVocabulary.wfExtraParamNames{handles.winNdx};
+handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
 
@@ -1484,6 +1630,15 @@ if winNdxTo > numel(windowComp),
 end
 
 handles = CopyWindowParams(handles,pfNdx,winNdxFrom,pfNdx,winNdxTo);
+handles.featureVocabulary.copyWFParams(pfNdx,winNdxFrom,pfNdx,winNdxTo);
+
+% Update the view
+updateWinParams(handles,handles.winNdx);
+curFn = handles.windowComp{handles.winNdx};
+if handles.data{handles.pfNdx}.(curFn).valid,
+  enableWinParams(handles);
+end
+
 guidata(hObject,handles);
 setCategoryToCustom(handles);
 
@@ -1515,7 +1670,7 @@ end
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copy_windowtypes.
-function pushbutton_copy_windowtypes_Callback(hObject, eventdata, handles)
+function pushbutton_copy_windowtypes_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_copy_windowtypes (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1547,12 +1702,20 @@ end
 
 for winfnNdx = 1:numel(windowComp),
   handles = CopyWindowParams(handles,pfNdxFrom,winfnNdx,pfNdxTo,winfnNdx);
+  handles.featureVocabulary.copyWFParams(pfNdxFrom,winfnNdx,pfNdxTo,winfnNdx);
 end
 
-setWindowTable(handles,pfNdxTo);
+% update the view
+updateWindowTable(handles,pfNdxTo);
+updateWinParams(handles,handles.winNdx);
+curFn = handles.windowComp{handles.winNdx};
+if handles.data{handles.pfNdx}.(curFn).valid,
+  enableWinParams(handles);
+end
 
 guidata(hObject,handles);
 setCategoryToCustom(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -1579,10 +1742,11 @@ if ~isempty(handles.winextraParams{winfnNdxTo})
     handles.data{pfNdxTo}.(curFnTo).values.(extraParam) = '';
   end
 end
-setWinParams(handles,winfnNdxTo);
-if handles.data{pfNdxTo}.(curFnTo).valid,
-  enableWinParams(handles);
-end
+% updateWinParams(handles,winfnNdxTo);
+% if handles.data{pfNdxTo}.(curFnTo).valid,
+%   enableWinParams(handles);
+% end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1593,22 +1757,23 @@ function handles = CopyDefaultWindowParams(handles,wfAmount,pfNdxTo,winfnNdx)
 
 curFn = handles.windowComp{winfnNdx};
 % something to copy from?
-if ~isfield(handles.wfParamsFromLevel.(wfAmount),curFn) &&...
+if ~isfield(handles.wfParamsFromAmount.(wfAmount),curFn) &&...
     isfield(handles.data{pfNdxTo},curFn),
     handles.data{pfNdxTo}.(curFn).valid = false;
   return;
 end
-handles.data{pfNdxTo}.(curFn).valid = handles.wfParamsFromLevel.(wfAmount).(curFn).valid;
+handles.data{pfNdxTo}.(curFn).valid = handles.wfParamsFromAmount.(wfAmount).(curFn).valid;
 for winParamsNdx = 1:numel(handles.winParams),
   curType = handles.winParams{winParamsNdx};
   handles.data{pfNdxTo}.(curFn).values.(curType) = ...
-    handles.wfParamsFromLevel.(wfAmount).(curFn).values.(curType);
+    handles.wfParamsFromAmount.(wfAmount).(curFn).values.(curType);
 end
 if ~isempty(handles.winextraParams{winfnNdx})
   extraParam = handles.winextraParams{winfnNdx};
   handles.data{pfNdxTo}.(curFn).values.(extraParam) = ...
-    handles.wfParamsFromLevel.(wfAmount).(curFn).values.(extraParam);
+    handles.wfParamsFromAmount.(wfAmount).(curFn).values.(extraParam);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1703,25 +1868,36 @@ end
 
 % First set the default window feature level values
 
-wfAmounts = fieldnames(handles.wfParamsFromLevel);
-winComp = handles.windowComp;
+wfAmounts = fieldnames(handles.wfParamsFromAmount);
+wfTypes = handles.windowComp;
 
-for cndx = 1:numel(wfAmounts)
-  curCat = wfAmounts{cndx};
-  for wndx = 1:numel(winComp)
-    if ~isfield(handles.wfParamsFromLevel.(curCat),winComp{wndx}); continue; end
-    handles.wfParamsFromLevel.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+% Iterate over amounts and window-feature types, and set the max window
+% radius for all of the pre-set amounts to whatever the user entered.
+for i = 1:numel(wfAmounts)
+  wfAmount = wfAmounts{i};
+  for j = 1:numel(wfTypes)
+    wfType=wfTypes{j};
+    wfParams=handles.wfParamsFromAmount.(wfAmount)
+    if isfield(wfParams,wfType),
+      handles.wfParamsFromAmount.(wfAmount).(wfType).values.max_window_radius = curVal;
+    end
   end
 end
+
+% Do the same for the featureVocabulary
+handles.featureVocabulary.setMaxWindowRadiusForAllWFAmounts(curVal);
 
 % Now copy the default values to the perframe features.
 basicData = get(handles.basicTable,'Data');
 for ndx = 1:size(basicData,1)
-  if ~strcmp(basicData{ndx,2},'All'); continue;end
-  handles = applyCategoryType(handles,ndx);
+  if strcmp(basicData{ndx,2},'All')
+    handles = applyCategoryType(handles,ndx);
+    handles.featureVocabulary.setPFCategoryToWFAmount(ndx,basicData{ndx,3});
+  end
 end
 guidata(hObject,handles);
 createPfTable(handles.pfTable);
+return
 
 
 % -------------------------------------------------------------------------
@@ -1808,7 +1984,7 @@ end
 delete(h);
 guidata(hObject,handles);
 if ~isempty(handles.pfNdx)
-  setWindowTable(handles,handles.pfNdx);
+  updateWindowTable(handles,handles.pfNdx);
 end
 
 
