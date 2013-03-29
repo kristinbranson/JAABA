@@ -285,7 +285,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % Turn off the given per-frame feature.  (I.e. remove all it's window 
       % features from the vocabulary)
       pfIndex=find(strcmp(pfName,self.pfNameList));  
-      handles.data{pfIndex}.valid = false;  %#ok
+      self.vocabulary{pfIndex}.valid = false;  %#ok
     end  % method
     
     
@@ -422,7 +422,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     function result=pfIsInVocabulary(self,pfIndex)
       if ischar(pfIndex)
         % means pfIndex is really a per-frame feature name
-        pfName=pfIndex
+        pfName=pfIndex;
         pfIndex=find(strcmp(pfName,self.pfNameList));
       end
       result=self.vocabulary{pfIndex}.valid;
@@ -433,7 +433,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     function result=wfTypeIsInVocabulary(self,pfIndex,wfType)
       if ischar(pfIndex)
         % means pfIndex is really a per-frame feature name
-        pfName=pfIndex
+        pfName=pfIndex;
         pfIndex=find(strcmp(pfName,self.pfNameList));
       end
       if isnumeric(wfType)
@@ -476,6 +476,48 @@ classdef FeatureVocabularyForSelectFeatures < handle
         end
       end
     end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function pfNames=getPFNamesInCategory(self,pfCategoryName)
+      % For the given per-frame feature category, return a cell array of
+      % strings containing the names of all per-frame features in that
+      % category.
+      pfNames=cell(1,0);
+      for iPF = 1:numel(self.pfNameList)
+        pfName=self.pfNameList{iPF};
+        categoriesThisPF=self.pfCategoriesFromName.(pfName);
+        if ismember(pfCategoryName,categoriesThisPF)
+          % if the selected category contains this per-frame feature,
+          % do stuff
+          pfNames{1,end+1}=pfName;  %#ok
+        end
+      end
+    end  % method    
+    
+
+    % ---------------------------------------------------------------------
+    function amount=getPFCategoryAmount(self,pfCategoryName)
+      % For the given per-frame feature category, calculate what amount of 
+      % per-frame features are in the vocabulary.  Returns one of 'none',
+      % 'custom', 'all'.
+      pfNamesInCategory=self.getPFNamesInCategory(pfCategoryName);
+      nPFsInCategory=length(pfNamesInCategory);
+      nPFsInCategoryAndVocab=0;
+      for i = 1:nPFsInCategory
+        pfName=pfNamesInCategory{i};
+        if self.pfIsInVocabulary(pfName),
+          nPFsInCategoryAndVocab=nPFsInCategoryAndVocab+1;
+        end
+      end
+      if nPFsInCategoryAndVocab==0
+        amount='none';
+      elseif nPFsInCategoryAndVocab==nPFsInCategory
+        amount='all';
+      else
+        amount='custom';
+      end
+    end  % method    
     
   end  % public instance methods
   
