@@ -204,7 +204,7 @@ if ~isempty(JLDobj.basicFeatureTable)
     tableData{ndx,1} = curcateg;
     ondx = find(strcmpi(oldtableData(:,1),curcateg));
     if isempty(ondx),
-      tableData{ndx,2} = 'None';
+      tableData{ndx,2} = 'none';
       tableData{ndx,3} = 'normal';
     else
       tableData(ndx,2:3) = oldtableData(ondx,2:3);
@@ -214,14 +214,14 @@ else
   tableData = {};
   for ndx = 1:numel(pfCategoryList)
     tableData{ndx,1} = pfCategoryList{ndx};
-    tableData{ndx,2} = 'None';
+    tableData{ndx,2} = 'none';
     tableData{ndx,3} = 'normal';
   end
 end
 set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
 set(handles.basicTable,'ColumnFormat',{'char',...
-  {'All' 'None' 'Custom'}, handles.featureVocabulary.wfAmounts'});
+  {'all' 'none' 'custom'}, handles.featureVocabulary.wfAmounts'});
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
 
 set(handles.basicTable,'ColumnWidth',{85,65,75});
@@ -640,7 +640,7 @@ fv=handles.featureVocabulary;  % a ref
 if eventData.Indices(2)==2
   % Select-deselect the whole category.  
   switch eventData.NewData
-    case 'None'
+    case 'none'
       h = waitbar(0,'Unselecting the perframe features');
       basicData = get(handles.basicTable,'Data');
       pfNameList=fv.pfNameList;
@@ -652,7 +652,7 @@ if eventData.Indices(2)==2
           if ~any(strcmp(pfCategories,basicData{tndx,1}));
             continue;
           end
-          if ~strcmp(basicData{tndx,2},'None'); 
+          if ~strcmp(basicData{tndx,2},'none'); 
             disable = false; break; 
           end
         end
@@ -662,7 +662,7 @@ if eventData.Indices(2)==2
         end
       end
       close(h);
-    case 'All'
+    case 'all'
       h = waitbar(0,'Selecting the perframe features');
       categoryIndex=eventData.Indices(1);
       %handles = applyCategoryType(handles,categoryIndex);
@@ -676,7 +676,7 @@ elseif eventData.Indices(2) == 3
   % Set the window-feature level appropriately
   basicData = get(handles.basicTable,'Data');
   pfLevel=basicData{eventData.Indices(1),2};
-  if isequal(pfLevel,'All')
+  if isequal(pfLevel,'all')
     categoryIndex=eventData.Indices(1);
     %handles=applyCategoryType(handles,categoryIndex);
     handles.featureVocabulary.setPFCategoryToWFAmount(categoryIndex,basicData{categoryIndex,3});
@@ -817,7 +817,6 @@ pfNdx = eventData.Indices(1,1);
 handles.pfNdx = pfNdx;
 
 %handles.data{pfNdx}.valid = eventData.NewData;
-setCategoryToCustom(handles);
 
 % Update the feature vocabulary
 fv=handles.featureVocabulary;  % a ref
@@ -841,6 +840,7 @@ else
   fv.disablePerframeFeature(pfName);
   disableWindowTable(handles);  
 end
+
 
 %guidata(hObject,handles);
 
@@ -906,6 +906,7 @@ end
 
 
 guidata(hObject,handles);
+updatePFCategoryAmountForCurrentPF(handles);
 updateWindowTable(handles);
 % set(hObject,'UserData',0);
 return
@@ -975,7 +976,7 @@ function windowEdit(hObject,eventData)
 
 handles = guidata(hObject);
 fv=handles.featureVocabulary;
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 winNdx = eventData.Indices(1);
 handles.winNdx = winNdx;
 wfType = fv.wfTypes{winNdx};
@@ -1000,18 +1001,20 @@ return
 
 
 % -------------------------------------------------------------------------
-function setCategoryToCustom(handles)
+function updatePFCategoryAmountForCurrentPF(handles)
 fv=handles.featureVocabulary;
 pfNameList=fv.pfNameList;
 pfName=pfNameList{handles.pfNdx};
 pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);
 allPFCategories=fv.pfCategoryList;
-curTypes = find(ismember(allPFCategories,pfCategoriesThisName));
+pfCategoryIndicesThisName = find(ismember(allPFCategories,pfCategoriesThisName));
 basicData = get(handles.basicTable,'Data');
-for ndx = 1:numel(curTypes)
-  basicData{curTypes(ndx),2} = 'Custom';
+for ndx = 1:numel(pfCategoryIndicesThisName)
+  basicData{pfCategoryIndicesThisName(ndx),2} = ...
+    fv.getPFCategoryAmount(pfCategoriesThisName{ndx});
 end
 set(handles.basicTable,'Data',basicData);
+return
 
 
 % -------------------------------------------------------------------------
@@ -1196,7 +1199,7 @@ wfParamName='min_window_radius';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1237,7 +1240,7 @@ wfParamName='max_window_radius';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1278,7 +1281,7 @@ wfParamName='nwindow_radii';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1319,7 +1322,7 @@ wfParamName='window_offsets';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1378,7 +1381,7 @@ checked=fv.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1425,7 +1428,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1473,7 +1476,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1521,7 +1524,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1591,7 +1594,7 @@ wfParamName=handles.featureVocabulary.wfExtraParamNames{handles.winNdx};
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,newValue);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1712,7 +1715,7 @@ updateWinParams(handles);
 updateWinParamsEnablement(handles);
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1789,7 +1792,7 @@ updateWinParamsEnablement(handles);
 % end
 
 guidata(hObject,handles);
-setCategoryToCustom(handles);
+updatePFCategoryAmountForCurrentPF(handles);
 return
 
 
@@ -1970,7 +1973,7 @@ handles.featureVocabulary.setMaxWindowRadiusForAllWFAmounts(curVal);
 % Now copy the default values to the perframe features.
 basicData = get(handles.basicTable,'Data');
 for ndx = 1:size(basicData,1)
-  if strcmp(basicData{ndx,2},'All')
+  if strcmp(basicData{ndx,2},'all')
     handles = applyCategoryType(handles,ndx);
     handles.featureVocabulary.setPFCategoryToWFAmount(ndx,basicData{ndx,3});
   end
