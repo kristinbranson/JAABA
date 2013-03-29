@@ -88,7 +88,7 @@ for ndx = 1:numel(bcellmodel)
   end
 end
 
-% {
+%{
 newalpha = zeros(1,numel(bmodel));
 for ndx = 1:numPerm
   curidx = randperm(numel(bmodel));
@@ -133,59 +133,75 @@ end
 
 function best = findWeakRuleBagged(data,labels,dist,binVals,bins,params,wkSamples)
 
+
 numDim = size(data,2);
-numEx = size(data,1);
 
-best.dim = ones(1,wkSamples);
-best.error = 0.5*ones(1,wkSamples);
-best.dir = ones(1,wkSamples);
-best.tr = zeros(1,wkSamples);
+best.dim = 1;
+best.error = 0.5;
+best.dir = 1;
+best.tr = 0;
 
-curBestErr = 0.5*ones(1,numDim);
-binNo = ones(1,numDim);
-bestDir = ones(1,numDim);
-
-numBins = size(binVals,1)+1;
-% for histogramming
-edges = .5:numBins+.5;
-% indices with positive labels
-% always normalize histograms by Z
-
+% curBestErr = 0.5*ones(1,numDim);
+% binNo = ones(1,numDim);
+% bestDir = ones(1,numDim);
 
 numS = params.numSample;
-curSel = randsample(numEx,numS,true,dist);
 
-parfor dim = 1:numDim
-  
-  curBins = bins(dim,curSel);
-  curLabels = labels(curSel);
-  idxpos = curLabels > 0;
-  % pre-split up curBins for parfor
-  curBinsPos = curBins(idxpos);
-  curBinsNeg = curBins(~idxpos);
-  
-  Zpos = nnz(idxpos); Zneg = nnz(~idxpos);
-  posCount = histc(curBinsPos,edges);
-  posCount = posCount(1:end-1) / Zpos;
-  negCount = histc(curBinsNeg,edges);
-  negCount = negCount(1:end-1) / Zneg;
-  
-  dir = ones(1,numBins);
-  posLeft = cumsum(posCount);
-  posRight = sum(posCount)-posLeft;
-  negLeft = cumsum(negCount);
-  negRight = sum(negCount)-negLeft;
-  binErr = (posLeft+negRight)/2;
-  negErr = binErr>0.5;
-  binErr(negErr) = 1-binErr(negErr);
-  dir(negErr) = -1;
-  
-  err = binErr;
-  [curBestErr(dim) binNo(dim)]= min(err(1:end-1));
-  bestDir(dim) = dir(binNo(dim));
+% always helpful to normalize
+dist = dist / sum(dist);
+
+
+% KB: copied from randsample
+edges = min([0 cumsum(dist')],1); % protect against accumulated round-off
+edges(end) = 1; % get the upper edge exact
+[~,curSel] = histc(rand(numS,1),edges);
+
+if any(curSel==0),
+  warning('Sanity check: some samples are not being chosen');
+  curSel(curSel==0) = size(data,1);
 end
 
-[sortError sortDim] = sort(curBestErr,'ascend');
+curBins = bins(:,curSel);
+curLabels = labels(curSel);
+
+
+% KB: precompute these
+numBins = size(binVals,1)+1;
+% indices with positive labels
+idxpos = curLabels > 0;
+
+% always normalize histograms by Z
+Z = size(curBins,2);
+Zpos = nnz(idxpos);
+Zneg = Z - Zpos;
+
+fracpos = Zpos/Z;
+fracneg = Zneg/Z;
+
+posCount = accummatrix(curBins(:,idxpos)',ones(Zpos,1),numBins)'/Z;
+negCount = accummatrix(curBins(:,~idxpos)',ones(Zneg,1),numBins)'/Z;
+
+
+posLeft = cumsum(posCount,2);
+posRight = fracpos - posLeft;
+negLeft = cumsum(negCount,2);
+negRight = fracneg - negLeft;
+
+binErr = posRight+negLeft-posLeft-negRight;
+negErr = binErr<0;
+binErr(negErr) = -binErr(negErr);
+dir = ones(numDim,numBins);
+dir(negErr) = -1;
+err = 0.5-binErr/2;
+[curBestErr,binNo]= min(err(:,1:end-1),[],2);
+curBestErr = curBestErr'; binNo = binNo';
+bestDir = dir(sub2ind([numDim,numBins],1:numDim,binNo));
+
+% [minError minDim] = min(curBestErr); %#ok<UDIM>
+% best.error = minError;   best.dim = minDim; 
+% best.dir = bestDir(minDim);   best.tr = binVals(binNo(minDim),minDim);
+
+[sortError sortDim] = sort(curBestErr , 'ascend');
 best.error = sortError(1:wkSamples);   best.dim = sortDim(1:wkSamples);
 best.dir = bestDir(best.dim);   
 for ndx = 1:wkSamples
@@ -193,4 +209,5 @@ for ndx = 1:wkSamples
 end
 
 end
+
 
