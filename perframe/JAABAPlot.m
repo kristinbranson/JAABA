@@ -2517,12 +2517,12 @@ for b=bb
       if(comparison>0)
         fprintf(fid,'%% not during\n');
         if(~isempty(not_during_data))
-          fprint_csv(fid,not_during_data(idx(e),:));
+          print_csv(fid,not_during_data(idx(e),:));
         end
       end
       fprintf(fid,'%% during\n');
       if(~isempty(during_data))
-        fprint_csv(fid,during_data(idx(e),:));
+        print_csv(fid,during_data(idx(e),:));
       end
       fprintf(fid,'\n');
     end
