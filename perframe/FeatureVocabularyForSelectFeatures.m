@@ -455,6 +455,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
         if ~self.vocabulary{pfIndex}.valid; continue;end
         pfParams = self.vocabulary{pfIndex};
         windowFeatureParams.(pfName).sanitycheck = pfParams.sanitycheck;
+        % the default window feature type is always included
         for wfParamsIndex = 1:numel(self.wfParamNames)
           wfParamName = self.wfParamNames{wfParamsIndex};
           windowFeatureParams.(pfName).(wfParamName) = pfParams.default.values.(wfParamName);

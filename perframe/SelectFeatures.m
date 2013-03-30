@@ -103,7 +103,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function setJLDobj(hObject,JLDobj)
+function setJLDobj(hObject,jld)
 % Set the JLabelDataObject.
 handles = guidata(hObject);
 % handles.JLDobj = JLDobj;
@@ -124,9 +124,9 @@ handles = guidata(hObject);
 
 guidata(hObject,handles);
 
-windowFeatureParams = JLDobj.GetPerframeParams();
-featureLexicon= JLDobj.featureLexicon;
-initData(hObject,windowFeatureParams,featureLexicon,JLDobj);
+windowFeatureParams = jld.GetPerframeParams();
+featureLexicon= jld.featureLexicon;
+initData(hObject,windowFeatureParams,featureLexicon,jld);
 
 return
 
@@ -190,14 +190,14 @@ guidata(hObject,handles);
 
 
 % -------------------------------------------------------------------------
-function createFeatureTable(hObject,JLDobj)
+function createBasicTable(hObject,jld)
 handles = guidata(hObject);
 
 % Adding drop down menu kind of thing.
 
 pfCategoryList=handles.featureVocabulary.pfCategoryList;
-if ~isempty(JLDobj.basicFeatureTable)
-  oldtableData = JLDobj.basicFeatureTable;
+if ~isempty(jld.basicFeatureTable)
+  oldtableData = jld.basicFeatureTable;
   tableData = {};
   for ndx = 1:numel(pfCategoryList)
     curcateg = pfCategoryList{ndx};
@@ -227,6 +227,7 @@ set(handles.basicTable,'ColumnEditable',[false,true,true]);
 set(handles.basicTable,'ColumnWidth',{85,65,75});
 set(handles.basicTable,'CellSelectionCallback',@basicSelect);
 set(handles.basicTable,'CellEditCallback',@basicEdit);
+return
 
 
 % -------------------------------------------------------------------------
@@ -319,7 +320,7 @@ guidata(hObject,handles);
 % Initialize the data structure.
 function initData(hObject,params,featureLexicon,JLDobj)
 readFeatureLexicon(hObject,featureLexicon);
-createFeatureTable(hObject,JLDobj);
+createBasicTable(hObject,JLDobj);
 
 handles = guidata(hObject);
 if ~isempty(JLDobj.featureWindowSize)
@@ -451,7 +452,7 @@ handles.histogramData.centers_plot = {};
 
 % handles.data = data;
 handles.pfNdx = [];
-handles.winNdx = [];
+handles.wfTypeNdx = [];
 guidata(hObject,handles);
 createPfTable(hObject);
 createWindowTable(hObject);
@@ -637,8 +638,11 @@ if isempty(eventData.Indices); return; end
 
 handles = guidata(hObject);
 fv=handles.featureVocabulary;  % a ref
+pfCategoryIndex=eventData.Indices(1);
 if eventData.Indices(2)==2
-  % Select-deselect the whole category.  
+  % User made a selection in the 2nd column, to select 'all' or 'none' of
+  % the PFs in that category.  They can also select 'custom', but that does
+  % nothing.
   switch eventData.NewData
     case 'none'
       h = waitbar(0,'Unselecting the perframe features');
@@ -664,22 +668,22 @@ if eventData.Indices(2)==2
       close(h);
     case 'all'
       h = waitbar(0,'Selecting the perframe features');
-      categoryIndex=eventData.Indices(1);
       %handles = applyCategoryType(handles,categoryIndex);
       basicData = get(handles.basicTable,'Data');
-      handles.featureVocabulary.setPFCategoryToWFAmount(categoryIndex,basicData{categoryIndex,3});
+      handles.featureVocabulary.setPFCategoryToWFAmount(pfCategoryIndex,basicData{pfCategoryIndex,3});
       close(h);
   end
   guidata(hObject,handles);
+  updatePFCategoryAmount(handles,pfCategoryIndex);
   createPfTable(handles.pfTable);
 elseif eventData.Indices(2) == 3
-  % Set the window-feature level appropriately
+  % User made a selection in the third column, to select the window-feature
+  % amount for that category (normal, more, less)
   basicData = get(handles.basicTable,'Data');
-  pfLevel=basicData{eventData.Indices(1),2};
-  if isequal(pfLevel,'all')
-    categoryIndex=eventData.Indices(1);
+  wfAmount=basicData{eventData.Indices(1),2};
+  if isequal(wfAmount,'all')
     %handles=applyCategoryType(handles,categoryIndex);
-    handles.featureVocabulary.setPFCategoryToWFAmount(categoryIndex,basicData{categoryIndex,3});
+    handles.featureVocabulary.setPFCategoryToWFAmount(pfCategoryIndex,basicData{pfCategoryIndex,3});
     guidata(hObject,handles);
     createPfTable(handles.pfTable);
   end
@@ -754,50 +758,38 @@ end
 
 % -------------------------------------------------------------------------
 function pfSelect(hObject,eventData)
-% Called when user selects cells in pfTable.
+% Called when user selects cells in the per-frame feature table.
 
-% When the table is sorted without any cell selected
-
-% while( get(hObject,'UserData')~=0)
-%   pause(0.2);
-% end
-% set(hObject,'UserData',1);
 if isempty(eventData.Indices)
   return;
 end
 
 handles = guidata(hObject);
-% jscrollpane = findjobj(handles.pfTable);
-% jtable = jscrollpane.getViewport.getView;
-pfData = get(handles.pfTable,'Data');
 
-if(size(eventData.Indices,1)>1)
-  disableWindowTable(handles);
+%pfData = get(handles.pfTable,'Data');
+
+if (size(eventData.Indices,1)>1)
+  handles.pfNdx=[];
+  %disableWindowTable(handles);
 else
-%   ndx = jtable.getActualRowAt(eventData.Indices(1,1)-1)+1;
-  ndx = eventData.Indices(1,1);
-  handles.pfNdx = ndx;
-  if(pfData{ndx,2})
-    updateWindowTable(handles);
-    handles.winNdx = 1;
-    winData = get(handles.windowTable,'Data');
-
-    if winData{handles.winNdx,2},
-      updateWinParams(handles);
-      enableWinParams(handles);
-    else
-      disableWinParams(handles);
-    end
-
-    updateWinParams(handles);
-  else
-    disableWindowTable(handles);
-  end
+  pfNdx = eventData.Indices(1,1);
+  handles.pfNdx = pfNdx;
+  handles.wfTypeNdx = 1;
+%   if pfData{pfNdx,2}
+%     updateWindowTable(handles);
+%     enableWindowTable(handles);
+%     updateWinParamsAndEnablement(handles);
+%   else
+%     disableWindowTable(handles);
+%   end
 end
+updateWindowTable(handles);
+updateWindowTableEnablement(handles);
 handles = UpdateDescriptionPanels(handles);
 
 guidata(hObject,handles);
 % set(hObject,'UserData',0);
+return
 
 
 % -------------------------------------------------------------------------
@@ -908,6 +900,7 @@ end
 guidata(hObject,handles);
 updatePFCategoryAmountForCurrentPF(handles);
 updateWindowTable(handles);
+enableWindowTable(handles);
 % set(hObject,'UserData',0);
 return
 
@@ -916,22 +909,23 @@ return
 function updateWindowTable(handles)
 % Sets the data in window table based on selections made in pfTable.
 pfNdx=handles.pfNdx;
-enableWindowTable(handles);
+%enableWindowTable(handles);
 fv=handles.featureVocabulary;
 
 %curData = handles.data{pfNdx};
-curData = fv.vocabulary{pfNdx};
+pfParams = fv.vocabulary{pfNdx};
 
-windowData = {};
-for ndx = 1:length(fv.wfTypes)
-  curFunc = fv.wfTypes{ndx};
-  if ~isfield(curData,curFunc),
+nWFTypes=length(fv.wfTypes);
+windowData = cell(nWFTypes,2);
+for wfTypeIndex = 1:nWFTypes
+  wfType = fv.wfTypes{wfTypeIndex};
+  if ~isfield(pfParams,wfType),
     warning('This error is occurring!');
-    windowData{ndx,1} = curFunc;
-    windowData{ndx,2} = false;
+    windowData{wfTypeIndex,1} = wfType;
+    windowData{wfTypeIndex,2} = false;
   else
-    windowData{ndx,1} = curFunc;
-    windowData{ndx,2} = curData.(curFunc).valid;
+    windowData{wfTypeIndex,1} = wfType;
+    windowData{wfTypeIndex,2} = pfParams.(wfType).valid;
   end
 end
 set(handles.windowTable,'Data',windowData);
@@ -939,6 +933,25 @@ set(handles.windowTable,'Data',windowData);
 jscrollpane = findjobj(handles.windowTable);
 jtable = jscrollpane.getViewport.getView;
 jtable.changeSelection(0,0, false, false);
+return
+
+
+% -------------------------------------------------------------------------
+function updateWindowTableRow(handles,wfTypeIndex)
+% Updates the checkbox for wfType wfTypeIndex, i.e. one row of the window
+% table.
+pfNdx=handles.pfNdx;
+fv=handles.featureVocabulary;
+pfParams = fv.vocabulary{pfNdx};
+windowData = get(handles.windowTable,'Data');
+wfType = fv.wfTypes{wfTypeIndex};
+if ~isfield(pfParams,wfType),
+  warning('This error is occurring!');
+  windowData{wfTypeIndex,2} = false;
+else
+  windowData{wfTypeIndex,2} = pfParams.(wfType).valid;
+end
+set(handles.windowTable,'Data',windowData);
 return
 
 
@@ -958,7 +971,7 @@ if(size(eventData.Indices,1)>1)
   disableWinParams(handles);
 else
   ndx = eventData.Indices(1,1);
-  handles.winNdx = ndx;
+  handles.wfTypeNdx = ndx;
   if winData{ndx,2},
     updateWinParams(handles);
     enableWinParams(handles);
@@ -968,35 +981,39 @@ else
 end
 
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
 function windowEdit(hObject,eventData)
-% Called when a window function is edited.
+% Called when the window-feature type uitable is edited.
 
 handles = guidata(hObject);
 fv=handles.featureVocabulary;
-updatePFCategoryAmountForCurrentPF(handles);
-winNdx = eventData.Indices(1);
-handles.winNdx = winNdx;
-wfType = fv.wfTypes{winNdx};
+%updatePFCategoryAmountForCurrentPF(handles);
+wfTypeNdx = eventData.Indices(1);
+handles.wfTypeNdx = wfTypeNdx;
+wfType = fv.wfTypes{wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).valid = eventData.NewData;
 
 % Enable/disable the selected window-feature type in the model
-pfNdx=handles.pfNdx;
-pfName=handles.featureVocabulary.pfNameList{pfNdx};
-winNdx = eventData.Indices(1);
-handles.winNdx = winNdx;
-wfType = fv.wfTypes{winNdx};
-handles.featureVocabulary.setWFTypeEnablement(pfName,wfType,eventData.NewData)
+% Unless the the window-feature type is 'default', which cannot be disabled
+% except by disabling the per-frame feature
+if ~isequal(wfType,'default')
+  pfNdx=handles.pfNdx;
+  pfName=handles.featureVocabulary.pfNameList{pfNdx};
+  handles.featureVocabulary.setWFTypeEnablement(pfName,wfType,eventData.NewData)
+end
 
 guidata(hObject,handles);
-if eventData.NewData
-  updateWinParams(handles);
-  enableWinParams(handles);
-else
-  disableWinParams(handles);
-end
+updateWindowTableRow(handles,wfTypeNdx)
+updateWinParamsAndEnablement(handles);
+% if eventData.NewData
+%   updateWinParams(handles);
+%   enableWinParams(handles);
+% else
+%   disableWinParams(handles);
+% end
 return
 
 
@@ -1018,11 +1035,21 @@ return
 
 
 % -------------------------------------------------------------------------
+function updatePFCategoryAmount(handles,pfCategoryIndex)
+fv=handles.featureVocabulary;
+pfCategoryName=fv.pfCategoryList{pfCategoryIndex};
+basicData = get(handles.basicTable,'Data');
+basicData{pfCategoryIndex,2} = fv.getPFCategoryAmount(pfCategoryName);
+set(handles.basicTable,'Data',basicData);
+return
+
+
+% -------------------------------------------------------------------------
 function updateWinParams(handles)
-% Update the GUI controls displaying window parameters to match the current
+% Update the GUI controls displaying window-feature parameters to match the current
 % model state.
 
-winNdx=handles.winNdx;
+winNdx=handles.wfTypeNdx;
 fv=handles.featureVocabulary;
 curFn = fv.wfTypes{winNdx};
 curParams = fv.vocabulary{handles.pfNdx}.(curFn);
@@ -1050,6 +1077,14 @@ else
   set(handles.ExtraParams,'Enable','off','String','--');
   set(handles.extraParamStatic,'String','Feature Specific');
 end
+
+% -------------------------------------------------------------------------
+function updateWinParamsAndEnablement(handles)
+% Update the GUI controls displaying window-feature parameters to match the current
+% model state, and also the enablement/disablement of these controls.
+updateWinParams(handles);
+updateWinParamsEnablement(handles)
+return
 
 
 % % -------------------------------------------------------------------------
@@ -1130,10 +1165,26 @@ set(handles.pushbutton_copy_windowtypes,'enable','on');
 
 
 % -------------------------------------------------------------------------
+function updateWindowTableEnablement(handles)
+fv=handles.featureVocabulary;  % a ref
+pfNdx=handles.pfNdx;
+if isempty(pfNdx)
+  enabled=false;
+else
+  enabled=fv.pfIsInVocabulary(pfNdx);
+end
+set(handles.windowTable,'enable',onIff(enabled));
+set(handles.pushbutton_copy_windowtypes,'enable',onIff(enabled));
+return
+
+
+% -------------------------------------------------------------------------
 function updateWinParamsEnablement(handles)
 fv=handles.featureVocabulary;   % a ref
-if fv.wfTypeIsInVocabulary(handles.pfNdx,handles.winNdx),
+if fv.wfTypeIsInVocabulary(handles.pfNdx,handles.wfTypeNdx),
   enableWinParams(handles);
+else
+  disableWinParams(handles);
 end
 return
 
@@ -1161,9 +1212,9 @@ set(handles.MinWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColo
 set(handles.MaxWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.WindowStep,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.WindowOffsets,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
-if ~isempty(fv.wfExtraParamNames{handles.winNdx})
+if ~isempty(fv.wfExtraParamNames{handles.wfTypeNdx})
   set(handles.ExtraParams,'enable','on');
-  set(handles.extraParamStatic,'String',fv.wfExtraParamNames{handles.winNdx});
+  set(handles.extraParamStatic,'String',fv.wfExtraParamNames{handles.wfTypeNdx});
 else
   set(handles.ExtraParams,'enable','off');
   set(handles.extraParamStatic,'String','Feature Specific');
@@ -1189,12 +1240,12 @@ if isnan(curVal)||(round(curVal)-curVal)~=0
 end
 handles = guidata(hObject);
 fv=handles.featureVocabulary;
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.min_window_radius = curVal;
 
 % set in featureVocabulary
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.winNdx};
+wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='min_window_radius';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
@@ -1230,12 +1281,12 @@ if isnan(curVal)||(round(curVal)-curVal)~=0
 end
 handles = guidata(hObject);
 fv=handles.featureVocabulary;
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.max_window_radius = curVal;
 
 % set in featureVocabulary
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.winNdx};
+wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='max_window_radius';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
@@ -1271,12 +1322,12 @@ if isnan(curVal) || (round(curVal)-curVal)~=0
 end
 handles = guidata(hObject);
 fv=handles.featureVocabulary;
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.nwindow_radii = curVal;
 
 % set in featureVocabulary
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.winNdx};
+wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='nwindow_radii';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
@@ -1312,12 +1363,12 @@ if isempty(curVal)
 end
 handles = guidata(hObject);
 fv=handles.featureVocabulary;
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.window_offsets = curVal;
 
 % set in featureVocabulary
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.winNdx};
+wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='window_offsets';
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
 
@@ -1348,7 +1399,7 @@ function TransNone_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of TransNone
 fv=handles.featureVocabulary;
-curFn = fv.wfTypes{handles.winNdx};
+curFn = fv.wfTypes{handles.wfTypeNdx};
 handles = guidata(hObject);
 % curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 % if get(hObject,'Value')
@@ -1368,7 +1419,7 @@ handles = guidata(hObject);
 
 % update featureVocabulary
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='none';
 if get(hObject,'Value')
   fv.addWFTransformation(pfName,wfType,transformation);
@@ -1394,7 +1445,7 @@ function TransFlip_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of TransFlip
 fv=handles.featureVocabulary;
-curFn = fv.wfTypes{handles.winNdx};
+curFn = fv.wfTypes{handles.wfTypeNdx};
 handles = guidata(hObject);
 % curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 % if get(hObject,'Value')
@@ -1415,7 +1466,7 @@ handles = guidata(hObject);
 % update featureVocabulary
 featureVocabulary=handles.featureVocabulary;  % a ref
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='flip';
 if get(hObject,'Value')
   featureVocabulary.addWFTransformation(pfName,wfType,transformation);
@@ -1442,7 +1493,7 @@ function TransAbs_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of TransAbs
 
 fv=handles.featureVocabulary;
-%curFn = fv.wfTypes{handles.winNdx};
+%curFn = fv.wfTypes{handles.wfTypeNdx};
 handles = guidata(hObject);
 % curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 % if get(hObject,'Value')
@@ -1463,7 +1514,7 @@ handles = guidata(hObject);
 % update featureVocabulary
 featureVocabulary=handles.featureVocabulary;  % a ref
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='abs';
 if get(hObject,'Value')
   featureVocabulary.addWFTransformation(pfName,wfType,transformation);
@@ -1490,7 +1541,7 @@ function TransRel_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of TransRel
 
 fv=handles.featureVocabulary;
-curFn = fv.wfTypes{handles.winNdx};
+curFn = fv.wfTypes{handles.wfTypeNdx};
 handles = guidata(hObject);
 % curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 % if get(hObject,'Value')
@@ -1511,7 +1562,7 @@ handles = guidata(hObject);
 % update featureVocabulary
 featureVocabulary=handles.featureVocabulary;  % a ref
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = fv.wfTypes{handles.winNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='relative';
 if get(hObject,'Value')
   featureVocabulary.addWFTransformation(pfName,wfType,transformation);
@@ -1578,19 +1629,19 @@ function ExtraParams_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of ExtraParams as a double
 
 fv=handles.featureVocabulary;
-if isempty(fv.wfExtraParamNames{handles.winNdx}), return; end
+if isempty(fv.wfExtraParamNames{handles.wfTypeNdx}), return; end
 
 str = get(hObject,'String');
 str = strtrim(str);
 newValue = str2num(str);
-extraParam = fv.wfExtraParamNames{handles.winNdx};
-wfType = fv.wfTypes{handles.winNdx};
+extraParam = fv.wfExtraParamNames{handles.wfTypeNdx};
+wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.(extraParam) = newValue;
 
 % set in featureVocabulary
 pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = handles.featureVocabulary.wfTypes{handles.winNdx};
-wfParamName=handles.featureVocabulary.wfExtraParamNames{handles.winNdx};
+wfType = handles.featureVocabulary.wfTypes{handles.wfTypeNdx};
+wfParamName=handles.featureVocabulary.wfExtraParamNames{handles.wfTypeNdx};
 handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,newValue);
 
 guidata(hObject,handles);
@@ -1687,7 +1738,7 @@ function pushbutton_copy_windowparams_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.pfNdx) || isempty(handles.winNdx),
+if isempty(handles.pfNdx) || isempty(handles.wfTypeNdx),
   return;
 end
 fv=handles.featureVocabulary;
@@ -1697,7 +1748,7 @@ windowComp = fv.wfTypes;
 pfNdx = handles.pfNdx;
 
 % which window fn are we copying to?
-winNdxTo = handles.winNdx;
+winNdxTo = handles.wfTypeNdx;
 
 % which windwo fn are we copying from?
 winNdxFrom = get(handles.popupmenu_copy_windowparams,'Value');
@@ -1784,9 +1835,10 @@ end
 
 % update the view
 updateWindowTable(handles);
+enableWindowTable(handles);
 updateWinParams(handles);
 updateWinParamsEnablement(handles);
-% curFn = fv.wfTypes{handles.winNdx};
+% curFn = fv.wfTypes{handles.wfTypeNdx};
 % if handles.data{handles.pfNdx}.(curFn).valid,
 %   enableWinParams(handles);
 % end
@@ -2069,6 +2121,7 @@ delete(h);
 guidata(hObject,handles);
 if ~isempty(handles.pfNdx)
   updateWindowTable(handles);
+  enableWindowTable(handles);
 end
 return
 
