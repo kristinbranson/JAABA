@@ -46,58 +46,7 @@ function savefig(fname, varargin)
 %
 % REQUIREMENT: Ghostscript. Version 8.57 works, probably older versions too, but '-dEPSCrop'
 %          must be supported. I think version 7.32 or newer is ok.
-%
-% HISTORY:
-% Version 1.0, 2006-04-20.
-% Version 1.1, 2006-04-27:
-% - No 'epstopdf' stuff anymore! Using '-dEPSCrop' option in gs instead!
-% Version 1.2, 2006-05-02:
-% - Added a '-dbg' option (see options, above).
-% - Now looks for a global variable 'savefig_defaults' (see options, above).
-% - More detailed Ghostscript options (user will not really notice).
-% - Warns when there is no device for a file-type/color-model combination.
-% Version 1.3, 2006-06-06:
-% - Added a check to see if there actually is a figure handle.
-% - Now works in Matlab 6.5.1 (R13SP1) (maybe in 6.5 too).
-% - Now compatible with Ghostscript 8.54, released 2006-06-01.
-% Version 1.4, 2006-07-20:
-% - Added an option '-soft' that enables anti-aliasing on pixel graphics (on by default).
-% - Added an option '-hard' that don't do anti-aliasing on pixel graphics.
-% Version 1.5, 2006-07-27:
-% - Fixed a bug when calling with a figure handle argument.
-% Version 1.6, 2006-07-28:
-% - Added a crop option, see above.
-% Version 1.7, 2007-03-31:
-% - Fixed bug: calling print with invalid renderer value '-none'.
-% - Removed GhostScript argument '-dUseCIEColor' as it sometimes discoloured things.
-% Version 1.8, 2008-01-03:
-% - Added MacIntel: 'MACI'.
-% - Added 64bit PC (I think, can't test it myself).
-% - Added option '-nointerpolate' (use it to prevent blurring of pixelated).
-% - Removed '-hard' and '-soft'. Use '-nointerpolate' for '-hard', default for '-soft'.
-% - Fixed the gs 8.57 warning on UseCIEColor (it's now set).
-% - Added '-gray' for pdf, but gs 8.56 or newer is needed.
-% - Added '-gray' and '-cmyk' for eps, but you a fairly recent gs might be needed.
-% Version 1.9, 2008-07-27:
-% - Added lossless compression, see option '-lossless', above. Works on most formats.
-% - Added lossy compression, see options '-c<float>...', above. Works on 'pdf'.
-%   Thanks to Olly Woodford for idea and implementation!
-% - Removed option '-nointerpolate' -- now savefig never interpolates.
-% - Fixed a few small bugs and removed some mlint comments. 
-%
-% TO DO: (Need Ghostscript support for these, so don't expect anything soon...)
-% - svg output.
-% - '-cmyk' for 'jpeg' and 'png'.
-% - Preview in 'eps'.
-% - Embedded vector fonts, not bitmap, in 'eps'.
-%
 % Copyright (C) Peder Axensten (peder at axensten dot se), 2006.
-
-% KEYWORDS:     eps, pdf, jpg, jpeg, png, tiff, eps2pdf, epstopdf, ghostscript
-%
-% INSPIRATION:  eps2pdf (5782), eps2xxx (6858)
-%
-% REQUIREMENTS: Works in Matlab 6.5.1 (R13SP1) (maybe in 6.5 too).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
