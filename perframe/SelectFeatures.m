@@ -295,7 +295,7 @@ nPFs=length(pfList);
 tableData = cell(nPFs,2);
 for ndx = 1:nPFs
   tableData{ndx,1} = pfList{ndx};
-  tableData{ndx,2} = fv.vocabulary{ndx}.valid;
+  tableData{ndx,2} = fv.vocabulary{ndx}.enabled;
   pfCategories=fv.pfCategoriesFromName.(pfList{ndx});
   str = sprintf('%s',pfCategories{1});
   for sndx = 2:numel(pfCategories)
@@ -518,8 +518,8 @@ function pfCategoryWFAmountChanged(hObject,eventData)
   handles = guidata(hObject);
   fv=handles.featureVocabulary;  % a ref
   pfCategoryIndex=eventData.Indices(1);
-  basicData = get(handles.basicTable,'Data');
-  pfCategoryLevel=basicData{pfCategoryIndex,2};
+  %basicData = get(handles.basicTable,'Data');
+  %pfCategoryLevel=basicData{pfCategoryIndex,2};
   newWFAmount=eventData.NewData;
   fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,newWFAmount);
   %guidata(hObject,handles);
@@ -689,7 +689,7 @@ for wfTypeIndex = 1:nWFTypes
   wfType = fv.wfTypes{wfTypeIndex};
   if isfield(pfParams,wfType),
     %windowData{wfTypeIndex,1} = wfType;
-    windowData{wfTypeIndex,2} = pfParams.(wfType).valid;
+    windowData{wfTypeIndex,2} = pfParams.(wfType).enabled;
   else
     % warning('This error is occurring!');  
       % this isn't an error anymore -- it can happen by design if pfNdx is
@@ -723,7 +723,7 @@ if ~isfield(pfParams,wfType),
   warning('This error is occurring!');
   windowData{wfTypeIndex,2} = false;
 else
-  windowData{wfTypeIndex,2} = pfParams.(wfType).valid;
+  windowData{wfTypeIndex,2} = pfParams.(wfType).enabled;
 end
 set(handles.windowTable,'Data',windowData);
 return
@@ -773,7 +773,7 @@ fv=handles.featureVocabulary;
 wfTypeNdx = eventData.Indices(1);
 handles.wfTypeNdx = wfTypeNdx;
 wfType = fv.wfTypes{wfTypeNdx};
-%handles.data{handles.pfNdx}.(wfType).valid = eventData.NewData;
+%handles.data{handles.pfNdx}.(wfType).enabled = eventData.NewData;
 
 % Enable/disable the selected window-feature type in the model
 % Unless the the window-feature type is 'default', which cannot be disabled
