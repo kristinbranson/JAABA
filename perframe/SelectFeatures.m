@@ -522,7 +522,7 @@ function pfCategoryWFAmountChanged(hObject,eventData)
   pfCategoryLevel=basicData{pfCategoryIndex,2};
   newWFAmount=eventData.NewData;
   fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,newWFAmount);
-  guidata(hObject,handles);
+  %guidata(hObject,handles);
   updatePfTable(handles);
   updateWindowTableAndEnablement(handles);
   updateWinParamsAndEnablement(handles);
