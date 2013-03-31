@@ -131,7 +131,7 @@ guidata(hObject,handles);
 % Change a few things so they still work well on Mac
 adjustColorsIfMac(hObject);
 % Create the basic table uitable
-createBasicTable(hObject,jld);
+initializeBasicTable(hObject,jld);
 % Put an initial max window radius in the appropriate editbox in the
 % "Basic" side of the UI
 if isempty(jld.featureWindowSize)
@@ -145,12 +145,12 @@ else
   set(handles.editSize,'String',num2str(jld.featureWindowSize));
 end  
 % And other stuff...
-createPfTable(hObject);
 initializeWindowTable(hObject);
-createCopyFromMenus(hObject);
-createDescriptionPanels(hObject);
+initializeCopyFromMenus(hObject);
+initializeDescriptionPanels(hObject);
 compatibleBasicAdvanced(handles);
 set(hObject,'Visible','on');  % have to do this b/c of Java hacking
+initializePfTable(hObject);
 removeRowHeaders(hObject);
 
 % Make sure the graphics items are consistent with the model state
@@ -272,18 +272,31 @@ return
 
 
 % -------------------------------------------------------------------------
-function createPfTable(hObject)
-% Sets the values for feature table.
-
+function initializePfTable(hObject)
+% Initialize the per-frame feature table.
 handles = guidata(hObject);
+set(handles.pfTable,'ColumnName',{'Features','Select','Category'});
+set(handles.pfTable,'ColumnEditable',[false,true]);
+set(handles.pfTable,'ColumnWidth',{190,50,95});
+set(handles.pfTable,'CellSelectionCallback',@pfSelect);
+set(handles.pfTable,'CellEditCallback',@pfEdit);
+updatePfTable(handles);
+return
 
-featureVocabulary=handles.featureVocabulary;  % a ref
-pfList = featureVocabulary.pfNameList;
-tableData = cell(length(pfList),2);
-for ndx = 1:numel(pfList)
+
+% -------------------------------------------------------------------------
+function updatePfTable(handles)
+% Updates the contents of the per-frame feature table.
+
+% Generate the table data, based on the feature vocabulary
+fv=handles.featureVocabulary;  % a ref
+pfList = fv.pfNameList;
+nPFs=length(pfList);
+tableData = cell(nPFs,2);
+for ndx = 1:nPFs
   tableData{ndx,1} = pfList{ndx};
-  tableData{ndx,2} = featureVocabulary.vocabulary{ndx}.valid;
-  pfCategories=featureVocabulary.pfCategoriesFromName.(pfList{ndx});
+  tableData{ndx,2} = fv.vocabulary{ndx}.valid;
+  pfCategories=fv.pfCategoriesFromName.(pfList{ndx});
   str = sprintf('%s',pfCategories{1});
   for sndx = 2:numel(pfCategories)
     str = sprintf('%s,%s',str,pfCategories{sndx});
@@ -291,29 +304,40 @@ for ndx = 1:numel(pfList)
   tableData{ndx,3} = str;
 end
 
+% Update the graphics object
 set(handles.pfTable,'Data',tableData);
-set(handles.pfTable,'ColumnName',{'Features','Select','Category'});
-set(handles.pfTable,'ColumnEditable',[false,true]);
-
-set(handles.pfTable,'ColumnWidth',{190,50,95});
-set(handles.pfTable,'CellSelectionCallback',@pfSelect);
-set(handles.pfTable,'CellEditCallback',@pfEdit);
 % disableWindowTable(handles);
-updateWindowTableEnablement(handles);
-guidata(hObject,handles);
+%updateWindowTableEnablement(handles);
+%guidata(hObject,handles);
+
+% do Java stuff to select the corrent element
+jscrollpane = findjobj(handles.pfTable);
+jtable = jscrollpane.getViewport.getView;
+pfNdx=handles.pfNdx;
+if isempty(pfNdx)
+  jtable.changeSelection(0,0, false, false);
+else
+  jtable.changeSelection(pfNdx-1,0, false, false);
+end  
+
 return
 
 
 % -------------------------------------------------------------------------
-function createBasicTable(hObject,jld)
+function initializeBasicTable(hObject,jld)
 handles = guidata(hObject);
-
-% Adding drop down menu kind of thing.
-
 pfCategoryList=handles.featureVocabulary.pfCategoryList;
 nPFCategories=numel(pfCategoryList);
 tableData = cell(nPFCategories,3);
-if ~isempty(jld.basicFeatureTable)
+if isempty(jld.basicFeatureTable)
+  % Need to create the table from scratch
+  for ndx = 1:nPFCategories
+    tableData{ndx,1} = pfCategoryList{ndx};
+    tableData{ndx,2} = 'none';
+    tableData{ndx,3} = 'normal';
+  end
+else
+  % Base the table data on the old table data
   oldtableData = jld.basicFeatureTable;
   for ndx = 1:nPFCategories
     curcateg = pfCategoryList{ndx};
@@ -326,17 +350,14 @@ if ~isempty(jld.basicFeatureTable)
       tableData(ndx,2:3) = oldtableData(ondx,2:3);
     end
   end  
-else
-  for ndx = 1:nPFCategories
-    tableData{ndx,1} = pfCategoryList{ndx};
-    tableData{ndx,2} = 'none';
-    tableData{ndx,3} = 'normal';
-  end
 end
 set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
-set(handles.basicTable,'ColumnFormat',{'char',...
-  {'all' 'none' 'custom'}, handles.featureVocabulary.wfAmounts'});
+set(handles.basicTable, ...
+    'ColumnFormat', ...
+    {'char',...
+     {'all' 'none' 'custom'}, ...
+     [handles.featureVocabulary.wfAmounts' 'custom']} );
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
 
 set(handles.basicTable,'ColumnWidth',{85,65,75});
@@ -399,7 +420,7 @@ rowHeader.setSize(newWidth,height);
 return
 
 % -------------------------------------------------------------------------
-function createCopyFromMenus(hObject)
+function initializeCopyFromMenus(hObject)
 
 handles = guidata(hObject);
 % can copy from any window feature type
@@ -417,7 +438,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function createDescriptionPanels(hObject)
+function initializeDescriptionPanels(hObject)
 
 handles = guidata(hObject);
 
@@ -431,169 +452,6 @@ uipanel_tabs_SelectionChangeFcn(handles.uipanel_tabs, struct('NewValue',handles.
 guidata(hObject,handles);
 
 
-% % -------------------------------------------------------------------------
-% function readFeatureLexicon(hObject,featureLexicon)
-% % Reads the configuration file that sets the default parameters.
-% 
-% handles = guidata(hObject);
-% 
-% %configfile = handles.JLDobj.featureConfigFile;
-% %settings = ReadXMLParams(configfile);
-% %featureLexicon=featureLexicon;
-% 
-% % Read the default parameters for different categories.
-% categories = fieldnames(featureLexicon.defaults);
-% 
-% % if isempty(categories) 
-% %   % If no default have been specified in the config file.
-% %   
-% %   categories{1} = 'default';
-% %   curParams = struct;
-% %   
-% %   % Default values.
-% %   for ndx = 1:numel(handles.winParams)
-% %     curwinpname = handles.winParams{ndx};
-% %     curParams.default.values.(curwinpname) = handles.defaultWinParams{ndx};
-% %   end
-% %   curParams.default.valid = true;
-% %   curParams.default.values.sanitycheck = false;
-% %   
-% %   % For each defined window computation.
-% %   for ndx = 2:numel(handles.windowComp)
-% %     % Copy the default values.
-% %     curwname = handles.windowComp{ndx};
-% %     for pndx = 1:numel(handles.winParams)
-% %       curwinpname = handles.winParams{pndx};
-% %       curParams.(curwname).values.(curwinpname) = handles.defaultWinParams{pndx};
-% %     end
-% %     
-% %     if ~isempty(handles.winextraParams{ndx})
-% %       extraParam = handles.winextraParams{ndx};
-% %       curParams.(curwname).values.(extraParam) = handles.winextraParams{ndx};
-% %     end
-% %     curParams.(curwname).valid = false;
-% %   end
-% %   handles.wfParamsFromAmount.(categories{1}) = curParams;
-% %   
-% %   
-% % else
-% %   % fill the window params for different feature categories.
-% %   
-% %   for j = 1:numel(categories)
-% %     curParams = struct;
-% %     cur = settings.defaults.(categories{j});
-% %     
-% %     % Default values.
-% %     for ndx = 1:numel(handles.winParams)
-% %       curwinpname = handles.winParams{ndx};
-% %       curParams.default.values.(curwinpname) = cur.(curwinpname);
-% %     end
-% %     curParams.default.valid = true;
-% %     curParams.default.values.sanitycheck = false;
-% %     
-% %     % For each defined window computation.
-% %     for ndx = 2:numel(handles.windowComp)
-% %       % Copy the default values.
-% %       curwname = handles.windowComp{ndx};
-% %       for pndx = 1:numel(handles.winParams)
-% %         curwinpname = handles.winParams{pndx};
-% %         curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
-% %       end
-% %       
-% %       % Override the default window params for the current window computation type
-% %       if isfield(cur,curwname)
-% %         curParams.(curwname).valid = true;
-% %         diffFields = fieldnames(cur.(curwname));
-% %         for dndx = 1:numel(diffFields)
-% %           if any(strcmp(handles.winParams,diffFields{dndx}))
-% %             curwinpname = diffFields{dndx};
-% %             curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
-% %           end
-% %         end
-% %         
-% %         if ~isempty(handles.winextraParams{ndx})
-% %           extraParam = handles.winextraParams{ndx};
-% %           if isfield(cur.(curwname),extraParam)
-% %             curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
-% %           else
-% %             curParams.(curwname).values.(extraParam) = '';
-% %           end
-% %         end
-% %       else
-% %         curParams.(curwname).valid = false;
-% %       end
-% %     end
-% %     handles.wfParamsFromAmount.(categories{j}) = curParams;
-% %   end
-% % end
-% % 
-% % % Now for each different perframe feature read the type default trans_types.
-% % perframeL = handles.JLDobj.allperframefns;
-% % scores_perframe = {handles.scoresasinput(:).scorefilename};
-% % transType = struct;
-% % pfCategoriesFromName = struct;
-% % 
-% % % perframeL might not contain all the perframe features.
-% % for pfndx = 1:numel(perframeL)
-% %   curpf = perframeL{pfndx};
-% %   
-% %   if any(strcmp(curpf ,scores_perframe)), % This is a score perframe.
-% %     transType.(curpf) = {'none'};
-% %     pfCategoriesFromName.(curpf) = {'scores'};
-% %     continue;
-% %   end
-% %   
-% %   transType.(curpf) = settings.perframe.(curpf).trans_types;
-% %   if ischar(transType.(curpf))
-% %     transType.(curpf) = {transType.(curpf)};
-% %   end
-% %   curtypes  = settings.perframe.(curpf).type; 
-% %   if ischar(curtypes)
-% %     pfCategoriesFromName.(curpf)  = {curtypes}; 
-% %   else    
-% %     pfCategoriesFromName.(curpf)  = curtypes; 
-% %   end
-% % end
-% % 
-% % fallpf = fieldnames(settings.perframe);
-% % pfCategoryList = {};
-% % for pfndx = 1:numel(fallpf)
-% %   curpf = fallpf{pfndx};
-% %   curtypes  = settings.perframe.(curpf).type; 
-% %   if ischar(curtypes)
-% %     curT = curtypes;
-% %     if ~any(strcmp(pfCategoryList,curT))
-% %       pfCategoryList{end+1} = curT;
-% %     end
-% %   else    
-% %     for tndx = 1:numel(curtypes)
-% %       curT = curtypes{tndx};
-% %       if ~any(strcmp(pfCategoryList,curT))
-% %         pfCategoryList{end+1} = curT;
-% %       end
-% %     end
-% %   end
-% % end
-% % if ~any(strcmp(pfCategoryList,'scores')),
-% %   pfCategoryList{end+1} = 'scores';
-% % end
-% % 
-% % handles.transType = transType;
-% % handles.pfCategoriesFromName = pfCategoriesFromName;
-% % handles.pfCategoryList = pfCategoryList;
-% 
-% % basicData = get(handles.basicTable,'Data');
-% % scoresBasicNdx = find(strcmpi(basicData{:,1},'scores'));
-% % handles = applyCategoryType(handles,scoresBasicNdx);
-% 
-% guidata(hObject,handles);
-% featureVocabulary=handles.featureVocabulary;  % a ref
-% wfType=featureVocabulary.wfTypes{1};
-% set(handles.editSize,'String',...
-%   num2str(featureVocabulary.wfParamsFromAmount.(categories{1}).(wfType).values.max_window_radius));
-% return
-
-
 % -------------------------------------------------------------------------
 function basicSelect(hObject,eventData)  %#ok
 return
@@ -601,65 +459,73 @@ return
 
 % -------------------------------------------------------------------------
 function basicEdit(hObject,eventData)
-
 % the user selects the category
 if isempty(eventData.Indices); return; end
-
-handles = guidata(hObject);
-fv=handles.featureVocabulary;  % a ref
-pfCategoryIndex=eventData.Indices(1);
 if eventData.Indices(2)==2
   % User made a selection in the 2nd column, to select 'all' or 'none' of
   % the PFs in that category.  They can also select 'custom', but that does
   % nothing.
-  switch eventData.NewData
+  pfCategoryLevelChanged(hObject,eventData);
+elseif eventData.Indices(2) == 3
+  pfCategoryWFAmountChanged(hObject,eventData);
+end
+return
+
+
+% -------------------------------------------------------------------------
+function pfCategoryLevelChanged(hObject,eventData)
+  % User selected the level (all, none, custom) for a PF category in the
+  % basic table.  Note that custom will be ignored, and the level will be
+  % changed back to what it was before.
+  handles = guidata(hObject);
+  fv=handles.featureVocabulary;  % a ref
+  pfCategoryIndex=eventData.Indices(1);
+  basicData = get(handles.basicTable,'Data');
+  wfAmount=basicData{pfCategoryIndex,3};  
+  newLevel=eventData.NewData;
+  switch newLevel
     case 'none'
       h = waitbar(0,'Unselecting the perframe features');
       pfNames=fv.getPFNamesInCategory(pfCategoryIndex);
       for i = 1:length(pfNames)
         fv.disablePerframeFeature(pfNames{i});
       end            
-%       basicData = get(handles.basicTable,'Data');
-%       pfNameList=fv.pfNameList;
-%       for pfNameIndex = 1:numel(pfNameList)  % cycle through per-frame feature names
-%         pfName=pfNameList{pfNameIndex};
-%         pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);  % get all categories for this PF
-%         disable = true;
-%         for rowIndex = 1:size(basicData,1)  % cycle through all categories
-%           if ismember(basicData{rowIndex,1},pfCategoriesThisName)  % if the PF is in this category
-%             if ~strcmp(basicData{rowIndex,2},'none');  % if the category selection is 'all' or 'custom'
-%               disable = false; break;  % don't disable this PF
-%             end
-%           end
-%         end
-%         if disable
-%           %handles.data{ndx}.valid = false;
-%           fv.disablePerframeFeature(pfName);
-%         end
-%       end
       close(h);
     case 'all'
       h = waitbar(0,'Selecting the perframe features');
       %handles = applyCategoryType(handles,categoryIndex);
-      basicData = get(handles.basicTable,'Data');
-      handles.featureVocabulary.setPFCategoryToWFAmount(pfCategoryIndex,basicData{pfCategoryIndex,3});
+      %basicData = get(handles.basicTable,'Data');
+      fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,wfAmount);
+      fv.enableAllPFsInCategory(pfCategoryIndex);
       close(h);
+    case 'custom'
+      % don't change the model at all---the custom item is only there for
+      % when the user adds/deletes individual PFs using the Advanced tab.
   end
   guidata(hObject,handles);
-  updatePFCategoryAmount(handles,pfCategoryIndex);
-  createPfTable(handles.pfTable);
-elseif eventData.Indices(2) == 3
-  % User made a selection in the third column, to select the window-feature
-  % amount for that category (normal, more, less)
+  updatePFCategoryLevel(handles,pfCategoryIndex);
+  updatePfTable(handles);
+  updateWindowTableAndEnablement(handles);
+  updateWinParamsEnablement(handles);
+return
+
+
+% -------------------------------------------------------------------------
+function pfCategoryWFAmountChanged(hObject,eventData)
+  % User selected the window-feature
+  % amount for a PF category, in the basic table.  Note that selecting
+  % 'custom' does nothing.
+  handles = guidata(hObject);
+  fv=handles.featureVocabulary;  % a ref
+  pfCategoryIndex=eventData.Indices(1);
   basicData = get(handles.basicTable,'Data');
-  wfAmount=basicData{eventData.Indices(1),2};
-  if isequal(wfAmount,'all')
-    %handles=applyCategoryType(handles,categoryIndex);
-    handles.featureVocabulary.setPFCategoryToWFAmount(pfCategoryIndex,basicData{pfCategoryIndex,3});
-    guidata(hObject,handles);
-    createPfTable(handles.pfTable);
-  end
-end
+  pfCategoryLevel=basicData{pfCategoryIndex,2};
+  newWFAmount=eventData.NewData;
+  fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,newWFAmount);
+  guidata(hObject,handles);
+  updatePfTable(handles);
+  updateWindowTableAndEnablement(handles);
+  updateWinParamsAndEnablement(handles);
 return
 
 
@@ -701,6 +567,7 @@ return
 
 % -------------------------------------------------------------------------
 function compatibleBasicAdvanced(handles)
+% What does this do?  --ALT, Mar 31, 2013
 basicTable = get(handles.basicTable,'Data');
 incompatible = '';
 fv=handles.featureVocabulary;
@@ -784,13 +651,14 @@ if eventData.NewData
   pfCategoryIndex = find(strcmp(pfCategoryName,fv.pfCategoryList));
   basicData = get(handles.basicTable,'Data');
   wfAmount = basicData{pfCategoryIndex,3};  %#ok
-  fv.enablePerframeFeature(pfName,wfAmount);
+  fv.setPFToWFAmount(pfName,wfAmount);
+  fv.enablePerframeFeature(pfName);
 else
   fv.disablePerframeFeature(pfName);
 end
 
 % Now update the view
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 updateWindowTableAndEnablement(handles);
 updateWinParamsAndEnablement(handles);
 
@@ -929,7 +797,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function updatePFCategoryAmountForCurrentPF(handles)
+function updatePFCategoryLevelForCurrentPF(handles)
 fv=handles.featureVocabulary;
 pfNameList=fv.pfNameList;
 pfName=pfNameList{handles.pfNdx};
@@ -939,18 +807,19 @@ pfCategoryIndicesThisName = find(ismember(allPFCategories,pfCategoriesThisName))
 basicData = get(handles.basicTable,'Data');
 for ndx = 1:numel(pfCategoryIndicesThisName)
   basicData{pfCategoryIndicesThisName(ndx),2} = ...
-    fv.getPFCategoryAmount(pfCategoriesThisName{ndx});
+    fv.getPFCategoryLevel(pfCategoriesThisName{ndx});
 end
 set(handles.basicTable,'Data',basicData);
 return
 
 
 % -------------------------------------------------------------------------
-function updatePFCategoryAmount(handles,pfCategoryIndex)
+function updatePFCategoryLevel(handles,pfCategoryIndex)
+% Update the amount displayed for a particular per-frame feature category.
 fv=handles.featureVocabulary;
 pfCategoryName=fv.pfCategoryList{pfCategoryIndex};
 basicData = get(handles.basicTable,'Data');
-basicData{pfCategoryIndex,2} = fv.getPFCategoryAmount(pfCategoryName);
+basicData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
 set(handles.basicTable,'Data',basicData);
 return
 
@@ -1080,6 +949,7 @@ toc.appendChild(createXMLNode(docNode,'params',params));
 % for ndx = 1:numel(att)
 %   toc.appendChild(createXMLNode(docNode,att{ndx},params.(att{ndx})));
 % end
+return
 
 
 % % -------------------------------------------------------------------------
@@ -1198,7 +1068,7 @@ wfParamName='min_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1239,7 +1109,7 @@ wfParamName='max_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1280,7 +1150,7 @@ wfParamName='nwindow_radii';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1321,7 +1191,7 @@ wfParamName='window_offsets';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1380,7 +1250,7 @@ checked=fv.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1427,7 +1297,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1475,7 +1345,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1523,7 +1393,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1595,7 +1465,7 @@ wfParamName=fv.wfExtraParamNames{handles.wfTypeNdx};
 fv.setWFParam(pfName,wfType,wfParamName,newValue);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1716,7 +1586,7 @@ updateWinParams(handles);
 updateWinParamsEnablement(handles);
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1795,7 +1665,7 @@ updateWinParamsEnablement(handles);
 % end
 
 guidata(hObject,handles);
-updatePFCategoryAmountForCurrentPF(handles);
+updatePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1906,26 +1776,26 @@ if strcmpi(handles.currentTab,'perframehistogram') && ...
   if isempty(i),
     i = numel(handles.histogramData.perframe_idx)+1;
     [handles.histogramData.hhist,...
-      ~,~,hleg,hxlabel,hylabel,...
-      handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
-      handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
+     ~,~,hleg,hxlabel,hylabel,...
+     handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
+     handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
       HistogramPerFrameFeature(handles.jld,fv.pfNameList{handles.pfNdx},...
-      'axes',handles.axes_histogram,...
-      'unknowncolor','w',...
-      'labelcolors',jet(handles.jld.nbehaviors)*.7);
+                               'axes',handles.axes_histogram,...
+                               'unknowncolor','w',...
+                               'labelcolors',jet(handles.jld.nbehaviors)*.7);
     handles.histogramData.perframe_idx(i) = handles.pfNdx;
   else
     [handles.histogramData.hhist,...
-      ~,~,hleg,hxlabel,hylabel,...
-      handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
-      handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
+     ~,~,hleg,hxlabel,hylabel,...
+     handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
+     handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
       HistogramPerFrameFeature(handles.jld,fv.pfNameList{handles.pfNdx},...
-      'axes',handles.axes_histogram,...
-      'edges',handles.histogramData.edges{i},...
-      'frac',handles.histogramData.frac{i},...
-      'frac_outside',handles.histogramData.frac_outside{i},...
-      'unknowncolor','w',...
-      'labelcolors',jet(handles.jld.nbehaviors)*.7);
+                               'axes',handles.axes_histogram,...
+                               'edges',handles.histogramData.edges{i},...
+                               'frac',handles.histogramData.frac{i},...
+                               'frac_outside',handles.histogramData.frac_outside{i},...
+                               'unknowncolor','w',...
+                               'labelcolors',jet(handles.jld.nbehaviors)*.7);
   end
   handles.histogramData.lastPfNdx = handles.pfNdx;
   handles.histogramData.lastType = 'perframe';
@@ -1978,11 +1848,12 @@ basicData = get(handles.basicTable,'Data');
 for ndx = 1:size(basicData,1)
   if strcmp(basicData{ndx,2},'all')
     handles = applyCategoryType(handles,ndx);
-    handles.featureVocabulary.setPFCategoryToWFAmount(ndx,basicData{ndx,3});
+    handles.featureVocabulary.setAllPFsInCategoryToWFAmount(ndx,basicData{ndx,3});
   end
 end
 guidata(hObject,handles);
-createPfTable(handles.pfTable);
+%updatePfTable(handles.pfTable);
+updateWinParams(handles);
 return
 
 
@@ -2050,7 +1921,7 @@ for ndx = 1:numel(fv.pfNameList)
   curPf = fv.pfNameList{ndx};
   waitbar(ndx/numel(fv.pfNameList),h);
   
-  if ~handles.data{ndx}.valid || ~handles.data{ndx}.hist.valid; 
+  if ~fv.pfIsInVocabulary(ndx) || ~handles.data{ndx}.hist.valid; 
     continue;
   end
   

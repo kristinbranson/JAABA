@@ -225,46 +225,77 @@ classdef FeatureVocabularyForSelectFeatures < handle
     
     
     % ---------------------------------------------------------------------
-    function setPFCategoryToWFAmount(self,pfCategoryIndex,wfAmount)
-      pfCategory=self.pfCategoryList{pfCategoryIndex};
-      pfNameList=self.pfNameList;
-      pfCategoriesFromName=self.pfCategoriesFromName;
-      % Copy the parameters.
+    function enableAllPFsInCategory(self,pfCategoryIndex)
+      %pfCategory=self.pfCategoryList{pfCategoryIndex};
+      %pfNameList=self.pfNameList;
+      %pfCategoriesFromName=self.pfCategoriesFromName;
+      pfNamesThisCategory=self.getPFNamesInCategory(pfCategoryIndex);
       % Iterate over the per-frame features, looking for ones that are
       % within the selected category.
-      for iPF = 1:numel(pfNameList)
-        thisPF=pfNameList{iPF};
-        categoriesThisPFIsIn=pfCategoriesFromName.(thisPF);
-        if ismember(pfCategory,categoriesThisPFIsIn)
-          % if the selected category contains this per-frame feature,
-          % do something...
-          self.vocabulary{iPF}.valid = true;
-          for wfTypeIndex = 1:numel(self.wfTypes)
-            wfType = self.wfTypes{wfTypeIndex};
-            if ~self.wfParamsFromAmount.(wfAmount).(wfType).valid
-              self.vocabulary{iPF}.(wfType).valid = false;
-              continue;
-            end
-            self.setWindowFeaturesOfTypeToAmount(iPF, wfTypeIndex, wfAmount);
-            self.vocabulary{iPF}.(wfType).values.trans_types = self.pfTransTypesFromName.(pfNameList{iPF});
-          end
-        end
+      for i = 1:length(pfNamesThisCategory)
+        pfName=pfNamesThisCategory{i};
+        self.enablePerframeFeature(pfName)
+      end
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function setAllPFsInCategoryToWFAmount(self,pfCategoryIndex,wfAmount)
+      % This does what it says, but note that it doesn't add or subtract
+      % any PFs from the vocabulary.
+      %pfCategory=self.pfCategoryList{pfCategoryIndex};
+      %pfNameList=self.pfNameList;
+      %pfCategoriesFromName=self.pfCategoriesFromName;
+      pfNamesThisCategory=self.getPFNamesInCategory(pfCategoryIndex);
+      % Iterate over the per-frame features, looking for ones that are
+      % within the selected category.
+      for i = 1:length(pfNamesThisCategory)
+        pfName=pfNamesThisCategory{i};
+        self.setPFToWFAmount(pfName,wfAmount)
       end
     end  % method
     
     
     % ---------------------------------------------------------------------
-    function enablePerframeFeature(self,pfName,wfAmount)
-      % Turn on the given per-frame feature, with window features
-      % determined by wfAmount.
+    function enablePerframeFeature(self,pfName)
+      % Turn on the given per-frame feature, but leave the window feature 
+      % parameters alone.
+      pfIndex=find(strcmp(pfName,self.pfNameList));  
+      %pfTransTypes=self.pfTransTypesFromName.(pfName);
+      self.vocabulary{pfIndex}.valid = true;  %#ok
+      %pfCategories=self.pfCategoriesFromName.(pfName);
+      %pfCategory = pfCategories{1};  % why the first one?
+      %categoryNdx = find(strcmp(pfCategory,self.pfCategoryList));
+      %wfParams=self.wfParamsFromAmount.(wfAmount);
+      %self.vocabulary{pfIndex}.valid = true;
+%       for wfTypeIndex = 1:numel(self.wfTypes)
+%         wfType = self.wfTypes{wfTypeIndex};
+%         wfParamsThisType=wfParams.(wfType);
+%         if ~wfParamsThisType.valid
+%           self.vocabulary{pfIndex}.(wfType).valid = false;
+%           continue;
+%         end
+%         %self = CopyDefaultWindowParams(self,...
+%         %  wfAmount, pfIndex,wfTypeIndex);
+%         self.setWindowFeaturesOfTypeToAmount(pfIndex,wfTypeIndex,wfAmount);
+%         self.vocabulary{pfIndex}.(wfType).values.trans_types = pfTransTypes;
+%       end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function setPFToWFAmount(self,pfName,wfAmount)
+      % Set the window feature parameters for the named PF to those
+      % specified by the named wfAmount (normal, more, less).  This is
+      % orthogonal to whether that PF is enabled or not.
       pfIndex=find(strcmp(pfName,self.pfNameList));  
       pfTransTypes=self.pfTransTypesFromName.(pfName);
-      self.vocabulary{pfIndex}.valid = true;
+      %self.vocabulary{pfIndex}.valid = true;
       %pfCategories=self.pfCategoriesFromName.(pfName);
       %pfCategory = pfCategories{1};  % why the first one?
       %categoryNdx = find(strcmp(pfCategory,self.pfCategoryList));
       wfParams=self.wfParamsFromAmount.(wfAmount);
-      self.vocabulary{pfIndex}.valid = true;
+      %self.vocabulary{pfIndex}.valid = true;
       for wfTypeIndex = 1:numel(self.wfTypes)
         wfType = self.wfTypes{wfTypeIndex};
         wfParamsThisType=wfParams.(wfType);
@@ -503,8 +534,8 @@ classdef FeatureVocabularyForSelectFeatures < handle
     
 
     % ---------------------------------------------------------------------
-    function amount=getPFCategoryAmount(self,pfCategoryName)
-      % For the given per-frame feature category, calculate what amount of 
+    function level=getPFCategoryLevel(self,pfCategoryName)
+      % For the given per-frame feature category, calculate what 'level' of 
       % per-frame features are in the vocabulary.  Returns one of 'none',
       % 'custom', 'all'.
       pfNamesInCategory=self.getPFNamesInCategory(pfCategoryName);
@@ -517,11 +548,11 @@ classdef FeatureVocabularyForSelectFeatures < handle
         end
       end
       if nPFsInCategoryAndVocab==0
-        amount='none';
+        level='none';
       elseif nPFsInCategoryAndVocab==nPFsInCategory
-        amount='all';
+        level='all';
       else
-        amount='custom';
+        level='custom';
       end
     end  % method    
     
@@ -681,7 +712,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
 
       % basicData = get(self.basicTable,'Data');
       % scoresBasicNdx = find(strcmpi(basicData{:,1},'scores'));
-      % handles = setPFCategoryToWFAmount(handles,scoresBasicNdx);
+      % handles = setAllPFsInCategoryToWFAmount(handles,scoresBasicNdx);
 
       % guidata(hObject,handles);
       % set(self.editSize,'String',...
