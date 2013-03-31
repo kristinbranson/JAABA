@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 30-Mar-2013 15:08:50
+% Last Modified by GUIDE v2.5 31-Mar-2013 15:09:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,6 +52,10 @@ function SelectFeatures_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to SelectFeatures (see VARARGIN)
+
+% So that we can't be closed before we're done opening
+handles.doneWithOpeningFunction=false;
+guidata(hObject,handles);
 
 % Process input arguments
 figureJLabel = varargin{1};
@@ -149,19 +153,21 @@ compatibleBasicAdvanced(handles);
 set(hObject,'Visible','on');  % have to do this b/c of Java hacking
 removeRowHeaders(hObject);
 
-% Not sure why this has to be here --ALT, Mar 30, 2013
-pause(0.5);
-
 % Make sure the graphics items are consistent with the model state
 updateWindowTableAndEnablement(handles);
 updateWinParamsAndEnablement(handles);
+
+% OK, now it's OK to close the figure
+handles=guidata(hObject);
+handles.doneWithOpeningFunction=true;
+guidata(hObject,handles);
 
 return
 
 
 % -------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
-function varargout = SelectFeatures_OutputFcn(hObject, eventdata, handles) 
+function varargout = SelectFeatures_OutputFcn(hObject, eventdata, handles)  %#ok
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -305,10 +311,11 @@ handles = guidata(hObject);
 % Adding drop down menu kind of thing.
 
 pfCategoryList=handles.featureVocabulary.pfCategoryList;
+nPFCategories=numel(pfCategoryList);
+tableData = cell(nPFCategories,3);
 if ~isempty(jld.basicFeatureTable)
   oldtableData = jld.basicFeatureTable;
-  tableData = {};
-  for ndx = 1:numel(pfCategoryList)
+  for ndx = 1:nPFCategories
     curcateg = pfCategoryList{ndx};
     tableData{ndx,1} = curcateg;
     ondx = find(strcmpi(oldtableData(:,1),curcateg));
@@ -320,8 +327,7 @@ if ~isempty(jld.basicFeatureTable)
     end
   end  
 else
-  tableData = {};
-  for ndx = 1:numel(pfCategoryList)
+  for ndx = 1:nPFCategories
     tableData{ndx,1} = pfCategoryList{ndx};
     tableData{ndx,2} = 'none';
     tableData{ndx,3} = 'normal';
@@ -425,167 +431,167 @@ uipanel_tabs_SelectionChangeFcn(handles.uipanel_tabs, struct('NewValue',handles.
 guidata(hObject,handles);
 
 
-% -------------------------------------------------------------------------
-function readFeatureLexicon(hObject,featureLexicon)
-% Reads the configuration file that sets the default parameters.
-
-handles = guidata(hObject);
-
-%configfile = handles.JLDobj.featureConfigFile;
-%settings = ReadXMLParams(configfile);
-%featureLexicon=featureLexicon;
-
-% Read the default parameters for different categories.
-categories = fieldnames(featureLexicon.defaults);
-
-% if isempty(categories) 
-%   % If no default have been specified in the config file.
-%   
-%   categories{1} = 'default';
-%   curParams = struct;
-%   
-%   % Default values.
-%   for ndx = 1:numel(handles.winParams)
-%     curwinpname = handles.winParams{ndx};
-%     curParams.default.values.(curwinpname) = handles.defaultWinParams{ndx};
-%   end
-%   curParams.default.valid = true;
-%   curParams.default.values.sanitycheck = false;
-%   
-%   % For each defined window computation.
-%   for ndx = 2:numel(handles.windowComp)
-%     % Copy the default values.
-%     curwname = handles.windowComp{ndx};
-%     for pndx = 1:numel(handles.winParams)
-%       curwinpname = handles.winParams{pndx};
-%       curParams.(curwname).values.(curwinpname) = handles.defaultWinParams{pndx};
-%     end
-%     
-%     if ~isempty(handles.winextraParams{ndx})
-%       extraParam = handles.winextraParams{ndx};
-%       curParams.(curwname).values.(extraParam) = handles.winextraParams{ndx};
-%     end
-%     curParams.(curwname).valid = false;
-%   end
-%   handles.wfParamsFromAmount.(categories{1}) = curParams;
-%   
-%   
-% else
-%   % fill the window params for different feature categories.
-%   
-%   for j = 1:numel(categories)
-%     curParams = struct;
-%     cur = settings.defaults.(categories{j});
-%     
-%     % Default values.
-%     for ndx = 1:numel(handles.winParams)
-%       curwinpname = handles.winParams{ndx};
-%       curParams.default.values.(curwinpname) = cur.(curwinpname);
-%     end
-%     curParams.default.valid = true;
-%     curParams.default.values.sanitycheck = false;
-%     
-%     % For each defined window computation.
-%     for ndx = 2:numel(handles.windowComp)
-%       % Copy the default values.
-%       curwname = handles.windowComp{ndx};
-%       for pndx = 1:numel(handles.winParams)
-%         curwinpname = handles.winParams{pndx};
-%         curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
-%       end
-%       
-%       % Override the default window params for the current window computation type
-%       if isfield(cur,curwname)
-%         curParams.(curwname).valid = true;
-%         diffFields = fieldnames(cur.(curwname));
-%         for dndx = 1:numel(diffFields)
-%           if any(strcmp(handles.winParams,diffFields{dndx}))
-%             curwinpname = diffFields{dndx};
-%             curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
-%           end
-%         end
-%         
-%         if ~isempty(handles.winextraParams{ndx})
-%           extraParam = handles.winextraParams{ndx};
-%           if isfield(cur.(curwname),extraParam)
-%             curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
-%           else
-%             curParams.(curwname).values.(extraParam) = '';
-%           end
-%         end
-%       else
-%         curParams.(curwname).valid = false;
-%       end
-%     end
-%     handles.wfParamsFromAmount.(categories{j}) = curParams;
-%   end
-% end
+% % -------------------------------------------------------------------------
+% function readFeatureLexicon(hObject,featureLexicon)
+% % Reads the configuration file that sets the default parameters.
 % 
-% % Now for each different perframe feature read the type default trans_types.
-% perframeL = handles.JLDobj.allperframefns;
-% scores_perframe = {handles.scoresasinput(:).scorefilename};
-% transType = struct;
-% pfCategoriesFromName = struct;
+% handles = guidata(hObject);
 % 
-% % perframeL might not contain all the perframe features.
-% for pfndx = 1:numel(perframeL)
-%   curpf = perframeL{pfndx};
-%   
-%   if any(strcmp(curpf ,scores_perframe)), % This is a score perframe.
-%     transType.(curpf) = {'none'};
-%     pfCategoriesFromName.(curpf) = {'scores'};
-%     continue;
-%   end
-%   
-%   transType.(curpf) = settings.perframe.(curpf).trans_types;
-%   if ischar(transType.(curpf))
-%     transType.(curpf) = {transType.(curpf)};
-%   end
-%   curtypes  = settings.perframe.(curpf).type; 
-%   if ischar(curtypes)
-%     pfCategoriesFromName.(curpf)  = {curtypes}; 
-%   else    
-%     pfCategoriesFromName.(curpf)  = curtypes; 
-%   end
-% end
+% %configfile = handles.JLDobj.featureConfigFile;
+% %settings = ReadXMLParams(configfile);
+% %featureLexicon=featureLexicon;
 % 
-% fallpf = fieldnames(settings.perframe);
-% pfCategoryList = {};
-% for pfndx = 1:numel(fallpf)
-%   curpf = fallpf{pfndx};
-%   curtypes  = settings.perframe.(curpf).type; 
-%   if ischar(curtypes)
-%     curT = curtypes;
-%     if ~any(strcmp(pfCategoryList,curT))
-%       pfCategoryList{end+1} = curT;
-%     end
-%   else    
-%     for tndx = 1:numel(curtypes)
-%       curT = curtypes{tndx};
-%       if ~any(strcmp(pfCategoryList,curT))
-%         pfCategoryList{end+1} = curT;
-%       end
-%     end
-%   end
-% end
-% if ~any(strcmp(pfCategoryList,'scores')),
-%   pfCategoryList{end+1} = 'scores';
-% end
+% % Read the default parameters for different categories.
+% categories = fieldnames(featureLexicon.defaults);
 % 
-% handles.transType = transType;
-% handles.pfCategoriesFromName = pfCategoriesFromName;
-% handles.pfCategoryList = pfCategoryList;
-
-% basicData = get(handles.basicTable,'Data');
-% scoresBasicNdx = find(strcmpi(basicData{:,1},'scores'));
-% handles = applyCategoryType(handles,scoresBasicNdx);
-
-guidata(hObject,handles);
-featureVocabulary=handles.featureVocabulary;  % a ref
-wfType=featureVocabulary.wfTypes{1};
-set(handles.editSize,'String',...
-  num2str(featureVocabulary.wfParamsFromAmount.(categories{1}).(wfType).values.max_window_radius));
-return
+% % if isempty(categories) 
+% %   % If no default have been specified in the config file.
+% %   
+% %   categories{1} = 'default';
+% %   curParams = struct;
+% %   
+% %   % Default values.
+% %   for ndx = 1:numel(handles.winParams)
+% %     curwinpname = handles.winParams{ndx};
+% %     curParams.default.values.(curwinpname) = handles.defaultWinParams{ndx};
+% %   end
+% %   curParams.default.valid = true;
+% %   curParams.default.values.sanitycheck = false;
+% %   
+% %   % For each defined window computation.
+% %   for ndx = 2:numel(handles.windowComp)
+% %     % Copy the default values.
+% %     curwname = handles.windowComp{ndx};
+% %     for pndx = 1:numel(handles.winParams)
+% %       curwinpname = handles.winParams{pndx};
+% %       curParams.(curwname).values.(curwinpname) = handles.defaultWinParams{pndx};
+% %     end
+% %     
+% %     if ~isempty(handles.winextraParams{ndx})
+% %       extraParam = handles.winextraParams{ndx};
+% %       curParams.(curwname).values.(extraParam) = handles.winextraParams{ndx};
+% %     end
+% %     curParams.(curwname).valid = false;
+% %   end
+% %   handles.wfParamsFromAmount.(categories{1}) = curParams;
+% %   
+% %   
+% % else
+% %   % fill the window params for different feature categories.
+% %   
+% %   for j = 1:numel(categories)
+% %     curParams = struct;
+% %     cur = settings.defaults.(categories{j});
+% %     
+% %     % Default values.
+% %     for ndx = 1:numel(handles.winParams)
+% %       curwinpname = handles.winParams{ndx};
+% %       curParams.default.values.(curwinpname) = cur.(curwinpname);
+% %     end
+% %     curParams.default.valid = true;
+% %     curParams.default.values.sanitycheck = false;
+% %     
+% %     % For each defined window computation.
+% %     for ndx = 2:numel(handles.windowComp)
+% %       % Copy the default values.
+% %       curwname = handles.windowComp{ndx};
+% %       for pndx = 1:numel(handles.winParams)
+% %         curwinpname = handles.winParams{pndx};
+% %         curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
+% %       end
+% %       
+% %       % Override the default window params for the current window computation type
+% %       if isfield(cur,curwname)
+% %         curParams.(curwname).valid = true;
+% %         diffFields = fieldnames(cur.(curwname));
+% %         for dndx = 1:numel(diffFields)
+% %           if any(strcmp(handles.winParams,diffFields{dndx}))
+% %             curwinpname = diffFields{dndx};
+% %             curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
+% %           end
+% %         end
+% %         
+% %         if ~isempty(handles.winextraParams{ndx})
+% %           extraParam = handles.winextraParams{ndx};
+% %           if isfield(cur.(curwname),extraParam)
+% %             curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
+% %           else
+% %             curParams.(curwname).values.(extraParam) = '';
+% %           end
+% %         end
+% %       else
+% %         curParams.(curwname).valid = false;
+% %       end
+% %     end
+% %     handles.wfParamsFromAmount.(categories{j}) = curParams;
+% %   end
+% % end
+% % 
+% % % Now for each different perframe feature read the type default trans_types.
+% % perframeL = handles.JLDobj.allperframefns;
+% % scores_perframe = {handles.scoresasinput(:).scorefilename};
+% % transType = struct;
+% % pfCategoriesFromName = struct;
+% % 
+% % % perframeL might not contain all the perframe features.
+% % for pfndx = 1:numel(perframeL)
+% %   curpf = perframeL{pfndx};
+% %   
+% %   if any(strcmp(curpf ,scores_perframe)), % This is a score perframe.
+% %     transType.(curpf) = {'none'};
+% %     pfCategoriesFromName.(curpf) = {'scores'};
+% %     continue;
+% %   end
+% %   
+% %   transType.(curpf) = settings.perframe.(curpf).trans_types;
+% %   if ischar(transType.(curpf))
+% %     transType.(curpf) = {transType.(curpf)};
+% %   end
+% %   curtypes  = settings.perframe.(curpf).type; 
+% %   if ischar(curtypes)
+% %     pfCategoriesFromName.(curpf)  = {curtypes}; 
+% %   else    
+% %     pfCategoriesFromName.(curpf)  = curtypes; 
+% %   end
+% % end
+% % 
+% % fallpf = fieldnames(settings.perframe);
+% % pfCategoryList = {};
+% % for pfndx = 1:numel(fallpf)
+% %   curpf = fallpf{pfndx};
+% %   curtypes  = settings.perframe.(curpf).type; 
+% %   if ischar(curtypes)
+% %     curT = curtypes;
+% %     if ~any(strcmp(pfCategoryList,curT))
+% %       pfCategoryList{end+1} = curT;
+% %     end
+% %   else    
+% %     for tndx = 1:numel(curtypes)
+% %       curT = curtypes{tndx};
+% %       if ~any(strcmp(pfCategoryList,curT))
+% %         pfCategoryList{end+1} = curT;
+% %       end
+% %     end
+% %   end
+% % end
+% % if ~any(strcmp(pfCategoryList,'scores')),
+% %   pfCategoryList{end+1} = 'scores';
+% % end
+% % 
+% % handles.transType = transType;
+% % handles.pfCategoriesFromName = pfCategoriesFromName;
+% % handles.pfCategoryList = pfCategoryList;
+% 
+% % basicData = get(handles.basicTable,'Data');
+% % scoresBasicNdx = find(strcmpi(basicData{:,1},'scores'));
+% % handles = applyCategoryType(handles,scoresBasicNdx);
+% 
+% guidata(hObject,handles);
+% featureVocabulary=handles.featureVocabulary;  % a ref
+% wfType=featureVocabulary.wfTypes{1};
+% set(handles.editSize,'String',...
+%   num2str(featureVocabulary.wfParamsFromAmount.(categories{1}).(wfType).values.max_window_radius));
+% return
 
 
 % -------------------------------------------------------------------------
@@ -609,25 +615,28 @@ if eventData.Indices(2)==2
   switch eventData.NewData
     case 'none'
       h = waitbar(0,'Unselecting the perframe features');
-      basicData = get(handles.basicTable,'Data');
-      pfNameList=fv.pfNameList;
-      for ndx = 1:numel(pfNameList)
-        pfName=pfNameList{ndx};
-        pfCategories=fv.pfCategoriesFromName.(pfName);
-        disable = true;
-        for tndx = 1:size(basicData,1)
-          if ~any(strcmp(pfCategories,basicData{tndx,1}));
-            continue;
-          end
-          if ~strcmp(basicData{tndx,2},'none'); 
-            disable = false; break; 
-          end
-        end
-        if disable
-          %handles.data{ndx}.valid = false;
-          fv.disablePerframeFeature(pfName);
-        end
-      end
+      pfNames=fv.getPFNamesInCategory(pfCategoryIndex);
+      for i = 1:length(pfNames)
+        fv.disablePerframeFeature(pfNames{i});
+      end            
+%       basicData = get(handles.basicTable,'Data');
+%       pfNameList=fv.pfNameList;
+%       for pfNameIndex = 1:numel(pfNameList)  % cycle through per-frame feature names
+%         pfName=pfNameList{pfNameIndex};
+%         pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);  % get all categories for this PF
+%         disable = true;
+%         for rowIndex = 1:size(basicData,1)  % cycle through all categories
+%           if ismember(basicData{rowIndex,1},pfCategoriesThisName)  % if the PF is in this category
+%             if ~strcmp(basicData{rowIndex,2},'none');  % if the category selection is 'all' or 'custom'
+%               disable = false; break;  % don't disable this PF
+%             end
+%           end
+%         end
+%         if disable
+%           %handles.data{ndx}.valid = false;
+%           fv.disablePerframeFeature(pfName);
+%         end
+%       end
       close(h);
     case 'all'
       h = waitbar(0,'Selecting the perframe features');
@@ -732,29 +741,21 @@ handles = guidata(hObject);
 
 %pfData = get(handles.pfTable,'Data');
 
-if (size(eventData.Indices,1)>1)
+if size(eventData.Indices,1)>1 ,
   % If multiple elements have been selected, select none of the PFs,
   % because, you know, what the hell are we supposed to do with that?
   handles.pfNdx=[];
   %disableWindowTable(handles);
 else
+  % the usual case---a single cell is selected
   pfNdx = eventData.Indices(1,1);
   handles.pfNdx = pfNdx;
-  %handles.wfTypeNdx = 1;
-%   if pfData{pfNdx,2}
-%     updateWindowTable(handles);
-%     enableWindowTable(handles);
-%     updateWinParamsAndEnablement(handles);
-%   else
-%     disableWindowTable(handles);
-%   end
 end
+handles = UpdateDescriptionPanels(handles);
+guidata(hObject,handles);
 updateWindowTableAndEnablement(handles);
 updateWinParamsAndEnablement(handles);
-handles = UpdateDescriptionPanels(handles);
-
-guidata(hObject,handles);
-% set(hObject,'UserData',0);
+%drawnow('update');
 return
 
 
@@ -762,13 +763,14 @@ return
 function pfEdit(hObject,eventData)
 % Called when a perframe feature is added or removed in the pfTable.
 
+% Update the figure guidata
 handles = guidata(hObject);
 pfNdx = eventData.Indices(1,1);
 handles.pfNdx = pfNdx;
+guidata(hObject,handles);
 
 % Update the feature vocabulary
 fv=handles.featureVocabulary;  % a ref
-% Get the name of the per-frame feature
 pfData=get(handles.pfTable,'Data');
 pfName=pfData{pfNdx,1};
 if eventData.NewData
@@ -783,17 +785,15 @@ if eventData.NewData
   basicData = get(handles.basicTable,'Data');
   wfAmount = basicData{pfCategoryIndex,3};  %#ok
   fv.enablePerframeFeature(pfName,wfAmount);
-  % enableWindowTable(handles);  
 else
   fv.disablePerframeFeature(pfName);
-  % disableWindowTable(handles);  
 end
 
-guidata(hObject,handles);
+% Now update the view
 updatePFCategoryAmountForCurrentPF(handles);
-updateWindowTable(handles);
-updateWindowTableEnablement(handles);
-%enableWindowTable(handles);
+updateWindowTableAndEnablement(handles);
+updateWinParamsAndEnablement(handles);
+
 return
 
 
@@ -819,15 +819,15 @@ else
 end
 for wfTypeIndex = 1:nWFTypes
   wfType = fv.wfTypes{wfTypeIndex};
-  if ~isfield(pfParams,wfType),
+  if isfield(pfParams,wfType),
+    %windowData{wfTypeIndex,1} = wfType;
+    windowData{wfTypeIndex,2} = pfParams.(wfType).valid;
+  else
     % warning('This error is occurring!');  
       % this isn't an error anymore -- it can happen by design if pfNdx is
       % empty
     %windowData{wfTypeIndex,1} = wfType;
     windowData{wfTypeIndex,2} = false;
-  else
-    %windowData{wfTypeIndex,1} = wfType;
-    windowData{wfTypeIndex,2} = pfParams.(wfType).valid;
   end
 end
 set(handles.windowTable,'Data',windowData);
@@ -864,6 +864,9 @@ return
 % -------------------------------------------------------------------------
 function windowSelect(hObject,eventData)
 % Called when user selects cells in windowTable.
+% Also seems to get called when the windowTable has been disabled and then
+% gets enabled...
+%fprintf('In windowSelect()\n');
 
 % When something changes in the pfTable window.
 if isempty(eventData.Indices)
@@ -871,22 +874,24 @@ if isempty(eventData.Indices)
 end
 
 handles = guidata(hObject);
-winData = get(handles.windowTable,'Data');
+%winData = get(handles.windowTable,'Data');
 
-if(size(eventData.Indices,1)>1)
-  disableWinParams(handles);
+if (size(eventData.Indices,1)>1)
+  % If more than one cell selected, just don't even try to deal.
+  handles.wfTypeNdx = [];
+  %disableWinParams(handles);
 else
   ndx = eventData.Indices(1,1);
   handles.wfTypeNdx = ndx;
-  if winData{ndx,2},
-    updateWinParams(handles);
-    enableWinParams(handles);
-  else
-    disableWinParams(handles);
-  end
+%   if winData{ndx,2},
+%     updateWinParams(handles);
+%     enableWinParams(handles);
+%   else
+%     disableWinParams(handles);
+%   end
 end
-
 guidata(hObject,handles);
+updateWinParamsAndEnablement(handles);
 return
 
 
@@ -1113,8 +1118,10 @@ if isempty(pfNdx) || isempty(wfTypeNdx),
   disableWinParams(handles);
 else  
   fv=handles.featureVocabulary;   % a ref
+  %pfInVocab=fv.pfIsInVocabulary(pfNdx);
+  %wfTypeInVocab=fv.wfTypeIsInVocabulary(pfNdx,wfTypeNdx);
   if fv.pfIsInVocabulary(pfNdx) && ...
-     fv.wfTypeIsInVocabulary(pfNdx,wfTypeNdx),
+     fv.wfTypeIsInVocabulary(pfNdx,wfTypeNdx) ,
     enableWinParams(handles);
   else
     disableWinParams(handles);
@@ -1125,6 +1132,7 @@ return
 
 % -------------------------------------------------------------------------
 function disableWinParams(handles)
+% fprintf('In disableWinParams()\n');
 set(handles.MinWindow,'enable','off');
 set(handles.MaxWindow,'enable','off');
 set(handles.WindowStep,'enable','off');
@@ -1141,8 +1149,8 @@ return
 
 % -------------------------------------------------------------------------
 function enableWinParams(handles)
-defBack = get(handles.text5,'BackgroundColor');
-defFore = [0 0 0];
+%defBack = get(handles.text5,'BackgroundColor');
+%defFore = [0 0 0];
 set(handles.MinWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.MaxWindow,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
 set(handles.WindowStep,'enable','on');%,'BackgroundColor',defBack,'ForegroundColor',defFore);
@@ -1167,7 +1175,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function MinWindow_Callback(hObject, eventdata, handles)
+function MinWindow_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to MinWindow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1180,14 +1188,14 @@ if isnan(curVal)||(round(curVal)-curVal)~=0
 end
 handles = guidata(hObject);
 fv=handles.featureVocabulary;
-wfType = fv.wfTypes{handles.wfTypeNdx};
+%wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.min_window_radius = curVal;
 
 % set in featureVocabulary
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+pfName=fv.pfNameList{handles.pfNdx};
 wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='min_window_radius';
-handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
 updatePFCategoryAmountForCurrentPF(handles);
@@ -1195,7 +1203,7 @@ return
 
 
 % --- Executes during object creation, after setting all properties.
-function MinWindow_CreateFcn(hObject, eventdata, handles)
+function MinWindow_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to MinWindow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1208,7 +1216,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function MaxWindow_Callback(hObject, eventdata, handles)
+function MaxWindow_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to MaxWindow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1225,10 +1233,10 @@ wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.max_window_radius = curVal;
 
 % set in featureVocabulary
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
+pfName=fv.pfNameList{handles.pfNdx};
+%wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='max_window_radius';
-handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
 updatePFCategoryAmountForCurrentPF(handles);
@@ -1236,7 +1244,7 @@ return
 
 
 % --- Executes during object creation, after setting all properties.
-function MaxWindow_CreateFcn(hObject, eventdata, handles)
+function MaxWindow_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to MaxWindow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1249,7 +1257,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function WindowStep_Callback(hObject, eventdata, handles)
+function WindowStep_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to WindowStep (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1266,10 +1274,10 @@ wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.nwindow_radii = curVal;
 
 % set in featureVocabulary
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
+pfName=fv.pfNameList{handles.pfNdx};
+%wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='nwindow_radii';
-handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
 updatePFCategoryAmountForCurrentPF(handles);
@@ -1277,7 +1285,7 @@ return
 
 
 % --- Executes during object creation, after setting all properties.
-function WindowStep_CreateFcn(hObject, eventdata, handles)
+function WindowStep_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to WindowStep (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1290,14 +1298,14 @@ end
 
 
 % -------------------------------------------------------------------------
-function WindowOffsets_Callback(hObject, eventdata, handles)
+function WindowOffsets_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to WindowOffsets (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of WindowOffsets as text
 %        str2double(get(hObject,'String')) returns contents of WindowOffsets as a double
-curVal = str2num(get(hObject,'String'));
+curVal = str2double(get(hObject,'String'));
 if isempty(curVal)
   msgbox('Enter numerical values. eg: "-1 0 1" (without with quotes)');
 end
@@ -1307,10 +1315,10 @@ wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.window_offsets = curVal;
 
 % set in featureVocabulary
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
+pfName=fv.pfNameList{handles.pfNdx};
+%wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='window_offsets';
-handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,curVal);
+fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
 updatePFCategoryAmountForCurrentPF(handles);
@@ -1318,7 +1326,7 @@ return
 
 
 % --- Executes during object creation, after setting all properties.
-function WindowOffsets_CreateFcn(hObject, eventdata, handles)
+function WindowOffsets_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to WindowOffsets (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1332,14 +1340,14 @@ end
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in TransNone.
-function TransNone_Callback(hObject, eventdata, handles)
+function TransNone_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to TransNone (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of TransNone
 fv=handles.featureVocabulary;
-curFn = fv.wfTypes{handles.wfTypeNdx};
+%curFn = fv.wfTypes{handles.wfTypeNdx};
 handles = guidata(hObject);
 % curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 % if get(hObject,'Value')
@@ -1358,7 +1366,7 @@ handles = guidata(hObject);
 % end
 
 % update featureVocabulary
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+pfName=fv.pfNameList{handles.pfNdx};
 wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='none';
 if get(hObject,'Value')
@@ -1378,14 +1386,14 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in TransFlip.
-function TransFlip_Callback(hObject, eventdata, handles)
+function TransFlip_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to TransFlip (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of TransFlip
 fv=handles.featureVocabulary;
-curFn = fv.wfTypes{handles.wfTypeNdx};
+%curFn = fv.wfTypes{handles.wfTypeNdx};
 handles = guidata(hObject);
 % curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 % if get(hObject,'Value')
@@ -1425,7 +1433,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in TransAbs.
-function TransAbs_Callback(hObject, eventdata, handles)
+function TransAbs_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to TransAbs (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1473,7 +1481,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in TransRel.
-function TransRel_Callback(hObject, eventdata, handles)
+function TransRel_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to TransRel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1481,7 +1489,7 @@ function TransRel_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of TransRel
 
 fv=handles.featureVocabulary;
-curFn = fv.wfTypes{handles.wfTypeNdx};
+%curFn = fv.wfTypes{handles.wfTypeNdx};
 handles = guidata(hObject);
 % curT = handles.data{handles.pfNdx}.(curFn).values.trans_types;
 % if get(hObject,'Value')
@@ -1521,18 +1529,20 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in push_cancel.
-function push_cancel_Callback(hObject, eventdata, handles)
+function push_cancel_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to push_cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %uiresume(handles.figure_SelectFeatures);
-delete(handles.figure_SelectFeatures);
+if handles.doneWithOpeningFunction ,
+  delete(handles.figure_SelectFeatures);
+end
 return
 
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_done.
-function pushbutton_done_Callback(hObject, eventdata, handles)
+function pushbutton_done_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1560,7 +1570,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function ExtraParams_Callback(hObject, eventdata, handles)
+function ExtraParams_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to ExtraParams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1573,16 +1583,16 @@ if isempty(fv.wfExtraParamNames{handles.wfTypeNdx}), return; end
 
 str = get(hObject,'String');
 str = strtrim(str);
-newValue = str2num(str);
-extraParam = fv.wfExtraParamNames{handles.wfTypeNdx};
+newValue = str2double(str);
+%extraParam = fv.wfExtraParamNames{handles.wfTypeNdx};
 wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.(extraParam) = newValue;
 
 % set in featureVocabulary
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
-wfType = handles.featureVocabulary.wfTypes{handles.wfTypeNdx};
-wfParamName=handles.featureVocabulary.wfExtraParamNames{handles.wfTypeNdx};
-handles.featureVocabulary.setWFParam(pfName,wfType,wfParamName,newValue);
+pfName=fv.pfNameList{handles.pfNdx};
+%wfType = handles.featureVocabulary.wfTypes{handles.wfTypeNdx};
+wfParamName=fv.wfExtraParamNames{handles.wfTypeNdx};
+fv.setWFParam(pfName,wfType,wfParamName,newValue);
 
 guidata(hObject,handles);
 updatePFCategoryAmountForCurrentPF(handles);
@@ -1590,7 +1600,7 @@ return
 
 
 % --- Executes during object creation, after setting all properties.
-function ExtraParams_CreateFcn(hObject, eventdata, handles)
+function ExtraParams_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to ExtraParams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1605,7 +1615,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in Save.
-function Save_Callback(hObject, eventdata, handles)
+function Save_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to Save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1628,7 +1638,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in Load.
-function Load_Callback(hObject, eventdata, handles)
+function Load_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to Load (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1648,7 +1658,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on selection change in popupmenu_copy_windowparams.
-function popupmenu_copy_windowparams_Callback(hObject, eventdata, handles)
+function popupmenu_copy_windowparams_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to popupmenu_copy_windowparams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1659,7 +1669,7 @@ function popupmenu_copy_windowparams_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function popupmenu_copy_windowparams_CreateFcn(hObject, eventdata, handles)
+function popupmenu_copy_windowparams_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to popupmenu_copy_windowparams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1673,7 +1683,7 @@ end
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copy_windowparams.
-function pushbutton_copy_windowparams_Callback(hObject, eventdata, handles)
+function pushbutton_copy_windowparams_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_copy_windowparams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1712,7 +1722,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on selection change in popupmenu_copy_windowtypes.
-function popupmenu_copy_windowtypes_Callback(hObject, eventdata, handles)
+function popupmenu_copy_windowtypes_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to popupmenu_copy_windowtypes (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1723,7 +1733,7 @@ function popupmenu_copy_windowtypes_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function popupmenu_copy_windowtypes_CreateFcn(hObject, eventdata, handles)
+function popupmenu_copy_windowtypes_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to popupmenu_copy_windowtypes (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1851,7 +1861,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes when selected object is changed in uipanel_tabs.
-function uipanel_tabs_SelectionChangeFcn(hObject, eventdata, handles)
+function uipanel_tabs_SelectionChangeFcn(hObject, eventdata, handles)  
 % hObject    handle to the selected object in uipanel_tabs 
 % eventdata  structure with the following fields (see UIBUTTONGROUP)
 %	EventName: string 'SelectionChanged' (read only)
@@ -1870,7 +1880,7 @@ guidata(hObject,handles);
 
 
 % -------------------------------------------------------------------------
-function handles = UpdateDescriptionPanels(handles)
+function handles = UpdateDescriptionPanels(handles)  
 
 if isempty(handles.pfNdx),
   return;
@@ -1928,7 +1938,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function editSize_Callback(hObject, eventdata, handles)
+function editSize_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editSize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1978,7 +1988,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editSize_CreateFcn(hObject, eventdata, handles)
+function editSize_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editSize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -1992,7 +2002,7 @@ end
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in togglebuttonMode.
-function togglebuttonMode_Callback(hObject, eventdata, handles)
+function togglebuttonMode_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to togglebuttonMode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -2060,7 +2070,7 @@ for ndx = 1:numel(fv.pfNameList)
     for fly = 1:handles.jld.nflies_per_exp(expi),
       
       x = perframedata.data{fly};
-      allData = [allData ; x(:)];
+      allData = [allData ; x(:)];  %#ok
     end
   end
   bins = prctile(allData,prcEdges);
@@ -2068,7 +2078,7 @@ for ndx = 1:numel(fv.pfNameList)
   maxD = max(allData);
   binMin = minD - (maxD-minD);
   binMax = maxD + (maxD-minD);
-  bins = [binMin bins binMax];
+  bins = [binMin bins binMax];  %#ok
   handles.data{ndx}.hist.values.(histExtraName) = bins;
 end
 delete(h);
@@ -2083,54 +2093,55 @@ return
 
 
 % -------------------------------------------------------------------------
-function CloseRequestFcn(hObject,eventdata,handles)
-push_cancel_callback(hObject,eventdata,handles);
-return
-
-
-% -------------------------------------------------------------------------
-% --- Executes on button press in pushbutton_ok.
-function pushbutton_ok_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_ok (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% configfile = handles.jld.configfilename;
-% [~,~,ext ] = fileparts(configfile);
-% if strcmpi(ext,'.xml'),
-%   configparams = ReadXMLParams(configfile);
-% elseif strcmpi(ext,'.mat'),
-%   configparams = load(configfile);
-% else
-%   errordlg('Project file %s is invalid. Cannot save the window features',configfile);
-% end
-% if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
-%   behaviorname = configparams.behaviors.names;
-%   if iscell(behaviorname),
-%     defaultname = sprintf('WindowFeatures_%s.xml',behaviorname{1});
-%   else
-%     defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
-%   end
-%   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
-%   if isempty(fname),return, end
-%   featureconfigfile = fullfile(fpath,fname);
-%   configparams.file.featureparamfilename = featureconfigfile;
-%   docNode = com.mathworks.xml.XMLUtils.createDocument('params');
-%   toc = docNode.getDocumentElement;
-%   fnames = fieldnames(configparams);
-%   for ndx = 1:numel(fnames)
-%     toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
-%   end
-%   xmlwrite(configfile,docNode);
-% end
-% 
-% featureconfigfile = configparams.file.featureparamfilename;
-% params = convertData(handles);
-% basicData = get(handles.basicTable,'Data');
-% featureWindowSize = round(str2double(get(handles.editSize,'String')));
-% docNode = createParamsXML(params,basicData,featureWindowSize);
-% xmlwrite(featureconfigfile,docNode);
-
-pushbutton_done_Callback(hObject,eventdata,handles);
+function figure_SelectFeatures_CloseRequestFcn(hObject,eventdata,handles)  %#ok
+%fprintf('In CloseRequestFcn()\n');
 push_cancel_Callback(hObject,eventdata,handles);
 return
+
+
+% % -------------------------------------------------------------------------
+% % --- Executes on button press in pushbutton_ok.
+% function pushbutton_ok_Callback(hObject, eventdata, handles)
+% % hObject    handle to pushbutton_ok (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % configfile = handles.jld.configfilename;
+% % [~,~,ext ] = fileparts(configfile);
+% % if strcmpi(ext,'.xml'),
+% %   configparams = ReadXMLParams(configfile);
+% % elseif strcmpi(ext,'.mat'),
+% %   configparams = load(configfile);
+% % else
+% %   errordlg('Project file %s is invalid. Cannot save the window features',configfile);
+% % end
+% % if ~isfield(configparams.file,'featureparamfilename') || isempty(configparams.file.featureparamfilename)
+% %   behaviorname = configparams.behaviors.names;
+% %   if iscell(behaviorname),
+% %     defaultname = sprintf('WindowFeatures_%s.xml',behaviorname{1});
+% %   else
+% %     defaultname = sprintf('WindowFeatures_%s.xml',behaviorname);
+% %   end
+% %   [fname,fpath]= uiputfile(fullfile('params','*.xml'),'Enter a name for feature config file',defaultname);
+% %   if isempty(fname),return, end
+% %   featureconfigfile = fullfile(fpath,fname);
+% %   configparams.file.featureparamfilename = featureconfigfile;
+% %   docNode = com.mathworks.xml.XMLUtils.createDocument('params');
+% %   toc = docNode.getDocumentElement;
+% %   fnames = fieldnames(configparams);
+% %   for ndx = 1:numel(fnames)
+% %     toc.appendChild(createXMLNode(docNode,fnames{ndx},configparams.(fnames{ndx})));
+% %   end
+% %   xmlwrite(configfile,docNode);
+% % end
+% % 
+% % featureconfigfile = configparams.file.featureparamfilename;
+% % params = convertData(handles);
+% % basicData = get(handles.basicTable,'Data');
+% % featureWindowSize = round(str2double(get(handles.editSize,'String')));
+% % docNode = createParamsXML(params,basicData,featureWindowSize);
+% % xmlwrite(featureconfigfile,docNode);
+% 
+% pushbutton_done_Callback(hObject,eventdata,handles);
+% push_cancel_Callback(hObject,eventdata,handles);
+% return
