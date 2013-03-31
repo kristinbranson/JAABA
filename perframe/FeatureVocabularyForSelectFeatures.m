@@ -739,27 +739,27 @@ classdef FeatureVocabularyForSelectFeatures < handle
     
     
     % ---------------------------------------------------------------------
-    function setWindowFeaturesOfTypeToAmount(self,destPFNdx,wfTypeNdx,wfAmount)
-      % For the per-frame feature with index destPFNdx, sets the window features 
+    function setWindowFeaturesOfTypeToAmount(self,pfNdx,wfTypeNdx,wfAmount)
+      % For the per-frame feature with index pfNdx, sets the window features 
       % with type given by index wfTypeNdx to the amount given by wfAmount (one of
       % 'normal', 'more', or 'less').
 
       wfType = self.wfTypes{wfTypeNdx};
       wfParams=self.wfParamsFromAmount.(wfAmount);
       % something to copy from?
-      if ~isfield(wfParams,wfType) && isfield(self.vocabulary{destPFNdx},wfType),
-        self.vocabulary{destPFNdx}.(wfType).valid = false;
+      if ~isfield(wfParams,wfType) && isfield(self.vocabulary{pfNdx},wfType),
+        self.vocabulary{pfNdx}.(wfType).valid = false;
         return
       end
-      self.vocabulary{destPFNdx}.(wfType).valid = wfParams.(wfType).valid;
+      self.vocabulary{pfNdx}.(wfType).valid = wfParams.(wfType).valid;
       for i = 1:numel(self.wfParamNames),
         wfParamName = self.wfParamNames{i};
-        self.vocabulary{destPFNdx}.(wfType).values.(wfParamName) = ...
+        self.vocabulary{pfNdx}.(wfType).values.(wfParamName) = ...
           wfParams.(wfType).values.(wfParamName);
       end
       if ~isempty(self.wfExtraParamNames{wfTypeNdx})
         extraParam = self.wfExtraParamNames{wfTypeNdx};
-        self.vocabulary{destPFNdx}.(wfType).values.(extraParam) = ...
+        self.vocabulary{pfNdx}.(wfType).values.(extraParam) = ...
           wfParams.(wfType).values.(extraParam);
       end
     end  % method    
