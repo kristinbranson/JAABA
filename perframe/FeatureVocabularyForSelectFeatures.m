@@ -484,6 +484,11 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % For the given per-frame feature category, return a cell array of
       % strings containing the names of all per-frame features in that
       % category.
+      if isnumeric(pfCategoryName)
+        % this means the category name is really a category index
+        pfCategoryIndex=pfCategoryName;
+        pfCategoryName=self.pfCategoryList{pfCategoryIndex};
+      end
       pfNames=cell(1,0);
       for iPF = 1:numel(self.pfNameList)
         pfName=self.pfNameList{iPF};
