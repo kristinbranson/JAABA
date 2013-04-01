@@ -22,7 +22,7 @@ function varargout = SelectFeatures(varargin)
 
 % Edit the above text to modify the response to help SelectFeatures
 
-% Last Modified by GUIDE v2.5 31-Mar-2013 15:09:45
+% Last Modified by GUIDE v2.5 01-Apr-2013 01:56:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -131,7 +131,7 @@ guidata(hObject,handles);
 % Change a few things so they still work well on Mac
 adjustColorsIfMac(hObject);
 % Create the basic table uitable
-initializeBasicTable(hObject,jld);
+initializeBasicTable(hObject);
 % Put an initial max window radius in the appropriate editbox in the
 % "Basic" side of the UI
 if isempty(jld.featureWindowSize)
@@ -352,34 +352,10 @@ return
 
 
 % -------------------------------------------------------------------------
-function initializeBasicTable(hObject,jld)
+function initializeBasicTable(hObject)
 handles = guidata(hObject);
 pfCategoryList=handles.featureVocabulary.pfCategoryList;
 nPFCategories=numel(pfCategoryList);
-tableData = cell(nPFCategories,3);
-if isempty(jld.basicFeatureTable)
-  % Need to create the table from scratch
-  for ndx = 1:nPFCategories
-    tableData{ndx,1} = pfCategoryList{ndx};
-    tableData{ndx,2} = 'none';
-    tableData{ndx,3} = 'normal';
-  end
-else
-  % Base the table data on the old table data
-  oldtableData = jld.basicFeatureTable;
-  for ndx = 1:nPFCategories
-    curcateg = pfCategoryList{ndx};
-    tableData{ndx,1} = curcateg;
-    ondx = find(strcmpi(oldtableData(:,1),curcateg));
-    if isempty(ondx),
-      tableData{ndx,2} = 'none';
-      tableData{ndx,3} = 'normal';
-    else
-      tableData(ndx,2:3) = oldtableData(ondx,2:3);
-    end
-  end  
-end
-set(handles.basicTable,'Data',tableData);
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
 set(handles.basicTable, ...
     'ColumnFormat', ...
@@ -387,10 +363,35 @@ set(handles.basicTable, ...
      {'all' 'none' 'custom'}, ...
      [handles.featureVocabulary.wfAmounts' 'custom']} );
 set(handles.basicTable,'ColumnEditable',[false,true,true]);
-
 set(handles.basicTable,'ColumnWidth',{85,65,75});
 set(handles.basicTable,'CellSelectionCallback',@basicSelect);
 set(handles.basicTable,'CellEditCallback',@basicEdit);
+% Populate the static parts of the table
+tableData = cell(nPFCategories,3);
+for ndx = 1:nPFCategories
+  tableData{ndx,1} = pfCategoryList{ndx};
+  tableData{ndx,2} = 'none';  % placeholder
+  tableData{ndx,3} = 'normal';  % placeholder
+end
+set(handles.basicTable,'Data',tableData);
+% Call update to populate the dynamic parts of the table
+updateBasicTable(hObject);
+return
+
+
+% -------------------------------------------------------------------------
+function updateBasicTable(hObject)
+handles = guidata(hObject);
+fv=handles.featureVocabulary;
+pfCategoryList=fv.pfCategoryList;
+nPFCategories=length(pfCategoryList);
+tableData = get(handles.basicTable,'Data');
+for i=1:nPFCategories
+  pfCategoryName=pfCategoryList{i};
+  tableData{i,2} = fv.getPFCategoryLevel(pfCategoryName);
+  tableData{i,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
+end
+set(handles.basicTable,'Data',tableData);
 return
 
 
@@ -523,7 +524,9 @@ function pfCategoryLevelChanged(hObject,eventData)
       h = waitbar(0,'Selecting the perframe features');
       %handles = applyCategoryType(handles,categoryIndex);
       %basicData = get(handles.basicTable,'Data');
-      fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,wfAmount);
+      if ~isequal(wfAmount,'custom')
+        fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,wfAmount);
+      end
       fv.enableAllPFsInCategory(pfCategoryIndex);
       close(h);
     case 'custom'
@@ -531,7 +534,7 @@ function pfCategoryLevelChanged(hObject,eventData)
       % when the user adds/deletes individual PFs using the Advanced tab.
   end
   guidata(hObject,handles);
-  updatePFCategoryLevel(handles,pfCategoryIndex);
+  updateBasicTablePFCategoryLevel(handles,pfCategoryIndex);
   updatePfTable(handles);
   updateWindowTableAndEnablement(handles);
   updateWinParamsEnablement(handles);
@@ -549,7 +552,9 @@ function pfCategoryWFAmountChanged(hObject,eventData)
   %basicData = get(handles.basicTable,'Data');
   %pfCategoryLevel=basicData{pfCategoryIndex,2};
   newWFAmount=eventData.NewData;
-  fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,newWFAmount);
+  if ~isequal(newWFAmount,'custom'), 
+    fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,newWFAmount);
+  end
   %guidata(hObject,handles);
   updatePfTable(handles);
   updateWindowTableAndEnablement(handles);
@@ -687,7 +692,7 @@ if eventData.Indices(2)==2,
     fv.disablePerframeFeature(pfName);
   end
   % Now update the view
-  updatePFCategoryLevelForCurrentPF(handles);
+  updateBasicTablePFCategoryLevelForCurrentPF(handles);
   updateWindowTableAndEnablement(handles);
   updateWinParamsAndEnablement(handles);
 elseif eventData.Indices(2)==3,
@@ -829,7 +834,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function updatePFCategoryLevelForCurrentPF(handles)
+function updateBasicTablePFCategoryLevelForCurrentPF(handles)
 fv=handles.featureVocabulary;
 pfNameList=fv.pfNameList;
 pfName=pfNameList{handles.pfNdx};
@@ -846,8 +851,9 @@ return
 
 
 % -------------------------------------------------------------------------
-function updatePFCategoryLevel(handles,pfCategoryIndex)
-% Update the amount displayed for a particular per-frame feature category.
+function updateBasicTablePFCategoryLevel(handles,pfCategoryIndex)
+% Update the amount displayed for a particular per-frame feature category
+% in the basic table.
 fv=handles.featureVocabulary;
 pfCategoryName=fv.pfCategoryList{pfCategoryIndex};
 basicData = get(handles.basicTable,'Data');
@@ -1100,7 +1106,7 @@ wfParamName='min_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1141,7 +1147,7 @@ wfParamName='max_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1182,7 +1188,7 @@ wfParamName='nwindow_radii';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1223,7 +1229,7 @@ wfParamName='window_offsets';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1282,7 +1288,7 @@ checked=fv.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1329,7 +1335,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1377,7 +1383,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1425,7 +1431,7 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1497,7 +1503,7 @@ wfParamName=fv.wfExtraParamNames{handles.wfTypeNdx};
 fv.setWFParam(pfName,wfType,wfParamName,newValue);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1618,7 +1624,7 @@ updateWinParams(handles);
 updateWinParamsEnablement(handles);
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -1697,7 +1703,7 @@ updateWinParamsEnablement(handles);
 % end
 
 guidata(hObject,handles);
-updatePFCategoryLevelForCurrentPF(handles);
+updateBasicTablePFCategoryLevelForCurrentPF(handles);
 return
 
 
@@ -2003,9 +2009,9 @@ return
 
 
 % % -------------------------------------------------------------------------
-% % --- Executes on button press in pushbutton_ok.
+% % --- Executes on button press in pushbutton_done.
 % function pushbutton_ok_Callback(hObject, eventdata, handles)
-% % hObject    handle to pushbutton_ok (see GCBO)
+% % hObject    handle to pushbutton_done (see GCBO)
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
 % 
