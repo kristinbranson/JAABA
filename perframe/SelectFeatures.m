@@ -69,9 +69,16 @@ figureJLabel = varargin{1};
 jld = JLabel('getJLabelData',figureJLabel);
 handles.jld=jld;
 
+% Get the cached version of maxWindowRadiusCommon out of JLabel
+maxWindowRadiusCommonCached= ...
+  JLabel('getMaxWindowRadiusCommonCached', ...
+         figureJLabel);
+
 % This is the main aspect of the model---the feature vocabulary, in a form
 % well-suited to SelectFeatures
-handles.featureVocabulary=FeatureVocabularyForSelectFeatures(jld);
+handles.featureVocabulary= ...
+  FeatureVocabularyForSelectFeatures(jld, ...
+                                     maxWindowRadiusCommonCached);
 
 % initialize histogramData
 handles.histogramData = struct;

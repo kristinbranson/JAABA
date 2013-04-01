@@ -7512,6 +7512,24 @@ data=handles.guidata.data;
 return
 
 
+% -------------------------------------------------------------------------
+function maxWindowRadiusCommon=getMaxWindowRadiusCommonCached(figureJLabel)
+
+handles=guidata(figureJLabel);
+maxWindowRadiusCommon=handles.guidata.maxWindowRadiusCommonCached;
+
+return
+
+
+% -------------------------------------------------------------------------
+function setMaxWindowRadiusCommonCached(figureJLabel,maxWindowRadiusCommon)
+
+handles=guidata(figureJLabel);
+handles.guidata.maxWindowRadiusCommonCached=maxWindowRadiusCommon;
+
+return
+
+
 % % -------------------------------------------------------------------------
 % function configfilename=getConfigFileName(figureJLabel)
 % 
@@ -8174,8 +8192,8 @@ function selectFeaturesDone(figureJLabel, ...
 % Called by SelectFeatures after the user clicks on "Done", tells us that
 % the per-frame features may have been changed.
 handles=guidata(figureJLabel);
-handles.guidata.data.UpdatePerframeParams(windowFeaturesParams, ...
-                                          maxWindowRadiusCommon);
+setMaxWindowRadiusCommonCached(figureJLabel,maxWindowRadiusCommon);
+handles.guidata.data.UpdatePerframeParams(windowFeaturesParams);
 handles=guidata(figureJLabel);
 handles.guidata.needsave=true;
 UpdateEnablementAndVisibilityOfControls(handles);

@@ -170,7 +170,8 @@ classdef FeatureVocabularyForSelectFeatures < handle
   % public instance methods
   methods
     % ---------------------------------------------------------------------
-    function self=FeatureVocabularyForSelectFeatures(jld)
+    function self=FeatureVocabularyForSelectFeatures(jld, ...
+                                                     maxWindowRadiusCommon)
       % Constructor.  jld an instance of JLabelData
       scoresAsInput = jld.scoresasinput;
       windowFeatureParams = jld.GetPerframeParams();
@@ -269,10 +270,10 @@ classdef FeatureVocabularyForSelectFeatures < handle
       self.vocabulary = vocabulary;
 
       % If a common max window radius is set, use it
-      if ~isempty(jld.maxWindowRadiusCommonCached)
+      if ~isempty(maxWindowRadiusCommon)
         % set the global maxWindowRadius to the given value
-        self.setMaxWindowRadiusForAllWFs(jld.maxWindowRadiusCommonCached);
-        self.setMaxWindowRadiusForAllWFAmounts(jld.maxWindowRadiusCommonCached);
+        self.setMaxWindowRadiusForAllWFs(maxWindowRadiusCommon);
+        self.setMaxWindowRadiusForAllWFAmounts(maxWindowRadiusCommon);
       end
     end  % constructor method
     
