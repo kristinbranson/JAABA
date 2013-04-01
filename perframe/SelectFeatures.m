@@ -306,37 +306,54 @@ end
 set(handles.pfTable,'Data',tableData);
 
 % Now do an update to properly populate the dynamic cols
-updatePfTable(handles);
+updatePFTable(handles);
 return
 
 
 % -------------------------------------------------------------------------
-function updatePfTable(handles)
+function updatePFTable(handles)
 % Updates the contents of the per-frame feature table.
 
 % Generate the table data, based on the feature vocabulary
 fv=handles.featureVocabulary;  % a ref
 pfList = fv.pfNameList;
 nPFs=length(pfList);
-%tableData = cell(nPFs,4);
 tableData=get(handles.pfTable,'Data');
 for ndx = 1:nPFs
-  %tableData{ndx,1} = pfList{ndx};
   tableData{ndx,2} = fv.vocabulary{ndx}.enabled;
-  %pfCategories=fv.pfCategoriesFromName.(pfList{ndx});
-  %str = sprintf('%s',pfCategories{1});
-  %for sndx = 2:numel(pfCategories)
-  %  str = sprintf('%s,%s',str,pfCategories{sndx});
-  %end
-  %tableData{ndx,4} = str;
   tableData{ndx,3}=fv.getWFAmountForPF(ndx);
 end
 
 % Update the graphics object
 set(handles.pfTable,'Data',tableData);
-% disableWindowTable(handles);
-%updateWindowTableEnablement(handles);
-%guidata(hObject,handles);
+
+% do Java stuff to select the corrent element
+jscrollpane = findjobj(handles.pfTable);
+jtable = jscrollpane.getViewport.getView;
+pfNdx=handles.pfNdx;
+if isempty(pfNdx)
+  jtable.changeSelection(0,0, false, false);
+else
+  jtable.changeSelection(pfNdx-1,0, false, false);
+end  
+
+return
+
+
+% -------------------------------------------------------------------------
+function updatePFTableForCurrentPF(handles)
+% Updates the contents of the per-frame feature table, for just the current
+% PF.
+
+% Generate the table data, based on the feature vocabulary
+fv=handles.featureVocabulary;  % a ref
+pfNdx=handles.pfNdx;
+% pfList = fv.pfNameList;
+% nPFs=length(pfList);
+tableData=get(handles.pfTable,'Data');
+tableData{pfNdx,2} = fv.vocabulary{pfNdx}.enabled;
+tableData{pfNdx,3}=fv.getWFAmountForPF(pfNdx);
+set(handles.pfTable,'Data',tableData);
 
 % do Java stuff to select the corrent element
 jscrollpane = findjobj(handles.pfTable);
@@ -375,13 +392,12 @@ for ndx = 1:nPFCategories
 end
 set(handles.basicTable,'Data',tableData);
 % Call update to populate the dynamic parts of the table
-updateBasicTable(hObject);
+updateBasicTable(handles);
 return
 
 
 % -------------------------------------------------------------------------
-function updateBasicTable(hObject)
-handles = guidata(hObject);
+function updateBasicTable(handles)
 fv=handles.featureVocabulary;
 pfCategoryList=fv.pfCategoryList;
 nPFCategories=length(pfCategoryList);
@@ -392,6 +408,37 @@ for i=1:nPFCategories
   tableData{i,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
 end
 set(handles.basicTable,'Data',tableData);
+return
+
+
+% -------------------------------------------------------------------------
+function updateBasicTableOnePFCategory(handles,pfCategoryName)
+fv=handles.featureVocabulary;
+pfCategoryList=fv.pfCategoryList;
+pfCategoryIndex=find(strcmp(pfCategoryName,pfCategoryList));
+tableData = get(handles.basicTable,'Data');
+tableData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
+tableData{pfCategoryIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
+set(handles.basicTable,'Data',tableData);
+return
+
+
+% -------------------------------------------------------------------------
+function updateBasicTableAllCategoriesOfCurrentPF(handles)
+fv=handles.featureVocabulary;
+pfNameList=fv.pfNameList;
+pfName=pfNameList{handles.pfNdx};
+pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);
+allPFCategories=fv.pfCategoryList;
+pfCategoryIndicesThisName = find(ismember(allPFCategories,pfCategoriesThisName));
+basicData = get(handles.basicTable,'Data');
+for ndx = 1:numel(pfCategoryIndicesThisName)
+  pfCategoryIndex=pfCategoryIndicesThisName(ndx);
+  pfCategoryName=pfCategoriesThisName{ndx};
+  basicData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
+  tableData{pfCategoryIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
+end
+set(handles.basicTable,'Data',basicData);
 return
 
 
@@ -534,8 +581,8 @@ function pfCategoryLevelChanged(hObject,eventData)
       % when the user adds/deletes individual PFs using the Advanced tab.
   end
   guidata(hObject,handles);
-  updateBasicTablePFCategoryLevel(handles,pfCategoryIndex);
-  updatePfTable(handles);
+  updateBasicTable(handles);
+  updatePFTable(handles);
   updateWindowTableAndEnablement(handles);
   updateWinParamsEnablement(handles);
 return
@@ -556,7 +603,8 @@ function pfCategoryWFAmountChanged(hObject,eventData)
     fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,newWFAmount);
   end
   %guidata(hObject,handles);
-  updatePfTable(handles);
+  updateBasicTable(handles);
+  updatePFTable(handles);
   updateWindowTableAndEnablement(handles);
   updateWinParamsAndEnablement(handles);
 return
@@ -669,36 +717,44 @@ pfNdx = eventData.Indices(1,1);
 handles.pfNdx = pfNdx;
 guidata(hObject,handles);
 
-% Update the feature vocabulary
-fv=handles.featureVocabulary;  % a ref
-pfData=get(handles.pfTable,'Data');
-pfName=pfData{pfNdx,1};
-if eventData.Indices(2)==2, 
+% Call the appropriate sub-handler
+tableColumnIndex=eventData.Indices(2);
+if tableColumnIndex==2,
   % User edited the enable/disable column
-  if eventData.NewData
-    % Get an amount to set the PF to, based on the Amount displayed in the
-    % basic table for one of the PFs categories
-    pfCategoryNames=fv.pfCategoriesFromName.(pfName);
-    pfCategoryName=pfCategoryNames{1};  
-      % Just take the first possible category.  This may cause the other
-      % categories (if there are any) to have their Amount go to Custom, but
-      % that's OK
-    pfCategoryIndex = find(strcmp(pfCategoryName,fv.pfCategoryList));
-    basicData = get(handles.basicTable,'Data');
-    wfAmount = basicData{pfCategoryIndex,3};  %#ok
-    fv.setPFToWFAmount(pfName,wfAmount);
-    fv.enablePerframeFeature(pfName);
-  else
-    fv.disablePerframeFeature(pfName);
-  end
-  % Now update the view
-  updateBasicTablePFCategoryLevelForCurrentPF(handles);
-  updateWindowTableAndEnablement(handles);
-  updateWinParamsAndEnablement(handles);
-elseif eventData.Indices(2)==3,
+  pfEnablementChanged(handles,eventData);
+elseif tableColumnIndex==3,
   % User edited the amount column
+  pfAmountChanged(handles,eventData);
 end
   
+return
+
+
+% -------------------------------------------------------------------------
+function pfEnablementChanged(handles,eventData)
+  % This is a "private" "method" of the "controller".
+  fv=handles.featureVocabulary;  % a ref
+  pfIndex=eventData.Indices(1);
+  enabled=eventData.NewData;  
+  fv.setPFEnablement(pfIndex,enabled);
+  % Now update the view
+  updateBasicTable(handles);
+  updateWindowTableAndEnablement(handles);
+  updateWinParamsAndEnablement(handles);
+return
+
+
+% -------------------------------------------------------------------------
+function pfAmountChanged(handles,eventData)
+  % This is a "private" "method" of the "controller".
+  fv=handles.featureVocabulary;  % a ref
+  pfIndex=eventData.Indices(1);
+  newWFAmount=eventData.NewData;  
+  fv.setPFToWFAmount(pfIndex,newWFAmount);
+  % Now update the view
+  updateBasicTable(handles);
+  updateWindowTableAndEnablement(handles);
+  updateWinParamsAndEnablement(handles);
 return
 
 
@@ -833,33 +889,16 @@ updateWinParamsAndEnablement(handles);
 return
 
 
-% -------------------------------------------------------------------------
-function updateBasicTablePFCategoryLevelForCurrentPF(handles)
-fv=handles.featureVocabulary;
-pfNameList=fv.pfNameList;
-pfName=pfNameList{handles.pfNdx};
-pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);
-allPFCategories=fv.pfCategoryList;
-pfCategoryIndicesThisName = find(ismember(allPFCategories,pfCategoriesThisName));
-basicData = get(handles.basicTable,'Data');
-for ndx = 1:numel(pfCategoryIndicesThisName)
-  basicData{pfCategoryIndicesThisName(ndx),2} = ...
-    fv.getPFCategoryLevel(pfCategoriesThisName{ndx});
-end
-set(handles.basicTable,'Data',basicData);
-return
-
-
-% -------------------------------------------------------------------------
-function updateBasicTablePFCategoryLevel(handles,pfCategoryIndex)
-% Update the amount displayed for a particular per-frame feature category
-% in the basic table.
-fv=handles.featureVocabulary;
-pfCategoryName=fv.pfCategoryList{pfCategoryIndex};
-basicData = get(handles.basicTable,'Data');
-basicData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
-set(handles.basicTable,'Data',basicData);
-return
+% % -------------------------------------------------------------------------
+% function updateBasicTablePFCategoryLevel(handles,pfCategoryIndex)
+% % Update the amount displayed for a particular per-frame feature category
+% % in the basic table.
+% fv=handles.featureVocabulary;
+% pfCategoryName=fv.pfCategoryList{pfCategoryIndex};
+% basicData = get(handles.basicTable,'Data');
+% basicData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
+% set(handles.basicTable,'Data',basicData);
+% return
 
 
 % -------------------------------------------------------------------------
@@ -1106,7 +1145,8 @@ wfParamName='min_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1147,7 +1187,8 @@ wfParamName='max_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1188,7 +1229,8 @@ wfParamName='nwindow_radii';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1229,7 +1271,8 @@ wfParamName='window_offsets';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1288,7 +1331,8 @@ checked=fv.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1335,7 +1379,8 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1383,7 +1428,8 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1431,7 +1477,8 @@ checked=featureVocabulary.isWFTransformation(pfName,wfType,transformation);
 set(hObject,'Value',checked);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1503,7 +1550,8 @@ wfParamName=fv.wfExtraParamNames{handles.wfTypeNdx};
 fv.setWFParam(pfName,wfType,wfParamName,newValue);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1624,7 +1672,8 @@ updateWinParams(handles);
 updateWinParamsEnablement(handles);
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
@@ -1703,7 +1752,8 @@ updateWinParamsEnablement(handles);
 % end
 
 guidata(hObject,handles);
-updateBasicTablePFCategoryLevelForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
+updatePFTableForCurrentPF(handles);
 return
 
 
