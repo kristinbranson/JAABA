@@ -134,16 +134,6 @@ adjustColorsIfMac(hObject);
 initializeBasicTable(hObject);
 % Put an initial max window radius in the appropriate editbox in the
 % "Basic" side of the UI
-if isempty(jld.featureWindowSize)
-  featureLexicon= jld.featureLexicon;
-  wfAmounts = fieldnames(featureLexicon.defaults);
-  featureVocabulary=handles.featureVocabulary;  % a ref
-  wfType=featureVocabulary.wfTypes{1};
-  set(handles.editSize,'String',...
-    num2str(featureVocabulary.wfParamsFromAmount.(wfAmounts{1}).(wfType).values.max_window_radius));
-else
-  set(handles.editSize,'String',num2str(jld.featureWindowSize));
-end  
 % And other stuff...
 initializeWindowTable(hObject);
 initializeCopyFromMenus(hObject);
@@ -154,6 +144,7 @@ initializePfTable(hObject);
 removeRowHeaders(hObject);
 
 % Make sure the graphics items are consistent with the model state
+updateMaxWindowRadiusEditBox(handles);
 updateWindowTableAndEnablement(handles);
 updateWinParamsAndEnablement(handles);
 
@@ -411,16 +402,16 @@ set(handles.basicTable,'Data',tableData);
 return
 
 
-% -------------------------------------------------------------------------
-function updateBasicTableOnePFCategory(handles,pfCategoryName)
-fv=handles.featureVocabulary;
-pfCategoryList=fv.pfCategoryList;
-pfCategoryIndex=find(strcmp(pfCategoryName,pfCategoryList));
-tableData = get(handles.basicTable,'Data');
-tableData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
-tableData{pfCategoryIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
-set(handles.basicTable,'Data',tableData);
-return
+% % -------------------------------------------------------------------------
+% function updateBasicTableOnePFCategory(handles,pfCategoryName)
+% fv=handles.featureVocabulary;
+% pfCategoryList=fv.pfCategoryList;
+% pfCategoryIndex=find(strcmp(pfCategoryName,pfCategoryList));
+% tableData = get(handles.basicTable,'Data');
+% tableData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
+% tableData{pfCategoryIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
+% set(handles.basicTable,'Data',tableData);
+% return
 
 
 % -------------------------------------------------------------------------
@@ -436,9 +427,37 @@ for ndx = 1:numel(pfCategoryIndicesThisName)
   pfCategoryIndex=pfCategoryIndicesThisName(ndx);
   pfCategoryName=pfCategoriesThisName{ndx};
   basicData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
-  tableData{pfCategoryIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
+  basicData{pfCategoryIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
 end
 set(handles.basicTable,'Data',basicData);
+return
+
+
+% % -------------------------------------------------------------------------
+% function initializeMaxWindowRadiusEditBox(handles,maxWindowRadius)
+% if ~isempty(maxWindowRadius)
+%   % set the global maxWindowRadius to the given value
+%   fv=handles.featureVocabulary;
+%   fv.setMaxWindowRadiusForAllWFs(maxWindowRadius);
+%   fv.setMaxWindowRadiusForAllWFAmounts(maxWindowRadius);
+% end
+% % Update the view
+% updateMaxWindowRadiusEditBox(handles);
+% return
+
+
+% -------------------------------------------------------------------------
+function updateMaxWindowRadiusEditBox(handles)
+fv=handles.featureVocabulary;
+[thereIsConsensus,maxWindowRadiusConsensus]= ...
+  fv.getConsensusMaxWindowRadiusForAllWFs();
+if thereIsConsensus ,
+  set(handles.editSize,'String',num2str(maxWindowRadiusConsensus), ...
+                       'FontAngle','normal');
+else
+  set(handles.editSize,'String','Custom', ...
+                       'FontAngle','italic');  
+end
 return
 
 
@@ -1502,8 +1521,14 @@ function pushbutton_done_Callback(hObject, eventdata, handles)  %#ok
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
-basicData = get(handles.basicTable,'Data');
-featureWindowSize = str2double(get(handles.editSize,'String'));
+%basicData = get(handles.basicTable,'Data');
+fv=handles.featureVocabulary;
+[thereIsConsensus,maxWindowRadiusConsensus]= ...
+  fv.getConsensusMaxWindowRadiusForAllWFs();
+if ~thereIsConsensus ,
+  maxWindowRadiusConsensus=[];
+end
+%featureWindowSize = str2double(get(handles.editSize,'String'));
 %windowFeaturesParams = convertData(handles);
 windowFeaturesParams = handles.featureVocabulary.getInJLabelDataFormat();
 set(handles.figure_SelectFeatures,'Visible','off');
@@ -1519,8 +1544,7 @@ set(handles.figure_SelectFeatures,'Visible','off');
 JLabel('selectFeaturesDone', ...
        handles.figureJLabel, ...
        windowFeaturesParams, ...
-       basicData, ...
-       featureWindowSize);
+       maxWindowRadiusConsensus);
 return
 
 
@@ -1904,44 +1928,24 @@ function editSize_Callback(hObject, eventdata, handles)  %#ok
 % Hints: get(hObject,'String') returns contents of editSize as text
 %        str2double(get(hObject,'String')) returns contents of editSize as a double
 curVal = str2double(get(hObject,'String'));
-if isempty(curVal)||(round(curVal)-curVal)~=0
-  msgbox('Enter numerical values. eg: "10" (without with quotes)');
-  return;
+if isempty(curVal) || (round(curVal)-curVal)~=0 ,
+  updateMaxWindowRadiusEditBox(handles);
+  return
 end
 
-% First set the default window feature level values
-
+% Set the max window radius in all the window features, _and_ 
+% in all the WF amount presets.  This will mean that any future selection
+% of a preset amount with get the new value of max_window_radius.
 fv=handles.featureVocabulary;
-wfAmounts = fieldnames(handles.wfParamsFromAmount);
-wfTypes = fv.wfTypes;
+fv.setMaxWindowRadiusForAllWFs(curVal);
+fv.setMaxWindowRadiusForAllWFAmounts(curVal);
 
-% Iterate over amounts and window-feature types, and set the max window
-% radius for all of the pre-set amounts to whatever the user entered.
-for i = 1:numel(wfAmounts)
-  wfAmount = wfAmounts{i};
-  for j = 1:numel(wfTypes)
-    wfType=wfTypes{j};
-    wfParams=handles.wfParamsFromAmount.(wfAmount)
-    if isfield(wfParams,wfType),
-      handles.wfParamsFromAmount.(wfAmount).(wfType).values.max_window_radius = curVal;
-    end
-  end
-end
-
-% Do the same for the featureVocabulary
-handles.featureVocabulary.setMaxWindowRadiusForAllWFAmounts(curVal);
-
-% Now copy the default values to the perframe features.
-basicData = get(handles.basicTable,'Data');
-for ndx = 1:size(basicData,1)
-  if strcmp(basicData{ndx,2},'all')
-    handles = applyCategoryType(handles,ndx);
-    handles.featureVocabulary.setAllPFsInCategoryToWFAmount(ndx,basicData{ndx,3});
-  end
-end
-guidata(hObject,handles);
-%updatePfTable(handles.pfTable);
+% Update the view
+updateMaxWindowRadiusEditBox(handles);
 updateWinParams(handles);
+drawnow('update');  % want to see that number change in window params pronto!
+updateBasicTable(handles);
+updatePFTable(handles);
 return
 
 

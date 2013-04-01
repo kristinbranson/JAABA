@@ -179,22 +179,8 @@ classdef FeatureVocabularyForSelectFeatures < handle
         FeatureVocabularyForSelectFeatures.computeWFParamsFromAmount(featureLexicon);
       self.digestFeatureLexicon(featureLexicon,scoresAsInput,jld.allperframefns);
 
-      % Modify the pre-set amounts of window features to accord with the
-      % 'Window Radius', if previously set.
-      if ~isempty(jld.featureWindowSize)
-        %set(self.editSize,'String',num2str(jld.featureWindowSize));
-        curVal = jld.featureWindowSize;
-        wfAmounts = fieldnames(self.wfParamsFromAmount);
-        wfTypes = self.wfTypes;
-        for wfAmountIndex = 1:numel(wfAmounts)
-          curCat = wfAmounts{wfAmountIndex};
-          for wfTypeIndex = 1:numel(wfTypes)
-            if ~isfield(self.wfParamsFromAmount.(curCat),wfTypes{wfTypeIndex}); continue; end
-            self.wfParamsFromAmount.(curCat).(wfTypes{wfTypeIndex}).values.max_window_radius = curVal;
-          end
-        end
-      end
-
+      % read all the feature vocabulary info out of jld, put it in
+      % self
       pfNameList = fieldnames(self.pfCategoriesFromName);
       self.pfNameList = pfNameList;
       validPfs = fieldnames(windowFeatureParams);
@@ -278,7 +264,16 @@ classdef FeatureVocabularyForSelectFeatures < handle
           end
         end
       end
+
+      % commit the vocabulary to self
       self.vocabulary = vocabulary;
+
+      % If a common max window radius is set, use it
+      if ~isempty(jld.maxWindowRadiusCommonCached)
+        % set the global maxWindowRadius to the given value
+        self.setMaxWindowRadiusForAllWFs(jld.maxWindowRadiusCommonCached);
+        self.setMaxWindowRadiusForAllWFAmounts(jld.maxWindowRadiusCommonCached);
+      end
     end  % constructor method
     
     
@@ -467,15 +462,68 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % it does not change the window feature parameters
       % themselves.  So WF params that were previously set using one of the
       % WF amount pre-sets will retain the old values.
-      wfAmounts = fieldnames(self.wfParamsFromAmount);
+      wfAmounts = self.wfAmounts;
       wfTypes = self.wfTypes;
       for i = 1:numel(wfAmounts)
         wfAmount = wfAmounts{i};
         for j = 1:numel(wfTypes)
           wfType=wfTypes{j};
-          wfParams=handles.wfParamsFromAmount.(wfAmount)
+          wfParams=self.wfParamsFromAmount.(wfAmount);
           if isfield(wfParams,wfType),
-            handles.wfParamsFromAmount.(wfAmount).(wfType).values.max_window_radius = newValue;
+            self.wfParamsFromAmount.(wfAmount).(wfType).values.max_window_radius = newValue;
+          end
+        end
+      end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function setMaxWindowRadiusForAllWFs(self,newValue)
+      % This sets the maximum window radius for all per-frame features, for
+      % all window-feature types.  Thus for all window features.
+      pfNames=self.pfNameList;
+      wfTypes = self.wfTypes;
+      for i = 1:length(pfNames)
+        for j = 1:length(wfTypes)
+          wfType=wfTypes{j};
+          if isfield(self.vocabulary{i},wfType),
+            self.vocabulary{i}.(wfType).values.max_window_radius=newValue;
+          end
+        end
+      end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [thereIsConsensus,consensusValue]=getConsensusMaxWindowRadiusForAllWFs(self)
+      % Determines the common value of max_window_radius across all WFs, in
+      % all PFs.  thereIsConsensus will be true iff there is a common
+      % value.  The common value is returned in consensusValue.  If there
+      % is no common value, consensusValue is unspecified.  If there are no
+      % WFs at all in the vocabulary, thereIsConsensus will be true, but
+      % consensusValue will be empty.
+      thereIsConsensus=true;
+      consensusValue=[];
+      pfNames=self.pfNameList;
+      wfTypes = self.wfTypes;
+      for i = 1:length(pfNames)
+        for j = 1:length(wfTypes)
+          wfType=wfTypes{j};
+          if isfield(self.vocabulary{i},wfType),
+            thisValue=self.vocabulary{i}.(wfType).values.max_window_radius;
+            if isempty(consensusValue)
+              % If this is the first value we've examined, it becomes the
+              % consensus value
+              consensusValue=thisValue;
+            else
+              % if this is not the first value we've examined, compare it
+              % to the consensusValue.
+              if thisValue~=consensusValue
+                % No consensus value---return empty matrix
+                thereIsConsensus=false;
+                return
+              end
+            end
           end
         end
       end
@@ -545,6 +593,9 @@ classdef FeatureVocabularyForSelectFeatures < handle
     function windowFeatureParams = getInJLabelDataFormat(self)
       % Converts the feature vocabulary into the format used by JLabelData,
       % returns this.
+      % Note that none of the information about window-feature amount
+      % presets (e.g. normal, more, less) gets used in computing the
+      % output.
       windowFeatureParams = struct;
       for pfIndex = 1:numel(self.pfNameList)
         pfName = self.pfNameList{pfIndex};

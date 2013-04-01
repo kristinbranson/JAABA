@@ -8170,14 +8170,12 @@ return
 % ------------------------------------------------------------------------ 
 function selectFeaturesDone(figureJLabel, ...
                             windowFeaturesParams, ...
-                            basicData, ...
-                            featureWindowSize)
+                            maxWindowRadiusCommon)
 % Called by SelectFeatures after the user clicks on "Done", tells us that
 % the per-frame features may have been changed.
 handles=guidata(figureJLabel);
 handles.guidata.data.UpdatePerframeParams(windowFeaturesParams, ...
-                                          basicData, ...
-                                          featureWindowSize);
+                                          maxWindowRadiusCommon);
 handles=guidata(figureJLabel);
 handles.guidata.needsave=true;
 UpdateEnablementAndVisibilityOfControls(handles);
