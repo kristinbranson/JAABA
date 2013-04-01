@@ -1231,6 +1231,7 @@ wfParamName='max_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
 
 guidata(hObject,handles);
+updateMaxWindowRadiusEditBox(handles);
 updateBasicTableAllCategoriesOfCurrentPF(handles);
 updatePFTableForCurrentPF(handles);
 return
