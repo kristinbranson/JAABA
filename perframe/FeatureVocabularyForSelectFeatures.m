@@ -234,7 +234,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
                 end
               end
               if ~isempty(self. wfExtraParamNames{wfTypeNdx})
-                extraParamName = self. wfExtraParamNames{wfTypeNdx};
+                extraParamName = self.wfExtraParamNames{wfTypeNdx};
                 vocabulary{pfIndex}.(wfType).values.(extraParamName) = wfParamsThisType.(extraParamName);
               end
             else
@@ -245,36 +245,43 @@ classdef FeatureVocabularyForSelectFeatures < handle
                 wfParamName = wfParamNames{wfParamNdx};
                 vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
               end
-              if ~isempty(self. wfExtraParamNames{wfTypeNdx})
-                extraParamName = self. wfExtraParamNames{wfTypeNdx};
+              if ~isempty(self.wfExtraParamNames{wfTypeNdx})
+                extraParamName = self.wfExtraParamNames{wfTypeNdx};
                 vocabulary{pfIndex}.(wfType).values.(extraParamName) = self.defaultWFExtraParams{wfTypeNdx};
               end
             end
           end
         else
-          % If PF is disabled, use default values
+          % If PF is disabled, use values in the preset
+          vocabulary{pfIndex}=wfParamsAmount;
           vocabulary{pfIndex}.enabled = false;
           vocabulary{pfIndex}.sanitycheck = false;
-          vocabulary{pfIndex}.default.enabled = true;
-          for wfParamNamesNdx = 1:numel(self.wfParamNames)
-            wfParamName = self.wfParamNames{wfParamNamesNdx};
-            vocabulary{pfIndex}.default.values.(wfParamName) = ...
-              self.defaultWFParams{wfParamNamesNdx};
+          % Tack on the default translation types, which depend on which
+          % per-frame feature this is
+          for i=1:length(self.wfTypes)
+            wfType=self.wfTypes{i};
+            vocabulary{pfIndex}.(wfType).values.trans_types=self.defaultPFTransTypesFromName.(pfName);
           end
-          % Copy the default values into the other window params.
-          for winfnNdx = 2:numel(self.wfTypes)
-            wfType = self.wfTypes{winfnNdx};
-            vocabulary{pfIndex}.(wfType).enabled = false;
-            for wfParamNamesNdx = 1:numel(self.wfParamNames)
-              wfParamName = self.wfParamNames{wfParamNamesNdx};
-              vocabulary{pfIndex}.(wfType).values.(wfParamName) = ...
-                vocabulary{pfIndex}.default.values.(wfParamName);
-            end
-            if ~isempty(self.wfExtraParamNames{winfnNdx})
-              extraParamName = self.wfExtraParamNames{winfnNdx};
-              vocabulary{pfIndex}.(wfType).values.(extraParamName) = self.defaultWFExtraParams{winfnNdx};
-            end
-          end
+%           vocabulary{pfIndex}.default.enabled = true;
+%           for wfParamNamesNdx = 1:numel(self.wfParamNames)
+%             wfParamName = self.wfParamNames{wfParamNamesNdx};
+%             vocabulary{pfIndex}.default.values.(wfParamName) = ...
+%               self.defaultWFParams{wfParamNamesNdx};
+%           end
+%           % Copy the default values into the other window params.
+%           for winfnNdx = 2:numel(self.wfTypes)
+%             wfType = self.wfTypes{winfnNdx};
+%             vocabulary{pfIndex}.(wfType).enabled = false;
+%             for wfParamNamesNdx = 1:numel(self.wfParamNames)
+%               wfParamName = self.wfParamNames{wfParamNamesNdx};
+%               vocabulary{pfIndex}.(wfType).values.(wfParamName) = ...
+%                 vocabulary{pfIndex}.default.values.(wfParamName);
+%             end
+%             if ~isempty(self.wfExtraParamNames{winfnNdx})
+%               extraParamName = self.wfExtraParamNames{winfnNdx};
+%               vocabulary{pfIndex}.(wfType).values.(extraParamName) = self.defaultWFExtraParams{winfnNdx};
+%             end
+%           end
         end
       end
       self.vocabulary = vocabulary;
