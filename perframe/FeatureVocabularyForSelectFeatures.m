@@ -120,38 +120,40 @@ classdef FeatureVocabularyForSelectFeatures < handle
         for wfAmountIndex = 1:numel(wfAmounts)
           wfAmount=wfAmounts{wfAmountIndex};
           wfParams = struct;
-          wfParamsInLexicon = featureLexicon.defaults.(wfAmount);
+          wfParamsThisAmount = featureLexicon.defaults.(wfAmount);
           % Set the parameters for the WFs of type 'default'
           wfParams.default.enabled = true;
           for ndx = 1:numel(wfParamNames)
             wfParamName = wfParamNames{ndx};
-            wfParams.default.values.(wfParamName) = wfParamsInLexicon.(wfParamName);
+            wfParams.default.values.(wfParamName) = wfParamsThisAmount.(wfParamName);
           end
           wfParams.default.values.sanitycheck = false;
           % Set the parameters for the other WF types
           for ndx = 2:numel(wfTypes)
             % Copy the default values.
             wfType = wfTypes{ndx};
+            % copy the values from WF type 'default' to this WF type
             for paramIndex = 1:numel(wfParamNames)
               wfParamName = wfParamNames{paramIndex};
               wfParams.(wfType).values.(wfParamName) = wfParams.default.values.(wfParamName);
             end
-            % Override the default window params for the current window computation type
-            if isfield(wfParamsInLexicon,wfType)
+            % If this WF type is included in the preset, enable the WF
+            % type, and... 
+            if isfield(wfParamsThisAmount,wfType)
               wfParams.(wfType).enabled = true;
-              diffFields = fieldnames(wfParamsInLexicon.(wfType));
-              for dndx = 1:numel(diffFields)
-                if any(strcmp(wfParamNames,diffFields{dndx}))
-                  wfParamName = diffFields{dndx};
-                  wfParams.(wfType).values.(wfParamName) = wfParamsInLexicon.(wfType).(wfParamName);
+              wfParamNamesThisAmount = fieldnames(wfParamsThisAmount.(wfType));
+              for dndx = 1:numel(wfParamNamesThisAmount)
+                if ismember(wfParamNamesThisAmount{dndx},wfParamNames) ,
+                  wfParamName = wfParamNamesThisAmount{dndx};
+                  wfParams.(wfType).values.(wfParamName) = wfParamsThisAmount.(wfType).(wfParamName);
                 end
               end
               if ~isempty(wfExtraParamNames{ndx})
-                extraParam = wfExtraParamNames{ndx};
-                if isfield(wfParamsInLexicon.(wfType),extraParam)
-                  wfParams.(wfType).values.(extraParam) = wfParamsInLexicon.(wfType).(extraParam);
+                extraParamName = wfExtraParamNames{ndx};
+                if isfield(wfParamsThisAmount.(wfType),extraParamName)
+                  wfParams.(wfType).values.(extraParamName) = wfParamsThisAmount.(wfType).(extraParamName);
                 else
-                  wfParams.(wfType).values.(extraParam) = '';
+                  wfParams.(wfType).values.(extraParamName) = '';
                 end
               end
             else
@@ -170,107 +172,94 @@ classdef FeatureVocabularyForSelectFeatures < handle
   % public instance methods
   methods
     % ---------------------------------------------------------------------
-    function self=FeatureVocabularyForSelectFeatures(jld, ...
+    function self=FeatureVocabularyForSelectFeatures(featureLexicon, ...
+                                                     scoresAsInput, ...
+                                                     allPFNames, ...
+                                                     windowFeatureParams, ...
                                                      maxWindowRadiusCommon)
-      % Constructor.  jld an instance of JLabelData
-      scoresAsInput = jld.scoresasinput;
-      windowFeatureParams = jld.GetPerframeParams();
-      featureLexicon = jld.featureLexicon;
+      % Constructor.  jld an instance of JLabelData, maxWindowRadiusCommon
+      % a value to be set for max_window_radius for all PFs, all WF types,
+      % and all preset WF amounts.
+      
+      % Set a bunch of things that are derived from the constructor input,
+      % but stay constant for the life of the object
       self.wfParamsFromAmount= ...
         FeatureVocabularyForSelectFeatures.computeWFParamsFromAmount(featureLexicon);
-      self.digestFeatureLexicon(featureLexicon,scoresAsInput,jld.allperframefns);
+      self.digestFeatureLexicon(featureLexicon,scoresAsInput,allPFNames);
 
-      % read all the feature vocabulary info out of jld, put it in
-      % self
-      pfNameList = fieldnames(self.pfCategoriesFromName);
-      self.pfNameList = pfNameList;
-      validPfs = fieldnames(windowFeatureParams);
+      % Populate the list of per-frame feature names
+      pfNames = fieldnames(self.pfCategoriesFromName);
+      self.pfNameList = pfNames;
+      
+      % Populate the feature vocabulary proper
+      enabledPFs = fieldnames(windowFeatureParams);
       wfParamNames = self.wfParamNames;
-      nPFNames=length(pfNameList);
-      vocabulary = cell(1,nPFNames);      
-      for ndx = 1:nPFNames
-        curPfName = pfNameList{ndx};
-        vocabulary{ndx}.name = curPfName;
-        pNdx = find(strcmp(curPfName,validPfs));
-        if pNdx
-          vocabulary{ndx}.enabled = true;  
-          vocabulary{ndx}.sanitycheck = windowFeatureParams.(curPfName).sanitycheck;
-          % Fill the default values.
-          for wfParamNamesNdx = 1:numel(wfParamNames)
-            curType = wfParamNames{wfParamNamesNdx};
-            if isfield(windowFeatureParams.(curPfName),curType)
-              vocabulary{ndx}.default.values.(curType) = windowFeatureParams.(curPfName).(curType);
+      wfAmounts=self.wfAmounts;
+      wfAmount=wfAmounts{1};  % by convention, the first one is the default setting (e.g. 'normal')
+      nPFNames=length(pfNames);
+      vocabulary = cell(1,nPFNames);
+      for pfIndex = 1:nPFNames
+        pfName = pfNames{pfIndex};
+        vocabulary{pfIndex}.name = pfName;
+        if ismember(pfName,enabledPFs) ,
+          % if this PF is enabled, copy its params out of
+          % windowFeatureParams
+          vocabulary{pfIndex}.enabled = true;  
+          vocabulary{pfIndex}.sanitycheck = windowFeatureParams.(pfName).sanitycheck;
+          % Fill for the window feature type called 'default'
+          for wfParamNdx = 1:numel(wfParamNames)
+            wfParamName = wfParamNames{wfParamNdx};
+            if isfield(windowFeatureParams.(pfName),wfParamName)
+              vocabulary{pfIndex}.default.values.(wfParamName) = windowFeatureParams.(pfName).(wfParamName);
             else % Fill in the default value
-              vocabulary{pfNdx}.default.values.(curType) = ...
-                self.defaultWFParams{wfParamNamesNdx};
+              vocabulary{pfNdx}.default.values.(wfParamName) = ...
+                self.defaultWFParams{wfParamNdx};
             end
-            vocabulary{ndx}.default.enabled = true;
+            vocabulary{pfIndex}.default.enabled = true;
           end
-          % Fill for different window function type.
-          % Find which ones are valid.
-          curParam = windowFeatureParams.(curPfName);
-          validWinfn = fieldnames(curParam);
-          for winfnNdx = 2:numel(self.wfTypes)
-            curFn = self.wfTypes{winfnNdx};
-            wNdx = find(strcmp(curFn,validWinfn));
-            if wNdx,
-              vocabulary{ndx}.(curFn).enabled = true;
-              curWinFnParams = windowFeatureParams.(curPfName).(curFn);
-              for wfParamNamesNdx = 1:numel(wfParamNames)
-                curType = wfParamNames{wfParamNamesNdx};
-                if isfield(curWinFnParams,curType)
-                  vocabulary{ndx}.(curFn).values.(curType) = curWinFnParams.(curType);
+          % Fill for the rest of the window feature types.
+          enabledWFTypes = fieldnames(windowFeatureParams.(pfName));
+          for wfTypeNdx = 2:numel(self.wfTypes)
+            wfType = self.wfTypes{wfTypeNdx};
+            if ismember(wfType,enabledWFTypes) ,
+              vocabulary{pfIndex}.(wfType).enabled = true;
+              wfParamsThisType = windowFeatureParams.(pfName).(wfType);
+              for wfParamNdx = 1:numel(wfParamNames)
+                wfParamName = wfParamNames{wfParamNdx};
+                if isfield(wfParamsThisType,wfParamName)
+                  vocabulary{pfIndex}.(wfType).values.(wfParamName) = wfParamsThisType.(wfParamName);
                 else % fill in the default values
-                  vocabulary{ndx}.(curFn).values.(curType) = vocabulary{ndx}.default.values.(curType);
+                  vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
                 end
               end
-              if ~isempty(self. wfExtraParamNames{winfnNdx})
-                extraParam = self. wfExtraParamNames{winfnNdx};
-                vocabulary{ndx}.(curFn).values.(extraParam) = curWinFnParams.(extraParam);
+              if ~isempty(self. wfExtraParamNames{wfTypeNdx})
+                extraParam = self. wfExtraParamNames{wfTypeNdx};
+                vocabulary{pfIndex}.(wfType).values.(extraParam) = wfParamsThisType.(extraParam);
               end
-            else % Values for window comp haven't been defined.
-              vocabulary{ndx}.(curFn).enabled = false;
-              for wfParamNamesNdx = 1:numel(wfParamNames)
-                curType = wfParamNames{wfParamNamesNdx};
-                vocabulary{ndx}.(curFn).values.(curType) = vocabulary{ndx}.default.values.(curType);
+            else
+              % If the window type is disabled, use default values for its
+              % parameters
+              vocabulary{pfIndex}.(wfType).enabled = false;
+              for wfParamNdx = 1:numel(wfParamNames)
+                wfParamName = wfParamNames{wfParamNdx};
+                vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
               end
-              if ~isempty(self. wfExtraParamNames{winfnNdx})
-                extraParam = self. wfExtraParamNames{winfnNdx};
-                vocabulary{ndx}.(curFn).values.(extraParam) = self.defaultWFExtraParams{winfnNdx};
+              if ~isempty(self. wfExtraParamNames{wfTypeNdx})
+                extraParam = self. wfExtraParamNames{wfTypeNdx};
+                vocabulary{pfIndex}.(wfType).values.(extraParam) = self.defaultWFExtraParams{wfTypeNdx};
               end
             end
           end
-        else % Default values for invalid pf's.
-          vocabulary{ndx}.enabled = false;
-          vocabulary{ndx}.sanitycheck = false;
-          vocabulary{ndx}.default.enabled = true;
-          for wfParamNamesNdx = 1:numel(self.wfParamNames)
-            curType = self.wfParamNames{wfParamNamesNdx};
-            vocabulary{ndx}.default.values.(curType) = ...
-              self.defaultWFParams{wfParamNamesNdx};
-          end
-          % Copy the default values into the other window params.
-          for winfnNdx = 2:numel(self.wfTypes)
-            curFn = self.wfTypes{winfnNdx};
-            vocabulary{ndx}.(curFn).enabled = false;
-            for wfParamNamesNdx = 1:numel(self.wfParamNames)
-              curType = self.wfParamNames{wfParamNamesNdx};
-              vocabulary{ndx}.(curFn).values.(curType) = ...
-                vocabulary{ndx}.default.values.(curType);
-            end
-            if ~isempty(self.wfExtraParamNames{winfnNdx})
-              extraParam = self.wfExtraParamNames{winfnNdx};
-              vocabulary{ndx}.(curFn).values.(extraParam) = self.defaultWFExtraParams{winfnNdx};
-            end
-          end
+        else
+          % If PF is disabled, use default values
+          self.setPFToWFAmount(pfName,wfAmount);
+          self.setPFEnablement(pfName,false);
         end
       end
-
-      % commit the vocabulary to self
       self.vocabulary = vocabulary;
 
       % If a common max window radius is set, use it
-      if ~isempty(maxWindowRadiusCommon)
+      if exist('maxWindowRadiusCommon','var') && ~isempty(maxWindowRadiusCommon)
         % set the global maxWindowRadius to the given value
         self.setMaxWindowRadiusForAllWFs(maxWindowRadiusCommon);
         self.setMaxWindowRadiusForAllWFAmounts(maxWindowRadiusCommon);
