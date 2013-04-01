@@ -42,22 +42,31 @@ classdef FeatureVocabularyForSelectFeatures < handle
   
   % class constants
   properties (Access=public,Constant=true)
-    % Window features come in different types.  This is a list of the
+    % Window features come in different types.  Below is a list of the
     % different types.  (formerly windowComp)
     wfTypes = {'default','mean','min','max','hist','prctile',...
                'change','std','harmonic','diff_neighbor_mean',...
                'diff_neighbor_min','diff_neighbor_max','zscore_neighbors'};
-    % Window features have parameters.  These are the names of those parameters.
+    % Window features have parameters.  Below are the names of those parameters.
+    % These parameters exist for each WF type.  (They should arguably be
+    % called the "standard" parameters, or the "common" parameters,
+    % because they exist for all WF types.  Whereas the extra parameters,
+    % below, are each particular to one WF type.
     % (Formerly winParams.)
     wfParamNames = {'max_window_radius','min_window_radius','nwindow_radii',...
                     'trans_types','window_offsets'};
-    % These are the default values for the window feature parameters.  (Formerly defaultWinParams.)              
+    % These are the default values for the window feature parameters.  (Formerly defaultWinParams.)
+    % They are only used if the lexicon fails to specify pre-set
+    % window-feature amounts (e.g. normal, more, less)
     defaultWFParams = {10,1,3,{'none'},0};
-    % Window features sometimes have extra parameters.  These are the names 
-    % of those parameters.  (Formerly winextraParams.)                  
+    % A Window feature type can sometimes have an extra parameter.  Below are the names 
+    % of those parameters, one for each WF type.  WF types without an extra param have the 
+    % empty string for their entry.  (Formerly winextraParams.)                  
     wfExtraParamNames = {'','','','','hist_edges','prctiles','change_window_radii',...
                          '','num_harmonic','','','',''};
-    % These are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
+    % Below are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
+    % They are only used if the lexicon fails to specify pre-set
+    % window-feature amounts (e.g. normal, more, less)
     defaultWFExtraParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
                             [],2,[],[],[],[]};
   end  % class constants
@@ -303,37 +312,44 @@ classdef FeatureVocabularyForSelectFeatures < handle
         self.setPFToWFAmount(pfName,wfAmount)
       end
     end  % method
-    
+
     
     % ---------------------------------------------------------------------
-    function enablePerframeFeature(self,pfName)
+    function setPFEnablement(self,pfSpecifier,enabled)
+      % Turn on/off the given per-frame feature, but leave the window feature 
+      % parameters alone.
+      % pfIndicator can be a name or an index.
+      if ischar(pfSpecifier)
+        % this means pfIndex is really a name
+        pfName=pfSpecifier;
+        pfIndex=find(strcmp(pfName,self.pfNameList));  
+      else
+        pfIndex=pfSpecifier;
+      end
+      self.vocabulary{pfIndex}.enabled = enabled;
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function enablePerframeFeature(self,pfSpecifier)
       % Turn on the given per-frame feature, but leave the window feature 
       % parameters alone.
-      pfIndex=find(strcmp(pfName,self.pfNameList));  
-      %pfTransTypes=self.defaultPFTransTypesFromName.(pfName);
-      self.vocabulary{pfIndex}.enabled = true;  %#ok
-      %pfCategories=self.pfCategoriesFromName.(pfName);
-      %pfCategory = pfCategories{1};  % why the first one?
-      %categoryNdx = find(strcmp(pfCategory,self.pfCategoryList));
-      %wfParams=self.wfParamsFromAmount.(wfAmount);
-      %self.vocabulary{pfIndex}.enabled = true;
-%       for wfTypeIndex = 1:numel(self.wfTypes)
-%         wfType = self.wfTypes{wfTypeIndex};
-%         wfParamsThisType=wfParams.(wfType);
-%         if ~wfParamsThisType.enabled
-%           self.vocabulary{pfIndex}.(wfType).enabled = false;
-%           continue;
-%         end
-%         %self = CopyDefaultWindowParams(self,...
-%         %  wfAmount, pfIndex,wfTypeIndex);
-%         self.setWindowFeaturesOfTypeToAmount(pfIndex,wfTypeIndex,wfAmount);
-%         self.vocabulary{pfIndex}.(wfType).values.trans_types = pfTransTypes;
-%       end
+      % This method is deprecated.
+      setPFEnablement(self,pfSpecifier,true);
     end  % method
     
     
     % ---------------------------------------------------------------------
-    function setPFToWFAmount(self,pfName,wfAmount)
+    function disablePerframeFeature(self,pfSpecifier)
+      % Turn off the given per-frame feature.  (I.e. remove all it's window 
+      % features from the vocabulary)
+      % This method is deprecated.
+      setPFEnablement(self,pfSpecifier,false);
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function setPFToWFAmount(self,pfSpecifier,wfAmount)
       % Set the window feature parameters for the named PF to those
       % specified by the named wfAmount (normal, more, less).  This is
       % orthogonal to whether that PF is enabled or not.  Note that this
@@ -342,7 +358,13 @@ classdef FeatureVocabularyForSelectFeatures < handle
       if isequal(wfAmount,'custom')
         return
       end
-      pfIndex=find(strcmp(pfName,self.pfNameList));  
+      if ischar(pfSpecifier)
+        pfName=pfSpecifier;
+        pfIndex=find(strcmp(pfName,self.pfNameList));
+      else
+        pfIndex=pfSpecifier;
+        pfName=self.pfNameList{pfIndex};
+      end
       defaultPFTransTypes=self.defaultPFTransTypesFromName.(pfName);
       %self.vocabulary{pfIndex}.enabled = true;
       %pfCategories=self.pfCategoriesFromName.(pfName);
@@ -360,15 +382,6 @@ classdef FeatureVocabularyForSelectFeatures < handle
         self.setWindowFeaturesOfSingleType(pfIndex,wfTypeIndex,wfParamTemplate);
         self.vocabulary{pfIndex}.(wfType).values.trans_types = defaultPFTransTypes;
       end
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function disablePerframeFeature(self,pfName)
-      % Turn off the given per-frame feature.  (I.e. remove all it's window 
-      % features from the vocabulary)
-      pfIndex=find(strcmp(pfName,self.pfNameList));  
-      self.vocabulary{pfIndex}.enabled = false;  %#ok
     end  % method
     
     
@@ -600,7 +613,11 @@ classdef FeatureVocabularyForSelectFeatures < handle
         end
       end
       if nPFsInCategoryAndVocab==0
-        level='none';
+        if nPFsInCategoryAndVocab==nPFsInCategory
+          level='n/a';
+        else
+          level='none';
+        end
       elseif nPFsInCategoryAndVocab==nPFsInCategory
         level='all';
       else
@@ -698,14 +715,14 @@ classdef FeatureVocabularyForSelectFeatures < handle
           extraWFParamName = self.wfExtraParamNames{wfTypeIndex};
           if ~isempty(extraWFParamName) && ...
              isfield(pfParamsTemplate.(wfType).values,extraWFParamName) && ...
-             (pfParams.(wfType).values.(extraWFParamName) ~= ...
-              pfParamsTemplate.(wfType).values.(extraWFParamName) ),
+             ~isequal(pfParams.(wfType).values.(extraWFParamName), ...
+                      pfParamsTemplate.(wfType).values.(extraWFParamName)) ,
             isMatch=false;
             break
           end
           % Check the transformation types also
-          if isequal(unique(pfParams.(wfType).values.trans_types) , ...
-                     unique(defaultPFTransTypes) ) ,
+          if ~isequal(unique(pfParams.(wfType).values.trans_types) , ...
+                      unique(defaultPFTransTypes) ) ,
             isMatch=false;
             break
           end
