@@ -66,92 +66,90 @@ classdef FeatureVocabularyForSelectFeatures < handle
   methods (Access=public,Static=true)
     % ---------------------------------------------------------------------
     function wfParamsFromAmount= ...
-      computeWFParamsFromAmount(featureLexicon, ...
-                                wfParamNames,defaultWFParams, ...
-                                wfExtraParamNames,defaultWFExtraParams)
+      computeWFParamsFromAmount(featureLexicon)
+      % Get some class constants we'll need
+      wfTypes = ...
+        FeatureVocabularyForSelectFeatures.wfTypes;
+      wfParamNames = ...
+        FeatureVocabularyForSelectFeatures.wfParamNames;
+      defaultWFParams = ...
+        FeatureVocabularyForSelectFeatures.defaultWFParams;
+      wfExtraParamNames = ...
+        FeatureVocabularyForSelectFeatures.wfExtraParamNames;
+      defaultWFExtraParams = ...
+        FeatureVocabularyForSelectFeatures.defaultWFExtraParams;
       % Read the default parameters for different categories.
-      categories = fieldnames(featureLexicon.defaults);
-
-      if isempty(categories) 
-        % If no default have been specified in the config file.
-
-        categories{1} = 'default';
-        curParams = struct;
-
-        % Default values.
+      wfAmounts = fieldnames(featureLexicon.defaults);
+      if isempty(wfAmounts) 
+        % If no preset amounts have been specified in the lexicon file,
+        % fall back on the built-in defaults.
+        wfAmount='default';
+        wfParams = struct;
+        % Set the parameters for the WFs of type 'default'
+        wfParams.default.enabled = true;
         for ndx = 1:numel(wfParamNames)
-          curwinpname = wfParamNames{ndx};
-          curParams.default.values.(curwinpname) = defaultWFParams{ndx};
+          wfParamName = wfParamNames{ndx};
+          wfParams.default.values.(wfParamName) = defaultWFParams{ndx};
         end
-        curParams.default.enabled = true;
-        curParams.default.values.sanitycheck = false;
-
-        % For each defined window computation.
+        wfParams.default.values.sanitycheck = false;
+        % Set the parameters for the other WF types
         for ndx = 2:numel(wfTypes)
-          % Copy the default values.
-          curwname = wfTypes{ndx};
-          for pndx = 1:numel(wfParamNames)
-            curwinpname = wfParamNames{pndx};
-            curParams.(curwname).values.(curwinpname) = defaultWFParams{pndx};
+          wfType = wfTypes{ndx};
+          wfParams.(wfType).enabled = false;
+          for paramIndex = 1:numel(wfParamNames)
+            wfParamName = wfParamNames{paramIndex};
+            wfParams.(wfType).values.(wfParamName) = defaultWFParams{paramIndex};
           end
-
           if ~isempty(wfExtraParamNames{ndx})
-            extraParam = wfExtraParamNames{ndx};
-            curParams.(curwname).values.(extraParam) = wfExtraParamNames{ndx};
+            extraParamName = wfExtraParamNames{ndx};
+            wfParams.(wfType).values.(extraParamName) = defaultWFExtraParams{ndx};
           end
-          curParams.(curwname).enabled = false;
         end
-        wfParamsFromAmount.(categories{1}) = curParams;
-
-
+        wfParamsFromAmount.(wfAmount) = wfParams;
       else
-        % fill the window params for different feature categories.
-
-        for j = 1:numel(categories)
-          curParams = struct;
-          cur = featureLexicon.defaults.(categories{j});
-
-          % Default values.
+        % The usual case --- preset amounts are defined in the lexicon.
+        for wfAmountIndex = 1:numel(wfAmounts)
+          wfAmount=wfAmounts{wfAmountIndex};
+          wfParams = struct;
+          wfParamsInLexicon = featureLexicon.defaults.(wfAmount);
+          % Set the parameters for the WFs of type 'default'
+          wfParams.default.enabled = true;
           for ndx = 1:numel(wfParamNames)
-            curwinpname = wfParamNames{ndx};
-            curParams.default.values.(curwinpname) = cur.(curwinpname);
+            wfParamName = wfParamNames{ndx};
+            wfParams.default.values.(wfParamName) = wfParamsInLexicon.(wfParamName);
           end
-          curParams.default.enabled = true;
-          curParams.default.values.sanitycheck = false;
-
-          % For each defined window computation.
+          wfParams.default.values.sanitycheck = false;
+          % Set the parameters for the other WF types
           for ndx = 2:numel(wfTypes)
             % Copy the default values.
-            curwname = wfTypes{ndx};
-            for pndx = 1:numel(wfParamNames)
-              curwinpname = wfParamNames{pndx};
-              curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
+            wfType = wfTypes{ndx};
+            for paramIndex = 1:numel(wfParamNames)
+              wfParamName = wfParamNames{paramIndex};
+              wfParams.(wfType).values.(wfParamName) = wfParams.default.values.(wfParamName);
             end
-
             % Override the default window params for the current window computation type
-            if isfield(cur,curwname)
-              curParams.(curwname).enabled = true;
-              diffFields = fieldnames(cur.(curwname));
+            if isfield(wfParamsInLexicon,wfType)
+              wfParams.(wfType).enabled = true;
+              diffFields = fieldnames(wfParamsInLexicon.(wfType));
               for dndx = 1:numel(diffFields)
                 if any(strcmp(wfParamNames,diffFields{dndx}))
-                  curwinpname = diffFields{dndx};
-                  curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
+                  wfParamName = diffFields{dndx};
+                  wfParams.(wfType).values.(wfParamName) = wfParamsInLexicon.(wfType).(wfParamName);
                 end
               end
-
               if ~isempty(wfExtraParamNames{ndx})
                 extraParam = wfExtraParamNames{ndx};
-                if isfield(cur.(curwname),extraParam)
-                  curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
+                if isfield(wfParamsInLexicon.(wfType),extraParam)
+                  wfParams.(wfType).values.(extraParam) = wfParamsInLexicon.(wfType).(extraParam);
                 else
-                  curParams.(curwname).values.(extraParam) = '';
+                  wfParams.(wfType).values.(extraParam) = '';
                 end
               end
             else
-              curParams.(curwname).enabled = false;
+              wfParams.(wfType).enabled = false;
             end
           end
-          wfParamsFromAmount.(categories{j}) = curParams;
+          wfParamsFromAmount.(wfAmount) = wfParams;
         end
       end
     end  % method    
@@ -168,18 +166,22 @@ classdef FeatureVocabularyForSelectFeatures < handle
       scoresAsInput = jld.scoresasinput;
       windowFeatureParams = jld.GetPerframeParams();
       featureLexicon = jld.featureLexicon;
+      self.wfParamsFromAmount= ...
+        FeatureVocabularyForSelectFeatures.computeWFParamsFromAmount(featureLexicon);
       self.digestFeatureLexicon(featureLexicon,scoresAsInput,jld.allperframefns);
 
+      % Modify the pre-set amounts of window features to accord with the
+      % 'Window Radius', if previously set.
       if ~isempty(jld.featureWindowSize)
         %set(self.editSize,'String',num2str(jld.featureWindowSize));
         curVal = jld.featureWindowSize;
         wfAmounts = fieldnames(self.wfParamsFromAmount);
-        winComp = self.wfTypes;
-        for cndx = 1:numel(wfAmounts)
-          curCat = wfAmounts{cndx};
-          for wndx = 1:numel(winComp)
-            if ~isfield(self.wfParamsFromAmount.(curCat),winComp{wndx}); continue; end
-            self.wfParamsFromAmount.(curCat).(winComp{wndx}).values.max_window_radius = curVal;
+        wfTypes = self.wfTypes;
+        for wfAmountIndex = 1:numel(wfAmounts)
+          curCat = wfAmounts{wfAmountIndex};
+          for wfTypeIndex = 1:numel(wfTypes)
+            if ~isfield(self.wfParamsFromAmount.(curCat),wfTypes{wfTypeIndex}); continue; end
+            self.wfParamsFromAmount.(curCat).(wfTypes{wfTypeIndex}).values.max_window_radius = curVal;
           end
         end
       end
@@ -337,6 +339,9 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % orthogonal to whether that PF is enabled or not.  Note that this
       % also sets the transformation types for the PF to the default
       % set.
+      if isequal(wfAmount,'custom')
+        return
+      end
       pfIndex=find(strcmp(pfName,self.pfNameList));  
       defaultPFTransTypes=self.defaultPFTransTypesFromName.(pfName);
       %self.vocabulary{pfIndex}.enabled = true;
@@ -605,6 +610,42 @@ classdef FeatureVocabularyForSelectFeatures < handle
 
     
     % ---------------------------------------------------------------------
+    function wfAmount=getWFAmountForPFCategory(self,pfCategoryName)
+      % Get the current amount for the given per-frame feature category.  Returns
+      % one of 'normal', 'more', 'less', 'custom', and 'n/a' (if there are
+      % no PFs in the category.
+      pfNamesInCategory=self.getPFNamesInCategory(pfCategoryName);
+      nPFsInCategory=length(pfNamesInCategory);
+      if (nPFsInCategory==0)
+        wfAmount='n/a';
+        return
+      end
+      % Get the amount for the first PF
+      pfName=pfNamesInCategory{1};
+      wfAmountPutative=self.getWFAmountForPF(pfName);
+      % If the first one is 'custom', no need to check the rest
+      if isequal(wfAmountPutative,'custom')
+        wfAmount='custom';
+        return
+      end
+      % If we get here, wfAmountThisPutative is something other than
+      % 'custom'
+      % The rest have to match wfAmountPutative, or else the amount is
+      % 'custom'
+      for i = 2:nPFsInCategory
+        pfName=pfNamesInCategory{i};
+        wfAmountThis=self.getWFAmountForPF(pfName);
+        if ~isequal(wfAmountThis,wfAmountPutative)
+          wfAmount='custom';
+          return
+        end
+      end
+      % If we get here, they all match wfAmountPutative
+      wfAmount=wfAmountPutative;
+    end
+            
+      
+    % ---------------------------------------------------------------------
     function wfAmount=getWFAmountForPF(self,pfIndex)
       % get the current amount for the given per-frame feature.  Returns
       % one of 'normal', 'more', 'less', and 'custom'.
@@ -618,28 +659,35 @@ classdef FeatureVocabularyForSelectFeatures < handle
       end
       wfAmount='custom';  % if no match, we default to custom
       defaultPFTransTypes=self.defaultPFTransTypesFromName.(pfName);
+      pfParams=self.vocabulary{pfIndex};  % all the WF params for the given PF
       nAmounts=length(self.wfAmounts);
       for j=1:nAmounts
         wfAmountTest=self.wfAmounts{j};
         isMatch=true;
-        wfParamTemplate=self.wfParamsFromAmount.(wfAmountTest);
+        pfParamsTemplate=self.wfParamsFromAmount.(wfAmountTest);  
+          % all the WF params for a single PF, from the pre-set amount
         for wfTypeIndex = 1:length(self.wfTypes)
           wfType = self.wfTypes{wfTypeIndex};
-          if isfield(self.vocabulary{pfIndex},wfType) && ~isfield(wfParamTemplate,wfType),
+          if isfield(pfParams,wfType) && ~isfield(pfParamsTemplate,wfType),
             % If this window-feature type is present in the vocabulary, but not
             % in the template, then skip to next wfType
             continue
           end
-          % Set the enablement in the vocab to match the template
-          if self.vocabulary{pfIndex}.(wfType).enabled ~= wfParamTemplate.(wfType).enabled ,
+          % check that the enablement in the vocab matches the template
+          if pfParams.(wfType).enabled ~= pfParamsTemplate.(wfType).enabled ,
             isMatch=false;
             break
           end
-          % For all the regular WF parameter names, copy them over
+          % For all the regular WF parameter names, check that they're
+          % equal
           for i = 1:numel(self.wfParamNames),
             wfParamName = self.wfParamNames{i};
-            if self.vocabulary{pfIndex}.(wfType).values.(wfParamName) ~= ...
-               wfParamTemplate.(wfType).values.(wfParamName) ,
+            if isequal(wfParamName,'trans_types')
+              % Skip transformation types, we do those below
+              continue
+            end
+            if pfParams.(wfType).values.(wfParamName) ~= ...
+               pfParamsTemplate.(wfType).values.(wfParamName) ,
               isMatch=false;
               break
             end
@@ -647,17 +695,17 @@ classdef FeatureVocabularyForSelectFeatures < handle
           if ~isMatch, break, end
           % If there is an extra WF parameter for this WF type, copy it over
           % also.
-          extraWFParamName = self.wfExtraParamNames{wfTypeNdx};
+          extraWFParamName = self.wfExtraParamNames{wfTypeIndex};
           if ~isempty(extraWFParamName) && ...
-             isfield(wfParamTemplate.(wfType).values,extraWFParamName) && ...
-             (self.vocabulary{pfIndex}.(wfType).values.(extraWFParamName) ~= ...
-              wfParamTemplate.(wfType).values.(extraWFParamName) ),
+             isfield(pfParamsTemplate.(wfType).values,extraWFParamName) && ...
+             (pfParams.(wfType).values.(extraWFParamName) ~= ...
+              pfParamsTemplate.(wfType).values.(extraWFParamName) ),
             isMatch=false;
             break
           end
           % Check the transformation types also
-          if ~all(unique(self.vocabulary{pfIndex}.(wfType).values.trans_types) == ...
-                  unique(defaultPFTransTypes) ) ,
+          if isequal(unique(pfParams.(wfType).values.trans_types) , ...
+                     unique(defaultPFTransTypes) ) ,
             isMatch=false;
             break
           end
@@ -679,96 +727,10 @@ classdef FeatureVocabularyForSelectFeatures < handle
   methods (Access=private)
     % ---------------------------------------------------------------------
     function digestFeatureLexicon(self,featureLexicon,scoresAsInput,perframeL)
-      % Initializes the instance variables wfParamsFromAmount, defaultPFTransTypesFromName,
+      % Initializes the instance variables defaultPFTransTypesFromName,
       % pfCategoriesFromName, and pfCategoryList, based on value of
       % inputs and some instance vars that are should already have been
       % initialized.
-
-      % Read the default parameters for different categories.
-      categories = fieldnames(featureLexicon.defaults);
-
-      if isempty(categories) 
-        % If no default have been specified in the config file.
-
-        categories{1} = 'default';
-        curParams = struct;
-
-        % Default values.
-        for ndx = 1:numel(self.wfParamNames)
-          curwinpname = self.wfParamNames{ndx};
-          curParams.default.values.(curwinpname) = self.defaultWFParams{ndx};
-        end
-        curParams.default.enabled = true;
-        curParams.default.values.sanitycheck = false;
-
-        % For each defined window computation.
-        for ndx = 2:numel(self.wfTypes)
-          % Copy the default values.
-          curwname = self.wfTypes{ndx};
-          for pndx = 1:numel(self.wfParamNames)
-            curwinpname = self.wfParamNames{pndx};
-            curParams.(curwname).values.(curwinpname) = self.defaultWFParams{pndx};
-          end
-
-          if ~isempty(self.wfExtraParamNames{ndx})
-            extraParam = self.wfExtraParamNames{ndx};
-            curParams.(curwname).values.(extraParam) = self.wfExtraParamNames{ndx};
-          end
-          curParams.(curwname).enabled = false;
-        end
-        self.wfParamsFromAmount.(categories{1}) = curParams;
-
-
-      else
-        % fill the window params for different feature categories.
-
-        for j = 1:numel(categories)
-          curParams = struct;
-          cur = featureLexicon.defaults.(categories{j});
-
-          % Default values.
-          for ndx = 1:numel(self.wfParamNames)
-            curwinpname = self.wfParamNames{ndx};
-            curParams.default.values.(curwinpname) = cur.(curwinpname);
-          end
-          curParams.default.enabled = true;
-          curParams.default.values.sanitycheck = false;
-
-          % For each defined window computation.
-          for ndx = 2:numel(self.wfTypes)
-            % Copy the default values.
-            curwname = self.wfTypes{ndx};
-            for pndx = 1:numel(self.wfParamNames)
-              curwinpname = self.wfParamNames{pndx};
-              curParams.(curwname).values.(curwinpname) = curParams.default.values.(curwinpname);
-            end
-
-            % Override the default window params for the current window computation type
-            if isfield(cur,curwname)
-              curParams.(curwname).enabled = true;
-              diffFields = fieldnames(cur.(curwname));
-              for dndx = 1:numel(diffFields)
-                if any(strcmp(self.wfParamNames,diffFields{dndx}))
-                  curwinpname = diffFields{dndx};
-                  curParams.(curwname).values.(curwinpname) = cur.(curwname).(curwinpname);
-                end
-              end
-
-              if ~isempty(self.wfExtraParamNames{ndx})
-                extraParam = self.wfExtraParamNames{ndx};
-                if isfield(cur.(curwname),extraParam)
-                  curParams.(curwname).values.(extraParam) = cur.(curwname).(extraParam);
-                else
-                  curParams.(curwname).values.(extraParam) = '';
-                end
-              end
-            else
-              curParams.(curwname).enabled = false;
-            end
-          end
-          self.wfParamsFromAmount.(categories{j}) = curParams;
-        end
-      end
 
       % Now for each different perframe feature read the type default trans_types.
       %perframeL = jld.allperframefns;
