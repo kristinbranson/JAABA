@@ -163,7 +163,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       end
     end  % method    
     
-  end
+  end  % class methods
   
   
   % -----------------------------------------------------------------------  
