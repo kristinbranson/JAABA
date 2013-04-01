@@ -294,8 +294,15 @@ classdef JLabelData < handle
     %                             % to the features
     
     % State of the basic/compact feature table.
-    basicFeatureTable = {};
-    featureWindowSize = [];
+    %basicFeatureTable = {};  % now calculate on the fly
+    maxWindowRadiusCommonCached = [];  
+      % need to remember between calls to SelectFeatures, because it needs
+      % to override the max_window_radius in the window-feature amount
+      % presets in the feature lexicon, and these WF amount presets are not
+      % retained in the feature vocabulary.  (And we don't want to retain
+      % them in JLabelData's feature vocabulary, b/c they're not _really_
+      % part of the feature vocabulary.)  (But I suppose we could add them
+      % if we wanted to...)
     
     % per-frame features that are used
     allperframefns = {};
@@ -389,10 +396,10 @@ classdef JLabelData < handle
                         'confThresholds', ...
                         'scoreNorm', ...
                         'windowfeaturesparams', ...
-                        'basicFeatureTable', ...
-                        'featureWindowSize', ...
+                        'maxWindowRadiusCommonCached', ...
                         'postprocessparams',...
                         'scoresasinput'};
+%                        'basicFeatureTable', ...
     fieldNamesInClassifier = {'type', ...
                               'params', ...
                               'trainingParams',...
@@ -400,10 +407,10 @@ classdef JLabelData < handle
                               'confThresholds', ...
                               'scoreNorm', ...
                               'windowFeaturesParams', ...
-                              'basicFeatureTable', ...
-                              'featureWindowSize', ...
+                              'maxWindowRadiusCommonCached', ...
                               'postProcessParams',...
                               'scoresAsInput'};
+%                              'basicFeatureTable', ...
   end
   
 %   properties (Access=public,Dependent=true)
@@ -944,9 +951,9 @@ classdef JLabelData < handle
                                          fieldnames(basicParams.featureparamlist));
           msg = '';
         end
-        if isfield(basicParams,'windowfeatures') && isfield(basicParams.windowfeatures,'basicFeatureTable')
-          obj.basicFeatureTable = basicParams.windowfeatures.basicFeatureTable;
-          obj.featureWindowSize = basicParams.windowfeatures.featureWindowSize;
+        if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
+          %obj.basicFeatureTable = basicParams.windowfeatures.basicFeatureTable;
+          obj.maxWindowRadiusCommonCached = basicParams.windowfeatures.maxWindowRadiusCommonCached;
           basicParams.windowfeatures.windowfeaturesparams = ...
             JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
           basicParams.windowfeatures.windowfeaturescellparams = ...
@@ -972,14 +979,14 @@ classdef JLabelData < handle
           obj.allperframefns{end+1} = name;
         end
         
-        if ~isempty(obj.basicFeatureTable),
-          scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
-          if isempty(scoresbasicndx),
-            obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
-          else
-            obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
-          end
-        end
+%         if ~isempty(obj.basicFeatureTable),
+%           scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
+%           if isempty(scoresbasicndx),
+%             obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
+%           else
+%             obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
+%           end
+%         end
       end  % if isfield(basicParams,'scoresinput'),
       
       % Re-load the perframe feature signals, since the PFFs may have changed
@@ -1784,19 +1791,19 @@ classdef JLabelData < handle
 % 
 %       % load actual window features params instead of filename.
 %       if all( isfield(classifierParams,{'windowfeaturesparams','windowfeaturescellparams',...
-%                                   'basicFeatureTable','featureWindowSize'}))
+%                                   'basicFeatureTable','maxWindowRadiusCommonCached'}))
 % 
 %         classifierParams.windowfeaturesparams = JLabelData.convertTransTypes2Cell(classifierParams.windowfeaturesparams);
 %         classifierParams.windowfeaturescellparams = JLabelData.convertParams2CellParams(classifierParams.windowfeaturesparams);
 %         if ~( isequal(obj.windowfeaturesparams,classifierParams.windowfeaturesparams) && ...
-%                 isequal(obj.featureWindowSize,classifierParams.featureWindowSize)),
+%                 isequal(obj.maxWindowRadiusCommonCached,classifierParams.maxWindowRadiusCommonCached)),
 %             str = sprintf('Window feature parameters in the configuration file');
 %             str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
 %             str = sprintf('%s\nUsing parameters stored in the classifier file',str);
 %             uiwait(warndlg(str));
 %             obj.UpdatePerframeParams(classifierParams.windowfeaturesparams,...
 %                                      classifierParams.basicFeatureTable,...
-%                                      classifierParams.featureWindowSize);
+%                                      classifierParams.maxWindowRadiusCommonCached);
 %         end
 %       end
 % 
@@ -1991,7 +1998,7 @@ classdef JLabelData < handle
 %       %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
 %       %self.curperframefns=fieldnames(self.windowfeaturesparams);
 %       self.basicFeatureTable=everythingParams.classifier.basicFeatureTable;
-%       self.featureWindowSize=everythingParams.classifier.featureWindowSize;
+%       self.maxWindowRadiusCommonCached=everythingParams.classifier.maxWindowRadiusCommonCached;
 %       
 %       % Set the window feature names
 %       feature_names = {};
@@ -2178,7 +2185,7 @@ classdef JLabelData < handle
       classifier.scoreNorm=[];
       %classifier.windowFeaturesParams = struct([]);
       %classifier.basicFeatureTable={};
-      %classifier.featureWindowSize=10;  % default
+      %classifier.maxWindowRadiusCommonCached=10;  % default
       %classifier.postProcessParams=[];
       %classifier.scoresAsInput=struct('classifierfile',{}, ...
       %                                'ts',{}, ...
@@ -2243,18 +2250,18 @@ classdef JLabelData < handle
 % 
 %           % load actual window features params instead of filename.
 %           if all( isfield(loadeddata,{'windowfeaturesparams','windowfeaturescellparams',...
-%               'basicFeatureTable','featureWindowSize'}))
+%               'basicFeatureTable','maxWindowRadiusCommonCached'}))
 %             loadeddata.windowfeaturesparams = JLabelData.convertTransTypes2Cell(loadeddata.windowfeaturesparams);
 %             loadeddata.windowfeaturescellparams = JLabelData.convertParams2CellParams(loadeddata.windowfeaturesparams);
 %             if ~( isequal(obj.windowfeaturesparams,loadeddata.windowfeaturesparams) && ...
-%                   isequal(obj.featureWindowSize,loadeddata.featureWindowSize)),
+%                   isequal(obj.maxWindowRadiusCommonCached,loadeddata.maxWindowRadiusCommonCached)),
 %                 str = sprintf('Window feature parameters in the configuration file');
 %                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
 %                 str = sprintf('%s\nUsing parameters stored in the classifier file',str);
 %                 uiwait(warndlg(str));
 %                 obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
 %                   loadeddata.basicFeatureTable,...
-%                   loadeddata.featureWindowSize,false);
+%                   loadeddata.maxWindowRadiusCommonCached,false);
 %             else
 %               obj.MoveCurPredictionsToOld();
 %               
@@ -3944,7 +3951,7 @@ classdef JLabelData < handle
 % 
 %       
 % %       try
-%         [windowfeaturesparams,~,basicFeatureTable,featureWindowSize] = ...
+%         [windowfeaturesparams,~,basicFeatureTable,maxWindowRadiusCommonCached] = ...
 %           ReadPerFrameParams(featureparamsfilename,obj.featureConfigFile); %#ok<PROP>
 %         % 2nd return above used to be windowfeaturescellparams
 % %       catch ME,
@@ -3958,7 +3965,7 @@ classdef JLabelData < handle
 %       obj.SetPerframeParams(windowfeaturesparams);
 %       obj.featureparamsfilename = featureparamsfilename;
 %       obj.basicFeatureTable = basicFeatureTable;
-%       obj.featureWindowSize = featureWindowSize;
+%       obj.maxWindowRadiusCommonCached = maxWindowRadiusCommonCached;
 %       success = true;
 %     end
     
@@ -3995,7 +4002,7 @@ classdef JLabelData < handle
 %       windowfeatures.windowfeaturesparams = obj.windowfeaturesparams;
 %       windowfeatures.windowfeaturescellparams = obj.windowfeaturescellparams;
 %       windowfeatures.basicFeatureTable = obj.basicFeatureTable;
-%       windowfeatures.featureWindowSize=obj.featureWindowSize;  %#ok<STRNU>
+%       windowfeatures.maxWindowRadiusCommonCached=obj.maxWindowRadiusCommonCached;  %#ok<STRNU>
 %       if exist(configfilename,'file')
 %         [didbak,msg] = copyfile(configfilename,[configfilename '~']);
 %         if ~didbak,
@@ -5763,7 +5770,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function UpdatePerframeParams(obj,params,basicFeatureTable,featureWindowSize,dotrain)
+    function UpdatePerframeParams(obj,params,maxWindowRadiusCommon,dotrain)
     % Updates the feature params. Called by SelectFeatures
       if ~isempty(obj.classifier),
         hasClassifier = true;
@@ -5777,8 +5784,8 @@ classdef JLabelData < handle
       
       obj.SetPerframeParams(params);
       if nargin>2
-        obj.basicFeatureTable = basicFeatureTable;
-        obj.featureWindowSize = featureWindowSize;
+        %obj.basicFeatureTable = basicFeatureTable;
+        obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
       end
       %obj.savewindowfeatures = true;  
 
@@ -5829,7 +5836,7 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function wsize = GetFeatureWindowSize(obj)
-      wsize = obj.featureWindowSize;
+      wsize = obj.maxWindowRadiusCommonCached;
     end
 
     function UpdateBoostingBins(obj)
@@ -8021,22 +8028,22 @@ classdef JLabelData < handle
       % Do other stuff that needs doing
       %
       
-      % Update the basic feature table
-      if ~isempty(obj.basicFeatureTable),
-        scoresRowIndex = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
-        if isempty(scoresAsInputNew) && ~isempty(scoresRowIndex)
-          % if no scores as inputs, remove that row from basicFeatureTable,
-          % if it's present
-          obj.basicFeatureTable(scoresRowIndex,:)=[];
-        else
-          if isempty(scoresRowIndex) ,
-            obj.basicFeatureTable(end+1,:) = {'scores','None','normal'};
-          else
-            obj.basicFeatureTable{scoresRowIndex,2} = 'Custom';
-            % how do we know that "Custom" is the right answer?      
-          end
-        end
-      end
+%       % Update the basic feature table
+%       if ~isempty(obj.basicFeatureTable),
+%         scoresRowIndex = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
+%         if isempty(scoresAsInputNew) && ~isempty(scoresRowIndex)
+%           % if no scores as inputs, remove that row from basicFeatureTable,
+%           % if it's present
+%           obj.basicFeatureTable(scoresRowIndex,:)=[];
+%         else
+%           if isempty(scoresRowIndex) ,
+%             obj.basicFeatureTable(end+1,:) = {'scores','None','normal'};
+%           else
+%             obj.basicFeatureTable{scoresRowIndex,2} = 'Custom';
+%             % how do we know that "Custom" is the right answer?      
+%           end
+%         end
+%       end
       
       % Re-load the perframe feature signals, since the PFFs may have changed
       obj.loadPerframeData(obj.expi,obj.flies);
