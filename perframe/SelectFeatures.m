@@ -275,11 +275,37 @@ return
 function initializePfTable(hObject)
 % Initialize the per-frame feature table.
 handles = guidata(hObject);
-set(handles.pfTable,'ColumnName',{'Features','Select','Category'});
-set(handles.pfTable,'ColumnEditable',[false,true]);
-set(handles.pfTable,'ColumnWidth',{190,50,95});
+set(handles.pfTable,'ColumnName',{'Features','Select','Amount','Category'});
+set(handles.pfTable,'ColumnEditable',[false,true,true,false]);
+set(handles.pfTable, ...
+    'ColumnFormat', ...
+    {'char',...
+     'logical', ...
+     [handles.featureVocabulary.wfAmounts' 'custom'], ...
+     'char'} );
+set(handles.pfTable,'ColumnWidth',{190,50,75,95});
 set(handles.pfTable,'CellSelectionCallback',@pfSelect);
 set(handles.pfTable,'CellEditCallback',@pfEdit);
+
+% init the static cols of the table
+fv=handles.featureVocabulary;  % a ref
+pfNameList = fv.pfNameList;
+nPFs=length(pfNameList);
+tableData = cell(nPFs,4);
+for ndx = 1:nPFs
+  tableData{ndx,1} = pfNameList{ndx};
+  tableData{ndx,2} = false;  % place-holder
+  tableData{ndx,3}='normal';  % place-holder
+  pfCategories=fv.pfCategoriesFromName.(pfNameList{ndx});
+  str = sprintf('%s',pfCategories{1});
+  for sndx = 2:numel(pfCategories)
+    str = sprintf('%s,%s',str,pfCategories{sndx});
+  end
+  tableData{ndx,4} = str;
+end
+set(handles.pfTable,'Data',tableData);
+
+% Now do an update to properly populate the dynamic cols
 updatePfTable(handles);
 return
 
@@ -292,16 +318,18 @@ function updatePfTable(handles)
 fv=handles.featureVocabulary;  % a ref
 pfList = fv.pfNameList;
 nPFs=length(pfList);
-tableData = cell(nPFs,2);
+%tableData = cell(nPFs,4);
+tableData=get(handles.pfTable,'Data');
 for ndx = 1:nPFs
-  tableData{ndx,1} = pfList{ndx};
+  %tableData{ndx,1} = pfList{ndx};
   tableData{ndx,2} = fv.vocabulary{ndx}.enabled;
-  pfCategories=fv.pfCategoriesFromName.(pfList{ndx});
-  str = sprintf('%s',pfCategories{1});
-  for sndx = 2:numel(pfCategories)
-    str = sprintf('%s,%s',str,pfCategories{sndx});
-  end
-  tableData{ndx,3} = str;
+  %pfCategories=fv.pfCategoriesFromName.(pfList{ndx});
+  %str = sprintf('%s',pfCategories{1});
+  %for sndx = 2:numel(pfCategories)
+  %  str = sprintf('%s,%s',str,pfCategories{sndx});
+  %end
+  %tableData{ndx,4} = str;
+  tableData{ndx,3}=fv.getWFAmountForPF(ndx);
 end
 
 % Update the graphics object
@@ -640,28 +668,32 @@ guidata(hObject,handles);
 fv=handles.featureVocabulary;  % a ref
 pfData=get(handles.pfTable,'Data');
 pfName=pfData{pfNdx,1};
-if eventData.NewData
-  % Get an amount to set the PF to, based on the Amount displayed in the
-  % basic table for one of the PFs categories
-  pfCategoryNames=fv.pfCategoriesFromName.(pfName);
-  pfCategoryName=pfCategoryNames{1};  
-    % Just take the first possible category.  This may cause the other
-    % categories (if there are any) to have their Amount go to Custom, but
-    % that's OK
-  pfCategoryIndex = find(strcmp(pfCategoryName,fv.pfCategoryList));
-  basicData = get(handles.basicTable,'Data');
-  wfAmount = basicData{pfCategoryIndex,3};  %#ok
-  fv.setPFToWFAmount(pfName,wfAmount);
-  fv.enablePerframeFeature(pfName);
-else
-  fv.disablePerframeFeature(pfName);
+if eventData.Indices(2)==2, 
+  % User edited the enable/disable column
+  if eventData.NewData
+    % Get an amount to set the PF to, based on the Amount displayed in the
+    % basic table for one of the PFs categories
+    pfCategoryNames=fv.pfCategoriesFromName.(pfName);
+    pfCategoryName=pfCategoryNames{1};  
+      % Just take the first possible category.  This may cause the other
+      % categories (if there are any) to have their Amount go to Custom, but
+      % that's OK
+    pfCategoryIndex = find(strcmp(pfCategoryName,fv.pfCategoryList));
+    basicData = get(handles.basicTable,'Data');
+    wfAmount = basicData{pfCategoryIndex,3};  %#ok
+    fv.setPFToWFAmount(pfName,wfAmount);
+    fv.enablePerframeFeature(pfName);
+  else
+    fv.disablePerframeFeature(pfName);
+  end
+  % Now update the view
+  updatePFCategoryLevelForCurrentPF(handles);
+  updateWindowTableAndEnablement(handles);
+  updateWinParamsAndEnablement(handles);
+elseif eventData.Indices(2)==3,
+  % User edited the amount column
 end
-
-% Now update the view
-updatePFCategoryLevelForCurrentPF(handles);
-updateWindowTableAndEnablement(handles);
-updateWinParamsAndEnablement(handles);
-
+  
 return
 
 
