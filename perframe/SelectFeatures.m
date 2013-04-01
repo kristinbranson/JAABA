@@ -369,8 +369,8 @@ return
 % -------------------------------------------------------------------------
 function initializeBasicTable(hObject)
 handles = guidata(hObject);
-pfCategoryList=handles.featureVocabulary.pfCategoryList;
-nPFCategories=numel(pfCategoryList);
+
+% Set the simple parts of the uitable
 set(handles.basicTable,'ColumnName',{'Categories','Select','Amount'});
 set(handles.basicTable, ...
     'ColumnFormat', ...
@@ -381,14 +381,26 @@ set(handles.basicTable,'ColumnEditable',[false,true,true]);
 set(handles.basicTable,'ColumnWidth',{85,65,75});
 set(handles.basicTable,'CellSelectionCallback',@basicSelect);
 set(handles.basicTable,'CellEditCallback',@basicEdit);
-% Populate the static parts of the table
-tableData = cell(nPFCategories,3);
-for ndx = 1:nPFCategories
-  tableData{ndx,1} = pfCategoryList{ndx};
-  tableData{ndx,2} = 'none';  % placeholder
-  tableData{ndx,3} = 'normal';  % placeholder
+
+% Get a list of the categories that actually have PFs in them (e.g. scores
+% category often has no PFs in it)
+fv=handles.featureVocabulary;
+pfCategoryNames=fv.pfCategoryList;
+categoryIsNonEmpty= ...
+  @(pfCategoryName)(~isempty(fv.getPFNamesInCategory(pfCategoryName)));
+pfCategoryNamesNonEmpty= ...
+  cellFilter(categoryIsNonEmpty,pfCategoryNames);
+
+% Populate the static parts of the table cells
+nPFCategoriesNonEmpty=length(pfCategoryNamesNonEmpty);
+tableData = cell(nPFCategoriesNonEmpty,3);
+for i = 1:nPFCategoriesNonEmpty
+  tableData{i,1} = pfCategoryNamesNonEmpty{i};
+  tableData{i,2} = 'none';  % placeholder
+  tableData{i,3} = 'normal';  % placeholder
 end
 set(handles.basicTable,'Data',tableData);
+
 % Call update to populate the dynamic parts of the table
 updateBasicTable(handles);
 return
@@ -397,11 +409,11 @@ return
 % -------------------------------------------------------------------------
 function updateBasicTable(handles)
 fv=handles.featureVocabulary;
-pfCategoryList=fv.pfCategoryList;
-nPFCategories=length(pfCategoryList);
 tableData = get(handles.basicTable,'Data');
+pfCategoryNames=tableData(:,1);  % these are the nonempty categories
+nPFCategories=length(pfCategoryNames);
 for i=1:nPFCategories
-  pfCategoryName=pfCategoryList{i};
+  pfCategoryName=pfCategoryNames{i};
   tableData{i,2} = fv.getPFCategoryLevel(pfCategoryName);
   tableData{i,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
 end
@@ -430,11 +442,12 @@ pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);
 allPFCategories=fv.pfCategoryList;
 pfCategoryIndicesThisName = find(ismember(allPFCategories,pfCategoriesThisName));
 basicData = get(handles.basicTable,'Data');
-for ndx = 1:numel(pfCategoryIndicesThisName)
-  pfCategoryIndex=pfCategoryIndicesThisName(ndx);
-  pfCategoryName=pfCategoriesThisName{ndx};
-  basicData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
-  basicData{pfCategoryIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
+pfCategoryNamesInTable=basicData{:,1};
+for i = 1:numel(pfCategoryIndicesThisName)
+  pfCategoryName=pfCategoriesThisName{i};
+  rowIndex=find(strcmp(pfCategoryName,pfCategoryNamesInTable));
+  basicData{rowIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
+  basicData{rowIndex,3} = fv.getWFAmountForPFCategory(pfCategoryName); 
 end
 set(handles.basicTable,'Data',basicData);
 return
@@ -581,26 +594,25 @@ function pfCategoryLevelChanged(hObject,eventData)
   % changed back to what it was before.
   handles = guidata(hObject);
   fv=handles.featureVocabulary;  % a ref
-  pfCategoryIndex=eventData.Indices(1);
+  rowIndex=eventData.Indices(1);
   basicData = get(handles.basicTable,'Data');
-  wfAmount=basicData{pfCategoryIndex,3};  
+  pfCategoryName=basicData{rowIndex,1};
+  wfAmount=basicData{rowIndex,3};
   newLevel=eventData.NewData;
   switch newLevel
     case 'none'
       h = waitbar(0,'Unselecting the perframe features');
-      pfNames=fv.getPFNamesInCategory(pfCategoryIndex);
+      pfNames=fv.getPFNamesInCategory(pfCategoryName);
       for i = 1:length(pfNames)
         fv.disablePerframeFeature(pfNames{i});
       end            
       close(h);
     case 'all'
       h = waitbar(0,'Selecting the perframe features');
-      %handles = applyCategoryType(handles,categoryIndex);
-      %basicData = get(handles.basicTable,'Data');
       if ~isequal(wfAmount,'custom')
-        fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,wfAmount);
+        fv.setAllPFsInCategoryToWFAmount(pfCategoryName,wfAmount);
       end
-      fv.enableAllPFsInCategory(pfCategoryIndex);
+      fv.enableAllPFsInCategory(pfCategoryName);
       close(h);
     case 'custom'
       % don't change the model at all---the custom item is only there for
@@ -621,14 +633,13 @@ function pfCategoryWFAmountChanged(hObject,eventData)
   % 'custom' does nothing.
   handles = guidata(hObject);
   fv=handles.featureVocabulary;  % a ref
-  pfCategoryIndex=eventData.Indices(1);
-  %basicData = get(handles.basicTable,'Data');
-  %pfCategoryLevel=basicData{pfCategoryIndex,2};
+  rowIndex=eventData.Indices(1);
+  basicData=get(handles.basicTable,'Data');
+  pfCategoryName=basicData{rowIndex,1};
   newWFAmount=eventData.NewData;
   if ~isequal(newWFAmount,'custom'), 
-    fv.setAllPFsInCategoryToWFAmount(pfCategoryIndex,newWFAmount);
+    fv.setAllPFsInCategoryToWFAmount(pfCategoryName,newWFAmount);
   end
-  %guidata(hObject,handles);
   updateBasicTable(handles);
   updatePFTable(handles);
   updateWindowTableAndEnablement(handles);
