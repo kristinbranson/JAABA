@@ -196,6 +196,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       wfParamNames = self.wfParamNames;
       wfAmounts=self.wfAmounts;
       wfAmount=wfAmounts{1};  % by convention, the first one is the default setting (e.g. 'normal')
+      wfParamsAmount=self.wfParamsFromAmount.(wfAmount);
       nPFNames=length(pfNames);
       vocabulary = cell(1,nPFNames);
       for pfIndex = 1:nPFNames
@@ -233,8 +234,8 @@ classdef FeatureVocabularyForSelectFeatures < handle
                 end
               end
               if ~isempty(self. wfExtraParamNames{wfTypeNdx})
-                extraParam = self. wfExtraParamNames{wfTypeNdx};
-                vocabulary{pfIndex}.(wfType).values.(extraParam) = wfParamsThisType.(extraParam);
+                extraParamName = self. wfExtraParamNames{wfTypeNdx};
+                vocabulary{pfIndex}.(wfType).values.(extraParamName) = wfParamsThisType.(extraParamName);
               end
             else
               % If the window type is disabled, use default values for its
@@ -245,15 +246,35 @@ classdef FeatureVocabularyForSelectFeatures < handle
                 vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
               end
               if ~isempty(self. wfExtraParamNames{wfTypeNdx})
-                extraParam = self. wfExtraParamNames{wfTypeNdx};
-                vocabulary{pfIndex}.(wfType).values.(extraParam) = self.defaultWFExtraParams{wfTypeNdx};
+                extraParamName = self. wfExtraParamNames{wfTypeNdx};
+                vocabulary{pfIndex}.(wfType).values.(extraParamName) = self.defaultWFExtraParams{wfTypeNdx};
               end
             end
           end
         else
           % If PF is disabled, use default values
-          self.setPFToWFAmount(pfName,wfAmount);
-          self.setPFEnablement(pfName,false);
+          vocabulary{pfIndex}.enabled = false;
+          vocabulary{pfIndex}.sanitycheck = false;
+          vocabulary{pfIndex}.default.enabled = true;
+          for wfParamNamesNdx = 1:numel(self.wfParamNames)
+            wfParamName = self.wfParamNames{wfParamNamesNdx};
+            vocabulary{pfIndex}.default.values.(wfParamName) = ...
+              self.defaultWFParams{wfParamNamesNdx};
+          end
+          % Copy the default values into the other window params.
+          for winfnNdx = 2:numel(self.wfTypes)
+            wfType = self.wfTypes{winfnNdx};
+            vocabulary{pfIndex}.(wfType).enabled = false;
+            for wfParamNamesNdx = 1:numel(self.wfParamNames)
+              wfParamName = self.wfParamNames{wfParamNamesNdx};
+              vocabulary{pfIndex}.(wfType).values.(wfParamName) = ...
+                vocabulary{pfIndex}.default.values.(wfParamName);
+            end
+            if ~isempty(self.wfExtraParamNames{winfnNdx})
+              extraParamName = self.wfExtraParamNames{winfnNdx};
+              vocabulary{pfIndex}.(wfType).values.(extraParamName) = self.defaultWFExtraParams{winfnNdx};
+            end
+          end
         end
       end
       self.vocabulary = vocabulary;
