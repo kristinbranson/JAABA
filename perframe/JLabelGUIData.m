@@ -191,6 +191,15 @@ classdef JLabelGUIData < handle
     cacheSize = 4000;
      
     tempname = [];
+    
+    maxWindowRadiusCommonCached = [];  
+      % need to remember between calls to SelectFeatures, because it needs
+      % to override the max_window_radius in the window-feature amount
+      % presets in the feature lexicon, and these WF amount presets are not
+      % retained in the feature vocabulary.  (And we don't want to retain
+      % them in JLabelData's feature vocabulary, b/c they're not _really_
+      % part of the feature vocabulary.)  (But I suppose we could add them
+      % if we wanted to...)   
   end
      
   methods (Access=public)
