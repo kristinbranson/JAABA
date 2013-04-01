@@ -295,7 +295,7 @@ classdef JLabelData < handle
     
     % State of the basic/compact feature table.
     %basicFeatureTable = {};  % now calculate on the fly
-    maxWindowRadiusCommonCached = [];  
+    %maxWindowRadiusCommonCached = [];  
       % need to remember between calls to SelectFeatures, because it needs
       % to override the max_window_radius in the window-feature amount
       % presets in the feature lexicon, and these WF amount presets are not
@@ -396,9 +396,9 @@ classdef JLabelData < handle
                         'confThresholds', ...
                         'scoreNorm', ...
                         'windowfeaturesparams', ...
-                        'maxWindowRadiusCommonCached', ...
                         'postprocessparams',...
                         'scoresasinput'};
+%                        'maxWindowRadiusCommonCached', ...
 %                        'basicFeatureTable', ...
     fieldNamesInClassifier = {'type', ...
                               'params', ...
@@ -407,9 +407,9 @@ classdef JLabelData < handle
                               'confThresholds', ...
                               'scoreNorm', ...
                               'windowFeaturesParams', ...
-                              'maxWindowRadiusCommonCached', ...
                               'postProcessParams',...
                               'scoresAsInput'};
+%                              'maxWindowRadiusCommonCached', ...
 %                              'basicFeatureTable', ...
   end
   
@@ -953,7 +953,7 @@ classdef JLabelData < handle
         end
         if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
           %obj.basicFeatureTable = basicParams.windowfeatures.basicFeatureTable;
-          obj.maxWindowRadiusCommonCached = basicParams.windowfeatures.maxWindowRadiusCommonCached;
+          %obj.maxWindowRadiusCommonCached = basicParams.windowfeatures.maxWindowRadiusCommonCached;
           basicParams.windowfeatures.windowfeaturesparams = ...
             JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
           basicParams.windowfeatures.windowfeaturescellparams = ...
@@ -5770,7 +5770,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function UpdatePerframeParams(obj,params,maxWindowRadiusCommon,dotrain)
+    function UpdatePerframeParams(obj,params,dotrain)
     % Updates the feature params. Called by SelectFeatures
       if ~isempty(obj.classifier),
         hasClassifier = true;
@@ -5778,15 +5778,15 @@ classdef JLabelData < handle
         hasClassifier = false;
       end
       
-      if nargin < 6
+      if nargin < 3
         dotrain = true;
       end
       
       obj.SetPerframeParams(params);
-      if nargin>2
-        %obj.basicFeatureTable = basicFeatureTable;
-        obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
-      end
+%       if nargin>2
+%         %obj.basicFeatureTable = basicFeatureTable;
+%         obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
+%       end
       %obj.savewindowfeatures = true;  
 
       obj.ClearWindowData();
@@ -5834,11 +5834,13 @@ classdef JLabelData < handle
     end  % function/method
     
     
-    % ---------------------------------------------------------------------
-    function wsize = GetFeatureWindowSize(obj)
-      wsize = obj.maxWindowRadiusCommonCached;
-    end
+%     % ---------------------------------------------------------------------
+%     function wsize = GetFeatureWindowSize(obj)
+%       wsize = obj.maxWindowRadiusCommonCached;
+%     end
 
+    
+    % ---------------------------------------------------------------------
     function UpdateBoostingBins(obj)
       
       islabeled = obj.windowdata.labelidx_new ~= 0;
