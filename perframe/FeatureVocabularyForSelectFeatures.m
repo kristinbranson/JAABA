@@ -55,38 +55,48 @@ classdef FeatureVocabularyForSelectFeatures < handle
     % (Formerly winParams.)
     wfParamNames = {'max_window_radius','min_window_radius','nwindow_radii',...
                     'trans_types','window_offsets'};
-    % These are the default values for the window feature parameters.  (Formerly defaultWinParams.)
-    % They are only used if the lexicon fails to specify pre-set
-    % window-feature amounts (e.g. normal, more, less)
-    defaultWFParams = {10,1,3,{'none'},0};
+%     % These are the default values for the window feature parameters.  (Formerly defaultWinParams.)
+%     % They are only used if the lexicon fails to specify pre-set
+%     % window-feature amounts (e.g. normal, more, less)
+%     defaultWFParams = {10,1,3,{'none'},0};
     % A Window feature type can sometimes have an extra parameter.  Below are the names 
     % of those parameters, one for each WF type.  WF types without an extra param have the 
     % empty string for their entry.  (Formerly winextraParams.)                  
     wfExtraParamNames = {'','','','','hist_edges','prctiles','change_window_radii',...
                          '','num_harmonic','','','',''};
-    % Below are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
-    % They are only used if the lexicon fails to specify pre-set
-    % window-feature amounts (e.g. normal, more, less)
-    defaultWFExtraParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
-                            [],2,[],[],[],[]};
+%     % Below are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
+%     % They are only used if the lexicon fails to specify pre-set
+%     % window-feature amounts (e.g. normal, more, less)
+%     defaultWFExtraParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
+%                             [],2,[],[],[],[]};
   end  % class constants
   
   % class methods
   methods (Access=public,Static=true)
     % ---------------------------------------------------------------------
-    function wfParamsFromAmount= ...
-      computeWFParamsFromAmount(featureLexicon)
+    function wfParamsFromAmount=computeWFParamsFromAmount(featureLexicon)
+      % Specify some constants we need
+      % Below are the default values for the window feature parameters.  (Formerly defaultWinParams.)
+      % They are only used if the lexicon fails to specify pre-set
+      % window-feature amounts (e.g. normal, more, less)
+      defaultWFParams = {10,1,3,{'none'},0};
+      % Below are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
+      % They are only used if the lexicon fails to specify pre-set
+      % window-feature amounts (e.g. normal, more, less)
+      defaultWFExtraParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
+                              [],2,[],[],[],[]};
+    
       % Get some class constants we'll need
       wfTypes = ...
         FeatureVocabularyForSelectFeatures.wfTypes;
       wfParamNames = ...
         FeatureVocabularyForSelectFeatures.wfParamNames;
-      defaultWFParams = ...
-        FeatureVocabularyForSelectFeatures.defaultWFParams;
+      % defaultWFParams = ...
+      %   FeatureVocabularyForSelectFeatures.defaultWFParams;
       wfExtraParamNames = ...
         FeatureVocabularyForSelectFeatures.wfExtraParamNames;
-      defaultWFExtraParams = ...
-        FeatureVocabularyForSelectFeatures.defaultWFExtraParams;
+      % defaultWFExtraParams = ...
+      %   FeatureVocabularyForSelectFeatures.defaultWFExtraParams;
       % Read the default parameters for different categories.
       wfAmounts = fieldnames(featureLexicon.defaults);
       if isempty(wfAmounts) 
@@ -212,9 +222,10 @@ classdef FeatureVocabularyForSelectFeatures < handle
             wfParamName = wfParamNames{wfParamNdx};
             if isfield(windowFeatureParams.(pfName),wfParamName)
               vocabulary{pfIndex}.default.values.(wfParamName) = windowFeatureParams.(pfName).(wfParamName);
-            else % Fill in the default value
+            else % Fill in the value from the default preset amount
               vocabulary{pfNdx}.default.values.(wfParamName) = ...
-                self.defaultWFParams{wfParamNdx};
+                wfParamsAmount.default.values.(wfParamName);
+                %self.defaultWFParams{wfParamNdx};
             end
             vocabulary{pfIndex}.default.enabled = true;
           end
@@ -229,7 +240,9 @@ classdef FeatureVocabularyForSelectFeatures < handle
                 wfParamName = wfParamNames{wfParamNdx};
                 if isfield(wfParamsThisType,wfParamName)
                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = wfParamsThisType.(wfParamName);
-                else % fill in the default values
+                else  % fill in the default values
+                  % Is this really where we want to get it from?
+                  % 
                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
                 end
               end
