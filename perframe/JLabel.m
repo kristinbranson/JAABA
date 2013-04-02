@@ -1650,6 +1650,9 @@ function pushtool_save_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to pushtool_save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+saveAs=false;
+saveEverythingFile(gcbf,saveAs);
+return
 
 
 % --------------------------------------------------------------------
@@ -2227,6 +2230,7 @@ set(handles.menu_file_open,'Enable',offIff(thereIsAnOpenFile));
 set(handles.menu_file_open_in_ground_truthing_mode, ...
     'Enable',offIff(thereIsAnOpenFile));  
 set(handles.menu_file_save,'Enable',onIff(openFileHasUnsavedChanges));
+set(handles.pushtool_save,'Enable',onIff(openFileHasUnsavedChanges));
 set(handles.menu_file_save_as,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 % set(handles.menu_file_import_old_style_project, ...
@@ -8633,4 +8637,3 @@ ClearStatus(handles);
 guidata(figureJLabel,handles);
 
 return
-
