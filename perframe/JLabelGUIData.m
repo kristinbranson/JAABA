@@ -441,7 +441,7 @@ classdef JLabelGUIData < handle
     
     
     % ---------------------------------------------------------------------
-    function initializeGivenBasicParams(self,basicParams,figureJLabel)
+    function initializeGivenBasicParams(self,basicParams,figureJLabel)  %#ok
       % initialize data structure
       self.data = ...
         JLabelData(basicParams, ...
