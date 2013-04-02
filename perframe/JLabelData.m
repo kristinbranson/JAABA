@@ -28,6 +28,15 @@ classdef JLabelData < handle
     % 'vivek_mice'
     featureLexiconName='';
     
+    % The actual feature lexicon itself.  Note that we should not assume
+    % the feature lexicon exactly matches the feature lexicon named
+    % featureLexiconName in the global config files.  That's because the
+    % user may have modified the featureLexicon for this everything file.
+    % (Granted, there's no way to do this in the UI as of Apr 2, 2013, but
+    % that may change in the future.  Plus we want to at least make it
+    % possible for the user to hack the everything file in this way.)
+    featureLexicon=[];
+    
     % computed and cached window features
     windowdata = struct('X',single([]),'exp',[],'flies',[],'t',[],...
       'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
@@ -202,9 +211,6 @@ classdef JLabelData < handle
     
     % feature configuration file name
     %featureConfigFile = '';
-    
-    % stuff loaded from featureConfigFile
-    featureLexicon=[];
     
     % in case we don't want to write to the experiment directory, we will
     % mirror the experiment directory structure in the rootoutput dir
@@ -419,8 +425,55 @@ classdef JLabelData < handle
 %   end
 
   methods (Access=private)
-  end
+    % ---------------------------------------------------------------------    
+    function [success,msg] = setFeatureLexiconRaw(obj,featureLexicon,animalType,featureLexiconName)
+      % This sets the feature lexicon to the given one.  If the
+      % featureLexicon is not one of the named ones, then no
+      % featureLexiconName should be given.
+      
+      % process args
+      if ~exist('featureLexiconName','var')
+        featureLexiconName='custom';
+      end
+      
+      % Setup the default return values
+      %success = false;
+      msg = '';
+
+      % Store the lexicon-associated stuff in obj
+      obj.featureLexiconName=featureLexiconName;
+      obj.featureLexicon=featureLexicon;  % save to obj
+      obj.targettype=animalType;
+      
+      % Update obj.perframe_params based on the new feature lexicon
+      if isfield(featureLexicon,'perframe_params'),
+        obj.perframe_params=featureLexicon.perframe_params;
+        % pf_fields = fieldnames(featureLexicon.perframe_params);
+        % for ndx = 1:numel(pf_fields),
+        %   obj.perframe_params.(pf_fields{ndx}) = ...
+        %     featureLexicon.perframe_params.(pf_fields{ndx});
+        % end
+      end
+
+      % Update obj.allperframefns based on the new feature lexicon
+      obj.allperframefns =  fieldnames(featureLexicon.perframe);
+      
+      % Re-load the perframe feature signals, since the PFFs may have changed
+      obj.loadPerframeData(obj.expi,obj.flies);
+
+      % Clear the classifier, since the feature lexicon has changed
+      % This also clears the features currently in use by the classifier
+      % trainer
+      obj.clearClassifier();
+      
+      % If we got this far, all is good
+      success = true;
+    end  % method
     
+  end
+
+  
+  % -----------------------------------------------------------------------
   methods (Access=public,Static=true)
 
     % movie, trx, and perframedir are required for each experiment
@@ -891,7 +944,12 @@ classdef JLabelData < handle
       msg = '';
 
       % feature config file
-      obj.setFeatureLexicon(basicParams.featureLexiconName);
+      if isequal(basicParams.featureLexiconName,'custom')
+        obj.setFeatureLexiconCustom(basicParams.featureLexicon, ...
+                                    basicParams.behaviors.type);
+      else
+        obj.setFeatureLexiconFromName(basicParams.featureLexiconName);
+      end
 
       % get some silly stuff out of projectParams
       %obj.projectParams=projectParams;
@@ -3878,55 +3936,35 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexicon(obj,featureLexiconName)
+    function [success,msg] = setFeatureLexiconFromName(obj,featureLexiconName)
       % This sets the feature lexicon to the one named by
       % featureLexiconName
       
-      % Setup the default return values
-      %success = false;
-      msg = '';
-
-      % Only do stuff if the new lexicon name is different than the current
-      % one
-      if isequal(featureLexiconName,obj.featureLexiconName)
-        success=true;
-        return
-      end
+%       % Only do stuff if the new lexicon name is different than the current
+%       % one
+%       if isequal(featureLexiconName,obj.featureLexiconName)
+%         success=true;
+%         return
+%       end
       
       % Get the lexicon itself and the associated animal type
       [featureLexicon,animalType]= ...
         featureLexiconFromFeatureLexiconName(featureLexiconName);     
 
       % Store the lexicon-associated stuff in obj
-      obj.featureLexiconName=featureLexiconName;
-      obj.featureLexicon=featureLexicon;  % save to obj
-      obj.targettype=animalType;
-      
-      % Update obj.perframe_params based on the new feature lexicon
-      if isfield(featureLexicon,'perframe_params'),
-        obj.perframe_params=featureLexicon.perframe_params;
-        % pf_fields = fieldnames(featureLexicon.perframe_params);
-        % for ndx = 1:numel(pf_fields),
-        %   obj.perframe_params.(pf_fields{ndx}) = ...
-        %     featureLexicon.perframe_params.(pf_fields{ndx});
-        % end
-      end
-
-      % Update obj.allperframefns based on the new feature lexicon
-      obj.allperframefns =  fieldnames(featureLexicon.perframe);
-      
-      % Re-load the perframe feature signals, since the PFFs may have changed
-      obj.loadPerframeData(obj.expi,obj.flies);
-
-      % Clear the classifier, since the feature lexicon has changed
-      % This also clears the features currently in use by the classifier
-      % trainer
-      obj.clearClassifier();
-      
-      % If we got this far, all is good
-      success = true;
+      [success,msg] = obj.setFeatureLexiconRaw(featureLexicon,animalType,featureLexiconName);
     end  % method
     
+    
+    % ---------------------------------------------------------------------    
+    function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon,animalType)
+      % This sets the feature lexicon to the given one, and stores a
+      % featureLexiconName of 'custom'.
+      
+      % Store the lexicon-associated stuff in obj
+      [success,msg] = obj.setFeatureLexiconRaw(featureLexicon,animalType,'custom');
+    end  % method
+
     
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = SetFeatureConfigFile(obj,featureConfigFileName)
@@ -7976,6 +8014,7 @@ classdef JLabelData < handle
 
       % Get a bunch of parameters, put them in s
       s.featureLexiconName=self.featureLexiconName;
+      s.featureLexicon=self.featureLexicon;
       s.behaviors.type=self.targettype;
       s.behaviors.names=self.labelnames;
       s.behaviors.labelcolors=self.labelcolors;

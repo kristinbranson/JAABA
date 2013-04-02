@@ -8212,7 +8212,9 @@ function basicParams=basicParamsFromEverythingParams(everythingParams)
 
 basicParams=struct();
 basicParams.featureLexiconName=everythingParams.featureLexiconName;
-basicParams.behaviors=rmfield(everythingParams.behaviors,'type');  % featureLexiconName implies the type
+basicParams.featureLexicon=everythingParams.featureLexicon;
+%basicParams.behaviors=rmfield(everythingParams.behaviors,'type');  % featureLexiconName implies the animal type
+basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
 basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
 basicParams.file=everythingParams.file;
 basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
@@ -8441,10 +8443,15 @@ function changeFeatureLexiconDone(figureJLabel,newFeatureLexiconName)
 
 % get handles
 handles=guidata(figureJLabel);
-
-% if new same as old, do nothing
 data=handles.guidata.data;  % a ref
-if isequal(newFeatureLexiconName,data.featureLexiconName)
+
+% % if new same as old, do nothing
+% if isequal(newFeatureLexiconName,data.featureLexiconName)
+%   return
+% end
+
+% If the user selected custom, no change is required.
+if isequal(newFeatureLexiconName,'custom')
   return
 end
 
@@ -8452,7 +8459,7 @@ end
 SetStatus(handles,'Changing target type...');
 
 % Set the feature dictionary, basic params in JLabelData
-[success,msg]=data.setFeatureLexicon(newFeatureLexiconName);
+[success,msg]=data.setFeatureLexiconFromName(newFeatureLexiconName);
 if ~success,
   uiwait(errordlg(msg,'Error Changing Target Type','modal'));
 end
