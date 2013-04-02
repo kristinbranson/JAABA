@@ -2267,18 +2267,24 @@ function [behavior_data,behavior_data2,behavior_data3,feature_data]=...
 if(~isempty(behavior_data))
   find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
   behavior_data.allScores.scores(ans)=[];
+  behavior_data.allScores.tStart(ans)=[];
+  behavior_data.allScores.tEnd(ans)=[];
   behavior_data.allScores.t0s(ans)=[];
   behavior_data.allScores.t1s(ans)=[];
 end
 if(~isempty(behavior_data2))
   find((behavior_data2.allScores.tEnd-behavior_data2.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
   behavior_data2.allScores.scores(ans)=[];
+  behavior_data2.allScores.tStart(ans)=[];
+  behavior_data2.allScores.tEnd(ans)=[];
   behavior_data2.allScores.t0s(ans)=[];
   behavior_data2.allScores.t1s(ans)=[];
 end
 if(~isempty(behavior_data3))
   find((behavior_data3.allScores.tEnd-behavior_data3.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
   behavior_data3.allScores.scores(ans)=[];
+  behavior_data3.allScores.tStart(ans)=[];
+  behavior_data3.allScores.tEnd(ans)=[];
   behavior_data3.allScores.t0s(ans)=[];
   behavior_data3.allScores.t1s(ans)=[];
 end
@@ -3522,8 +3528,8 @@ for b=bb
 
   num_indi=0;
   collated_data=cell(1,length(ggee));
-  parfor gei=1:numel(ggee)
-  %for gei=1:numel(ggee)
+  %parfor gei=1:numel(ggee)
+  for gei=1:numel(ggee)
     ge = ggee(gei);
 
     %if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
