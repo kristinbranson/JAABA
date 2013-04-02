@@ -69,7 +69,7 @@ classdef ChangeFeatureLexiconDialog < handle
       % the current one
       standardFeatureLexiconNameList = getFeatureLexiconListsFromXML();
       if isequal(featureLexiconName,'custom')
-        standardFeatureLexiconNameList={'custom';standardFeatureLexiconNameList};
+        self.featureLexiconNameList={'custom';standardFeatureLexiconNameList};
         iFeatureLexiconName=1;
       else
         self.featureLexiconNameList = standardFeatureLexiconNameList;
