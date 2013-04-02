@@ -67,8 +67,14 @@ classdef ChangeFeatureLexiconDialog < handle
       
       % Get the list of possible feature lexicon names, and the index of
       % the current one
-      self.featureLexiconNameList = getFeatureLexiconListsFromXML();
-      iFeatureLexiconName=find(strcmp(featureLexiconName,self.featureLexiconNameList));
+      standardFeatureLexiconNameList = getFeatureLexiconListsFromXML();
+      if isequal(featureLexiconName,'custom')
+        standardFeatureLexiconNameList={'custom';standardFeatureLexiconNameList};
+        iFeatureLexiconName=1;
+      else
+        self.featureLexiconNameList = standardFeatureLexiconNameList;
+        iFeatureLexiconName=find(strcmp(featureLexiconName,self.featureLexiconNameList));
+      end
       
       % Create and/or position the controls
       set(self.popupMenuLabelText, ...
