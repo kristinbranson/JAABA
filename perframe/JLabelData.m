@@ -617,8 +617,24 @@ classdef JLabelData < handle
     function result=isValidBehaviorName(behaviorName)
       result=~isempty(regexp(behaviorName,'^[a-zA-Z_0-9]+$','once'));
     end
+
+    
+    % ---------------------------------------------------------------------
+    function result=isValidScoreFileName(scoreFileName)
+      [path,baseName,ext]=fileparts(scoreFileName);
+      if ~isempty(path)
+        result=false
+      elseif ~isequal(ext,'.mat')
+        result=false
+      else
+        result=~isempty(regexp(baseName,'^[a-zA-Z_0-9]+$','once'));
+      end
+    end    
+    
   end  % class methods
   
+  
+  % -----------------------------------------------------------------------
   methods (Access=public)
     function obj = JLabelData(varargin)
     % obj = JLabelData(configParams,...)
@@ -923,7 +939,7 @@ classdef JLabelData < handle
         else
           scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
         end
-        [success1,msg] = obj.SetScoresFileName(scorefilename);
+        [success1,msg] = obj.setScoreFileName(scorefilename);
         if ~success1,
           return;
         end
@@ -1234,18 +1250,16 @@ classdef JLabelData < handle
     
 
     % ---------------------------------------------------------------------
-    function [success,msg] = SetScoresFileName(obj,scorefilename)
-    % [success,msg] = SetGTLabelFileName(obj,labelfilename)
-    % set the name of the *ground truth* label file within the experiment directory. this
-    % does not currently update labelidx, and probably should not be called
-    % once an experiment is open. 
-
-      %success = false;
-      %msg = '';
-
+    function scoreFileName=getScoreFileName(obj)
+      % Get the score file name, a string
+      scoreFileName=obj.scorefilename;
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = setScoreFileName(obj,scorefilename)
       obj.scorefilename = scorefilename;
       [success,msg] = obj.UpdateStatusTable('scores');
-      
     end
 
 
@@ -3869,7 +3883,7 @@ classdef JLabelData < handle
       % featureLexiconName
       
       % Setup the default return values
-      success = false;
+      %success = false;
       msg = '';
 
       % Only do stuff if the new lexicon name is different than the current
