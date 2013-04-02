@@ -2031,15 +2031,15 @@ function pushbutton_hist_Callback(hObject, eventdata, handles)  %#ok
 prcEdges = [5 15 30 50 70 85 95];
 
 fv=handles.featureVocabulary;
-histfnNdx = find(strcmp('hist',fv.wfTypes));
-histExtraName = fv.wfExtraParamNames{histfnNdx};  %#ok
+histWFTypeNdx = find(strcmp('hist',fv.wfTypes));
+histExtraParamName = fv.wfExtraParamNames{histWFTypeNdx};  %#ok
 
 h = waitbar(0,'Computing hist bins');
-for ndx = 1:numel(fv.pfNameList)
-  curPf = fv.pfNameList{ndx};
-  waitbar(ndx/numel(fv.pfNameList),h);
+for pfIndex = 1:numel(fv.pfNameList)
+  pfName = fv.pfNameList{pfIndex};
+  waitbar(pfIndex/numel(fv.pfNameList),h);
   
-  if ~fv.pfIsInVocabulary(ndx) || ~handles.data{ndx}.hist.valid; 
+  if ~fv.pfIsInVocabulary(pfIndex) || ~fv.wfTypeIsInVocabulary(pfIndex,'hist')
     continue;
   end
   
@@ -2047,8 +2047,8 @@ for ndx = 1:numel(fv.pfNameList)
   for expi = 1:handles.jld.nexps,
     
     % load per-frame data for this experiment
-    perframedir = handles.jld.GetFile('perframedir',expi);
-    file = fullfile(perframedir,[curPf,'.mat']);
+    perframeDirName = handles.jld.GetFile('perframedir',expi);
+    file = fullfile(perframeDirName,[pfName,'.mat']);
     if ~exist(file,'file'),
       warning('Per-frame data file %s does not exist',file);
       continue;
@@ -2068,12 +2068,13 @@ for ndx = 1:numel(fv.pfNameList)
   binMin = minD - (maxD-minD);
   binMax = maxD + (maxD-minD);
   bins = [binMin bins binMax];  %#ok
-  handles.data{ndx}.hist.values.(histExtraName) = bins;
+  %handles.data{ndx}.hist.values.(histExtraName) = bins;
+  fv.setWFParam(pfName,'hist',histExtraParamName,bins)
 end
 delete(h);
 guidata(hObject,handles);
-updateWindowTable(handles);
-updateWindowTableEnablement(handles);
+updateWindowTableAndEnablement(handles);
+updateWinParamsAndEnablement(handles);
 % if ~isempty(handles.pfNdx)
 %   updateWindowTable(handles);
 %   enableWindowTable(handles);
