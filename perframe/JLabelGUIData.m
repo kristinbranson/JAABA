@@ -93,8 +93,8 @@ classdef JLabelGUIData < handle
     labelunknowncolor = [0,0,0];
     nextra_markers = 1;
     flies_extra_markersize = 12;
-    flies_extra_marker = 'o';
-    flies_extra_linestyle = '-';
+    flies_extra_marker = {'o'};
+    flies_extra_linestyle = {'-'};
 
     scorecolor = [];
     
@@ -519,13 +519,13 @@ classdef JLabelGUIData < handle
           isfield(basicParams.plot.trx,'extra_markersize'),
         self.flies_extra_markersize = basicParams.plot.trx.extra_markersize(1);
       end
-      self.flies_extra_marker = 'o';
+      self.flies_extra_marker = {'o'};
       if isfield(basicParams,'plot') && ...
           isfield(basicParams.plot,'trx') && ...
           isfield(basicParams.plot.trx,'extra_marker'),
         self.flies_extra_marker = basicParams.plot.trx.extra_marker;
       end
-      self.flies_extra_linestyle = '-';
+      self.flies_extra_linestyle = {'-'};
       if isfield(basicParams,'plot') && ...
           isfield(basicParams.plot,'trx') && ...
           isfield(basicParams.plot.trx,'extra_linestyle'),

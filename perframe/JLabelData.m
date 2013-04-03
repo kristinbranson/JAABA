@@ -5174,7 +5174,7 @@ classdef JLabelData < handle
       if ~isempty(labelsToUse(expi).flies),	
         [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
       else
-	ism = false
+        ism = false;
       end
       if ism,
         labels_curr.t0s = labelsToUse(expi).t0s{fliesi};
