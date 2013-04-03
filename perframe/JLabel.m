@@ -1286,7 +1286,8 @@ if ~exist('doupdateplot','var'),
   doupdateplot = true;
 end
 
-[success,msg] = handles.guidata.data.PreLoad(handles.guidata.expi,flies);
+data=handles.guidata.data;  % a ref
+[success,msg] = data.PreLoad(handles.guidata.expi,flies);
 if ~success,
   uiwait(waitdlg(sprintf('Error loading data for current set of flies: %s',msg)));
   return;
@@ -1301,8 +1302,8 @@ end
 handles.guidata.flies = flies;
 
 % frames these flies are both alive
-handles.guidata.t0_curr = max(handles.guidata.data.GetTrxFirstFrame(handles.guidata.expi,handles.guidata.flies));
-handles.guidata.t1_curr = min(handles.guidata.data.GetTrxEndFrame(handles.guidata.expi,handles.guidata.flies));
+handles.guidata.t0_curr = max(data.GetTrxFirstFrame(handles.guidata.expi,handles.guidata.flies));
+handles.guidata.t1_curr = min(data.GetTrxEndFrame(handles.guidata.expi,handles.guidata.flies));
 
 % form of labels for easier plotting:
 % x, y positions of all labels
@@ -1314,10 +1315,10 @@ handles.guidata.labels_plot.suggest_xs = nan;
 handles.guidata.labels_plot.error_xs = nan;
 %handles.guidata.labels_plot.suggested_im = zeros([1,n,3]);
 %handles.guidata.labels_plot.error_im = zeros([1,n,3]);
-handles.guidata.labels_plot.x = nan(2,n,handles.guidata.data.nbehaviors,numel(handles.guidata.flies));
-handles.guidata.labels_plot.y = nan(2,n,handles.guidata.data.nbehaviors,numel(handles.guidata.flies));
-handles.guidata.labels_plot.predx = nan(2,n,handles.guidata.data.nbehaviors,numel(handles.guidata.flies));
-handles.guidata.labels_plot.predy = nan(2,n,handles.guidata.data.nbehaviors,numel(handles.guidata.flies));
+handles.guidata.labels_plot.x = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
+handles.guidata.labels_plot.y = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
+handles.guidata.labels_plot.predx = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
+handles.guidata.labels_plot.predy = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
 handles.guidata.labels_plot_off = 1-handles.guidata.t0_curr;
 % set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto,...
 %   handles.himage_timeline_error,handles.himage_timeline_suggest],...
@@ -1325,17 +1326,20 @@ handles.guidata.labels_plot_off = 1-handles.guidata.t0_curr;
 set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto],...
   'XData',[handles.guidata.t0_curr,handles.guidata.t1_curr]);
 
-labelidxStruct = handles.guidata.data.GetLabelIdx(handles.guidata.expi,flies);
+labelidxStruct = data.GetLabelIdx(handles.guidata.expi,flies);
 labelidx = labelidxStruct.vals;
 
-prediction = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,flies);
-predictedidx = prediction.predictedidx;
-scores = handles.guidata.data.NormalizeScores(prediction.scoresidx);
+classifierPresent=data.classifierIsPresent();
+if classifierPresent ,
+  prediction = data.GetPredictedIdx(handles.guidata.expi,flies);
+  predictedidx = prediction.predictedidx;
+  scores = data.NormalizeScores(prediction.scoresidx);
+end
 for flyi = 1:numel(flies),
   fly = flies(flyi);
-  x = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,fly,handles.guidata.t0_curr:handles.guidata.t1_curr);
-  y = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,fly,handles.guidata.t0_curr:handles.guidata.t1_curr);
-  for behaviori = 1:handles.guidata.data.nbehaviors
+  x = data.GetTrxValues('X1',handles.guidata.expi,fly,handles.guidata.t0_curr:handles.guidata.t1_curr);
+  y = data.GetTrxValues('Y1',handles.guidata.expi,fly,handles.guidata.t0_curr:handles.guidata.t1_curr);
+  for behaviori = 1:data.nbehaviors
     idx = find(labelidx == behaviori);
     idx1 = min(idx+1,numel(x));
     handles.guidata.labels_plot.x(1,idx,behaviori,flyi) = x(idx);
@@ -1343,14 +1347,16 @@ for flyi = 1:numel(flies),
     handles.guidata.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
     handles.guidata.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
     
-%     idx = find(predictedidx == behaviori);
-    idx = find((predictedidx == behaviori) & ...
-      (abs(scores)>handles.guidata.data.GetConfidenceThreshold(behaviori)));
-    idx1 = min(idx+1,numel(x));
-    handles.guidata.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
-    handles.guidata.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
-    handles.guidata.labels_plot.predy(1,idx,behaviori,flyi) = y(idx);
-    handles.guidata.labels_plot.predy(2,idx,behaviori,flyi) = y(idx1);
+    if classifierPresent ,
+      % idx = find(predictedidx == behaviori);
+      idx = find((predictedidx == behaviori) & ...
+        (abs(scores)>data.GetConfidenceThreshold(behaviori)));
+      idx1 = min(idx+1,numel(x));
+      handles.guidata.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
+      handles.guidata.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
+      handles.guidata.labels_plot.predy(1,idx,behaviori,flyi) = y(idx);
+      handles.guidata.labels_plot.predy(2,idx,behaviori,flyi) = y(idx1);
+    end
   end
 end
 handles = UpdateTimelineIms(handles);
@@ -1377,8 +1383,8 @@ for i = 1:numel(handles.guidata.axes_previews),
 end
 
 % Update colors for all other flies. 
-inbounds = handles.guidata.data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
-  handles.guidata.data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
+inbounds = data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
+  data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
 
 for i = 1:numel(handles.guidata.axes_previews),
   for fly = find(inbounds),
@@ -1389,11 +1395,11 @@ for i = 1:numel(handles.guidata.axes_previews),
 end
 
 % status bar text
-% [~,expname] = myfileparts(handles.guidata.data.expdirs{handles.guidata.expi});
+% [~,expname] = myfileparts(data.expdirs{handles.guidata.expi});
 % if numel(handles.guidata.flies) == 1,
-%   handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,handles.guidata.data.targettype,handles.guidata.flies);
+%   handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,data.targettype,handles.guidata.flies);
 % else
-%   handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,handles.guidata.data.targettype),sprintf(' %d',handles.guidata.flies)];
+%   handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,data.targettype),sprintf(' %d',handles.guidata.flies)];
 %     % I don't understand the line above.  targettype is a string! ---ALT, march 18, 2013
 % end
 syncStatusBarTextWhenClear(handles);
