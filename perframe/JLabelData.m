@@ -1,6 +1,6 @@
 classdef JLabelData < handle
   
-  properties (Access=public)
+  properties (Access=public) 
 
     % type of target (mainly used for plotting)
     % this should be a type of animal, and should be singular, not plural
