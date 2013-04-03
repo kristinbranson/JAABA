@@ -27,6 +27,9 @@ for filei = 1:numel(classifierparamsfiles),
     end
     l = strtrim(l);
     if isempty(l), continue; end
+    if l(1) == '#',
+      continue;
+    end
     ws = regexp(l,',','split');
     if isrelativepath,
       for j = 1:2,

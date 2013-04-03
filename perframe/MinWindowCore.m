@@ -1,5 +1,9 @@
 function res = MinWindowCore(x,r)
 
+if isempty(x)
+  res = zeros(size(x));
+  return;
+end
 w = 2*r+1;
 ntrans = size(x,1);
 % pad with infs for boundary conditions
