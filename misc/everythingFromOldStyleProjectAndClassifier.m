@@ -97,8 +97,8 @@ else
   classifier.animalType=projectParams.behaviors.type;
   classifier.featureConfigParams=featureConfigParams;
   classifier.windowFeaturesParams=classifierParams.windowfeaturesparams;
-  classifier.basicFeatureTable=classifierParams.basicFeatureTable;
-  classifier.featureWindowSize=classifierParams.featureWindowSize;
+  %classifier.basicFeatureTable=classifierParams.basicFeatureTable;
+  %classifier.featureWindowSize=classifierParams.featureWindowSize;
   classifier.scoresAsInput=projectParams.scoresinput;
   if ~isempty(projectParams.behaviors.names)                             
     classifier.behaviorName=projectParams.behaviors.names{1};
