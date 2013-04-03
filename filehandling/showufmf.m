@@ -1,24 +1,12 @@
 function varargout = showufmf(varargin)
-% SHOWUFMF M-file for showufmf.fig
-%      SHOWUFMF, by itself, creates a new SHOWUFMF or raises the existing
-%      singleton*.
+% showufmf
 %
-%      H = SHOWUFMF returns the handle to a new SHOWUFMF or the handle to
-%      the existing singleton*.
+% Opens a GUI to show UFMF-compressed video
+% Optional inputs:
+% 
+% UFMFName: Name of input video.
 %
-%      SHOWUFMF('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in SHOWUFMF.M with the given input arguments.
 %
-%      SHOWUFMF('Property','Value',...) creates a new SHOWUFMF or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before showufmf_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to showufmf_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
 
 % Edit the above text to modify the response to help showufmf
 

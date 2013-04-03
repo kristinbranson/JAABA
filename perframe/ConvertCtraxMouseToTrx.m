@@ -1,4 +1,4 @@
-function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSize,framerate,sex)
+function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSize,framerate,method,sex,frames2sel)
 % function ConvertCtraxMouseToTrx(indir,arenaSize,dt,sex)
 % Convert tracking results from ctrx into trx format. Mainly for vivek's
 % movies.
@@ -8,14 +8,16 @@ function ConvertCtraxMouseToTrx(indir,intrxfile,moviefilename,outtrxfile,arenaSi
 % outtrxfile: output trx file
 % arenaSize: The size of the edge of the box in mm
 % framerate
+% method: 'manual','auto', 'both'. Both will try out auto and if it fails
+% will ask for for manual intervention.
 % sex: animals sex - optional 
-
+% frames2sel: Frames to use for corner detection.
 
 % intrxfile = 'trx.mat';
 % moviefilename = 'movie.mov';
 % outtrxfile = 'registered_trx.mat';
 
-if nargin< 7
+if nargin< 8
   sex = 'm';
 end
 
@@ -33,18 +35,50 @@ end
 [readframe,nframes,movie_fid,movieheaderinfo] = ...
   get_readframe_fcn(fullfile(indir,moviefilename));
 
-frames2read = randsample(nframes,sampleframes);
-tl = []; tr = []; bl = []; br = [];
-for ndx = 1:numel(frames2read)
-  img = readframe(frames2read(ndx));
-  [ctl ctr cbl cbr] = getCornersManual(img);
-  
-  if isempty(ctl); continue; end
-  tl(end+1,:) = ctl;
-  tr(end+1,:) = ctr;
-  bl(end+1,:) = cbl;
-  br(end+1,:) = cbr;
+imgfile = fullfile(indir,'corner_detection.png');
+
+if nargin<9
+  frames2read = randsample(nframes,1);
+else
+  frames2read=randsample(frames2sel,1);
 end
+tl = []; tr = []; bl = []; br = [];
+img = readframe(frames2read);
+
+if strcmp(method,'auto'),
+  
+  [success,C] = cornerDetection(img,imgfile);
+  if success,
+    ctl = C(1,:);
+    ctr = C(2,:);
+    cbl = C(3,:);
+    cbr = C(4,:);
+  else
+    fprintf('Could not detect corners automatically for %s. Please label them manually\n',indir);
+    return;
+  end
+elseif strcmp(method,'manual'),
+  [ctl ctr cbl cbr] = getCornersManual(img);
+elseif strcmp(method,'both');
+  [success,C] = cornerDetection(img,imgfile);
+  if success,
+    ctl = C(1,:);
+    ctr = C(2,:);
+    cbl = C(3,:);
+    cbr = C(4,:);
+  else
+    [ctl ctr cbl cbr] = getCornersManual(img);
+  end
+else
+  fprintf('Invalid method: It should be either ''manual'', ''auto'' or ''both''\n');
+  return;
+end
+
+
+tl(end+1,:) = ctl;
+tr(end+1,:) = ctr;
+bl(end+1,:) = cbl;
+br(end+1,:) = cbr;
 
 ftl = median(tl,1);
 ftr = median(tr,1);

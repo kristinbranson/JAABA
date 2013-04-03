@@ -31,14 +31,24 @@ for i = 1:numel(traj_fns),
       units = parseunits('unit');
   end
   try
-    if dooverwrite && exist(filename,'file'),
+    
+    fileexists = exist(filename,'file');
+    if ~fileexists && isunix,
+      [res,link] = unix(sprintf('readlink %s',filename));
+      if ~res && ~isempty(link),
+        warning('Deleting broken soft link from %s to %s.\n',filename,link);
+        unix(sprintf('rm %s',filename));
+      end
+    end
+    
+    if dooverwrite && fileexists,
       try
         delete(filename);
       catch ME,
         warning('Could not delete file %s: %s',filename,getReport(ME));
       end
     end
-    if dooverwrite || ~exist(filename,'file'),
+    if dooverwrite || ~fileexists,
       save(filename,'data','units');
     end
   catch %#ok<CTCH>
