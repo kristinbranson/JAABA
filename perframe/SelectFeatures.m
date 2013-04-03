@@ -924,6 +924,8 @@ end
 guidata(hObject,handles);
 updateWindowTableRow(handles,wfTypeNdx)
 updateWinParamsAndEnablement(handles);
+updatePFTableForCurrentPF(handles);
+updateBasicTableAllCategoriesOfCurrentPF(handles);
 % if eventData.NewData
 %   updateWinParams(handles);
 %   enableWinParams(handles);
