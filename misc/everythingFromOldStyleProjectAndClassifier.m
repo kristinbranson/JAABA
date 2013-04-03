@@ -15,23 +15,16 @@ featureLexicon = ReadXMLParams(featureLexiconFileNameAbs);
 % Try to match up the relative feature lexicon file name with a
 % feature lexicon name
 [featureLexiconNameList, ...
- featureLexiconFileNameRelList, ...
- featureLexiconAnimalTypeList] = ...
+ featureLexiconFileNameRelList] = ...
   getFeatureLexiconListsFromXML();
-
 isSameLexicon=strcmp(featureLexiconFileNameRel,featureLexiconFileNameRelList);
-featureLexiconIndex=find(isSameLexicon);
-if isempty(featureLexiconIndices)
-  featureLexiconName='custom'
+i=find(isSameLexicon);  
+if isempty(i)
+  featureLexiconName='custom';
+  %featureLexiconAnimalType='';
 else
-  featureLexiconIndex=featureLexiconIndices(1);
-end
-
-nLexicons=length(featureLexiconNameList);
-
-for i=1:nLexicons
-  
-  if isequal(featureLexiconFileNameRel,featureLexiconFileNameRelList{i})
+  featureLexiconName=featureLexiconNameList{i};
+  %featureLexiconAnimalType=featureLexiconAnimalTypeList{i};
 end
 
 % copy the project params over
@@ -44,6 +37,13 @@ end
 everythingParams.file=fileParams;
 everythingParams.trxGraphicParams=projectParams.trx;
 everythingParams.labelGraphicParams=projectParams.labels;
+everythingParams.featureLexiconName=featureLexiconName;
+everythingParams.featureLexicon=featureLexicon;
+if isempty(projectParams.behaviors.names)                             
+  everythingParams.behaviorName='';
+else
+  everythingParams.behaviorName=projectParams.behaviors.names{1};
+end
 
 % copy the experiment dirs, labels over
 if isempty(classifierParams)
@@ -53,32 +53,30 @@ if isempty(classifierParams)
   everythingParams.gtLabels=struct([]);
   classifier=struct();
   %animalType=projectParams.behaviors.type;
-  classifier.featureLexiconName='custom';
-  classifier.featureLexicon=featureLexicon;
   if isfield(projectParams.windowfeatures,'windowfeaturesparams')
     classifier.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
   else
     classifier.windowFeaturesParams=struct([]);    
   end
-  if isfield(projectParams.windowfeatures,'basicFeatureTable')
-    classifier.basicFeatureTable=projectParams.windowfeatures.basicFeatureTable;
-  else
-    classifier.basicFeatureTable={};    
-  end
-  if isfield(projectParams.windowfeatures,'featureWindowSize')
-    classifier.featureWindowSize=projectParams.windowfeatures.featureWindowSize;
-  else
-    classifier.featureWindowSize=10;  % the default
-  end    
+%   if isfield(projectParams.windowfeatures,'basicFeatureTable')
+%     classifier.basicFeatureTable=projectParams.windowfeatures.basicFeatureTable;
+%   else
+%     classifier.basicFeatureTable={};    
+%   end
+%   if isfield(projectParams.windowfeatures,'featureWindowSize')
+%     classifier.featureWindowSize=projectParams.windowfeatures.featureWindowSize;
+%   else
+%     classifier.featureWindowSize=10;  % the default
+%   end    
   classifier.scoresAsInput=projectParams.scoresinput;
   %classifier.scoresAsInput=struct('classifierfile',{}, ...
   %                                'ts',{}, ...
   %                                'scorefilename',{});
-  if ~isempty(projectParams.behaviors.names)                             
-    classifier.behaviorName=projectParams.behaviors.names{1};
-  else
-    classifier.behaviorName='';
-  end
+%   if ~isempty(projectParams.behaviors.names)                             
+%     classifier.behaviorName=projectParams.behaviors.names{1};
+%   else
+%     classifier.behaviorName='';
+%   end
   classifier.type='boosting';  % e.g., 'boosting'
   classifier.params=struct([]);
   classifier.confThresholds=[0 0];
@@ -118,8 +116,6 @@ else
   % copy the classifier params proper over
   classifier=struct();
   %classifier.animalType=projectParams.behaviors.type;
-  classifier.featureLexiconName='custom';  
-  classifier.featureLexicon=featureLexicon;
   classifier.windowFeaturesParams=classifierParams.windowfeaturesparams;
   %classifier.basicFeatureTable=classifierParams.basicFeatureTable;
   %classifier.featureWindowSize=classifierParams.featureWindowSize;
