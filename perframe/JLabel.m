@@ -886,7 +886,7 @@ for i = axes,
     
     % indices that will be removed
     goodidx = find(handles.guidata.idx2fly~=0);
-    idxremove = goodidx(find(~inbounds(handles.guidata.idx2fly(goodidx))));
+    idxremove = goodidx(find(~inbounds(handles.guidata.idx2fly(goodidx))));  %#ok
     fliesadd = find(inbounds & handles.guidata.fly2idx==0);
     if ~isempty(idxremove),
       handles.guidata.fly2idx(~inbounds) = 0;
