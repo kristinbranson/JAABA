@@ -353,7 +353,8 @@ classdef JLabelData < handle
     bagModels = {};
 
     % Confidence Thresholds
-    confThresholds = zeros(1,0);
+    %confThresholds = zeros(1,0);
+    confThresholds = [0 0];
     
     % Retrain properly
     doUpdate = true;
@@ -8105,6 +8106,12 @@ classdef JLabelData < handle
 
       % need to clear the classifier
       obj.clearClassifier();
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function result=classifierIsPresent(obj)
+      result=~isempty(obj.classifier);
     end  % method
     
 end  % End methods block
