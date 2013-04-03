@@ -12,7 +12,8 @@ classdef NextJump < handle
       'High Confidence Errors',...
       'Low Confidence',...
       'Thresholds on perframe values',...
-      'Ground Truth Suggestions'};
+      'Ground Truth Suggestions',...
+      'Jump To Similar Frames'};
     seek_behaviors_go = [];
     perframefns = {};
     perframeSelFeatures = [];
@@ -20,6 +21,7 @@ classdef NextJump < handle
     perframeComparisonType = [];
     hthresh = 0;
     lthresh = 0;
+    compareFramesHandle = [];
   end
   
   methods (Access = public, Static = true)
@@ -122,7 +124,8 @@ classdef NextJump < handle
           t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{11}
           t = obj.GT_Suggestion_start(data,expi,flies,ts,t0,t1);
-
+        case obj.allTypes{12}
+          t = obj.SimilarFramesNext(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
       end
@@ -153,6 +156,8 @@ classdef NextJump < handle
           t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
         case obj.allTypes{11}
           t = obj.GT_Suggestion_end(data,expi,flies,ts,t0,t1);
+        case obj.allTypes{12}
+          t = obj.SimilarFramesPrevious(data,expi,flies,ts,t0,t1);
         otherwise
           t = ts;
          
@@ -703,6 +708,39 @@ classdef NextJump < handle
       if isempty(j), return; end
       
       t = t0 + j - 1;
+    end
+    
+    function t = SimilarFramesNext(obj,data,expi,flies,ts,t0,t1)
+      t  = [];
+      if isempty(obj.compareFramesHandle) || ~ishandle(obj.compareFramesHandle),
+        return;
+      end
+      
+      eventdata.Key = 'uparrow';
+      CompareFrames('figure1_WindowKeyPressFcn',obj.compareFramesHandle,...
+        eventdata,guidata(obj.compareFramesHandle));
+      
+    end
+    
+    function t = SimilarFramesPrevious(obj,data,expi,flies,ts,t0,t1)
+      t  = [];
+      if isempty(obj.compareFramesHandle) || ~ishandle(obj.compareFramesHandle),
+        return;
+      end
+    
+      eventdata.Key = 'downarrow';
+      CompareFrames('figure1_WindowKeyPressFcn',obj.compareFramesHandle,...
+        eventdata,guidata(obj.compareFramesHandle));
+      
+      
+    end
+    
+    function SetCompareFramesHandle(obj,handles)
+      obj.compareFramesHandle = handles;
+    end
+    
+    function ResetCompareFramesHandle(obj)
+      obj.compareFramesHandle = [];
     end
     
   end % End methods

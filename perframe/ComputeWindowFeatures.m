@@ -397,7 +397,11 @@ for ndx = 1:length(feature_types)
       curFn(x,'cache',cache,...
       common_params{:},cur_params{:});
     
-    y(end+1:end+size(y_new,1),:) = y_new;
+    if ~isempty(y_new) && size(y,2)>0
+      y(end+1:end+size(y_new,1),:) = y_new;
+    else
+      y(end+1:end+size(y_new,1),:) = nan(size(y_new,1),size(y,2));      
+    end
     feature_names(end+1:end+numel(feature_names_new)) = feature_names_new;
     feature_types_computed{end+1} = curFeature;
 
