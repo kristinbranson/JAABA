@@ -664,8 +664,99 @@ classdef JLabelGUIData < handle
       %SetGUIModeMenuChecks(handles);
 
       %guidata(handles.figure_JLabel,handles);  % write handles to the guidata
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function SaveScores(obj,allScores,expi,sfn)  %#ok
+    % Save prediction scores for the whole experiment.
+    % The scores are stored as a cell array.
+     if nargin< 4
+      sfn = obj.data.GetFile('scores',expi,true);
+     end
+      obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
 
-    end
+      %didbak = false;
+      if exist(sfn,'file'),
+        [didbak,msg] = copyfile(sfn,[sfn,'~']);
+        if ~didbak,
+          warning('Could not create backup of %s: %s',sfn,msg);  
+        end
+      end
+      timestamp = obj.data.classifierTS;  %#ok
+      version = obj.data.version;  %#ok
+      if obj.userHasSpecifiedEverythingFileName, 
+        jabFileNameAbs=obj.everythingFileNameAbs;
+      else
+        error('User must specify a .jab file name before scores can be saved.');
+      end
+      save(sfn,'allScores','timestamp','version','jabFileNameAbs');
+      obj.data.ClearStatus();
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function PredictSaveMovie(obj,expi,sfn)
+    % Predicts for the whole movie and saves the scores.
+      if nargin < 3
+        sfn = obj.data.GetFile('scores',expi);
+      end
+      allScores = obj.data.PredictWholeMovie(expi);
+      obj.SaveScores(allScores,expi,sfn);
+      obj.data.AddScores(expi,allScores,now(),'',true);
+      
+      if obj.data.predictdata{expi}{1}.loaded_valid(1),
+        obj.data.LoadScores(expi,sfn);
+      end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function SaveCurScores(obj,expi,sfn)
+    % Saves the current scores to a file.
+      if nargin < 3
+        sfn = obj.data.GetFile('scores',expi,true);
+      end
+    
+      if ~obj.data.HasCurrentScores(),
+        uiwait(warndlg('No scores to save'));
+        return;
+      end
+      
+      allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
+        'postprocessed',{{}},'postprocessedparams',[]);
+      scores_valid = true;
+      for fly = 1:obj.data.nflies_per_exp(expi)
+        
+        curt = obj.data.predictdata{expi}{fly}.t;
+        if any(curt(2:end)-curt(1:end-1) ~= 1)
+          uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
+          return;
+        end
+        
+        if ~all(obj.data.predictdata{expi}{fly}.cur_valid), 
+          scores_valid = false; 
+          break; 
+        end
+        
+        tStart = obj.data.firstframes_per_exp{expi}(fly);
+        tEnd = obj.data.endframes_per_exp{expi}(fly);
+        
+        allScores.scores{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur;
+        allScores.tStart(fly) = tStart;
+        allScores.tEnd(fly) = tEnd;
+        allScores.postprocessed{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur_pp;
+      end
+      
+      if ~scores_valid,
+        uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
+         '%s. Cannot save the scores.'],obj.data.expnames{expi}));
+        return;
+      end
+      allScores.postprocessedparams = obj.data.postprocessparams;
+      allScores.scoreNorm = obj.data.windowdata.scoreNorm;
+      obj.SaveScores(allScores,expi,sfn);      
+    end  % method
     
   end
 end

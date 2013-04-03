@@ -2277,8 +2277,6 @@ inGroundTruthingMode=thereIsAnOpenFile && ...
 %inNormalMode=~inGroundTruthingMode;
 classifierExists=~isempty(data) && ...
                  ~isempty(data.classifier);
-classifierExistsAndSomeExperimentIsCurrent= ...
-  classifierExists && someExperimentIsCurrent ;
 % atLeastOneNormalLabelExists= ...
 %   ~isempty(data) && ...
 %   data.getAtLeastOneNormalLabelExists();
@@ -2289,6 +2287,7 @@ perFrameFeatureSetIsNonEmpty= ...
   ~isempty(data) && ...
   data.getPerFrameFeatureSetIsNonEmpty();
 labelPenIsUp=(handles.guidata.label_state==0);
+userHasSpecifiedEverythingFileName=handles.guidata.userHasSpecifiedEverythingFileName;
 
 %                      
 % Update the File menu items.
@@ -2398,19 +2397,27 @@ set(handles.menu_classifier_select_features, ...
 set(handles.menu_classifier_training_parameters, ...
     'Enable',onIff(thereIsAnOpenFile));  
 set(handles.menu_classifier_classify, ...
-    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent));
+set(handles.menu_classifier_classifyCurrentMovieSave, ...
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&userHasSpecifiedEverythingFileName));
+set(handles.menu_classifier_classifyCurrentMovieSaveNew, ...
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&userHasSpecifiedEverythingFileName));
+set(handles.menu_classifier_classifyall_default, ...
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&userHasSpecifiedEverythingFileName));
+set(handles.menu_classifier_classifyall_new, ...
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&userHasSpecifiedEverythingFileName));
 set(handles.menu_classifier_set_confidence_thresholds, ...
-    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
 set(handles.menu_classifier_cross_validate, ...
-    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
 set(handles.menu_classifier_evaluate_on_new_labels, ...
-    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
 set(handles.menu_classifier_visualize, ...
     'Enable',onIff(classifierExists));  
 set(handles.menu_classifier_compute_gt_performance, ...
-    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
 set(handles.menu_classifier_post_processing, ...
-    'Enable',onIff(classifierExistsAndSomeExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
 set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
 
@@ -2449,7 +2456,7 @@ set(handles.pushbutton_train, ...
 
 % The Predict button is enabled iff a classifier exists.
 set(handles.pushbutton_predict, ...
-    'enable',onIff(classifierExistsAndSomeExperimentIsCurrent));
+    'enable',onIff(classifierExists&&someExperimentIsCurrent));
 
 return
 
@@ -6842,7 +6849,7 @@ function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, h
 % hObject    handle to menu_classifier_classifyCurrentMovieSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.PredictSaveMovie(handles.guidata.expi);
+handles.guidata.PredictSaveMovie(handles.guidata.expi);
 
 
 % --------------------------------------------------------------------
@@ -6856,7 +6863,7 @@ fspec = fullfile(handles.guidata.data.expdirs{expi},'*.mat');
 if fname==0,
   return;
 end
-handles.guidata.data.PredictSaveMovie(handles.guidata.expi,fullfile(pname,fname));
+handles.guidata.PredictSaveMovie(handles.guidata.expi,fullfile(pname,fname));
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -6897,7 +6904,7 @@ function menu_file_export_scores_curr_exp_default_loc_Callback(hObject, eventdat
 % hObject    handle to menu_file_export_scores_curr_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.SaveCurScores(handles.guidata.expi);
+handles.guidata.SaveCurScores(handles.guidata.expi);
 
 
 % --------------------------------------------------------------------
@@ -6911,7 +6918,7 @@ fspec = fullfile(handles.guidata.data.expdirs{expi},'*.mat');
 if fname==0,
   return;
 end
-handles.guidata.data.SaveCurScores(handles.guidata.expi,fullfile(pname,fname));
+handles.guidata.SaveCurScores(handles.guidata.expi,fullfile(pname,fname));
 
 
 % --------------------------------------------------------------------
@@ -6920,7 +6927,7 @@ function menu_file_export_scores_all_exp_default_loc_Callback(hObject, eventdata
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.guidata.data.nexps
-  handles.guidata.data.SaveCurScores(ndx);
+  handles.guidata.SaveCurScores(ndx);
 end
 
 
@@ -6934,7 +6941,7 @@ if isempty(fname),
   return;
 end
 for ndx = 1:handles.guidata.data.nexps
-  handles.guidata.data.SaveCurScores(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
+  handles.guidata.SaveCurScores(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
 end
 
 
@@ -6944,7 +6951,7 @@ function menu_classifier_classifyall_default_Callback(hObject, eventdata, handle
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.guidata.data.nexps,
-  handles.guidata.data.PredictSaveMovie(ndx);
+  handles.guidata.PredictSaveMovie(ndx);
 end
 
 
@@ -6958,7 +6965,7 @@ if isempty(fname),
   return;
 end
 for ndx = 1:handles.guidata.data.nexps
-  handles.guidata.data.PredictSaveMovie(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
+  handles.guidata.PredictSaveMovie(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
 end
 
 
