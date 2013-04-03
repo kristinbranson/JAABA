@@ -4,13 +4,35 @@ function everythingParams= ...
                                            
 everythingParams=struct();
 
-% get the featureConfigParams from the relevant file
-featureConfigFileNameRel=projectParams.file.featureconfigfile;
+% get the featureLexicon from the relevant file
+featureLexiconFileNameRel=projectParams.file.featureconfigfile;
 pathToMisc=fileparts(mfilename());
 pathToJaaba=fileparts(pathToMisc);
-featureConfigFileNameAbs= ...
-  fullfile(pathToJaaba,'perframe',featureConfigFileNameRel);
-featureConfigParams = ReadXMLParams(featureConfigFileNameAbs);
+featureLexiconFileNameAbs= ...
+  fullfile(pathToJaaba,'perframe',featureLexiconFileNameRel);
+featureLexicon = ReadXMLParams(featureLexiconFileNameAbs);
+
+% Try to match up the relative feature lexicon file name with a
+% feature lexicon name
+[featureLexiconNameList, ...
+ featureLexiconFileNameRelList, ...
+ featureLexiconAnimalTypeList] = ...
+  getFeatureLexiconListsFromXML();
+
+isSameLexicon=strcmp(featureLexiconFileNameRel,featureLexiconFileNameRelList);
+featureLexiconIndex=find(isSameLexicon);
+if isempty(featureLexiconIndices)
+  featureLexiconName='custom'
+else
+  featureLexiconIndex=featureLexiconIndices(1);
+end
+
+nLexicons=length(featureLexiconNameList);
+
+for i=1:nLexicons
+  
+  if isequal(featureLexiconFileNameRel,featureLexiconFileNameRelList{i})
+end
 
 % copy the project params over
 everythingParams.behaviors=projectParams.behaviors;
@@ -30,8 +52,9 @@ if isempty(classifierParams)
   everythingParams.labels=struct([]);
   everythingParams.gtLabels=struct([]);
   classifier=struct();
-  classifier.animalType=projectParams.behaviors.type;
-  classifier.featureConfigParams=featureConfigParams;
+  %animalType=projectParams.behaviors.type;
+  classifier.featureLexiconName='custom';
+  classifier.featureLexicon=featureLexicon;
   if isfield(projectParams.windowfeatures,'windowfeaturesparams')
     classifier.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
   else
@@ -94,8 +117,9 @@ else
 
   % copy the classifier params proper over
   classifier=struct();
-  classifier.animalType=projectParams.behaviors.type;
-  classifier.featureConfigParams=featureConfigParams;
+  %classifier.animalType=projectParams.behaviors.type;
+  classifier.featureLexiconName='custom';  
+  classifier.featureLexicon=featureLexicon;
   classifier.windowFeaturesParams=classifierParams.windowfeaturesparams;
   %classifier.basicFeatureTable=classifierParams.basicFeatureTable;
   %classifier.featureWindowSize=classifierParams.featureWindowSize;
