@@ -16,10 +16,12 @@ classdef FeatureVocabularyForSelectFeatures < handle
                           % array of strings, telling what categories that
                           % per-frame feature is in.  Most PFs are in only
                           % one category, but some are in more than one.
-    pfCategoryList  % a cell array of strings, holding the names of all the
-                    % possible per-frame feature categories
-    pfNameList  % A cell array of strings, containing the names of all the 
-                % per-frame features.
+    pfCategoryNames  % a cell array of strings, holding the names of all the
+                     % possible per-frame feature categories
+    subdialectPFNames
+      % A cell array of strings, containing the names of all the 
+      % to-be-calculated per-frame features.  This includes the 
+      % scores-as-input PFs.  I like to call this the "subdialect".
     defaultPFTransTypesFromName  
       % A structure, each field is a per-frame feature, and each value is a cell 
       % array of strings holding the default translation types
@@ -28,10 +30,9 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % a structure where each field is a per-frame feauture, and the value
       % holds the window feature parameters for that PF.
       % Should have as many fields as there are per-frame features in the
-      % lexicon.  vocabulary.(perframeFeatureName).enabled is a boolean
+      % to-be-calculated vocabulary (the subdialect).  vocabulary.(perframeFeatureName).enabled is a boolean
       % indicating whether that per-frame feature is in the vocabulary.
-      % If a PF in the lexicon is absent from vocabulary, it means that one
-      % is not in the vocabulary.  (formerly data)
+      % (formerly data)
   end  % properties
   
   % things that look like instance vars from the outside, but
@@ -53,7 +54,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     % because they exist for all WF types.  Whereas the extra parameters,
     % below, are each particular to one WF type.
     % (Formerly winParams.)
-    wfParamNames = {'max_window_radius','min_window_radius','nwindow_radii',...
+    wfParamNames = {'max_window_radius','min_window_radius','nwindow_radii', ...
                     'trans_types','window_offsets'};
 %     % These are the default values for the window feature parameters.  (Formerly defaultWinParams.)
 %     % They are only used if the lexicon fails to specify pre-set
@@ -62,7 +63,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     % A Window feature type can sometimes have an extra parameter.  Below are the names 
     % of those parameters, one for each WF type.  WF types without an extra param have the 
     % empty string for their entry.  (Formerly winextraParams.)                  
-    wfExtraParamNames = {'','','','','hist_edges','prctiles','change_window_radii',...
+    wfExtraParamNames = {'','','','','hist_edges','prctiles','change_window_radii', ...
                          '','num_harmonic','','','',''};
 %     % Below are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
 %     % They are only used if the lexicon fails to specify pre-set
@@ -174,6 +175,94 @@ classdef FeatureVocabularyForSelectFeatures < handle
       end
     end  % method    
     
+    
+    % ---------------------------------------------------------------------
+    function defaultPFTransTypesFromName= ...
+        defaultPFTransTypesFromNameFromFeatureLexicon(featureLexicon,scoresAsInput)
+      % Calculate the structure that maps PF names to transformation types.
+      
+      % Get the list of all the per-frame features in the lexicon,
+      % including the scores-as-inputs ones
+      lexiconPFNames=fieldnames(featureLexicon.perframe);
+      scorePFNames = {scoresAsInput(:).scorefilename};
+      subdialectPFNames=[lexiconPFNames;scorePFNames];
+
+      % Make one entry in the result structure per PF
+      defaultPFTransTypesFromName = struct;
+      for i = 1:length(subdialectPFNames)
+        pfName = subdialectPFNames{i};
+        if ismember(pfName,scorePFNames) ,
+          transTypesThis = {'none'};
+        else  
+          transTypesThisRaw = featureLexicon.perframe.(pfName).trans_types;
+          if ischar(transTypesThisRaw)
+            transTypesThis = {transTypesThisRaw};
+          else
+            transTypesThis = transTypesThisRaw;
+          end  
+        end
+        defaultPFTransTypesFromName.(pfName)=transTypesThis;
+      end  % for
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function pfCategoriesFromName= ...
+        pfCategoriesFromNameFromFeatureLexicon(featureLexicon,scoresAsInput)
+      % Calculate the structure that maps a PF name to the PF categories
+      % that it belongs to.
+      
+      % Get the list of all the per-frame features in the lexicon,
+      % including the scores-as-inputs ones
+      lexiconPFNames=fieldnames(featureLexicon.perframe);
+      scorePFNames = {scoresAsInput(:).scorefilename};
+      subdialectPFNames=[lexiconPFNames;scorePFNames];
+
+      % Make one entry in the result structure per PF
+      pfCategoriesFromName = struct;
+      for i = 1:length(subdialectPFNames)
+        pfName = subdialectPFNames{i};
+        if ismember(pfName,scorePFNames) ,
+          pfCategoriesThis = {'scores'};
+        else  
+          pfCategoriesThisRaw = featureLexicon.perframe.(pfName).type;
+          if ischar(pfCategoriesThisRaw)
+            pfCategoriesThis = {pfCategoriesThisRaw};
+          else
+            pfCategoriesThis = pfCategoriesThisRaw;
+          end  
+        end
+        pfCategoriesFromName.(pfName)=pfCategoriesThis;
+      end  % for
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function pfCategoryNames=pfCategoryNamesFromFeatureLexicon(featureLexicon)
+      fallpf = fieldnames(featureLexicon.perframe);
+      pfCategoryNames = {};
+      for pfndx = 1:numel(fallpf)
+        curpf = fallpf{pfndx};
+        curtypes  = featureLexicon.perframe.(curpf).type; 
+        if ischar(curtypes)
+          curT = curtypes;
+          if ~any(strcmp(pfCategoryNames,curT))
+            pfCategoryNames{end+1} = curT;  %#ok
+          end
+        else    
+          for tndx = 1:numel(curtypes)
+            curT = curtypes{tndx};
+            if ~any(strcmp(pfCategoryNames,curT))
+              pfCategoryNames{end+1} = curT;  %#ok
+            end
+          end
+        end
+      end
+      if ~any(strcmp(pfCategoryNames,'scores')),
+        pfCategoryNames{end+1} = 'scores';
+      end
+    end  % method
+    
   end  % class methods
   
   
@@ -183,7 +272,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     % ---------------------------------------------------------------------
     function self=FeatureVocabularyForSelectFeatures(featureLexicon, ...
                                                      scoresAsInput, ...
-                                                     allPFNames, ...
+                                                     subdialectPFNames, ...
                                                      windowFeatureParams, ...
                                                      maxWindowRadiusCommon)
       % Constructor.  jld an instance of JLabelData, maxWindowRadiusCommon
@@ -194,11 +283,17 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % but stay constant for the life of the object
       self.wfParamsFromAmount= ...
         FeatureVocabularyForSelectFeatures.computeWFParamsFromAmount(featureLexicon);
-      self.digestFeatureLexicon(featureLexicon,scoresAsInput,allPFNames);
-
+      self.defaultPFTransTypesFromName= ...
+        FeatureVocabularyForSelectFeatures.defaultPFTransTypesFromNameFromFeatureLexicon(featureLexicon, ...
+                                                                                         scoresAsInput);
+      self.pfCategoriesFromName= ...
+        FeatureVocabularyForSelectFeatures.pfCategoriesFromNameFromFeatureLexicon(featureLexicon, ...
+                                                                                  scoresAsInput);
+      self.pfCategoryNames= ...
+        FeatureVocabularyForSelectFeatures.pfCategoryNamesFromFeatureLexicon(featureLexicon);
+      
       % Populate the list of per-frame feature names
-      pfNames = fieldnames(self.pfCategoriesFromName);
-      self.pfNameList = pfNames;
+      self.subdialectPFNames = subdialectPFNames;
       
       % Populate the feature vocabulary proper
       enabledPFs = fieldnames(windowFeatureParams);
@@ -206,10 +301,10 @@ classdef FeatureVocabularyForSelectFeatures < handle
       wfAmounts=self.wfAmounts;
       wfAmount=wfAmounts{1};  % by convention, the first one is the default setting (e.g. 'normal')
       wfParamsAmount=self.wfParamsFromAmount.(wfAmount);
-      nPFNames=length(pfNames);
-      vocabulary = cell(1,nPFNames);
-      for pfIndex = 1:nPFNames
-        pfName = pfNames{pfIndex};
+      nToBeCalculatedPFNames=length(subdialectPFNames);
+      vocabulary = cell(1,nToBeCalculatedPFNames);
+      for pfIndex = 1:nToBeCalculatedPFNames
+        pfName = subdialectPFNames{pfIndex};
         vocabulary{pfIndex}.name = pfName;
         if ismember(pfName,enabledPFs) ,
           % if this PF is enabled, copy its params out of
@@ -245,7 +340,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
                 end
               end
-              if ~isempty(self. wfExtraParamNames{wfTypeNdx})
+              if ~isempty(self.wfExtraParamNames{wfTypeNdx})
                 extraParamName = self.wfExtraParamNames{wfTypeNdx};
                 vocabulary{pfIndex}.(wfType).values.(extraParamName) = wfParamsThisType.(extraParamName);
               end
@@ -310,8 +405,8 @@ classdef FeatureVocabularyForSelectFeatures < handle
     
     % ---------------------------------------------------------------------
     function enableAllPFsInCategory(self,pfCategoryIndex)
-      %pfCategory=self.pfCategoryList{pfCategoryIndex};
-      %pfNameList=self.pfNameList;
+      %pfCategory=self.pfCategoryNames{pfCategoryIndex};
+      %subdialectPFNames=self.subdialectPFNames;
       %pfCategoriesFromName=self.pfCategoriesFromName;
       pfNamesThisCategory=self.getPFNamesInCategory(pfCategoryIndex);
       % Iterate over the per-frame features, looking for ones that are
@@ -327,8 +422,8 @@ classdef FeatureVocabularyForSelectFeatures < handle
     function setAllPFsInCategoryToWFAmount(self,pfCategoryIndex,wfAmount)
       % This does what it says, but note that it doesn't add or subtract
       % any PFs from the vocabulary.
-      %pfCategory=self.pfCategoryList{pfCategoryIndex};
-      %pfNameList=self.pfNameList;
+      %pfCategory=self.pfCategoryNames{pfCategoryIndex};
+      %subdialectPFNames=self.subdialectPFNames;
       %pfCategoriesFromName=self.pfCategoriesFromName;
       pfNamesThisCategory=self.getPFNamesInCategory(pfCategoryIndex);
       % Iterate over the per-frame features, looking for ones that are
@@ -348,7 +443,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       if ischar(pfSpecifier)
         % this means pfIndex is really a name
         pfName=pfSpecifier;
-        pfIndex=find(strcmp(pfName,self.pfNameList));  
+        pfIndex=find(strcmp(pfName,self.subdialectPFNames));  
       else
         pfIndex=pfSpecifier;
       end
@@ -386,16 +481,16 @@ classdef FeatureVocabularyForSelectFeatures < handle
       end
       if ischar(pfSpecifier)
         pfName=pfSpecifier;
-        pfIndex=find(strcmp(pfName,self.pfNameList));
+        pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       else
         pfIndex=pfSpecifier;
-        pfName=self.pfNameList{pfIndex};
+        pfName=self.subdialectPFNames{pfIndex};
       end
       defaultPFTransTypes=self.defaultPFTransTypesFromName.(pfName);
       %self.vocabulary{pfIndex}.enabled = true;
       %pfCategories=self.pfCategoriesFromName.(pfName);
       %pfCategory = pfCategories{1};  % why the first one?
-      %categoryNdx = find(strcmp(pfCategory,self.pfCategoryList));
+      %categoryNdx = find(strcmp(pfCategory,self.pfCategoryNames));
       wfParamTemplate=self.wfParamsFromAmount.(wfAmount);
       %self.vocabulary{pfIndex}.enabled = true;
       for wfTypeIndex = 1:numel(self.wfTypes)
@@ -415,7 +510,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     function setWFTypeEnablement(self,pfName,wfType,enable)
       % For the given per-frame feature name, enable/disable the given
       % window-feature type
-      pfIndex=find(strcmp(pfName,self.pfNameList));
+      pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       self.vocabulary{pfIndex}.(wfType).enabled = enable;  %#ok
     end
     
@@ -426,11 +521,11 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % window-feature parameter name, set the parameter to newValue
       if ischar(pfName)
         % the usual case
-        pfIndex=find(strcmp(pfName,self.pfNameList));
+        pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       else
         % this means pfName is really an index
         pfIndex=pfName;
-        %pfName=self.pfNameList{pfIndex};
+        %pfName=self.subdialectPFNames{pfIndex};
       end
       if ~ischar(wfType)
         % this means wfType is really an index
@@ -446,7 +541,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % For per-frame feature pfName, window feature type wfType, add a new
       % transformation, newTransformation.  (A transformation is one of 'none',
       % 'flip', 'abs', 'relative'.)
-      pfIndex=find(strcmp(pfName,self.pfNameList));
+      pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       transformations = self.vocabulary{pfIndex}.(wfType).values.trans_types;     
       if ~any(strcmp(newTransformation,transformations))
         % if it's not in the list, add it to the end
@@ -464,7 +559,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % transformation list for that window feature, nothing changes.  If
       % removing the given transformation would leave the transformation
       % list empty, nothing changes.
-      pfIndex=find(strcmp(pfName,self.pfNameList));
+      pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       transformations = self.vocabulary{pfIndex}.(wfType).values.trans_types;
       toBeRemoved = strcmp(transformation,transformations);
       transformations(toBeRemoved) = [];
@@ -480,7 +575,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     function result=isWFTransformation(self,pfName,wfType,transformation)
       % For per-frame feature pfName, window feature type wfType, returns
       % true iff the given transformation is in the transformation list.
-      pfIndex=find(strcmp(pfName,self.pfNameList));
+      pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       transformations = self.vocabulary{pfIndex}.(wfType).values.trans_types;  %#ok
       result=ismember(transformation,transformations);
     end  % method
@@ -512,7 +607,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     function setMaxWindowRadiusForAllWFs(self,newValue)
       % This sets the maximum window radius for all per-frame features, for
       % all window-feature types.  Thus for all window features.
-      pfNames=self.pfNameList;
+      pfNames=self.subdialectPFNames;
       wfTypes = self.wfTypes;
       for i = 1:length(pfNames)
         for j = 1:length(wfTypes)
@@ -535,7 +630,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % consensusValue will be empty.
       thereIsConsensus=true;
       consensusValue=[];
-      pfNames=self.pfNameList;
+      pfNames=self.subdialectPFNames;
       wfTypes = self.wfTypes;
       for i = 1:length(pfNames)
         for j = 1:length(wfTypes)
@@ -598,7 +693,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       if ischar(pfIndex)
         % means pfIndex is really a per-frame feature name
         pfName=pfIndex;
-        pfIndex=find(strcmp(pfName,self.pfNameList));
+        pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       end
       result=self.vocabulary{pfIndex}.enabled;
     end  % method      
@@ -609,7 +704,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       if ischar(pfIndex)
         % means pfIndex is really a per-frame feature name
         pfName=pfIndex;
-        pfIndex=find(strcmp(pfName,self.pfNameList));
+        pfIndex=find(strcmp(pfName,self.subdialectPFNames));
       end
       if isnumeric(wfType)
         % means wfType is really a window feature index
@@ -628,8 +723,8 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % presets (e.g. normal, more, less) gets used in computing the
       % output.
       windowFeatureParams = struct;
-      for pfIndex = 1:numel(self.pfNameList)
-        pfName = self.pfNameList{pfIndex};
+      for pfIndex = 1:numel(self.subdialectPFNames)
+        pfName = self.subdialectPFNames{pfIndex};
         if ~self.vocabulary{pfIndex}.enabled; continue;end
         pfParams = self.vocabulary{pfIndex};
         windowFeatureParams.(pfName).sanitycheck = pfParams.sanitycheck;
@@ -665,11 +760,11 @@ classdef FeatureVocabularyForSelectFeatures < handle
       if isnumeric(pfCategoryName)
         % this means the category name is really a category index
         pfCategoryIndex=pfCategoryName;
-        pfCategoryName=self.pfCategoryList{pfCategoryIndex};
+        pfCategoryName=self.pfCategoryNames{pfCategoryIndex};
       end
       pfNames=cell(1,0);
-      for iPF = 1:numel(self.pfNameList)
-        pfName=self.pfNameList{iPF};
+      for iPF = 1:numel(self.subdialectPFNames)
+        pfName=self.subdialectPFNames{iPF};
         categoriesThisPF=self.pfCategoriesFromName.(pfName);
         if ismember(pfCategoryName,categoriesThisPF)
           % if the selected category contains this per-frame feature,
@@ -751,10 +846,10 @@ classdef FeatureVocabularyForSelectFeatures < handle
       if ischar(pfIndex)
         % means it's really a name
         pfName=pfIndex;
-        pfIndex=find(strcmp(pfName,self.pfNameList));  
+        pfIndex=find(strcmp(pfName,self.subdialectPFNames));  
       else
         % pfIndex is really an index
-        pfName=self.pfNameList{pfIndex};
+        pfName=self.subdialectPFNames{pfIndex};
       end
       wfAmount='custom';  % if no match, we default to custom
       defaultPFTransTypes=self.defaultPFTransTypesFromName.(pfName);
@@ -824,89 +919,6 @@ classdef FeatureVocabularyForSelectFeatures < handle
   % -----------------------------------------------------------------------
   % private instance methods
   methods (Access=private)
-    % ---------------------------------------------------------------------
-    function digestFeatureLexicon(self,featureLexicon,scoresAsInput,perframeL)
-      % Initializes the instance variables defaultPFTransTypesFromName,
-      % pfCategoriesFromName, and pfCategoryList, based on value of
-      % inputs and some instance vars that are should already have been
-      % initialized.
-
-      % Now for each different perframe feature read the type default trans_types.
-      %perframeL = jld.allperframefns;
-      scores_perframe = {scoresAsInput(:).scorefilename};
-      defaultPFTransTypesFromName = struct;
-      pfCategoriesFromName = struct;
-
-      % perframeL might not contain all the perframe features.
-      for pfndx = 1:numel(perframeL)
-        curpf = perframeL{pfndx};
-
-        if any(strcmp(curpf ,scores_perframe)), % This is a score perframe.
-          defaultPFTransTypesFromName.(curpf) = {'none'};
-          pfCategoriesFromName.(curpf) = {'scores'};
-          continue;
-        end
-
-        defaultPFTransTypesFromName.(curpf) = featureLexicon.perframe.(curpf).trans_types;
-        if ischar(defaultPFTransTypesFromName.(curpf))
-          defaultPFTransTypesFromName.(curpf) = {defaultPFTransTypesFromName.(curpf)};
-        end
-        curtypes  = featureLexicon.perframe.(curpf).type; 
-        if ischar(curtypes)
-          pfCategoriesFromName.(curpf)  = {curtypes}; 
-        else    
-          pfCategoriesFromName.(curpf)  = curtypes; 
-        end
-      end
-
-      fallpf = fieldnames(featureLexicon.perframe);
-      pfCategoryList = {};
-      for pfndx = 1:numel(fallpf)
-        curpf = fallpf{pfndx};
-        curtypes  = featureLexicon.perframe.(curpf).type; 
-        if ischar(curtypes)
-          curT = curtypes;
-          if ~any(strcmp(pfCategoryList,curT))
-            pfCategoryList{end+1} = curT;  %#ok
-          end
-        else    
-          for tndx = 1:numel(curtypes)
-            curT = curtypes{tndx};
-            if ~any(strcmp(pfCategoryList,curT))
-              pfCategoryList{end+1} = curT;  %#ok
-            end
-          end
-        end
-      end
-      if ~any(strcmp(pfCategoryList,'scores')),
-        pfCategoryList{end+1} = 'scores';
-      end
-
-      % Store things in self
-      self.defaultPFTransTypesFromName = defaultPFTransTypesFromName;
-      self.pfCategoriesFromName = pfCategoriesFromName;
-      self.pfCategoryList = pfCategoryList;
-    end  % method
-    
-    
-%     % ---------------------------------------------------------------------
-%     function setWindowFeaturesToAmount(self,pfIndex,wfAmount)
-%       % For the per-frame feature with index pfIndex, sets the window features 
-%       % to the amount given by wfAmount (one of 'normal', 'more', or 'less').
-%       wfParams=self.wfParamsFromAmount.(wfAmount);
-%       for wfTypeIndex = 1:numel(self.wfTypes)
-%         wfType = self.wfTypes{wfTypeIndex};
-%         wfParamsThisType=wfParams.(wfType);
-%         if wfParamsThisType.enabled
-%           self.setWindowFeaturesOfTypeToAmount(self,pfIndex,wfTypeIndex,wfAmount);
-%           self.vocabulary{pfIndex}.(wfType).values.trans_types = pfTransTypes;
-%         else
-%           self.vocabulary{pfIndex}.(wfType).enabled = false;
-%         end
-%       end
-%     end  % method
-    
-    
     % ---------------------------------------------------------------------
     function setWindowFeaturesOfSingleType(self,pfNdx,wfTypeNdx,wfParamTemplate)
       % For the per-frame feature with index pfNdx, sets the window features 

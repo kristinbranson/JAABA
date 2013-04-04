@@ -78,12 +78,12 @@ maxWindowRadiusCommonCached= ...
 % well-suited to SelectFeatures
 featureLexicon = jld.featureLexicon;
 scoresAsInput = jld.scoresasinput;
-allPFNames=jld.allperframefns;
+toBeCalculatedPFNames=jld.allperframefns;
 windowFeatureParams = jld.GetPerframeParams();
 handles.featureVocabulary= ...
   FeatureVocabularyForSelectFeatures(featureLexicon, ...
                                      scoresAsInput, ...
-                                     allPFNames, ...
+                                     toBeCalculatedPFNames, ...
                                      windowFeatureParams, ...
                                      maxWindowRadiusCommonCached);
 
@@ -294,7 +294,7 @@ set(handles.pfTable,'CellEditCallback',@pfEdit);
 
 % init the static cols of the table
 fv=handles.featureVocabulary;  % a ref
-pfNameList = fv.pfNameList;
+pfNameList = fv.subdialectPFNames;
 nPFs=length(pfNameList);
 tableData = cell(nPFs,4);
 for ndx = 1:nPFs
@@ -321,7 +321,7 @@ function updatePFTable(handles)
 
 % Generate the table data, based on the feature vocabulary
 fv=handles.featureVocabulary;  % a ref
-pfList = fv.pfNameList;
+pfList = fv.subdialectPFNames;
 nPFs=length(pfList);
 tableData=get(handles.pfTable,'Data');
 for ndx = 1:nPFs
@@ -353,7 +353,7 @@ function updatePFTableForCurrentPF(handles)
 % Generate the table data, based on the feature vocabulary
 fv=handles.featureVocabulary;  % a ref
 pfNdx=handles.pfNdx;
-% pfList = fv.pfNameList;
+% pfList = fv.subdialectPFNames;
 % nPFs=length(pfList);
 tableData=get(handles.pfTable,'Data');
 tableData{pfNdx,2} = fv.vocabulary{pfNdx}.enabled;
@@ -392,7 +392,7 @@ set(handles.basicTable,'CellEditCallback',@basicEdit);
 % Get a list of the categories that actually have PFs in them (e.g. scores
 % category often has no PFs in it)
 fv=handles.featureVocabulary;
-pfCategoryNames=fv.pfCategoryList;
+pfCategoryNames=fv.pfCategoryNames;
 categoryIsNonEmpty= ...
   @(pfCategoryName)(~isempty(fv.getPFNamesInCategory(pfCategoryName)));
 pfCategoryNamesNonEmpty= ...
@@ -431,7 +431,7 @@ return
 % % -------------------------------------------------------------------------
 % function updateBasicTableOnePFCategory(handles,pfCategoryName)
 % fv=handles.featureVocabulary;
-% pfCategoryList=fv.pfCategoryList;
+% pfCategoryList=fv.pfCategoryNames;
 % pfCategoryIndex=find(strcmp(pfCategoryName,pfCategoryList));
 % tableData = get(handles.basicTable,'Data');
 % tableData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
@@ -443,10 +443,10 @@ return
 % -------------------------------------------------------------------------
 function updateBasicTableAllCategoriesOfCurrentPF(handles)
 fv=handles.featureVocabulary;
-pfNameList=fv.pfNameList;
+pfNameList=fv.subdialectPFNames;
 pfName=pfNameList{handles.pfNdx};
 pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);
-allPFCategories=fv.pfCategoryList;
+allPFCategories=fv.pfCategoryNames;
 pfCategoryIndicesThisName = find(ismember(allPFCategories,pfCategoriesThisName));
 basicData = get(handles.basicTable,'Data');
 pfCategoryNamesInTable=basicData{:,1};
@@ -548,7 +548,7 @@ handles = guidata(hObject);
 % can copy from any window feature type
 fv=handles.featureVocabulary;
 wfTypes=fv.wfTypes;
-pfNameList=fv.pfNameList;
+pfNameList=fv.subdialectPFNames;
 set(handles.popupmenu_copy_windowparams, ...
     'String',[wfTypes,{'---'}],...
     'Value',numel(wfTypes)+1);
@@ -662,7 +662,7 @@ return
 %   % The amount of window features to use.  Can be 'normal', 'more', or
 %   % 'less'
 % fv=handles.featureVocabulary;
-% selectedCategory = handles.pfCategoryList{iSelectedCategory};
+% selectedCategory = handles.pfCategoryNames{iSelectedCategory};
 % pfList=handles.pfList;
 % pfCategoriesFromName=handles.pfCategoriesFromName;
 % % Copy the parameters.
@@ -696,7 +696,7 @@ function compatibleBasicAdvanced(handles)
 basicTable = get(handles.basicTable,'Data');
 incompatible = '';
 fv=handles.featureVocabulary;
-pfNameList=fv.pfNameList;
+pfNameList=fv.subdialectPFNames;
 for ndx = 1:numel(pfNameList)
   pfName=pfNameList{ndx};
   pfCategories=fv.pfCategoriesFromName.(pfName);
@@ -940,7 +940,7 @@ return
 % % Update the amount displayed for a particular per-frame feature category
 % % in the basic table.
 % fv=handles.featureVocabulary;
-% pfCategoryName=fv.pfCategoryList{pfCategoryIndex};
+% pfCategoryName=fv.pfCategoryNames{pfCategoryIndex};
 % basicData = get(handles.basicTable,'Data');
 % basicData{pfCategoryIndex,2} = fv.getPFCategoryLevel(pfCategoryName);
 % set(handles.basicTable,'Data',basicData);
@@ -1185,7 +1185,7 @@ fv=handles.featureVocabulary;
 %handles.data{handles.pfNdx}.(wfType).values.min_window_radius = curVal;
 
 % set in featureVocabulary
-pfName=fv.pfNameList{handles.pfNdx};
+pfName=fv.subdialectPFNames{handles.pfNdx};
 wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='min_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
@@ -1227,7 +1227,7 @@ wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.max_window_radius = curVal;
 
 % set in featureVocabulary
-pfName=fv.pfNameList{handles.pfNdx};
+pfName=fv.subdialectPFNames{handles.pfNdx};
 %wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='max_window_radius';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
@@ -1270,7 +1270,7 @@ wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.nwindow_radii = curVal;
 
 % set in featureVocabulary
-pfName=fv.pfNameList{handles.pfNdx};
+pfName=fv.subdialectPFNames{handles.pfNdx};
 %wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='nwindow_radii';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
@@ -1312,7 +1312,7 @@ wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.window_offsets = curVal;
 
 % set in featureVocabulary
-pfName=fv.pfNameList{handles.pfNdx};
+pfName=fv.subdialectPFNames{handles.pfNdx};
 %wfType = FeatureVocabularyForSelectFeatures.wfTypes{handles.wfTypeNdx};
 wfParamName='window_offsets';
 fv.setWFParam(pfName,wfType,wfParamName,curVal);
@@ -1364,7 +1364,7 @@ handles = guidata(hObject);
 % end
 
 % update featureVocabulary
-pfName=fv.pfNameList{handles.pfNdx};
+pfName=fv.subdialectPFNames{handles.pfNdx};
 wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='none';
 if get(hObject,'Value')
@@ -1596,7 +1596,7 @@ wfType = fv.wfTypes{handles.wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).values.(extraParam) = newValue;
 
 % set in featureVocabulary
-pfName=fv.pfNameList{handles.pfNdx};
+pfName=fv.subdialectPFNames{handles.pfNdx};
 %wfType = handles.featureVocabulary.wfTypes{handles.wfTypeNdx};
 wfParamName=fv.wfExtraParamNames{handles.wfTypeNdx};
 fv.setWFParam(pfName,wfType,wfParamName,newValue);
@@ -1766,7 +1766,7 @@ if isempty(handles.pfNdx),
 end
 
 fv=handles.featureVocabulary;
-pfNameList = fv.pfNameList;
+pfNameList = fv.subdialectPFNames;
 windowComp = fv.wfTypes;
 
 % which perframe fn are we copying to?
@@ -1919,7 +1919,7 @@ if strcmpi(handles.currentTab,'perframehistogram') && ...
      ~,~,hleg,hxlabel,hylabel,...
      handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
      handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
-      HistogramPerFrameFeature(handles.jld,fv.pfNameList{handles.pfNdx},...
+      HistogramPerFrameFeature(handles.jld,fv.subdialectPFNames{handles.pfNdx},...
                                'axes',handles.axes_histogram,...
                                'unknowncolor','w',...
                                'labelcolors',jet(handles.jld.nbehaviors)*.7);
@@ -1929,7 +1929,7 @@ if strcmpi(handles.currentTab,'perframehistogram') && ...
      ~,~,hleg,hxlabel,hylabel,...
      handles.histogramData.frac{i},handles.histogramData.frac_outside{i},...
      handles.histogramData.edges{i},handles.histogramData.centers_plot{i}] = ...
-      HistogramPerFrameFeature(handles.jld,fv.pfNameList{handles.pfNdx},...
+      HistogramPerFrameFeature(handles.jld,fv.subdialectPFNames{handles.pfNdx},...
                                'axes',handles.axes_histogram,...
                                'edges',handles.histogramData.edges{i},...
                                'frac',handles.histogramData.frac{i},...
@@ -2037,9 +2037,9 @@ histWFTypeNdx = find(strcmp('hist',fv.wfTypes));
 histExtraParamName = fv.wfExtraParamNames{histWFTypeNdx};  %#ok
 
 h = waitbar(0,'Computing hist bins');
-for pfIndex = 1:numel(fv.pfNameList)
-  pfName = fv.pfNameList{pfIndex};
-  waitbar(pfIndex/numel(fv.pfNameList),h);
+for pfIndex = 1:numel(fv.subdialectPFNames)
+  pfName = fv.subdialectPFNames{pfIndex};
+  waitbar(pfIndex/numel(fv.subdialectPFNames),h);
   
   if ~fv.pfIsInVocabulary(pfIndex) || ~fv.wfTypeIsInVocabulary(pfIndex,'hist')
     continue;
