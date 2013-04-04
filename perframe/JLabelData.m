@@ -314,8 +314,16 @@ classdef JLabelData < handle
       % if we wanted to...)
     
     % per-frame features that are used
-    allperframefns = {};
-    curperframefns = {};
+    allperframefns = {};  % The list of all per-frame feature names in 
+                          % the lexicon that are actually calculated for
+                          % each frame.  I would call this the the
+                          % 'calculated feature vocabulary'.  --ALT, Apr 4,
+                          % 2013
+    curperframefns = {};  % The list of all per-frame feature names 
+                          % that are used for classifier training. This is
+                          % a subset of allperframefns.  I would call this
+                          % the 'training feature vocabulary'. --ALT, Apr 4,
+                          % 2013
     perframeunits = {};
     scoresasinput = [];
     
