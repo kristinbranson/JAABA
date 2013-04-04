@@ -65,7 +65,7 @@ handles.defpath = pwd;
            'basicParams',[]);
 
 % If we got called via New..., basicParams should be empty
-% If via Basic Settings..., basic Params should be nonempty
+% If via Basic Settings..., basicParams should be nonempty
 handles.new=isempty(basicParams);
 handles.figureJLabel=figureJLabel;
 handles.basicParams = basicParams;
@@ -201,7 +201,6 @@ return
 
 % -------------------------------------------------------------------------
 function updateEditsListboxesAndPopupmenus(handles)
-% Copies the parameters in the basicParams structure to the gui.
 
 % update the behavior name editbox
 if isfield(handles.basicParams.behaviors,'names');
@@ -218,9 +217,9 @@ end
 
 % Update all the editboxes
 fnames = {'labelfilename','gtlabelfilename','scorefilename',...
-  'moviefilename','trxfilename'};
+          'moviefilename','trxfilename'};
 boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
-  'editmoviefilename','edittrxfilename'};
+            'editmoviefilename','edittrxfilename'};
 for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
@@ -232,8 +231,8 @@ for ndx = 1:numel(fnames)
 end
 
 % Update the select feature dictionary name
-indexOffeatureLexicon=find(strcmp(handles.basicParams.featureLexiconName,handles.featureLexiconNameList));
-set(handles.featureconfigpopup,'Value',indexOffeatureLexicon);
+indexOfFeatureLexicon=find(strcmp(handles.basicParams.featureLexiconName,handles.featureLexiconNameList));
+set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
 
 % Update the list of scores-an-inputs
 fileNameList = {handles.basicParams.scoresinput(:).classifierfile};
@@ -925,24 +924,26 @@ function pushbutton_perframe_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[allpflist,selected,missing] = GetAllPerframeList(handles.basicParams);
+[allpflist,selected,missing] = GetAllPerframeList(handles);
 if ~isempty(missing),
    list = missing{1};
   for ndx = 2:numel(missing)
     list = sprintf('%s %s ',list,missing{ndx});
   end
-  wstr = sprintf('Perframe feature(s) %s are defined in the project file%s\n%s',...
-        list,...
-        ' but are not defined for the current target type.',...
-        'Ignoring them.');
-  uiwait(warndlg(wstr));
- 
+  wstr = ...
+    sprintf(['Perframe feature(s) %s are defined in the project file ' ...
+             'but are not defined for the current target type.\n' ...
+             'Ignoring them.'],...
+            list);
+  uiwait(warndlg(wstr)); 
 end
 
-[sel,ok] = listdlg('ListString',allpflist,...
-  'InitialValue',find(selected),'Name','Selecte perframe features',...
-  'PromptString',{'Control/Command click to','select/deselect perframe features'},...
-  'ListSize',[250,700]);
+[sel,ok] = listdlg('ListString',allpflist, ...
+                   'InitialValue',find(selected), ...
+                   'Name','Selecte perframe features',...
+                   'PromptString',{'Control/Command click to', ...
+                                   'select/deselect perframe features'}, ...
+                   'ListSize',[250,700]);
 
 if ok,
   tstruct = struct();
@@ -950,37 +951,41 @@ if ok,
     tstruct.(allpflist{ndx}) = 1;
   end
   handles.basicParams.featureparamlist = tstruct;
-  
 end
 
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
-function [allPfList,selected,missing]= GetAllPerframeList(basicParams)
-featureconfigfile = basicParams.file.featureconfigfile;
-basicParams = ReadXMLParams(featureconfigfile);
-allPfList = fieldnames(basicParams.perframe);
-selected = false(numel(allPfList),1);
+function [featureLexiconPFNames,selected,missing]= GetAllPerframeList(handles)
+featureLexiconName=handles.basicParams.featureLexiconName;
+%featureconfigfile = basicParams.file.featureconfigfile;
+featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
+%basicParams = ReadXMLParams(featureconfigfile);
+%allPfList = fieldnames(basicParams.perframe);
+featureLexiconPFNames = fieldnames(featureLexicon);
+selected = false(numel(featureLexiconPFNames),1);
 missing = {};
 if isfield(basicParams,'featureparamlist');
-  curpf = fieldnames(basicParams.featureparamlist);
+  calculatedPFNames = fieldnames(basicParams.featureparamlist);
 else
-  curpf = {};
+  calculatedPFNames = {};
 end
-if ~isempty(curpf),
-  for ndx = 1:numel(curpf),
-    allndx = find(strcmp(curpf{ndx},allPfList));
+if ~isempty(calculatedPFNames),
+  for ndx = 1:numel(calculatedPFNames),
+    allndx = find(strcmp(calculatedPFNames{ndx},featureLexiconPFNames));
     if isempty(allndx)
-      missing{end+1} = curpf{ndx};
+      missing{end+1} = calculatedPFNames{ndx};
     else
       selected(allndx) = true;
     end
   end
 else
   missing = {};
-  selected = true(numel(allPfList,1));
+  selected = true(numel(featureLexiconPFNames,1));
 end
+return
 
 
 % -------------------------------------------------------------------------
