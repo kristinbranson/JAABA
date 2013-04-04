@@ -101,7 +101,7 @@ updateConfigTable(handles);
 set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
 
 % Set the current score-as-feature file
-fileNameList = {handles.basicParams.scoresinput(:).classifierfile};
+fileNameList = {handles.basicParams.scoresAsInput(:).classifierfile};
 handles.indexOfScoresAsInputFile=fif(isempty(fileNameList),[],1);
   
 % Update handles structure
@@ -178,7 +178,7 @@ basicParams.featureLexiconName=featureLexiconName;
 basicParams.behaviors.names = {};
 basicParams.file.perframedir = 'perframe';
 basicParams.file.clipsdir = 'clips';
-basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+basicParams.scoresAsInput = struct('classifierfile',{},'ts',{},'scorefilename',{});
 %basicParams.windowfeatures = struct;
 basicParams.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
 basicParams.behaviors.unknowncolor = [0,0,0];
@@ -196,6 +196,8 @@ basicParams.file.trxfilename = '';
 basicParams.file.moviefilename = '';
 %handles = addversion(handles);
 %basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+basicParams.sublexiconPFNames = cell(0,1);
+
 return
 
 
@@ -235,7 +237,7 @@ indexOfFeatureLexicon=find(strcmp(handles.basicParams.featureLexiconName,handles
 set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
 
 % Update the list of scores-an-inputs
-fileNameList = {handles.basicParams.scoresinput(:).classifierfile};
+fileNameList = {handles.basicParams.scoresAsInput(:).classifierfile};
 set(handles.listbox_inputscores,'String',fileNameList);
 set(handles.listbox_inputscores,'Value',handles.indexOfScoresAsInputFile);
 
@@ -305,7 +307,7 @@ function updateConfigTable(handles)
 % Update the config table (a GUI element) to match the current "model"
 % state
 basicParams = handles.basicParams;
-fields2remove = {'featureparamlist','windowfeatures','scoresinput'};
+fields2remove = {'featureparamlist','windowfeatures','scoresAsInput'};
 for ndx = 1:numel(fields2remove)
   if isfield(basicParams,fields2remove{ndx}),
     basicParams = rmfield(basicParams,fields2remove{ndx});
@@ -677,8 +679,8 @@ else
   return
 end
 
-handles.basicParams.scoresinput(end+1) = curs;
-handles.indexOfScoresAsInputFile = length(handles.basicParams.scoresinput);
+handles.basicParams.scoresAsInput(end+1) = curs;
+handles.indexOfScoresAsInputFile = length(handles.basicParams.scoresAsInput);
 updateEditsListboxesAndPopupmenus(handles);
 guidata(hObject,handles);
 return
@@ -692,8 +694,8 @@ function pushbutton_removelist_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 i = handles.indexOfScoresAsInputFile;
 if isempty(i), return; end
-nScoresAsInput=length(handles.basicParams.scoresinput);
-handles.basicParams.scoresinput(i) = [];
+nScoresAsInput=length(handles.basicParams.scoresAsInput);
+handles.basicParams.scoresAsInput(i) = [];
 if (i==nScoresAsInput)
   i=i-1;
   if i==0
@@ -863,9 +865,9 @@ if ismember('List of perframe features',sellist)
 end
 
 if ismember('Classifier files used as input', sellist);
-  if isfield(origparams,'scoresinput')
+  if isfield(origparams,'scoresAsInput')
     
-    handles.basicParams.scoresinput = origparams.scoresinput;
+    handles.basicParams.scoresAsInput = origparams.scoresAsInput;
   end
 end
 
@@ -924,66 +926,83 @@ function pushbutton_perframe_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[allpflist,selected,missing] = GetAllPerframeList(handles);
-if ~isempty(missing),
-   list = missing{1};
-  for ndx = 2:numel(missing)
-    list = sprintf('%s %s ',list,missing{ndx});
+% Get the boolean array that tells which PFs in the feature lexicon are in 
+% the to-be-calculated feature vocabulary
+featureLexiconName=handles.basicParams.featureLexiconName;
+sublexiconPFNames = handles.basicParams.sublexiconPFNames;
+[featureLexiconPFNames,isSelected,missingPFNames] = ...
+  GetAllPerframeList(featureLexiconName,sublexiconPFNames);
+
+% If some to-be-calculated PFs are not in the lexicon, warn the user.
+if ~isempty(missingPFNames),
+  list = naturalLanguageListFromStringList(missingPFNames);
+  if length(missingPFNames)==1
+    wstr = ...
+      sprintf(['Perframe feature %s is defined in the project file ' ...
+               'but is not defined for the current target type.\n' ...
+               'Ignoring it.'],...
+              list);
+  else
+    wstr = ...
+      sprintf(['Perframe features %s are defined in the project file ' ...
+               'but are not defined for the current target type.\n' ...
+               'Ignoring them.'],...
+              list);
   end
-  wstr = ...
-    sprintf(['Perframe feature(s) %s are defined in the project file ' ...
-             'but are not defined for the current target type.\n' ...
-             'Ignoring them.'],...
-            list);
   uiwait(warndlg(wstr)); 
 end
 
-[sel,ok] = listdlg('ListString',allpflist, ...
-                   'InitialValue',find(selected), ...
-                   'Name','Selecte perframe features',...
-                   'PromptString',{'Control/Command click to', ...
-                                   'select/deselect perframe features'}, ...
-                   'ListSize',[250,700]);
+% Put up the dialog that allows users to pick which PFs will be computed
+[isSelected,ok] = listdlg('ListString',featureLexiconPFNames, ...
+                          'InitialValue',find(isSelected), ...
+                          'Name','Selecte perframe features',...
+                          'PromptString',{'Control/Command click to', ...
+                                          'select/deselect perframe features'}, ...
+                                          'ListSize',[250,700]);
 
+% If the user clicked OK, update the list of to-be-calculated PFs                 
 if ok,
-  tstruct = struct();
-  for ndx = sel(:)'
-    tstruct.(allpflist{ndx}) = 1;
-  end
-  handles.basicParams.featureparamlist = tstruct;
+  sublexiconPFNames=featureLexiconPFNames(isSelected);
+  handles.basicParams.sublexiconPFNames = sublexiconPFNames;
+  guidata(hObject,handles);
 end
 
-guidata(hObject,handles);
 return
 
 
 % -------------------------------------------------------------------------
-function [featureLexiconPFNames,selected,missing]= GetAllPerframeList(handles)
-featureLexiconName=handles.basicParams.featureLexiconName;
+function [featureLexiconPFNames,isSelected,missingPFNames]= ...
+  GetAllPerframeList(featureLexiconName,sublexiconPFNames)
+% Returns the list of all per-frame feature names in the lexicon indicated
+% by featureLexiconName.  Also returns isSelected, a boolean array of the
+% same size as featureLexiconPFNames, which is true iff that PF is in the
+% sublexiconPFNames list.  Finally, missingPFNames is a list of all PF
+% names in sublexiconPFNames that are not present in
+% featureLexiconPFNames.
+
+%featureLexiconName=handles.basicParams.featureLexiconName;
 %featureconfigfile = basicParams.file.featureconfigfile;
 featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
 %basicParams = ReadXMLParams(featureconfigfile);
 %allPfList = fieldnames(basicParams.perframe);
-featureLexiconPFNames = fieldnames(featureLexicon);
-selected = false(numel(featureLexiconPFNames),1);
-missing = {};
-if isfield(basicParams,'featureparamlist');
-  calculatedPFNames = fieldnames(basicParams.featureparamlist);
+featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+nFeatureLexiconPFNames=length(featureLexiconPFNames);
+isSelected = false(nFeatureLexiconPFNames,1);
+missingPFNames = {};
+%toBeCalculatedPFNames = basicParams.toBeCalculatedPFNames;
+if isempty(sublexiconPFNames),
+  isSelected = true(nFeatureLexiconPFNames,1);
+  missingPFNames = {};
 else
-  calculatedPFNames = {};
-end
-if ~isempty(calculatedPFNames),
-  for ndx = 1:numel(calculatedPFNames),
-    allndx = find(strcmp(calculatedPFNames{ndx},featureLexiconPFNames));
+  for ndx = 1:length(sublexiconPFNames),
+    sublexiconPFName=sublexiconPFNames{ndx};
+    allndx = find(strcmp(sublexiconPFName,featureLexiconPFNames));
     if isempty(allndx)
-      missing{end+1} = calculatedPFNames{ndx};
+      missingPFNames{end+1} = sublexiconPFName;
     else
-      selected(allndx) = true;
+      isSelected(allndx) = true;
     end
   end
-else
-  missing = {};
-  selected = true(numel(featureLexiconPFNames,1));
 end
 return
 
@@ -996,7 +1015,7 @@ function pushbutton_addadvanced_Callback(hObject, eventdata, handles)  %#ok
 % handles    structure with handles and user data (see GUIDATA)
 
 in = inputdlg({'Configuration Parameter Name','Configuration Parameter Value'});
-if isempty(in) || numel(in) < 2
+if isempty(in) || length(in) < 2
   return;
 end
 

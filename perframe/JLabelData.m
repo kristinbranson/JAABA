@@ -317,15 +317,17 @@ classdef JLabelData < handle
     allperframefns = {};  % The list of all per-frame feature names in 
                           % the lexicon that are actually calculated for
                           % each frame.  I would call this the the
-                          % 'calculated feature vocabulary'.  --ALT, Apr 4,
+                          % 'subdialect'.  This includes 
+                          % the scores-as-input feature names.  --ALT, Apr 4,
                           % 2013
     curperframefns = {};  % The list of all per-frame feature names 
                           % that are used for classifier training. This is
                           % a subset of allperframefns.  I would call this
-                          % the 'training feature vocabulary'. --ALT, Apr 4,
+                          % the 'vocabulary'. --ALT, Apr 4,
                           % 2013
     perframeunits = {};
-    scoresasinput = [];
+    %scoresasinput = [];
+    scoresasinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
     
     % experiment/file management
 
@@ -412,24 +414,24 @@ classdef JLabelData < handle
     % Used in setClassifier() and getClassifier() methods.
     fieldNamesInSelf = {'classifiertype', ...
                         'classifier', ...
-                        'classifier_params',...
+                        'classifier_params', ...
                         'classifierTS', ...
                         'confThresholds', ...
                         'scoreNorm', ...
                         'windowfeaturesparams', ...
-                        'postprocessparams',...
-                        'scoresasinput'};
+                        'postprocessparams'};
+%                        'scoresasinput'};
 %                        'maxWindowRadiusCommonCached', ...
 %                        'basicFeatureTable', ...
     fieldNamesInClassifier = {'type', ...
                               'params', ...
-                              'trainingParams',...
+                              'trainingParams', ...
                               'timeStamp', ...
                               'confThresholds', ...
                               'scoreNorm', ...
                               'windowFeaturesParams', ...
-                              'postProcessParams',...
-                              'scoresAsInput'};
+                              'postProcessParams'}
+%                              'scoresAsInput'};
 %                              'maxWindowRadiusCommonCached', ...
 %                              'basicFeatureTable', ...
   end
@@ -443,8 +445,8 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------    
     function [success,msg] = setFeatureLexiconRaw(obj,featureLexicon,animalType,featureLexiconName)
       % This sets the feature lexicon to the given one.  If the
-      % featureLexicon is not one of the named ones, then no
-      % featureLexiconName should be given.
+      % featureLexicon is not one of the named ones, then either no
+      % featureLexiconName should be given, or the name should be 'custom'.
       
       % process args
       if ~exist('featureLexiconName','var')
@@ -1034,10 +1036,10 @@ classdef JLabelData < handle
             uiwait(warndlg(msg1));
           end
         end
-        if isfield(basicParams,'featureparamlist'),
-          % read allperframefns from config file
-          obj.allperframefns = intersect(obj.allperframefns,...
-                                         fieldnames(basicParams.featureparamlist));
+        if isfield(basicParams,'sublexiconPFNames'),
+          % Update allperframefns, limiting to only those in
+          % toBeCalculatedPFNames
+          obj.allperframefns = basicParams.sublexiconPFNames;
           msg = '';
         end
         if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
@@ -1061,22 +1063,17 @@ classdef JLabelData < handle
           end
         end  % isfield(basicParams,'perframe'),
       end  % isfield(basicParams,'file'),
-      if isfield(basicParams,'scoresinput'),
-        obj.scoresasinput = basicParams.scoresinput;
-        for ndx = 1:numel(obj.scoresasinput)
-          [~,name,~] = fileparts(obj.scoresasinput(ndx).scorefilename);
-          obj.allperframefns{end+1} = name;
+      if isfield(basicParams,'scoresAsInput') ,
+        obj.scoresasinput = basicParams.scoresAsInput;
+        nScoresAsInputs=length(basicParams.scoresAsInput);
+        scoresAsInputPFNames=cell(nScoresAsInputs,1);
+        for i = 1:nScoresAsInputs ,
+          [~,pfName] = fileparts(obj.scoresasinput(i).scorefilename);
+          scoresAsInputPFNames{i} = pfName;
         end
-        
-%         if ~isempty(obj.basicFeatureTable),
-%           scoresbasicndx = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
-%           if isempty(scoresbasicndx),
-%             obj.basicFeatureTable(end+1,:) = {'scores','Custom','normal'};
-%           else
-%             obj.basicFeatureTable{scoresbasicndx,2} = 'Custom';
-%           end
-%         end
-      end  % if isfield(basicParams,'scoresinput'),
+        obj.allperframefns=[obj.allperframefns ; ...
+                            scoresAsInputPFNames];
+      end  % if isfield(basicParams,'scoresAsInput'),
       
       % Re-load the perframe feature signals, since the PFFs may have changed
       obj.loadPerframeData(obj.expi,obj.flies);
@@ -1087,6 +1084,11 @@ classdef JLabelData < handle
     function basicParams = getBasicParams(obj)
       basicParams=struct();
       basicParams.featureLexiconName=obj.featureLexiconName;
+      basicParams.scoresAsInput=obj.scoresasinput;
+      subdialectPFNames=obj.allperframefns;
+      nScoresAsInputs=length(obj.scoresasinput);
+      sublexiconPFNames=subdialectPFNames(1:end-nScoresAsInputs);  
+      basicParams.sublexiconPFNames=sublexiconPFNames;
       %basicParams.behaviors.type=obj.targettype;
       basicParams.behaviors.names=obj.labelnames(1);
       basicParams.behaviors.labelcolors=obj.labelcolors;
@@ -1094,7 +1096,7 @@ classdef JLabelData < handle
       basicParams.file.moviefilename=obj.moviefilename;
       basicParams.file.trxfilename=obj.trxfilename;
       basicParams.file.scorefilename=obj.scorefilename;
-      basicParams.scoresinput=obj.scoresasinput;
+      %basicParams.scoresinput=obj.scoresasinput;
       basicParams.labelGraphicParams=obj.labelGraphicParams;
       basicParams.trxGraphicParams=obj.trxGraphicParams;
     end
@@ -8564,6 +8566,11 @@ classdef JLabelData < handle
       % Get a bunch of parameters, put them in s
       s.featureLexiconName=self.featureLexiconName;
       s.featureLexicon=self.featureLexicon;
+      s.scoresAsInput=self.scoresasinput;
+      subdialectPFNames=self.allperframefns;
+      nScoresAsInputs=length(self.scoresasinput);
+      sublexiconPFNames=subdialectPFNames(1:end-nScoresAsInputs);
+      s.sublexiconPFNames=sublexiconPFNames;
       s.behaviors.type=self.targettype;
       s.behaviors.names=self.labelnames;
       s.behaviors.labelcolors=self.labelcolors;
@@ -8616,16 +8623,16 @@ classdef JLabelData < handle
       %
 
       % Get the old list of per-frame features
-      featureNamesInLexiconOld=obj.allperframefns;
+      featureNamesInDialectOld=obj.allperframefns;
 
       % determine the feature names in the new lexicon
-      featureNamesInLexiconNew= ...
-        featureNamesNewFromOld(featureNamesInLexiconOld, ...
+      featureNamesInDialectNew= ...
+        featureNamesNewFromOld(featureNamesInDialectOld, ...
                                scoresAsInputOld, ...
                                scoresAsInputNew);
                                    
       % Commit to self
-      obj.allperframefns=featureNamesInLexiconNew;
+      obj.allperframefns=featureNamesInDialectNew;
                  
       
       %

@@ -8294,13 +8294,14 @@ function basicParams=basicParamsFromEverythingParams(everythingParams)
 basicParams=struct();
 basicParams.featureLexiconName=everythingParams.featureLexiconName;
 basicParams.featureLexicon=everythingParams.featureLexicon;
-%basicParams.behaviors=rmfield(everythingParams.behaviors,'type');  % featureLexiconName implies the animal type
+basicParams.scoresAsInput=everythingParams.scoresAsInput;
+basicParams.sublexiconPFNames=everythingParams.sublexiconPFNames;
 basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
 basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
 basicParams.file=everythingParams.file;
 basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
 basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
-basicParams.scoresinput=everythingParams.classifier.scoresAsInput;
+%basicParams.scoresinput=everythingParams.classifier.scoresAsInput;
 
 return
 
