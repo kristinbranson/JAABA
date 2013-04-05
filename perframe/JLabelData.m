@@ -8535,7 +8535,8 @@ classdef JLabelData < handle
         if isempty(self.labels(i).names),
           labelNamesThis=cell(1,0);
         else
-          labelNamesThis=self.labels(i).names{1};
+          labelNamesThisDeep=self.labels(i).names;
+          labelNamesThis=[labelNamesThisDeep{:}];  % concatenate all the individual label lists
         end
         labelNamesSeenThis=unique(labelNamesThis);
         labelNamesSeenSoFar=union(labelNamesSeenSoFar,labelNamesSeenThis);
