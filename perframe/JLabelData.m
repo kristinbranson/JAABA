@@ -316,15 +316,14 @@ classdef JLabelData < handle
     % per-frame features that are used
     allperframefns = {};  % The list of all per-frame feature names in 
                           % the lexicon that are actually calculated for
-                          % each frame.  I would call this the the
-                          % 'subdialect'.  This includes 
-                          % the scores-as-input feature names.  --ALT, Apr 4,
-                          % 2013
+                          % each frame, plus the scores-as-input feature
+                          % names.  I would call this the the 'subdialect'.
+                          % --ALT, Apr 5, 2013
     curperframefns = {};  % The list of all per-frame feature names 
-                          % that are used for classifier training. This is
-                          % a subset of allperframefns.  I would call this
-                          % the 'vocabulary'. --ALT, Apr 4,
-                          % 2013
+                          % that are used for classifier training.  This is
+                          % a subset of allperframefns, and includes ll the
+                          % scores-as-input feature names.  I would call
+                          % this the 'vocabulary'. --ALT, Apr 5, 2013
     perframeunits = {};
     %scoresasinput = [];
     scoresasinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
@@ -8500,7 +8499,8 @@ classdef JLabelData < handle
     function result=getPerFrameFeatureSetIsNonEmpty(self)
       % Returns true iff the current set of per-frame features in use
       % is non-empty, i.e. contains at least one per-frame feature.
-      result=~isempty(fieldnames(self.windowfeaturesparams));
+      %result=~isempty(fieldnames(self.windowfeaturesparams));
+      result=~isempty(self.curperframefns);
     end
     
     
