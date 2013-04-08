@@ -1161,6 +1161,21 @@ if((length(handles.grouplist)==0)&&(isempty(newgroups)))
   uiwait(errordlg('Add a new group before adding ungrouped experiments'));
   return;
 end
+uniqueexperiments=unique(newexperiments);
+if(length(uniqueexperiments)~=length(newexperiments))
+  tmp=logical(cellfun(@(x) sum(strcmp(x,newexperiments)),uniqueexperiments)>1);
+  msg{1}='The following experiments are duplicated:';
+  msg{2}='';
+  msg(3:(2+sum(tmp)))=uniqueexperiments(tmp);
+  uiwait(errordlg(msg));
+  for i=uniqueexperiments(tmp)
+    foo=find(strcmp(i,newexperiments));
+    foo=foo(1:end-1);
+    newexperiments(foo)=[];
+    if(~isempty(newgroups))  newgroups(foo)=[];  end
+    if(~isempty(newcolors))  newcolors(foo)=[];  end
+  end
+end
 
 handles=experiment_add(handles,newexperiments,newgroups,newcolors);
 
@@ -3528,8 +3543,8 @@ for b=bb
 
   num_indi=0;
   collated_data=cell(1,length(ggee));
-  %parfor gei=1:numel(ggee)
-  for gei=1:numel(ggee)
+  parfor gei=1:numel(ggee)
+  %for gei=1:numel(ggee)
     ge = ggee(gei);
 
     %if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
