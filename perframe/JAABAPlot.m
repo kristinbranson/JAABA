@@ -1376,6 +1376,7 @@ handlesconfigurations=cell(1,length(newclassifiers));
 handlesbehaviorlist=cell(1,length(newclassifiers));
 handlesscorefiles=cell(1,length(newclassifiers));
 handlesindividualsbehavior=zeros(sum(cellfun(@length,handles.experimentlist)),length(newclassifiers));
+timestamps=nan(1,length(newclassifiers));
 for c=1:length(newclassifiers)
   classifier=load(newclassifiers{c});
   if(~isfield(classifier,'postprocessparams'))
@@ -1427,6 +1428,8 @@ for c=1:length(newclassifiers)
     continue;
   end
 
+  timestamps(c)=classifier.classifierTS;
+
   if iscell(params.behaviors.names),
     handlesbehaviorlist{c} = params.behaviors.names{1};
   else
@@ -1451,11 +1454,34 @@ if((isnan(handles.fps))&&(length(handlesexperimentlist)>0))
 end
 
 idx=find(~cellfun(@isempty,newclassifiers));
-handles.classifierlist={handles.classifierlist{:} newclassifiers{idx}};
-handles.configurations={handles.configurations{:} handlesconfigurations{idx}};
-handles.behaviorlist={handles.behaviorlist{:} handlesbehaviorlist{idx}};
-handles.scorefiles={handles.scorefiles{:} handlesscorefiles{idx}};
-handles.individuals_behavior=[handles.individuals_behavior handlesindividualsbehavior(:,idx)];
+newclassifiers=newclassifiers(idx);
+handlesconfigurations=handlesconfigurations(idx);
+handlesbehaviorlist=handlesbehaviorlist(idx);
+handlesscorefiles=handlesscorefiles(idx);
+handlesindividualsbehavior=handlesindividualsbehavior(:,idx);
+timestamps=timestamps(idx);
+
+i=1;
+while i<length(handlesscorefiles)
+  idx=find(strcmp(handlesscorefiles{i},handlesscorefiles((i+1):end)) & ...
+      (timestamps(i)==timestamps((i+1):end)));
+  if(~isempty(idx))
+    uiwait(warndlg({'the following classifiers have the same scores filename and timestamp.  keeping only the first.' '' newclassifiers{[i i+idx]}},''));  drawnow;
+    newclassifiers(i+idx)=[];
+    handlesconfigurations(i+idx)=[];
+    handlesbehaviorlist(i+idx)=[];
+    handlesscorefiles(i+idx)=[];
+    handlesindividualsbehavior(:,i+idx)=[];
+    timestamps(i+idx)=[];
+  end
+  i=i+1;
+end
+
+handles.classifierlist={handles.classifierlist{:} newclassifiers{:}};
+handles.configurations={handles.configurations{:} handlesconfigurations{:}};
+handles.behaviorlist={handles.behaviorlist{:} handlesbehaviorlist{:}};
+handles.scorefiles={handles.scorefiles{:} handlesscorefiles{:}};
+handles.individuals_behavior=[handles.individuals_behavior handlesindividualsbehavior];
 
 handles.classifiervalue=1:length(handles.classifierlist);
 
@@ -1574,16 +1600,17 @@ handlesexperimentlist=[handles.experimentlist{:}];
 
 classifiers_found=cell(1,length(handlesexperimentlist));
 classifiers_notfound=cell(1,length(handlesexperimentlist));
+%for ge=1:length(handlesexperimentlist)
 parfor ge=1:length(handlesexperimentlist)
   tmp=dir(fullfile(handlesexperimentlist{ge},'*.mat'));
   possiblescorefiles=setdiff({tmp.name},handles.scorefiles);
   classifiers_found{ge}={};
   classifiers_notfound{ge}={};
   for p=1:length(possiblescorefiles)
-    scoresfilename = fullfile(handlesexperimentlist{ge},possiblescorefiles{p});
-    if ~exist(scoresfilename,'file'),
-      continue;
-    end
+    %scoresfilename = fullfile(handlesexperimentlist{ge},possiblescorefiles{p});
+    %if ~exist(scoresfilename,'file'),
+    %  continue;
+    %end
     tmp=load(fullfile(handlesexperimentlist{ge},possiblescorefiles{p}));
     if(~isfield(tmp,'classifierfilename'))
       continue;
@@ -1678,24 +1705,14 @@ for i=1:length(table2)
 end
 
 if(length(handles.experimentlist)>1)
-  %tmp=zeros(1,length(handles.experimentlist)+length([handles.experimentlist{:}]));
   tmp=zeros(1,1+length([handles.experimentlist{:}]));
   cumsum(cellfun(@length,handles.experimentlist));
   tmp(2+ans(1:end-1))=1;
   cumsum(tmp);
-  %tmp=ans+(1:(-1+length(handles.experimentlist)+length([handles.experimentlist{:}])));
   tmp=ans+(1:(1+length([handles.experimentlist{:}])));
   tmp2(tmp,:)=[table(:,:)];
   table=tmp2;
 end
-
-%figure('menubar','none','toolbar','none','numbertitle','off',...
-%    'name','classifier check');
-%uitable('units','normalized','position',[0 0 1 1],...
-%    'Data',table,'ColumnName',{''},'RowName',[]);
-%6*max(cellfun(@length,table),[],1);
-%set(t,'ColumnWidth',mat2cell(ans,1,ones(1,length(ans))));
-%set(handles.Table,'ColumnWidth','auto');
 
 hf=figure('menubar','none','toolbar','none','numbertitle','off',...
     'name','classifier check');
@@ -1703,13 +1720,8 @@ ht=uitable('data',table,'columnwidth',num2cell(8*max(cellfun(@length,table))),..
     'rowname',[],'columnname',{''},'rowstriping','off');
 extT=get(ht,'extent');
 posF=get(hf,'position');
-%set(hf,'position',[posF(1) posF(2) 16*(posF(4)<extT(4))+extT(3) posF(4)]);
 set(hf,'position',[posF(1) posF(2) min(posF(3),16*(posF(4)<extT(4))+extT(3)) min(posF(4),extT(4))]);
-%set(ht,'position',[0 0 16*(posF(4)<extT(4))+extT(3) posF(4)]);
 set(ht,'units','normalized','position',[0 0 1 1]);
-
-%handles.table_data=table;
-%handles.table='classifier';
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
