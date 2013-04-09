@@ -122,7 +122,12 @@ if didcreateaxes,
   hticks = text(tLabelsX,tLabelsY,print_names,'Parent',hax(2),'Interpreter','none');
   axes_pos = get(hax,'Position');
   set(hticks,'Units','normalized');
-  maxx1 = max(cellfun(@(x) x(3), get(hticks,'Extent')));
+  hticksExtent=get(hticks,'Extent');
+  if iscell(hticksExtent) ,
+    maxx1 = max(cellfun(@(x) x(3), get(hticks,'Extent')));
+  else
+    maxx1=hticksExtent(3);
+  end
   % put in figure's units
   maxx = axes_pos{2}(1) + axes_pos{2}(3) + (maxx1+0.05)*axes_pos{2}(3);
   
