@@ -4994,6 +4994,7 @@ switch handles.type
     tmp{end+1}=['dispersion = '  D{handles.dispersion}];
 end
 tmp{end+1}=['minimum trajectory length = '  num2str(handles.minimumtrajectorylength)];
+tmp{end+1}=['individual = '  num2str(handles.individuallist{handles.individualvalue})];
 tmp{end+1}='';
 
 for g=1:length(handles.grouplist)
