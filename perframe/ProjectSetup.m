@@ -309,7 +309,7 @@ function updateConfigTable(handles)
 % Update the config table (a GUI element) to match the current "model"
 % state
 basicParams = handles.basicParams;
-fields2remove = {'featureparamlist','windowfeatures','scoresAsInput'};
+fields2remove = {'featureparamlist','windowfeatures','scoresAsInput','sublexiconPFNames'};
 for ndx = 1:numel(fields2remove)
   if isfield(basicParams,fields2remove{ndx}),
     basicParams = rmfield(basicParams,fields2remove{ndx});
