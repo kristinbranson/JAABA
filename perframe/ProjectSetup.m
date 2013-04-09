@@ -196,7 +196,9 @@ basicParams.file.trxfilename = '';
 basicParams.file.moviefilename = '';
 %handles = addversion(handles);
 %basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
-basicParams.sublexiconPFNames = cell(0,1);
+featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
+featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+basicParams.sublexiconPFNames = featureLexiconPFNames;
 
 return
 
