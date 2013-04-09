@@ -225,11 +225,17 @@ classdef JLabelData < handle
     
     % experiment info: expi indexes the following
     
-    % cell array of input experiment directory paths
-    expdirs = {};
-    
-    % cell array of corresponding experiment names (last part of path)
-    expnames = {};
+%     % cell array of input experiment directory paths
+%     expdirs = {};
+%     
+%     % cell array of corresponding experiment names (last part of path)
+%     expnames = {};
+%     
+%     % cell array of ground-truth experiment directories
+%     gtExpDirNames={};
+%     
+%     % cell array of corresponding experiment names (last part of path)
+%     gtExpNames={};
     
     % cell array of corresponding output experiment directory paths
     outexpdirs = {};
@@ -435,11 +441,48 @@ classdef JLabelData < handle
 %                              'basicFeatureTable', ...
   end
   
-%   properties (Access=public,Dependent=true)
-%     saveableClassifier;
-%     configparams;
-%   end
+  properties (Access=private)
+    % cell array of input experiment directory paths
+    expDirNames = {};
+    
+    % cell array of ground-truth experiment directories
+    gtExpDirNames={};
+  end
+  
+  properties (Access=public,Dependent=true)
+    expdirs
+    expnames
+  end
 
+  methods
+    function expdirs=get.expdirs(self)
+      if self.gtMode, 
+        expdirs=self.gtExpDirNames;
+      else
+        expdirs=self.expDirNames;
+      end        
+    end
+
+    function set.expdirs(self,newValue)
+      if self.gtMode, 
+        self.gtExpDirNames=newValue;
+      else
+        self.expDirNames=newValue;
+      end        
+    end
+    
+    function expnames=get.expnames(self)
+      expDirNames=self.expdirs;
+      expnames=cellfun(@fileBaseName,expDirNames,'UniformOutput',false);
+    end
+    
+    function set.expnames(self,newValue)  %#ok
+      % Do nothing, b/c now we just compute expnames when we need it 
+      % Eventually this method should go away, and all calls to it also.
+    end    
+    
+  end
+  
   methods (Access=private)
     % ---------------------------------------------------------------------    
     function [success,msg] = setFeatureLexiconRaw(obj,featureLexicon,animalType,featureLexiconName)
@@ -918,7 +961,7 @@ classdef JLabelData < handle
     function nflies = GetNumFlies(obj,expi)
       nflies = obj.nflies_per_exp(expi);
     end
-    
+
     
 % Configuration settings.
 
@@ -5160,6 +5203,8 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function labels_curr = GetLabels(obj,expi,flies)
       % Returns the labels for the given experiment index, fly(s) index.
       % This takes into account the current GT mode (normal/GT), and
@@ -5338,7 +5383,7 @@ classdef JLabelData < handle
           ism = false;
         else
           [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
-	end
+        end
 
         if ism,
           isstart = ismember(ts,obj.(labelsToUse)(expi).t0s{fliesi});
