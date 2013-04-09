@@ -2699,7 +2699,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     return;
   end
 
-  if(num_indi==0)
+  if (num_indi==0) && (nbehaviors>0)
     handles.interestingfeaturehistograms_cache=nan;
   else
     tmp2=[];
