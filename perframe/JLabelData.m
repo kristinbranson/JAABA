@@ -6910,33 +6910,35 @@ end
           curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
           cumwt = cumsum(curwt);
           sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
-          sumwt = [cumwt(intsize) sumwt];
+          sumwt = [cumwt(intsize) sumwt]; %#ok<AGROW>
           int.wt(1,end+1:end+numT) = sumwt;
           
         end
       end
       
-      cumwt = cumsum(int.wt)/sum(int.wt);
       obj.balancedGTSuggestions = [];
-      prevlocs = [];
       for ndx = 1:numint
-        while true
-            intlocs = rand;
-            locsSel = find(cumwt<=intlocs,1,'last');
-            
-            % Check for overlap
-            if any( abs(locsSel-prevlocs) <= intsize), continue, end;
-            prevlocs(end+1) = locsSel;
-            if isempty(locsSel), locsSel = numel(cumwt); end
-            expi = int.exp(locsSel);
-            flies = int.flies(locsSel);
-            tStart = int.tStart(locsSel);
-            obj.balancedGTSuggestions(ndx).start = tStart;
-            obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
-            obj.balancedGTSuggestions(ndx).exp = expi;
-            obj.balancedGTSuggestions(ndx).flies = flies;
-            break;
-        end
+        cumwt = cumsum(int.wt)/sum(int.wt);
+        intlocs = rand;
+        locsSel = find(cumwt<=intlocs,1,'last');
+        
+        if isempty(locsSel), locsSel = numel(cumwt); end
+        expi = int.exp(locsSel);
+        flies = int.flies(locsSel);
+        tStart = int.tStart(locsSel);
+        obj.balancedGTSuggestions(ndx).start = tStart;
+        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
+        obj.balancedGTSuggestions(ndx).exp = expi;
+        obj.balancedGTSuggestions(ndx).flies = flies;
+        
+        % Removing intervals that overlap
+        overlap = int.exp == int.exp(locsSel) & ...
+                        int.flies == int.flies(locsSel) & ...
+                        abs( int.tStart-int.tStart(locsSel))<=intsize;
+        int.exp(overlap) = [];
+        int.flies(overlap) = [];
+        int.tStart(overlap) = [];
+        int.wt(overlap) = [];
       end
       
       obj.GTSuggestionMode = 'Balanced';
