@@ -1161,6 +1161,21 @@ if((length(handles.grouplist)==0)&&(isempty(newgroups)))
   uiwait(errordlg('Add a new group before adding ungrouped experiments'));
   return;
 end
+uniqueexperiments=unique(newexperiments);
+if(length(uniqueexperiments)~=length(newexperiments))
+  tmp=logical(cellfun(@(x) sum(strcmp(x,newexperiments)),uniqueexperiments)>1);
+  msg{1}='The following experiments are duplicated:';
+  msg{2}='';
+  msg(3:(2+sum(tmp)))=uniqueexperiments(tmp);
+  uiwait(errordlg(msg));
+  for i=uniqueexperiments(tmp)
+    foo=find(strcmp(i,newexperiments));
+    foo=foo(1:end-1);
+    newexperiments(foo)=[];
+    if(~isempty(newgroups))  newgroups(foo)=[];  end
+    if(~isempty(newcolors))  newcolors(foo)=[];  end
+  end
+end
 
 handles=experiment_add(handles,newexperiments,newgroups,newcolors);
 
@@ -2261,8 +2276,8 @@ end
 
 
 % ---
-function [behavior_data,behavior_data2,behavior_data3,feature_data]=...
-    cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,feature_data)
+function [behavior_data,behavior_data2,behavior_data3,feature_data,sex_data]=...
+    cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,feature_data,sex_data)
 
 if(~isempty(behavior_data))
   find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
@@ -2291,6 +2306,10 @@ end
 if(~isempty(feature_data))
   find((cellfun(@length,feature_data.data)./handles.fps) < handles.minimumtrajectorylength);
   feature_data.data(ans)=[];
+end
+if(~isempty(sex_data))
+  find((cellfun(@length,sex_data)./handles.fps) < handles.minimumtrajectorylength);
+  sex_data(ans)=[];
 end
 
 
@@ -2400,11 +2419,12 @@ for b=bb
     feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
           [feature_list{feature_value} '.mat']));
 
-    [behavior_data,behavior_data2,~,feature_data]=...
-        cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data);
+    [behavior_data,behavior_data2,~,feature_data,sex_data]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data,handles.sexdata{ge});
     num_indi=num_indi+length(feature_data.data);
 
-    tmp2=handles.sexdata{ge};
+    %tmp2=handles.sexdata{ge};
+    tmp2=sex_data;
     for i=1:length(tmp2)
       switch(individual)
         case('M')
@@ -2523,12 +2543,12 @@ for b=bb
       if(comparison>0)
         fprintf(fid,'%% not during\n');
         if(~isempty(not_during_data))
-          print_csv(fid,not_during_data(idx(e),:));
+          print_csv_data(fid,not_during_data(idx(e),:));
         end
       end
       fprintf(fid,'%% during\n');
       if(~isempty(during_data))
-        print_csv(fid,during_data(idx(e),:));
+        print_csv_data(fid,during_data(idx(e),:));
       end
       fprintf(fid,'\n');
     end
@@ -2627,7 +2647,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     behavior_data={};
     for b=1:nbehaviors
       behavior_data{b}=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
-      [behavior_data{b},~,~,~]=cull_short_trajectories(handles,behavior_data{b},[],[],[]);
+      [behavior_data{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data{b},[],[],[],[]);
       num_indi=num_indi+length(behavior_data{b}.allScores.scores);
     end
 
@@ -2637,7 +2657,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
       feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
           [handles.featurelist{f} '.mat']));
-      [~,~,~,feature_data]=cull_short_trajectories(handles,[],[],[],feature_data);
+      [~,~,~,feature_data,~]=cull_short_trajectories(handles,[],[],[],feature_data,[]);
 
       sexdata={};
       for s=1:length(feature_data.data)
@@ -2679,7 +2699,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     return;
   end
 
-  if(num_indi==0)
+  if (num_indi==0) && (nbehaviors>0)
     handles.interestingfeaturehistograms_cache=nan;
   else
     tmp2=[];
@@ -2952,7 +2972,7 @@ score_file2=[];
 if((length(bb)>1) || (bb>0))  score_file2=handles.scorefiles{handles.behaviorvalue2};  end
 feature_value=handles.featurevalue;
 feature_list=handles.featurelist;
-sexdata=handles.sexdata;
+%sexdata=handles.sexdata;
 timing=handles.featuretimeseries_style2;
 xoffset=handles.xoffset;
 if((length(bb)==1) && (bb==0))
@@ -3002,11 +3022,11 @@ for b=bb
     feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
         [feature_list{feature_value} '.mat']));
 
-    [behavior_data,behavior_data2,~,feature_data]=...
-        cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data);
+    [behavior_data,behavior_data2,~,feature_data,sex_data]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data,handles.sexdata{ge});
     num_indi=num_indi+length(feature_data.data);
 
-    tmp2=sexdata{ge};
+    tmp2=sex_data;
     for i=1:length(tmp2)
       switch(individual)
         case('M')
@@ -3489,7 +3509,7 @@ score_file3=[];
 if(handles.behaviorvalue3>1)
   score_file3=handles.scorefiles{handles.behaviorvalue3-1};
 end
-sexdata=handles.sexdata;
+%sexdata=handles.sexdata;
 %perwhat=handles.behaviorbarchart_style;
 behaviornot=handles.behaviornot;
 
@@ -3528,8 +3548,8 @@ for b=bb
 
   num_indi=0;
   collated_data=cell(1,length(ggee));
-  %parfor gei=1:numel(ggee)
-  for gei=1:numel(ggee)
+  parfor gei=1:numel(ggee)
+  %for gei=1:numel(ggee)
     ge = ggee(gei);
 
     %if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
@@ -3544,8 +3564,8 @@ for b=bb
       behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
     end
 
-    [behavior_data,behavior_data2,behavior_data3,~]=...
-        cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,[]);
+    [behavior_data,behavior_data2,behavior_data3,~,sex_data]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,[],handles.sexdata{ge});
     num_indi=num_indi+length(behavior_data.allScores.scores);
 
     traj_len=behavior_data.allScores.tEnd-behavior_data.allScores.tStart;
@@ -3596,13 +3616,13 @@ for b=bb
       end
 
       % KB: for some reason partition_idx was of size > trajectory length
-      if numel(partition_idx) > numel(sexdata{ge}{i}),
-        warning('More frames of behaviors detected than frames in trajectory by %d',numel(partition_idx)-numel(sexdata{ge}{i}));
-        partition_idx = partition_idx(1:numel(sexdata{ge}{i}));
+      if numel(partition_idx) > numel(sex_data{i}),
+        warning('More frames of behaviors detected than frames in trajectory by %d',...
+            numel(partition_idx)-numel(sex_data{i}));
+        partition_idx = partition_idx(1:numel(sex_data{i}));
       end
-
       
-      sex(i)=sum(sexdata{ge}{i}(1:length(partition_idx))) > (length(partition_idx)/2);
+      sex(i)=sum(sex_data{i}(1:length(partition_idx))) > (length(partition_idx)/2);
       frames_labelled(i)=sum(partition_idx);
       if(handles.behaviorvalue3==1)
         frames_total(i)=length(partition_idx);
@@ -3845,7 +3865,7 @@ score_file3=[];
 if(handles.behaviorvalue3>1)
   score_file3=handles.scorefiles{handles.behaviorvalue3-1};
 end
-sexdata=handles.sexdata;
+%sexdata=handles.sexdata;
 convolutionwidth=round(handles.convolutionwidth*handles.fps);
 style=handles.behaviortimeseries_style;
 centraltendency=handles.centraltendency;
@@ -3885,8 +3905,8 @@ for b=bb
       behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
     end
 
-    [behavior_data,behavior_data2,behavior_data3,~]=...
-        cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,[]);
+    [behavior_data,behavior_data2,behavior_data3,~,sex_data]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,[],handles.sexdata{ge});
     num_indi=num_indi+length(behavior_data.allScores.scores);
 
     if(xoffset==1)
@@ -3946,9 +3966,9 @@ for b=bb
       [ones(1,behavior_data.allScores.tEnd(i))];
       switch(individual)
         case('M')
-          [ones(1,behavior_data.allScores.tStart(i)-1) sexdata{ge}{i}];
+          [ones(1,behavior_data.allScores.tStart(i)-1) sex_data{i}];
         case('F')
-          [ones(1,behavior_data.allScores.tStart(i)-1) ~sexdata{ge}{i}];
+          [ones(1,behavior_data.allScores.tStart(i)-1) ~sex_data{i}];
       end
       partition_idx(1,:) = partition_idx(1,:) & ans;
       partition_idx(2,:) = partition_idx(2,:) & ans;
@@ -4173,7 +4193,7 @@ if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=handles.scorefiles{handles.behaviorvalue2};
-sexdata=handles.sexdata;
+%sexdata=handles.sexdata;
 behaviornot=handles.behaviornot;
 
 h=[];
@@ -4202,11 +4222,12 @@ for b=bb
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
     end
 
-    [behavior_data,behavior_data2,~,~]=cull_short_trajectories(handles,behavior_data,behavior_data2,[],[]);
+    [behavior_data,behavior_data2,~,~,sex_data]=...
+        cull_short_trajectories(handles,behavior_data,behavior_data2,[],[],handles.sexdata{ge});
     num_indi=num_indi+length(behavior_data.allScores.scores);
 
     [bout_lengths sex inter_bout_lengths inter_sex]=...
-        calculate_boutstats(behavior_data,behavior_logic,behavior_data2,sexdata{ge},behaviornot);
+        calculate_boutstats(behavior_data,behavior_logic,behavior_data2,sex_data,behaviornot);
     collated_data{gei}={bout_lengths sex inter_bout_lengths inter_sex};
   end
 
