@@ -8285,7 +8285,7 @@ if someExperimentIsCurrent,
 end
 guidata(figureJLabel,handles);
 
-return    
+return
 
 
 % ------------------------------------------------------------------------ 
@@ -8301,7 +8301,7 @@ basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want th
 basicParams.file=everythingParams.file;
 basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
 basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
-%basicParams.scoresinput=everythingParams.classifier.scoresAsInput;
+basicParams.landmarkParams=everythingParams.landmarkParams;
 
 return
 

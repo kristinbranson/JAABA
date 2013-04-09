@@ -38,7 +38,7 @@ end
 % copy the project params over
 everythingParams.behaviors=projectParams.behaviors;
 fileParams=projectParams.file;
-% delete some field that we don't need/want
+% delete some fields that we don't need/want
 if isfield(fileParams,'featureconfigfile') ,
   fileParams=rmfield(fileParams,'featureconfigfile');
 end
@@ -62,6 +62,9 @@ if isempty(projectParams.behaviors.names) ,
 else
   everythingParams.behaviorName=projectParams.behaviors.names{1};
 end
+if isfield(projectParams,'landmark_params')
+  everythingParams.landmarkParams=projectParams.landmark_params;
+else
 
 % copy the experiment dirs, labels over
 if isempty(classifierParams) ,
