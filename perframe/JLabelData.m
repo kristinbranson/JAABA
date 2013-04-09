@@ -1036,8 +1036,7 @@ classdef JLabelData < handle
           end
         end
         if isfield(basicParams,'sublexiconPFNames'),
-          % Update allperframefns, limiting to only those in
-          % toBeCalculatedPFNames
+          % Update allperframefns
           obj.allperframefns = basicParams.sublexiconPFNames;
           msg = '';
         end
