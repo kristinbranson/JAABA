@@ -348,9 +348,9 @@ else
   set(handles.InterestingFeatureHistograms,'enable','on');
 end
 if((sum(cellfun(@length,handles.experimentlist))==0) || ...
-   (isempty(handles.classifierlist)) || ...
-   (sum(sum(handles.individuals_behavior==-1))>0) || ...
-   (sum(sum(diff(handles.individuals_behavior,[],2)~=0))>0))
+   (isempty(handles.classifierlist)))
+%   (sum(sum(handles.individuals_behavior==-1))>0) || ...
+%   (sum(sum(diff(handles.individuals_behavior,[],2)~=0))>0))
   set(handles.BehaviorBarChart,'enable','off');
   set(handles.BehaviorTimeSeries,'enable','off');
   set(handles.BoutStats,'enable','off');
@@ -1877,6 +1877,19 @@ function Plot_Callback(hObject, eventdata, handles)
 % hObject    handle to Plot (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if(handles.behaviorvalue==(length(handles.behaviorlist)+1))
+  if((sum(sum(handles.individuals_behavior==-1))>0) || ...
+     (sum(sum(diff(handles.individuals_behavior,[],2)~=0))>0))
+    uiwait(errordlg('some experiments either have no individiuals or differ in the number of individuals across classifiers'));  drawnow;
+    return;
+  end
+else
+  if(sum(handles.individuals_behavior(:,handles.behaviorvalue)==-1)>0)
+    uiwait(errordlg('some experiments have no individiuals for this classifier'));  drawnow;
+    return;
+  end
+end
 
 switch(handles.analysis)
   case 'feature_histogram'
