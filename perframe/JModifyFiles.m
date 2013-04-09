@@ -330,7 +330,12 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 figureJModifyFiles=gcbf;
 
 % ask user for experiment directory
-[listfile,pname] = uigetfile('*.txt','Add experiments list from text file');
+[listfile,pname] = uigetfile({'*.txt','Text Files (*.txt)'}, ...
+                             'Add experiments list from text file');
+if listfile==0 ,
+  % means user hit Cancel button
+  return
+end
 listfile = fullfile(pname,listfile);
 if ~ischar(listfile),
   return;
@@ -369,6 +374,9 @@ set(listbox_experiment,'String',data.expdirs,'Value',data.nexps);
 
 % update status table
 UpdateStatusTable(figureJModifyFiles);
+
+% Make sure the status is cleared, and that the cursor is normal
+ClearStatusEditFiles(figureJModifyFiles);
 
 return
 
