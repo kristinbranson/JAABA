@@ -1056,8 +1056,8 @@ classdef JLabelData < handle
               obj.perframe_params.(pf_fields{ndx}) = basicParams.perframe.params.(pf_fields{ndx});
             end
           end
-          if isfield(basicParams.perframe,'landmark_params'),
-            obj.landmark_params = basicParams.perframe.landmark_params;
+          if isfield(basicParams.perframe,'landmarkParams'),
+            obj.landmark_params = basicParams.perframe.landmarkParams;
           end
         end  % isfield(basicParams,'perframe'),
       end  % isfield(basicParams,'file'),
@@ -8584,6 +8584,7 @@ classdef JLabelData < handle
       s.file.perframedir=self.perframedir;                  
       s.labelGraphicParams=self.labelGraphicParams;
       s.trxGraphicParams=self.trxGraphicParams;
+      s.landmarkParams=self.landmark_params;
 
       % Get the labels, put them in s
       s.expdirs=self.expdirs;
