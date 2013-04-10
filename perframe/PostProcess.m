@@ -130,7 +130,8 @@ if isempty(blen),
 else
   
   % wsize = handles.data.GetFeatureWindowSize();
-  wsize = handles.data.featureWindowSize();
+  %wsize = handles.data.featureWindowSize();
+  wsize=10;
   edges = unique([1 2 round(wsize/2) wsize 2*wsize 4*wsize 8*wsize inf]);
   
   vals = histc(blen,edges);
