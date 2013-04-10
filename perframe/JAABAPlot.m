@@ -950,10 +950,9 @@ for i=2:length(arg)
   feature_intersection=intersect(feature_intersection,arg{i});
 end
 if(numel(feature_intersection)<numel(feature_union))
-  char(setdiff(feature_union,feature_intersection));
-  [ans repmat(', ',size(ans,1),1)];
-  reshape(ans',1,numel(ans));
-  uiwait(errordlg(['feature(s) ' ans(1:end-2) ' are/is not in all experiments and so will be ignored.']));
+  setdiff(feature_union,feature_intersection);
+  cellfun(@(x) [char(x) ', '],ans,'uniformoutput',false);
+  uiwait(warndlg([{'the following features are not in all experiments and so will be ignored.' '' [ans{:}]}]));
   drawnow;
 end
 
@@ -1064,6 +1063,9 @@ if(sum(idx_error)>0)
   if(~isempty(newcolors))  newcolors=newcolors(~idx_error);  end
 end
 if isempty(newexperiments),
+  set(handles.Status,'string','Ready.','foregroundcolor','g');
+  set(handles.figure1,'pointer','arrow');
+  drawnow;
   return;
 end
 
@@ -1144,7 +1146,7 @@ persistent directory
 if(isempty(directory))  directory=pwd;  end
 
 tmp=directory;
-[newexperiments directory]=uigetfile(fullfile(directory,'*.csv'),'Select batch file');
+[newexperiments directory]=uigetfile([fullfile(directory,'*.txt') ';*.csv'],'Select batch file');
 if(isnumeric(newexperiments)&&(newexperiments==0))  directory=tmp; return;  end
 newexperiments=textread(fullfile(directory,newexperiments),'%s','delimiter',',');
 sum(cellfun(@exist,newexperiments)~=0);
@@ -1196,6 +1198,10 @@ if(isempty(directory))  directory=pwd;  end
 
 newexperiments=uipickfiles('prompt','Select experiment directory','filterspec',directory);
 if(~iscell(newexperiments) || (length(newexperiments)==0))  return;  end
+if(sum(~cellfun(@(x) exist(x,'dir'),newexperiments))>0)
+  uiwait(errordlg('please select only experimental directories'));  drawnow;
+  return;
+end
 [directory,~,~]=fileparts(newexperiments{1});
 
 handles=experiment_add(handles,newexperiments,[],[]);
