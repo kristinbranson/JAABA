@@ -86,7 +86,7 @@ classdef JLabelData < handle
     % labels(expi).t0s are the start frames of all labeled sequences for
     % experiment expi
     % labels(expi).t1s are the corresponding end frames of all labeled
-    % sequences for experiment expi
+    % sequences for experiment expi (strictly, one past the last frame)
     % labels(expi).names is the cell array of the corresponding behavior
     % names for all labeled sequences for experiment expi
     % labels(expi).flies is the nseq x nflies_labeled matrix of the
@@ -98,7 +98,7 @@ classdef JLabelData < handle
     % labels(expi).timestamp is the Matlab timestamp at which labels(expi)
     % was last set
     labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
-    gt_labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
+    %gt_labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
     
     % labels for the current experiment and flies, represented as an array
     % such that labelidx(t+labelidx_off) is the index of the behavior for
@@ -145,7 +145,7 @@ classdef JLabelData < handle
     % labelstats(expi).nbouts_labeled is the total number of bouts of
     % behaviors labeled, labelstats(expi).
     labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
-    gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+    %gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
     
     % computing per-frame properties
     perframe_params = {};
@@ -225,8 +225,9 @@ classdef JLabelData < handle
     
     % experiment info: expi indexes the following
     
-%     % cell array of input experiment directory paths
-%     expdirs = {};
+    % cell array of input experiment directory paths for the current GT
+    % mode
+    expdirs = {};
 %     
 %     % cell array of corresponding experiment names (last part of path)
 %     expnames = {};
@@ -260,39 +261,6 @@ classdef JLabelData < handle
     hassex = false;
     % whether sex is computed on a per-frame basis
     hasperframesex = false;
-    
-%     % constant: stuff stored in classifier mat file
-%     classifiervars = {'expdirs', ...
-%                       'outexpdirs', ...
-%                       'expnames',...
-%                       'nflies_per_exp', ...
-%                       'sex_per_exp', ...
-%                       'frac_sex_per_exp',...
-%                       'firstframes_per_exp', ...
-%                       'endframes_per_exp',...
-%                       'moviefilename', ...
-%                       'trxfilename', ...
-%                       'labelfilename', ...
-%                       'perframedir', ...
-%                       'clipsdir',...
-%                       'configfilename', ...
-%                       'rootoutputdir', ...
-%                       'classifiertype', ...
-%                       'classifier', ...
-%                       'trainingdata', ...
-%                       'classifier_params',...
-%                       'classifierTS', ...
-%                       'confThresholds', ...
-%                       'scoreNorm', ...
-%                       'windowfeaturesparams', ...
-%                       'windowfeaturescellparams',...
-%                       'basicFeatureTable', ...
-%                       'featureWindowSize', ...
-%                       'postprocessparams',...
-%                       'featurenames', ...
-%                       'scorefilename', ...
-%                       'labels', ...
-%                       'scoresasinput'};
     
     % last used path for loading experiment
     defaultpath = '';
@@ -404,6 +372,16 @@ classdef JLabelData < handle
     %everythingFileName='';  % absolute file name
     % This stuff is stored in JLabelGUIData now
     
+    % A place to store things for the other mode.
+    % So if the JLabelData instance is created in GT mode, this stores the
+    % normal experiment directory names, labels, and label statisitics.  If
+    % JLabelData is created in Normal mose, this store the GT experiment
+    % directory names, etc.  This keeps the stuff for the other mode out of
+    % our hair, but keeps it around so that we can save it to the
+    % everything file.
+    otherModeLabelsEtc=struct('expDirNames',{cell(1,0)}, ...
+                              'labels',{struct([])});
+    
     % you could argue that these are view-related, and so shouldn't be in
     % here, but they get saved to the everything file, so we'll include
     % them here.
@@ -441,40 +419,41 @@ classdef JLabelData < handle
 %                              'basicFeatureTable', ...
   end
   
-  properties (Access=private)
-    % cell array of input experiment directory paths
-    expDirNames = {};
-    
-    % cell array of ground-truth experiment directories
-    gtExpDirNames={};
-  end
+%   properties (Access=private)
+%     % cell array of input experiment directory paths
+%     expDirNames = {};
+%     
+%     % cell array of ground-truth experiment directories
+%     gtExpDirNames={};
+%   end
   
   properties (Access=public,Dependent=true)
-    expdirs
+    %expdirs
     expnames
     nexps
   end
 
   
   % -----------------------------------------------------------------------
-  methods  % getters and setters need to be in a methods block with access specifiers
-    function expdirs=get.expdirs(self)
-      if self.gtMode, 
-        expdirs=self.gtExpDirNames;
-      else
-        expdirs=self.expDirNames;
-      end        
-    end
-
-    function set.expdirs(self,newValue)
-      if self.gtMode, 
-        self.gtExpDirNames=newValue;
-      else
-        self.expDirNames=newValue;
-      end        
-    end
+  methods  % getters and setters need to be in a methods block with no access specifiers
+%     function expdirs=get.expdirs(self)
+%       if self.gtMode, 
+%         expdirs=self.gtExpDirNames;
+%       else
+%         expdirs=self.expDirNames;
+%       end        
+%     end
+% 
+%     function set.expdirs(self,newValue)
+%       if self.gtMode, 
+%         self.gtExpDirNames=newValue;
+%       else
+%         self.expDirNames=newValue;
+%       end        
+%     end
     
     function expnames=get.expnames(self)
+      % Get the names of all the experiments for the current GT mode
       expDirNames=self.expdirs;
       expnames=cellfun(@fileBaseName,expDirNames,'UniformOutput',false);
     end
@@ -485,6 +464,7 @@ classdef JLabelData < handle
     end    
     
     function nexps=get.nexps(self)
+      % Get the number of experiments for the current GT mode
       nexps=length(self.expdirs);
     end
     
@@ -1330,23 +1310,26 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function setLabelsFromStructForAllExps(self,labelsForAll)
-      for expi = 1:self.nexps,
+      statusTableString=fif(self.gtMode,'gt_label','label');
+      nExps=length(self.expdirs);
+      for expi = 1:nExps,
         self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
         %self.labelfilename = 0;
-        self.UpdateStatusTable('label');   
+        self.UpdateStatusTable(statusTableString);   
       end
     end
 
     
     
-    % ---------------------------------------------------------------------
-    function setGTLabelsFromStructForAllExps(self,gtLabelsForAll)
-      for expi = 1:self.nexps,
-        self.loadGTLabelsFromStructForOneExp(expi,gtLabelsForAll(expi));
-        %self.gt_labelfilename = 0;
-        self.UpdateStatusTable('gt_label');   
-      end
-    end
+%     % ---------------------------------------------------------------------
+%     function setGTLabelsFromStructForAllExps(self,gtLabelsForAll)
+%       nExps=length(self.gtExpDirNames);
+%       for expi = 1:nExps,
+%         self.loadGTLabelsFromStructForOneExp(expi,gtLabelsForAll(expi));
+%         %self.gt_labelfilename = 0;
+%         self.UpdateStatusTable('gt_label');   
+%       end
+%     end
 
     
     
@@ -1411,172 +1394,174 @@ classdef JLabelData < handle
 %     end
     
 
-    % ---------------------------------------------------------------------
-    function [success,msg] = LoadLabelsFromExternalFile(obj,expdir,labelfilename)
-      
-      success = false; msg = '';
-      if ~exist(labelfilename,'file'),
-        msg = sprintf('Label file %s does not exist',labelfilename);
-        return;
-      end
-      expi = find(strcmp(expdir,obj.expdirs),1);
-      if isempty(expi),
-        msg = sprintf('Experiment %s not loaded in',expdir);
-        return;
-      end
-
-      obj.SetStatus('Loading labels for %s from %s',obj.expdirs{expi},labelfilename);
-      
-      %         try
-      loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
-      
-      if obj.IsGTMode(),
-        obj.gt_labels(expi).t0s = loadedlabels.t0s;
-        obj.gt_labels(expi).t1s = loadedlabels.t1s;
-        obj.gt_labels(expi).names = loadedlabels.names;
-        obj.gt_labels(expi).flies = loadedlabels.flies;
-        obj.gt_labels(expi).off = loadedlabels.off;
-        obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-        obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-        
-        if iscell(loadedlabels.timestamp)
-          obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
-        else
-          for ndx = 1:numel(loadedlabels.flies)
-            nBouts = numel(loadedlabels.t0s{ndx});
-            if isempty(loadedlabels.timestamp)
-              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
-            else
-              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-            end
-          end
-        end
-        
-        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-          obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
-          obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
-        else
-          obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-          obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
-        end
-        
-      else
-        
-        obj.labels(expi).t0s = loadedlabels.t0s;
-        obj.labels(expi).t1s = loadedlabels.t1s;
-        obj.labels(expi).names = loadedlabels.names;
-        obj.labels(expi).flies = loadedlabels.flies;
-        obj.labels(expi).off = loadedlabels.off;
-        obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-        obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-        if iscell(loadedlabels.timestamp)
-          obj.labels(expi).timestamp = loadedlabels.timestamp;
-        else
-          for ndx = 1:numel(loadedlabels.flies)
-            nBouts = numel(loadedlabels.t0s{ndx});
-            if isempty(loadedlabels.timestamp)
-              obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
-            else
-              obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-            end
-          end
-        end
-        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-          obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
-          obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
-        else
-          obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-          obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
-        end
-        
-      end
-        %         catch ME,
-        %           msg = getReport(ME);
-        %           obj.ClearStatus();
-        %           return;
-        %         end
-      
-      obj.ClearStatus();
-      success = true;
-      
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = LoadLabelsFromExternalFile(obj,expdir,labelfilename)
+%       
+%       success = false; msg = '';
+%       if ~exist(labelfilename,'file'),
+%         msg = sprintf('Label file %s does not exist',labelfilename);
+%         return;
+%       end
+%       expi = find(strcmp(expdir,obj.expdirs),1);
+%       if isempty(expi),
+%         msg = sprintf('Experiment %s not loaded in',expdir);
+%         return;
+%       end
+% 
+%       obj.SetStatus('Loading labels for %s from %s',obj.expdirs{expi},labelfilename);
+%       
+%       %         try
+%       loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+%       
+%       if obj.IsGTMode(),
+%         obj.gt_labels(expi).t0s = loadedlabels.t0s;
+%         obj.gt_labels(expi).t1s = loadedlabels.t1s;
+%         obj.gt_labels(expi).names = loadedlabels.names;
+%         obj.gt_labels(expi).flies = loadedlabels.flies;
+%         obj.gt_labels(expi).off = loadedlabels.off;
+%         obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+%         obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+%         
+%         if iscell(loadedlabels.timestamp)
+%           obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
+%         else
+%           for ndx = 1:numel(loadedlabels.flies)
+%             nBouts = numel(loadedlabels.t0s{ndx});
+%             if isempty(loadedlabels.timestamp)
+%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+%             else
+%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+%             end
+%           end
+%         end
+%         
+%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+%           obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
+%           obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
+%         else
+%           obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+%           obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+%         end
+%         
+%       else
+%         
+%         obj.labels(expi).t0s = loadedlabels.t0s;
+%         obj.labels(expi).t1s = loadedlabels.t1s;
+%         obj.labels(expi).names = loadedlabels.names;
+%         obj.labels(expi).flies = loadedlabels.flies;
+%         obj.labels(expi).off = loadedlabels.off;
+%         obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+%         obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+%         if iscell(loadedlabels.timestamp)
+%           obj.labels(expi).timestamp = loadedlabels.timestamp;
+%         else
+%           for ndx = 1:numel(loadedlabels.flies)
+%             nBouts = numel(loadedlabels.t0s{ndx});
+%             if isempty(loadedlabels.timestamp)
+%               obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
+%             else
+%               obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+%             end
+%           end
+%         end
+%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+%           obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
+%           obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
+%         else
+%           obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+%           obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+%         end
+%         
+%       end
+%         %         catch ME,
+%         %           msg = getReport(ME);
+%         %           obj.ClearStatus();
+%         %           return;
+%         %         end
+%       
+%       obj.ClearStatus();
+%       success = true;
+%       
+%     end
     
-    function [success,msg] = LoadLabelsFromFile(obj,expi)
-    % [success,msg] = LoadLabelsFromFile(obj,expi)
-    % If the label file exists, this function loads labels for experiment
-    % expi into obj.labels. Otherwise, it sets the labels to be empty. This
-    % does not currently update the windowdata and labelidx (TODO). 
-      
-      %success = false;
-      msg = '';
-      labelfilename = obj.GetFile('label',expi);
-      
-      % if the labelfilename is zero, it means we're using the new
-      % "everything" file, and we shouldn't load labels from the experiment
-      % dir.
-      if ischar(labelfilename) && exist(labelfilename,'file'),
 
-        obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
-        
-        %         try
-        loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
-        obj.labels(expi).t0s = loadedlabels.t0s;
-        obj.labels(expi).t1s = loadedlabels.t1s;
-        obj.labels(expi).names = loadedlabels.names;
-        obj.labels(expi).flies = loadedlabels.flies;
-        obj.labels(expi).off = loadedlabels.off;
-        obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-        obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-        if iscell(loadedlabels.timestamp)
-          obj.labels(expi).timestamp = loadedlabels.timestamp;
-        else
-          for ndx = 1:numel(loadedlabels.flies)
-            nBouts = numel(loadedlabels.t0s{ndx});
-            if isempty(loadedlabels.timestamp)
-              obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
-            else
-              obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-            end
-          end
-        end
-        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-          obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
-          obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
-        else
-          obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-          obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));    % all the labeled frames. 
-        end
-        %         catch ME,
-        %           msg = getReport(ME);
-        %           obj.ClearStatus();
-        %           return;
-        %         end
-        
-        obj.ClearStatus();
-        
-      else
-        
-        obj.labels(expi).t0s = {};
-        obj.labels(expi).t1s = {};
-        obj.labels(expi).names = {};
-        obj.labels(expi).flies = [];
-        obj.labels(expi).off = [];
-        obj.labels(expi).timestamp = {};
-        obj.labels(expi).imp_t0s = {};
-        obj.labels(expi).imp_t1s = {};
-        obj.labelstats(expi).nflies_labeled = 0;
-        obj.labelstats(expi).nbouts_labeled = 0;
-
-      end
-      
-      % TODO: update windowdata
-      
-      success = true;
-      
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = LoadLabelsFromFile(obj,expi)
+%     % [success,msg] = LoadLabelsFromFile(obj,expi)
+%     % If the label file exists, this function loads labels for experiment
+%     % expi into obj.labels. Otherwise, it sets the labels to be empty. This
+%     % does not currently update the windowdata and labelidx (TODO). 
+%       
+%       %success = false;
+%       msg = '';
+%       labelfilename = obj.GetFile('label',expi);
+%       
+%       % if the labelfilename is zero, it means we're using the new
+%       % "everything" file, and we shouldn't load labels from the experiment
+%       % dir.
+%       if ischar(labelfilename) && exist(labelfilename,'file'),
+% 
+%         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
+%         
+%         %         try
+%         loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+%         obj.labels(expi).t0s = loadedlabels.t0s;
+%         obj.labels(expi).t1s = loadedlabels.t1s;
+%         obj.labels(expi).names = loadedlabels.names;
+%         obj.labels(expi).flies = loadedlabels.flies;
+%         obj.labels(expi).off = loadedlabels.off;
+%         obj.labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+%         obj.labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+%         if iscell(loadedlabels.timestamp)
+%           obj.labels(expi).timestamp = loadedlabels.timestamp;
+%         else
+%           for ndx = 1:numel(loadedlabels.flies)
+%             nBouts = numel(loadedlabels.t0s{ndx});
+%             if isempty(loadedlabels.timestamp)
+%               obj.labels(expi).timestamp{ndx}(1:nBouts) = now;
+%             else
+%               obj.labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+%             end
+%           end
+%         end
+%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+%           obj.labels(expi).imp_t0s = loadedimp.imp_t0s;
+%           obj.labels(expi).imp_t1s = loadedimp.imp_t1s;
+%         else
+%           obj.labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+%           obj.labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));    % all the labeled frames. 
+%         end
+%         %         catch ME,
+%         %           msg = getReport(ME);
+%         %           obj.ClearStatus();
+%         %           return;
+%         %         end
+%         
+%         obj.ClearStatus();
+%         
+%       else
+%         
+%         obj.labels(expi).t0s = {};
+%         obj.labels(expi).t1s = {};
+%         obj.labels(expi).names = {};
+%         obj.labels(expi).flies = [];
+%         obj.labels(expi).off = [];
+%         obj.labels(expi).timestamp = {};
+%         obj.labels(expi).imp_t0s = {};
+%         obj.labels(expi).imp_t1s = {};
+%         obj.labelstats(expi).nflies_labeled = 0;
+%         obj.labelstats(expi).nbouts_labeled = 0;
+% 
+%       end
+%       
+%       % TODO: update windowdata
+%       
+%       success = true;
+%       
+%     end
     
     
     % ---------------------------------------------------------------------
@@ -1613,123 +1598,123 @@ classdef JLabelData < handle
       end
 
       self.ClearStatus();
-    end
+    end  % method
     
     
-    % ---------------------------------------------------------------------
-    function loadGTLabelsFromStructForOneExp(self,expi,gtLabels)
-      % Load the GT labels for a single experiment into self.
-            
-      self.SetStatus('Loading GT labels for %s',self.expdirs{expi});
-
-      self.gt_labels(expi).t0s = gtLabels.t0s;
-      self.gt_labels(expi).t1s = gtLabels.t1s;
-      self.gt_labels(expi).names = gtLabels.names;
-      self.gt_labels(expi).flies = gtLabels.flies;
-      self.gt_labels(expi).off = gtLabels.off;
-      self.gt_labelstats(expi).nflies_labeled = size(gtLabels.flies,1);
-      self.gt_labelstats(expi).nbouts_labeled = numel([gtLabels.t0s{:}]);
-      if iscell(gtLabels.timestamp)
-        self.gt_labels(expi).timestamp = gtLabels.timestamp;
-      else
-        for ndx = 1:numel(gtLabels.flies)
-          nBouts = numel(gtLabels.t0s{ndx});
-          if isempty(gtLabels.timestamp)
-            self.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
-          else
-            self.gt_labels(expi).timestamp{ndx}(1:nBouts) = gtLabels.timestamp;
-          end
-        end
-      end
-      if isfield(gtLabels,'imp_t0s');
-        self.gt_labels(expi).imp_t0s = gtLabels.imp_t0s;
-        self.gt_labels(expi).imp_t1s = gtLabels.imp_t1s;
-      else
-        self.gt_labels(expi).imp_t0s = cell(1,numel(gtLabels.flies));
-        self.gt_labels(expi).imp_t1s = cell(1,numel(gtLabels.flies));
-      end
-
-      self.ClearStatus();
-    end
+%     % ---------------------------------------------------------------------
+%     function loadGTLabelsFromStructForOneExp(self,expi,gtLabels)
+%       % Load the GT labels for a single experiment into self.
+%             
+%       self.SetStatus('Loading GT labels for %s',self.expdirs{expi});
+% 
+%       self.gt_labels(expi).t0s = gtLabels.t0s;
+%       self.gt_labels(expi).t1s = gtLabels.t1s;
+%       self.gt_labels(expi).names = gtLabels.names;
+%       self.gt_labels(expi).flies = gtLabels.flies;
+%       self.gt_labels(expi).off = gtLabels.off;
+%       self.gt_labelstats(expi).nflies_labeled = size(gtLabels.flies,1);
+%       self.gt_labelstats(expi).nbouts_labeled = numel([gtLabels.t0s{:}]);
+%       if iscell(gtLabels.timestamp)
+%         self.gt_labels(expi).timestamp = gtLabels.timestamp;
+%       else
+%         for ndx = 1:numel(gtLabels.flies)
+%           nBouts = numel(gtLabels.t0s{ndx});
+%           if isempty(gtLabels.timestamp)
+%             self.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+%           else
+%             self.gt_labels(expi).timestamp{ndx}(1:nBouts) = gtLabels.timestamp;
+%           end
+%         end
+%       end
+%       if isfield(gtLabels,'imp_t0s');
+%         self.gt_labels(expi).imp_t0s = gtLabels.imp_t0s;
+%         self.gt_labels(expi).imp_t1s = gtLabels.imp_t1s;
+%       else
+%         self.gt_labels(expi).imp_t0s = cell(1,numel(gtLabels.flies));
+%         self.gt_labels(expi).imp_t1s = cell(1,numel(gtLabels.flies));
+%       end
+% 
+%       self.ClearStatus();
+%     end
  
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = LoadGTLabelsFromFile(obj,expi)
-    % [success,msg] = LoadGTLabelsFromFile(obj,expi)
-    % If the label file exists, this function loads labels for experiment
-    % expi into obj.gt_labels. Otherwise, it sets the gt_labels to be empty. This
-    % does not currently update the windowdata and labelidx (TODO). 
-      
-      %success = false; 
-      msg = '';
-      
-      labelfilename = obj.GetFile('gt_label',expi);
-
-      % if the labelfilename is zero, it means we're using the new
-      % "everything" file, and we shouldn't load labels from the experiment
-      % dir.
-      if ischar(labelfilename) && exist(labelfilename,'file'),
-        
-        obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
-        
-        %         try
-        loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
-        obj.gt_labels(expi).t0s = loadedlabels.t0s;
-        obj.gt_labels(expi).t1s = loadedlabels.t1s;
-        obj.gt_labels(expi).names = loadedlabels.names;
-        obj.gt_labels(expi).flies = loadedlabels.flies;
-        obj.gt_labels(expi).off = loadedlabels.off;
-        obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
-        obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
-
-        if iscell(loadedlabels.timestamp)
-          obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
-        else
-          for ndx = 1:numel(loadedlabels.flies)
-            nBouts = numel(loadedlabels.t0s{ndx});
-            if isempty(loadedlabels.timestamp)
-              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
-            else
-              obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
-            end
-          end
-        end
-        
-        if ~isempty(whos('-file',labelfilename,'imp_t0s'))
-          loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
-          obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
-          obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
-        else
-          obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
-          obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
-        end
-        %         catch ME,
-        %           msg = getReport(ME);
-        %           obj.ClearStatus();
-        %           return;
-        %         end
-        
-        obj.ClearStatus();
-        
-      else
-        
-        obj.gt_labels(expi).t0s = {};
-        obj.gt_labels(expi).t1s = {};
-        obj.gt_labels(expi).names = {};
-        obj.gt_labels(expi).flies = [];
-        obj.gt_labels(expi).off = [];
-        obj.gt_labels(expi).timestamp = {};
-        obj.gt_labels(expi).imp_t0s = {};
-        obj.gt_labels(expi).imp_t1s = {};
-        obj.gt_labelstats(expi).nflies_labeled = 0;
-        obj.gt_labelstats(expi).nbouts_labeled = 0;
-      end
-      
-      % TODO: update windowdata
-      
-      success = true;
-      
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = LoadGTLabelsFromFile(obj,expi)
+%     % [success,msg] = LoadGTLabelsFromFile(obj,expi)
+%     % If the label file exists, this function loads labels for experiment
+%     % expi into obj.gt_labels. Otherwise, it sets the gt_labels to be empty. This
+%     % does not currently update the windowdata and labelidx (TODO). 
+%       
+%       %success = false; 
+%       msg = '';
+%       
+%       labelfilename = obj.GetFile('gt_label',expi);
+% 
+%       % if the labelfilename is zero, it means we're using the new
+%       % "everything" file, and we shouldn't load labels from the experiment
+%       % dir.
+%       if ischar(labelfilename) && exist(labelfilename,'file'),
+%         
+%         obj.SetStatus('Loading labels for %s',obj.expdirs{expi});
+%         
+%         %         try
+%         loadedlabels = load(labelfilename,'t0s','t1s','names','flies','off','timestamp');
+%         obj.gt_labels(expi).t0s = loadedlabels.t0s;
+%         obj.gt_labels(expi).t1s = loadedlabels.t1s;
+%         obj.gt_labels(expi).names = loadedlabels.names;
+%         obj.gt_labels(expi).flies = loadedlabels.flies;
+%         obj.gt_labels(expi).off = loadedlabels.off;
+%         obj.gt_labelstats(expi).nflies_labeled = size(loadedlabels.flies,1);
+%         obj.gt_labelstats(expi).nbouts_labeled = numel([loadedlabels.t0s{:}]);
+% 
+%         if iscell(loadedlabels.timestamp)
+%           obj.gt_labels(expi).timestamp = loadedlabels.timestamp;
+%         else
+%           for ndx = 1:numel(loadedlabels.flies)
+%             nBouts = numel(loadedlabels.t0s{ndx});
+%             if isempty(loadedlabels.timestamp)
+%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = now;
+%             else
+%               obj.gt_labels(expi).timestamp{ndx}(1:nBouts) = loadedlabels.timestamp;
+%             end
+%           end
+%         end
+%         
+%         if ~isempty(whos('-file',labelfilename,'imp_t0s'))
+%           loadedimp = load(labelfilename,'imp_t0s','imp_t1s');
+%           obj.gt_labels(expi).imp_t0s = loadedimp.imp_t0s;
+%           obj.gt_labels(expi).imp_t1s = loadedimp.imp_t1s;
+%         else
+%           obj.gt_labels(expi).imp_t0s = cell(1,numel(loadedlabels.flies));
+%           obj.gt_labels(expi).imp_t1s = cell(1,numel(loadedlabels.flies));
+%         end
+%         %         catch ME,
+%         %           msg = getReport(ME);
+%         %           obj.ClearStatus();
+%         %           return;
+%         %         end
+%         
+%         obj.ClearStatus();
+%         
+%       else
+%         
+%         obj.gt_labels(expi).t0s = {};
+%         obj.gt_labels(expi).t1s = {};
+%         obj.gt_labels(expi).names = {};
+%         obj.gt_labels(expi).flies = [];
+%         obj.gt_labels(expi).off = [];
+%         obj.gt_labels(expi).timestamp = {};
+%         obj.gt_labels(expi).imp_t0s = {};
+%         obj.gt_labels(expi).imp_t1s = {};
+%         obj.gt_labelstats(expi).nflies_labeled = 0;
+%         obj.gt_labelstats(expi).nbouts_labeled = 0;
+%       end
+%       
+%       % TODO: update windowdata
+%       
+%       success = true;
+%       
+%     end
     
     function [success,msg] = SetPerFrameDir(obj,perframedir)
       % [success,msg] = SetPerFrameDir(obj,perframedir)
@@ -2092,7 +2077,7 @@ classdef JLabelData < handle
 % 
 %       % set experiment directories
 %       [success,msg] = ...
-%         self.SetExpDirsNew(everythingParams.expdirs);
+%         self.SetExpDirs(everythingParams.expdirs);
 %       if ~success,error(msg); end
 %       
 %       % Update the status table
@@ -2220,9 +2205,21 @@ classdef JLabelData < handle
 %       [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
 %       if ~success,error(msg);end
 
+      if self.gtMode ,
+        dirNames=everythingParams.gtExpDirNames;
+        labels=everythingParams.gtLabels;
+        self.otherModeLabelsEtc=struct('expDirNames',{everythingParams.expDirNames}, ...
+                                       'labels',{everythingParams.labels});
+      else
+        % Normal labeling mode (not GT)
+        dirNames=everythingParams.expDirNames;
+        labels=everythingParams.labels;
+        self.otherModeLabelsEtc=struct('expDirNames',{everythingParams.gtExpDirNames}, ...
+                                       'labels',{everythingParams.gtLabels});
+      end
+
       % set experiment directories
-      [success,msg] = ...
-        self.SetExpDirsNew(everythingParams.expdirs);
+      [success,msg] = self.SetExpDirs(dirNames);
       if ~success,error(msg); end
       
       % Update the status table
@@ -2230,10 +2227,10 @@ classdef JLabelData < handle
       if ~success, error(msg); end
 
       % set the labels
-      self.setLabelsFromStructForAllExps(everythingParams.labels);
-
-      % set the GT labels
-      self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
+      self.setLabelsFromStructForAllExps(labels);
+      
+      % % set the GT labels
+      % self.setGTLabelsFromStructForAllExps(everythingParams.gtLabels);
 
       % Preload the first track of the first video, which sets the current
       % experiment and track to experiment 1, track 1
@@ -2464,7 +2461,7 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function [success,msg] = SetExpDirsNew(obj,expdirs)
+    function [success,msg] = SetExpDirs(obj,expdirs)
     % Changes what experiments are currently being used for this
     % classifier. This function calls RemoveExpDirs to remove all current
     % experiments not in expdirs, then calls AddExpDirs to add the new
@@ -2478,7 +2475,7 @@ classdef JLabelData < handle
       end
       
       if nargin < 2,
-        error('Usage: obj.SetExpDirsNew(expdirs)');
+        error('Usage: obj.SetExpDirs(expdirs)');
       end
                   
       oldexpdirs = obj.expdirs;
@@ -2494,7 +2491,7 @@ classdef JLabelData < handle
       idx = find(~ismember(expdirs,oldexpdirs));
       success = true;
       for i = idx,
-        [success1,msg1] = obj.AddExpDirNew(expdirs{i});
+        [success1,msg1] = obj.AddExpDir(expdirs{i});
         success = success && success1;
         if isempty(msg),
           msg = msg1;
@@ -2503,89 +2500,89 @@ classdef JLabelData < handle
         end        
       end
 
-    end
+    end  % method
 
 
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
-        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
-    % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
-    % Changes what experiments are currently being used for this
-    % classifier. This function calls RemoveExpDirs to remove all current
-    % experiments not in expdirs, then calls AddExpDirs to add the new
-    % experiment directories. 
-
-      success = false;
-      msg = '';
-      
-      if isnumeric(expdirs),
-        return;
-      end
-      
-      if nargin < 2,
-        error('Usage: obj.SetExpDirs(expdirs,[outexpdirs],[nflies_per_exp])');
-      end
-      
-      isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
-      isnflies = nargin > 3 && ~isempty(nflies_per_exp);
-      issex = nargin > 4 && ~isempty(sex_per_exp);
-      isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
-      isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
-      isendframes = nargin > 7 && ~isempty(endframes_per_exp);
-      
-      % check inputs
-      
-      % sizes must match
-      if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
-        error('expdirs and outexpdirs do not match size');
-      end
-      if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
-        error('expdirs and nflies_per_exp do not match size');
-      end
-      
-      oldexpdirs = obj.expdirs;
-      
-      % remove oldexpdirs
-      
-      [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
-      if ~success1,
-        return;
-      end
-
-      % add new expdirs
-      idx = find(~ismember(expdirs,oldexpdirs));
-      success = true;
-      for i = idx,
-        params = cell(1,nargin-1);
-        params{1} = expdirs{i};
-        if isoutexpdirs,
-          params{2} = outexpdirs{i};
-        end
-        if isnflies,
-          params{3} = nflies_per_exp(i);
-        end
-        if issex,
-          params{4} = sex_per_exp{i};
-        end
-        if isfracsex,
-          params{5} = frac_sex_per_exp{i};
-        end
-        if isfirstframes,
-          params{6} = firstframes_per_exp{i};
-        end
-        if isendframes,
-          params{7} = endframes_per_exp{i};
-        end
-        [success1,msg1] = obj.AddExpDir(params{:});
-        success = success && success1;
-        if isempty(msg),
-          msg = msg1;
-        else
-          msg = sprintf('%s\n%s',msg,msg1);
-        end        
-      end
-
-    end
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetExpDirs(obj,expdirs,outexpdirs,nflies_per_exp,...
+%         sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+%     % [success,msg] = SetExpDirs(obj,[expdirs,outexpdirs,nflies_per_exp,firstframes_per_exp,endframes_per_exp])
+%     % Changes what experiments are currently being used for this
+%     % classifier. This function calls RemoveExpDirs to remove all current
+%     % experiments not in expdirs, then calls AddExpDirs to add the new
+%     % experiment directories. 
+% 
+%       success = false;
+%       msg = '';
+%       
+%       if isnumeric(expdirs),
+%         return;
+%       end
+%       
+%       if nargin < 2,
+%         error('Usage: obj.SetExpDirs(expdirs,[outexpdirs],[nflies_per_exp])');
+%       end
+%       
+%       isoutexpdirs = nargin > 2 && ~isnumeric(outexpdirs);
+%       isnflies = nargin > 3 && ~isempty(nflies_per_exp);
+%       issex = nargin > 4 && ~isempty(sex_per_exp);
+%       isfracsex = nargin > 5 && ~isempty(frac_sex_per_exp);
+%       isfirstframes = nargin > 6 && ~isempty(firstframes_per_exp);
+%       isendframes = nargin > 7 && ~isempty(endframes_per_exp);
+%       
+%       % check inputs
+%       
+%       % sizes must match
+%       if isoutexpdirs && numel(expdirs) ~= numel(outexpdirs),
+%         error('expdirs and outexpdirs do not match size');
+%       end
+%       if isnflies && numel(expdirs) ~= numel(nflies_per_exp),
+%         error('expdirs and nflies_per_exp do not match size');
+%       end
+%       
+%       oldexpdirs = obj.expdirs;
+%       
+%       % remove oldexpdirs
+%       
+%       [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
+%       if ~success1,
+%         return;
+%       end
+% 
+%       % add new expdirs
+%       idx = find(~ismember(expdirs,oldexpdirs));
+%       success = true;
+%       for i = idx,
+%         params = cell(1,nargin-1);
+%         params{1} = expdirs{i};
+%         if isoutexpdirs,
+%           params{2} = outexpdirs{i};
+%         end
+%         if isnflies,
+%           params{3} = nflies_per_exp(i);
+%         end
+%         if issex,
+%           params{4} = sex_per_exp{i};
+%         end
+%         if isfracsex,
+%           params{5} = frac_sex_per_exp{i};
+%         end
+%         if isfirstframes,
+%           params{6} = firstframes_per_exp{i};
+%         end
+%         if isendframes,
+%           params{7} = endframes_per_exp{i};
+%         end
+%         [success1,msg1] = obj.AddExpDir(params{:});
+%         success = success && success1;
+%         if isempty(msg),
+%           msg = msg1;
+%         else
+%           msg = sprintf('%s\n%s',msg,msg1);
+%         end        
+%       end
+% 
+%     end
     
     
     
@@ -2805,11 +2802,15 @@ classdef JLabelData < handle
       % self.labels
       self.StoreLabelsAndThatsAll();
       
-      % return the labels
-      labels=self.labels;
-      
-      % and the gt_labels
-      gtLabels=self.gt_labels;
+      % Put the right labels in the right place
+      if self.gtMode ,
+        gtLabels=self.labels;
+        labels=self.otherModeLabelsEtc.labels;
+      else
+        labels=self.labels;
+        gtLabels=self.otherModeLabelsEtc.labels;
+      end
+        
     end
 
     
@@ -2946,9 +2947,9 @@ classdef JLabelData < handle
 
 
     % ---------------------------------------------------------------------
-    function [success,msg] = AddExpDirNew(obj, ...
-                                          expdir, ...
-                                          interactivemode)
+    function [success,msg] = AddExpDir(obj, ...
+                                       expDirName, ...
+                                       interactivemode)
       % Add a new experiment to the GUI.  This does not change self.expi,
       % and does not not do any preloading.
       
@@ -2956,7 +2957,7 @@ classdef JLabelData < handle
       success = false; msg = '';
       
       % If the experiment dir name is numeric, return without doing anything.
-      if isnumeric(expdir), return; end
+      if isnumeric(expDirName), return; end
       
       % interactive mode is the default
       if ~exist('interactivemode','var'),
@@ -2964,9 +2965,9 @@ classdef JLabelData < handle
       end
 
       % make sure directory exists
-      obj.SetStatus('Checking that %s exists...',expdir);
-      if ~exist(expdir,'file'),
-        msg = sprintf('expdir %s does not exist',expdir);
+      obj.SetStatus('Checking that %s exists...',expDirName);
+      if ~exist(expDirName,'file'),
+        msg = sprintf('expdir %s does not exist',expDirName);
         return;
       end
       
@@ -2977,7 +2978,7 @@ classdef JLabelData < handle
       %istrxinfo = false;
 
       % Extract the base name of the experiment
-      [~,expname] = myfileparts(expdir);
+      [~,expName] = myfileparts(expDirName);
       
 %       % expnames and rootoutputdir must match (do we still need this?)
 %       if isoutexpdir,
@@ -2996,7 +2997,7 @@ classdef JLabelData < handle
 %       if ischar(obj.rootoutputdir) && ~isoutexpdir,
 %         outexpdir = fullfile(rootoutputdir,expname);
 %       end
-      outexpdir=expdir;
+      %outexpdir=expDirName;
 
 %       % create missing outexpdirs
 %       if ~exist(outexpdir,'dir'),
@@ -3009,22 +3010,22 @@ classdef JLabelData < handle
 
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
-      outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
+      outclipsdir = fullfile(expDirName,clipsdir);  %#ok
 
       % okay, checks succeeded, start storing stuff
-      obj.nexps = obj.nexps + 1;
-      obj.expdirs{end+1} = expdir;
-      obj.expnames{end+1} = expname;
+      %obj.nexps = obj.nexps + 1;
+      obj.expdirs{end+1} = expDirName;
+      %obj.expnames{end+1} = expName;
       %obj.rootoutputdir = rootoutputdir;
       %obj.outexpdirs{end+1} = outexpdir;
 
       % Update the status table        
-      obj.SetStatus('Updating status table for %s...',expname);
+      obj.SetStatus('Updating status table for %s...',expName);
       [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
       missingfiles = missingfiles{obj.nexps};
       if ~success1,
         msg = msg1;
-        obj.SetStatus('Bad experiment directory %s...',expdir);
+        obj.SetStatus('Bad experiment directory %s...',expDirName);
         obj.RemoveExpDirs(obj.nexps);
         return;
       end
@@ -3032,8 +3033,8 @@ classdef JLabelData < handle
       % check for existence of necessary files in this directory
       if ~obj.filesfixable,
         msg = sprintf(['Experiment %s is missing required files that cannot '...
-          'be generated within this interface. Removing...'],expdir);
-        obj.SetStatus('Bad experiment directory %s...',expdir);
+          'be generated within this interface. Removing...'],expDirName);
+        obj.SetStatus('Bad experiment directory %s...',expDirName);
         success = false;
         % undo
         obj.RemoveExpDirs(obj.nexps);
@@ -3042,7 +3043,7 @@ classdef JLabelData < handle
       
       % If some files are missing, and we can generate them, do so
       if obj.filesfixable && ~obj.allfilesexist,
-        obj.SetStatus('Some files missing for %s...',expname);
+        obj.SetStatus('Some files missing for %s...',expName);
         if interactivemode && isdisplay(),
           if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
             if numel(missingfiles)>10,
@@ -3050,7 +3051,7 @@ classdef JLabelData < handle
               missingfiles{end+1} = ' and more ';
             end
             res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
-              'Generate now?'],expdir,sprintf(' %s',missingfiles{:})),...
+              'Generate now?'],expDirName,sprintf(' %s',missingfiles{:})),...
               'Generate missing files?','Yes','Cancel','Yes');
             if strcmpi(res,'Yes')
               obj.SetGenerateMissingFiles();
@@ -3062,18 +3063,18 @@ classdef JLabelData < handle
           res = 'Yes';
         end
         if strcmpi(res,'Yes'),
-          obj.SetStatus('Generating missing files for %s...',expname);
+          obj.SetStatus('Generating missing files for %s...',expName);
           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
             msg = sprintf(['Error generating missing required files %s '...
               'for experiment %s: %s. Removing...'],...
-              sprintf(' %s',missingfiles{:}),expdir,msg);
-            obj.SetStatus('Error generating missing files for %s...',expname);
+              sprintf(' %s',missingfiles{:}),expDirName,msg);
+            obj.SetStatus('Error generating missing files for %s...',expName);
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
         else
-          obj.SetStatus('Not generating missing files for %s, not adding...',expname);
+          obj.SetStatus('Not generating missing files for %s, not adding...',expName);
           obj.RemoveExpDirs(obj.nexps);
           return;
         end
@@ -3081,11 +3082,11 @@ classdef JLabelData < handle
       
       % Convert the scores file into perframe files.      
       for i = 1:numel(obj.scoresasinput)
-        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
+        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expName);
         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
           obj.scoresasinput(i).ts);
           if ~success,
-            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
+            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoresasinput(i).scorefilename,expName);
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
@@ -3101,15 +3102,15 @@ classdef JLabelData < handle
 %         obj.endframes_per_exp{end+1} = endFrames;
 %       else
       % Read from the trx file
-      obj.SetStatus('Getting basic trx info for %s...',expname);
-      trxFileNameAbs = fullfile(expdir,obj.GetFileName('trx'));
+      obj.SetStatus('Getting basic trx info for %s...',expName);
+      trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
       try
         [nFlies,firstFrames,endFrames,~,~,fracSex,sex] = ...
           JLabelData.readTrxInfoFromFile(trxFileNameAbs);
       catch err
          if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
            msg = sprintf('Error getting basic trx info: %s',msg1);
-           obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
+           obj.SetStatus('Error getting basic trx info for %s, not adding...',expName);
            obj.RemoveExpDirs(obj.nexps);
            return;
          else
@@ -3123,484 +3124,476 @@ classdef JLabelData < handle
       obj.endframes_per_exp{end+1} = endFrames;
 %       end
       
-      % Initialize the labels
+      % Initialize the labels for the current labeling mode
       iExp=obj.nexps;
-      labelType={'labels' 'gt_labels'};
-      for iLabelType=1:length(labelType)
-        labelTypeThis=labelType{iLabelType};
-        obj.(labelTypeThis)(iExp).t0s = {};
-        obj.(labelTypeThis)(iExp).t1s = {};
-        obj.(labelTypeThis)(iExp).names = {};
-        obj.(labelTypeThis)(iExp).flies = [];
-        obj.(labelTypeThis)(iExp).off = [];
-        obj.(labelTypeThis)(iExp).timestamp = {};
-        obj.(labelTypeThis)(iExp).imp_t0s = {};
-        obj.(labelTypeThis)(iExp).imp_t1s = {};
-        labelStatsTypeThis=fif(strcmp(labelTypeThis,'labels'),'labelstats','gt_labelstats');
-        obj.(labelStatsTypeThis)(iExp).nflies_labeled = 0;
-        obj.(labelStatsTypeThis)(iExp).nbouts_labeled = 0;
-      end
+      obj.labels(iExp).t0s = {};
+      obj.labels(iExp).t1s = {};
+      obj.labels(iExp).names = {};
+      obj.labels(iExp).flies = [];
+      obj.labels(iExp).off = [];
+      obj.labels(iExp).timestamp = {};
+      obj.labels(iExp).imp_t0s = {};
+      obj.labels(iExp).imp_t1s = {};
+      obj.labelstats(iExp).nflies_labeled = 0;
+      obj.labelstats(iExp).nbouts_labeled = 0;
       
       % Initialize the prediction data, if needed (?? --ALT, Mar 5 2013)
       if numel(obj.predictdata)<obj.nexps
-        obj.SetStatus('Initializing prediction data for %s...',expname);
+        obj.SetStatus('Initializing prediction data for %s...',expName);
         obj.InitPredictiondata(obj.nexps);
       end
             
       % Set the default path to the experiment direcotry
-      obj.defaultpath = expdir;
+      obj.defaultpath = expDirName;
 
       % Update the status
-      obj.SetStatus('Successfully added experiment %s...',expdir);
+      obj.SetStatus('Successfully added experiment %s...',expDirName);
       
       % Declare victory
       success = true;
     end
-   
     
     
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,...
-        frac_sex_per_exp,firstframes_per_exp,endframes_per_exp,interactivemode)
-    % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
-    % Add a new experiment to the GUI. If this is the first experiment,
-    % then it will be preloaded. 
-
-      success = false; msg = '';
-      
-      if isnumeric(expdir), return; end
-      
-      if nargin < 2,
-        error('Usage: obj.AddExpDir(expdir,[outexpdir],[nflies_per_exp])');
-      end
-
-      if ~exist('interactivemode','var'),
-        interactivemode = true;
-      end
-      
-      obj.SetStatus('Checking that %s exists...',expdir);
-      
-      % make sure directory exists
-      if ~exist(expdir,'file'),
-        msg = sprintf('expdir %s does not exist',expdir);
-        return;
-      end
-      
-      %isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
-      istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
-
-      % base name
-      [~,expname] = myfileparts(expdir);
-      
-%       % expnames and rootoutputdir must match
-%       if isoutexpdir,
-%         [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
-%         if ~strcmp(expname,outname),
-%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-%           return;
-%         end
-% %         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
-% %           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
-% %           return;
-% %         end
-%       elseif ~ischar(obj.rootoutputdir),
-%         outexpdir = expdir;
-%         rootoutputdir = 0;
-%       else
-%         rootoutputdir = obj.rootoutputdir;        
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,...
+%                                        frac_sex_per_exp,firstframes_per_exp,endframes_per_exp,interactivemode)
+%     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
+%     % Add a new experiment to the GUI. If this is the first experiment,
+%     % then it will be preloaded. 
+% 
+%       success = false; msg = '';
+%       
+%       if isnumeric(expdir), return; end
+%       
+%       if nargin < 2,
+%         error('Usage: obj.AddExpDir(expdir,[outexpdir],[nflies_per_exp])');
+%       end
+% 
+%       if ~exist('interactivemode','var'),
+%         interactivemode = true;
 %       end
 %       
-%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
-%         outexpdir = fullfile(rootoutputdir,expname);
+%       obj.SetStatus('Checking that %s exists...',expdir);
+%       
+%       % make sure directory exists
+%       if ~exist(expdir,'file'),
+%         msg = sprintf('expdir %s does not exist',expdir);
+%         return;
 %       end
-      
-      % create missing outexpdirs
-      if ~exist(outexpdir,'dir'),
-        [success1,msg1] = mkdir(rootoutputdir,expname);
-        if ~success1,
-          msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
-          return;
-        end
-      end
-
-      % create clips dir
-      clipsdir = obj.GetFileName('clipsdir');
-      outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
-%       if ~exist(outclipsdir,'dir'),
-%         [success1,msg1] = mkdir(outexpdir,clipsdir);
+%       
+%       %isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
+%       istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
+% 
+%       % base name
+%       [~,expname] = myfileparts(expdir);
+%       
+% %       % expnames and rootoutputdir must match
+% %       if isoutexpdir,
+% %         [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
+% %         if ~strcmp(expname,outname),
+% %           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
+% %           return;
+% %         end
+% % %         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
+% % %           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+% % %           return;
+% % %         end
+% %       elseif ~ischar(obj.rootoutputdir),
+% %         outexpdir = expdir;
+% %         rootoutputdir = 0;
+% %       else
+% %         rootoutputdir = obj.rootoutputdir;        
+% %       end
+% %       
+% %       if ischar(obj.rootoutputdir) && ~isoutexpdir,
+% %         outexpdir = fullfile(rootoutputdir,expname);
+% %       end
+%       
+%       % create missing outexpdirs
+%       if ~exist(outexpdir,'dir'),
+%         [success1,msg1] = mkdir(rootoutputdir,expname);
 %         if ~success1,
-%           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
+%           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
 %           return;
 %         end
 %       end
-
-      % okay, checks succeeded, start storing stuff
-      obj.nexps = obj.nexps + 1;
-      obj.expdirs{end+1} = expdir;
-      obj.expnames{end+1} = expname;
-      %obj.rootoutputdir = rootoutputdir;
-      %obj.outexpdirs{end+1} = outexpdir;
-
-      obj.SetStatus('Loading labels from file for %s...',expname);
-      
-      % load labels for this experiment
-      [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.SetStatus('Failed to load labels for %s...',expname);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.SetStatus('Failed to load labels for %s...',expname);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-
-      obj.SetStatus('Updating status table for %s...',expname);
-      [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
-      missingfiles = missingfiles{obj.nexps};
-      if ~success1,
-        msg = msg1;
-        obj.SetStatus('Bad experiment directory %s...',expdir);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
-      % check for existence of necessary files in this directory
-      if ~obj.filesfixable,
-        msg = sprintf(['Experiment %s is missing required files that cannot '...
-          'be generated within this interface. Removing...'],expdir);
-        obj.SetStatus('Bad experiment directory %s...',expdir);
-        success = false;
-        % undo
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
-      if obj.filesfixable && ~obj.allfilesexist,
-        obj.SetStatus('Some files missing for %s...',expname);
-        if interactivemode && isdisplay(),
-          if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
-            if numel(missingfiles)>10,
-              missingfiles = missingfiles(1:10);
-              missingfiles{end+1} = ' and more ';
-            end
-            res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
-              'Generate now?'],expdir,sprintf(' %s',missingfiles{:})),...
-              'Generate missing files?','Yes','Cancel','Yes');
-            if strcmpi(res,'Yes')
-              obj.SetGenerateMissingFiles();
-            end
-          else obj.GetGenerateMissingFiles()
-            res = 'Yes';
-          end
-        else
-          res = 'Yes';
-        end
-        
-        if strcmpi(res,'Yes'),
-          obj.SetStatus('Generating missing files for %s...',expname);
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
-          if ~success,
-            msg = sprintf(['Error generating missing required files %s '...
-              'for experiment %s: %s. Removing...'],...
-              sprintf(' %s',missingfiles{:}),expdir,msg);
-            obj.SetStatus('Error generating missing files for %s...',expname);
-            obj.RemoveExpDirs(obj.nexps);
-            return;
-          end
-          
-        else
-          obj.SetStatus('Not generating missing files for %s, not adding...',expname);
-          obj.RemoveExpDirs(obj.nexps);
-          return;
-        end
-      end
-      
-      % Convert the scores file into perframe files.
-      
-      for i = 1:numel(obj.scoresasinput)
-        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
-        [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
-          obj.scoresasinput(i).ts);
-          if ~success,
-            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
-            obj.RemoveExpDirs(obj.nexps);
-            return;
-          end
-      end
-      
-%       for i = 1:numel(obj.allperframefns),
-%         fn = obj.allperframefns{i};
-%         if numel(fn)>7 && strcmpi('score',fn(1:5))
-%           [success,msg] = obj.ScoresToPerframe(obj.nexps,fn);
-%           if ~success,
-%             obj.RemoveExpDirs(obj.nexps);
-%             return;
-%           end
-%         end
-%       end
-%       
-      % preload this experiment if this is the first experiment added
-      if obj.nexps == 1,
-        % TODO: make this work with multiple flies
-        obj.SetStatus('Pre-loading first experiment %s expname...',expname);
-        [success1,msg1] = obj.PreLoad(1,1);
-        if ~success1,
-          success = false;
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
-          %uiwait(warndlg(msg));
-          obj.RemoveExpDirs(obj.nexps);
-          %obj.ClearStatus();
-          return;
-        end
-      elseif istrxinfo,
-        obj.nflies_per_exp(end+1) = nflies_per_exp;
-        obj.sex_per_exp{end+1} = sex_per_exp;
-        obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
-        obj.firstframes_per_exp{end+1} = firstframes_per_exp;
-        obj.endframes_per_exp{end+1} = endframes_per_exp;
-        
-%         if obj.nexps == 1 % This will set hassex and hasperframesex.
-%           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
-%           if ~success1,
-%             msg = sprintf('Error getting basic trx info: %s',msg1);
-%             obj.RemoveExpDirs(obj.nexps);
-%             return;
-%           end
-%         end
-        
-      else
-        obj.nflies_per_exp(end+1) = nan;
-        obj.sex_per_exp{end+1} = {};
-        obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
-        obj.firstframes_per_exp{end+1} = [];
-        obj.endframes_per_exp{end+1} = [];
-        obj.SetStatus('Getting basic trx info for %s...',expname);
-        [success1,msg1] = obj.GetTrxInfo(obj.nexps);
-        if ~success1,
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
-          obj.RemoveExpDirs(obj.nexps);
-          return;
-        end
-      end
-      
-      if numel(obj.predictdata)<obj.nexps
-        obj.SetStatus('Initializing prediction data for %s...',expname);
-        obj.InitPredictiondata(obj.nexps);
-      end
-      
-      obj.SetStatus('Pre-loading labeled data for %s...',expname);
-      [success1,msg1] = obj.PreLoadPeriLabelWindowData();
-      if ~success1,
-        msg = msg1;
-        obj.SetStatus('Error pre-loading labeled data for %s...',expname);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
-      
-      % save default path
-      obj.defaultpath = expdir;
-
-      obj.SetStatus('Successfully added experiment %s...',expdir);
-      
-      success = true;
-      
-    end
-   
-    
-    
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = AddExpDirNoPreload(obj,expdir,outexpdir,nflies_per_exp,...
-        sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
-    % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
-    % Add a new experiment to the GUI. If this is the first experiment,
-    % then it will be preloaded. 
-
-      success = false; msg = '';
-      
-      if isnumeric(expdir), return; end
-      
-      if nargin < 2,
-        error('Usage: obj.AddExpDirs(expdir,[outexpdir],[nflies_per_exp])');
-      end
-
-      % make sure directory exists
-      if ~exist(expdir,'file'),
-        msg = sprintf('expdir %s does not exist',expdir);
-        return;
-      end
-      
-      % isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
-      istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
-
-      % base name
-      [~,expname] = myfileparts(expdir);
-      
-%       % expnames and rootoutputdir must match
-%       if isoutexpdir,
-%         [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
-%         if ~strcmp(expname,outname),
-%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-%           return;
-%         end
-% %         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
-% %           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+% 
+%       % create clips dir
+%       clipsdir = obj.GetFileName('clipsdir');
+%       outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
+% %       if ~exist(outclipsdir,'dir'),
+% %         [success1,msg1] = mkdir(outexpdir,clipsdir);
+% %         if ~success1,
+% %           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
 % %           return;
 % %         end
-%       elseif ~ischar(obj.rootoutputdir),
-%         outexpdir = expdir;
-%         rootoutputdir = 0;
-%       else
-%         rootoutputdir = obj.rootoutputdir;        
+% %       end
+% 
+%       % okay, checks succeeded, start storing stuff
+%       obj.nexps = obj.nexps + 1;
+%       obj.expdirs{end+1} = expdir;
+%       obj.expnames{end+1} = expname;
+%       %obj.rootoutputdir = rootoutputdir;
+%       %obj.outexpdirs{end+1} = outexpdir;
+% 
+%       obj.SetStatus('Loading labels from file for %s...',expname);
+%       
+%       % load labels for this experiment
+%       [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
+%       if ~success1,
+%         obj.SetStatus('Failed to load labels for %s...',expname);
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
+%       end
+%       [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
+%       if ~success1,
+%         obj.SetStatus('Failed to load labels for %s...',expname);
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
+%       end
+% 
+%       obj.SetStatus('Updating status table for %s...',expname);
+%       [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
+%       missingfiles = missingfiles{obj.nexps};
+%       if ~success1,
+%         msg = msg1;
+%         obj.SetStatus('Bad experiment directory %s...',expdir);
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
 %       end
 %       
-%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
-%         outexpdir = fullfile(rootoutputdir,expname);
+%       % check for existence of necessary files in this directory
+%       if ~obj.filesfixable,
+%         msg = sprintf(['Experiment %s is missing required files that cannot '...
+%           'be generated within this interface. Removing...'],expdir);
+%         obj.SetStatus('Bad experiment directory %s...',expdir);
+%         success = false;
+%         % undo
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
 %       end
-      
-      % create missing outexpdirs
-      if ~exist(outexpdir,'dir'),
-        [success1,msg1] = mkdir(rootoutputdir,expname);
-        if ~success1,
-          msg = (sprintf(['Could not create output directory %s, failed to '...
-            'set expdirs: %s'],outexpdir,msg1));
-          return;
-        end
-      end
-
-      % create clips dir
-      clipsdir = obj.GetFileName('clipsdir');
-      outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
-
-      % okay, checks succeeded, start storing stuff
-      obj.nexps = obj.nexps + 1;
-      obj.expdirs{end+1} = expdir;
-      obj.expnames{end+1} = expname;
-      %obj.rootoutputdir = rootoutputdir;
-      %obj.outexpdirs{end+1} = outexpdir;
-      
-      % load labels for this experiment
-      [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
-      if ~success1,
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-
-      [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
-      if ~success1,
-        msg = msg1;
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
-      % check for existence of necessary files in this directory
-      if ~obj.filesfixable,
-        msg = sprintf(['Experiment %s is missing required files that cannot '...
-          'be generated within this interface. Removing...'],expdir);
-        success = false;
-        % undo
-        obj.RemoveExpDirs(obj.nexps);
-        return;
-      end
-      
-      if obj.filesfixable && ~obj.allfilesexist,
-%        if ~isdeployed
-%          res = questdlg(sprintf('Experiment %s is missing required files. ...
-%           Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
-%        else
-          res = 'Yes';
-%        end
-        if strcmpi(res,'Yes'),
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps,false);
-          if ~success,
-            msg = sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
-            obj.RemoveExpDirs(obj.nexps);
-            return;
-          end
-          
-        else
-          obj.RemoveExpDirs(obj.nexps);
-        end
-      end
-      
-      for i = 1:numel(obj.scoresasinput)
-        [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
-          obj.scoresasinput(i).ts);
-        if ~success,
-          obj.RemoveExpDirs(obj.nexps);
-          return;
-        end
-      end
-      % Convert the scores file into perframe files.
-%       for i = 1:numel(obj.allperframefns),
-%         fn = obj.allperframefns{i};
-%         if numel(fn)>7 && strcmpi('score',fn(1:5))
-%           obj.ScoresToPerframe(obj.nexps,fn);
+%       
+%       if obj.filesfixable && ~obj.allfilesexist,
+%         obj.SetStatus('Some files missing for %s...',expname);
+%         if interactivemode && isdisplay(),
+%           if isempty(obj.GetGenerateMissingFiles) || ~obj.GetGenerateMissingFiles()
+%             if numel(missingfiles)>10,
+%               missingfiles = missingfiles(1:10);
+%               missingfiles{end+1} = ' and more ';
+%             end
+%             res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
+%               'Generate now?'],expdir,sprintf(' %s',missingfiles{:})),...
+%               'Generate missing files?','Yes','Cancel','Yes');
+%             if strcmpi(res,'Yes')
+%               obj.SetGenerateMissingFiles();
+%             end
+%           else obj.GetGenerateMissingFiles()
+%             res = 'Yes';
+%           end
+%         else
+%           res = 'Yes';
 %         end
-%       end
-%       
-
-      
-      % preload this experiment if this is the first experiment added
-      if obj.nexps == 1,
-        % TODO: make this work with multiple flies
-        [success1,msg1] = obj.PreLoad(1,1);
-        if ~success1,
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.RemoveExpDirs(obj.nexps);
-          return;
-        end
-      elseif istrxinfo,
-        obj.nflies_per_exp(end+1) = nflies_per_exp;
-        obj.sex_per_exp{end+1} = sex_per_exp;
-        obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
-        obj.firstframes_per_exp{end+1} = firstframes_per_exp;
-        obj.endframes_per_exp{end+1} = endframes_per_exp;
-        
-%         if obj.nexps == 1 % This will set hassex and hasperframesex.
-%           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
-%           if ~success1,
-%             msg = sprintf('Error getting basic trx info: %s',msg1);
+%         
+%         if strcmpi(res,'Yes'),
+%           obj.SetStatus('Generating missing files for %s...',expname);
+%           [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+%           if ~success,
+%             msg = sprintf(['Error generating missing required files %s '...
+%               'for experiment %s: %s. Removing...'],...
+%               sprintf(' %s',missingfiles{:}),expdir,msg);
+%             obj.SetStatus('Error generating missing files for %s...',expname);
 %             obj.RemoveExpDirs(obj.nexps);
 %             return;
 %           end
+%           
+%         else
+%           obj.SetStatus('Not generating missing files for %s, not adding...',expname);
+%           obj.RemoveExpDirs(obj.nexps);
+%           return;
 %         end
-        
-      else
-        obj.nflies_per_exp(end+1) = nan;
-        obj.sex_per_exp{end+1} = {};
-        obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
-        obj.firstframes_per_exp{end+1} = [];
-        obj.endframes_per_exp{end+1} = [];
-        [success1,msg1] = obj.GetTrxInfo(obj.nexps);
-        if ~success1,
-          msg = sprintf('Error getting basic trx info: %s',msg1);
-          obj.RemoveExpDirs(obj.nexps);
-          return;
-        end
-      end      
-      
-      obj.InitPredictiondata(obj.nexps);
+%       end
+%       
+%       % Convert the scores file into perframe files.
+%       
+%       for i = 1:numel(obj.scoresasinput)
+%         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
+%         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
+%           obj.scoresasinput(i).ts);
+%           if ~success,
+%             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
+%             obj.RemoveExpDirs(obj.nexps);
+%             return;
+%           end
+%       end
+%       
+% %       for i = 1:numel(obj.allperframefns),
+% %         fn = obj.allperframefns{i};
+% %         if numel(fn)>7 && strcmpi('score',fn(1:5))
+% %           [success,msg] = obj.ScoresToPerframe(obj.nexps,fn);
+% %           if ~success,
+% %             obj.RemoveExpDirs(obj.nexps);
+% %             return;
+% %           end
+% %         end
+% %       end
+% %       
+%       % preload this experiment if this is the first experiment added
+%       if obj.nexps == 1,
+%         % TODO: make this work with multiple flies
+%         obj.SetStatus('Pre-loading first experiment %s expname...',expname);
+%         [success1,msg1] = obj.PreLoad(1,1);
+%         if ~success1,
+%           success = false;
+%           msg = sprintf('Error getting basic trx info: %s',msg1);
+%           obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
+%           %uiwait(warndlg(msg));
+%           obj.RemoveExpDirs(obj.nexps);
+%           %obj.ClearStatus();
+%           return;
+%         end
+%       elseif istrxinfo,
+%         obj.nflies_per_exp(end+1) = nflies_per_exp;
+%         obj.sex_per_exp{end+1} = sex_per_exp;
+%         obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
+%         obj.firstframes_per_exp{end+1} = firstframes_per_exp;
+%         obj.endframes_per_exp{end+1} = endframes_per_exp;
+%         
+% %         if obj.nexps == 1 % This will set hassex and hasperframesex.
+% %           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
+% %           if ~success1,
+% %             msg = sprintf('Error getting basic trx info: %s',msg1);
+% %             obj.RemoveExpDirs(obj.nexps);
+% %             return;
+% %           end
+% %         end
+%         
+%       else
+%         obj.nflies_per_exp(end+1) = nan;
+%         obj.sex_per_exp{end+1} = {};
+%         obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
+%         obj.firstframes_per_exp{end+1} = [];
+%         obj.endframes_per_exp{end+1} = [];
+%         obj.SetStatus('Getting basic trx info for %s...',expname);
+%         [success1,msg1] = obj.GetTrxInfo(obj.nexps);
+%         if ~success1,
+%           msg = sprintf('Error getting basic trx info: %s',msg1);
+%           obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
+%           obj.RemoveExpDirs(obj.nexps);
+%           return;
+%         end
+%       end
+%       
+%       if numel(obj.predictdata)<obj.nexps
+%         obj.SetStatus('Initializing prediction data for %s...',expname);
+%         obj.InitPredictiondata(obj.nexps);
+%       end
+%       
+%       obj.SetStatus('Pre-loading labeled data for %s...',expname);
+%       [success1,msg1] = obj.PreLoadPeriLabelWindowData();
+%       if ~success1,
+%         msg = msg1;
+%         obj.SetStatus('Error pre-loading labeled data for %s...',expname);
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
+%       end
+%       
+%       
+%       % save default path
+%       obj.defaultpath = expdir;
+% 
+%       obj.SetStatus('Successfully added experiment %s...',expdir);
+%       
+%       success = true;
+%       
+%     end
    
-    % save default path
-      obj.defaultpath = expdir;
-      
-      success = true;
-      
-    end
+    
+    
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = AddExpDirNoPreload(obj,expdir,outexpdir,nflies_per_exp,...
+%         sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
+%     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
+%     % Add a new experiment to the GUI. If this is the first experiment,
+%     % then it will be preloaded. 
+% 
+%       success = false; msg = '';
+%       
+%       if isnumeric(expdir), return; end
+%       
+%       if nargin < 2,
+%         error('Usage: obj.AddExpDirs(expdir,[outexpdir],[nflies_per_exp])');
+%       end
+% 
+%       % make sure directory exists
+%       if ~exist(expdir,'file'),
+%         msg = sprintf('expdir %s does not exist',expdir);
+%         return;
+%       end
+%       
+%       % isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
+%       istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
+% 
+%       % base name
+%       [~,expname] = myfileparts(expdir);
+%       
+% %       % expnames and rootoutputdir must match
+% %       if isoutexpdir,
+% %         [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
+% %         if ~strcmp(expname,outname),
+% %           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
+% %           return;
+% %         end
+% % %         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
+% % %           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+% % %           return;
+% % %         end
+% %       elseif ~ischar(obj.rootoutputdir),
+% %         outexpdir = expdir;
+% %         rootoutputdir = 0;
+% %       else
+% %         rootoutputdir = obj.rootoutputdir;        
+% %       end
+% %       
+% %       if ischar(obj.rootoutputdir) && ~isoutexpdir,
+% %         outexpdir = fullfile(rootoutputdir,expname);
+% %       end
+%       
+%       % create missing outexpdirs
+%       if ~exist(outexpdir,'dir'),
+%         [success1,msg1] = mkdir(rootoutputdir,expname);
+%         if ~success1,
+%           msg = (sprintf(['Could not create output directory %s, failed to '...
+%             'set expdirs: %s'],outexpdir,msg1));
+%           return;
+%         end
+%       end
+% 
+%       % create clips dir
+%       clipsdir = obj.GetFileName('clipsdir');
+%       outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
+% 
+%       % okay, checks succeeded, start storing stuff
+%       obj.nexps = obj.nexps + 1;
+%       obj.expdirs{end+1} = expdir;
+%       obj.expnames{end+1} = expname;
+%       %obj.rootoutputdir = rootoutputdir;
+%       %obj.outexpdirs{end+1} = outexpdir;
+%       
+%       % load labels for this experiment
+%       [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
+%       if ~success1,
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
+%       end
+%       [success1,msg] = obj.LoadGTLabelsFromFile(obj.nexps);
+%       if ~success1,
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
+%       end
+% 
+%       [success1,msg1] = obj.UpdateStatusTable('',obj.nexps);
+%       if ~success1,
+%         msg = msg1;
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
+%       end
+%       
+%       % check for existence of necessary files in this directory
+%       if ~obj.filesfixable,
+%         msg = sprintf(['Experiment %s is missing required files that cannot '...
+%           'be generated within this interface. Removing...'],expdir);
+%         success = false;
+%         % undo
+%         obj.RemoveExpDirs(obj.nexps);
+%         return;
+%       end
+%       
+%       if obj.filesfixable && ~obj.allfilesexist,
+% %        if ~isdeployed
+% %          res = questdlg(sprintf('Experiment %s is missing required files. ...
+% %           Generate now?',expdir),'Generate missing files?','Yes','Cancel','Yes');
+% %        else
+%           res = 'Yes';
+% %        end
+%         if strcmpi(res,'Yes'),
+%           [success,msg] = obj.GenerateMissingFiles(obj.nexps,false);
+%           if ~success,
+%             msg = sprintf('Error generating missing required files for experiment %s: %s. Removing...',expdir,msg);
+%             obj.RemoveExpDirs(obj.nexps);
+%             return;
+%           end
+%           
+%         else
+%           obj.RemoveExpDirs(obj.nexps);
+%         end
+%       end
+%       
+%       for i = 1:numel(obj.scoresasinput)
+%         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
+%           obj.scoresasinput(i).ts);
+%         if ~success,
+%           obj.RemoveExpDirs(obj.nexps);
+%           return;
+%         end
+%       end
+%       % Convert the scores file into perframe files.
+% %       for i = 1:numel(obj.allperframefns),
+% %         fn = obj.allperframefns{i};
+% %         if numel(fn)>7 && strcmpi('score',fn(1:5))
+% %           obj.ScoresToPerframe(obj.nexps,fn);
+% %         end
+% %       end
+% %       
+% 
+%       
+%       % preload this experiment if this is the first experiment added
+%       if obj.nexps == 1,
+%         % TODO: make this work with multiple flies
+%         [success1,msg1] = obj.PreLoad(1,1);
+%         if ~success1,
+%           msg = sprintf('Error getting basic trx info: %s',msg1);
+%           obj.RemoveExpDirs(obj.nexps);
+%           return;
+%         end
+%       elseif istrxinfo,
+%         obj.nflies_per_exp(end+1) = nflies_per_exp;
+%         obj.sex_per_exp{end+1} = sex_per_exp;
+%         obj.frac_sex_per_exp{end+1} = frac_sex_per_exp;
+%         obj.firstframes_per_exp{end+1} = firstframes_per_exp;
+%         obj.endframes_per_exp{end+1} = endframes_per_exp;
+%         
+% %         if obj.nexps == 1 % This will set hassex and hasperframesex.
+% %           [success1,msg1] = obj.GetTrxInfo(obj.nexps,true,obj.trx);
+% %           if ~success1,
+% %             msg = sprintf('Error getting basic trx info: %s',msg1);
+% %             obj.RemoveExpDirs(obj.nexps);
+% %             return;
+% %           end
+% %         end
+%         
+%       else
+%         obj.nflies_per_exp(end+1) = nan;
+%         obj.sex_per_exp{end+1} = {};
+%         obj.frac_sex_per_exp{end+1} = struct('M',{},'F',{});
+%         obj.firstframes_per_exp{end+1} = [];
+%         obj.endframes_per_exp{end+1} = [];
+%         [success1,msg1] = obj.GetTrxInfo(obj.nexps);
+%         if ~success1,
+%           msg = sprintf('Error getting basic trx info: %s',msg1);
+%           obj.RemoveExpDirs(obj.nexps);
+%           return;
+%         end
+%       end      
+%       
+%       obj.InitPredictiondata(obj.nexps);
+%    
+%     % save default path
+%       obj.defaultpath = expdir;
+%       
+%       success = true;
+%       
+%     end
     
 %     function [success,msg] = AddExpDirIfNotPresentAlready(self,newExpDirName)
 %       if ismember(newExpDirName,self.expdirs),
@@ -3613,6 +3606,9 @@ classdef JLabelData < handle
 %       end
 %     end
     
+
+
+    % ---------------------------------------------------------------------
     function [success,msg] = RemoveExpDirs(obj,expi)
       % [success,msg] = RemoveExpDirs(obj,expi)
     % Removes experiments in expi from the GUI. If the currently loaded
@@ -3646,8 +3642,8 @@ classdef JLabelData < handle
       if ~(numel(obj.endframes_per_exp)<expi); obj.endframes_per_exp(expi) = []; end
       if ~(numel(obj.labels)<expi); obj.labels(expi) = []; end
       if ~(numel(obj.labelstats)<expi); obj.labelstats(expi) = []; end
-      if ~(numel(obj.gt_labels)<expi); obj.gt_labels(expi) = []; end
-      if ~(numel(obj.gt_labelstats)<expi); obj.gt_labelstats(expi) = []; end
+      %if ~(numel(obj.gt_labels)<expi); obj.gt_labels(expi) = []; end
+      %if ~(numel(obj.gt_labelstats)<expi); obj.gt_labelstats(expi) = []; end
       obj.nexps = obj.nexps - numel(expi);
       % TODO: exp2labeloff
 
@@ -3732,12 +3728,12 @@ classdef JLabelData < handle
       
       success = true;
       
-    end
+    end  % method
 
     
 % File Handling 
     
-
+    % ---------------------------------------------------------------------
     function res = GetFileName(obj,fileType)
     % res = GetFileName(obj,file)
     % Get base name of file of the input type fileType.
@@ -3764,14 +3760,16 @@ classdef JLabelData < handle
           error('Unknown file type %s',fileType);
       end
     end
+
     
-    function [filename,timestamp] = GetFile(obj,file,expi,dowrite)
+    % ---------------------------------------------------------------------    
+    function [filename,timestamp] = GetFile(obj,file,expi)
         % [filename,timestamp] = GetFile(obj,file,expi)
     % Get the full path to the file of type file for experiment expi. 
   
-      if nargin < 4,
-        dowrite = false;
-      end
+%       if nargin < 4,
+%         dowrite = false;
+%       end
       
       % base name
       fn = obj.GetFileName(file);
@@ -3826,7 +3824,9 @@ classdef JLabelData < handle
       end
       
     end
+
     
+    % ---------------------------------------------------------------------
     function SetGenerateMissingFiles(obj)
       obj.perframeGenerate = true;
     end
@@ -4188,13 +4188,13 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function [filenames,timestamps] = GetPerframeFiles(obj,expi,dowrite)
+    function [filenames,timestamps] = GetPerframeFiles(obj,expi)
     % [filenames,timestamps] = GetPerFrameFiles(obj,file,expi)
     % Get the full path to the per-frame mat files for experiment expi
       
-      if nargin < 3,
-        dowrite = false;
-      end
+%       if nargin < 3,
+%         dowrite = false;
+%       end
       
       fn = obj.GetFileName('perframedir');
       
@@ -5255,27 +5255,21 @@ classdef JLabelData < handle
         obj.StoreLabelsAndThatsAll();
       end
       
-      if obj.IsGTMode()
-        labelsToUse = obj.gt_labels;
-      else
-        labelsToUse = obj.labels;
-      end
-
-      if ~isempty(labelsToUse(expi).flies),	
-        [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
+      if ~isempty(obj.labels(expi).flies),	
+        [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
       else
         ism = false;
       end
       if ism,
-        labels_curr.t0s = labelsToUse(expi).t0s{fliesi};
-        labels_curr.t1s = labelsToUse(expi).t1s{fliesi};
-        labels_curr.names = labelsToUse(expi).names{fliesi};
-        labels_curr.off = labelsToUse(expi).off(fliesi);
-        if isfield(labelsToUse(expi),'imp_t0s')
-          labels_curr.imp_t0s = labelsToUse(expi).imp_t0s{fliesi};
-          labels_curr.imp_t1s = labelsToUse(expi).imp_t1s{fliesi};
+        labels_curr.t0s = obj.labels(expi).t0s{fliesi};
+        labels_curr.t1s = obj.labels(expi).t1s{fliesi};
+        labels_curr.names = obj.labels(expi).names{fliesi};
+        labels_curr.off = obj.labels(expi).off(fliesi);
+        if isfield(obj.labels(expi),'imp_t0s')
+          labels_curr.imp_t0s = obj.labels(expi).imp_t0s{fliesi};
+          labels_curr.imp_t1s = obj.labels(expi).imp_t1s{fliesi};
         end
-        labels_curr.timestamp = labelsToUse(expi).timestamp{fliesi};
+        labels_curr.timestamp = obj.labels(expi).timestamp{fliesi};
       else
 %         if expi ~= obj.expi,
 %           error('This should never happen -- only should get new labels for current experiment');
@@ -5358,36 +5352,36 @@ classdef JLabelData < handle
         newlabels.imp_t1s = i1s - labelidx_off;
       end
       
-      % Store labels according to the mode
-      if obj.IsGTMode(),
-        labelsToUse = 'gt_labels';
-        labelstatsToUse = 'gt_labelstats';
-      else
-        labelsToUse = 'labels';
-        labelstatsToUse = 'labelstats';
-      end
+%       % Store labels according to the mode
+%       if obj.IsGTMode(),
+%         labelsToUse = 'gt_labels';
+%         labelstatsToUse = 'gt_labelstats';
+%       else
+%         labelsToUse = 'labels';
+%         labelstatsToUse = 'labelstats';
+%       end
       
-      if isempty(obj.(labelsToUse)(expi).flies),
-	ism = false;
+      if isempty(obj.labels(expi).flies),
+        ism = false;
       else
-        [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
       end
       if ~ism,
-        j = size(obj.(labelsToUse)(expi).flies,1)+1;
+        j = size(obj.labels(expi).flies,1)+1;
       end
 
-      obj.(labelsToUse)(expi).t0s{j} = newlabels.t0s;
-      obj.(labelsToUse)(expi).t1s{j} = newlabels.t1s;
-      obj.(labelsToUse)(expi).names{j} = newlabels.names;
-      obj.(labelsToUse)(expi).flies(j,:) = flies;
-      obj.(labelsToUse)(expi).off(j) = labelidx_off;
-      obj.(labelsToUse)(expi).timestamp{j} = newlabels.timestamp;
-      obj.(labelsToUse)(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.(labelsToUse)(expi).imp_t1s{j} = newlabels.imp_t1s;
+      obj.labels(expi).t0s{j} = newlabels.t0s;
+      obj.labels(expi).t1s{j} = newlabels.t1s;
+      obj.labels(expi).names{j} = newlabels.names;
+      obj.labels(expi).flies(j,:) = flies;
+      obj.labels(expi).off(j) = labelidx_off;
+      obj.labels(expi).timestamp{j} = newlabels.timestamp;
+      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
+      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
 
       % store labelstats
-      obj.(labelstatsToUse)(expi).nflies_labeled = numel(unique(obj.(labelsToUse)(expi).flies));
-      obj.(labelstatsToUse)(expi).nbouts_labeled = numel(newlabels.t1s);
+      obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
+      obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
             
     end
 
@@ -5400,20 +5394,20 @@ classdef JLabelData < handle
           obj.labelidx.vals(ts+obj.labelidx_off-1) ~= obj.labelidx.vals(ts+obj.labelidx_off);
       else
         
-        if obj.IsGTMode(),
-          labelsToUse = 'gt_labels';
-        else
-          labelsToUse = 'labels';
-        end
+%         if obj.IsGTMode(),
+%           labelsToUse = 'gt_labels';
+%         else
+%           labelsToUse = 'labels';
+%         end
 
-        if isempty(obj.(labelsToUse)(expi).flies)
+        if isempty(obj.labels(expi).flies)
           ism = false;
         else
-          [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
+          [ism,fliesi] = ismember(flies,obj.labels(expi).flies,'rows');
         end
 
         if ism,
-          isstart = ismember(ts,obj.(labelsToUse)(expi).t0s{fliesi});
+          isstart = ismember(ts,obj.labels(expi).t0s{fliesi});
         else
           isstart = false(size(ts));
         end
@@ -5429,13 +5423,13 @@ classdef JLabelData < handle
         return;
       end
       
-      if obj.IsGTMode()
-        labelsToUse = 'gt_labels';
-        labelstatsToUse = 'gt_labelstats';
-      else
-        labelsToUse = 'labels';
-        labelstatsToUse = 'labelstats';
-      end
+%       if obj.IsGTMode()
+%         labelsToUse = 'gt_labels';
+%         labelstatsToUse = 'gt_labelstats';
+%       else
+%         labelsToUse = 'labels';
+%         labelstatsToUse = 'labelstats';
+%       end
       
       %timestamp = now;
       
@@ -5447,39 +5441,39 @@ classdef JLabelData < handle
       % delete all flies by default
       if nargin < 3,
         for i = expi(:)',
-          obj.(labelsToUse)(expi).t0s = {};
-          obj.(labelsToUse)(expi).t1s = {};
-          obj.(labelsToUse)(expi).names = {};
-          obj.(labelsToUse)(expi).flies = [];
-          obj.(labelsToUse)(expi).off = [];
-          obj.(labelsToUse)(expi).timestamp = {};
-          obj.(labelstatsToUse)(expi).nflies_labeled = 0;
-          obj.(labelstatsToUse)(expi).nbouts_labeled = 0;
-          obj.(labelsToUse)(expi).imp_t0s = {};
-          obj.(labelsToUse)(expi).imp_t1s = {};
+          obj.labels(expi).t0s = {};
+          obj.labels(expi).t1s = {};
+          obj.labels(expi).names = {};
+          obj.labels(expi).flies = [];
+          obj.labels(expi).off = [];
+          obj.labels(expi).timestamp = {};
+          obj.labelstats(expi).nflies_labeled = 0;
+          obj.labelstats(expi).nbouts_labeled = 0;
+          obj.labels(expi).imp_t0s = {};
+          obj.labels(expi).imp_t1s = {};
         end
       else
         if numel(expi) > 1,
           error('If flies input to ClearLabels, expi must be a single experiment');
         end
         % no labels
-        if numel(obj.(labelsToUse)) < expi,
+        if numel(obj.labels) < expi,
           return;
         end
         % which index of labels
-        [~,flyis] = ismember(obj.(labelsToUse)(expi).flies,flies,'rows');
+        [~,flyis] = ismember(obj.labels(expi).flies,flies,'rows');
         for flyi = flyis(:)',
           % keep track of number of bouts so that we can update stats
-          ncurr = numel(obj.(labelsToUse)(expi).t0s{flyi});
-          obj.(labelsToUse)(expi).t0s{flyi} = [];
-          obj.(labelsToUse)(expi).t1s{flyi} = [];
-          obj.(labelsToUse)(expi).names{flyi} = {};
-          obj.(labelsToUse)(expi).timestamp{flyi} = [];
-          obj.(labelsToUse)(expi).imp_t0s{flyi} = [];
-          obj.(labelsToUse)(expi).imp_t1s{flyi} = [];
+          ncurr = numel(obj.labels(expi).t0s{flyi});
+          obj.labels(expi).t0s{flyi} = [];
+          obj.labels(expi).t1s{flyi} = [];
+          obj.labels(expi).names{flyi} = {};
+          obj.labels(expi).timestamp{flyi} = [];
+          obj.labels(expi).imp_t0s{flyi} = [];
+          obj.labels(expi).imp_t1s{flyi} = [];
           % update stats
-          obj.(labelstatsToUse)(expi).nflies_labeled = obj.(labelstatsToUse)(expi).nflies_labeled - 1;
-          obj.(labelstatsToUse)(expi).nbouts_labeled = obj.(labelstatsToUse)(expi).nbouts_labeled - ncurr;
+          obj.labelstats(expi).nflies_labeled = obj.labelstats(expi).nflies_labeled - 1;
+          obj.labelstats(expi).nbouts_labeled = obj.labelstats(expi).nbouts_labeled - ncurr;
         end
       end
       
@@ -5994,11 +5988,12 @@ classdef JLabelData < handle
       success = false; msg = '';
       
       for expi = 1:obj.nexps,
-        if obj.IsGTMode(),
-          flies_curr = obj.gt_labels(expi).flies;
-        else
-          flies_curr = obj.labels(expi).flies;
-        end
+%         if obj.gtMode ,
+%           flies_curr = obj.gt_labels(expi).flies;
+%         else
+%           flies_curr = obj.labels(expi).flies;
+%         end
+        flies_curr=obj.labels(expi).flies;
         for i = 1:size(flies_curr,1),
           flies = flies_curr(i,:);
           labels_curr = obj.GetLabels(expi,flies);
@@ -7630,15 +7625,17 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function flyStats = GetFlyStats(obj,expi,flyNum)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
-      
+            
       obj.StoreLabelsAndPreLoadWindowData();
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
       if ism,
-        flyStats.nbouts = numel(obj.labels(expi).t0s{j});
+        nbouts = numel(obj.labels(expi).t0s{j});
         posframes = 0; negframes = 0;
         for ndx = 1:numel(obj.labels(expi).t0s{j})
           numFrames = obj.labels(expi).t1s{j}(ndx)-obj.labels(expi).t0s{j}(ndx);
@@ -7648,38 +7645,25 @@ classdef JLabelData < handle
             negframes = negframes + numFrames;
           end
         end
-        flyStats.posframes = posframes;
-        flyStats.negframes = negframes;
-        flyStats.totalframes = posframes + negframes;
+        posframes = posframes;
+        negframes = negframes;
+        totalframes = posframes + negframes;
       else
-        flyStats.nbouts = 0;
-        flyStats.posframes = 0;
-        flyStats.negframes = 0;
-        flyStats.totalframes = 0;
+        nbouts = 0;
+        posframes = 0;
+        negframes = 0;
+        totalframes = 0;
       end
       
-      [ism,j] = ismember(flyNum,obj.gt_labels(expi).flies,'rows');
-      if ism,
-        flyStats.gt_nbouts = numel(obj.gt_labels(expi).t0s{j});
-        posframes = 0; negframes = 0;
-        for ndx = 1:numel(obj.gt_labels(expi).t0s{j})
-          numFrames = obj.gt_labels(expi).t1s{j}(ndx)-obj.gt_labels(expi).t0s{j}(ndx);
-          if strcmp(obj.gt_labels(expi).names{j}{ndx},obj.labelnames{1}) 
-            posframes = posframes + numFrames;
-          else
-            negframes = negframes + numFrames;
-          end
-        end
-        flyStats.gt_posframes = posframes;
-        flyStats.gt_negframes = negframes;
-        flyStats.gt_totalframes = posframes + negframes;
-      else
-        flyStats.gt_nbouts = 0;
-        flyStats.gt_posframes = 0;
-        flyStats.gt_negframes = 0;
-        flyStats.gt_totalframes = 0;
+      % stuff into flyStats, with appropriate field names
+      varNames={'nbouts','posframes','negframes','totalframes'};
+      prefix=fif(obj.gtMode,'gt_','');
+      for i=1:length(varNames)
+        varName=varNames{i};
+        fieldName=varName;
+        eval(sprintf('flyStats.%s%s=%s;',prefix,fieldName,varName));
       end
-      
+            
       flyStats.endframe = obj.endframes_per_exp{expi}(flyNum);
       flyStats.firstframe = obj.firstframes_per_exp{expi}(flyNum);
       flyStats.trajLength = flyStats.endframe-flyStats.firstframe+1;
@@ -7782,8 +7766,10 @@ classdef JLabelData < handle
       %       end
       
       obj.ClearStatus();
-   end
-    
+    end
+
+   
+    % ---------------------------------------------------------------------
     function scores = NormalizeScores(obj,scores)
       
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
@@ -7806,6 +7792,7 @@ classdef JLabelData < handle
 % Status display
     
 
+    % ---------------------------------------------------------------------
     function SetStatus(obj,varargin)
     % SetStatus(obj,<sprintf-like arguments>)
     % Update an associated status text according to the input sprintf-like
@@ -8158,8 +8145,13 @@ classdef JLabelData < handle
     end
     
     
+    % ---------------------------------------------------------------------
     function crossError = GetGTPerformance(obj)
       % Computes the performance on the GT data.
+      if ~obj.gtMode ,
+        error('JLabelData.wrongMode',...
+              'Can only call GetGTPerformance() in ground-truthing mode.');  %#ok
+      end
       obj.StoreLabelsAndPreLoadWindowData();
       crossError.numbers = zeros(4,3);
       crossError.frac = zeros(4,3);
@@ -8168,9 +8160,9 @@ classdef JLabelData < handle
       if ~hasloaded
         
         for expi = 1:obj.nexps,
-          for i = 1:size(obj.gt_labels(expi).flies,1),
+          for i = 1:size(obj.labels(expi).flies,1),
             
-            flies = obj.gt_labels(expi).flies(i,:);
+            flies = obj.labels(expi).flies(i,:);
             labels_curr = obj.GetLabels(expi,flies);
             ts = [];
             
@@ -8195,9 +8187,9 @@ classdef JLabelData < handle
       gt_labels = [];
       
       for expi = 1:obj.nexps,
-        for i = 1:size(obj.gt_labels(expi).flies,1),
+        for i = 1:size(obj.labels(expi).flies,1),
           
-          flies = obj.gt_labels(expi).flies(i,:);
+          flies = obj.labels(expi).flies(i,:);
           labels_curr = obj.GetLabels(expi,flies);
           
           % Find the importatnt labels
@@ -8647,7 +8639,13 @@ classdef JLabelData < handle
       s.landmarkParams=self.landmark_params;
 
       % Get the labels, put them in s
-      s.expdirs=self.expdirs;
+      if self.gtMode ,
+        s.gtExpDirNames=self.expdirs;
+        s.expDirNames=self.otherModeLabelsEtc.expDirNames;
+      else
+        s.expDirNames=self.expdirs;
+        s.gtExpDirNames=self.otherModeLabelsEtc.expDirNames;
+      end
       [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
 
       % Put the classifier in s
