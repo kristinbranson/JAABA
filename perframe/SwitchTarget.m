@@ -107,6 +107,8 @@ function [exp,target] = PageRow2LocalTarget(handles,page,row)
 
 [exp,target] = GlobalTarget2LocalTarget(handles,PageRow2GlobalTarget(handles,page,row));
 
+
+% -------------------------------------------------------------------------
 function handles = updateTable(handles)
 % Initialize the table
 
@@ -280,6 +282,7 @@ set(handles.pushbutton_update,'enable','on');
 % uiwait(handles.figure1);
 
 
+% -------------------------------------------------------------------------
 function initTable(hObject)
 % Use java objects to tweak the table. Found this online at 
 % http://www.mathworks.com/matlabcentral/newsreader/view_thread/298335
