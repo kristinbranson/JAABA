@@ -2305,7 +2305,7 @@ function [behavior_data,behavior_data2,behavior_data3,feature_data,sex_data]=...
     cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,feature_data,sex_data)
 
 if(~isempty(behavior_data))
-  find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
+  find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart+1)./handles.fps < handles.minimumtrajectorylength);
   behavior_data.allScores.scores(ans)=[];
   behavior_data.allScores.tStart(ans)=[];
   behavior_data.allScores.tEnd(ans)=[];
@@ -2313,7 +2313,7 @@ if(~isempty(behavior_data))
   behavior_data.allScores.t1s(ans)=[];
 end
 if(~isempty(behavior_data2))
-  find((behavior_data2.allScores.tEnd-behavior_data2.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
+  find((behavior_data2.allScores.tEnd-behavior_data2.allScores.tStart+1)./handles.fps < handles.minimumtrajectorylength);
   behavior_data2.allScores.scores(ans)=[];
   behavior_data2.allScores.tStart(ans)=[];
   behavior_data2.allScores.tEnd(ans)=[];
@@ -2321,7 +2321,7 @@ if(~isempty(behavior_data2))
   behavior_data2.allScores.t1s(ans)=[];
 end
 if(~isempty(behavior_data3))
-  find((behavior_data3.allScores.tEnd-behavior_data3.allScores.tStart)./handles.fps < handles.minimumtrajectorylength);
+  find((behavior_data3.allScores.tEnd-behavior_data3.allScores.tStart+1)./handles.fps < handles.minimumtrajectorylength);
   behavior_data3.allScores.scores(ans)=[];
   behavior_data3.allScores.tStart(ans)=[];
   behavior_data3.allScores.tEnd(ans)=[];
