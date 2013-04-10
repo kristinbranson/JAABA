@@ -1914,10 +1914,10 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 
 
 %--------------------------------------------------------------------------
-function handles = InitializeStateGivenBasicParams(handles,basicParams)
+function handles = InitializeStateGivenBasicParams(handles,basicParams,groundTruthingMode)
 
 % Tell JLabelGUIData to init itself
-handles.guidata.initializeGivenBasicParams(basicParams,handles.figure_JLabel);
+handles.guidata.initializeGivenBasicParams(basicParams,handles.figure_JLabel,groundTruthingMode);
 
 % create buttons for each label, as needed
 handles = UpdateLabelButtons(handles);
@@ -7433,7 +7433,7 @@ handles=guidata(figureJLabel);
 fileNameRel=[baseName ext];
 
 % Update the status, change the pointer to the watch
-SetStatus(handles,sprintf('Opening %s ...',fileNameRel));
+SetStatus(handles,sprintf('Opening %s...',fileNameRel));
 
 % load the file
 try
@@ -7450,13 +7450,13 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
 basicParams=basicParamsFromEverythingParams(everythingParams);
-initBasicParams(figureJLabel,basicParams);
+initBasicParams(figureJLabel,basicParams,groundTruthingMode);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
 % are loaded.
 data=handles.guidata.data;  % ref
-data.SetGTMode(groundTruthingMode);
+%data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
 handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
@@ -7532,12 +7532,12 @@ return
 
 
 % -------------------------------------------------------------------------
-function initBasicParams(figureJLabel,basicParams)
+function initBasicParams(figureJLabel,basicParams,groundTruthingMode)
 % Initializes the JLabel GUI on return from ProjectSetup after the user
 % selects New..., or during opening of an existing everything file.
 handles=guidata(figureJLabel);
 handles.guidata.setLayout(figureJLabel);
-handles=InitializeStateGivenBasicParams(handles,basicParams);
+handles=InitializeStateGivenBasicParams(handles,basicParams,groundTruthingMode);
 handles=InitializePlotsAfterBasicParamsSet(handles);
 guidata(figureJLabel,handles);
 return
@@ -7630,32 +7630,32 @@ previousConfigFileName=handles.guidata.previousConfigFileName;
 return
 
 
-% -------------------------------------------------------------------------
-function menu_edit_normal_mode_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_normal_mode (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% % -------------------------------------------------------------------------
+% function menu_edit_normal_mode_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_edit_normal_mode (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% handles.guidata.data.SetGTMode(false);
+% handles.guidata.GUIGroundTruthingMode=false;
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% guidata(hObject,handles);
+% 
+% return
 
-handles.guidata.data.SetGTMode(false);
-handles.guidata.GUIGroundTruthingMode=false;
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-guidata(hObject,handles);
 
-return
-
-
-% -------------------------------------------------------------------------
-function menu_edit_ground_truthing_mode_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_edit_ground_truthing_mode (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.guidata.data.SetGTMode(true);
-handles.guidata.GUIGroundTruthingMode=true;
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-guidata(hObject,handles);
-
-return
+% % -------------------------------------------------------------------------
+% function menu_edit_ground_truthing_mode_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_edit_ground_truthing_mode (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% handles.guidata.data.SetGTMode(true);
+% handles.guidata.GUIGroundTruthingMode=true;
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% guidata(hObject,handles);
+% 
+% return
 
 
 % -------------------------------------------------------------------------
@@ -7735,19 +7735,19 @@ return
 % return
 
 
-% -------------------------------------------------------------------------
-function setGroundTruthingMode(figureJLabel,groundTruthingMode)
-% Intended to be called by other "objects" (like JLabelEditFiles) when
-% they was to set the labeling mode in JLabel, and thereby in the
-% single JLabelData object, if present.
-handles=guidata(figureJLabel);
-% Tell the data about the new mode
-data=handles.guidata.data;  % ref
-data.SetGTMode(groundTruthingMode);
-handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-guidata(figureJLabel,handles);  % write the handles back to the figure
-return
+% % -------------------------------------------------------------------------
+% function setGroundTruthingMode(figureJLabel,groundTruthingMode)
+% % Intended to be called by other "objects" (like JLabelEditFiles) when
+% % they was to set the labeling mode in JLabel, and thereby in the
+% % single JLabelData object, if present.
+% handles=guidata(figureJLabel);
+% % Tell the data about the new mode
+% data=handles.guidata.data;  % ref
+% data.SetGTMode(groundTruthingMode);
+% handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% guidata(figureJLabel,handles);  % write the handles back to the figure
+% return
 
 
 % --------------------------------------------------------------------
@@ -7940,14 +7940,13 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
-initBasicParams(figureJLabel,basicParams);
+groundTruthingMode=false;  % all new files start in labeling mode
+initBasicParams(figureJLabel,basicParams,groundTruthingMode);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
-% Need to set the labeling mode in the JLabelData, before the experiments 
-% are loaded.
-groundTruthingMode=false;  % all new files start in labeling mode
+% Don't want to type "handles.guidata.data" all the damn time
 data=handles.guidata.data;  % ref
-data.SetGTMode(groundTruthingMode);
+%data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
 handles.guidata.GUIGroundTruthingMode=groundTruthingMode;

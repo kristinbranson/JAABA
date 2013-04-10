@@ -79,7 +79,7 @@ classdef JLabelData < handle
     windowdatachunk_radius = 100;
     predictwindowdatachunk_radius = 10000;
     % total number of experiments
-    nexps = 0;
+    %nexps = 0;  % this is now a dependent property
     
     % labels struct array
     % labels(expi) is the labeled data for experiment expi
@@ -218,7 +218,7 @@ classdef JLabelData < handle
     % in case we don't want to write to the experiment directory, we will
     % mirror the experiment directory structure in the rootoutput dir
     % this can be the same as the input root directory
-    rootoutputdir = 0;
+    %rootoutputdir = 0;
 
     % % name of classifier file to save/load classifier from
     % classifierfilename = '';
@@ -238,7 +238,7 @@ classdef JLabelData < handle
 %     gtExpNames={};
     
     % cell array of corresponding output experiment directory paths
-    outexpdirs = {};
+    %outexpdirs = {};
     
     % array of number of flies in each experiment
     nflies_per_exp = [];
@@ -380,12 +380,12 @@ classdef JLabelData < handle
     doUpdate = true;
     
     % Ground truthing or not
+    % gtMode is set in the constructor, and is constant over the life
+    % of the object.
     gtMode = false;  % Seems like it would make sense to not have
                      % JLabelData know about this---it's really more
                      % a property of the View, not the Model, it seems to
                      % me.  --ALT, Jan 17 2013
-    %advancedMode = false;
-    %modeSet = false;
     
     % Ground truthing suggestion
     randomGTSuggestions = {};
@@ -452,9 +452,12 @@ classdef JLabelData < handle
   properties (Access=public,Dependent=true)
     expdirs
     expnames
+    nexps
   end
 
-  methods
+  
+  % -----------------------------------------------------------------------
+  methods  % getters and setters need to be in a methods block with access specifiers
     function expdirs=get.expdirs(self)
       if self.gtMode, 
         expdirs=self.gtExpDirNames;
@@ -481,8 +484,18 @@ classdef JLabelData < handle
       % Eventually this method should go away, and all calls to it also.
     end    
     
-  end
+    function nexps=get.nexps(self)
+      nexps=length(self.expdirs);
+    end
+    
+    function set.nexps(self,newValue)  %#ok
+      % Do nothing, b/c now we just compute nexps when we need it 
+      % Eventually this method should go away, and all calls to it also.
+    end
+  end  % methods block
   
+  
+  % -----------------------------------------------------------------------
   methods (Access=private)
     % ---------------------------------------------------------------------    
     function [success,msg] = setFeatureLexiconRaw(obj,featureLexicon,animalType,featureLexiconName)
@@ -780,12 +793,16 @@ classdef JLabelData < handle
       
       % get the project params
       basicParams = varargin{1};
-      varargin = varargin(2:end);
+      groundTruthingMode=varargin{2};
+      varargin = varargin(3:end);
 
       % rest of args should be key-value pairs
       if mod(numel(varargin),2) ~= 0,
         error('Number of inputs to JLabelData constructor must be even');
       end
+      
+      % Set the ground-truthing mode
+      obj.gtMode=groundTruthingMode;           
       
       % config file
       obj.setBasicParams(basicParams);
@@ -854,14 +871,14 @@ classdef JLabelData < handle
 %         end
 %       end
       
-      % rootoutputdir
-      i = find(strcmpi(s,'rootoutputdir'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetRootOutputDir(v{i});
-        if ~success,
-          error(msg);
-        end
-      end
+%       % rootoutputdir
+%       i = find(strcmpi(s,'rootoutputdir'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetRootOutputDir(v{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
       
 %       % classifier
 %       i = find(strcmpi(s,'classifierfilename'),1);
@@ -923,8 +940,7 @@ classdef JLabelData < handle
       end
       
       obj.InitPostprocessparams();
-      
-    end
+    end  % constructor method
 
     
 % Some helper functions.
@@ -1072,12 +1088,12 @@ classdef JLabelData < handle
             return;
           end
         end
-        if isfield(basicParams.file,'rootoutputdir') && ~isempty(basicParams.file.rootoutputdir),
-          [success1,msg1] = obj.SetRootOutputDir(basicParams.file.rootoutputdir);
-          if ~success1,
-            uiwait(warndlg(msg1));
-          end
-        end
+%         if isfield(basicParams.file,'rootoutputdir') && ~isempty(basicParams.file.rootoutputdir),
+%           [success1,msg1] = obj.SetRootOutputDir(basicParams.file.rootoutputdir);
+%           if ~success1,
+%             uiwait(warndlg(msg1));
+%           end
+%         end
         if isfield(basicParams,'sublexiconPFNames'),
           % Update allperframefns
           obj.allperframefns = basicParams.sublexiconPFNames;
@@ -1787,36 +1803,36 @@ classdef JLabelData < handle
     end
     
     
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetRootOutputDir(obj,rootoutputdir)
-    % [success,msg] = SetRootOutputDir(obj,rootoutputdir)
-    % sets the root directory for outputing files. currently, it does not
-    % update labels, etc. or recheck for the existence of all the required
-    % files. (TODO)
-      
-      success = true;
-      msg = '';
-      if ischar(rootoutputdir),
-        if ischar(obj.rootoutputdir) && strcmp(obj.rootoutputdir,rootoutputdir),
-          success = true;
-          return;
-        end
-        if ~exist(rootoutputdir,'file'),
-          msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',...
-            rootoutputdir);
-          success = false;
-          return;
-        end
-        obj.rootoutputdir = rootoutputdir;
-        for i = 1:obj.nexps,
-          obj.outexpdirs{i} = fullfile(rootoutputdir,obj.expnames{i});
-        end
-        % TODO: check all files are okay, remove bad experiments
-        
-        [success,msg] = obj.UpdateStatusTable();
-      end
-      
-    end    
+%     % ---------------------------------------------------------------------
+%     function [success,msg] = SetRootOutputDir(obj,rootoutputdir)
+%     % [success,msg] = SetRootOutputDir(obj,rootoutputdir)
+%     % sets the root directory for outputing files. currently, it does not
+%     % update labels, etc. or recheck for the existence of all the required
+%     % files. (TODO)
+%       
+%       success = true;
+%       msg = '';
+%       if ischar(rootoutputdir),
+%         if ischar(obj.rootoutputdir) && strcmp(obj.rootoutputdir,rootoutputdir),
+%           success = true;
+%           return;
+%         end
+%         if ~exist(rootoutputdir,'file'),
+%           msg = sprintf('root output directory %s does not exist, outputs will be stored in the experiment directories',...
+%             rootoutputdir);
+%           success = false;
+%           return;
+%         end
+%         obj.rootoutputdir = rootoutputdir;
+%         for i = 1:obj.nexps,
+%           obj.outexpdirs{i} = fullfile(rootoutputdir,obj.expnames{i});
+%         end
+%         % TODO: check all files are okay, remove bad experiments
+%         
+%         [success,msg] = obj.UpdateStatusTable();
+%       end
+%       
+%     end    
 
     
 %     % ---------------------------------------------------------------------
@@ -2954,41 +2970,42 @@ classdef JLabelData < handle
         return;
       end
       
-      % Is there an output directory?
-      isoutexpdir = false;
+%       % Is there an output directory?
+%       isoutexpdir = false;
       
       % Did the caller provide extra information about the tracks
-      istrxinfo = false;
+      %istrxinfo = false;
 
       % Extract the base name of the experiment
       [~,expname] = myfileparts(expdir);
       
-      % expnames and rootoutputdir must match (do we still need this?)
-      if isoutexpdir,
-        [rootoutputdir,outname] = myfileparts(outexpdir);
-        if ~strcmp(expname,outname),
-          msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-          return;
-        end
-      elseif ~ischar(obj.rootoutputdir),
-        outexpdir = expdir;
-        rootoutputdir = 0;
-      else
-        rootoutputdir = obj.rootoutputdir;        
-      end
+%       % expnames and rootoutputdir must match (do we still need this?)
+%       if isoutexpdir,
+%         [rootoutputdir,outname] = myfileparts(outexpdir);
+%         if ~strcmp(expname,outname),
+%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
+%           return;
+%         end
+%       elseif ~ischar(obj.rootoutputdir),
+%         outexpdir = expdir;
+%         rootoutputdir = 0;
+%       else
+%         rootoutputdir = obj.rootoutputdir;        
+%       end
       
-      if ischar(obj.rootoutputdir) && ~isoutexpdir,
-        outexpdir = fullfile(rootoutputdir,expname);
-      end
-      
-      % create missing outexpdirs
-      if ~exist(outexpdir,'dir'),
-        [success1,msg1] = mkdir(rootoutputdir,expname);
-        if ~success1,
-          msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
-          return;
-        end
-      end
+%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
+%         outexpdir = fullfile(rootoutputdir,expname);
+%       end
+      outexpdir=expdir;
+
+%       % create missing outexpdirs
+%       if ~exist(outexpdir,'dir'),
+%         [success1,msg1] = mkdir(rootoutputdir,expname);
+%         if ~success1,
+%           msg = (sprintf('Could not create output directory %s, failed to set expdirs: %s',outexpdir,msg1));
+%           return;
+%         end
+%       end
 
       % create clips dir
       clipsdir = obj.GetFileName('clipsdir');
@@ -2999,8 +3016,8 @@ classdef JLabelData < handle
       obj.expdirs{end+1} = expdir;
       obj.expnames{end+1} = expname;
       %obj.rootoutputdir = rootoutputdir;
-      obj.outexpdirs{end+1} = outexpdir;
-      
+      %obj.outexpdirs{end+1} = outexpdir;
+
       % Update the status table        
       obj.SetStatus('Updating status table for %s...',expname);
       [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
@@ -3076,35 +3093,35 @@ classdef JLabelData < handle
       
       % Set the fields describing the tracks, either using info provided by
       % the caller, or by reading from the trx file.
-      if istrxinfo,
-        obj.nflies_per_exp(end+1) = nFlies;
-        obj.sex_per_exp{end+1} = sex;
-        obj.frac_sex_per_exp{end+1} = fracSex;
-        obj.firstframes_per_exp{end+1} = firstFrames;
-        obj.endframes_per_exp{end+1} = endFrames;
-      else
-        % Read from the trx file
-        obj.SetStatus('Getting basic trx info for %s...',expname);
-        trxFileNameAbs = fullfile(expdir,obj.GetFileName('trx'));
-        try
-          [nFlies,firstFrames,endFrames,~,~,fracSex,sex] = ...
-            JLabelData.readTrxInfoFromFile(trxFileNameAbs);
-        catch err
-           if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
-             msg = sprintf('Error getting basic trx info: %s',msg1);
-             obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
-             obj.RemoveExpDirs(obj.nexps);
-             return;
-           else
-             rethrow(err);
-           end
-        end
-        obj.nflies_per_exp(end+1) = nFlies;
-        obj.sex_per_exp{end+1} = sex;
-        obj.frac_sex_per_exp{end+1} = fracSex;
-        obj.firstframes_per_exp{end+1} = firstFrames;
-        obj.endframes_per_exp{end+1} = endFrames;
+%       if istrxinfo,
+%         obj.nflies_per_exp(end+1) = nFlies;
+%         obj.sex_per_exp{end+1} = sex;
+%         obj.frac_sex_per_exp{end+1} = fracSex;
+%         obj.firstframes_per_exp{end+1} = firstFrames;
+%         obj.endframes_per_exp{end+1} = endFrames;
+%       else
+      % Read from the trx file
+      obj.SetStatus('Getting basic trx info for %s...',expname);
+      trxFileNameAbs = fullfile(expdir,obj.GetFileName('trx'));
+      try
+        [nFlies,firstFrames,endFrames,~,~,fracSex,sex] = ...
+          JLabelData.readTrxInfoFromFile(trxFileNameAbs);
+      catch err
+         if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
+           msg = sprintf('Error getting basic trx info: %s',msg1);
+           obj.SetStatus('Error getting basic trx info for %s, not adding...',expname);
+           obj.RemoveExpDirs(obj.nexps);
+           return;
+         else
+           rethrow(err);
+         end
       end
+      obj.nflies_per_exp(end+1) = nFlies;
+      obj.sex_per_exp{end+1} = sex;
+      obj.frac_sex_per_exp{end+1} = fracSex;
+      obj.firstframes_per_exp{end+1} = firstFrames;
+      obj.endframes_per_exp{end+1} = endFrames;
+%       end
       
       % Initialize the labels
       iExp=obj.nexps;
@@ -3170,33 +3187,33 @@ classdef JLabelData < handle
         return;
       end
       
-      isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
+      %isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
       istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
 
       % base name
       [~,expname] = myfileparts(expdir);
       
-      % expnames and rootoutputdir must match
-      if isoutexpdir,
-        [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
-        if ~strcmp(expname,outname),
-          msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-          return;
-        end
-%         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
-%           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+%       % expnames and rootoutputdir must match
+%       if isoutexpdir,
+%         [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
+%         if ~strcmp(expname,outname),
+%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
 %           return;
 %         end
-      elseif ~ischar(obj.rootoutputdir),
-        outexpdir = expdir;
-        rootoutputdir = 0;
-      else
-        rootoutputdir = obj.rootoutputdir;        
-      end
-      
-      if ischar(obj.rootoutputdir) && ~isoutexpdir,
-        outexpdir = fullfile(rootoutputdir,expname);
-      end
+% %         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
+% %           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+% %           return;
+% %         end
+%       elseif ~ischar(obj.rootoutputdir),
+%         outexpdir = expdir;
+%         rootoutputdir = 0;
+%       else
+%         rootoutputdir = obj.rootoutputdir;        
+%       end
+%       
+%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
+%         outexpdir = fullfile(rootoutputdir,expname);
+%       end
       
       % create missing outexpdirs
       if ~exist(outexpdir,'dir'),
@@ -3223,7 +3240,7 @@ classdef JLabelData < handle
       obj.expdirs{end+1} = expdir;
       obj.expnames{end+1} = expname;
       %obj.rootoutputdir = rootoutputdir;
-      obj.outexpdirs{end+1} = outexpdir;
+      %obj.outexpdirs{end+1} = outexpdir;
 
       obj.SetStatus('Loading labels from file for %s...',expname);
       
@@ -3400,7 +3417,7 @@ classdef JLabelData < handle
     
     
     
-    
+    % ---------------------------------------------------------------------
     function [success,msg] = AddExpDirNoPreload(obj,expdir,outexpdir,nflies_per_exp,...
         sex_per_exp,frac_sex_per_exp,firstframes_per_exp,endframes_per_exp)
     % [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,firstframes_per_exp,endframes_per_exp)
@@ -3421,33 +3438,33 @@ classdef JLabelData < handle
         return;
       end
       
-      isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
+      % isoutexpdir = nargin > 2 && ~isnumeric(outexpdir);
       istrxinfo = nargin > 7 && ~isempty(nflies_per_exp);
 
       % base name
       [~,expname] = myfileparts(expdir);
       
-      % expnames and rootoutputdir must match
-      if isoutexpdir,
-        [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
-        if ~strcmp(expname,outname),
-          msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
-          return;
-        end
-%         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
-%           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+%       % expnames and rootoutputdir must match
+%       if isoutexpdir,
+%         [rootoutputdir,outname] = myfileparts(outexpdir); %#ok<*PROP>
+%         if ~strcmp(expname,outname),
+%           msg = sprintf('expdir and outexpdir do not match base names: %s ~= %s',expname,outname);
 %           return;
 %         end
-      elseif ~ischar(obj.rootoutputdir),
-        outexpdir = expdir;
-        rootoutputdir = 0;
-      else
-        rootoutputdir = obj.rootoutputdir;        
-      end
-      
-      if ischar(obj.rootoutputdir) && ~isoutexpdir,
-        outexpdir = fullfile(rootoutputdir,expname);
-      end
+% %         if ischar(obj.rootoutputdir) && ~strcmp(rootoutputdir,obj.rootoutputdir),
+% %           msg = sprintf('Inconsistent root output directory: %s ~= %s',rootoutputdir,obj.rootoutputdir);
+% %           return;
+% %         end
+%       elseif ~ischar(obj.rootoutputdir),
+%         outexpdir = expdir;
+%         rootoutputdir = 0;
+%       else
+%         rootoutputdir = obj.rootoutputdir;        
+%       end
+%       
+%       if ischar(obj.rootoutputdir) && ~isoutexpdir,
+%         outexpdir = fullfile(rootoutputdir,expname);
+%       end
       
       % create missing outexpdirs
       if ~exist(outexpdir,'dir'),
@@ -3468,7 +3485,7 @@ classdef JLabelData < handle
       obj.expdirs{end+1} = expdir;
       obj.expnames{end+1} = expname;
       %obj.rootoutputdir = rootoutputdir;
-      obj.outexpdirs{end+1} = outexpdir;
+      %obj.outexpdirs{end+1} = outexpdir;
       
       % load labels for this experiment
       [success1,msg] = obj.LoadLabelsFromFile(obj.nexps);
@@ -3621,7 +3638,7 @@ classdef JLabelData < handle
       
       if ~(numel(obj.expdirs)<expi); obj.expdirs(expi) = []; end
       if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
-      if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
+      %if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
       if ~(numel(obj.nflies_per_exp)<expi); obj.nflies_per_exp(expi) = []; end
       if ~(numel(obj.sex_per_exp)<expi); obj.sex_per_exp(expi) = []; end
       if ~(numel(obj.frac_sex_per_exp)<expi); obj.frac_sex_per_exp(expi) = []; end
@@ -3760,13 +3777,16 @@ classdef JLabelData < handle
       fn = obj.GetFileName(file);
       
       % if this is an output file, only look in output experiment directory
-      if dowrite && JLabelData.IsOutputFile(file),
-        expdirs_try = obj.outexpdirs(expi);
-      else
-        % otherwise, first look in output directory, then look in input
-        % directory
-        expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
-      end
+%       if dowrite && JLabelData.IsOutputFile(file),
+%         %expdirs_try = obj.outexpdirs(expi);
+%         expdirs_try = obj.expdirs(expi);
+%       else
+%         % otherwise, first look in output directory, then look in input
+%         % directory
+%         %expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
+%         expdirs_try = obj.expdirs(expi);
+%       end
+      expdirs_try = obj.expdirs(expi);
       
       % initialize timestamp = -inf if we never set
       timestamp = -inf;
@@ -3892,6 +3912,8 @@ classdef JLabelData < handle
 
     end
     
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
@@ -3924,11 +3946,12 @@ classdef JLabelData < handle
       end
       
       perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
-        'moviefilestr',obj.GetFileName('movie'),...
-        'perframedir',obj.GetFileName('perframedir'),...
-        'default_landmark_params',obj.landmark_params,...
-        'perframe_params',obj.perframe_params,...
-        'rootwritedir',obj.rootoutputdir);
+                        'moviefilestr',obj.GetFileName('movie'),...
+                        'perframedir',obj.GetFileName('perframedir'),...
+                        'default_landmark_params',obj.landmark_params,...
+                        'perframe_params',obj.perframe_params,...
+                        'rootwritedir',expdir);
+%                        'rootwritedir',obj.rootoutputdir);
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
       
@@ -3988,7 +4011,8 @@ classdef JLabelData < handle
     
     function [success, msg] = ScoresToPerframe(obj,expi,fn,ts)
       success = true; msg = '';
-      outdir = obj.outexpdirs{expi};
+      %outdir = obj.outexpdirs{expi};
+      outdir = obj.expdirs{expi};      
       scoresFileIn = [fullfile(outdir,fn) '.mat'];
       scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fn) '.mat'];
       if ~exist(scoresFileIn,'file'),
@@ -4175,13 +4199,16 @@ classdef JLabelData < handle
       fn = obj.GetFileName('perframedir');
       
       % if this is an output file, only look in output experiment directory
-      if dowrite && JLabelData.IsOutputFile('perframedir'),
-        expdirs_try = obj.outexpdirs(expi);
-      else
-        % otherwise, first look in output directory, then look in input
-        % directory
-        expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
-      end
+%       if dowrite && JLabelData.IsOutputFile('perframedir'),
+%         %expdirs_try = obj.outexpdirs(expi);
+%         expdirs_try = obj.expdirs(expi);
+%       else
+%         % otherwise, first look in output directory, then look in input
+%         % directory
+%         %expdirs_try = {obj.outexpdirs{expi},obj.expdirs{expi}};
+%         expdirs_try = obj.expdirs(expi);
+%       end
+      expdirs_try = obj.expdirs(expi);
       
       filenames = cell(1,numel(obj.allperframefns));
       timestamps = -inf(1,numel(obj.allperframefns));
@@ -8222,21 +8249,9 @@ classdef JLabelData < handle
     function gtMode =  IsGTMode(obj)
       gtMode = obj.gtMode;
     end
-    %function advancedMode = IsAdvancedMode(obj)
-    %  advancedMode = obj.advancedMode;
-    %end
-    %function modeSet = IsModeSet(obj)
-    %  modeSet = obj.modeSet;
-    %end
-    function SetGTMode(obj,val)
-      obj.gtMode = val;
-    end
-    %function SetAdvancedMode(obj,val)
-    %  obj.advancedMode = val;
-    %end
-    %function SetMode(obj)
-    %  obj.modeSet = true;
-    %end
+%     function SetGTMode(obj,val)
+%       obj.gtMode = val;
+%     end
     
 
 % Post Processing functions
