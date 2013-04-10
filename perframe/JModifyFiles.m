@@ -206,7 +206,7 @@ for ndx = 1:numel(allexpdirs)
     return;
   end
   SetStatusEditFiles(gcbf,sprintf('Adding experiment directory %s',expdir));
-  [success,msg] = data.AddExpDirNew(expdir);
+  [success,msg] = data.AddExpDir(expdir);
   if ~success,
     if iscell(msg)
       uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
@@ -356,7 +356,7 @@ while(ischar(expdir))
     continue;
   end
     
-  [success,msg] = data.AddExpDirNew(expdir);
+  [success,msg] = data.AddExpDir(expdir);
   if ~success,
     uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
     expdir = fgetl(fid);

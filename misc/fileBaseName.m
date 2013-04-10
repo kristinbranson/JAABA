@@ -1,5 +1,5 @@
 function baseName=fileBaseName(fileName)
 
-[~,baseName]=fileparts(fileName);
+[~,baseName]=myfileparts(fileName);
 
 end
