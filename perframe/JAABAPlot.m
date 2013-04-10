@@ -3731,8 +3731,8 @@ for b=bb
       case 5  % per fly, stern-style
         fprintf(fid,['%% data, %s\n'],xticklabels{g});
         table_data{end}{g}=cell(1,length(frames_labelled(idx)));
-        for e=idx
-          table_data{end}{g}{e}=100.*frames_labelled{e}./frames_total{e};
+        for e=1:length(idx)
+          table_data{end}{g}{e}=100.*frames_labelled{idx(e)}./frames_total{idx(e)};
           [ct,dp,dn]=calculate_ct_d(table_data{end}{g}{e},...
               handles.centraltendency,handles.dispersion);
           h{g}=plot(ha,m,ct,'o','color',color);
