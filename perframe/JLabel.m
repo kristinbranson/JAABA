@@ -7968,10 +7968,10 @@ handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
-if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+if data.nexps > 0 && data.expi == 0,
   handles = SetCurrentMovie(handles,1);
 else
-  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+  handles = SetCurrentMovie(handles,data.expi);
 end
 
 % clear the old experiment directory
