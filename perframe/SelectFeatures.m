@@ -153,9 +153,9 @@ initializeWindowTable(hObject);
 initializeCopyFromMenus(hObject);
 initializeDescriptionPanels(hObject);
 compatibleBasicAdvanced(handles);
-set(hObject,'Visible','on');  % have to do this b/c of Java hacking
+%set(hObject,'Visible','on');  % have to do this b/c of Java hacking
 initializePfTable(hObject);
-removeRowHeaders(hObject);
+%removeRowHeaders(hObject);
 
 % Make sure the graphics items are consistent with the model state
 updateMaxWindowRadiusEditBox(handles);
@@ -255,7 +255,7 @@ handles = guidata(hObject);
 % Deal with windowTable
 fv=handles.featureVocabulary;
 wfTypes=fv.wfTypes;
-set(handles.windowTable,'RowName', wfTypes,...
+set(handles.windowTable, ...
     'ColumnName',{'Computation Type','Select'});
 
 % Initialize the table data  
@@ -332,15 +332,15 @@ end
 % Update the graphics object
 set(handles.pfTable,'Data',tableData);
 
-% do Java stuff to select the corrent element
-jscrollpane = findjobj(handles.pfTable);
-jtable = jscrollpane.getViewport.getView;
-pfNdx=handles.pfNdx;
-if isempty(pfNdx)
-  jtable.changeSelection(0,0, false, false);
-else
-  jtable.changeSelection(pfNdx-1,0, false, false);
-end  
+% % do Java stuff to select the corrent element
+% jscrollpane = findjobj(handles.pfTable);
+% jtable = jscrollpane.getViewport.getView;
+% pfNdx=handles.pfNdx;
+% if isempty(pfNdx)
+%   jtable.changeSelection(0,0, false, false);
+% else
+%   jtable.changeSelection(pfNdx-1,0, false, false);
+% end  
 
 return
 
@@ -360,15 +360,15 @@ tableData{pfNdx,2} = fv.vocabulary{pfNdx}.enabled;
 tableData{pfNdx,3}=fv.getWFAmountForPF(pfNdx);
 set(handles.pfTable,'Data',tableData);
 
-% do Java stuff to select the corrent element
-jscrollpane = findjobj(handles.pfTable);
-jtable = jscrollpane.getViewport.getView;
-pfNdx=handles.pfNdx;
-if isempty(pfNdx)
-  jtable.changeSelection(0,0, false, false);
-else
-  jtable.changeSelection(pfNdx-1,0, false, false);
-end  
+% % do Java stuff to select the current element
+% jscrollpane = findjobj(handles.pfTable);
+% jtable = jscrollpane.getViewport.getView;
+% pfNdx=handles.pfNdx;
+% if isempty(pfNdx)
+%   jtable.changeSelection(0,0, false, false);
+% else
+%   jtable.changeSelection(pfNdx-1,0, false, false);
+% end  
 
 return
 
@@ -449,7 +449,7 @@ pfCategoriesThisName=fv.pfCategoriesFromName.(pfName);
 allPFCategories=fv.pfCategoryNames;
 pfCategoryIndicesThisName = find(ismember(allPFCategories,pfCategoriesThisName));
 basicData = get(handles.basicTable,'Data');
-pfCategoryNamesInTable=basicData{:,1};
+pfCategoryNamesInTable=basicData(:,1);
 for i = 1:numel(pfCategoryIndicesThisName)
   pfCategoryName=pfCategoriesThisName{i};
   rowIndex=find(strcmp(pfCategoryName,pfCategoryNamesInTable));
@@ -488,58 +488,59 @@ end
 return
 
 
-% -------------------------------------------------------------------------
-function removeRowHeaders(hObject)
-% Tweaking the table. Use underlying java objects to do that. Found
-% this at http://undocumentedmatlab.com/blog/uitable-sorting/
+% % -------------------------------------------------------------------------
+% function removeRowHeaders(hObject)
+% % Tweaking the table. Use underlying java objects to do that. Found
+% % this at http://undocumentedmatlab.com/blog/uitable-sorting/
+% 
+% handles = guidata(hObject);
+% 
+% % Basic Table
+% jscrollpane = findjobj(handles.basicTable);
+% jtable = jscrollpane.getViewport.getView;
+% jtable.setSortable(false);	
+% jtable.setAutoResort(false);
+% jtable.setMultiColumnSortable(true);
+% 
+% % Set the size for the row headers.
+% rowHeaderViewport=jscrollpane.getComponent(4);
+% rowHeader=rowHeaderViewport.getComponent(0);
+% newWidth=0; 
+% rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
+% height=rowHeader.getHeight;
+% rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
+% rowHeader.setSize(newWidth,height); 
+% 
+% % Pf Table.
+% jscrollpane = findjobj(handles.pfTable);
+% jtable = jscrollpane.getViewport.getView;
+% jtable.setSortable(false);	
+% jtable.setAutoResort(false);
+% jtable.setMultiColumnSortable(false);
+% 
+% % Set the size for the row headers.
+% rowHeaderViewport=jscrollpane.getComponent(4);
+% rowHeader=rowHeaderViewport.getComponent(0);
+% newWidth=0; 
+% rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
+% height=rowHeader.getHeight;
+% rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
+% rowHeader.setSize(newWidth,height); 
+% 
+% % Window Table.
+% jscroll=findjobj(handles.windowTable);
+% rowHeaderViewport=jscroll.getComponent(4);
+% rowHeader=rowHeaderViewport.getComponent(0);
+% rowHeader.setSize(80,360);
+% 
+% %resize the row header
+% newWidth=0; %100 pixels.
+% rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
+% height=rowHeader.getHeight;
+% rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
+% rowHeader.setSize(newWidth,height); 
+% return
 
-handles = guidata(hObject);
-
-% Basic Table
-jscrollpane = findjobj(handles.basicTable);
-jtable = jscrollpane.getViewport.getView;
-jtable.setSortable(false);	
-jtable.setAutoResort(false);
-jtable.setMultiColumnSortable(true);
-
-% Set the size for the row headers.
-rowHeaderViewport=jscrollpane.getComponent(4);
-rowHeader=rowHeaderViewport.getComponent(0);
-newWidth=0; 
-rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
-height=rowHeader.getHeight;
-rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
-rowHeader.setSize(newWidth,height); 
-
-% Pf Table.
-jscrollpane = findjobj(handles.pfTable);
-jtable = jscrollpane.getViewport.getView;
-jtable.setSortable(false);	
-jtable.setAutoResort(false);
-jtable.setMultiColumnSortable(false);
-
-% Set the size for the row headers.
-rowHeaderViewport=jscrollpane.getComponent(4);
-rowHeader=rowHeaderViewport.getComponent(0);
-newWidth=0; 
-rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
-height=rowHeader.getHeight;
-rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
-rowHeader.setSize(newWidth,height); 
-
-% Window Table.
-jscroll=findjobj(handles.windowTable);
-rowHeaderViewport=jscroll.getComponent(4);
-rowHeader=rowHeaderViewport.getComponent(0);
-rowHeader.setSize(80,360);
-
-%resize the row header
-newWidth=0; %100 pixels.
-rowHeaderViewport.setPreferredSize(java.awt.Dimension(newWidth,0));
-height=rowHeader.getHeight;
-rowHeader.setPreferredSize(java.awt.Dimension(newWidth,height));
-rowHeader.setSize(newWidth,height); 
-return
 
 % -------------------------------------------------------------------------
 function initializeCopyFromMenus(hObject)
@@ -583,6 +584,7 @@ return
 function basicEdit(hObject,eventData)
 % the user selects the category
 if isempty(eventData.Indices); return; end
+oldPointer=pointerToWatch(gcbf);
 if eventData.Indices(2)==2
   % User made a selection in the 2nd column, to select 'all' or 'none' of
   % the PFs in that category.  They can also select 'custom', but that does
@@ -591,6 +593,7 @@ if eventData.Indices(2)==2
 elseif eventData.Indices(2) == 3
   pfCategoryWFAmountChanged(hObject,eventData);
 end
+restorePointer(gcbf,oldPointer);
 return
 
 
@@ -729,6 +732,8 @@ if isempty(eventData.Indices)
   return;
 end
 
+oldPointer=pointerToWatch(gcbf);
+
 handles = guidata(hObject);
 
 %pfData = get(handles.pfTable,'Data');
@@ -747,7 +752,8 @@ handles = UpdateDescriptionPanels(handles);
 guidata(hObject,handles);
 updateWindowTableAndEnablement(handles);
 updateWinParamsAndEnablement(handles);
-%drawnow('update');
+restorePointer(gcbf,oldPointer);
+
 return
 
 
@@ -755,8 +761,11 @@ return
 function pfEdit(hObject,eventData)
 % Called when a perframe feature is added or removed in the pfTable.
 
+oldPointer=pointerToWatch(gcbf);
+
 % Update the figure guidata
 handles = guidata(hObject);
+
 pfNdx = eventData.Indices(1,1);
 handles.pfNdx = pfNdx;
 guidata(hObject,handles);
@@ -770,7 +779,9 @@ elseif tableColumnIndex==3,
   % User edited the amount column
   pfAmountChanged(handles,eventData);
 end
-  
+
+restorePointer(gcbf,oldPointer);
+
 return
 
 
@@ -796,6 +807,7 @@ function pfAmountChanged(handles,eventData)
   newWFAmount=eventData.NewData;  
   fv.setPFToWFAmount(pfIndex,newWFAmount);
   % Now update the view
+  updatePFTableForCurrentPF(handles);
   updateBasicTable(handles);
   updateWindowTableAndEnablement(handles);
   updateWinParamsAndEnablement(handles);
@@ -836,14 +848,14 @@ for wfTypeIndex = 1:nWFTypes
   end
 end
 set(handles.windowTable,'Data',windowData);
-jscrollpane = findjobj(handles.windowTable);
-jtable = jscrollpane.getViewport.getView;
-wfTypeNdx=handles.wfTypeNdx;
-if isempty(wfTypeNdx)
-  jtable.changeSelection(0,0, false, false);
-else
-  jtable.changeSelection(wfTypeNdx-1,0, false, false);
-end  
+% jscrollpane = findjobj(handles.windowTable);
+% jtable = jscrollpane.getViewport.getView;
+% wfTypeNdx=handles.wfTypeNdx;
+% if isempty(wfTypeNdx)
+%   jtable.changeSelection(0,0, false, false);
+% else
+%   jtable.changeSelection(wfTypeNdx-1,0, false, false);
+% end  
 return
 
 
@@ -878,6 +890,8 @@ if isempty(eventData.Indices)
   return;
 end
 
+oldPointer=pointerToWatch(gcbf);
+
 handles = guidata(hObject);
 %winData = get(handles.windowTable,'Data');
 
@@ -897,6 +911,7 @@ else
 end
 guidata(hObject,handles);
 updateWinParamsAndEnablement(handles);
+restorePointer(gcbf,oldPointer);
 return
 
 
@@ -904,8 +919,10 @@ return
 function windowEdit(hObject,eventData)
 % Called when the window-feature type uitable is edited.
 
+oldPointer=pointerToWatch(gcbf);
+
 handles = guidata(hObject);
-fv=handles.featureVocabulary;
+fv=handles.featureVocabulary;  % a ref
 %updatePFCategoryAmountForCurrentPF(handles);
 wfTypeNdx = eventData.Indices(1);
 handles.wfTypeNdx = wfTypeNdx;
@@ -917,8 +934,8 @@ wfType = fv.wfTypes{wfTypeNdx};
 % except by disabling the per-frame feature
 if ~isequal(wfType,'default')
   pfNdx=handles.pfNdx;
-  pfName=handles.featureVocabulary.pfNameList{pfNdx};
-  handles.featureVocabulary.setWFTypeEnablement(pfName,wfType,eventData.NewData)
+  pfName=fv.subdialectPFNames{pfNdx};
+  fv.setWFTypeEnablement(pfName,wfType,eventData.NewData)
 end
 
 guidata(hObject,handles);
@@ -932,6 +949,7 @@ updateBasicTableAllCategoriesOfCurrentPF(handles);
 % else
 %   disableWinParams(handles);
 % end
+restorePointer(gcbf,oldPointer);
 return
 
 
@@ -1196,6 +1214,7 @@ updatePFTableForCurrentPF(handles);
 return
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function MinWindow_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to MinWindow (see GCBO)
@@ -1239,6 +1258,7 @@ updatePFTableForCurrentPF(handles);
 return
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function MaxWindow_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to MaxWindow (see GCBO)
@@ -1281,6 +1301,7 @@ updatePFTableForCurrentPF(handles);
 return
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function WindowStep_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to WindowStep (see GCBO)
@@ -1292,6 +1313,7 @@ function WindowStep_CreateFcn(hObject, eventdata, handles)  %#ok
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1323,6 +1345,7 @@ updatePFTableForCurrentPF(handles);
 return
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function WindowOffsets_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to WindowOffsets (see GCBO)
@@ -1607,6 +1630,7 @@ updatePFTableForCurrentPF(handles);
 return
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
 function ExtraParams_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to ExtraParams (see GCBO)
@@ -1879,6 +1903,8 @@ function uipanel_tabs_SelectionChangeFcn(hObject, eventdata, handles)
 %	NewValue: handle of the currently selected object
 % handles    structure with handles and user data (see GUIDATA)
 
+oldPointer=pointerToWatch(gcbf);
+
 if eventdata.NewValue == handles.togglebutton_tabdescription,
   handles.currentTab = 'description';
 elseif eventdata.NewValue == handles.togglebutton_tabperframehistogram,
@@ -1887,6 +1913,10 @@ end
 
 handles = UpdateDescriptionPanels(handles);
 guidata(hObject,handles);
+
+restorePointer(gcbf,oldPointer);
+
+return
 
 
 % -------------------------------------------------------------------------
@@ -1955,9 +1985,13 @@ function editSize_Callback(hObject, eventdata, handles)  %#ok
 
 % Hints: get(hObject,'String') returns contents of editSize as text
 %        str2double(get(hObject,'String')) returns contents of editSize as a double
+
+oldPointer=pointerToWatch(gcbf);
+
 curVal = str2double(get(hObject,'String'));
-if isempty(curVal) || (round(curVal)-curVal)~=0 ,
+if isempty(curVal) || (round(curVal)-curVal)~=0 || curVal<=0 ,
   updateMaxWindowRadiusEditBox(handles);
+  restorePointer(gcbf,oldPointer);
   return
 end
 
@@ -1974,6 +2008,9 @@ updateWinParams(handles);
 drawnow('update');  % want to see that number change in window params pronto!
 updateBasicTable(handles);
 updatePFTable(handles);
+
+restorePointer(gcbf,oldPointer);
+
 return
 
 

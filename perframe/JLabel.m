@@ -5978,7 +5978,9 @@ function menu_classifier_select_features_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % handles=ShowSelectFeatures(handles);
+oldPointer=pointerToWatch(gcbf);
 SelectFeatures(handles.figure_JLabel);
+restorePointer(gcbf,oldPointer);
 % uiwait(selHandle);
 % someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 % if ~someExperimentIsCurrent,
