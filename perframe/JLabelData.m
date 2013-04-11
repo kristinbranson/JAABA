@@ -585,7 +585,7 @@ classdef JLabelData < handle
                                        timeStamp);
         if ~success,
           error('JLabelData.errorGeneratingPerframeFileFromScoreFile', ...
-                sprintf('Error generating score-based per-frame file %s for %s',pfName,expName));
+                sprintf('Error generating score-based per-frame file %s for %s',pfName,expName));  %#ok
         end
       end
       
@@ -2405,7 +2405,7 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function clearClassifier(self)
-      % Reset the classifier to a tabular rasa state
+      % Reset the classifier to a blank slate
       
       % Get the current classifier
       classifier=self.getClassifier();
@@ -8718,10 +8718,7 @@ classdef JLabelData < handle
                               scoreFeaturesFileNameListNew, ...
                               timeStampListNew, ...
                               scoreBaseNameListNew)
-
-      %
-      % Update obj.scoreFeatures
-      %
+      % Update obj.scoreFeatures, preserving invariants
 
       % Get the current scoreFeatures
       scoreFeaturesOld=obj.scoreFeatures;
