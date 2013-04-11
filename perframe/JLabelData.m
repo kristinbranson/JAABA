@@ -18,6 +18,12 @@ classdef JLabelData < handle
     trx = {};
 
     % last-used per-frame data (one fly)
+    % This seems to generally be a cell array with as many elements as
+    % allperframefns.  (I.e. as many features as are in the subdialect.)
+    % Each element contains a double array with approximately as many
+    % elements as their are frames in the current track, which gives the
+    % value of that per-frame feature for that frame, for the current
+    % experiment and target.  --ALT, Apr 10 2013
     perframedata = {};
     
     % A feature lexicon is the universe of possible features available.
@@ -295,12 +301,12 @@ classdef JLabelData < handle
                           % --ALT, Apr 5, 2013
     curperframefns = {};  % The list of all per-frame feature names 
                           % that are used for classifier training.  This is
-                          % a subset of allperframefns, and includes ll the
+                          % a subset of allperframefns, and includes all the
                           % scores-as-input feature names.  I would call
                           % this the 'vocabulary'. --ALT, Apr 5, 2013
     perframeunits = {};
-    %scoresasinput = [];
-    scoresasinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+    %scoreFeatures = [];
+    scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
     
     % experiment/file management
 
@@ -403,7 +409,7 @@ classdef JLabelData < handle
                         'scoreNorm', ...
                         'windowfeaturesparams', ...
                         'postprocessparams'};
-%                        'scoresasinput'};
+%                        'scoreFeatures'};
 %                        'maxWindowRadiusCommonCached', ...
 %                        'basicFeatureTable', ...
     fieldNamesInClassifier = {'type', ...
@@ -414,7 +420,7 @@ classdef JLabelData < handle
                               'scoreNorm', ...
                               'windowFeaturesParams', ...
                               'postProcessParams'}
-%                              'scoresAsInput'};
+%                              'scoreFeatures'};
 %                              'maxWindowRadiusCommonCached', ...
 %                              'basicFeatureTable', ...
   end
@@ -522,7 +528,91 @@ classdef JLabelData < handle
       success = true;
     end  % method
     
-  end
+    
+    % ---------------------------------------------------------------------
+    function [success,msg]=loadPerframeData(obj,expi,indicesOfTargets)
+      % Loads the per-frame features for experiment expi and target
+      % iTarget into obj.perframedata and obj.perframeunits      
+      
+      % Test for various degenerate cases 
+      if isempty(indicesOfTargets)
+        success=true;  msg='';
+        return
+      end
+      iTarget=indicesOfTargets(1);
+      if isempty(expi) || ~((1<=expi)&&(expi<=obj.nexps))
+        success=true;  msg='';
+        return
+      end        
+      % If we got here, expi and iTarget are non-degenerate
+      perframeFileNameList = obj.GetPerframeFiles(expi);
+      nPerframeFeatures=numel(obj.allperframefns);
+      obj.perframedata=cell(1,nPerframeFeatures);
+      obj.perframeunits=cell(1,nPerframeFeatures);      
+      for j = 1:nPerframeFeatures,
+        perframeFileName=perframeFileNameList{j};
+        if ~exist(perframeFileName,'file'),
+          success = false;
+          msg = sprintf('Per-frame data file %s does not exist',perframeFileNameList{j});
+          return;
+        end
+        tmp = load(perframeFileName);
+        obj.perframedata{j} = tmp.data{iTarget};
+        obj.perframeunits{j} = tmp.units;
+      end
+      success=true;
+      msg='';
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function addSingleScoreFeature(obj,scoreFeature)
+      % This is called by setScoreFeatures() to add a single score feature.
+      % Rolling back on error is handles by setScoreFeatures.
+      % We assume the score feature to be added is not already present.
+      % This changes obj.scoreFeatures and obj.allperframefns, but not
+      % obj.perframedata.
+
+      % Convert the scores files into perframe files.
+      pfName=scoreFeature.scorefilename;
+      timeStamp=scoreFeature.ts;
+      nExps=obj.nexps;
+      for iExp=1:nExps
+        expName=obj.expnames{iExp};
+        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',pfName,expName);
+        success = obj.ScoresToPerframe(iExp, ...
+                                       pfName, ...
+                                       timeStamp);
+        if ~success,
+          error('JLabelData.errorGeneratingPerframeFileFromScoreFile', ...
+                sprintf('Error generating score-based per-frame file %s for %s',pfName,expName));
+        end
+      end
+      
+      % store scoreFeatures in self
+      obj.scoreFeatures = [obj.scoreFeatures;scoreFeature];
+      obj.allperframefns=[obj.allperframefns;pfName];      
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function deleteSingleScoreFeature(obj,scoreFeature)
+      % This is called by setScoreFeatures() to delete a single score feature.
+      % Rolling back on error is handles by setScoreFeatures.
+      % This changes obj.scoreFeatures and obj.allperframefns, but not
+      % obj.perframedata.
+
+      % Delete from the scoreFeatures
+      toBeDeleted=(obj.scoreFeatures==scoreFeature);
+      obj.scoreFeatures=obj.scoreFeatures(~toBeDeleted);
+      
+      % Delete from allperframefns
+      pfName=scoreFeature.scorefilename;
+      notPfName=@(string)(~isequal(string,pfName));
+      obj.allperframefns=cellFilter(notPfName,obj.allperframefns);      
+    end  % method
+  
+  end  % private methods
 
   
   % -----------------------------------------------------------------------
@@ -1100,17 +1190,17 @@ classdef JLabelData < handle
           end
         end  % isfield(basicParams,'perframe'),
       end  % isfield(basicParams,'file'),
-      if isfield(basicParams,'scoresAsInput') ,
-        obj.scoresasinput = basicParams.scoresAsInput;
-        nScoresAsInputs=length(basicParams.scoresAsInput);
-        scoresAsInputPFNames=cell(nScoresAsInputs,1);
-        for i = 1:nScoresAsInputs ,
-          [~,pfName] = fileparts(obj.scoresasinput(i).scorefilename);
-          scoresAsInputPFNames{i} = pfName;
+      if isfield(basicParams,'scoreFeatures') ,
+        obj.scoreFeatures = basicParams.scoreFeatures;
+        nScoreFeaturess=length(basicParams.scoreFeatures);
+        scoreFeaturesPFNames=cell(nScoreFeaturess,1);
+        for i = 1:nScoreFeaturess ,
+          [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
+          scoreFeaturesPFNames{i} = pfName;
         end
         obj.allperframefns=[obj.allperframefns ; ...
-                            scoresAsInputPFNames];
-      end  % if isfield(basicParams,'scoresAsInput'),
+                            scoreFeaturesPFNames];
+      end  % if isfield(basicParams,'scoreFeatures'),
       
       % Re-load the perframe feature signals, since the PFFs may have changed
       obj.loadPerframeData(obj.expi,obj.flies);
@@ -1121,10 +1211,10 @@ classdef JLabelData < handle
     function basicParams = getBasicParams(obj)
       basicParams=struct();
       basicParams.featureLexiconName=obj.featureLexiconName;
-      basicParams.scoresAsInput=obj.scoresasinput;
+      basicParams.scoreFeatures=obj.scoreFeatures;
       subdialectPFNames=obj.allperframefns;
-      nScoresAsInputs=length(obj.scoresasinput);
-      sublexiconPFNames=subdialectPFNames(1:end-nScoresAsInputs);  
+      nScoreFeaturess=length(obj.scoreFeatures);
+      sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);  
       basicParams.sublexiconPFNames=sublexiconPFNames;
       %basicParams.behaviors.type=obj.targettype;
       basicParams.behaviors.names=obj.labelnames(1);
@@ -1133,7 +1223,7 @@ classdef JLabelData < handle
       basicParams.file.moviefilename=obj.moviefilename;
       basicParams.file.trxfilename=obj.trxfilename;
       basicParams.file.scorefilename=obj.scorefilename;
-      %basicParams.scoresinput=obj.scoresasinput;
+      %basicParams.scoresinput=obj.scoreFeatures;
       basicParams.labelGraphicParams=obj.labelGraphicParams;
       basicParams.trxGraphicParams=obj.trxGraphicParams;
     end
@@ -2308,8 +2398,8 @@ classdef JLabelData < handle
       % predict for all loaded examples
       self.PredictLoaded();
 
-      % clear the cached per-frame, trx data
-      self.ClearCachedPerExpData();      
+      % % clear the cached per-frame, trx data
+      % self.ClearCachedPerExpData();      
     end  % setClassifier() method
 
     
@@ -2330,7 +2420,7 @@ classdef JLabelData < handle
       %classifier.basicFeatureTable={};
       %classifier.maxWindowRadiusCommonCached=10;  % default
       %classifier.postProcessParams=[];
-      %classifier.scoresAsInput=struct('classifierfile',{}, ...
+      %classifier.scoreFeatures=struct('classifierfile',{}, ...
       %                                'ts',{}, ...
       %                                'scorefilename',{});
 
@@ -3081,12 +3171,13 @@ classdef JLabelData < handle
       end
       
       % Convert the scores file into perframe files.      
-      for i = 1:numel(obj.scoresasinput)
-        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expName);
-        [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
-          obj.scoresasinput(i).ts);
+      for i = 1:numel(obj.scoreFeatures)
+        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+        [success,msg] = obj.ScoresToPerframe(obj.nexps, ...
+                                             obj.scoreFeatures(i).scorefilename, ...
+                                             obj.scoreFeatures(i).ts);
           if ~success,
-            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoresasinput(i).scorefilename,expName);
+            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
             obj.RemoveExpDirs(obj.nexps);
             return;
           end
@@ -3316,12 +3407,12 @@ classdef JLabelData < handle
 %       
 %       % Convert the scores file into perframe files.
 %       
-%       for i = 1:numel(obj.scoresasinput)
-%         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
-%         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
-%           obj.scoresasinput(i).ts);
+%       for i = 1:numel(obj.scoreFeatures)
+%         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expname);
+%         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoreFeatures(i).scorefilename,...
+%           obj.scoreFeatures(i).ts);
 %           if ~success,
-%             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoresasinput(i).scorefilename,expname);
+%             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expname);
 %             obj.RemoveExpDirs(obj.nexps);
 %             return;
 %           end
@@ -3529,9 +3620,9 @@ classdef JLabelData < handle
 %         end
 %       end
 %       
-%       for i = 1:numel(obj.scoresasinput)
-%         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoresasinput(i).scorefilename,...
-%           obj.scoresasinput(i).ts);
+%       for i = 1:numel(obj.scoreFeatures)
+%         [success,msg] = obj.ScoresToPerframe(obj.nexps,obj.scoreFeatures(i).scorefilename,...
+%           obj.scoreFeatures(i).ts);
 %         if ~success,
 %           obj.RemoveExpDirs(obj.nexps);
 %           return;
@@ -3888,7 +3979,7 @@ classdef JLabelData < handle
       toRemove = [];
       for i = 1:numel(obj.allperframefns)
         curpf = obj.allperframefns{i};
-        if any(strcmp(curpf,{obj.scoresasinput(:).scorefilename})), continue; end
+        if any(strcmp(curpf,{obj.scoreFeatures(:).scorefilename})), continue; end
         curtypes = settings.perframe.(curpf).type;
         if any(strcmpi(curtypes,'arena')) || any(strcmpi(curtypes,'position'))
           toRemove(end+1) = i;  %#ok
@@ -3994,7 +4085,7 @@ classdef JLabelData < handle
         end
         
         % Don't generate the per-frame files from scores here anymore..
-        if isempty(obj.scoresasinput) || ~any(strcmp(fn,{obj.scoresasinput(:).scorefilename}))
+        if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
           perframetrx.(fn);
         end        
       end
@@ -4008,7 +4099,7 @@ classdef JLabelData < handle
     end
     
     
-    
+    % ---------------------------------------------------------------------
     function [success, msg] = ScoresToPerframe(obj,expi,fn,ts)
       success = true; msg = '';
       %outdir = obj.outexpdirs{expi};
@@ -4771,6 +4862,7 @@ classdef JLabelData < handle
 % Labels and predictions    
     
 
+    % ---------------------------------------------------------------------
     function [success,msg] = PreLoad(obj,expi,flies)
     % [success,msg] = PreLoad(obj,expi,flies)
     % Preloads data associated with the input experiment and flies. If
@@ -4873,41 +4965,6 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function [success,msg]=loadPerframeData(obj,expi,indicesOfTargets)
-      % Loads the per-frame features for experiment expi and target
-      % iTarget into obj.perframedata and obj.perframeunits      
-      % This is a private method.
-      
-      % Test for various degenerate cases 
-      if isempty(indicesOfTargets)
-        success=true;  msg='';
-        return
-      end
-      iTarget=indicesOfTargets(1);
-      if isempty(expi) || ~((1<=expi)&&(expi<=obj.nexps))
-        success=true;  msg='';
-        return
-      end        
-      % If we got here, expi and iTarget are non-degenerate
-      perframeFileNameList = obj.GetPerframeFiles(expi);
-      nPerframeFeatures=numel(obj.allperframefns);
-      obj.perframedata=cell(1,nPerframeFeatures);
-      obj.perframeunits=cell(1,nPerframeFeatures);      
-      for j = 1:nPerframeFeatures,
-        perframeFileName=perframeFileNameList{j};
-        if ~exist(perframeFileName,'file'),
-          success = false;
-          msg = sprintf('Per-frame data file %s does not exist',perframeFileNameList{j});
-          return;
-        end
-        tmp = load(perframeFileName);
-        obj.perframedata{j} = tmp.data{iTarget};
-        obj.perframeunits{j} = tmp.units;
-      end
-      success=true;
-      msg='';
-    end
-    
     function ClearCachedPerExpData(obj)
     % ClearCachedPerExpData(obj)
     % Clears all cached data for the currently loaded experiment
@@ -8514,7 +8571,7 @@ classdef JLabelData < handle
 %       projectParams.file.scorefilename=self.scorefilename;
 %       projectParams.file.clipsdir=self.clipsdir;                  
 %       projectParams.file.perframedir=self.perframedir;                  
-%       projectParams.scoresinput = self.scoresasinput ;
+%       projectParams.scoresinput = self.scoreFeatures ;
 %       projectParams.labels=self.labelGraphicParams;
 %       projectParams.trx=self.trxGraphicParams;
 %     end  % method
@@ -8620,10 +8677,10 @@ classdef JLabelData < handle
       % Get a bunch of parameters, put them in s
       s.featureLexiconName=self.featureLexiconName;
       s.featureLexicon=self.featureLexicon;
-      s.scoresAsInput=self.scoresasinput;
+      s.scoreFeatures=self.scoreFeatures;
       subdialectPFNames=self.allperframefns;
-      nScoresAsInputs=length(self.scoresasinput);
-      sublexiconPFNames=subdialectPFNames(1:end-nScoresAsInputs);
+      nScoreFeaturess=length(self.scoreFeatures);
+      sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);
       s.sublexiconPFNames=sublexiconPFNames;
       s.behaviors.type=self.targettype;
       s.behaviors.names=self.labelnames;
@@ -8657,69 +8714,73 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function setScoresAsInput(obj, ...
-                              scoresAsInputFileNameListNew, ...
+    function setScoreFeatures(obj, ...
+                              scoreFeaturesFileNameListNew, ...
                               timeStampListNew, ...
                               scoreBaseNameListNew)
 
       %
-      % Update obj.scoresasinput
-      %
-                            
-      % get the current scoresasinput
-      scoresAsInputOld=obj.scoresasinput;
-
-      % collect the new ones into a scoresAsInput structure array
-      scoresAsInputNew= ...
-        collectScoresAsInput(scoresAsInputFileNameListNew, ...
-                             timeStampListNew, ...
-                             scoreBaseNameListNew);
-      
-      % store scoresasinput in self
-      obj.scoresasinput = scoresAsInputNew;
-      
-      
-      %
-      % Update obj.allperframefns
+      % Update obj.scoreFeatures
       %
 
-      % Get the old list of per-frame features
-      featureNamesInDialectOld=obj.allperframefns;
+      % Get the current scoreFeatures
+      scoreFeaturesOld=obj.scoreFeatures;
 
-      % determine the feature names in the new lexicon
-      featureNamesInDialectNew= ...
-        featureNamesNewFromOld(featureNamesInDialectOld, ...
-                               scoresAsInputOld, ...
-                               scoresAsInputNew);
-                                   
-      % Commit to self
-      obj.allperframefns=featureNamesInDialectNew;
-                 
-      
-      %
-      % Do other stuff that needs doing
-      %
-      
-%       % Update the basic feature table
-%       if ~isempty(obj.basicFeatureTable),
-%         scoresRowIndex = find(strcmpi(obj.basicFeatureTable(:,1),'scores'));
-%         if isempty(scoresAsInputNew) && ~isempty(scoresRowIndex)
-%           % if no scores as inputs, remove that row from basicFeatureTable,
-%           % if it's present
-%           obj.basicFeatureTable(scoresRowIndex,:)=[];
-%         else
-%           if isempty(scoresRowIndex) ,
-%             obj.basicFeatureTable(end+1,:) = {'scores','None','normal'};
-%           else
-%             obj.basicFeatureTable{scoresRowIndex,2} = 'Custom';
-%             % how do we know that "Custom" is the right answer?      
-%           end
-%         end
-%       end
-      
-      % Re-load the perframe feature signals, since the PFFs may have changed
-      obj.loadPerframeData(obj.expi,obj.flies);
+      % Get the current list of per-frame features
+      featureNamesInSubdialectOld=obj.allperframefns;
 
+      % Get some other things, in case we need to roll-back
+      perframeDataOld=obj.perframedata;
+      perframeUnitsOld=obj.perframeunits;
+
+      % Do a bunch of stuff in a try block, so we can easily roll back if
+      % anything goes amiss
+      try 
+        % collect the new ones into a scoreFeatures structure array
+        scoreFeaturesNew= ...
+          collectScoreFeatures(scoreFeaturesFileNameListNew, ...
+                               timeStampListNew, ...
+                               scoreBaseNameListNew);
+
+        % determine which elements of each are kept, added
+        [kept,added]= ...
+          setDifferencesScoreFeatures(scoreFeaturesOld,scoreFeaturesNew);
+        deleted=~kept;
+
+        % delete each of the deleted score features
+        scoreFeaturesDeleted=scoreFeaturesOld(deleted);
+        nDeleted=length(scoreFeaturesDeleted);
+        for i=1:nDeleted
+          obj.deleteSingleScoreFeature(scoreFeaturesDeleted(i));
+        end
+
+        % add each of the added score features
+        scoreFeaturesAdded=scoreFeaturesNew(added);
+        nAdded=length(scoreFeaturesAdded);
+        for i=1:nAdded
+          obj.addSingleScoreFeature(scoreFeaturesAdded(i));
+        end
+
+        % Re-load the perframe feature signals, since the PFFs may have changed
+        [success,msg]=obj.loadPerframeData(obj.expi,obj.flies);
+        if ~success ,
+          % throw error
+          error('JLabelData:unableToSetScoreFeatures', ...
+                msg);
+        end
+      catch excp
+        if isequal(excp.identifier,'JLabelData.unableToSetScoreFeatures') || ...
+           isequal(excp.identifier,'JLabelData.errorGeneratingPerframeFileFromScoreFile')
+          % unroll changes
+          obj.scoreFeatures=scoreFeaturesOld;
+          obj.allperframefns=featureNamesInSubdialectOld;
+          obj.perframedata=perframeDataOld;
+          obj.perframeunits=perframeUnitsOld;
+        end
+        % We always rethrow the exception, so the caller can inform the user
+        rethrow(excp);
+      end
+      
       % need to clear the classifier
       obj.clearClassifier();
     end  % method

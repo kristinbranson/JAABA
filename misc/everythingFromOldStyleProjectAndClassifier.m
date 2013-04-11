@@ -56,7 +56,7 @@ end
 everythingParams.featureLexiconName=featureLexiconName;
 everythingParams.featureLexicon=featureLexicon;
 everythingParams.sublexiconPFNames=sublexiconPFNames;
-everythingParams.scoresAsInput=projectParams.scoresinput;
+everythingParams.scoreFeatures=projectParams.scoresinput;
 if isempty(projectParams.behaviors.names) ,
   everythingParams.behaviorName='';
 else
