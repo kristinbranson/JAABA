@@ -1,4 +1,4 @@
-classdef ChangeScoresAsFeaturesDialog < handle
+classdef ChangeScoreFeaturesDialog < handle
   properties
     figureJLabel
     fileNameList={}  
@@ -22,10 +22,10 @@ classdef ChangeScoresAsFeaturesDialog < handle
     doneButton
   end
   methods
-    function self=ChangeScoresAsFeaturesDialog(fileNameList, ...
-                                               timeStampList, ...
-                                               scoreBaseNameList, ...
-                                               figureJLabel)
+    function self=ChangeScoreFeaturesDialog(fileNameList, ...
+                                            timeStampList, ...
+                                            scoreBaseNameList, ...
+                                            figureJLabel)
       % need to keep this around to tell it when we're done
       self.figureJLabel=figureJLabel;
       self.fileNameList=fileNameList;
@@ -70,7 +70,7 @@ classdef ChangeScoresAsFeaturesDialog < handle
                                  'numbertitle','off', ...
                                  'menubar','none', ...
                                  'closeRequestFcn',@(g,e)(self.cancelButtonPressed()), ...
-                                 'name','Change Scores-as-Features...', ...
+                                 'name','Change Score Features...', ...
                                  'windowstyle','normal');
       
       % make the popupmenu label, but make it invisible, so we can get its extent
@@ -195,13 +195,13 @@ classdef ChangeScoresAsFeaturesDialog < handle
     function removeButtonPressed(self)
       i = self.iCurrent;
       if isempty(i), return; end
-      nScoresAsInput=length(self.fileNameList);
+      nScoreFeatures=length(self.fileNameList);
       % delete the i'th entries
       self.fileNameList(i) = [];
       self.timeStampList(i) = [];
       self.scoreBaseNameList(i) = [];
       % update i if we just deleted the n'th element
-      if (i==nScoresAsInput)
+      if (i==nScoreFeatures)
         i=fif(i>1,i-1,[]);
       end
       self.iCurrent=i;
@@ -218,7 +218,7 @@ classdef ChangeScoresAsFeaturesDialog < handle
       delete(self.graphicsObject);
       % Call the appropriate function to notify the JLabel "object" that 
       % we're done.
-      JLabel('changeScoresAsFeaturesDone', ...
+      JLabel('changeScoreFeaturesDone', ...
              self.figureJLabel, ...
              self.fileNameList, ...
              self.timeStampList, ...

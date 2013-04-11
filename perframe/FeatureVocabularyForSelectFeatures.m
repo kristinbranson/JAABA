@@ -3,7 +3,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
   % instance variables
   properties
 %     jld  % instance of JLabelData, a ref
-%     scoresAsInput  % the scores-as-input structure, detailing the files that
+%     scoreFeatures  % the scores-as-input structure, detailing the files that
 %                    % hold classifiers to be used as inputs, and their
 %                    % per-frame feature names
 %     windowFeatureParams
@@ -178,13 +178,13 @@ classdef FeatureVocabularyForSelectFeatures < handle
     
     % ---------------------------------------------------------------------
     function defaultPFTransTypesFromName= ...
-        defaultPFTransTypesFromNameFromFeatureLexicon(featureLexicon,scoresAsInput)
+        defaultPFTransTypesFromNameFromFeatureLexicon(featureLexicon,scoreFeatures)
       % Calculate the structure that maps PF names to transformation types.
       
       % Get the list of all the per-frame features in the lexicon,
       % including the scores-as-inputs ones
       lexiconPFNames=fieldnames(featureLexicon.perframe);
-      scorePFNames = {scoresAsInput(:).scorefilename};
+      scorePFNames = {scoreFeatures(:).scorefilename};
       subdialectPFNames=[lexiconPFNames;scorePFNames];
 
       % Make one entry in the result structure per PF
@@ -208,14 +208,14 @@ classdef FeatureVocabularyForSelectFeatures < handle
     
     % ---------------------------------------------------------------------
     function pfCategoriesFromName= ...
-        pfCategoriesFromNameFromFeatureLexicon(featureLexicon,scoresAsInput)
+        pfCategoriesFromNameFromFeatureLexicon(featureLexicon,scoreFeatures)
       % Calculate the structure that maps a PF name to the PF categories
       % that it belongs to.
       
       % Get the list of all the per-frame features in the lexicon,
       % including the scores-as-inputs ones
       lexiconPFNames=fieldnames(featureLexicon.perframe);
-      scorePFNames = {scoresAsInput(:).scorefilename};
+      scorePFNames = {scoreFeatures(:).scorefilename};
       subdialectPFNames=[lexiconPFNames;scorePFNames];
 
       % Make one entry in the result structure per PF
@@ -271,7 +271,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
   methods
     % ---------------------------------------------------------------------
     function self=FeatureVocabularyForSelectFeatures(featureLexicon, ...
-                                                     scoresAsInput, ...
+                                                     scoreFeatures, ...
                                                      subdialectPFNames, ...
                                                      windowFeatureParams, ...
                                                      maxWindowRadiusCommon)
@@ -285,10 +285,10 @@ classdef FeatureVocabularyForSelectFeatures < handle
         FeatureVocabularyForSelectFeatures.computeWFParamsFromAmount(featureLexicon);
       self.defaultPFTransTypesFromName= ...
         FeatureVocabularyForSelectFeatures.defaultPFTransTypesFromNameFromFeatureLexicon(featureLexicon, ...
-                                                                                         scoresAsInput);
+                                                                                         scoreFeatures);
       self.pfCategoriesFromName= ...
         FeatureVocabularyForSelectFeatures.pfCategoriesFromNameFromFeatureLexicon(featureLexicon, ...
-                                                                                  scoresAsInput);
+                                                                                  scoreFeatures);
       self.pfCategoryNames= ...
         FeatureVocabularyForSelectFeatures.pfCategoryNamesFromFeatureLexicon(featureLexicon);
       

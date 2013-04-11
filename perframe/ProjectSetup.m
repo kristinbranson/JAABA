@@ -101,8 +101,8 @@ updateConfigTable(handles);
 set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
 
 % Set the current score-as-feature file
-fileNameList = {handles.basicParams.scoresAsInput(:).classifierfile};
-handles.indexOfScoresAsInputFile=fif(isempty(fileNameList),[],1);
+fileNameList = {handles.basicParams.scoreFeatures(:).classifierfile};
+handles.indexOfScoreFeaturesFile=fif(isempty(fileNameList),[],1);
   
 % Update handles structure
 guidata(hObject, handles);
@@ -178,7 +178,7 @@ basicParams.featureLexiconName=featureLexiconName;
 basicParams.behaviors.names = {};
 basicParams.file.perframedir = 'perframe';
 basicParams.file.clipsdir = 'clips';
-basicParams.scoresAsInput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+basicParams.scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
 %basicParams.windowfeatures = struct;
 basicParams.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
 basicParams.behaviors.unknowncolor = [0,0,0];
@@ -239,9 +239,9 @@ indexOfFeatureLexicon=find(strcmp(handles.basicParams.featureLexiconName,handles
 set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
 
 % Update the list of scores-an-inputs
-fileNameList = {handles.basicParams.scoresAsInput(:).classifierfile};
+fileNameList = {handles.basicParams.scoreFeatures(:).classifierfile};
 set(handles.listbox_inputscores,'String',fileNameList);
-set(handles.listbox_inputscores,'Value',handles.indexOfScoresAsInputFile);
+set(handles.listbox_inputscores,'Value',handles.indexOfScoreFeaturesFile);
 
 % Disble the Remove button iff the list of scores-as-inputs is empty
 set(handles.pushbutton_removelist,'enable',offIff(isempty(fileNameList)));
@@ -309,7 +309,7 @@ function updateConfigTable(handles)
 % Update the config table (a GUI element) to match the current "model"
 % state
 basicParams = handles.basicParams;
-fields2remove = {'featureparamlist','windowfeatures','scoresAsInput','sublexiconPFNames'};
+fields2remove = {'featureparamlist','windowfeatures','scoreFeatures','sublexiconPFNames'};
 for ndx = 1:numel(fields2remove)
   if isfield(basicParams,fields2remove{ndx}),
     basicParams = rmfield(basicParams,fields2remove{ndx});
@@ -603,7 +603,7 @@ function listbox_inputscores_Callback(hObject, eventdata, handles)
 % hObject    handle to listbox_inputscores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.indexOfScoresAsInputFile=get(hObject,'Value');
+handles.indexOfScoreFeaturesFile=get(hObject,'Value');
 guidata(hObject,handles);
 return
 
@@ -681,8 +681,8 @@ else
   return
 end
 
-handles.basicParams.scoresAsInput(end+1) = curs;
-handles.indexOfScoresAsInputFile = length(handles.basicParams.scoresAsInput);
+handles.basicParams.scoreFeatures(end+1) = curs;
+handles.indexOfScoreFeaturesFile = length(handles.basicParams.scoreFeatures);
 updateEditsListboxesAndPopupmenus(handles);
 guidata(hObject,handles);
 return
@@ -694,17 +694,17 @@ function pushbutton_removelist_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_removelist (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-i = handles.indexOfScoresAsInputFile;
+i = handles.indexOfScoreFeaturesFile;
 if isempty(i), return; end
-nScoresAsInput=length(handles.basicParams.scoresAsInput);
-handles.basicParams.scoresAsInput(i) = [];
-if (i==nScoresAsInput)
+nScoreFeatures=length(handles.basicParams.scoreFeatures);
+handles.basicParams.scoreFeatures(i) = [];
+if (i==nScoreFeatures)
   i=i-1;
   if i==0
     i=[];
   end
 end
-handles.indexOfScoresAsInputFile=i;
+handles.indexOfScoreFeaturesFile=i;
 guidata(hObject,handles);
 updateEditsListboxesAndPopupmenus(handles);
 return
@@ -867,9 +867,9 @@ if ismember('List of perframe features',sellist)
 end
 
 if ismember('Classifier files used as input', sellist);
-  if isfield(origparams,'scoresAsInput')
+  if isfield(origparams,'scoreFeatures')
     
-    handles.basicParams.scoresAsInput = origparams.scoresAsInput;
+    handles.basicParams.scoreFeatures = origparams.scoreFeatures;
   end
 end
 
