@@ -2390,7 +2390,7 @@ set(handles.menu_go_previous_automatic_bout_end, ...
 % Update the Classifier menu items
 %
 set(handles.menu_classifier,'enable',onIff(labelPenIsUp));
-set(handles.menu_classifier_change_scores_as_features, ...
+set(handles.menu_classifier_change_score_features, ...
     'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_classifier_select_features, ...
     'Enable',onIff(thereIsAnOpenFile));  
@@ -8021,6 +8021,7 @@ if ~success,
 end
 
 % % Re-load the perframe feature signals, since the PFFs may have changed
+% data should take of this itself
 % data.loadPerframeData(data.expi,data.flies);
 
 % Set the GUI to match the labeling mode
@@ -8293,7 +8294,7 @@ function basicParams=basicParamsFromEverythingParams(everythingParams)
 basicParams=struct();
 basicParams.featureLexiconName=everythingParams.featureLexiconName;
 basicParams.featureLexicon=everythingParams.featureLexicon;
-basicParams.scoresAsInput=everythingParams.scoresAsInput;
+basicParams.scoreFeatures=everythingParams.scoreFeatures;
 basicParams.sublexiconPFNames=everythingParams.sublexiconPFNames;
 basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
 basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
@@ -8328,7 +8329,7 @@ return
 %                   'featureWindowSize' , ...
 %                   'postprocessparams' , ...
 %                   'featurenames' , ...
-%                   'scoresasinput' }';
+%                   'scoreFeatures' }';
 % 
 % classifierParams=struct();
 % for i=1:length(fieldNamesToKeep)
@@ -8612,14 +8613,14 @@ return
 
 
 % --------------------------------------------------------------------
-function menu_classifier_change_scores_as_features_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_classifier_change_scores_as_features (see GCBO)
+function menu_classifier_change_score_features_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_classifier_change_score_features (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-scoresAsFeaturesFileNameList={handles.guidata.data.scoresasinput(:).classifierfile};
-timeStampList=[handles.guidata.data.scoresasinput(:).ts];
-scoreBaseNameList={handles.guidata.data.scoresasinput(:).scorefilename};
-ChangeScoresAsFeaturesDialog(scoresAsFeaturesFileNameList, ...
+scoreFeaturesFileNameList={handles.guidata.data.scoreFeatures(:).classifierfile};
+timeStampList=[handles.guidata.data.scoreFeatures(:).ts];
+scoreBaseNameList={handles.guidata.data.scoreFeatures(:).scorefilename};
+ChangeScoreFeaturesDialog(scoreFeaturesFileNameList, ...
                              timeStampList, ...
                              scoreBaseNameList, ...
                              handles.figure_JLabel);
@@ -8627,8 +8628,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function changeScoresAsFeaturesDone(figureJLabel, ...
-                                    scoresAsFeaturesFileNameListNew, ...
+function changeScoreFeaturesDone(figureJLabel, ...
+                                    scoreFeaturesFileNameListNew, ...
                                     timeStampListNew, ...
                                     scoreBaseNameListNew)
 
@@ -8637,18 +8638,33 @@ handles=guidata(figureJLabel);
 
 % if new same as old, do nothing
 data=handles.guidata.data;  % a ref
-scoresAsFeaturesFileNameList={data.scoresasinput(:).classifierfile};
-if isequal(scoresAsFeaturesFileNameListNew,scoresAsFeaturesFileNameList)
+scoreFeaturesFileNameList={data.scoreFeatures(:).classifierfile};
+if isequal(scoreFeaturesFileNameListNew,scoreFeaturesFileNameList)
   return
 end
 
 % Update the status, change the pointer to the watch
-SetStatus(handles,'Changing scores-as-features list...');
+SetStatus(handles,'Changing score features list...');
 
 % Set the behavior name in JLabelData
-data.setScoresAsInput(scoresAsFeaturesFileNameListNew, ...
-                      timeStampListNew, ...
-                      scoreBaseNameListNew);
+try
+  data.setScoreFeatures(scoreFeaturesFileNameListNew, ...
+                        timeStampListNew, ...
+                        scoreBaseNameListNew);
+catch excp
+  if isequal(excp.identifier,'JLabelData.unableToSetScoreFeatures') || ...
+     isequal(excp.identifier,'JLabelData.errorGeneratingPerframeFileFromScoreFile')
+    % Set status message to cleared message, pointer to normal
+    syncStatusBarTextWhenClear(handles);
+    ClearStatus(handles);
+    uiwait(errordlg(sprintf('Unable to add score features(s): %s',excp.message), ...
+                    'Error', ...
+                    'modal'));
+    return              
+  else
+    rethrow(excp);
+  end
+end
 
 % Note that we now need saving
 handles.guidata.needsave=true;
