@@ -1,8 +1,7 @@
 function everythingParams=appendEmptyLabelsAndDefaultClassifier(everythingParams,projectParams)
 
-everythingParams.expdirs={};
+everythingParams.expDirNames={};
 everythingParams.labels=struct([]);
-everythingParams.gtLabels=struct([]);
 classifier=struct();
 %animalType=projectParams.behaviors.type;
 if isfield(projectParams.windowfeatures,'windowfeaturesparams')
