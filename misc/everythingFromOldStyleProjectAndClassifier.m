@@ -81,7 +81,7 @@ end
 
 % Make sure the GT experiment dir names are absolute paths
 nGTExpDirs=length(gtExpDirNames);
-gtExpDirAbsPathsNames=cell(nGTExpDirs,1);
+gtExpDirAbsPathNames=cell(nGTExpDirs,1);
 for i=1:nGTExpDirs
   gtExpDirName=gtExpDirNames{i};
   if isFileNameAbsolute(gtExpDirName) ,
