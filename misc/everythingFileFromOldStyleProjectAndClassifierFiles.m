@@ -2,17 +2,37 @@ function ...
   everythingFileFromOldStyleProjectAndClassifierFiles(...
     everythingFileName, ...
     projectFileName, ...
-    classifierFileName)
+    classifierFileName, ...
+    gtExpDirNames)
 
+% load the project params  
 projectParams=load(projectFileName,'-mat');
+
+% load the classifier params and (normal) labels
 if isempty(classifierFileName)
   classifierParams=struct([]);
 else
   classifierParams=load(classifierFileName,'-mat');
 end
+
+% load the gt labels
+gtLabelFileNameLocal=projectParams.file.gt_labelfilename;
+for i=1:length(gtExpDirNames)
+  gtExpDirName=gtExpDirNames{i};
+  gtLabelFilePathName=fullfile(gtExpDirName,gtLabelFileNameLocal);
+  gtLabelsThis=load(gtLabelFilePathName,'-mat');
+  gtLabels(i)=gtLabelsThis;  %#ok
+end
+
+% convert to everything params
 everythingParams= ...
   everythingFromOldStyleProjectAndClassifier(projectParams, ...
-                                             classifierParams);  %#ok
+                                             classifierParams, ...
+                                             gtExpDirNames, ...
+                                             gtLabels);  %#ok
+                                           
+% save to a file                                           
 save(everythingFileName,'-struct','everythingParams');  
 
 end                                    
+
