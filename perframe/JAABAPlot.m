@@ -1980,7 +1980,7 @@ end
 
 
 % ---
-function h=plot_it(ha,xdata,ydata,style,centraltendency,dispersion,color,linewidth,fid,experimentlist)
+function h=plot_it(ha,xdata,ydata,style,centraltendency,dispersion,color,linewidth,linestyle,fid,experimentlist)
 
 fprintf(fid,'%% xdata\n');
 print_csv_data(fid,xdata);
@@ -2000,7 +2000,7 @@ if(style~=3)
 end
 switch(style)
   case 1
-    h=plot(ha,xdata,data_ct,'color',color,'linewidth',linewidth);
+    h=plot(ha,xdata,data_ct,'color',color,'linewidth',linewidth,'linestyle',linestyle);
     fprintf(fid,['%% ydata, ' str_ct '\n']);
     print_csv_data(fid,data_ct);
 %    fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
@@ -2029,7 +2029,7 @@ switch(style)
         str_dp='75%%';
         str_dn='25%%';
     end
-    h=plot(ha,xdata,data_ct,'color',color,'linewidth',3*linewidth);
+    h=plot(ha,xdata,data_ct,'color',color,'linewidth',3*linewidth,'linestyle',linestyle);
     idx=isnan(data_dp) | isnan(data_dn);
     xdata=xdata(~idx);  data_dp=data_dp(~idx);  data_dn=data_dn(~idx);
     color2=(get(h,'color')+[4 4 4])/5;
@@ -2051,7 +2051,7 @@ switch(style)
     print_csv_data(fid,data_ct);
 %    fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
   case 3
-    h=plot(ha,xdata,ydata','color',color,'linewidth',linewidth);
+    h=plot(ha,xdata,ydata','color',color,'linewidth',linewidth,'linestyle',linestyle);
     h=h(1);
     for e=1:size(ydata,1)
       fprintf(fid,['%% ydata, experiment ' experimentlist{e} '\n']);
@@ -2433,8 +2433,8 @@ for b=bb
   if(b>0)  score_file=handles.scorefiles{b};  end
 
   num_indi=0;
-  during_data=cell(1,length(ggee));
-  not_during_data=cell(1,length(ggee));
+  during_data=cell(length(ggee),length(individual));
+  not_during_data=cell(length(ggee),length(individual));
   %for gei=1:numel(ggee)
   parfor gei=1:numel(ggee)
     ge = ggee(gei);
@@ -2457,27 +2457,36 @@ for b=bb
         cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data,handles.sexdata{ge});
     num_indi=num_indi+length(feature_data.data);
 
-    %tmp2=handles.sexdata{ge};
-    tmp2=sex_data;
-    for i=1:length(tmp2)
-      switch(individual)
+    ii=0;
+    parfor_tmp=cell(1,length(individual));
+    not_parfor_tmp=cell(1,length(individual));
+    for i = individual
+      ii=ii+1;
+      if(iscell(i))  i=char(i);  end
+      tmp2=[];
+      switch(i)
         case('M')
+          tmp2=sex_data;
         case('F')
-          tmp2{i}=~tmp2{i};
+          tmp2=cellfun(@not,sex_data,'uniformoutput',false);
         otherwise
-          tmp2{i}=ones(1,length(tmp2{i}));
+          tmp2=cellfun(@(x) ones(1,length(x)),sex_data,'uniformoutput',false);
+      end
+      tmploop=nan;  if isnumeric(individual)  tmploop=individual;  end
+
+      [parfor_tmp{ii} not_parfor_tmp{ii}]=calculate_feature_histogram(...
+          behavior_data,behavior_logic,behavior_data2,feature_data,tmp2,tmploop,...
+          handles.featurehistogram_style,handles.behaviornot);
+
+      if(comparison==1)
+        not_parfor_tmp{ii}=[parfor_tmp{ii} not_parfor_tmp{ii}];
       end
     end
-    tmploop=nan;  if isnumeric(individual)  tmploop=individual;  end
-
-    [during_data{gei} not_during_data{gei}]=calculate_feature_histogram(...
-        behavior_data,behavior_logic,behavior_data2,feature_data,tmp2,tmploop,...
-        handles.featurehistogram_style,handles.behaviornot);
-
-    if(comparison==1)
-      not_during_data{gei}=[during_data{gei} not_during_data{gei}];
-    end
+    during_data(gei,:)=parfor_tmp;
+    not_during_data(gei,:)=not_parfor_tmp;
   end
+  during_data=reshape(during_data,1,prod(size(during_data)));
+  not_during_data=reshape(not_during_data,1,prod(size(not_during_data)));
 
   if(num_indi==0)
     delete(hf);
@@ -2525,71 +2534,79 @@ for b=bb
     end
   end
 
-  for g=1:length(handles.grouplist)
-    color=handles.colors(g,:);
+  ii=0;
+  for i = individual
+    ii=ii+1;
+    if(iscell(i))  i=char(i);  end
+    for g=1:length(handles.grouplist)
+      color=handles.colors(g,:);
 
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
 
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
-    end
-
-    if(comparison>0)
-      fprintf(fid,['%% not during\n']);
-      if(~isempty(not_during_data))
-        hist_not_during=hist(not_during_data(idx,:)',bins);
-        if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
-        hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
-        hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
-        plot_it(ha,bins,hist_not_during',style,centraltendency,dispersion,color,1,...
-          fid,handlesexperimentlist(idx));
+      if ~isnumeric(i)
+        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+      else
+        find(cumsum_num_exp_per_group<ggee,1,'last');
+        if(ans~=g)  continue;  end
+        idx=1;
       end
-    end
-    fprintf(fid,['%% during\n']);
-    if(~isempty(during_data))
-      hist_during=hist(during_data(idx,:)',bins);
-      if(size(hist_during,1)==1)  hist_during=hist_during';  end
-      hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
-      hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
-      linewidth=1;  if(comparison>0)  linewidth=2;  end
-      h(g)=plot_it(ha,bins,hist_during',style,centraltendency,dispersion,color,linewidth,...
-          fid,handlesexperimentlist(idx));
-    end
-  end
+      idx2=idx+(ii-1)*numel(ggee);
+      linestyle='-';  if(ii>1)  linestyle='--';  end
 
-  table_data{end+1}={};
-  fprintf(fid,'\n%% raw data\n');
-  for g=1:length(handles.grouplist)
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
-    end
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    for e=1:length(idx)
-      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
       if(comparison>0)
-        fprintf(fid,'%% not during\n');
+        fprintf(fid,['%% not during\n']);
         if(~isempty(not_during_data))
-          print_csv_data(fid,not_during_data(idx(e),:));
+          hist_not_during=hist(not_during_data(idx2,:)',bins);
+          if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
+          hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
+          hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
+          plot_it(ha,bins,hist_not_during',style,centraltendency,dispersion,color,1,linestyle,...
+            fid,handlesexperimentlist(idx));
         end
       end
-      fprintf(fid,'%% during\n');
+      fprintf(fid,['%% during\n']);
       if(~isempty(during_data))
-        print_csv_data(fid,during_data(idx(e),:));
+        hist_during=hist(during_data(idx2,:)',bins);
+        if(size(hist_during,1)==1)  hist_during=hist_during';  end
+        hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
+        hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
+        linewidth=1;  if(comparison>0)  linewidth=2;  end
+        plot_it(ha,bins,hist_during',style,centraltendency,dispersion,color,linewidth,linestyle,...
+            fid,handlesexperimentlist(idx));
+        if (ii==1)  h(g)=ans;  end
       end
-      fprintf(fid,'\n');
     end
 
-    if(~isempty(during_data))  table_data{end}{g,1}=nanmean(during_data(idx,:),2)';  end
-    if(comparison>0)
-      if(~isempty(not_during_data))  table_data{end}{g,2}=nanmean(not_during_data(idx,:),2)';  end
+    table_data{end+1}={};
+    fprintf(fid,'\n%% raw data\n');
+    for g=1:length(handles.grouplist)
+      if ischar(i)
+        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+      else
+        find(cumsum_num_exp_per_group<ggee,1,'last');
+        if(ans~=g)  continue;  end
+        idx=1;
+      end
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      for e=1:length(idx)
+        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+        if(comparison>0)
+          fprintf(fid,'%% not during\n');
+          if(~isempty(not_during_data))
+            print_csv_data(fid,not_during_data(idx(e),:));
+          end
+        end
+        fprintf(fid,'%% during\n');
+        if(~isempty(during_data))
+          print_csv_data(fid,during_data(idx(e),:));
+        end
+        fprintf(fid,'\n');
+      end
+
+      if(~isempty(during_data))  table_data{end}{g,1}=nanmean(during_data(idx,:),2)';  end
+      if(comparison>0)
+        if(~isempty(not_during_data))  table_data{end}{g,2}=nanmean(not_during_data(idx,:),2)';  end
+      end
     end
   end
 
@@ -2600,9 +2617,10 @@ for b=bb
 end
 
 idx=find(h>0);
-if ischar(individual)
-  legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
-      handles.grouplist,'uniformoutput',false)],'interpreter','none');
+if ~isnumeric(individual)
+  %legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
+  %    handles.grouplist,'uniformoutput',false)],'interpreter','none');
+  legend(ha,h(idx), handles.grouplist,'interpreter','none');
 else
   legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
@@ -3060,15 +3078,14 @@ for b=bb
         cull_short_trajectories(handles,behavior_data,behavior_data2,[],feature_data,handles.sexdata{ge});
     num_indi=num_indi+length(feature_data.data);
 
-    tmp2=sex_data;
-    for i=1:length(tmp2)
-      switch(individual)
-        case('M')
-        case('F')
-          tmp2{i}=~tmp2{i};
-        otherwise
-          tmp2{i}=ones(1,length(tmp2{i}));
-      end
+    tmp2=[];
+    switch(individual)
+      case('M')
+        tmp2=sex_data;
+      case('F')
+        tmp2=cellfun(@not,sex_data,'uniformoutput',false);
+      otherwise
+        tmp2=cellfun(@(x) ones(1,length(x)),sex_data,'uniformoutput',false);
     end
     tmp=nan;  if isnumeric(individual)  tmp=individual;  end
 
@@ -3681,7 +3698,7 @@ for b=bb
 
   exp_separators=[];  maxy=0;  k=[];  m=0;  ii=0;  table_data{end+1}=[];
   for i = individual
-    i=char(i);
+    if(iscell(i))  i=char(i);  end
     switch(i)
       case 'A'
         frames_labelled=cellfun(@(x) x{1},collated_data,'uniformoutput',false);
