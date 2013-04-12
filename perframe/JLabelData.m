@@ -4523,10 +4523,15 @@ end
         if m==0; return; end
 
         % Add this to predict blocks.
-        obj.predictblocks.expi(end+1) = expi;
-        obj.predictblocks.flies(end+1) = flies;
-        obj.predictblocks.t0(end+1) = t0;
-        obj.predictblocks.t1(end+1) = t1;
+        
+        % i0s(j)+t0-1
+        [i0s,i1s] = get_interval_ends(idxnew); i1s = i1s-1;
+        for j = 1:numel(i0s),
+          obj.predictblocks.expi(end+1) = expi;
+          obj.predictblocks.flies(end+1) = flies;
+          obj.predictblocks.t0(end+1) = t0+i0s(j)-1;
+          obj.predictblocks.t1(end+1) = t0+i1s(j)-1;
+        end
         
 
         % add to windowdata
@@ -5017,7 +5022,7 @@ end
           % predict for all window data
           obj.PredictLoaded();
           
-        case 'boosting',
+        case {'boosting','fancyboosting'},
           if nargin<2
             doFastUpdates = false;
           end
@@ -5036,11 +5041,20 @@ end
               obj.ClearStatus();
               return;
             end
-            [obj.classifier, ~, trainstats] =...
+            if strcmp(obj.classifiertype,'boosting'),
+              [obj.classifier, ~, trainstats] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
-                                 obj.windowdata.labelidx_new(islabeled),obj,...
-                                 obj.windowdata.binVals,...
-                                 bins,obj.classifier_params);
+                obj.windowdata.labelidx_new(islabeled),obj,...
+                obj.windowdata.binVals,...
+                bins,obj.classifier_params);
+            else
+              [obj.classifier] = fastBag(obj.windowdata.X(islabeled,:),...
+                obj.windowdata.labelidx_new(islabeled),...
+                obj.windowdata.binVals,...
+                bins,obj.classifier_params);
+              trainstats = struct;
+            end
+              
             obj.lastFullClassifierTrainingSize = nnz(islabeled);
             
           else
@@ -5052,10 +5066,14 @@ end
             bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             
             obj.classifier_old = obj.classifier;
-            [obj.classifier, ~, trainstats] = boostingUpdate(obj.windowdata.X(islabeled,:),...
-                                          obj.windowdata.labelidx_new(islabeled),...
-                                          obj.classifier,obj.windowdata.binVals,...
-                                          bins,obj.classifier_params);
+            if strcmp(obj.classifiertype,'boosting'),
+              [obj.classifier, ~, trainstats] = boostingUpdate(obj.windowdata.X(islabeled,:),...
+                obj.windowdata.labelidx_new(islabeled),...
+                obj.classifier,obj.windowdata.binVals,...
+                bins,obj.classifier_params);
+            else
+              error('Fast updates not defined for fancy boosting.');
+            end
           end
           obj.classifierTS = now();
           
@@ -5146,7 +5164,7 @@ end
           obj.windowdata.scores(idx1) = -scores(idx1);
           obj.windowdata.scores(idx0) = scores(idx0);
           obj.ClearStatus();
-        case 'boosting',
+        case {'boosting','fancyboosting'},
           if(isempty(obj.predictblocks.t0)), return, end
           
           predictblocks = obj.predictblocks;
@@ -5166,27 +5184,6 @@ end
             obj.NormalizeScores([]);
             obj.ApplyPostprocessing();
             obj.ClearStatus();
-
-%{          
-%           toPredict = ~obj.windowdata.isvalidprediction;
-%           if any(toPredict),
-%             obj.SetStatus('Applying boosting classifier to %d windows',sum(toPredict));
-%             scores = myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier);
-%             obj.windowdata.predicted(toPredict) = -sign(scores)*0.5+1.5;
-%             obj.windowdata.scores(toPredict) = scores;
-%             obj.windowdata.isvalidprediction(toPredict) = true;
-%             if ~isempty(obj.classifier_old),
-%               obj.windowdata.scores_old(toPredict) = ...
-%                 myBoostClassify(obj.windowdata.X(toPredict,:),obj.classifier_old);
-%             else
-%               obj.windowdata.scores_old(toPredict) = 0;
-%             end
-%             obj.NormalizeScores([]);
-%             obj.ApplyPostprocessing();
-%             obj.ClearStatus();
-%           end
-%}
-          
       end
             
       % transfer to predictidx for current fly
@@ -5358,7 +5355,7 @@ end
           obj.windowdata.scores(idxcurr1(idx0)) = scores(idx0);
           
           obj.ClearStatus();
-        case 'boosting',
+        case {'boosting','fancyboosting'},
 
 %           obj.SetStatus('Applying boosting classifier to %d frames',nnz(idxcurr));
 %           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
@@ -5377,6 +5374,39 @@ end
           obj.PredictFast(expi,flies,t0,t1)
           obj.ApplyPostprocessing();
           obj.ClearStatus();
+          
+%         case 'fancyboosting',
+% 
+%           % compute window data
+%           ts = t0:t1-1;
+%           [success,msg] = obj.PreLoadWindowData(expi,flies,ts);
+%           if ~success,
+%             warning(msg);
+%             return;
+%           end
+%       
+%           % indices into windowdata
+%           idxcurr = obj.FlyNdx(expi,flies) & ...
+%             ~obj.windowdata.isvalidprediction & ismember(obj.windowdata.t,ts);
+%           
+%           if ~any(idxcurr), return; end;
+%           
+%           obj.SetStatus('Applying boosting classifier to %d frames',nnz(idxcurr));
+%           scores = myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier);
+%           obj.windowdata.predicted(idxcurr) = -sign(scores)*0.5+1.5;
+%           obj.windowdata.scores(idxcurr) = scores;
+% %           if ~isempty(obj.classifier_old)
+% %             obj.windowdata.scores_old(idxcurr) = ...
+% %               myBoostClassify(obj.windowdata.X(idxcurr,:),obj.classifier_old);
+% %           else
+% %             obj.windowdata.scores_old(idxcurr) = zeros(size(scores));
+% %           end
+%           
+%           obj.windowdata.isvalidprediction(idxcurr) = true;
+% 
+%           obj.ApplyPostprocessing();
+%           obj.ClearStatus();
+
 
       end
            
@@ -5433,17 +5463,61 @@ end
     function FindWfidx(obj,feature_names)
       
       wfs = obj.fastPredict.wfs;
-      wfidx = nan(1,numel(wfs));
-      for j = 1:numel(wfs),
-        idxcurr = find(WindowFeatureNameCompare(wfs{j},feature_names));
-        if numel(idxcurr) ~= 1,
-          error('Error matching wfs for classifier with window features computed');
-        end
-        wfidx(j) = idxcurr;
+      wfs_char = cellfun(@cell2str,wfs,'UniformOutput',false);
+      feature_names_char = cellfun(@cell2str,feature_names,'UniformOutput',false);
+      [ism,wfidx] = ismember(wfs_char,feature_names_char);
+      if ~all(ism),
+        error('Error matching wfs for classifier with window features computed');
       end
+%       wfidx = nan(1,numel(wfs));
+%       for j = 1:numel(wfs),
+%         idxcurr = find(WindowFeatureNameCompare(wfs{j},feature_names));
+%         if numel(idxcurr) ~= 1,
+%           error('Error matching wfs for classifier with window features computed');
+%         end
+%         wfidx(j) = idxcurr;
+%       end
       obj.fastPredict.wfidx = wfidx;
       obj.fastPredict.wfidx_valid = true;
     end
+    
+    % try to predict using data cached in windowdata
+    function finished = WindowDataPredictFast(obj,expi,flies,t0,t1)
+
+      finished = false;
+      idxfly = find(obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2));
+      if isempty(idxfly),
+        return;
+      end
+      % ism(i) is whether there is windowdata for t0+i-1
+      % idxfly(idx1(i)) is which index of windowdata corresponds to t0+i-1
+      [ism,idx1] = ismember(t0:t1,obj.windowdata.t(idxfly));
+      idxism = find(ism);
+      if isempty(idxism),
+        return;
+      end      
+      % idx(i) is the index into windowdata for t0+idxism(i)-1
+      idx = idxfly(idx1(idxism));
+
+      % run the classifier: scores(i) is the score for t0+idxism(i)-1
+      scores = myBoostClassify(obj.windowdata.X(idx,:),obj.classifier);
+      
+      % store in predictdata
+      % predictism(i) is whether t0+idxism(i)-1 is in predictdata
+      % predictidx(i) is the location in predictdata{expi}{flies} of
+      % t0+idxism-1
+      [predictism,predictidx] = ismember(t0+idxism-1,obj.predictdata{expi}{flies}.t);
+      if ~all(predictism),
+        error('This should never happen: there are ts requested that are not in predictdata');
+      end
+      obj.predictdata{expi}{flies}.cur(predictidx) = scores;
+      obj.predictdata{expi}{flies}.timestamp(predictidx) = obj.classifierTS;
+      obj.predictdata{expi}{flies}.cur_valid(predictidx) = true;
+      
+      finished = all(ism);
+      
+    end
+      
     
     function PredictFast(obj,expi,flies,t0,t1)
     % Predict fast by computing only the required window features.
@@ -5463,8 +5537,15 @@ end
 %         missingts = setdiff(ts,tscurr);
 %         if numel(missingts)==0, return; end
 %         
+
         idxcurr_t = obj.predictdata{expi}{flies}.t>=t0 & obj.predictdata{expi}{flies}.t<=t1;
         if all(obj.predictdata{expi}{flies}.cur_valid(idxcurr_t)), return; end
+        
+        finished = obj.WindowDataPredictFast(expi,flies,t0,t1);
+        if finished,
+          return;
+        end
+        
         missingts = obj.predictdata{expi}{flies}.t(idxcurr_t);
         
         perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);

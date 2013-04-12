@@ -596,7 +596,7 @@ if ~isdeployed,
   SetUpJAABAPath;
 end
 
-if(exist('matlabpool')==2 && matlabpool('size')==0)
+if false && (exist('matlabpool')==2 && matlabpool('size')==0)
   
   useparallel = true;
   if isdeployed,
