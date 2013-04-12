@@ -1,24 +1,24 @@
 function everythingParams=appendClassifierAndLabels(everythingParams,projectParams,classifierParams)
 
-everythingParams.expdirs=classifierParams.expdirs;
+everythingParams.expDirNames=classifierParams.expdirs;
 everythingParams.labels=classifierParams.labels;
-if isfield(classifierParams,'gt_labels')
-  gtLabels=classifierParams.gt_labels;
-else
-  nExps=length(classifierParams.expdirs);
-  gtLabels=struct();
-  for i=1:nExps
-    gtLabels(i).t0s={};
-    gtLabels(i).t1s={};
-    gtLabels(i).names={};
-    gtLabels(i).flies=[];
-    gtLabels(i).off=[];
-    gtLabels(i).timestamp={};
-    gtLabels(i).imp_t0s={};
-    gtLabels(i).imp_t1s={};
-  end  
-end
-everythingParams.gtLabels=gtLabels;
+% if isfield(classifierParams,'gt_labels')
+%   gtLabels=classifierParams.gt_labels;
+% else
+%   nExps=length(classifierParams.expdirs);
+%   gtLabels=struct();
+%   for i=1:nExps
+%     gtLabels(i).t0s={};
+%     gtLabels(i).t1s={};
+%     gtLabels(i).names={};
+%     gtLabels(i).flies=[];
+%     gtLabels(i).off=[];
+%     gtLabels(i).timestamp={};
+%     gtLabels(i).imp_t0s={};
+%     gtLabels(i).imp_t1s={};
+%   end  
+% end
+% everythingParams.gtLabels=gtLabels;
 
 % copy the classifier params proper over
 classifier=struct();

@@ -1,6 +1,8 @@
 function everythingParams= ...
   everythingFromOldStyleProjectAndClassifier(projectParams, ...
-                                             classifierParams)
+                                             classifierParams, ...
+                                             gtExpDirNames, ...
+                                             gtLabels)
 
 everythingParams=struct();
 
@@ -65,6 +67,8 @@ end
 if isfield(projectParams,'landmark_params')
   everythingParams.landmarkParams=projectParams.landmark_params;
 else
+  everythingParams.landmarkParams=[];
+end
 
 % copy the experiment dirs, labels over
 if isempty(classifierParams) ,
@@ -74,6 +78,22 @@ else
   % The usual case: caller provided a non-empty classifierParams
   everythingParams=appendClassifierAndLabels(everythingParams,projectParams,classifierParams);
 end
+
+% Make sure the GT experiment dir names are absolute paths
+nGTExpDirs=length(gtExpDirNames);
+gtExpDirAbsPathsNames=cell(nGTExpDirs,1);
+for i=1:nGTExpDirs
+  gtExpDirName=gtExpDirNames{i};
+  if isFileNameAbsolute(gtExpDirName) ,
+    gtExpDirAbsPathNames{i}=gtExpDirName;
+  else
+    gtExpDirAbsPathNames{i}=fullfile(pwd(),gtExpDirName);
+  end
+end
+
+% append the GT labels
+everythingParams.gtExpDirNames=gtExpDirAbsPathNames;
+everythingParams.gtLabels=gtLabels;
 
 % set the version number
 everythingParams.ver='0.5.0';
