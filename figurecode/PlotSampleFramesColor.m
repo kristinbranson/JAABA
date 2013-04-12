@@ -245,14 +245,18 @@ figure(hfig);
 clf;
 hax = createsubplots(1,numel(ts),.01);
 
-idxpos = predictions{mainfly}(ts(1):ts(end));
-if isfield(trx,'timestamps'),
+idxpos = predictions{mainfly}(ts(1):ts(end))>0;
+idxneg = predictions{mainfly}(ts(1):ts(end))==0;
+idxunlabeled = predictions{mainfly}(ts(1):ts(end))<0;
+
+imid = ceil(numel(ts)/2);
+try
   timestamps = trx(mainfly).timestamps(ts+trx(mainfly).off)-...
-    trx(mainfly).timestamps(ts(1)+trx(mainfly).off);
-else
+    trx(mainfly).timestamps(ts(imid)+trx(mainfly).off);
+catch
   timestamps = [0,cumsum(trx(mainfly).dt)];
   timestamps = timestamps(ts+trx(mainfly).off)-...
-    timestamps(ts(1)+trx(mainfly).off);
+    timestamps(ts(imid)+trx(mainfly).off);
 end
 
 for i = 1:numel(ts),
@@ -261,12 +265,15 @@ for i = 1:numel(ts),
   axis(hax(i),'image','off');
   hold(hax(i),'on');
   plot(hax(i),x(mainfly,:),y(mainfly,:),'k.-');
+  plot(hax(i),x(mainfly,idxunlabeled),y(mainfly,idxunlabeled),'.','Color','w');
+  plot(hax(i),x(mainfly,idxneg),y(mainfly,idxneg),'.','Color',colorneg);
   plot(hax(i),x(mainfly,idxpos),y(mainfly,idxpos),'.','Color',colorpos);
-  plot(hax(i),x(mainfly,~idxpos),y(mainfly,~idxpos),'.','Color',colorneg);
-  if predictions{mainfly}(t),
+  if predictions{mainfly}(t)>0
     colorcurr = colorpos;
-  else
+  elseif predictions{mainfly}(t)==0,
     colorcurr = colorneg;
+  else
+    colorcurr = [1,1,1];
   end
   plot(hax(i),x(mainfly,t-ts(1)+1),y(mainfly,t-ts(1)+1),'o','color',colorcurr,'markerfacecolor',colorcurr);
   text(1,1,sprintf('t = %.2fs',timestamps(i)),'HorizontalAlignment','left','VerticalAlignment','top','Parent',hax(i));
