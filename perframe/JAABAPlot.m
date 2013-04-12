@@ -729,6 +729,9 @@ handles.individualidx=tmp(handles.individualvalue);
 if handles.individualidx=='G'
   handles.individualidx=handles.individualvalue-find(tmp=='G',1,'first')+1;
 end
+if ((handles.individualidx=='M') && length(handles.individuallist{handles.individualvalue})>5)
+  handles.individualidx={'M' 'F'};
+end
 guidata(hObject,handles);
 
 
@@ -964,7 +967,7 @@ cumsum_num_exp_per_group=[0 cumsum(cellfun(@length,handles.experimentlist))];
 
 tmp(1)={'All'};
 if(sum(cellfun(@(x) islogical([x{:}]),handles.sexdata)==0)==0)
-  tmp(2:3)={'Male' 'Female'};
+  tmp(2:4)={'Male' 'Female' 'Male vs. Female'};
 end
 k=1;
 for e=1:length(handles.individuals_feature)
@@ -3488,7 +3491,7 @@ for b=1:length(table_data)
 end
 tmp{end+1,1}='';
 
-fprintf(fid,'%% statistics\n');
+fprintf(fid,'\n%% statistics\n');
 for j=1:(size(tmp,1)/nrows)
   for i=1:nrows
     if(j==1)  fprintf(fid,'%% ');  end
@@ -3676,105 +3679,129 @@ for b=bb
     return;
   end
 
-  switch(individual)
-    case 'A'
-      frames_labelled=cellfun(@(x) x{1},collated_data,'uniformoutput',false);
-      frames_total=cellfun(@(x) x{2},collated_data,'uniformoutput',false);
-      traj_len=cellfun(@(x) x{4},collated_data,'uniformoutput',false);
-    case {'M'}
-      frames_labelled=cellfun(@(x) x{1}(x{3}==1),collated_data,'uniformoutput',false);
-      frames_total=cellfun(@(x) x{2}(x{3}==1),collated_data,'uniformoutput',false);
-      traj_len=cellfun(@(x) x{4}(x{3}==1),collated_data,'uniformoutput',false);
-    case {'F'}
-      frames_labelled=cellfun(@(x) x{1}(x{3}==0),collated_data,'uniformoutput',false);
-      frames_total=cellfun(@(x) x{2}(x{3}==0),collated_data,'uniformoutput',false);
-      traj_len=cellfun(@(x) x{4}(x{3}==0),collated_data,'uniformoutput',false);
-    otherwise
-      frames_labelled=cellfun(@(x) x{1}(individual),collated_data,'uniformoutput',false);
-      frames_total=cellfun(@(x) x{2}(individual),collated_data,'uniformoutput',false);
-      traj_len=cellfun(@(x) x{4}(individual),collated_data,'uniformoutput',false);
-  end
-
-  exp_separators=[];  maxy=0;  k=[];  m=0;  table_data{end+1}=[];
-  for g=1:length(handles.grouplist)
-    color=handles.colors(g,:);
-
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
+  exp_separators=[];  maxy=0;  k=[];  m=0;  ii=0;  table_data{end+1}=[];
+  for i = individual
+    i=char(i);
+    switch(i)
+      case 'A'
+        frames_labelled=cellfun(@(x) x{1},collated_data,'uniformoutput',false);
+        frames_total=cellfun(@(x) x{2},collated_data,'uniformoutput',false);
+        traj_len=cellfun(@(x) x{4},collated_data,'uniformoutput',false);
+      case 'M'
+        frames_labelled=cellfun(@(x) x{1}(x{3}==1),collated_data,'uniformoutput',false);
+        frames_total=cellfun(@(x) x{2}(x{3}==1),collated_data,'uniformoutput',false);
+        traj_len=cellfun(@(x) x{4}(x{3}==1),collated_data,'uniformoutput',false);
+      case 'F'
+        frames_labelled=cellfun(@(x) x{1}(x{3}==0),collated_data,'uniformoutput',false);
+        frames_total=cellfun(@(x) x{2}(x{3}==0),collated_data,'uniformoutput',false);
+        traj_len=cellfun(@(x) x{4}(x{3}==0),collated_data,'uniformoutput',false);
+      otherwise
+        frames_labelled=cellfun(@(x) x{1}(i),collated_data,'uniformoutput',false);
+        frames_total=cellfun(@(x) x{2}(i),collated_data,'uniformoutput',false);
+        traj_len=cellfun(@(x) x{4}(i),collated_data,'uniformoutput',false);
     end
 
-    xticklabels{g}=handles.grouplist{g};
-
-    switch(handles.behaviorbarchart_style)
-      case 1  % per group
-        table_data{end}(g)=100*sum([frames_labelled{idx}])./sum([frames_total{idx}]);
-        h{g}=bar(ha,g,table_data{end}(g));
-        set(h{g},'facecolor',color);
-      case 2  % per experiment, error bars
-        table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
-        [ct(g),dp(g),dn(g)]=...
-            calculate_ct_d(table_data{end}{g},handles.centraltendency,handles.dispersion);
-        h{g}=errorbarplot(ha,g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
-      case 3  % per experiment, box
-        table_data{end}{g}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
-        h{g}=boxplot(ha,table_data{end}{g},'positions',g,'widths',0.5,'colors',color);
-      case 4  % per fly, grouped
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
-        cumsum(cellfun(@length,frames_labelled(idx)))';
-        exp_separators=[exp_separators; ans+sum(k)];
-        table_data{end}{g}=100.*[frames_labelled{idx}]./[frames_total{idx}];
-        maxy=max([maxy table_data{end}{g}]);
-        h{g}=bar(ha,(1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
-            'barwidth',1,'edgecolor','none');
-        set(h{g},'facecolor',color);
-        k(end+1)=length(table_data{end}{g});
-        fprintf(fid,'%g, ',[table_data{end}{g}]);
+    fprintf(fid,'\n%% raw data\n');
+    for g=1:length(handles.grouplist)
+      if ~isnumeric(individual)
+        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+      else
+        find(cumsum_num_exp_per_group<ggee,1,'last');
+        if(ans~=g)  continue;  end
+        idx=1;
+      end
+      fprintf(fid,['%% individual ' i '\n']);
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      for e=1:length(idx)
+        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+        fprintf(fid,'%% frames labelled\n');
+        fprintf(fid,'%d, ',frames_labelled{idx(e)});
         fprintf(fid,'\n');
-      case 5  % per fly, stern-style
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
-        table_data{end}{g}=cell(1,length(frames_labelled(idx)));
-        for e=1:length(idx)
-          table_data{end}{g}{e}=100.*frames_labelled{idx(e)}./frames_total{idx(e)};
-          [ct,dp,dn]=calculate_ct_d(table_data{end}{g}{e},...
+        fprintf(fid,'%% frames total\n');
+        fprintf(fid,'%d, ',frames_total{idx(e)});
+        fprintf(fid,'\n');
+        fprintf(fid,'\n');
+      end
+    end
+
+    for g=1:length(handles.grouplist)
+      color=handles.colors(g,:);
+      ii=ii+1;
+
+      if ischar(i)
+        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+      else
+        find(cumsum_num_exp_per_group<ggee,1,'last');
+        if(ans~=g)  continue;  end
+        idx=1;
+      end
+
+      xticklabels{ii}=handles.grouplist{g};
+
+      switch(handles.behaviorbarchart_style)
+        case 1  % per group
+          table_data{end}(ii)=100*sum([frames_labelled{idx}])./sum([frames_total{idx}]);
+          h{ii}=bar(ha,ii,table_data{end}(ii));
+          set(h{ii},'facecolor',color);
+        case 2  % per experiment, error bars
+          table_data{end}{ii}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
+          [ct(g),dp(g),dn(g)]=...
+              calculate_ct_d(table_data{end}{ii},handles.centraltendency,handles.dispersion);
+          h{ii}=errorbarplot(ha,ii,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
+        case 3  % per experiment, box
+          table_data{end}{ii}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
+          h{ii}=boxplot(ha,table_data{end}{ii},'positions',ii,'widths',0.5,'colors',color);
+        case 4  % per fly, grouped
+          cumsum(cellfun(@length,frames_labelled(idx)))';
+          exp_separators=[exp_separators; ans+sum(k)];
+          table_data{end}{ii}=100.*[frames_labelled{idx}]./[frames_total{idx}];
+          maxy=max([maxy table_data{end}{ii}]);
+          h{g}=bar(ha,(1:length(table_data{end}{ii}))+sum(k),table_data{end}{ii},...
+              'barwidth',1,'edgecolor','none');
+          set(h{g},'facecolor',color);
+          k(end+1)=length(table_data{end}{ii});
+        case 5  % per fly, stern-style
+          table_data{end}{ii}=cell(1,length(frames_labelled(idx)));
+          for e=1:length(idx)
+            table_data{end}{ii}{e}=100.*frames_labelled{idx(e)}./frames_total{idx(e)};
+            [ct,dp,dn]=calculate_ct_d(table_data{end}{ii}{e},...
+                handles.centraltendency,handles.dispersion);
+            h{g}=plot(ha,m,ct,'o','color',color);
+            plot(ha,[m m],[dp dn],'-','color',color);
+            plot(ha,m+(1:length(table_data{end}{ii}{e})),table_data{end}{ii}{e},'.','color',color);
+            m=m+16+length(table_data{end}{ii}{e});
+          end
+          [ct,dp,dn]=calculate_ct_d([table_data{end}{ii}{:}],...
               handles.centraltendency,handles.dispersion);
-          h{g}=plot(ha,m,ct,'o','color',color);
-          plot(ha,[m m],[dp dn],'-','color',color);
-          plot(ha,m+(1:length(table_data{end}{g}{e})),table_data{end}{g}{e},'.','color',color);
-          m=m+16+length(table_data{end}{g}{e});
-        end
-        [ct,dp,dn]=calculate_ct_d([table_data{end}{g}{:}],...
-            handles.centraltendency,handles.dispersion);
-        plot(ha,m,ct,'o','color',color,'markersize',9);
-        plot(ha,[m m],[dp dn],'-','color',color,'linewidth',3);
-        m=m+24;
-        k(end+1)=24+16*length(table_data{end}{g})+length([table_data{end}{g}{:}]);
-        fprintf(fid,'%g, ',[table_data{end}{g}{:}]);
-        fprintf(fid,'\n');
-      case 6  % per fly, trajectory length
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
-        cumsum(cellfun(@length,traj_len(idx)))';
-        exp_separators=[exp_separators; ans+sum(k)];
-        table_data{end}{g}=[traj_len{idx}];
-        maxy=max([maxy table_data{end}{g}]);
-        h{g}=bar(ha,(1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
-            'barwidth',1,'edgecolor','none');
-        set(h{g},'facecolor',color);
-        k(end+1)=length(table_data{end}{g});
-        fprintf(fid,'%g, ',[table_data{end}{g}]);
-        fprintf(fid,'\n');
+          plot(ha,m,ct,'o','color',color,'markersize',9);
+          plot(ha,[m m],[dp dn],'-','color',color,'linewidth',3);
+          m=m+24;
+          k(end+1)=24+16*length(table_data{end}{ii})+length([table_data{end}{ii}{:}]);
+        case 6  % per fly, trajectory length
+          cumsum(cellfun(@length,traj_len(idx)))';
+          exp_separators=[exp_separators; ans+sum(k)];
+          table_data{end}{ii}=[traj_len{idx}];
+          maxy=max([maxy table_data{end}{ii}]);
+          h{g}=bar(ha,(1:length(table_data{end}{ii}))+sum(k),table_data{end}{ii},...
+              'barwidth',1,'edgecolor','none');
+          set(h{g},'facecolor',color);
+          k(end+1)=length(table_data{end}{ii});
+      end
     end
   end
 
+  %if(handles.behaviorbarchart_style<3) && (length(individual)==2)
+  %  for g=2:2:length(h)
+  %    findobj([h{g}],'type','patch');
+  %    hatchfill(ans,'single',45,5,handles.colors(g/2,:));
+  %  end
+  %end
+  fprintf(fid,'\n%% summary data\n');
+  fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
   switch(handles.behaviorbarchart_style)
     case 1  % per group
-      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, per group\n']);  fprintf(fid,'%g, ',table_data{end});  fprintf(fid,'\n');
     case 2  % per experiment, error bars
-      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
       fprintf(fid,['%% ydata, CT\n']);  fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
@@ -3786,33 +3813,25 @@ for b=bb
       set(hh,'edgecolor','none');
       set(ha,'children',flipud(get(ha,'children')));
       k=round(cumsum(k)-k/2);
+      fprintf(fid,['%% ydata\n']);
+      for i=1:length(table_data{end})
+        fprintf(fid,'%g, ',[table_data{end}{i}]);
+        fprintf(fid,'\n');
+      end
     case 5  % per fly, stern-style
       k=round(cumsum(k)-k/2);
-  end
-
-  fprintf(fid,'\n%% raw data\n');
-  for g=1:length(handles.grouplist)
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
-    end
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    for e=1:length(idx)
-      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-      fprintf(fid,'%% frames labelled\n');
-      fprintf(fid,'%d, ',frames_labelled{idx(e)});
-      fprintf(fid,'\n');
-      fprintf(fid,'%% frames total\n');
-      fprintf(fid,'%d, ',frames_total{idx(e)});
-      fprintf(fid,'\n');
-      fprintf(fid,'\n');
-    end
+      fprintf(fid,['%% ydata\n']);
+      for i=1:length(table_data{end})
+        for j=1:length(table_data{end}{i})
+          fprintf(fid,'%g, ',[table_data{end}{i}{j}]);
+          fprintf(fid,'\n');
+        end
+        fprintf(fid,'\n');
+      end
   end
 
   if(isempty(k))  k=1:length(frames_labelled);  end
+  %if(length(individual)==2)  k=k*2-0.5;  end
   ylabel(ha,ystr,'interpreter','none');
   set(ha,'xtick',k,'xticklabel',xticklabels);
   axis(ha,'tight');  vt=axis;
