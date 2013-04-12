@@ -17,11 +17,16 @@ end
 
 % load the gt labels
 gtLabelFileNameLocal=projectParams.file.gt_labelfilename;
+gtLabels=struct([]);
 for i=1:length(gtExpDirNames)
   gtExpDirName=gtExpDirNames{i};
   gtLabelFilePathName=fullfile(gtExpDirName,gtLabelFileNameLocal);
   gtLabelsThis=load(gtLabelFilePathName,'-mat');
-  gtLabels(i)=gtLabelsThis;  %#ok
+  if i==1 ,
+    gtLabels=gtLabelsThis;
+  else
+    gtLabels(i)=gtLabelsThis;
+  end
 end
 
 % convert to everything params
