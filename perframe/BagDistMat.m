@@ -1,6 +1,6 @@
 function distMat = BagDistMat(data,bagModels)
 
-distMat = zeros(size(data,1),length(bagModels)*length(bagModels{1}));
+distMat = zeros(size(data,1),length(bagModels)*length(bagModels{1}),'single');
 count = 1;
 for mno = 1:length(bagModels)
   curModel = bagModels{mno};
