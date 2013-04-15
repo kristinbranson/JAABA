@@ -1,17 +1,6 @@
-classdef GrandlyUnify < handle
+classdef GrandlyUnifyView < handle
   properties
-    projectFileName=''
-      % The absolute path of the project file name to be converted.
-    projectFileSpecified=false  
-    classifierFileName=''  
-      % The absolute path of the classifier file name to be converted.
-    classifierFileSpecified=false  
-    gtExpDirNames={}
-      % The list of ground-truth experiment directories.  Absolute paths,
-      % again.
-    iCurrentGTExpDir=[]
-      % The index of the currently selected GT experiment dir.  Empty
-      % iff gtExpDirNames is empty.
+    model  % a ref for the model
     fig  % the figure handle
     projectFileLabelText
     projectFileText
@@ -27,7 +16,8 @@ classdef GrandlyUnify < handle
     convertButton
   end
   methods
-    function self=GrandlyUnify()
+    function self=GrandlyUnifyView(model,controller)
+      self.model=model;
       % Set figure layout parameters
       figureWidth=730;
       figureHeight=274;
@@ -221,7 +211,7 @@ classdef GrandlyUnify < handle
                               chooseProjectFileButtonYOffset ...
                               sideButtonWidth ...
                               sideButtonHeight], ...
-                  'callback',@(g,e)(self.chooseProjectFileButtonPressed()));
+                  'callback',@(g,e)(controller.chooseProjectFileButtonPressed()));
       self.chooseClassifierFileButton= ...
         uicontrol('parent',self.fig, ...
                   'style','pushbutton', ...
@@ -232,7 +222,7 @@ classdef GrandlyUnify < handle
                               chooseClassifierFileButtonYOffset ...
                               sideButtonWidth ...
                               sideButtonHeight], ...
-                  'callback',@(g,e)(self.chooseClassifierFileButtonPressed()));
+                  'callback',@(g,e)(controller.chooseClassifierFileButtonPressed()));
       self.gtExpDirsAddButton= ...
         uicontrol('parent',self.fig, ...
                   'style','pushbutton', ...
@@ -243,7 +233,7 @@ classdef GrandlyUnify < handle
                               gtExpDirsAddButtonYOffset ...
                               sideButtonWidth ...
                               sideButtonHeight], ...
-                  'callback',@(g,e)(self.gtExpDirsAddButtonPressed()));
+                  'callback',@(g,e)(controller.gtExpDirsAddButtonPressed()));
       self.gtExpDirsRemoveButton= ...
         uicontrol('parent',self.fig, ...
                   'style','pushbutton', ...
@@ -254,7 +244,7 @@ classdef GrandlyUnify < handle
                               gtExpDirsRemoveButtonYOffset ...
                               sideButtonWidth ...
                               sideButtonHeight], ...
-                  'callback',@(g,e)(self.gtExpDirsRemoveButtonPressed()));
+                  'callback',@(g,e)(controller.gtExpDirsRemoveButtonPressed()));
 %       self.quitButton= ...
 %         uicontrol('parent',self.fig, ...
 %                   'style','pushbutton', ...
@@ -276,112 +266,21 @@ classdef GrandlyUnify < handle
                               bottomButtonYOffset ...
                               bottomButtonWidth ...
                               bottomButtonHeight], ...
-                  'callback',@(g,e)(self.convertButtonPressed()));
+                  'callback',@(g,e)(controller.convertButtonPressed()));
                               
       % sync the view with the model
-      self.updateView();
+      self.update();
     end  % constructor method
 
-    % ---------------------------------------------------------------------
-    function chooseProjectFileButtonPressed(self)
-      [fileNameRel,pathName] = ...
-        uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
-                  'Choose JAABA Project File');
-      if fileNameRel == 0; return; end;
-      fileNameAbs = fullfile(pathName,fileNameRel);
-      self.projectFileName=fileNameAbs;
-      self.projectFileSpecified=true;
-      self.updateView();
-    end
     
     % ---------------------------------------------------------------------
-    function chooseClassifierFileButtonPressed(self)
-      [fileNameRel,pathName] = ...
-        uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
-                  'Choose JAABA Classifier File');
-      if fileNameRel == 0; return; end;
-      fileNameAbs = fullfile(pathName,fileNameRel);
-      self.classifierFileName=fileNameAbs;
-      self.classifierFileSpecified=true;
-      self.updateView();
-    end
-    
-    % ---------------------------------------------------------------------
-    function gtExpDirsAddButtonPressed(self)
-      [fileNameRel,pathName] = ...
-        uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
-                  'Add .jab file containing classifier to be used as input');
-      if fileNameRel == 0; return; end;
-      fileNameAbs = fullfile(pathName,fileNameRel);
-      everythingParams = load(fileNameAbs,'-mat');
-      if isempty(everythingParams.classifier)
-        uiwait(errordlg(sprintf('%s does not contain a classifier.',fileNameRel), ...
-                        'Error', ...
-                        'modal'));
-        return
-      end
-      % Check that the classifier has a time stamp
-      classifier=everythingParams.classifier;
-      if isfield(classifier,'timeStamp');
-        timeStamp = classifier.timeStamp;
-      else
-        uiwait(errordlg('The classifier in the selected file lacks a timestamp.', ...
-                        'Error', ...
-                        'modal'));
-        return
-      end
-      % Add the name of the score file (without the .mat extension)
-      if isfield(classifier,'file') && isfield(classifier.file,'scorefilename')
-        scoreFileName = classifier.scorefilename;
-        [~,scoreBaseName] = fileparts(scoreFileName);
-      elseif isfield(everythingParams,'behaviors') && ...
-             isfield(everythingParams.behaviors,'names') && ...
-             ~isempty(everythingParams.behaviors.names)
-        behaviorName=everythingParams.behaviors.names{1};
-        scoreBaseName = sprintf('scores_%s',behaviorName);
-      else
-        uiwait(errordlg('Unable to determine score file name for classifier.', ...
-                        'Error', ...
-                        'modal'));
-        return
-      end
-      self.fileNameList{end+1}=fileNameAbs;
-      self.timeStampList(end+1)=timeStamp;
-      self.scoreBaseNameList{end+1}=scoreBaseName;
-      self.iCurrentGTExpDir = length(self.fileNameList);
-      self.updateView();
-    end
-    
-    % ---------------------------------------------------------------------
-    function gtExpDirsRemoveButtonPressed(self)
-      i = self.iCurrentGTExpDir;
-      if isempty(i), return; end
-      nScoreFeatures=length(self.fileNameList);
-      % delete the i'th entries
-      self.fileNameList(i) = [];
-      self.timeStampList(i) = [];
-      self.scoreBaseNameList(i) = [];
-      % update i if we just deleted the n'th element
-      if (i==nScoreFeatures)
-        i=fif(i>1,i-1,[]);
-      end
-      self.iCurrentGTExpDir=i;
-      % Update the "view" to reflect the changed "model"
-      self.updateView();      
-    end
-    
-    % ---------------------------------------------------------------------
-    function convertButtonPressed(self)
-    end
-    
-    % ---------------------------------------------------------------------
-    function updateView(self)
-      % Update the "view" to reflect the current "model"
+    function update(self)
+      % Update the view to match the model
       
       % Update the project file text object
-      if self.projectFileSpecified ,
+      if self.model.projectFileSpecified ,
         set(self.projectFileText, ...
-            'String',self.projectFileName, ...
+            'String',self.model.projectFileName, ...
             'FontAngle','normal');
       else
         set(self.projectFileText, ...
@@ -390,9 +289,9 @@ classdef GrandlyUnify < handle
       end
         
       % Update the classifier file text object
-      if self.classifierFileSpecified ,
+      if self.model.classifierFileSpecified ,
         set(self.classifierFileText, ...
-            'String',self.classifierFileName, ...
+            'String',self.model.classifierFileName, ...
             'FontAngle','normal');
       else
         set(self.classifierFileText, ...
@@ -401,14 +300,14 @@ classdef GrandlyUnify < handle
       end
       
       % Update the GT experiment listbox
-      set(self.gtExpDirsListbox,'String',self.gtExpDirNames);
-      set(self.gtExpDirsListbox,'Value',self.iCurrentGTExpDir);
+      set(self.gtExpDirsListbox,'String',self.model.gtExpDirNames);
+      set(self.gtExpDirsListbox,'Value',self.model.iCurrentGTExpDir);
 
       % Update enablement of Remove button
-      set(self.gtExpDirsRemoveButton,'enable',offIff(isempty(self.gtExpDirNames)));
+      set(self.gtExpDirsRemoveButton,'enable',offIff(isempty(self.model.gtExpDirNames)));
       
       % Update enablement of convert button
-      set(self.convertButton,'enable',onIff(self.projectFileSpecified));
+      set(self.convertButton,'enable',onIff(self.model.projectFileSpecified));
     end  % method
     
   end
