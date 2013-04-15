@@ -65,6 +65,14 @@ switch InputDataType,
       leftovers{:},...
       'pxpermm',pxpermm);
     
+  case 'LarvaeReid',
+
+    [success,msg,pxpermm] = ...
+      ReadArenaParameters_LarvaeReid(...
+      leftovers{:},...
+      'pxpermm',pxpermm);
+
+    
   otherwise
     success = false;
     msg = sprintf('Unknown data type %s',InputDataType);
