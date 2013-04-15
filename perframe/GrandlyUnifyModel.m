@@ -45,7 +45,6 @@ classdef GrandlyUnifyModel < handle
         i=fif(i>1,i-1,[]);
       end
       self.iCurrentGTExpDir=i;
-    end
-    
-  end
-end
+    end  % method
+  end  % methods
+end  % classdef
