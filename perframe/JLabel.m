@@ -8735,9 +8735,16 @@ ClearStatus(handles);
 guidata(figureJLabel,handles);
 
 return
+
+
+% -------------------------------------------------------------------------
 function menu_classifier_compareFrames_Callback(hObject,eventdata)
 handles = guidata(hObject);
 if isempty(handles.guidata.expi) || handles.guidata.expi<1, return, end
-chandles = CompareFrames('JLabelH',handles,'expnum',handles.guidata.expi,...
-  'fly',handles.guidata.flies,'t',handles.guidata.ts);
+chandles = CompareFrames('JLabelH',handles, ...
+                         'expnum',handles.guidata.expi,...
+                         'fly',handles.guidata.flies, ...
+                         't',handles.guidata.ts);
 handles.guidata.open_peripherals(end+1) = chandles;
+return
+
