@@ -7968,6 +7968,25 @@ classdef JLabelData < handle
       
     end
     
+    function avgBoutLen = GetAvgPredictionBoutLen(obj)
+      if ~obj.HasLoadedScores(),
+        uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
+      end
+      
+      blen = [];
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.predictdata{endx}{flies}.loaded_valid;
+          posts = obj.predictdata{endx}{flies}.loaded(curidx)>0;
+          labeled = bwlabel(posts);
+          aa = regionprops(labeled,'Area');
+          blen = [blen [aa.Area]];
+        end
+      end
+      avgBoutLen = mean(blen);
+      
+    end
+    
     function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
       success = true; msg = '';
       
@@ -8354,7 +8373,7 @@ classdef JLabelData < handle
               success = false;  %#ok
               return;
             end
-            posts = obj.predictdata{expi}{flies}.loaded_pp(curidx);  %#ok
+            posts = obj.predictdata{endx}{flies}.loaded_pp(curidx);
             labeled = bwlabel(posts);
             aa = regionprops(labeled,'Area');  %#ok
             blen = [blen [aa.Area]];  %#ok
