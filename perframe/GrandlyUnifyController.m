@@ -53,6 +53,7 @@ classdef GrandlyUnifyController < handle
         uiputfile({'*.jab','JAABA files (*.jab)'}, ...
                   'Save JAABA File As...');
       if fileNameRel == 0; return; end;  % user hit cancel
+      self.view.spin();  
       fileNameAbs = fullfile(pathName,fileNameRel);
       projectFileName=self.model.projectFileName;
       classifierFileName=self.model.classifierFileName;
@@ -64,12 +65,13 @@ classdef GrandlyUnifyController < handle
           classifierFileName, ...
           gtExpDirNames);
       catch excp
-        if isequal(excp.identifier,'MATLAB:load:notBinaryFile')
-          uiwait(errordlg(excp.message,'Error','modal'));
-        else
-          rethrow(excp);
-        end
+        uiwait(errordlg(excp.message,'Error','modal'));
+        return
       end  % try/catch
+      h=helpdlg('Conversion was successful','Success!');
+      set(h,'windowstyle','modal');
+      self.view.unspin();  
+      uiwait(h);
     end  % method
   end
 end
