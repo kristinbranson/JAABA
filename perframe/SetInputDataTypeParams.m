@@ -127,7 +127,7 @@ InputDataTypes.MAGATAnalyzer.files = [];
 file = struct;
 file.name = 'Experiment mat file';
 file.code = 'expfile';
-file.description = 'Mat file output my the MAGATAnalyzer';
+file.description = 'Mat file output by the MAGATAnalyzer';
 file.required = true;
 file.multiplefiles = 0;
 file.isdir = 0;
@@ -148,7 +148,7 @@ InputDataTypes.MWT.files = [];
 file = struct;
 file.name = 'Blobs file';
 file.code = 'blobsfile';
-file.description = 'Blobs file(s) output my the MWT';
+file.description = 'Blobs file(s) output by the MWT';
 file.required = true;
 file.multiplefiles = 1;
 file.isdir = 0;
@@ -158,7 +158,7 @@ InputDataTypes.MWT.files = structappend(InputDataTypes.MWT.files,file);
 file = struct;
 file.name = 'Spine file';
 file.code = 'spinefile';
-file.description = 'Spine file output my the MWT';
+file.description = 'Spine file output by the MWT';
 file.required = false;
 file.multiplefiles = 0;
 file.isdir = 0;
@@ -168,12 +168,57 @@ InputDataTypes.MWT.files = structappend(InputDataTypes.MWT.files,file);
 file = struct;
 file.name = 'Dat files';
 file.code = 'datfiles';
-file.description = 'Dat file(s) output my the MWT containing derived statistics';
+file.description = 'Dat file(s) output by the MWT containing derived statistics';
 file.required = false;
 file.multiplefiles = 1;
 file.isdir = 0;
 file.exts = {'*.dat'};
 InputDataTypes.MWT.files = structappend(InputDataTypes.MWT.files,file);
+
+%% Sam Reid's larvae
+
+InputDataTypes.LarvaeReid = struct;
+InputDataTypes.LarvaeReid.name = 'Reid''s Larva Data';
+InputDataTypes.LarvaeReid.videorequired = false;
+InputDataTypes.LarvaeReid.readarena = 'no';
+InputDataTypes.LarvaeReid.readpxpermm = 'maybe';
+InputDataTypes.LarvaeReid.readfps = 'yes';
+InputDataTypes.LarvaeReid.writearena = 'yes';
+InputDataTypes.LarvaeReid.writepxpermm = 'maybe';
+InputDataTypes.LarvaeReid.writefps = 'no';
+InputDataTypes.LarvaeReid.files = [];
+
+file = struct;
+file.name = 'Blobs file';
+file.code = 'blobsfile';
+file.description = 'Blobs file(s) output by the MWT';
+file.required = true;
+file.multiplefiles = 1;
+file.isdir = 0;
+file.exts = {'*.blobs'};
+InputDataTypes.LarvaeReid.files = structappend(InputDataTypes.LarvaeReid.files,file);
+
+file = struct;
+file.name = 'kinData mat file';
+file.code = 'kinmatfile';
+file.description = 'kinData mat file computed by Reid''s analysis on top of the MWT output';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeReid.files = structappend(InputDataTypes.LarvaeReid.files,file);
+
+file = struct;
+file.name = 'eventData mat file';
+file.code = 'eventmatfile';
+file.description = 'eventData mat file computed by Reid''s analysis on top of the MWT output';
+file.required = false;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeReid.files = structappend(InputDataTypes.LarvaeReid.files,file);
+
+%%
 
 InputDataTypes.CtraxPlusWings = struct;
 InputDataTypes.CtraxPlusWings.name = 'Ctrax plus wing tracker';
