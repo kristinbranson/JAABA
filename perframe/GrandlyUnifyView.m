@@ -14,6 +14,8 @@ classdef GrandlyUnifyView < handle
     gtExpDirsRemoveButton
     %quitButton
     convertButton
+    spinDepth=0  % how many times spin() has been called, minus how many 
+                 % times unspin() has been called
   end
   methods
     function self=GrandlyUnifyView(model,controller)
@@ -272,6 +274,29 @@ classdef GrandlyUnifyView < handle
       self.update();
     end  % constructor method
 
+    
+    % ---------------------------------------------------------------------
+    function spin(self)
+      % Change the cursor to the watch cursor
+      self.spinDepth=self.spinDepth+1;
+      set(self.fig,'pointer','watch');
+      drawnow('update');
+    end
+      
+      
+    % ---------------------------------------------------------------------
+    function unspin(self)
+      % Change the cursor back to normal, unless spin() has been called
+      % multiple times without a corresponding unspin() calls.
+      if self.spinDepth>0 ,
+        self.spinDepth=self.spinDepth-1;
+        drawnow('update');  % make sure the figure is as it should be before
+                            % switching to the normal cursor
+        set(self.fig,'pointer','arrow');
+        drawnow('update');
+      end
+    end
+    
     
     % ---------------------------------------------------------------------
     function update(self)
