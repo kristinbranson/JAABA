@@ -5,9 +5,9 @@ if ismac(),
   set(allpopups,'ForegroundColor',[0 0 0], ...
                 'BackgroundColor',[1 1 1]);
   pushbuttons=findall(fig,'type','uicontrol','Style','pushbutton');
-  adjustNonLabelButtonColor(pushbuttons)
+  adjustButtonColorsIfMac(pushbuttons)
   togglebuttons=findall(fig,'type','uicontrol','Style','togglebutton');
-  adjustNonLabelButtonColor(togglebuttons)
+  adjustButtonColorsIfMac(togglebuttons)
 end
 
 end

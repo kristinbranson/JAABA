@@ -63,9 +63,10 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 set(handles.automaticTimelineBottomRowPopup,'String',...
  {'None','Validated','Old','Loaded','Postprocessed','Distance'});
 
-handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
- 'Label','Find Similar Frames','Callback',...
-@menu_classifier_compareFrames_Callback);
+% Added to JLabel.fig
+%handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
+% 'Label','Find Similar Frames','Callback',...
+%@menu_classifier_compareFrames_Callback);
 
 
 handles.guidata = JLabelGUIData();
@@ -1950,7 +1951,7 @@ buttonNames = {'pushbutton_train','pushbutton_predict',...
                'pushbutton_playselection','pushbutton_playstop',...
                'similarFramesButton','bagButton'};
 for buttonNum = 1:numel(buttonNames)
-  adjustNonLabelButtonColor(handles.(buttonNames{buttonNum}));
+  adjustButtonColorsIfMac(handles.(buttonNames{buttonNum}));
 end
 
 %set(handles.similarFramesButton,'Enable','off');  % via update
@@ -2417,6 +2418,8 @@ set(handles.menu_classifier_visualize, ...
 set(handles.menu_classifier_compute_gt_performance, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
 set(handles.menu_classifier_post_processing, ...
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+set(handles.menu_classifier_compareFrames, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
 set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
@@ -5170,7 +5173,7 @@ CALC_FEATURES = false;
 axi = 1;
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 %SetButtonImage(handles.pushbutton_playstop);
-adjustNonLabelButtonColor(hObject);
+adjustButtonColorsIfMac(hObject);
 
 if ~handles.guidata.data.IsGTMode()
   handles = UpdatePrediction(handles);
@@ -5318,7 +5321,7 @@ if ~isempty(T),  stop(T(:)); delete(T(:)); end
 if isnan(handles.guidata.hplaying), return; end;
 set(handles.guidata.hplaying,'String','Play','BackgroundColor',[.2,.4,0]);
 %SetButtonImage(handles.guidata.hplaying);
-adjustNonLabelButtonColor(handles.guidata.hplaying);
+adjustButtonColorsIfMac(handles.guidata.hplaying);
   
 hObject = handles.guidata.hplaying;
 handles.guidata.hplaying = nan;
@@ -8738,8 +8741,8 @@ return
 
 
 % -------------------------------------------------------------------------
-function menu_classifier_compareFrames_Callback(hObject,eventdata)
-handles = guidata(hObject);
+function menu_classifier_compareFrames_Callback(hObject,eventdata,handles)
+%handles = guidata(hObject);
 if isempty(handles.guidata.expi) || handles.guidata.expi<1, return, end
 chandles = CompareFrames('JLabelH',handles, ...
                          'expnum',handles.guidata.expi,...
@@ -8747,4 +8750,3 @@ chandles = CompareFrames('JLabelH',handles, ...
                          't',handles.guidata.ts);
 handles.guidata.open_peripherals(end+1) = chandles;
 return
-
