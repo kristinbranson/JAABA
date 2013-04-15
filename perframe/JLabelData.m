@@ -6998,10 +6998,10 @@ classdef JLabelData < handle
     
     
 % Show similar frames
-    
+    % ---------------------------------------------------------------------
     function DoFastBagging(obj)
-      obj.StoreLabels();
-      [success,msg] = obj.PreLoadLabeledData();
+      obj.StoreLabelsAndThatsAll();
+      [success,msg] = obj.PreLoadPeriLabelWindowData();
       if ~success, warning(msg);return;end
 
       islabeled = obj.windowdata.labelidx_new ~= 0;
@@ -7061,7 +7061,7 @@ classdef JLabelData < handle
       for ndx = 1:numel(pffs)
         [~,curf] = ComputeWindowFeatures([0,0],...
           windowfeaturescellparams.(pffs{ndx}){:});
-        feature_names_curr = cellfun(@(x) [{pffs{ndx}},x],curf,'UniformOutput',false);
+        feature_names_curr = cellfun(@(x) [{pffs{ndx}},x],curf,'UniformOutput',false);  %#ok
         features_names_sel = [features_names_sel,feature_names_curr]; %#ok<AGROW>
       end
       
@@ -7108,9 +7108,10 @@ classdef JLabelData < handle
       obj.fastPredictBag.dist = cell(1,obj.nexps);
       obj.ClearStatus();
       
-    end
+    end  % method
     
 
+    % ---------------------------------------------------------------------
     function [success,msg] = SetCurrentFlyForBag(obj,exp,fly,t)
       obj.fastPredictBag.curexp = exp;
       obj.fastPredictBag.fly = fly;
@@ -7132,6 +7133,8 @@ classdef JLabelData < handle
     end
     
     function [success,msg] = UnsetCurrentFlyForBag(obj)
+      success=true;
+      msg='';
       obj.fastPredictBag.curexp = [];
       obj.fastPredictBag.fly = [];
       obj.fastPredictBag.t = [];
@@ -7142,6 +7145,7 @@ classdef JLabelData < handle
     end
 
     
+    % ---------------------------------------------------------------------
     function [success,msg,dist] = ComputeBagFeatures(obj,curexp,curfly,curF)
     % Use the fast feature computation to find the bag features..
       success = true; msg = '';
@@ -7180,16 +7184,16 @@ classdef JLabelData < handle
          
          ndx = find(strcmp(fn,allperframefns));
          if perframeInMemory,
-           perframedata = perframedata_cur{ndx};
+           perframedata = perframedata_cur{ndx};  %#ok
          else
-           perframedata = load(perframefile{ndx});
-           perframedata = perframedata.data{curfly(1)};
+           perframedata = load(perframefile{ndx});  %#ok
+           perframedata = perframedata.data{curfly(1)};  %#ok
          end
          
          t11 = min(t1,numel(perframedata));
          [x_curr,curf] = ...
            ComputeWindowFeatures(perframedata,...
-           windowfeaturescellparams.(fn){:},'t0',t0-T0+1,'t1',t11);
+           windowfeaturescellparams.(fn){:},'t0',t0-T0+1,'t1',t11);  %#ok
          fnames{j} = curf;
          if t11 < t1,
            x_curr(:,end+1:end+t1-t11) = nan;
@@ -7216,12 +7220,12 @@ classdef JLabelData < handle
          end
          X = [X,x_curr']; %#ok<AGROW>
          jj = fnames{j};
-         feature_names_curr = cellfun(@(x) [{pffs{j}},x],jj,'UniformOutput',false);
+         feature_names_curr = cellfun(@(x) [{pffs{j}},x],jj,'UniformOutput',false);  %#ok
 
-         allFeatures = [allFeatures,feature_names_curr];
+         allFeatures = [allFeatures,feature_names_curr];  %#ok
        end
        
-       X_all = [X_all;X];
+       X_all = [X_all;X];  %#ok
       end
      
       X_all = X_all(:,obj.fastPredictBag.wfidx);
@@ -7241,13 +7245,15 @@ classdef JLabelData < handle
     
     
 
+    % ---------------------------------------------------------------------
     function [success,msg] = ComputeBagDistFly(obj,expi,fly)
       [success,msg,dist] = obj.ComputeBagFeatures(expi,fly,obj.fastPredictBag.curF);
       obj.fastPredictBag.dist{expi}{fly} = dist;
     end
 
     
-    function [success,msg] = ComputeBagDistExp(obj,curexp,curfly,curt,expi)
+    % ---------------------------------------------------------------------
+    function [success,msg] = ComputeBagDistExp(obj,curexp,curfly,curt,expi)  %#ok
       for ndx = 1:numel(obj.nflies_per_exp(expi))
         [success,msg,dist] = obj.ComputeBagFeatures(expi,ndx,obj.fastPredict.curF);
         obj.fastPredictBag.dist{expi}{ndx} = dist;
@@ -7255,7 +7261,9 @@ classdef JLabelData < handle
       
     end
     
-    function [nextT,distT] = FindNextClosest(obj,dist,curV,dir)
+    
+    % ---------------------------------------------------------------------
+    function [nextT,distT] = FindNextClosest(obj,dist,curV,dir)  %#ok
 
       nextT = []; distT = [];
       switch dir
@@ -7280,7 +7288,9 @@ classdef JLabelData < handle
       end
       
     end
+
     
+    % ---------------------------------------------------------------------
     function has = HasDistance(obj,expi,flies)
       has = ~(isempty(obj.bagModels) || ...
           isempty(obj.fastPredictBag.dist) || ...
@@ -7290,6 +7300,8 @@ classdef JLabelData < handle
          isempty(obj.fastPredictBag.dist{expi}{flies})); 
     end
     
+    
+    % ---------------------------------------------------------------------
     function dist = GetDistance(obj,expi,flies)
       if obj.HasDistance(expi,flies)
         obj.ComputeBagDistanceTraining();
@@ -7316,6 +7328,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function [nextT, distT] = NextClosestBagFly(obj,dir,curt,expi,flies,curV,ignore,jumpList,jumpRestrict)
       nextT = []; distT =[];
       if  isempty(obj.fastPredictBag.dist) || ...
@@ -7358,6 +7372,8 @@ classdef JLabelData < handle
       nextT= nextT+T0-1;
     end
     
+    
+    % ---------------------------------------------------------------------
     function [bestnextT,bestdistT,bestfly] = NextClosestBagExp(obj,dir,curt,expi,flies,ignore,jumpList,jumpRestrict)
       
       bestnextT = []; bestfly = [];
@@ -7406,6 +7422,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function ComputeBagDistanceTraining(obj)
       if isempty(obj.fastPredictBag.trainDist)
         dX = zeros(size(obj.windowdata.X,1),numel(obj.bagModels));
@@ -7424,6 +7442,7 @@ classdef JLabelData < handle
     end
     
     
+    % ---------------------------------------------------------------------
     function [nextT, distT, fly, exp ] = ...
         NextClosestBagTraining(obj,jtype,curT,curExp,curFly,ignore,jumpList,jumpRestrict)
       
@@ -7485,10 +7504,11 @@ classdef JLabelData < handle
     end
     
     
+    % ---------------------------------------------------------------------
     function DoBagging(obj)
       
-      obj.StoreLabels();
-      [success,msg] = obj.PreLoadLabeledData();
+      obj.StoreLabelsAndThatsAll();
+      [success,msg] = obj.PreLoadPeriLabelWindowData();
       if ~success, warning(msg);return;end
       
       islabeled = obj.windowdata.labelidx_new ~= 0;
@@ -7517,6 +7537,8 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
     
+    
+    % ---------------------------------------------------------------------
     function InitSimilarFrames(obj, HJLabel)
       obj.frameFig = showSimilarFrames;
       showSimilarFrames('SetJLabelData',obj.frameFig,obj,HJLabel);
@@ -7524,6 +7546,8 @@ classdef JLabelData < handle
       showSimilarFrames('add_prep_list', obj.frameFig);
     end
     
+    
+    % ---------------------------------------------------------------------
     function SimilarFrames(obj,curTime,JLabelHandles)
       if isempty(obj.frameFig) || ~ishandle(obj.frameFig),
         obj.InitSimilarFrames(JLabelHandles),
@@ -7648,12 +7672,12 @@ classdef JLabelData < handle
         varForSSF.negFrames(k).curTime = obj.windowdata.distNdx.t(curN(k));
       end
       showSimilarFrames('setFrames',obj.frameFig,varForSSF);
-    end
+    end  % method
     
     
-% Fly and exp statistics
+% Fly and exp statistics    
     
-
+    % ---------------------------------------------------------------------
     function expStats = GetExpStats(obj,expi)
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
@@ -7692,7 +7716,7 @@ classdef JLabelData < handle
       obj.StoreLabelsAndPreLoadWindowData();
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
       if ism,
-        nbouts = numel(obj.labels(expi).t0s{j});
+        nbouts = numel(obj.labels(expi).t0s{j});  %#ok
         posframes = 0; negframes = 0;
         for ndx = 1:numel(obj.labels(expi).t0s{j})
           numFrames = obj.labels(expi).t1s{j}(ndx)-obj.labels(expi).t0s{j}(ndx);
@@ -7702,14 +7726,14 @@ classdef JLabelData < handle
             negframes = negframes + numFrames;
           end
         end
-        posframes = posframes;
-        negframes = negframes;
-        totalframes = posframes + negframes;
+        posframes = posframes;  %#ok
+        negframes = negframes;  %#ok
+        totalframes = posframes + negframes;  %#ok
       else
-        nbouts = 0;
-        posframes = 0;
-        negframes = 0;
-        totalframes = 0;
+        nbouts = 0;  %#ok
+        posframes = 0;  %#ok
+        negframes = 0;  %#ok
+        totalframes = 0;  %#ok
       end
       
       % stuff into flyStats, with appropriate field names
@@ -7979,8 +8003,8 @@ classdef JLabelData < handle
           curidx = obj.predictdata{endx}{flies}.loaded_valid;
           posts = obj.predictdata{endx}{flies}.loaded(curidx)>0;
           labeled = bwlabel(posts);
-          aa = regionprops(labeled,'Area');
-          blen = [blen [aa.Area]];
+          aa = regionprops(labeled,'Area');  %#ok
+          blen = [blen [aa.Area]];  %#ok
         end
       end
       avgBoutLen = mean(blen);
