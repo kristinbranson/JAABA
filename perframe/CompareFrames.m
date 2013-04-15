@@ -79,7 +79,7 @@ set(handles.edit_ignore,'String','0');
 set(handles.radiobutton_behavior,'String',handles.data.labelnames{1});
 set(handles.popupmenu_jump,'String',{'Current Fly','Current Experiment','All experiments','Training Data'},'Value',1);
 
-handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t)
+handles.data.SetCurrentFlyForBag(handles.expnum,handles.fly,handles.t);
 handles = CacheFrames(handles);
 handles = initialize(handles);
 
@@ -94,12 +94,16 @@ set([handles.uipanel_jump,handles.radiobutton_all,...
 set(handles.radiobutton_all,'Value',1);
 handles.jump_restrict = 'all';
 
+% Make sure the colors are OK on Mac
+adjustColorsIfMac(hObject);
+
 % Update handles structure
 guidata(hObject, handles);
 JLabel('UpdatePrediction',handles.JLabelH);
 
 % UIWAIT makes CompareFrames wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+return
 
 
 % --- Outputs from this function are returned to the command line.
@@ -111,6 +115,7 @@ function varargout = CompareFrames_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+return
 
 
 function handles = CacheFrames(handles)
@@ -150,9 +155,7 @@ for ndx = 1:numel(handles.data.perframedata)
 end
 set(handles.popupmenu_pf,'String',handles.pfList);
 set(handles.text_info,'String',sprintf('Animal:%d, Frame:%d, Exp-Number:%d Exp-Name:%s',handles.fly,handles.t,handles.expnum,handles.data.expnames{handles.expnum}));
-
-
-
+return
 
 
 function handles = initialize(handles)
