@@ -574,7 +574,7 @@ classdef JLabelData < handle
       % obj.perframedata.
 
       % Convert the scores files into perframe files.
-      pfName=scoreFeature.scorefilename;
+      pfName=scoreFeature.scorefilename;  % this is the base name of the score file, which also serves as the per-frame feature name
       timeStamp=scoreFeature.ts;
       nExps=obj.nexps;
       for iExp=1:nExps
@@ -584,7 +584,7 @@ classdef JLabelData < handle
                                        pfName, ...
                                        timeStamp);
         if ~success,
-          error('JLabelData.errorGeneratingPerframeFileFromScoreFile', ...
+          error('JLabelData:errorGeneratingPerframeFileFromScoreFile', ...
                 sprintf('Error generating score-based per-frame file %s for %s',pfName,expName));  %#ok
         end
       end
@@ -603,7 +603,7 @@ classdef JLabelData < handle
       % obj.perframedata.
 
       % Delete from the scoreFeatures
-      toBeDeleted=(obj.scoreFeatures==scoreFeature);
+      toBeDeleted=arrayfun(@(s)isequal(s,scoreFeature),obj.scoreFeatures);
       obj.scoreFeatures=obj.scoreFeatures(~toBeDeleted);
       
       % Delete from allperframefns
@@ -857,8 +857,8 @@ classdef JLabelData < handle
     % classifierfilename: name of classifier file to save/load classifier from
  
       if nargin == 0 || isempty(varargin{1}),
-        error('JLabelData.zero_args_to_constructor',  ...
-              'JLabelData() called with zero args or with an empty first arg.');  %#ok
+        error('JLabelData:zero_args_to_constructor',  ...
+              'JLabelData() called with zero args or with an empty first arg.');
       end
       
       % get the project params
@@ -1084,6 +1084,9 @@ classdef JLabelData < handle
 
     % ---------------------------------------------------------------------
     function [success,msg] = setBasicParams(obj,basicParams)
+      % This set most of the parameters that typically get set on object 
+      % creation.
+  
       % set default return values
       success = false;
       msg = '';
@@ -1170,8 +1173,6 @@ classdef JLabelData < handle
           msg = '';
         end
         if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
-          %obj.basicFeatureTable = basicParams.windowfeatures.basicFeatureTable;
-          %obj.maxWindowRadiusCommonCached = basicParams.windowfeatures.maxWindowRadiusCommonCached;
           basicParams.windowfeatures.windowfeaturesparams = ...
             JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
           basicParams.windowfeatures.windowfeaturescellparams = ...
@@ -8249,8 +8250,8 @@ classdef JLabelData < handle
     function crossError = GetGTPerformance(obj)
       % Computes the performance on the GT data.
       if ~obj.gtMode ,
-        error('JLabelData.wrongMode',...
-              'Can only call GetGTPerformance() in ground-truthing mode.');  %#ok
+        error('JLabelData:wrongMode',...
+              'Can only call GetGTPerformance() in ground-truthing mode.');
       end
       obj.StoreLabelsAndPreLoadWindowData();
       crossError.numbers = zeros(4,3);
@@ -8590,7 +8591,7 @@ classdef JLabelData < handle
       for i = 1:nFields,
         fieldNameInSelf = fieldNamesInSelf{i};
         fieldNameInClassifier = fieldNamesInClassifier{i};
-        if strcmp(fieldNameInClassifier,'scoreNorm')
+        if isequal(fieldNameInClassifier,'scoreNorm')
           % this one lives in self.windowdata
           classifier.(fieldNameInClassifier)=self.windowdata.(fieldNameInSelf);
         else    
@@ -8760,7 +8761,7 @@ classdef JLabelData < handle
     function setScoreFeatures(obj, ...
                               scoreFeaturesFileNameListNew, ...
                               timeStampListNew, ...
-                              scoreBaseNameListNew)
+                              scoreFileBaseNameListNew)
       % Update obj.scoreFeatures, preserving invariants
 
       % Get the current scoreFeatures
@@ -8780,7 +8781,7 @@ classdef JLabelData < handle
         scoreFeaturesNew= ...
           collectScoreFeatures(scoreFeaturesFileNameListNew, ...
                                timeStampListNew, ...
-                               scoreBaseNameListNew);
+                               scoreFileBaseNameListNew);
 
         % determine which elements of each are kept, added
         [kept,added]= ...
@@ -8809,8 +8810,8 @@ classdef JLabelData < handle
                 msg);
         end
       catch excp
-        if isequal(excp.identifier,'JLabelData.unableToSetScoreFeatures') || ...
-           isequal(excp.identifier,'JLabelData.errorGeneratingPerframeFileFromScoreFile')
+        if isequal(excp.identifier,'JLabelData:unableToSetScoreFeatures') || ...
+           isequal(excp.identifier,'JLabelData:errorGeneratingPerframeFileFromScoreFile')
           % unroll changes
           obj.scoreFeatures=scoreFeaturesOld;
           obj.allperframefns=featureNamesInSubdialectOld;
