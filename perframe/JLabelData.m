@@ -407,22 +407,16 @@ classdef JLabelData < handle
                         'classifierTS', ...
                         'confThresholds', ...
                         'scoreNorm', ...
-                        'windowfeaturesparams', ...
                         'postprocessparams'};
-%                        'scoreFeatures'};
-%                        'maxWindowRadiusCommonCached', ...
-%                        'basicFeatureTable', ...
+%                        'windowfeaturesparams', ...
     fieldNamesInClassifier = {'type', ...
                               'params', ...
                               'trainingParams', ...
                               'timeStamp', ...
                               'confThresholds', ...
                               'scoreNorm', ...
-                              'windowFeaturesParams', ...
                               'postProcessParams'}
-%                              'scoreFeatures'};
-%                              'maxWindowRadiusCommonCached', ...
-%                              'basicFeatureTable', ...
+%                              'windowFeaturesParams', ...
   end
   
 %   properties (Access=private)
@@ -1172,13 +1166,13 @@ classdef JLabelData < handle
           obj.allperframefns = basicParams.sublexiconPFNames;
           msg = '';
         end
-        if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
-          basicParams.windowfeatures.windowfeaturesparams = ...
-            JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
-          basicParams.windowfeatures.windowfeaturescellparams = ...
-            JLabelData.convertParams2CellParams(basicParams.windowfeatures.windowfeaturesparams);
-          obj.SetPerframeParams(basicParams.windowfeatures.windowfeaturesparams);
-        end
+        % if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
+        %   basicParams.windowfeatures.windowfeaturesparams = ...
+        %     JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
+        %   basicParams.windowfeatures.windowfeaturescellparams = ...
+        %     JLabelData.convertParams2CellParams(basicParams.windowfeatures.windowfeaturesparams);
+        %   obj.setWindowFeaturesParamsRaw(basicParams.windowfeatures.windowfeaturesparams);
+        % end
         if isfield(basicParams,'perframe'),
           if isfield(basicParams.perframe,'params'),
             pf_fields = fieldnames(basicParams.perframe.params);
@@ -1191,17 +1185,17 @@ classdef JLabelData < handle
           end
         end  % isfield(basicParams,'perframe'),
       end  % isfield(basicParams,'file'),
-      if isfield(basicParams,'scoreFeatures') ,
-        obj.scoreFeatures = basicParams.scoreFeatures;
-        nScoreFeaturess=length(basicParams.scoreFeatures);
-        scoreFeaturesPFNames=cell(nScoreFeaturess,1);
-        for i = 1:nScoreFeaturess ,
-          [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
-          scoreFeaturesPFNames{i} = pfName;
-        end
-        obj.allperframefns=[obj.allperframefns ; ...
-                            scoreFeaturesPFNames];
-      end  % if isfield(basicParams,'scoreFeatures'),
+%       if isfield(basicParams,'scoreFeatures') ,
+%         obj.scoreFeatures = basicParams.scoreFeatures;
+%         nScoreFeaturess=length(basicParams.scoreFeatures);
+%         scoreFeaturesPFNames=cell(nScoreFeaturess,1);
+%         for i = 1:nScoreFeaturess ,
+%           [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
+%           scoreFeaturesPFNames{i} = pfName;
+%         end
+%         obj.allperframefns=[obj.allperframefns ; ...
+%                             scoreFeaturesPFNames];
+%       end  % if isfield(basicParams,'scoreFeatures'),
       
       % Re-load the perframe feature signals, since the PFFs may have changed
       obj.loadPerframeData(obj.expi,obj.flies);
@@ -2023,7 +2017,7 @@ classdef JLabelData < handle
 %             str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
 %             str = sprintf('%s\nUsing parameters stored in the classifier file',str);
 %             uiwait(warndlg(str));
-%             obj.UpdatePerframeParams(classifierParams.windowfeaturesparams,...
+%             obj.setWindowFeaturesParams(classifierParams.windowfeaturesparams,...
 %                                      classifierParams.basicFeatureTable,...
 %                                      classifierParams.maxWindowRadiusCommonCached);
 %         end
@@ -2214,7 +2208,7 @@ classdef JLabelData < handle
 %       windowFeaturesParams=everythingParams.classifier.windowFeaturesParams;
 %       %windowFeaturesCellParams= ...
 %       %  JLabelData.convertParams2CellParams(windowFeaturesParams);
-%       self.SetPerframeParams(windowFeaturesParams);
+%       self.setWindowFeaturesParamsRaw(windowFeaturesParams);
 %       %self.windowfeaturesparams=classifierParams.windowfeaturesparams;
 %       %self.windowfeaturescellparams= ...
 %       %  JLabelData.convertParams2CellParams(self.windowfeaturesparams);
@@ -2366,9 +2360,9 @@ classdef JLabelData < handle
         if strcmp(fieldNameInClassifier,'scoreNorm')
           % this one lives in self.windowdata
           self.windowdata.(fieldNameInSelf)=classifier.(fieldNameInClassifier);
-        elseif strcmp(fieldNameInClassifier,'windowFeaturesParams')
-          % this one is special
-          self.SetPerframeParams(classifier.(fieldNameInClassifier));
+%         elseif strcmp(fieldNameInClassifier,'windowFeaturesParams')
+%           % this one is special
+%           self.setWindowFeaturesParamsRaw(classifier.(fieldNameInClassifier));
         else    
           % the usual case---just map one field name to the other
           self.(fieldNameInSelf)=classifier.(fieldNameInClassifier);
@@ -2493,7 +2487,7 @@ classdef JLabelData < handle
 %                 str = sprintf('%s\ndo not match the parameters saved in the classifier',str);
 %                 str = sprintf('%s\nUsing parameters stored in the classifier file',str);
 %                 uiwait(warndlg(str));
-%                 obj.UpdatePerframeParams(loadeddata.windowfeaturesparams,...
+%                 obj.setWindowFeaturesParams(loadeddata.windowfeaturesparams,...
 %                   loadeddata.basicFeatureTable,...
 %                   loadeddata.maxWindowRadiusCommonCached,false);
 %             else
@@ -3997,7 +3991,7 @@ classdef JLabelData < handle
       
 %       newparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
 %       newcellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
-%       obj.UpdatePerframeParams(newparams,newcellparams,obj.basicFeatureTable,obj.featureWindowSize);
+%       obj.setWindowFeaturesParams(newparams,newcellparams,obj.basicFeatureTable,obj.featureWindowSize);
       
       obj.windowfeaturesparams = JLabelData.convertTransTypes2Cell(obj.windowfeaturesparams);
       obj.windowfeaturescellparams = JLabelData.convertParams2CellParams(obj.windowfeaturesparams);
@@ -4219,7 +4213,7 @@ classdef JLabelData < handle
 %       windowfeaturesparams = JLabelData.convertTransTypes2Cell(windowfeaturesparams);
 %       %windowfeaturescellparams = JLabelData.convertParams2CellParams(windowfeaturesparams);
 % 
-%       obj.SetPerframeParams(windowfeaturesparams);
+%       obj.setWindowFeaturesParamsRaw(windowfeaturesparams);
 %       obj.featureparamsfilename = featureparamsfilename;
 %       obj.basicFeatureTable = basicFeatureTable;
 %       obj.maxWindowRadiusCommonCached = maxWindowRadiusCommonCached;
@@ -4228,7 +4222,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function SetPerframeParams(obj,windowFeaturesParams)
+    function setWindowFeaturesParamsRaw(obj,windowFeaturesParams)
       obj.windowfeaturesparams = windowFeaturesParams;
       windowFeaturesCellParams= ...
         JLabelData.convertParams2CellParams(windowFeaturesParams);
@@ -6006,7 +6000,7 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function UpdatePerframeParams(obj,params,dotrain)
+    function setWindowFeaturesParams(obj,params,dotrain)
     % Updates the feature params. Called by SelectFeatures
       if ~isempty(obj.classifier),
         hasClassifier = true;
@@ -6018,7 +6012,7 @@ classdef JLabelData < handle
         dotrain = true;
       end
       
-      obj.SetPerframeParams(params);
+      obj.setWindowFeaturesParamsRaw(params);
 %       if nargin>2
 %         %obj.basicFeatureTable = basicFeatureTable;
 %         obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
@@ -8749,6 +8743,9 @@ classdef JLabelData < handle
       end
       [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
 
+      % Get the window feature params, put in s
+      s.windowFeaturesParams=self.windowfeaturesparams;
+      
       % Put the classifier in s
       s.classifier=self.getClassifier();
 
@@ -8758,12 +8755,26 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function setScoreFeatures(obj, ...
-                              scoreFeaturesFileNameListNew, ...
-                              timeStampListNew, ...
-                              scoreFileBaseNameListNew)
+    function setScoreFeatures(obj,varargin)
       % Update obj.scoreFeatures, preserving invariants
 
+      % Process arguments
+      if length(varargin)==1
+        scoreFeaturesNew=varargin{1};
+      elseif length(varargin)==3
+        % collect the args into a scorefeatures struct array
+        scoreFeaturesFileNameListNew=varargin{1};
+        timeStampListNew=varargin{2};
+        scoreFileBaseNameListNew=varargin{3};
+        scoreFeaturesNew= ...
+          collectScoreFeatures(scoreFeaturesFileNameListNew, ...
+                               timeStampListNew, ...
+                               scoreFileBaseNameListNew);
+      else
+        error('JLabelData:internalError', ...
+              'Internal error: Wrong number of arguments to JLabelData.setScoreFeatures()');
+      end
+      
       % Get the current scoreFeatures
       scoreFeaturesOld=obj.scoreFeatures;
 
@@ -8777,12 +8788,6 @@ classdef JLabelData < handle
       % Do a bunch of stuff in a try block, so we can easily roll back if
       % anything goes amiss
       try 
-        % collect the new ones into a scoreFeatures structure array
-        scoreFeaturesNew= ...
-          collectScoreFeatures(scoreFeaturesFileNameListNew, ...
-                               timeStampListNew, ...
-                               scoreFileBaseNameListNew);
-
         % determine which elements of each are kept, added
         [kept,added]= ...
           setDifferencesScoreFeatures(scoreFeaturesOld,scoreFeaturesNew);

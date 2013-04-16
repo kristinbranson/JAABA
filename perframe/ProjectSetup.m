@@ -81,6 +81,9 @@ handles=setBasicAndAdvancedSizesToMatchFigure(handles);
 handles.mode = 'basic';
 handles = updateFigurePosition(handles);
 
+% Center the window on the JLabel figure
+centerOnParentFigure(hObject,figureJLabel);
+
 % Initialize the list of possible feature lexicon names
 handles.featureLexiconNameList = getFeatureLexiconListsFromXML();
 
@@ -220,9 +223,13 @@ else
 end
 
 % Update all the editboxes
-fnames = {'labelfilename','gtlabelfilename','scorefilename',...
+% fnames = {'labelfilename','gtlabelfilename','scorefilename',...
+%           'moviefilename','trxfilename'};
+% boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
+%             'editmoviefilename','edittrxfilename'};
+fnames = {'scorefilename',...
           'moviefilename','trxfilename'};
-boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
+boxnames = {'editscorefilename',...
             'editmoviefilename','edittrxfilename'};
 for ndx = 1:numel(fnames)
   curf = fnames{ndx};
@@ -238,13 +245,13 @@ end
 indexOfFeatureLexicon=find(strcmp(handles.basicParams.featureLexiconName,handles.featureLexiconNameList));
 set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
 
-% Update the list of scores-an-inputs
-fileNameList = {handles.basicParams.scoreFeatures(:).classifierfile};
-set(handles.listbox_inputscores,'String',fileNameList);
-set(handles.listbox_inputscores,'Value',handles.indexOfScoreFeaturesFile);
+% % Update the list of scores-an-inputs
+% fileNameList = {handles.basicParams.scoreFeatures(:).classifierfile};
+% set(handles.listbox_inputscores,'String',fileNameList);
+% set(handles.listbox_inputscores,'Value',handles.indexOfScoreFeaturesFile);
 
-% Disble the Remove button iff the list of scores-as-inputs is empty
-set(handles.pushbutton_removelist,'enable',offIff(isempty(fileNameList)));
+% % Disble the Remove button iff the list of scores-as-inputs is empty
+% set(handles.pushbutton_removelist,'enable',offIff(isempty(fileNameList)));
 
 return
 
@@ -597,117 +604,117 @@ function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% -------------------------------------------------------------------------
-% --- Executes on selection change in listbox_inputscores.
-function listbox_inputscores_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_inputscores (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.indexOfScoreFeaturesFile=get(hObject,'Value');
-guidata(hObject,handles);
-return
+% % -------------------------------------------------------------------------
+% % --- Executes on selection change in listbox_inputscores.
+% function listbox_inputscores_Callback(hObject, eventdata, handles)
+% % hObject    handle to listbox_inputscores (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% handles.indexOfScoreFeaturesFile=get(hObject,'Value');
+% guidata(hObject,handles);
+% return
 
-% -------------------------------------------------------------------------
-% --- Executes during object creation, after setting all properties.
-function listbox_inputscores_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_inputscores (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% -------------------------------------------------------------------------
-% --- Executes on button press in pushbutton_addlist.
-function pushbutton_addlist_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_addlist (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[fname,pname] = ...
-  uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
-            'Add .jab file containing classifier to be used as input');
-if fname == 0; return; end;
-
-fileNameAbs = fullfile(pname,fname);
-everythingParams = load(fileNameAbs,'-mat');
-if isempty(everythingParams.classifier)
-  uiwait(errordlg(sprintf('%s does not contain a classifier.',fname), ...
-                  'Error', ...
-                  'modal'));
-  return
-end               
-
-% [fnames,pname] = uigetfile('*.mat','Classifier whose scores should be used as input');
-% if fnames == 0; return; end;
+% % -------------------------------------------------------------------------
+% % --- Executes during object creation, after setting all properties.
+% function listbox_inputscores_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to listbox_inputscores (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
 % 
-% cfile = fullfile(pname,fnames);
-% classifier = load(cfile);
-
-curs = struct;  % this is the thing we'll return
-
-% Add the .jab file name, with maybe not the best field name
-curs.classifierfile = fileNameAbs;
-
-% Add the classifier time stamp
-classifier=everythingParams.classifier;
-if isfield(classifier,'timeStamp');
-  curs.ts = classifier.timeStamp;
-else
-  uiwait(errordlg('The classifier in the selected field lacks a timestamp.  Aborting.', ...
-                  'Error', ...
-                  'modal'));
-  return
-end
-
-% Add the name of the score file (without the .mat extension)
-if isfield(classifier,'file') && isfield(classifier.file,'scorefilename')
-  scorefilename = classifier.scorefilename;
-  [~,scoreBaseName] = fileparts(scorefilename);
-  curs.scorefilename = scoreBaseName;
-elseif isfield(everythingParams,'behaviors') && ...
-       isfield(everythingParams.behaviors,'names') && ...
-       ~isempty(everythingParams.behaviors.names)
-  behaviorName=everythingParams.behaviors.names{1};
-  curs.scorefilename = sprintf('scores_%s',behaviorName);
-else
-  uiwait(errordlg('Unable to determine score file name.  Aborting.', ...
-                  'Error', ...
-                  'modal'));
-  return
-end
-
-handles.basicParams.scoreFeatures(end+1) = curs;
-handles.indexOfScoreFeaturesFile = length(handles.basicParams.scoreFeatures);
-updateEditsListboxesAndPopupmenus(handles);
-guidata(hObject,handles);
-return
+% % Hint: listbox controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
 
 
-% -------------------------------------------------------------------------
-% --- Executes on button press in pushbutton_removelist.
-function pushbutton_removelist_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_removelist (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-i = handles.indexOfScoreFeaturesFile;
-if isempty(i), return; end
-nScoreFeatures=length(handles.basicParams.scoreFeatures);
-handles.basicParams.scoreFeatures(i) = [];
-if (i==nScoreFeatures)
-  i=i-1;
-  if i==0
-    i=[];
-  end
-end
-handles.indexOfScoreFeaturesFile=i;
-guidata(hObject,handles);
-updateEditsListboxesAndPopupmenus(handles);
-return
+% % -------------------------------------------------------------------------
+% % --- Executes on button press in pushbutton_addlist.
+% function pushbutton_addlist_Callback(hObject, eventdata, handles)
+% % hObject    handle to pushbutton_addlist (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% [fname,pname] = ...
+%   uigetfile({'*.jab','JAABA Everything Files (*.jab)'}, ...
+%             'Add .jab file containing classifier to be used as input');
+% if fname == 0; return; end;
+% 
+% fileNameAbs = fullfile(pname,fname);
+% everythingParams = load(fileNameAbs,'-mat');
+% if isempty(everythingParams.classifier)
+%   uiwait(errordlg(sprintf('%s does not contain a classifier.',fname), ...
+%                   'Error', ...
+%                   'modal'));
+%   return
+% end               
+% 
+% % [fnames,pname] = uigetfile('*.mat','Classifier whose scores should be used as input');
+% % if fnames == 0; return; end;
+% % 
+% % cfile = fullfile(pname,fnames);
+% % classifier = load(cfile);
+% 
+% curs = struct;  % this is the thing we'll return
+% 
+% % Add the .jab file name, with maybe not the best field name
+% curs.classifierfile = fileNameAbs;
+% 
+% % Add the classifier time stamp
+% classifier=everythingParams.classifier;
+% if isfield(classifier,'timeStamp');
+%   curs.ts = classifier.timeStamp;
+% else
+%   uiwait(errordlg('The classifier in the selected field lacks a timestamp.  Aborting.', ...
+%                   'Error', ...
+%                   'modal'));
+%   return
+% end
+% 
+% % Add the name of the score file (without the .mat extension)
+% if isfield(classifier,'file') && isfield(classifier.file,'scorefilename')
+%   scorefilename = classifier.scorefilename;
+%   [~,scoreBaseName] = fileparts(scorefilename);
+%   curs.scorefilename = scoreBaseName;
+% elseif isfield(everythingParams,'behaviors') && ...
+%        isfield(everythingParams.behaviors,'names') && ...
+%        ~isempty(everythingParams.behaviors.names)
+%   behaviorName=everythingParams.behaviors.names{1};
+%   curs.scorefilename = sprintf('scores_%s',behaviorName);
+% else
+%   uiwait(errordlg('Unable to determine score file name.  Aborting.', ...
+%                   'Error', ...
+%                   'modal'));
+%   return
+% end
+% 
+% handles.basicParams.scoreFeatures(end+1) = curs;
+% handles.indexOfScoreFeaturesFile = length(handles.basicParams.scoreFeatures);
+% updateEditsListboxesAndPopupmenus(handles);
+% guidata(hObject,handles);
+% return
+
+
+% % -------------------------------------------------------------------------
+% % --- Executes on button press in pushbutton_removelist.
+% function pushbutton_removelist_Callback(hObject, eventdata, handles)
+% % hObject    handle to pushbutton_removelist (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% i = handles.indexOfScoreFeaturesFile;
+% if isempty(i), return; end
+% nScoreFeatures=length(handles.basicParams.scoreFeatures);
+% handles.basicParams.scoreFeatures(i) = [];
+% if (i==nScoreFeatures)
+%   i=i-1;
+%   if i==0
+%     i=[];
+%   end
+% end
+% handles.indexOfScoreFeaturesFile=i;
+% guidata(hObject,handles);
+% updateEditsListboxesAndPopupmenus(handles);
+% return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_cancel.
