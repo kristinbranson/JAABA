@@ -7,7 +7,7 @@ classdef ChangeScoreFeaturesDialog < handle
       % this will store _absolute_ file name
     timeStampList=[]
       % the time stamp of the classifier in fileNameList{i}
-    scoreBaseNameList={}
+    scoreFileBaseNameList={}
       % the score file name (local, without the .mat) for the classifier in
       % fileNameList{i}
     iCurrent=[]
@@ -24,13 +24,13 @@ classdef ChangeScoreFeaturesDialog < handle
   methods
     function self=ChangeScoreFeaturesDialog(fileNameList, ...
                                             timeStampList, ...
-                                            scoreBaseNameList, ...
+                                            scoreFileBaseNameList, ...
                                             figureJLabel)
       % need to keep this around to tell it when we're done
       self.figureJLabel=figureJLabel;
       self.fileNameList=fileNameList;
       self.timeStampList=timeStampList;
-      self.scoreBaseNameList=scoreBaseNameList;
+      self.scoreFileBaseNameList=scoreFileBaseNameList;
       self.iCurrent= ...
         fif(isempty(fileNameList),[],1);
       
@@ -171,14 +171,14 @@ classdef ChangeScoreFeaturesDialog < handle
         return
       end
       % Add the name of the score file (without the .mat extension)
-      if isfield(classifier,'file') && isfield(classifier.file,'scorefilename')
-        scoreFileName = classifier.scorefilename;
-        [~,scoreBaseName] = fileparts(scoreFileName);
+      if isfield(everythingParams,'file') && isfield(everythingParams.file,'scorefilename')
+        scoreFileName = everythingParams.file.scorefilename;  % the "local" file name, with extension.  E.g. "scores_Chasev7.mat"
+        [~,scoreFileBaseName] = fileparts(scoreFileName);
       elseif isfield(everythingParams,'behaviors') && ...
              isfield(everythingParams.behaviors,'names') && ...
              ~isempty(everythingParams.behaviors.names)
         behaviorName=everythingParams.behaviors.names{1};
-        scoreBaseName = sprintf('scores_%s',behaviorName);
+        scoreFileBaseName = sprintf('scores_%s',behaviorName);
       else
         uiwait(errordlg('Unable to determine score file name for classifier.', ...
                         'Error', ...
@@ -187,7 +187,7 @@ classdef ChangeScoreFeaturesDialog < handle
       end
       self.fileNameList{end+1}=fileNameAbs;
       self.timeStampList(end+1)=timeStamp;
-      self.scoreBaseNameList{end+1}=scoreBaseName;
+      self.scoreFileBaseNameList{end+1}=scoreFileBaseName;
       self.iCurrent = length(self.fileNameList);
       self.updateView();
     end
@@ -199,7 +199,7 @@ classdef ChangeScoreFeaturesDialog < handle
       % delete the i'th entries
       self.fileNameList(i) = [];
       self.timeStampList(i) = [];
-      self.scoreBaseNameList(i) = [];
+      self.scoreFileBaseNameList(i) = [];
       % update i if we just deleted the n'th element
       if (i==nScoreFeatures)
         i=fif(i>1,i-1,[]);
@@ -222,7 +222,7 @@ classdef ChangeScoreFeaturesDialog < handle
              self.figureJLabel, ...
              self.fileNameList, ...
              self.timeStampList, ...
-             self.scoreBaseNameList);
+             self.scoreFileBaseNameList);
     end
     
     function updateView(self)
