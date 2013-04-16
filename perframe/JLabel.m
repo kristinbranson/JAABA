@@ -7473,8 +7473,9 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Load the labels and classifier
-%data.setLabelsAndClassifier(everythingParams);
 data.setAllLabels(everythingParams);
+data.setScoreFeatures(everythingParams.scoreFeatures);
+data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
 data.setClassifier(everythingParams.classifier);
 
 % Set the functions that end up getting called when we call SetStatus()
@@ -7493,7 +7494,7 @@ handles.guidata.needsave=false;
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
-if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+if data.nexps > 0 && data.expi == 0,
   handles = SetCurrentMovie(handles,1);
 else
   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
@@ -8283,7 +8284,7 @@ function selectFeaturesDone(figureJLabel, ...
 % the per-frame features may have been changed.
 handles=guidata(figureJLabel);
 setMaxWindowRadiusCommonCached(figureJLabel,maxWindowRadiusCommon);
-handles.guidata.data.UpdatePerframeParams(windowFeaturesParams);
+handles.guidata.data.setWindowFeaturesParams(windowFeaturesParams);
 handles=guidata(figureJLabel);
 handles.guidata.needsave=true;
 UpdateEnablementAndVisibilityOfControls(handles);
@@ -8302,7 +8303,7 @@ function basicParams=basicParamsFromEverythingParams(everythingParams)
 basicParams=struct();
 basicParams.featureLexiconName=everythingParams.featureLexiconName;
 basicParams.featureLexicon=everythingParams.featureLexicon;
-basicParams.scoreFeatures=everythingParams.scoreFeatures;
+%basicParams.scoreFeatures=everythingParams.scoreFeatures;
 basicParams.sublexiconPFNames=everythingParams.sublexiconPFNames;
 basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
 basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
@@ -8388,6 +8389,8 @@ end
 
 % Set the classifier in the JLabelData object
 data=handles.guidata.data;  % ref
+data.setScoreFeatures(everythingParams.scoreFeatures);
+data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
 data.setClassifier(everythingParams.classifier);
 
 % Note that we now need saving

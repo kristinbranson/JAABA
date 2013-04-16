@@ -687,7 +687,7 @@ classdef JLabelGUIData < handle
       timestamp = obj.data.classifierTS;  %#ok
       version = obj.data.version;  %#ok
       if obj.userHasSpecifiedEverythingFileName, 
-        jabFileNameAbs=obj.everythingFileNameAbs;
+        jabFileNameAbs=obj.everythingFileNameAbs;  %#ok
       else
         error('User must specify a .jab file name before scores can be saved.');
       end
