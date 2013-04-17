@@ -7312,10 +7312,10 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
 % Extract the structure that will be saved in the everything file
-s=handles.guidata.getEverythingParams();  %#ok
+macguffin=handles.guidata.getMacguffin();
 % write the everything structure to disk
 try
-  save('-mat',fileNameAbs,'-struct','s');
+  saveAnonymous(fileNameAbs,macguffin);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to save %s.', ...
                           fileNameRel), ...
@@ -7369,7 +7369,7 @@ fileNameRel=fileNameRelFromAbs(fileNameAbs);
 handles=guidata(figureJLabel);
 SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
 % Extract the structure that will be saved in the everything file
-s=handles.guidata.getEverythingParams();  %#ok
+s=handles.guidata.getMacguffin();  %#ok
 % write the everything structure to disk
 try
   save('-mat',fileNameAbs,'-struct','s');
@@ -7492,7 +7492,7 @@ SetStatus(handles,sprintf('Opening %s...',fileNameRel));
 
 % load the file
 try
-  everythingParams=load('-mat',fileNameAbs);
+  everythingParams=loadAnonymous(fileNameAbs);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',fileNameRel),'Error'));
   ClearStatus(handles);
@@ -7504,10 +7504,10 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % Create the JLabelData object
-handles.guidata.initializeGivenEverythingParams(everythingParams,figureJLabel,groundTruthingMode);
+handles.guidata.initializeGivenMacguffin(everythingParams,figureJLabel,groundTruthingMode);
 
 % First set the project parameters, which will initialize the JLabelData
-%basicParams=basicParamsFromEverythingParams(everythingParams);
+%basicParams=basicParamsFromMacguffin(everythingParams);
 %initBasicParams(figureJLabel,basicParams,groundTruthingMode);
 initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
@@ -8014,7 +8014,7 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 % First set the project parameters, which will initialize the JLabelData
 groundTruthingMode=false;  % all new files start in labeling mode
 %initBasicParams(figureJLabel,basicParams,groundTruthingMode);
-handles.guidata.initializeGivenEverythingParams(basicParams,figureJLabel,groundTruthingMode);
+handles.guidata.initializeGivenMacguffin(basicParams,figureJLabel,groundTruthingMode);
 initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
@@ -8363,7 +8363,7 @@ return
 
 
 % % ------------------------------------------------------------------------ 
-% function classifierParams=classifierParamsFromEverythingParams(everythingParams)
+% function classifierParams=classifierParamsFromMacguffin(everythingParams)
 % 
 % fieldNamesToKeep={'classifierTS' , ...
 %                   'trainingdata' , ...
@@ -8438,7 +8438,7 @@ end
 data=handles.guidata.data;  % ref
 data.setScoreFeatures(everythingParams.scoreFeatures);
 data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-data.setClassifier(everythingParams.classifier);
+data.setClassifierStuff(everythingParams.classifierStuff);
 
 % Note that we now need saving
 handles.guidata.needsave=true;
@@ -8508,7 +8508,7 @@ handles=guidata(figureJLabel);
 SetStatus(handles,'Clearing classifier...');
 
 % Clear the current classifier in the model
-handles.guidata.data.clearClassifier();
+handles.guidata.data.clearClassifierProper();
 
 % Note that we now need saving
 handles.guidata.needsave=true;

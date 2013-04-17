@@ -354,9 +354,9 @@ classdef JLabelGUIData < handle
     
     
     % ---------------------------------------------------------------------    
-    function s=getEverythingParams(self)
+    function s=getMacguffin(self)
       % Construct the structure that will be saved in the everything file
-      s=self.data.getEverythingParams();
+      s=self.data.getMacguffin();
     end
     
     
@@ -463,11 +463,11 @@ classdef JLabelGUIData < handle
 
     
     % ---------------------------------------------------------------------
-    function initializeGivenEverythingParams(self,everythingParams,figureJLabel,groundTruthingMode)  %#ok
+    function initializeGivenMacguffin(self,everythingParams,figureJLabel,groundTruthingMode)  %#ok
       % initialize data structure
       self.data = ...
         JLabelData('groundTruthingMode',groundTruthingMode, ...
-                   'everythingParams',everythingParams, ...
+                   'macguffin',everythingParams, ...
                    'defaultpath',self.defaultpath,...
                    'setstatusfn',@nop,...
                    'clearstatusfn',@nop,...
