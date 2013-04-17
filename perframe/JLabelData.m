@@ -617,30 +617,30 @@ classdef JLabelData < handle
   
     
     % ---------------------------------------------------------------------
-    function setBasicParams(obj,basicParams)
-      % This sets most of the parameters that typically get set on object 
-      % creation.
+    function setEverythingParams(obj,everythingParams)
+      % This initializes the JLabelData object based on the contents of
+      % everythingParams
   
       % feature config file
-      if isequal(basicParams.featureLexiconName,'custom')
-        obj.setFeatureLexiconCustom(basicParams.featureLexicon, ...
-                                    basicParams.behaviors.type);
+      if isequal(everythingParams.featureLexiconName,'custom')
+        obj.setFeatureLexiconCustom(everythingParams.featureLexicon, ...
+                                    everythingParams.behaviors.type);
       else
-        obj.setFeatureLexiconFromName(basicParams.featureLexiconName);
+        obj.setFeatureLexiconFromName(everythingParams.featureLexiconName);
       end
 
       % get some silly stuff out of projectParams
       %obj.projectParams=projectParams;
-      obj.labelGraphicParams=basicParams.labelGraphicParams;
-      obj.trxGraphicParams=basicParams.trxGraphicParams;
-      obj.labelcolors=basicParams.behaviors.labelcolors;
-      obj.unknowncolor=basicParams.behaviors.unknowncolor;
+      obj.labelGraphicParams=everythingParams.labelGraphicParams;
+      obj.trxGraphicParams=everythingParams.trxGraphicParams;
+      obj.labelcolors=everythingParams.behaviors.labelcolors;
+      obj.unknowncolor=everythingParams.behaviors.unknowncolor;
             
       % load in the rest of the stuff, depending on the fields present
-      if isfield(basicParams,'behaviors'),
+      if isfield(everythingParams,'behaviors'),
         % read in behavior names
-        if isfield(basicParams.behaviors,'names'),
-          obj.labelnames = basicParams.behaviors.names;
+        if isfield(everythingParams.behaviors,'names'),
+          obj.labelnames = everythingParams.behaviors.names;
           if ~iscell(obj.labelnames),
             obj.labelnames = {obj.labelnames};
           end
@@ -657,23 +657,23 @@ classdef JLabelData < handle
         obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
       end  % if isfield(basicParams,'behaviors'),
 
-      if isfield(basicParams,'file'),
-        if isfield(basicParams.file,'moviefilename'),
-          [success1,msg] = obj.SetMovieFileName(basicParams.file.moviefilename);
+      if isfield(everythingParams,'file'),
+        if isfield(everythingParams.file,'moviefilename'),
+          [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
           if ~success1,
             error('JLabelData:unableToSetMovieFileName', ...
                   'Unable to set movie file name');
           end
         end
-        if isfield(basicParams.file,'trxfilename'),
-          [success1,msg] = obj.SetTrxFileName(basicParams.file.trxfilename);
+        if isfield(everythingParams.file,'trxfilename'),
+          [success1,msg] = obj.SetTrxFileName(everythingParams.file.trxfilename);
           if ~success1,
             error('JLabelData:unableToSetTrxFileName', ...
                   'Unable to set trx file name');
           end
         end
-        if isfield(basicParams.file,'scorefilename'),
-          scorefilename = basicParams.file.scorefilename;
+        if isfield(everythingParams.file,'scorefilename'),
+          scorefilename = everythingParams.file.scorefilename;
         else
           scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
         end
@@ -682,15 +682,15 @@ classdef JLabelData < handle
           error('JLabelData:unableToSetScoreFileName', ...
                 'Unable to set score file name');
         end
-        if isfield(basicParams.file,'perframedir'),
-          [success1,msg] = obj.SetPerFrameDir(basicParams.file.perframedir);
+        if isfield(everythingParams.file,'perframedir'),
+          [success1,msg] = obj.SetPerFrameDir(everythingParams.file.perframedir);
           if ~success1,
             error('JLabelData:unableToSetPerframeDirName', ...
                   'Unable to set per-frame directory name');
           end
         end
-        if isfield(basicParams.file,'clipsdir') && ~isempty(basicParams.file.clipsdir),
-          [success1,msg] = obj.SetClipsDir(basicParams.file.clipsdir);
+        if isfield(everythingParams.file,'clipsdir') && ~isempty(everythingParams.file.clipsdir),
+          [success1,msg] = obj.SetClipsDir(everythingParams.file.clipsdir);
           if ~success1,
             error('JLabelData:unableToSetClipsDirName', ...
                   'Unable to set clips directory name');
@@ -702,9 +702,9 @@ classdef JLabelData < handle
 %             uiwait(warndlg(msg1));
 %           end
 %         end
-        if isfield(basicParams,'sublexiconPFNames'),
+        if isfield(everythingParams,'sublexiconPFNames'),
           % Update allperframefns
-          obj.allperframefns = basicParams.sublexiconPFNames;
+          obj.allperframefns = everythingParams.sublexiconPFNames;
           msg = '';
         end
         % if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
@@ -714,15 +714,15 @@ classdef JLabelData < handle
         %     JLabelData.convertParams2CellParams(basicParams.windowfeatures.windowfeaturesparams);
         %   obj.setWindowFeaturesParamsRaw(basicParams.windowfeatures.windowfeaturesparams);
         % end
-        if isfield(basicParams,'perframe'),
-          if isfield(basicParams.perframe,'params'),
-            pf_fields = fieldnames(basicParams.perframe.params);
+        if isfield(everythingParams,'perframe'),
+          if isfield(everythingParams.perframe,'params'),
+            pf_fields = fieldnames(everythingParams.perframe.params);
             for ndx = 1:numel(pf_fields),
-              obj.perframe_params.(pf_fields{ndx}) = basicParams.perframe.params.(pf_fields{ndx});
+              obj.perframe_params.(pf_fields{ndx}) = everythingParams.perframe.params.(pf_fields{ndx});
             end
           end
-          if isfield(basicParams.perframe,'landmarkParams'),
-            obj.landmark_params = basicParams.perframe.landmarkParams;
+          if isfield(everythingParams.perframe,'landmarkParams'),
+            obj.landmark_params = everythingParams.perframe.landmarkParams;
           end
         end  % isfield(basicParams,'perframe'),
       end  % isfield(basicParams,'file'),
@@ -743,24 +743,13 @@ classdef JLabelData < handle
 
       % initialize the post-processing parameters
       obj.InitPostprocessparams();
-    end  % method
-  
-    
-    % ---------------------------------------------------------------------
-    function setEverythingParams(self,everythingParams)
-      % First set the basic parameters
-      %basicParams=JLabelData.basicParamsFromEverythingParams(everythingParams);
-      self.setBasicParams(everythingParams);
-      % Now load the labels and classifier, if present
-      if isfield(everythingParams,'labels')
-        self.setAllLabels(everythingParams);
-        self.setScoreFeatures(everythingParams.scoreFeatures);
-        self.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-        self.setClassifier(everythingParams.classifier);
-      end
-    end  % method
 
-    
+      % initialize everything else
+      obj.setAllLabels(everythingParams);
+      obj.setScoreFeatures(everythingParams.scoreFeatures);
+      obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+      obj.setClassifier(everythingParams.classifier);
+    end  % method
   end  % private methods
 
   
@@ -1056,9 +1045,7 @@ classdef JLabelData < handle
         obj.clearstatusfn = values{i};
       end
       
-      % one of the arguments must be either a basicParams structure or an
-      % everythingParams structure.  If both are present, everythingParams
-      % is used.
+      % one of the arguments must be an everythingParams structure.
       i=whichstr(keys,'everythingParams');
       if isnonempty(i)
         obj.setEverythingParams(values{i});
@@ -8753,49 +8740,9 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function s=getEverythingParams(self)
-      % Construct the structure that will be saved in the everything file
-      s=struct();
-
-      % Get a bunch of parameters, put them in s
-      s.featureLexiconName=self.featureLexiconName;
-      s.featureLexicon=self.featureLexicon;
-      s.scoreFeatures=self.scoreFeatures;
-      subdialectPFNames=self.allperframefns;
-      nScoreFeaturess=length(self.scoreFeatures);
-      sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);
-      s.sublexiconPFNames=sublexiconPFNames;
-      s.behaviors.type=self.targettype;
-      s.behaviors.names=self.labelnames;
-      s.behaviors.labelcolors=self.labelcolors;
-      s.behaviors.unknowncolor=self.unknowncolor;
-      s.file.moviefilename=self.moviefilename;
-      s.file.trxfilename=self.trxfilename;
-      s.file.scorefilename=self.scorefilename;
-      s.file.clipsdir=self.clipsdir;                  
-      s.file.perframedir=self.perframedir;                  
-      s.labelGraphicParams=self.labelGraphicParams;
-      s.trxGraphicParams=self.trxGraphicParams;
-      s.landmarkParams=self.landmark_params;
-
-      % Get the labels, put them in s
-      if self.gtMode ,
-        s.gtExpDirNames=self.expdirs;
-        s.expDirNames=self.otherModeLabelsEtc.expDirNames;
-      else
-        s.expDirNames=self.expdirs;
-        s.gtExpDirNames=self.otherModeLabelsEtc.expDirNames;
-      end
-      [s.labels,s.gtLabels]=self.storeAndGetLabelsAndGTLabels();
-
-      % Get the window feature params, put in s
-      s.windowFeaturesParams=self.windowfeaturesparams;
-      
-      % Put the classifier in s
-      s.classifier=self.getClassifier();
-
-      % Slap on a version number
-      s.ver='0.5.0';  % version number I just made up now --ALT, Feb 6, 2013
+    function everythingParams=getEverythingParams(self)
+      % Construct the object that will be saved in the everything file
+      everythingParams=EverythingParams(self);
     end
 
     
