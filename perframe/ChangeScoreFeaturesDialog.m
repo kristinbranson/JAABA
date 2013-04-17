@@ -153,17 +153,18 @@ classdef ChangeScoreFeaturesDialog < handle
                   'Add .jab file containing classifier to be used as input');
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
-      everythingParams = load(fileNameAbs,'-mat');
-      if isempty(everythingParams.classifier)
+      everythingParams = loadAnonymous(fileNameAbs);
+      if isempty(everythingParams.classifierStuff) || ...
+         isempty(everythingParams.classifierStuff.params)
         uiwait(errordlg(sprintf('%s does not contain a classifier.',fileNameRel), ...
                         'Error', ...
                         'modal'));
         return
       end
-      % Check that the classifier has a time stamp
-      classifier=everythingParams.classifier;
-      if isfield(classifier,'timeStamp');
-        timeStamp = classifier.timeStamp;
+      % Check that the classifierStuff has a time stamp
+      classifierStuff=everythingParams.classifierStuff;
+      if isnonempty(classifierStuff.timeStamp);
+        timeStamp = classifierStuff.timeStamp;
       else
         uiwait(errordlg('The classifier in the selected file lacks a timestamp.', ...
                         'Error', ...
@@ -171,11 +172,10 @@ classdef ChangeScoreFeaturesDialog < handle
         return
       end
       % Add the name of the score file (without the .mat extension)
-      if isfield(everythingParams,'file') && isfield(everythingParams.file,'scorefilename')
+      if isfield(everythingParams.file,'scorefilename')
         scoreFileName = everythingParams.file.scorefilename;  % the "local" file name, with extension.  E.g. "scores_Chasev7.mat"
         [~,scoreFileBaseName] = fileparts(scoreFileName);
-      elseif isfield(everythingParams,'behaviors') && ...
-             isfield(everythingParams.behaviors,'names') && ...
+      elseif isfield(everythingParams.behaviors,'names') && ...
              ~isempty(everythingParams.behaviors.names)
         behaviorName=everythingParams.behaviors.names{1};
         scoreFileBaseName = sprintf('scores_%s',behaviorName);
