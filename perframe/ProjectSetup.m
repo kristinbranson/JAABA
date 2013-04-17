@@ -92,7 +92,7 @@ set(handles.featureconfigpopup,'String',handles.featureLexiconNameList);
 
 % Either copy or 
 if isempty(basicParams)
-  handles.basicParams = newBasicParams('flies');  % the default featureLexiconName
+  handles.basicParams = EverythingParams('flies');  % the default featureLexiconName
 else  
   handles.basicParams = basicParams;
 end
@@ -175,35 +175,35 @@ handles.featureLexiconAnimalTypeList=featureLexiconAnimalTypeList;
 return
 
 
-% -------------------------------------------------------------------------
-function basicParams = newBasicParams(featureLexiconName)
-basicParams.featureLexiconName=featureLexiconName;
-basicParams.behaviors.names = {};
-basicParams.file.perframedir = 'perframe';
-basicParams.file.clipsdir = 'clips';
-basicParams.scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
-%basicParams.windowfeatures = struct;
-basicParams.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
-basicParams.behaviors.unknowncolor = [0,0,0];
-basicParams.trxGraphicParams.colormap = 'jet';
-basicParams.trxGraphicParams.colormap_multiplier = 0.7;
-basicParams.trxGraphicParams.extra_linestyle = '-';
-basicParams.trxGraphicParams.extra_marker = '.';
-basicParams.trxGraphicParams.extra_markersize = 12;
-basicParams.labelGraphicParams.colormap = 'line';
-basicParams.labelGraphicParams.linewidth = 3;
-%basicParams.file.labelfilename = '';
-%basicParams.file.gtlabelfilename = '';
-basicParams.file.scorefilename = '';
-basicParams.file.trxfilename = '';
-basicParams.file.moviefilename = '';
-%handles = addversion(handles);
-%basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
-featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
-featureLexiconPFNames = fieldnames(featureLexicon.perframe);
-basicParams.sublexiconPFNames = featureLexiconPFNames;
-
-return
+% % -------------------------------------------------------------------------
+% function basicParams = newBasicParams(featureLexiconName)
+% basicParams.featureLexiconName=featureLexiconName;
+% basicParams.behaviors.names = {};
+% basicParams.file.perframedir = 'perframe';
+% basicParams.file.clipsdir = 'clips';
+% basicParams.scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
+% %basicParams.windowfeatures = struct;
+% basicParams.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
+% basicParams.behaviors.unknowncolor = [0,0,0];
+% basicParams.trxGraphicParams.colormap = 'jet';
+% basicParams.trxGraphicParams.colormap_multiplier = 0.7;
+% basicParams.trxGraphicParams.extra_linestyle = '-';
+% basicParams.trxGraphicParams.extra_marker = '.';
+% basicParams.trxGraphicParams.extra_markersize = 12;
+% basicParams.labelGraphicParams.colormap = 'line';
+% basicParams.labelGraphicParams.linewidth = 3;
+% %basicParams.file.labelfilename = '';
+% %basicParams.file.gtlabelfilename = '';
+% basicParams.file.scorefilename = '';
+% basicParams.file.trxfilename = '';
+% basicParams.file.moviefilename = '';
+% %handles = addversion(handles);
+% %basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+% featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
+% featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+% basicParams.sublexiconPFNames = featureLexiconPFNames;
+% 
+% return
 
 
 % -------------------------------------------------------------------------
