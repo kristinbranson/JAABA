@@ -759,6 +759,10 @@ function pushbutton_newproject_Callback(hObject, eventdata, handles)
 if ~ischar(configfilename), return; end;
 
 
+if exist('.JLabelrc.mat','file')
+  save('.JLabelrc.mat','configfilename','-append');
+end
+
 handles.configfilename = configfilename;
 set(handles.text_projectfile,'String',configfilename);
 guidata(hObject,handles);
