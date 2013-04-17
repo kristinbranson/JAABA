@@ -112,13 +112,13 @@
     <x_mm trans_types="relative,none" type="position"/>
     <y_mm trans_types="relative,none" type="position"/>
     
-    <event_idxGoodCast trans_types="relative,abs,none" type="event"/>
-    <event_idxGoodNeg trans_types="relative,abs,none" type="event"/>
-    <event_idxGoodPos trans_types="relative,abs,none" type="event"/>
-    <event_idxGoodTurn trans_types="relative,abs,none" type="event"/>
-    <event_idxfirsthc trans_types="relative,abs,none" type="event"/>
-    <event_schmittCast trans_types="relative,abs,none" type="event"/>
-    <event_schmittTurn trans_types="relative,abs,none" type="event"/>
+    <event_idxGoodCast trans_types="relative,none" type="event"/>
+    <event_idxGoodNeg trans_types="relative,none" type="event"/>
+    <event_idxGoodPos trans_types="relative,none" type="event"/>
+    <event_idxGoodTurn trans_types="relative,none" type="event"/>
+    <event_idxfirsthc trans_types="relative,none" type="event"/>
+    <event_schmittCast trans_types="relative,none" type="event"/>
+    <event_schmittTurn trans_types="relative,none" type="event"/>
      
    </perframe>
 </params>
