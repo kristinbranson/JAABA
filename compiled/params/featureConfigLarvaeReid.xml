@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+    
+    <Ccent trans_types="relative,none" type="odorsource_concentration"/>
+    <Chead trans_types="relative,none" type="odorsource_concentration"/>
+    <Ctail trans_types="relative,none" type="odorsource_concentration"/>
+    <a_mm trans_types="relative,none" type="appearance"/>
+    <area trans_types="relative,none" type="appearance"/>
+    <b_mm trans_types="relative,none" type="appearance"/>
+    <bearingangforcurvingrate trans_types="relative,abs,none" type="odorsource"/>
+    <bearingangle trans_types="relative,abs,none" type="odorsource"/>
+    <bias trans_types="relative,abs,none" type="locomotion"/>
+    <bodyangle trans_types="relative,abs,none" type="position"/>
+    <bodyanglespeed trans_types="relative,abs,none" type="locomotion"/>
+    <cdotc trans_types="relative,abs,none" type="odorsource"/>
+    <centerspeed trans_types="relative,none" type="locomotion"/>
+    <concheadspeed trans_types="relative,abs,none" type="odorsource"/>
+    <crab trans_types="relative,none" type="locomotion"/>
+    <curve trans_types="relative,none" type="appearance"/>
+    <curvingrate trans_types="relative,abs,none" type="locomotion"/>
+    <cx trans_types="relative,none" type="position"/>
+    <cy trans_types="relative,none" type="position"/>
+    <dfromsource trans_types="relative,none" type="odor_position"/>
+    <dirchange trans_types="relative,none" type="unknown"/>
+    <hcdist trans_types="relative,abs,none" type="appearance"/>
+    <headangle trans_types="relative,abs,none" type="appearance"/>
+    <heading trans_types="relative,abs,none" type="position"/>
+    <headspeed trans_types="relative,none" type="locomotion"/>
+    <headvecx trans_types="relative,abs,none" type="position"/>
+    <headvecy trans_types="relative,abs,none" type="position"/>
+    <headx trans_types="relative,none" type="position"/>
+    <heady trans_types="relative,none" type="position"/>
+    <kink trans_types="relative,none" type="appearance"/>
+    <midline trans_types="relative,none" type="appearance"/>
+    <orient trans_types="relative,abs,none" type="position"/>
+    <skelL trans_types="relative,none" type="appearance"/>
+    <source trans_types="relative,none" type="odorsource"/>
+    <sourceangle trans_types="relative,abs,none" type="odorsource"/>
+    <speedang trans_types="relative,none" type="locomotion"/>
+    <speedmms trans_types="relative,none" type="locomotion"/>
+    <tailcspeed trans_types="relative,none" type="locomotion"/>
+    <tailvecx trans_types="relative,abs,none" type="position"/>
+    <tailvecy trans_types="relative,abs,none" type="position"/>
+    <tailx trans_types="relative,none" type="position"/>
+    <taily trans_types="relative,none" type="position"/>
+    <theta_mm trans_types="relative,abs,none" type="position"/>
+    <velx trans_types="relative,abs,none" type="position"/>
+    <vely trans_types="relative,abs,none" type="position"/>
+    <width trans_types="relative,none" type="appearance"/>
+    <x_mm trans_types="relative,none" type="position"/>
+    <y_mm trans_types="relative,none" type="position"/>
+    
+    <event_idxGoodCast trans_types="relative,none" type="event"/>
+    <event_idxGoodNeg trans_types="relative,none" type="event"/>
+    <event_idxGoodPos trans_types="relative,none" type="event"/>
+    <event_idxGoodTurn trans_types="relative,none" type="event"/>
+    <event_idxfirsthc trans_types="relative,none" type="event"/>
+    <event_schmittCast trans_types="relative,none" type="event"/>
+    <event_schmittTurn trans_types="relative,none" type="event"/>
+     
+   </perframe>
+</params>
