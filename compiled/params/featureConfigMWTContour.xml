@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+
+    <area_mm trans_types="relative,none" type="appearance"/>
+    <bias trans_types="none,relative" type="locomotion"/>
+    <cast trans_types="none,abs,relative,flip" type="appearance"/>
+    <crabspeed trans_types="none,relative" type="locomotion"/>
+    <curve trans_types="none,relative" type="appearance"/>
+    <dir trans_types="none,relative" type="locomotion"/>
+    <kink trans_types="none,relative" type="appearance"/>
+    <midline trans_types="none,relative" type="appearance"/>
+    <morpwidth trans_types="none,relative" type="appearance"/>
+    <speed trans_types="none,relative" type="locomotion"/>
+    <speed085 trans_types="none,relative" type="locomotion"/>
+
+  </perframe>
+</params>
