@@ -1,7 +1,16 @@
 classdef JLabelData < handle
+  % This is the class that is essentially the JLabel "model" in MVC terms 
+  % --- it holds all of the critical data that JLabel allows a user to
+  % manipulate, but doesn't deal with visual or presentational issues.
+  
+  % About everythingParams and basicParams: An everythingParams structure
+  % represents all of the stuff that gets saved to the .jab file.  A
+  % basicParams structure contains only a subset of the fields in the
+  % everythingParams file, the subset needed for creation of a new .jab
+  % file.  Therefore an everythingParams structure can be used anywhere a
+  % basicParams structure is called for, but not vice-versa.  
   
   properties (Access=public) 
-
     % type of target (mainly used for plotting)
     % this should be a type of animal, and should be singular, not plural
     targettype = 'fly';
@@ -606,6 +615,152 @@ classdef JLabelData < handle
       obj.allperframefns=cellFilter(notPfName,obj.allperframefns);      
     end  % method
   
+    
+    % ---------------------------------------------------------------------
+    function setBasicParams(obj,basicParams)
+      % This sets most of the parameters that typically get set on object 
+      % creation.
+  
+      % feature config file
+      if isequal(basicParams.featureLexiconName,'custom')
+        obj.setFeatureLexiconCustom(basicParams.featureLexicon, ...
+                                    basicParams.behaviors.type);
+      else
+        obj.setFeatureLexiconFromName(basicParams.featureLexiconName);
+      end
+
+      % get some silly stuff out of projectParams
+      %obj.projectParams=projectParams;
+      obj.labelGraphicParams=basicParams.labelGraphicParams;
+      obj.trxGraphicParams=basicParams.trxGraphicParams;
+      obj.labelcolors=basicParams.behaviors.labelcolors;
+      obj.unknowncolor=basicParams.behaviors.unknowncolor;
+            
+      % load in the rest of the stuff, depending on the fields present
+      if isfield(basicParams,'behaviors'),
+        % read in behavior names
+        if isfield(basicParams.behaviors,'names'),
+          obj.labelnames = basicParams.behaviors.names;
+          if ~iscell(obj.labelnames),
+            obj.labelnames = {obj.labelnames};
+          end
+          % add none label
+          if ~ismember('none',lower(obj.labelnames)),
+            obj.labelnames{end+1} = 'None';
+          end
+        else
+          obj.labelnames = {'Behavior','None'};
+        end        
+        obj.nbehaviors = numel(obj.labelnames);
+        % rearrange so that None is the last label
+        nonei = find(strcmpi('None',obj.labelnames),1);
+        obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
+      end  % if isfield(basicParams,'behaviors'),
+
+      if isfield(basicParams,'file'),
+        if isfield(basicParams.file,'moviefilename'),
+          [success1,msg] = obj.SetMovieFileName(basicParams.file.moviefilename);
+          if ~success1,
+            error('JLabelData:unableToSetMovieFileName', ...
+                  'Unable to set movie file name');
+          end
+        end
+        if isfield(basicParams.file,'trxfilename'),
+          [success1,msg] = obj.SetTrxFileName(basicParams.file.trxfilename);
+          if ~success1,
+            error('JLabelData:unableToSetTrxFileName', ...
+                  'Unable to set trx file name');
+          end
+        end
+        if isfield(basicParams.file,'scorefilename'),
+          scorefilename = basicParams.file.scorefilename;
+        else
+          scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
+        end
+        [success1,msg] = obj.setScoreFileName(scorefilename);
+        if ~success1,
+          error('JLabelData:unableToSetScoreFileName', ...
+                'Unable to set score file name');
+        end
+        if isfield(basicParams.file,'perframedir'),
+          [success1,msg] = obj.SetPerFrameDir(basicParams.file.perframedir);
+          if ~success1,
+            error('JLabelData:unableToSetPerframeDirName', ...
+                  'Unable to set per-frame directory name');
+          end
+        end
+        if isfield(basicParams.file,'clipsdir') && ~isempty(basicParams.file.clipsdir),
+          [success1,msg] = obj.SetClipsDir(basicParams.file.clipsdir);
+          if ~success1,
+            error('JLabelData:unableToSetClipsDirName', ...
+                  'Unable to set clips directory name');
+          end
+        end
+%         if isfield(basicParams.file,'rootoutputdir') && ~isempty(basicParams.file.rootoutputdir),
+%           [success1,msg1] = obj.SetRootOutputDir(basicParams.file.rootoutputdir);
+%           if ~success1,
+%             uiwait(warndlg(msg1));
+%           end
+%         end
+        if isfield(basicParams,'sublexiconPFNames'),
+          % Update allperframefns
+          obj.allperframefns = basicParams.sublexiconPFNames;
+          msg = '';
+        end
+        % if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
+        %   basicParams.windowfeatures.windowfeaturesparams = ...
+        %     JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
+        %   basicParams.windowfeatures.windowfeaturescellparams = ...
+        %     JLabelData.convertParams2CellParams(basicParams.windowfeatures.windowfeaturesparams);
+        %   obj.setWindowFeaturesParamsRaw(basicParams.windowfeatures.windowfeaturesparams);
+        % end
+        if isfield(basicParams,'perframe'),
+          if isfield(basicParams.perframe,'params'),
+            pf_fields = fieldnames(basicParams.perframe.params);
+            for ndx = 1:numel(pf_fields),
+              obj.perframe_params.(pf_fields{ndx}) = basicParams.perframe.params.(pf_fields{ndx});
+            end
+          end
+          if isfield(basicParams.perframe,'landmarkParams'),
+            obj.landmark_params = basicParams.perframe.landmarkParams;
+          end
+        end  % isfield(basicParams,'perframe'),
+      end  % isfield(basicParams,'file'),
+%       if isfield(basicParams,'scoreFeatures') ,
+%         obj.scoreFeatures = basicParams.scoreFeatures;
+%         nScoreFeaturess=length(basicParams.scoreFeatures);
+%         scoreFeaturesPFNames=cell(nScoreFeaturess,1);
+%         for i = 1:nScoreFeaturess ,
+%           [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
+%           scoreFeaturesPFNames{i} = pfName;
+%         end
+%         obj.allperframefns=[obj.allperframefns ; ...
+%                             scoreFeaturesPFNames];
+%       end  % if isfield(basicParams,'scoreFeatures'),
+      
+      % Re-load the perframe feature signals, since the PFFs may have changed
+      obj.loadPerframeData(obj.expi,obj.flies);
+
+      % initialize the post-processing parameters
+      obj.InitPostprocessparams();
+    end  % method
+  
+    
+    % ---------------------------------------------------------------------
+    function setEverythingParams(self,everythingParams)
+      % First set the basic parameters
+      %basicParams=JLabelData.basicParamsFromEverythingParams(everythingParams);
+      self.setBasicParams(everythingParams);
+      % Now load the labels and classifier, if present
+      if isfield(everythingParams,'labels')
+        self.setAllLabels(everythingParams);
+        self.setScoreFeatures(everythingParams.scoreFeatures);
+        self.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+        self.setClassifier(everythingParams.classifier);
+      end
+    end  % method
+
+    
   end  % private methods
 
   
@@ -820,6 +975,21 @@ classdef JLabelData < handle
       end
     end    
     
+    
+%     % ------------------------------------------------------------------------
+%     function basicParams=basicParamsFromEverythingParams(everythingParams)
+%       basicParams=struct();
+%       basicParams.featureLexiconName=everythingParams.featureLexiconName;
+%       basicParams.featureLexicon=everythingParams.featureLexicon;
+%       %basicParams.scoreFeatures=everythingParams.scoreFeatures;
+%       basicParams.sublexiconPFNames=everythingParams.sublexiconPFNames;
+%       basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
+%       basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
+%       basicParams.file=everythingParams.file;
+%       basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
+%       basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
+%       basicParams.landmarkParams=everythingParams.landmarkParams;
+%     end    
   end  % class methods
   
   
@@ -850,54 +1020,76 @@ classdef JLabelData < handle
     % default string
     % classifierfilename: name of classifier file to save/load classifier from
  
-      if nargin == 0 || isempty(varargin{1}),
+      if nargin == 0 ,
         error('JLabelData:zero_args_to_constructor',  ...
-              'JLabelData() called with zero args or with an empty first arg.');
+              'Internal error: JLabelData() called with zero arguments');
       end
-      
-      % get the project params
-      basicParams = varargin{1};
-      groundTruthingMode=varargin{2};
-      varargin = varargin(3:end);
 
-      % rest of args should be key-value pairs
+      % args should be key-value pairs
       if mod(numel(varargin),2) ~= 0,
-        error('Number of inputs to JLabelData constructor must be even');
+        error('JLabelData:odd_number_of_args_to_constructor',  ...
+              'Number of inputs to JLabelData constructor must be even');
       end
+
+      % parse arguments into keywords and corresponding values
+      keys = varargin(1:2:end);
+      values = varargin(2:2:end);     
       
       % Set the ground-truthing mode
-      obj.gtMode=groundTruthingMode;           
-      
-      % config file
-      obj.setBasicParams(basicParams);
-      
-      % parse optional arguments in order
-      s = varargin(1:2:end);
-      v = varargin(2:2:end);
-      
-      i = find(strcmpi(s,'openmovie'),1);
-      if ~isempty(i),
-        obj.openmovie = v{i};
-      end
-      
-      % movie
-      i = find(strcmpi(s,'moviefilename'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetMovieFileName(v{i});
-        if ~success,
-          error(msg);
-        end
+      i=whichstr(keys,'groundTruthingMode');
+      obj.gtMode=fif(isempty(i),false,values{i});
 
+      % Set the function to be called when the SetStatus method is invoked
+      i = find(strcmpi(keys,'setstatusfn'),1);
+      if isempty(i),
+        obj.setstatusfn=@(str)([]);  % do-nothing function
+      else
+        obj.setstatusfn = values{i};
+      end
+
+      % Set the function to be called when the ClearStatus method is
+      % invoked
+      i = find(strcmpi(keys,'clearstatusfn'),1);
+      if isempty(i),
+        obj.clearstatusfn = @()([]);  % do-nothing function
+      else
+        obj.clearstatusfn = values{i};
       end
       
-      % trx
-      i = find(strcmpi(s,'trxfilename'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetTrxFileName(v{i});
-        if ~success,
-          error(msg);
-        end
+      % one of the arguments must be either a basicParams structure or an
+      % everythingParams structure.  If both are present, everythingParams
+      % is used.
+      i=whichstr(keys,'everythingParams');
+      if isnonempty(i)
+        obj.setEverythingParams(values{i});
+      else
+        error('JLabelData:missing_required_argument',  ...
+              'Internal error: Must supply an everythingParams argument to JLabelData()');
       end
+              
+      % Now handle other arguments
+      i = find(strcmpi(keys,'openmovie'),1);
+      if ~isempty(i),
+        obj.openmovie = values{i};
+      end
+      
+%       % movie
+%       i = find(strcmpi(keys,'moviefilename'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetMovieFileName(values{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
+      
+%       % trx
+%       i = find(strcmpi(keys,'trxfilename'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetTrxFileName(values{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
       
 %       % label
 %       i = find(strcmpi(s,'labelfilename'),1);
@@ -908,23 +1100,23 @@ classdef JLabelData < handle
 %         end
 %       end
 
-      % perframedir
-      i = find(strcmpi(s,'perframedir'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetPerFrameDir(v{i});
-        if ~success,
-          error(msg);
-        end
-      end
+%       % perframedir
+%       i = find(strcmpi(keys,'perframedir'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetPerFrameDir(values{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
 
-      % clipsdir
-      i = find(strcmpi(s,'clipsdir'),1);
-      if ~isempty(i),
-        [success,msg] = obj.SetClipsDir(v{i});
-        if ~success,
-          error(msg);
-        end
-      end
+%       % clipsdir
+%       i = find(strcmpi(keys,'clipsdir'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetClipsDir(values{i});
+%         if ~success,
+%           error(msg);
+%         end
+%       end
 
 %       % featureparamsfilename
 %       i = find(strcmpi(s,'featureparamsfilename'),1);
@@ -954,39 +1146,20 @@ classdef JLabelData < handle
 %       end
       
       % default path
-      i = find(strcmpi(s,'defaultpath'),1);
+      i = find(strcmpi(keys,'defaultpath'),1);
       if ~isempty(i),
-        [success,msg] = obj.SetDefaultPath(v{i});
+        [success,msg] = obj.SetDefaultPath(values{i});
         if ~success,
           warning(msg);
         end
       end
       
-      i = find(strcmpi(s,'setstatusfn'),1);
+      i = find(strcmpi(keys,'cacheSize'),1);
       if ~isempty(i),
-        obj.setstatusfn = v{i};
-      end
-
-      i = find(strcmpi(s,'clearstatusfn'),1);
-      if ~isempty(i),
-        obj.clearstatusfn = v{i};
+        obj.cacheSize = values{i};
       end
       
-      i = find(strcmpi(s,'cacheSize'),1);
-      if ~isempty(i),
-        obj.cacheSize = v{i};
-      end
-      
-      % make sure everything gets set, one way or another
-      %requiredfns = {'moviefilename','trxfilename','labelfilename'}; % 'windowfilename',
-      requiredfns = {};
-      for i = 1:numel(requiredfns),
-        fn = requiredfns{i};
-        if isnumeric(obj.(fn)),
-          error('%s did not get initialized',fn);
-        end
-      end
-      
+      % Set the JAABA version
       try 
         vid = fopen('version.txt','r');
         vv = textscan(vid,'%s');
@@ -1001,9 +1174,7 @@ classdef JLabelData < handle
       [success,msg] = obj.UpdateStatusTable();
       if ~success,
         error(msg);
-      end
-      
-      obj.InitPostprocessparams();
+      end      
     end  % constructor method
 
     
@@ -1076,132 +1247,6 @@ classdef JLabelData < handle
 %     end
 
 
-    % ---------------------------------------------------------------------
-    function [success,msg] = setBasicParams(obj,basicParams)
-      % This set most of the parameters that typically get set on object 
-      % creation.
-  
-      % set default return values
-      success = false;
-      msg = '';
-
-      % feature config file
-      if isequal(basicParams.featureLexiconName,'custom')
-        obj.setFeatureLexiconCustom(basicParams.featureLexicon, ...
-                                    basicParams.behaviors.type);
-      else
-        obj.setFeatureLexiconFromName(basicParams.featureLexiconName);
-      end
-
-      % get some silly stuff out of projectParams
-      %obj.projectParams=projectParams;
-      obj.labelGraphicParams=basicParams.labelGraphicParams;
-      obj.trxGraphicParams=basicParams.trxGraphicParams;
-      obj.labelcolors=basicParams.behaviors.labelcolors;
-      obj.unknowncolor=basicParams.behaviors.unknowncolor;
-            
-      % load in the rest of the stuff, depending on the fields present
-      if isfield(basicParams,'behaviors'),
-        % read in behavior names
-        if isfield(basicParams.behaviors,'names'),
-          obj.labelnames = basicParams.behaviors.names;
-          if ~iscell(obj.labelnames),
-            obj.labelnames = {obj.labelnames};
-          end
-          % add none label
-          if ~ismember('none',lower(obj.labelnames)),
-            obj.labelnames{end+1} = 'None';
-          end
-        else
-          obj.labelnames = {'Behavior','None'};
-        end        
-        obj.nbehaviors = numel(obj.labelnames);
-        % rearrange so that None is the last label
-        nonei = find(strcmpi('None',obj.labelnames),1);
-        obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
-      end  % if isfield(basicParams,'behaviors'),
-
-      if isfield(basicParams,'file'),
-        if isfield(basicParams.file,'moviefilename'),
-          [success1,msg] = obj.SetMovieFileName(basicParams.file.moviefilename);
-          if ~success1,
-            return;
-          end
-        end
-        if isfield(basicParams.file,'trxfilename'),
-          [success1,msg] = obj.SetTrxFileName(basicParams.file.trxfilename);
-          if ~success1,
-            return;
-          end
-        end
-        if isfield(basicParams.file,'scorefilename'),
-          scorefilename = basicParams.file.scorefilename;
-        else
-          scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
-        end
-        [success1,msg] = obj.setScoreFileName(scorefilename);
-        if ~success1,
-          return;
-        end
-        if isfield(basicParams.file,'perframedir'),
-          [success1,msg] = obj.SetPerFrameDir(basicParams.file.perframedir);
-          if ~success1,
-            return;
-          end
-        end
-        if isfield(basicParams.file,'clipsdir') && ~isempty(basicParams.file.clipsdir),
-          [success1,msg] = obj.SetClipsDir(basicParams.file.clipsdir);
-          if ~success1,
-            return;
-          end
-        end
-%         if isfield(basicParams.file,'rootoutputdir') && ~isempty(basicParams.file.rootoutputdir),
-%           [success1,msg1] = obj.SetRootOutputDir(basicParams.file.rootoutputdir);
-%           if ~success1,
-%             uiwait(warndlg(msg1));
-%           end
-%         end
-        if isfield(basicParams,'sublexiconPFNames'),
-          % Update allperframefns
-          obj.allperframefns = basicParams.sublexiconPFNames;
-          msg = '';
-        end
-        % if isfield(basicParams,'windowfeatures')  % && isfield(basicParams.windowfeatures,'basicFeatureTable')
-        %   basicParams.windowfeatures.windowfeaturesparams = ...
-        %     JLabelData.convertTransTypes2Cell(basicParams.windowfeatures.windowfeaturesparams);
-        %   basicParams.windowfeatures.windowfeaturescellparams = ...
-        %     JLabelData.convertParams2CellParams(basicParams.windowfeatures.windowfeaturesparams);
-        %   obj.setWindowFeaturesParamsRaw(basicParams.windowfeatures.windowfeaturesparams);
-        % end
-        if isfield(basicParams,'perframe'),
-          if isfield(basicParams.perframe,'params'),
-            pf_fields = fieldnames(basicParams.perframe.params);
-            for ndx = 1:numel(pf_fields),
-              obj.perframe_params.(pf_fields{ndx}) = basicParams.perframe.params.(pf_fields{ndx});
-            end
-          end
-          if isfield(basicParams.perframe,'landmarkParams'),
-            obj.landmark_params = basicParams.perframe.landmarkParams;
-          end
-        end  % isfield(basicParams,'perframe'),
-      end  % isfield(basicParams,'file'),
-%       if isfield(basicParams,'scoreFeatures') ,
-%         obj.scoreFeatures = basicParams.scoreFeatures;
-%         nScoreFeaturess=length(basicParams.scoreFeatures);
-%         scoreFeaturesPFNames=cell(nScoreFeaturess,1);
-%         for i = 1:nScoreFeaturess ,
-%           [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
-%           scoreFeaturesPFNames{i} = pfName;
-%         end
-%         obj.allperframefns=[obj.allperframefns ; ...
-%                             scoreFeaturesPFNames];
-%       end  % if isfield(basicParams,'scoreFeatures'),
-      
-      % Re-load the perframe feature signals, since the PFFs may have changed
-      obj.loadPerframeData(obj.expi,obj.flies);
-    end  % method
-    
-    
     % ---------------------------------------------------------------------
     function basicParams = getBasicParams(obj)
       basicParams=struct();
