@@ -167,6 +167,18 @@
     
     <nflies_close trans_types="none" type="social"/>
 
+    <nflies_close_03 trans_types="none" type="social"/>
+
+    <nflies_close_04 trans_types="none" type="social"/>
+
+    <nflies_close_05 trans_types="none" type="social"/>
+    
+    <nflies_close_07 trans_types="none" type="social"/>
+
+    <nflies_close_10 trans_types="none" type="social"/>
+    
+    <nflies_close_15 trans_types="none" type="social"/>
+
     <phi trans_types="none" type="position"/>
     
     <phisideways trans_types="none" type="locomotion"/>
@@ -188,4 +200,6 @@
     <absyaw trans_types="none" type="compatbility"/>
     
   </perframe>
+  
+  <perframe_params  fov="3.1416" max_dnose2ell_anglerange="127" nbodylengths_near="2.5" thetafil="0.0625,0.25,0.375,0.25,0.0625"/>
 </params>
