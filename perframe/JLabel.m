@@ -186,6 +186,53 @@ varargout{1} = hObject;
 % delete(handles.figure_JLabel);
 
 
+%--------------------------------------------------------------------------
+function handles = InitializeStateAfterBasicParamsSet(handles)
+
+% % Tell JLabelGUIData to init itself
+% handles.guidata.initializeGivenBasicParams(basicParams,handles.figure_JLabel,groundTruthingMode);
+
+% create buttons for each label, as needed
+handles = UpdateLabelButtons(handles);
+
+% Set this thing
+if ~isempty(handles.guidata.data.allperframefns)
+  set(handles.timeline_label_prop1,'String',handles.guidata.timeline_prop_options,'Value',3);
+end
+
+% Setup the popup menu for bottom row of the automatic timeline.
+bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
+set(handles.automaticTimelineBottomRowPopup,'Value', ...
+                  find(strcmp(bottomRowTypes,handles.guidata.bottomAutomatic)));
+set(handles.automaticTimelinePredictionLabel,'FontSize',10);
+set(handles.automaticTimelineScoresLabel,'FontSize',10);
+set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
+
+% set([handles.pushbutton_playselection, ...
+%      handles.pushbutton_clearselection],'Enable','off');  
+
+%set(handles.togglebutton_select,'Value',0); 
+
+SetJumpGoMenuLabels(handles)
+
+handles.doplottracks = true;
+%set(handles.menu_view_plot_tracks,'Checked','on');  %via update
+
+buttonNames = {'pushbutton_train','pushbutton_predict',...
+               'togglebutton_select','pushbutton_clearselection',...
+               'pushbutton_playselection','pushbutton_playstop',...
+               'similarFramesButton','bagButton'};
+for buttonNum = 1:numel(buttonNames)
+  adjustButtonColorsIfMac(handles.(buttonNames{buttonNum}));
+end
+
+%set(handles.similarFramesButton,'Enable','off');  % via update
+
+updateCheckMarksInMenus(handles);
+
+return
+
+
 % -------------------------------------------------------------------------
 function handles = InitializePlotsAfterBasicParamsSet(handles)
 
@@ -1914,51 +1961,51 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 % success = true;
 
 
-%--------------------------------------------------------------------------
-function handles = InitializeStateGivenBasicParams(handles,basicParams,groundTruthingMode)
-
-% Tell JLabelGUIData to init itself
-handles.guidata.initializeGivenBasicParams(basicParams,handles.figure_JLabel,groundTruthingMode);
-
-% create buttons for each label, as needed
-handles = UpdateLabelButtons(handles);
-
-% Set this thing
-if ~isempty(handles.guidata.data.allperframefns)
-  set(handles.timeline_label_prop1,'String',handles.guidata.timeline_prop_options,'Value',3);
-end
-
-% Setup the popup menu for bottom row of the automatic timeline.
-bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
-set(handles.automaticTimelineBottomRowPopup,'Value', ...
-                  find(strcmp(bottomRowTypes,handles.guidata.bottomAutomatic)));
-set(handles.automaticTimelinePredictionLabel,'FontSize',10);
-set(handles.automaticTimelineScoresLabel,'FontSize',10);
-set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
-
-% set([handles.pushbutton_playselection, ...
-%      handles.pushbutton_clearselection],'Enable','off');  
-
-%set(handles.togglebutton_select,'Value',0); 
-
-SetJumpGoMenuLabels(handles)
-
-handles.doplottracks = true;
-%set(handles.menu_view_plot_tracks,'Checked','on');  %via update
-
-buttonNames = {'pushbutton_train','pushbutton_predict',...
-               'togglebutton_select','pushbutton_clearselection',...
-               'pushbutton_playselection','pushbutton_playstop',...
-               'similarFramesButton','bagButton'};
-for buttonNum = 1:numel(buttonNames)
-  adjustButtonColorsIfMac(handles.(buttonNames{buttonNum}));
-end
-
-%set(handles.similarFramesButton,'Enable','off');  % via update
-
-updateCheckMarksInMenus(handles);
-
-return
+% %--------------------------------------------------------------------------
+% function handles = InitializeStateGivenBasicParams(handles,basicParams,groundTruthingMode)
+% 
+% % Tell JLabelGUIData to init itself
+% handles.guidata.initializeGivenBasicParams(basicParams,handles.figure_JLabel,groundTruthingMode);
+% 
+% % create buttons for each label, as needed
+% handles = UpdateLabelButtons(handles);
+% 
+% % Set this thing
+% if ~isempty(handles.guidata.data.allperframefns)
+%   set(handles.timeline_label_prop1,'String',handles.guidata.timeline_prop_options,'Value',3);
+% end
+% 
+% % Setup the popup menu for bottom row of the automatic timeline.
+% bottomRowTypes = get(handles.automaticTimelineBottomRowPopup,'String');
+% set(handles.automaticTimelineBottomRowPopup,'Value', ...
+%                   find(strcmp(bottomRowTypes,handles.guidata.bottomAutomatic)));
+% set(handles.automaticTimelinePredictionLabel,'FontSize',10);
+% set(handles.automaticTimelineScoresLabel,'FontSize',10);
+% set(handles.automaticTimelineBottomRowPopup,'FontSize',10);
+% 
+% % set([handles.pushbutton_playselection, ...
+% %      handles.pushbutton_clearselection],'Enable','off');  
+% 
+% %set(handles.togglebutton_select,'Value',0); 
+% 
+% SetJumpGoMenuLabels(handles)
+% 
+% handles.doplottracks = true;
+% %set(handles.menu_view_plot_tracks,'Checked','on');  %via update
+% 
+% buttonNames = {'pushbutton_train','pushbutton_predict',...
+%                'togglebutton_select','pushbutton_clearselection',...
+%                'pushbutton_playselection','pushbutton_playstop',...
+%                'similarFramesButton','bagButton'};
+% for buttonNum = 1:numel(buttonNames)
+%   adjustButtonColorsIfMac(handles.(buttonNames{buttonNum}));
+% end
+% 
+% %set(handles.similarFramesButton,'Enable','off');  % via update
+% 
+% updateCheckMarksInMenus(handles);
+% 
+% return
 
 
 %--------------------------------------------------------------------------
@@ -7456,9 +7503,13 @@ end
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
+% Create the JLabelData object
+handles.guidata.initializeGivenEverythingParams(everythingParams,figureJLabel,groundTruthingMode);
+
 % First set the project parameters, which will initialize the JLabelData
-basicParams=basicParamsFromEverythingParams(everythingParams);
-initBasicParams(figureJLabel,basicParams,groundTruthingMode);
+%basicParams=basicParamsFromEverythingParams(everythingParams);
+%initBasicParams(figureJLabel,basicParams,groundTruthingMode);
+initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -7472,11 +7523,11 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 %handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
 guidata(figureJLabel,handles);  % write the handles back to the figure
 
-% Load the labels and classifier
-data.setAllLabels(everythingParams);
-data.setScoreFeatures(everythingParams.scoreFeatures);
-data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-data.setClassifier(everythingParams.classifier);
+% % Load the labels and classifier
+% data.setAllLabels(everythingParams);
+% data.setScoreFeatures(everythingParams.scoreFeatures);
+% data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+% data.setClassifier(everythingParams.classifier);
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
@@ -7497,7 +7548,7 @@ handles = UnsetCurrentMovie(handles);
 if data.nexps > 0 && data.expi == 0,
   handles = SetCurrentMovie(handles,1);
 else
-  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+  handles = SetCurrentMovie(handles,data.expi);
 end
 
 % clear the old experiment directory
@@ -7540,13 +7591,25 @@ return
 % return
 
 
+% % -------------------------------------------------------------------------
+% function initBasicParams(figureJLabel,basicParams,groundTruthingMode)
+% % Initializes the JLabel GUI on return from ProjectSetup after the user
+% % selects New..., or during opening of an existing everything file.
+% handles=guidata(figureJLabel);
+% handles.guidata.setLayout(figureJLabel);
+% handles=InitializeStateGivenBasicParams(handles,basicParams,groundTruthingMode);
+% handles=InitializePlotsAfterBasicParamsSet2(handles);
+% guidata(figureJLabel,handles);
+% return
+
+
 % -------------------------------------------------------------------------
-function initBasicParams(figureJLabel,basicParams,groundTruthingMode)
+function initAfterBasicParamsSet(figureJLabel)
 % Initializes the JLabel GUI on return from ProjectSetup after the user
 % selects New..., or during opening of an existing everything file.
 handles=guidata(figureJLabel);
 handles.guidata.setLayout(figureJLabel);
-handles=InitializeStateGivenBasicParams(handles,basicParams,groundTruthingMode);
+handles=InitializeStateAfterBasicParamsSet(handles);
 handles=InitializePlotsAfterBasicParamsSet(handles);
 guidata(figureJLabel,handles);
 return
@@ -7561,7 +7624,7 @@ return
 % data=handles.guidata.data;  % a ref
 % data.setBasicParams(basicParams,featureConfigParams);
 % %handles=InitializeStateGivenBasicParams(handles,basicParams,featureConfigParams);
-% %handles=InitializePlotsAfterBasicParamsSet(handles);
+% %handles=InitializePlotsAfterBasicParamsSet2(handles);
 % %guidata(figureJLabel,handles);
 % 
 % return
@@ -7950,7 +8013,9 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % First set the project parameters, which will initialize the JLabelData
 groundTruthingMode=false;  % all new files start in labeling mode
-initBasicParams(figureJLabel,basicParams,groundTruthingMode);
+%initBasicParams(figureJLabel,basicParams,groundTruthingMode);
+handles.guidata.initializeGivenEverythingParams(basicParams,figureJLabel,groundTruthingMode);
+initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Don't want to type "handles.guidata.data" all the damn time
@@ -8293,24 +8358,6 @@ if someExperimentIsCurrent,
   handles = UpdatePrediction(handles);
 end
 guidata(figureJLabel,handles);
-
-return
-
-
-% ------------------------------------------------------------------------ 
-function basicParams=basicParamsFromEverythingParams(everythingParams)
-
-basicParams=struct();
-basicParams.featureLexiconName=everythingParams.featureLexiconName;
-basicParams.featureLexicon=everythingParams.featureLexicon;
-%basicParams.scoreFeatures=everythingParams.scoreFeatures;
-basicParams.sublexiconPFNames=everythingParams.sublexiconPFNames;
-basicParams.behaviors=everythingParams.behaviors;  % need the animal type, in case featureLexiconName is 'custom'
-basicParams.behaviors.names=everythingParams.behaviors.names(1);  % just want the first one
-basicParams.file=everythingParams.file;
-basicParams.labelGraphicParams=everythingParams.labelGraphicParams;
-basicParams.trxGraphicParams=everythingParams.trxGraphicParams;
-basicParams.landmarkParams=everythingParams.landmarkParams;
 
 return
 
