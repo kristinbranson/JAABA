@@ -201,15 +201,6 @@ classdef JLabelData < handle
     
     % currently learned classifier. structure depends on the type of
     % classifier. if empty, then no classifier has been trained yet. 
-    % ferns:
-    % classifier is a struct with the following fields (M is the number of
-    % ferns, S is the fern depth, N is the number of training examples). 
-    %   .fids     - [MxS] feature ids for each fern for each depth
-    %   .thrs     - [MxS] threshold corresponding to each fid
-    %   .pFern    - [2^SxHxM] learned log probs at fern leaves
-    %   .bayes    - if true combine probs using bayes assumption
-    %   .inds     - [NxM] cached indices for original training data
-    %   .H        - number classes
     classifier = [];
     classifier_old = [];
     lastFullClassifierTrainingSize = 0;
@@ -223,9 +214,14 @@ classdef JLabelData < handle
     % parameters to learning the classifier. struct fields depend on type
     % of classifier.
     % TODO
-    classifier_params = struct('iter',100,'iter_updates',10,...
-      'numSample',2500,'numBins',30,'CVfolds',7,...
-      'baseClassifierTypes',{'Decision Stumps'},'baseClassifierSelected',1);
+    classifier_params = ...
+      struct('iter',100, ...
+             'iter_updates',10, ...
+             'numSample',2500, ...
+             'numBins',30, ...
+             'CVfolds',7, ...
+             'baseClassifierTypes',{'Decision Stumps'}, ...
+             'baseClassifierSelected',1);
     
     % stuff cached during prediction
     predict_cache = struct;
@@ -240,8 +236,6 @@ classdef JLabelData < handle
     % locations of files within experiment directories
     moviefilename = 0;
     trxfilename = 0;
-    %labelfilename = 0;
-    %gt_labelfilename = 0;
     scorefilename = 0;
     perframedir = 0;
     clipsdir = 0;
@@ -304,10 +298,13 @@ classdef JLabelData < handle
     % whether sex is computed on a per-frame basis
     hasperframesex = false;
     
-    % last used path for loading experiment
+    % last-used path for loading experiment
     defaultpath = '';
     
     % parameters of window features, represented as a struct
+    % Each field holds the parameters for a single per-frame feature in the
+    % feature vocabulary, with the field name being the per-frame feature
+    % name.  Score features are included in the feature vocabulary.
     windowfeaturesparams = struct();
     
     % parameters of window features, represented as a cell array of
@@ -341,7 +338,13 @@ classdef JLabelData < handle
                           % scores-as-input feature names.  I would call
                           % this the 'vocabulary'. --ALT, Apr 5, 2013
     perframeunits = {};
-    %scoreFeatures = [];
+
+    % the scores from other classifiers that that used as features for this
+    % classifier.  A structure array with number of elements equal to the
+    % number of score features.  classifierfile holds the absolute path of
+    % the .jab file holding the external classifier, ts holds the time step
+    % of the classifier, and scorefilename is the local base name of the
+    % score file stored in the experiment directory (e.g. "Chase_v7")
     scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
     
     % experiment/file management
