@@ -4216,7 +4216,7 @@ end
       end
       
       if isempty(obj.(labelsToUse)(expi).flies),
-	ism = false;
+        ism = false;
       else
         [ism,j] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
       end
@@ -4256,7 +4256,7 @@ end
           ism = false;
         else
           [ism,fliesi] = ismember(flies,obj.(labelsToUse)(expi).flies,'rows');
-	end
+        end
 
         if ism,
           isstart = ismember(ts,obj.(labelsToUse)(expi).t0s{fliesi});
@@ -4311,7 +4311,11 @@ end
           return;
         end
         % which index of labels
-        [~,flyis] = ismember(obj.(labelsToUse)(expi).flies,flies,'rows');
+        if isempty(flies),
+          flyis = [];
+        else
+          [~,flyis] = ismember(obj.(labelsToUse)(expi).flies,flies,'rows');
+        end
         for flyi = flyis(:)',
           % keep track of number of bouts so that we can update stats
           ncurr = numel(obj.(labelsToUse)(expi).t0s{flyi});
@@ -4328,7 +4332,7 @@ end
       end
       
       % clear labelidx if nec
-      if ismember(obj.expi,expi) && ((nargin < 3) || ismember(obj.flies,flies,'rows')),
+      if ismember(obj.expi,expi) && ((nargin < 3) || (~isempty(flies) && ismember(obj.flies,flies,'rows'))),
         obj.labelidx.vals(:) = 0;
         obj.labelidx.imp(:) = 0;
         obj.labelidx.timestamp(:) = 0;

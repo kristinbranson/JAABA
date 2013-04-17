@@ -218,6 +218,83 @@ file.isdir = 0;
 file.exts = {'*.mat'};
 InputDataTypes.LarvaeReid.files = structappend(InputDataTypes.LarvaeReid.files,file);
 
+%% Ibraheem's single larva tracker data
+
+InputDataTypes.LarvaeIbraheem = struct;
+InputDataTypes.LarvaeIbraheem.name = 'Ibraheem''s Single Larva Tracker Data';
+InputDataTypes.LarvaeIbraheem.videorequired = false;
+InputDataTypes.LarvaeIbraheem.readarena = 'no';
+InputDataTypes.LarvaeIbraheem.readpxpermm = 'maybe';
+InputDataTypes.LarvaeIbraheem.readfps = 'no';
+InputDataTypes.LarvaeIbraheem.writearena = 'yes';
+InputDataTypes.LarvaeIbraheem.writepxpermm = 'maybe';
+InputDataTypes.LarvaeIbraheem.writefps = 'no';
+InputDataTypes.LarvaeIbraheem.files = [];
+
+file = struct;
+file.name = 'First frame image file';
+file.code = 'firstframeimfile';
+file.description = 'First frame of the video';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.BMP'};
+InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+
+file = struct;
+file.name = 'Cropped images from the video';
+file.code = 'croppedimsmatfile';
+file.description = 'Mat file containing cropped images around the larva.';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+
+file = struct;
+file.name = 'Bounding box mat file';
+file.code = 'bboxmatfile';
+file.description = 'Mat file containing bounding boxes of cropped images';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+
+
+file = struct;
+file.name = 'Contour mat file';
+file.code = 'contourmatfile';
+file.description = 'Mat file containing larva contours';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+
+
+file = struct;
+file.name = 'Coordinates mat file';
+file.code = 'coordsmatfile';
+file.description = 'Mat file containing coordinates of points on the larva, in pixels';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+
+
+file = struct;
+file.name = 'MotorData mat file';
+file.code = 'motormatfile';
+file.description = 'Mat file containing motorData';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+
+
 %%
 
 InputDataTypes.CtraxPlusWings = struct;
