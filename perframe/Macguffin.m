@@ -99,7 +99,7 @@ classdef Macguffin < handle
         self.expDirNames=jld.expdirs;
         self.gtExpDirNames=jld.otherModeLabelsEtc.expDirNames;
       end
-      [self.labels,self.gtLabels]=jld.storeAndGetLabelsAndGTLabels();
+      [self.labels,self.gtLabels]=jld.getLabelsAndGTLabels();
       % Get the window feature params, put in self
       self.windowFeaturesParams=jld.windowfeaturesparams;
       % Put the classifier in self

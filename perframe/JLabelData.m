@@ -778,6 +778,55 @@ classdef JLabelData < handle
     
 
     % ---------------------------------------------------------------------
+    function setLabelsFromStructForAllExps(self,labelsForAll)
+      statusTableString=fif(self.gtMode,'gt_label','label');
+      nExps=length(self.expdirs);
+      for expi = 1:nExps,
+        self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
+        %self.labelfilename = 0;
+        self.UpdateStatusTable(statusTableString);   
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function loadLabelsFromStructForOneExp(self,expi,labels)
+      % Load the labels for a single experiment into self.
+            
+      self.SetStatus('Loading labels for %s',self.expdirs{expi});
+
+      self.labels(expi).t0s = labels.t0s;
+      self.labels(expi).t1s = labels.t1s;
+      self.labels(expi).names = labels.names;
+      self.labels(expi).flies = labels.flies;
+      self.labels(expi).off = labels.off;
+      self.labelstats(expi).nflies_labeled = size(labels.flies,1);
+      self.labelstats(expi).nbouts_labeled = numel([labels.t0s{:}]);
+      if iscell(labels.timestamp)
+        self.labels(expi).timestamp = labels.timestamp;
+      else
+        for ndx = 1:numel(labels.flies)
+          nBouts = numel(labels.t0s{ndx});
+          if isempty(labels.timestamp)
+            self.labels(expi).timestamp{ndx}(1:nBouts) = now;
+          else
+            self.labels(expi).timestamp{ndx}(1:nBouts) = labels.timestamp;
+          end
+        end
+      end
+      if isfield(labels,'imp_t0s');
+        self.labels(expi).imp_t0s = labels.imp_t0s;
+        self.labels(expi).imp_t1s = labels.imp_t1s;
+      else
+        self.labels(expi).imp_t0s = cell(1,numel(labels.flies));
+        self.labels(expi).imp_t1s = cell(1,numel(labels.flies));
+      end
+
+      self.ClearStatus();
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
     function UpdatePredictedIdx(obj)
       % Updates obj.predictedidx, obj.scoresidx, obj.scoreTS, obj.erroridx, 
       % and obj.suggestedidx to match what's in obj.predictdata, obj.expi,
@@ -865,6 +914,284 @@ classdef JLabelData < handle
       end
       % Do I need to set self.windowdata.scoreNorm to something?
     end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [successes,msg] = CheckMovies(obj,expis)
+    % [successes,msg] = CheckMovies(obj,expis)
+    % check that the movie files exist and can be read for the input
+    % experiments.
+      
+      successes = []; msg = '';
+      
+      if nargin < 2,
+        expis = 1:obj.nexps;
+      end
+      
+      if isempty(expis),
+        return;
+      end
+      
+      successes = true(1,numel(expis));
+      
+      if ~obj.ismovie,
+        return;
+      end
+      
+      for i = 1:numel(expis),
+        moviefilename = obj.GetFile('movie',expis(i));
+        obj.SetStatus('Checking movie %s...',moviefilename);
+        
+        % check for file existence
+        if ~exist(moviefilename,'file'),
+          successes(i) = false;
+          msg1 = sprintf('File %s missing',moviefilename);
+          if isempty(msg),
+            msg = msg1;
+          else
+            msg = sprintf('%s\n%s',msg,msg1);
+          end
+        else
+          
+          % try reading a frame
+%           try
+            [readframe,~,movie_fid] = ...
+              get_readframe_fcn(moviefilename);
+            if movie_fid <= 0,
+              error('Could not open movie %s for reading',moviefilename);
+            end
+            readframe(1);
+            fclose(movie_fid);
+%           catch ME,
+%             successes(i) = false;
+%             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
+%             if isempty(msg),
+%               msg = msg1;
+%             else
+%               msg = sprintf('%s\n%s',msg,msg1);
+%             end
+%           end
+          
+        end
+      end
+      
+      obj.ClearStatus();
+      
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg,missingfiles] = UpdateStatusTable(obj,filetypes,expis)
+    % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
+    % Update the tables of what files exist for what experiments. This
+    % returns false if all files were in existence or could be generated
+    % and now they are/can not. 
+
+      msg = '';
+      success = false;
+
+      if nargin > 1 && ~isempty(filetypes),
+        [ism,fileis] = ismember(filetypes,obj.filetypes);
+        if any(~ism),
+          msg = 'Unknown filetypes';
+          return;
+        end
+      else
+        fileis = 1:numel(obj.filetypes);
+      end
+      if nargin <= 2 || isempty(expis),
+        expis = 1:obj.nexps;
+      end
+
+      missingfiles = cell(1,obj.nexps);
+      for i = 1:obj.nexps,
+        missingfiles{i} = {};
+      end
+      
+      % initialize fileexists table
+      obj.fileexists(expis,fileis) = false;
+      obj.filetimestamps(expis,fileis) = nan;
+      
+      
+      % loop through all file types
+      for filei = fileis,
+        file = obj.filetypes{filei};
+        % loop through experiments
+        for expi = expis,
+          
+          if strcmpi(file,'perframedir'),
+            [fn,timestamps] = obj.GetPerframeFiles(expi);
+            if isempty(fn),
+              obj.fileexists(expi,filei) = false;
+              obj.filetimestamps(expi,filei) = -inf;
+            else
+              pfexists = cellfun(@(s) exist(s,'file'),fn);
+              obj.fileexists(expi,filei) = all(pfexists);
+              if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file),
+                for tmpi = find(~pfexists(:)'),
+                  if numel(missingfiles{expi})<10
+                    [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
+                    missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
+                    if numel(missingfiles{expi}) == 10,
+                       missingfiles{expi}{end+1} = ' and possibly more';
+                    end
+                  end
+                end
+              end
+              obj.filetimestamps(expi,filei) = max(timestamps);
+            end
+          else
+          
+            % check for existence of current file(s)
+            [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
+            if iscell(fn),
+              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || ...
+                all(cellfun(@(s) exist(s,'file'),fn));
+            elseif ischar(fn),
+              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
+            else
+              obj.fileexists(expi,filei) = false;
+            end
+            if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file)
+              missingfiles{expi}{end+1} = file;
+            end
+              
+          end
+          
+        end
+      end
+
+      % store old values to see if latest change broke something
+      old_filesfixable = obj.filesfixable;
+      old_allfilesexist = obj.allfilesexist;
+
+      % initialize summaries to true
+      obj.filesfixable = true;
+      obj.allfilesexist = true;
+
+      for filei = 1:numel(obj.filetypes),
+        file = obj.filetypes{filei};
+        % loop through experiments
+        for expi = 1:obj.nexps,
+          
+          % if file doesn't exist and is required, then not all files exist
+          if ~obj.fileexists(expi,filei),
+            if obj.IsRequiredFile(file),
+              obj.allfilesexist = false;
+              % if furthermore file can't be generated, then not fixable
+              if ~JLabelData.CanGenerateFile(file),
+                obj.filesfixable = false;                
+                msg1 = sprintf('%s missing and cannot be generated.',file);
+                if isempty(msg),
+                  msg = msg1;
+                else
+                  msg = sprintf('%s\n%s',msg,msg1);
+                end
+              end
+            end
+          end
+        end
+      end
+      if exist('missingfiles','var') && ~isempty(missingfiles) && isempty(missingfiles{expi}),
+          msg = [msg,' Missing',sprintf(' %s',missingfiles{expi}{:})];
+      end
+
+      % fail if was ok and now not ok
+      success = ~(old_allfilesexist || old_filesfixable) || ...
+        (obj.allfilesexist || obj.filesfixable);      
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SetTrxFileName(obj,trxfilename)
+      % [success,msg] = SetTrxFileName(obj,trxfilename)
+      % set the name of the trx file within the experiment directory. this
+      % does not currently check for missing/bad trx files, or replace
+      % preloaded trx data, so you really shouldn't call it if expdirs are
+      % loaded. (TODO)
+
+      success = false;
+      msg = '';
+      if ischar(trxfilename),
+        if ischar(obj.trxfilename) && strcmp(trxfilename,obj.trxfilename),
+          success = true;
+          return;
+        end
+        obj.trxfilename = trxfilename;
+        [success,msg] = obj.UpdateStatusTable('trx');        
+        % TODO: check that trx are parsable, remove bad experiments, update
+        % preloaded trx
+      end
+    end  % method    
+
+
+    % ---------------------------------------------------------------------
+    function StoreLabelsForCurrentAnimal(obj)
+      % Store labels cached in labelidx for the current experiment and flies
+      % to labels structure. This is when the timestamp on labels gets
+      % updated. 
+      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
+        return
+      end      
+      obj.StoreLabelsForGivenAnimal(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function StoreLabelsForGivenAnimal(obj,expi,flies,labelidx,labelidx_off)
+      
+      % update labels
+      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
+      for j = 1:obj.nbehaviors,
+        [i0s,i1s] = get_interval_ends(labelidx.vals==j);
+        
+        if ~isempty(i0s),
+          n = numel(i0s);
+          newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
+          newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
+          newlabels.names(end+1:end+n) = repmat(obj.labelnames(j),[1,n]);
+          newlabels.timestamp(end+1:end+n) = labelidx.timestamp(i0s);
+        end
+      end
+      
+      [i0s,i1s] = get_interval_ends(labelidx.imp);
+      if ~isempty(i0s),
+        newlabels.imp_t0s = i0s - labelidx_off;
+        newlabels.imp_t1s = i1s - labelidx_off;
+      end
+      
+%       % Store labels according to the mode
+%       if obj.IsGTMode(),
+%         labelsToUse = 'gt_labels';
+%         labelstatsToUse = 'gt_labelstats';
+%       else
+%         labelsToUse = 'labels';
+%         labelstatsToUse = 'labelstats';
+%       end
+      
+      if isempty(obj.labels(expi).flies),
+        ism = false;
+      else
+        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
+      end
+      if ~ism,
+        j = size(obj.labels(expi).flies,1)+1;
+      end
+
+      obj.labels(expi).t0s{j} = newlabels.t0s;
+      obj.labels(expi).t1s{j} = newlabels.t1s;
+      obj.labels(expi).names{j} = newlabels.names;
+      obj.labels(expi).flies(j,:) = flies;
+      obj.labels(expi).off(j) = labelidx_off;
+      obj.labels(expi).timestamp{j} = newlabels.timestamp;
+      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
+      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
+
+      % store labelstats
+      obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
+      obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
+            
+    end
   end  % private methods
 
   
@@ -1282,6 +1609,7 @@ classdef JLabelData < handle
     
 % Some helper functions.
 
+    % ---------------------------------------------------------------------
     function res = IsRequiredFile(obj,file)
       if obj.openmovie
         res = ismember(file,{'movie','trx','perframedir'});
@@ -1291,6 +1619,7 @@ classdef JLabelData < handle
     end
 
 
+    % ---------------------------------------------------------------------
     function idx = FlyNdx(obj,expi,flies)
       if isempty(obj.windowdata.exp),
         idx = []; return;
@@ -1299,18 +1628,25 @@ classdef JLabelData < handle
     end
     
     
+    % ---------------------------------------------------------------------
     function val = IsCurFly(obj,expi,flies)
       val = all(flies == obj.flies) && (expi==obj.expi);
     end
+
     
+    % ---------------------------------------------------------------------
     function expi = GetExp(obj)
       expi = obj.expi;
     end
+
     
+    % ---------------------------------------------------------------------
     function flies = GetFlies(obj)
       flies = obj.flies;
     end
-     
+    
+    
+    % ---------------------------------------------------------------------
     function nflies = GetNumFlies(obj,expi)
       nflies = obj.nflies_per_exp(expi);
     end
@@ -1417,95 +1753,6 @@ classdef JLabelData < handle
     end
     
     
-    % ---------------------------------------------------------------------
-    function [successes,msg] = CheckMovies(obj,expis)
-    % [successes,msg] = CheckMovies(obj,expis)
-    % check that the movie files exist and can be read for the input
-    % experiments.
-      
-      successes = []; msg = '';
-      
-      if nargin < 2,
-        expis = 1:obj.nexps;
-      end
-      
-      if isempty(expis),
-        return;
-      end
-      
-      successes = true(1,numel(expis));
-      
-      if ~obj.ismovie,
-        return;
-      end
-      
-      for i = 1:numel(expis),
-        moviefilename = obj.GetFile('movie',expis(i));
-        obj.SetStatus('Checking movie %s...',moviefilename);
-        
-        % check for file existence
-        if ~exist(moviefilename,'file'),
-          successes(i) = false;
-          msg1 = sprintf('File %s missing',moviefilename);
-          if isempty(msg),
-            msg = msg1;
-          else
-            msg = sprintf('%s\n%s',msg,msg1);
-          end
-        else
-          
-          % try reading a frame
-%           try
-            [readframe,~,movie_fid] = ...
-              get_readframe_fcn(moviefilename);
-            if movie_fid <= 0,
-              error('Could not open movie %s for reading',moviefilename);
-            end
-            readframe(1);
-            fclose(movie_fid);
-%           catch ME,
-%             successes(i) = false;
-%             msg1 = sprintf('Could not parse movie %s: %s',moviefilename,getReport(ME));
-%             if isempty(msg),
-%               msg = msg1;
-%             else
-%               msg = sprintf('%s\n%s',msg,msg1);
-%             end
-%           end
-          
-        end
-      end
-      
-      obj.ClearStatus();
-      
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SetTrxFileName(obj,trxfilename)
-      % [success,msg] = SetTrxFileName(obj,trxfilename)
-    % set the name of the trx file within the experiment directory. this
-    % does not currently check for missing/bad trx files, or replace
-    % preloaded trx data, so you really shouldn't call it if expdirs are
-    % loaded. (TODO)
-
-      success = false;
-      msg = '';
-      if ischar(trxfilename),
-        if ischar(obj.trxfilename) && strcmp(trxfilename,obj.trxfilename),
-          success = true;
-          return;
-        end
-        obj.trxfilename = trxfilename;
-        [success,msg] = obj.UpdateStatusTable('trx');        
-        % TODO: check that trx are parsable, remove bad experiments, update
-        % preloaded trx
-      end
-      
-    end
-
-    
-    
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = SetLabelFileName(obj,labelfilename)
 %     % [success,msg] = SetLabelFileName(obj,labelfilename)
@@ -1538,21 +1785,7 @@ classdef JLabelData < handle
 %       
 %     end
 
-    
-    
-    % ---------------------------------------------------------------------
-    function setLabelsFromStructForAllExps(self,labelsForAll)
-      statusTableString=fif(self.gtMode,'gt_label','label');
-      nExps=length(self.expdirs);
-      for expi = 1:nExps,
-        self.loadLabelsFromStructForOneExp(expi,labelsForAll(expi));
-        %self.labelfilename = 0;
-        self.UpdateStatusTable(statusTableString);   
-      end
-    end
-
-    
-    
+        
 %     % ---------------------------------------------------------------------
 %     function setGTLabelsFromStructForAllExps(self,gtLabelsForAll)
 %       nExps=length(self.gtExpDirNames);
@@ -1796,43 +2029,6 @@ classdef JLabelData < handle
 %     end
     
     
-    % ---------------------------------------------------------------------
-    function loadLabelsFromStructForOneExp(self,expi,labels)
-      % Load the labels for a single experiment into self.
-            
-      self.SetStatus('Loading labels for %s',self.expdirs{expi});
-
-      self.labels(expi).t0s = labels.t0s;
-      self.labels(expi).t1s = labels.t1s;
-      self.labels(expi).names = labels.names;
-      self.labels(expi).flies = labels.flies;
-      self.labels(expi).off = labels.off;
-      self.labelstats(expi).nflies_labeled = size(labels.flies,1);
-      self.labelstats(expi).nbouts_labeled = numel([labels.t0s{:}]);
-      if iscell(labels.timestamp)
-        self.labels(expi).timestamp = labels.timestamp;
-      else
-        for ndx = 1:numel(labels.flies)
-          nBouts = numel(labels.t0s{ndx});
-          if isempty(labels.timestamp)
-            self.labels(expi).timestamp{ndx}(1:nBouts) = now;
-          else
-            self.labels(expi).timestamp{ndx}(1:nBouts) = labels.timestamp;
-          end
-        end
-      end
-      if isfield(labels,'imp_t0s');
-        self.labels(expi).imp_t0s = labels.imp_t0s;
-        self.labels(expi).imp_t1s = labels.imp_t1s;
-      else
-        self.labels(expi).imp_t0s = cell(1,numel(labels.flies));
-        self.labels(expi).imp_t1s = cell(1,numel(labels.flies));
-      end
-
-      self.ClearStatus();
-    end  % method
-    
-    
 %     % ---------------------------------------------------------------------
 %     function loadGTLabelsFromStructForOneExp(self,expi,gtLabels)
 %       % Load the GT labels for a single experiment into self.
@@ -1948,6 +2144,8 @@ classdef JLabelData < handle
 %       
 %     end
     
+
+    % ---------------------------------------------------------------------
     function [success,msg] = SetPerFrameDir(obj,perframedir)
       % [success,msg] = SetPerFrameDir(obj,perframedir)
       % Sets the per-frame directory name within the experiment directory.
@@ -1973,6 +2171,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = SetClipsDir(obj,clipsdir)
     % [success,msg] = SetClipsDir(obj,clipsdir)
     % Sets the clips directory name within the experiment directory.
@@ -1998,6 +2198,8 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function [success,msg] = SetDefaultPath(obj,defaultpath)
     % [success,msg] = SetDefaultPath(obj,defaultpath)
     % sets the default path to load experiments from. only checks for
@@ -2858,7 +3060,8 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function AddScores(obj,expi,allScores,timestamp,classifierfilename,updateCurrent)  %#ok
-%       obj.predictdata.classifierfilenames{expi} = classifierfilename;
+      % This sure seems like it should be a private method, but it's called
+      % by JLabelGUIData.  -- ALT, Apr 18, 2013
       obj.SetStatus('Updating Predictions ...');
       for ndx = 1:numel(allScores.scores)
         
@@ -3031,7 +3234,7 @@ classdef JLabelData < handle
 
 
     %----------------------------------------------------------------------
-    function [labels,gtLabels]=storeAndGetLabelsAndGTLabels(self)
+    function [labels,gtLabels]=getLabelsAndGTLabels(self)
       % Returns a single structure containing all the labels, suitable for
       % saving.
     
@@ -3044,7 +3247,7 @@ classdef JLabelData < handle
           
       % Take the labels currently only in labelidx, and commit them to
       % self.labels
-      self.StoreLabelsAndThatsAll();
+      self.StoreLabelsForCurrentAnimal();
       
       % Put the right labels in the right place
       if self.gtMode ,
@@ -4492,127 +4695,6 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function [success,msg,missingfiles] = UpdateStatusTable(obj,filetypes,expis)
-    % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
-    % Update the tables of what files exist for what experiments. This
-    % returns false if all files were in existence or could be generated
-    % and now they are/can not. 
-
-      msg = '';
-      success = false;
-
-      if nargin > 1 && ~isempty(filetypes),
-        [ism,fileis] = ismember(filetypes,obj.filetypes);
-        if any(~ism),
-          msg = 'Unknown filetypes';
-          return;
-        end
-      else
-        fileis = 1:numel(obj.filetypes);
-      end
-      if nargin <= 2 || isempty(expis),
-        expis = 1:obj.nexps;
-      end
-
-      missingfiles = cell(1,obj.nexps);
-      for i = 1:obj.nexps,
-        missingfiles{i} = {};
-      end
-      
-      % initialize fileexists table
-      obj.fileexists(expis,fileis) = false;
-      obj.filetimestamps(expis,fileis) = nan;
-      
-      
-      % loop through all file types
-      for filei = fileis,
-        file = obj.filetypes{filei};
-        % loop through experiments
-        for expi = expis,
-          
-          if strcmpi(file,'perframedir'),
-            [fn,timestamps] = obj.GetPerframeFiles(expi);
-            if isempty(fn),
-              obj.fileexists(expi,filei) = false;
-              obj.filetimestamps(expi,filei) = -inf;
-            else
-              pfexists = cellfun(@(s) exist(s,'file'),fn);
-              obj.fileexists(expi,filei) = all(pfexists);
-              if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file),
-                for tmpi = find(~pfexists(:)'),
-                  if numel(missingfiles{expi})<10
-                    [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
-                    missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
-                    if numel(missingfiles{expi}) == 10,
-                       missingfiles{expi}{end+1} = ' and possibly more';
-                    end
-                  end
-                end
-              end
-              obj.filetimestamps(expi,filei) = max(timestamps);
-            end
-          else
-          
-            % check for existence of current file(s)
-            [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
-            if iscell(fn),
-              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || ...
-                all(cellfun(@(s) exist(s,'file'),fn));
-            elseif ischar(fn),
-              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
-            else
-              obj.fileexists(expi,filei) = false;
-            end
-            if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file)
-              missingfiles{expi}{end+1} = file;
-            end
-              
-          end
-          
-        end
-      end
-
-      % store old values to see if latest change broke something
-      old_filesfixable = obj.filesfixable;
-      old_allfilesexist = obj.allfilesexist;
-
-      % initialize summaries to true
-      obj.filesfixable = true;
-      obj.allfilesexist = true;
-
-      for filei = 1:numel(obj.filetypes),
-        file = obj.filetypes{filei};
-        % loop through experiments
-        for expi = 1:obj.nexps,
-          
-          % if file doesn't exist and is required, then not all files exist
-          if ~obj.fileexists(expi,filei),
-            if obj.IsRequiredFile(file),
-              obj.allfilesexist = false;
-              % if furthermore file can't be generated, then not fixable
-              if ~JLabelData.CanGenerateFile(file),
-                obj.filesfixable = false;                
-                msg1 = sprintf('%s missing and cannot be generated.',file);
-                if isempty(msg),
-                  msg = msg1;
-                else
-                  msg = sprintf('%s\n%s',msg,msg1);
-                end
-              end
-            end
-          end
-        end
-      end
-      if exist('missingfiles','var') && ~isempty(missingfiles) && isempty(missingfiles{expi}),
-          msg = [msg,' Missing',sprintf(' %s',missingfiles{expi}{:})];
-      end
-
-      % fail if was ok and now not ok
-      success = ~(old_allfilesexist || old_filesfixable) || ...
-        (obj.allfilesexist || obj.filesfixable);
-      
-    end
-
     function [fe,ft] = FileExists(obj,file,expi)
     % [fe,ft] = FileExists(obj,file,expi)
     % Returns whether the input file exists for the input experiment. 
@@ -4625,7 +4707,7 @@ classdef JLabelData < handle
       end
       fe = obj.fileexists(expi,filei);
       ft = obj.filetimestamps(expi,filei);
-    end
+    end  % method
     
     
 % Tracking information   
@@ -5448,7 +5530,7 @@ classdef JLabelData < handle
       % cache these labels if current experiment and flies selected
       if expi == obj.expi && all(flies == obj.flies),
         %obj.StoreLabelsAndPreLoadWindowData();  % seems wrong
-        obj.StoreLabelsAndThatsAll();
+        obj.StoreLabelsForCurrentAnimal();
       end
       
       if ~isempty(obj.labels(expi).flies),	
@@ -5476,19 +5558,7 @@ classdef JLabelData < handle
 
       
     end
-
-
-    % ---------------------------------------------------------------------
-    function StoreLabelsAndThatsAll(obj)
-      % Store labels cached in labelidx for the current experiment and flies
-      % to labels structure. This is when the timestamp on labels gets
-      % updated. 
-      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
-        return;
-      end      
-      obj.StoreLabelsForGivenAnimal(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
-    end
-      
+    
     
     % ---------------------------------------------------------------------
     function StoreLabelsAndPreLoadWindowData(obj)
@@ -5501,7 +5571,7 @@ classdef JLabelData < handle
         return;
       end
       
-      obj.StoreLabelsAndThatsAll();
+      obj.StoreLabelsForCurrentAnimal();
             
       % preload labeled window data while we have the per-frame data loaded
       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
@@ -5522,63 +5592,6 @@ classdef JLabelData < handle
       
       %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
       
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function StoreLabelsForGivenAnimal(obj,expi,flies,labelidx,labelidx_off)
-      
-      % update labels
-      newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
-      for j = 1:obj.nbehaviors,
-        [i0s,i1s] = get_interval_ends(labelidx.vals==j);
-        
-        if ~isempty(i0s),
-          n = numel(i0s);
-          newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
-          newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
-          newlabels.names(end+1:end+n) = repmat(obj.labelnames(j),[1,n]);
-          newlabels.timestamp(end+1:end+n) = labelidx.timestamp(i0s);
-        end
-      end
-      
-      [i0s,i1s] = get_interval_ends(labelidx.imp);
-      if ~isempty(i0s),
-        newlabels.imp_t0s = i0s - labelidx_off;
-        newlabels.imp_t1s = i1s - labelidx_off;
-      end
-      
-%       % Store labels according to the mode
-%       if obj.IsGTMode(),
-%         labelsToUse = 'gt_labels';
-%         labelstatsToUse = 'gt_labelstats';
-%       else
-%         labelsToUse = 'labels';
-%         labelstatsToUse = 'labelstats';
-%       end
-      
-      if isempty(obj.labels(expi).flies),
-        ism = false;
-      else
-        [ism,j] = ismember(flies,obj.labels(expi).flies,'rows');
-      end
-      if ~ism,
-        j = size(obj.labels(expi).flies,1)+1;
-      end
-
-      obj.labels(expi).t0s{j} = newlabels.t0s;
-      obj.labels(expi).t1s{j} = newlabels.t1s;
-      obj.labels(expi).names{j} = newlabels.names;
-      obj.labels(expi).flies(j,:) = flies;
-      obj.labels(expi).off(j) = labelidx_off;
-      obj.labels(expi).timestamp{j} = newlabels.timestamp;
-      obj.labels(expi).imp_t0s{j} = newlabels.imp_t0s;
-      obj.labels(expi).imp_t1s{j} = newlabels.imp_t1s;
-
-      % store labelstats
-      obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
-      obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
-            
     end
 
     
@@ -7113,7 +7126,7 @@ classdef JLabelData < handle
 % Show similar frames
     % ---------------------------------------------------------------------
     function DoFastBagging(obj)
-      obj.StoreLabelsAndThatsAll();
+      obj.StoreLabelsForCurrentAnimal();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
       if ~success, warning(msg);return;end
 
@@ -7620,7 +7633,7 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function DoBagging(obj)
       
-      obj.StoreLabelsAndThatsAll();
+      obj.StoreLabelsForCurrentAnimal();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
       if ~success, warning(msg);return;end
       
@@ -8694,7 +8707,7 @@ classdef JLabelData < handle
 %       fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
 
       % make sure current labels are committed
-      self.StoreLabelsAndThatsAll();
+      self.StoreLabelsForCurrentAnimal();
       
       % create the classifier object from fields in self
       classifierStuff = ...
