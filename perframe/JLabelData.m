@@ -805,7 +805,6 @@ classdef JLabelData < handle
           obj.classifierTS;
       end
       obj.UpdateErrorIdx();
-            
     end    
     
     
@@ -827,6 +826,25 @@ classdef JLabelData < handle
       obj.erroridx = [];
       obj.suggestedidx = [];
     end
+    
+    
+    % ---------------------------------------------------------------------
+    function invalidatePredictions(self)
+      % Mark the current and old classifier predictions as invalid.
+      nExps=self.nexps;
+      for iExp=1:nExps
+        nTargets=self.nflies_per_exp(iExp);
+        for iTarget=1:nTargets
+          self.predictdata{iExp}{iTarget}.cur(:)=0;
+          self.predictdata{iExp}{iTarget}.cur_pp(:)=0;
+          self.predictdata{iExp}{iTarget}.cur_valid(:)=false;
+          self.predictdata{iExp}{iTarget}.old(:)=0;
+          self.predictdata{iExp}{iTarget}.old_pp(:)=0;          
+          self.predictdata{iExp}{iTarget}.old_valid(:)=false;
+        end
+      end
+      % Do I need to set self.windowdata.scoreNorm to something?
+    end  % method
   end  % private methods
 
   
@@ -2539,21 +2557,8 @@ classdef JLabelData < handle
       self.classifierTS=[];
       self.windowdata.scoreNorm=[];
       self.invalidatePredictions();
+      self.UpdatePredictedIdx();  % update cached predictions for current target
       %self.PreLoadPeriLabelWindowData();  % do we need to do this?
-    end  
-
-    
-    % ---------------------------------------------------------------------
-    function invalidatePredictions(self)
-      % Mark the current and old classifier predictions as invalid.
-      nExps=self.nexps;
-      for iExp=1:nExps
-        nTargets=self.nflies_per_exp(iExp);
-        for iTarget=1:nTargets
-          self.predictdata{iExp}{iTarget}.cur_valid(:)=false;
-          self.predictdata{iExp}{iTarget}.old_valid(:)=false;
-        end
-      end
     end  
 
     
@@ -5246,8 +5251,7 @@ classdef JLabelData < handle
       % Get the prediction for experiment expi, target flies, over the time
       % span from T0 to T1.  The returned prediction variable is a scalar
       % structure with two fields: predictedidx and scoresidx.  scoresidx
-      % holds the raw output of the classifier, and is +1 for the behavior,
-      % -1 for "none" and 0 if it is precisely on the fence.  predictedidx
+      % holds the raw score output from the classifier.  predictedidx
       % holds the index of the predicted behavior, where 1 means the
       % behavior, 2 means "none", and 1.5 means precisely on the fence.
 
@@ -5280,11 +5284,10 @@ classdef JLabelData < handle
                 obj.predictdata{expi}{flies}.t>=T0 & ...
                 obj.predictdata{expi}{flies}.t<=T1;
       
-      binaryPrediction=double(obj.predictdata{expi}{flies}.cur(idxcurr)>=0);
       prediction.predictedidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
-        -0.5*binaryPrediction+1.5;
+        -sign(obj.predictdata{expi}{flies}.cur(idxcurr))*0.5+1.5;
       prediction.scoresidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
-        binaryPrediction;
+        obj.predictdata{expi}{flies}.cur(idxcurr);
     end
     
     
