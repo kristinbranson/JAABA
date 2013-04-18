@@ -52,13 +52,17 @@ classdef JLabelData < handle
     % possible for the user to hack the everything file in this way.)
     featureLexicon=[];
     
-    % computed and cached window features
-    windowdata = struct('X',single([]),'exp',[],'flies',[],'t',[],...
-      'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
-      'labelidx_imp',[],'featurenames',{{}},...
-      'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-      'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
-      'scores_old',[],'scores_validated',[],'postprocessed',[]);
+    % windowdata holds computed and cached window features
+    windowdata = ...
+      struct('X',single([]),'exp',[],'flies',[],'t',[],...
+             'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
+             'labelidx_imp',[],'featurenames',{{}},...
+             'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
+             'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
+             'scores_old',[],'scores_validated',[],'postprocessed',[]);
+    % X holds the actual window features     
+    % not used anymore: predicted, predicted_probs, isvalidprediciton,
+    % distNdx, scores, scores_old, maybe postprocessed
 
     % predictdata stores predictions.  It is cell array, with as many
     % elements as there are experiments.  Each element holds another cell
@@ -156,12 +160,15 @@ classdef JLabelData < handle
     % last frame that all flies currently selected are tracked
     t1_curr = 0;
     
-    % predicted label for current experiment and flies, with the same type
-    % of representation as labelidx
+    % predicted label for current experiment and fly, with the same type
+    % of representation as labelidx, except that a value of zero means that
+    % there is no prediction (as when a classifier has not yet been trained, 
+    % or has been cleared).  These variables are essentially a cache of the
+    % data in self.predictdata.
     predictedidx = [];
     scoresidx = [];
     scoresidx_old = [];
-    scoreTS = [];
+    scoreTS = [];  % timestamp for the above
     
     % whether the predicted label matches the true label. 0 stands for
     % either not predicted or not labeled, 1 for matching, 2 for not
@@ -768,6 +775,58 @@ classdef JLabelData < handle
       obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
       obj.setClassifierStuff(everythingParams.classifierStuff);
     end  % method
+    
+
+    % ---------------------------------------------------------------------
+    function UpdatePredictedIdx(obj)
+      % Updates obj.predictedidx, obj.scoresidx, obj.scoreTS, obj.erroridx, 
+      % and obj.suggestedidx to match what's in obj.predictdata, obj.expi,
+      % obj.flies, obj.t0_curr, and obj.t1_curr.  For instance, this might
+      % be used to update those variables after obj.expi changes.
+      
+      if obj.expi == 0,
+        return;
+      end
+      
+      n = obj.t1_curr - obj.t0_curr + 1;
+      obj.predictedidx = zeros(1,n);
+      obj.scoresidx = zeros(1,n);
+      obj.scoresidx_old = zeros(1,n);
+      obj.scoreTS = zeros(1,n);
+      
+      if ~isempty(obj.predictdata) && ~isempty(obj.predictdata{obj.expi}) 
+        % Overwrite by scores from predictdata.
+        idxcurr = obj.predictdata{obj.expi}{obj.flies}.cur_valid;
+        obj.predictedidx(obj.predictdata{obj.expi}{obj.flies}.t(idxcurr)-obj.t0_curr+1) = ...
+          -sign(obj.predictdata{obj.expi}{obj.flies}.cur(idxcurr))*0.5 + 1.5;
+        obj.scoresidx(obj.predictdata{obj.expi}{obj.flies}.t(idxcurr)-obj.t0_curr+1) = ...
+          obj.predictdata{obj.expi}{obj.flies}.cur(idxcurr);
+        obj.scoreTS(obj.predictdata{obj.expi}{obj.flies}.t(idxcurr)-obj.t0_curr+1) = ...
+          obj.classifierTS;
+      end
+      obj.UpdateErrorIdx();
+            
+    end    
+    
+    
+    % ---------------------------------------------------------------------
+    function ClearCachedPerExpData(obj)
+    % ClearCachedPerExpData(obj)
+    % Clears all cached data for the currently loaded experiment
+      obj.trx = {};
+      obj.expi = 0;
+      obj.flies = nan(size(obj.flies));
+      obj.perframedata = {};
+      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
+      obj.labelidx_off = 0;
+      obj.t0_curr = 0;
+      obj.t1_curr = 0;
+      obj.predictedidx = [];
+      obj.scoresidx = [];
+      obj.scoresidx_old = [];
+      obj.erroridx = [];
+      obj.suggestedidx = [];
+    end
   end  % private methods
 
   
@@ -2233,7 +2292,7 @@ classdef JLabelData < handle
 %       % experiment and track to experiment 1, track 1
 %       if (self.nexps>0)
 %         self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
-%         [success1,msg1] = self.PreLoad(1,1);
+%         [success1,msg1] = self.setCurrentTarget(1,1);
 %         if ~success1,
 %           msg = sprintf('Error getting basic trx info: %s',msg1);
 %           self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
@@ -2371,7 +2430,7 @@ classdef JLabelData < handle
       % experiment and track to experiment 1, track 1
       if (self.nexps>0)
         self.SetStatus('Pre-loading experiment %s...',self.expnames{1});
-        [success1,msg1] = self.PreLoad(1,1);
+        [success1,msg1] = self.setCurrentTarget(1,1);
         if ~success1,
           msg = sprintf('Error getting basic trx info: %s',msg1);
           self.SetStatus('Error getting basic trx info for %s.',self.expnames{1});
@@ -2470,7 +2529,7 @@ classdef JLabelData < handle
 % 
 %       % Set the classifier in the JLabelData object
 %       self.setClassifierStuff(classifierStuff);
-      self.ClearWindowData();
+      %self.ClearWindowData();
       self.classifier=struct('dim',{}, ...
                              'error',{}, ...
                              'dir',{}, ....
@@ -2479,7 +2538,22 @@ classdef JLabelData < handle
       self.classifier_old = self.classifier;
       self.classifierTS=[];
       self.windowdata.scoreNorm=[];
-      self.PreLoadPeriLabelWindowData();  % do we need to do this?
+      self.invalidatePredictions();
+      %self.PreLoadPeriLabelWindowData();  % do we need to do this?
+    end  
+
+    
+    % ---------------------------------------------------------------------
+    function invalidatePredictions(self)
+      % Mark the current and old classifier predictions as invalid.
+      nExps=self.nexps;
+      for iExp=1:nExps
+        nTargets=self.nflies_per_exp(iExp);
+        for iTarget=1:nTargets
+          self.predictdata{iExp}{iTarget}.cur_valid(:)=false;
+          self.predictdata{iExp}{iTarget}.old_valid(:)=false;
+        end
+      end
     end  
 
     
@@ -3488,7 +3562,7 @@ classdef JLabelData < handle
 %       if obj.nexps == 1,
 %         % TODO: make this work with multiple flies
 %         obj.SetStatus('Pre-loading first experiment %s expname...',expname);
-%         [success1,msg1] = obj.PreLoad(1,1);
+%         [success1,msg1] = obj.setCurrentTarget(1,1);
 %         if ~success1,
 %           success = false;
 %           msg = sprintf('Error getting basic trx info: %s',msg1);
@@ -3696,7 +3770,7 @@ classdef JLabelData < handle
 %       % preload this experiment if this is the first experiment added
 %       if obj.nexps == 1,
 %         % TODO: make this work with multiple flies
-%         [success1,msg1] = obj.PreLoad(1,1);
+%         [success1,msg1] = obj.setCurrentTarget(1,1);
 %         if ~success1,
 %           msg = sprintf('Error getting basic trx info: %s',msg1);
 %           obj.RemoveExpDirs(obj.nexps);
@@ -3864,7 +3938,7 @@ classdef JLabelData < handle
           obj.flies = nan(size(obj.flies));
 
           if obj.nexps > 0,
-            obj.PreLoad(newexpi,1);
+            obj.setCurrentTarget(newexpi,1);
           end
           
         else
@@ -4563,7 +4637,7 @@ classdef JLabelData < handle
           
             if isempty(obj.expi) || obj.expi == 0,
               % TODO: make this work for multiple flies
-              obj.PreLoad(expi,1);
+              obj.setCurrentTarget(expi,1);
               trx = obj.trx;
             elseif canusecache && expi == obj.expi,
               trx = obj.trx;
@@ -4654,7 +4728,7 @@ classdef JLabelData < handle
       
       if expi ~= obj.expi,
         % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,1);
+        [success,msg] = obj.setCurrentTarget(expi,1);
         if ~success,
           error('Error loading trx for experiment %d: %s',expi,msg);
         end
@@ -4816,7 +4890,7 @@ classdef JLabelData < handle
       
       if expi ~= obj.expi,
         % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
+        [success,msg] = obj.setCurrentTarget(expi,fly);
         if ~success,
           error('Error loading trx for experiment %d: %s',expi,msg);
         end
@@ -4851,7 +4925,7 @@ classdef JLabelData < handle
       
       if expi ~= obj.expi,
         % TODO: generalize to multiple flies
-        [success,msg] = obj.PreLoad(expi,fly);
+        [success,msg] = obj.setCurrentTarget(expi,fly);
         if ~success,
           error('Error loading trx for experiment %d: %s',expi,msg);
         end
@@ -4918,15 +4992,16 @@ classdef JLabelData < handle
     
 
     % ---------------------------------------------------------------------
-    function [success,msg] = PreLoad(obj,expi,flies)
-    % [success,msg] = PreLoad(obj,expi,flies)
-    % Preloads data associated with the input experiment and flies. If
-    % neither the experiment nor flies are changing, then we do nothing. If
-    % there is currently a preloaded experiment, then we store the labels
-    % in labelidx into labels using StoreLabels. We then load from labels
-    % into labelidx for the new experiment and flies. We load the per-frame
-    % data for this experiment and flies. If this is a different
-    % experiment, then we load in the trajectories for this experiment.  
+    function [success,msg] = setCurrentTarget(obj,expi,flies)
+      % This is the method formerly known as PreLoad(). Sets the current
+      % target to experiment expi, animal flies.  This implies preloading
+      % data associated with the input experiment and flies. If neither the
+      % experiment nor flies are changing, then we do nothing. If there is
+      % currently a preloaded experiment, then we store the labels in
+      % labelidx into labels using StoreLabels. We then load from labels into
+      % labelidx for the new experiment and flies. We load the per-frame data
+      % for this experiment and flies. If this is a different experiment,
+      % then we load in the trajectories for this experiment.
       
       success = false;
       msg = '';
@@ -4994,7 +5069,7 @@ classdef JLabelData < handle
 %           return;
 %         end
  
-      end
+      end  % if diffexpi
 
       % set labelidx from labels
       obj.SetStatus('Caching labels for experiment %s, flies%s',obj.expnames{expi},sprintf(' %d',flies));
@@ -5016,26 +5091,6 @@ classdef JLabelData < handle
       obj.ClearStatus();
            
       success = true;
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function ClearCachedPerExpData(obj)
-    % ClearCachedPerExpData(obj)
-    % Clears all cached data for the currently loaded experiment
-      obj.trx = {};
-      obj.expi = 0;
-      obj.flies = nan(size(obj.flies));
-      obj.perframedata = {};
-      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
-      obj.labelidx_off = 0;
-      obj.t0_curr = 0;
-      obj.t1_curr = 0;
-      obj.predictedidx = [];
-      obj.scoresidx = [];
-      obj.scoresidx_old = [];
-      obj.erroridx = [];
-      obj.suggestedidx = [];
     end
     
     
@@ -5188,6 +5243,13 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function [prediction,T0,T1] = GetPredictedIdx(obj,expi,flies,T0,T1)
+      % Get the prediction for experiment expi, target flies, over the time
+      % span from T0 to T1.  The returned prediction variable is a scalar
+      % structure with two fields: predictedidx and scoresidx.  scoresidx
+      % holds the raw output of the classifier, and is +1 for the behavior,
+      % -1 for "none" and 0 if it is precisely on the fence.  predictedidx
+      % holds the index of the predicted behavior, where 1 means the
+      % behavior, 2 means "none", and 1.5 means precisely on the fence.
 
       if ~isempty(obj.expi) && numel(flies) == numel(obj.flies) && obj.IsCurFly(expi,flies),
         if nargin < 4,
@@ -5215,13 +5277,14 @@ classdef JLabelData < handle
       
 
       idxcurr = obj.predictdata{expi}{flies}.cur_valid & ...
-            obj.predictdata{expi}{flies}.t>=T0 & ...
-            obj.predictdata{expi}{flies}.t<=T1;
+                obj.predictdata{expi}{flies}.t>=T0 & ...
+                obj.predictdata{expi}{flies}.t<=T1;
       
+      binaryPrediction=double(obj.predictdata{expi}{flies}.cur(idxcurr)>=0);
       prediction.predictedidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
-        -sign(obj.predictdata{expi}{flies}.cur(idxcurr))*0.5+1.5;
+        -0.5*binaryPrediction+1.5;
       prediction.scoresidx(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
-        sign(obj.predictdata{expi}{flies}.cur(idxcurr));
+        binaryPrediction;
     end
     
     
@@ -6415,40 +6478,12 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------
-    function UpdatePredictedIdx(obj)
-    % UpdatePredictedIdx(obj)
-    % Updates the stored predictedidx and erroridx fields to reflect
-    % windowdata.predicted
-      
-      if obj.expi == 0,
-        return;
-      end
-      
-      n = obj.t1_curr - obj.t0_curr + 1;
-      obj.predictedidx = zeros(1,n);
-      obj.scoresidx = zeros(1,n);
-      obj.scoresidx_old = zeros(1,n);
-      obj.scoreTS = zeros(1,n);
-      
-      if ~isempty(obj.predictdata) && ~isempty(obj.predictdata{obj.expi}) 
-        % Overwrite by scores from windowdata.
-        idxcurr = obj.predictdata{obj.expi}{obj.flies}.cur_valid;
-        obj.predictedidx(obj.predictdata{obj.expi}{obj.flies}.t(idxcurr)-obj.t0_curr+1) = ...
-          -sign(obj.predictdata{obj.expi}{obj.flies}.cur(idxcurr))*0.5 + 1.5;
-        obj.scoresidx(obj.predictdata{obj.expi}{obj.flies}.t(idxcurr)-obj.t0_curr+1) = ...
-          obj.predictdata{obj.expi}{obj.flies}.cur(idxcurr);
-        obj.scoreTS(obj.predictdata{obj.expi}{obj.flies}.t(idxcurr)-obj.t0_curr+1) = ...
-          obj.classifierTS;
-      end
-      obj.UpdateErrorIdx();
-            
-    end
-
-    
-    % ---------------------------------------------------------------------
     function UpdateErrorIdx(obj)
-    % UpdatePredictedIdx(obj)
-    % Updates the stored erroridx and suggestedidx from predictedidx
+      % Updates the obj.erroridx and obj.suggestedidx to match
+      % obj.predictedidx and obj.labelidx.  This really should be a private
+      % method, since it is called to re-establish an object invariant.  But
+      % currently it's called from JLabel, which really shouldn't have to 
+      % tell JLabelData to get its house in order...  -- ALT, Apr 18, 2013.
 
       if obj.expi == 0,
         return;
