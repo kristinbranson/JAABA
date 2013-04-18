@@ -809,6 +809,26 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
+    function UpdateErrorIdx(obj)
+      % Updates the obj.erroridx and obj.suggestedidx to match
+      % obj.predictedidx and obj.labelidx.
+
+      if obj.expi == 0,
+        return;
+      end
+      
+      n = obj.t1_curr - obj.t0_curr + 1;
+      obj.erroridx = zeros(1,n);
+      obj.suggestedidx = zeros(1,n);
+      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals ~= 0;
+      obj.erroridx(idxcurr) = double(obj.predictedidx(idxcurr) ~= obj.labelidx.vals(idxcurr))+1;
+      
+      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals == 0;
+      obj.suggestedidx(idxcurr) = obj.predictedidx(idxcurr);
+    end
+
+    
+    % ---------------------------------------------------------------------
     function ClearCachedPerExpData(obj)
     % ClearCachedPerExpData(obj)
     % Clears all cached data for the currently loaded experiment
@@ -5669,7 +5689,7 @@ classdef JLabelData < handle
         end
         obj.windowdata.labelidx_new(idx) = 0;
         obj.windowdata.labelidx_imp(idx) = 0;
-        obj.UpdateErrorIdx();data
+        obj.UpdateErrorIdx();
       end
       
     end
@@ -5693,7 +5713,7 @@ classdef JLabelData < handle
         labelidx.timestamp(ts+1-T0) = now;
         obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);        
       end
-      
+      obj.UpdateErrorIdx();      
     end
     
     
@@ -6477,29 +6497,6 @@ classdef JLabelData < handle
         end
       end
 
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function UpdateErrorIdx(obj)
-      % Updates the obj.erroridx and obj.suggestedidx to match
-      % obj.predictedidx and obj.labelidx.  This really should be a private
-      % method, since it is called to re-establish an object invariant.  But
-      % currently it's called from JLabel, which really shouldn't have to 
-      % tell JLabelData to get its house in order...  -- ALT, Apr 18, 2013.
-
-      if obj.expi == 0,
-        return;
-      end
-      
-      n = obj.t1_curr - obj.t0_curr + 1;
-      obj.erroridx = zeros(1,n);
-      obj.suggestedidx = zeros(1,n);
-      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals ~= 0;
-      obj.erroridx(idxcurr) = double(obj.predictedidx(idxcurr) ~= obj.labelidx.vals(idxcurr))+1;
-      
-      idxcurr = obj.predictedidx ~= 0 & obj.labelidx.vals == 0;
-      obj.suggestedidx(idxcurr) = obj.predictedidx(idxcurr);
     end
 
     
