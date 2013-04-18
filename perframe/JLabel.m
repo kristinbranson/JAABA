@@ -1159,7 +1159,7 @@ else
 end
 
 % load trx
-[success,msg] = handles.guidata.data.PreLoad(expi,flies);
+[success,msg] = handles.guidata.data.setCurrentTarget(expi,flies);
 if ~success,
   uiwait(errordlg(sprintf('Error loading data for experiment %d: %s',expi,msg)));
   return;
@@ -1393,7 +1393,7 @@ if ~exist('doupdateplot','var'),
 end
 
 data=handles.guidata.data;  % a ref
-[success,msg] = data.PreLoad(handles.guidata.expi,flies);
+[success,msg] = data.setCurrentTarget(handles.guidata.expi,flies);
 if ~success,
   uiwait(waitdlg(sprintf('Error loading data for current set of flies: %s',msg)));
   return;
@@ -2887,7 +2887,7 @@ pan(handles.figure_JLabel,'on');
 return
 
 
-% --------------------------------------------------------------------
+% -------------------------------------------------------------------------
 function toggletool_pan_OffCallback(hObject, eventdata, handles)
 % hObject    handle to toggletool_pan (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -2896,6 +2896,7 @@ pan(handles.figure_JLabel,'off');
 return
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in togglebutton_label_behavior1.
 function togglebutton_label_behavior1_Callback(hObject, eventdata, handles)
 % hObject    handle to togglebutton_label_behavior1 (see GCBO)
@@ -3167,38 +3168,57 @@ return
 
 
 % -------------------------------------------------------------------------
-function handles = SetPredictedPlot(handles,t0,t1,behavioris)
+function handles = SetPredictedPlot(handles,t0,t1)
+% Updates handles.guidata.labels_plot.predx and handles.guidata.labels_plot.predx 
+% to match the current predictions.
 
+% If no experiments, nothing to do
 if (handles.guidata.data.nexps==0)
   return
 end
+
+% Get the prediction over the relevant time range, and the time range, if
+% not provided.
+iExp=handles.guidata.expi;
 if nargin < 2,
-  [prediction,t0,t1] = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies);
-elseif nargin < 4,
-  prediction = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies,t0,t1);
+  [prediction,t0,t1] = handles.guidata.data.GetPredictedIdx(iExp,handles.guidata.flies);
+else
+  prediction = handles.guidata.data.GetPredictedIdx(iExp,handles.guidata.flies,t0,t1);
 end
-behavioris = prediction.predictedidx;
-scores = handles.guidata.data.NormalizeScores(prediction.scoresidx);
-handles.guidata.labels_plot.predx(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
-handles.guidata.labels_plot.predy(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
 
+% Break out prediction
+predictedidx = prediction.predictedidx;
+scoresidx=prediction.scoresidx;
+
+% Normalize the scores
+scores = handles.guidata.data.NormalizeScores(scoresidx);
+
+% Set the x,y for the predictions to nan, so they don't show up except
+% where we set them below
+labelsPlotOffset=handles.guidata.labels_plot_off;
+iFirst=t0+labelsPlotOffset;
+iLast=t1+labelsPlotOffset;
+handles.guidata.labels_plot.predx(:,iFirst:iLast,:,:) = nan;
+handles.guidata.labels_plot.predy(:,iFirst:iLast,:,:) = nan;
+
+% Loop over the behaviors (including "none")
 for behaviori = 1:handles.guidata.data.nbehaviors,
-
-  bidx = find( (behaviori == behavioris) & ...
-      (abs(scores)>handles.guidata.data.GetConfidenceThreshold(behaviori)));
+  confidenceThreshold=handles.guidata.data.GetConfidenceThreshold(behaviori);
+  bidx = find( (behaviori == predictedidx) & ...
+               (abs(scores)>confidenceThreshold) );
   if isempty(bidx),
     continue;
   end
-  for l = 1:numel(handles.guidata.flies),
-    ks = t0-1+handles.guidata.labels_plot_off+bidx;
-    xplot0 = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),t0-1+bidx);
-    xplot1 = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),min(t0+bidx,handles.guidata.t1_curr));
-    handles.guidata.labels_plot.predx(:,ks,behaviori,l) = [xplot0;xplot1];
-    yplot0 = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),t0-1+bidx);
-    yplot1 = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),min(t0+bidx,handles.guidata.t1_curr));
-    handles.guidata.labels_plot.predy(:,ks,behaviori,l) = [yplot0;yplot1];
+  for i = 1:numel(handles.guidata.flies),
+    ks = t0-1+labelsPlotOffset+bidx;
+    j=handles.guidata.flies(i);
+    xplot0 = handles.guidata.data.GetTrxValues('X1',iExp,j,t0-1+bidx);
+    xplot1 = handles.guidata.data.GetTrxValues('X1',iExp,j,min(t0+bidx,handles.guidata.t1_curr));
+    handles.guidata.labels_plot.predx(:,ks,behaviori,i) = [xplot0;xplot1];
+    yplot0 = handles.guidata.data.GetTrxValues('Y1',iExp,j,t0-1+bidx);
+    yplot1 = handles.guidata.data.GetTrxValues('Y1',iExp,j,min(t0+bidx,handles.guidata.t1_curr));
+    handles.guidata.labels_plot.predy(:,ks,behaviori,i) = [yplot0;yplot1];
   end
-  
 end
 
 guidata(handles.figure_JLabel,handles);
