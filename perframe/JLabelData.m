@@ -205,7 +205,7 @@ classdef JLabelData < handle
     classifier_old = [];
     lastFullClassifierTrainingSize = 0;
     
-    % Classifiers Time Stamp
+    % Classifier Time Stamp
     classifierTS = 0;
     
     % training statistics
@@ -5608,8 +5608,8 @@ classdef JLabelData < handle
       
     end
 
+    
     % ---------------------------------------------------------------------
-
     function SetLabel(obj,expi,flies,ts,behaviori,important)
     % SetLabel(obj,expi,flies,ts,behaviori)
     % Set label for experiment expi, flies, and frames ts to behaviori. If
@@ -5633,6 +5633,7 @@ classdef JLabelData < handle
     
 % Window data computation.
 
+    % ---------------------------------------------------------------------
     function InitPredictiondata(obj,expi)
       % Dimensions the predictions for experiment expi.
 
@@ -5640,15 +5641,25 @@ classdef JLabelData < handle
       nTargets=obj.nflies_per_exp(expi);
       obj.predictdata{expi} = cell(1,nTargets);
       
-      % For each target, put a scalar struct in that cell array element,
-      % with the proper fields, but empty values
-      for iTarget = 1:nTargets
-        obj.predictdata{expi}{iTarget} = struct('t',[],...
-        'cur',[],'cur_valid',logical([]),'cur_pp',[],...
-        'old',[],'old_valid',logical([]),'old_pp',[],...
-        'loaded',[],'loaded_valid',logical([]),'loaded_pp',[],...
-        'timestamp',[]);
-      end
+      % Don't need to pre-allocate the fields in a structure array.
+      % I benchmarked it to be sure ---It's slightly faster without this
+      % code.  --ALT, Apr 17 2013
+%       % For each target, put a scalar struct in that cell array element,
+%       % with the proper fields, but empty values
+%       for iTarget = 1:nTargets
+%         obj.predictdata{expi}{iTarget} = ...
+%           struct('t',[],...
+%                  'cur',[], ...
+%                  'cur_valid', logical([]), ...
+%                  'cur_pp',[], ...
+%                  'old',[], ...
+%                  'old_valid',logical([]), ...
+%                  'old_pp',[],...
+%                  'loaded',[], ...
+%                  'loaded_valid',logical([]), ...
+%                  'loaded_pp',[],...
+%                  'timestamp',[]);
+%       end
             
       % For each target, and each field in the scalar struct, set it to a
       % double or logical array of the proper length.  Set all double
@@ -5671,7 +5682,6 @@ classdef JLabelData < handle
         obj.predictdata{expi}{iTarget}.loaded_valid = falseArray;
         obj.predictdata{expi}{iTarget}.timestamp = nanArray;
       end
-
     end
 
     
@@ -6002,6 +6012,8 @@ classdef JLabelData < handle
      
     end
     
+    
+    % ---------------------------------------------------------------------
     function ClearWindowData(obj)
       % Clears window features and predictions for a clean start when selecting
       % features.
@@ -6031,11 +6043,10 @@ classdef JLabelData < handle
       obj.predictblocks.expi = [];
       
       obj.UpdatePredictedIdx();
-
     end
 
+    
     % ---------------------------------------------------------------------
-
     function TrimWindowData(obj,doforce)  %#ok
       % If the size of windowdata is too large, removes windowdata for
       % unlabeled examples.
