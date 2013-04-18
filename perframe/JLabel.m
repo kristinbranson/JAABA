@@ -37,6 +37,7 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
+return
 
 
 % -------------------------------------------------------------------------
@@ -47,6 +48,7 @@ if ishandle(hsplashstatus),
 else
   fprintf([varargin{1},'\n'],varargin{2:end});
 end
+return
  
 
 % -------------------------------------------------------------------------
@@ -164,6 +166,7 @@ function handles = InitSelectionCallbacks(handles)
 handles.guidata.callbacks = struct;
 handles.guidata.callbacks.figure_WindowButtonMotionFcn = get(handles.figure_JLabel,'WindowButtonMotionFcn');
 set(handles.figure_JLabel,'WindowButtonMotionFcn','');
+return
 
 
 % -------------------------------------------------------------------------
@@ -671,6 +674,7 @@ while true
     pause(1);
   end
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1089,6 +1093,7 @@ for i = axes,
   %drawnow;
   
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1302,6 +1307,7 @@ end
 UpdateEnablementAndVisibilityOfControls(handles);
 
 success = true;
+return
 
 
 % -------------------------------------------------------------------------
@@ -1351,6 +1357,7 @@ if isempty(i),
 else
   i = str2double(i{1});
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1372,6 +1379,7 @@ i = GetPreviewPanelNumber(hObject);
 
 % set current frame
 SetCurrentFrame(handles,i,t,hObject);
+return
 
 
 % -------------------------------------------------------------------------
@@ -1529,6 +1537,8 @@ if doupdateplot,
   UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
 end
 
+return
+
 
 % -------------------------------------------------------------------------
 function handles = UpdateTimelineIms(handles)
@@ -1674,7 +1684,6 @@ return
 
 
 % -------------------------------------------------------------------------
-% set current frame
 function handles = SetCurrentFrame(handles,i,t,hObject,doforce,doupdateplot)
 
 if ~exist('doforce','var'),
@@ -1744,9 +1753,8 @@ if doforce || handles.guidata.ts(i) ~= t,
 %   else
 %     set([handles.guidata.togglebutton_label_behaviors,handles.togglebutton_label_unknown],'Enable','on');
 %   end
-
-  
-end
+end  % if
+return
 
 
 % -------------------------------------------------------------------------
@@ -1760,6 +1768,7 @@ function slider_preview_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1814,6 +1823,7 @@ return
 
 %--------------------------------------------------------------------------
 function handles = UpdateMovies(handles)
+return
 
 
 %--------------------------------------------------------------------------
@@ -1848,8 +1858,8 @@ function menu_file_quit_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_quit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 figure_JLabel_CloseRequestFcn(hObject, eventdata, handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -1857,6 +1867,7 @@ function menu_edit_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -1864,6 +1875,7 @@ function menu_view_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -1871,6 +1883,7 @@ function menu_go_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_go (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -1878,6 +1891,7 @@ function menu_edit_undo_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit_undo (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % % -------------------------------------------------------------------------
@@ -2047,6 +2061,7 @@ set(handles.menu_go_next_automatic_bout_start,'Label',...
   sprintf('Next %s bout start (shift + right arrow)',jumpType));
 set(handles.menu_go_previous_automatic_bout_end,'Label',...
   sprintf('Next %s bout end (shift + left arrow)',jumpType));
+return
 
 
 %--------------------------------------------------------------------------
@@ -2632,6 +2647,7 @@ end
 % catch ME,
 %   warning('Error loading RC file: %s',getReport(ME));  
 % end
+return
 
 
 % -------------------------------------------------------------------------
@@ -2702,6 +2718,8 @@ function handles = SaveRC(handles)
 % catch ME,
 %   warning('Error saving RC file: %s',getReport(ME));
 % end
+return
+
 
 % -------------------------------------------------------------------------
 function proceed=checkForUnsavedChangesAndDealIfNeeded(figureJLabel)
@@ -2732,6 +2750,7 @@ else
   proceed=true;
 end
 return
+
 
 % -------------------------------------------------------------------------
 % --- Executes when user attempts to close figure_JLabel.
@@ -2794,6 +2813,7 @@ if true,
 else
   uiresume(handles.figure_JLabel); %#ok<UNRCH>
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -2801,6 +2821,7 @@ function toggletool_zoomin_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to toggletool_zoomin (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -2812,6 +2833,7 @@ function toggletool_zoomin_OnCallback(hObject, eventdata, handles)
 set([handles.toggletool_zoomout,handles.toggletool_pan],'State','off');
 pan(handles.figure_JLabel,'off');
 set(handles.guidata.hzoom,'Direction','in','Enable','on');
+return
 
 
 % --------------------------------------------------------------------
@@ -2821,6 +2843,7 @@ function toggletool_zoomin_OffCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(handles.guidata.hzoom,'Enable','off');
+return
 
 
 % --------------------------------------------------------------------
@@ -2830,6 +2853,7 @@ function toggletool_zoomout_OffCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(handles.guidata.hzoom,'Enable','off');
+return
 
 
 % --------------------------------------------------------------------
@@ -2841,6 +2865,7 @@ function toggletool_zoomout_OnCallback(hObject, eventdata, handles)
 set([handles.toggletool_zoomin,handles.toggletool_pan],'State','off');
 pan(handles.figure_JLabel,'off');
 set(handles.guidata.hzoom,'Direction','out','Enable','on');
+return
 
 
 % --------------------------------------------------------------------
@@ -2848,6 +2873,7 @@ function toggletool_zoomout_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to toggletool_zoomout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -2858,6 +2884,7 @@ function toggletool_pan_OnCallback(hObject, eventdata, handles)
 set([handles.toggletool_zoomin,handles.toggletool_zoomout],'State','off');
 zoom(handles.figure_JLabel,'off');
 pan(handles.figure_JLabel,'on');
+return
 
 
 % --------------------------------------------------------------------
@@ -2866,6 +2893,7 @@ function toggletool_pan_OffCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 pan(handles.figure_JLabel,'off');
+return
 
 
 % --- Executes on button press in togglebutton_label_behavior1.
@@ -2978,6 +3006,8 @@ end
 
 guidata(hObject,handles);
 
+return
+
 
 % -------------------------------------------------------------------------
 function handles = SetLabelPlot(handles,t0,t1,behaviori,important)
@@ -3071,6 +3101,8 @@ handles = SetNeedSave(handles);
 
 guidata(handles.figure_JLabel,handles);
 
+return
+
 
 % -------------------------------------------------------------------------
 function handles = SetLabelsPlot(handles,t0,t1,behavioris)
@@ -3131,6 +3163,7 @@ handles = SetNeedSave(handles);
 %handles.lastframe_labeled = t;
 
 guidata(handles.figure_JLabel,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3169,6 +3202,7 @@ for behaviori = 1:handles.guidata.data.nbehaviors,
 end
 
 guidata(handles.figure_JLabel,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3276,6 +3310,7 @@ else
 end
 
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3300,6 +3335,7 @@ else
   end
   guidata(hObject,handles);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -3314,6 +3350,7 @@ function edit_framenumber_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -3335,6 +3372,7 @@ for i = 1:numel(handles.guidata.axes_timelines),
   zoom(handles.guidata.axes_timelines(i),'reset');
 end
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3391,6 +3429,7 @@ if mind <= handles.guidata.max_click_dist_preview
   handles = SetCurrentFrame(handles,i,mint,hObject);
 end
 guidata(hObject,handles);
+return
 
 
 function fly_ButtonDownFcn(hObject, eventdata, handles, flyi, i)
@@ -3463,6 +3502,7 @@ if strcmpi(res,'No'),
 end
 
 SetCurrentFlies(handles,fly);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3480,6 +3520,7 @@ pt = get(hObject,'CurrentPoint');
 t = min(max(handles.guidata.t0_curr,round(pt(1,1))),handles.guidata.t1_curr);%nframes);
 % TODO: which axes?
 SetCurrentFrame(handles,1,t,hObject);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3503,6 +3544,7 @@ handles = UpdatePrediction(handles);
 handles.guidata.needsave=true;
 UpdateEnablementAndVisibilityOfControls(handles);
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3527,6 +3569,7 @@ UpdatePlots(handles, ...
             'refresh_timeline_hcurr',false,...
             'refresh_timeline_selection',false,...
             'refresh_curr_prop',false);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3543,6 +3586,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3554,6 +3598,7 @@ function pushbutton_predict_Callback(hObject, eventdata, handles)
 
 handles = UpdatePrediction(handles);
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3568,6 +3613,7 @@ function figure_JLabel_WindowKeyPressFcn(hObject, eventdata, handles)
 
 %disp(eventdata.Character);
 %disp(eventdata.Modifier);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3575,6 +3621,7 @@ function SetStatusCallback(s,h)
 
 handles = guidata(h);
 SetStatus(handles,s);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3582,6 +3629,7 @@ function ClearStatusCallback(h)
 
 handles = guidata(h);
 ClearStatus(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3654,6 +3702,7 @@ function menu_file_load_top_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_load_top (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -3761,6 +3810,7 @@ handles.guidata.preview_zoom_mode = 'center_on_fly';
 UpdateGUIToMatchPreviewZoomMode(handles)
 ZoomInOnFlies(handles);
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -3825,6 +3875,7 @@ for i = indicesOfPreviewAxes,
     set(handles.guidata.axes_previews(i),'XLim',xlim,'YLim',ylim);
   end
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -3903,6 +3954,7 @@ for i = is,
   newylim = [.5,handles.guidata.movie_height+.5];
   set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);  
 end
+return
 
 
 % % --------------------------------------------------------------------
@@ -3935,6 +3987,7 @@ if strcmpi(res,'Yes'),
   handles = UpdateTimelineIms(handles);
   UpdatePlots(handles);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -3948,6 +4001,7 @@ for i = 1:numel(hchil),
   end
 end
 set(hchil(goodidx),'KeyPressFcn',get(hfig,'KeyPressFcn'));
+return
 
 
 % -------------------------------------------------------------------------
@@ -3963,6 +4017,7 @@ switch eventdata.Key,
   case 'space',
     pushbutton_playstop_Callback(handles.pushbutton_playstop,[],handles);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -4070,6 +4125,7 @@ switch eventdata.Key,
     end
     
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -4083,6 +4139,7 @@ axesi = 1;
 t = min(max(1,handles.guidata.ts(axesi)+1),handles.guidata.t1_curr);%handles.guidata.nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -4096,6 +4153,7 @@ axesi = 1;
 t = min(max(handles.guidata.t0_curr,handles.guidata.ts(axesi)-1),handles.guidata.t1_curr);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -4110,6 +4168,7 @@ axesi = 1;
 t = min(max(handles.guidata.t0_curr,handles.guidata.ts(axesi)+handles.guidata.nframes_jump_go),handles.guidata.t1_curr);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -4124,6 +4183,7 @@ axesi = 1;
 t = min(max(handles.guidata.t0_curr,handles.guidata.ts(axesi)-handles.guidata.nframes_jump_go),handles.guidata.t1_curr);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -4140,6 +4200,7 @@ t = handles.guidata.NJObj.Manual_bout_start(handles.guidata.data,handles.guidata
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -4156,6 +4217,7 @@ t = handles.guidata.NJObj.Manual_bout_end(handles.guidata.data,handles.guidata.e
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -4171,6 +4233,7 @@ else
   handles.guidata.open_peripherals(end+1) = handles.figure_NavigationPreferences;
   guidata(hObject,handles);
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -4238,6 +4301,7 @@ else
   handles.guidata.label_shortcuts = sh;
 end
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -4530,6 +4594,7 @@ set(handles.text_scores,'Position',scores_pos);
 %   text_auto_pos(3:4)];
 % set(handles.timeline_label_automatic,'Position',new_text_auto_pos);
 %}
+return
 
 
 % -------------------------------------------------------------------------
@@ -4591,6 +4656,7 @@ edit_pos = get(handles.guidata.edit_framenumbers(previewi),'Position');
 new_edit_pos = [new_play_pos(1) + new_play_pos(3) + handles.guidata.guipos.preview_edit_left_border,...
   handles.guidata.guipos.preview_edit_bottom_border,edit_pos(3:4)];
 set(handles.guidata.edit_framenumbers(previewi),'Position',new_edit_pos);
+return
 
 
 % --------------------------------------------------------------------
@@ -4648,6 +4714,7 @@ UpdatePlots(handles,...
      'refresh_timeline_props',false,...
      'refresh_timeline_selection',false,...
      'refresh_curr_prop',false);
+return
 
    
 % -------------------------------------------------------------------------
@@ -4658,6 +4725,7 @@ function pushbutton_add_timeline_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 AddPropAxes(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -4698,6 +4766,7 @@ else
   set(handles.guidata.text_timeline_props(propi),'String',s);
   guidata(hObject,handles);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -4725,6 +4794,7 @@ if isempty(i),
   warning('Could not find index of parent panel');
   i = 1;
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -4783,6 +4853,7 @@ handles = guidata(handles.figure_JLabel);
 
 handles.guidata.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos(4));
 guidata(handles.figure_JLabel,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -4942,6 +5013,7 @@ UpdatePlots(handles,...
   'refresh_timeline_props',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',true);
+return
 
 
 % -------------------------------------------------------------------------
@@ -4989,6 +5061,7 @@ elseif ~isempty(previewi),
     end
   end
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -5031,6 +5104,7 @@ if ismember(hchil,handles.guidata.axes_timelines),
     case 'open', % double click
   end
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -5061,6 +5135,7 @@ if ~isnan(handles.guidata.selection_t0),
   guidata(hObject,handles);
   UpdateSelection(handles);
 end
+return
   
 
 % -------------------------------------------------------------------------
@@ -5102,6 +5177,7 @@ handles.guidata.buttondown_axes = nan;
 handles.guidata.selection_t0 = nan;
 handles.guidata.selection_t1 = nan;
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -5115,6 +5191,7 @@ if any(isnan(handles.guidata.selected_ts)),
 else
   set(buttons,'Enable','on');
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -5138,6 +5215,7 @@ else
   handles.guidata.selecting = false;
 end
 guidata(hObject,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -5157,6 +5235,7 @@ handles.guidata.selection_t0 = nan;
 handles.guidata.selection_t1 = nan;
 guidata(hObject,handles);
 UpdateSelection(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -5176,6 +5255,7 @@ else
   end
   play(hObject,handles);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -5193,6 +5273,7 @@ else
   end
   play(hObject,handles,handles.guidata.selected_ts(1),handles.guidata.selected_ts(2),true);
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -5207,6 +5288,7 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   t1 = min(t0+framesPerTick,handles.guidata.t1_curr);
   handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
   PLAY_TIMER_DONE = true;
+return
   
   
 % -------------------------------------------------------------------------
@@ -5373,6 +5455,7 @@ adjustButtonColorsIfMac(handles.guidata.hplaying);
 hObject = handles.guidata.hplaying;
 handles.guidata.hplaying = nan;
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5396,6 +5479,7 @@ else
   set(hObject,'Checked','on');
 end
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5405,6 +5489,7 @@ function contextmenu_timeline_manual_go_next_bout_start_Callback(hObject, eventd
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_go_next_bout_start_Callback(hObject,eventdata,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5414,6 +5499,7 @@ function contextmenu_timeline_manual_go_previous_bout_end_Callback(hObject, even
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_go_previous_bout_end_Callback(hObject,eventdata,handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -5462,6 +5548,7 @@ if nargout >= 4,
     label = ['Predicted ',label];
   end
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -5499,6 +5586,7 @@ else
 end
 
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5511,6 +5599,7 @@ clip = handles.bookmark_info;
 clip.t0 = max(handles.guidata.t0_curr,clip.t0-1);
 clip.t1 = min(clip.t1+1,handles.guidata.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
+return
 
 
 % --------------------------------------------------------------------
@@ -5538,6 +5627,7 @@ end
 guidata(hObject,handles);
 
 AddBookmark(handles,handles.bookmark_info);
+return
 
 
 % -------------------------------------------------------------------------
@@ -5577,6 +5667,7 @@ ClearStatus(handles);
 %  
 % BookmarkedClips(handles.figure_JLabel,handles.guidata.data,'clips',clip);
 %}
+return
 
 
 % --------------------------------------------------------------------
@@ -5586,6 +5677,7 @@ function contextmenu_timeline_manual_timeline_options_Callback(hObject, eventdat
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_view_timeline_options_Callback(hObject, eventdata, handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -5600,6 +5692,7 @@ function similarFramesButton_Callback(hObject, eventdata, handles)
 handles = UpdatePrediction(handles);
 curTime = handles.guidata.ts(1);
 handles.guidata.data.SimilarFrames(curTime, handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -5631,6 +5724,7 @@ function s = GetTargetInfo(handles,fly)
   s{i} = sprintf('Frames: %d-%d',firstframe,endframe);
   i = i + 1;
   s{i} = sprintf(handles.guidata.data.expnames{handles.guidata.expi});
+return
 
 
 % --------------------------------------------------------------------
@@ -5647,6 +5741,7 @@ t = handles.guidata.NJObj.JumpToStart(handles.guidata.data,handles.guidata.expi,
 if isempty(t),  return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -5663,6 +5758,7 @@ t = handles.guidata.NJObj.JumpToEnd(handles.guidata.data,handles.guidata.expi,ha
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -5670,6 +5766,7 @@ function menu_view_zoom_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_zoom (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -5682,6 +5779,7 @@ handles.guidata.preview_zoom_mode = 'follow_fly';
 UpdateGUIToMatchPreviewZoomMode(handles)
 KeepFliesInView(handles);
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5693,6 +5791,7 @@ function menu_view_static_view_Callback(hObject, eventdata, handles)
 handles.guidata.preview_zoom_mode = 'static';
 UpdateGUIToMatchPreviewZoomMode(handles)
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5702,6 +5801,7 @@ function contextmenu_timeline_automatic_go_next_bout_start_Callback(hObject, eve
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_go_next_automatic_bout_start_Callback(hObject,eventdata,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5711,6 +5811,7 @@ function contextmenu_timeline_automatic_go_previous_bout_end_Callback(hObject, e
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_go_previous_automatic_bout_end_Callback(hObject,eventdata,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5723,6 +5824,7 @@ clip = handles.bookmark_info;
 clip.t0 = max(handles.guidata.t0_curr,clip.t0-1);
 clip.t1 = min(clip.t1+1,handles.guidata.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
+return
 
 
 % --------------------------------------------------------------------
@@ -5750,6 +5852,7 @@ end
 guidata(hObject,handles);
 
 AddBookmark(handles,handles.bookmark_info);
+return
 
 
 % --------------------------------------------------------------------
@@ -5759,6 +5862,7 @@ function contextmenu_timeline_automatic_timeline_options_Callback(hObject, event
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_view_timeline_options_Callback(hObject, eventdata, handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5804,6 +5908,7 @@ else
 end
 
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5834,6 +5939,7 @@ UpdatePlots(handles,...
   'refresh_curr_prop',false);
 
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5841,6 +5947,7 @@ function contextmenu_timeline_automatic_accept_bout_Callback(hObject, eventdata,
 % hObject    handle to contextmenu_timeline_automatic_accept_bout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -5848,6 +5955,7 @@ function menu_view_plot_labels_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_plot_labels (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -5862,6 +5970,7 @@ handles.guidata.plot_labels_automatic = false;
 set(handles.timeline_label_manual,'Value',1);
 UpdatePlotLabels(handles);
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5876,6 +5985,7 @@ handles.guidata.plot_labels_automatic = true;
 set(handles.timeline_label_automatic,'Value',1);
 UpdatePlotLabels(handles);
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5941,6 +6051,8 @@ function contextmenu_timeline_automatic_overlay_Callback(hObject, eventdata, han
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_view_plot_labels_automatic_Callback(hObject, eventdata, handles);
+return
+
 
 % --------------------------------------------------------------------
 function contextmenu_timeline_manual_overlay_Callback(hObject, eventdata, handles)
@@ -5949,6 +6061,7 @@ function contextmenu_timeline_manual_overlay_Callback(hObject, eventdata, handle
 % handles    structure with handles and user data (see GUIDATA)
 
 menu_view_plot_labels_manual_Callback(hObject, eventdata, handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -5963,6 +6076,7 @@ if ispc,
 else
   web(clipdir,'-browser');
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -5972,6 +6086,7 @@ function menu_edit_compression_preferences_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 CompressionPreferences(handles.figure_JLabel);
+return
 
 
 % --------------------------------------------------------------------
@@ -5980,6 +6095,7 @@ function menu_classifier_set_confidence_thresholds_Callback(hObject, eventdata, 
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.ROCCurve(hObject);
+return
 
 
 % --------------------------------------------------------------------
@@ -5987,6 +6103,7 @@ function menu_classifier_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -5994,6 +6111,7 @@ function menu_classifier_classify_all_experiments_Callback(hObject, eventdata, h
 % hObject    handle to menu_classifier_classify_all_experiments (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % -------------------------------------------------------------------------
@@ -6004,6 +6122,7 @@ function bagButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.DoBagging();
 set(handles.similarFramesButton,'Enable','on');
+return
 
 
 % --------------------------------------------------------------------
@@ -6020,6 +6139,7 @@ else
   handles.guidata.doFastUpdates = true;
 end
 guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -6056,6 +6176,7 @@ if  strcmp(get(eventdata.NewValue,'tag'),'timeline_label_manual')
 else
   menu_view_automatic_labels_Callback(hObject, eventdata, handles);
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -6150,6 +6271,7 @@ if numel(crossError)>1
   title(ax,'Cross Validation Error with time');
   handles.guidata.open_peripherals(end+1) = f;          
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -6171,6 +6293,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6178,6 +6301,7 @@ function menu_file_import_scores_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_import_scores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -6202,6 +6326,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6229,6 +6354,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6263,6 +6389,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6288,6 +6415,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6327,6 +6455,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6362,6 +6491,7 @@ dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.
   newError.numbers(4,3),newError.frac(4,3));
 
 helpdlg(dialogStr,'Performance on new labeled data');
+return
 
 
 % % --------------------------------------------------------------------
@@ -6400,6 +6530,7 @@ function menu_classifier_training_parameters_Callback(hObject, eventdata, handle
 % handles    structure with handles and user data (see GUIDATA)
 cohandles = ClassifierOptions(handles.guidata.data);
 handles.guidata.open_peripherals(end+1) = cohandles;
+return
 
 
 % --------------------------------------------------------------------
@@ -6410,6 +6541,7 @@ function menu_go_switch_target_Callback(hObject, eventdata, handles)
 changeTargetHandle = SwitchTarget(hObject);
 SwitchTarget('initTable',changeTargetHandle);
 handles.guidata.open_peripherals(end+1) = changeTargetHandle;
+return
 
 
 % --------------------------------------------------------------------
@@ -6438,6 +6570,7 @@ handles.guidata.open_peripherals(end+1) = hfig;
 guidata(hObject,handles);
 
 ClearStatus(handles);
+return
 
 
 % --------------------------------------------------------------------
@@ -6473,6 +6606,7 @@ UpdatePlots(handles, ...
             'refresh_timeline_hcurr',false,...
             'refresh_timeline_selection',false,...
             'refresh_curr_prop',false);
+return
 
 
 % -------------------------------------------------------------------------
@@ -6487,6 +6621,7 @@ function automaticTimelineBottomRowPopup_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -6607,6 +6742,7 @@ else
   set(h_prediction,'Visible','off');  
 end
 set(handles.menu_view_automatic_labels,'Visible','on');
+return
 
 
 % --------------------------------------------------------------------
@@ -6614,6 +6750,7 @@ function menu_view_suggest_gt_intervals_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_view_suggest_gt_intervals (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -6653,6 +6790,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
   
   
 % --------------------------------------------------------------------
@@ -6688,6 +6826,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6711,6 +6850,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6748,6 +6888,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6778,6 +6919,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6813,6 +6955,7 @@ end
 f = figure('Position',[200 200 500 120],'Name','Ground Truth Performance');
 t = uitable('Parent',f,'Data',dat,'ColumnName',cnames,... 
             'RowName',rnames,'Units','normalized','Position',[0 0 0.99 0.99]);  %#ok
+return
 
 
 % --------------------------------------------------------------------
@@ -6871,6 +7014,7 @@ outfile = fullfile(expdir,'GTSuggestions.txt');
 if isempty(fname), return; end;
 outfile = fullfile(pname,fname);
 handles.guidata.data.SaveSuggestionGT(expi,outfile);
+return
 
 
 % --------------------------------------------------------------------
@@ -6887,6 +7031,7 @@ end
 
 handles.guidata.cacheSize = round(sz);
 handles.guidata.data.cacheSize = round(sz);
+return
 
 
 % --------------------------------------------------------------------
@@ -6897,6 +7042,7 @@ function menu_classifier_post_processing_Callback(hObject, eventdata, handles)
 
 posthandle = PostProcess(handles.guidata.data,handles);
 handles.guidata.open_peripherals(end+1) = posthandle;
+return
 
 
 % --------------------------------------------------------------------
@@ -6905,6 +7051,7 @@ function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, h
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.PredictSaveMovie(handles.guidata.expi);
+return
 
 
 % --------------------------------------------------------------------
@@ -6928,6 +7075,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6945,6 +7093,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+return
 
 
 % --------------------------------------------------------------------
@@ -6952,6 +7101,7 @@ function menu_file_export_scores_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_export_scores (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % --------------------------------------------------------------------
@@ -6960,6 +7110,7 @@ function menu_file_export_scores_curr_exp_default_loc_Callback(hObject, eventdat
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.SaveCurScores(handles.guidata.expi);
+return
 
 
 % --------------------------------------------------------------------
@@ -6974,6 +7125,7 @@ if fname==0,
   return;
 end
 handles.guidata.SaveCurScores(handles.guidata.expi,fullfile(pname,fname));
+return
 
 
 % --------------------------------------------------------------------
@@ -6984,6 +7136,7 @@ function menu_file_export_scores_all_exp_default_loc_Callback(hObject, eventdata
 for ndx = 1:handles.guidata.data.nexps
   handles.guidata.SaveCurScores(ndx);
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -6998,6 +7151,7 @@ end
 for ndx = 1:handles.guidata.data.nexps
   handles.guidata.SaveCurScores(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -7008,6 +7162,7 @@ function menu_classifier_classifyall_default_Callback(hObject, eventdata, handle
 for ndx = 1:handles.guidata.data.nexps,
   handles.guidata.PredictSaveMovie(ndx);
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -7022,6 +7177,7 @@ end
 for ndx = 1:handles.guidata.data.nexps
   handles.guidata.PredictSaveMovie(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -7032,6 +7188,7 @@ function menu_classifier_classifyall_nosave_Callback(hObject, eventdata, handles
 for ndx = 1:handles.guidata.data.nexps
 handles.guidata.data.PredictNoSaveMovie(ndx);
 end
+return
 
 
 % --------------------------------------------------------------------
@@ -7041,6 +7198,7 @@ function menu_file_save_project_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.SaveProject();
 set(handles.menu_file_save_project,'Enable','off');
+return
 
 
 % --------------------------------------------------------------------
@@ -7048,6 +7206,7 @@ function menu_help_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_help (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+return
 
 
 % -------------------------------------------------------------------------
@@ -7059,6 +7218,7 @@ vid = fopen('version.txt','r');
 vv = textscan(vid,'%s');
 fclose(vid);
 helpdlg(sprintf('JAABA (Janelia Automated Animal Behavior Annotator) version:%s',vv{1}{1}));
+return
 
 
 % --------------------------------------------------------------------
@@ -7079,6 +7239,7 @@ if isdeployed,
 else
   web('-browser','http://jaaba.sourceforge.net/');
 end
+return
 
 
 % -------------------------------------------------------------------------
