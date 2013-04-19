@@ -2598,6 +2598,132 @@ classdef JLabelData < handle
     end
 
     
+    % ---------------------------------------------------------------------
+    function [success,msg] = ApplyPostprocessing(obj)
+    % Applies postprocessing to loaded scores.
+    % We do not apply any postprocessing to current scores.
+      msg = ''; success = true;
+      
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          idx = obj.predictdata{endx}{flies}.cur_valid;
+          ts = obj.predictdata{endx}{flies}.t(idx);
+          [sortedts, idxorder] = sort(ts);
+          gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1;
+          gaps = [1;gaps';numel(ts)+1];
+          for ndx = 1:numel(gaps)-1
+            curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
+            curs = obj.predictdata{endx}{flies}.cur(curidx);
+            obj.predictdata{endx}{flies}.cur_pp(curidx) = obj.Postprocess(curs);
+            
+          end
+        end
+      end
+      
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.predictdata{endx}{flies}.loaded_valid;
+          curt = obj.predictdata{endx}{flies}.t(curidx);
+          if any(curt(2:end)-curt(1:end-1) ~= 1)
+            msg = 'Scores are not in order';
+            success = false;
+            return;
+          end
+          curs = obj.predictdata{endx}{flies}.loaded(curidx);
+          obj.predictdata{endx}{flies}.loaded_pp(curidx) = obj.Postprocess(curs);
+        end %flies
+      end
+      
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function posts = Postprocess(obj,curs)
+      
+      if isempty(obj.postprocessparams); 
+        posts = curs;
+        return; 
+      end;
+      
+      if strcmpi(obj.postprocessparams.method,'hysteresis')
+        posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
+      else
+        posts = obj.ApplyFiltering(curs,obj.postprocessparams);
+      end
+      
+      posts = obj.RemoveSmallBouts(posts);
+      
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function posts = RemoveSmallBouts(obj,posts)
+        
+      if obj.postprocessparams.blen > 1 && numel(posts)>0,
+        if numel(posts)<= obj.postprocessparams.blen
+          if nnz(posts>0) > numel(posts)/2,
+            posts(:) = 1; 
+          else
+            posts(:) = -1;
+          end
+            return;
+        end
+        
+        while true,
+          tposts = [posts 1-posts(end)];
+          ends = find(tposts(1:end-1)~=tposts(2:end));
+          ends = [1 ends+1];
+          blens = ends(2:end)-ends(1:end-1);
+          [minblen,smallbout] = min(blens);
+          if minblen>=obj.postprocessparams.blen, break; end
+           posts(ends(smallbout):ends(smallbout+1)-1) = ...
+              1 - posts(ends(smallbout):ends(smallbout+1)-1);
+        end
+      end
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function posts = ApplyHysteresis(obj,curs,params)
+      % Use imfill to find the regions.
+      if isempty(curs), posts = curs; return; end
+      
+      
+      % Select pos bouts that have at least one frame about the high
+      % threshold.
+      hthresh = curs > params.hystopts(1).value*obj.windowdata.scoreNorm;
+      lthresh = curs > 0;
+      if( nnz(hthresh)>0)
+        pos = imfill(~lthresh,find(hthresh(:))) & lthresh;
+        computeNeg = true;
+      else
+        pos = false(size(curs));
+        computeNeg = false;
+      end
+      % Select neg bouts that have at least one frame below the low
+      % threshold.
+      hthresh = curs < params.hystopts(2).value*obj.windowdata.scoreNorm;
+      lthresh = curs < params.hystopts(1).value*obj.windowdata.scoreNorm;
+      if nnz(hthresh)>0 && computeNeg,
+        neg = imfill(~lthresh,find(hthresh(:))) & lthresh;
+      else
+        neg = true(size(curs));
+      end
+      
+      posts = pos | ~neg;
+      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function posts = ApplyFiltering(obj,curs,params)  %#ok
+      % Use filt to find the regions.
+      if isempty(curs), posts = curs; return; end
+      filts = conv(curs,ones(1,params.filtopts(1).value),'same');
+      posts = filts>0;
+    end
+
+    
 
 
   end  % private methods
@@ -8563,14 +8689,15 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function SetPostprocessingParams(obj,params)
+    function [success,msg] = SetPostprocessingParams(obj,params)
       obj.postprocessparams = params;
+      [success,msg] = obj.ApplyPostprocessing();
     end
     
     
     % ---------------------------------------------------------------------
     function blen = GetPostprocessedBoutLengths(obj)
-      [success,msg] = obj.ApplyPostprocessing();  %#ok
+      %[success,msg] = obj.ApplyPostprocessing();  %#ok
       blen = [];
       if ~success;return; end
       
@@ -8619,133 +8746,9 @@ classdef JLabelData < handle
       end
     end  % method
 
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = ApplyPostprocessing(obj)
-    % Applies postprocessing to loaded scores.
-    % We do not apply any postprocessing to current scores.
-      msg = ''; success = true;
-      
-      for endx = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(endx)
-          idx = obj.predictdata{endx}{flies}.cur_valid;
-          ts = obj.predictdata{endx}{flies}.t(idx);
-          [sortedts, idxorder] = sort(ts);
-          gaps = find((sortedts(2:end) - sortedts(1:end-1))>1)+1;
-          gaps = [1;gaps';numel(ts)+1];
-          for ndx = 1:numel(gaps)-1
-            curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
-            curs = obj.predictdata{endx}{flies}.cur(curidx);
-            obj.predictdata{endx}{flies}.cur_pp(curidx) = obj.Postprocess(curs);
-            
-          end
-        end
-      end
-      
-      for endx = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(endx)
-          curidx = obj.predictdata{endx}{flies}.loaded_valid;
-          curt = obj.predictdata{endx}{flies}.t(curidx);
-          if any(curt(2:end)-curt(1:end-1) ~= 1)
-            msg = 'Scores are not in order';
-            success = false;
-            return;
-          end
-          curs = obj.predictdata{endx}{flies}.loaded(curidx);
-          obj.predictdata{endx}{flies}.loaded_pp(curidx) = obj.Postprocess(curs);
-        end %flies
-      end
-      
-    end  % method
 
-    
-    % ---------------------------------------------------------------------
-    function posts = Postprocess(obj,curs)
-      
-      if isempty(obj.postprocessparams); 
-        posts = curs;
-        return; 
-      end;
-      
-      if strcmpi(obj.postprocessparams.method,'hysteresis')
-        posts = obj.ApplyHysteresis(curs,obj.postprocessparams);
-      else
-        posts = obj.ApplyFiltering(curs,obj.postprocessparams);
-      end
-      
-      posts = obj.RemoveSmallBouts(posts);
-      
-    end
+% Random stuff
 
-    
-    % ---------------------------------------------------------------------
-    function posts = RemoveSmallBouts(obj,posts)
-        
-      if obj.postprocessparams.blen > 1 && numel(posts)>0,
-        if numel(posts)<= obj.postprocessparams.blen
-          if nnz(posts>0) > numel(posts)/2,
-            posts(:) = 1; 
-          else
-            posts(:) = -1;
-          end
-            return;
-        end
-        
-        while true,
-          tposts = [posts 1-posts(end)];
-          ends = find(tposts(1:end-1)~=tposts(2:end));
-          ends = [1 ends+1];
-          blens = ends(2:end)-ends(1:end-1);
-          [minblen,smallbout] = min(blens);
-          if minblen>=obj.postprocessparams.blen, break; end
-           posts(ends(smallbout):ends(smallbout+1)-1) = ...
-              1 - posts(ends(smallbout):ends(smallbout+1)-1);
-        end
-      end
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function posts = ApplyHysteresis(obj,curs,params)
-      % Use imfill to find the regions.
-      if isempty(curs), posts = curs; return; end
-      
-      
-      % Select pos bouts that have at least one frame about the high
-      % threshold.
-      hthresh = curs > params.hystopts(1).value*obj.windowdata.scoreNorm;
-      lthresh = curs > 0;
-      if( nnz(hthresh)>0)
-        pos = imfill(~lthresh,find(hthresh(:))) & lthresh;
-        computeNeg = true;
-      else
-        pos = false(size(curs));
-        computeNeg = false;
-      end
-      % Select neg bouts that have at least one frame below the low
-      % threshold.
-      hthresh = curs < params.hystopts(2).value*obj.windowdata.scoreNorm;
-      lthresh = curs < params.hystopts(1).value*obj.windowdata.scoreNorm;
-      if nnz(hthresh)>0 && computeNeg,
-        neg = imfill(~lthresh,find(hthresh(:))) & lthresh;
-      else
-        neg = true(size(curs));
-      end
-      
-      posts = pos | ~neg;
-      
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function posts = ApplyFiltering(obj,curs,params)  %#ok
-      % Use filt to find the regions.
-      if isempty(curs), posts = curs; return; end
-      filts = conv(curs,ones(1,params.filtopts(1).value),'same');
-      posts = filts>0;
-    end
-
-    
     % ---------------------------------------------------------------------
     function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj)
       if isempty(obj.windowdata.exp)
