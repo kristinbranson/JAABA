@@ -207,7 +207,8 @@ function pushbutton_ok_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.data.SetPostprocessingParams(handles.params);
-handles.data.ApplyPostprocessing();
+%handles.data.ApplyPostprocessing();
+  % now done inside SetPostprocessingParams()
 JLabel('UpdateTimelineIms',handles.JLabelHandle);
 JLabel('UpdatePlots',handles.JLabelHandle,'refreshim',false,'refreshflies',false,...
   'refreshtrx',false,'refreshlabels',true,...
