@@ -694,10 +694,10 @@ classdef JLabelGUIData < handle
     function SaveScores(obj,allScores,expi,sfn)  %#ok
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
-     if nargin< 4
-      sfn = obj.data.GetFile('scores',expi,true);
-     end
-      obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
+      if nargin< 4
+       sfn = obj.data.GetFile('scores',expi,true);
+      end
+      %obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
 
       %didbak = false;
       if exist(sfn,'file'),
@@ -714,7 +714,7 @@ classdef JLabelGUIData < handle
         error('User must specify a .jab file name before scores can be saved.');
       end
       save(sfn,'allScores','timestamp','version','jabFileNameAbs');
-      obj.data.ClearStatus();
+      %obj.data.ClearStatus();
     end  % method
     
     

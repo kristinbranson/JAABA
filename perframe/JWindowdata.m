@@ -345,7 +345,7 @@ classdef JWindowdata < handles
       
       obj.UpdateErrorIdx();
       
-    end
+    end  % method
     
     function UpdateErrorIdx(obj)
       % UpdatePredictedIdx(obj)
