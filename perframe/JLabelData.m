@@ -2395,9 +2395,211 @@ classdef JLabelData < handle
     end  % method
     
     
+% Ground truthing functions.    
 
+    % ---------------------------------------------------------------------
+    function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
+      % This is currently public, but seems like maybe it should be private, 
+      % and get called when callers actually query
+      % self.randomGTSuggestions, or something.  -- ALT, Apr 19, 2013
+      
+      success = false; msg = '';
+      
+      % Do nothing if we already have suggestions with the same settings for
+      % all the experiments.
+      recompute = false;
+      if numel(obj.randomGTSuggestions)<numel(obj.nflies_per_exp), 
+        recompute = true; 
+      else
+        for endx = 1:obj.nexps
+          prevperexp = 0;
+          
+          for fndx = 1:obj.nflies_per_exp(endx)
+            
+            if isempty(obj.randomGTSuggestions{endx}(fndx).start); continue; end
+            prevperfly = obj.randomGTSuggestions{endx}(fndx).end - ...
+              obj.randomGTSuggestions{endx}(fndx).start+1;
+            if (prevperfly ~= perfly),
+              recompute = true;
+              break;
+            end
+            prevperexp = prevperexp+1;
+          end
+          
+          if prevperexp ~= perexp, recompute = true; end
+          
+        end
+      end
+      if ~recompute;
+        obj.GTSuggestionMode = 'Random';
+        return;
+      end
+      
+      
+      for endx = 1:obj.nexps
+        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,perexp);
+        
+        validflies = find( (obj.endframes_per_exp{endx} - ...
+          obj.firstframes_per_exp{endx})>perfly );
+        if numel(validflies)<perexp,
+          msg = sprintf('Experiment %s does not have %d flies with more than %d frames',...
+            obj.expnames{endx},perexp,perfly);
+          success = false;
+          return;
+        end
+        permuteValid = validflies(randperm(numel(validflies)));
+        randFlies = permuteValid(1:perexp);
+        
+        for fndx = 1:obj.nflies_per_exp(endx),
+          if any(fndx == randFlies),
+              first = obj.firstframes_per_exp{endx}(fndx);
+              last = obj.endframes_per_exp{endx}(fndx);
+              suggestStart = first + round( (last-first-perfly)*rand(1));
+              obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
+              obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
+          else
+              obj.randomGTSuggestions{endx}(fndx).start = [];
+              obj.randomGTSuggestions{endx}(fndx).end = [];
+              
+          end
+        end
+        
+      end
+      success = true;
+      obj.GTSuggestionMode = 'Random';
+      
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
+      success = true; msg = '';
+      
+      if ~obj.HasLoadedScores(),
+        uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
+      end
+      
+      numpos = 0;
+      numneg = 0;
+      for expi = 1:obj.nexps,
+        for flies = 1:obj.nflies_per_exp(expi)
+          numpos = numpos + nnz(obj.predictdata{expi}{flies}.loaded>0);
+          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded<0);
+        end
+      end
+      poswt = numneg/(numneg+numpos);
+      negwt = numpos/(numneg+numpos);
+      
+      int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
+      obj.balancedGTSuggestions = {};
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          if ~obj.predictdata{endx}{flies}.loaded_valid(1),
+            msg = sprintf('No Scores have been loaded for %s, cannot suggest intervals for ground truthing\n',...
+              obj.expnames{endx});
+            success = false;
+            return;
+          end
+          
+          curt = obj.predictdata{endx}{flies}.t;
+          if numel(curt)<intsize; continue; end
+          numT = numel(curt)-intsize+1;
+          int.exp(1,end+1:end+numT) = endx;
+          int.flies(1,end+1:end+numT) = flies;
+          int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
+          curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
+          cumwt = cumsum(curwt);
+          sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
+          sumwt = [cumwt(intsize) sumwt]; %#ok<AGROW>
+          int.wt(1,end+1:end+numT) = sumwt;
+          
+        end
+      end
+      
+      obj.balancedGTSuggestions = [];
+      for ndx = 1:numint
+        cumwt = cumsum(int.wt)/sum(int.wt);
+        intlocs = rand;
+        locsSel = find(cumwt<=intlocs,1,'last');
+        
+        if isempty(locsSel), locsSel = numel(cumwt); end
+        expi = int.exp(locsSel);
+        flies = int.flies(locsSel);
+        tStart = int.tStart(locsSel);
+        obj.balancedGTSuggestions(ndx).start = tStart;
+        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
+        obj.balancedGTSuggestions(ndx).exp = expi;
+        obj.balancedGTSuggestions(ndx).flies = flies;
+        
+        % Removing intervals that overlap
+        overlap = int.exp == int.exp(locsSel) & ...
+                        int.flies == int.flies(locsSel) & ...
+                        abs( int.tStart-int.tStart(locsSel))<=intsize;
+        int.exp(overlap) = [];
+        int.flies(overlap) = [];
+        int.tStart(overlap) = [];
+        int.wt(overlap) = [];
+      end
+      
+      obj.GTSuggestionMode = 'Balanced';
+      
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function SuggestLoadedGT(obj,expi,filename)
+      fid = fopen(filename);
+      dat = textscan(fid,'fly:%d,start:%d,end:%d');
+      fclose(fid);
+      fly = dat{1}; t0s = dat{2}; t1s = dat{3};
+      for ndx = 1:obj.nflies_per_exp(expi)
+        loc = ismember(fly,ndx);
+        if ~any(loc), 
+          obj.loadedGTSuggestions{expi}(ndx).start = 1;
+          obj.loadedGTSuggestions{expi}(ndx).end = 0;
+        else
+          obj.loadedGTSuggestions{expi}(ndx).start = t0s(loc);
+          obj.loadedGTSuggestions{expi}(ndx).end = t1s(loc);
+        end
+      end
+      obj.GTSuggestionMode = 'Loaded';
+    end  % method
 
     
+    % ---------------------------------------------------------------------
+    function SuggestThresholdGT(obj,threshold)
+      obj.thresholdGTSuggestions = threshold;
+      obj.GTSuggestionMode = 'Threshold';
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function has = HasLoadedScores(obj)
+      has = true;
+      for expi = 1:obj.nexps,
+        for flies = 1:obj.nflies_per_exp(expi)
+          if ~obj.predictdata{expi}{flies}.loaded_valid(1),
+            has = false; return;
+          end
+        end
+      end      
+    end
+
+    
+% Post Processing functions
+
+    % ---------------------------------------------------------------------
+    function InitPostprocessparams(obj)
+      obj.postprocessparams.method = 'Hysteresis';
+      obj.postprocessparams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
+      obj.postprocessparams.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
+      obj.postprocessparams.filtopts(1) = struct('name','Size','tag','size','value',1);
+      obj.postprocessparams.blen = 1;
+    end
+
+    
+
+
   end  % private methods
 
   
@@ -8104,80 +8306,6 @@ classdef JLabelData < handle
 
 
     % ---------------------------------------------------------------------
-    function [success,msg] = SuggestRandomGT(obj,perfly,perexp)
-      % This is currently public, but seems like maybe it should be private, 
-      % and get called when callers actually query
-      % self.randomGTSuggestions, or something.  -- ALT, Apr 19, 2013
-      
-      success = false; msg = '';
-      
-      % Do nothing if we already have suggestions with the same settings for
-      % all the experiments.
-      recompute = false;
-      if numel(obj.randomGTSuggestions)<numel(obj.nflies_per_exp), 
-        recompute = true; 
-      else
-        for endx = 1:obj.nexps
-          prevperexp = 0;
-          
-          for fndx = 1:obj.nflies_per_exp(endx)
-            
-            if isempty(obj.randomGTSuggestions{endx}(fndx).start); continue; end
-            prevperfly = obj.randomGTSuggestions{endx}(fndx).end - ...
-              obj.randomGTSuggestions{endx}(fndx).start+1;
-            if (prevperfly ~= perfly),
-              recompute = true;
-              break;
-            end
-            prevperexp = prevperexp+1;
-          end
-          
-          if prevperexp ~= perexp, recompute = true; end
-          
-        end
-      end
-      if ~recompute;
-        obj.GTSuggestionMode = 'Random';
-        return;
-      end
-      
-      
-      for endx = 1:obj.nexps
-        obj.randomGTSuggestions{endx} = repmat(struct('start',[],'end',[]),1,perexp);
-        
-        validflies = find( (obj.endframes_per_exp{endx} - ...
-          obj.firstframes_per_exp{endx})>perfly );
-        if numel(validflies)<perexp,
-          msg = sprintf('Experiment %s does not have %d flies with more than %d frames',...
-            obj.expnames{endx},perexp,perfly);
-          success = false;
-          return;
-        end
-        permuteValid = validflies(randperm(numel(validflies)));
-        randFlies = permuteValid(1:perexp);
-        
-        for fndx = 1:obj.nflies_per_exp(endx),
-          if any(fndx == randFlies),
-              first = obj.firstframes_per_exp{endx}(fndx);
-              last = obj.endframes_per_exp{endx}(fndx);
-              suggestStart = first + round( (last-first-perfly)*rand(1));
-              obj.randomGTSuggestions{endx}(fndx).start = suggestStart;
-              obj.randomGTSuggestions{endx}(fndx).end = suggestStart+perfly-1;
-          else
-              obj.randomGTSuggestions{endx}(fndx).start = [];
-              obj.randomGTSuggestions{endx}(fndx).end = [];
-              
-          end
-        end
-        
-      end
-      success = true;
-      obj.GTSuggestionMode = 'Random';
-      
-    end
-    
-    
-    % ---------------------------------------------------------------------
     function avgBoutLen = GetAvgPredictionBoutLen(obj)
       if ~obj.HasLoadedScores(),
         uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
@@ -8197,101 +8325,6 @@ classdef JLabelData < handle
       
     end
     
-    
-    % ---------------------------------------------------------------------
-    function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
-      success = true; msg = '';
-      
-      if ~obj.HasLoadedScores(),
-        uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
-      end
-      
-      numpos = 0;
-      numneg = 0;
-      for expi = 1:obj.nexps,
-        for flies = 1:obj.nflies_per_exp(expi)
-          numpos = numpos + nnz(obj.predictdata{expi}{flies}.loaded>0);
-          numneg = numneg + nnz(obj.predictdata{expi}{flies}.loaded<0);
-        end
-      end
-      poswt = numneg/(numneg+numpos);
-      negwt = numpos/(numneg+numpos);
-      
-      int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
-      obj.balancedGTSuggestions = {};
-      for endx = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(endx)
-          if ~obj.predictdata{endx}{flies}.loaded_valid(1),
-            msg = sprintf('No Scores have been loaded for %s, cannot suggest intervals for ground truthing\n',...
-              obj.expnames{endx});
-            success = false;
-            return;
-          end
-          
-          curt = obj.predictdata{endx}{flies}.t;
-          if numel(curt)<intsize; continue; end
-          numT = numel(curt)-intsize+1;
-          int.exp(1,end+1:end+numT) = endx;
-          int.flies(1,end+1:end+numT) = flies;
-          int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
-          curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
-          cumwt = cumsum(curwt);
-          sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
-          sumwt = [cumwt(intsize) sumwt]; %#ok<AGROW>
-          int.wt(1,end+1:end+numT) = sumwt;
-          
-        end
-      end
-      
-      obj.balancedGTSuggestions = [];
-      for ndx = 1:numint
-        cumwt = cumsum(int.wt)/sum(int.wt);
-        intlocs = rand;
-        locsSel = find(cumwt<=intlocs,1,'last');
-        
-        if isempty(locsSel), locsSel = numel(cumwt); end
-        expi = int.exp(locsSel);
-        flies = int.flies(locsSel);
-        tStart = int.tStart(locsSel);
-        obj.balancedGTSuggestions(ndx).start = tStart;
-        obj.balancedGTSuggestions(ndx).end = tStart+intsize-1;
-        obj.balancedGTSuggestions(ndx).exp = expi;
-        obj.balancedGTSuggestions(ndx).flies = flies;
-        
-        % Removing intervals that overlap
-        overlap = int.exp == int.exp(locsSel) & ...
-                        int.flies == int.flies(locsSel) & ...
-                        abs( int.tStart-int.tStart(locsSel))<=intsize;
-        int.exp(overlap) = [];
-        int.flies(overlap) = [];
-        int.tStart(overlap) = [];
-        int.wt(overlap) = [];
-      end
-      
-      obj.GTSuggestionMode = 'Balanced';
-      
-    end
-    
-    
-    % ---------------------------------------------------------------------
-    function SuggestLoadedGT(obj,expi,filename)
-      fid = fopen(filename);
-      dat = textscan(fid,'fly:%d,start:%d,end:%d');
-      fclose(fid);
-      fly = dat{1}; t0s = dat{2}; t1s = dat{3};
-      for ndx = 1:obj.nflies_per_exp(expi)
-        loc = ismember(fly,ndx);
-        if ~any(loc), 
-          obj.loadedGTSuggestions{expi}(ndx).start = 1;
-          obj.loadedGTSuggestions{expi}(ndx).end = 0;
-        else
-          obj.loadedGTSuggestions{expi}(ndx).start = t0s(loc);
-          obj.loadedGTSuggestions{expi}(ndx).end = t1s(loc);
-        end
-      end
-      obj.GTSuggestionMode = 'Loaded';
-    end
-
     
     % ---------------------------------------------------------------------
     function SaveSuggestionGT(obj,expi,filename)
@@ -8337,14 +8370,6 @@ classdef JLabelData < handle
       fclose(fid);
     end
 
-    
-    % ---------------------------------------------------------------------
-    function SuggestThresholdGT(obj,threshold)
-      obj.thresholdGTSuggestions = threshold;
-      obj.GTSuggestionMode = 'Threshold';
-      
-    end
-    
     
     % ---------------------------------------------------------------------
     function suggestedidx = GetGTSuggestionIdx(obj,expi,flies,T0,T1)
@@ -8415,19 +8440,6 @@ classdef JLabelData < handle
           end
       end
       
-    end
-
-    
-    % ---------------------------------------------------------------------
-    function has = HasLoadedScores(obj)
-      has = true;
-      for expi = 1:obj.nexps,
-        for flies = 1:obj.nflies_per_exp(expi)
-          if ~obj.predictdata{expi}{flies}.loaded_valid(1),
-            has = false; return;
-          end
-        end
-      end      
     end
 
     
@@ -8536,26 +8548,27 @@ classdef JLabelData < handle
     
 % Mode functions
     
-
+    % ---------------------------------------------------------------------
     function gtMode =  IsGTMode(obj)
       gtMode = obj.gtMode;
     end
-%     function SetGTMode(obj,val)
-%       obj.gtMode = val;
-%     end
     
 
 % Post Processing functions
 
+    % ---------------------------------------------------------------------
     function params = GetPostprocessingParams(obj)
       params = obj.postprocessparams;
     end
     
+    
+    % ---------------------------------------------------------------------
     function SetPostprocessingParams(obj,params)
       obj.postprocessparams = params;
     end
     
     
+    % ---------------------------------------------------------------------
     function blen = GetPostprocessedBoutLengths(obj)
       [success,msg] = obj.ApplyPostprocessing();  %#ok
       blen = [];
@@ -8604,16 +8617,10 @@ classdef JLabelData < handle
         end
         
       end
-    end
+    end  % method
+
     
-    function InitPostprocessparams(obj)
-      obj.postprocessparams.method = 'Hysteresis';
-      obj.postprocessparams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
-      obj.postprocessparams.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
-      obj.postprocessparams.filtopts(1) = struct('name','Size','tag','size','value',1);
-      obj.postprocessparams.blen = 1;
-    end
-    
+    % ---------------------------------------------------------------------
     function [success,msg] = ApplyPostprocessing(obj)
     % Applies postprocessing to loaded scores.
     % We do not apply any postprocessing to current scores.
@@ -8649,9 +8656,10 @@ classdef JLabelData < handle
         end %flies
       end
       
-      
-    end
+    end  % method
+
     
+    % ---------------------------------------------------------------------
     function posts = Postprocess(obj,curs)
       
       if isempty(obj.postprocessparams); 
@@ -8668,7 +8676,9 @@ classdef JLabelData < handle
       posts = obj.RemoveSmallBouts(posts);
       
     end
+
     
+    % ---------------------------------------------------------------------
     function posts = RemoveSmallBouts(obj,posts)
         
       if obj.postprocessparams.blen > 1 && numel(posts)>0,
@@ -8693,7 +8703,9 @@ classdef JLabelData < handle
         end
       end
     end
+
     
+    % ---------------------------------------------------------------------
     function posts = ApplyHysteresis(obj,curs,params)
       % Use imfill to find the regions.
       if isempty(curs), posts = curs; return; end
@@ -8723,14 +8735,18 @@ classdef JLabelData < handle
       posts = pos | ~neg;
       
     end
+
     
+    % ---------------------------------------------------------------------
     function posts = ApplyFiltering(obj,curs,params)  %#ok
       % Use filt to find the regions.
       if isempty(curs), posts = curs; return; end
       filts = conv(curs,ones(1,params.filtopts(1).value),'same');
       posts = filts>0;
     end
+
     
+    % ---------------------------------------------------------------------
     function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj)
       if isempty(obj.windowdata.exp)
         labels = []; labeledscores = []; 

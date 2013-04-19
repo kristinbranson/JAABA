@@ -6817,7 +6817,8 @@ if any( handles.guidata.data.nflies_per_exp<perexp)
   return;
 end
 
-handles.guidata.data.SuggestRandomGT(perfly,perexp);
+%handles.guidata.data.SuggestRandomGT(perfly,perexp);
+handles.guidata.data.setGTSuggestionMode('Random',perfly,perexp);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
@@ -6853,7 +6854,8 @@ if isnan(threshold) || abs(threshold-0.5)>0.5
   return;
 end
 
-handles.guidata.data.SuggestThresholdGT(threshold);
+%handles.guidata.data.SuggestThresholdGT(threshold);
+handles.guidata.data.setGTSuggestionMode('Threshold',threshold);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','on');
@@ -6916,7 +6918,8 @@ if isnan(intsize) || (round(intsize)-intsize)~=0 || ...
   return;
 end
 
-[success,msg ] = handles.guidata.data.SuggestBalancedGT(intsize,numint);
+%[success,msg ] = handles.guidata.data.SuggestBalancedGT(intsize,numint);
+[success,msg] = handles.guidata.data.setGTSuggestionMode('Balanced',intsize,numint);
 if ~success, warndlg(msg); return; end
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
@@ -6946,7 +6949,10 @@ function menu_view_suggest_gt_intervals_load_Callback(hObject, eventdata, handle
   handles.guidata.data.expdirs{handles.guidata.expi});
 if ~filename, return, end;
 
-handles.guidata.data.SuggestLoadedGT(handles.guidata.expi,fullfile(pathname,filename));
+%handles.guidata.data.SuggestLoadedGT(handles.guidata.expi,fullfile(pathname,filename));
+handles.guidata.data.setGTSuggestionMode('Loaded', ...
+                                         handles.guidata.expi, ...
+                                         fullfile(pathname,filename));
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
