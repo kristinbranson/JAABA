@@ -213,7 +213,7 @@ classdef JLabelData < handle
     lastFullClassifierTrainingSize = 0;
     
     % Classifier Time Stamp
-    classifierTS = 0;
+    classifierTS = 0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
     
     % training statistics
     trainstats = [];
@@ -899,9 +899,9 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function StoreLabelsAndPreLoadWindowData(obj)
-    % Store labels cached in labelidx for the current experiment and flies
-    % to labels structure. This is when the timestamp on labels gets
-    % updated.  Also preloads the window data if not in GT mode.
+      % Store labels cached in labelidx for the current experiment and flies
+      % to labels structure. This is when the timestamp on labels gets
+      % updated.  Also preloads the window data if not in GT mode.
       
       % flies not yet initialized
       if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
@@ -2722,13 +2722,10 @@ classdef JLabelData < handle
       filts = conv(curs,ones(1,params.filtopts(1).value),'same');
       posts = filts>0;
     end
-
-    
-
-
   end  % private methods
 
   
+  % -----------------------------------------------------------------------
   % -----------------------------------------------------------------------
   methods (Access=public,Static=true)
 
@@ -4310,7 +4307,7 @@ classdef JLabelData < handle
                              'tr',{}, ...
                              'alpha',{});  % 0x1 struct array
       self.classifier_old = self.classifier;
-      self.classifierTS=[];
+      self.classifierTS=0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
       self.windowdata.scoreNorm=[];
       self.invalidatePredictions();
       self.UpdatePredictedIdx();  % update cached predictions for current target
@@ -7249,7 +7246,7 @@ classdef JLabelData < handle
       obj.classifier_old = [];
       obj.PreLoadPeriLabelWindowData();
       if hasClassifier && dotrain,
-        obj.StoreLabelsAndPreLoadWindowData();
+        % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
         obj.Train();
       end
       % TODO: remove clearwindow features.
@@ -8699,7 +8696,7 @@ classdef JLabelData < handle
     function blen = GetPostprocessedBoutLengths(obj)
       %[success,msg] = obj.ApplyPostprocessing();  %#ok
       blen = [];
-      if ~success;return; end
+      %if ~success;return; end
       
       
       if obj.HasCurrentScores()
@@ -9028,6 +9025,22 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function result=classifierIsPresent(obj)
       result=~isempty(obj.classifier);
+    end  % method
+    
+    
+% Deprecated
+
+    % ---------------------------------------------------------------------
+    function MaybeStoreLabelsAndPreLoadWindowDataNow(self)
+      % This is a hint to JLabelData that right now might be a good time to
+      % write-back the currrent labels to main store, and to pre-load the
+      % window data.
+      % This method is named as if it's a hint, but in the one place it's
+      % currently called, it may well be required for proper behavior.
+      % This method is deprecated b/c this the sort of book-keeping that
+      % should be internal to JLabelData.  Caller's shouldn't need to tell
+      % JLabelData to get its house in order.
+      self.StoreLabelsAndPreLoadWindowData();
     end  % method
     
 end  % End methods block
