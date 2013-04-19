@@ -7,7 +7,10 @@ if isempty(data.classifier),
 end
 
 % make sure the window data is in place --added by ALT, Feb 26 2013
-data.StoreLabelsAndPreLoadWindowData();
+data.MaybeStoreLabelsAndPreLoadWindowDataNow();
+% This sort of self-consistency is the kind of thing JLabelData should 
+% take care of on its own.  Other parties shouldn't need to tell JLabelData
+% to get its house in order.
 
 [hax,hfig,figpos,...
   nfeatures_show] = ...

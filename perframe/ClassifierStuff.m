@@ -19,9 +19,9 @@ classdef ClassifierStuff < handle
                          'dir',{}, ....
                          'tr',{}, ...
                          'alpha',{});  % 0x1 struct array
-      self.timeStamp=[];
+      self.timeStamp=0;  % default time stamp (bad idea?)
       self.confThresholds=[0 0];
-      self.scoreNorm=[];
+      self.scoreNorm=0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
       self.postProcessParams.method = 'Hysteresis';
       self.postProcessParams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
       self.postProcessParams.hystopts(2) = struct('name','Low Threshold','tag','lthres','value',0);
