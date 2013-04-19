@@ -674,7 +674,7 @@ while true
     pause(1);
   end
 end
-return
+return  %#ok
 
 
 % -------------------------------------------------------------------------
@@ -3556,7 +3556,8 @@ if isempty(perframeFeatureNames)
   error('No features selected!');
 end      
 % store the current labels to windowdata_labeled
-handles.guidata.data.StoreLabelsAndPreLoadWindowData();
+%handles.guidata.data.StoreLabelsAndPreLoadWindowData();  
+%  now do this inside JLabelData.Train()
 handles.guidata.data.Train(handles.guidata.doFastUpdates);
 handles = SetPredictedPlot(handles);
 % predict for current window
@@ -6118,7 +6119,25 @@ function menu_classifier_set_confidence_thresholds_Callback(hObject, eventdata, 
 % hObject    handle to menu_classifier_set_confidence_thresholds (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.ROCCurve(hObject);
+ROCCurve(hObject,handles.guidata.data);
+return
+
+
+% ---------------------------------------------------------------------
+function ROCCurve(JLabelHandle,jld)
+% This now shows histogram, apt naming be damned.
+try
+  [curScores,modLabels]=jld.getCurrentScoresForROCCurve();
+catch excp
+  if isequal(excp.identifier,'JLabelData:noClassifier')
+    uiwait(warndlg('No classifier has been trained to set the confidence thresholds.'));
+    return
+  else
+    uiwait(errordlg('Some sort of error has occurred.'));
+    return
+  end
+end
+ShowROCCurve(modLabels,curScores,jld,JLabelHandle);
 return
 
 
@@ -6209,7 +6228,8 @@ function menu_classifier_cross_validate_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.guidata.data.StoreLabelsAndPreLoadWindowData();
+%handles.guidata.data.StoreLabelsAndPreLoadWindowData();
+%  The above is done inside JLabelData.CrossValidate()
 [success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
 
 if ~success, warndlg(msg); 
@@ -7107,7 +7127,7 @@ function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata,
 % hObject    handle to menu_classifier_classifyCurrentMovieNoSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.PredictNoSaveMovie(handles.guidata.expi);
+handles.guidata.data.PredictWholeMovieNoSave(handles.guidata.expi);
 handles = UpdateTimelineIms(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -7210,7 +7230,7 @@ function menu_classifier_classifyall_nosave_Callback(hObject, eventdata, handles
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 for ndx = 1:handles.guidata.data.nexps
-handles.guidata.data.PredictNoSaveMovie(ndx);
+handles.guidata.data.PredictWholeMovieNoSave(ndx);
 end
 return
 
