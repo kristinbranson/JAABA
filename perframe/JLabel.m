@@ -8638,7 +8638,7 @@ SetStatus(handles,sprintf('Importing classifier from %s ...',filename));
 
 % load the file
 try
-  everythingParams=load('-mat',fileNameAbs);
+  everythingParams=loadAnonymous(fileNameAbs);
 catch  %#ok
   uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
   ClearStatus(handles);
@@ -8675,6 +8675,9 @@ UpdatePlots(handles, ...
             'refresh_timeline_selection',false,...
             'refresh_curr_prop',false);
 
+% Update enablement of stuff
+UpdateEnablementAndVisibilityOfControls(handles);
+                    
 % Done, set status message to cleared message, pointer to normal
 ClearStatus(handles);
 
