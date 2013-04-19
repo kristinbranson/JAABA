@@ -1684,7 +1684,7 @@ classdef JLabelData < handle
         ndx = find(strcmp(fn,allperframefns));
         if isempty(ndx),
           success = false;
-          msg = 'Window features config file has a perframe feature that is not defined in params file';
+          msg = 'There is at least one per-frame feature that is not in the lexicon, and is not a score feature';
           return;
         end
         
