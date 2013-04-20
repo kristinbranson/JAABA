@@ -175,15 +175,20 @@ classdef ChangeScoreFeaturesDialog < handle
       if isfield(everythingParams.file,'scorefilename')
         scoreFileName = everythingParams.file.scorefilename;  % the "local" file name, with extension.  E.g. "scores_Chasev7.mat"
         [~,scoreFileBaseName] = fileparts(scoreFileName);
-      elseif isfield(everythingParams.behaviors,'names') && ...
-             ~isempty(everythingParams.behaviors.names)
-        behaviorName=everythingParams.behaviors.names{1};
-        scoreFileBaseName = sprintf('scores_%s',behaviorName);
       else
-        uiwait(errordlg('Unable to determine score file name for classifier.', ...
-                        'Error', ...
-                        'modal'));
-        return
+        try
+          behaviorName=everythingParams.getMainBehaviorName();
+          scoreFileBaseName = sprintf('scores_%s',behaviorName);
+        catch excp
+          if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
+            uiwait(errordlg('Unable to determine score file name for classifier.', ...
+                            'Error', ...
+                            'modal'));
+            return
+          else
+            rethrow(excp);
+          end
+        end  % try/catch
       end
       self.fileNameList{end+1}=fileNameAbs;
       self.timeStampList(end+1)=timeStamp;
