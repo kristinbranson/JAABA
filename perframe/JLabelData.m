@@ -166,7 +166,7 @@ classdef JLabelData < handle
     % or has been cleared).  These variables are essentially a cache of the
     % data in self.predictdata.
     predictedidx = [];
-    scoresidx = [];
+    scoresidx = [];  % Is this really an index?  Isn't it just the score itself?
     scoresidx_old = [];
     scoreTS = [];  % timestamp for the above
     
@@ -6114,14 +6114,14 @@ classdef JLabelData < handle
 %     end
     
     
-    % ---------------------------------------------------------------------
-    function setWindowFeaturesParamsRaw(obj,windowFeaturesParams)
-      obj.windowfeaturesparams = windowFeaturesParams;
-      windowFeaturesCellParams= ...
-        JLabelData.convertParams2CellParams(windowFeaturesParams);
-      obj.windowfeaturescellparams = windowFeaturesCellParams;
-      obj.curperframefns = fieldnames(windowFeaturesParams);
-    end  
+%     % ---------------------------------------------------------------------
+%     function setWindowFeaturesParamsRaw(obj,windowFeaturesParams)
+%       obj.windowfeaturesparams = windowFeaturesParams;
+%       windowFeaturesCellParams= ...
+%         JLabelData.convertParams2CellParams(windowFeaturesParams);
+%       obj.windowfeaturescellparams = windowFeaturesCellParams;
+%       obj.curperframefns = fieldnames(windowFeaturesParams);
+%     end  
     
     
     % ---------------------------------------------------------------------
@@ -7225,30 +7225,37 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
-    function setWindowFeaturesParams(obj,params,dotrain)
-    % Updates the feature params.  Called after user clicks Done in Select
-    % Features...
-      hasClassifier=~isempty(obj.classifier);
+    function setWindowFeaturesParams(obj,windowFeaturesParams)
+      % Updates the feature params.  Called after user clicks Done in Select
+      % Features...
+%       hasClassifier=~isempty(obj.classifier);
       
-      if nargin < 3
-        dotrain = true;
-      end
+%       if nargin < 3
+%         dotrain = true;
+%       end
       
-      obj.setWindowFeaturesParamsRaw(params);
+      % obj.setWindowFeaturesParamsRaw(params);
+      obj.windowfeaturesparams = windowFeaturesParams;
+      windowFeaturesCellParams= ...
+        JLabelData.convertParams2CellParams(windowFeaturesParams);
+      obj.windowfeaturescellparams = windowFeaturesCellParams;
+      obj.curperframefns = fieldnames(windowFeaturesParams);
+      
 %       if nargin>2
 %         %obj.basicFeatureTable = basicFeatureTable;
 %         obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
 %       end
       %obj.savewindowfeatures = true;  
 
+      obj.clearClassifierProper();
+      % obj.classifier = [];
+      % obj.classifier_old = [];
       obj.ClearWindowData();
-      obj.classifier = [];
-      obj.classifier_old = [];
       obj.PreLoadPeriLabelWindowData();
-      if hasClassifier && dotrain,
-        % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
-        obj.Train();
-      end
+%       if hasClassifier && dotrain,
+%         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
+%         obj.Train();
+%       end
       % TODO: remove clearwindow features.
     end
     
@@ -8375,7 +8382,11 @@ classdef JLabelData < handle
       % function.  --ALT, Apr 19, 2013
       
       if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm)
-        if isempty(obj.windowdata.X) || isempty(obj.classifier), 
+        if isempty(obj.windowdata.X) || isempty(obj.classifier),
+          % Just return the unaltered scores in this case
+          % Note that these unaltered scores can have elements outside of
+          % [-1,+1].
+          % Is this really what we want in this case?
           return; 
         end
         
