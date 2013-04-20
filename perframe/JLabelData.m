@@ -8441,9 +8441,10 @@ classdef JLabelData < handle
 
 
     % ---------------------------------------------------------------------
-    function avgBoutLen = GetAvgPredictionBoutLen(obj)
+    function avgBoutLen = GetAverageLoadedPredictionBoutLength(obj)
       if ~obj.HasLoadedScores(),
-        uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
+        error('JLabelData:noLoadedScores', ...
+              'No scores have been loaded.'); 
       end
       
       blen = [];
@@ -8458,7 +8459,7 @@ classdef JLabelData < handle
       end
       avgBoutLen = mean(blen);
       
-    end
+    end  % method
     
     
     % ---------------------------------------------------------------------
