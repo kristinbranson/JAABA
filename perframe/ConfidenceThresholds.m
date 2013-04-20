@@ -104,7 +104,7 @@ function slider1_Callback(hObject, eventdata, handles)
 val = get(hObject,'Value');
 set(handles.edit1,'String',num2str(val));
 handles.JLDobj.SetConfidenceThreshold(val,1);
-JLabel('UpdatePrediction',handles.JLabelHandle);
+JLabel('predict',handles.JLabelHandle);
 
 % --- Executes during object creation, after setting all properties.
 function slider1_CreateFcn(hObject, eventdata, handles)
@@ -129,7 +129,7 @@ function slider2_Callback(hObject, eventdata, handles)
 val = get(hObject,'Value');
 set(handles.edit2,'String',num2str(val));
 handles.JLDobj.SetConfidenceThreshold(val,2);
-JLabel('UpdatePrediction',handles.JLabelHandle);
+JLabel('predict',handles.JLabelHandle);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -153,7 +153,7 @@ val1 = get(handles.slider1,'value');
 val2 = get(handles.slider2,'value');
 handles.JLDobj.SetConfidenceThreshold(val1,1);
 handles.JLDobj.SetConfidenceThreshold(val2,2);
-JLabel('UpdatePrediction',handles.JLabelHandle);
+JLabel('predict',handles.JLabelHandle);
 close(handles.figure1);
 
 
@@ -172,7 +172,7 @@ if isnan(val)
 end
 set(handles.slider1,'Value',val);
 handles.JLDobj.SetConfidenceThreshold(val,1);
-JLabel('UpdatePrediction',handles.JLabelHandle);
+JLabel('predict',handles.JLabelHandle);
 
 
 
@@ -204,7 +204,7 @@ if isnan(val)
 end
 set(handles.slider2,'Value',val);
 handles.JLDobj.SetConfidenceThreshold(val,2);
-JLabel('UpdatePrediction',handles.JLabelHandle);
+JLabel('predict',handles.JLabelHandle);
 
 
 % --- Executes during object creation, after setting all properties.
