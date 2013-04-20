@@ -99,7 +99,7 @@ adjustColorsIfMac(hObject);
 
 % Update handles structure
 guidata(hObject, handles);
-JLabel('UpdatePrediction',handles.JLabelH);
+JLabel('predict',handles.JLabelH);
 
 % UIWAIT makes CompareFrames wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -646,12 +646,12 @@ switch eventdata.Key
   case 'uparrow'
     if CheckBag(handles)
       handles = Jump(handles,'next');
-      JLabel('UpdatePrediction',handles.JLabelH);
+      JLabel('predict',handles.JLabelH);
     end
   case 'downarrow'
     if CheckBag(handles)
       handles = Jump(handles,'prev');
-      JLabel('UpdatePrediction',handles.JLabelH);
+      JLabel('predict',handles.JLabelH);
     end
 end
 guidata(hObject,handles);
@@ -716,7 +716,7 @@ handles.curFrame = handles.centralframe;
 
 guidata(hObject,handles);
 UpdatePlots(handles,handles.centralframe);
-JLabel('UpdatePrediction',handles.JLabelH);
+JLabel('predict',handles.JLabelH);
 
 
 % --- Executes on button press in radiobutton_sync.
@@ -845,7 +845,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.data.UnsetCurrentFlyForBag();
-JLabel('UpdatePrediction',handles.JLabelH);
+JLabel('predict',handles.JLabelH);
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);

@@ -3561,7 +3561,7 @@ end
 handles.guidata.data.Train(handles.guidata.doFastUpdates);
 handles = SetPredictedPlot(handles);
 % predict for current window
-handles = UpdatePrediction(handles);
+handles = predict(handles);
 handles.guidata.needsave=true;
 UpdateEnablementAndVisibilityOfControls(handles);
 guidata(hObject,handles);
@@ -3569,10 +3569,12 @@ return
 
 
 % -------------------------------------------------------------------------
-function handles = UpdatePrediction(handles)
+function handles = predict(handles)
 
-% update prediction for currently shown timeline
+% predict for the currently shown timeline
 % TODO: make this work for multiple axes
+% Note that this is a controller-like "method", b/c it changes the model
+% and the view.
 t0 = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
 t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
 handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
@@ -3621,7 +3623,7 @@ function pushbutton_predict_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles = UpdatePrediction(handles);
+handles = predict(handles);
 guidata(hObject,handles);
 return
 
@@ -5330,7 +5332,7 @@ set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 adjustButtonColorsIfMac(hObject);
 
 if ~handles.guidata.data.IsGTMode()
-  handles = UpdatePrediction(handles);
+  handles = predict(handles);
   guidata(hObject,handles);
 end
 
@@ -5714,7 +5716,7 @@ function similarFramesButton_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of similarFramesButton
 
-handles = UpdatePrediction(handles);
+handles = predict(handles);
 curTime = handles.guidata.ts(1);
 handles.guidata.data.SimilarFrames(curTime, handles);
 return
@@ -6199,7 +6201,7 @@ restorePointer(gcbf,oldPointer);
 % if ~someExperimentIsCurrent,
 %   return
 % end
-% handles = UpdatePrediction(handles);
+% handles = predict(handles);
 % guidata(hObject,handles);
 return
 
@@ -6242,7 +6244,7 @@ set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
 handles = SetPredictedPlot(handles);
-handles = UpdatePrediction(handles);
+handles = predict(handles);
 guidata(hObject,handles);
 
 
@@ -6509,7 +6511,7 @@ function menu_classifier_evaluate_on_new_labels_Callback(hObject, eventdata, han
 % handles    structure with handles and user data (see GUIDATA)
 
 newError = handles.guidata.data.TestOnNewLabels();
-handles = UpdatePrediction(handles);
+handles = predict(handles);
 if ~isfield(newError,'numbers'), return; end;
 dialogStr = {};
 if isfield(newError,'classifierfilename'),
@@ -8568,7 +8570,7 @@ UpdatePlots(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
 % someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 % if someExperimentIsCurrent,
-%   handles = UpdatePrediction(handles);
+%   handles = predict(handles);
 % end
 % guidata(figureJLabel,handles);
 

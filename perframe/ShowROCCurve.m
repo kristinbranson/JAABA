@@ -247,7 +247,7 @@ function pushbutton_apply_Callback(hObject, eventdata, handles)
 handles.JLDObj.SetConfidenceThreshold(handles.thres1,1);
 handles.JLDObj.SetConfidenceThreshold(-handles.thres2,2);
 handles.JLabelHandle = guidata(handles.JLabelObject);
-handles.JLabelHandle = JLabel('UpdatePrediction',handles.JLabelHandle);
+handles.JLabelHandle = JLabel('predict',handles.JLabelHandle);
 guidata(handles.JLabelObject,handles.JLabelHandle);
 end
 
