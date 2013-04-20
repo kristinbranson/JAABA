@@ -20,8 +20,7 @@ classdef Macguffin < handle
     extra=struct()  % a structure that stores additional information
     version='0.5.0'
   end  % properties
-  
-  
+    
   % -----------------------------------------------------------------------
   methods (Access=private)
     % ---------------------------------------------------------------------
@@ -330,5 +329,31 @@ classdef Macguffin < handle
               'The arguments to Macguffin() are no good');
       end
     end  % constructor method
+
+    
+    % ---------------------------------------------------------------------
+    function result=getMainBehaviorName(self)
+      % The name of the "main" behavior, if present.  The "main" behavior
+      % is the first one that is not "None" or "none" or some such.
+      % This is not a dependent property because other code sometimes turns
+      % a Macguffin into a struct when no behaviors are defined, and doing
+      % that calls all the get. methods for the dependent parameters, which
+      % throws an error.
+      mainBehaviorIsDefined=false;
+      if isfield(self.behaviors,'names')
+        behaviorNames=self.behaviors.names;
+        isNone=strcmpi('none',behaviorNames);
+        realBehaviorNames=behaviorNames(~isNone);
+        if isnonempty(realBehaviorNames)
+          mainBehaviorIsDefined=true;
+          result=realBehaviorNames{1};
+        end
+      end
+      if ~mainBehaviorIsDefined
+        error('Macguffin:mainBehaviorNotDefined', ...
+              'Main behavior is not defined');
+      end
+    end  % method
+
   end  % methods
 end  % classdef
