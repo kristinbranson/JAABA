@@ -7726,7 +7726,11 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % Create the JLabelData object
-handles.guidata.initializeGivenMacguffin(everythingParams,figureJLabel,groundTruthingMode);
+handles.guidata.initializeGivenMacguffin(everythingParams, ...
+                                         figureJLabel, ...
+                                         groundTruthingMode, ...
+                                         @(s)SetStatusCallback(s,figureJLabel) , ...
+                                         @()ClearStatusCallback(figureJLabel) );
 
 % First set the project parameters, which will initialize the JLabelData
 %basicParams=basicParamsFromMacguffin(everythingParams);
@@ -7753,8 +7757,8 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
 % Copy the default path out of the JLabelData.
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
@@ -8241,7 +8245,11 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 % First set the project parameters, which will initialize the JLabelData
 groundTruthingMode=false;  % all new files start in labeling mode
 %initBasicParams(figureJLabel,basicParams,groundTruthingMode);
-handles.guidata.initializeGivenMacguffin(basicParams,figureJLabel,groundTruthingMode);
+handles.guidata.initializeGivenMacguffin(basicParams, ...
+                                         figureJLabel, ...
+                                         groundTruthingMode, ...
+                                         @(s)SetStatusCallback(s,figureJLabel) , ...
+                                         @()ClearStatusCallback(figureJLabel) );
 initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
@@ -8261,8 +8269,8 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
 % Copy the default path out of the JLabelData.
 handles.guidata.defaultpath = handles.guidata.data.defaultpath;
