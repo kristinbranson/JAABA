@@ -54,10 +54,10 @@ function NavigationPreferences_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % first input should be the parent figure from JLabel
 
-if ismac, % On mac change the foreground color to black.
-  allpopups = findall(hObject,'Style','popup');
-  set(allpopups,'ForegroundColor',[0 0 0]);
-end
+% if ismac, % On mac change the foreground color to black.
+%   allpopups = findall(hObject,'Style','popup');
+%   set(allpopups,'ForegroundColor',[0 0 0]);
+% end
 
 handles.figure_JLabel = varargin{1};
 handles.NJObj = varargin{2};
@@ -66,12 +66,17 @@ handles.NJObj = varargin{2};
 parent_handles = guidata(handles.figure_JLabel);
 handles.nframes_jump_go = parent_handles.guidata.nframes_jump_go;
 handles.seek_behaviors_go = handles.NJObj.GetSeekBehaviorsGo();
-handles.behaviors = [{'Unknown'},parent_handles.guidata.data.labelnames];
-
+labelNamesCapitalized= ...
+  cellfun(@upperFirstLowerRest, ...
+          parent_handles.guidata.data.labelnames, ...
+          'UniformOutput',false);
+handles.behaviors = [{'Unknown'},labelNamesCapitalized];
 % set these current values in the GUI
 set(handles.edit_nframes_jump,'String',num2str(handles.nframes_jump_go));
-set(handles.listbox_seek_behavior,'String',handles.behaviors(2:end));
-set(handles.listbox_seek_behavior,'Value',handles.seek_behaviors_go);
+set(handles.listbox_seek_behavior, ...
+    'String',labelNamesCapitalized, ...
+    'Value',handles.seek_behaviors_go, ...
+    'ListboxTop',1);
 set(handles.jumpToPopUp,'String',handles.NJObj.GetAllTypes());
 jumptondx = find(strcmp(handles.NJObj.GetCurrentType(),handles.NJObj.GetAllTypes()));
 if numel(jumptondx) ==1
@@ -86,11 +91,15 @@ updateConfidenceButtons(handles);
 % Choose default command line output for NavigationPreferences
 handles.output = hObject;
 
+% Adjust all the widget colors to look OK on Mac
+adjustColorsIfMac(hObject);
+
 % Update handles structure
 guidata(hObject, handles);
 
 % UIWAIT makes NavigationPreferences wait for user response (see UIRESUME)
 % uiwait(handles.figure_NavigationPreferences);
+return
 
 
 % --- Outputs from this function are returned to the command line.
