@@ -8558,17 +8558,19 @@ function selectFeaturesDone(figureJLabel, ...
                             maxWindowRadiusCommon)
 % Called by SelectFeatures after the user clicks on "Done", tells us that
 % the per-frame features may have been changed.
-handles=guidata(figureJLabel);
 setMaxWindowRadiusCommonCached(figureJLabel,maxWindowRadiusCommon);
-handles.guidata.data.setWindowFeaturesParams(windowFeaturesParams);
 handles=guidata(figureJLabel);
+data=handles.guidata.data;  % a ref
+data.setWindowFeaturesParams(windowFeaturesParams);
 handles.guidata.needsave=true;
+UpdateTimelineImages(handles);
+UpdatePlots(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
-if someExperimentIsCurrent,
-  handles = UpdatePrediction(handles);
-end
-guidata(figureJLabel,handles);
+% someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+% if someExperimentIsCurrent,
+%   handles = UpdatePrediction(handles);
+% end
+% guidata(figureJLabel,handles);
 
 return
 
