@@ -518,6 +518,7 @@ classdef JLabelData < handle
       % Do nothing, b/c now we just compute nexps when we need it 
       % Eventually this method should go away, and all calls to it also.
     end
+    
   end  % methods block
   
   
@@ -3217,7 +3218,7 @@ classdef JLabelData < handle
 
 
     % ---------------------------------------------------------------------
-    function basicParams = getBasicParams(obj)
+    function basicParams = getBasicParamsStruct(obj)
       basicParams=struct();
       basicParams.featureLexiconName=obj.featureLexiconName;
       basicParams.scoreFeatures=obj.scoreFeatures;

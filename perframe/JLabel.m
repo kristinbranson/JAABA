@@ -8202,19 +8202,24 @@ return
 
 % -------------------------------------------------------------------------
 function newFileSetupDone(figureJLabel,basicParams)
+% Called by ProjectSetup after the user clicks Done.  Causes the JLabel
+% "object" to set itself up for a new file, using the settings in
+% basicParams, which is a Macguffin.
 
 % get handles
 handles=guidata(figureJLabel);
 
 % Make up filename
-if isfield(basicParams,'behaviors') && ...
-   isfield(basicParams.behaviors,'names') && ...
-   ~isempty(basicParams.behaviors.names)
-  behaviorName=basicParams.behaviors.names{1};
+try
+  behaviorName=basicParams.getMainBehaviorName();
   fileNameRel=sprintf('%s.jab',behaviorName);
-else
-  fileNameRel='untitled.jab';
-end
+catch excp
+  if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
+    fileNameRel='untitled.jab';
+  else
+    rethrow(excp);
+  end
+end  
 fileNameAbs=fullfile(pwd(),fileNameRel);
 
 % % Update the status, change the pointer to the watch
@@ -8778,9 +8783,9 @@ function basicSettings(figureJLabel)
 handles=guidata(figureJLabel);
 
 % launch the project setup GUI
-basicParams=handles.guidata.data.getBasicParams();
+basicParamsStruct=handles.guidata.data.getBasicParamsStruct();
 ProjectSetup('figureJLabel',handles.figure_JLabel, ...
-             'basicParams',basicParams);
+             'basicParams',basicParamsStruct);
            
 return
 

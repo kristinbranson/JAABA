@@ -500,18 +500,18 @@ classdef JLabelGUIData < handle
       % number of flies for the current movie
       self.nflies_curr = 0;
 
-      basicParams=self.data.getBasicParams();
+      basicParamsStruct=self.data.getBasicParamsStruct();
       % label colors
-      if isfield(basicParams,'behaviors') && ...
-         isfield(basicParams.behaviors,'labelcolors'),
-        labelcolors = basicParams.behaviors.labelcolors;
+      if isfield(basicParamsStruct,'behaviors') && ...
+         isfield(basicParamsStruct.behaviors,'labelcolors'),
+        labelcolors = basicParamsStruct.behaviors.labelcolors;
         if numel(labelcolors) >= 3*self.data.nbehaviors,
           self.labelcolors = reshape(labelcolors(1:3*self.data.nbehaviors),[self.data.nbehaviors,3]);
         else
           uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
-          if isfield(basicParams,'labels') && ...
-              isfield(basicParams.labels,'colormap'),
-            cm = basicParams.labels.colormap;
+          if isfield(basicParamsStruct,'labels') && ...
+              isfield(basicParamsStruct.labels,'colormap'),
+            cm = basicParamsStruct.labels.colormap;
           else
             cm = 'lines';
           end
@@ -527,9 +527,9 @@ classdef JLabelGUIData < handle
         end
       end
       self.labelunknowncolor = [0,0,0];
-      if isfield(basicParams,'behaviors') && ...
-          isfield(basicParams.behaviors,'unknowncolor'),
-        unknowncolor = basicParams.behaviors.unknowncolor;
+      if isfield(basicParamsStruct,'behaviors') && ...
+          isfield(basicParamsStruct.behaviors,'unknowncolor'),
+        unknowncolor = basicParamsStruct.behaviors.unknowncolor;
         if numel(unknowncolor) >= 3,
           self.labelunknowncolor = reshape(unknowncolor(1:3),[1,3]);
         else
@@ -537,22 +537,22 @@ classdef JLabelGUIData < handle
         end
       end
       self.flies_extra_markersize = 12;
-      if isfield(basicParams,'plot') && ...
-          isfield(basicParams.plot,'trx') && ...
-          isfield(basicParams.plot.trx,'extra_markersize'),
-        self.flies_extra_markersize = basicParams.plot.trx.extra_markersize(1);
+      if isfield(basicParamsStruct,'plot') && ...
+          isfield(basicParamsStruct.plot,'trx') && ...
+          isfield(basicParamsStruct.plot.trx,'extra_markersize'),
+        self.flies_extra_markersize = basicParamsStruct.plot.trx.extra_markersize(1);
       end
       self.flies_extra_marker = {'o'};
-      if isfield(basicParams,'plot') && ...
-          isfield(basicParams.plot,'trx') && ...
-          isfield(basicParams.plot.trx,'extra_marker'),
-        self.flies_extra_marker = basicParams.plot.trx.extra_marker;
+      if isfield(basicParamsStruct,'plot') && ...
+          isfield(basicParamsStruct.plot,'trx') && ...
+          isfield(basicParamsStruct.plot.trx,'extra_marker'),
+        self.flies_extra_marker = basicParamsStruct.plot.trx.extra_marker;
       end
       self.flies_extra_linestyle = {'-'};
-      if isfield(basicParams,'plot') && ...
-          isfield(basicParams.plot,'trx') && ...
-          isfield(basicParams.plot.trx,'extra_linestyle'),
-        self.flies_extra_linestyle = basicParams.plot.trx.extra_linestyle;
+      if isfield(basicParamsStruct,'plot') && ...
+          isfield(basicParamsStruct.plot,'trx') && ...
+          isfield(basicParamsStruct.plot.trx,'extra_linestyle'),
+        self.flies_extra_linestyle = basicParamsStruct.plot.trx.extra_linestyle;
       end
 
       for channel = 1:3
