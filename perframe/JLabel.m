@@ -6907,7 +6907,16 @@ function menu_view_suggest_gt_intervals_balanced_random_Callback(hObject, eventd
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-avgBoutLen = handles.guidata.data.GetAvgPredictionBoutLen();
+try
+  avgBoutLen = handles.guidata.data.GetAverageLoadedPredictionBoutLength();
+catch excp
+  if isequal(excp.identifier,'JLabelData:noLoadedScores')
+    uiwait(warndlg('No scores have been Imported. You have to import the scores before you can view balanced GT suggestions.'));
+    return
+  else
+    rethrow(excp);
+  end
+end  % try/catch
 
 indlg1 = sprintf('Number of frames per labeling interval (Avg prediction bout length is %.2f)',avgBoutLen);
 in = inputdlg({indlg1,'Number of intervals'});
