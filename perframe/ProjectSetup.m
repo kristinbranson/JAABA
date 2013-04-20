@@ -165,17 +165,17 @@ end
 return
 
 
-% -------------------------------------------------------------------------
-function handles = initFeatureLexiconLists(handles)
-[featureLexiconNameList, ...
- featureLexiconFileNameList, ...
- featureLexiconAnimalTypeList] = ...
-  getFeatureLexiconListsFromXML();
-% store the three cell arrays in the handles
-handles.featureLexiconNameList=featureLexiconNameList;
-handles.featureLexiconFileNameList=featureLexiconFileNameList;
-handles.featureLexiconAnimalTypeList=featureLexiconAnimalTypeList;
-return
+% % -------------------------------------------------------------------------
+% function handles = initFeatureLexiconLists(handles)
+% [featureLexiconNameList, ...
+%  featureLexiconFileNameList, ...
+%  featureLexiconAnimalTypeList] = ...
+%   getFeatureLexiconListsFromXML();
+% % store the three cell arrays in the handles
+% handles.featureLexiconNameList=featureLexiconNameList;
+% handles.featureLexiconFileNameList=featureLexiconFileNameList;
+% handles.featureLexiconAnimalTypeList=featureLexiconAnimalTypeList;
+% return
 
 
 % % -------------------------------------------------------------------------
@@ -319,7 +319,7 @@ function updateConfigTable(handles)
 % Update the config table (a GUI element) to match the current "model"
 % state
 basicParamsStruct = handles.basicParamsStruct;
-fields2remove = {'featureparamlist','windowfeatures','scoreFeatures', ...
+fields2remove = {'featureLexicon','windowfeatures','scoreFeatures', ...
                  'sublexiconPFNames','labels','gtLabels','expDirNames', ...
                  'gtExpDirNames', 'classifierStuff', 'version'};
 for ndx = 1:numel(fields2remove)
@@ -387,7 +387,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function editName_Callback(hObject, eventdata, handles)
+function editName_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editName (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -416,7 +416,7 @@ updateConfigTable(handles);
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editName_CreateFcn(hObject, eventdata, handles)
+function editName_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editName (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -430,7 +430,7 @@ end
 
 % -------------------------------------------------------------------------
 % --- Executes on selection change in featureconfigpopup.
-function featureconfigpopup_Callback(hObject, eventdata, handles)
+function featureconfigpopup_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to featureconfigpopup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -446,7 +446,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function featureconfigpopup_CreateFcn(hObject, ~, ~)
+function featureconfigpopup_CreateFcn(hObject, ~, ~)  %#ok
 % hObject    handle to featureconfigpopup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -459,7 +459,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function editlabelfilename_Callback(hObject, eventdata, handles) %#ok<DEFNU>
+function editlabelfilename_Callback(hObject, eventdata, handles) %#ok
 % hObject    handle to editlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -473,7 +473,7 @@ guidata(hObject,handles);
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editlabelfilename_CreateFcn(hObject, eventdata, handles) %#ok<*DEFNU>
+function editlabelfilename_CreateFcn(hObject, eventdata, handles) %#ok
 % hObject    handle to editlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -486,7 +486,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function editgtlabelfilename_Callback(hObject, eventdata, handles)
+function editgtlabelfilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editgtlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -500,7 +500,7 @@ guidata(hObject,handles);
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editgtlabelfilename_CreateFcn(hObject, eventdata, handles)
+function editgtlabelfilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editgtlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -513,7 +513,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function editscorefilename_Callback(hObject, eventdata, handles)
+function editscorefilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editscorefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -527,7 +527,7 @@ guidata(hObject,handles);
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editscorefilename_CreateFcn(hObject, eventdata, handles)
+function editscorefilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editscorefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -540,7 +540,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function editmoviefilename_Callback(hObject, eventdata, handles)
+function editmoviefilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editmoviefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -554,7 +554,7 @@ guidata(hObject,handles);
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editmoviefilename_CreateFcn(hObject, eventdata, handles)
+function editmoviefilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editmoviefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -567,7 +567,7 @@ end
 
 
 % -------------------------------------------------------------------------
-function edittrxfilename_Callback(hObject, eventdata, handles)
+function edittrxfilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to edittrxfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -581,7 +581,7 @@ guidata(hObject,handles);
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function edittrxfilename_CreateFcn(hObject, eventdata, handles)
+function edittrxfilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to edittrxfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -595,7 +595,7 @@ end
 
 % -------------------------------------------------------------------------
 % --- Executes on butuiresume(handles.figureProjectSetup);ton press in pushbutton_setfeatures.
-function pushbutton_setfeatures_Callback(hObject, eventdata, handles)
+function pushbutton_setfeatures_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_setfeatures (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -603,7 +603,7 @@ function pushbutton_setfeatures_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copyfeatures.
-function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)
+function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_copyfeatures (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -723,7 +723,7 @@ function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_cancel.
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
+function pushbutton_cancel_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -736,7 +736,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_done.
-function pushbutton_done_Callback(hObject, ~, handles)
+function pushbutton_done_Callback(hObject, ~, handles)  %#ok
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -922,7 +922,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in togglebutton_advanced.
-function togglebutton_advanced_Callback(hObject, eventdata, handles)
+function togglebutton_advanced_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to togglebutton_advanced (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -936,7 +936,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_perframe.
-function pushbutton_perframe_Callback(hObject, eventdata, handles)
+function pushbutton_perframe_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_perframe (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -1013,7 +1013,7 @@ else
     sublexiconPFName=sublexiconPFNames{ndx};
     allndx = find(strcmp(sublexiconPFName,featureLexiconPFNames));
     if isempty(allndx)
-      missingPFNames{end+1} = sublexiconPFName;
+      missingPFNames{end+1} = sublexiconPFName;  %#ok
     else
       isSelected(allndx) = true;
     end
@@ -1064,7 +1064,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes when entered data in editable cell(s) in config_table.
-function config_table_CellEditCallback(hObject, eventdata, handles)
+function config_table_CellEditCallback(hObject, eventdata, handles)  %#ok
 % hObject    handle to config_table (see GCBO)
 % eventdata  structure with the following fields (see UITABLE)
 %	Indices: row and column indices of the cell(s) edited
@@ -1088,13 +1088,14 @@ guidata(hObject,handles);
 % -------------------------------------------------------------------------
 function handles = RemoveConfig(handles,name)
 
-[fpath,lastfield] = splitext(name);
-if isempty(lastfield)
-  handles.basicParamsStruct = rmfield(handles.basicParamsStruct,fpath);
+[fieldNamePath,dotLastField] = splitext(name);
+if isempty(dotLastField)
+  handles.basicParamsStruct = rmfield(handles.basicParamsStruct,fieldNamePath);
 else
+  lastField=dotLastField(2:end);  %#ok
   evalStr = sprintf(...
-    'handles.basicParamsStruct.%s = rmfield(handles.basicParamsStruct.%s,lastfield(2:end));',...
-    fpath,fpath);
+    'handles.basicParamsStruct.%s = rmfield(handles.basicParamsStruct.%s,lastField);',...
+    fieldNamePath,fieldNamePath);
   eval(evalStr);
 end
 
@@ -1111,7 +1112,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function handles = EditConfigValue(handles,name,value) %#ok<INUSD>
+function handles = EditConfigValue(handles,name,value)  %#ok
 eval_str = sprintf('handles.basicParamsStruct.%s = value;',name);
 eval(eval_str);
 return
@@ -1120,31 +1121,36 @@ return
 % -------------------------------------------------------------------------
 function handles = AddConfig(handles,name,value)
 
-if ischar(value) && ~isempty(str2num(value)) %#ok<ST2NM>
-  value = str2num(value); %#ok<NASGU,ST2NM>
+% If value is a string, convert to a double matrix, if that works
+if ischar(value) && ~isempty(str2num(value)),  %#ok<ST2NM>
+  value = str2num(value);  %#ok
 end
 
-iname = fliplr(name);
-curstruct = handles.basicParamsStruct;
-while true,
-  [iname,lastfield] = splitext(iname);
-  if isempty(lastfield)
-    fexist = isfield(curstruct,iname);
-    break;
-  else
-    fexist = isfield(curstruct,fliplr(iname(2:end)));
-    if ~fexist, break;    end
-    curstruct = curstruct.(fliplir(iname(2:end)));
-  end
-end
+% The code below doesn't seem to matter, since curstruct is never passed
+% out of the function, nor is anything that depends upon it.
+% iname = fliplr(name);
+% curstruct = handles.basicParamsStruct;
+% while true,
+%   [iname,lastfield] = splitext(iname);
+%   if isempty(lastfield)
+%     fexist = isfield(curstruct,iname);
+%     break;
+%   else
+%     fexist = isfield(curstruct,fliplr(iname(2:end)));
+%     if ~fexist, break;    end
+%     curstruct = curstruct.(fliplir(iname(2:end)));
+%   end
+% end
 
-eval(sprintf('handles.basicParamsStruct.%s = value;',name));
+evalStr=sprintf('handles.basicParamsStruct.%s = value;',name);
+eval(evalStr);
+
 return
 
 
 % -------------------------------------------------------------------------
 % --- Executes when user attempts to close figureProjectSetup.
-function figureProjectSetup_CloseRequestFcn(hObject, eventdata, handles)
+function figureProjectSetup_CloseRequestFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to figureProjectSetup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
