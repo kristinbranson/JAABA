@@ -1465,7 +1465,7 @@ for flyi = 1:numel(flies),
     end
   end
 end
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 
 % which interval we're currently within
 handles.guidata.current_interval = [];
@@ -1541,7 +1541,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function handles = UpdateTimelineIms(handles)
+function handles = UpdateTimelineImages(handles)
 
 % Note: this function directly accesses handles.guidata.data.labelidx,
 % handles.guidata.data.predictedidx for speed, so make sure we've preloaded the
@@ -3578,7 +3578,7 @@ t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.ti
 handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
 handles = SetPredictedPlot(handles);
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles, ...
             'refreshim',false, ...
@@ -3600,7 +3600,7 @@ function handles = UpdateErrors(handles)
 % TODO: make this work for multiple axes
 %handles.guidata.data.UpdateErrorIdx();  % we now do this wehn we set the
 % labels in JLabelData
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 UpdatePlots(handles, ...
             'refreshim',false, ...
             'refreshflies',false, ...
@@ -4009,7 +4009,7 @@ end
 res = questdlg(s,'Really delete all labels?','Yes','No','Cancel','Cancel');
 if strcmpi(res,'Yes'),
   handles.guidata.data.ClearLabels();
-  handles = UpdateTimelineIms(handles);
+  handles = UpdateTimelineImages(handles);
   UpdatePlots(handles);
 end
 return
@@ -5371,7 +5371,7 @@ while true,
     %predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
     %predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
     handles = SetPredictedPlot(handles);
-    handles = UpdateTimelineIms(handles);
+    handles = UpdateTimelineImages(handles);
 
     guidata(hObject,handles);
     UpdatePlots(handles, ...
@@ -5398,7 +5398,7 @@ while true,
     end
   end
   SetCurrentFrame(handles,axi,t,hObject);
-  handles = UpdateTimelineIms(handles);
+  handles = UpdateTimelineImages(handles);
   dt_sec = toc(ticker);
   pause_time = (t-t0)/handles.guidata.play_FPS - dt_sec;
   if pause_time <= 0,
@@ -5429,7 +5429,7 @@ while true,
     predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
     predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
     handles = SetPredictedPlot(handles);
-    handles = UpdateTimelineIms(handles);
+    handles = UpdateTimelineImages(handles);
 
     guidata(hObject,handles);
     UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -5450,7 +5450,7 @@ while true,
     end
   end
   SetCurrentFrame(handles,axi,t,hObject);
-  handles = UpdateTimelineIms(handles);
+  handles = UpdateTimelineImages(handles);
   drawnow;
 if(exist('tocker')),  disp(num2str(1/toc(tocker),2));  end
 tocker=tic;
@@ -6328,7 +6328,7 @@ t1 = handles.guidata.t1_curr;
 handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr,handles.guidata.t1_curr);
 handles = SetPredictedPlot(handles,t0,t1);
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6361,7 +6361,7 @@ handles.guidata.bottomAutomatic = 'Loaded';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6389,7 +6389,7 @@ handles.guidata.bottomAutomatic = 'Loaded';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6424,7 +6424,7 @@ handles.guidata.bottomAutomatic = 'Loaded';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6450,7 +6450,7 @@ handles.guidata.bottomAutomatic = 'Loaded';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6490,7 +6490,7 @@ handles.guidata.bottomAutomatic = 'Loaded';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6640,7 +6640,7 @@ function automaticTimelineBottomRowPopup_Callback(hObject, eventdata, handles)
 contents = cellstr(get(hObject,'String'));
 handles.guidata.bottomAutomatic = contents{get(hObject,'Value')};
 %set(handles.automaticTimelineBottomRowPopup,'BackgroundColor',[50 50 50]/256);
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(hObject,handles);
 UpdatePlots(handles, ...
             'refreshim',false,'refreshflies',true,...
@@ -6826,7 +6826,7 @@ set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6863,7 +6863,7 @@ set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6887,7 +6887,7 @@ set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','on');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
 
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -6960,7 +6960,7 @@ set(handles.menu_view_suggest_gt_intervals_load,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -7116,7 +7116,7 @@ if fname==0,
   return;
 end
 handles.guidata.PredictSaveMovie(handles.guidata.expi,fullfile(pname,fname));
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -7134,7 +7134,7 @@ function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata,
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.guidata.data.PredictWholeMovieNoSave(handles.guidata.expi);
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
@@ -8658,7 +8658,7 @@ handles.guidata.needsave=true;
 handles = SetPredictedPlot(handles);
 
 % Update the image that represents the prediction
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 
 % write the handles back to figure
 guidata(figureJLabel,handles);
@@ -8731,7 +8731,7 @@ handles.guidata.needsave=true;
 handles = SetPredictedPlot(handles);
 
 % Update the image that represents the prediction
-handles = UpdateTimelineIms(handles);
+handles = UpdateTimelineImages(handles);
 
 % write the handles back to figure
 guidata(figureJLabel,handles);
@@ -8942,8 +8942,12 @@ end
 handles.guidata.needsave=true;
 
 % Update the plots
+UpdateTimelineImages(handles);
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
-%UpdatePlots(handles);
+UpdatePlots(handles);
+
+% Update menus, etc, b/c classifier has been cleared
+UpdateEnablementAndVisibilityOfControls(handles);
 
 % Done, set status message to cleared message, pointer to normal
 syncStatusBarTextWhenClear(handles);
