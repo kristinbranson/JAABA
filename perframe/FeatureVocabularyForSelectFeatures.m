@@ -45,7 +45,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
   properties (Access=public,Constant=true)
     % Window features come in different types.  Below is a list of the
     % different types.  (formerly windowComp)
-    wfTypes = {'default','mean','min','max','hist','prctile',...
+    wfTypes = {'mean','min','max','hist','prctile',...
                'change','std','harmonic','diff_neighbor_mean',...
                'diff_neighbor_min','diff_neighbor_max','zscore_neighbors'};
     % Window features have parameters.  Below are the names of those parameters.
@@ -63,7 +63,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
     % A Window feature type can sometimes have an extra parameter.  Below are the names 
     % of those parameters, one for each WF type.  WF types without an extra param have the 
     % empty string for their entry.  (Formerly winextraParams.)                  
-    wfExtraParamNames = {'','','','','hist_edges','prctiles','change_window_radii', ...
+    wfExtraParamNames = {'','','','hist_edges','prctiles','change_window_radii', ...
                          '','num_harmonic','','','',''};
 %     % Below are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
 %     % They are only used if the lexicon fails to specify pre-set
@@ -84,7 +84,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % Below are the default values for the extra window feature parameters.  (Formerly winextraDefaultParams.)              
       % They are only used if the lexicon fails to specify pre-set
       % window-feature amounts (e.g. normal, more, less)
-      defaultWFExtraParams = {[],[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
+      defaultWFExtraParams = {[],[],[],[-400000 0 40000],[5 10 30 50 70 90 95],[1 3],...
                               [],2,[],[],[],[]};
     
       % Get some class constants we'll need
@@ -101,15 +101,15 @@ classdef FeatureVocabularyForSelectFeatures < handle
         % fall back on the built-in defaults.
         wfAmount='default';
         wfParams = struct;
-        % Set the parameters for the WFs of type 'default'
-        wfParams.default.enabled = true;
-        for ndx = 1:numel(wfParamNames)
-          wfParamName = wfParamNames{ndx};
-          wfParams.default.values.(wfParamName) = defaultWFParams{ndx};
-        end
-        wfParams.default.values.sanitycheck = false;
+        % % Set the parameters for the WFs of type 'default'
+        % wfParams.default.enabled = true;
+        % for ndx = 1:numel(wfParamNames)
+        %   wfParamName = wfParamNames{ndx};
+        %   wfParams.default.values.(wfParamName) = defaultWFParams{ndx};
+        % end
+        %wfParams.default.values.sanitycheck = false;
         % Set the parameters for the other WF types
-        for ndx = 2:numel(wfTypes)
+        for ndx = 1:numel(wfTypes)
           wfType = wfTypes{ndx};
           wfParams.(wfType).enabled = false;
           for paramIndex = 1:numel(wfParamNames)
@@ -128,15 +128,15 @@ classdef FeatureVocabularyForSelectFeatures < handle
           wfAmount=wfAmounts{wfAmountIndex};
           wfParams = struct;
           wfParamsThisAmount = featureLexicon.defaults.(wfAmount);
-          % Set the parameters for the WFs of type 'default'
-          wfParams.default.enabled = true;
-          for ndx = 1:numel(wfParamNames)
-            wfParamName = wfParamNames{ndx};
-            wfParams.default.values.(wfParamName) = wfParamsThisAmount.(wfParamName);
-          end
-          wfParams.default.values.sanitycheck = false;
+          % % Set the parameters for the WFs of type 'default'
+          % wfParams.default.enabled = true;
+          % for ndx = 1:numel(wfParamNames)
+          %   wfParamName = wfParamNames{ndx};
+          %   wfParams.default.values.(wfParamName) = wfParamsThisAmount.(wfParamName);
+          % end
+          % wfParams.default.values.sanitycheck = false;
           % Set the parameters for the other WF types
-          for ndx = 2:numel(wfTypes)
+          for ndx = 1:numel(wfTypes)
             % Copy the standard WF params for this WF type
             wfType = wfTypes{ndx};
             for paramIndex = 1:numel(wfParamNames)
@@ -311,46 +311,52 @@ classdef FeatureVocabularyForSelectFeatures < handle
           % windowFeatureParams
           vocabulary{pfIndex}.enabled = true;  
           vocabulary{pfIndex}.sanitycheck = windowFeatureParams.(pfName).sanitycheck;
-          % Fill for the window feature type called 'default'
+          % Fill in the fallback values for this PF.  These are used if 
+          fallbackValues=struct();
           for wfParamNdx = 1:numel(wfParamNames)
             wfParamName = wfParamNames{wfParamNdx};
             if isfield(windowFeatureParams.(pfName),wfParamName)
-              vocabulary{pfIndex}.default.values.(wfParamName) = windowFeatureParams.(pfName).(wfParamName);
+              fallbackValues.(wfParamName) = windowFeatureParams.(pfName).(wfParamName);
             else % Fill in the value from the default preset amount
-              vocabulary{pfNdx}.default.values.(wfParamName) = ...
+              fallbackValues.(wfParamName) = ...
                 wfParamsAmount.default.values.(wfParamName);
                 %self.defaultWFParams{wfParamNdx};
             end
-            vocabulary{pfIndex}.default.enabled = true;
+            % fallback.enabled = true;
           end
           % Fill for the rest of the window feature types.
           enabledWFTypes = fieldnames(windowFeatureParams.(pfName));
-          for wfTypeNdx = 2:numel(self.wfTypes)
+          for wfTypeNdx = 1:numel(self.wfTypes)
             wfType = self.wfTypes{wfTypeNdx};
             if ismember(wfType,enabledWFTypes) ,
-              vocabulary{pfIndex}.(wfType).enabled = true;
-              wfParamsThisType = windowFeatureParams.(pfName).(wfType);
-              for wfParamNdx = 1:numel(wfParamNames)
-                wfParamName = wfParamNames{wfParamNdx};
-                if isfield(wfParamsThisType,wfParamName)
-                  vocabulary{pfIndex}.(wfType).values.(wfParamName) = wfParamsThisType.(wfParamName);
-                else  % fill in the default values
-                  % Is this really where we want to get it from?
-                  % 
-                  vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
-                end
-              end
-              if ~isempty(self.wfExtraParamNames{wfTypeNdx})
-                extraParamName = self.wfExtraParamNames{wfTypeNdx};
-                vocabulary{pfIndex}.(wfType).values.(extraParamName) = wfParamsThisType.(extraParamName);
-              end
+              vocabulary{pfIndex}.(wfType) = ...
+                wfParamsOfOneType(windowFeatureParams.(pfName).(wfType), ...
+                                  fallbackValues, ...
+                                  wfParamNames, ...
+                                  self.wfExtraParamNames{wfTypeNdx});
+%               vocabulary{pfIndex}.(wfType).enabled = true;
+%               wfParamsThisType = windowFeatureParams.(pfName).(wfType);
+%               for wfParamNdx = 1:numel(wfParamNames)
+%                 wfParamName = wfParamNames{wfParamNdx};
+%                 if isfield(wfParamsThisType,wfParamName)
+%                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = wfParamsThisType.(wfParamName);
+%                 else  % fill in the default values
+%                   % Is this really where we want to get it from?
+%                   % 
+%                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = fallbackValues.(wfParamName);
+%                 end
+%               end
+%               if ~isempty(self.wfExtraParamNames{wfTypeNdx})
+%                 extraParamName = self.wfExtraParamNames{wfTypeNdx};
+%                 vocabulary{pfIndex}.(wfType).values.(extraParamName) = wfParamsThisType.(extraParamName);
+%               end
             else
               % If the window type is disabled, use default values for its
               % parameters
               vocabulary{pfIndex}.(wfType).enabled = false;
               for wfParamNdx = 1:numel(wfParamNames)
                 wfParamName = wfParamNames{wfParamNdx};
-                vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
+                vocabulary{pfIndex}.(wfType).values.(wfParamName) = fallbackValues.(wfParamName);
               end
               if ~isempty(self.wfExtraParamNames{wfTypeNdx})
                 extraParamName = self.wfExtraParamNames{wfTypeNdx};
@@ -370,26 +376,6 @@ classdef FeatureVocabularyForSelectFeatures < handle
             wfType=self.wfTypes{i};
             vocabulary{pfIndex}.(wfType).values.trans_types=self.defaultPFTransTypesFromName.(pfName);
           end
-%           vocabulary{pfIndex}.default.enabled = true;
-%           for wfParamNamesNdx = 1:numel(self.wfParamNames)
-%             wfParamName = self.wfParamNames{wfParamNamesNdx};
-%             vocabulary{pfIndex}.default.values.(wfParamName) = ...
-%               self.defaultWFParams{wfParamNamesNdx};
-%           end
-%           % Copy the default values into the other window params.
-%           for winfnNdx = 2:numel(self.wfTypes)
-%             wfType = self.wfTypes{winfnNdx};
-%             vocabulary{pfIndex}.(wfType).enabled = false;
-%             for wfParamNamesNdx = 1:numel(self.wfParamNames)
-%               wfParamName = self.wfParamNames{wfParamNamesNdx};
-%               vocabulary{pfIndex}.(wfType).values.(wfParamName) = ...
-%                 vocabulary{pfIndex}.default.values.(wfParamName);
-%             end
-%             if ~isempty(self.wfExtraParamNames{winfnNdx})
-%               extraParamName = self.wfExtraParamNames{winfnNdx};
-%               vocabulary{pfIndex}.(wfType).values.(extraParamName) = self.defaultWFExtraParams{winfnNdx};
-%             end
-%           end
         end
       end
       self.vocabulary = vocabulary;
@@ -729,11 +715,11 @@ classdef FeatureVocabularyForSelectFeatures < handle
         pfParams = self.vocabulary{pfIndex};
         windowFeatureParams.(pfName).sanitycheck = pfParams.sanitycheck;
         % the default window feature type is always included
-        for wfParamsIndex = 1:numel(self.wfParamNames)
-          wfParamName = self.wfParamNames{wfParamsIndex};
-          windowFeatureParams.(pfName).(wfParamName) = pfParams.default.values.(wfParamName);
-        end
-        for wfTypeIndex = 2:numel(self.wfTypes)
+        % for wfParamsIndex = 1:numel(self.wfParamNames)
+        %   wfParamName = self.wfParamNames{wfParamsIndex};
+        %   windowFeatureParams.(pfName).(wfParamName) = pfParams.default.values.(wfParamName);
+        % end
+        for wfTypeIndex = 1:numel(self.wfTypes)
           wfType = self.wfTypes{wfTypeIndex};
           if pfParams.(wfType).enabled,
             for wfParamsIndex = 1:numel(self.wfParamNames)
