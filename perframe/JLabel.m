@@ -137,7 +137,7 @@ handles.guidata.in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_bu
 % Update the label buttons, to get everything into a self-consistent state
 handles = UpdateLabelButtons(handles);
 handles.guidata.setLayout(hObject);
-handles=updateRightSidePanelPositions(handles);
+updatePanelPositions(handles);
 %guidata(hObject,handles);
 
 % Update aspects of the GUI to match the current "model" state
@@ -4352,13 +4352,13 @@ if figpos(3) < minw || figpos(4) < minh,
   set(handles.figure_JLabel,'Position',figpos);
 end
 
-handles = updateRightSidePanelPositions(handles);  %#ok
+updatePanelPositions(handles);
 
 return
 
 
 % -------------------------------------------------------------------------
-function handles = updateRightSidePanelPositions(handles)
+function handles = updatePanelPositions(handles)
 % Update the position and visibility of the labelbuttons, select, learn, 
 % similar, and selection info panels based on the current mode.
 
@@ -4366,6 +4366,8 @@ originalUnits=get(handles.figure_JLabel,'units');
 set(handles.figure_JLabel,'Units','pixels');
 figpos = get(handles.figure_JLabel,'Position');
 set(handles.figure_JLabel,'Units',originalUnits);
+figureWidth=figpos(3);
+figureHeight=figpos(4);
 
 panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
 panel_select_pos = get(handles.panel_select,'Position');
@@ -4379,20 +4381,20 @@ for i = 1:numel(handles.guidata.panel_previews),
   panel_previews_pos{i} = get(handles.guidata.panel_previews(i),'Position');
 end
 
-leftborder_leftpanels = panel_timelines_pos(1);
+leftborder_leftpanels = panel_timelines_pos(1);  % fixed
 leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
-width_rightpanels = panel_labelbuttons_pos(3);
-rightborder_rightpanels = figpos(3) - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
+width_rightpanels = panel_labelbuttons_pos(3);  % fixed
+rightborder_rightpanels = figureWidth - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
 bottomborder_bottompanels = panel_timelines_pos(2);
-topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
+topborder_toppanels = figureHeight - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
 bottomborder_previewpanels = panel_previews_pos{end}(2) - (panel_timelines_pos(2)+panel_timelines_pos(4));
 
-width_leftpanels = figpos(3) - ...
+width_leftpanels = figureWidth - ...
                    leftborder_leftpanels - ...
                    leftborder_rightpanels - ...
                    width_rightpanels - ...
                    rightborder_rightpanels;
-h = figpos(4) - bottomborder_bottompanels - ...
+h = figureHeight - bottomborder_bottompanels - ...
     topborder_toppanels - bottomborder_previewpanels;
 height_timelines = h*handles.guidata.guipos.frac_height_timelines;
 height_previews = h - height_timelines;
@@ -4401,23 +4403,23 @@ timelines_pos = [leftborder_leftpanels,bottomborder_bottompanels,...
 set(handles.panel_timelines,'Position',timelines_pos);
 % TODO: deal with multiple preview panels
 preview_pos = [handles.guidata.guipos.leftborder_leftpanels,...
-  figpos(4) - handles.guidata.guipos.topborder_toppanels - height_previews,...
+  figureHeight - handles.guidata.guipos.topborder_toppanels - height_previews,...
   width_leftpanels,height_previews];
 set(handles.guidata.panel_previews(1),'Position',preview_pos);
 
-label_pos = [figpos(3) - panel_labelbuttons_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-  figpos(4) - panel_labelbuttons_pos(4) - handles.guidata.guipos.topborder_toppanels,...
+label_pos = [figureWidth - panel_labelbuttons_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+  figureHeight - panel_labelbuttons_pos(4) - handles.guidata.guipos.topborder_toppanels,...
   panel_labelbuttons_pos(3:4)];
 set(handles.panel_labelbuttons,'Position',label_pos);
 
 dy_label_select = panel_labelbuttons_pos(2) - panel_select_pos(2) - panel_select_pos(4);
-new_select_pos = [figpos(3) - panel_select_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+new_select_pos = [figureWidth - panel_select_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
   label_pos(2) - panel_select_pos(4) - dy_label_select,...
   panel_select_pos(3:4)];
 set(handles.panel_select,'Position',new_select_pos);
 
 new_info_pos = ...
-  [figpos(3) - panel_info_pos(3) - rightborder_rightpanels,...
+  [figureWidth - panel_info_pos(3) - rightborder_rightpanels,...
    new_select_pos(2) - panel_info_pos(4) - dy_label_select,...
    panel_info_pos(3:4)];
 set(handles.panel_selection_info,'Position',new_info_pos);
@@ -4428,13 +4430,13 @@ set(handles.panel_selection_info,'Position',new_info_pos);
 % else
 %   % set(handles.panel_similar,'Visible','on');
 %   % new_similar_pos = ...
-%   %   [figpos(3) - similar_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+%   %   [figureWidth - similar_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
 %   %    new_select_pos(2) - similar_pos(4) - dy_label_select,...
 %   %    similar_pos(3:4)];
 %   % set(handles.panel_similar,'Position',new_similar_pos,'Visible','on');
 % end
 
-panel_learn_pos_new = [figpos(3) - panel_learn_pos(3) - rightborder_rightpanels,...
+panel_learn_pos_new = [figureWidth - panel_learn_pos(3) - rightborder_rightpanels,...
                        bottomborder_bottompanels,...
                        panel_learn_pos(3:4)];
 set(handles.panel_learn,'Position',panel_learn_pos_new);
@@ -4457,7 +4459,7 @@ return
 % handles.guidata.guipos.rightborder_rightpanels = figpos(3) - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
 % handles.guidata.guipos.leftborder_leftpanels = panel_timelines_pos(1);
 % handles.guidata.guipos.leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
-% handles.guidata.guipos.topborder_toppanels = figpos(4) - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
+% handles.guidata.guipos.topborder_toppanels = figureHeight - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
 % if handles.guidata.guipos.topborder_toppanels < 0
 %   handles.guidata.guipos.topborder_toppanels = 15;
 % end
@@ -6763,7 +6765,7 @@ updateCheckMarksInMenus(handles);
 % update the label buttons and the panel positions, even if there's no open
 % file and therefore they're invisble
 handles=UpdateLabelButtons(handles);
-handles = updateRightSidePanelPositions(handles);
+updatePanelPositions(handles);
 
 return
 
