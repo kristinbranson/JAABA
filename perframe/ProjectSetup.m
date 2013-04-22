@@ -729,7 +729,7 @@ function pushbutton_cancel_Callback(hObject, eventdata, handles)  %#ok
 % handles    structure with handles and user data (see GUIDATA)
 handles.outfile = 0;
 guidata(hObject,handles);
-delete(gcbf);              
+delete(findAncestorFigure(hObject));              
 %uiresume(handles.figureProjectSetup);
 return
 
@@ -761,7 +761,7 @@ else
 end
 
 % Delete the ProjectSetup window
-delete(gcbf);
+delete(get(hObject,'parent'));
 
 return
 

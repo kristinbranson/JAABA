@@ -161,7 +161,7 @@ function listbox_experiment_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox_experiment contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox_experiment
-UpdateStatusTable(gcbf);
+UpdateStatusTable(findAncestorFigure(hObject));
 
 
 % -------------------------------------------------------------------------
@@ -187,7 +187,7 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-figureJModifyFiles=gcbf;
+figureJModifyFiles=findAncestorFigure(hObject);
 data=getGuidataField(figureJModifyFiles,'data');  % ref
 defaultdir = fileparts(data.defaultpath);
 
@@ -205,7 +205,7 @@ for ndx = 1:numel(allexpdirs)
     uiwait(warndlg(sprintf('Experiment directory %s already added',expdir),'Already added'));
     return;
   end
-  SetStatusEditFiles(gcbf,sprintf('Adding experiment directory %s',expdir));
+  SetStatusEditFiles(findAncestorFigure(hObject),sprintf('Adding experiment directory %s',expdir));
   [success,msg] = data.AddExpDir(expdir);
   if ~success,
     if iscell(msg)
@@ -233,7 +233,7 @@ return
 % %--------------------------------------------------------------------------
 % function pushbutton_generate_Callback(hObject, eventdata, handles, row)
 % listbox_experiment=getGuidataField(figureJModifyFiles,'listbox_experiment');
-% data=getGuidataField(gcbf,'data');  % ref
+% data=getGuidataField(findAncestorFigure(hObject),'data');  % ref
 % file = data.filetypes{row};
 % if ~JLabelData.CanGenerateFile(file),
 %   return;
@@ -263,15 +263,15 @@ function pushbutton_remove_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_remove (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-listbox_experiment=getGuidataField(gcbf,'listbox_experiment');
-data=getGuidataField(gcbf,'data');  % ref
+listbox_experiment=getGuidataField(findAncestorFigure(hObject),'listbox_experiment');
+data=getGuidataField(findAncestorFigure(hObject),'data');  % ref
 v = get(listbox_experiment,'Value');
 if isempty(v),
   return;
 end
 data.RemoveExpDirs(v);
 set(listbox_experiment,'String',data.expdirs,'Value',data.nexps);
-setGuidataField(gcbf,'listChanged',true);
+setGuidataField(findAncestorFigure(hObject),'listChanged',true);
 UpdateStatusTable(hObject);
 return
 
@@ -282,10 +282,10 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-figureJLabel=getGuidataField(gcbf,'figureJLabel');
-listChanged=getGuidataField(gcbf,'listChanged');
+figureJLabel=getGuidataField(findAncestorFigure(hObject),'figureJLabel');
+listChanged=getGuidataField(findAncestorFigure(hObject),'listChanged');
 JLabel('modifyFilesDone',figureJLabel,listChanged);
-delete(gcbf);
+delete(findAncestorFigure(hObject));
 return
 
 
@@ -327,7 +327,7 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % get the figure handle
-figureJModifyFiles=gcbf;
+figureJModifyFiles=findAncestorFigure(hObject);
 
 % ask user for experiment directory
 [listfile,pname] = uigetfile({'*.txt','Text Files (*.txt)'}, ...
@@ -362,7 +362,7 @@ while(ischar(expdir))
     expdir = fgetl(fid);
     continue;
   end
-  setGuidataField(gcbf,'listChanged',true);
+  setGuidataField(findAncestorFigure(hObject),'listChanged',true);
   
   expdir = fgetl(fid);
 end
