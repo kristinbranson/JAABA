@@ -121,18 +121,17 @@ classdef FeatureVocabularyForSelectFeatures < handle
             wfParams.(wfType).values.(extraParamName) = defaultWFExtraParams{ndx};
           end
         end
-        wfParamsFromAmount.(wfAmount) = wfParams;
       else
         % The usual case --- preset amounts are defined in the lexicon.
         for wfAmountIndex = 1:numel(wfAmounts)
           wfAmount=wfAmounts{wfAmountIndex};
           wfParams = struct;
-          wfParamsThisAmount = featureLexicon.defaults.(wfAmount);
+          wfParamsThisAmountRaw = featureLexicon.defaults.(wfAmount);
           % Set the parameters for the WFs of type 'default'
           wfParams.default.enabled = true;
           for ndx = 1:numel(wfParamNames)
             wfParamName = wfParamNames{ndx};
-            wfParams.default.values.(wfParamName) = wfParamsThisAmount.(wfParamName);
+            wfParams.default.values.(wfParamName) = wfParamsThisAmountRaw.(wfParamName);
           end
           wfParams.default.values.sanitycheck = false;
           % Set the parameters for the other WF types
@@ -141,21 +140,26 @@ classdef FeatureVocabularyForSelectFeatures < handle
             wfType = wfTypes{ndx};
             for paramIndex = 1:numel(wfParamNames)
               wfParamName = wfParamNames{paramIndex};
-              wfParams.(wfType).values.(wfParamName) = wfParamsThisAmount.(wfParamName);
+              if isfield(wfParamsThisAmountRaw,wfType) && isfield(wfParamsThisAmountRaw.(wfType),wfParamName)
+                wfParams.(wfType).values.(wfParamName) = wfParamsThisAmountRaw.(wfType).(wfParamName);
+              else
+                % Use the common value
+                wfParams.(wfType).values.(wfParamName) = wfParamsThisAmountRaw.(wfParamName);
+              end
             end
             % Copy the extra WF parameter, if present for this WF type
             if ~isempty(wfExtraParamNames{ndx})
               extraParamName = wfExtraParamNames{ndx};
-              if isfield(wfParamsThisAmount,wfType) && isfield(wfParamsThisAmount.(wfType),extraParamName)
+              if isfield(wfParamsThisAmountRaw,wfType) && isfield(wfParamsThisAmountRaw.(wfType),extraParamName)
                 % Use a value from the preset, if present
-                wfParams.(wfType).values.(extraParamName) = wfParamsThisAmount.(wfType).(extraParamName);
+                wfParams.(wfType).values.(extraParamName) = wfParamsThisAmountRaw.(wfType).(extraParamName);
               else
                 % If not present, fall back to the default default
                 wfParams.(wfType).values.(extraParamName) = defaultWFExtraParams{ndx};
               end
             end
             % If this WF type is included in the lexicon preset, enable the WF type
-            wfParams.(wfType).enabled=isfield(wfParamsThisAmount,wfType);
+            wfParams.(wfType).enabled=isfield(wfParamsThisAmountRaw,wfType);
             % If this WF type is included in the lexicon preset, check for any WF
             % parameter names besides the usual standard and extra ones,
             % and include them in the processed preset parameters.
@@ -170,9 +174,9 @@ classdef FeatureVocabularyForSelectFeatures < handle
             %   end
             % end
           end
-          wfParamsFromAmount.(wfAmount) = wfParams;
         end
       end
+      wfParamsFromAmount.(wfAmount) = wfParams;      
     end  % method    
     
     
