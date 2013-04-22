@@ -586,7 +586,7 @@ return
 function basicEdit(hObject,eventData)
 % the user selects the category
 if isempty(eventData.Indices); return; end
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 if eventData.Indices(2)==2
   % User made a selection in the 2nd column, to select 'all' or 'none' of
   % the PFs in that category.  They can also select 'custom', but that does
@@ -595,7 +595,7 @@ if eventData.Indices(2)==2
 elseif eventData.Indices(2) == 3
   pfCategoryWFAmountChanged(hObject,eventData);
 end
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 return
 
 
@@ -734,7 +734,7 @@ if isempty(eventData.Indices)
   return;
 end
 
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 
 handles = guidata(hObject);
 
@@ -754,7 +754,7 @@ handles = UpdateDescriptionPanels(handles);
 guidata(hObject,handles);
 updateWindowTableAndEnablement(handles);
 updateWinParamsAndEnablement(handles);
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 
 return
 
@@ -763,7 +763,7 @@ return
 function pfEdit(hObject,eventData)
 % Called when a perframe feature is added or removed in the pfTable.
 
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 
 % Update the figure guidata
 handles = guidata(hObject);
@@ -782,7 +782,7 @@ elseif tableColumnIndex==3,
   pfAmountChanged(handles,eventData);
 end
 
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 
 return
 
@@ -895,7 +895,7 @@ if isempty(eventData.Indices)
   return;
 end
 
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 
 handles = guidata(hObject);
 %winData = get(handles.windowTable,'Data');
@@ -916,7 +916,7 @@ else
 end
 guidata(hObject,handles);
 updateWinParamsAndEnablement(handles);
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 return
 
 
@@ -924,7 +924,7 @@ return
 function windowEdit(hObject,eventData)
 % Called when the window-feature type uitable is edited.
 
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 
 handles = guidata(hObject);
 fv=handles.featureVocabulary;  % a ref
@@ -955,7 +955,7 @@ updateBasicTableAllCategoriesOfCurrentPF(handles);
 % else
 %   disableWinParams(handles);
 % end
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 return
 
 
@@ -1909,7 +1909,7 @@ function uipanel_tabs_SelectionChangeFcn(hObject, eventdata, handles)
 %	NewValue: handle of the currently selected object
 % handles    structure with handles and user data (see GUIDATA)
 
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 
 if eventdata.NewValue == handles.togglebutton_tabdescription,
   handles.currentTab = 'description';
@@ -1920,7 +1920,7 @@ end
 handles = UpdateDescriptionPanels(handles);
 guidata(hObject,handles);
 
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 
 return
 
@@ -1992,12 +1992,12 @@ function editSize_Callback(hObject, eventdata, handles)  %#ok
 % Hints: get(hObject,'String') returns contents of editSize as text
 %        str2double(get(hObject,'String')) returns contents of editSize as a double
 
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 
 curVal = str2double(get(hObject,'String'));
 if isempty(curVal) || (round(curVal)-curVal)~=0 || curVal<=0 ,
   updateMaxWindowRadiusEditBox(handles);
-  restorePointer(gcbf,oldPointer);
+  restorePointer(hObject,oldPointer);
   return
 end
 
@@ -2015,7 +2015,7 @@ drawnow('update');  % want to see that number change in window params pronto!
 updateBasicTable(handles);
 updatePFTable(handles);
 
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 
 return
 

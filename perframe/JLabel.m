@@ -1777,7 +1777,7 @@ function pushtool_save_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saveAs=false;
-saveEverythingFile(gcbf,saveAs);
+saveEverythingFile(findAncestorFigure(hObject),saveAs);
 return
 
 
@@ -1848,7 +1848,7 @@ return
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
 % 
-% success=exportClassifierFile(gcbf);
+% success=exportClassifierFile(findAncestorFigure(hObject));
 % 
 % return
 
@@ -2733,7 +2733,7 @@ handles=guidata(figureJLabel);
 if handles.guidata.needsave,
   res = questdlg('There are unsaved changes.  Save?','Save?','Save','Discard','Cancel','Save');
   if strcmpi(res,'Save'),
-    saved=saveEverythingFile(gcbf);
+    saved=saveEverythingFile(figureJLabel);
     if saved,
       proceed=true;
     else
@@ -2773,11 +2773,11 @@ if exist(cachefilename,'file'),
 end
 
 % Check if we need to save.
-proceed=checkForUnsavedChangesAndDealIfNeeded(gcbf);
+proceed=checkForUnsavedChangesAndDealIfNeeded(hObject);
 if ~proceed,
   return;
 end
-handles=guidata(gcbf);
+handles=guidata(hObject);
 
 % if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
 %   res = questdlg(['Current window features do not match the ones in the project file.'...
@@ -6193,9 +6193,9 @@ function menu_classifier_select_features_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % handles=ShowSelectFeatures(handles);
-oldPointer=pointerToWatch(gcbf);
+oldPointer=pointerToWatch(hObject);
 SelectFeatures(handles.figure_JLabel);
-restorePointer(gcbf,oldPointer);
+restorePointer(hObject,oldPointer);
 % uiwait(selHandle);
 % someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 % if ~someExperimentIsCurrent,
@@ -7039,7 +7039,7 @@ function menu_file_export_labels_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-exportEverythingFile(gcbf,'Labels');
+exportEverythingFile(findAncestorFigure(hObject),'Labels');
 
 return
 
@@ -7483,7 +7483,7 @@ function menu_file_save_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saveAs=false;
-saveEverythingFile(gcbf,saveAs);
+saveEverythingFile(findAncestorFigure(hObject),saveAs);
 return
 
 
@@ -7493,7 +7493,7 @@ function menu_file_save_as_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saveAs=true;
-saveEverythingFile(gcbf,saveAs);
+saveEverythingFile(findAncestorFigure(hObject),saveAs);
 return
 
 
@@ -7664,7 +7664,7 @@ function menu_file_open_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-openEverythingFileViaChooser(gcbf,false);  % false means labeling mode
+openEverythingFileViaChooser(findAncestorFigure(hObject),false);  % false means labeling mode
 return
 
 
@@ -7673,7 +7673,7 @@ function menu_file_open_in_ground_truthing_mode_Callback(hObject, eventdata, han
 % hObject    handle to menu_file_open (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-openEverythingFileViaChooser(gcbf,true);  % true means ground-truthing mode
+openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
 return
 
 
@@ -8066,7 +8066,7 @@ if exist(cachefilename,'file'),
 end
 
 % Check if we need to save.
-proceed=checkForUnsavedChangesAndDealIfNeeded(gcbf);
+proceed=checkForUnsavedChangesAndDealIfNeeded(hObject);
 if ~proceed,
   return;
 end
@@ -8131,7 +8131,7 @@ end
 % % Release and re-generate handles.guidata, to make sure it's fresh
 % handles.guidata=[];
 % handles.guidata = JLabelGUIData();
-% handles.guidata.UpdateGraphicsHandleArrays(gcbf);
+% handles.guidata.UpdateGraphicsHandleArrays(findAncestorFigure(hObject));
 
 % % init stuff
 % handles.output = handles.figure_JLabel;
@@ -8197,7 +8197,7 @@ function menu_file_new_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_new (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-newEverythingFile(gcbf);
+newEverythingFile(hObject);
 return
 
 
@@ -8408,7 +8408,7 @@ return
 % featureConfigParams = ReadXMLParams(featureConfigFileNameAbs);
 % 
 % % First set the project parameters, which will initialize the JLabelData
-% setProjectParams(gcbf,projectParams,featureConfigParams);
+% setProjectParams(findAncestorFigure(hObject),projectParams,featureConfigParams);
 % handles=guidata(figureJLabel);  % make sure handles is up-to-date
 % 
 % % Need to set the labeling mode in the JLabelData, before the experiments 
@@ -8789,7 +8789,7 @@ function menu_file_basic_settings_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_new (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-basicSettings(gcbf);
+basicSettings(findAncestorFigure(hObject));
 return
 
 
