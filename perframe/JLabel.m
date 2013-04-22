@@ -4342,8 +4342,10 @@ if ~isfield(handles,'guidata') || ~isfield(handles.guidata.guipos,'leftborder_le
   return;
 end
 
+originalUnits=get(handles.figure_JLabel,'units');
 set(handles.figure_JLabel,'Units','pixels');
 figpos = get(handles.figure_JLabel,'Position');
+set(handles.figure_JLabel,'Units',originalUnits);
 
 minh = 700;
 minw = 500;
@@ -4366,80 +4368,70 @@ originalUnits=get(handles.figure_JLabel,'units');
 set(handles.figure_JLabel,'Units','pixels');
 figpos = get(handles.figure_JLabel,'Position');
 set(handles.figure_JLabel,'Units',originalUnits);
-figureWidth=figpos(3);
-figureHeight=figpos(4);
 
-panel_labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
-panel_select_pos = get(handles.panel_select,'Position');
-panel_learn_pos = get(handles.panel_learn,'Position');
-%panel_similar_pos = get(handles.panel_similar,'Position');
-panel_info_pos = get(handles.panel_selection_info,'Position');
+labelbuttons_pos = get(handles.panel_labelbuttons,'Position');
+select_pos = get(handles.panel_select,'Position');
+learn_pos = get(handles.panel_learn,'Position');
+similar_pos = get(handles.panel_similar,'Position');
+info_pos = get(handles.panel_selection_info,'Position');
 
-panel_timelines_pos = get(handles.panel_timelines,'Position');
-panel_previews_pos = cell(size(handles.guidata.panel_previews));
-for i = 1:numel(handles.guidata.panel_previews),
-  panel_previews_pos{i} = get(handles.guidata.panel_previews(i),'Position');
-end
-
-leftborder_leftpanels = panel_timelines_pos(1);  % fixed
-leftborder_rightpanels = panel_labelbuttons_pos(1) - (panel_timelines_pos(1) + panel_timelines_pos(3));
-width_rightpanels = panel_labelbuttons_pos(3);  % fixed
-rightborder_rightpanels = figureWidth - (panel_labelbuttons_pos(1) + panel_labelbuttons_pos(3));
-bottomborder_bottompanels = panel_timelines_pos(2);
-topborder_toppanels = figureHeight - (panel_labelbuttons_pos(2) + panel_labelbuttons_pos(4));
-bottomborder_previewpanels = panel_previews_pos{end}(2) - (panel_timelines_pos(2)+panel_timelines_pos(4));
-
-width_leftpanels = figureWidth - ...
-                   leftborder_leftpanels - ...
-                   leftborder_rightpanels - ...
-                   width_rightpanels - ...
-                   rightborder_rightpanels;
-h = figureHeight - bottomborder_bottompanels - ...
-    topborder_toppanels - bottomborder_previewpanels;
+width_leftpanels = figpos(3) - handles.guidata.guipos.leftborder_leftpanels - ...
+  handles.guidata.guipos.leftborder_rightpanels - handles.guidata.guipos.width_rightpanels - ...
+  handles.guidata.guipos.rightborder_rightpanels;
+h = figpos(4) - handles.guidata.guipos.bottomborder_bottompanels - ...
+  handles.guidata.guipos.topborder_toppanels - handles.guidata.guipos.bottomborder_previewpanels;
 height_timelines = h*handles.guidata.guipos.frac_height_timelines;
 height_previews = h - height_timelines;
-timelines_pos = [leftborder_leftpanels,bottomborder_bottompanels,...
-                 width_leftpanels,height_timelines];
+timelines_pos = [handles.guidata.guipos.leftborder_leftpanels,handles.guidata.guipos.bottomborder_bottompanels,...
+  width_leftpanels,height_timelines];
 set(handles.panel_timelines,'Position',timelines_pos);
 % TODO: deal with multiple preview panels
 preview_pos = [handles.guidata.guipos.leftborder_leftpanels,...
-  figureHeight - handles.guidata.guipos.topborder_toppanels - height_previews,...
+  figpos(4) - handles.guidata.guipos.topborder_toppanels - height_previews,...
   width_leftpanels,height_previews];
 set(handles.guidata.panel_previews(1),'Position',preview_pos);
 
-label_pos = [figureWidth - panel_labelbuttons_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-  figureHeight - panel_labelbuttons_pos(4) - handles.guidata.guipos.topborder_toppanels,...
-  panel_labelbuttons_pos(3:4)];
+label_pos = [figpos(3) - labelbuttons_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+  figpos(4) - labelbuttons_pos(4) - handles.guidata.guipos.topborder_toppanels,...
+  labelbuttons_pos(3:4)];
 set(handles.panel_labelbuttons,'Position',label_pos);
 
-dy_label_select = panel_labelbuttons_pos(2) - panel_select_pos(2) - panel_select_pos(4);
-new_select_pos = [figureWidth - panel_select_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-  label_pos(2) - panel_select_pos(4) - dy_label_select,...
-  panel_select_pos(3:4)];
+dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
+new_select_pos = [figpos(3) - select_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+  label_pos(2) - select_pos(4) - dy_label_select,...
+  select_pos(3:4)];
 set(handles.panel_select,'Position',new_select_pos);
 
-new_info_pos = ...
-  [figureWidth - panel_info_pos(3) - rightborder_rightpanels,...
-   new_select_pos(2) - panel_info_pos(4) - dy_label_select,...
-   panel_info_pos(3:4)];
-set(handles.panel_selection_info,'Position',new_info_pos);
+% %dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
+if ~handles.guidata.GUIAdvancedMode || ...
+    ( isnonempty(handles.guidata.data) && ...
+      handles.guidata.data.IsGTMode() ) ,
+  set(handles.panel_similar,'Visible','off');
+  new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+    new_select_pos(2) - info_pos(4) - dy_label_select,...
+    info_pos(3:4)];
+  set(handles.panel_selection_info,'Position',new_info_pos);
+else
+  new_similar_pos = [figpos(3) - similar_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+    new_select_pos(2) - similar_pos(4) - dy_label_select,...
+    similar_pos(3:4)];
+  set(handles.panel_similar,'Position',new_similar_pos,'Visible','on');
+  new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+    new_similar_pos(2) - info_pos(4) - dy_label_select,...
+    info_pos(3:4)];
+  set(handles.panel_selection_info,'Position',new_info_pos);
+end
 
-% % Update the positions+visibility of the similar frames panel, taking the mode into account
-% if ~handles.guidata.GUIAdvancedMode || handles.guidata.GUIGroundTruthingMode,
-%   % set(handles.panel_similar,'Visible','off');
-% else
-%   % set(handles.panel_similar,'Visible','on');
-%   % new_similar_pos = ...
-%   %   [figureWidth - similar_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
-%   %    new_select_pos(2) - similar_pos(4) - dy_label_select,...
-%   %    similar_pos(3:4)];
-%   % set(handles.panel_similar,'Position',new_similar_pos,'Visible','on');
-% end
 
-panel_learn_pos_new = [figureWidth - panel_learn_pos(3) - rightborder_rightpanels,...
-                       bottomborder_bottompanels,...
-                       panel_learn_pos(3:4)];
-set(handles.panel_learn,'Position',panel_learn_pos_new);
+new_learn_pos = [figpos(3) - learn_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
+  handles.guidata.guipos.bottomborder_bottompanels,...
+  learn_pos(3:4)];
+set(handles.panel_learn,'Position',...
+  new_learn_pos);
+
+
+
+
 
 return
 
