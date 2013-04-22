@@ -260,11 +260,13 @@ set(handles.windowTable, ...
 
 % Initialize the table data  
 nWFTypes=length(wfTypes);
-windowData = cell(nWFTypes,2);
-for wfTypeIndex = 1:nWFTypes
+nRows=nWFTypes-1;  % don't want to show 'default' pseudo WF type
+windowData = cell(nRows,2);
+for rowIndex = 1:nRows
+  wfTypeIndex=rowIndex+1;
   wfType = fv.wfTypes{wfTypeIndex};
-  windowData{wfTypeIndex,1} = wfType;
-  windowData{wfTypeIndex,2} = false;
+  windowData{rowIndex,1} = wfType;
+  windowData{rowIndex,2} = false;
 end
 set(handles.windowTable,'Data',windowData);
 
@@ -834,17 +836,19 @@ if isempty(pfNdx) ,
 else
   pfParams = fv.vocabulary{pfNdx};
 end
-for wfTypeIndex = 1:nWFTypes
+nRows=nWFTypes-1; % b/c default not shown
+for rowIndex = 1:nRows
+  wfTypeIndex=rowIndex+1;
   wfType = fv.wfTypes{wfTypeIndex};
   if isfield(pfParams,wfType),
     %windowData{wfTypeIndex,1} = wfType;
-    windowData{wfTypeIndex,2} = pfParams.(wfType).enabled;
+    windowData{rowIndex,2} = pfParams.(wfType).enabled;
   else
     % warning('This error is occurring!');  
       % this isn't an error anymore -- it can happen by design if pfNdx is
       % empty
     %windowData{wfTypeIndex,1} = wfType;
-    windowData{wfTypeIndex,2} = false;
+    windowData{rowIndex,2} = false;
   end
 end
 set(handles.windowTable,'Data',windowData);
@@ -860,9 +864,10 @@ return
 
 
 % -------------------------------------------------------------------------
-function updateWindowTableRow(handles,wfTypeIndex)
+function updateWindowTableRow(handles,rowIndex)
 % Updates the checkbox for wfType wfTypeIndex, i.e. one row of the window
 % table.
+wfTypeIndex=rowIndex+1;  % b/c 'default' not shown
 pfNdx=handles.pfNdx;
 fv=handles.featureVocabulary;
 pfParams = fv.vocabulary{pfNdx};
@@ -870,9 +875,9 @@ windowData = get(handles.windowTable,'Data');
 wfType = fv.wfTypes{wfTypeIndex};
 if ~isfield(pfParams,wfType),
   warning('This error is occurring!');
-  windowData{wfTypeIndex,2} = false;
+  windowData{rowIndex,2} = false;
 else
-  windowData{wfTypeIndex,2} = pfParams.(wfType).enabled;
+  windowData{rowIndex,2} = pfParams.(wfType).enabled;
 end
 set(handles.windowTable,'Data',windowData);
 return
@@ -900,8 +905,8 @@ if (size(eventData.Indices,1)>1)
   handles.wfTypeNdx = [];
   %disableWinParams(handles);
 else
-  ndx = eventData.Indices(1,1);
-  handles.wfTypeNdx = ndx;
+  rowIndex = eventData.Indices(1,1);
+  handles.wfTypeNdx = rowIndex+1;  % +1 b/c default is not shown
 %   if winData{ndx,2},
 %     updateWinParams(handles);
 %     enableWinParams(handles);
@@ -924,7 +929,8 @@ oldPointer=pointerToWatch(gcbf);
 handles = guidata(hObject);
 fv=handles.featureVocabulary;  % a ref
 %updatePFCategoryAmountForCurrentPF(handles);
-wfTypeNdx = eventData.Indices(1);
+rowIndex=eventData.Indices(1);
+wfTypeNdx = rowIndex+1;  % +1 b/c default is not shown
 handles.wfTypeNdx = wfTypeNdx;
 wfType = fv.wfTypes{wfTypeNdx};
 %handles.data{handles.pfNdx}.(wfType).enabled = eventData.NewData;
@@ -939,7 +945,7 @@ if ~isequal(wfType,'default')
 end
 
 guidata(hObject,handles);
-updateWindowTableRow(handles,wfTypeNdx)
+updateWindowTableRow(handles,rowIndex)
 updateWinParamsAndEnablement(handles);
 updatePFTableForCurrentPF(handles);
 updateBasicTableAllCategoriesOfCurrentPF(handles);
