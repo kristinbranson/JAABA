@@ -2035,11 +2035,11 @@ else
 end
 
 % labeling vs GT mode
-if isempty(handles.guidata.GUIGroundTruthingMode)
+if isempty(handles.guidata.data)
   set(handles.menu_edit_normal_mode      ,'checked','off');
   set(handles.menu_edit_ground_truthing_mode,'checked','off' );
 else
-  if handles.guidata.GUIGroundTruthingMode,
+  if handles.guidata.data.gtMode,
     set(handles.menu_edit_normal_mode    ,'checked','off');
     set(handles.menu_edit_ground_truthing_mode,'checked','on' );
   else
@@ -2336,7 +2336,8 @@ openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.guidata.needsave;
 % end
 someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
-                     handles.guidata.GUIGroundTruthingMode;
+                     ~isempty(data) && ...
+                     data.gtMode;
 %inNormalMode=~inGroundTruthingMode;
 classifierExists=~isempty(data) && ...
                  ~isempty(data.classifier);
@@ -4064,8 +4065,8 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 if strcmpi(eventdata.Modifier,'control')
   switch eventdata.Key,
     case 't',
-      if ~isempty(handles.guidata.GUIGroundTruthingMode) && ...
-         ~handles.guidata.GUIGroundTruthingMode,
+      if ~isempty(handles.guidata.data) && ...
+         ~handles.guidata.data.gtMode,
         pushbutton_train_Callback(hObject,eventdata,handles);
       end
       
@@ -6670,7 +6671,11 @@ function handles = UpdateGUIToMatchGroundTruthingMode(handles)
 % (normal or ground-truthing)
 
 % get the mode
-mode=handles.guidata.GUIGroundTruthingMode;
+if isempty(handles.guidata.data) ,
+  mode=[];
+else
+  mode=handles.guidata.data.gtMode;
+end
 
 % Make all the mode checkmarks self-consistent
 updateCheckMarksInMenus(handles);
@@ -7738,7 +7743,7 @@ data=handles.guidata.data;  % ref
 %data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
-handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+%handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 %handles = setGUIGroundTruthingMode(handles,groundTruthingMode);
 guidata(figureJLabel,handles);  % write the handles back to the figure
@@ -7995,14 +8000,24 @@ return
 % -------------------------------------------------------------------------
 function ret=isLabelingMode(figureJLabel)
 handles=guidata(figureJLabel);
-ret=~handles.guidata.GUIGroundTruthingMode;
+data=handles.guidata.data;
+if isempty(data) ,
+  ret=[];
+else
+  ret=~data.gtMode;
+end
 return
 
 
 % -------------------------------------------------------------------------
 function ret=isGroundTruthingMode(figureJLabel)
 handles=guidata(figureJLabel);
-ret=handles.guidata.GUIGroundTruthingMode;
+data=handles.guidata.data;
+if isempty(data) ,
+  ret=[];
+else
+  ret=data.gtMode;
+end
 return
 
 
@@ -8165,7 +8180,7 @@ handles.guidata.userHasSpecifiedEverythingFileName=false;
 handles.guidata.needsave=false;
 
 % Set the GT state back to "none"
-handles.guidata.GUIGroundTruthingMode=[];
+%handles.guidata.GUIGroundTruthingMode=[];
 UpdateGUIToMatchGroundTruthingMode(handles);
 
 % Update the GUI to match the current "model" state
@@ -8252,7 +8267,7 @@ data=handles.guidata.data;  % ref
 %data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
-handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
+%handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
 handles = UpdateGUIToMatchGroundTruthingMode(handles);
 guidata(figureJLabel,handles);  % write the handles back to the figure
 

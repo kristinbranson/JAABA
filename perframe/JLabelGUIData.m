@@ -108,9 +108,9 @@ classdef JLabelGUIData < handle
 
     togglebutton_label_behaviors = [];
     
-    GUIGroundTruthingMode = [];  % true iff the GUI is in ground truth mode, as
-                                 % opposed to labeling mode.  Empty if
-                                 % no project is currently loaded.
+%     GUIGroundTruthingMode = [];  % true iff the GUI is in ground truth mode, as
+%                                  % opposed to labeling mode.  Empty if
+%                                  % no project is currently loaded.
     GUIAdvancedMode = false;  % true iff the GUI is in advanced mode, as
                               % opposed to basic mode
 
