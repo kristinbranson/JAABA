@@ -406,6 +406,8 @@ classdef JLabelData < handle
                      % JLabelData know about this---it's really more
                      % a property of the View, not the Model, it seems to
                      % me.  --ALT, Jan 17 2013
+                     % Maybe, but making it that way would be a pain in the
+                     % ass.  --ALT, Apr 22 2013
     
     % Ground truthing suggestion
     randomGTSuggestions = {};
