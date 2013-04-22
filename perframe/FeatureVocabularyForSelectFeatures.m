@@ -312,18 +312,14 @@ classdef FeatureVocabularyForSelectFeatures < handle
           vocabulary{pfIndex}.enabled = true;  
           vocabulary{pfIndex}.sanitycheck = windowFeatureParams.(pfName).sanitycheck;
           % Fill in the fallback values for this PF.  These are used if 
-          fallbackValues=struct();
-          for wfParamNdx = 1:numel(wfParamNames)
-            wfParamName = wfParamNames{wfParamNdx};
-            if isfield(windowFeatureParams.(pfName),wfParamName)
-              fallbackValues.(wfParamName) = windowFeatureParams.(pfName).(wfParamName);
-            else % Fill in the value from the default preset amount
-              fallbackValues.(wfParamName) = ...
-                wfParamsAmount.default.values.(wfParamName);
-                %self.defaultWFParams{wfParamNdx};
-            end
-            % fallback.enabled = true;
-          end
+          fallbackValues=wfParamsAmount.default.values;
+%           fallbackValues=struct();
+%           for wfParamNdx = 1:numel(wfParamNames)
+%             wfParamName = wfParamNames{wfParamNdx};
+%             fallbackValues.(wfParamName) = ...
+%               wfParamsAmount.default.values.(wfParamName);
+%             end
+%           end
           % Fill for the rest of the window feature types.
           enabledWFTypes = fieldnames(windowFeatureParams.(pfName));
           for wfTypeNdx = 1:numel(self.wfTypes)
@@ -334,22 +330,6 @@ classdef FeatureVocabularyForSelectFeatures < handle
                                   fallbackValues, ...
                                   wfParamNames, ...
                                   self.wfExtraParamNames{wfTypeNdx});
-%               vocabulary{pfIndex}.(wfType).enabled = true;
-%               wfParamsThisType = windowFeatureParams.(pfName).(wfType);
-%               for wfParamNdx = 1:numel(wfParamNames)
-%                 wfParamName = wfParamNames{wfParamNdx};
-%                 if isfield(wfParamsThisType,wfParamName)
-%                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = wfParamsThisType.(wfParamName);
-%                 else  % fill in the default values
-%                   % Is this really where we want to get it from?
-%                   % 
-%                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = fallbackValues.(wfParamName);
-%                 end
-%               end
-%               if ~isempty(self.wfExtraParamNames{wfTypeNdx})
-%                 extraParamName = self.wfExtraParamNames{wfTypeNdx};
-%                 vocabulary{pfIndex}.(wfType).values.(extraParamName) = wfParamsThisType.(extraParamName);
-%               end
             else
               % If the window type is disabled, use default values for its
               % parameters
