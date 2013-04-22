@@ -121,6 +121,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
             wfParams.(wfType).values.(extraParamName) = defaultWFExtraParams{ndx};
           end
         end
+        wfParamsFromAmount.(wfAmount) = wfParams;      
       else
         % The usual case --- preset amounts are defined in the lexicon.
         for wfAmountIndex = 1:numel(wfAmounts)
@@ -174,9 +175,9 @@ classdef FeatureVocabularyForSelectFeatures < handle
             %   end
             % end
           end
+          wfParamsFromAmount.(wfAmount) = wfParams;      
         end
       end
-      wfParamsFromAmount.(wfAmount) = wfParams;      
     end  % method    
     
     
@@ -305,9 +306,9 @@ classdef FeatureVocabularyForSelectFeatures < handle
       wfAmounts=self.wfAmounts;
       wfAmount=wfAmounts{1};  % by convention, the first one is the default setting (e.g. 'normal')
       wfParamsAmount=self.wfParamsFromAmount.(wfAmount);
-      nToBeCalculatedPFNames=length(subdialectPFNames);
-      vocabulary = cell(1,nToBeCalculatedPFNames);
-      for pfIndex = 1:nToBeCalculatedPFNames
+      nSubdialectPFNames=length(subdialectPFNames);
+      vocabulary = cell(1,nSubdialectPFNames);
+      for pfIndex = 1:nSubdialectPFNames
         pfName = subdialectPFNames{pfIndex};
         vocabulary{pfIndex}.name = pfName;
         if ismember(pfName,enabledPFs) ,
@@ -339,9 +340,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
                 if isfield(wfParamsThisType,wfParamName)
                   vocabulary{pfIndex}.(wfType).values.(wfParamName) = wfParamsThisType.(wfParamName);
                 else  % fill in the default values
-                  % Is this really where we want to get it from?
-                  % 
-                  vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
+                  vocabulary{pfIndex}.(wfType).values.(wfParamName) = windowFeatureParams.(pfName).(wfParamName);
                 end
               end
               if ~isempty(self.wfExtraParamNames{wfTypeNdx})
@@ -354,7 +353,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
               vocabulary{pfIndex}.(wfType).enabled = false;
               for wfParamNdx = 1:numel(wfParamNames)
                 wfParamName = wfParamNames{wfParamNdx};
-                vocabulary{pfIndex}.(wfType).values.(wfParamName) = vocabulary{pfIndex}.default.values.(wfParamName);
+                vocabulary{pfIndex}.(wfType).values.(wfParamName) = windowFeatureParams.(pfName).(wfParamName);
               end
               if ~isempty(self.wfExtraParamNames{wfTypeNdx})
                 extraParamName = self.wfExtraParamNames{wfTypeNdx};
@@ -364,7 +363,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
             end
           end
         else
-          % If PF is disabled, use values in the preset
+          % If PF is disabled, use values from the default preset amount
           vocabulary{pfIndex}=wfParamsAmount;
           vocabulary{pfIndex}.enabled = false;
           vocabulary{pfIndex}.sanitycheck = false;
