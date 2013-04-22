@@ -3220,7 +3220,7 @@ for b=bb
   xlabel(ha,xstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
   title(ha,tstr,'interpreter','none');
-  axis(ha,'tight');;  zoom(ha,'reset');
+  axis(ha,'tight');  zoom(ha,'reset');
 
 end
 idx=find(h>0);
@@ -3978,8 +3978,8 @@ for b=bb
   score_file=handles.scorefiles{b};
 
   num_indi=0;
-  raw_data=cell(length(ggee),1);
-  behavior_cumulative=cell(length(ggee),1);
+  raw_data=cell(length(ggee),length(individual));
+  behavior_cumulative=cell(length(ggee),length(individual));
   parfor gei=1:numel(ggee),
   %for gei=1:numel(ggee),
     ge = ggee(gei);
@@ -4006,83 +4006,93 @@ for b=bb
       parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart));
     end
 
-    for i=1:length(behavior_data.allScores.t0s)   % individual
-      if(isnumeric(individual)&&(individual~=i))  continue;  end
+    ii2=0;
+    parfor_tmp2=cell(1,length(individual));
+    for i2 = individual
+      ii2=ii2+1;
+      if(iscell(i2))  i2=char(i2);  end
+      for i=1:length(behavior_data.allScores.t0s)   % individual
+        if(isnumeric(i2)&&(i2~=i))  continue;  end
 
-      tmp1=zeros(1,behavior_data.allScores.tEnd(i));
-      tmp1(behavior_data.allScores.t0s{i})=1;
-      tmp1(behavior_data.allScores.t1s{i})=-1;
-      tmp1=logical(cumsum(tmp1));
+        tmp1=zeros(1,behavior_data.allScores.tEnd(i));
+        tmp1(behavior_data.allScores.t0s{i})=1;
+        tmp1(behavior_data.allScores.t1s{i})=-1;
+        tmp1=logical(cumsum(tmp1));
 
-      tmp2=[];
-      if(behavior_logic>1)
-        tmp2=zeros(1,behavior_data2.allScores.tEnd(i));
-        tmp2(behavior_data2.allScores.t0s{i})=1;
-        tmp2(behavior_data2.allScores.t1s{i})=-1;
-        tmp2=logical(cumsum(tmp2));
-      end
-
-      tmp3=[];
-      if(handles.behaviorvalue3>1)
-        tmp3=zeros(1,behavior_data3.allScores.tEnd(i));
-        tmp3(behavior_data3.allScores.t0s{i})=1;
-        tmp3(behavior_data3.allScores.t1s{i})=-1;
-        tmp3=logical(cumsum(tmp3));
-        if(handles.behaviornormalizenot)
-          tmp3=~tmp3;
+        tmp2=[];
+        if(behavior_logic>1)
+          tmp2=zeros(1,behavior_data2.allScores.tEnd(i));
+          tmp2(behavior_data2.allScores.t0s{i})=1;
+          tmp2(behavior_data2.allScores.t1s{i})=-1;
+          tmp2=logical(cumsum(tmp2));
         end
-      end
 
-      if(behaviornot)  tmp1=~tmp1;  end
+        tmp3=[];
+        if(handles.behaviorvalue3>1)
+          tmp3=zeros(1,behavior_data3.allScores.tEnd(i));
+          tmp3(behavior_data3.allScores.t0s{i})=1;
+          tmp3(behavior_data3.allScores.t1s{i})=-1;
+          tmp3=logical(cumsum(tmp3));
+          if(handles.behaviornormalizenot)
+            tmp3=~tmp3;
+          end
+        end
 
-      partition_idx=zeros(2,length(tmp1));
-      switch(behavior_logic)
-        case(1)
-          partition_idx(1,:)=tmp1;
-        case(2)
-          partition_idx(1,:)=tmp1 & tmp2;
-        case(3)
-          partition_idx(1,:)=tmp1 & ~tmp2;
-        case(4)
-          partition_idx(1,:)=tmp1 | tmp2;
-        case(5)
-          partition_idx(1,:)=tmp1 | ~tmp2;
-      end
-      if(handles.behaviorvalue3==1)
-        partition_idx(2,behavior_data.allScores.tStart(i):behavior_data.allScores.tEnd(i))=1;
-      else
-        partition_idx(2,:)=tmp3;
-      end
+        if(behaviornot)  tmp1=~tmp1;  end
 
-      [ones(1,behavior_data.allScores.tEnd(i))];
-      switch(individual)
-        case('M')
-          [ones(1,behavior_data.allScores.tStart(i)-1) sex_data{i}];
-        case('F')
-          [ones(1,behavior_data.allScores.tStart(i)-1) ~sex_data{i}];
+        partition_idx=zeros(2,length(tmp1));
+        switch(behavior_logic)
+          case(1)
+            partition_idx(1,:)=tmp1;
+          case(2)
+            partition_idx(1,:)=tmp1 & tmp2;
+          case(3)
+            partition_idx(1,:)=tmp1 & ~tmp2;
+          case(4)
+            partition_idx(1,:)=tmp1 | tmp2;
+          case(5)
+            partition_idx(1,:)=tmp1 | ~tmp2;
+        end
+        if(handles.behaviorvalue3==1)
+          partition_idx(2,behavior_data.allScores.tStart(i):behavior_data.allScores.tEnd(i))=1;
+        else
+          partition_idx(2,:)=tmp3;
+        end
+
+        [ones(1,behavior_data.allScores.tEnd(i))];
+        switch(i2)
+          case('M')
+            [ones(1,behavior_data.allScores.tStart(i)-1) sex_data{i}];
+          case('F')
+            [ones(1,behavior_data.allScores.tStart(i)-1) ~sex_data{i}];
+        end
+        partition_idx(1,:) = partition_idx(1,:) & ans;
+        partition_idx(2,:) = partition_idx(2,:) & ans;
+        
+        idx1 = find(partition_idx(1,:));
+        idx2 = find(partition_idx(2,:));
+        switch(xoffset)
+          case(1)
+          case(2)
+            idx1 = idx1 - behavior_data.allScores.tStart(i) + 1;
+            idx2 = idx2 - behavior_data.allScores.tStart(i) + 1;
+          case(3)
+            idx1 = idx1 - min(behavior_data.allScores.tStart) + 1;
+            idx2 = idx2 - min(behavior_data.allScores.tStart) + 1;
+        end
+        parfor_tmp(1,idx1)=parfor_tmp(1,idx1)+1;
+        parfor_tmp(2,idx2)=parfor_tmp(2,idx2)+1;
       end
-      partition_idx(1,:) = partition_idx(1,:) & ans;
-      partition_idx(2,:) = partition_idx(2,:) & ans;
-      
-      idx1 = find(partition_idx(1,:));
-      idx2 = find(partition_idx(2,:));
-      switch(xoffset)
-        case(1)
-        case(2)
-          idx1 = idx1 - behavior_data.allScores.tStart(i) + 1;
-          idx2 = idx2 - behavior_data.allScores.tStart(i) + 1;
-        case(3)
-          idx1 = idx1 - min(behavior_data.allScores.tStart) + 1;
-          idx2 = idx2 - min(behavior_data.allScores.tStart) + 1;
-      end
-      parfor_tmp(1,idx1)=parfor_tmp(1,idx1)+1;
-      parfor_tmp(2,idx2)=parfor_tmp(2,idx2)+1;
+      parfor_tmp2{ii2}(1,:)=parfor_tmp(1,:)./parfor_tmp(2,:);
+      find(parfor_tmp(2,:)==0);  parfor_tmp(2,ans)=nan;
+      parfor_tmp2{ii2}(2,:)=conv(parfor_tmp(1,:),ones(1,convolutionwidth),'same') ./ ...
+         conv(parfor_tmp(2,:),ones(1,convolutionwidth),'same');
     end
-    raw_data{gei}=parfor_tmp(1,:)./parfor_tmp(2,:);
-    find(parfor_tmp(2,:)==0);  parfor_tmp(2,ans)=nan;
-    behavior_cumulative{gei}=conv(parfor_tmp(1,:),ones(1,convolutionwidth),'same') ./ ...
-       conv(parfor_tmp(2,:),ones(1,convolutionwidth),'same');
+    raw_data(gei,:)=cellfun(@(x) x(1,:),parfor_tmp2,'uniformoutput',false);
+    behavior_cumulative(gei,:)=cellfun(@(x) x(2,:),parfor_tmp2,'uniformoutput',false);
   end
+  raw_data=reshape(raw_data,1,prod(size(raw_data)));
+  behavior_cumulative=reshape(behavior_cumulative,1,prod(size(behavior_cumulative)));
 
   if(num_indi==0)
     delete(hf);
@@ -4128,39 +4138,50 @@ for b=bb
 
   print_csv_help(fid,handles.type,tstr,xstr,ystr);
 
-  for g=1:length(handles.grouplist)
-    color=handles.colors(g,:);
+  ii=0;
+  for i = individual
+    ii=ii+1;
+    if(iscell(i))  i=char(i);  end
+    for g=1:length(handles.grouplist)
+      color=handles.colors(g,:);
 
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
 
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
+      if ischar(i)
+        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+      else
+        find(cumsum_num_exp_per_group<ggee,1,'last');
+        if(ans~=g)  continue;  end
+        idx=1;
+      end
+      idx2=idx+(ii-1)*numel(ggee);
+      linestyle='-';  if(ii>1)  linestyle='--';  end
+
+      plot_it(ha,time_base,100.*behavior_cumulative(idx2,:),...
+          style,centraltendency,dispersion,color,1,linestyle,fid,handlesexperimentlist(idx));
+      if (ii==1)  h(g)=ans;  end
     end
 
-    h(g)=plot_it(ha,time_base,100.*behavior_cumulative(idx,:),...
-        style,centraltendency,dispersion,color,1,fid,handlesexperimentlist(idx));
-  end
+    fprintf(fid,'\n%% raw data\n');
+    for g=1:length(handles.grouplist)
+      if ischar(i)
+        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+      else
+        find(cumsum_num_exp_per_group<ggee,1,'last');
+        if(ans~=g)  continue;  end
+        idx=1;
+      end
+      idx2=idx+(ii-1)*numel(ggee);
+      linestyle='-';  if(ii>1)  linestyle='--';  end
 
-  fprintf(fid,'\n%% raw data\n');
-  for g=1:length(handles.grouplist)
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
-    end
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    for e=1:length(idx)
-      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-      print_csv_data(fid,raw_data{idx(e)});
-%      fprintf(fid,'%g, ',raw_data{idx(e)});
-%      fprintf(fid,'\n');
-      fprintf(fid,'\n');
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      for e=1:length(idx)
+        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+        print_csv_data(fid,raw_data{idx2(e)});
+  %      fprintf(fid,'%g, ',raw_data{idx(e)});
+  %      fprintf(fid,'\n');
+        fprintf(fid,'\n');
+      end
     end
   end
 
@@ -4170,9 +4191,10 @@ for b=bb
 
 end
 idx=find(h>0);
-if ischar(individual)
-  legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
-      handles.grouplist,'uniformoutput',false)],'interpreter','none');
+if ~isnumeric(individual)
+%  legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
+%      handles.grouplist,'uniformoutput',false)],'interpreter','none');
+  legend(ha,h(idx),handles.grouplist,'interpreter','none');
 else
   legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
