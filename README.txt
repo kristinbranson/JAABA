@@ -64,6 +64,8 @@ JAABA contains code from the following sources:
   http://www.mathworks.com/matlabcentral/fileexchange/8722-rotate-tick-label
 * findjobj.m by Yair Altman:
   http://www.mathworks.com/matlabcentral/fileexchange/14317-findjobj-find-java-handles-of-matlab-graphic-objects
+* hatchfill.m by Neil Tandon
+  http://www.mathworks.us/matlabcentral/fileexchange/30733-hatchfill
 
 ***
 
