@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 22-Mar-2013 11:16:36
+% Last Modified by GUIDE v2.5 22-Apr-2013 21:12:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -404,8 +404,8 @@ end
 name = regexp(name,',','split');
 name_str = [sprintf('%s_',name{1:end-1}),name{end}];
 handles.basicParamsStruct.behaviors.names = name;
-handles.basicParamsStruct.file.moviefilename = 'movie.ufmf';
-handles.basicParamsStruct.file.trxfilename = 'registered_trx.mat';
+%handles.basicParamsStruct.file.moviefilename = 'movie.ufmf';
+%handles.basicParamsStruct.file.trxfilename = 'registered_trx.mat';
 %handles.basicParamsStruct.file.labelfilename = sprintf('label_%s.mat',name_str);
 %handles.basicParamsStruct.file.gtlabelfilename = sprintf('gt_label_%s.mat',name_str);
 handles.basicParamsStruct.file.scorefilename = sprintf('scores_%s.mat',name_str);
@@ -1158,3 +1158,23 @@ function figureProjectSetup_CloseRequestFcn(hObject, eventdata, handles)  %#ok
 % Hint: delete(hObject) closes the figure
 %uiresume(hObject);
 pushbutton_cancel_Callback(hObject, eventdata, handles)
+return
+
+
+% -------------------------------------------------------------------------
+% --- Executes on key press with focus on figureProjectSetup and none of its controls.
+function figureProjectSetup_WindowKeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figureProjectSetup (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+if isequal(eventdata.Key,'f') && isControlLike(eventdata.Modifier)
+  handles.basicParamsStruct.file.moviefilename = 'movie.ufmf';
+  handles.basicParamsStruct.file.trxfilename = 'registered_trx.mat';
+  updateEditsListboxesAndPopupmenus(handles);
+end
+
+return
