@@ -7230,12 +7230,19 @@ function menu_classifier_classifyall_new_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_classifyall_new (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-fname = inputdlg('Save scores to.. ' );
-if isempty(fname),
-  return;
+fileNameAsCellArray = inputdlg('Save scores to file name:','Scores File Name?');
+if isempty(fileNameAsCellArray),
+  return
+else
+  fileName=fileNameAsCellArray{1};
+  if isempty(fileName)
+    return
+  end
 end
 for ndx = 1:handles.guidata.data.nexps
-  handles.guidata.PredictSaveMovie(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
+  thisExpDirName=handles.guidata.data.expdirs{ndx};
+  thisScoreFileName=fullfile(thisExpDirName,fileName);
+  handles.guidata.PredictSaveMovie(ndx,thisScoreFileName);
 end
 return
 
