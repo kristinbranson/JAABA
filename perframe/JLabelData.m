@@ -4129,7 +4129,7 @@ end
       if ~isempty(labelsToUse(expi).flies),	
         [ism,fliesi] = ismember(flies,labelsToUse(expi).flies,'rows');
       else
-	ism = false
+        ism = false;
       end
       if ism,
         labels_curr.t0s = labelsToUse(expi).t0s{fliesi};
@@ -6872,6 +6872,25 @@ end
       
     end
     
+    function avgBoutLen = GetAvgPredictionBoutLen(obj)
+      if ~obj.HasLoadedScores(),
+        uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
+      end
+      
+      blen = [];
+      for endx = 1:obj.nexps
+        for flies = 1:obj.nflies_per_exp(endx)
+          curidx = obj.predictdata{endx}{flies}.loaded_valid;
+          posts = obj.predictdata{endx}{flies}.loaded(curidx)>0;
+          labeled = bwlabel(posts);
+          aa = regionprops(labeled,'Area');
+          blen = [blen [aa.Area]];
+        end
+      end
+      avgBoutLen = mean(blen);
+      
+    end
+    
     function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
       success = true; msg = '';
       
@@ -7265,7 +7284,7 @@ end
               success = false;
               return;
             end
-            posts = obj.predictdata{expi}{flies}.loaded_pp(curidx);
+            posts = obj.predictdata{endx}{flies}.loaded_pp(curidx);
             labeled = bwlabel(posts);
             aa = regionprops(labeled,'Area');
             blen = [blen [aa.Area]];
