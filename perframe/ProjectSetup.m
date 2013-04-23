@@ -397,7 +397,7 @@ function editName_Callback(hObject, eventdata, handles)  %#ok
 name = get(hObject,'String');
 if isempty(regexp(name,'^[a-zA-Z][\w_,]*$','once','start'));
    uiwait(warndlg(['The behavior name cannot have special characters.'...
-       'Please use only alphanumeric characters and _']));
+                   'Please use only alphanumeric characters and _']));
    return;
 end
     
@@ -409,9 +409,10 @@ handles.basicParamsStruct.behaviors.names = name;
 %handles.basicParamsStruct.file.labelfilename = sprintf('label_%s.mat',name_str);
 %handles.basicParamsStruct.file.gtlabelfilename = sprintf('gt_label_%s.mat',name_str);
 handles.basicParamsStruct.file.scorefilename = sprintf('scores_%s.mat',name_str);
-updateEditsListboxesAndPopupmenus(handles);
 guidata(hObject,handles);
+updateEditsListboxesAndPopupmenus(handles);
 updateConfigTable(handles);
+return
 
 
 % -------------------------------------------------------------------------
@@ -426,6 +427,7 @@ function editName_CreateFcn(hObject, eventdata, handles)  %#ok
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+return
 
 
 % -------------------------------------------------------------------------
@@ -1163,7 +1165,7 @@ return
 
 % -------------------------------------------------------------------------
 % --- Executes on key press with focus on figureProjectSetup and none of its controls.
-function figureProjectSetup_WindowKeyPressFcn(hObject, eventdata, handles)
+function figureProjectSetup_WindowKeyPressFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to figureProjectSetup (see GCBO)
 % eventdata  structure with the following fields (see FIGURE)
 %	Key: name of the key that was pressed, in lower case
@@ -1174,6 +1176,7 @@ function figureProjectSetup_WindowKeyPressFcn(hObject, eventdata, handles)
 if isequal(eventdata.Key,'f') && isControlLike(eventdata.Modifier)
   handles.basicParamsStruct.file.moviefilename = 'movie.ufmf';
   handles.basicParamsStruct.file.trxfilename = 'registered_trx.mat';
+  guidata(hObject,handles);  % write the changes to the figure
   updateEditsListboxesAndPopupmenus(handles);
 end
 
