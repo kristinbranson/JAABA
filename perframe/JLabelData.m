@@ -7537,7 +7537,7 @@ classdef JLabelData < handle
       
       if ~strcmp(obj.classifiertype,'boosting'); return; end
 
-      obj.SetStatus('Cross validating the classifier for %d examples...',nnz(islabeled));
+      obj.SetStatus('Cross-validating the classifier for %d examples...',nnz(islabeled));
 
       obj.UpdateBoostingBins();
 
@@ -7551,12 +7551,11 @@ classdef JLabelData < handle
       labels = obj.windowdata.labelidx_new;
       labels(~obj.windowdata.labelidx_imp) = 0;
       
-      [success,msg,crossScores, tlabels]=...
-        crossValidateBout( obj.windowdata.X, ...
-        labels,...
-        bouts,obj,...
-        obj.windowdata.binVals,...
-        obj.classifier_params,true,setidx);
+      [success,msg,crossScores,tlabels] = ...
+        obj.crossValidateBout(labels,...
+                              bouts, ...
+                              true, ...
+                              setidx);
       
       if ~success, 
         crossError.numbers = zeros(4,3);
@@ -7581,8 +7580,11 @@ classdef JLabelData < handle
 
       modLabels = 2*obj.windowdata.labelidx_new(islabeled)-obj.windowdata.labelidx_imp(islabeled);
 
-      crossError=zeros(1,size(crossScores,1));
-      for tndx = 1:size(crossScores,1)
+      %crossError=zeros(1,size(crossScores,1));
+      nSomething=size(crossScores,1);
+      crossError=struct('numbers',cell(1,nSomething), ...
+                        'frac',cell(1,nSomething));
+      for tndx = 1:nSomething
         crossError(tndx) = obj.createConfMat(crossScores(tndx,:),modLabels);
       end
       
@@ -7592,7 +7594,7 @@ classdef JLabelData < handle
       oldSelect = waslabeled(islabeled);
       oldScores = crossScores(oldSelect);
       oldLabels = 2*obj.windowdata.labelidx_cur(waslabeled(:)&islabeled(:)) - ...
-          obj.windowdata.labelidx_imp(waslabeled(:)&islabeled(:));
+                  obj.windowdata.labelidx_imp(waslabeled(:)&islabeled(:));
       oldError = obj.createConfMat(oldScores,oldLabels);
       crossError(1).oldNumbers = oldError.numbers;
       crossError(1).oldFrac = oldError.frac;
@@ -7600,6 +7602,203 @@ classdef JLabelData < handle
       obj.ClearStatus();
     end
 
+    
+    % ---------------------------------------------------------------------    
+    function [success,msg,scores,tlabels] = ...
+        crossValidateBout(obj,labels,bouts,timed,setidx)
+      
+      % Get stuff out of self that we need
+      data=obj.windowdata.X;
+      binVals=obj.windowdata.binVals;
+      params=obj.classifier_params;
+
+      success = true; msg = '';
+      k = params.CVfolds;
+
+      % Learn classifier with all the data.
+      if exist('timed','var') && timed,
+        fprintf('WARNING: setting timed = false in crossValidateBout, even though the input is true. FIX THIS!\n');
+      end
+      timed = false;
+
+      if ~exist('setidx','var') ,
+        setidx = [];
+      end
+
+      issetidx = ~isempty(setidx);
+      if issetidx,
+        k = max(setidx);
+      end
+
+      % choose sets to hold out together
+      if ~issetidx,
+
+        posBouts = bouts.label == 1;
+        negBouts = ~posBouts;
+
+        numPosBouts = nnz(posBouts);
+        numNegBouts = nnz(negBouts);
+
+        if numPosBouts<k || numNegBouts<k,
+          scores = zeros(1,size(data,1));
+          scores(labels==0) = [];
+          tlabels = {};
+          success = false;
+
+          if numPosBouts<k
+            msg = 'Too few bouts of behavior to do cross-validation';
+          end
+          if numNegBouts <k
+            msg = 'Too few bouts of not behavior to do cross-validation';
+          end
+
+          return;
+        end
+
+        posBlocks = linspace(0,numPosBouts+1,k+1);
+        negBlocks = linspace(0,numNegBouts+1,k+1);
+        posCum = cumsum(posBouts);
+        negCum = cumsum(negBouts);
+        % Randomly permute the bouts.
+        posCum = posCum(randperm(numel(posCum)));
+        negCum = negCum(randperm(numel(negCum)));
+
+      end
+
+      modLabels = sign( (labels==1)-0.5);
+      tlabels = {};
+      if timed,
+        tpoints(1) = max(bouts.timestamp);  %#ok
+        tlabels{1} = datestr(tpoints(1));
+        tpoints(end+1) = addtodate(tpoints(1),-5,'minute');
+        tlabels{end+1} = '-5m';
+        tpoints(end+1) = addtodate(tpoints(1),-10,'minute');
+        tlabels{end+1} = '-10m';
+        tpoints(end+1) = addtodate(tpoints(1),-15,'minute');
+        tlabels{end+1} = '-15m';
+        tpoints(end+1) = addtodate(tpoints(1),-20,'minute');
+        tlabels{end+1} = '-20m';
+        tpoints(end+1) = addtodate(tpoints(1),-25,'minute');
+        tlabels{end+1} = '-25m';
+        tpoints(end+1) = addtodate(tpoints(1),-30,'minute');
+        tlabels{end+1} = '-30m';
+        tpoints(end+1) = addtodate(tpoints(1),-45,'minute');
+        tlabels{end+1} = '-45m';
+        tpoints(end+1) = addtodate(tpoints(1),-1,'hour');
+        tlabels{end+1} = '-1h';
+        tpoints(end+1) = addtodate(tpoints(1),-2,'hour');
+        tlabels{end+1} = '-2h';
+        tpoints(end+1) = addtodate(tpoints(1),-3,'hour');
+        tlabels{end+1} = '-3h';
+        tpoints(end+1) = addtodate(tpoints(1),-4,'hour');
+        tlabels{end+1} = '-4h';
+        tpoints(end+1) = addtodate(tpoints(1),-1,'day');
+        tlabels{end+1} = '-1d';
+        tpoints(end+1) = addtodate(tpoints(1),-2,'day');
+        tlabels{end+1} = '-2d';
+        tpoints(end+1) = addtodate(tpoints(1),-3,'day');
+        tlabels{end+1} = '-3d';
+        tpoints(end+1) = addtodate(tpoints(1),-7,'day');
+        tlabels{end+1} = '-1w';
+        tpoints(end+1) = addtodate(tpoints(1),-7*2,'day');
+        tlabels{end+1} = '-2w';
+        tpoints(end+1) = addtodate(tpoints(1),-1,'month');
+        tlabels{end+1} = '-1mo';
+        tpoints(end+1) = addtodate(tpoints(1),-2,'month');
+        tlabels{end+1} = '-2mo';
+        tpoints(end+1) = addtodate(tpoints(1),-6,'month');
+        tlabels{end+1} = '-6mo';
+        tpoints(end+1) = addtodate(tpoints(1),-1,'year');
+        tlabels{end+1} = '-1y';
+        tpoints(end+1) = addtodate(tpoints(1),-2,'year');
+        tlabels{end+1} = '-2y';
+        tpoints(end+1) = addtodate(tpoints(1),-10,'year');
+        tlabels{end+1} = '-10y';
+
+        tooOld = tpoints< min(bouts.timestamp) ;
+        tpoints(tooOld) = [];
+        tlabels(tooOld) = [];
+      else
+        tpoints = now;
+      end
+
+
+      scores = zeros(numel(tpoints),size(data,1));
+      bins = findThresholdBins(data,binVals);
+
+      for bno = 1:k
+
+        if ~issetidx,
+
+        curPosTest = posCum >= posBlocks(bno) & ...
+          posCum < posBlocks(bno+1) & ...
+          posBouts;
+
+        curNegTest = negCum >= negBlocks(bno) & ...
+          negCum < negBlocks(bno+1) & ...
+          negBouts;
+
+        curTestNdx = false(1,size(data,1));
+        for posNdx = find(curPosTest)
+          curTestNdx = curTestNdx | bouts.ndx(posNdx,:);
+        end
+
+        for negNdx = find(curNegTest)
+          curTestNdx = curTestNdx | bouts.ndx(negNdx,:);
+        end
+
+        else
+
+          curTestNdx = setidx == bno;
+
+        end
+
+        for tndx = 1:numel(tpoints)
+
+          if ~issetidx,
+
+          curPosTrain = find(~curPosTest & posBouts & bouts.timestamp<=tpoints(tndx));
+          curNegTrain = find(~curNegTest & negBouts & bouts.timestamp<=tpoints(tndx));
+
+          curTrainNdx = false(1,size(data,1));
+          for posNdx = curPosTrain
+            curTrainNdx = curTrainNdx | bouts.ndx(posNdx,:);
+          end
+          for negNdx = curNegTrain
+            curTrainNdx = curTrainNdx | bouts.ndx(negNdx,:);
+          end
+
+          else
+
+            curTrainNdx = bno ~= setidx;
+
+          end
+
+          curTrainLabels = modLabels(curTrainNdx);
+
+          wt = getWeights(curTrainLabels);  
+          tt = tic;
+          curbins = curTrainNdx;
+          [~,curModel] = loglossboostLearnRandomFeatures(data(curTrainNdx,:),curTrainLabels,...
+            params.iter,wt,binVals,bins(:,curbins),params);
+          tScores = myBoostClassify(data(curTestNdx,:),curModel);
+          scores(tndx,curTestNdx) = tScores;
+          etime = toc(tt);
+          done = ((bno-1)*numel(tpoints) + tndx);
+          obj.SetStatus('%d%% cross-validation done.  Time Remaining: %d s ',...
+            round( done/(numel(tpoints)*k)*100), ...
+            round( ((numel(tpoints)*k)-done)*etime));
+          drawnow();
+
+        end
+
+
+      end
+
+      scores(:,labels==0) = [];
+
+    end  % method
+    
     
     % ---------------------------------------------------------------------
     function [curScores,modLabels]=getCurrentScoresForROCCurve(obj)
