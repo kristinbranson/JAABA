@@ -87,6 +87,7 @@ handles.boutstats_style2=1;
 handles.omitnan=1;
 handles.omitinf=1;
 handles.absdprime=1;
+handles.dump2csv=1;
 handles.centraltendency=1;
 handles.dispersion=1;
 handles.xoffset=1;
@@ -148,6 +149,7 @@ try
   handles.omitnan=handles_saved.omitnan;
   handles.omitinf=handles_saved.omitinf;
   handles.absdprime=handles_saved.absdprime;
+  handles.dump2csv=handles_saved.dump2csv;
   handles.centraltendency=handles_saved.centraltendency;
   handles.dispersion=handles_saved.dispersion;
   handles.xoffset=handles_saved.xoffset;
@@ -576,6 +578,7 @@ set(handles.WindowRadius,'string',handles.windowradius);
 set(handles.LogBinSize,'value',handles.logbinsize);
 set(handles.SubtractMean,'value',handles.subtractmean);
 set(handles.AbsDPrime,'value',handles.absdprime);
+set(handles.DumpToCSV,'value',handles.dump2csv);
 set(handles.OmitNaN,'value',handles.omitnan);
 set(handles.OmitInf,'value',handles.omitinf);
 set(handles.XOffset,'value',handles.xoffset);
@@ -1980,11 +1983,13 @@ end
 
 
 % ---
-function h=plot_it(ha,xdata,ydata,style,centraltendency,dispersion,color,linewidth,linestyle,fid,experimentlist)
+function h=plot_it(ha,xdata,ydata,style,centraltendency,dispersion,color,linewidth,linestyle,...
+    fid,experimentlist)
 
-fprintf(fid,'%% xdata\n');
-print_csv_data(fid,xdata);
-%fprintf(fid,'%g, ',xdata);  fprintf(fid,'\n');
+if(~isnan(fid))
+  fprintf(fid,'%% xdata\n');
+  print_csv_data(fid,xdata);
+end
 if(style~=3)
   switch(centraltendency)
     case 1
@@ -2001,9 +2006,10 @@ end
 switch(style)
   case 1
     h=plot(ha,xdata,data_ct,'color',color,'linewidth',linewidth,'linestyle',linestyle);
-    fprintf(fid,['%% ydata, ' str_ct '\n']);
-    print_csv_data(fid,data_ct);
-%    fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
+    if(~isnan(fid))
+      fprintf(fid,['%% ydata, ' str_ct '\n']);
+      print_csv_data(fid,data_ct);
+    end
   case 2
     switch(dispersion)
       case 1
@@ -2040,26 +2046,25 @@ switch(style)
       k=k+step+1;  m=m+1;
     end
     get(ha,'children');  set(ha,'children',circshift(ans,-m));  % send to back
-    %get(gca,'children');  set(gca,'children',ans([m+1 1:m (m+2):end]));  % send to back
-    fprintf(fid,['%% ydata, ' str_dp '\n']);
-    print_csv_data(fid,data_dp);
-%    fprintf(fid,'%g, ',data_dp);  fprintf(fid,'\n');
-    fprintf(fid,['%% ydata, ' str_dn '\n']);
-    print_csv_data(fid,data_dn);
-%    fprintf(fid,'%g, ',data_dn);  fprintf(fid,'\n');
-    fprintf(fid,['%% ydata, ' str_ct '\n']);
-    print_csv_data(fid,data_ct);
-%    fprintf(fid,'%g, ',data_ct);  fprintf(fid,'\n');
+    if(~isnan(fid))
+      fprintf(fid,['%% ydata, ' str_dp '\n']);
+      print_csv_data(fid,data_dp);
+      fprintf(fid,['%% ydata, ' str_dn '\n']);
+      print_csv_data(fid,data_dn);
+      fprintf(fid,['%% ydata, ' str_ct '\n']);
+      print_csv_data(fid,data_ct);
+    end
   case 3
     h=plot(ha,xdata,ydata','color',color,'linewidth',linewidth,'linestyle',linestyle);
     h=h(1);
     for e=1:size(ydata,1)
-      fprintf(fid,['%% ydata, experiment ' experimentlist{e} '\n']);
-      print_csv_data(fid,ydata(e,:));
-%      fprintf(fid,'%g, ',ydata(e,:));  fprintf(fid,'\n');
+      if(~isnan(fid))
+        fprintf(fid,['%% ydata, experiment ' experimentlist{e} '\n']);
+        print_csv_data(fid,ydata(e,:));
+      end
     end
 end
-fprintf(fid,'\n');
+if(~isnan(fid)) fprintf(fid,'\n');  end
 
 
 % --- 
@@ -2296,15 +2301,17 @@ for b=1:length(table_data)
 end
 tmp{end+1,1}='';
 
-fprintf(fid,'%% statistics\n');
-for j=1:(size(tmp,1)/nrows)
-  for i=1:nrows
-    if(j==1)  fprintf(fid,'%% ');  end
-    tmp(nrows*(j-1)+i,:);
-    ans(cellfun(@isempty,ans))='';
-    cellfun(@(x) regexprep(x,'<[^<]*>','*'),ans,'uniformoutput',false);
-    fprintf(fid,'%s, ',ans{:});
-    fprintf(fid,'\n');
+if(~isnan(fid))
+  fprintf(fid,'%% statistics\n');
+  for j=1:(size(tmp,1)/nrows)
+    for i=1:nrows
+      if(j==1)  fprintf(fid,'%% ');  end
+      tmp(nrows*(j-1)+i,:);
+      ans(cellfun(@isempty,ans))='';
+      cellfun(@(x) regexprep(x,'<[^<]*>','*'),ans,'uniformoutput',false);
+      fprintf(fid,'%s, ',ans{:});
+      fprintf(fid,'\n');
+    end
   end
 end
 
@@ -2373,7 +2380,7 @@ if(isnumeric(individual))
   individual=individual-cumsum_num_indi_per_exp(ggee);
 end
 
-fid=fopen('most_recent_figure.csv','w');
+fid=nan;  if(handles.dump2csv)  fid=fopen('most_recent_figure.csv','w');  end
 
 handles.type='feature histogram';
 
@@ -2421,7 +2428,7 @@ for b=bb
   xstr=get_label(feature_list(feature_value),units.units);
   ystr='normalized';
 
-  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+  if(handles.dump2csv)  print_csv_help(fid,handles.type,tstr,xstr,ystr);  end
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
@@ -2543,7 +2550,7 @@ for b=bb
     for g=1:length(handles.grouplist)
       color=handles.colors(g,:);
 
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      if(handles.dump2csv)  fprintf(fid,['%% group ' handles.grouplist{g} '\n']);  end
 
       if ~isnumeric(i)
         idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -2556,7 +2563,7 @@ for b=bb
       linestyle='-';  if(ii>1)  linestyle='--';  end
 
       if(comparison>0)
-        fprintf(fid,['%% not during\n']);
+        if(handles.dump2csv)  fprintf(fid,['%% not during\n']);  end
         if(~isempty(not_during_data))
           hist_not_during=hist(not_during_data(idx2,:)',bins);
           if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
@@ -2566,7 +2573,7 @@ for b=bb
               fid,handlesexperimentlist(idx));
         end
       end
-      fprintf(fid,['%% during\n']);
+      if(handles.dump2csv)  fprintf(fid,['%% during\n']);  end
       if(~isempty(during_data))
         hist_during=hist(during_data(idx2,:)',bins);
         if(size(hist_during,1)==1)  hist_during=hist_during';  end
@@ -2580,7 +2587,7 @@ for b=bb
     end
 
     table_data{end+1}={};
-    fprintf(fid,'\n%% raw data\n');
+    if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');  end
     for g=1:length(handles.grouplist)
       if ischar(i)
         idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -2589,20 +2596,22 @@ for b=bb
         if(ans~=g)  continue;  end
         idx=1;
       end
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-      for e=1:length(idx)
-        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-        if(comparison>0)
-          fprintf(fid,'%% not during\n');
-          if(~isempty(not_during_data))
-            print_csv_data(fid,not_during_data(idx(e),:));
+      if(handles.dump2csv)
+        fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+        for e=1:length(idx)
+          fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+          if(comparison>0)
+            fprintf(fid,'%% not during\n');
+            if(~isempty(not_during_data))
+              print_csv_data(fid,not_during_data(idx(e),:));
+            end
           end
+          fprintf(fid,'%% during\n');
+          if(~isempty(during_data))
+            print_csv_data(fid,during_data(idx(e),:));
+          end
+          fprintf(fid,'\n');
         end
-        fprintf(fid,'%% during\n');
-        if(~isempty(during_data))
-          print_csv_data(fid,during_data(idx(e),:));
-        end
-        fprintf(fid,'\n');
       end
 
       if(~isempty(during_data))  table_data{end}{g,1}=nanmean(during_data(idx,:),2)';  end
@@ -2642,7 +2651,7 @@ if(ischar(individual) && ((length(handles.grouplist)>1) || (comparison>0)) && ..
       comparison,fid,handles.pvalue);
 end
 
-fclose(fid);
+if(handles.dump2csv)  fclose(fid);  end
 
 guidata(hf,handles);
 
@@ -2886,12 +2895,13 @@ handles2.table_data=tmp2;
 handles2.table='histogram';
 guidata(handles2.figure2,handles2);
 
-fid=fopen('most_recent_table.csv','w');
-fprintf(fid,...
-    '%% group, sample size, group 2, sample size 2, behavior, feature, d-prime, d-prime all-frames\n');
-transpose(tmp);
-fprintf(fid,'%s, %s, %s, %s, %s, %s, %s, %s\n',ans{:});
-fclose(fid);
+if(handles.dump2csv)
+  fid=fopen('most_recent_table.csv','w');
+  fprintf(fid,'%% group, sample size, group 2, sample size 2, behavior, feature, d-prime, d-prime all-frames\n');
+  transpose(tmp);
+  fprintf(fid,'%s, %s, %s, %s, %s, %s, %s, %s\n',ans{:});
+  fclose(fid);
+end
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
@@ -3016,7 +3026,7 @@ if isnumeric(individual)
   individual=individual-cumsum_num_indi_per_exp(ggee);
 end
 
-fid=fopen('most_recent_figure.csv','w');
+fid=nan;  if(handles.dump2csv)  fid=fopen('most_recent_figure.csv','w');  end
 
 handles.type='feature time series';
 
@@ -3179,7 +3189,7 @@ for b=bb
       [feature_list{feature_value} '.mat']),'units');
   ystr=get_label(feature_list(feature_value),units.units);
 
-  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+  if(handles.dump2csv)  print_csv_help(fid,handles.type,tstr,xstr,ystr);  end
 
   ii=0;
   for i = individual
@@ -3198,13 +3208,13 @@ for b=bb
       idx2=idx+(ii-1)*numel(ggee);
       linestyle='-';  if(ii>1)  linestyle='--';  end
 
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      if(handles.dump2csv)  fprintf(fid,['%% group ' handles.grouplist{g} '\n']);  end
       plot_it(ha,time_base,ydata(idx2,:),style,centraltendency,dispersion,color,1,linestyle,...
           fid,handlesexperimentlist(idx));
       if (ii==1)  h(g)=ans;  end
     end
 
-    fprintf(fid,'\n%% raw data\n');
+    if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');  end
     for g=1:length(handles.grouplist)
       if ischar(i)
         idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -3216,11 +3226,13 @@ for b=bb
       idx2=idx+(ii-1)*numel(ggee);
       linestyle='-';  if(ii>1)  linestyle='--';  end
 
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-      for e=1:length(idx2)
-        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-        print_csv_data(fid,raw_data{idx2(e)});
-        fprintf(fid,'\n');
+      if(handles.dump2csv)
+        fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+        for e=1:length(idx2)
+          fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+          print_csv_data(fid,raw_data{idx2(e)});
+          fprintf(fid,'\n');
+        end
       end
     end
   end
@@ -3243,7 +3255,7 @@ end
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
 
-fclose(fid);
+if(handles.dump2csv)  fclose(fid);  end
 
 guidata(hf,handles);
 
@@ -3540,15 +3552,17 @@ for b=1:length(table_data)
 end
 tmp{end+1,1}='';
 
-fprintf(fid,'\n%% statistics\n');
-for j=1:(size(tmp,1)/nrows)
-  for i=1:nrows
-    if(j==1)  fprintf(fid,'%% ');  end
-    tmp(nrows*(j-1)+i,:);
-    ans(cellfun(@isempty,ans))='';
-    cellfun(@(x) regexprep(x,'<[^<]*>','*'),ans,'uniformoutput',false);
-    fprintf(fid,'%s, ',ans{:});
-    fprintf(fid,'\n');
+if(~isnan(fid))
+  fprintf(fid,'\n%% statistics\n');
+  for j=1:(size(tmp,1)/nrows)
+    for i=1:nrows
+      if(j==1)  fprintf(fid,'%% ');  end
+      tmp(nrows*(j-1)+i,:);
+      ans(cellfun(@isempty,ans))='';
+      cellfun(@(x) regexprep(x,'<[^<]*>','*'),ans,'uniformoutput',false);
+      fprintf(fid,'%s, ',ans{:});
+      fprintf(fid,'\n');
+    end
   end
 end
 
@@ -3577,7 +3591,7 @@ if isnumeric(individual)
   individual=individual-cumsum_num_indi_per_exp(ggee);
 end
 
-fid=fopen('most_recent_figure.csv','w');
+fid=nan;  if(handles.dump2csv)  fid=fopen('most_recent_figure.csv','w');  end
 
 handles.type='behavior bar chart';
 
@@ -3617,7 +3631,7 @@ for b=bb
   ystr=[ystr ' (%)'];
   xstr='group';
 
-  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+  if(handles.dump2csv)  print_csv_help(fid,handles.type,tstr,xstr,ystr);  end
 
   if(length(bb)>1)
     ceil(sqrt(length(bb)));
@@ -3750,26 +3764,27 @@ for b=bb
         traj_len=cellfun(@(x) x{4}(i),collated_data,'uniformoutput',false);
     end
 
-    fprintf(fid,'\n%% raw data\n');
-    for g=1:length(handles.grouplist)
-      if ~isnumeric(individual)
-        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-      else
-        find(cumsum_num_exp_per_group<ggee,1,'last');
-        if(ans~=g)  continue;  end
-        idx=1;
-      end
-      fprintf(fid,['%% individual ' i '\n']);
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-      for e=1:length(idx)
-        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-        fprintf(fid,'%% frames labelled\n');
-        fprintf(fid,'%d, ',frames_labelled{idx(e)});
-        fprintf(fid,'\n');
-        fprintf(fid,'%% frames total\n');
-        fprintf(fid,'%d, ',frames_total{idx(e)});
-        fprintf(fid,'\n');
-        fprintf(fid,'\n');
+    if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');
+      for g=1:length(handles.grouplist)
+        if ~isnumeric(individual)
+          idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+        else
+          find(cumsum_num_exp_per_group<ggee,1,'last');
+          if(ans~=g)  continue;  end
+          idx=1;
+        end
+        fprintf(fid,['%% individual ' i '\n']);
+        fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+        for e=1:length(idx)
+          fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+          fprintf(fid,'%% frames labelled\n');
+          fprintf(fid,'%d, ',frames_labelled{idx(e)});
+          fprintf(fid,'\n');
+          fprintf(fid,'%% frames total\n');
+          fprintf(fid,'%d, ',frames_total{idx(e)});
+          fprintf(fid,'\n');
+          fprintf(fid,'\n');
+        end
       end
     end
 
@@ -3855,15 +3870,23 @@ for b=bb
       end
     end
   end
-  fprintf(fid,'\n%% summary data\n');
-  fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
+  if(handles.dump2csv)
+    fprintf(fid,'\n%% summary data\n');
+    fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
+  end
   switch(handles.behaviorbarchart_style)
     case 1  % per group
-      fprintf(fid,['%% ydata, per group\n']);  fprintf(fid,'%g, ',table_data{end});  fprintf(fid,'\n');
+      if(handles.dump2csv)
+        fprintf(fid,['%% ydata, per group\n']);
+        fprintf(fid,'%g, ',table_data{end});
+        fprintf(fid,'\n');
+      end
     case 2  % per experiment, error bars
-      fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
-      fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
-      fprintf(fid,['%% ydata, CT\n']);  fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
+      if(handles.dump2csv)
+        fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
+        fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
+        fprintf(fid,['%% ydata, CT\n']);    fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
+      end
     case {4,6}  % per fly, grouped
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
@@ -3872,20 +3895,24 @@ for b=bb
       set(hh,'edgecolor','none');
       set(ha,'children',flipud(get(ha,'children')));
       k=round(cumsum(k)-k/2);
-      fprintf(fid,['%% ydata\n']);
-      for i=1:length(table_data{end})
-        fprintf(fid,'%g, ',[table_data{end}{i}]);
-        fprintf(fid,'\n');
+      if(handles.dump2csv)
+        fprintf(fid,['%% ydata\n']);
+        for i=1:length(table_data{end})
+          fprintf(fid,'%g, ',[table_data{end}{i}]);
+          fprintf(fid,'\n');
+        end
       end
     case 5  % per fly, stern-style
       k=round(cumsum(k)-k/2);
-      fprintf(fid,['%% ydata\n']);
-      for i=1:length(table_data{end})
-        for j=1:length(table_data{end}{i})
-          fprintf(fid,'%g, ',[table_data{end}{i}{j}]);
+      if(handles.dump2csv)
+        fprintf(fid,['%% ydata\n']);
+        for i=1:length(table_data{end})
+          for j=1:length(table_data{end}{i})
+            fprintf(fid,'%g, ',[table_data{end}{i}{j}]);
+            fprintf(fid,'\n');
+          end
           fprintf(fid,'\n');
         end
-        fprintf(fid,'\n');
       end
   end
 
@@ -3900,7 +3927,6 @@ for b=bb
   else
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
-  %fprintf(fid,'\n');
 
 end
 %idx=find(~cellfun(@isempty,h));
@@ -3926,7 +3952,7 @@ if((ismember(handles.behaviorbarchart_style,[2 3 4])) && ischar(individual) && (
 %  set(handles.Table,'ColumnName',{});
 end
 
-fclose(fid);
+if(handles.dump2csv)  fclose(fid);  end
 
 guidata(hf,handles);
 
@@ -3959,7 +3985,7 @@ if isnumeric(individual)
   individual=individual-cumsum_num_indi_per_exp(ggee);
 end
 
-fid=fopen('most_recent_figure.csv','w');
+fid=nan;  if(handles.dump2csv)  fid=fopen('most_recent_figure.csv','w');  end
 
 handles.type='behavior time series';
 
@@ -4154,7 +4180,7 @@ for b=bb
   end
   ystr=[ystr ' (%)'];
 
-  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+  if(handles.dump2csv)  print_csv_help(fid,handles.type,tstr,xstr,ystr);  end
 
   ii=0;
   for i = individual
@@ -4163,7 +4189,7 @@ for b=bb
     for g=1:length(handles.grouplist)
       color=handles.colors(g,:);
 
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      if(handles.dump2csv)  fprintf(fid,['%% group ' handles.grouplist{g} '\n']);  end
 
       if ischar(i)
         idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -4180,7 +4206,7 @@ for b=bb
       if (ii==1)  h(g)=ans;  end
     end
 
-    fprintf(fid,'\n%% raw data\n');
+    if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');  end
     for g=1:length(handles.grouplist)
       if ischar(i)
         idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -4192,13 +4218,13 @@ for b=bb
       idx2=idx+(ii-1)*numel(ggee);
       linestyle='-';  if(ii>1)  linestyle='--';  end
 
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-      for e=1:length(idx)
-        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-        print_csv_data(fid,raw_data{idx2(e)});
-  %      fprintf(fid,'%g, ',raw_data{idx(e)});
-  %      fprintf(fid,'\n');
-        fprintf(fid,'\n');
+      if(handles.dump2csv)
+        fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+        for e=1:length(idx)
+          fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+          print_csv_data(fid,raw_data{idx2(e)});
+          fprintf(fid,'\n');
+        end
       end
     end
   end
@@ -4220,7 +4246,7 @@ end
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
     'callback',@figure_params_callback);
 
-fclose(fid);
+if(handles.dump2csv)  fclose(fid);  end
 
 guidata(hf,handles);
 
@@ -4313,7 +4339,7 @@ if isnumeric(individual)
   individual=individual-cumsum_num_indi_per_exp(ggee);
 end
 
-fid=fopen('most_recent_figure.csv','w');
+fid=nan;  if(handles.dump2csv)  fid=fopen('most_recent_figure.csv','w');  end
 
 handles.type='bout stats';
 
@@ -4389,7 +4415,7 @@ for b=bb
   if(handles.boutstats_style2==2)  ystr=['inter-' ystr];  end
   xstr='group';
 
-  print_csv_help(fid,handles.type,tstr,xstr,ystr);
+  if(handles.dump2csv)  print_csv_help(fid,handles.type,tstr,xstr,ystr);  end
 
   idx=cellfun(@isempty,collated_data);
   collated_data=collated_data(~idx);
@@ -4441,18 +4467,22 @@ for b=bb
             'barwidth',1,'edgecolor','none');
         set(h(g),'facecolor',color);
         k(end+1)=length(table_data{end}{g});
-        fprintf(fid,['%% data, %s\n'],xticklabels{g});
-        fprintf(fid,'%g, ',[table_data{end}{g}]);
-        fprintf(fid,'\n');
+        if(handles.dump2csv)
+          fprintf(fid,['%% data, %s\n'],xticklabels{g});
+          fprintf(fid,'%g, ',[table_data{end}{g}]);
+          fprintf(fid,'\n');
+        end
     end
   end
 
   switch(handles.boutstats_style)
     case 1  % per experiment, error bars
-      fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
-      fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
-      fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
-      fprintf(fid,['%% ydata, CT\n']);  fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
+      if(handles.dump2csv)
+        fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
+        fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
+        fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
+        fprintf(fid,['%% ydata, CT\n']);    fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
+      end
     case 2  % per fly, grouped
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
@@ -4463,7 +4493,7 @@ for b=bb
       k=round(cumsum(k)-k/2);
   end
 
-  fprintf(fid,'\n%% raw data\n');
+  if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');  end
   for g=1:length(handles.grouplist)
     if ischar(individual)
       idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -4472,13 +4502,15 @@ for b=bb
       if(ans~=g)  continue;  end
       idx=1;
     end
-    fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-    for e=1:length(idx)
-      fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-      for i=1:length(length_data{idx(e)})
-        fprintf(fid,'%% individual %d\n',i);
-        print_csv_data(fid,length_data{idx(e)}{i}./handles.fps);
-        fprintf(fid,'\n');
+    if(handles.dump2csv)
+      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+      for e=1:length(idx)
+        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+        for i=1:length(length_data{idx(e)})
+          fprintf(fid,'%% individual %d\n',i);
+          print_csv_data(fid,length_data{idx(e)}{i}./handles.fps);
+          fprintf(fid,'\n');
+        end
       end
     end
   end
@@ -4494,7 +4526,7 @@ for b=bb
   else
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
-  fprintf(fid,'\n');
+  if(handles.dump2csv)  fprintf(fid,'\n');  end
 
 end
 
@@ -4507,7 +4539,7 @@ if(ischar(individual) && (length(handles.grouplist)>1))
       fid,handles.pvalue);
 end
 
-fclose(fid);
+if(handles.dump2csv)  fclose(fid);  end
 
 guidata(hf,handles);
 
@@ -5468,6 +5500,16 @@ function AbsDPrime_Callback(hObject, eventdata, handles)
 handles.absdprime=~handles.absdprime;
 %button_absdprime_set(handles.absdprime);
 %handles.interestingfeaturehistograms_cache=[];
+guidata(hObject,handles);
+
+
+% --- Executes on button press in AbsDPrime.
+function DumpToCSV_Callback(hObject, eventdata, handles)
+% hObject    handle to AbsDPrime (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.dump2csv=~handles.dump2csv;
 guidata(hObject,handles);
 
 
