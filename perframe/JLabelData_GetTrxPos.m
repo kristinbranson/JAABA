@@ -44,8 +44,14 @@ switch obj.targettype,
     
     pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
     pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
-    pos.skeletonx = obj.trx(fly).skeletonx(:,ts + obj.trx(fly).off);
-    pos.skeletony = obj.trx(fly).skeletony(:,ts + obj.trx(fly).off);
+    if isfield(obj.trx,'skeletonx'),
+      pos.skeletonx = obj.trx(fly).skeletonx(:,ts + obj.trx(fly).off);
+      pos.skeletony = obj.trx(fly).skeletony(:,ts + obj.trx(fly).off);
+    else
+      pos.xspine = obj.trx(fly).xspine(:,ts + obj.trx(fly).off);
+      pos.yspine = obj.trx(fly).yspine(:,ts + obj.trx(fly).off);
+    end
+
 
   case 'wingedfly',
     

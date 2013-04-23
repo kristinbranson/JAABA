@@ -8,6 +8,7 @@
 <larvae file="params/featureConfigLarvae.xml" animal="larva"/>
 <larvae_mwt file="params/featureConfigMWTContour.xml" animal="larvacontour"/>
 <larvae_samuel file="params/featureConfigLarvaeSamuel.xml" animal="larvasamuel"/>
+<larvae_reid file="params/featureConfigLarvaeReid.xml" animal="larvacontour"/>
 <vivek_mice file="params/featureConfigVivekMice.xml" animal="fly"/>
 <adam_flies file="params/featureConfig_adam.xml" animal="fly"/>
 
