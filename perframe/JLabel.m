@@ -7544,13 +7544,27 @@ SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAb
 macguffin=handles.guidata.getMacguffin();
 % write the everything structure to disk
 try
+  if exist(fileNameAbs,'file')
+    backupFileNameAbs=[fileNameAbs,'~'];
+    [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
+    if ~success,
+      error('JLabel:unableToCreateBackup','Unable to create backup file.');
+    end
+  end
   saveAnonymous(fileNameAbs,macguffin);
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to save %s.', ...
-                          fileNameRel), ...
-                  'Unable to Save'));
+catch excp
+  if isequal(excp.identifier,'JLabel:unableToCreateBackup')
+    backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
+    uiwait(errordlg(sprintf('Unable to create backup file %s.  Save aborted.', ...
+                            backupFileNameRel), ...
+                    'Unable to Create Backup'));
+  else
+    uiwait(errordlg(sprintf('Unable to save %s.', ...
+                            fileNameRel), ...
+                    'Unable to Save'));
+  end
   ClearStatus(handles);
-  return;
+  return
 end
 saved=true;
 handles.guidata.needsave=false;
