@@ -1735,6 +1735,13 @@ posF=get(hf,'position');
 set(hf,'position',[posF(1) posF(2) min(posF(3),16*(posF(4)<extT(4))+extT(3)) min(posF(4),extT(4))]);
 set(ht,'units','normalized','position',[0 0 1 1]);
 
+if(handles.dump2csv)
+  fid=fopen('most_recent_table.csv','w');
+  transpose(table);
+  fprintf(fid,[repmat('%s, ',1,size(table,2)) '\n'],ans{:});
+  fclose(fid);
+end
+
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
