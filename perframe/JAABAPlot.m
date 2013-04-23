@@ -3797,9 +3797,9 @@ for b=bb
           exp_separators=[exp_separators; ans+sum(k)];
           table_data{end}{ii}=100.*[frames_labelled{idx}]./[frames_total{idx}];
           maxy=max([maxy table_data{end}{ii}]);
-          h{g}=bar(ha,(1:length(table_data{end}{ii}))+sum(k),table_data{end}{ii},...
+          h{ii}=bar(ha,(1:length(table_data{end}{ii}))+sum(k),table_data{end}{ii},...
               'barwidth',1,'edgecolor','none');
-          set(h{g},'facecolor',color);
+          set(h{ii},'facecolor',color);
           k(end+1)=length(table_data{end}{ii});
         case 5  % per fly, stern-style
           table_data{end}{ii}=cell(1,length(frames_labelled(idx)));
@@ -3823,20 +3823,30 @@ for b=bb
           exp_separators=[exp_separators; ans+sum(k)];
           table_data{end}{ii}=[traj_len{idx}];
           maxy=max([maxy table_data{end}{ii}]);
-          h{g}=bar(ha,(1:length(table_data{end}{ii}))+sum(k),table_data{end}{ii},...
+          h{ii}=bar(ha,(1:length(table_data{end}{ii}))+sum(k),table_data{end}{ii},...
               'barwidth',1,'edgecolor','none');
-          set(h{g},'facecolor',color);
+          set(h{ii},'facecolor',color);
           k(end+1)=length(table_data{end}{ii});
       end
     end
   end
 
-  %if(handles.behaviorbarchart_style<3) && (length(individual)==2)
-  %  for g=2:2:length(h)
-  %    findobj([h{g}],'type','patch');
-  %    hatchfill(ans,'single',45,5,handles.colors(g/2,:));
-  %  end
-  %end
+  if(ismember(handles.behaviorbarchart_style,[1 2 4 6]) && (length(individual)==2))
+    for g=(length(h)/2+1):length(h)
+      findobj([h{g}],'type','patch');
+      hatchfill(ans,'single',45,5,handles.colors(g-length(h)/2,:));
+    end
+  end
+  if((handles.behaviorbarchart_style==3) && (length(individual)==2))
+    for g=1:length(h)
+      findobj([h{g}],'type','line');
+      if (g<=(length(h)/2))
+        set(ans,'linestyle','-');
+      else
+        set(ans,'linestyle','--');
+      end
+    end
+  end
   fprintf(fid,'\n%% summary data\n');
   fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
   switch(handles.behaviorbarchart_style)
