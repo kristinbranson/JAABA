@@ -743,6 +743,42 @@ function pushbutton_done_Callback(hObject, ~, handles)  %#ok
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% Check for an empty behavior name
+behaviorName=handles.basicParamsStruct.behaviors.names;
+if isempty(behaviorName) ,
+  uiwait(errordlg('You must enter a behavior name.', ...
+                  'No behavior name', ...
+                  'modal'));
+  return
+end
+
+% Check for an empty movie file name
+movieFileName=handles.basicParamsStruct.file.moviefilename;
+if isempty(movieFileName) ,
+  uiwait(errordlg('You must enter a movie file name.', ...
+                  'No movie file name', ...
+                  'modal'));
+  return
+end
+
+% Check for an empty track file name
+trackFileName=handles.basicParamsStruct.file.trxfilename;
+if isempty(trackFileName) ,
+  uiwait(errordlg('You must enter a track file name.', ...
+                  'No track file name', ...
+                  'modal'));
+  return
+end
+
+% Check for an empty score file name
+scoreFileName=handles.basicParamsStruct.file.scorefilename;
+if isempty(scoreFileName) ,
+  uiwait(errordlg('You must enter a score file name.', ...
+                  'No score file name', ...
+                  'modal'));
+  return
+end
+
 % Get the info we need out of the handles
 basicParamsStruct=handles.basicParamsStruct;
 figureJLabel=handles.figureJLabel;
