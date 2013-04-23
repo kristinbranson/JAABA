@@ -2314,36 +2314,38 @@ function [behavior_data,behavior_data2,behavior_data3,feature_data,sex_data]=...
     cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,feature_data,sex_data)
 
 if(~isempty(behavior_data))
-  find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart+1)./handles.fps < handles.minimumtrajectorylength);
-  behavior_data.allScores.scores(ans)=[];
-  behavior_data.allScores.tStart(ans)=[];
-  behavior_data.allScores.tEnd(ans)=[];
-  behavior_data.allScores.t0s(ans)=[];
-  behavior_data.allScores.t1s(ans)=[];
+  idx=find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart+1)./handles.fps < ...
+      handles.minimumtrajectorylength);
+else
+  idx=find((cellfun(@length,feature_data.data)./handles.fps) < handles.minimumtrajectorylength);
+end
+
+if(~isempty(behavior_data))
+  behavior_data.allScores.scores(idx)=[];
+  behavior_data.allScores.tStart(idx)=[];
+  behavior_data.allScores.tEnd(idx)=[];
+  behavior_data.allScores.t0s(idx)=[];
+  behavior_data.allScores.t1s(idx)=[];
 end
 if(~isempty(behavior_data2))
-  find((behavior_data2.allScores.tEnd-behavior_data2.allScores.tStart+1)./handles.fps < handles.minimumtrajectorylength);
-  behavior_data2.allScores.scores(ans)=[];
-  behavior_data2.allScores.tStart(ans)=[];
-  behavior_data2.allScores.tEnd(ans)=[];
-  behavior_data2.allScores.t0s(ans)=[];
-  behavior_data2.allScores.t1s(ans)=[];
+  behavior_data2.allScores.scores(idx)=[];
+  behavior_data2.allScores.tStart(idx)=[];
+  behavior_data2.allScores.tEnd(idx)=[];
+  behavior_data2.allScores.t0s(idx)=[];
+  behavior_data2.allScores.t1s(idx)=[];
 end
 if(~isempty(behavior_data3))
-  find((behavior_data3.allScores.tEnd-behavior_data3.allScores.tStart+1)./handles.fps < handles.minimumtrajectorylength);
-  behavior_data3.allScores.scores(ans)=[];
-  behavior_data3.allScores.tStart(ans)=[];
-  behavior_data3.allScores.tEnd(ans)=[];
-  behavior_data3.allScores.t0s(ans)=[];
-  behavior_data3.allScores.t1s(ans)=[];
+  behavior_data3.allScores.scores(idx)=[];
+  behavior_data3.allScores.tStart(idx)=[];
+  behavior_data3.allScores.tEnd(idx)=[];
+  behavior_data3.allScores.t0s(idx)=[];
+  behavior_data3.allScores.t1s(idx)=[];
 end
 if(~isempty(feature_data))
-  find((cellfun(@length,feature_data.data)./handles.fps) < handles.minimumtrajectorylength);
-  feature_data.data(ans)=[];
+  feature_data.data(idx)=[];
 end
 if(~isempty(sex_data))
-  find((cellfun(@length,sex_data)./handles.fps) < handles.minimumtrajectorylength);
-  sex_data(ans)=[];
+  sex_data(idx)=[];
 end
 
 
@@ -2699,7 +2701,6 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     behavior_data={};
     for b=1:nbehaviors
       behavior_data{b}=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
-      [behavior_data{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data{b},[],[],[],[]);
       num_indi=num_indi+length(behavior_data{b}.allScores.scores);
     end
 
@@ -2709,17 +2710,17 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
       feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
           [handles.featurelist{f} '.mat']));
-      [~,~,~,feature_data,~]=cull_short_trajectories(handles,[],[],[],feature_data,[]);
+      [bdata,~,~,fdata,~]=cull_short_trajectories(handles,behavior_data{b},[],[],feature_data,[]);
 
       sexdata={};
-      for s=1:length(feature_data.data)
-        sexdata{s}=ones(1,length(feature_data.data{s}));
+      for s=1:length(fdata.data)
+        sexdata{s}=ones(1,length(fdata.data{s}));
       end
       for b=1:nbehaviors
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
-        [during not_during]=calculate_feature_histogram(behavior_data{b},1,[],...
-            feature_data,sexdata,nan,handles.featurehistogram_style,0);
+        [during not_during]=calculate_feature_histogram(bdata,1,[],...
+            fdata,sexdata,nan,handles.featurehistogram_style,0);
         parfor_tmp(b,f,:)=[mean(during) mean(not_during) mean([during not_during]) ...
             std(during) std(not_during) std([during not_during]) ...
             length(during) length(not_during) length([during not_during])];
@@ -2728,7 +2729,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
         [during not_during]=calculate_feature_histogram([],1,[],...
-            feature_data,sexdata,nan,handles.featurehistogram_style,0);
+            fdata,sexdata,nan,handles.featurehistogram_style,0);
         parfor_tmp(1,f,:)=[mean(during) mean(not_during) mean([during not_during]) ...
             std(during) std(not_during) std([during not_during]) ...
             length(during) length(not_during) length([during not_during])];
