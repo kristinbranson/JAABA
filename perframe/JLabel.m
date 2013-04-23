@@ -63,7 +63,7 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 
 % To help with merging with Adam -- Mayank, 6 march 2012 
 set(handles.automaticTimelineBottomRowPopup,'String',...
- {'None','Validated','Old','Loaded','Postprocessed','Distance'});
+ {'None','Validated','Old','Imported','Postprocessed','Distance'});
 
 % Added to JLabel.fig
 %handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
@@ -1582,7 +1582,7 @@ switch handles.guidata.bottomAutomatic
   case 'Validated'
     scores_bottom = handles.guidata.data.GetValidatedScores(handles.guidata.expi,handles.guidata.flies);
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
-  case 'Loaded'
+  case 'Imported'
     scores_bottom = handles.guidata.data.GetLoadedScores(handles.guidata.expi,handles.guidata.flies);
     scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
   case 'Old'
@@ -6355,7 +6355,7 @@ function menu_file_import_scores_curr_exp_default_loc_Callback(hObject, eventdat
 handles.guidata.data.LoadScoresDefault(handles.guidata.data.expi);
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Loaded';
+handles.guidata.bottomAutomatic = 'Imported';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
@@ -6383,7 +6383,7 @@ sfn = fullfile(pname,fname);
 handles.guidata.data.LoadScores(handles.guidata.data.expi,sfn);
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Loaded';
+handles.guidata.bottomAutomatic = 'Imported';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
@@ -6418,7 +6418,7 @@ end
 handles.guidata.data.LoadScores(handles.guidata.expi,sfn);
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Loaded';
+handles.guidata.bottomAutomatic = 'Imported';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
@@ -6444,7 +6444,7 @@ for ndx = 1:handles.guidata.data.nexps,
 end
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Loaded';
+handles.guidata.bottomAutomatic = 'Imported';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
@@ -6484,7 +6484,7 @@ for ndx = 1:handles.guidata.data.nexps,
 end
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
-handles.guidata.bottomAutomatic = 'Loaded';
+handles.guidata.bottomAutomatic = 'Imported';
 set(handles.automaticTimelineBottomRowPopup,'Value',...
 find(strcmp(contents,handles.guidata.bottomAutomatic)));
 
@@ -6961,7 +6961,7 @@ function menu_view_suggest_gt_intervals_load_Callback(hObject, eventdata, handle
 if ~filename, return, end;
 
 %handles.guidata.data.SuggestLoadedGT(handles.guidata.expi,fullfile(pathname,filename));
-handles.guidata.data.setGTSuggestionMode('Loaded', ...
+handles.guidata.data.setGTSuggestionMode('Imported', ...
                                          handles.guidata.expi, ...
                                          fullfile(pathname,filename));
 

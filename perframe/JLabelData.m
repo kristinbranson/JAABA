@@ -2565,7 +2565,7 @@ classdef JLabelData < handle
           obj.loadedGTSuggestions{expi}(ndx).end = t1s(loc);
         end
       end
-      obj.GTSuggestionMode = 'Loaded';
+      obj.GTSuggestionMode = 'Imported';
     end  % method
 
     
@@ -2931,10 +2931,10 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function result=isValidScoreFileName(scoreFileName)
       [path,baseName,ext]=fileparts(scoreFileName);
-      if ~isempty(path)
-        result=false
+      if ~isempty(path) ,
+        result=false;
       elseif ~isequal(ext,'.mat')
-        result=false
+        result=false;
       else
         result=~isempty(regexp(baseName,'^[a-zA-Z_0-9]+$','once'));
       end
@@ -8630,7 +8630,7 @@ classdef JLabelData < handle
           [success,msg] = obj.SuggestRandomGT(varargin{:});
         case 'Balanced'
           [success,msg] = obj.SuggestBalancedGT(varargin{:});
-        case 'Loaded'
+        case 'Imported'
           [success,msg] = obj.SuggestLoadedGT(varargin{:});
         case 'Threshold'
           [success,msg] = obj.SuggestThresholdGT(varargin{:});
@@ -8733,7 +8733,7 @@ classdef JLabelData < handle
           selIdx = range(range>0);
           suggestedidx(selIdx) = true;
         
-        case 'Loaded'
+        case 'Imported'
           if numel(obj.loadedGTSuggestions)<expi || isempty(obj.loadedGTSuggestions{expi}),
             suggestedidx = false(1,n);
             return;
