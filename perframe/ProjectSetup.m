@@ -398,7 +398,8 @@ name = get(hObject,'String');
 if isempty(regexp(name,'^[a-zA-Z][\w_,]*$','once','start'));
    uiwait(warndlg(['The behavior name cannot have special characters.'...
                    'Please use only alphanumeric characters and _']));
-   return;
+   updateEditsListboxesAndPopupmenus(handles);              
+   return
 end
     
 name = regexp(name,',','split');
@@ -438,11 +439,26 @@ function featureconfigpopup_Callback(hObject, eventdata, handles)  %#ok
 % handles    structure with handles and user data (see GUIDATA)
 iFeatureLexicon=get(hObject,'Value');
 featureLexiconNameNew = handles.featureLexiconNameList{iFeatureLexicon};
-handles.basicParamsStruct.featureLexiconName=featureLexiconNameNew;
-%animalTypeNew=handles.featureLexiconAnimalTypeList{iFeatureLexicon};
-%handles.basicParamsStruct.behaviors.type=animalTypeNew;
+% Save the current values of the main four fields
+% (Note that any changes in the advanced part of the window will be lost.)
+behaviorName=handles.basicParamsStruct.behaviors.names;
+movieFileName=handles.basicParamsStruct.file.moviefilename;
+trackFileName=handles.basicParamsStruct.file.trxfilename;
+scoreFileName=handles.basicParamsStruct.file.scorefilename;
+% Replace basicParamsStruct with one appropriate to the new feature lexicon
+% name
+old=warning('query','MATLAB:structOnObject');
+warning('off','MATLAB:structOnObject');  % turn off annoying warning
+handles.basicParamsStruct = struct(Macguffin(featureLexiconNameNew));
+warning(old);  % restore annoying warning  
+% Now restore fields from the old basicParamsStruct
+handles.basicParamsStruct.behaviors.names=behaviorName;
+handles.basicParamsStruct.file.moviefilename=movieFileName;
+handles.basicParamsStruct.file.trxfilename=trackFileName;
+handles.basicParamsStruct.file.scorefilename=scoreFileName;
 guidata(hObject,handles);
 updateConfigTable(handles);
+updateEditsListboxesAndPopupmenus(handles);
 return
 
 
@@ -1006,10 +1022,11 @@ if ~isempty(missingPFNames),
 end
 
 % Put up the dialog that allows users to pick which PFs will be computed
+
 [isSelected,ok] = listdlg('ListString',featureLexiconPFNames, ...
                           'InitialValue',find(isSelected), ...
                           'Name','Selecte perframe features',...
-                          'PromptString',{'Control/Command click to', ...
+                          'PromptString',{sprintf('%s-click to',fif(ismac(),'Command','Control')), ...
                                           'select/deselect perframe features'}, ...
                                           'ListSize',[250,700]);
 
