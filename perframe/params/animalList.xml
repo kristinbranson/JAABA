@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<params>
+  <fly>
+    <plot>
+      <trx nextra_markers="0" extra_marker="None" extra_linestyle="None" extra_markersize="12"/>
+    </plot>
+  </fly>
+  <wingedfly>
+    <plot>
+      <trx nextra_markers="1" extra_marker="." extra_linestyle="-" extra_markersize="12"/>
+    </plot>
+  </wingedfly>
+  <larva>
+    <plot>
+      <trx nextra_markers="1" extra_marker="o" extra_linestyle="None" extra_markersize="6"/>
+    </plot>
+  </larva>
+  <larvasamuel>
+    <plot>
+      <trx nextra_markers="1" extra_marker="o" extra_linestyle="None" extra_markersize="6"/>
+    </plot>
+  </larvasamuel>
+  <larvacontour>
+    <plot>
+      <trx nextra_markers="2" extra_marker=".,o" extra_linestyle="-,None" extra_markersize="12,8"/>
+    </plot>
+  </larvacontour>
+
+</params>
