@@ -2886,6 +2886,13 @@ handles2.table_data=tmp2;
 handles2.table='histogram';
 guidata(handles2.figure2,handles2);
 
+fid=fopen('most_recent_table.csv','w');
+fprintf(fid,...
+    '%% group, sample size, group 2, sample size 2, behavior, feature, d-prime, d-prime all-frames\n');
+transpose(tmp);
+fprintf(fid,'%s, %s, %s, %s, %s, %s, %s, %s\n',ans{:});
+fclose(fid);
+
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
