@@ -149,6 +149,14 @@ else
   handles = initParams(handles);
 end
 
+% set animal defaults
+if isdeployed,
+  filename = deployedRelative2Global('params/animalList.xml');
+else
+  filename = 'animalList.xml';
+end
+handles.animaldefaults = ReadXMLParams(filename);
+
 setConfigTable(handles);
 
 % Update handles structure
@@ -430,6 +438,13 @@ contents = cellstr(get(hObject,'String'));
 curtype = contents{get(hObject,'Value')};
 handles.params.file.featureconfigfile = handles.list.(curtype).file;
 handles.params.behaviors.type = handles.list.(curtype).animal;
+
+animal = handles.params.behaviors.type;
+
+% set config file defaults
+if isfield(handles.animaldefaults,animal),
+  handles.params = CopyStructFields(handles.animaldefaults.(animal),handles.params);
+end
 guidata(hObject,handles);
 
 setConfigTable(handles);

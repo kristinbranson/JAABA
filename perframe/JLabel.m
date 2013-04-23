@@ -1835,7 +1835,11 @@ if isfield(handles.guidata.configparams,'plot') && ...
     isfield(handles.guidata.configparams.plot,'trx') && ...
     isfield(handles.guidata.configparams.plot.trx,'extra_marker') && ...
     ~isempty(handles.guidata.configparams.plot.trx.extra_marker),
-  extra_marker = regexp(handles.guidata.configparams.plot.trx.extra_marker,',','split');
+  if ischar(handles.guidata.configparams.plot.trx.extra_marker),
+    extra_marker = regexp(handles.guidata.configparams.plot.trx.extra_marker,',','split');
+  else
+    extra_marker = handles.guidata.configparams.plot.trx.extra_marker;
+  end
   if numel(extra_marker) < handles.guidata.nextra_markers,
     warndlg('Number of extra marker entries less than number of extra markers','Problem parsing plot.trx.extra_marker');
     handles.guidata.flies_extra_marker = [extra_marker,...
@@ -1849,7 +1853,11 @@ if isfield(handles.guidata.configparams,'plot') && ...
     isfield(handles.guidata.configparams.plot,'trx') && ...
     isfield(handles.guidata.configparams.plot.trx,'extra_linestyle') && ...
     ~isempty(handles.guidata.configparams.plot.trx.extra_linestyle),
-  extra_linestyle = regexp(handles.guidata.configparams.plot.trx.extra_linestyle,',','split');
+  if ischar(handles.guidata.configparams.plot.trx.extra_linestyle),
+    extra_linestyle = regexp(handles.guidata.configparams.plot.trx.extra_linestyle,',','split');
+  else
+    extra_linestyle = handles.guidata.configparams.plot.trx.extra_linestyle;
+  end
   if numel(extra_linestyle) < handles.guidata.nextra_markers,
     warndlg('Number of extra linestyle entries less than number of extra markers','Problem parsing plot.trx.extra_linestyle');
     handles.guidata.flies_extra_linestyle = [extra_linestyle,...
@@ -6240,7 +6248,10 @@ function menu_view_suggest_balanced_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-in = inputdlg({'Number of frames per labeling interval','Number of intervals'});
+avgBoutLen = handles.guidata.data.GetAvgPredictionBoutLen();
+
+indlg1 = sprintf('Number of frames per labeling interval (Avg prediction bout length is %.2f)',avgBoutLen);
+in = inputdlg({indlg1,'Number of intervals'});
 if isempty(in), return; end
 intsize = str2double(in{1});
 numint = str2double(in{2});
