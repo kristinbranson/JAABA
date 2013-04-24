@@ -2553,20 +2553,32 @@ for b=bb
   cellfun(@(x) [x nan(size(x,1),ans-size(x,2))],not_during_data,'uniformoutput',false);
   not_during_data=cat(1,ans{:});
 
-  low=[];  high=[];  nearzero=[];
+  tmp=[];
   if(~isempty(during_data))
-    low=min(min(during_data));
-    high=max(max(during_data));
-    unique(reshape(abs(during_data),1,prod(size(during_data))));
-    nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+    tmp=reshape(during_data,1,numel(during_data));
   end
   if((comparison>0) && ~isempty(not_during_data))
-    low=min([low min(not_during_data)]);
-    high=max([high max(not_during_data)]);
-    unique(reshape(abs(not_during_data),1,prod(size(not_during_data))));
-    tmp=ans(1);  if(ans(1)==0)  tmp=ans(2);  end
-    nearzero=min(tmp,nearzero);
+    tmp=[tmp reshape(not_during_data,1,numel(not_during_data))];
   end
+  foo=prctile(tmp,[1 99]);
+  low=foo(1);  high=foo(2);
+  unique(abs(tmp));
+  nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+
+  %low=[];  high=[];  nearzero=[];
+  %if(~isempty(during_data))
+  %  low=min(min(during_data));
+  %  high=max(max(during_data));
+  %  unique(reshape(abs(during_data),1,prod(size(during_data))));
+  %  nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
+  %end
+  %if((comparison>0) && ~isempty(not_during_data))
+  %  low=min([low min(not_during_data)]);
+  %  high=max([high max(not_during_data)]);
+  %  unique(reshape(abs(not_during_data),1,prod(size(not_during_data))));
+  %  tmp=ans(1);  if(ans(1)==0)  tmp=ans(2);  end
+  %  nearzero=min(tmp,nearzero);
+  %end
 
   if(~isempty(low) && ~isempty(high) && ~isempty(nearzero))
     if(handles.logbinsize)
@@ -2606,7 +2618,7 @@ for b=bb
       if(comparison>0)
         if(handles.dump2csv)  fprintf(fid,['%% not during\n']);  end
         if(~isempty(not_during_data))
-          hist_not_during=hist(not_during_data(idx2,:)',bins);
+          hist_not_during=histc(not_during_data(idx2,:)',bins);
           if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
           hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
           hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
@@ -2616,7 +2628,7 @@ for b=bb
       end
       if(handles.dump2csv)  fprintf(fid,['%% during\n']);  end
       if(~isempty(during_data))
-        hist_during=hist(during_data(idx2,:)',bins);
+        hist_during=histc(during_data(idx2,:)',bins);
         if(size(hist_during,1)==1)  hist_during=hist_during';  end
         hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
         hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
