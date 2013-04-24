@@ -50,7 +50,7 @@ handles.experimentlist={{}};
 handles.experimentvalue={1};
 handles.classifierlist={};
 handles.classifiervalue=1;
-handles.configurations={};
+%handles.configurations={};
 handles.scorefiles={};
 handles.analysis='';
 handles.behaviorlist={};
@@ -112,7 +112,7 @@ handles.experimentvalue=handles_saved.experimentvalue;
 try
   handles.classifierlist=handles_saved.classifierlist;
   handles.classifiervalue=handles_saved.classifiervalue;
-  handles.configurations=handles_saved.configurations;
+%  handles.configurations=handles_saved.configurations;
   handles.analysis=handles_saved.analysis;
   handles.scorefiles=handles_saved.scorefiles;
   handles.behaviorlist=handles_saved.behaviorlist;
@@ -1414,70 +1414,73 @@ guidata(hObject,handles);
 % ---
 function handles=classifier_add(handles,newclassifiers)
 
-handlesconfigurations=cell(1,length(newclassifiers));
+%handlesconfigurations=cell(1,length(newclassifiers));
 handlesbehaviorlist=cell(1,length(newclassifiers));
 handlesscorefiles=cell(1,length(newclassifiers));
 handlesindividualsbehavior=zeros(sum(cellfun(@length,handles.experimentlist)),length(newclassifiers));
 timestamps=nan(1,length(newclassifiers));
-for c=1:length(newclassifiers)
-  classifier=load(newclassifiers{c});
-  if(~isfield(classifier,'postprocessparams'))
-    uiwait(errordlg(['not a valid classifier file.  skipping ' newclassifiers{c}],''));  drawnow;
-    newclassifiers{c}='';
-    continue;
-  end
-  params=[];  params.behaviors.names='';
-  try
-    handlesconfigurations{c}=classifier.configfilename;
-    [~,~,ext] = fileparts(classifier.configfilename);
-    if strcmpi(ext,'.xml');
-      params=ReadXMLConfigParams(handlesconfigurations{c});
-    else
-      params = load(handlesconfigurations{c});
-    end
-  catch
-    directory = fileparts(newclassifiers{c});
-    fullfile(directory,classifier.configfilename);
-    if(exist(ans,'file'))
-      [pa,na,ex]=fileparts(ans);
-    else
-      pa=directory;  na='';  ex='';
-    end
-    [~,tmp,~]=fileparts(newclassifiers{c});
-    [configfile tmp]=uigetfile(pa,['Select configuration file for ' tmp],[na ex]);
-    if(isnumeric(configfile) && isnumeric(tmp) && (configfile==0) && (tmp==0))
-      uiwait(errordlg(['skipping ' newclassifiers{c}],''));
-      newclassifiers{c}='';
-      continue;
-    else
-      try
-        handlesconfigurations{c}=fullfile(tmp,configfile);
-        if strcmpi(ext,'.xml');
-          params=ReadXMLConfigParams(handlesconfigurations{c});
-        else
-          params = load(handlesconfigurations{c});
-        end
-      catch
-        uiwait(errordlg(['problem loading config file.  skipping ' newclassifiers{c}],''));
-        newclassifiers{c}='';
-        continue;
-      end
-    end
-  end
-  if(~isfield(params.behaviors,'names') || ~isfield(params.file,'scorefilename'))
-    uiwait(errordlg(['not a valid config file.  skipping ' newclassifiers{c}],''));  drawnow;
-    newclassifiers{c}='';
-    continue;
-  end
+parfor c=1:length(newclassifiers)
+  load(newclassifiers{c},'-mat');
+  classifier=x;
+  %if(~isfield(classifier,'postprocessparams'))
+  %  uiwait(errordlg(['not a valid classifier file.  skipping ' newclassifiers{c}],''));  drawnow;
+  %  newclassifiers{c}='';
+  %  continue;
+  %end
+  %params=[];  params.behaviors.names='';
+  %try
+  %  handlesconfigurations{c}=classifier.configfilename;
+  %  [~,~,ext] = fileparts(classifier.configfilename);
+  %  if strcmpi(ext,'.xml');
+  %    params=ReadXMLConfigParams(handlesconfigurations{c});
+  %  else
+  %    params = load(handlesconfigurations{c});
+  %  end
+  %catch
+  %  directory = fileparts(newclassifiers{c});
+  %  fullfile(directory,classifier.configfilename);
+  %  if(exist(ans,'file'))
+  %    [pa,na,ex]=fileparts(ans);
+  %  else
+  %    pa=directory;  na='';  ex='';
+  %  end
+  %  [~,tmp,~]=fileparts(newclassifiers{c});
+  %  [configfile tmp]=uigetfile(pa,['Select configuration file for ' tmp],[na ex]);
+  %  if(isnumeric(configfile) && isnumeric(tmp) && (configfile==0) && (tmp==0))
+  %    uiwait(errordlg(['skipping ' newclassifiers{c}],''));
+  %    newclassifiers{c}='';
+  %    continue;
+  %  else
+  %    try
+  %      handlesconfigurations{c}=fullfile(tmp,configfile);
+  %      if strcmpi(ext,'.xml');
+  %        params=ReadXMLConfigParams(handlesconfigurations{c});
+  %      else
+  %        params = load(handlesconfigurations{c});
+  %      end
+  %    catch
+  %      uiwait(errordlg(['problem loading config file.  skipping ' newclassifiers{c}],''));
+  %      newclassifiers{c}='';
+  %      continue;
+  %    end
+  %  end
+  %end
+  %if(~isfield(params.behaviors,'names') || ~isfield(params.file,'scorefilename'))
+  %  uiwait(errordlg(['not a valid config file.  skipping ' newclassifiers{c}],''));  drawnow;
+  %  newclassifiers{c}='';
+  %  continue;
+  %end
 
-  timestamps(c)=classifier.classifierTS;
+  timestamps(c)=classifier.classifierStuff.timeStamp;
 
-  if iscell(params.behaviors.names),
-    handlesbehaviorlist{c} = params.behaviors.names{1};
-  else
-    handlesbehaviorlist{c}=params.behaviors.names;
-  end
-  handlesscorefiles{c}=params.file.scorefilename;
+  %if iscell(params.behaviors.names),
+  %  handlesbehaviorlist{c} = params.behaviors.names{1};
+  %else
+  %  handlesbehaviorlist{c}=params.behaviors.names;
+  %end
+  handlesbehaviorlist{c}=classifier.behaviors.names{1};
+  %handlesscorefiles{c}=params.file.scorefilename;
+  handlesscorefiles{c}=classifier.file.scorefilename;
 
   ee=0;  behavior_data=[];  parfor_tmp=zeros(sum(cellfun(@length,handles.experimentlist)),1);
   for g=1:length(handles.grouplist)
@@ -1492,12 +1495,12 @@ end
 
 handlesexperimentlist=[handles.experimentlist{:}];
 if((isnan(handles.fps))&&(length(handlesexperimentlist)>0))
-  handles.fps=get_fps(fullfile(handlesexperimentlist{1},classifier.trxfilename));
+  handles.fps=get_fps(fullfile(handlesexperimentlist{1},classifier.file.trxfilename));
 end
 
 idx=find(~cellfun(@isempty,newclassifiers));
 newclassifiers=newclassifiers(idx);
-handlesconfigurations=handlesconfigurations(idx);
+%handlesconfigurations=handlesconfigurations(idx);
 handlesbehaviorlist=handlesbehaviorlist(idx);
 handlesscorefiles=handlesscorefiles(idx);
 handlesindividualsbehavior=handlesindividualsbehavior(:,idx);
@@ -1510,7 +1513,7 @@ while i<length(handlesscorefiles)
   if(~isempty(idx))
     uiwait(warndlg({'the following classifiers have the same scores filename and timestamp.  keeping only the first.' '' newclassifiers{[i i+idx]}},''));  drawnow;
     newclassifiers(i+idx)=[];
-    handlesconfigurations(i+idx)=[];
+%    handlesconfigurations(i+idx)=[];
     handlesbehaviorlist(i+idx)=[];
     handlesscorefiles(i+idx)=[];
     handlesindividualsbehavior(:,i+idx)=[];
@@ -1520,7 +1523,7 @@ while i<length(handlesscorefiles)
 end
 
 handles.classifierlist={handles.classifierlist{:} newclassifiers{:}};
-handles.configurations={handles.configurations{:} handlesconfigurations{:}};
+%handles.configurations={handles.configurations{:} handlesconfigurations{:}};
 handles.behaviorlist={handles.behaviorlist{:} handlesbehaviorlist{:}};
 handles.scorefiles={handles.scorefiles{:} handlesscorefiles{:}};
 handles.individuals_behavior=[handles.individuals_behavior handlesindividualsbehavior];
@@ -1603,7 +1606,7 @@ drawnow;
 idx=handles.classifiervalue;
 handles.classifierlist(idx)=[];
 handles.classifiervalue=1:max(1,length(handles.classifierlist));
-handles.configurations(idx)=[];
+%handles.configurations(idx)=[];
 handles.behaviorlist(idx)=[];
 handles.behaviorvalue=1;
 handles.behaviorvalue2=1;
@@ -1702,7 +1705,8 @@ parfor ge=1:length(handlesexperimentlist)
   behavior_data=[];
   parfor_tmp=cell(1,length(handles.scorefiles));
   for c=1:length(handles.classifierlist)
-    classifier=load(handles.classifierlist{c});
+    load(handles.classifierlist{c});
+    classifier=x;
     try
       behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{c}));
     catch ME,
@@ -1710,8 +1714,8 @@ parfor ge=1:length(handlesexperimentlist)
       parfor_tmp{c}='missing';
       continue;
     end
-    if (classifier.classifierTS ~= behavior_data.timestamp)
-      parfor_tmp{c}=[datestr(classifier.classifierTS) ' ~= ' datestr(behavior_data.timestamp)];
+    if (classifier.classifierStuff.timeStamp ~= behavior_data.timestamp)
+      parfor_tmp{c}=[datestr(classifier.classifierStuff.timeStamp) ' ~= ' datestr(behavior_data.timestamp)];
     else
       parfor_tmp{c}='up-to-date';
     end
@@ -1802,8 +1806,8 @@ parfor ge=1:length(handlesexperimentlist)
 %for ge=1:length(handlesexperimentlist)
   JAABADetect(handlesexperimentlist{ge},...
       'classifierfiles',handles.classifierlist(handles.classifiervalue),...
-      'configfiles',handles.configurations(handles.classifiervalue),...
       'forcecompute',handles.classify_forcecompute);
+%      'configfiles',handles.configurations(handles.classifiervalue),...
   fid=fopen(fullfile(tempdir,'progressbar.txt'),'a');  fwrite(fid,1,'uint32');  fclose(fid);
 end
 
