@@ -654,6 +654,14 @@ else
 end
 update_figure(handles);
 
+javaaddpath('/home/arthurb/bin/javasysmon-0.3.4.jar')
+import com.jezhumble.javasysmon.JavaSysMon.*
+handles.system_monitor.object=com.jezhumble.javasysmon.JavaSysMon();
+handles.system_monitor.timer=timer('Name','system_monitor','Period',1,'ExecutionMode','fixedRate',...
+    'TimerFcn',@(hObject,eventdata)system_monitor_callback(hObject,eventdata,handles));
+warning('off','MATLAB:Java:ConvertFromOpaque');
+start(handles.system_monitor.timer);
+
 
 % Choose default command line output for JAABAPlot
 handles.output = hObject;
@@ -669,28 +677,30 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 
 
-function ExperimentListCallback(hObject,eventdata)
+function system_monitor_callback(obj,src,handles)
 
-handles=guidata(hObject);
-handles.experimentvalue{handles.groupvalue}=get(handles.ExperimentList,'Value');
-handles.interestingfeaturehistograms_cache=[];
-handles.interestingfeaturetimeseries_cache=[];
-guidata(hObject,handles);
+persistent last_cpu
 
-
-function ClassifierListCallback(hObject,eventdata)
-
-handles=guidata(hObject);
-handles.classifiervalue=get(handles.ClassifierList,'Value');
-handles.interestingfeaturehistograms_cache=[];
-handles.interestingfeaturetimeseries_cache=[];
-guidata(hObject,handles);
+next_cpu=handles.system_monitor.object.cpuTimes();
+mem=handles.system_monitor.object.physical();
+if(~isempty(last_cpu))
+  %disp(['cpu: ' num2str(last_cpu.getCpuUsage(next_cpu)) ', mem=' num2str(mem.getFreeBytes()/mem.getTotalBytes())]);
+  set(handles.SystemMonitor,'string',[num2str(round(100*last_cpu.getCpuUsage(next_cpu))) '% cpu, ' ...
+      num2str(round(100*(mem.getTotalBytes()-mem.getFreeBytes())/mem.getTotalBytes())) '% mem']);
+  drawnow
+end
+last_cpu=next_cpu;
 
 
 % ---
 function figure_CloseRequestFcn(hObject, eventdata)
 
 handles=guidata(hObject);
+
+stop(handles.system_monitor.timer);
+delete(handles.system_monitor.timer);
+handles.system_monitor=[];
+
 try
   save(handles.rcfilename,'handles');
 catch ME,
@@ -708,6 +718,26 @@ function varargout = JAABAPlot_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+
+
+% ---
+function ExperimentListCallback(hObject,eventdata)
+
+handles=guidata(hObject);
+handles.experimentvalue{handles.groupvalue}=get(handles.ExperimentList,'Value');
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
+guidata(hObject,handles);
+
+
+% ---
+function ClassifierListCallback(hObject,eventdata)
+
+handles=guidata(hObject);
+handles.classifiervalue=get(handles.ClassifierList,'Value');
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
+guidata(hObject,handles);
 
 
 % --- Executes on button press in UpdatePlot.
