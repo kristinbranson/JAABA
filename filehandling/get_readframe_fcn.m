@@ -155,13 +155,13 @@ else
       % approximate nframes from duration
       nframes = get(readerobj,'Duration')*get(readerobj,'FrameRate');
     end
-    readframe = @(f) read(readerobj,f);
     %readframe = @(f) flipdim(read(readerobj,f),1);
     headerinfo = get(readerobj);
     headerinfo.type = 'avi';
     headerinfo.nr = headerinfo.Height;
     headerinfo.nc = headerinfo.Width;
     headerinfo.nframes = headerinfo.NumberOfFrames;
+    readframe = @(f) avi_read_frame(readerobj,headerinfo,f);
   end
 end
 
@@ -175,6 +175,11 @@ if ~sr.seek(f-1),
 end
 
 [im,timestamp] = sr.getframe();
+
+function [im,timestamp] = avi_read_frame(readerobj,headerinfo,f)
+
+im = read(readerobj,f);
+timestamp = (f-1)/headerinfo.FrameRate;
 
 
 
