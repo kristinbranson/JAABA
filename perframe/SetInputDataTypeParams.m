@@ -222,7 +222,7 @@ InputDataTypes.LarvaeReid.files = structappend(InputDataTypes.LarvaeReid.files,f
 
 InputDataTypes.LarvaeLouis = struct;
 InputDataTypes.LarvaeLouis.name = 'Louis'' Larva Data';
-InputDataTypes.LarvaeLouis.videorequired = true;
+InputDataTypes.LarvaeLouis.videorequired = false;
 InputDataTypes.LarvaeLouis.readarena = 'no';
 InputDataTypes.LarvaeLouis.readpxpermm = 'yes';
 InputDataTypes.LarvaeLouis.readfps = 'yes';
@@ -252,15 +252,15 @@ file.isdir = 0;
 file.exts = {'*.mat'};
 InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
 
-file = struct;
-file.name = 'Config txt file';
-file.code = 'inconfigfile';
-file.description = 'Config txt file computed by single larva tracker analysis';
-file.required = true;
-file.multiplefiles = 0;
-file.isdir = 0;
-file.exts = {'*.txt'};
-InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
+% file = struct;
+% file.name = 'Config txt file';
+% file.code = 'inconfigfile';
+% file.description = 'Config txt file computed by single larva tracker analysis';
+% file.required = true;
+% file.multiplefiles = 0;
+% file.isdir = 0;
+% file.exts = {'*.txt'};
+% InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
 
 % file = struct;
 % file.name = 'eventData mat file';
