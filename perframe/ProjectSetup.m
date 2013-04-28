@@ -317,9 +317,9 @@ for ndx = 1:numel(fnames)
   end
 
   
-  if ~isempty(str)
+  %if ~isempty(str)
     handles.params.file.(curf) = str;
-  end
+  %end
 end
 
 setConfigTable(handles);

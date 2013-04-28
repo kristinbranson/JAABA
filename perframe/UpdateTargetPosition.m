@@ -13,6 +13,4 @@ switch targettype,
     updatelarvasamuel(hfly,hfly_extra,pos);
   case 'larva',
     updatelarvaspecies(hfly,hfly_extra,pos);
-  case 'larvalouis',
-    updatelarvalouis(hfly,hfly_extra,pos);
 end
