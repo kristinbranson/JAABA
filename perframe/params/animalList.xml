@@ -25,5 +25,10 @@
       <trx nextra_markers="2" extra_marker=".,o" extra_linestyle="-,None" extra_markersize="12,8"/>
     </plot>
   </larvacontour>
-
+  <larvalouis>
+    <plot>
+      <trx nextra_markers="1" extra_marker="o" extra_linestyle="-" extra_markersize="10"/>
+    </plot>
+    <behaviors unknowncolor="1,1,1"/>
+  </larvalouis>
 </params>
