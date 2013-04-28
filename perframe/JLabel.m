@@ -971,6 +971,31 @@ if ~handles.guidata.data.ismovie,
   handles.guidata.movie_height = ceil(maxy);
   handles.guidata.movie_width = ceil(maxx);
   handles.guidata.nframes = max([handles.guidata.data.trx.endframe]);
+
+  % remove old grid
+  delete(handles.guidata.bkgdgrid(ishandle(handles.guidata.bkgdgrid)));
+
+  % grid width
+  gridwidth = nanmean([handles.guidata.data.trx.a])*5;
+
+  % create new grid
+  handles.guidata.bkgdgrid = nan(2,numel(handles.guidata.axes_previews));
+  xgrid = gridwidth/2:gridwidth:handles.guidata.movie_width;
+  xgrid1 = [xgrid;xgrid;nan(1,numel(xgrid))];
+  xgrid2 = [zeros(1,numel(xgrid));handles.guidata.movie_height+ones(1,numel(xgrid));nan(1,numel(xgrid))];
+  ygrid = gridwidth/2:gridwidth:handles.guidata.movie_height;
+  ygrid2 = [ygrid;ygrid;nan(1,numel(ygrid))];
+  ygrid1 = [zeros(1,numel(ygrid));handles.guidata.movie_width+ones(1,numel(ygrid));nan(1,numel(ygrid))];
+  for i = 1:numel(handles.guidata.axes_previews),
+    holdstate = ishold(handles.guidata.axes_previews(i));
+    hold(handles.guidata.axes_previews(i),'on');
+    handles.guidata.bkgdgrid(1,i) = plot(handles.guidata.axes_previews(i),xgrid1(:),xgrid2(:),'--','Color',[.7,.7,.7],'LineWidth',.5,'HitTest','off');
+    handles.guidata.bkgdgrid(2,i) = plot(handles.guidata.axes_previews(i),ygrid1(:),ygrid2(:),'--','Color',[.7,.7,.7],'LineWidth',.5,'HitTest','off');
+    if ~holdstate,
+      hold(handles.guidata.axes_previews(i),'off');
+    end
+      
+  end
   
   % set axes colors to be white instead of black
   set(handles.guidata.axes_previews,'Color','w');
@@ -1793,6 +1818,10 @@ handles.guidata.labelunknowncolor = [0,0,0];
 if isfield(handles.guidata.configparams,'behaviors') && ...
     isfield(handles.guidata.configparams.behaviors,'unknowncolor'),
   unknowncolor = handles.guidata.configparams.behaviors.unknowncolor;
+  if ischar(unknowncolor),
+    unknowncolor = str2double(strsplit(unknowncolor,','));
+    handles.guidata.configparams.behaviors.unknowncolor = unknowncolor;
+  end
   if numel(unknowncolor) >= 3,
     handles.guidata.labelunknowncolor = reshape(unknowncolor(1:3),[1,3]);
   else
@@ -3387,7 +3416,7 @@ for i = is,
   end
   xlim = get(handles.guidata.axes_previews(i),'XLim');
   % a little border at the edge of the image
-  border = .1;
+  border = .25;
   dx = diff(xlim);
   xlim(1) = xlim(1) + dx*border;
   xlim(2) = xlim(2) - dx*border;

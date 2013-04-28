@@ -151,6 +151,7 @@ classdef JLabelGUIData < handle
     htimeline_gt_suggestions = [];
     hcurr_timelines = [];
     hselection = [];
+    bkgdgrid = zeros(2,0);
     
     callbacks = struct;
 
