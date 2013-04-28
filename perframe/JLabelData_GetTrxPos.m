@@ -176,4 +176,29 @@ switch obj.targettype,
     pos.xspine = obj.trx(fly).xspine(:,is);
     pos.yspine = obj.trx(fly).yspine(:,is);
     
+  case 'larvalouis',
+    
+    if nargin < 4,
+      pos.x = obj.trx(fly).x;
+      pos.y = obj.trx(fly).y;
+      if isfield(obj.trx,'skeletonx'),
+        pos.skeletonx = obj.trx(fly).skeletonx;
+        pos.skeletony = obj.trx(fly).skeletony;
+      else
+        pos.xspine = obj.trx(fly).xspine;
+        pos.yspine = obj.trx(fly).yspine;
+      end
+      return;
+    end
+    
+    pos.x = obj.trx(fly).x(ts + obj.trx(fly).off);
+    pos.y = obj.trx(fly).y(ts + obj.trx(fly).off);
+    if isfield(obj.trx,'skeletonx'),
+      pos.skeletonx = obj.trx(fly).skeletonx(:,ts + obj.trx(fly).off);
+      pos.skeletony = obj.trx(fly).skeletony(:,ts + obj.trx(fly).off);
+    else
+      pos.xspine = obj.trx(fly).xspine(:,ts + obj.trx(fly).off);
+      pos.yspine = obj.trx(fly).yspine(:,ts + obj.trx(fly).off);
+    end
+
 end
