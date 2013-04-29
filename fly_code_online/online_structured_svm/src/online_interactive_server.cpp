@@ -64,6 +64,33 @@ bool StructuredLearnerRpc::ClassifyExample(const Json::Value& root, Json::Value&
     return false;
 }
 
+bool StructuredLearnerRpc::RelabelExample(const Json::Value& root, Json::Value& response) {
+  if(learner) {
+    int ind = root.get("index",-1).asInt();
+    if(ind < 0 || ind >= learner->GetTrainset()->num_examples) {
+      JSON_ERROR("Missing or invalid training example 'index' parameter to relabel_example()", -1); 
+    }
+    StructuredExample *ex = learner->GetTrainset()->examples[ind];
+
+    StructuredLabel *y = learner->NewStructuredLabel(ex->x);
+    if(root.isMember("y")) {
+      if(!y->load(root["y"], learner)) { 
+	delete y;
+	JSON_ERROR("Invalid 'y' parameter", -1); 
+      }
+    } else {
+      delete y;
+      JSON_ERROR("No 'y' parameter specified", -1); 
+    }
+    response["index"] = ind;
+
+    learner->RelabelExample(ex, y);
+    learner->SaveTrainingSet(ind);
+  }
+
+  return true;
+}
+
 bool StructuredLearnerRpc::AddNewExample(const Json::Value& root, Json::Value& response) {
   if(learner) {
     char sess_id[1000];
@@ -612,6 +639,11 @@ void StructuredLearnerRpc::AddMethods() {
     add_example_returns["session_id"] = "A string encoding of the session id.  The client should pass this as a parameter to all future accesses to x";
     server->RegisterMethod(new JsonRpcMethod<StructuredLearnerRpc>(this, &StructuredLearnerRpc::AddNewExample, "add_example", "Add a new training example to the structured learner, which is currently training in online fashion", add_example_parameters, add_example_returns));
 
+    Json::Value relabel_example_parameters;
+    add_example_parameters["y"] = "String encoding of the ground truth example label format of StructuredLabel::load()";
+    add_example_parameters["index"] = "An integer index into the training set list of examples (as returned by add_example)";
+    server->RegisterMethod(new JsonRpcMethod<StructuredLearnerRpc>(this, &StructuredLearnerRpc::RelabelExample, "relabel_example", "Change the label of an existing training example", relabel_example_parameters));
+
     Json::Value get_statistics_parameters;
     get_statistics_parameters["plot_name"] = "Filename of the error decomposition plot.  Two copies are saved: a .m file, which generates a plot in matlab, and a .svg file, which is a support vector graphics file that is embeddable in a web page";
     get_statistics_parameters["plot_by"] = "What to plot on the x-axis.  Options are: 'example' (# of training examples), 'time' (training time), 'iteration' (# of training iterations)\n";
@@ -646,4 +678,7 @@ void StructuredLearnerRpc::AddMethods() {
   evaluate_testset_parameters["testset"] = "Filename of the testset, in the format of StructuredSVM::LoadDataset()";
   evaluate_testset_parameters["predictions"] = "Filename of where to store predictions, where each line of the file corresponds to one test example in the format <y_predicted> <y_groundtruth> <loss> <score_predicted> <score_groundtruth>, and <y_predicted> and <y_groundtruth> are in the format of StructuredLabel::load()";
   server->RegisterMethod(new JsonRpcMethod<StructuredLearnerRpc>(this, &StructuredLearnerRpc::EvaluateTestset, "evaluate_testset", "Evaluate performance on a testset", evaluate_testset_parameters));
+
+  Json::Value check_alive_parameters;
+  server->RegisterMethod(new JsonRpcMethod<StructuredLearnerRpc>(this, &StructuredLearnerRpc::CheckAlive, "check_alive", "Check if the server is alive", check_alive_parameters));
 }

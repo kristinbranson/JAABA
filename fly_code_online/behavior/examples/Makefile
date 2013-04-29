@@ -3,8 +3,8 @@ INCDIR = -I../include -I../../online_structured_svm/json -I../../online_structur
 INCDIR_EXTRA = -I/opt/matlab/extern/include -I/usr/local/MATLAB/R2012a/extern/include
 LIBS_EXTRA = -L/opt/matlab/extern/lib -L/opt/matlab/bin/glnxa64 -lmat -lmx -Wl,-rpath,/opt/matlab/bin/glnxa64 -L/usr/local/MATLAB/R2012a/bin/glnxa64 -Wl,-rpath,/usr/local/MATLAB/R2012a/bin/glnxa64
 
-LIBS_CV = -lcv -lcxcore -lhighgui # opencv-1.0
-#LIBS_CV = -lopencv_highgui -lopencv_imgproc -lopencv_core # opencv-2.0
+#LIBS_CV = -lcv -lcxcore -lhighgui # opencv-1.0
+LIBS_CV = -lopencv_highgui -lopencv_imgproc -lopencv_core # opencv-2.0
 
 
 CC=g++
@@ -12,9 +12,9 @@ CFLAGS= $(INCDIR) $(INCDIR_EXTRA) -fopenmp -DUSE_OPENMP
 CFLAGS_DEBUG= -g -Wall
 CFLAGS_RELEASE= -O2 -fomit-frame-pointer -ffast-math
 CFLAGS_SHARED= -fPIC
-LIBS= -L../lib -L../../online_structured_svm/lib -L../../online_structured_svm/json/lib  -L../../blob/lib -lm $(LIBS_CV) $(LIBS_EXTRA)
-LIBS_RELEASE= -lonline_structured_svm -ljson -lbehavior -lblob
-LIBS_DEBUG= -ldonline_structured_svm -ldjson -ldbehavior -ldblob
+LIBS= -L../lib -L../../online_structured_svm/lib -L../../online_structured_svm/json/lib  -L../../blob/lib -lm $(LIBS_EXTRA)
+LIBS_RELEASE= -lonline_structured_svm -ljson -lbehavior -lblob $(LIBS_CV)
+LIBS_DEBUG= -ldonline_structured_svm -ldjson -ldbehavior -ldblob $(LIBS_CV)
 LD=g++
 LDFLAGS= -shared
 AR=ar

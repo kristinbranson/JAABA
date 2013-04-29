@@ -204,6 +204,8 @@ public:
    * @return a JSON encoding of the data
    */
   virtual Json::Value save(StructuredSVM *s) = 0;
+
+  virtual bool IsValid() { return true; }
 };
 
 
@@ -423,6 +425,8 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
    */
   int AddExample(StructuredData *x, StructuredLabel *y);  
 
+  void RelabelExample(StructuredExample *ex, StructuredLabel *y);
+
   /**
    * @brief Load a training set from file in the format of LoadDataset()
    * @param fname The filename of the training set
@@ -622,6 +626,7 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
   int numMultiSampleIterations;
   int maxCachedSamplesPerExample;
   bool savingCachedExamples;
+  bool relabelingExample;
 
   int modelId;
   int iterId;

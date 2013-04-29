@@ -140,16 +140,12 @@ const char *SVMFlyBehaviorSequence::get_base_feature_name(int ind) {
 /*
  * Read the trx features from file and store per frame feature and timestamps 
  */
-bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, BehaviorBoutSequence *y) {
-  FlyBehaviorBoutSequence *fly = (FlyBehaviorBoutSequence*)y;
+bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm) {
   int i;
 
   FlyBehaviorFeatures d;
-  double version;
-  int len, fly_id, nflies, nfields, firstframe, lastframe;
-  char sex; 
-  double fps;
-  char movie[1001], mat[1001], fname2[1000];
+  int len, nfields, firstframe, lastframe;
+  char fname2[1000];
 
   strcpy(fname2, fname);
   StripFileExtension(fname2);
@@ -158,39 +154,20 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   assert(fin);
   int n = fread(&version, sizeof(double), 1, fin);   assert(n);
   n = fread(&len, sizeof(int), 1, fin);   assert(n && len < 1000 && len > 0);
-  n = fread(movie, sizeof(char), len, fin);   assert(n==len);
-  movie[len] = '\0';
+  n = fread(moviename, sizeof(char), len, fin);   assert(n==len);
+  moviename[len] = '\0';
   n = fread(&len, sizeof(int), 1, fin);   assert(n && len < 1000 && len > 0);
-  n = fread(mat, sizeof(char), len, fin);   assert(n==len);
-  mat[len] = '\0';
+  n = fread(matname, sizeof(char), len, fin);   assert(n==len);
+  matname[len] = '\0';
   n = fread(&nflies, sizeof(int), 1, fin);   assert(n);
   for(i = 0; i < nflies; i++) {
-    if(!fly) {
-      n = fread(&fly_id, sizeof(int), 1, fin);   assert(n);
-    } else if(fly->is_labeled) {
-      n = fread(&fly_id, sizeof(int), 1, fin);   assert(n && fly_id == fly->fly_ids[i]);
-    } else {
-      n = fread(&fly->fly_ids[i], sizeof(int), 1, fin);  assert(n);
-    }
+    n = fread(&fly_ids[i], sizeof(int), 1, fin);  assert(n);
   }
   n = fread(&firstframe, sizeof(int), 1, fin);  assert(n);
   n = fread(&lastframe, sizeof(int), 1, fin);  assert(n);
   n = fread(&sex, sizeof(char), 1, fin);  assert(n);  
   n = fread(&fps, sizeof(double), 1, fin);  assert(n);
   n = fread(&nfields, sizeof(int), 1, fin);  assert(n && nfields < MAX_BASE_FEATURES+1);
-
-  if(fly) {
-    fly->sex = sex;
-    fly->fps = fps;
-    if(fly->is_labeled) {
-      assert(!strcmp(movie, fly->moviename) && !strcmp(mat, fly->matname) && nflies == fly->nflies && 
-	     firstframe == fly->firstframe && lastframe == fly->lastframe);
-    } else {
-      fly->version = version;
-      strcpy(fly->moviename, movie); strcpy(fly->matname, mat); fly->nflies = nflies;
-      fly->firstframe = firstframe; fly->lastframe = lastframe;
-    }
-  }
 
   num_frames = lastframe-firstframe+1;
   num_base_features = nfields-1;
@@ -222,17 +199,26 @@ bool FlyBehaviorBoutFeatures::load(const char *fname, SVMBehaviorSequence *svm, 
   return true;
 }
 
+FlyBehaviorBoutFeatures::FlyBehaviorBoutFeatures() 
+  : BehaviorBoutFeatures() {
+  version = 0;
+  strcpy(moviename, "");
+  strcpy(matname, "");
+  nflies = firstframe = lastframe = 0;
+  sex = 0;
+  fps = 0;
+  fly_id = 0;
+}
+
 FlyBehaviorBoutSequence::FlyBehaviorBoutSequence(BehaviorBoutFeatures *x, SVMBehaviorSequence *svm) 
   : BehaviorBoutSequence(x, svm) {
-  version = 0;
   strcpy(labelname, "");
   strcpy(moviename, "");
   strcpy(matname, "");
   strcpy(trxname, "");
   nflies = firstframe = lastframe = 0;
-  sex = 0;
-  fps = 0;
   is_labeled = 0;
+  fly_id = 0;
 }
 
 /*
@@ -386,6 +372,32 @@ bool FlyBehaviorBoutSequence::save(const char *fname) {
 
   return true;
 }
+
+
+
+bool FlyBehaviorBoutFeatures::load(const Json::Value &r, StructuredSVM *s) {
+  this->fly_id = r.get("fly_id", 0).asInt();
+  return BehaviorBoutFeatures::load(r, s);
+}
+
+Json::Value FlyBehaviorBoutFeatures::save(StructuredSVM *s) {
+  Json::Value r = BehaviorBoutFeatures::save(s);
+  r["fly_id"] = fly_id;
+  return r;
+}
+
+bool FlyBehaviorBoutSequence::load(const Json::Value &r, StructuredSVM *s) {
+  this->fly_id = r.get("fly_id", 0).asInt();
+  return BehaviorBoutSequence::load(r, s);
+}
+
+Json::Value FlyBehaviorBoutSequence::save(StructuredSVM *s) {
+  Json::Value r = BehaviorBoutSequence::save(s);
+  r["fly_id"] = fly_id;
+  return r;
+}
+
+
 
 int main(int argc, const char **argv) {
   char bname[1000], feat_name[1000], debug_name[1000];

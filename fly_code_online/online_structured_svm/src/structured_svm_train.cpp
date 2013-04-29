@@ -200,7 +200,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
       // Worker threads, continuously call ybar=find_most_violated_constraint and then use ybar to update the current weights
       int i = -1;
       while(!finished) {
-        while(savingCachedExamples) 
+        while(savingCachedExamples || relabelingExample) 
 	  usleep(100000);
         
         // Choose a training example 'i' to process
@@ -389,14 +389,27 @@ int StructuredSVM::ChooseNextExample() {
 
   // Remove (temporarily) the selected example, such that no other threads can process it at the same time
   int retval = examples_by_iteration_number[it];
-  if(examples_by_iteration_next_ind[retval] == retval) {
-    examples_by_iteration_number[it] = -1;
-  } else {
-    examples_by_iteration_number[it] = examples_by_iteration_next_ind[retval];
-    examples_by_iteration_prev_ind[examples_by_iteration_next_ind[retval]] = examples_by_iteration_prev_ind[retval];
-    examples_by_iteration_next_ind[examples_by_iteration_prev_ind[retval]] = examples_by_iteration_next_ind[retval];
+  int first = retval;
+  while(retval >= 0 && ((trainset->examples[retval]->set && trainset->examples[retval]->set->lock) || !trainset->examples[retval]->y->IsValid())) {
+    retval = examples_by_iteration_next_ind[retval];
+    if(retval == first) {
+      while(it <= M && examples_by_iteration_number[++it] < 0);
+      if(it > M || examples_by_iteration_number[it] < 0)
+	return -1;
+      retval = first = examples_by_iteration_number[it];
+    }
   }
-  examples_by_iteration_next_ind[retval] = examples_by_iteration_prev_ind[retval] = -1;
+
+  if(retval >= 0) {
+    if(examples_by_iteration_next_ind[retval] == retval) {
+      examples_by_iteration_number[it] = -1;
+    } else {
+      examples_by_iteration_number[it] = examples_by_iteration_next_ind[retval];
+      examples_by_iteration_prev_ind[examples_by_iteration_next_ind[retval]] = examples_by_iteration_prev_ind[retval];
+      examples_by_iteration_next_ind[examples_by_iteration_prev_ind[retval]] = examples_by_iteration_next_ind[retval];
+    }
+    examples_by_iteration_next_ind[retval] = examples_by_iteration_prev_ind[retval] = -1;
+  }
 
   return retval;
 }
@@ -540,9 +553,10 @@ VFLOAT StructuredSVM::Test(StructuredDataset *testset, const char *predictionsFi
 }
 
 void StructuredSVM::SetSumWScale(double sum_w_scale_new) {
-  sum_dual += .5*((sum_w_scale ? 1/sum_w_scale : 0) - 1/sum_w_scale_new)*sum_w_sqr;
+  sum_dual += .5*((sum_w_scale ? 1/sum_w_scale : 0) - (sum_w_scale_new ? 1/sum_w_scale_new : 0))*sum_w_sqr;
   sum_w_scale = sum_w_scale_new;
   regularization_error = (sum_w_sqr/SQR(sum_w_scale))*lambda/2;
+  assert(!isnan(sum_dual));
 }
 
 void StructuredSVM::UpdateWeights(SVM_cached_sample_set *ex, int iterInd) {
@@ -588,6 +602,7 @@ void StructuredSVM::UpdateWeights(SVM_cached_sample_set *ex, int iterInd) {
       sum_w_sqr = 1.0/lambda*SQR(sum_w_scale);
       sum_alpha_loss *= s;
       sum_dual = -sum_w_sqr/(2*sum_w_scale) + sum_alpha_loss;
+      assert(!isnan(sum_dual));
       //sum_dual = s*sum_dual + (1-s)*t/(2*s);
       regularization_error = .5*maxLoss;
     }
@@ -759,10 +774,68 @@ int StructuredSVM::AddExample(StructuredData *x, StructuredLabel *y) {
   retval = trainset->num_examples;
   trainset->AddExample(CopyExample(x,y));
   CreateTrainingExampleQueues(retval);
+  n = trainset->num_examples;
+  SetSumWScale(lambda*n);
   Unlock();
 
   return retval;
 }
+
+void StructuredSVM::RelabelExample(StructuredExample *ex, StructuredLabel *y) {
+  Lock(); 
+  relabelingExample = true;
+  while(ex->set && ex->set->lock) {
+    Unlock();
+    usleep(100000);
+    Lock();
+  }
+  hasConverged = false;
+
+  delete ex->y;
+  ex->y = y;
+  if(ex->set) {
+    if(ex->set->psi_gt) {
+      // Recompute the features at the ground truth label psi_gt
+      sum_alpha_loss -= ex->set->D_i;
+      *sum_w -= ex->set->psi_gt->mult_scalar(ex->set->alpha, useWeights);
+      ex->set->D_i = 0;
+      delete ex->set->psi_gt;
+      ex->set->psi_gt = Psi(ex->x, ex->y).ptr();
+      ex->set->psi_gt_sqr = ex->set->psi_gt->dot(*ex->set->psi_gt, useWeights);
+      *sum_w += ex->set->psi_gt->mult_scalar(ex->set->alpha, useWeights);
+
+      // For each sample, recompute the loss and dot products with psi_gt
+      for(int j = 0; j < ex->set->num_samples; j++) {
+	ex->set->samples[j].loss = Loss(ex->y, ex->set->samples[j].ybar);
+	ex->set->D_i += ex->set->samples[j].alpha*ex->set->samples[j].loss;
+	if(ex->set->samples[j].psi) {
+	  ex->set->samples[j].dot_psi_gt_psi = ex->set->psi_gt->dot(*ex->set->samples[j].psi, useWeights);
+	  ex->set->samples[j].sqr = ex->set->psi_gt_sqr - 2*ex->set->samples[j].dot_psi_gt_psi + 
+	    ex->set->samples[j].psi->dot(*ex->set->samples[j].psi, useWeights);
+	}
+      }
+
+      if(ex->set->u_i) {
+	double d_u_gt = ex->set->u_i->dot(*ex->set->psi_gt, useWeights);
+	ex->set->dot_u_psi_gt = d_u_gt - ex->set->alpha*ex->set->psi_gt_sqr;
+	ex->set->u_i_sqr = ex->set->u_i->dot(*ex->set->u_i, useWeights) - 2*ex->set->alpha*d_u_gt + SQR(ex->set->alpha)*ex->set->psi_gt_sqr;
+      }
+
+      sum_alpha_loss += ex->set->D_i;
+      sum_w_sqr = sum_w->dot(*sum_w, useWeights);
+      regularization_error = sum_w_sqr/SQR(sum_w_scale)*lambda/2;
+      sum_dual = -sum_w_sqr/(2*sum_w_scale) + sum_alpha_loss;
+      assert(!isnan(sum_dual));
+    
+      for(int i = 0; i < 10; i++)
+	UpdateWeights(ex->set, ex->set->i);
+    }
+  }
+  
+  relabelingExample = false;
+  Unlock();
+}
+
 
 
 void StructuredSVM::CreateTrainingExampleQueues(int ind) {
@@ -841,6 +914,7 @@ void StructuredSVM::RecomputeWeights(bool full) {
   sum_w_sqr = sum_w->dot(*sum_w, useWeights);
   regularization_error = sum_w_sqr/SQR(sum_w_scale)*lambda/2;
   sum_dual = -sum_w_sqr/(2*sum_w_scale) + sum_alpha_loss;
+  assert(!isnan(sum_dual));
 }
 
 void StructuredSVM::OptimizeAllConstraints(int num_iter) {
@@ -1284,6 +1358,7 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
   VFLOAT L_i = 0;       // L_i = <w,-u_i/(lambda*t)> + \sum_ybar alpha_{i,ybar} loss(y_i,ybar)
   VFLOAT s_u = 1;
   int j, r;
+  assert(!isnan(sum_w_sqr) && !isnan(sum_dual));
 
   //if(!set->num_samples && !set->alpha) return;
 
@@ -1478,6 +1553,7 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
   for(j = 0; j < set->num_samples; j++)
     set->samples[j].alpha *= s_u;
   set->slack_after = set->num_samples ? sum_w->dot(*set->samples[0].psi-*set->psi_gt)/(sum_w_scale) + set->samples[0].loss : 0;
+  assert(!isnan(sum_w_sqr) && !isnan(sum_dual));
   
 
 #ifdef DEBUG_MULTI_SAMPLE_UPDATE

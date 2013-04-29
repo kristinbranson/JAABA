@@ -142,15 +142,18 @@ protected:
   double *scores;  /**< A behaviors->num array of scores for each behavior group */
   double *losses;  /**< A behaviors->num array of losses for each behavior group */
   bool disable_checks;
+  bool filled;
 
 public:
   BehaviorBoutSequence(BehaviorBoutFeatures *x, SVMBehaviorSequence *svm);
+  void merge_bouts_with_same_behavior();
   virtual ~BehaviorBoutSequence();
   virtual bool load(const Json::Value &x, StructuredSVM *s);
   virtual Json::Value save(StructuredSVM *s);
   virtual bool load(const char *fname) = 0;
   virtual bool save(const char *fname) { return true; };
   void Visualize(BehaviorGroups *groups, int beh, const char *fname, char *html);
+  virtual bool IsValid() { return num_bouts && num_bouts[0]; }
 
   friend class SVMBehaviorSequence;
 };
@@ -196,7 +199,7 @@ protected:
   virtual ~BehaviorBoutFeatures();
   virtual bool load(const Json::Value &x, StructuredSVM *s);
   virtual Json::Value save(StructuredSVM *s);
-  virtual bool load(const char *fname, SVMBehaviorSequence *svm, BehaviorBoutSequence *y) = 0;
+  virtual bool load(const char *fname, SVMBehaviorSequence *svm) = 0;
 
   void SetFileName(const char *fn) { strcpy(fname, fn); }
   const char *GetFileName() { return fname; }
@@ -260,6 +263,9 @@ class SVMBehaviorSequence : public StructuredSVM {
  public:
   char **feature_names;  /**< A num_features array of strings defining a human-interpretable name for each feature */
   char base_feature_names[MAX_BASE_FEATURES][1001];
+
+  void SetBehaviors(struct _BehaviorGroups *b) { if(behaviors) { free_behaviors(behaviors); } behaviors = b; }
+  struct _BehaviorGroups *GetBehaviors() { return behaviors; }
 
   void SetDebugDir(const char *dir, bool deb_pred=true, bool deb_wei=true, bool deb_feat=true, bool deb_mod=false) {
     strcpy(debugdir, dir);
@@ -360,16 +366,16 @@ class SVMBehaviorSequence : public StructuredSVM {
   friend class BehaviorBoutFeatures;
   friend class BehaviorBoutSequence;
 
- private:
   void init_bout_label(BehaviorBoutSequence *ybar, BehaviorBoutSequence *y);
+ private:
   double compute_updated_bout_loss(BehaviorBoutFeatures *b, BehaviorBoutSequence *y, int beh, int T, int t_p, int t, int c_prev, double *fn, int *gt_bout, double *dur_gt, double &loss_fp, double &loss_fn);
   void update_transition_counts_with_partial_label(int beh, BehaviorBoutSequence *y_partial, int** &old_class_transitions, int* &old_class_transition_counts, int* &old_class_training_counts);
 #if USE_DURATION_COST > 0
   void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, double *duration_weights, int T, int c_prev=-1, int t_p=-1);
-  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double *duration_weights, double **table, BehaviorBout **states, int T);
+  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double *duration_weights, double **table, BehaviorBout **states, int T, BehaviorBoutSequence *y_partial);
 #else
   void backtrack_optimal_solution(BehaviorBoutSequence *ybar, int beh, double **table, BehaviorBout **states, int T, int c_prev=-1, int t_p=-1);
-  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T);
+  void sanity_check_dynamic_programming_solution(int beh, BehaviorBoutFeatures *b, BehaviorBoutSequence *ybar, BehaviorBoutSequence *y, SparseVector *w, double **class_weights, double **transition_weights, double *unary_weights, double **table, BehaviorBout **states, int T, BehaviorBoutSequence *y_partial);
 #endif
   bool check_agreement_with_partial_label(BehaviorBoutSequence *y_partial, int beh, int t_p, int t, int *partial_label_bout, int &restrict_c_prev);
   void store_solution(BehaviorBout &state, int t_p, int t, int c_prev, double bout_score, double transition_score, double unary_score, double loss_fn, double loss_fp, double extreme_vals[2][NUMFEAT], double duration_score);
@@ -380,6 +386,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   void print_bout_sequence_scores(BehaviorBoutSequence *y, int beh);
   void init_weight_pointers(int beh, double* &ptr, double** &class_weights, double** &transition_weights, double* &unary_weights, double* &duration_weights);
   double get_duration_score(int duration, int c, int beh, double *duration_weights);
+  bool fill_unlabeled_gt_frames(BehaviorBoutSequence *&y_gt, BehaviorBoutSequence *&y_partial);
 
   friend class BehaviorBoutSequence;
 };

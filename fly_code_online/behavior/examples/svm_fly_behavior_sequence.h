@@ -3,6 +3,10 @@
 
 #include "svm_behavior_sequence.h"
 
+class FlyBehaviorBoutSequence;
+class FlyBehaviorBoutFeatures;
+
+
 #define FORMAT__BOUT_FEATURE_PARAMS "feature_sample_smoothness_window=%d, num_temporal_levels=%d, num_bout_max_thresholds=%d, "\
                      "num_bout_min_thresholds=%d, num_bout_change_points=%d, num_histogram_bins=%d, "\
                      "num_histogram_temporal_levels=%d, num_difference_temporal_levels=%d, num_harmonic_features=%d, "\
@@ -22,28 +26,43 @@
 
 
 class FlyBehaviorBoutFeatures : public BehaviorBoutFeatures {
+  int fly_id;
+  char sex;
+  double fps;
+  int nflies;
+  int fly_ids[100];
+  double version;
+  char moviename[1001];
+  char matname[1001];
+  int firstframe, lastframe;
+
  public:
-  bool load(const char *fname, SVMBehaviorSequence *svm, BehaviorBoutSequence *y);
+  FlyBehaviorBoutFeatures();
+  bool load(const char *fname, SVMBehaviorSequence *svm);
+  bool load(const Json::Value &x, StructuredSVM *s);
+  Json::Value save(StructuredSVM *s);
+
+  friend class FlyBehaviorBoutSequence;
 };
 
 class FlyBehaviorBoutSequence : public BehaviorBoutSequence {
   double version;
+  int fly_id;
+  int firstframe, lastframe;
+  bool is_labeled;
   char labelname[1001];
   char moviename[1001];
   char matname[1001];
   char trxname[1001];
   int nflies;
   int fly_ids[100];
-  int firstframe, lastframe;
-
-  char sex;
-  double fps;
-  bool is_labeled;
 
 public:
   FlyBehaviorBoutSequence(BehaviorBoutFeatures *x, SVMBehaviorSequence *svm);
   bool load(const char *fname);
   bool save(const char *fname);
+  bool load(const Json::Value &x, StructuredSVM *s);
+  Json::Value save(StructuredSVM *s);
 
   friend class FlyBehaviorBoutFeatures;
   friend class SVMFlyBehaviorSequence;

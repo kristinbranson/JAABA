@@ -249,6 +249,7 @@ StructuredSVM::StructuredSVM() {
   sum_w_scale = 1;
   canScaleW = false;
   mergeSamples = true;
+  relabelingExample = false;
 
   runMultiThreaded = 0;
   num_thr = omp_get_num_procs();
