@@ -5125,7 +5125,7 @@ classdef JLabelData < handle
         obj.InitPredictionData(obj.nexps);
       end
             
-      % Set the default path to the experiment direcotry
+      % Set the default path to the experiment directory
       obj.defaultpath = expDirName;
 
       % Update the status
