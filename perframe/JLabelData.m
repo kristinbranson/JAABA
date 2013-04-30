@@ -4923,6 +4923,10 @@ classdef JLabelData < handle
       %obj.rootoutputdir = rootoutputdir;
       %obj.outexpdirs{end+1} = outexpdir;
 
+      % If we call remove, it's to roll-back a failed experiment add, so we
+      % don't want to set needsave in this case.
+      needSaveIfSuccessfulRemoval=false;
+      
       % Update the status table        
       obj.SetStatus('Updating status table for %s...',expName);
       [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
@@ -4930,8 +4934,8 @@ classdef JLabelData < handle
       if ~success1,
         msg = msg1;
         obj.SetStatus('Bad experiment directory %s...',expDirName);
-        obj.RemoveExpDirs(obj.nexps);
-        return;
+        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+        return
       end
       
       % check for existence of necessary files in this directory
@@ -4941,7 +4945,7 @@ classdef JLabelData < handle
         obj.SetStatus('Bad experiment directory %s...',expDirName);
         success = false;
         % undo
-        obj.RemoveExpDirs(obj.nexps);
+        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
         return;
       end
       
@@ -4954,6 +4958,8 @@ classdef JLabelData < handle
               missingfiles = missingfiles(1:10);
               missingfiles{end+1} = ' and more ';
             end
+            % Would be good to move UI stuff out of JLabelData, which is
+            % essentially a model in MVC terms --ALT, Apr 30, 2013
             res = questdlg(sprintf(['Experiment %s is missing required files:%s. '...
               'Generate now?'],expDirName,sprintf(' %s',missingfiles{:})),...
               'Generate missing files?','Yes','Cancel','Yes');
@@ -4974,12 +4980,12 @@ classdef JLabelData < handle
               'for experiment %s: %s. Removing...'],...
               sprintf(' %s',missingfiles{:}),expDirName,msg);
             obj.SetStatus('Error generating missing files for %s...',expName);
-            obj.RemoveExpDirs(obj.nexps);
+            obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
             return;
           end
         else
           obj.SetStatus('Not generating missing files for %s, not adding...',expName);
-          obj.RemoveExpDirs(obj.nexps);
+          obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
           return;
         end
       end
@@ -4992,7 +4998,7 @@ classdef JLabelData < handle
                                              obj.scoreFeatures(i).ts);
           if ~success,
             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-            obj.RemoveExpDirs(obj.nexps);
+            obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
             return;
           end
       end
@@ -5016,7 +5022,7 @@ classdef JLabelData < handle
          if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
            msg = sprintf('Error getting basic trx info: %s',msg1);
            obj.SetStatus('Error getting basic trx info for %s, not adding...',expName);
-           obj.RemoveExpDirs(obj.nexps);
+           obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
            return;
          else
            rethrow(err);
@@ -5048,13 +5054,14 @@ classdef JLabelData < handle
         obj.InitPredictionData(obj.nexps);
       end
             
-      % Set the default path to the experiment directory
-      obj.defaultpath = expDirName;
+      % % Set the default path to the experiment directory
+      % obj.defaultpath = expDirName;
 
       % Update the status
       obj.SetStatus('Successfully added experiment %s...',expDirName);
       
       % Declare victory
+      obj.needsave=true;
       success = true;
     end
     
@@ -5514,13 +5521,24 @@ classdef JLabelData < handle
 
 
     % ---------------------------------------------------------------------
-    function [success,msg] = RemoveExpDirs(obj,expi)
-      % [success,msg] = RemoveExpDirs(obj,expi)
-    % Removes experiments in expi from the GUI. If the currently loaded
-    % experiment is removed, then a different experiment may be preloaded. 
+    function [success,msg] = RemoveExpDirs(obj,expi,needSaveIfSuccessful)
+      % [success,msg] = RemoveExpDirs(obj,expi,[needSaveIfSuccessful])
+      % Removes experiments in expi from the GUI. If the currently loaded
+      % experiment is removed, then a different experiment may be preloaded. 
+      % If needSaveIfSuccessful is defined and true, the JLabelData's
+      % needsave property will be set to true if the experiment is
+      % successfully removed.  If needSaveIfSuccessful is not defined, is
+      % empty, or is false, needsave will not be changed.  It is useful to
+      % set needSaveIfSuccessful to false if RemoveExpDirs() is being called
+      % in order to roll-back the partially-completed addition of an
+      % experiment.
 
       success = false;
       msg = '';
+      
+      if ~exist('needSaveIfSuccessful','var') || isempty(needSaveIfSuccessful)
+        needSaveIfSuccessful=true;
+      end
       
       if any(obj.nexps < expi) || any(expi < 1),
         msg = sprintf('expi = %s must be in the range 1 < expi < nexps = %d',mat2str(expi),obj.nexps);
@@ -5631,8 +5649,10 @@ classdef JLabelData < handle
         end
       end
       
+      if needSaveIfSuccessful ,
+        obj.needsave=true;
+      end
       success = true;
-      
     end  % method
 
     
@@ -9194,7 +9214,7 @@ classdef JLabelData < handle
       end
 
       % Set the ground-truthing mode
-      obj.gtMode=groundTruthingMode;
+      self.gtMode=groundTruthingMode;
 
       %
       % Open the file
@@ -9206,22 +9226,17 @@ classdef JLabelData < handle
       %fileNameRel=[baseName ext];
 
       % load the file
-      try
-        macguffin=loadAnonymous(fileNameAbs);
-      catch excp
-        self.clearStatus();
-        rethrow(excp);
-      end
+      macguffin=loadAnonymous(fileNameAbs);
 
       % if we get here, file was read successfully
-      obj.setMacguffin(macguffin);
+      self.setMacguffin(macguffin);
       
       % Store file-related stuff
-      obj.thereIsAnOpenFile=true;
-      obj.everythingFileNameAbs=fileNameAbs;
-      obj.userHasSpecifiedEverythingFileName=true;
-      obj.needsave = false;  % b/c just opened
-      obj.defaultpath=fileDirPathAbs;
+      self.thereIsAnOpenFile=true;
+      self.everythingFileNameAbs=fileNameAbs;
+      self.userHasSpecifiedEverythingFileName=true;
+      self.needsave = false;  % b/c just opened
+      self.defaultpath=fileDirPathAbs;
       
       % parse arguments into keywords and corresponding values
       keys = varargin(1:2:end);
@@ -9230,13 +9245,13 @@ classdef JLabelData < handle
 %       % Now handle other arguments
 %       i = find(strcmpi(keys,'openmovie'),1);
 %       if ~isempty(i),
-%         obj.openmovie = values{i};
+%         self.openmovie = values{i};
 %       end
       
 %       % default path
 %       i = find(strcmpi(keys,'defaultpath'),1);
 %       if ~isempty(i),
-%         [success,msg] = obj.SetDefaultPath(values{i});
+%         [success,msg] = self.SetDefaultPath(values{i});
 %         if ~success,
 %           warning(msg);
 %         end
@@ -9244,11 +9259,11 @@ classdef JLabelData < handle
       
       i = find(strcmpi(keys,'cacheSize'),1);
       if ~isempty(i),
-        obj.cacheSize = values{i};
+        self.cacheSize = values{i};
       end
       
       % initialize the status table describing what required files exist
-      [success,msg] = obj.UpdateStatusTable();
+      [success,msg] = self.UpdateStatusTable();
       if ~success,
         error(msg);
       end      
@@ -9300,7 +9315,7 @@ classdef JLabelData < handle
           rethrow(excp);
         end
       end  
-      fileNameAbs=fullfile(self.defaultpath,fileNameRel);
+      fileNameAbs=fullfile(obj.defaultpath,fileNameRel);
 
       % Set other file-related instance vars
       obj.thereIsAnOpenFile=true;
@@ -9345,7 +9360,7 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function saveJabFile(self,fileNameAbs)
       fileNameRel=fileNameRelFromAbs(fileNameAbs);
-      self.setStatus(sprintf('Saving to %s...',fileNameRel));
+      self.SetStatus(sprintf('Saving to %s...',fileNameRel));
       % Extract the structure that will be saved in the everything file
       macguffin=self.getMacguffin();
       % write the everything structure to disk
@@ -9361,7 +9376,7 @@ classdef JLabelData < handle
         end
         saveAnonymous(fileNameAbs,macguffin);
       catch excp
-        self.clearStatus();
+        self.ClearStatus();
         rethrow(excp);
       end
       % Do follow-up book-keeping
@@ -9370,7 +9385,7 @@ classdef JLabelData < handle
       self.needsave=false;
       fileDirPathAbs=fileparts(fileNameAbs);
       self.defaultpath=fileDirPathAbs;      
-      self.clearStatus();
+      self.ClearStatus();
     end  % method
     
     
