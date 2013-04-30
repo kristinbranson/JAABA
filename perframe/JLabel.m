@@ -2651,9 +2651,11 @@ end
   
   % cache size
   if isfield(handles.guidata.rc,'cacheSize'),
-    handles.guidata.cacheSize = handles.guidata.rc.cacheSize;
+    % handles.guidata.cacheSize = handles.guidata.rc.cacheSize;
+    handles.data.cacheSize = handles.guidata.rc.cacheSize;
   else
-    handles.guidata.cacheSize = 4000;
+    % handles.guidata.cacheSize = 4000;
+    handles.data.cacheSize = 4000;
   end
   
   % load the default configfilename, if present
@@ -2724,7 +2726,8 @@ function handles = SaveRC(handles)
   rc.bottomAutomatic = handles.guidata.bottomAutomatic;
   
   % cache size
-  rc.cacheSize = handles.guidata.cacheSize;
+  % rc.cacheSize = handles.guidata.cacheSize;
+  rc.cacheSize = handles.data.cacheSize;
   
   % % save the configfilename, if present
   % if ~isempty(handles.guidata.configfilename),
@@ -7108,15 +7111,17 @@ function menu_edit_memory_usage_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit_memory_usage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-curval = sprintf('%d',handles.guidata.data.cacheSize);
+% curval = sprintf('%d',handles.guidata.data.cacheSize);
+curval = sprintf('%d',handles.data.cacheSize);
 v = inputdlg('Memory usage (MB)','Cache Size',1,{curval});
 sz = str2double(v{1});
 if isnan(sz) || sz<0;
   return;
 end
 
-handles.guidata.cacheSize = round(sz);
-handles.guidata.data.cacheSize = round(sz);
+% handles.guidata.cacheSize = round(sz);
+% handles.guidata.data.cacheSize = round(sz);
+handles.data.cacheSize = round(sz);
 return
 
 
