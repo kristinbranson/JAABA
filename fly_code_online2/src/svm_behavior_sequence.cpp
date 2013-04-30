@@ -81,7 +81,7 @@ void SVMBehaviorSequence::Init(Behaviors *behaviors, FrameFeature *frame_feature
   //time_approximation = -1; 
   search_all_bout_durations_up_to = 50; // Search all bout durations from 1 to 50.  Can be combined with time_approximation
 
-  runMultiThreaded = 1;
+  runMultiThreaded = 1; 
 
   importance_sample_interval_size = 200;  // break the sequence into sub-sections of size 200
 
@@ -89,7 +89,7 @@ void SVMBehaviorSequence::Init(Behaviors *behaviors, FrameFeature *frame_feature
   maxCachedSamplesPerExample = 500;
   numMultiSampleIterations = 10;
   keepAllEvictedLabels = true;
-  updateFromCacheThread = false;//true;
+  updateFromCacheThread = true;
   
   strcpy(debugdir, "");
   debug_predictions = debug_weights = debug_features = debug_model = false;
@@ -280,10 +280,12 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
     for(n = 0; n < dataset->num_examples; n++) {
       y = ((BehaviorBoutSequence*)ex[n]->y);
       x = ((BehaviorBoutFeatures*)ex[n]->x);
+      int c = 0;
       for(j = 0; j < y->num_bouts; j++) {
 	for(k = y->bouts[j].start_frame; k < y->bouts[j].end_frame; k++) {
 	  assert(k >= 0);  // CSC 20110324
 	  frame_feat[curr_frame++] = x->features[i][k];
+	  c++;
 	}
 	if (y->bouts[j].end_frame == y->bouts[j].start_frame)
 	  printf("Warning: bout has 0 frames!");
@@ -645,30 +647,32 @@ bool SVMBehaviorSequence::SaveDataset(StructuredDataset *d, const char *fname, i
 StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
   if(debugLevel > 0) fprintf(stderr, "Reading dataset %s...", fname);
   
+  StructuredDataset *dataset = StructuredSVM::LoadDataset(fname);
+
   Lock();
 
   if(strlen(debugdir) && debug_features) 
     CreateDirectoryIfNecessary(debugdir);
 	      
 
-  int num, j;       
-  char **train_list = load_examples(fname, &num);
+  int j;       
+  //char **train_list = load_examples(fname, &num);
   bool computeClassTransitions = class_training_transitions ? false : true;
   //bool computeClassTransitions = true; // TEMP: EYRUN
-  StructuredDataset *dataset = new StructuredDataset();
+  //StructuredDataset *dataset = new StructuredDataset();
 
-  for(j = 0; j < num; j++) {
-    StructuredExample *ex = read_struct_example(train_list[j], train_list[j], false);
-    dataset->AddExample(ex);
-    BehaviorBoutSequence *y = (BehaviorBoutSequence*)ex->y;
+  for(j = 0; j < dataset->num_examples; j++) {
+    //StructuredExample *ex = read_struct_example(train_list[j], train_list[j], false);
+    //dataset->AddExample(ex);
+    BehaviorBoutSequence *y = (BehaviorBoutSequence*)dataset->examples[j]->y;
 		
     // Temporary fix, ground truth segmentations should have bouts that span all the way to b->num_frames
-    int T = ((BehaviorBoutFeatures*)ex->x)->num_frames;
+    int T = ((BehaviorBoutFeatures*)dataset->examples[j]->x)->num_frames;
     if(y->num_bouts && y->bouts[y->num_bouts-1].end_frame==T-1)
       y->bouts[y->num_bouts-1].end_frame = T;
   }
   if(computeClassTransitions) {
-    printf("Training examples %d behavior sequences\n", (int)num);
+    printf("Training examples %d behavior sequences\n", (int)dataset->num_examples);
 
 
     // Compute all feature cache data structures for all training examples.  This requires first computing some
@@ -676,7 +680,7 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
     compute_feature_mean_variance_median_statistics(dataset);
 
     // Compute features for each training bout, normalized to have (0,1) mean and standard deviation
-    for(j = 0; j < num; j++) {
+    for(j = 0; j < dataset->num_examples; j++) {
       BehaviorBoutFeatures *behavior_bout = (BehaviorBoutFeatures*)dataset->examples[j]->x;
       behavior_bout->fvec = Psi(dataset->examples[j]->x, dataset->examples[j]->y).ptr();
 #if KEEP_FEATURES_IN_MEMORY == 0
@@ -2875,7 +2879,7 @@ bool BehaviorBoutSequence::load(const Json::Value &r, StructuredSVM *s) {
     char fname[1000];
     strcpy(fname, r.get("fname", "").asString().c_str());
     bool ret = load(fname);
-    remove(fname);
+    //remove(fname);
     return ret;
   } else {
     ((SVMBehaviorSequence*)s)->init_bout_label(this, NULL);

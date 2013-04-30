@@ -203,19 +203,20 @@ int main(int argc, const char **argv) {
  * Read the trx features from file and store per frame feature and timestamps 
  */
 bool FlyBehaviorBoutFeatures::load(const char *pname, SVMBehaviorSequence *svm) {
-  char fname[1001], dirname[10001], name[1000], folder[1000];
+  char fname[1001], dirname[10001], folder[1000];
   const char *ptr;
   MATFile *pmat;
   
-  if(!(ptr=strstr(pname, "trx.mat"))) {
+  /*if(!(ptr=strstr(pname, "trx.mat"))) {
     ExtractPathname(pname, folder);
     sprintf(name, "%s/trx.mat", folder);
   } else
     strcpy(name, pname);
+  */
 
-  pmat = matOpen(name, "r");
+  pmat = matOpen(pname, "r");
   if (pmat == NULL) {
-    fprintf(stderr, "Error opening mat file %s\n", name);
+    fprintf(stderr, "Error opening mat file %s\n", pname);
     return false;
   }
   
@@ -249,7 +250,12 @@ bool FlyBehaviorBoutFeatures::load(const char *pname, SVMBehaviorSequence *svm) 
   FrameFeature *frame_features = svm->GetFrameFeatureDefs();
   AllocateBuffers(svm, false);
 
-  MAT_GET_DOUBLE_ARRAY_FIELD(trx, frame_times, "timestamps", num_frames, firstframe);
+  if(mxGetField(trx, id, "timestamps")) {
+    MAT_GET_DOUBLE_ARRAY_FIELD(trx, frame_times, "timestamps", num_frames, firstframe);
+  } else {
+    for(int t = 0; t < num_frames; t++)
+      frame_times[t] = (firstframe-1+t)/fps;
+  }
   matClose(pmat);
   mxDestroyArray(trx);
   
