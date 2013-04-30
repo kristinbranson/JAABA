@@ -3037,6 +3037,8 @@ classdef JLabelData < handle
         end
       end
       
+      % cacheSize
+      % Not used for anything as of Apr 30, 2013 --ALT
       i = find(strcmpi(keys,'cacheSize'),1);
       if ~isempty(i),
         obj.cacheSize = values{i};
@@ -9257,10 +9259,10 @@ classdef JLabelData < handle
 %         end
 %       end
       
-      i = find(strcmpi(keys,'cacheSize'),1);
-      if ~isempty(i),
-        self.cacheSize = values{i};
-      end
+%       i = find(strcmpi(keys,'cacheSize'),1);
+%       if ~isempty(i),
+%         self.cacheSize = values{i};
+%       end
       
       % initialize the status table describing what required files exist
       [success,msg] = self.UpdateStatusTable();
@@ -9329,11 +9331,11 @@ classdef JLabelData < handle
 %         obj.openmovie = values{i};
 %       end
             
-      % cacheSize
-      i = find(strcmpi(keys,'cacheSize'),1);
-      if ~isempty(i),
-        obj.cacheSize = values{i};
-      end
+%       % cacheSize
+%       i = find(strcmpi(keys,'cacheSize'),1);
+%       if ~isempty(i),
+%         obj.cacheSize = values{i};
+%       end
       
       % initialize the status table describing what required files exist
       [success,msg] = obj.UpdateStatusTable();
