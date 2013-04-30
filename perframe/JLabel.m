@@ -7150,7 +7150,12 @@ function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, h
 % hObject    handle to menu_classifier_classifyCurrentMovieSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.PredictSaveMovie(handles.data.expi);
+try
+  handles.data.PredictSaveMovie(handles.data.expi);
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
+
 return
 
 
@@ -7165,7 +7170,11 @@ fspec = fullfile(handles.data.expdirs{expi},'*.mat');
 if fname==0,
   return;
 end
-handles.guidata.PredictSaveMovie(handles.data.expi,fullfile(pname,fname));
+try
+  handles.data.PredictSaveMovie(handles.data.expi,fullfile(pname,fname));
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -7209,7 +7218,11 @@ function menu_file_export_scores_curr_exp_default_loc_Callback(hObject, eventdat
 % hObject    handle to menu_file_export_scores_curr_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.SaveCurScores(handles.data.expi);
+try
+  handles.data.SaveCurScores(handles.data.expi);
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7224,7 +7237,11 @@ fspec = fullfile(handles.data.expdirs{expi},'*.mat');
 if fname==0,
   return;
 end
-handles.guidata.SaveCurScores(handles.data.expi,fullfile(pname,fname));
+try
+  handles.data.SaveCurScores(handles.data.expi,fullfile(pname,fname));
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7233,9 +7250,13 @@ function menu_file_export_scores_all_exp_default_loc_Callback(hObject, eventdata
 % hObject    handle to menu_file_export_scores_all_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.data.nexps
-  handles.guidata.SaveCurScores(ndx);
-end
+try
+  for ndx = 1:handles.data.nexps
+    handles.data.SaveCurScores(ndx);
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7248,9 +7269,13 @@ fname = inputdlg('Save the scores in the experiment directory to file.. ' );
 if isempty(fname),
   return;
 end
-for ndx = 1:handles.data.nexps
-  handles.guidata.SaveCurScores(ndx,fullfile(handles.data.expdirs{ndx},fname));
-end
+try
+  for ndx = 1:handles.data.nexps
+    handles.data.SaveCurScores(ndx,fullfile(handles.data.expdirs{ndx},fname));
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7259,9 +7284,13 @@ function menu_classifier_classifyall_default_Callback(hObject, eventdata, handle
 % hObject    handle to menu_classifier_classifyall_default (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.data.nexps,
-  handles.guidata.PredictSaveMovie(ndx);
-end
+try
+  for ndx = 1:handles.data.nexps,
+    handles.data.PredictSaveMovie(ndx);
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7279,11 +7308,15 @@ else
     return
   end
 end
-for ndx = 1:handles.data.nexps
-  thisExpDirName=handles.data.expdirs{ndx};
-  thisScoreFileName=fullfile(thisExpDirName,fileName);
-  handles.guidata.PredictSaveMovie(ndx,thisScoreFileName);
-end
+try
+  for ndx = 1:handles.data.nexps
+    thisExpDirName=handles.data.expdirs{ndx};
+    thisScoreFileName=fullfile(thisExpDirName,fileName);
+    handles.data.PredictSaveMovie(ndx,thisScoreFileName);
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7326,7 +7359,7 @@ vv = textscan(vid,'%s');
 fclose(vid);
 helpdlg(sprintf('JAABA (Janelia Automated Animal Behavior Annotator) version:%s',vv{1}{1}));
 return
-
+ 
 
 % --------------------------------------------------------------------
 function menu_help_documentation_Callback(hObject, eventdata, handles)
