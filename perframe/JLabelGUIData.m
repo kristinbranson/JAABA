@@ -6,7 +6,7 @@ classdef JLabelGUIData < handle
     
     %classifierfilename = '';
     %configfilename = '';
-    defaultpath = '';
+    %defaultpath = '';  % now in JLabelData
     packageoutputdir = '';
     
     %isgroundtruthmode = false;  % never used
@@ -20,17 +20,17 @@ classdef JLabelGUIData < handle
     movie_width = 100;
     movie_filename = [];
     
-    thereIsAnOpenFile=false;
-    everythingFileNameAbs='';  % the name of the everything file, if one
-                               % is open.  We need this here b/c a new
-                               % everything file doesn't have a JLabelData
-                               % object yet.
-    userHasSpecifiedEverythingFileName=false;  % true iff the everything
-                                               % file name was specified by
-                                               % the user, as opposed to
-                                               % being chosen by default
-                                               % when a new file was
-                                               % created
+%     thereIsAnOpenFile=false;
+%     everythingFileNameAbs='';  % the name of the everything file, if one
+%                                % is open.  We need this here b/c a new
+%                                % everything file doesn't have a JLabelData
+%                                % object yet.
+%     userHasSpecifiedEverythingFileName=false;  % true iff the everything
+%                                                % file name was specified by
+%                                                % the user, as opposed to
+%                                                % being chosen by default
+%                                                % when a new file was
+%                                                % created
     %configparams = struct;  % the stuff read from the project file
 
     panel_previews = [];
@@ -72,9 +72,9 @@ classdef JLabelGUIData < handle
 
     bottomAutomatic = 'None';
 
-    needsave = false;  % true iff there are unsaved changes
+%     needsave = false;  % true iff there are unsaved changes
     
-    data = [];  % the JLabelData object
+    data = [];  % the JLabelData object (a ref to it, actually)
 
     nflies_label = 1;
     classifier = [];
@@ -209,8 +209,9 @@ classdef JLabelGUIData < handle
   end
      
   methods (Access=public)
-    function obj = JLabelGUIData()
+    function obj = JLabelGUIData(jld)
       % Constructor
+      obj.data=jld;
     end
 
     
@@ -341,23 +342,23 @@ classdef JLabelGUIData < handle
     end
     
     
-    % ---------------------------------------------------------------------
-    function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
-      if self.thereIsAnOpenFile && ~isempty(self.data)
-        nExp=self.data.nexps;
-        someExperimentIsCurrent=(1<=self.expi) && ...
-                                (self.expi<=nExp) ;
-      else
-        someExperimentIsCurrent=false;
-      end
-    end
+%     % ---------------------------------------------------------------------
+%     function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
+%       if self.thereIsAnOpenFile && ~isempty(self.data)
+%         nExp=self.data.nexps;
+%         someExperimentIsCurrent=(1<=self.expi) && ...
+%                                 (self.expi<=nExp) ;
+%       else
+%         someExperimentIsCurrent=false;
+%       end
+%     end
     
     
-    % ---------------------------------------------------------------------    
-    function s=getMacguffin(self)
-      % Construct the structure that will be saved in the everything file
-      s=self.data.getMacguffin();
-    end
+%     % ---------------------------------------------------------------------    
+%     function s=getMacguffin(self)
+%       % Construct the structure that will be saved in the everything file
+%       s=self.data.getMacguffin();
+%     end
     
     
     % ---------------------------------------------------------------------
@@ -462,34 +463,33 @@ classdef JLabelGUIData < handle
 %     end
 
     
-    % ---------------------------------------------------------------------
-    function initializeGivenMacguffin(self, ...
-                                      everythingParams, ...
-                                      figureJLabel, ...
-                                      groundTruthingMode, ...
-                                      setStatusCallback, ...
-                                      clearStatusCallback)  %#ok
-                                    
-      % deal with args
-      if ~exist('setStatusCallback','var')
-        setStatusCallback=@nop;
-      end
-      if ~exist('clearStatusCallback','var')
-        clearStatusCallback=@nop;
-      end
-      
-      % initialize data structure
-      self.data = ...
-        JLabelData('groundTruthingMode',groundTruthingMode, ...
-                   'macguffin',everythingParams, ...
-                   'defaultpath',self.defaultpath,...
-                   'setstatusfn',setStatusCallback,...
-                   'clearstatusfn',clearStatusCallback,...
-                   'cacheSize',self.cacheSize);
-%                    'setstatusfn',@(s) SetStatusCallback(s,figureJLabel),...
-%                    'clearstatusfn',@() ClearStatusCallback(figureJLabel),...
-      self.initializeAfterBasicParamsSet();
-    end
+%     % ---------------------------------------------------------------------
+%     function initializeGivenMacguffin(self, ...
+%                                       everythingParams, ...
+%                                       figureJLabel, ...
+%                                       groundTruthingMode, ...
+%                                       setStatusCallback, ...
+%                                       clearStatusCallback)  %#ok
+%                                     
+%       % deal with args
+%       if ~exist('setStatusCallback','var')
+%         setStatusCallback=@nop;
+%       end
+%       if ~exist('clearStatusCallback','var')
+%         clearStatusCallback=@nop;
+%       end
+%       
+%       % initialize data structure
+%       self.data.openFileGivenMacguffin('groundTruthingMode',groundTruthingMode, ...
+%                                        'macguffin',everythingParams, ...
+%                                        'defaultpath',self.defaultpath,...
+%                                        'setstatusfn',setStatusCallback,...
+%                                        'clearstatusfn',clearStatusCallback,...
+%                                        'cacheSize',self.cacheSize);
+% %                    'setstatusfn',@(s) SetStatusCallback(s,figureJLabel),...
+% %                    'clearstatusfn',@() ClearStatusCallback(figureJLabel),...
+%       self.initializeAfterBasicParamsSet();
+%     end
 
     
     % ---------------------------------------------------------------------
@@ -722,8 +722,8 @@ classdef JLabelGUIData < handle
       end
       timestamp = obj.data.classifierTS;  %#ok
       version = obj.data.version;  %#ok
-      if obj.userHasSpecifiedEverythingFileName, 
-        jabFileNameAbs=obj.everythingFileNameAbs;  %#ok
+      if obj.data.userHasSpecifiedEverythingFileName, 
+        jabFileNameAbs=obj.data.everythingFileNameAbs;  %#ok
       else
         error('User must specify a .jab file name before scores can be saved.');
       end

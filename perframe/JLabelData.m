@@ -248,9 +248,9 @@ classdef JLabelData < handle
     clipsdir = 0;
     scores = 0;
     
-    % whether there is a movie to show
-    ismovie = true;
-    openmovie = true;
+    % Properties relating to whether there is a movie to show
+    openmovie = true;  % true iff a movie is one of the required files for each experiment
+    ismovie = false;  % true iff a movie is one of the required files, and the movie file name has been specified
     
     % file containing feature parameters
     %featureparamsfilename = 0;
@@ -402,12 +402,13 @@ classdef JLabelData < handle
     % Ground truthing or not
     % gtMode is set in the constructor, and is constant over the life
     % of the object.
-    gtMode = false;  % Seems like it would make sense to not have
-                     % JLabelData know about this---it's really more
-                     % a property of the View, not the Model, it seems to
-                     % me.  --ALT, Jan 17 2013
-                     % Maybe, but making it that way would be a pain in the
-                     % ass.  --ALT, Apr 22 2013
+    gtMode = [];  % Seems like it would make sense to not have
+                  % JLabelData know about this---it's really more
+                  % a property of the View, not the Model, it seems to
+                  % me.  --ALT, Jan 17 2013
+                  % Maybe, but making it that way would be a pain in the
+                  % ass.  --ALT, Apr 22 2013
+                  % This is set to empty unless a file is open.
     
     % Ground truthing suggestion
     randomGTSuggestions = {};
@@ -443,6 +444,20 @@ classdef JLabelData < handle
     trxGraphicParams=[];
     labelcolors = [];
     unknowncolor = [0 0 0];
+    
+    % .jab-file handling stuff
+    thereIsAnOpenFile=false;
+    everythingFileNameAbs='';  % the name of the everything file, if one
+                               % is open.  We need this here b/c a new
+                               % everything file doesn't have a JLabelData
+                               % object yet.
+    userHasSpecifiedEverythingFileName=false;  % true iff the everything
+                                               % file name was specified by
+                                               % the user, as opposed to
+                                               % being chosen by default
+                                               % when a new file was
+                                               % created
+    needsave = false;  % true iff there are unsaved changes
   end
 
 %   properties (Access=private,Constant=true)
@@ -568,6 +583,7 @@ classdef JLabelData < handle
       obj.clearClassifierProper();
       
       % If we got this far, all is good
+      obj.needsave=true;
       success = true;
     end  % method
     
@@ -2985,14 +3001,9 @@ classdef JLabelData < handle
     % default string
     % classifierfilename: name of classifier file to save/load classifier from
  
-      if nargin == 0 ,
-        error('JLabelData:zero_args_to_constructor',  ...
-              'Internal error: JLabelData() called with zero arguments');
-      end
-
       % args should be key-value pairs
       if mod(numel(varargin),2) ~= 0,
-        error('JLabelData:odd_number_of_args_to_constructor',  ...
+        error('JLabelData:oddNumberOfArgsToConstructor',  ...
               'Number of inputs to JLabelData constructor must be even');
       end
 
@@ -3000,10 +3011,6 @@ classdef JLabelData < handle
       keys = varargin(1:2:end);
       values = varargin(2:2:end);     
       
-      % Set the ground-truthing mode
-      i=whichstr(keys,'groundTruthingMode');
-      obj.gtMode=fif(isempty(i),false,values{i});
-
       % Set the function to be called when the SetStatus method is invoked
       i = find(strcmpi(keys,'setstatusfn'),1);
       if isempty(i),
@@ -3020,94 +3027,7 @@ classdef JLabelData < handle
       else
         obj.clearstatusfn = values{i};
       end
-      
-      % one of the arguments must be a Macguffin.
-      i=whichstr(keys,'macguffin');
-      if isnonempty(i)
-        obj.setMacguffin(values{i});
-      else
-        error('JLabelData:missing_required_argument',  ...
-              'Internal error: Must supply a macguffin argument to JLabelData()');
-      end
-              
-      % Now handle other arguments
-      i = find(strcmpi(keys,'openmovie'),1);
-      if ~isempty(i),
-        obj.openmovie = values{i};
-      end
-      
-%       % movie
-%       i = find(strcmpi(keys,'moviefilename'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetMovieFileName(values{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-      
-%       % trx
-%       i = find(strcmpi(keys,'trxfilename'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetTrxFileName(values{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-      
-%       % label
-%       i = find(strcmpi(s,'labelfilename'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetLabelFileName(v{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-
-%       % perframedir
-%       i = find(strcmpi(keys,'perframedir'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetPerFrameDir(values{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-
-%       % clipsdir
-%       i = find(strcmpi(keys,'clipsdir'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetClipsDir(values{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-
-%       % featureparamsfilename
-%       i = find(strcmpi(s,'featureparamsfilename'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetFeatureParamsFileName(v{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-      
-%       % rootoutputdir
-%       i = find(strcmpi(s,'rootoutputdir'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetRootOutputDir(v{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-      
-%       % classifier
-%       i = find(strcmpi(s,'classifierfilename'),1);
-%       if ~isempty(i),
-%         [success,msg] = obj.SetClassifierFileName(v{i});
-%         if ~success,
-%           error(msg);
-%         end
-%       end
-      
+                          
       % default path
       i = find(strcmpi(keys,'defaultpath'),1);
       if ~isempty(i),
@@ -3133,11 +3053,11 @@ classdef JLabelData < handle
         obj.version = '0.0';
       end
       
-      % initialize the status table describing what required files exist
-      [success,msg] = obj.UpdateStatusTable();
-      if ~success,
-        error(msg);
-      end      
+      % % initialize the status table describing what required files exist
+      % [success,msg] = obj.UpdateStatusTable();
+      % if ~success,
+      %   error(msg);
+      % end      
     end  % constructor method
 
     
@@ -3247,6 +3167,7 @@ classdef JLabelData < handle
       if JLabelData.isValidBehaviorName(behaviorName), ...
         obj.labelnames = {behaviorName 'None'};
         obj.nbehaviors = 2;
+        obj.needsave=true;
       else
         error('JLabelData:invalidBehaviorName','Invalid behavior name');
       end
@@ -3373,6 +3294,7 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function [success,msg] = setScoreFileName(obj,scorefilename)
       obj.scorefilename = scorefilename;
+      obj.needsave=true;
       [success,msg] = obj.UpdateStatusTable('scores');
     end
 
@@ -4314,6 +4236,7 @@ classdef JLabelData < handle
       self.windowdata.scoreNorm=[];
       self.invalidatePredictions();
       self.UpdatePredictedIdx();  % update cached predictions for current target
+      self.needsave=true;
       %self.PreLoadPeriLabelWindowData();  % do we need to do this?
     end  
 
@@ -7224,6 +7147,7 @@ classdef JLabelData < handle
         obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);        
       end
       obj.UpdateErrorIdx();      
+      obj.needsave=true;
     end
     
     
@@ -7255,6 +7179,7 @@ classdef JLabelData < handle
       % obj.classifier_old = [];
       obj.ClearWindowData();
       obj.PreLoadPeriLabelWindowData();
+      obj.needsave=true;
 %       if hasClassifier && dotrain,
 %         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
 %         obj.Train();
@@ -7372,7 +7297,7 @@ classdef JLabelData < handle
           obj.FindFastPredictParams();
           obj.PredictLoaded();
       end
-
+      obj.needsave=true;
       obj.ClearStatus();
       
     end  % method
@@ -9233,12 +9158,234 @@ classdef JLabelData < handle
       
       % need to clear the classifier
       obj.clearClassifierProper();
+      
+      % note that we now have unsaved changes
+      obj.needsave=true;
     end  % method
     
     
     % ---------------------------------------------------------------------
     function result=classifierIsPresent(obj)
       result=~isempty(obj.classifier);
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
+      if self.thereIsAnOpenFile ,
+        nExp=self.nexps;
+        someExperimentIsCurrent=(1<=self.expi) && ...
+                                (self.expi<=nExp) ;
+      else
+        someExperimentIsCurrent=false;
+      end
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function openJabFile(self, ...
+                         fileNameAbs, ...
+                         groundTruthingMode, ...
+                         varargin) 
+      % optional args should be key-value pairs
+      if mod(numel(varargin),2) ~= 0,
+        error('JLabelData:evenNumberOfOptionalArgsToopenJabFile',  ...
+              'Number of optional inputs to JLabelData.openJabFile() must be even');
+      end
+
+      % Set the ground-truthing mode
+      obj.gtMode=groundTruthingMode;
+
+      %
+      % Open the file
+      %
+      
+      % get just the relative file name
+      fileDirPathAbs=fileparts(fileNameAbs);
+      %[fileDirPathAbs,baseName,ext]=fileparts(fileNameAbs);
+      %fileNameRel=[baseName ext];
+
+      % load the file
+      try
+        macguffin=loadAnonymous(fileNameAbs);
+      catch excp
+        self.clearStatus();
+        rethrow(excp);
+      end
+
+      % if we get here, file was read successfully
+      obj.setMacguffin(macguffin);
+      
+      % Store file-related stuff
+      obj.thereIsAnOpenFile=true;
+      obj.everythingFileNameAbs=fileNameAbs;
+      obj.userHasSpecifiedEverythingFileName=true;
+      obj.needsave = false;  % b/c just opened
+      obj.defaultpath=fileDirPathAbs;
+      
+      % parse arguments into keywords and corresponding values
+      keys = varargin(1:2:end);
+      values = varargin(2:2:end);     
+                    
+%       % Now handle other arguments
+%       i = find(strcmpi(keys,'openmovie'),1);
+%       if ~isempty(i),
+%         obj.openmovie = values{i};
+%       end
+      
+%       % default path
+%       i = find(strcmpi(keys,'defaultpath'),1);
+%       if ~isempty(i),
+%         [success,msg] = obj.SetDefaultPath(values{i});
+%         if ~success,
+%           warning(msg);
+%         end
+%       end
+      
+      i = find(strcmpi(keys,'cacheSize'),1);
+      if ~isempty(i),
+        obj.cacheSize = values{i};
+      end
+      
+      % initialize the status table describing what required files exist
+      [success,msg] = obj.UpdateStatusTable();
+      if ~success,
+        error(msg);
+      end      
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function newJabFile(obj,macguffin,varargin) 
+      % optional args should be key-value pairs
+      if mod(numel(varargin),2) ~= 0,
+        error('JLabelData:oddNumberOfOptionalArgsToNewJabFile',  ...
+              'Number of optional inputs to JLabelData.newJabFile() must be even');
+      end
+
+      % parse arguments into keywords and corresponding values
+      keys = varargin(1:2:end);
+      values = varargin(2:2:end);     
+      
+      % If caller set the default path, set that now
+      oldDefaultPath=obj.defaultpath;
+      i = find(strcmpi(keys,'defaultpath'),1);
+      if ~isempty(i),
+        [success,msg] = obj.SetDefaultPath(values{i});
+        if ~success,
+          error('JLabelData:unableToSetDefaultPath',msg);
+        end
+      end
+      
+      % Set the ground-truthing mode to false, b/c new file
+      obj.gtMode=false;
+      
+      % Set the file data from the Macguffin object
+      try
+        obj.setMacguffin(macguffin);
+      catch excp
+        % roll things back
+        obj.defaultpath=oldDefaultPath;
+        rethrow(excp);
+      end
+      
+      % Make up filename
+      try
+        behaviorName=macguffin.getMainBehaviorName();
+        fileNameRel=sprintf('%s.jab',behaviorName);
+      catch excp
+        if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
+          fileNameRel='untitled.jab';
+        else
+          rethrow(excp);
+        end
+      end  
+      fileNameAbs=fullfile(self.defaultpath,fileNameRel);
+
+      % Set other file-related instance vars
+      obj.thereIsAnOpenFile=true;
+      obj.everythingFileNameAbs=fileNameAbs;
+      obj.userHasSpecifiedEverythingFileName=false;
+      obj.needsave = true;  % b/c new file
+      
+%       % Now handle other arguments
+%       i = find(strcmpi(keys,'openmovie'),1);
+%       if ~isempty(i),
+%         obj.openmovie = values{i};
+%       end
+            
+      % cacheSize
+      i = find(strcmpi(keys,'cacheSize'),1);
+      if ~isempty(i),
+        obj.cacheSize = values{i};
+      end
+      
+      % initialize the status table describing what required files exist
+      [success,msg] = obj.UpdateStatusTable();
+      if ~success,
+        error(msg);
+      end      
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function closeJabFile(self)
+      self.thereIsAnOpenFile=false;
+      self.everythingFileNameAbs='';
+      self.userHasSpecifiedEverythingFileName=[];
+      self.needsave=[];
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function delete(~)
+    end
+    
+    
+    % ---------------------------------------------------------------------
+    function saveJabFile(self,fileNameAbs)
+      fileNameRel=fileNameRelFromAbs(fileNameAbs);
+      self.setStatus(sprintf('Saving to %s...',fileNameRel));
+      % Extract the structure that will be saved in the everything file
+      macguffin=self.getMacguffin();
+      % write the everything structure to disk
+      try
+        if exist(fileNameAbs,'file')
+          backupFileNameAbs=[fileNameAbs,'~'];
+          [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
+          if ~success,
+            backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
+            error('JLabelData:unableToCreateBackup', ...
+                  'Unable to create backup file %s.  Save aborted.',backupFileNameRel);
+          end
+        end
+        saveAnonymous(fileNameAbs,macguffin);
+      catch excp
+        self.clearStatus();
+        rethrow(excp);
+      end
+      % Do follow-up book-keeping
+      self.everythingFileNameAbs=fileNameAbs;
+      self.userHasSpecifiedEverythingFileName=true;      
+      self.needsave=false;
+      fileDirPathAbs=fileparts(fileNameAbs);
+      self.defaultpath=fileDirPathAbs;      
+      self.clearStatus();
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function importClassifier(self,fileNameAbs)
+      % load the file
+      macguffin=loadAnonymous(fileNameAbs);
+
+      % Set the classifier in self
+      self.setScoreFeatures(macguffin.scoreFeatures);
+      self.setWindowFeaturesParams(macguffin.windowFeaturesParams);
+      self.setClassifierStuff(macguffin.classifierStuff);
+
+      % Note that we now need saving
+      self.needsave=true;
     end  % method
     
     
