@@ -494,6 +494,7 @@ classdef JLabelData < handle
     %expdirs
     expnames
     nexps
+    nTargetsInCurrentExp
   end
 
   
@@ -524,6 +525,7 @@ classdef JLabelData < handle
     function set.expnames(self,newValue)  %#ok
       % Do nothing, b/c now we just compute expnames when we need it 
       % Eventually this method should go away, and all calls to it also.
+      warning('Trying to set JLabelData.expnames');
     end    
     
     function nexps=get.nexps(self)
@@ -534,6 +536,20 @@ classdef JLabelData < handle
     function set.nexps(self,newValue)  %#ok
       % Do nothing, b/c now we just compute nexps when we need it 
       % Eventually this method should go away, and all calls to it also.
+      warning('Trying to set JLabelData.nexps');
+    end
+
+    function nTargetsInCurrentExp=get.nTargetsInCurrentExp(self)
+      if self.nexps>0 && ~isempty(self.expi) && self.expi~=0 ,
+        nTargetsInCurrentExp=self.nflies_per_exp(self.expi);
+      else
+        nTargetsInCurrentExp=[];
+      end
+    end
+    
+    function set.nTargetsInCurrentExp(self,newValue)  %#ok
+      % do nothing---this property is read-only
+      warning('Trying to set JLabelData.nTargetsInCurrentExp');
     end
     
   end  % methods block
@@ -900,6 +916,7 @@ classdef JLabelData < handle
     function ClearCachedPerExpData(obj)
     % ClearCachedPerExpData(obj)
     % Clears all cached data for the currently loaded experiment
+      obj.unsetCurrentTarget();
       obj.trx = {};
       obj.expi = 0;
       obj.flies = nan(size(obj.flies));
@@ -2122,7 +2139,7 @@ classdef JLabelData < handle
       % Store labels cached in labelidx for the current experiment and flies
       % to labels structure. This is when the timestamp on labels gets
       % updated. 
-      if isempty(obj.flies) || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
+      if isempty(obj.flies) || obj.expi==0 || all(isnan(obj.flies)) || isempty(obj.labelidx.vals),
         return
       end      
       obj.StoreLabelsForGivenAnimal(obj.expi,obj.flies,obj.labelidx,obj.labelidx_off);
@@ -5558,7 +5575,7 @@ classdef JLabelData < handle
       end
       
       if ~(numel(obj.expdirs)<expi); obj.expdirs(expi) = []; end
-      if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
+      % if ~(numel(obj.expnames)<expi); obj.expnames(expi) = []; end
       %if ~(numel(obj.outexpdirs)<expi); obj.outexpdirs(expi) = []; end
       if ~(numel(obj.nflies_per_exp)<expi); obj.nflies_per_exp(expi) = []; end
       if ~(numel(obj.sex_per_exp)<expi); obj.sex_per_exp(expi) = []; end
@@ -5569,7 +5586,7 @@ classdef JLabelData < handle
       if ~(numel(obj.labelstats)<expi); obj.labelstats(expi) = []; end
       %if ~(numel(obj.gt_labels)<expi); obj.gt_labels(expi) = []; end
       %if ~(numel(obj.gt_labelstats)<expi); obj.gt_labelstats(expi) = []; end
-      obj.nexps = obj.nexps - numel(expi);
+      %obj.nexps = obj.nexps - numel(expi);
       % TODO: exp2labeloff
 
       % Clean window features.
@@ -6445,6 +6462,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function pos = GetTrxPos1(varargin)
     % [x,y,theta,a,b] = GetTrxPos1(obj,expi,fly,ts)
     % Returns the position for the input experiment, SINGLE fly, and
@@ -6455,6 +6474,8 @@ classdef JLabelData < handle
 
     end
 
+    
+    % ---------------------------------------------------------------------
     function sex = GetSex(obj,expi,fly,ts,fast)
     % x = GetSex(obj,expi,fly,ts)
     % Returns the sex for the input experiment, SINGLE fly, and
@@ -6491,6 +6512,8 @@ classdef JLabelData < handle
 
     end
 
+    
+    % ---------------------------------------------------------------------
     function sex = GetSex1(obj,expi,fly,t)
     % x = GetSex1(obj,expi,fly,t)
     % Returns the sex for the input experiment, SINGLE fly, and
@@ -6521,6 +6544,8 @@ classdef JLabelData < handle
 
     end
     
+    
+    % ---------------------------------------------------------------------
     function sexfrac = GetSexFrac(obj,expi,fly)
     % x = GetSexFrac(obj,expi,fly)
     % Returns a struct indicating the fraction of frames for which the sex
@@ -6530,6 +6555,8 @@ classdef JLabelData < handle
 
     end
     
+    
+    % ---------------------------------------------------------------------
     function t0 = GetTrxFirstFrame(obj,expi,flies)
     % t0 = GetTrxFirstFrame(obj,expi,flies)
     % Returns the firstframes for the input experiment and flies. If flies
@@ -6547,6 +6574,8 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function t1 = GetTrxEndFrame(obj,expi,flies)
     % t1 = GetTrxEndFrame(obj,expi,flies)
     % Returns the endframes for the input experiment and flies. If flies
@@ -6565,10 +6594,14 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function SetConfidenceThreshold(obj,thresholds,ndx)
       obj.confThresholds(ndx) = thresholds;
     end
     
+    
+    % ---------------------------------------------------------------------
     function thresholds = GetConfidenceThreshold(obj,ndx)
       thresholds =obj.confThresholds(ndx) ;
     end
@@ -6681,6 +6714,28 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
+    function unsetCurrentTarget(obj)
+      % Sets the object to a state where no target is currently selected.
+      % This also clears the cached data for the currently loaded
+      % experiment.
+      obj.StoreLabelsForCurrentAnimal();
+      obj.trx = {};
+      obj.expi = 0;
+      obj.flies = [];
+      obj.perframedata = {};
+      obj.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
+      obj.labelidx_off = 0;
+      obj.t0_curr = 0;
+      obj.t1_curr = 0;
+      obj.predictedidx = [];
+      obj.scoresidx = [];
+      obj.scoresidx_old = [];
+      obj.erroridx = [];
+      obj.suggestedidx = [];
+    end
+    
+    
+    % ---------------------------------------------------------------------
     function timestamp = GetLabelTimestamps(obj,expis,flies,ts)      
       timestamp = nan(size(ts));      
       for expi = 1:obj.nexps,
@@ -6752,6 +6807,8 @@ classdef JLabelData < handle
       
     end
 
+    
+    % ---------------------------------------------------------------------
     function [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
     % [perframedata,T0,T1] = GetPerFrameData(obj,expi,flies,prop,T0,T1)
     % Returns the per-frame data for the input experiment, flies, and
@@ -6795,6 +6852,8 @@ classdef JLabelData < handle
 
     end
 
+    
+    % ---------------------------------------------------------------------
     function perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
     % perframedata = GetPerFrameData1(obj,expi,flies,prop,t)
     % Returns the per-frame data for the input experiment, flies, and
@@ -6892,6 +6951,8 @@ classdef JLabelData < handle
       
     end
         
+    
+    % ---------------------------------------------------------------------
     function scores = GetLoadedScores(obj,expi,flies,T0,T1)
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
@@ -6910,6 +6971,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function [scores,predictions] = GetPostprocessedScores(obj,expi,flies,T0,T1)
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
@@ -6936,8 +6999,9 @@ classdef JLabelData < handle
       end
       
     end
+        
     
-    
+    % ---------------------------------------------------------------------
     function scores = GetOldScores(obj,expi,flies)
       T0 = max(obj.GetTrxFirstFrame(expi,flies));
       T1 = min(obj.GetTrxEndFrame(expi,flies));
@@ -6954,6 +7018,8 @@ classdef JLabelData < handle
       
     end
     
+    
+    % ---------------------------------------------------------------------
     function [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
     % [idx,T0,T1] = IsBehavior(obj,behaviori,expi,flies,T0,T1)
     % Returns whether the behavior is labeled as behaviori for experiment
@@ -9207,14 +9273,7 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function openJabFile(self, ...
                          fileNameAbs, ...
-                         groundTruthingMode, ...
-                         varargin) 
-      % optional args should be key-value pairs
-      if mod(numel(varargin),2) ~= 0,
-        error('JLabelData:evenNumberOfOptionalArgsToopenJabFile',  ...
-              'Number of optional inputs to JLabelData.openJabFile() must be even');
-      end
-
+                         groundTruthingMode) 
       % Set the ground-truthing mode
       self.gtMode=groundTruthingMode;
 
@@ -9239,35 +9298,11 @@ classdef JLabelData < handle
       self.userHasSpecifiedEverythingFileName=true;
       self.needsave = false;  % b/c just opened
       self.defaultpath=fileDirPathAbs;
-      
-      % parse arguments into keywords and corresponding values
-      keys = varargin(1:2:end);
-      values = varargin(2:2:end);     
-                    
-%       % Now handle other arguments
-%       i = find(strcmpi(keys,'openmovie'),1);
-%       if ~isempty(i),
-%         self.openmovie = values{i};
-%       end
-      
-%       % default path
-%       i = find(strcmpi(keys,'defaultpath'),1);
-%       if ~isempty(i),
-%         [success,msg] = self.SetDefaultPath(values{i});
-%         if ~success,
-%           warning(msg);
-%         end
-%       end
-      
-%       i = find(strcmpi(keys,'cacheSize'),1);
-%       if ~isempty(i),
-%         self.cacheSize = values{i};
-%       end
-      
+     
       % initialize the status table describing what required files exist
       [success,msg] = self.UpdateStatusTable();
       if ~success,
-        error(msg);
+        error('JLabelData:unableToUpdateStatusTable',msg);
       end      
     end  % method
 
