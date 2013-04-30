@@ -343,10 +343,11 @@ function pushSwitchfly_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 JLabelHandles = guidata(handles.JLabelhObject);
-[JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
+JLabelHandles = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
 guidata(handles.JLabelhObject,JLabelHandles);
 JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
 guidata(handles.JLabelhObject,JLabelHandles);
+return
 
 
 % --- Executes on button press in pushClose.
