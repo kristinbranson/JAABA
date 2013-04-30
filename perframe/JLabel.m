@@ -2667,11 +2667,11 @@ end
     handles.data.cacheSize = 4000;
   end
   
-  % load the default configfilename, if present
-  if isfield(handles.guidata.rc,'previousConfigFileName'),
-    handles.guidata.previousConfigFileName = ...
-      handles.guidata.rc.previousConfigFileName;
-  end
+%   % load the default configfilename, if present
+%   if isfield(handles.guidata.rc,'previousConfigFileName'),
+%     handles.guidata.previousConfigFileName = ...
+%       handles.guidata.rc.previousConfigFileName;
+%   end
   
   
 % catch ME,
@@ -7965,13 +7965,13 @@ return
 % return
 
 
-% -------------------------------------------------------------------------
-function previousConfigFileName=getPreviousConfigFileName(figureJLabel)
-
-handles=guidata(figureJLabel);
-previousConfigFileName=handles.guidata.previousConfigFileName;
-
-return
+% % -------------------------------------------------------------------------
+% function previousConfigFileName=getPreviousConfigFileName(figureJLabel)
+% 
+% handles=guidata(figureJLabel);
+% previousConfigFileName=handles.guidata.previousConfigFileName;
+% 
+% return
 
 
 % % -------------------------------------------------------------------------
