@@ -60,7 +60,22 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to JLabel (see VARARGIN)
 
+% parse optional inputs
+[defaultPath,...
+ hsplash,...
+ hsplashstatus] = ...
+  myparse(varargin,...
+          'defaultpath','',...
+          'hsplash',[],...
+          'hsplashstatus',[]);
 
+% Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
+handles.data=JLabelData('setstatusfn',@(s)SetStatusCallback(s,figureJLabel) , ...
+                        'clearstatusfn',@()ClearStatusCallback(figureJLabel));
+if ~isempty(defaultPath) ,                      
+  handles.data.SetDefaultPath(defaultPath);
+end
+                      
 % To help with merging with Adam -- Mayank, 6 march 2012 
 set(handles.automaticTimelineBottomRowPopup,'String',...
  {'None','Validated','Old','Imported','Postprocessed','Distance'});
@@ -70,18 +85,13 @@ set(handles.automaticTimelineBottomRowPopup,'String',...
 % 'Label','Find Similar Frames','Callback',...
 %@menu_classifier_compareFrames_Callback);
 
+handles.guidata = JLabelGUIData(handles.data);
 
-handles.guidata = JLabelGUIData();
+% stash optional inputs
+handles.guidata.hsplash=hsplash;
+handles.guidata.hsplashstatus=hsplashstatus;
 
-% parse optional inputs
-[handles.guidata.defaultpath,...
- handles.guidata.hsplash,...
- handles.guidata.hsplashstatus] = ...
-  myparse(varargin,...
-          'defaultpath','',...
-          'hsplash',[],...
-          'hsplashstatus',[]);
-
+% Throw up the splash window
 if isempty(handles.guidata.hsplash),
   [handles.guidata.hsplash,handles.guidata.hsplashstatus] = JAABASplashScreen();
 end
@@ -151,7 +161,7 @@ RecursiveSetKeyPressFcn(hObject);
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
 
-% load the RC file (is the time and place?)
+% load the RC file (is this the time and place?)
 handles = LoadRC(handles);
 
 % Write the handles to the guidata
@@ -683,7 +693,8 @@ function UpdatePlots(handles,varargin)
 persistent Mframenum Mlastused Mimage movie_filename
 
 % if no experiments are loaded, nothing to do
-if isempty(handles.guidata.data) || handles.guidata.data.nexps==0 ,
+%if isempty(handles.guidata.data) || handles.guidata.data.nexps==0 ,
+if ~handles.data.thereIsAnOpenFile || handles.data.nexps==0 ,
   return
 end
 
@@ -1826,13 +1837,14 @@ function handles = UpdateMovies(handles)
 return
 
 
-%--------------------------------------------------------------------------
-function handles = SetNeedSave(handles)
-handles.guidata.needsave = true;
-UpdateEnablementAndVisibilityOfControls(handles);
-%set(handles.menu_file_export_classifier,'Enable','on');
-%set(handles.menu_file_export_labels,'Enable','on');
-return
+% %--------------------------------------------------------------------------
+% function handles = SetNeedSave(handles)
+% handles.data.needsave = true;
+% UpdateEnablementAndVisibilityOfControls(handles);
+% %set(handles.menu_file_export_classifier,'Enable','on');
+% %set(handles.menu_file_export_labels,'Enable','on');
+% return
+
 
 % % --------------------------------------------------------------------
 % function handles = SetSaved(handles)
@@ -2035,11 +2047,12 @@ else
 end
 
 % labeling vs GT mode
-if isempty(handles.guidata.data)
+%if isempty(handles.guidata.data)
+if ~handles.data.thereIsAnOpenFile
   set(handles.menu_edit_normal_mode      ,'checked','off');
   set(handles.menu_edit_ground_truthing_mode,'checked','off' );
 else
-  if handles.guidata.data.gtMode,
+  if handles.data.gtMode,
     set(handles.menu_edit_normal_mode    ,'checked','off');
     set(handles.menu_edit_ground_truthing_mode,'checked','on' );
   else
@@ -2070,7 +2083,8 @@ function handles = UpdateLabelButtons(handles)
 % the the current mode.
 
 % get some freqeuntly used things into local vars
-if isempty(handles.guidata.data)
+%if isempty(handles.guidata.data)
+if ~handles.data.thereIsAnOpenFile ,
   %projectPresent=false;
   nBehaviors=2;  % just for layout purposes
   labelColors=[1 0 0 ; ...
@@ -2323,8 +2337,8 @@ function UpdateEnablementAndVisibilityOfControls(handles)
 % Calculate some logical values that determine enablement and visibility of
 % things.
 data=handles.guidata.data;  % a ref, or empty
-thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
-openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.guidata.needsave;
+thereIsAnOpenFile=data.thereIsAnOpenFile;
+openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.data.needsave;
 % if thereIsAnOpenFile
 %   if isempty(data)
 %     nExps=0;
@@ -2351,7 +2365,7 @@ perFrameFeatureSetIsNonEmpty= ...
   ~isempty(data) && ...
   data.getPerFrameFeatureSetIsNonEmpty();
 labelPenIsUp=(handles.guidata.label_state==0);
-userHasSpecifiedEverythingFileName=handles.guidata.userHasSpecifiedEverythingFileName;
+userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 
 %                      
 % Update the File menu items.
@@ -2548,10 +2562,12 @@ if exist(handles.guidata.rcfilename,'file'),
 end
 % try
   if isfield(handles.guidata.rc,'defaultpath'),
-    handles.guidata.defaultpath = handles.guidata.rc.defaultpath;
-    if ~isempty(handles.guidata.data),
-      handles.guidata.data.SetDefaultPath(handles.guidata.defaultpath);
-    end
+%     handles.guidata.defaultpath = handles.guidata.rc.defaultpath;
+% %     if ~isempty(handles.guidata.data),
+%     if handles.data.thereIsAnOpenFile ,
+%       handles.data.SetDefaultPath(handles.guidata.defaultpath);
+%     end
+    handles.data.SetDefaultPath(handles.guidata.rc.defaultpath);
   end
   if isfield(handles.guidata.rc,'figure_JLabel_Position_px'),
     pos = handles.guidata.rc.figure_JLabel_Position_px;
@@ -2662,10 +2678,9 @@ function handles = SaveRC(handles)
   
   rc = handles.guidata.rc;
   
-  if ~isempty(handles.guidata.data),
-    rc.defaultpath = handles.guidata.data.defaultpath;
-  elseif ~isempty(handles.guidata.defaultpath),
-    rc.defaultpath = handles.guidata.defaultpath;
+  % if ~isempty(handles.guidata.data),
+  if ~isempty(handles.data.defaultpath),
+    rc.defaultpath = handles.data.defaultpath;
   end
   rc.timeline_nframes = handles.guidata.timeline_nframes;
   
@@ -2732,7 +2747,7 @@ function proceed=checkForUnsavedChangesAndDealIfNeeded(figureJLabel)
 % hit cancel, and therefore the caller should _not_ proceed with whatever
 % they were going to do.
 handles=guidata(figureJLabel);
-if handles.guidata.needsave,
+if handles.data.needsave,
   res = questdlg('There are unsaved changes.  Save?','Save?','Save','Discard','Cancel','Save');
   if strcmpi(res,'Save'),
     saved=saveEverythingFile(figureJLabel);
@@ -2812,6 +2827,8 @@ end
 if true,
   SaveRC(handles);
   delete(handles.figure_JLabel);
+  handles.guidata=[];
+  handles.data=[];  % this should call the delete() method of the JLabelData
 else
   uiresume(handles.figure_JLabel); %#ok<UNRCH>
 end
@@ -3059,7 +3076,7 @@ handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot_off:t1+handles.gu
 for channel = 1:3,
   handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelunknowncolor(channel);
 end
-handles.guidata.data.SetLabel(handles.guidata.expi,handles.guidata.flies,t0:t1,behaviori,important);
+handles.data.SetLabel(handles.guidata.expi,handles.guidata.flies,t0:t1,behaviori,important);
 if behaviori > 0,
   % handles.guidata.data.labelidx(t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off) = behaviori;
   for channel = 1:3,
@@ -3094,11 +3111,12 @@ off1 = t1+handles.guidata.labels_plot_off;
 %   handles.guidata.data.labelidx(off0:off1)~=0 & ...
 %   handles.guidata.data.labelidx(off0-1:off1-1)~=handles.guidata.data.labelidx(off0:off1);
 handles.guidata.labels_plot.isstart(off0:off1) = ...
-  handles.guidata.data.IsLabelStart(handles.guidata.expi,handles.guidata.flies,t00:t1);
+  handles.data.IsLabelStart(handles.guidata.expi,handles.guidata.flies,t00:t1);
 
 handles = UpdateErrors(handles);
 
-handles = SetNeedSave(handles);
+%handles = SetNeedSave(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -3123,7 +3141,7 @@ handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot_off:t1+handles.gu
 for channel = 1:3,
   handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelunknowncolor(channel);
 end
-handles.guidata.data.SetLabel(handles.guidata.expi,handles.guidata.flies,t0:t1,behavioris,0);
+handles.data.SetLabel(handles.guidata.expi,handles.guidata.flies,t0:t1,behavioris,0);
 
 for behaviori = 1:handles.guidata.data.nbehaviors,
 
@@ -3157,11 +3175,12 @@ off1 = t1+handles.guidata.labels_plot_off;
 %   handles.guidata.data.labelidx(off0:off1)~=0 & ...
 %   handles.guidata.data.labelidx(off0-1:off1-1)~=handles.guidata.data.labelidx(off0:off1);
 handles.guidata.labels_plot.isstart(off0:off1) = ...
-  handles.guidata.data.IsLabelStart(handles.guidata.expi,handles.guidata.flies,t00:t1);
+  handles.data.IsLabelStart(handles.guidata.expi,handles.guidata.flies,t00:t1);
 
 handles = UpdateErrors(handles);
 
-handles = SetNeedSave(handles);
+%handles = SetNeedSave(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -3560,11 +3579,11 @@ end
 % store the current labels to windowdata_labeled
 %handles.guidata.data.StoreLabelsAndPreLoadWindowData();  
 %  now do this inside JLabelData.Train()
-handles.guidata.data.Train(handles.guidata.doFastUpdates);
+handles.data.Train(handles.guidata.doFastUpdates);
 handles = SetPredictedPlot(handles);
 % predict for current window
 handles = predict(handles);
-handles.guidata.needsave=true;
+% handles.data.needsave=true;  % done in .Train()
 UpdateEnablementAndVisibilityOfControls(handles);
 guidata(hObject,handles);
 return
@@ -3698,11 +3717,11 @@ function syncStatusBarTextWhenClear(handles)
 % It figures this out by looking at various fields in handles.guidata and
 % handles.guidata.data.
 
-thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
+thereIsAnOpenFile=handles.data.thereIsAnOpenFile;
 if thereIsAnOpenFile ,
-  fileNameAbs=handles.guidata.everythingFileNameAbs;
+  fileNameAbs=handles.data.everythingFileNameAbs;
   fileNameRel=fileNameRelFromAbs(fileNameAbs);
-  someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+  someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
   if someExperimentIsCurrent ,
     iCurrentExp=handles.guidata.expi;
     expDirNameAbs=handles.guidata.data.expdirs{iCurrentExp};
@@ -4066,8 +4085,9 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 if strcmpi(eventdata.Modifier,'control')
   switch eventdata.Key,
     case 't',
-      if ~isempty(handles.guidata.data) && ...
-         ~handles.guidata.data.gtMode,
+      % if ~isempty(handles.guidata.data) && ...
+      if handles.data.thereIsAnOpenFile &&
+         ~handles.data.gtMode,
         pushbutton_train_Callback(hObject,eventdata,handles);
       end
       
@@ -4405,9 +4425,11 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guidata.guipos.rightborder
 set(handles.panel_select,'Position',new_select_pos);
 
 % %dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
+% if ~handles.guidata.GUIAdvancedMode || ...
+%     ( isnonempty(handles.guidata.data) && ...
+%       handles.guidata.data.IsGTMode() ) ,
 if ~handles.guidata.GUIAdvancedMode || ...
-    ( isnonempty(handles.guidata.data) && ...
-      handles.guidata.data.IsGTMode() ) ,
+    ( handles.data.thereIsAnOpenFile && handles.data.IsGTMode() ) ,
   set(handles.panel_similar,'Visible','off');
   new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
     new_select_pos(2) - info_pos(4) - dy_label_select,...
@@ -6672,18 +6694,20 @@ function handles = UpdateGUIToMatchGroundTruthingMode(handles)
 % (normal or ground-truthing)
 
 % get the mode
-if isempty(handles.guidata.data) ,
+%if isempty(handles.guidata.data) ,
+if ~handles.data.thereIsAnOpenFile ,
   mode=[];
 else
-  mode=handles.guidata.data.gtMode;
+  mode=handles.data.gtMode;
 end
 
 % Make all the mode checkmarks self-consistent
 updateCheckMarksInMenus(handles);
 
 % If no experiments, just return
-if isempty(handles.guidata.data) || handles.guidata.data.nexps < 1,
-  return;
+%if isempty(handles.guidata.data) || handles.guidata.data.nexps < 1,
+if ~handles.data.thereIsAnOpenFile || handles.guidata.data.nexps < 1 , 
+  return
 end
 
 % specify graphics object visible in only one mode or another
@@ -7039,7 +7063,7 @@ function menu_file_export_labels_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-exportEverythingFile(findAncestorFigure(hObject),'Labels');
+%exportEverythingFile(findAncestorFigure(hObject),'Labels');
 
 return
 
@@ -7310,169 +7334,169 @@ end
 return
 
 
-% -------------------------------------------------------------------------
-function menu_file_open_old_school_files_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_open_old_school_files (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% % -------------------------------------------------------------------------
+% function menu_file_open_old_school_files_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_open_old_school_files (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % This is part of the "grand unified project" project
+% 
+% % This creates a menu_file_open_old_school_files project from scratch.
+% 
+% % Create the modal window that allows specification of the project, etc.
+% %[handles,success] = ...
+% %  JLabelEditFiles('JLabelHandle',handles,...
+% %                  'JLabelSplashHandle',handles.guidata.hsplash);
+% JLabelEditFiles('figureJLabel',handles.figure_JLabel);
+% 
+% % % If user hits 'Cancel' just return                
+% % if ~success,
+% %   guidata(hObject,handles);
+% %   return;
+% % end
+% % 
+% % % Switch to the watch, this could take a while
+% % set(handles.figure_JLabel,'pointer','watch');
+% % 
+% % % I don't know what this does --ALT, Jan 8 2013
+% % handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+% % handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+% % 
+% % % read configuration
+% % [handles,success] = LoadConfig(handles);
+% % if ~success,
+% %   guidata(hObject,handles);
+% %   %delete(hObject);
+% %   return;
+% % end
+% % 
+% % handles = InitSelectionCallbacks(handles);
+% % 
+% % if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
+% %   handles = SetCurrentMovie(handles,1);
+% % else
+% %   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+% % end
+% % 
+% % handles = UpdateGUIGroundTruthingMode(handles);
+% % 
+% % % keypress callback for all non-edit text objects
+% % RecursiveSetKeyPressFcn(handles.figure_JLabel);
+% % 
+% % % enable gui
+% % EnableGUI(handles);
+% % 
+% % % OK, almost done
+% % set(handles.figure_JLabel,'pointer','arrow');
+% % 
+% % % Update handles structure
+% % guidata(hObject, handles);
+% 
+% return
 
-% This is part of the "grand unified project" project
 
-% This creates a menu_file_open_old_school_files project from scratch.
-
-% Create the modal window that allows specification of the project, etc.
-%[handles,success] = ...
-%  JLabelEditFiles('JLabelHandle',handles,...
-%                  'JLabelSplashHandle',handles.guidata.hsplash);
-JLabelEditFiles('figureJLabel',handles.figure_JLabel);
-
-% % If user hits 'Cancel' just return                
-% if ~success,
-%   guidata(hObject,handles);
-%   return;
-% end
+% % -------------------------------------------------------------------------
+% function importDone(figureJLabel)
+% 
+% % get the handles
+% handles=guidata(figureJLabel);
 % 
 % % Switch to the watch, this could take a while
-% set(handles.figure_JLabel,'pointer','watch');
+% set(figureJLabel,'pointer','watch');
 % 
 % % I don't know what this does --ALT, Jan 8 2013
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 % 
-% % read configuration
-% [handles,success] = LoadConfig(handles);
-% if ~success,
-%   guidata(hObject,handles);
-%   %delete(hObject);
-%   return;
-% end
+% % % read project configuration
+% % [handles,success] = LoadConfig(handles);
+% % if ~success,
+% %   guidata(hObject,handles);
+% %   %delete(hObject);
+% %   return;
+% % end
 % 
 % handles = InitSelectionCallbacks(handles);
 % 
+% handles = UnsetCurrentMovie(handles);
 % if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
 %   handles = SetCurrentMovie(handles,1);
 % else
 %   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
 % end
 % 
-% handles = UpdateGUIGroundTruthingMode(handles);
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
 % 
-% % keypress callback for all non-edit text objects
-% RecursiveSetKeyPressFcn(handles.figure_JLabel);
+% % % keypress callback for all non-edit text objects
+% % RecursiveSetKeyPressFcn(figureJLabel);
 % 
-% % enable gui
-% EnableGUI(handles);
+% % save needed, since this is an import
+% handles.data.thereIsAnOpenFile=true;
+% handles.data.everythingFileNameAbs=fullfile(pwd(),'untitled.jab');
+% handles.data.userHasSpecifiedEverythingFileName=false;
+% handles.data.needsave=true;
+% 
+% % Update certain aspect of the GUI to match the current "model" state
+% UpdateEnablementAndVisibilityOfControls(handles);
 % 
 % % OK, almost done
-% set(handles.figure_JLabel,'pointer','arrow');
+% set(figureJLabel,'pointer','arrow');
 % 
 % % Update handles structure
-% guidata(hObject, handles);
+% guidata(figureJLabel, handles);
+% 
+% return
 
-return
 
-
-% -------------------------------------------------------------------------
-function importDone(figureJLabel)
-
-% get the handles
-handles=guidata(figureJLabel);
-
-% Switch to the watch, this could take a while
-set(figureJLabel,'pointer','watch');
-
-% I don't know what this does --ALT, Jan 8 2013
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% % read project configuration
-% [handles,success] = LoadConfig(handles);
-% if ~success,
-%   guidata(hObject,handles);
-%   %delete(hObject);
-%   return;
+% %--------------------------------------------------------------------------
+% function modifyFilesDone(figureJLabel,listChanged)
+% 
+% % get out the guidata
+% handles=guidata(figureJLabel);
+% 
+% % direct SetStatus() and ClearStatus() back to JLabel figure
+% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% 
+% % Update our copy of the default path
+% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% 
+% % save needed if list has changed
+% if listChanged,
+%   handles.guidata.needsave=true;
 % end
-
-handles = InitSelectionCallbacks(handles);
-
-handles = UnsetCurrentMovie(handles);
-if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
-  handles = SetCurrentMovie(handles,1);
-else
-  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-end
-
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-
-% % keypress callback for all non-edit text objects
-% RecursiveSetKeyPressFcn(figureJLabel);
-
-% save needed, since this is an import
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fullfile(pwd(),'untitled.jab');
-handles.guidata.userHasSpecifiedEverythingFileName=false;
-handles.guidata.needsave=true;
-
-% Update certain aspect of the GUI to match the current "model" state
-UpdateEnablementAndVisibilityOfControls(handles);
-
-% OK, almost done
-set(figureJLabel,'pointer','arrow');
-
-% Update handles structure
-guidata(figureJLabel, handles);
-
-return
-
-
-%--------------------------------------------------------------------------
-function modifyFilesDone(figureJLabel,listChanged)
-
-% get out the guidata
-handles=guidata(figureJLabel);
-
-% direct SetStatus() and ClearStatus() back to JLabel figure
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% Update our copy of the default path
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
-
-% save needed if list has changed
-if listChanged,
-  handles.guidata.needsave=true;
-end
-
-% Make sure the current experiment stays the same, if possible.
-oldexpdir=handles.guidata.oldexpdir;
-if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
-  % if the old experiment dir exists and is still in the experiment list
-  j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
-  handles.guidata.expi = j;
-else
-  % either there were no experiments before, or the old experiment is now
-  % among the current experiment list
-  handles = UnsetCurrentMovie(handles);
-  if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-    handles = SetCurrentMovie(handles,1);
-  else
-    handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-  end
-end
-
-% Don't need this anymore, so clear it
-handles.guidata.oldexpdir='';
-
-% Update the GUI to match the current "model" state
-UpdateEnablementAndVisibilityOfControls(handles);
-
-% Set the status message back to the clear message.
-ClearStatus(handles);
-
-% write the guidata back
-guidata(figureJLabel,handles);
-
-return
+% 
+% % Make sure the current experiment stays the same, if possible.
+% oldexpdir=handles.guidata.oldexpdir;
+% if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
+%   % if the old experiment dir exists and is still in the experiment list
+%   j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
+%   handles.guidata.expi = j;
+% else
+%   % either there were no experiments before, or the old experiment is now
+%   % among the current experiment list
+%   handles = UnsetCurrentMovie(handles);
+%   if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+%     handles = SetCurrentMovie(handles,1);
+%   else
+%     handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+%   end
+% end
+% 
+% % Don't need this anymore, so clear it
+% handles.guidata.oldexpdir='';
+% 
+% % Update the GUI to match the current "model" state
+% UpdateEnablementAndVisibilityOfControls(handles);
+% 
+% % Set the status message back to the clear message.
+% ClearStatus(handles);
+% 
+% % write the guidata back
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 %--------------------------------------------------------------------------
@@ -7519,55 +7543,38 @@ end
 saved=false;  % default return
 handles=guidata(figureJLabel);
 %data=handles.guidata.data;  % reference
-if saveAs || ~handles.guidata.userHasSpecifiedEverythingFileName
+if saveAs || ~handles.data.userHasSpecifiedEverythingFileName
   windowTitle=fif(saveAs, ...
                   'Save As...', ...
                   'Save...');
   [filename,pathname] = ...
     uiputfile({'*.jab','JAABA files (*.jab)'}, ...
               windowTitle, ...
-              handles.guidata.everythingFileNameAbs);
+              handles.data.everythingFileNameAbs);
   if ~ischar(filename),
     % user hit cancel
     return;
   end
   fileNameAbs=fullfile(pathname,filename);
-  handles.guidata.everythingFileNameAbs=fileNameAbs;
-  handles.guidata.userHasSpecifiedEverythingFileName=true;
 else
-  fileNameAbs=handles.guidata.everythingFileNameAbs;
+  fileNameAbs=handles.data.everythingFileNameAbs;
 end
 fileNameRel=fileNameRelFromAbs(fileNameAbs);
-handles=guidata(figureJLabel);
-SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
-% Extract the structure that will be saved in the everything file
-macguffin=handles.guidata.getMacguffin();
-% write the everything structure to disk
+% save the file
 try
-  if exist(fileNameAbs,'file')
-    backupFileNameAbs=[fileNameAbs,'~'];
-    [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
-    if ~success,
-      error('JLabel:unableToCreateBackup','Unable to create backup file.');
-    end
-  end
-  saveAnonymous(fileNameAbs,macguffin);
+  handles.data.saveJabFile(fileNameAbs);
 catch excp
-  if isequal(excp.identifier,'JLabel:unableToCreateBackup')
-    backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
-    uiwait(errordlg(sprintf('Unable to create backup file %s.  Save aborted.', ...
-                            backupFileNameRel), ...
+  if isequal(excp.identifier,'JLabelData:unableToCreateBackup')
+    uiwait(errordlg(excp.message, ...
                     'Unable to Create Backup'));
   else
     uiwait(errordlg(sprintf('Unable to save %s.', ...
                             fileNameRel), ...
                     'Unable to Save'));
   end
-  ClearStatus(handles);
   return
 end
 saved=true;
-handles.guidata.needsave=false;
 %handles.guidata.status_bar_text_when_clear=fileNameRel;
 syncStatusBarTextWhenClear(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
@@ -7577,58 +7584,58 @@ guidata(figureJLabel,handles);
 return
 
 
-% -------------------------------------------------------------------------
-function saved=exportEverythingFile(figureJLabel,whatToExport)
-
-% Figure out the filterSpec from whatToExport
-if strcmp(whatToExport,'Classifier')
-  filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
-  fileExtension='.jcf';
-elseif strcmp(whatToExport,'Labels')
-  filterSpec={'*.jlb','JAABA Label Files (*.jlb)'};
-  fileExtension='.jlb';
-end
-
-% Figure out the suggested file name
-handles=guidata(figureJLabel);
-everythingFileNameAbs=handles.guidata.everythingFileNameAbs;
-[dirName,fileBaseName]=fileparts(everythingFileNameAbs);
-suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
-
-% Do eveything else.
-saved=false;  % default return
-%data=handles.guidata.data;  % reference
-windowTitle=sprintf('Export %s...',whatToExport);
-[filename,pathname] = ...
-  uiputfile(filterSpec, ...
-            windowTitle, ...
-            suggestedFileNameAbs);
-if ~ischar(filename),
-  % user hit cancel
-  return;
-end
-fileNameAbs=fullfile(pathname,filename);
-fileNameRel=fileNameRelFromAbs(fileNameAbs);
-handles=guidata(figureJLabel);
-SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
-% Extract the structure that will be saved in the everything file
-s=handles.guidata.getMacguffin();  %#ok
-% write the everything structure to disk
-try
-  save('-mat',fileNameAbs,'-struct','s');
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to save %s.', ...
-                          fileNameRel), ...
-                  'Unable to Save'));
-  ClearStatus(handles);
-  return;
-end
-saved=true;
-UpdateEnablementAndVisibilityOfControls(handles);
-ClearStatus(handles);
-guidata(figureJLabel,handles);
-
-return
+% % -------------------------------------------------------------------------
+% function saved=exportEverythingFile(figureJLabel,whatToExport)
+% 
+% % Figure out the filterSpec from whatToExport
+% if strcmp(whatToExport,'Classifier')
+%   filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
+%   fileExtension='.jcf';
+% elseif strcmp(whatToExport,'Labels')
+%   filterSpec={'*.jlb','JAABA Label Files (*.jlb)'};
+%   fileExtension='.jlb';
+% end
+% 
+% % Figure out the suggested file name
+% handles=guidata(figureJLabel);
+% everythingFileNameAbs=handles.data.everythingFileNameAbs;
+% [dirName,fileBaseName]=fileparts(everythingFileNameAbs);
+% suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
+% 
+% % Do eveything else.
+% saved=false;  % default return
+% %data=handles.guidata.data;  % reference
+% windowTitle=sprintf('Export %s...',whatToExport);
+% [filename,pathname] = ...
+%   uiputfile(filterSpec, ...
+%             windowTitle, ...
+%             suggestedFileNameAbs);
+% if ~ischar(filename),
+%   % user hit cancel
+%   return;
+% end
+% fileNameAbs=fullfile(pathname,filename);
+% fileNameRel=fileNameRelFromAbs(fileNameAbs);
+% handles=guidata(figureJLabel);
+% SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
+% % Extract the structure that will be saved in the everything file
+% s=handles.guidata.getMacguffin();  %#ok
+% % write the everything structure to disk
+% try
+%   save('-mat',fileNameAbs,'-struct','s');
+% catch  %#ok
+%   uiwait(errordlg(sprintf('Unable to save %s.', ...
+%                           fileNameRel), ...
+%                   'Unable to Save'));
+%   ClearStatus(handles);
+%   return;
+% end
+% saved=true;
+% UpdateEnablementAndVisibilityOfControls(handles);
+% ClearStatus(handles);
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 % % -------------------------------------------------------------------------
@@ -7733,25 +7740,26 @@ fileNameRel=[baseName ext];
 % Update the status, change the pointer to the watch
 SetStatus(handles,sprintf('Opening %s...',fileNameRel));
 
-% load the file
-try
-  everythingParams=loadAnonymous(fileNameAbs);
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to load %s.',fileNameRel),'Error'));
-  ClearStatus(handles);
-  return;
-end
-
 % Don't want to see "No experiment loaded" when status is cleared!
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
-% Create the JLabelData object
-handles.guidata.initializeGivenMacguffin(everythingParams, ...
-                                         figureJLabel, ...
-                                         groundTruthingMode, ...
-                                         @(s)SetStatusCallback(s,figureJLabel) , ...
-                                         @()ClearStatusCallback(figureJLabel) );
+% load the file
+try
+  handles.data.openJabFile(fileNameAbs,groundTruthingMode);
+catch excp
+  ClearStatus(handles);
+  uiwait(errordlg(excp.message),'Error','modal');
+  % uiwait(errordlg(sprintf('Unable to open %s.',fileNameRel),'Error'));
+  return
+end
+
+% % Create the JLabelData object
+% handles.guidata.initializeGivenMacguffin(everythingParams, ...
+%                                          figureJLabel, ...
+%                                          groundTruthingMode, ...
+%                                          @(s)SetStatusCallback(s,figureJLabel) , ...
+%                                          @()ClearStatusCallback(figureJLabel) );
 
 % First set the project parameters, which will initialize the JLabelData
 %basicParams=basicParamsFromMacguffin(everythingParams);
@@ -7781,14 +7789,14 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 % handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 % handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
-% Copy the default path out of the JLabelData.
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% % Copy the default path out of the JLabelData.
+% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
-% Note that there is currently an open file, and note its name
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fileNameAbs;
-handles.guidata.userHasSpecifiedEverythingFileName=true;
-handles.guidata.needsave=false;
+% % Note that there is currently an open file, and note its name
+% handles.guidata.thereIsAnOpenFile=true;
+% handles.guidata.everythingFileNameAbs=fileNameAbs;
+% handles.guidata.userHasSpecifiedEverythingFileName=true;
+% handles.guidata.needsave=false;
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
@@ -7855,6 +7863,7 @@ function initAfterBasicParamsSet(figureJLabel)
 % Initializes the JLabel GUI on return from ProjectSetup after the user
 % selects New..., or during opening of an existing everything file.
 handles=guidata(figureJLabel);
+handles.guidata.initializeAfterBasicParamsSet();                               
 handles.guidata.setLayout(figureJLabel);
 handles=InitializeStateAfterBasicParamsSet(handles);
 handles=InitializePlotsAfterBasicParamsSet(handles);
@@ -8145,10 +8154,13 @@ delete(get(handles.axes_timeline_manual,'children'));
 delete(get(handles.axes_timeline_auto,'children'));
 delete(get(handles.axes_timeline_prop1,'children'));
 
-% Release the JLabelData
-if ~isempty(handles.guidata.data)
-  handles.guidata.data=[];
-end
+% % Release the JLabelData
+% if ~isempty(handles.guidata.data)
+%   handles.guidata.data=[];
+% end
+
+% Close the .jab file in JLabelData
+handles.guidata.data.closeJabFile();
 
 % % save things we want to reinstate
 % in_border_y=handles.guidata.in_border_y;
@@ -8194,12 +8206,12 @@ end
 % handles = UpdateLabelButtons(handles);
 % guidata(hObject,handles);
 
-% Note that there is currently no open file.
-handles.guidata.thereIsAnOpenFile=false;
-% these next three aren't strictly necessary
-handles.guidata.everythingFileNameAbs='';
-handles.guidata.userHasSpecifiedEverythingFileName=false;
-handles.guidata.needsave=false;
+% % Note that there is currently no open file.
+% handles.guidata.thereIsAnOpenFile=false;
+% % these next three aren't strictly necessary
+% handles.guidata.everythingFileNameAbs='';
+% handles.guidata.userHasSpecifiedEverythingFileName=false;
+% handles.guidata.needsave=false;
 
 % Set the GT state back to "none"
 %handles.guidata.GUIGroundTruthingMode=[];
@@ -8253,18 +8265,18 @@ function newFileSetupDone(figureJLabel,basicParams)
 % get handles
 handles=guidata(figureJLabel);
 
-% Make up filename
-try
-  behaviorName=basicParams.getMainBehaviorName();
-  fileNameRel=sprintf('%s.jab',behaviorName);
-catch excp
-  if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
-    fileNameRel='untitled.jab';
-  else
-    rethrow(excp);
-  end
-end  
-fileNameAbs=fullfile(pwd(),fileNameRel);
+% % Make up filename
+% try
+%   behaviorName=basicParams.getMainBehaviorName();
+%   fileNameRel=sprintf('%s.jab',behaviorName);
+% catch excp
+%   if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
+%     fileNameRel='untitled.jab';
+%   else
+%     rethrow(excp);
+%   end
+% end  
+% fileNameAbs=fullfile(pwd(),fileNameRel);
 
 % % Update the status, change the pointer to the watch
 % SetStatus(handles,sprintf('Opening %s ...',filename));
@@ -8273,14 +8285,19 @@ fileNameAbs=fullfile(pwd(),fileNameRel);
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
-% First set the project parameters, which will initialize the JLabelData
-groundTruthingMode=false;  % all new files start in labeling mode
-%initBasicParams(figureJLabel,basicParams,groundTruthingMode);
-handles.guidata.initializeGivenMacguffin(basicParams, ...
-                                         figureJLabel, ...
-                                         groundTruthingMode, ...
-                                         @(s)SetStatusCallback(s,figureJLabel) , ...
-                                         @()ClearStatusCallback(figureJLabel) );
+% Set up the model for a new file
+handles.data.newJabFile(basicParams);
+
+% % First set the project parameters, which will initialize the JLabelData
+% groundTruthingMode=false;  % all new files start in labeling mode
+% %initBasicParams(figureJLabel,basicParams,groundTruthingMode);
+% handles.guidata.initializeGivenMacguffin(basicParams, ...
+%                                          figureJLabel, ...
+%                                          groundTruthingMode, ...
+%                                          @(s)SetStatusCallback(s,figureJLabel) , ...
+%                                          @()ClearStatusCallback(figureJLabel) );
+
+%handles.guidata.initializeAfterBasicParamsSet();                               
 initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
@@ -8303,8 +8320,8 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 % handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 % handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
-% Copy the default path out of the JLabelData.
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% % Copy the default path out of the JLabelData.
+% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
@@ -8317,11 +8334,11 @@ end
 % clear the old experiment directory
 handles.guidata.oldexpdir='';
 
-% Note that there is currently an open file, and note its name
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fileNameAbs;
-handles.guidata.userHasSpecifiedEverythingFileName=false;
-handles.guidata.needsave=true;
+% % Note that there is currently an open file, and note its name
+% handles.guidata.thereIsAnOpenFile=true;
+% handles.guidata.everythingFileNameAbs=fileNameAbs;
+% handles.guidata.userHasSpecifiedEverythingFileName=false;
+% handles.guidata.needsave=true;
 
 % Updates the graphics objects to match the current labeling mode (normal
 % or ground-truthing)
@@ -8342,46 +8359,46 @@ guidata(figureJLabel,handles);
 return
 
 
-% -------------------------------------------------------------------------
-function basicSettingsChanged(figureJLabel,basicParams)
-
-% get handles
-handles=guidata(figureJLabel);
-data=handles.guidata.data;  % a ref
-
-% Set the functions that end up getting called when we call SetStatus()
-% and ClearStatus()
-data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% Set the feature dictionary, basic params in JLabelData
-[success,msg]=data.setBasicParams(basicParams);
-if ~success,
-  uiwait(errordlg(msg,'Error Setting Basic Parameters','modal'));
-end
-
-% % Re-load the perframe feature signals, since the PFFs may have changed
-% data should take of this itself
-% data.loadPerframeData(data.expi,data.flies);
-
-% Set the GUI to match the labeling mode
-% Main point of this is to set the proper behavior names on the 
-% labeling buttons.
-handles = UpdateLabelButtons(handles);
-%handles = UpdateGUIToMatchGroundTruthingMode(handles);
-guidata(figureJLabel,handles);  % write the handles back to the figure
-
-% Note that we now need saving
-handles.guidata.needsave=true;
-
-% Done, set status message to cleared message, pointer to normal
-syncStatusBarTextWhenClear(handles);
-ClearStatus(handles);
-
-% write the handles back to figure
-guidata(figureJLabel,handles);
-
-return
+% % -------------------------------------------------------------------------
+% function basicSettingsChanged(figureJLabel,basicParams)
+% 
+% % get handles
+% handles=guidata(figureJLabel);
+% data=handles.guidata.data;  % a ref
+% 
+% % Set the functions that end up getting called when we call SetStatus()
+% % and ClearStatus()
+% data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% 
+% % Set the feature dictionary, basic params in JLabelData
+% [success,msg]=data.setBasicParams(basicParams);
+% if ~success,
+%   uiwait(errordlg(msg,'Error Setting Basic Parameters','modal'));
+% end
+% 
+% % % Re-load the perframe feature signals, since the PFFs may have changed
+% % data should take of this itself
+% % data.loadPerframeData(data.expi,data.flies);
+% 
+% % Set the GUI to match the labeling mode
+% % Main point of this is to set the proper behavior names on the 
+% % labeling buttons.
+% handles = UpdateLabelButtons(handles);
+% %handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% guidata(figureJLabel,handles);  % write the handles back to the figure
+% 
+% % Note that we now need saving
+% handles.data.needsave=true;
+% 
+% % Done, set status message to cleared message, pointer to normal
+% syncStatusBarTextWhenClear(handles);
+% ClearStatus(handles);
+% 
+% % write the handles back to figure
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 % % --------------------------------------------------------------------
@@ -8615,9 +8632,8 @@ function selectFeaturesDone(figureJLabel, ...
 % the per-frame features may have been changed.
 setMaxWindowRadiusCommonCached(figureJLabel,maxWindowRadiusCommon);
 handles=guidata(figureJLabel);
-data=handles.guidata.data;  % a ref
-data.setWindowFeaturesParams(windowFeaturesParams);
-handles.guidata.needsave=true;
+handles.data.setWindowFeaturesParams(windowFeaturesParams);
+% handles.data.needsave=true;  % done in data.setWindowFeaturesParams() now
 UpdateTimelineImages(handles);
 UpdatePlots(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
@@ -8691,25 +8707,25 @@ end
 fileNameAbs=fullfile(pathname,filename);
 
 % Update the status, change the pointer to the watch
-SetStatus(handles,sprintf('Importing classifier from %s ...',filename));
+SetStatus(handles,sprintf('Importing classifier from %s...',filename));
 
 % load the file
 try
-  everythingParams=loadAnonymous(fileNameAbs);
+  handles.data.importClassifier(fileNameAbs);
 catch  %#ok
-  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+  uiwait(errordlg(sprintf('Unable to import classifier from %s.',filename),'Error'));
   ClearStatus(handles);
   return;
 end
 
-% Set the classifier in the JLabelData object
-data=handles.guidata.data;  % ref
-data.setScoreFeatures(everythingParams.scoreFeatures);
-data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-data.setClassifierStuff(everythingParams.classifierStuff);
-
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Set the classifier in the JLabelData object
+% data=handles.guidata.data;  % ref
+% data.setScoreFeatures(everythingParams.scoreFeatures);
+% data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+% data.setClassifierStuff(everythingParams.classifierStuff);
+% 
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Not sure what this does  --ALT, March 15, 2013
 handles = SetPredictedPlot(handles);
@@ -8779,10 +8795,10 @@ handles=guidata(figureJLabel);
 SetStatus(handles,'Clearing classifier...');
 
 % Clear the current classifier in the model
-handles.guidata.data.clearClassifierProper();
+handles.data.clearClassifierProper();
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving (done in .clearClassifierProper())
+% handles.data.needsave=true;
 
 % Not sure what this does  --ALT, March 15, 2013
 handles = SetPredictedPlot(handles);
@@ -8854,7 +8870,7 @@ function changeFeatureLexiconDone(figureJLabel,newFeatureLexiconName)
 
 % get handles
 handles=guidata(figureJLabel);
-data=handles.guidata.data;  % a ref
+data=handles.data;  % a ref
 
 % % if new same as old, do nothing
 % if isequal(newFeatureLexiconName,data.featureLexiconName)
@@ -8875,8 +8891,8 @@ if ~success,
   uiwait(errordlg(msg,'Error Changing Target Type','modal'));
 end
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the plots
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
@@ -8910,7 +8926,7 @@ function changeBehaviorNameDone(figureJLabel,newBehaviorName)
 handles=guidata(figureJLabel);
 
 % if new same as old, do nothing
-data=handles.guidata.data;  % a ref
+data=handles.data;  % a ref
 if isequal(newBehaviorName,data.getBehaviorName())
   return
 end
@@ -8921,8 +8937,8 @@ SetStatus(handles,'Changing behavior name...');
 % Set the behavior name in JLabelData
 data.setBehaviorName(newBehaviorName);
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the names on the labeling buttons
 handles = UpdateLabelButtons(handles);
@@ -8995,8 +9011,8 @@ catch excp
   end
 end
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the plots
 UpdateTimelineImages(handles);
@@ -9034,7 +9050,7 @@ function changeScoreFileNameDone(figureJLabel,newScoreFileName)
 handles=guidata(figureJLabel);
 
 % if new same as old, do nothing
-data=handles.guidata.data;  % a ref
+data=handles.data;  % a ref
 if isequal(newScoreFileName,data.getScoreFileName())
   return
 end
@@ -9045,8 +9061,8 @@ SetStatus(handles,'Changing score file name...');
 % Set the score file name in JLabelData
 data.setScoreFileName(newScoreFileName);
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the names on the labeling buttons
 handles = UpdateLabelButtons(handles);
