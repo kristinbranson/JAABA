@@ -79,12 +79,12 @@ classdef JLabelGUIData < handle
     nflies_label = 1;
     classifier = [];
 
-    expi = 0;
-    flies = [];
+    % expi = 0;
+    % flies = [];
     ts = 0;
     label_state = 0;
     label_imp = [];
-    nflies_curr = 0;
+    % nflies_curr = 0;
     
     oldexpdir='';  % Used by JLabel's File > Edit files...
 
@@ -178,8 +178,8 @@ classdef JLabelGUIData < handle
     nframes = nan;
     movie_fid = [];
     movieheaderinfo = struct;
-    t0_curr = nan;
-    t1_curr = nan;
+    % t0_curr = nan;
+    % t1_curr = nan;
     labels_plot = struct;
     labels_plot_off = nan;
 
@@ -207,7 +207,56 @@ classdef JLabelGUIData < handle
       % part of the feature vocabulary.)  (But I suppose we could add them
       % if we wanted to...)   
   end
-     
+
+  
+%   properties (Access=public,Dependent=true)
+%     expi
+%     flies
+%     nexps
+%     nflies_curr
+%   end
+
+  
+%   methods
+%     function expi=get.expi(self)
+%       expi=self.data.expi;
+%     end
+%     
+%     function set.expi(self,newValue)  %#ok
+%       % do nothing---to set the current experiment, should call
+%       % self.data.setCurrentTarget()
+%       warning('Trying to set JLabelGUIData.expi');
+%     end
+%     
+%     function flies=get.flies(self)
+%       flies=self.data.flies;
+%     end
+%     
+%     function set.flies(self,newValue)  %#ok
+%       % do nothing---flies is read-only
+%       warning('Trying to set JLabelGUIData.flies');
+%     end
+%     
+%     function nexps=get.nexps(self)
+%       nexps=self.data.nexps;
+%     end
+%     
+%     function set.nexps(self,newValue)  %#ok
+%       % do nothing---this property is read-only
+%       warning('Trying to set JLabelGUIData.nexps');
+%     end
+%     
+%     function nflies_curr=get.nflies_curr(self)
+%       nflies_curr=self.data.nTargetsInCurrentExp;
+%     end
+%     
+%     function set.nflies_curr(self,newValue)  %#ok
+%       % do nothing---this property is read-only
+%       warning('Trying to set JLabelGUIData.nflies_curr');
+%     end
+%   end  % get. and set. methods
+  
+  
   methods (Access=public)
     function obj = JLabelGUIData(jld)
       % Constructor
@@ -501,9 +550,9 @@ classdef JLabelGUIData < handle
       self.classifier = [];
 
       % currently shown experiment
-      self.expi = 0;
+      % self.expi = 0;
       % currently labeled flies
-      self.flies = 1:self.nflies_label;
+      % self.flies = 1:self.nflies_label;
       % currently shown frame
       self.ts = 0;
 
@@ -512,7 +561,7 @@ classdef JLabelGUIData < handle
       self.label_imp = [];
 
       % number of flies for the current movie
-      self.nflies_curr = 0;
+      % self.nflies_curr = 0;
 
       basicParamsStruct=self.data.getBasicParamsStruct();
       % label colors
@@ -708,6 +757,7 @@ classdef JLabelGUIData < handle
     function SaveScores(obj,allScores,expi,sfn)  %#ok
     % Save prediction scores for the whole experiment.
     % The scores are stored as a cell array.
+    % This method should be a method of JLabelData
       if nargin< 4
        sfn = obj.data.GetFile('scores',expi,true);
       end
