@@ -211,7 +211,7 @@ classdef JLabelGUIData < handle
   methods (Access=public)
     function obj = JLabelGUIData(jld)
       % Constructor
-      obj.data=jld;
+      obj.data=jld;  % store a reference to the "model"
     end
 
     

@@ -70,15 +70,16 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
           'hsplashstatus',[]);
 
 % Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
+figureJLabel=handles.figure_JLabel;
 handles.data=JLabelData('setstatusfn',@(s)SetStatusCallback(s,figureJLabel) , ...
                         'clearstatusfn',@()ClearStatusCallback(figureJLabel));
 if ~isempty(defaultPath) ,                      
   handles.data.SetDefaultPath(defaultPath);
 end
-                      
+
 % To help with merging with Adam -- Mayank, 6 march 2012 
 set(handles.automaticTimelineBottomRowPopup,'String',...
- {'None','Validated','Old','Imported','Postprocessed','Distance'});
+    {'None','Validated','Old','Imported','Postprocessed','Distance'});
 
 % Added to JLabel.fig
 %handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
@@ -2348,7 +2349,7 @@ openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.data.needsave;
 % else
 %   nExps=0;
 % end
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
                      ~isempty(data) && ...
                      data.gtMode;
@@ -3867,7 +3868,7 @@ function ZoomInOnFlies(handles,indicesOfPreviewAxes)
 % flies centered in the axes, without changing the zoom level.  
 % (I think.  --ALT; Feb 3, 2013)
 
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
   return
 end
@@ -3932,7 +3933,7 @@ function KeepFliesInView(handles,indicesOfPreviewAxes)
 % flies in view, without changing the zoom level.  (I think.  ALT; Feb 3,
 % 2013)
 
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
   return
 end
@@ -4086,7 +4087,7 @@ if strcmpi(eventdata.Modifier,'control')
   switch eventdata.Key,
     case 't',
       % if ~isempty(handles.guidata.data) && ...
-      if handles.data.thereIsAnOpenFile &&
+      if handles.data.thereIsAnOpenFile && ...
          ~handles.data.gtMode,
         pushbutton_train_Callback(hObject,eventdata,handles);
       end
@@ -6043,7 +6044,7 @@ set(handles.menu_view_automatic_labels, ...
     'Checked',onIff(handles.guidata.plot_labels_automatic));
 
 % If there's no current experiment, we're done  
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
   return
 end
@@ -6215,7 +6216,7 @@ oldPointer=pointerToWatch(hObject);
 SelectFeatures(handles.figure_JLabel);
 restorePointer(hObject,oldPointer);
 % uiwait(selHandle);
-% someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+% someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 % if ~someExperimentIsCurrent,
 %   return
 % end
@@ -7449,54 +7450,55 @@ return
 % return
 
 
-% %--------------------------------------------------------------------------
-% function modifyFilesDone(figureJLabel,listChanged)
-% 
-% % get out the guidata
-% handles=guidata(figureJLabel);
-% 
-% % direct SetStatus() and ClearStatus() back to JLabel figure
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-% 
+%--------------------------------------------------------------------------
+function modifyFilesDone(figureJLabel,listChanged)
+
+% get out the guidata
+handles=guidata(figureJLabel);
+
+% direct SetStatus() and ClearStatus() back to JLabel figure
+handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+
 % % Update our copy of the default path
 % handles.guidata.defaultpath = handles.guidata.data.defaultpath;
-% 
+
 % % save needed if list has changed
 % if listChanged,
 %   handles.guidata.needsave=true;
 % end
-% 
-% % Make sure the current experiment stays the same, if possible.
-% oldexpdir=handles.guidata.oldexpdir;
-% if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
-%   % if the old experiment dir exists and is still in the experiment list
-%   j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
-%   handles.guidata.expi = j;
-% else
-%   % either there were no experiments before, or the old experiment is now
-%   % among the current experiment list
-%   handles = UnsetCurrentMovie(handles);
-%   if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
-%     handles = SetCurrentMovie(handles,1);
-%   else
-%     handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-%   end
-% end
-% 
-% % Don't need this anymore, so clear it
-% handles.guidata.oldexpdir='';
-% 
-% % Update the GUI to match the current "model" state
-% UpdateEnablementAndVisibilityOfControls(handles);
-% 
-% % Set the status message back to the clear message.
-% ClearStatus(handles);
-% 
-% % write the guidata back
-% guidata(figureJLabel,handles);
-% 
-% return
+
+% Make sure the current experiment stays the same, if possible.
+% All this should really happen within JLabelData... --ALT, Apr 30, 2013
+oldexpdir=handles.guidata.oldexpdir;
+if ~isempty(oldexpdir) && ismember(oldexpdir,handles.data.expdirs),
+  % if the old experiment dir exists and is still in the experiment list
+  j = find(strcmp(oldexpdir,handles.data.expdirs),1);
+  handles.guidata.expi = j;
+else
+  % either there were no experiments before, or the old experiment is now
+  % among the current experiment list
+  handles = UnsetCurrentMovie(handles);
+  if handles.data.nexps > 0 && handles.data.expi == 0,
+    handles = SetCurrentMovie(handles,1);
+  else
+    handles = SetCurrentMovie(handles,handles.data.expi);
+  end
+end
+
+% Don't need this anymore, so clear it
+handles.guidata.oldexpdir='';
+
+% Update the GUI to match the current "model" state
+UpdateEnablementAndVisibilityOfControls(handles);
+
+% Set the status message back to the clear message.
+ClearStatus(handles);
+
+% write the guidata back
+guidata(figureJLabel,handles);
+
+return
 
 
 %--------------------------------------------------------------------------
@@ -8637,7 +8639,7 @@ handles.data.setWindowFeaturesParams(windowFeaturesParams);
 UpdateTimelineImages(handles);
 UpdatePlots(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
-% someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+% someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 % if someExperimentIsCurrent,
 %   handles = predict(handles);
 % end
