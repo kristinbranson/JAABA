@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before SwitchTarget is made visible.
-function SwitchTarget_OpeningFcn(hObject, eventdata, handles, varargin)
+function SwitchTarget_OpeningFcn(hObject, eventdata, handles, varargin)  
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
