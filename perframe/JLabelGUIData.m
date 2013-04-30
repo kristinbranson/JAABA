@@ -189,7 +189,7 @@ classdef JLabelGUIData < handle
     open_peripherals = [];
 
     cache_thread = [];
-    cacheSize = 4000;
+    % cacheSize = 4000;  % now stored only in JLabelData
      
     tempname = [];
     
