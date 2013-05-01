@@ -1181,11 +1181,36 @@ end
 
 % if no movie, then set limits
 if ~handles.data.ismovie,
-  maxx = max([handles.data.trx.x]);
-  maxy = max([handles.data.trx.y]);
+  maxx = max([handles.data.trx.x]+[handles.data.trx.a]*2);
+  maxy = max([handles.data.trx.y]+[handles.data.trx.a]*2);
   handles.guidata.movie_height = ceil(maxy);
   handles.guidata.movie_width = ceil(maxx);
   handles.guidata.nframes = max([handles.data.trx.endframe]);
+
+  % remove old grid
+  delete(handles.guidata.bkgdgrid(ishandle(handles.guidata.bkgdgrid)));
+
+  % grid width
+  gridwidth = nanmean([handles.data.trx.a])*5;
+
+  % create new grid
+  handles.guidata.bkgdgrid = nan(2,numel(handles.guidata.axes_previews));
+  xgrid = gridwidth/2:gridwidth:handles.guidata.movie_width;
+  xgrid1 = [xgrid;xgrid;nan(1,numel(xgrid))];
+  xgrid2 = [zeros(1,numel(xgrid));handles.guidata.movie_height+ones(1,numel(xgrid));nan(1,numel(xgrid))];
+  ygrid = gridwidth/2:gridwidth:handles.guidata.movie_height;
+  ygrid2 = [ygrid;ygrid;nan(1,numel(ygrid))];
+  ygrid1 = [zeros(1,numel(ygrid));handles.guidata.movie_width+ones(1,numel(ygrid));nan(1,numel(ygrid))];
+  for i = 1:numel(handles.guidata.axes_previews),
+    holdstate = ishold(handles.guidata.axes_previews(i));
+    hold(handles.guidata.axes_previews(i),'on');
+    handles.guidata.bkgdgrid(1,i) = plot(handles.guidata.axes_previews(i),xgrid1(:),xgrid2(:),'--','Color',[.7,.7,.7],'LineWidth',.5,'HitTest','off');
+    handles.guidata.bkgdgrid(2,i) = plot(handles.guidata.axes_previews(i),ygrid1(:),ygrid2(:),'--','Color',[.7,.7,.7],'LineWidth',.5,'HitTest','off');
+    if ~holdstate,
+      hold(handles.guidata.axes_previews(i),'off');
+    end
+      
+  end
   
   % set axes colors to be white instead of black
   set(handles.guidata.axes_previews,'Color','w');
@@ -1194,7 +1219,8 @@ end
 
 % set zoom radius
 if isnan(handles.guidata.zoom_fly_radius(1)),
-  handles.guidata.zoom_fly_radius = nanmean([handles.data.trx.a])*20 + [0,0];
+  handles.guidata.meana = nanmean([handles.data.trx.a]);
+  handles.guidata.zoom_fly_radius = handles.guidata.meana*20 + [0,0];
 end
 
 % count the maximum number of flies in any frames
@@ -3989,8 +4015,8 @@ for i = indicesOfPreviewAxes,
   yl(2) = yl(2) - dy*border;
   % If any of the flies is out of view, re-center on the fly, without
   % changing the size of the viewport
-  if min(xs) < xl(1) || min(ys) < yl(1) || ...
-      max(xs) > xl(2) || max(ys) > yl(2),
+  if min(xs)-handles.guidata.meana*2 < xl(1) || min(ys)-handles.guidata.meana*2 < yl(1) || ...
+     max(xs)+handles.guidata.meana*2 > xl(2) || max(ys)+handles.guidata.meana*2 > yl(2),
     % center on flies
     newxlim = [max([.5,xs-zoom_fly_radius(1)]), ...
                min([movie_width+.5,xs+zoom_fly_radius(1)])];

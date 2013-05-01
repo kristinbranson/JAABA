@@ -44,6 +44,9 @@ switch InputDataType,
       ReadFPS_MWT(...
       leftovers{:},...
       'fps',fps);
+    
+  case 'LarvaeLouis',
+    [success,msg,fps] = ReadFPS_LarvaeLouis(leftovers{:},'fps',fps);
 
   otherwise
     success = false;

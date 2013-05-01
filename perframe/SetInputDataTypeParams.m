@@ -218,6 +218,60 @@ file.isdir = 0;
 file.exts = {'*.mat'};
 InputDataTypes.LarvaeReid.files = structappend(InputDataTypes.LarvaeReid.files,file);
 
+%% Matthieu Louis' larvae
+
+InputDataTypes.LarvaeLouis = struct;
+InputDataTypes.LarvaeLouis.name = 'Louis'' Larva Data';
+InputDataTypes.LarvaeLouis.videorequired = false;
+InputDataTypes.LarvaeLouis.readarena = 'no';
+InputDataTypes.LarvaeLouis.readpxpermm = 'yes';
+InputDataTypes.LarvaeLouis.readfps = 'yes';
+InputDataTypes.LarvaeLouis.writearena = 'no';
+InputDataTypes.LarvaeLouis.writepxpermm = 'no';
+InputDataTypes.LarvaeLouis.writefps = 'no';
+InputDataTypes.LarvaeLouis.files = [];
+InputDataTypes.LarvaeLouis.inputs = [];
+
+file = struct;
+file.name = 'Data txt file';
+file.code = 'indatafile';
+file.description = 'Txt file containing data output by the single larva tracker';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.txt'};
+InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
+
+file = struct;
+file.name = 'kinData mat file';
+file.code = 'inkinmatfile';
+file.description = 'kinData mat file computed by single larva tracker analysis';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*.mat'};
+InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
+
+% file = struct;
+% file.name = 'Config txt file';
+% file.code = 'inconfigfile';
+% file.description = 'Config txt file computed by single larva tracker analysis';
+% file.required = true;
+% file.multiplefiles = 0;
+% file.isdir = 0;
+% file.exts = {'*.txt'};
+% InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
+
+% file = struct;
+% file.name = 'eventData mat file';
+% file.code = 'eventmatfile';
+% file.description = 'eventData mat file computed by Reid''s analysis on top of the MWT output';
+% file.required = false;
+% file.multiplefiles = 0;
+% file.isdir = 0;
+% file.exts = {'*.mat'};
+% InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
+
 %%
 
 InputDataTypes.CtraxPlusWings = struct;
