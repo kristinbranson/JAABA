@@ -7518,13 +7518,9 @@ handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 % Make sure the current experiment stays the same, if possible.
 % All this should really happen within JLabelData... --ALT, Apr 30, 2013
 oldexpdir=handles.guidata.oldexpdir;
-if ~isempty(oldexpdir) && ismember(oldexpdir,handles.data.expdirs),
-  % if the old experiment dir exists and is still in the experiment list
-  j = find(strcmp(oldexpdir,handles.data.expdirs),1);
-  handles.data.expi = j;
-else
-  % either there were no experiments before, or the old experiment is now
-  % among the current experiment list
+if isempty(oldexpdir) || ~ismember(oldexpdir,handles.data.expdirs),
+  % either there were no experiments before, or the old experiment is no
+  % longer among the current experiment list
   handles = UnsetCurrentMovie(handles);
   if handles.data.nexps > 0 && handles.data.expi == 0,
     handles = SetCurrentMovie(handles,1);
