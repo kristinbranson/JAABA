@@ -10,19 +10,19 @@ classdef JLabelData < handle
   % file.  Therefore an everythingParams structure can be used anywhere a
   % basicParams structure is called for, but not vice-versa.  
   
-  properties (Access=public) 
-    % type of target (mainly used for plotting)
-    % this should be a type of animal, and should be singular, not plural
-    targettype = 'fly';
-    
-    % current selection
-    
+  properties (SetAccess=private, GetAccess=public)
     % currently selected  experiment
     expi = 0;
     
     % currently selected flies
-    flies = [];
-    
+    flies = [];    
+  end  % properties which are read-only to outsiders
+  
+  properties (Access=public) 
+    % type of target (mainly used for plotting)
+    % this should be a type of animal, and should be singular, not plural
+    targettype = 'fly';
+        
     % last-used trajectories (one experiment, all flies)
     trx = {};
 
@@ -116,10 +116,10 @@ classdef JLabelData < handle
     predictblocks = struct('t0',[],'t1',[],'expi',[],'flies',[]);
    
     fastPredict = struct('classifier',[],...
-          'windowfeaturescellparams',[],...
-          'wfs',{{}},...
-          'pffs',[],'wfidx',[],'ts',[],...
-          'wfidx_valid',false);
+                         'windowfeaturescellparams',[],...
+                         'wfs',{{}},...
+                         'pffs',[],'wfidx',[],'ts',[],...
+                         'wfidx_valid',false);
         
     % constant: radius of window data to compute at a time
     windowdatachunk_radius = 100;
@@ -5717,7 +5717,6 @@ classdef JLabelData < handle
 
       % update current exp, flies
       if ~isempty(obj.expi) && obj.expi > 0 
-        
         if ismember(obj.expi,expi), % The current experiment was removed.
           newexpi = find( newExpNumbers(obj.expi+1:end),1);
           if isempty(newexpi), % No next experiment.
@@ -5730,22 +5729,22 @@ classdef JLabelData < handle
           else
             newexpi = newExpNumbers(obj.expi+newexpi);
           end
-          
           obj.expi = 0;
           obj.flies = nan(size(obj.flies));
-
           if obj.nexps > 0,
             obj.setCurrentTarget(newexpi,1);
           end
-          
         else
           obj.expi = obj.expi - nnz(ismember(1:obj.expi,expi));
         end
       end
       
+      % Set needsave, if called for
       if needSaveIfSuccessful ,
         obj.needsave=true;
       end
+      
+      % Declare victory
       success = true;
     end  % method
 
