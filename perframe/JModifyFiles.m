@@ -189,7 +189,8 @@ function pushbutton_add_Callback(hObject, eventdata, handles)
 
 figureJModifyFiles=findAncestorFigure(hObject);
 data=getGuidataField(figureJModifyFiles,'data');  % ref
-defaultdir = fileparts(data.defaultpath);
+%defaultdir = fileparts(data.defaultpath);
+defaultdir = data.defaultpath;
 
 allexpdirs = uigetdir2(defaultdir,'Add experiment directory');
 if ischar(allexpdirs),

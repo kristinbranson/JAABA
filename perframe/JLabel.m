@@ -60,28 +60,39 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to JLabel (see VARARGIN)
 
+% parse optional inputs
+[defaultPath,...
+ hsplash,...
+ hsplashstatus] = ...
+  myparse(varargin,...
+          'defaultpath','',...
+          'hsplash',[],...
+          'hsplashstatus',[]);
+
+% Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
+figureJLabel=handles.figure_JLabel;
+handles.data=JLabelData('setstatusfn',@(s)SetStatusCallback(s,figureJLabel) , ...
+                        'clearstatusfn',@()ClearStatusCallback(figureJLabel));
+if ~isempty(defaultPath) ,                      
+  handles.data.SetDefaultPath(defaultPath);
+end
 
 % To help with merging with Adam -- Mayank, 6 march 2012 
 set(handles.automaticTimelineBottomRowPopup,'String',...
- {'None','Validated','Old','Imported','Postprocessed','Distance'});
+    {'None','Validated','Old','Imported','Postprocessed','Distance'});
 
 % Added to JLabel.fig
 %handles.menu_classifier_compareFrames = uimenu(handles.menu_classifier,...
 % 'Label','Find Similar Frames','Callback',...
 %@menu_classifier_compareFrames_Callback);
 
+handles.guidata = JLabelGUIData(handles.data);
 
-handles.guidata = JLabelGUIData();
+% stash optional inputs
+handles.guidata.hsplash=hsplash;
+handles.guidata.hsplashstatus=hsplashstatus;
 
-% parse optional inputs
-[handles.guidata.defaultpath,...
- handles.guidata.hsplash,...
- handles.guidata.hsplashstatus] = ...
-  myparse(varargin,...
-          'defaultpath','',...
-          'hsplash',[],...
-          'hsplashstatus',[]);
-
+% Throw up the splash window
 if isempty(handles.guidata.hsplash),
   [handles.guidata.hsplash,handles.guidata.hsplashstatus] = JAABASplashScreen();
 end
@@ -151,7 +162,7 @@ RecursiveSetKeyPressFcn(hObject);
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
 
-% load the RC file (is the time and place?)
+% load the RC file (is this the time and place?)
 handles = LoadRC(handles);
 
 % Write the handles to the guidata
@@ -181,7 +192,7 @@ function varargout = JLabel_OutputFcn(hObject, eventdata, handles)
 varargout{1} = hObject;
 % UNCOMMENT
 % if isfield(handles,'data'),
-%   varargout{1} = handles.guidata.data;
+%   varargout{1} = handles.data;
 % else
 %   varargout{1} = [];
 % end
@@ -199,7 +210,7 @@ function handles = InitializeStateAfterBasicParamsSet(handles)
 handles = UpdateLabelButtons(handles);
 
 % Set this thing
-if ~isempty(handles.guidata.data.allperframefns)
+if ~isempty(handles.data.allperframefns)
   set(handles.timeline_label_prop1,'String',handles.guidata.timeline_prop_options,'Value',3);
 end
 
@@ -258,16 +269,18 @@ for i = 1:numel(handles.guidata.slider_previews),
 end
 
 % fly current positions
-handles.guidata.hflies = zeros(handles.guidata.nflies_curr,numel(handles.guidata.axes_previews));
-handles.guidata.hflies_extra = zeros(handles.guidata.nflies_curr,handles.guidata.nextra_markers,numel(handles.guidata.axes_previews));
-handles.guidata.hfly_markers = zeros(handles.guidata.nflies_curr,numel(handles.guidata.axes_previews));
+handles.guidata.hflies = zeros(handles.data.nTargetsInCurrentExp,numel(handles.guidata.axes_previews));
+handles.guidata.hflies_extra = zeros(handles.data.nTargetsInCurrentExp,handles.guidata.nextra_markers,numel(handles.guidata.axes_previews));
+handles.guidata.hfly_markers = zeros(handles.data.nTargetsInCurrentExp,numel(handles.guidata.axes_previews));
 % fly path
 handles.guidata.htrx = zeros(handles.guidata.nflies_label,numel(handles.guidata.axes_previews));
 
 % choose colors for flies
 % TODO: change hard-coded colormap
-handles.guidata.fly_colors = jet(handles.guidata.nflies_curr)*.7;
-handles.guidata.fly_colors = handles.guidata.fly_colors(randperm(handles.guidata.nflies_curr),:);
+nTargetsInCurrentExp=handles.data.nTargetsInCurrentExp;
+nColors=fif(isempty(nTargetsInCurrentExp),0,nTargetsInCurrentExp);
+handles.guidata.fly_colors = jet(nColors)*.7;
+handles.guidata.fly_colors = handles.guidata.fly_colors(randperm(nColors),:);
 
 handles.guidata.hlabel_curr = nan(1,numel(handles.guidata.axes_previews));
 for i = 1:numel(handles.guidata.axes_previews),
@@ -292,10 +305,10 @@ for i = 1:numel(handles.guidata.axes_previews),
   %hold(handles.guidata.axes_previews(i),'on');
 
   % labeled behaviors
-  handles.guidata.hlabels = nan(1,handles.guidata.data.nbehaviors);
-  handles.guidata.hpredicted = nan(1,handles.guidata.data.nbehaviors);
-  handles.guidata.hlabelstarts = nan(1,handles.guidata.data.nbehaviors);
-  for j = 1:handles.guidata.data.nbehaviors,
+  handles.guidata.hlabels = nan(1,handles.data.nbehaviors);
+  handles.guidata.hpredicted = nan(1,handles.data.nbehaviors);
+  handles.guidata.hlabelstarts = nan(1,handles.data.nbehaviors);
+  for j = 1:handles.data.nbehaviors,
     % handles.guidata.hlabels(j) = plot(handles.guidata.axes_previews(i),nan,nan,'-',...
     %   'color',handles.guidata.labelcolors(j,:),'linewidth',5,'HitTest','off');
     handles.guidata.hlabels(j) = ...
@@ -370,7 +383,7 @@ for i = 1:numel(handles.guidata.axes_previews),
   end
   
   % fly current positions
-  for fly = 1:handles.guidata.nflies_curr,
+  for fly = 1:handles.data.nTargetsInCurrentExp,
     % handles.guidata.hflies(fly,i) = plot(handles.guidata.axes_previews(i),nan,nan,'-',...
     %   'color',handles.guidata.fly_colors(fly,:),'linewidth',3,...
     %   'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
@@ -611,7 +624,7 @@ end
 linkaxes(handles.guidata.axes_timelines,'x');
 
 set(handles.guidata.htimeline_gt_suggestions,'Visible','off');
-if handles.guidata.data.IsGTMode(),
+if handles.data.IsGTMode(),
   set(handles.menu_view_automatic_labels,'Visible','off');
 end
 
@@ -683,7 +696,8 @@ function UpdatePlots(handles,varargin)
 persistent Mframenum Mlastused Mimage movie_filename
 
 % if no experiments are loaded, nothing to do
-if isempty(handles.guidata.data) || handles.guidata.data.nexps==0 ,
+%if isempty(handles.data) || handles.data.nexps==0 ,
+if ~handles.data.thereIsAnOpenFile || handles.data.nexps==0 ,
   return
 end
 
@@ -705,7 +719,7 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
 end
 
 % If the movie has changed, want to re-initialize the frame cache
-if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
+if(handles.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
@@ -750,7 +764,7 @@ if(handles.guidata.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_fil
   %if(ismac),  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
 end
 
-% WARNING: we directly access handles.guidata.data.trx for speed here -- 
+% WARNING: we directly access handles.data.trx for speed here -- 
 % REMOVED! NOT SO SLOW
 
 [axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
@@ -772,9 +786,9 @@ end
   'refresh_GT_suggestion',true);
 
 % make sure data for this experiment is loaded
-% if handles.guidata.expi ~= handles.guidata.data.expi,
-%   SetStatus('Preloading data for experiment %s, flies %s',handles.guidata.data.expnames{handles.guidata.expi},mat2str(handles.guidata.flies));
-%   handles.guidata.data.PreLoad(handles.guidata.expi,handles.guidata.flies);
+% if handles.data.expi ~= handles.data.expi,
+%   SetStatus('Preloading data for experiment %s, flies %s',handles.data.expnames{handles.data.expi},mat2str(handles.data.flies));
+%   handles.data.PreLoad(handles.data.expi,handles.data.flies);
 % end
 
 % update timelines
@@ -796,9 +810,9 @@ end
 
 if refresh_timeline_auto,
   set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
-  pred = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies,handles.guidata.ts(1),handles.guidata.ts(1));
+  pred = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
   if pred.predictedidx~=0
-    cur_scores = handles.guidata.data.NormalizeScores(pred.scoresidx);
+    cur_scores = handles.data.NormalizeScores(pred.scoresidx);
     set(handles.text_scores,'String',sprintf('%+.2f',cur_scores));
   else
     set(handles.text_scores,'String','');
@@ -842,7 +856,7 @@ end
 if refresh_timeline_props,
   for propi = 1:numel(handles.guidata.perframepropis),
     v = handles.guidata.perframepropis(propi);
-    [perframedata,T0,T1] = handles.guidata.data.GetPerFrameData(handles.guidata.expi,handles.guidata.flies,v);
+    [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,v);
     set(handles.guidata.htimeline_data(propi),'XData',T0:T1,...
       'YData',perframedata);
     %if isnan(handles.guidata.timeline_data_ylims(1,v)),
@@ -868,7 +882,7 @@ for i = axes,
   
   if refreshim,
     
-    if handles.guidata.data.ismovie,
+    if handles.data.ismovie,
 
       j = find((Mframenum.Data==handles.guidata.ts(i)) & ...
                (~isnan(Mlastused.Data)) & ...
@@ -905,7 +919,7 @@ for i = axes,
       tmp=handles.guidata.nframes_jump_go;
       j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
                 Mframenum.Data);
-      j=j(find(j>=handles.guidata.t0_curr & j<=handles.guidata.t1_curr));  %#ok
+      j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
       [y,idx]=sort(Mlastused.Data);
       idx=idx(1:min([length(j) -1+find(isnan(y),1,'first')]));
       if(~isempty(idx))
@@ -922,19 +936,19 @@ for i = axes,
   
   % update current position
   if refreshflies,
-    if handles.guidata.ts(i) < handles.guidata.t0_curr || handles.guidata.ts(i) > handles.guidata.t1_curr,
+    if handles.guidata.ts(i) < handles.data.t0_curr || handles.guidata.ts(i) > handles.data.t1_curr,
       labelidx = [];
     elseif handles.guidata.label_state ~= 0,
       labelidx = handles.guidata.label_state;
     elseif handles.guidata.plot_labels_manual,
-      labelidxStruct = handles.guidata.data.GetLabelIdx(handles.guidata.expi,handles.guidata.flies,handles.guidata.ts(i),handles.guidata.ts(i));
+      labelidxStruct = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
       labelidx = labelidxStruct.vals;
     elseif handles.guidata.plot_labels_automatic,
-       prediction = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies,handles.guidata.ts(i),handles.guidata.ts(i));
+       prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
        labelidx = prediction.predictedidx;
     end
-    inbounds = handles.guidata.data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
-      handles.guidata.data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
+    inbounds = handles.data.firstframes_per_exp{handles.data.expi} <= handles.guidata.ts(i) & ...
+      handles.data.endframes_per_exp{handles.data.expi} >= handles.guidata.ts(i);
     
     % indices that will be removed
     goodidx = find(handles.guidata.idx2fly~=0);
@@ -970,32 +984,32 @@ for i = axes,
     for fly = find(inbounds),
 
       t = handles.guidata.ts(i);
-      pos = handles.guidata.data.GetTrxPos1(handles.guidata.expi,fly,t);
+      pos = handles.data.GetTrxPos1(handles.data.expi,fly,t);
       j = handles.guidata.fly2idx(fly);
-      UpdateTargetPosition(handles.guidata.data.targettype,handles.guidata.hflies(j,i),...
+      UpdateTargetPosition(handles.data.targettype,handles.guidata.hflies(j,i),...
         handles.guidata.hflies_extra(j,:,i),pos);
 
       set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
-      sexcurr = handles.guidata.data.GetSex1(handles.guidata.expi,fly,t);
+      sexcurr = handles.data.GetSex1(handles.data.expi,fly,t);
       if lower(sexcurr(1)) == 'm',
         set(handles.guidata.hfly_markers(j,i),'Visible','on');
       else
         set(handles.guidata.hfly_markers(j,i),'Visible','off');
       end
 %       updatefly(handles.guidata.hflies(fly,i),...
-%         handles.guidata.data.GetTrxX1(handles.guidata.expi,fly,t),...
-%         handles.guidata.data.GetTrxY1(handles.guidata.expi,fly,t),...
-%         handles.guidata.data.GetTrxTheta1(handles.guidata.expi,fly,t),...
-%         handles.guidata.data.GetTrxA1(handles.guidata.expi,fly,t),...
-%         handles.guidata.data.GetTrxB1(handles.guidata.expi,fly,t));
-%       j = handles.guidata.ts(i) + handles.guidata.data.trx(fly).off;
-%       updatefly(handles.guidata.hflies(fly,i),handles.guidata.data.trx(fly).x(j),...
-%         handles.guidata.data.trx(fly).y(j),...
-%         handles.guidata.data.trx(fly).theta(j),...
-%         handles.guidata.data.trx(fly).a(j),...
-%         handles.guidata.data.trx(fly).b(j));
+%         handles.data.GetTrxX1(handles.data.expi,fly,t),...
+%         handles.data.GetTrxY1(handles.data.expi,fly,t),...
+%         handles.data.GetTrxTheta1(handles.data.expi,fly,t),...
+%         handles.data.GetTrxA1(handles.data.expi,fly,t),...
+%         handles.data.GetTrxB1(handles.data.expi,fly,t));
+%       j = handles.guidata.ts(i) + handles.data.trx(fly).off;
+%       updatefly(handles.guidata.hflies(fly,i),handles.data.trx(fly).x(j),...
+%         handles.data.trx(fly).y(j),...
+%         handles.data.trx(fly).theta(j),...
+%         handles.data.trx(fly).a(j),...
+%         handles.data.trx(fly).b(j));
       %updatefly(handles.guidata.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
-      if ismember(fly,handles.guidata.flies),
+      if ismember(fly,handles.data.flies),
         set(handles.guidata.hflies(j,i),'LineWidth',3);
         if labelidx <= 0,
           set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelunknowncolor);
@@ -1021,34 +1035,34 @@ for i = axes,
   nprev = handles.guidata.traj_nprev;
   npost = handles.guidata.traj_npost;
   if refreshtrx,
-    for j = 1:numel(handles.guidata.flies),
-      fly = handles.guidata.flies(j);
+    for j = 1:numel(handles.data.flies),
+      fly = handles.data.flies(j);
       tmp = handles.guidata.ts(i);
-      t0 = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(fly);
-      t1 = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(fly);
+      t0 = handles.data.firstframes_per_exp{handles.data.expi}(fly);
+      t1 = handles.data.endframes_per_exp{handles.data.expi}(fly);
       ts = max(t0,tmp-nprev):min(t1,tmp+npost);
-      set(handles.guidata.htrx(j,i),'XData',handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,fly,ts),...
-        'YData',handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,fly,ts));
+      set(handles.guidata.htrx(j,i),'XData',handles.data.GetTrxValues('X1',handles.data.expi,fly,ts),...
+        'YData',handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts));
       %j0 = max(1,tmp-nprev);
-      %j1 = min(handles.guidata.data.trx(fly).nframes,tmp+npost);
-      %set(handles.guidata.htrx(j,i),'XData',handles.guidata.data.trx(fly).x(j0:j1),...
-      %  'YData',handles.guidata.data.trx(fly).y(j0:j1));
-      %trx = handles.guidata.data.GetTrx(handles.guidata.expi,fly,handles.guidata.ts(i)-nprev:handles.guidata.ts(i)+npost);
+      %j1 = min(handles.data.trx(fly).nframes,tmp+npost);
+      %set(handles.guidata.htrx(j,i),'XData',handles.data.trx(fly).x(j0:j1),...
+      %  'YData',handles.data.trx(fly).y(j0:j1));
+      %trx = handles.data.GetTrx(handles.data.expi,fly,handles.guidata.ts(i)-nprev:handles.guidata.ts(i)+npost);
       %set(handles.guidata.htrx(j,i),'XData',trx.x,'YData',trx.y);
     end
   end  
   
   % update labels plotted
   if refreshlabels,
-    for k = 1:numel(handles.guidata.flies),
-      fly = handles.guidata.flies(k);
-      T0 = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(fly);
-      T1 = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(fly);
-%       T0 = handles.guidata.data.GetTrxFirstFrame(handles.guidata.expi,fly);
-%       T1 = handles.guidata.data.GetTrxEndFrame(handles.guidata.expi,fly);
+    for k = 1:numel(handles.data.flies),
+      fly = handles.data.flies(k);
+      T0 = handles.data.firstframes_per_exp{handles.data.expi}(fly);
+      T1 = handles.data.endframes_per_exp{handles.data.expi}(fly);
+%       T0 = handles.data.GetTrxFirstFrame(handles.data.expi,fly);
+%       T1 = handles.data.GetTrxEndFrame(handles.data.expi,fly);
       t0 = min(T1,max(T0,handles.guidata.ts(i)-nprev));
       t1 = min(T1,max(T0,handles.guidata.ts(i)+npost));
-      for j = 1:handles.guidata.data.nbehaviors,
+      for j = 1:handles.data.nbehaviors,
         xplot = handles.guidata.labels_plot.x(:,handles.guidata.labels_plot_off+t0:handles.guidata.labels_plot_off+t1,j,k);
         yplot = handles.guidata.labels_plot.y(:,handles.guidata.labels_plot_off+t0:handles.guidata.labels_plot_off+t1,j,k);
         set(handles.guidata.hlabels(j),'XData',xplot(:),'YData',yplot(:));
@@ -1060,8 +1074,8 @@ for i = axes,
         ts = sort([handles.label_t0,handles.guidata.ts(1)]);
         t0 = max(t0,ts(1));
         t1 = min(t1,ts(2)+1);
-        xdata = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(1),t0:t1);
-        ydata = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(1),t0:t1);
+        xdata = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(1),t0:t1);
+        ydata = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(1),t0:t1);
         set(handles.guidata.hlabel_curr(1),'XData',xdata,'YData',ydata);
         if handles.guidata.label_state == -1,
           set(handles.guidata.hlabel_curr(1),'Color',handles.guidata.labelunknowncolor);
@@ -1078,10 +1092,10 @@ for i = axes,
   if refresh_curr_prop,
     for propi = 1:numel(handles.guidata.perframepropis),
       v = handles.guidata.perframepropis(propi);
-      if handles.guidata.ts(i) < handles.guidata.t0_curr || handles.guidata.ts(i) > handles.guidata.t1_curr,
+      if handles.guidata.ts(i) < handles.data.t0_curr || handles.guidata.ts(i) > handles.data.t1_curr,
         s = '';
       else
-        perframedata = handles.guidata.data.GetPerFrameData1(handles.guidata.expi,handles.guidata.flies,v,handles.guidata.ts(i));
+        perframedata = handles.data.GetPerFrameData1(handles.data.expi,handles.data.flies,v,handles.guidata.ts(i));
         s = sprintf('%.3f',perframedata);
       end
       if numel(handles.guidata.text_timeline_props) >= propi && ishandle(handles.guidata.text_timeline_props(propi)),
@@ -1101,14 +1115,14 @@ function [handles,success] = SetCurrentMovie(handles,expi)
 
 success = false;
 
-if expi == handles.guidata.expi,
+if expi == handles.data.expi,
   success = true;
   return;
 end
 
 % check that the current movie exists
-if handles.guidata.data.ismovie,
-  [moviefilename,timestamp] = handles.guidata.data.GetFile('movie',expi);
+if handles.data.ismovie,
+  [moviefilename,timestamp] = handles.data.GetFile('movie',expi);
   if isinf(timestamp) && ~exist(moviefilename,'file'),
     uiwait(warndlg(sprintf('Movie file %s does not exist.',moviefilename),'Error setting movie'));
     return;
@@ -1149,29 +1163,29 @@ if handles.guidata.data.ismovie,
 end
 
 % number of flies
-handles.guidata.nflies_curr = handles.guidata.data.nflies_per_exp(expi);
+% handles.guidata.nflies_curr = handles.data.nflies_per_exp(expi);
 
 % choose flies
-if handles.guidata.nflies_curr == 0,
+if handles.data.nTargetsInCurrentExp == 0,
   flies = [];
 else
   flies = 1;
 end
 
 % load trx
-[success,msg] = handles.guidata.data.setCurrentTarget(expi,flies);
+[success,msg] = handles.data.setCurrentTarget(expi,flies);
 if ~success,
   uiwait(errordlg(sprintf('Error loading data for experiment %d: %s',expi,msg)));
   return;
 end
 
 % if no movie, then set limits
-if ~handles.guidata.data.ismovie,
-  maxx = max([handles.guidata.data.trx.x]);
-  maxy = max([handles.guidata.data.trx.y]);
+if ~handles.data.ismovie,
+  maxx = max([handles.data.trx.x]);
+  maxy = max([handles.data.trx.y]);
   handles.guidata.movie_height = ceil(maxy);
   handles.guidata.movie_width = ceil(maxx);
-  handles.guidata.nframes = max([handles.guidata.data.trx.endframe]);
+  handles.guidata.nframes = max([handles.data.trx.endframe]);
   
   % set axes colors to be white instead of black
   set(handles.guidata.axes_previews,'Color','w');
@@ -1180,27 +1194,29 @@ end
 
 % set zoom radius
 if isnan(handles.guidata.zoom_fly_radius(1)),
-  handles.guidata.zoom_fly_radius = nanmean([handles.guidata.data.trx.a])*20 + [0,0];
+  handles.guidata.zoom_fly_radius = nanmean([handles.data.trx.a])*20 + [0,0];
 end
 
 % count the maximum number of flies in any frames
-off = 1-min(handles.guidata.data.firstframes_per_exp{expi});
-nflies_per_frame = zeros(1,max(handles.guidata.data.endframes_per_exp{expi}+off));
-for fly = 1:handles.guidata.data.nflies_per_exp(expi),
-  i0 = handles.guidata.data.firstframes_per_exp{expi}(fly)+off;
-  i1 = handles.guidata.data.endframes_per_exp{expi}(fly)+off;
+off = 1-min(handles.data.firstframes_per_exp{expi});
+nflies_per_frame = zeros(1,max(handles.data.endframes_per_exp{expi}+off));
+for fly = 1:handles.data.nflies_per_exp(expi),
+  i0 = handles.data.firstframes_per_exp{expi}(fly)+off;
+  i1 = handles.data.endframes_per_exp{expi}(fly)+off;
   nflies_per_frame(i0:i1) = nflies_per_frame(i0:i1) + 1;
 end
 maxnflies_curr = max(nflies_per_frame);
 
-handles.guidata.expi = expi;
+% handles.data.expi = expi;
 
 ClearStatus(handles);
 
 % TODO: change hard-coded colormap
 % update colors
-handles.guidata.fly_colors = jet(handles.guidata.nflies_curr)*.7;
-handles.guidata.fly_colors = handles.guidata.fly_colors(randperm(handles.guidata.nflies_curr),:);
+nTargetsInCurrentExp=handles.data.nTargetsInCurrentExp;
+nColors=fif(isempty(nTargetsInCurrentExp),0,nTargetsInCurrentExp);
+handles.guidata.fly_colors = jet(nColors)*.7;
+handles.guidata.fly_colors = handles.guidata.fly_colors(randperm(nColors),:);
 
 % delete old fly current positions
 if ~isempty(handles.guidata.hflies),
@@ -1221,11 +1237,11 @@ handles.guidata.hflies = nan(maxnflies_curr,numel(handles.guidata.axes_previews)
 handles.guidata.hflies_extra = nan(maxnflies_curr,handles.guidata.nextra_markers,numel(handles.guidata.axes_previews));
 handles.guidata.hfly_markers = nan(maxnflies_curr,numel(handles.guidata.axes_previews));
 handles.guidata.idx2fly = zeros(1,maxnflies_curr);
-handles.guidata.fly2idx = zeros(1,handles.guidata.nflies_curr);
+handles.guidata.fly2idx = zeros(1,handles.data.nTargetsInCurrentExp);
 
 for i = 1:numel(handles.guidata.axes_previews),
   % fly current positions
-  for fly = 1:handles.guidata.nflies_curr,
+  for fly = 1:handles.data.nTargetsInCurrentExp,
     % handles.guidata.hflies(fly,i) = plot(handles.guidata.axes_previews(i),nan,nan,'-',...
     %   'color',handles.guidata.fly_colors(fly,:),'linewidth',3,...
     %   'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
@@ -1284,7 +1300,7 @@ end
 
 % choose frame
 for i = 1:numel(handles.guidata.axes_previews),
-  handles = SetCurrentFrame(handles,i,handles.guidata.t0_curr,nan,true,false);
+  handles = SetCurrentFrame(handles,i,handles.data.t0_curr,nan,true,false);
 end
 
 % update zoom
@@ -1313,18 +1329,21 @@ return
 % -------------------------------------------------------------------------
 function handles = UnsetCurrentMovie(handles)
 
+% Unset the target in the model
+handles.data.unsetCurrentTarget();
+
 % close previous movie
 if ~isempty(handles.guidata.movie_fid) && ~isempty(fopen(handles.guidata.movie_fid)) && ...
     handles.guidata.movie_fid~=0,
   fclose(handles.guidata.movie_fid);
 end
 
-handles.guidata.expi = 0;
-handles.guidata.flies = nan(1,handles.guidata.nflies_label);
+% handles.data.expi = 0;
+% handles.data.flies = nan(1,handles.guidata.nflies_label);
 handles.guidata.ts = zeros(1,numel(handles.guidata.axes_previews));
 handles.guidata.label_state = 0;
 handles.guidata.label_imp = [];
-handles.guidata.nflies_curr = 0;
+% handles.data.nTargetsInCurrentExp = 0;
 % delete old fly current positions
 if ~isempty(handles.guidata.hflies),
   delete(handles.guidata.hflies(ishandle(handles.guidata.hflies)));
@@ -1372,7 +1391,7 @@ function slider_preview_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 
 % get slider value
 % t = min(max(1,round(get(hObject,'Value'))),handles.guidata.nframes);
-t = min(max(handles.guidata.t0_curr,round(get(hObject,'Value'))),handles.guidata.t1_curr);
+t = min(max(handles.data.t0_curr,round(get(hObject,'Value'))),handles.data.t1_curr);
 set(hObject,'Value',t);
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
@@ -1392,59 +1411,61 @@ if ~exist('doupdateplot','var'),
   doupdateplot = true;
 end
 
-data=handles.guidata.data;  % a ref
-[success,msg] = data.setCurrentTarget(handles.guidata.expi,flies);
+data=handles.data;  % a ref
+oldFlies=data.flies;
+[success,msg] = data.setCurrentTarget(data.expi,flies);
 if ~success,
   uiwait(waitdlg(sprintf('Error loading data for current set of flies: %s',msg)));
   return;
 end
 
 % same flies, return
-if ~doforce && isempty(setdiff(flies,handles.guidata.flies)) && ...
-    isempty(setdiff(handles.guidata.flies,flies)),
+if ~doforce && ...
+   isempty(setdiff(flies,oldFlies)) && ...
+   isempty(setdiff(oldFlies,flies)),
   return;
 end
 
-handles.guidata.flies = flies;
+% handles.data.flies = flies;
 
-% frames these flies are both alive
-handles.guidata.t0_curr = max(data.GetTrxFirstFrame(handles.guidata.expi,handles.guidata.flies));
-handles.guidata.t1_curr = min(data.GetTrxEndFrame(handles.guidata.expi,handles.guidata.flies));
+% % frames these flies are both alive
+% handles.guidata.t0_curr = max(data.GetTrxFirstFrame(handles.data.expi,handles.data.flies));
+% handles.data.t1_curr = min(data.GetTrxEndFrame(handles.data.expi,handles.data.flies));
 
 % form of labels for easier plotting:
 % x, y positions of all labels
 handles.guidata.labels_plot = struct;
-n = handles.guidata.t1_curr-handles.guidata.t0_curr+1;
+n = handles.data.t1_curr-handles.data.t0_curr+1;
 handles.guidata.labels_plot.im = zeros([1,n,3]);
 handles.guidata.labels_plot.predicted_im = zeros([1,n,3]);
 handles.guidata.labels_plot.suggest_xs = nan;
 handles.guidata.labels_plot.error_xs = nan;
 %handles.guidata.labels_plot.suggested_im = zeros([1,n,3]);
 %handles.guidata.labels_plot.error_im = zeros([1,n,3]);
-handles.guidata.labels_plot.x = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
-handles.guidata.labels_plot.y = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
-handles.guidata.labels_plot.predx = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
-handles.guidata.labels_plot.predy = nan(2,n,data.nbehaviors,numel(handles.guidata.flies));
-handles.guidata.labels_plot_off = 1-handles.guidata.t0_curr;
+handles.guidata.labels_plot.x = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+handles.guidata.labels_plot.y = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+handles.guidata.labels_plot.predx = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+handles.guidata.labels_plot.predy = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+handles.guidata.labels_plot_off = 1-handles.data.t0_curr;
 % set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto,...
 %   handles.himage_timeline_error,handles.himage_timeline_suggest],...
-%   'XData',[handles.guidata.t0_curr,handles.guidata.t1_curr]);
+%   'XData',[handles.data.t0_curr,handles.data.t1_curr]);
 set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto],...
-  'XData',[handles.guidata.t0_curr,handles.guidata.t1_curr]);
+  'XData',[handles.data.t0_curr,handles.data.t1_curr]);
 
-labelidxStruct = data.GetLabelIdx(handles.guidata.expi,flies);
+labelidxStruct = data.GetLabelIdx(handles.data.expi,flies);
 labelidx = labelidxStruct.vals;
 
 classifierPresent=data.classifierIsPresent();
 if classifierPresent ,
-  prediction = data.GetPredictedIdx(handles.guidata.expi,flies);
+  prediction = data.GetPredictedIdx(handles.data.expi,flies);
   predictedidx = prediction.predictedidx;
   scores = data.NormalizeScores(prediction.scoresidx);
 end
 for flyi = 1:numel(flies),
   fly = flies(flyi);
-  x = data.GetTrxValues('X1',handles.guidata.expi,fly,handles.guidata.t0_curr:handles.guidata.t1_curr);
-  y = data.GetTrxValues('Y1',handles.guidata.expi,fly,handles.guidata.t0_curr:handles.guidata.t1_curr);
+  x = data.GetTrxValues('X1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
+  y = data.GetTrxValues('Y1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
   for behaviori = 1:data.nbehaviors
     idx = find(labelidx == behaviori);
     idx1 = min(idx+1,numel(x));
@@ -1472,8 +1493,8 @@ handles.guidata.current_interval = [];
 
 % update timelines
 set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
-%axis(handles.axes_timeline_manual,[handles.guidata.t0_curr-.5,handles.guidata.t1_curr+.5,.5,1.5]);
-set(handles.axes_timeline_manual,'xlim',[handles.guidata.t0_curr-.5,handles.guidata.t1_curr+.5]);
+%axis(handles.axes_timeline_manual,[handles.data.t0_curr-.5,handles.data.t1_curr+.5,.5,1.5]);
+set(handles.axes_timeline_manual,'xlim',[handles.data.t0_curr-.5,handles.data.t1_curr+.5]);
 set(handles.axes_timeline_manual,'ylim',[.5 1.5]);
 % update zoom
 for h = handles.guidata.axes_timeline_labels,
@@ -1482,15 +1503,15 @@ end
 
 % update trx colors
 for i = 1:numel(handles.guidata.axes_previews),
-  for j = 1:numel(handles.guidata.flies),
-    fly = handles.guidata.flies(j);
+  for j = 1:numel(handles.data.flies),
+    fly = handles.data.flies(j);
     set(handles.guidata.htrx(j,i),'Color',handles.guidata.fly_colors(fly,:));
   end
 end
 
 % Update colors for all other flies. 
-inbounds = data.firstframes_per_exp{handles.guidata.expi} <= handles.guidata.ts(i) & ...
-  data.endframes_per_exp{handles.guidata.expi} >= handles.guidata.ts(i);
+inbounds = data.firstframes_per_exp{handles.data.expi} <= handles.guidata.ts(i) & ...
+  data.endframes_per_exp{handles.data.expi} >= handles.guidata.ts(i);
 
 for i = 1:numel(handles.guidata.axes_previews),
   for j = 1:numel(handles.guidata.idx2fly),
@@ -1505,18 +1526,18 @@ for i = 1:numel(handles.guidata.axes_previews),
 end
 
 % status bar text
-% [~,expname] = myfileparts(data.expdirs{handles.guidata.expi});
-% if numel(handles.guidata.flies) == 1,
-%   handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,data.targettype,handles.guidata.flies);
+% [~,expname] = myfileparts(data.expdirs{handles.data.expi});
+% if numel(handles.data.flies) == 1,
+%   handles.guidata.status_bar_text_when_clear = sprintf('%s, %s %d',expname,data.targettype,handles.data.flies);
 % else
-%   handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,data.targettype),sprintf(' %d',handles.guidata.flies)];
+%   handles.guidata.status_bar_text_when_clear = [sprintf('%s, %d',expname,data.targettype),sprintf(' %d',handles.data.flies)];
 %     % I don't understand the line above.  targettype is a string! ---ALT, march 18, 2013
 % end
 syncStatusBarTextWhenClear(handles);
 
 % make sure frame is within bounds
 isset = handles.guidata.ts ~= 0;
-ts = max(handles.guidata.t0_curr,min(handles.guidata.t1_curr,handles.guidata.ts));
+ts = max(handles.data.t0_curr,min(handles.data.t1_curr,handles.guidata.ts));
 ts(~isset) = 0;
 for i = 1:numel(ts),
   if ts(i) ~= handles.guidata.ts(i),
@@ -1543,22 +1564,22 @@ return
 % -------------------------------------------------------------------------
 function handles = UpdateTimelineImages(handles)
 
-% Note: this function directly accesses handles.guidata.data.labelidx,
-% handles.guidata.data.predictedidx for speed, so make sure we've preloaded the
+% Note: this function directly accesses handles.data.labelidx,
+% handles.data.predictedidx for speed, so make sure we've preloaded the
 % right experiment, flies
 % REMOVED!
 
-% if handles.guidata.expi ~= handles.guidata.data.expi || ~all(handles.guidata.flies == handles.guidata.data.flies),
-%   handles.guidata.data.Preload(handles.guidata.expi,handles.guidata.flies);
+% if handles.data.expi ~= handles.data.expi || ~all(handles.data.flies == handles.data.flies),
+%   handles.data.Preload(handles.data.expi,handles.data.flies);
 % end
 
-if handles.guidata.data.nexps==0 ,
+if handles.data.nexps==0 ,
   return
 end
 handles.guidata.labels_plot.im(:) = 0;
-labelidx = handles.guidata.data.GetLabelIdx(handles.guidata.expi,handles.guidata.flies);
+labelidx = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies);
 
-for behaviori = 1:handles.guidata.data.nbehaviors
+for behaviori = 1:handles.data.nbehaviors
   idx = (labelidx.vals == behaviori) & labelidx.imp;
   curColor = handles.guidata.labelcolors(behaviori,:);
   for channel = 1:3,
@@ -1573,28 +1594,28 @@ for behaviori = 1:handles.guidata.data.nbehaviors
 end
 
 handles.guidata.labels_plot.predicted_im(:) = 0;
-prediction= handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies);
+prediction= handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies);
 predictedidx = prediction.predictedidx;
-scores = handles.guidata.data.NormalizeScores(prediction.scoresidx);
+scores = handles.data.NormalizeScores(prediction.scoresidx);
 
 % Scores for the bottom row.
 switch handles.guidata.bottomAutomatic
   case 'Validated'
-    scores_bottom = handles.guidata.data.GetValidatedScores(handles.guidata.expi,handles.guidata.flies);
-    scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
+    scores_bottom = handles.data.GetValidatedScores(handles.data.expi,handles.data.flies);
+    scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'Imported'
-    scores_bottom = handles.guidata.data.GetLoadedScores(handles.guidata.expi,handles.guidata.flies);
-    scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
+    scores_bottom = handles.data.GetLoadedScores(handles.data.expi,handles.data.flies);
+    scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'Old'
-    scores_bottom = handles.guidata.data.GetOldScores(handles.guidata.expi,handles.guidata.flies);
-    scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
+    scores_bottom = handles.data.GetOldScores(handles.data.expi,handles.data.flies);
+    scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'Postprocessed'
-    [scores_bottom,prediction_bottom] =  handles.guidata.data.GetPostprocessedScores(handles.guidata.expi,handles.guidata.flies);
-    scores_bottom = handles.guidata.data.NormalizeScores(scores_bottom);
+    [scores_bottom,prediction_bottom] =  handles.data.GetPostprocessedScores(handles.data.expi,handles.data.flies);
+    scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'None'
     scores_bottom = zeros(size(scores));
   case 'Distance'
-    dist = handles.guidata.data.GetDistance(handles.guidata.expi,handles.guidata.flies);
+    dist = handles.data.GetDistance(handles.data.expi,handles.data.flies);
     scores_bottom = zeros(size(scores));
   otherwise
     warndlg('Undefined scores type to display for the bottom part of the automatic');
@@ -1609,11 +1630,11 @@ end
 idxBottomScores = ~isnan(scores_bottom);
 bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
 
-for behaviori = 1:handles.guidata.data.nbehaviors
+for behaviori = 1:handles.data.nbehaviors
 
   idxScores = predictedidx == behaviori ;
   idxPredict = idxScores & ...
-    (abs(scores)>handles.guidata.data.GetConfidenceThreshold(behaviori));
+    (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
   for channel = 1:3,
     
       handles.guidata.labels_plot.predicted_im(1,idxPredict,channel) = handles.guidata.labelcolors(behaviori,channel);
@@ -1638,39 +1659,39 @@ end
 
 [error_t0s,error_t1s] = get_interval_ends(labelidx.vals ~= 0 & predictedidx ~= 0 & ...
   labelidx.vals ~= predictedidx);
-error_t0s = error_t0s + handles.guidata.t0_curr - 1.5;
-error_t1s = error_t1s + handles.guidata.t0_curr - 1.5;
+error_t0s = error_t0s + handles.data.t0_curr - 1.5;
+error_t1s = error_t1s + handles.data.t0_curr - 1.5;
 handles.guidata.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
 set(handles.guidata.htimeline_errors,'XData',handles.guidata.labels_plot.error_xs,...
   'YData',zeros(size(handles.guidata.labels_plot.error_xs))+1.5);
 [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
-suggest_t0s = suggest_t0s + handles.guidata.t0_curr - 1.5;
-suggest_t1s = suggest_t1s + handles.guidata.t0_curr - 1.5;
+suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
+suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
 handles.guidata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
 set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
   'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
 
-[suggest_t0s,suggest_t1s] = get_interval_ends(handles.guidata.data.GetGTSuggestionIdx(handles.guidata.expi,handles.guidata.flies));
-suggest_t0s = suggest_t0s + handles.guidata.t0_curr - 1.5;
-suggest_t1s = suggest_t1s + handles.guidata.t0_curr - 1.5;
+[suggest_t0s,suggest_t1s] = get_interval_ends(handles.data.GetGTSuggestionIdx(handles.data.expi,handles.data.flies));
+suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
+suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
 handles.guidata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
 set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
   'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
 
 %{
 %handles.guidata.labels_plot.suggested_im(:) = 0;
-%for behaviori = 1:handles.guidata.data.nbehaviors
-%  idx = handles.guidata.data.suggestedidx == behaviori;
+%for behaviori = 1:handles.data.nbehaviors
+%  idx = handles.data.suggestedidx == behaviori;
 %  for channel = 1:3,
 %    handles.guidata.labels_plot.suggested_im(1,idx,channel) = handles.guidata.labelcolors(behaviori,channel);
 %  end
 %end
 %handles.guidata.labels_plot.error_im(:) = 0;
-%idx = handles.guidata.data.erroridx == 1;
+%idx = handles.data.erroridx == 1;
 %for channel = 1:3,
 %  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.correctcolor(channel);
 %end
-%idx = handles.guidata.data.erroridx == 2;
+%idx = handles.data.erroridx == 2;
 %for channel = 1:3,
 %  handles.guidata.labels_plot.error_im(1,idx,channel) = handles.guidata.incorrectcolor(channel);
 %end
@@ -1695,9 +1716,9 @@ end
 
 t = round(t);
 
-if t<handles.guidata.t0_curr || t>handles.guidata.t1_curr,
+if t<handles.data.t0_curr || t>handles.data.t1_curr,
   fprintf('Current frame is out of range for the current fly');
-  t = min(max(handles.guidata.t0_curr,round(pt(1,1))),handles.guidata.t1_curr);
+  t = min(max(handles.data.t0_curr,round(pt(1,1))),handles.data.t1_curr);
 end
 
 
@@ -1708,9 +1729,9 @@ if doforce || handles.guidata.ts(i) ~= t,
   
   % update labels
 %   if handles.guidata.label_state < 0,
-%     handles = SetLabelPlot(handles,min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t)),0);
+%     handles = SetLabelPlot(handles,min(handles.data.t1_curr,max(handles.data.t0_curr,t)),0);
 %   elseif handles.guidata.label_state > 0,
-%     handles = SetLabelPlot(handles,min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t)),handles.guidata.label_state);
+%     handles = SetLabelPlot(handles,min(handles.data.t1_curr,max(handles.data.t0_curr,t)),handles.guidata.label_state);
 %   end
   
   % update slider
@@ -1742,7 +1763,7 @@ if doforce || handles.guidata.ts(i) ~= t,
   end
   
 %   % out of bounds for labeling? then turn off labeling
-%   if (t < handles.guidata.t0_curr || t > handles.guidata.t1_curr),
+%   if (t < handles.data.t0_curr || t > handles.data.t1_curr),
 %     if handles.guidata.label_state > 0,
 %       set(handles.guidata.togglebutton_label_behaviors(handles.guidata.label_state),'Value',0);
 %     elseif handles.guidata.label_state < 0,
@@ -1795,11 +1816,11 @@ function menu_file_modify_experiment_list_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % if isfield(handles,'data'),
-% %   [success,msg] = handles.guidata.data.UpdateStatusTable();
+% %   [success,msg] = handles.data.UpdateStatusTable();
 % %   if ~success,
 % %     error(msg);
 % %   end
-%   params = {handles.guidata.data};
+%   params = {handles.data};
 % else
 %   params = {handles.guidata.configfilename};
 %   if isfield(handles,'defaultpath'),
@@ -1810,8 +1831,8 @@ function menu_file_modify_experiment_list_Callback(hObject, eventdata, handles)
 % store the name of the current experiment, so that we can
 % stay with it (if possible) after the user modifies the list of 
 % experiment dirs
-if ~isempty(handles.guidata.expi) && handles.guidata.expi > 0,
-  handles.guidata.oldexpdir = handles.guidata.data.expdirs{handles.guidata.expi};
+if ~isempty(handles.data.expi) && handles.data.expi > 0,
+  handles.guidata.oldexpdir = handles.data.expdirs{handles.data.expi};
 else
   handles.guidata.oldexpdir = '';
 end
@@ -1826,13 +1847,14 @@ function handles = UpdateMovies(handles)
 return
 
 
-%--------------------------------------------------------------------------
-function handles = SetNeedSave(handles)
-handles.guidata.needsave = true;
-UpdateEnablementAndVisibilityOfControls(handles);
-%set(handles.menu_file_export_classifier,'Enable','on');
-%set(handles.menu_file_export_labels,'Enable','on');
-return
+% %--------------------------------------------------------------------------
+% function handles = SetNeedSave(handles)
+% handles.data.needsave = true;
+% UpdateEnablementAndVisibilityOfControls(handles);
+% %set(handles.menu_file_export_classifier,'Enable','on');
+% %set(handles.menu_file_export_labels,'Enable','on');
+% return
+
 
 % % --------------------------------------------------------------------
 % function handles = SetSaved(handles)
@@ -1985,7 +2007,7 @@ return
 % handles = UpdateLabelButtons(handles);
 % 
 % % Set this thing
-% if ~isempty(handles.guidata.data.allperframefns)
+% if ~isempty(handles.data.allperframefns)
 %   set(handles.timeline_label_prop1,'String',handles.guidata.timeline_prop_options,'Value',3);
 % end
 % 
@@ -2035,11 +2057,12 @@ else
 end
 
 % labeling vs GT mode
-if isempty(handles.guidata.data)
+%if isempty(handles.data)
+if ~handles.data.thereIsAnOpenFile
   set(handles.menu_edit_normal_mode      ,'checked','off');
   set(handles.menu_edit_ground_truthing_mode,'checked','off' );
 else
-  if handles.guidata.data.gtMode,
+  if handles.data.gtMode,
     set(handles.menu_edit_normal_mode    ,'checked','off');
     set(handles.menu_edit_ground_truthing_mode,'checked','on' );
   else
@@ -2070,7 +2093,8 @@ function handles = UpdateLabelButtons(handles)
 % the the current mode.
 
 % get some freqeuntly used things into local vars
-if isempty(handles.guidata.data)
+%if isempty(handles.data)
+if ~handles.data.thereIsAnOpenFile ,
   %projectPresent=false;
   nBehaviors=2;  % just for layout purposes
   labelColors=[1 0 0 ; ...
@@ -2079,11 +2103,11 @@ if isempty(handles.guidata.data)
                            'None'};           
 else
   %projectPresent=true;
-  nBehaviors=handles.guidata.data.nbehaviors;
+  nBehaviors=handles.data.nbehaviors;
   labelColors=handles.guidata.labelcolors;
   behaviorNameCapitalized=cell(nBehaviors,1);
   for i=1:nBehaviors
-    behaviorNameCapitalized{i}=upperFirstLowerRest(handles.guidata.data.labelnames{i});
+    behaviorNameCapitalized{i}=upperFirstLowerRest(handles.data.labelnames{i});
   end
 end
 isAdvancedMode=handles.guidata.GUIAdvancedMode;
@@ -2301,8 +2325,8 @@ return
 %                              handles.panel_selection_info];
 % 
 % % set enablement/visibility according to the current movie index    
-% isMovieShowing=handles.guidata.expi >= 1 && ...
-%                handles.guidata.expi <= handles.guidata.data.nexps;
+% isMovieShowing=handles.data.expi >= 1 && ...
+%                handles.data.expi <= handles.data.nexps;
 % set(grobjectsEnabledIffMovie,'Enable',onIff(isMovieShowing));
 % set(grobjectsVisibileIffMovie,'Visible',onIff(isMovieShowing));
 % % % for debugging:
@@ -2322,19 +2346,19 @@ function UpdateEnablementAndVisibilityOfControls(handles)
 
 % Calculate some logical values that determine enablement and visibility of
 % things.
-data=handles.guidata.data;  % a ref, or empty
-thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
-openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.guidata.needsave;
+data=handles.data;  % a ref, or empty
+thereIsAnOpenFile=data.thereIsAnOpenFile;
+openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.data.needsave;
 % if thereIsAnOpenFile
 %   if isempty(data)
 %     nExps=0;
 %   else
-%     nExps=handles.guidata.data.nexps;
+%     nExps=handles.data.nexps;
 %   end
 % else
 %   nExps=0;
 % end
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
                      ~isempty(data) && ...
                      data.gtMode;
@@ -2351,7 +2375,7 @@ perFrameFeatureSetIsNonEmpty= ...
   ~isempty(data) && ...
   data.getPerFrameFeatureSetIsNonEmpty();
 labelPenIsUp=(handles.guidata.label_state==0);
-userHasSpecifiedEverythingFileName=handles.guidata.userHasSpecifiedEverythingFileName;
+userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 
 %                      
 % Update the File menu items.
@@ -2548,10 +2572,12 @@ if exist(handles.guidata.rcfilename,'file'),
 end
 % try
   if isfield(handles.guidata.rc,'defaultpath'),
-    handles.guidata.defaultpath = handles.guidata.rc.defaultpath;
-    if ~isempty(handles.guidata.data),
-      handles.guidata.data.SetDefaultPath(handles.guidata.defaultpath);
-    end
+%     handles.guidata.defaultpath = handles.guidata.rc.defaultpath;
+% %     if ~isempty(handles.data),
+%     if handles.data.thereIsAnOpenFile ,
+%       handles.data.SetDefaultPath(handles.guidata.defaultpath);
+%     end
+    handles.data.SetDefaultPath(handles.guidata.rc.defaultpath);
   end
   if isfield(handles.guidata.rc,'figure_JLabel_Position_px'),
     pos = handles.guidata.rc.figure_JLabel_Position_px;
@@ -2634,16 +2660,18 @@ end
   
   % cache size
   if isfield(handles.guidata.rc,'cacheSize'),
-    handles.guidata.cacheSize = handles.guidata.rc.cacheSize;
+    % handles.guidata.cacheSize = handles.guidata.rc.cacheSize;
+    handles.data.cacheSize = handles.guidata.rc.cacheSize;
   else
-    handles.guidata.cacheSize = 4000;
+    % handles.guidata.cacheSize = 4000;
+    handles.data.cacheSize = 4000;
   end
   
-  % load the default configfilename, if present
-  if isfield(handles.guidata.rc,'previousConfigFileName'),
-    handles.guidata.previousConfigFileName = ...
-      handles.guidata.rc.previousConfigFileName;
-  end
+%   % load the default configfilename, if present
+%   if isfield(handles.guidata.rc,'previousConfigFileName'),
+%     handles.guidata.previousConfigFileName = ...
+%       handles.guidata.rc.previousConfigFileName;
+%   end
   
   
 % catch ME,
@@ -2662,10 +2690,9 @@ function handles = SaveRC(handles)
   
   rc = handles.guidata.rc;
   
-  if ~isempty(handles.guidata.data),
-    rc.defaultpath = handles.guidata.data.defaultpath;
-  elseif ~isempty(handles.guidata.defaultpath),
-    rc.defaultpath = handles.guidata.defaultpath;
+  % if ~isempty(handles.data),
+  if ~isempty(handles.data.defaultpath),
+    rc.defaultpath = handles.data.defaultpath;
   end
   rc.timeline_nframes = handles.guidata.timeline_nframes;
   
@@ -2708,7 +2735,8 @@ function handles = SaveRC(handles)
   rc.bottomAutomatic = handles.guidata.bottomAutomatic;
   
   % cache size
-  rc.cacheSize = handles.guidata.cacheSize;
+  % rc.cacheSize = handles.guidata.cacheSize;
+  rc.cacheSize = handles.data.cacheSize;
   
   % % save the configfilename, if present
   % if ~isempty(handles.guidata.configfilename),
@@ -2732,7 +2760,7 @@ function proceed=checkForUnsavedChangesAndDealIfNeeded(figureJLabel)
 % hit cancel, and therefore the caller should _not_ proceed with whatever
 % they were going to do.
 handles=guidata(figureJLabel);
-if handles.guidata.needsave,
+if handles.data.needsave,
   res = questdlg('There are unsaved changes.  Save?','Save?','Save','Discard','Cancel','Save');
   if strcmpi(res,'Save'),
     saved=saveEverythingFile(figureJLabel);
@@ -2781,7 +2809,7 @@ if ~proceed,
 end
 handles=guidata(hObject);
 
-% if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
+% if ~isempty(handles.data) && handles.data.NeedSaveProject(),
 %   res = questdlg(['Current window features do not match the ones in the project file.'...
 %       'Update the project file with the current window features?'],...
 %       'Update?','Yes','No','Cancel','Yes');
@@ -2812,6 +2840,8 @@ end
 if true,
   SaveRC(handles);
   delete(handles.figure_JLabel);
+  handles.guidata=[];
+  handles.data=[];  % this should call the delete() method of the JLabelData
 else
   uiresume(handles.figure_JLabel); %#ok<UNRCH>
 end
@@ -2918,7 +2948,7 @@ if get(hObject,'Value'),
   handles.label_t0 = handles.guidata.ts(1);
   
   % set everything else to off
-  for j = 1:2*handles.guidata.data.nbehaviors,
+  for j = 1:2*handles.data.nbehaviors,
     if j == buttonNum || isnan(handles.guidata.togglebutton_label_behaviors(j)),
       continue;
     end
@@ -2932,7 +2962,7 @@ if get(hObject,'Value'),
     'FaceColor',curColor);
   % set the current frame to be labeled
   %handles.lastframe_labeled = [];
-  %handles = SetLabelPlot(handles,min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,handles.guidata.ts(1))),behaviori);
+  %handles = SetLabelPlot(handles,min(handles.data.t1_curr,max(handles.data.t0_curr,handles.guidata.ts(1))),behaviori);
   
   UpdatePlots(handles,...
               'refreshim',false, ...
@@ -2966,8 +2996,8 @@ else % label pen is up.
     t0 = handles.label_t0;
     t1 = handles.guidata.ts(1);
   end
-  t0 = min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t0));
-  t1 = min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t1));
+  t0 = min(handles.data.t1_curr,max(handles.data.t0_curr,t0));
+  t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
   handles = SetLabelPlot(handles,t0,t1,handles.guidata.label_state,handles.guidata.label_imp);
 
   handles.guidata.label_state = 0;
@@ -2989,13 +3019,13 @@ else % label pen is up.
               'refresh_timeline_selection',false,...
               'refresh_curr_prop',false);
   
-%   handles.guidata.data.StoreLabels();
-  for j = 1:2*handles.guidata.data.nbehaviors,
+%   handles.data.StoreLabels();
+  for j = 1:2*handles.data.nbehaviors,
     if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','on');
   end
   set(handles.togglebutton_label_unknown,'Value',0,'Enable','on');
-  %set(handles.guidata.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.guidata.data.labelnames{behaviori}));
+  %set(handles.guidata.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.data.labelnames{behaviori}));
 
   UpdateEnablementAndVisibilityOfControls(handles);
   %set(handles.menu_file,'enable','on');
@@ -3027,7 +3057,7 @@ function handles = SetLabelPlot(handles,t0,t1,behaviori,important)
 % if isempty(handles.lastframe_labeled),
 %   t0 = t;
 %   t1 = t;
-%   t2 = min(t+1,handles.guidata.t1_curr);
+%   t2 = min(t+1,handles.data.t1_curr);
 % else
 %   if t < handles.lastframe_labeled,
 %     t0 = t;
@@ -3036,15 +3066,15 @@ function handles = SetLabelPlot(handles,t0,t1,behaviori,important)
 %   elseif t > handles.lastframe_labeled,
 %     t0 = handles.lastframe_labeled+1;
 %     t1 = t;
-%     t2 = min(t+1,handles.guidata.t1_curr);
+%     t2 = min(t+1,handles.data.t1_curr);
 %   end
 % end
 
-% WARNING: this function directly accesses handles.guidata.data.labelidx, trx make sure
+% WARNING: this function directly accesses handles.data.labelidx, trx make sure
 % that we've preloaded the right experiment and flies. 
 % REMOVED!
-% if handles.guidata.expi ~= handles.guidata.data.expi || ~all(handles.guidata.flies == handles.guidata.data.flies),
-%   handles.guidata.data.Preload(handles.guidata.expi,handles.guidata.flies);
+% if handles.data.expi ~= handles.data.expi || ~all(handles.data.flies == handles.data.flies),
+%   handles.data.Preload(handles.data.expi,handles.data.flies);
 % end
 
 if t1 < t0,
@@ -3054,51 +3084,52 @@ if t1 < t0,
 end
 handles.guidata.labels_plot.x(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
 handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
-% handles.guidata.data.labelidx(t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off) = 0;
+% handles.data.labelidx(t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off) = 0;
 
 for channel = 1:3,
   handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelunknowncolor(channel);
 end
-handles.guidata.data.SetLabel(handles.guidata.expi,handles.guidata.flies,t0:t1,behaviori,important);
+handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behaviori,important);
 if behaviori > 0,
-  % handles.guidata.data.labelidx(t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off) = behaviori;
+  % handles.data.labelidx(t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off) = behaviori;
   for channel = 1:3,
     handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelcolors(behaviori,channel);
   end
-  for l = 1:numel(handles.guidata.flies),
-    %off = handles.guidata.data.trx(handles.guidata.flies(l)).off;
+  for l = 1:numel(handles.data.flies),
+    %off = handles.data.trx(handles.data.flies(l)).off;
     %j0 = t0+off;
     %j2 = t2+off;
     k0 = t0+handles.guidata.labels_plot_off;
     k2 = t1+handles.guidata.labels_plot_off+1;
-    xplot = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),min(t0:t1+1,handles.guidata.t1_curr));
-    yplot = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),min(t0:t1+1,handles.guidata.t1_curr));
+    xplot = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),min(t0:t1+1,handles.data.t1_curr));
+    yplot = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(l),min(t0:t1+1,handles.data.t1_curr));
     handles.guidata.labels_plot.x(:,k0:k2-1,behaviori,l) = [xplot(1:end-1);xplot(2:end)];
     handles.guidata.labels_plot.y(:,k0:k2-1,behaviori,l) = [yplot(1:end-1);yplot(2:end)];      
 
 %     handles.guidata.labels_plot.x(k0:k2,behaviori,l) = ...
-%       handles.guidata.data.trx(handles.guidata.flies(l)).x(j0:j2);
+%       handles.data.trx(handles.data.flies(l)).x(j0:j2);
 %     handles.guidata.labels_plot.y(k0:k2,behaviori,l) = ...
-%       handles.guidata.data.trx(handles.guidata.flies(l)).y(j0:j2);
+%       handles.data.trx(handles.data.flies(l)).y(j0:j2);
   end
 end
 
 % isstart
-if t0 == handles.guidata.t0_curr,
+if t0 == handles.data.t0_curr,
   handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot_off) = behaviori ~= 0;
 end
-t00 = max(handles.guidata.t0_curr+1,t0);
+t00 = max(handles.data.t0_curr+1,t0);
 off0 = t00+handles.guidata.labels_plot_off;
 off1 = t1+handles.guidata.labels_plot_off;
 % handles.guidata.labels_plot.isstart(off0:off1) = ...
-%   handles.guidata.data.labelidx(off0:off1)~=0 & ...
-%   handles.guidata.data.labelidx(off0-1:off1-1)~=handles.guidata.data.labelidx(off0:off1);
+%   handles.data.labelidx(off0:off1)~=0 & ...
+%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
 handles.guidata.labels_plot.isstart(off0:off1) = ...
-  handles.guidata.data.IsLabelStart(handles.guidata.expi,handles.guidata.flies,t00:t1);
+  handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
 
 handles = UpdateErrors(handles);
 
-handles = SetNeedSave(handles);
+%handles = SetNeedSave(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -3123,9 +3154,9 @@ handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot_off:t1+handles.gu
 for channel = 1:3,
   handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelunknowncolor(channel);
 end
-handles.guidata.data.SetLabel(handles.guidata.expi,handles.guidata.flies,t0:t1,behavioris,0);
+handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behavioris,0);
 
-for behaviori = 1:handles.guidata.data.nbehaviors,
+for behaviori = 1:handles.data.nbehaviors,
 
   bidx = find(behaviori == behavioris);
   if isempty(bidx),
@@ -3134,34 +3165,35 @@ for behaviori = 1:handles.guidata.data.nbehaviors,
   for channel = 1:3,
     handles.guidata.labels_plot.im(1,t0-1+bidx+handles.guidata.labels_plot_off,channel) = handles.guidata.labelcolors(behaviori,channel);
   end
-  for l = 1:numel(handles.guidata.flies),
+  for l = 1:numel(handles.data.flies),
     ks = t0-1+handles.guidata.labels_plot_off+bidx;
-    xplot0 = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),t0-1+bidx);
-    xplot1 = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(l),min(t0+bidx,handles.guidata.t1_curr));
+    xplot0 = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),t0-1+bidx);
+    xplot1 = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),min(t0+bidx,handles.data.t1_curr));
     handles.guidata.labels_plot.x(:,ks,behaviori,l) = [xplot0;xplot1];
-    yplot0 = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),t0-1+bidx);
-    yplot1 = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(l),min(t0+bidx,handles.guidata.t1_curr));
+    yplot0 = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(l),t0-1+bidx);
+    yplot1 = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(l),min(t0+bidx,handles.data.t1_curr));
     handles.guidata.labels_plot.y(:,ks,behaviori,l) = [yplot0;yplot1];
   end
   
 end
 
 % isstart
-if t0 == handles.guidata.t0_curr,
+if t0 == handles.data.t0_curr,
   handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot_off) = behavioris(1) ~= 0;
 end
-t00 = max(handles.guidata.t0_curr+1,t0);
+t00 = max(handles.data.t0_curr+1,t0);
 off0 = t00+handles.guidata.labels_plot_off;
 off1 = t1+handles.guidata.labels_plot_off;
 % handles.guidata.labels_plot.isstart(off0:off1) = ...
-%   handles.guidata.data.labelidx(off0:off1)~=0 & ...
-%   handles.guidata.data.labelidx(off0-1:off1-1)~=handles.guidata.data.labelidx(off0:off1);
+%   handles.data.labelidx(off0:off1)~=0 & ...
+%   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
 handles.guidata.labels_plot.isstart(off0:off1) = ...
-  handles.guidata.data.IsLabelStart(handles.guidata.expi,handles.guidata.flies,t00:t1);
+  handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
 
 handles = UpdateErrors(handles);
 
-handles = SetNeedSave(handles);
+%handles = SetNeedSave(handles);
+UpdateEnablementAndVisibilityOfControls(handles);
 
 %handles.lastframe_labeled = t;
 
@@ -3175,17 +3207,17 @@ function handles = SetPredictedPlot(handles,t0,t1)
 % to match the current predictions.
 
 % If no experiments, nothing to do
-if (handles.guidata.data.nexps==0)
+if (handles.data.nexps==0)
   return
 end
 
 % Get the prediction over the relevant time range, and the time range, if
 % not provided.
-iExp=handles.guidata.expi;
+iExp=handles.data.expi;
 if nargin < 2,
-  [prediction,t0,t1] = handles.guidata.data.GetPredictedIdx(iExp,handles.guidata.flies);
+  [prediction,t0,t1] = handles.data.GetPredictedIdx(iExp,handles.data.flies);
 else
-  prediction = handles.guidata.data.GetPredictedIdx(iExp,handles.guidata.flies,t0,t1);
+  prediction = handles.data.GetPredictedIdx(iExp,handles.data.flies,t0,t1);
 end
 
 % Break out prediction
@@ -3193,7 +3225,7 @@ predictedidx = prediction.predictedidx;
 scoresidx=prediction.scoresidx;
 
 % Normalize the scores
-scores = handles.guidata.data.NormalizeScores(scoresidx);
+scores = handles.data.NormalizeScores(scoresidx);
 
 % Set the x,y for the predictions to nan, so they don't show up except
 % where we set them below
@@ -3204,21 +3236,21 @@ handles.guidata.labels_plot.predx(:,iFirst:iLast,:,:) = nan;
 handles.guidata.labels_plot.predy(:,iFirst:iLast,:,:) = nan;
 
 % Loop over the behaviors (including "none")
-for behaviori = 1:handles.guidata.data.nbehaviors,
-  confidenceThreshold=handles.guidata.data.GetConfidenceThreshold(behaviori);
+for behaviori = 1:handles.data.nbehaviors,
+  confidenceThreshold=handles.data.GetConfidenceThreshold(behaviori);
   bidx = find( (behaviori == predictedidx) & ...
                (abs(scores)>confidenceThreshold) );
   if isempty(bidx),
     continue;
   end
-  for i = 1:numel(handles.guidata.flies),
+  for i = 1:numel(handles.data.flies),
     ks = t0-1+labelsPlotOffset+bidx;
-    j=handles.guidata.flies(i);
-    xplot0 = handles.guidata.data.GetTrxValues('X1',iExp,j,t0-1+bidx);
-    xplot1 = handles.guidata.data.GetTrxValues('X1',iExp,j,min(t0+bidx,handles.guidata.t1_curr));
+    j=handles.data.flies(i);
+    xplot0 = handles.data.GetTrxValues('X1',iExp,j,t0-1+bidx);
+    xplot1 = handles.data.GetTrxValues('X1',iExp,j,min(t0+bidx,handles.data.t1_curr));
     handles.guidata.labels_plot.predx(:,ks,behaviori,i) = [xplot0;xplot1];
-    yplot0 = handles.guidata.data.GetTrxValues('Y1',iExp,j,t0-1+bidx);
-    yplot1 = handles.guidata.data.GetTrxValues('Y1',iExp,j,min(t0+bidx,handles.guidata.t1_curr));
+    yplot0 = handles.data.GetTrxValues('Y1',iExp,j,t0-1+bidx);
+    yplot1 = handles.data.GetTrxValues('Y1',iExp,j,min(t0+bidx,handles.data.t1_curr));
     handles.guidata.labels_plot.predy(:,ks,behaviori,i) = [yplot0;yplot1];
   end
 end
@@ -3242,7 +3274,7 @@ if get(hObject,'Value'),
   handles.label_t0 = handles.guidata.ts(1);
 
   % set everything else to off
-  for j = 1:2*handles.guidata.data.nbehaviors,
+  for j = 1:2*handles.data.nbehaviors,
     if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
   end
@@ -3271,12 +3303,12 @@ if get(hObject,'Value'),
 
   
 %   % set everything else to off
-%   for j = 1:handles.guidata.data.nbehaviors,
-%     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'String',sprintf('Start %s',handles.guidata.data.labelnames{j}));
+%   for j = 1:handles.data.nbehaviors,
+%     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'String',sprintf('Start %s',handles.data.labelnames{j}));
 %   end
 %   % set the current frame to be labeled
 %   %handles.lastframe_labeled = [];
-%   handles = SetLabelPlot(handles,min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,handles.guidata.ts(1))),0);
+%   handles = SetLabelPlot(handles,min(handles.data.t1_curr,max(handles.data.t0_curr,handles.guidata.ts(1))),0);
 %   UpdatePlots(handles,'refreshim',false,'refreshtrx',false,'refreshflies',false);
 %   set(handles.togglebutton_label_unknown,'String','*Label Unknown*');
 
@@ -3289,8 +3321,8 @@ else
     t0 = handles.label_t0;
     t1 = handles.guidata.ts(1);
   end
-  t0 = min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t0));
-  t1 = min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t1));
+  t0 = min(handles.data.t1_curr,max(handles.data.t0_curr,t0));
+  t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
   handles = SetLabelPlot(handles,t0,t1,0,0);
 
   handles.guidata.label_state = 0;
@@ -3298,10 +3330,10 @@ else
   handles.label_t0 = [];
   set(handles.guidata.htimeline_label_curr,'XData',nan(1,5));
     
-  %handles.guidata.data.StoreLabels();
-  for j = 1:2*handles.guidata.data.nbehaviors,
+  %handles.data.StoreLabels();
+  for j = 1:2*handles.data.nbehaviors,
     if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
-    buttonStr = sprintf('%s',handles.guidata.data.labelnames{ceil(j/2)});
+    buttonStr = sprintf('%s',handles.data.labelnames{ceil(j/2)});
     if handles.guidata.GUIAdvancedMode && mod(j,2); 
       buttonStr = sprintf('Important %s',buttonStr); 
     end
@@ -3321,7 +3353,7 @@ else
     'refresh_curr_prop',false);
   
 %   handles.guidata.label_state = 0;
-%   %handles.guidata.data.StoreLabels();
+%   %handles.data.StoreLabels();
 %   set(handles.togglebutton_label_unknown,'String','Start Unknown');
   set(handles.menu_file,'enable','on');
   set(handles.menu_edit,'enable','on');
@@ -3349,7 +3381,7 @@ if isnan(v) || isempty(v),
   set(hObject,'String',num2str(handles.guidata.ts(i)));
 else
   v = round(v);
-  if v >= handles.guidata.t0_curr && v <= handles.guidata.t1_curr
+  if v >= handles.data.t0_curr && v <= handles.data.t1_curr
     handles = SetCurrentFrame(handles,i,v,hObject);
   else
     warndlg('Frame number should be within the range for the current fly');
@@ -3404,7 +3436,7 @@ function axes_preview_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% WARNING: this function directly accesses handles.guidata.data.trx make sure
+% WARNING: this function directly accesses handles.data.trx make sure
 % that we've preloaded the right experiment and flies. 
 % REMOVED!
 
@@ -3417,8 +3449,8 @@ if strcmpi(get(handles.figure_JLabel,'SelectionType'),'open'),
   return;
 end
 
-if handles.guidata.expi ~= handles.guidata.data.expi,
-  handles.guidata.data.Preload(handles.guidata.expi,handles.guidata.flies);
+if handles.data.expi ~= handles.data.expi,
+  handles.data.Preload(handles.data.expi,handles.data.flies);
 end
 
 % which preview panel is this
@@ -3431,17 +3463,17 @@ xclick = pt(1,1);
 yclick = pt(1,2);
 dx = diff(get(handles.guidata.axes_previews(i),'XLim'));
 dy = diff(get(handles.guidata.axes_previews(i),'YLim'));
-for j = 1:numel(handles.guidata.flies),
-  fly = handles.guidata.flies(j);
-  T0 = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(fly);
-  T1 = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(fly);
+for j = 1:numel(handles.data.flies),
+  fly = handles.data.flies(j);
+  T0 = handles.data.firstframes_per_exp{handles.data.expi}(fly);
+  T1 = handles.data.endframes_per_exp{handles.data.expi}(fly);
   t0 = min(T1,max(T0,handles.guidata.ts(i)-nprev));
   t1 = min(T1,max(T0,handles.guidata.ts(i)+npost));
-  %off = handles.guidata.data.trx(fly).off;
-%   [mindcurr,k] = min( ((handles.guidata.data.trx(fly).x(t0+off:t1+off)-xclick)/dx).^2 + ...
-%     ((handles.guidata.data.trx(fly).y(t0+off:t1+off)-yclick)/dy).^2 );
-  [mindcurr,k] = min( ((handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,fly,t0:t1)-xclick)/dx).^2 + ...
-    ((handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,fly,t0:t1)-yclick)/dy).^2 );
+  %off = handles.data.trx(fly).off;
+%   [mindcurr,k] = min( ((handles.data.trx(fly).x(t0+off:t1+off)-xclick)/dx).^2 + ...
+%     ((handles.data.trx(fly).y(t0+off:t1+off)-yclick)/dy).^2 );
+  [mindcurr,k] = min( ((handles.data.GetTrxValues('X1',handles.data.expi,fly,t0:t1)-xclick)/dx).^2 + ...
+    ((handles.data.GetTrxValues('Y1',handles.data.expi,fly,t0:t1)-yclick)/dy).^2 );
   if mindcurr < mind,
     mind = mindcurr;
     mint = k+t0-1;
@@ -3466,7 +3498,7 @@ fly = handles.guidata.idx2fly(flyi);
 
 % check for double click
 if ~strcmpi(get(handles.figure_JLabel,'SelectionType'),'open') || ...
-    numel(handles.guidata.flies) == 1 && handles.guidata.flies == fly,
+    numel(handles.data.flies) == 1 && handles.data.flies == fly,
   % call the axes button down fcn
   axes_preview_ButtonDownFcn(handles.axes_preview(i), eventdata, handles);
   return;
@@ -3487,28 +3519,28 @@ penDown = penDown | get(handles.togglebutton_label_unknown,'Value');
 if penDown, return; end
 
 % check if the user wants to switch to this fly
-% TODO: this directly accesses handles.guidata.data.labels -- abstract this
-[ism,j] = ismember(fly,handles.guidata.data.labels(handles.guidata.expi).flies,'rows');
+% TODO: this directly accesses handles.data.labels -- abstract this
+[ism,j] = ismember(fly,handles.data.labels(handles.data.expi).flies,'rows');
 if ism,
-  nbouts = nnz(~strcmpi(handles.guidata.data.labels(handles.guidata.expi).names{j},'None'));
+  nbouts = nnz(~strcmpi(handles.data.labels(handles.data.expi).names{j},'None'));
 else
   nbouts = 0;
 end
 
-endframe = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(fly);
-firstframe = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(fly);
+endframe = handles.data.endframes_per_exp{handles.data.expi}(fly);
+firstframe = handles.data.firstframes_per_exp{handles.data.expi}(fly);
 prompt = {sprintf('Switch to fly %d?',fly),...
   sprintf('Trajectory length = %d',endframe-firstframe+1),...
   sprintf('First frame = %d',firstframe),...
   sprintf('N. bouts labeled: %d',nbouts)};
 
-if handles.guidata.data.hassex,
-  if handles.guidata.data.hasperframesex,
-    sexfrac = handles.guidata.data.GetSexFrac(handles.guidata.expi,fly);
+if handles.data.hassex,
+  if handles.data.hasperframesex,
+    sexfrac = handles.data.GetSexFrac(handles.data.expi,fly);
     prompt{end+1} = sprintf('Sex: %d%%M, %d%%F',round(sexfrac.M*100),round(sexfrac.F*100));
   else
-    t = max(handles.guidata.t0_curr,handles.guidata.ts(1));
-    sex = handles.guidata.data.GetSex(handles.guidata.expi,fly,t);
+    t = max(handles.data.t0_curr,handles.guidata.ts(1));
+    sex = handles.data.GetSex(handles.data.expi,fly,t);
     if iscell(sex),
       sex = sex{1};
     end
@@ -3539,7 +3571,7 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % end
 
 pt = get(hObject,'CurrentPoint');
-t = min(max(handles.guidata.t0_curr,round(pt(1,1))),handles.guidata.t1_curr);%nframes);
+t = min(max(handles.data.t0_curr,round(pt(1,1))),handles.data.t1_curr);%nframes);
 % TODO: which axes?
 SetCurrentFrame(handles,1,t,hObject);
 return
@@ -3553,18 +3585,18 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % check that the user has selected features already
-perframeFeatureNames=fieldnames(handles.guidata.data.windowfeaturesparams);
+perframeFeatureNames=fieldnames(handles.data.windowfeaturesparams);
 if isempty(perframeFeatureNames)
   error('No features selected!');
 end      
 % store the current labels to windowdata_labeled
-%handles.guidata.data.StoreLabelsAndPreLoadWindowData();  
+%handles.data.StoreLabelsAndPreLoadWindowData();  
 %  now do this inside JLabelData.Train()
-handles.guidata.data.Train(handles.guidata.doFastUpdates);
+handles.data.Train(handles.guidata.doFastUpdates);
 handles = SetPredictedPlot(handles);
 % predict for current window
 handles = predict(handles);
-handles.guidata.needsave=true;
+% handles.data.needsave=true;  % done in .Train()
 UpdateEnablementAndVisibilityOfControls(handles);
 guidata(hObject,handles);
 return
@@ -3577,9 +3609,9 @@ function handles = predict(handles)
 % TODO: make this work for multiple axes
 % Note that this is a controller-like "method", b/c it changes the model
 % and the view.
-t0 = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
-t1 = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
+t0 = max(handles.data.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2));
+t1 = min(handles.data.t1_curr,ceil(handles.guidata.ts(1)+7*handles.guidata.timeline_nframes/2));
+handles.data.Predict(handles.data.expi,handles.data.flies,t0,t1);
 handles = SetPredictedPlot(handles);
 
 handles = UpdateTimelineImages(handles);
@@ -3602,7 +3634,7 @@ function handles = UpdateErrors(handles)
 
 % update prediction for currently shown timeline
 % TODO: make this work for multiple axes
-%handles.guidata.data.UpdateErrorIdx();  % we now do this wehn we set the
+%handles.data.UpdateErrorIdx();  % we now do this wehn we set the
 % labels in JLabelData
 handles = UpdateTimelineImages(handles);
 UpdatePlots(handles, ...
@@ -3696,23 +3728,23 @@ function syncStatusBarTextWhenClear(handles)
 % state to the default clear message, which is something along the lines of
 % "<file name>: <experiment dir name>, Fly <target index>"
 % It figures this out by looking at various fields in handles.guidata and
-% handles.guidata.data.
+% handles.data.
 
-thereIsAnOpenFile=handles.guidata.thereIsAnOpenFile;
+thereIsAnOpenFile=handles.data.thereIsAnOpenFile;
 if thereIsAnOpenFile ,
-  fileNameAbs=handles.guidata.everythingFileNameAbs;
+  fileNameAbs=handles.data.everythingFileNameAbs;
   fileNameRel=fileNameRelFromAbs(fileNameAbs);
-  someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+  someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
   if someExperimentIsCurrent ,
-    iCurrentExp=handles.guidata.expi;
-    expDirNameAbs=handles.guidata.data.expdirs{iCurrentExp};
+    iCurrentExp=handles.data.expi;
+    expDirNameAbs=handles.data.expdirs{iCurrentExp};
     expName=fileNameRelFromAbs(expDirNameAbs);
-    targetType=handles.guidata.data.targettype;
-    nTargetsInThisExp=handles.guidata.nflies_curr;
+    targetType=handles.data.targettype;
+    nTargetsInThisExp=handles.data.nflies_per_exp(iCurrentExp);
     if nTargetsInThisExp==0 ,
       statusBarText=sprintf('%s: %s',fileNameRel,expName);
     else
-      iCurrentTarget=handles.guidata.flies;
+      iCurrentTarget=handles.data.flies;
       statusBarText = sprintf('%s: %s, %s %d',fileNameRel,expName,targetType,iCurrentTarget);
     end
   else
@@ -3740,18 +3772,18 @@ return
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
 % 
-% s = cell(1,handles.guidata.data.nexps);
-% for i = 1:handles.guidata.data.nexps,
-%   expStats = handles.guidata.data.GetExpStats(i);
-%   if i == handles.guidata.expi,
+% s = cell(1,handles.data.nexps);
+% for i = 1:handles.data.nexps,
+%   expStats = handles.data.GetExpStats(i);
+%   if i == handles.data.expi,
 %     s{i} = sprintf('%s, N flies: %d, OPEN NOW',...
 %       expStats.name,expStats.nflies);
 %   else
 %     s{i} = sprintf('%s, N flies: %d',expStats.name,expStats.nflies);
-%     if handles.guidata.data.hassex,
-%       nmales = sum([handles.guidata.data.frac_sex_per_exp{i}.M]);
-%       nfemales = sum([handles.guidata.data.frac_sex_per_exp{i}.F]);
-%       if handles.guidata.data.hasperframesex,
+%     if handles.data.hassex,
+%       nmales = sum([handles.data.frac_sex_per_exp{i}.M]);
+%       nfemales = sum([handles.data.frac_sex_per_exp{i}.F]);
+%       if handles.data.hasperframesex,
 %         s{i} = [s{i},sprintf('(%.1f M, %.1f F)',nmales,nfemales)];
 %       else
 %         s{i} = [s{i},sprintf('(%d M, %d F)',nmales,nfemales)];
@@ -3763,7 +3795,7 @@ return
 %       expStats.labeldatestr)];
 %     if ~isempty(expStats.nscoreframes)
 %       s{i} = [s{i},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d, Classifier used to predict:%s',...
-%         handles.guidata.data.labelnames{1},...
+%         handles.data.labelnames{1},...
 %         expStats.nscorepos,...
 %         expStats.nscoreframes,...
 %         expStats.classifierfilename)];
@@ -3772,10 +3804,10 @@ return
 %   end
 % end
 % [expi,ok] = listdlg('ListString',s,'SelectionMode','single',...
-%   'InitialValue',handles.guidata.expi,'Name','Switch experiment',...
+%   'InitialValue',handles.data.expi,'Name','Switch experiment',...
 %   'PromptString','Select experiment:',...
 %   'ListSize',[640,300]);
-% if ~ok || expi == handles.guidata.expi,
+% if ~ok || expi == handles.data.expi,
 %   return;
 % end
 % [handles,success] = SetCurrentMovie(handles,expi);
@@ -3792,13 +3824,13 @@ return
 % 
 % % TODO: generalize this to multiple flies labeled
 % 
-% nflies = handles.guidata.data.nflies_per_exp(handles.guidata.expi);
+% nflies = handles.data.nflies_per_exp(handles.data.expi);
 % s = cell(1,nflies);
 % for fly = 1:nflies,
-%   if fly == handles.guidata.flies(1),
+%   if fly == handles.data.flies(1),
 %     s{fly} = sprintf('Target %3d, CURRENTLY SELECTED',fly);
 %   else
-%     flyStats = handles.guidata.data.GetFlyStats(handles.guidata.expi,fly);
+%     flyStats = handles.data.GetFlyStats(handles.data.expi,fly);
 %     s{fly} = sprintf('Target %3d, Trajectory length %5d, First frame %5d, N bouts labeled %2d',...
 %       fly,flyStats.trajLength,flyStats.firstframe,flyStats.nbouts);
 %     if flyStats.hassex,
@@ -3811,17 +3843,17 @@ return
 %     end
 %     if ~isempty(flyStats.nscoreframes)
 %       s{fly} = [s{fly},sprintf(', Frames Predicted as %s:%d, Total Frames Predicted:%d',...
-%         handles.guidata.data.labelnames{1},flyStats.nscorepos,flyStats.nscoreframes)];
+%         handles.data.labelnames{1},flyStats.nscorepos,flyStats.nscoreframes)];
 %     end
 %   end
 % end
 % 
 % 
 % [fly,ok] = listdlg('ListString',s,'SelectionMode','single',...
-%   'InitialValue',handles.guidata.flies(1),'Name','Switch target',...
+%   'InitialValue',handles.data.flies(1),'Name','Switch target',...
 %   'PromptString','Select experiment:',...
 %   'ListSize',[640,300]);
-% if ~ok || fly == handles.guidata.flies(1),
+% if ~ok || fly == handles.data.flies(1),
 %   return;
 % end
 % handles = SetCurrentFlies(handles,fly);
@@ -3848,7 +3880,7 @@ function ZoomInOnFlies(handles,indicesOfPreviewAxes)
 % flies centered in the axes, without changing the zoom level.  
 % (I think.  --ALT; Feb 3, 2013)
 
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
   return
 end
@@ -3857,20 +3889,20 @@ if nargin < 2,
   indicesOfPreviewAxes = 1:numel(handles.guidata.axes_previews);
 end
 
-xs = nan(1,numel(handles.guidata.flies));
-ys = nan(1,numel(handles.guidata.flies));
+xs = nan(1,numel(handles.data.flies));
+ys = nan(1,numel(handles.data.flies));
 for i = indicesOfPreviewAxes,
-  firstframes = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(handles.guidata.flies);
-  endframes = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(handles.guidata.flies);
+  firstframes = handles.data.firstframes_per_exp{handles.data.expi}(handles.data.flies);
+  endframes = handles.data.endframes_per_exp{handles.data.expi}(handles.data.flies);
   %inds = handles.guidata.ts(i)-firstframes+1;
-  for j = 1:numel(handles.guidata.flies),
+  for j = 1:numel(handles.data.flies),
     if handles.guidata.ts(i) < firstframes(j) || handles.guidata.ts(i) > endframes(j),
       continue;
     end
-    xs(j) = handles.guidata.data.GetTrxValues('X1',handles.guidata.expi,handles.guidata.flies(j),handles.guidata.ts(i));
-    ys(j) = handles.guidata.data.GetTrxValues('Y1',handles.guidata.expi,handles.guidata.flies(j),handles.guidata.ts(i));
-    %xs(j) = handles.guidata.data.trx(handles.guidata.flies(j)).x(inds(j));
-    %ys(j) = handles.guidata.data.trx(handles.guidata.flies(j)).y(inds(j));
+    xs(j) = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(j),handles.guidata.ts(i));
+    ys(j) = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(j),handles.guidata.ts(i));
+    %xs(j) = handles.data.trx(handles.data.flies(j)).x(inds(j));
+    %ys(j) = handles.data.trx(handles.data.flies(j)).y(inds(j));
   end
   if ~all(isnan(xs)) && ~all(isnan(ys)),
     %xlim = [max([.5,xs-handles.guidata.zoom_fly_radius(1)]),min([handles.guidata.movie_width+.5,xs+handles.guidata.zoom_fly_radius(1)])];
@@ -3913,7 +3945,7 @@ function KeepFliesInView(handles,indicesOfPreviewAxes)
 % flies in view, without changing the zoom level.  (I think.  ALT; Feb 3,
 % 2013)
 
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
   return
 end
@@ -3923,9 +3955,9 @@ if nargin < 2,
 end
 
 % get the vars we need to mess with a lot
-flies=handles.guidata.flies;  % indices of the current flies
+flies=handles.data.flies;  % indices of the current flies
 nFlies=numel(flies);
-expi=handles.guidata.expi;
+expi=handles.data.expi;
 zoom_fly_radius=handles.guidata.zoom_fly_radius;  % 2x1
 movie_width=handles.guidata.movie_width;
 movie_height=handles.guidata.movie_height;
@@ -3933,17 +3965,17 @@ movie_height=handles.guidata.movie_height;
 xs = nan(1,nFlies);
 ys = nan(1,nFlies);
 for i = indicesOfPreviewAxes,
-  firstframes = handles.guidata.data.firstframes_per_exp{expi}(flies);
-  endframes = handles.guidata.data.endframes_per_exp{expi}(flies);
+  firstframes = handles.data.firstframes_per_exp{expi}(flies);
+  endframes = handles.data.endframes_per_exp{expi}(flies);
   %inds = handles.guidata.ts(i)-firstframes+1;
   for j = 1:nFlies,
     if handles.guidata.ts(i) < firstframes(j) || handles.guidata.ts(i) > endframes(j),
       continue;
     end
-    xs(j) = handles.guidata.data.GetTrxValues('X1',expi,flies(j),handles.guidata.ts(i));
-    ys(j) = handles.guidata.data.GetTrxValues('Y1',expi,flies(j),handles.guidata.ts(i));
-    %xs(j) = handles.guidata.data.trx(flies(j)).x(inds(j));
-    %ys(j) = handles.guidata.data.trx(flies(j)).y(inds(j));
+    xs(j) = handles.data.GetTrxValues('X1',expi,flies(j),handles.guidata.ts(i));
+    ys(j) = handles.data.GetTrxValues('Y1',expi,flies(j),handles.guidata.ts(i));
+    %xs(j) = handles.data.trx(flies(j)).x(inds(j));
+    %ys(j) = handles.data.trx(flies(j)).y(inds(j));
   end
   xl = get(handles.guidata.axes_previews(i),'XLim');
   % a little border at the edge of the image
@@ -3992,8 +4024,8 @@ return
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
 % 
-% handles.guidata.data.SaveLabels();
-% handles.guidata.data.SaveGTLabels();
+% handles.data.SaveLabels();
+% handles.data.SaveGTLabels();
 
 
 % --------------------------------------------------------------------
@@ -4004,15 +4036,15 @@ function menu_edit_clear_all_labels_Callback(hObject, eventdata, handles)
 
 s = {};
 s{end+1} = 'Experiments with labels: ';
-for i = 1:numel(handles.guidata.data.labelstats),
-  if handles.guidata.data.labelstats(i).nbouts_labeled > 0,
-    s{end+1} = sprintf('%s: %d bouts',handles.guidata.data.expnames{i},handles.guidata.data.labelstats(i).nbouts_labeled); %#ok<AGROW>
+for i = 1:numel(handles.data.labelstats),
+  if handles.data.labelstats(i).nbouts_labeled > 0,
+    s{end+1} = sprintf('%s: %d bouts',handles.data.expnames{i},handles.data.labelstats(i).nbouts_labeled); %#ok<AGROW>
   end
 end
 
 res = questdlg(s,'Really delete all labels?','Yes','No','Cancel','Cancel');
 if strcmpi(res,'Yes'),
-  handles.guidata.data.ClearLabels();
+  handles.data.ClearLabels();
   handles = UpdateTimelineImages(handles);
   UpdatePlots(handles);
 end
@@ -4066,8 +4098,9 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 if strcmpi(eventdata.Modifier,'control')
   switch eventdata.Key,
     case 't',
-      if ~isempty(handles.guidata.data) && ...
-         ~handles.guidata.data.gtMode,
+      % if ~isempty(handles.data) && ...
+      if handles.data.thereIsAnOpenFile && ...
+         ~handles.data.gtMode,
         pushbutton_train_Callback(hObject,eventdata,handles);
       end
       
@@ -4111,7 +4144,7 @@ switch eventdata.Key,
     
   case handles.guidata.label_shortcuts,
     buttonNum = find(strcmp(eventdata.Key,handles.guidata.label_shortcuts),1);
-    if buttonNum > 2*handles.guidata.data.nbehaviors,
+    if buttonNum > 2*handles.data.nbehaviors,
       if handles.guidata.label_state > 0,
         buttonNum = 2*handles.guidata.label_state - handles.guidata.label_imp;
         set(handles.guidata.togglebutton_label_behaviors(buttonNum),'Value',false);
@@ -4144,7 +4177,7 @@ switch eventdata.Key,
       set(handles.togglebutton_label_unknown,'Value',0);
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
     else
-      for behaviori = 1:2*handles.guidata.data.nbehaviors,
+      for behaviori = 1:2*handles.data.nbehaviors,
         if isnan(handles.guidata.togglebutton_label_behaviors(behaviori)), continue; end
         if get(handles.guidata.togglebutton_label_behaviors(behaviori),'Value') ~= 0,
           set(handles.guidata.togglebutton_label_behaviors(behaviori),'Value',0);
@@ -4165,7 +4198,7 @@ function menu_go_next_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(1,handles.guidata.ts(axesi)+1),handles.guidata.t1_curr);%handles.guidata.nframes);
+t = min(max(1,handles.guidata.ts(axesi)+1),handles.data.t1_curr);%handles.guidata.nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4179,7 +4212,7 @@ function menu_go_previous_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(handles.guidata.t0_curr,handles.guidata.ts(axesi)-1),handles.guidata.t1_curr);
+t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)-1),handles.data.t1_curr);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4194,7 +4227,7 @@ function menu_go_forward_several_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(handles.guidata.t0_curr,handles.guidata.ts(axesi)+handles.guidata.nframes_jump_go),handles.guidata.t1_curr);%nframes);
+t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)+handles.guidata.nframes_jump_go),handles.data.t1_curr);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4209,7 +4242,7 @@ function menu_go_back_several_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(handles.guidata.t0_curr,handles.guidata.ts(axesi)-handles.guidata.nframes_jump_go),handles.guidata.t1_curr);%nframes);
+t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)-handles.guidata.nframes_jump_go),handles.data.t1_curr);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4224,8 +4257,8 @@ function menu_go_next_manual_bout_start_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = handles.guidata.NJObj.Manual_bout_start(handles.guidata.data,handles.guidata.expi,handles.guidata.flies,...
-  handles.guidata.ts(axesi),handles.guidata.t0_curr,handles.guidata.t1_curr);
+t = handles.guidata.NJObj.Manual_bout_start(handles.data,handles.data.expi,handles.data.flies,...
+  handles.guidata.ts(axesi),handles.data.t0_curr,handles.data.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -4241,8 +4274,8 @@ function menu_go_previous_manual_bout_end_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = handles.guidata.NJObj.Manual_bout_end(handles.guidata.data,handles.guidata.expi,handles.guidata.flies,...
-  handles.guidata.ts(axesi),handles.guidata.t0_curr,handles.guidata.t1_curr);
+t = handles.guidata.NJObj.Manual_bout_end(handles.data,handles.data.expi,handles.data.flies,...
+  handles.guidata.ts(axesi),handles.data.t0_curr,handles.data.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -4275,9 +4308,9 @@ prompts  = {};
 allShortcuts = handles.guidata.label_shortcuts;
 curShortcuts = {};
 tprompts = {};
-for j = 1:2*handles.guidata.data.nbehaviors
+for j = 1:2*handles.data.nbehaviors
     
-  labelStr = handles.guidata.data.labelnames{ceil(j/2)};
+  labelStr = handles.data.labelnames{ceil(j/2)};
   if mod(j,2), 
     labelStr = ['Important ' labelStr];  %#ok
   end
@@ -4285,7 +4318,7 @@ for j = 1:2*handles.guidata.data.nbehaviors
   
   if ~handles.guidata.GUIAdvancedMode && ~mod(j,2); continue; end
   % Don't show unimportant keys for Normal mode.
-  labelStr = handles.guidata.data.labelnames{ceil(j/2)};
+  labelStr = handles.data.labelnames{ceil(j/2)};
   if handles.guidata.GUIAdvancedMode && mod(j,2), 
     labelStr = ['Important ' labelStr];  %#ok
   end
@@ -4302,13 +4335,13 @@ end
 
 curshortcuts = allShortcuts;
 if ~handles.guidata.GUIAdvancedMode
-  curshortcuts(1:2:2*handles.guidata.data.nbehaviors)= sh(1:handles.guidata.data.nbehaviors);
-  curshortcuts(2*handles.guidata.data.nbehaviors+1)= sh(handles.guidata.data.nbehaviors+1);
+  curshortcuts(1:2:2*handles.data.nbehaviors)= sh(1:handles.data.nbehaviors);
+  curshortcuts(2*handles.data.nbehaviors+1)= sh(handles.data.nbehaviors+1);
 else
   curshortcuts = sh;
 end
 [uniquekeys,~,~] = unique(curshortcuts);
-nbeh = handles.guidata.data.nbehaviors;
+nbeh = handles.data.nbehaviors;
 if numel(uniquekeys)~= 2*nbeh+1
   overlap = [];
   for ndx = 1:2*nbeh+1
@@ -4324,8 +4357,8 @@ if numel(uniquekeys)~= 2*nbeh+1
 end
 
 if ~handles.guidata.GUIAdvancedMode
-  handles.guidata.label_shortcuts(1:2:2*handles.guidata.data.nbehaviors)= sh(1:handles.guidata.data.nbehaviors);
-  handles.guidata.label_shortcuts(2*handles.guidata.data.nbehaviors+1)= sh(handles.guidata.data.nbehaviors+1);
+  handles.guidata.label_shortcuts(1:2:2*handles.data.nbehaviors)= sh(1:handles.data.nbehaviors);
+  handles.guidata.label_shortcuts(2*handles.data.nbehaviors+1)= sh(handles.data.nbehaviors+1);
 else
   handles.guidata.label_shortcuts = sh;
 end
@@ -4405,9 +4438,11 @@ new_select_pos = [figpos(3) - select_pos(3) - handles.guidata.guipos.rightborder
 set(handles.panel_select,'Position',new_select_pos);
 
 % %dy_label_select = labelbuttons_pos(2) - select_pos(2) - select_pos(4);
+% if ~handles.guidata.GUIAdvancedMode || ...
+%     ( isnonempty(handles.data) && ...
+%       handles.data.IsGTMode() ) ,
 if ~handles.guidata.GUIAdvancedMode || ...
-    ( isnonempty(handles.guidata.data) && ...
-      handles.guidata.data.IsGTMode() ) ,
+    ( handles.data.thereIsAnOpenFile && handles.data.IsGTMode() ) ,
   set(handles.panel_similar,'Visible','off');
   new_info_pos = [figpos(3) - info_pos(3) - handles.guidata.guipos.rightborder_rightpanels,...
     new_select_pos(2) - info_pos(4) - dy_label_select,...
@@ -4768,10 +4803,10 @@ if strcmpi(s,handles.guidata.timeline_prop_remove_string),
 elseif strcmpi(s,handles.guidata.timeline_prop_help_string),
   % do nothing
 else
-  prop = find(strcmpi(s,handles.guidata.data.allperframefns),1);
+  prop = find(strcmpi(s,handles.data.allperframefns),1);
   handles.guidata.perframepropis(propi) = prop;
   handles.perframeprops{propi} = s;
-  [perframedata,T0,T1] = handles.guidata.data.GetPerFrameData(handles.guidata.expi,handles.guidata.flies,prop);
+  [perframedata,T0,T1] = handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,prop);
   set(handles.guidata.htimeline_data(propi),'XData',T0:T1,'YData',perframedata);
   ylim = [min(perframedata),max(perframedata)];
   if ylim(1) >= ylim(2)
@@ -4884,7 +4919,7 @@ function handles = AddPropAxes(handles,prop)
 
 % choose a property
 if nargin < 2,
-  prop = find(~ismember(1:numel(handles.guidata.data.allperframefns),handles.guidata.perframepropis),1);
+  prop = find(~ismember(1:numel(handles.data.allperframefns),handles.guidata.perframepropis),1);
   if isempty(prop),
     prop = 1;
   end
@@ -4913,7 +4948,7 @@ handles.guidata.axes_timelines = [hax,handles.guidata.axes_timelines];
 % set(hax,'ButtonDownFcn',fcn);
 setAxesZoomMotion(handles.guidata.hzoom,hax,'vertical');
 %hold(hax,'on');
-[perframedata,T0,T1] = handles.guidata.data.GetPerFrameData(handles.guidata.expi,handles.guidata.flies,prop);
+[perframedata,T0,T1] = handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,prop);
 maxylim = [min(perframedata),max(perframedata)];
 % hdata = plot(T0:T1,perframedata,'w.-');
 hdata = line('parent',gca, ...
@@ -4981,7 +5016,7 @@ handles.guidata.guipos.timeline_heights = [ax_pos(4) / Z1,handles.guidata.guipos
 handles.guidata.guipos.timeline_bottom_borders = handles.guidata.guipos.timeline_bottom_borders([1,2,2:numel(handles.guidata.guipos.timeline_bottom_borders)]);
 handles.guidata.guipos.timeline_left_borders = [pos(1),handles.guidata.guipos.timeline_left_borders];
 handles.guidata.guipos.timeline_label_middle_offsets = [handles.guidata.guipos.timeline_prop_label_middle_offset,handles.guidata.guipos.timeline_label_middle_offsets];
-% handles.perframepropfns = [handles.guidata.data.allperframefns(prop),handles.perframepropfns];
+% handles.perframepropfns = [handles.data.allperframefns(prop),handles.perframepropfns];
 handles.guidata.perframepropis = [prop,handles.guidata.perframepropis];
 
 % add the text box
@@ -5186,8 +5221,8 @@ if ~isnan(handles.guidata.selection_t0),
   pt = get(handles.guidata.buttondown_axes,'CurrentPoint');
   handles.guidata.selection_t1 = round(pt(1,1));
   ts = sort([handles.guidata.selection_t0,handles.guidata.selection_t1]);
-  ts(1) = min(max(ts(1),handles.guidata.t0_curr),handles.guidata.t1_curr);
-  ts(2) = min(max(ts(2),handles.guidata.t0_curr),handles.guidata.t1_curr);
+  ts(1) = min(max(ts(1),handles.data.t0_curr),handles.data.t1_curr);
+  ts(2) = min(max(ts(2),handles.data.t0_curr),handles.data.t1_curr);
   if ts(1) == ts(2); % outside the range.
     handles.guidata.selected_ts = nan(1,2);
   else
@@ -5302,14 +5337,14 @@ return
 % -------------------------------------------------------------------------
 function predictTimerCallback(obj,event,hObject,framesPerTick)
   handles = guidata(hObject);
-  if handles.guidata.data.IsGTMode(),
+  if handles.data.IsGTMode(),
     return;
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
-  t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.guidata.t0_curr);
-  t1 = min(t0+framesPerTick,handles.guidata.t1_curr);
-  handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,t0,t1);
+  t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.data.t0_curr);
+  t1 = min(t0+framesPerTick,handles.data.t1_curr);
+  handles.data.Predict(handles.data.expi,handles.data.flies,t0,t1);
   PLAY_TIMER_DONE = true;
 return
   
@@ -5327,7 +5362,7 @@ set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
 %SetButtonImage(handles.pushbutton_playstop);
 adjustButtonColorsIfMac(hObject);
 
-if ~handles.guidata.data.IsGTMode()
+if ~handles.data.IsGTMode()
   handles = predict(handles);
   guidata(hObject,handles);
 end
@@ -5337,7 +5372,7 @@ guidata(hObject,handles);
 ticker = tic;
 if nargin < 3,
   t0 = handles.guidata.ts(axi);
-  t1 = handles.guidata.t1_curr;%nframes;
+  t1 = handles.data.t1_curr;%nframes;
   doloop = false;
 end
 
@@ -5366,8 +5401,8 @@ while true,
   if exist('PLAY_TIMER_DONE','var') && PLAY_TIMER_DONE
     ticker = tic;
     PLAY_TIMER_DONE = false;
-    %predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
-    %predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
+    %predictStart = max(handles.data.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
+    %predictEnd = min(handles.data.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
     handles = SetPredictedPlot(handles);
     handles = UpdateTimelineImages(handles);
 
@@ -5424,8 +5459,8 @@ while true,
   if PLAY_TIMER_DONE
     ticker = tic;
     PLAY_TIMER_DONE = false;
-    predictStart = max(handles.guidata.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
-    predictEnd = min(handles.guidata.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
+    predictStart = max(handles.data.t0_curr,floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes));
+    predictEnd = min(handles.data.t1_curr,ceil(handles.guidata.ts(1)+handles.guidata.timeline_nframes/2));
     handles = SetPredictedPlot(handles);
     handles = UpdateTimelineImages(handles);
 
@@ -5532,7 +5567,7 @@ if nargin < 3,
   labeltype = 'manual';
 end
 
-if t < handles.guidata.t0_curr && t > handles.guidata.t1_curr,
+if t < handles.data.t0_curr && t > handles.data.t1_curr,
   t0 = nan;
   t1 = nan;
   labelidx = nan;
@@ -5541,10 +5576,10 @@ if t < handles.guidata.t0_curr && t > handles.guidata.t1_curr,
 end
 
 if strcmpi(labeltype,'manual'),
-  [labelidxStruct,T0,T1] = handles.guidata.data.GetLabelIdx(handles.guidata.expi,handles.guidata.flies);
+  [labelidxStruct,T0,T1] = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies);
   labelidx = labelidxStruct.vals;
 else
-  [prediction,T0,T1] = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies);
+  [prediction,T0,T1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies);
   labelidx = prediction.predictedidx;
 end
 i = t - T0 + 1;
@@ -5565,7 +5600,7 @@ if nargout >= 4,
   if labelidx == 0,
     label = 'Unknown';
   else
-    label = handles.guidata.data.labelnames{labelidx};
+    label = handles.data.labelnames{labelidx};
   end
   if ~strcmpi(labeltype,'manual'),
     label = ['Predicted ',label];
@@ -5584,7 +5619,7 @@ pt = get(handles.axes_timeline_manual,'CurrentPoint');
 t = pt(1,1);
 
 % inside a bout?
-if t >= handles.guidata.t0_curr && t <= handles.guidata.t1_curr,
+if t >= handles.data.t0_curr && t <= handles.data.t1_curr,
   [handles.bookmark_info.t0,handles.bookmark_info.t1,...
     handles.bookmark_info.labelidx,handles.bookmark_info.label] = ...
     GetBoutProperties(handles,round(t));
@@ -5619,8 +5654,8 @@ function contextmenu_timeline_manual_bookmark_bout_Callback(hObject, eventdata, 
 % handles    structure with handles and user data (see GUIDATA)
 
 clip = handles.bookmark_info;
-clip.t0 = max(handles.guidata.t0_curr,clip.t0-1);
-clip.t1 = min(clip.t1+1,handles.guidata.t1_curr);%nframes);
+clip.t0 = max(handles.data.t0_curr,clip.t0-1);
+clip.t1 = min(clip.t1+1,handles.data.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
 return
 
@@ -5631,10 +5666,10 @@ function contextmenu_timeline_manual_bookmark_selection_Callback(hObject, eventd
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-labelidxStruct = handles.guidata.data.GetLabelIdx(handles.guidata.expi,handles.guidata.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
+labelidxStruct = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
 labelidx = labelidxStruct.vals;
 handles.bookmark_info.labelidx = unique(labelidx);
-tmp = [{'Unknown'},handles.guidata.data.labelnames];
+tmp = [{'Unknown'},handles.data.labelnames];
 if numel(handles.bookmark_info.labelidx) == 1,
   handles.bookmark_info.label = tmp{handles.bookmark_info.labelidx+1};
 else
@@ -5657,29 +5692,29 @@ return
 function handles = AddBookmark(handles,clip)
 
 fprintf('TODO: Create bookmark for %d:%d\n',clip.t0,clip.t1);
-flystr = sprintf('%d, ',handles.guidata.flies);
+flystr = sprintf('%d, ',handles.data.flies);
 flystr = flystr(1:end-2);
 SetStatus(handles,sprintf('Saving AVI for experiment %s, %s %s, frames %d to %d...',...
-  handles.guidata.data.expnames{handles.guidata.expi},handles.guidata.data.targettype,flystr,clip.t0,clip.t1));
+  handles.data.expnames{handles.data.expi},handles.data.targettype,flystr,clip.t0,clip.t1));
 
 handles = make_jlabel_results_movie(handles,clip.t0,clip.t1);
 ClearStatus(handles);
 
 %{
-% clip.expi = handles.guidata.expi;
-% clip.flies = handles.guidata.flies;
+% clip.expi = handles.data.expi;
+% clip.flies = handles.data.flies;
 % clip.preview_zoom_mode = handles.guidata.preview_zoom_mode;
 % axesi = 1;
 % clip.xlim = get(handles.guidata.axes_previews(axesi),'XLim');
 % clip.ylim = get(handles.guidata.axes_previews(axesi),'YLim');
 % clip.zoom_fly_radius = handles.guidata.zoom_fly_radius;
-% for i = 1:numel(handles.guidata.flies),
-%   fly = handles.guidata.flies(i);
-%   t0 = min(max(clip.t0,handles.guidata.t0_curr),handles.guidata.t1_curr);
-%   t1 = min(max(clip.t1,handles.guidata.t0_curr),handles.guidata.t1_curr);
+% for i = 1:numel(handles.data.flies),
+%   fly = handles.data.flies(i);
+%   t0 = min(max(clip.t0,handles.data.t0_curr),handles.data.t1_curr);
+%   t1 = min(max(clip.t1,handles.data.t0_curr),handles.data.t1_curr);
 %   if t0 <= t1,
 %     [xcurr,ycurr,thetacurr,acurr,bcurr] = ...
-%       handles.guidata.data.GetTrxPos1(handles.guidata.expi,fly,t0:t1);
+%       handles.data.GetTrxPos1(handles.data.expi,fly,t0:t1);
 %   end
 %   clip.trx(i).x = [nan(1,t0-clip.t0),xcurr,nan(1,clip.t1-t1)];
 %   clip.trx(i).y = [nan(1,t0-clip.t0),ycurr,nan(1,clip.t1-t1)];
@@ -5688,7 +5723,7 @@ ClearStatus(handles);
 %   clip.trx(i).theta = [nan(1,t0-clip.t0),thetacurr,nan(1,clip.t1-t1)];
 % end
 %  
-% BookmarkedClips(handles.figure_JLabel,handles.guidata.data,'clips',clip);
+% BookmarkedClips(handles.figure_JLabel,handles.data,'clips',clip);
 %}
 return
 
@@ -5714,7 +5749,7 @@ function similarFramesButton_Callback(hObject, eventdata, handles)
 
 handles = predict(handles);
 curTime = handles.guidata.ts(1);
-handles.guidata.data.SimilarFrames(curTime, handles);
+handles.data.SimilarFrames(curTime, handles);
 return
 
 
@@ -5725,9 +5760,9 @@ function s = GetTargetInfo(handles,fly)
   i = 1;
   s{i} = sprintf('Target: %d',fly);
   i = i + 1;
-  if handles.guidata.data.hassex,
-    %t = max(handles.guidata.t0_curr,handles.guidata.ts(1));
-    sexfrac = handles.guidata.data.GetSexFrac(handles.guidata.expi,fly);
+  if handles.data.hassex,
+    %t = max(handles.data.t0_curr,handles.guidata.ts(1));
+    sexfrac = handles.data.GetSexFrac(handles.data.expi,fly);
     if sexfrac.M > sexfrac.F,
       sex = 'M';
     elseif sexfrac.M < sexfrac.F,
@@ -5735,18 +5770,18 @@ function s = GetTargetInfo(handles,fly)
     else
       sex = '?';
     end
-    if handles.guidata.data.hasperframesex,
+    if handles.data.hasperframesex,
       s{i} = sprintf('Sex: %s (%d%%M, %d%%F)',sex,round(sexfrac.M*100),round(sexfrac.F*100));
     else
       s{i} = sprintf('Sex: %s',sex);
     end
     i = i + 1;
   end
-  endframe = handles.guidata.data.endframes_per_exp{handles.guidata.expi}(fly);
-  firstframe = handles.guidata.data.firstframes_per_exp{handles.guidata.expi}(fly);
+  endframe = handles.data.endframes_per_exp{handles.data.expi}(fly);
+  firstframe = handles.data.firstframes_per_exp{handles.data.expi}(fly);
   s{i} = sprintf('Frames: %d-%d',firstframe,endframe);
   i = i + 1;
-  s{i} = sprintf(handles.guidata.data.expnames{handles.guidata.expi});
+  s{i} = sprintf(handles.data.expnames{handles.data.expi});
 return
 
 
@@ -5759,8 +5794,8 @@ function menu_go_next_automatic_bout_start_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = handles.guidata.NJObj.JumpToStart(handles.guidata.data,handles.guidata.expi,handles.guidata.flies,...
-  handles.guidata.ts(axesi),handles.guidata.t0_curr,handles.guidata.t1_curr);
+t = handles.guidata.NJObj.JumpToStart(handles.data,handles.data.expi,handles.data.flies,...
+  handles.guidata.ts(axesi),handles.data.t0_curr,handles.data.t1_curr);
 if isempty(t),  return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -5776,8 +5811,8 @@ function menu_go_previous_automatic_bout_end_Callback(hObject, eventdata, handle
 % TODO: make this work with multiple preview axes
 axesi = 1;
 
-t = handles.guidata.NJObj.JumpToEnd(handles.guidata.data,handles.guidata.expi,handles.guidata.flies,...
-  handles.guidata.ts(axesi),handles.guidata.t0_curr,handles.guidata.t1_curr);
+t = handles.guidata.NJObj.JumpToEnd(handles.data,handles.data.expi,handles.data.flies,...
+  handles.guidata.ts(axesi),handles.data.t0_curr,handles.data.t1_curr);
 if isempty(t); return; end
 
 SetCurrentFrame(handles,axesi,t,hObject);
@@ -5844,8 +5879,8 @@ function contextmenu_timeline_automatic_bookmark_bout_Callback(hObject, eventdat
 % handles    structure with handles and user data (see GUIDATA)
 
 clip = handles.bookmark_info;
-clip.t0 = max(handles.guidata.t0_curr,clip.t0-1);
-clip.t1 = min(clip.t1+1,handles.guidata.t1_curr);%nframes);
+clip.t0 = max(handles.data.t0_curr,clip.t0-1);
+clip.t1 = min(clip.t1+1,handles.data.t1_curr);%nframes);
 AddBookmark(handles,handles.bookmark_info);
 return
 
@@ -5856,10 +5891,10 @@ function contextmenu_timeline_automatic_bookmark_selection_Callback(hObject, eve
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-prediction = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
+prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.bookmark_info.t0,handles.bookmark_info.t1);
 labelidx = prediction.predictedidx;
 handles.bookmark_info.labelidx = unique(labelidx);
-tmp = [{'Unknown'},handles.guidata.data.labelnames];
+tmp = [{'Unknown'},handles.data.labelnames];
 if numel(handles.bookmark_info.labelidx) == 1,
   handles.bookmark_info.label = ['Predicted ',tmp{handles.bookmark_info.labelidx+1}];
 else
@@ -5898,7 +5933,7 @@ pt = get(handles.axes_timeline_auto,'CurrentPoint');
 t = pt(1,1);
 
 % inside a bout?
-if t >= handles.guidata.t0_curr && t <= handles.guidata.t1_curr,
+if t >= handles.data.t0_curr && t <= handles.data.t1_curr,
   [handles.bookmark_info.t0,handles.bookmark_info.t1,...
     handles.bookmark_info.labelidx,handles.bookmark_info.label] = ...
     GetBoutProperties(handles,round(t),'automatic');
@@ -5943,9 +5978,9 @@ function contextmenu_timeline_automatic_accept_selected_Callback(hObject, eventd
 t0 = handles.bookmark_info.t0;
 t1 = handles.bookmark_info.t1;
 
-t0 = min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t0));
-t1 = min(handles.guidata.t1_curr,max(handles.guidata.t0_curr,t1));
-prediction = handles.guidata.data.GetPredictedIdx(handles.guidata.expi,handles.guidata.flies,t0,t1);
+t0 = min(handles.data.t1_curr,max(handles.data.t0_curr,t0));
+t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
+prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,t0,t1);
 predictedidx = prediction.predictedidx;
 handles = SetLabelsPlot(handles,t0,t1,predictedidx);
 
@@ -6021,7 +6056,7 @@ set(handles.menu_view_automatic_labels, ...
     'Checked',onIff(handles.guidata.plot_labels_automatic));
 
 % If there's no current experiment, we're done  
-someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
   return
 end
@@ -6093,7 +6128,7 @@ function menu_view_show_bookmarked_clips_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-clipdir = handles.guidata.data.GetFile('clipsdir',handles.guidata.expi);
+clipdir = handles.data.GetFile('clipsdir',handles.data.expi);
 if ispc,
   winopen(clipdir);
 else
@@ -6117,7 +6152,7 @@ function menu_classifier_set_confidence_thresholds_Callback(hObject, eventdata, 
 % hObject    handle to menu_classifier_set_confidence_thresholds (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-ROCCurve(hObject,handles.guidata.data);
+ROCCurve(hObject,handles.data);
 return
 
 
@@ -6161,7 +6196,7 @@ function bagButton_Callback(hObject, eventdata, handles)
 % hObject    handle to bagButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.DoBagging();
+handles.data.DoBagging();
 set(handles.similarFramesButton,'Enable','on');
 return
 
@@ -6193,7 +6228,7 @@ oldPointer=pointerToWatch(hObject);
 SelectFeatures(handles.figure_JLabel);
 restorePointer(hObject,oldPointer);
 % uiwait(selHandle);
-% someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+% someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 % if ~someExperimentIsCurrent,
 %   return
 % end
@@ -6226,9 +6261,9 @@ function menu_classifier_cross_validate_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%handles.guidata.data.StoreLabelsAndPreLoadWindowData();
+%handles.data.StoreLabelsAndPreLoadWindowData();
 %  The above is done inside JLabelData.CrossValidate()
-[success,msg,crossError,tlabels] = handles.guidata.data.CrossValidate();
+[success,msg,crossError,tlabels] = handles.data.CrossValidate();
 
 if ~success, warndlg(msg); 
   return; 
@@ -6245,15 +6280,15 @@ guidata(hObject,handles);
 
 
 
-cnames = {sprintf('%s|Predicted',handles.guidata.data.labelnames{1}),...
+cnames = {sprintf('%s|Predicted',handles.data.labelnames{1}),...
           'Not|Predicted',...
-          sprintf('%s|Predicted',handles.guidata.data.labelnames{2}),...
+          sprintf('%s|Predicted',handles.data.labelnames{2}),...
           };
-rnames = {sprintf('%s Important ',handles.guidata.data.labelnames{1}),...
-          sprintf('%s Important ',handles.guidata.data.labelnames{2}),...
+rnames = {sprintf('%s Important ',handles.data.labelnames{1}),...
+          sprintf('%s Important ',handles.data.labelnames{2}),...
           '',...
-          sprintf('Old %s Important',handles.guidata.data.labelnames{1}),...
-          sprintf('Old %s Important',handles.guidata.data.labelnames{2}),...
+          sprintf('Old %s Important',handles.data.labelnames{1}),...
+          sprintf('Old %s Important',handles.data.labelnames{2}),...
           };
 
 dat = {};
@@ -6321,9 +6356,9 @@ function menu_classifier_classify_current_fly_Callback(hObject, eventdata, handl
 % hObject    handle to menu_classifier_classify_current_fly (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-t0 =handles.guidata.t0_curr;
-t1 = handles.guidata.t1_curr;
-handles.guidata.data.Predict(handles.guidata.expi,handles.guidata.flies,handles.guidata.t0_curr,handles.guidata.t1_curr);
+t0 =handles.data.t0_curr;
+t1 = handles.data.t1_curr;
+handles.data.Predict(handles.data.expi,handles.data.flies,handles.data.t0_curr,handles.data.t1_curr);
 handles = SetPredictedPlot(handles,t0,t1);
 
 handles = UpdateTimelineImages(handles);
@@ -6352,7 +6387,7 @@ function menu_file_import_scores_curr_exp_default_loc_Callback(hObject, eventdat
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.guidata.data.LoadScoresDefault(handles.guidata.data.expi);
+handles.data.LoadScoresDefault(handles.data.expi);
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Imported';
@@ -6376,11 +6411,11 @@ function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, 
 % hObject    handle to menu_file_import_scores_curr_exp_diff_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-tstring = sprintf('Scores file for %s',handles.guidata.data.expnames{handles.guidata.data.expi});
+tstring = sprintf('Scores file for %s',handles.data.expnames{handles.data.expi});
 [fname,pname,~] = uigetfile('*.mat',tstring);
 if ~fname; return; end;
 sfn = fullfile(pname,fname);
-handles.guidata.data.LoadScores(handles.guidata.data.expi,sfn);
+handles.data.LoadScores(handles.data.expi,sfn);
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Imported';
@@ -6407,15 +6442,15 @@ function menu_file_import_scores_curr_exp_diff_rootdir_Callback(hObject, eventda
 tstring = sprintf('Root dir to load scores for current experiment');
 fname = uigetdir('*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = handles.guidata.data.GetFile('scores',handles.guidata.expi);
+scoreFileName = handles.data.GetFile('scores',handles.data.expi);
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
-sfn = fullfile(fname,handles.guidata.data.expnames{handles.guidata.expi},[scoreFileName ext]);
+sfn = fullfile(fname,handles.data.expnames{handles.data.expi},[scoreFileName ext]);
 if ~exist(sfn,'file')
   warndlg(sprintf('Scores file %s does not exist for exp:%s',...
-    scoreFileName,handles.guidata.data.expnames{handles.guidata.expi}));
+    scoreFileName,handles.data.expnames{handles.data.expi}));
   return;
 end
-handles.guidata.data.LoadScores(handles.guidata.expi,sfn);
+handles.data.LoadScores(handles.data.expi,sfn);
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
 handles.guidata.bottomAutomatic = 'Imported';
@@ -6439,8 +6474,8 @@ function menu_file_import_scores_all_exp_default_loc_Callback(hObject, eventdata
 % hObject    handle to menu_file_import_scores_all_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.guidata.data.nexps,
-  handles.guidata.data.LoadScoresDefault(ndx);
+for ndx = 1:handles.data.nexps,
+  handles.data.LoadScoresDefault(ndx);
 end
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
@@ -6469,18 +6504,18 @@ function menu_file_import_scores_all_exp_diff_rootdir_Callback(hObject, eventdat
 tstring = sprintf('Root dir to load scores for all experiments');
 fname = uigetdir('*.mat',tstring);
 if ~fname; return; end;
-scoreFileName = handles.guidata.data.GetFile('scores',handles.guidata.expi);
+scoreFileName = handles.data.GetFile('scores',handles.data.expi);
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
 scoreFileName = [scoreFileName ext];
 
-for ndx = 1:handles.guidata.data.nexps,
-  sfn = fullfile(fname,handles.guidata.data.expnames{ndx},scoreFileName);
+for ndx = 1:handles.data.nexps,
+  sfn = fullfile(fname,handles.data.expnames{ndx},scoreFileName);
   if ~exist(sfn,'file')
     warndlg(sprintf('Scores file %s does not exist for exp:%s',...
-      scoreFileName,handles.guidata.data.expnames{ndx}));
+      scoreFileName,handles.data.expnames{ndx}));
     continue; 
   end
-  handles.guidata.data.LoadScores(ndx,sfn);
+  handles.data.LoadScores(ndx,sfn);
 end
 
 contents = cellstr(get(handles.automaticTimelineBottomRowPopup,'String'));
@@ -6506,7 +6541,7 @@ function menu_classifier_evaluate_on_new_labels_Callback(hObject, eventdata, han
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-newError = handles.guidata.data.TestOnNewLabels();
+newError = handles.data.TestOnNewLabels();
 handles = predict(handles);
 if ~isfield(newError,'numbers'), return; end;
 dialogStr = {};
@@ -6514,21 +6549,21 @@ if isfield(newError,'classifierfilename'),
   dialogStr{end+1} = sprintf('Classifier used to generate scores:%s',newError.classifierfilename);
 end
 dialogStr{end+1} = sprintf('%28s Predicted %10s    Predicted %10s \n',...
-  '',handles.guidata.data.labelnames{2},handles.guidata.data.labelnames{1});
+  '',handles.data.labelnames{2},handles.data.labelnames{1});
 dialogStr{end+1} = sprintf('Labeled Important %12s      %d(%.2f)          %d(%.2f)\n',...
-  handles.guidata.data.labelnames{1},...
+  handles.data.labelnames{1},...
   newError.numbers(1,1),newError.frac(1,1),...
   newError.numbers(1,3),newError.frac(1,3));
 dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
-  handles.guidata.data.labelnames{1},...
+  handles.data.labelnames{1},...
   newError.numbers(2,1),newError.frac(2,1),...
   newError.numbers(2,3),newError.frac(2,3));
 dialogStr{end+1} = sprintf('Labeled Important  %12s      %d(%.2f)          %d(%.2f)\n',...
-  handles.guidata.data.labelnames{2},...
+  handles.data.labelnames{2},...
   newError.numbers(3,1),newError.frac(3,1),...
   newError.numbers(3,3),newError.frac(3,3));
 dialogStr{end+1} = sprintf('Labeled            %12s      %d(%.2f)          %d(%.2f)\n',...
-  handles.guidata.data.labelnames{2},...
+  handles.data.labelnames{2},...
   newError.numbers(4,1),newError.frac(4,1),...
   newError.numbers(4,3),newError.frac(4,3));
 
@@ -6541,13 +6576,13 @@ return
 % % hObject    handle to menu_file_load_exps (see GCBO)
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
-% filename = handles.guidata.data.classifierfilename;
+% filename = handles.data.classifierfilename;
 % [filename,pathname] = uigetfile('*.mat','Load classifier',filename);
 % if ~ischar(filename),
 %   return;
 % end
 % classifiername = fullfile(pathname,filename);
-% handles.guidata.data.SetClassifierFileName(classifiername);
+% handles.data.SetClassifierFileName(classifiername);
 
 
 % % --------------------------------------------------------------------
@@ -6556,13 +6591,13 @@ return
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
 % 
-% filename = handles.guidata.data.classifierfilename;
+% filename = handles.data.classifierfilename;
 % [filename,pathname] = uigetfile('*.mat','Load classifier',filename);
 % if ~ischar(filename),
 %   return;
 % end
 % classifiername = fullfile(pathname,filename);
-% handles.guidata.data.SetClassifierFileNameWoExp(classifiername);
+% handles.data.SetClassifierFileNameWoExp(classifiername);
 
 
 % --------------------------------------------------------------------
@@ -6570,7 +6605,7 @@ function menu_classifier_training_parameters_Callback(hObject, eventdata, handle
 % hObject    handle to menu_classifier_training_parameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-cohandles = ClassifierOptions(handles.guidata.data);
+cohandles = ClassifierOptions(handles.data);
 handles.guidata.open_peripherals(end+1) = cohandles;
 return
 
@@ -6596,10 +6631,10 @@ SetStatus(handles,'Creating classifier visualization');
 
 [hweight,hscore,hax,hfig,hylabel,hticks,hcolorbar,...
   sorted_weights,feature_order,bins,scores] = ...
-  ShowWindowFeatureWeights(handles.guidata.data,'figpos',...
+  ShowWindowFeatureWeights(handles.data,'figpos',...
   [10,10,1000,1000],'nfeatures_show',50); %#ok<ASGLU>
 
-ti = sprintf('Classifier %s',datestr(handles.guidata.data.classifierTS));
+ti = sprintf('Classifier %s',datestr(handles.data.classifierTS));
 set(hfig,'Name',ti);
 
 handles.visualizeclassifier = ...
@@ -6672,18 +6707,20 @@ function handles = UpdateGUIToMatchGroundTruthingMode(handles)
 % (normal or ground-truthing)
 
 % get the mode
-if isempty(handles.guidata.data) ,
+%if isempty(handles.data) ,
+if ~handles.data.thereIsAnOpenFile ,
   mode=[];
 else
-  mode=handles.guidata.data.gtMode;
+  mode=handles.data.gtMode;
 end
 
 % Make all the mode checkmarks self-consistent
 updateCheckMarksInMenus(handles);
 
 % If no experiments, just return
-if isempty(handles.guidata.data) || handles.guidata.data.nexps < 1,
-  return;
+%if isempty(handles.data) || handles.data.nexps < 1,
+if ~handles.data.thereIsAnOpenFile || handles.data.nexps < 1 , 
+  return
 end
 
 % specify graphics object visible in only one mode or another
@@ -6814,13 +6851,13 @@ if isnan(perfly) || (round(perfly)-perfly)~=0 || ...
   return;
 end
 
-if any( handles.guidata.data.nflies_per_exp<perexp)
+if any( handles.data.nflies_per_exp<perexp)
   warndlg('Some experiments have less than %d flies\n',perexp);
   return;
 end
 
-%handles.guidata.data.SuggestRandomGT(perfly,perexp);
-handles.guidata.data.setGTSuggestionMode('Random',perfly,perexp);
+%handles.data.SuggestRandomGT(perfly,perexp);
+handles.data.setGTSuggestionMode('Random',perfly,perexp);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
@@ -6856,8 +6893,8 @@ if isnan(threshold) || abs(threshold-0.5)>0.5
   return;
 end
 
-%handles.guidata.data.SuggestThresholdGT(threshold);
-handles.guidata.data.setGTSuggestionMode('Threshold',threshold);
+%handles.data.SuggestThresholdGT(threshold);
+handles.data.setGTSuggestionMode('Threshold',threshold);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','on');
@@ -6908,7 +6945,7 @@ function menu_view_suggest_gt_intervals_balanced_random_Callback(hObject, eventd
 % handles    structure with handles and user data (see GUIDATA)
 
 try
-  avgBoutLen = handles.guidata.data.GetAverageLoadedPredictionBoutLength();
+  avgBoutLen = handles.data.GetAverageLoadedPredictionBoutLength();
 catch excp
   if isequal(excp.identifier,'JLabelData:noLoadedScores')
     uiwait(warndlg('No scores have been Imported. You have to import the scores before you can view balanced GT suggestions.'));
@@ -6929,8 +6966,8 @@ if isnan(intsize) || (round(intsize)-intsize)~=0 || ...
   return;
 end
 
-%[success,msg ] = handles.guidata.data.SuggestBalancedGT(intsize,numint);
-[success,msg] = handles.guidata.data.setGTSuggestionMode('Balanced',intsize,numint);
+%[success,msg ] = handles.data.SuggestBalancedGT(intsize,numint);
+[success,msg] = handles.data.setGTSuggestionMode('Balanced',intsize,numint);
 if ~success, warndlg(msg); return; end
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
@@ -6956,13 +6993,13 @@ function menu_view_suggest_gt_intervals_load_Callback(hObject, eventdata, handle
 % handles    structure with handles and user data (see GUIDATA)
 
 [filename,pathname] = uigetfile('*.txt',...
-  sprintf('Choose ground truth suggestion file config file for experiment %s',handles.guidata.data.expnames{handles.guidata.expi}) ,...
-  handles.guidata.data.expdirs{handles.guidata.expi});
+  sprintf('Choose ground truth suggestion file config file for experiment %s',handles.data.expnames{handles.data.expi}) ,...
+  handles.data.expdirs{handles.data.expi});
 if ~filename, return, end;
 
-%handles.guidata.data.SuggestLoadedGT(handles.guidata.expi,fullfile(pathname,filename));
-handles.guidata.data.setGTSuggestionMode('Imported', ...
-                                         handles.guidata.expi, ...
+%handles.data.SuggestLoadedGT(handles.data.expi,fullfile(pathname,filename));
+handles.data.setGTSuggestionMode('Imported', ...
+                                         handles.data.expi, ...
                                          fullfile(pathname,filename));
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
@@ -6988,15 +7025,15 @@ function menu_classifier_compute_gt_performance_Callback(hObject, eventdata, han
 % hObject    handle to menu_classifier_compute_gt_performance (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-crossError = handles.guidata.data.GetGTPerformance();
-cnames = {sprintf('%s|Predicted',handles.guidata.data.labelnames{1}),...
+crossError = handles.data.GetGTPerformance();
+cnames = {sprintf('%s|Predicted',handles.data.labelnames{1}),...
           'Not|Predicted',...
-          sprintf('%s|Predicted',handles.guidata.data.labelnames{2}),...
+          sprintf('%s|Predicted',handles.data.labelnames{2}),...
           };
-rnames = {sprintf('%s Important ',handles.guidata.data.labelnames{1}),...
-          sprintf('%s ',handles.guidata.data.labelnames{1}),...
-          sprintf('%s Important ',handles.guidata.data.labelnames{2}),...
-          sprintf('%s ',handles.guidata.data.labelnames{2}),...
+rnames = {sprintf('%s Important ',handles.data.labelnames{1}),...
+          sprintf('%s ',handles.data.labelnames{1}),...
+          sprintf('%s Important ',handles.data.labelnames{2}),...
+          sprintf('%s ',handles.data.labelnames{2}),...
           };
 
 dat = {};
@@ -7039,7 +7076,7 @@ function menu_file_export_labels_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-exportEverythingFile(findAncestorFigure(hObject),'Labels');
+%exportEverythingFile(findAncestorFigure(hObject),'Labels');
 
 return
 
@@ -7068,13 +7105,13 @@ function menu_file_export_ground_truthing_suggestions_Callback(hObject, eventdat
 % hObject    handle to menu_file_export_ground_truthing_suggestions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-expi = handles.guidata.expi;
-expdir = handles.guidata.data.expdirs{expi};
+expi = handles.data.expi;
+expdir = handles.data.expdirs{expi};
 outfile = fullfile(expdir,'GTSuggestions.txt');
 [fname,pname] = uiputfile('*.txt','Save Ground Truth Suggestions',outfile);
 if isempty(fname), return; end;
 outfile = fullfile(pname,fname);
-handles.guidata.data.SaveSuggestionGT(expi,outfile);
+handles.data.SaveSuggestionGT(expi,outfile);
 return
 
 
@@ -7083,15 +7120,17 @@ function menu_edit_memory_usage_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_edit_memory_usage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-curval = sprintf('%d',handles.guidata.data.cacheSize);
+% curval = sprintf('%d',handles.data.cacheSize);
+curval = sprintf('%d',handles.data.cacheSize);
 v = inputdlg('Memory usage (MB)','Cache Size',1,{curval});
 sz = str2double(v{1});
 if isnan(sz) || sz<0;
   return;
 end
 
-handles.guidata.cacheSize = round(sz);
-handles.guidata.data.cacheSize = round(sz);
+% handles.guidata.cacheSize = round(sz);
+% handles.data.cacheSize = round(sz);
+handles.data.cacheSize = round(sz);
 return
 
 
@@ -7101,7 +7140,7 @@ function menu_classifier_post_processing_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-posthandle = PostProcess(handles.guidata.data,handles);
+posthandle = PostProcess(handles.data,handles);
 handles.guidata.open_peripherals(end+1) = posthandle;
 return
 
@@ -7111,7 +7150,12 @@ function menu_classifier_classifyCurrentMovieSave_Callback(hObject, eventdata, h
 % hObject    handle to menu_classifier_classifyCurrentMovieSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.PredictSaveMovie(handles.guidata.expi);
+try
+  handles.data.PredictSaveMovie(handles.data.expi);
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
+
 return
 
 
@@ -7120,13 +7164,17 @@ function menu_classifier_classifyCurrentMovieSaveNew_Callback(hObject, eventdata
 % hObject    handle to menu_classifier_classifyCurrentMovieSaveNew (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-expi = handles.guidata.expi;
-fspec = fullfile(handles.guidata.data.expdirs{expi},'*.mat'); 
+expi = handles.data.expi;
+fspec = fullfile(handles.data.expdirs{expi},'*.mat'); 
 [fname,pname] = uiputfile(fspec);
 if fname==0,
   return;
 end
-handles.guidata.PredictSaveMovie(handles.guidata.expi,fullfile(pname,fname));
+try
+  handles.data.PredictSaveMovie(handles.data.expi,fullfile(pname,fname));
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -7144,7 +7192,7 @@ function menu_classifier_classifyCurrentMovieNoSave_Callback(hObject, eventdata,
 % hObject    handle to menu_classifier_classifyCurrentMovieNoSave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.PredictWholeMovieNoSave(handles.guidata.expi);
+handles.data.PredictWholeMovieNoSave(handles.data.expi);
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
@@ -7170,7 +7218,11 @@ function menu_file_export_scores_curr_exp_default_loc_Callback(hObject, eventdat
 % hObject    handle to menu_file_export_scores_curr_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.SaveCurScores(handles.guidata.expi);
+try
+  handles.data.SaveCurScores(handles.data.expi);
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7179,13 +7231,17 @@ function menu_file_export_scores_curr_exp_diff_loc_Callback(hObject, eventdata, 
 % hObject    handle to menu_file_export_scores_curr_exp_diff_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-expi = handles.guidata.expi;
-fspec = fullfile(handles.guidata.data.expdirs{expi},'*.mat'); 
+expi = handles.data.expi;
+fspec = fullfile(handles.data.expdirs{expi},'*.mat'); 
 [fname,pname] = uiputfile(fspec);
 if fname==0,
   return;
 end
-handles.guidata.SaveCurScores(handles.guidata.expi,fullfile(pname,fname));
+try
+  handles.data.SaveCurScores(handles.data.expi,fullfile(pname,fname));
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7194,9 +7250,13 @@ function menu_file_export_scores_all_exp_default_loc_Callback(hObject, eventdata
 % hObject    handle to menu_file_export_scores_all_exp_default_loc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.guidata.data.nexps
-  handles.guidata.SaveCurScores(ndx);
-end
+try
+  for ndx = 1:handles.data.nexps
+    handles.data.SaveCurScores(ndx);
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7209,9 +7269,13 @@ fname = inputdlg('Save the scores in the experiment directory to file.. ' );
 if isempty(fname),
   return;
 end
-for ndx = 1:handles.guidata.data.nexps
-  handles.guidata.SaveCurScores(ndx,fullfile(handles.guidata.data.expdirs{ndx},fname));
-end
+try
+  for ndx = 1:handles.data.nexps
+    handles.data.SaveCurScores(ndx,fullfile(handles.data.expdirs{ndx},fname));
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7220,9 +7284,13 @@ function menu_classifier_classifyall_default_Callback(hObject, eventdata, handle
 % hObject    handle to menu_classifier_classifyall_default (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.guidata.data.nexps,
-  handles.guidata.PredictSaveMovie(ndx);
-end
+try
+  for ndx = 1:handles.data.nexps,
+    handles.data.PredictSaveMovie(ndx);
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7240,11 +7308,15 @@ else
     return
   end
 end
-for ndx = 1:handles.guidata.data.nexps
-  thisExpDirName=handles.guidata.data.expdirs{ndx};
-  thisScoreFileName=fullfile(thisExpDirName,fileName);
-  handles.guidata.PredictSaveMovie(ndx,thisScoreFileName);
-end
+try
+  for ndx = 1:handles.data.nexps
+    thisExpDirName=handles.data.expdirs{ndx};
+    thisScoreFileName=fullfile(thisExpDirName,fileName);
+    handles.data.PredictSaveMovie(ndx,thisScoreFileName);
+  end
+catch excp
+  uiwait(errordlg(excp.message,'Error Saving Scores','modal'));
+end  % try/catch
 return
 
 
@@ -7253,8 +7325,8 @@ function menu_classifier_classifyall_nosave_Callback(hObject, eventdata, handles
 % hObject    handle to menu_classifier_classifyall_nosave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-for ndx = 1:handles.guidata.data.nexps
-handles.guidata.data.PredictWholeMovieNoSave(ndx);
+for ndx = 1:handles.data.nexps
+handles.data.PredictWholeMovieNoSave(ndx);
 end
 return
 
@@ -7264,7 +7336,7 @@ function menu_file_save_project_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_file_save_project (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.guidata.data.SaveProject();
+handles.data.SaveProject();
 set(handles.menu_file_save_project,'Enable','off');
 return
 
@@ -7287,7 +7359,7 @@ vv = textscan(vid,'%s');
 fclose(vid);
 helpdlg(sprintf('JAABA (Janelia Automated Animal Behavior Annotator) version:%s',vv{1}{1}));
 return
-
+ 
 
 % --------------------------------------------------------------------
 function menu_help_documentation_Callback(hObject, eventdata, handles)
@@ -7310,119 +7382,119 @@ end
 return
 
 
-% -------------------------------------------------------------------------
-function menu_file_open_old_school_files_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_open_old_school_files (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% % -------------------------------------------------------------------------
+% function menu_file_open_old_school_files_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_open_old_school_files (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % This is part of the "grand unified project" project
+% 
+% % This creates a menu_file_open_old_school_files project from scratch.
+% 
+% % Create the modal window that allows specification of the project, etc.
+% %[handles,success] = ...
+% %  JLabelEditFiles('JLabelHandle',handles,...
+% %                  'JLabelSplashHandle',handles.guidata.hsplash);
+% JLabelEditFiles('figureJLabel',handles.figure_JLabel);
+% 
+% % % If user hits 'Cancel' just return                
+% % if ~success,
+% %   guidata(hObject,handles);
+% %   return;
+% % end
+% % 
+% % % Switch to the watch, this could take a while
+% % set(handles.figure_JLabel,'pointer','watch');
+% % 
+% % % I don't know what this does --ALT, Jan 8 2013
+% % handles.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
+% % handles.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+% % 
+% % % read configuration
+% % [handles,success] = LoadConfig(handles);
+% % if ~success,
+% %   guidata(hObject,handles);
+% %   %delete(hObject);
+% %   return;
+% % end
+% % 
+% % handles = InitSelectionCallbacks(handles);
+% % 
+% % if (handles.data.nexps > 0 && handles.data.expi == 0) ,
+% %   handles = SetCurrentMovie(handles,1);
+% % else
+% %   handles = SetCurrentMovie(handles,handles.data.expi);
+% % end
+% % 
+% % handles = UpdateGUIGroundTruthingMode(handles);
+% % 
+% % % keypress callback for all non-edit text objects
+% % RecursiveSetKeyPressFcn(handles.figure_JLabel);
+% % 
+% % % enable gui
+% % EnableGUI(handles);
+% % 
+% % % OK, almost done
+% % set(handles.figure_JLabel,'pointer','arrow');
+% % 
+% % % Update handles structure
+% % guidata(hObject, handles);
+% 
+% return
 
-% This is part of the "grand unified project" project
 
-% This creates a menu_file_open_old_school_files project from scratch.
-
-% Create the modal window that allows specification of the project, etc.
-%[handles,success] = ...
-%  JLabelEditFiles('JLabelHandle',handles,...
-%                  'JLabelSplashHandle',handles.guidata.hsplash);
-JLabelEditFiles('figureJLabel',handles.figure_JLabel);
-
-% % If user hits 'Cancel' just return                
-% if ~success,
-%   guidata(hObject,handles);
-%   return;
-% end
+% % -------------------------------------------------------------------------
+% function importDone(figureJLabel)
+% 
+% % get the handles
+% handles=guidata(figureJLabel);
 % 
 % % Switch to the watch, this could take a while
-% set(handles.figure_JLabel,'pointer','watch');
+% set(figureJLabel,'pointer','watch');
 % 
 % % I don't know what this does --ALT, Jan 8 2013
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,handles.figure_JLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(handles.figure_JLabel));
+% handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 % 
-% % read configuration
-% [handles,success] = LoadConfig(handles);
-% if ~success,
-%   guidata(hObject,handles);
-%   %delete(hObject);
-%   return;
-% end
+% % % read project configuration
+% % [handles,success] = LoadConfig(handles);
+% % if ~success,
+% %   guidata(hObject,handles);
+% %   %delete(hObject);
+% %   return;
+% % end
 % 
 % handles = InitSelectionCallbacks(handles);
 % 
-% if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
+% handles = UnsetCurrentMovie(handles);
+% if (handles.data.nexps > 0 && handles.data.expi == 0) ,
 %   handles = SetCurrentMovie(handles,1);
 % else
-%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+%   handles = SetCurrentMovie(handles,handles.data.expi);
 % end
 % 
-% handles = UpdateGUIGroundTruthingMode(handles);
+% handles = UpdateGUIToMatchGroundTruthingMode(handles);
 % 
-% % keypress callback for all non-edit text objects
-% RecursiveSetKeyPressFcn(handles.figure_JLabel);
+% % % keypress callback for all non-edit text objects
+% % RecursiveSetKeyPressFcn(figureJLabel);
 % 
-% % enable gui
-% EnableGUI(handles);
+% % save needed, since this is an import
+% handles.data.thereIsAnOpenFile=true;
+% handles.data.everythingFileNameAbs=fullfile(pwd(),'untitled.jab');
+% handles.data.userHasSpecifiedEverythingFileName=false;
+% handles.data.needsave=true;
+% 
+% % Update certain aspect of the GUI to match the current "model" state
+% UpdateEnablementAndVisibilityOfControls(handles);
 % 
 % % OK, almost done
-% set(handles.figure_JLabel,'pointer','arrow');
+% set(figureJLabel,'pointer','arrow');
 % 
 % % Update handles structure
-% guidata(hObject, handles);
-
-return
-
-
-% -------------------------------------------------------------------------
-function importDone(figureJLabel)
-
-% get the handles
-handles=guidata(figureJLabel);
-
-% Switch to the watch, this could take a while
-set(figureJLabel,'pointer','watch');
-
-% I don't know what this does --ALT, Jan 8 2013
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% % read project configuration
-% [handles,success] = LoadConfig(handles);
-% if ~success,
-%   guidata(hObject,handles);
-%   %delete(hObject);
-%   return;
-% end
-
-handles = InitSelectionCallbacks(handles);
-
-handles = UnsetCurrentMovie(handles);
-if (handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0) ,
-  handles = SetCurrentMovie(handles,1);
-else
-  handles = SetCurrentMovie(handles,handles.guidata.data.expi);
-end
-
-handles = UpdateGUIToMatchGroundTruthingMode(handles);
-
-% % keypress callback for all non-edit text objects
-% RecursiveSetKeyPressFcn(figureJLabel);
-
-% save needed, since this is an import
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fullfile(pwd(),'untitled.jab');
-handles.guidata.userHasSpecifiedEverythingFileName=false;
-handles.guidata.needsave=true;
-
-% Update certain aspect of the GUI to match the current "model" state
-UpdateEnablementAndVisibilityOfControls(handles);
-
-% OK, almost done
-set(figureJLabel,'pointer','arrow');
-
-% Update handles structure
-guidata(figureJLabel, handles);
-
-return
+% guidata(figureJLabel, handles);
+% 
+% return
 
 
 %--------------------------------------------------------------------------
@@ -7432,31 +7504,28 @@ function modifyFilesDone(figureJLabel,listChanged)
 handles=guidata(figureJLabel);
 
 % direct SetStatus() and ClearStatus() back to JLabel figure
-handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
-% Update our copy of the default path
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% % Update our copy of the default path
+% handles.guidata.defaultpath = handles.data.defaultpath;
 
-% save needed if list has changed
-if listChanged,
-  handles.guidata.needsave=true;
-end
+% % save needed if list has changed
+% if listChanged,
+%   handles.guidata.needsave=true;
+% end
 
 % Make sure the current experiment stays the same, if possible.
+% All this should really happen within JLabelData... --ALT, Apr 30, 2013
 oldexpdir=handles.guidata.oldexpdir;
-if ~isempty(oldexpdir) && ismember(oldexpdir,handles.guidata.data.expdirs),
-  % if the old experiment dir exists and is still in the experiment list
-  j = find(strcmp(oldexpdir,handles.guidata.data.expdirs),1);
-  handles.guidata.expi = j;
-else
-  % either there were no experiments before, or the old experiment is now
-  % among the current experiment list
+if isempty(oldexpdir) || ~ismember(oldexpdir,handles.data.expdirs),
+  % either there were no experiments before, or the old experiment is no
+  % longer among the current experiment list
   handles = UnsetCurrentMovie(handles);
-  if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+  if handles.data.nexps > 0 && handles.data.expi == 0,
     handles = SetCurrentMovie(handles,1);
   else
-    handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+    handles = SetCurrentMovie(handles,handles.data.expi);
   end
 end
 
@@ -7518,56 +7587,39 @@ end
 % Do eveything else.
 saved=false;  % default return
 handles=guidata(figureJLabel);
-%data=handles.guidata.data;  % reference
-if saveAs || ~handles.guidata.userHasSpecifiedEverythingFileName
+%data=handles.data;  % reference
+if saveAs || ~handles.data.userHasSpecifiedEverythingFileName
   windowTitle=fif(saveAs, ...
                   'Save As...', ...
                   'Save...');
   [filename,pathname] = ...
     uiputfile({'*.jab','JAABA files (*.jab)'}, ...
               windowTitle, ...
-              handles.guidata.everythingFileNameAbs);
+              handles.data.everythingFileNameAbs);
   if ~ischar(filename),
     % user hit cancel
     return;
   end
   fileNameAbs=fullfile(pathname,filename);
-  handles.guidata.everythingFileNameAbs=fileNameAbs;
-  handles.guidata.userHasSpecifiedEverythingFileName=true;
 else
-  fileNameAbs=handles.guidata.everythingFileNameAbs;
+  fileNameAbs=handles.data.everythingFileNameAbs;
 end
 fileNameRel=fileNameRelFromAbs(fileNameAbs);
-handles=guidata(figureJLabel);
-SetStatus(handles,sprintf('Saving to %s...',handles.guidata.everythingFileNameAbs));
-% Extract the structure that will be saved in the everything file
-macguffin=handles.guidata.getMacguffin();
-% write the everything structure to disk
+% save the file
 try
-  if exist(fileNameAbs,'file')
-    backupFileNameAbs=[fileNameAbs,'~'];
-    [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
-    if ~success,
-      error('JLabel:unableToCreateBackup','Unable to create backup file.');
-    end
-  end
-  saveAnonymous(fileNameAbs,macguffin);
+  handles.data.saveJabFile(fileNameAbs);
 catch excp
-  if isequal(excp.identifier,'JLabel:unableToCreateBackup')
-    backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
-    uiwait(errordlg(sprintf('Unable to create backup file %s.  Save aborted.', ...
-                            backupFileNameRel), ...
+  if isequal(excp.identifier,'JLabelData:unableToCreateBackup')
+    uiwait(errordlg(excp.message, ...
                     'Unable to Create Backup'));
   else
     uiwait(errordlg(sprintf('Unable to save %s.', ...
                             fileNameRel), ...
                     'Unable to Save'));
   end
-  ClearStatus(handles);
   return
 end
 saved=true;
-handles.guidata.needsave=false;
 %handles.guidata.status_bar_text_when_clear=fileNameRel;
 syncStatusBarTextWhenClear(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
@@ -7577,58 +7629,58 @@ guidata(figureJLabel,handles);
 return
 
 
-% -------------------------------------------------------------------------
-function saved=exportEverythingFile(figureJLabel,whatToExport)
-
-% Figure out the filterSpec from whatToExport
-if strcmp(whatToExport,'Classifier')
-  filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
-  fileExtension='.jcf';
-elseif strcmp(whatToExport,'Labels')
-  filterSpec={'*.jlb','JAABA Label Files (*.jlb)'};
-  fileExtension='.jlb';
-end
-
-% Figure out the suggested file name
-handles=guidata(figureJLabel);
-everythingFileNameAbs=handles.guidata.everythingFileNameAbs;
-[dirName,fileBaseName]=fileparts(everythingFileNameAbs);
-suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
-
-% Do eveything else.
-saved=false;  % default return
-%data=handles.guidata.data;  % reference
-windowTitle=sprintf('Export %s...',whatToExport);
-[filename,pathname] = ...
-  uiputfile(filterSpec, ...
-            windowTitle, ...
-            suggestedFileNameAbs);
-if ~ischar(filename),
-  % user hit cancel
-  return;
-end
-fileNameAbs=fullfile(pathname,filename);
-fileNameRel=fileNameRelFromAbs(fileNameAbs);
-handles=guidata(figureJLabel);
-SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
-% Extract the structure that will be saved in the everything file
-s=handles.guidata.getMacguffin();  %#ok
-% write the everything structure to disk
-try
-  save('-mat',fileNameAbs,'-struct','s');
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to save %s.', ...
-                          fileNameRel), ...
-                  'Unable to Save'));
-  ClearStatus(handles);
-  return;
-end
-saved=true;
-UpdateEnablementAndVisibilityOfControls(handles);
-ClearStatus(handles);
-guidata(figureJLabel,handles);
-
-return
+% % -------------------------------------------------------------------------
+% function saved=exportEverythingFile(figureJLabel,whatToExport)
+% 
+% % Figure out the filterSpec from whatToExport
+% if strcmp(whatToExport,'Classifier')
+%   filterSpec={'*.jcf','JAABA Classifier Files (*.jcf)'};
+%   fileExtension='.jcf';
+% elseif strcmp(whatToExport,'Labels')
+%   filterSpec={'*.jlb','JAABA Label Files (*.jlb)'};
+%   fileExtension='.jlb';
+% end
+% 
+% % Figure out the suggested file name
+% handles=guidata(figureJLabel);
+% everythingFileNameAbs=handles.data.everythingFileNameAbs;
+% [dirName,fileBaseName]=fileparts(everythingFileNameAbs);
+% suggestedFileNameAbs=fullfile(dirName,[fileBaseName fileExtension]);
+% 
+% % Do eveything else.
+% saved=false;  % default return
+% %data=handles.data;  % reference
+% windowTitle=sprintf('Export %s...',whatToExport);
+% [filename,pathname] = ...
+%   uiputfile(filterSpec, ...
+%             windowTitle, ...
+%             suggestedFileNameAbs);
+% if ~ischar(filename),
+%   % user hit cancel
+%   return;
+% end
+% fileNameAbs=fullfile(pathname,filename);
+% fileNameRel=fileNameRelFromAbs(fileNameAbs);
+% handles=guidata(figureJLabel);
+% SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
+% % Extract the structure that will be saved in the everything file
+% s=handles.guidata.getMacguffin();  %#ok
+% % write the everything structure to disk
+% try
+%   save('-mat',fileNameAbs,'-struct','s');
+% catch  %#ok
+%   uiwait(errordlg(sprintf('Unable to save %s.', ...
+%                           fileNameRel), ...
+%                   'Unable to Save'));
+%   ClearStatus(handles);
+%   return;
+% end
+% saved=true;
+% UpdateEnablementAndVisibilityOfControls(handles);
+% ClearStatus(handles);
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 % % -------------------------------------------------------------------------
@@ -7646,7 +7698,7 @@ return
 % 
 % % Do eveything else.
 % saved=false;  % default return
-% %data=handles.guidata.data;  % reference
+% %data=handles.data;  % reference
 % windowTitle=sprintf('Export Classifier...');
 % [filename,pathname] = ...
 %   uiputfile(filterSpec, ...
@@ -7661,7 +7713,7 @@ return
 % handles=guidata(figureJLabel);
 % SetStatus(handles,sprintf('Exporting to %s...',fileNameAbs));
 % % Extract the structure that will be saved in the file
-% classifier=handles.guidata.data.getClassifier();  %#ok
+% classifier=handles.data.getClassifier();  %#ok
 % % write the classifier structure to disk
 % try
 %   save('-mat',fileNameAbs,'-struct','classifier');
@@ -7733,25 +7785,26 @@ fileNameRel=[baseName ext];
 % Update the status, change the pointer to the watch
 SetStatus(handles,sprintf('Opening %s...',fileNameRel));
 
-% load the file
-try
-  everythingParams=loadAnonymous(fileNameAbs);
-catch  %#ok
-  uiwait(errordlg(sprintf('Unable to load %s.',fileNameRel),'Error'));
-  ClearStatus(handles);
-  return;
-end
-
 % Don't want to see "No experiment loaded" when status is cleared!
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
-% Create the JLabelData object
-handles.guidata.initializeGivenMacguffin(everythingParams, ...
-                                         figureJLabel, ...
-                                         groundTruthingMode, ...
-                                         @(s)SetStatusCallback(s,figureJLabel) , ...
-                                         @()ClearStatusCallback(figureJLabel) );
+% load the file
+try
+  handles.data.openJabFile(fileNameAbs,groundTruthingMode);
+catch excp
+  ClearStatus(handles);
+  uiwait(errordlg(excp.message),'Error','modal');
+  % uiwait(errordlg(sprintf('Unable to open %s.',fileNameRel),'Error'));
+  return
+end
+
+% % Create the JLabelData object
+% handles.guidata.initializeGivenMacguffin(everythingParams, ...
+%                                          figureJLabel, ...
+%                                          groundTruthingMode, ...
+%                                          @(s)SetStatusCallback(s,figureJLabel) , ...
+%                                          @()ClearStatusCallback(figureJLabel) );
 
 % First set the project parameters, which will initialize the JLabelData
 %basicParams=basicParamsFromMacguffin(everythingParams);
@@ -7761,7 +7814,7 @@ handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
 % Need to set the labeling mode in the JLabelData, before the experiments 
 % are loaded.
-data=handles.guidata.data;  % ref
+data=handles.data;  % ref
 %data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
@@ -7778,17 +7831,17 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
-% Copy the default path out of the JLabelData.
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% % Copy the default path out of the JLabelData.
+% handles.guidata.defaultpath = handles.data.defaultpath;
 
-% Note that there is currently an open file, and note its name
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fileNameAbs;
-handles.guidata.userHasSpecifiedEverythingFileName=true;
-handles.guidata.needsave=false;
+% % Note that there is currently an open file, and note its name
+% handles.guidata.thereIsAnOpenFile=true;
+% handles.guidata.everythingFileNameAbs=fileNameAbs;
+% handles.guidata.userHasSpecifiedEverythingFileName=true;
+% handles.guidata.needsave=false;
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
@@ -7855,6 +7908,7 @@ function initAfterBasicParamsSet(figureJLabel)
 % Initializes the JLabel GUI on return from ProjectSetup after the user
 % selects New..., or during opening of an existing everything file.
 handles=guidata(figureJLabel);
+handles.guidata.initializeAfterBasicParamsSet();                               
 handles.guidata.setLayout(figureJLabel);
 handles=InitializeStateAfterBasicParamsSet(handles);
 handles=InitializePlotsAfterBasicParamsSet(handles);
@@ -7868,7 +7922,7 @@ return
 % % selects Basic Settings...
 % handles=guidata(figureJLabel);
 % %handles=StoreGUIPositionsInternally(handles);
-% data=handles.guidata.data;  % a ref
+% data=handles.data;  % a ref
 % data.setBasicParams(basicParams,featureConfigParams);
 % %handles=InitializeStateGivenBasicParams(handles,basicParams,featureConfigParams);
 % %handles=InitializePlotsAfterBasicParamsSet2(handles);
@@ -7880,7 +7934,7 @@ return
 % -------------------------------------------------------------------------
 % function setLabelingMode(figureJLabel,modeString)
 % handles=guidata(figureJLabel);
-% data=handles.guidata.data;  % a ref, or empty
+% data=handles.data;  % a ref, or empty
 % if isempty(data)
 %   error('JLabel.dataIsEmpty','JLabel data is currently empty');  %#ok
 % else
@@ -7908,7 +7962,7 @@ return
 function data=getJLabelData(figureJLabel)
 
 handles=guidata(figureJLabel);
-data=handles.guidata.data;
+data=handles.data;
 
 return
 
@@ -7940,13 +7994,13 @@ return
 % return
 
 
-% -------------------------------------------------------------------------
-function previousConfigFileName=getPreviousConfigFileName(figureJLabel)
-
-handles=guidata(figureJLabel);
-previousConfigFileName=handles.guidata.previousConfigFileName;
-
-return
+% % -------------------------------------------------------------------------
+% function previousConfigFileName=getPreviousConfigFileName(figureJLabel)
+% 
+% handles=guidata(figureJLabel);
+% previousConfigFileName=handles.guidata.previousConfigFileName;
+% 
+% return
 
 
 % % -------------------------------------------------------------------------
@@ -7955,7 +8009,7 @@ return
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
 % 
-% handles.guidata.data.SetGTMode(false);
+% handles.data.SetGTMode(false);
 % handles.guidata.GUIGroundTruthingMode=false;
 % handles = UpdateGUIToMatchGroundTruthingMode(handles);
 % guidata(hObject,handles);
@@ -7969,7 +8023,7 @@ return
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
 % 
-% handles.guidata.data.SetGTMode(true);
+% handles.data.SetGTMode(true);
 % handles.guidata.GUIGroundTruthingMode=true;
 % handles = UpdateGUIToMatchGroundTruthingMode(handles);
 % guidata(hObject,handles);
@@ -8022,7 +8076,7 @@ return
 % -------------------------------------------------------------------------
 function ret=isLabelingMode(figureJLabel)
 handles=guidata(figureJLabel);
-data=handles.guidata.data;
+data=handles.data;
 if isempty(data) ,
   ret=[];
 else
@@ -8034,7 +8088,7 @@ return
 % -------------------------------------------------------------------------
 function ret=isGroundTruthingMode(figureJLabel)
 handles=guidata(figureJLabel);
-data=handles.guidata.data;
+data=handles.data;
 if isempty(data) ,
   ret=[];
 else
@@ -8071,7 +8125,7 @@ return
 % % single JLabelData object, if present.
 % handles=guidata(figureJLabel);
 % % Tell the data about the new mode
-% data=handles.guidata.data;  % ref
+% data=handles.data;  % ref
 % data.SetGTMode(groundTruthingMode);
 % handles.guidata.GUIGroundTruthingMode=groundTruthingMode;
 % handles = UpdateGUIToMatchGroundTruthingMode(handles);
@@ -8106,7 +8160,7 @@ handles = guidata(hObject);  % re-load handles, may have changed
 % % Check if any of the project things have changed, and if so, see if user
 % % wants to save.  (How should this work in the context of the everything
 % % files?)
-% if ~isempty(handles.guidata.data) && handles.guidata.data.NeedSaveProject(),
+% if ~isempty(handles.data) && handles.data.NeedSaveProject(),
 %   res = questdlg(['Current window features do not match the ones in the project file.'...
 %       'Update the project file with the current window features?'],...
 %       'Update?','Yes','No','Cancel','Yes');
@@ -8145,10 +8199,13 @@ delete(get(handles.axes_timeline_manual,'children'));
 delete(get(handles.axes_timeline_auto,'children'));
 delete(get(handles.axes_timeline_prop1,'children'));
 
-% Release the JLabelData
-if ~isempty(handles.guidata.data)
-  handles.guidata.data=[];
-end
+% % Release the JLabelData
+% if ~isempty(handles.data)
+%   handles.data=[];
+% end
+
+% Close the .jab file in JLabelData
+handles.data.closeJabFile();
 
 % % save things we want to reinstate
 % in_border_y=handles.guidata.in_border_y;
@@ -8194,12 +8251,12 @@ end
 % handles = UpdateLabelButtons(handles);
 % guidata(hObject,handles);
 
-% Note that there is currently no open file.
-handles.guidata.thereIsAnOpenFile=false;
-% these next three aren't strictly necessary
-handles.guidata.everythingFileNameAbs='';
-handles.guidata.userHasSpecifiedEverythingFileName=false;
-handles.guidata.needsave=false;
+% % Note that there is currently no open file.
+% handles.guidata.thereIsAnOpenFile=false;
+% % these next three aren't strictly necessary
+% handles.guidata.everythingFileNameAbs='';
+% handles.guidata.userHasSpecifiedEverythingFileName=false;
+% handles.guidata.needsave=false;
 
 % Set the GT state back to "none"
 %handles.guidata.GUIGroundTruthingMode=[];
@@ -8253,18 +8310,18 @@ function newFileSetupDone(figureJLabel,basicParams)
 % get handles
 handles=guidata(figureJLabel);
 
-% Make up filename
-try
-  behaviorName=basicParams.getMainBehaviorName();
-  fileNameRel=sprintf('%s.jab',behaviorName);
-catch excp
-  if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
-    fileNameRel='untitled.jab';
-  else
-    rethrow(excp);
-  end
-end  
-fileNameAbs=fullfile(pwd(),fileNameRel);
+% % Make up filename
+% try
+%   behaviorName=basicParams.getMainBehaviorName();
+%   fileNameRel=sprintf('%s.jab',behaviorName);
+% catch excp
+%   if isequal(excp.identifier,'Macguffin:mainBehaviorNotDefined')
+%     fileNameRel='untitled.jab';
+%   else
+%     rethrow(excp);
+%   end
+% end  
+% fileNameAbs=fullfile(pwd(),fileNameRel);
 
 % % Update the status, change the pointer to the watch
 % SetStatus(handles,sprintf('Opening %s ...',filename));
@@ -8273,19 +8330,24 @@ fileNameAbs=fullfile(pwd(),fileNameRel);
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
-% First set the project parameters, which will initialize the JLabelData
-groundTruthingMode=false;  % all new files start in labeling mode
-%initBasicParams(figureJLabel,basicParams,groundTruthingMode);
-handles.guidata.initializeGivenMacguffin(basicParams, ...
-                                         figureJLabel, ...
-                                         groundTruthingMode, ...
-                                         @(s)SetStatusCallback(s,figureJLabel) , ...
-                                         @()ClearStatusCallback(figureJLabel) );
+% Set up the model for a new file
+handles.data.newJabFile(basicParams);
+
+% % First set the project parameters, which will initialize the JLabelData
+% groundTruthingMode=false;  % all new files start in labeling mode
+% %initBasicParams(figureJLabel,basicParams,groundTruthingMode);
+% handles.guidata.initializeGivenMacguffin(basicParams, ...
+%                                          figureJLabel, ...
+%                                          groundTruthingMode, ...
+%                                          @(s)SetStatusCallback(s,figureJLabel) , ...
+%                                          @()ClearStatusCallback(figureJLabel) );
+
+%handles.guidata.initializeAfterBasicParamsSet();                               
 initAfterBasicParamsSet(figureJLabel);
 handles=guidata(figureJLabel);  % make sure handles is up-to-date
 
-% Don't want to type "handles.guidata.data" all the damn time
-data=handles.guidata.data;  % ref
+% Don't want to type "handles.data" all the damn time
+data=handles.data;  % ref
 %data.SetGTMode(groundTruthingMode);
 
 % Set the GUI to match the labeling mode
@@ -8300,11 +8362,11 @@ guidata(figureJLabel,handles);  % write the handles back to the figure
 
 % Set the functions that end up getting called when we call SetStatus()
 % and ClearStatus()
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
-% Copy the default path out of the JLabelData.
-handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% % Copy the default path out of the JLabelData.
+% handles.guidata.defaultpath = handles.data.defaultpath;
 
 % Set the current movie.
 handles = UnsetCurrentMovie(handles);
@@ -8317,11 +8379,11 @@ end
 % clear the old experiment directory
 handles.guidata.oldexpdir='';
 
-% Note that there is currently an open file, and note its name
-handles.guidata.thereIsAnOpenFile=true;
-handles.guidata.everythingFileNameAbs=fileNameAbs;
-handles.guidata.userHasSpecifiedEverythingFileName=false;
-handles.guidata.needsave=true;
+% % Note that there is currently an open file, and note its name
+% handles.guidata.thereIsAnOpenFile=true;
+% handles.guidata.everythingFileNameAbs=fileNameAbs;
+% handles.guidata.userHasSpecifiedEverythingFileName=false;
+% handles.guidata.needsave=true;
 
 % Updates the graphics objects to match the current labeling mode (normal
 % or ground-truthing)
@@ -8342,46 +8404,46 @@ guidata(figureJLabel,handles);
 return
 
 
-% -------------------------------------------------------------------------
-function basicSettingsChanged(figureJLabel,basicParams)
-
-% get handles
-handles=guidata(figureJLabel);
-data=handles.guidata.data;  % a ref
-
-% Set the functions that end up getting called when we call SetStatus()
-% and ClearStatus()
-data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
-
-% Set the feature dictionary, basic params in JLabelData
-[success,msg]=data.setBasicParams(basicParams);
-if ~success,
-  uiwait(errordlg(msg,'Error Setting Basic Parameters','modal'));
-end
-
-% % Re-load the perframe feature signals, since the PFFs may have changed
-% data should take of this itself
-% data.loadPerframeData(data.expi,data.flies);
-
-% Set the GUI to match the labeling mode
-% Main point of this is to set the proper behavior names on the 
-% labeling buttons.
-handles = UpdateLabelButtons(handles);
-%handles = UpdateGUIToMatchGroundTruthingMode(handles);
-guidata(figureJLabel,handles);  % write the handles back to the figure
-
-% Note that we now need saving
-handles.guidata.needsave=true;
-
-% Done, set status message to cleared message, pointer to normal
-syncStatusBarTextWhenClear(handles);
-ClearStatus(handles);
-
-% write the handles back to figure
-guidata(figureJLabel,handles);
-
-return
+% % -------------------------------------------------------------------------
+% function basicSettingsChanged(figureJLabel,basicParams)
+% 
+% % get handles
+% handles=guidata(figureJLabel);
+% data=handles.data;  % a ref
+% 
+% % Set the functions that end up getting called when we call SetStatus()
+% % and ClearStatus()
+% data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% 
+% % Set the feature dictionary, basic params in JLabelData
+% [success,msg]=data.setBasicParams(basicParams);
+% if ~success,
+%   uiwait(errordlg(msg,'Error Setting Basic Parameters','modal'));
+% end
+% 
+% % % Re-load the perframe feature signals, since the PFFs may have changed
+% % data should take of this itself
+% % data.loadPerframeData(data.expi,data.flies);
+% 
+% % Set the GUI to match the labeling mode
+% % Main point of this is to set the proper behavior names on the 
+% % labeling buttons.
+% handles = UpdateLabelButtons(handles);
+% %handles = UpdateGUIToMatchGroundTruthingMode(handles);
+% guidata(figureJLabel,handles);  % write the handles back to the figure
+% 
+% % Note that we now need saving
+% handles.data.needsave=true;
+% 
+% % Done, set status message to cleared message, pointer to normal
+% syncStatusBarTextWhenClear(handles);
+% ClearStatus(handles);
+% 
+% % write the handles back to figure
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 % % --------------------------------------------------------------------
@@ -8445,7 +8507,7 @@ return
 % % Need to set the labeling mode in the JLabelData, before the experiments 
 % % are loaded.
 % groundTruthingMode=false;  % Always start in normal mode on import
-% data=handles.guidata.data;  % ref
+% data=handles.data;  % ref
 % data.SetGTMode(groundTruthingMode);
 % 
 % % Set the GUI to match the labeling mode
@@ -8462,18 +8524,18 @@ return
 % 
 % % Set the functions that end up getting called when we call SetStatus()
 % % and ClearStatus()
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 % 
 % % Copy the default path out of the JLabelData.
-% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% handles.guidata.defaultpath = handles.data.defaultpath;
 % 
 % % Set the current movie.
 % handles = UnsetCurrentMovie(handles);
-% if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+% if handles.data.nexps > 0 && handles.data.expi == 0,
 %   handles = SetCurrentMovie(handles,1);
 % else
-%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+%   handles = SetCurrentMovie(handles,handles.data.expi);
 % end
 % 
 % % clear the old experiment directory
@@ -8521,7 +8583,7 @@ return
 % 
 % % get the handles, data
 % handles = guidata(figureJLabel);
-% data=handles.guidata.data;  % a ref
+% data=handles.data;  % a ref
 % 
 % % Have the user choose the classifier file
 % [filename,pathname] = uigetfile('*.mat','Import classifier...');
@@ -8558,18 +8620,18 @@ return
 % 
 % % Set the functions that end up getting called when we call SetStatus()
 % % and ClearStatus()
-% handles.guidata.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
-% handles.guidata.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
+% handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
+% handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 % 
 % % Copy the default path out of the JLabelData.
-% handles.guidata.defaultpath = handles.guidata.data.defaultpath;
+% handles.guidata.defaultpath = handles.data.defaultpath;
 % 
 % % Set the current movie.
 % handles = UnsetCurrentMovie(handles);
-% if handles.guidata.data.nexps > 0 && handles.guidata.data.expi == 0,
+% if handles.data.nexps > 0 && handles.data.expi == 0,
 %   handles = SetCurrentMovie(handles,1);
 % else
-%   handles = SetCurrentMovie(handles,handles.guidata.data.expi);
+%   handles = SetCurrentMovie(handles,handles.data.expi);
 % end
 % 
 % % clear the old experiment directory
@@ -8615,13 +8677,12 @@ function selectFeaturesDone(figureJLabel, ...
 % the per-frame features may have been changed.
 setMaxWindowRadiusCommonCached(figureJLabel,maxWindowRadiusCommon);
 handles=guidata(figureJLabel);
-data=handles.guidata.data;  % a ref
-data.setWindowFeaturesParams(windowFeaturesParams);
-handles.guidata.needsave=true;
+handles.data.setWindowFeaturesParams(windowFeaturesParams);
+% handles.data.needsave=true;  % done in data.setWindowFeaturesParams() now
 UpdateTimelineImages(handles);
 UpdatePlots(handles);
 UpdateEnablementAndVisibilityOfControls(handles);
-% someExperimentIsCurrent=handles.guidata.getSomeExperimentIsCurrent();
+% someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 % if someExperimentIsCurrent,
 %   handles = predict(handles);
 % end
@@ -8691,25 +8752,25 @@ end
 fileNameAbs=fullfile(pathname,filename);
 
 % Update the status, change the pointer to the watch
-SetStatus(handles,sprintf('Importing classifier from %s ...',filename));
+SetStatus(handles,sprintf('Importing classifier from %s...',filename));
 
 % load the file
 try
-  everythingParams=loadAnonymous(fileNameAbs);
+  handles.data.importClassifier(fileNameAbs);
 catch  %#ok
-  uiwait(errordlg(sprintf('Unable to load %s.',filename),'Error'));
+  uiwait(errordlg(sprintf('Unable to import classifier from %s.',filename),'Error'));
   ClearStatus(handles);
   return;
 end
 
-% Set the classifier in the JLabelData object
-data=handles.guidata.data;  % ref
-data.setScoreFeatures(everythingParams.scoreFeatures);
-data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-data.setClassifierStuff(everythingParams.classifierStuff);
-
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Set the classifier in the JLabelData object
+% data=handles.data;  % ref
+% data.setScoreFeatures(everythingParams.scoreFeatures);
+% data.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+% data.setClassifierStuff(everythingParams.classifierStuff);
+% 
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Not sure what this does  --ALT, March 15, 2013
 handles = SetPredictedPlot(handles);
@@ -8779,10 +8840,10 @@ handles=guidata(figureJLabel);
 SetStatus(handles,'Clearing classifier...');
 
 % Clear the current classifier in the model
-handles.guidata.data.clearClassifierProper();
+handles.data.clearClassifierProper();
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving (done in .clearClassifierProper())
+% handles.data.needsave=true;
 
 % Not sure what this does  --ALT, March 15, 2013
 handles = SetPredictedPlot(handles);
@@ -8831,7 +8892,7 @@ function basicSettings(figureJLabel)
 handles=guidata(figureJLabel);
 
 % launch the project setup GUI
-basicParamsStruct=handles.guidata.data.getBasicParamsStruct();
+basicParamsStruct=handles.data.getBasicParamsStruct();
 ProjectSetup('figureJLabel',handles.figure_JLabel, ...
              'basicParams',basicParamsStruct);
            
@@ -8844,7 +8905,7 @@ function menu_file_change_target_type_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-featureLexiconName=handles.guidata.data.featureLexiconName;
+featureLexiconName=handles.data.featureLexiconName;
 ChangeFeatureLexiconDialog(featureLexiconName,handles.figure_JLabel);
 return
 
@@ -8854,7 +8915,7 @@ function changeFeatureLexiconDone(figureJLabel,newFeatureLexiconName)
 
 % get handles
 handles=guidata(figureJLabel);
-data=handles.guidata.data;  % a ref
+data=handles.data;  % a ref
 
 % % if new same as old, do nothing
 % if isequal(newFeatureLexiconName,data.featureLexiconName)
@@ -8875,8 +8936,8 @@ if ~success,
   uiwait(errordlg(msg,'Error Changing Target Type','modal'));
 end
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the plots
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
@@ -8898,7 +8959,7 @@ function menu_file_change_behavior_name_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-behaviorName=handles.guidata.data.getBehaviorName();
+behaviorName=handles.data.getBehaviorName();
 ChangeBehaviorNameDialog(behaviorName,handles.figure_JLabel);
 return
 
@@ -8910,7 +8971,7 @@ function changeBehaviorNameDone(figureJLabel,newBehaviorName)
 handles=guidata(figureJLabel);
 
 % if new same as old, do nothing
-data=handles.guidata.data;  % a ref
+data=handles.data;  % a ref
 if isequal(newBehaviorName,data.getBehaviorName())
   return
 end
@@ -8921,8 +8982,8 @@ SetStatus(handles,'Changing behavior name...');
 % Set the behavior name in JLabelData
 data.setBehaviorName(newBehaviorName);
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the names on the labeling buttons
 handles = UpdateLabelButtons(handles);
@@ -8946,9 +9007,9 @@ function menu_classifier_change_score_features_Callback(hObject, eventdata, hand
 % hObject    handle to menu_classifier_change_score_features (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-scoreFeaturesFileNameList={handles.guidata.data.scoreFeatures(:).classifierfile};
-timeStampList=[handles.guidata.data.scoreFeatures(:).ts];
-scoreBaseNameList={handles.guidata.data.scoreFeatures(:).scorefilename};
+scoreFeaturesFileNameList={handles.data.scoreFeatures(:).classifierfile};
+timeStampList=[handles.data.scoreFeatures(:).ts];
+scoreBaseNameList={handles.data.scoreFeatures(:).scorefilename};
 ChangeScoreFeaturesDialog(scoreFeaturesFileNameList, ...
                              timeStampList, ...
                              scoreBaseNameList, ...
@@ -8966,7 +9027,7 @@ function changeScoreFeaturesDone(figureJLabel, ...
 handles=guidata(figureJLabel);
 
 % if new same as old, do nothing
-data=handles.guidata.data;  % a ref
+data=handles.data;  % a ref
 scoreFeaturesFileNameList={data.scoreFeatures(:).classifierfile};
 if isequal(scoreFeaturesFileNameListNew,scoreFeaturesFileNameList)
   return
@@ -8995,8 +9056,8 @@ catch excp
   end
 end
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the plots
 UpdateTimelineImages(handles);
@@ -9022,7 +9083,7 @@ function menu_file_change_score_file_name_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-scoreFileName=handles.guidata.data.getScoreFileName();
+scoreFileName=handles.data.getScoreFileName();
 ChangeScoreFileNameDialog(scoreFileName,handles.figure_JLabel);
 return
 
@@ -9034,7 +9095,7 @@ function changeScoreFileNameDone(figureJLabel,newScoreFileName)
 handles=guidata(figureJLabel);
 
 % if new same as old, do nothing
-data=handles.guidata.data;  % a ref
+data=handles.data;  % a ref
 if isequal(newScoreFileName,data.getScoreFileName())
   return
 end
@@ -9045,8 +9106,8 @@ SetStatus(handles,'Changing score file name...');
 % Set the score file name in JLabelData
 data.setScoreFileName(newScoreFileName);
 
-% Note that we now need saving
-handles.guidata.needsave=true;
+% % Note that we now need saving
+% handles.data.needsave=true;
 
 % Update the names on the labeling buttons
 handles = UpdateLabelButtons(handles);
@@ -9068,10 +9129,10 @@ return
 % -------------------------------------------------------------------------
 function menu_classifier_compareFrames_Callback(hObject,eventdata,handles)
 %handles = guidata(hObject);
-if isempty(handles.guidata.expi) || handles.guidata.expi<1, return, end
+if isempty(handles.data.expi) || handles.data.expi<1, return, end
 chandles = CompareFrames('JLabelH',handles, ...
-                         'expnum',handles.guidata.expi,...
-                         'fly',handles.guidata.flies, ...
+                         'expnum',handles.data.expi,...
+                         'fly',handles.data.flies, ...
                          't',handles.guidata.ts);
 handles.guidata.open_peripherals(end+1) = chandles;
 return
