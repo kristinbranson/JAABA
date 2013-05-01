@@ -77,7 +77,7 @@ classdef JLabelGUIData < handle
     data = [];  % the JLabelData object (a ref to it, actually)
 
     nflies_label = 1;
-    classifier = [];
+    % classifier = [];  % Does not seem to be used
 
     % expi = 0;
     % flies = [];
@@ -547,7 +547,7 @@ classdef JLabelGUIData < handle
       self.nflies_label = 1;
 
       % learned classifier
-      self.classifier = [];
+      % self.classifier = [];
 
       % currently shown experiment
       % self.expi = 0;
