@@ -322,9 +322,10 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
       // if the operation of finding the most violated constraint is much more expensive than the operation of updating w
       while(!finished) {
         //usleep(1);
-        while(t <= numThreads) // wait for at least one first constraint
+        while(t < 1) // wait for at least one first constraint
           usleep(100000);
 	UpdateFromCache(true, &num);
+        //  usleep(100000);
       }
     }
   }
