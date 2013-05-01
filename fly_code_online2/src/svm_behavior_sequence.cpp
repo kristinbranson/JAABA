@@ -731,6 +731,8 @@ void SVMBehaviorSequence::ComputeClassTrainsitionCounts() {
   for(j = 0; j < trainset->num_examples; j++) {
     BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)trainset->examples[j]->x;
     BehaviorBoutSequence *y = (BehaviorBoutSequence*)trainset->examples[j]->y;
+    if(!y->num_bouts || (y->num_bouts==1 && !y->bouts[0].behavior))
+      fprintf(stderr, "Example %s has no labeled behaviors other than 'none'\n", y->fname);
     for(i = 0; i < y->num_bouts; i++) {
       class_training_count[y->bouts[i].behavior]++;
 #if USE_DURATION_COST > 0
@@ -746,6 +748,11 @@ void SVMBehaviorSequence::ComputeClassTrainsitionCounts() {
 	class_training_transitions[y->bouts[i].behavior][NONE_BEHAVIOR]++;
     }
   }
+  for(i = 0; i < behaviors->num_values; i++) 
+    fprintf(stderr, "Behavior %s has %d examples\n", behaviors->values[i].name, class_training_count[i]);
+  
+
+  
 
     // Compress the class transitions into a sparse array
   for(i = 0; i < behaviors->num_values; i++) {
@@ -2825,6 +2832,7 @@ BehaviorBoutSequence::BehaviorBoutSequence(BehaviorBoutFeatures *x, SVMBehaviorS
   bouts = NULL;
   score = loss = slack = 0;
   disable_checks = false;
+  strcpy(fname, "");
 }
 
 BehaviorBoutSequence::~BehaviorBoutSequence() {

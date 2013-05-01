@@ -282,6 +282,7 @@ bool FlyBehaviorBoutSequence::load(const char *pname) {
   this->lastframe = xx->lastframe;
 
   strcpy(this->labelname, pname);
+  strcpy(this->fname, pname);
   
   unsigned int sz = (sizeof(int)+sizeof(BehaviorBout*));
   this->bouts = (BehaviorBout*)malloc(sz);
