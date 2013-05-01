@@ -2,13 +2,15 @@ classdef JLabelData < handle
   % This is the class that is essentially the JLabel "model" in MVC terms 
   % --- it holds all of the critical data that JLabel allows a user to
   % manipulate, but doesn't deal with visual or presentational issues.
+  % (OK, in a few places it does, but those should probably be changed.)
   
-  % About everythingParams and basicParams: An everythingParams structure
-  % represents all of the stuff that gets saved to the .jab file.  A
-  % basicParams structure contains only a subset of the fields in the
-  % everythingParams file, the subset needed for creation of a new .jab
-  % file.  Therefore an everythingParams structure can be used anywhere a
-  % basicParams structure is called for, but not vice-versa.  
+  % About everythingParams and basicParams: these are typically instances
+  % of class Macguffin.  Macguffins represent all of the stuff that gets 
+  % saved to the .jab file.  A variable named basicParams is typically a
+  % Macguffin that has no experiments, or labels, or classifier set.  They
+  % typically arise when creating a new .jab file.  A variable named
+  % everythingParams is generally the contents of a .jab file, which may
+  % well have experiments, labels, and/or a classifier.
   
   properties (SetAccess=private, GetAccess=public)
     % currently selected  experiment
@@ -9504,12 +9506,12 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function MaybeStoreLabelsAndPreLoadWindowDataNow(self)
       % This is a hint to JLabelData that right now might be a good time to
-      % write-back the currrent labels to main store, and to pre-load the
+      % write-back the currrent labels to the main store, and to pre-load the
       % window data.
       % This method is named as if it's a hint, but in the one place it's
       % currently called, it may well be required for proper behavior.
       % This method is deprecated b/c this the sort of book-keeping that
-      % should be internal to JLabelData.  Caller's shouldn't need to tell
+      % should be internal to JLabelData.  Callers shouldn't need to tell
       % JLabelData to get its house in order.
       self.StoreLabelsAndPreLoadWindowData();
     end  % method

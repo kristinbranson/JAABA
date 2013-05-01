@@ -1,5 +1,12 @@
 classdef JLabelGUIData < handle
-  
+  % This class holds a lot of information about the JLabel GUI, so that it
+  % doesn't have to be copied as much.
+  %
+  % In the future, it might make sense to refactor things so that JLabel 
+  % functions dealing entirely with visual aspects into here.  Also, some 
+  % functions of JLabel might be refactored such that the visual aspects are 
+  % done in methods of this class.  All of this would make this class
+  % closer to a View in the Model-View-Controller sense.  --ALT, May 1 2013
   properties (Access=public)
     
     %previousConfigFileName = '';
@@ -7,7 +14,7 @@ classdef JLabelGUIData < handle
     %classifierfilename = '';
     %configfilename = '';
     %defaultpath = '';  % now in JLabelData
-    packageoutputdir = '';
+    % packageoutputdir = '';  % not used anywhere
     
     %isgroundtruthmode = false;  % never used
     
