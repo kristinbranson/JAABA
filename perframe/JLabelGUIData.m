@@ -1,13 +1,20 @@
 classdef JLabelGUIData < handle
-  
+  % This class holds a lot of information about the JLabel GUI, so that it
+  % doesn't have to be copied as much.
+  %
+  % In the future, it might make sense to refactor things so that JLabel 
+  % functions dealing entirely with visual aspects into here.  Also, some 
+  % functions of JLabel might be refactored such that the visual aspects are 
+  % done in methods of this class.  All of this would make this class
+  % closer to a View in the Model-View-Controller sense.  --ALT, May 1 2013
   properties (Access=public)
     
-    previousConfigFileName = '';
+    %previousConfigFileName = '';
     
     %classifierfilename = '';
     %configfilename = '';
-    defaultpath = '';
-    packageoutputdir = '';
+    %defaultpath = '';  % now in JLabelData
+    % packageoutputdir = '';  % not used anywhere
     
     %isgroundtruthmode = false;  % never used
     
@@ -20,17 +27,17 @@ classdef JLabelGUIData < handle
     movie_width = 100;
     movie_filename = [];
     
-    thereIsAnOpenFile=false;
-    everythingFileNameAbs='';  % the name of the everything file, if one
-                               % is open.  We need this here b/c a new
-                               % everything file doesn't have a JLabelData
-                               % object yet.
-    userHasSpecifiedEverythingFileName=false;  % true iff the everything
-                                               % file name was specified by
-                                               % the user, as opposed to
-                                               % being chosen by default
-                                               % when a new file was
-                                               % created
+%     thereIsAnOpenFile=false;
+%     everythingFileNameAbs='';  % the name of the everything file, if one
+%                                % is open.  We need this here b/c a new
+%                                % everything file doesn't have a JLabelData
+%                                % object yet.
+%     userHasSpecifiedEverythingFileName=false;  % true iff the everything
+%                                                % file name was specified by
+%                                                % the user, as opposed to
+%                                                % being chosen by default
+%                                                % when a new file was
+%                                                % created
     %configparams = struct;  % the stuff read from the project file
 
     panel_previews = [];
@@ -72,19 +79,19 @@ classdef JLabelGUIData < handle
 
     bottomAutomatic = 'None';
 
-    needsave = false;  % true iff there are unsaved changes
+%     needsave = false;  % true iff there are unsaved changes
     
-    data = [];  % the JLabelData object
+    data = [];  % the JLabelData object (a ref to it, actually)
 
     nflies_label = 1;
-    classifier = [];
+    % classifier = [];  % Does not seem to be used
 
-    expi = 0;
-    flies = [];
+    % expi = 0;
+    % flies = [];
     ts = 0;
     label_state = 0;
     label_imp = [];
-    nflies_curr = 0;
+    % nflies_curr = 0;
     
     oldexpdir='';  % Used by JLabel's File > Edit files...
 
@@ -178,8 +185,8 @@ classdef JLabelGUIData < handle
     nframes = nan;
     movie_fid = [];
     movieheaderinfo = struct;
-    t0_curr = nan;
-    t1_curr = nan;
+    % t0_curr = nan;
+    % t1_curr = nan;
     labels_plot = struct;
     labels_plot_off = nan;
 
@@ -189,7 +196,7 @@ classdef JLabelGUIData < handle
     open_peripherals = [];
 
     cache_thread = [];
-    cacheSize = 4000;
+    % cacheSize = 4000;  % now stored only in JLabelData
      
     tempname = [];
     
@@ -207,10 +214,60 @@ classdef JLabelGUIData < handle
       % part of the feature vocabulary.)  (But I suppose we could add them
       % if we wanted to...)   
   end
-     
+
+  
+%   properties (Access=public,Dependent=true)
+%     expi
+%     flies
+%     nexps
+%     nflies_curr
+%   end
+
+  
+%   methods
+%     function expi=get.expi(self)
+%       expi=self.data.expi;
+%     end
+%     
+%     function set.expi(self,newValue)  %#ok
+%       % do nothing---to set the current experiment, should call
+%       % self.data.setCurrentTarget()
+%       warning('Trying to set JLabelGUIData.expi');
+%     end
+%     
+%     function flies=get.flies(self)
+%       flies=self.data.flies;
+%     end
+%     
+%     function set.flies(self,newValue)  %#ok
+%       % do nothing---flies is read-only
+%       warning('Trying to set JLabelGUIData.flies');
+%     end
+%     
+%     function nexps=get.nexps(self)
+%       nexps=self.data.nexps;
+%     end
+%     
+%     function set.nexps(self,newValue)  %#ok
+%       % do nothing---this property is read-only
+%       warning('Trying to set JLabelGUIData.nexps');
+%     end
+%     
+%     function nflies_curr=get.nflies_curr(self)
+%       nflies_curr=self.data.nTargetsInCurrentExp;
+%     end
+%     
+%     function set.nflies_curr(self,newValue)  %#ok
+%       % do nothing---this property is read-only
+%       warning('Trying to set JLabelGUIData.nflies_curr');
+%     end
+%   end  % get. and set. methods
+  
+  
   methods (Access=public)
-    function obj = JLabelGUIData()
+    function obj = JLabelGUIData(jld)
       % Constructor
+      obj.data=jld;  % store a reference to the "model"
     end
 
     
@@ -277,87 +334,23 @@ classdef JLabelGUIData < handle
     end
     
     
-    % ---------------------------------------------------------------------    
-    function UpdateGrandleArrays(self, figure_JLabel)
-      % Update the arrays of grandles within ourself to match the widgets
-      % in the JLabel figure.
-      % A "grandle" is a Matlab graphics handle.
-      % all axes panels
-      self.panel_previews = findobj(figure_JLabel,'-regexp','Tag','panel_axes\d+');
-      % all preview axes
-      self.axes_previews = findobj(figure_JLabel,'Tag','axes_preview');
-      % all sliders
-      self.slider_previews = findobj(figure_JLabel,'Tag','slider_preview');
-      % all frame number edit boxes
-      self.edit_framenumbers = findobj(figure_JLabel,'Tag','edit_framenumber');
-      % all play buttons
-      self.pushbutton_playstops = findobj(figure_JLabel,'Tag','pushbutton_playstop');
-      % all timelines
-      self.axes_timelines = findobj(figure_JLabel,'-regexp','Tag','^axes_timeline.*')';
-      % self.labels_timelines = findobj(handles.figure_JLabel,'-regexp','Tag','^timeline_label.*');
-      % Regex messes the order which makes it difficult to remove the last data axes.
-      handles=guidata(figure_JLabel);
-      self.labels_timelines(1,1) = handles.timeline_label_prop1;
-      self.labels_timelines(2,1) = handles.timeline_label_automatic;
-      self.labels_timelines(3,1) = handles.timeline_label_manual;
-
-      self.axes_timeline_props = findobj(figure_JLabel,'-regexp','Tag','^axes_timeline_prop.*')';
-      self.axes_timeline_labels = setdiff(self.axes_timelines,self.axes_timeline_props);
-
-      if numel(self.labels_timelines) ~= numel(self.labels_timelines),
-        error('Number of timeline axes does not match number of timeline labels');
-      end
-      % sort by y-position
-      ys = nan(1,numel(self.axes_timelines));
-      for i = 1:numel(self.axes_timelines),
-        pos = get(self.axes_timelines(i),'Position');
-        ys(i) = pos(2);
-      end
-      [~,order] = sort(ys);
-      self.axes_timelines = self.axes_timelines(order);
-      % sort by y-position. 
-      % Don't touch the last 2 labels that are part of manual and automatic timeline
-      % because they are inside a panel and so pos(2) is relative to the panel.
-      ys = nan(1,numel(self.labels_timelines)-2);
-      for i = 1:(numel(self.labels_timelines)-2),
-        pos = get(self.labels_timelines(i),'Position');
-        ys(i) = pos(2);
-      end
-      [~,order] = sort(ys);
-      temp = self.labels_timelines(1:end-2);
-      self.labels_timelines(1:end-2) = temp(order);
-
-      self.text_timeline_props = nan(size(self.axes_timeline_props));
-      self.text_timelines = nan(size(self.axes_timelines));
-      [~,idx] = ismember(self.axes_timeline_props,self.axes_timelines);
-      for ii = 1:numel(self.axes_timeline_props),
-        i = idx(ii);
-        t = get(self.axes_timeline_props(ii),'Tag');
-        m = regexp(t,'^axes_timeline_prop(.*)$','tokens','once');
-        t2 = ['text_timeline_prop',m{1}];
-        self.text_timeline_props(ii) = handles.(t2);
-        self.text_timelines(i) = self.text_timeline_props(ii);
-      end
-    end
+%     % ---------------------------------------------------------------------
+%     function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
+%       if self.thereIsAnOpenFile && ~isempty(self.data)
+%         nExp=self.data.nexps;
+%         someExperimentIsCurrent=(1<=self.expi) && ...
+%                                 (self.expi<=nExp) ;
+%       else
+%         someExperimentIsCurrent=false;
+%       end
+%     end
     
     
-    % ---------------------------------------------------------------------
-    function someExperimentIsCurrent=getSomeExperimentIsCurrent(self)
-      if self.thereIsAnOpenFile && ~isempty(self.data)
-        nExp=self.data.nexps;
-        someExperimentIsCurrent=(1<=self.expi) && ...
-                                (self.expi<=nExp) ;
-      else
-        someExperimentIsCurrent=false;
-      end
-    end
-    
-    
-    % ---------------------------------------------------------------------    
-    function s=getMacguffin(self)
-      % Construct the structure that will be saved in the everything file
-      s=self.data.getMacguffin();
-    end
+%     % ---------------------------------------------------------------------    
+%     function s=getMacguffin(self)
+%       % Construct the structure that will be saved in the everything file
+%       s=self.data.getMacguffin();
+%     end
     
     
     % ---------------------------------------------------------------------
@@ -462,34 +455,33 @@ classdef JLabelGUIData < handle
 %     end
 
     
-    % ---------------------------------------------------------------------
-    function initializeGivenMacguffin(self, ...
-                                      everythingParams, ...
-                                      figureJLabel, ...
-                                      groundTruthingMode, ...
-                                      setStatusCallback, ...
-                                      clearStatusCallback)  %#ok
-                                    
-      % deal with args
-      if ~exist('setStatusCallback','var')
-        setStatusCallback=@nop;
-      end
-      if ~exist('clearStatusCallback','var')
-        clearStatusCallback=@nop;
-      end
-      
-      % initialize data structure
-      self.data = ...
-        JLabelData('groundTruthingMode',groundTruthingMode, ...
-                   'macguffin',everythingParams, ...
-                   'defaultpath',self.defaultpath,...
-                   'setstatusfn',setStatusCallback,...
-                   'clearstatusfn',clearStatusCallback,...
-                   'cacheSize',self.cacheSize);
-%                    'setstatusfn',@(s) SetStatusCallback(s,figureJLabel),...
-%                    'clearstatusfn',@() ClearStatusCallback(figureJLabel),...
-      self.initializeAfterBasicParamsSet();
-    end
+%     % ---------------------------------------------------------------------
+%     function initializeGivenMacguffin(self, ...
+%                                       everythingParams, ...
+%                                       figureJLabel, ...
+%                                       groundTruthingMode, ...
+%                                       setStatusCallback, ...
+%                                       clearStatusCallback)  %#ok
+%                                     
+%       % deal with args
+%       if ~exist('setStatusCallback','var')
+%         setStatusCallback=@nop;
+%       end
+%       if ~exist('clearStatusCallback','var')
+%         clearStatusCallback=@nop;
+%       end
+%       
+%       % initialize data structure
+%       self.data.openFileGivenMacguffin('groundTruthingMode',groundTruthingMode, ...
+%                                        'macguffin',everythingParams, ...
+%                                        'defaultpath',self.defaultpath,...
+%                                        'setstatusfn',setStatusCallback,...
+%                                        'clearstatusfn',clearStatusCallback,...
+%                                        'cacheSize',self.cacheSize);
+% %                    'setstatusfn',@(s) SetStatusCallback(s,figureJLabel),...
+% %                    'clearstatusfn',@() ClearStatusCallback(figureJLabel),...
+%       self.initializeAfterBasicParamsSet();
+%     end
 
     
     % ---------------------------------------------------------------------
@@ -498,12 +490,12 @@ classdef JLabelGUIData < handle
       self.nflies_label = 1;
 
       % learned classifier
-      self.classifier = [];
+      % self.classifier = [];
 
       % currently shown experiment
-      self.expi = 0;
+      % self.expi = 0;
       % currently labeled flies
-      self.flies = 1:self.nflies_label;
+      % self.flies = 1:self.nflies_label;
       % currently shown frame
       self.ts = 0;
 
@@ -512,7 +504,7 @@ classdef JLabelGUIData < handle
       self.label_imp = [];
 
       % number of flies for the current movie
-      self.nflies_curr = 0;
+      % self.nflies_curr = 0;
 
       basicParamsStruct=self.data.getBasicParamsStruct();
       % label colors
@@ -704,96 +696,97 @@ classdef JLabelGUIData < handle
     end  % method
     
     
-    % ---------------------------------------------------------------------
-    function SaveScores(obj,allScores,expi,sfn)  %#ok
-    % Save prediction scores for the whole experiment.
-    % The scores are stored as a cell array.
-      if nargin< 4
-       sfn = obj.data.GetFile('scores',expi,true);
-      end
-      %obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
-
-      %didbak = false;
-      if exist(sfn,'file'),
-        [didbak,msg] = copyfile(sfn,[sfn,'~']);
-        if ~didbak,
-          warning('Could not create backup of %s: %s',sfn,msg);  
-        end
-      end
-      timestamp = obj.data.classifierTS;  %#ok
-      version = obj.data.version;  %#ok
-      if obj.userHasSpecifiedEverythingFileName, 
-        jabFileNameAbs=obj.everythingFileNameAbs;  %#ok
-      else
-        error('User must specify a .jab file name before scores can be saved.');
-      end
-      save(sfn,'allScores','timestamp','version','jabFileNameAbs');
-      %obj.data.ClearStatus();
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function PredictSaveMovie(obj,expi,sfn)
-    % Predicts for the whole movie and saves the scores.
-      if nargin < 3
-        sfn = obj.data.GetFile('scores',expi);
-      end
-      allScores = obj.data.PredictWholeMovie(expi);
-      obj.SaveScores(allScores,expi,sfn);
-      obj.data.AddScores(expi,allScores,now(),'',true);
-      
-      if obj.data.predictdata{expi}{1}.loaded_valid(1),
-        obj.data.LoadScores(expi,sfn);
-      end
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------
-    function SaveCurScores(obj,expi,sfn)
-    % Saves the current scores to a file.
-      if nargin < 3
-        sfn = obj.data.GetFile('scores',expi,true);
-      end
-    
-      if ~obj.data.HasCurrentScores(),
-        uiwait(warndlg('No scores to save'));
-        return;
-      end
-      
-      allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-        'postprocessed',{{}},'postprocessedparams',[]);
-      scores_valid = true;
-      for fly = 1:obj.data.nflies_per_exp(expi)
-        
-        curt = obj.data.predictdata{expi}{fly}.t;
-        if any(curt(2:end)-curt(1:end-1) ~= 1)
-          uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
-          return;
-        end
-        
-        if ~all(obj.data.predictdata{expi}{fly}.cur_valid), 
-          scores_valid = false; 
-          break; 
-        end
-        
-        tStart = obj.data.firstframes_per_exp{expi}(fly);
-        tEnd = obj.data.endframes_per_exp{expi}(fly);
-        
-        allScores.scores{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur;
-        allScores.tStart(fly) = tStart;
-        allScores.tEnd(fly) = tEnd;
-        allScores.postprocessed{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur_pp;
-      end
-      
-      if ~scores_valid,
-        uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
-         '%s. Cannot save the scores.'],obj.data.expnames{expi}));
-        return;
-      end
-      allScores.postprocessedparams = obj.data.postprocessparams;
-      allScores.scoreNorm = obj.data.windowdata.scoreNorm;
-      obj.SaveScores(allScores,expi,sfn);      
-    end  % method
+%     % ---------------------------------------------------------------------
+%     function SaveScores(obj,allScores,expi,sfn)  %#ok
+%     % Save prediction scores for the whole experiment.
+%     % The scores are stored as a cell array.
+%     % This method should be a method of JLabelData
+%       if nargin< 4
+%        sfn = obj.data.GetFile('scores',expi,true);
+%       end
+%       %obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
+% 
+%       %didbak = false;
+%       if exist(sfn,'file'),
+%         [didbak,msg] = copyfile(sfn,[sfn,'~']);
+%         if ~didbak,
+%           warning('Could not create backup of %s: %s',sfn,msg);  
+%         end
+%       end
+%       timestamp = obj.data.classifierTS;  %#ok
+%       version = obj.data.version;  %#ok
+%       if obj.data.userHasSpecifiedEverythingFileName, 
+%         jabFileNameAbs=obj.data.everythingFileNameAbs;  %#ok
+%       else
+%         error('User must specify a .jab file name before scores can be saved.');
+%       end
+%       save(sfn,'allScores','timestamp','version','jabFileNameAbs');
+%       %obj.data.ClearStatus();
+%     end  % method
+%     
+%     
+%     % ---------------------------------------------------------------------
+%     function PredictSaveMovie(obj,expi,sfn)
+%     % Predicts for the whole movie and saves the scores.
+%       if nargin < 3
+%         sfn = obj.data.GetFile('scores',expi);
+%       end
+%       allScores = obj.data.PredictWholeMovie(expi);
+%       obj.SaveScores(allScores,expi,sfn);
+%       obj.data.AddScores(expi,allScores,now(),'',true);
+%       
+%       if obj.data.predictdata{expi}{1}.loaded_valid(1),
+%         obj.data.LoadScores(expi,sfn);
+%       end
+%     end  % method
+%     
+%     
+%     % ---------------------------------------------------------------------
+%     function SaveCurScores(obj,expi,sfn)
+%     % Saves the current scores to a file.
+%       if nargin < 3
+%         sfn = obj.data.GetFile('scores',expi,true);
+%       end
+%     
+%       if ~obj.data.HasCurrentScores(),
+%         uiwait(warndlg('No scores to save'));
+%         return;
+%       end
+%       
+%       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
+%         'postprocessed',{{}},'postprocessedparams',[]);
+%       scores_valid = true;
+%       for fly = 1:obj.data.nflies_per_exp(expi)
+%         
+%         curt = obj.data.predictdata{expi}{fly}.t;
+%         if any(curt(2:end)-curt(1:end-1) ~= 1)
+%           uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
+%           return;
+%         end
+%         
+%         if ~all(obj.data.predictdata{expi}{fly}.cur_valid), 
+%           scores_valid = false; 
+%           break; 
+%         end
+%         
+%         tStart = obj.data.firstframes_per_exp{expi}(fly);
+%         tEnd = obj.data.endframes_per_exp{expi}(fly);
+%         
+%         allScores.scores{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur;
+%         allScores.tStart(fly) = tStart;
+%         allScores.tEnd(fly) = tEnd;
+%         allScores.postprocessed{fly}(tStart:tEnd) = obj.data.predictdata{expi}{fly}.cur_pp;
+%       end
+%       
+%       if ~scores_valid,
+%         uiwait(warndlg(['Scores have not been computed for all the frames for experiment ' ...
+%          '%s. Cannot save the scores.'],obj.data.expnames{expi}));
+%         return;
+%       end
+%       allScores.postprocessedparams = obj.data.postprocessparams;
+%       allScores.scoreNorm = obj.data.windowdata.scoreNorm;
+%       obj.SaveScores(allScores,expi,sfn);      
+%     end  % method
     
   end
 end
