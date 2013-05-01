@@ -1824,7 +1824,8 @@ classdef JLabelData < handle
     function ClearWindowData(obj)
       % Clears window features and predictions for a clean start when selecting
       % features.
-      obj.windowdata.X = [];
+      %obj.windowdata.X = [];
+      obj.windowdata.X = single([]);
       obj.windowdata.exp = [];
       obj.windowdata.flies=[];
       obj.windowdata.t=[];
