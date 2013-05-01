@@ -7310,6 +7310,10 @@ classdef JLabelData < handle
             doFastUpdates = false;
           end
 
+          %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
+          %stream = RandStream.getGlobalStream;
+          %reset(stream);
+          
           if obj.DoFullTraining(doFastUpdates),
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
@@ -7324,6 +7328,11 @@ classdef JLabelData < handle
               obj.ClearStatus();
               return;
             end
+            
+            %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
+            %stream = RandStream.getGlobalStream;
+            %reset(stream);
+            
             [obj.classifier, ~, trainstats] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...
                                  obj.windowdata.labelidx_new(islabeled),obj,...
