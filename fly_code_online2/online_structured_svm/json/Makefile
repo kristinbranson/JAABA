@@ -50,16 +50,16 @@ obj/release_shared/%.o: src/%.cpp $(HEADER_FILES)
 	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) $(CFLAGS_SHARED) -c $< -o $@
 
 
-lib/libjson.so:  $(OBJ_FILES)
+lib/libjson.so: $(addprefix obj/release_static/,$(notdir $(CPP_FILES:.cpp=.o)))
 	$(LD) $(LDFLAGS) $(OBJ_FILES) -o lib/libjson.so
 
-lib/libjson.a:  $(OBJ_FILES)
+lib/libjson.a: $(addprefix obj/release_static/,$(notdir $(CPP_FILES:.cpp=.o)))
 	$(AR) $(ARFLAGS) lib/libjson.a $(OBJ_FILES) 
 
-lib/libdjson.so:  $(OBJ_FILES) 
+lib/libdjson.so:  $(OBJ_FILES) $(addprefix obj/debug_shared/,$(notdir $(CPP_FILES:.cpp=.o)))
 	$(LD) $(LDFLAGS) $(OBJ_FILES) -o lib/libdjson.so
 
-lib/libdjson.a:  $(OBJ_FILES) 
+lib/libdjson.a:  $(addprefix obj/debug_static/,$(notdir $(CPP_FILES:.cpp=.o))) 
 	$(AR) $(ARFLAGS) lib/libdjson.a $(OBJ_FILES) 
 
 

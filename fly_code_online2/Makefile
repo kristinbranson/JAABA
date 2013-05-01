@@ -67,16 +67,16 @@ obj/release_shared/%.o: src/%.cpp $(HEADER_FILES)
 	$(CC) $(CFLAGS) $(CFLAGS_SHARED) -c $< -o $@
 
 
-bin/debug_static/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) online_structured_svm/lib/libdonline_structured_svm.a online_structured_svm/json/lib/libdjson.a $(OBJ_FILES)
+bin/debug_static/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) online_structured_svm/lib/libdonline_structured_svm.a online_structured_svm/json/lib/libdjson.a $(addprefix obj/debug_static/,$(notdir $(CPP_FILES:.cpp=.o)))
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(OBJ_FILES) -o bin/debug_static/svm_jaaba_behavior_sequence.out $(LIBS)
 
-bin/debug_shared/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) $(OBJ_FILES)
+bin/debug_shared/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) $(addprefix obj/debug_shared/,$(notdir $(CPP_FILES:.cpp=.o)))
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(OBJ_FILES) -o bin/debug_shared/svm_jaaba_behavior_sequence.out $(LIBS)
 
-bin/release_static/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) online_structured_svm/lib/libonline_structured_svm.a online_structured_svm/json/lib/libjson.a $(OBJ_FILES)
+bin/release_static/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) online_structured_svm/lib/libonline_structured_svm.a online_structured_svm/json/lib/libjson.a $(addprefix obj/release_static/,$(notdir $(CPP_FILES:.cpp=.o)))
 	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) $(OBJ_FILES) -o bin/release_static/svm_jaaba_behavior_sequence.out $(LIBS)
 
-bin/release_shared/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) $(OBJ_FILES)
+bin/release_shared/svm_jaaba_behavior_sequence.out: $(HEADER_FILES) $(addprefix obj/release_shared/,$(notdir $(CPP_FILES:.cpp=.o)))
 	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) $(OBJ_FILES) -o bin/release_shared/svm_jaaba_behavior_sequence.out $(LIBS)
 
 
