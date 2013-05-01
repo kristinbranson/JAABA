@@ -5023,6 +5023,11 @@ end
           obj.PredictLoaded();
           
         case {'boosting','fancyboosting'},
+          
+          %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
+          %stream = RandStream.getGlobalStream;
+          %reset(stream);          
+          
           if nargin<2
             doFastUpdates = false;
           end
@@ -5041,6 +5046,11 @@ end
               obj.ClearStatus();
               return;
             end
+            
+            %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
+            %stream = RandStream.getGlobalStream;
+            %reset(stream);
+            
             if strcmp(obj.classifiertype,'boosting'),
               [obj.classifier, ~, trainstats] =...
                 boostingWrapper( obj.windowdata.X(islabeled,:), ...

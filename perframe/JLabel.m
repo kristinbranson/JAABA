@@ -966,8 +966,8 @@ end
 
 % if no movie, then set limits
 if ~handles.guidata.data.ismovie,
-  maxx = max([handles.guidata.data.trx.x]);
-  maxy = max([handles.guidata.data.trx.y]);
+  maxx = max([handles.guidata.data.trx.x]+[handles.guidata.data.trx.a]*2);
+  maxy = max([handles.guidata.data.trx.y]+[handles.guidata.data.trx.a]*2);
   handles.guidata.movie_height = ceil(maxy);
   handles.guidata.movie_width = ceil(maxx);
   handles.guidata.nframes = max([handles.guidata.data.trx.endframe]);
@@ -1004,7 +1004,8 @@ end
 
 % set zoom radius
 if isnan(handles.guidata.zoom_fly_radius(1)),
-  handles.guidata.zoom_fly_radius = nanmean([handles.guidata.data.trx.a])*20 + [0,0];
+  handles.guidata.meana = nanmean([handles.guidata.data.trx.a]);
+  handles.guidata.zoom_fly_radius = handles.guidata.meana*20 + [0,0];
 end
 
 % count the maximum number of flies in any frames
@@ -3416,16 +3417,25 @@ for i = is,
   end
   xlim = get(handles.guidata.axes_previews(i),'XLim');
   % a little border at the edge of the image
-  border = .25;
+  border = .1;
   dx = diff(xlim);
-  xlim(1) = xlim(1) + dx*border;
-  xlim(2) = xlim(2) - dx*border;
+  
+  if xlim(1) > .5,
+    xlim(1) = xlim(1) + dx*border;
+  end
+  if xlim(2) < handles.guidata.movie_width+.5,
+    xlim(2) = xlim(2) - dx*border;
+  end
   ylim = get(handles.guidata.axes_previews(i),'YLim');
   dy = diff(ylim);
-  ylim(1) = ylim(1) + dy*border;
-  ylim(2) = ylim(2) - dy*border;
-  if min(xs) < xlim(1) || min(ys) < ylim(1) || ...
-      max(xs) > xlim(2) || max(ys) > ylim(2),
+  if ylim(1) > .5,
+    ylim(1) = ylim(1) + dy*border;
+  end
+  if ylim(2) < handles.guidata.movie_height+.5,
+    ylim(2) = ylim(2) - dy*border;
+  end
+  if min(xs)-handles.guidata.meana*2 < xlim(1) || min(ys)-handles.guidata.meana*2 < ylim(1) || ...
+      max(xs)+handles.guidata.meana*2 > xlim(2) || max(ys)+handles.guidata.meana*2 > ylim(2),
     % center on flies
     newxlim = [max([.5,xs-handles.guidata.zoom_fly_radius(1)]),min([handles.guidata.movie_width+.5,xs+handles.guidata.zoom_fly_radius(1)])];
     newylim = [max([.5,ys-handles.guidata.zoom_fly_radius(2)]),min([handles.guidata.movie_height+.5,ys+handles.guidata.zoom_fly_radius(2)])];
