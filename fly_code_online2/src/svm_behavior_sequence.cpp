@@ -2392,7 +2392,7 @@ bool SVMBehaviorSequence::LoadBehaviorDefinitions(const Json::Value &p) {
 Json::Value SVMBehaviorSequence::SaveBehaviorDefinitions() {
   Json::Value r;
   for(int i = 0; i < behaviors->num_values; i++) {
-    Json::Value v(Json::arrayValue);
+    Json::Value v;
     v["name"] = behaviors->values[i].name;
     v["color"] = behaviors->values[i].color;
     r[i] = v;
