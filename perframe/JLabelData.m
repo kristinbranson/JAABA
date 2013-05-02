@@ -12,21 +12,21 @@ classdef JLabelData < handle
   % everythingParams is generally the contents of a .jab file, which may
   % well have experiments, labels, and/or a classifier.
   
+  % -----------------------------------------------------------------------
   properties (SetAccess=private, GetAccess=public)
-    % currently selected  experiment
-    expi = 0;
-    
-    % currently selected flies
-    flies = [];    
+    expi  % currently selected  experiment
+    flies  % currently selected flies
   end  % properties which are read-only to outsiders
   
+  
+  % -----------------------------------------------------------------------
   properties (Access=public) 
     % type of target (mainly used for plotting)
     % this should be a type of animal, and should be singular, not plural
-    targettype = 'fly';
+    targettype
         
     % last-used trajectories (one experiment, all flies)
-    trx = {};
+    trx
 
     % last-used per-frame data (one fly)
     % This seems to generally be a cell array with as many elements as
@@ -35,7 +35,7 @@ classdef JLabelData < handle
     % elements as their are frames in the current track, which gives the
     % value of that per-frame feature for that frame, for the current
     % experiment and target.  --ALT, Apr 10 2013
-    perframedata = {};
+    perframedata
     
     % A feature lexicon is the universe of possible features available.
     % The features used when training a classifier for a particular
@@ -43,7 +43,7 @@ classdef JLabelData < handle
     % used by a particular trained classifier will be a further subset.
     % Each possible feature lexicon has a name, such as 'flies', or
     % 'vivek_mice'
-    featureLexiconName='';
+    featureLexiconName
     
     % The actual feature lexicon itself.  Note that we should not assume
     % the feature lexicon exactly matches the feature lexicon named
@@ -52,19 +52,10 @@ classdef JLabelData < handle
     % (Granted, there's no way to do this in the UI as of Apr 2, 2013, but
     % that may change in the future.  Plus we want to at least make it
     % possible for the user to hack the everything file in this way.)
-    featureLexicon=[];
+    featureLexicon
     
     % windowdata holds computed and cached window features
-    windowdata = ...
-      struct('X',single([]),'exp',[],'flies',[],'t',[],...
-             'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
-             'labelidx_imp',[],'featurenames',{{}},...
-             'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
-             'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
-             'scores_old',[],'scores_validated',[],'postprocessed',[]);
-    % X holds the actual window features     
-    % not used anymore: predicted, predicted_probs, isvalidprediciton,
-    % distNdx, scores, scores_old, maybe postprocessed
+    windowdata
 
     % predictdata stores predictions.  It is cell array, with as many
     % elements as there are experiments.  Each element holds another cell
@@ -96,18 +87,7 @@ classdef JLabelData < handle
     % without a suffix hold the raw scores (I think).  t gives the frame
     % number for each element, and timestamp gives the timestamp of the
     % classifier that generated the score.
-    predictdata = {};
-%     predictdata=struct('t',{}, ...
-%                        'cur',{}, ...
-%                        'cur_valid',{}, ...
-%                        'cur_pp',{}, ...
-%                        'old',{}, ...
-%                        'old_valid',{}, ...
-%                        'old_pp',{}, ...
-%                        'loaded',{}, ...
-%                        'loaded_valid',{}, ...
-%                        'loaded_pp',{}, ...
-%                        'timestamp',{});
+    predictdata
     
     % The predictblocks stores which frames, for which tracks, get
     % predicted when training happens.  (B/c you only really need to
@@ -115,17 +95,13 @@ classdef JLabelData < handle
     % at a particular stretch of frames for a particular track, that
     % stretch will get added to predictblocks, regardless of whether there
     % are labelled frames anywhere near it.  -- ALT, Mar 04 2013
-    predictblocks = struct('t0',[],'t1',[],'expi',[],'flies',[]);
+    predictblocks
    
-    fastPredict = struct('classifier',[],...
-                         'windowfeaturescellparams',[],...
-                         'wfs',{{}},...
-                         'pffs',[],'wfidx',[],'ts',[],...
-                         'wfidx_valid',false);
+    fastPredict
         
     % constant: radius of window data to compute at a time
-    windowdatachunk_radius = 100;
-    predictwindowdatachunk_radius = 10000;
+    windowdatachunk_radius
+    predictwindowdatachunk_radius
     % total number of experiments
     %nexps = 0;  % this is now a dependent property
     
@@ -145,181 +121,142 @@ classdef JLabelData < handle
     % first frame for the trajectory(s) may not be 1.
     % labels(expi).timestamp is the Matlab timestamp at which labels(expi)
     % was last set
-    labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
-    %gt_labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
+    labels
     
     % labels for the current experiment and flies, represented as an array
     % such that labelidx(t+labelidx_off) is the index of the behavior for
     % frame t of the movie. labelidx(i) == 0 corresponds to
     % unlabeled/unknown, otherwise labelidx(i) corresponds to behavior
     % labelnames{labelidx{i})
-    labelidx = struct('vals',[],'imp',[],'timestamp',[]);
-    labelidx_off = 0;
+    labelidx
+    labelidx_off
     
     %labelsLoadedFromClassifier = false;
     % first frame that all flies currently selected are tracked
-    t0_curr = 0;
+    t0_curr
     % last frame that all flies currently selected are tracked
-    t1_curr = 0;
+    t1_curr
     
     % predicted label for current experiment and fly, with the same type
     % of representation as labelidx, except that a value of zero means that
     % there is no prediction (as when a classifier has not yet been trained, 
     % or has been cleared).  These variables are essentially a cache of the
     % data in self.predictdata.
-    predictedidx = [];
-    scoresidx = [];  % Is this really an index?  Isn't it just the score itself?
-    scoresidx_old = [];
-    scoreTS = [];  % timestamp for the above
+    predictedidx
+    scoresidx  % Is this really an index?  Isn't it just the score itself?
+    scoresidx_old
+    scoreTS  % timestamp for the above
     
     % whether the predicted label matches the true label. 0 stands for
     % either not predicted or not labeled, 1 for matching, 2 for not
     % matching. this has the same representation as labelidx.
-    erroridx = [];
+    erroridx
     
     % TODO: remove this
     % predictedidx for unlabeled data, same representation as labelidx
-    suggestedidx = [];
+    suggestedidx
     
     % names of behaviors, corresponding to labelidx
-    labelnames = {};
-    
-%     % colors for plotting each behavior
-%     labelcolors = [.7,0,0;0,0,.7];
-%     unknowncolor = [0,0,0];
-    
+    labelnames
+        
     % number of behaviors, including 'none'
-    nbehaviors = 0;
+    nbehaviors
 
     % statistics of labeled data per experiment
     % labelstats(expi).nflies_labeled is the total number of flies labeled,
     % labelstats(expi).nbouts_labeled is the total number of bouts of
     % behaviors labeled, labelstats(expi).
-    labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+    labelstats
     %gt_labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
     
     % computing per-frame properties
-    perframe_params = {};
-    landmark_params = struct;  % scalar struct with no fields
+    perframe_params
+    landmark_params
     
     % classifier
     
     % type of classifier to use
-%    classifiertype = 'ferns';
-    classifiertype = 'boosting';
+    classifiertype
     
     % currently learned classifier. structure depends on the type of
     % classifier. if empty, then no classifier has been trained yet. 
-    classifier = [];
-    classifier_old = [];
-    lastFullClassifierTrainingSize = 0;
+    classifier
+    classifier_old
+    lastFullClassifierTrainingSize
     
     % Classifier Time Stamp
-    classifierTS = 0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
+    classifierTS  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
     
     % training statistics
-    trainstats = [];
+    trainstats
     
     % parameters to learning the classifier. struct fields depend on type
     % of classifier.
     % TODO
-    classifier_params = ...
-      struct('iter',100, ...
-             'iter_updates',10, ...
-             'numSample',2500, ...
-             'numBins',30, ...
-             'CVfolds',7, ...
-             'baseClassifierTypes',{'Decision Stumps'}, ...
-             'baseClassifierSelected',1);
+    classifier_params
     
     % stuff cached during prediction
-    predict_cache = struct;
+    predict_cache
     
     % % name of file containing config parameters
     % configfilename = '';
     
     % constant: files per experiment directory
     %filetypes = {'movie','trx','label','gt_label','perframedir','clipsdir','scores'};
-    filetypes = {'movie','trx','perframedir','clipsdir','scores'};
+    filetypes
     
     % locations of files within experiment directories
-    moviefilename = 0;
-    trxfilename = 0;
-    scorefilename = 0;
-    perframedir = 0;
-    clipsdir = 0;
-    scores = 0;
+    moviefilename
+    trxfilename
+    scorefilename
+    perframedir
+    clipsdir
+    scores
     
     % Properties relating to whether there is a movie to show
-    openmovie = true;  % true iff a movie is one of the required files for each experiment
-    ismovie = false;  % true iff a movie is one of the required files, and the movie file name has been specified
-    
-    % file containing feature parameters
-    %featureparamsfilename = 0;
-    
-    % feature configuration file name
-    %featureConfigFile = '';
-    
-    % in case we don't want to write to the experiment directory, we will
-    % mirror the experiment directory structure in the rootoutput dir
-    % this can be the same as the input root directory
-    %rootoutputdir = 0;
-
-    % % name of classifier file to save/load classifier from
-    % classifierfilename = '';
+    openmovie  % true iff a movie is one of the required files for each experiment
+    ismovie  % true iff a movie is one of the required files, and the movie file name has been specified
     
     % experiment info: expi indexes the following
     
     % cell array of input experiment directory paths for the current GT
     % mode
-    expdirs = {};
-%     
-%     % cell array of corresponding experiment names (last part of path)
-%     expnames = {};
-%     
-%     % cell array of ground-truth experiment directories
-%     gtExpDirNames={};
-%     
-%     % cell array of corresponding experiment names (last part of path)
-%     gtExpNames={};
-    
-    % cell array of corresponding output experiment directory paths
-    %outexpdirs = {};
+    expdirs
     
     % array of number of flies in each experiment
-    nflies_per_exp = [];
+    nflies_per_exp
     
     % cell array of arrays of first frame of each trajectory for each
     % experiment: firstframes_per_exp{expi}(fly) is the first frame of the
     % trajectory of fly for experiment expi. 
-    firstframes_per_exp = {};
+    firstframes_per_exp
     % cell array of arrays of end frame of each trajectory for each
     % experiment: endframes_per_exp{expi}(fly) is the last frame of the
     % trajectory of fly for experiment expi. 
-    endframes_per_exp = {};
+    endframes_per_exp
     
     % sex per experiment, fly
-    frac_sex_per_exp = {};
-    sex_per_exp = {};
+    frac_sex_per_exp
+    sex_per_exp
     
     % whether sex is computed
-    hassex = false;
+    hassex
     % whether sex is computed on a per-frame basis
-    hasperframesex = false;
+    hasperframesex
     
     % last-used path for loading experiment
-    defaultpath = '';
+    defaultpath
     
     % parameters of window features, represented as a struct
     % Each field holds the parameters for a single per-frame feature in the
     % feature vocabulary, with the field name being the per-frame feature
     % name.  Score features are included in the feature vocabulary.
-    windowfeaturesparams = struct();
+    windowfeaturesparams
     
     % parameters of window features, represented as a cell array of
     % parameter name, parameter value, so that it can be input to
     % ComputeWindowFeatures
-    windowfeaturescellparams = {};
+    windowfeaturescellparams
     
     %savewindowfeatures = false;  % whether unsaved changes have been made
     %                             % to the features
@@ -336,17 +273,17 @@ classdef JLabelData < handle
       % if we wanted to...)
     
     % per-frame features that are used
-    allperframefns = {};  % The list of all per-frame feature names in 
-                          % the lexicon that are actually calculated for
-                          % each frame, plus the scores-as-input feature
-                          % names.  I would call this the the 'subdialect'.
-                          % --ALT, Apr 5, 2013
-    curperframefns = {};  % The list of all per-frame feature names 
-                          % that are used for classifier training.  This is
-                          % a subset of allperframefns, and includes all the
-                          % scores-as-input feature names.  I would call
-                          % this the 'vocabulary'. --ALT, Apr 5, 2013
-    perframeunits = {};
+    allperframefns  % The list of all per-frame feature names in 
+                    % the lexicon that are actually calculated for
+                    % each frame, plus the scores-as-input feature
+                    % names.  I would call this the the 'subdialect'.
+                    % --ALT, Apr 5, 2013
+    curperframefns  % The list of all per-frame feature names 
+                    % that are used for classifier training.  This is
+                    % a subset of allperframefns, and includes all the
+                    % scores-as-input feature names.  I would call
+                    % this the 'vocabulary'. --ALT, Apr 5, 2013
+    perframeunits 
 
     % the scores from other classifiers that that used as features for this
     % classifier.  A structure array with number of elements equal to the
@@ -354,57 +291,54 @@ classdef JLabelData < handle
     % the .jab file holding the external classifier, ts holds the time step
     % of the classifier, and scorefilename is the local base name of the
     % score file stored in the experiment directory (e.g. "Chase_v7")
-    scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
+    scoreFeatures 
     
     % experiment/file management
 
     % matrix of size numel(file_types) x nexps, where
     % fileexists(filei,expi) indicates whether file filetypes{filei} exists
     % for experiment expi
-    fileexists = [];
+    fileexists 
     
     % timestamps indicating time the files were last edited, same structure
     % as fileexists
-    filetimestamps = [];
+    filetimestamps
     
     % whether all necessary files for all experiments exist
-    allfilesexist = true;
+    allfilesexist 
 
     % whether we can generate any missing files
-    filesfixable = true;
+    filesfixable 
     
     % whether user has given permission to generate the perframe files
-    perframeGenerate = [];
+    perframeGenerate
     
     % to overwrite or keep the perframe files.
-    perframeOverwrite = [];
+    perframeOverwrite
     
     % warn about removing arena features.
-    arenawarn = true;
-    hasarenaparams = [];
+    arenawarn
+    hasarenaparams
     
     % functions for writing text to a status bar
-    setstatusfn = '';
-    clearstatusfn = '';
+    setstatusfn
+    clearstatusfn
     
     % data for show similar frames.
-    frameFig = [];
-    distMat = [];
-    bagModels = {};
-    fastPredictBag = struct('classifier',[],'windowfeaturescellparams',[],...
-      'wfs',[],'pffs',[],'ts',[],'tempname',[],'curF',[],'dist',[],'trainDist',[]);
+    frameFig 
+    distMat 
+    bagModels
+    fastPredictBag 
 
     % Confidence Thresholds
     %confThresholds = zeros(1,0);
-    confThresholds = [0 0];
+    confThresholds
     
     % Retrain properly
-    doUpdate = true;
+    doUpdate 
     
     % Ground truthing or not
-    % gtMode is set in the constructor, and is constant over the life
-    % of the object.
-    gtMode = [];  % Seems like it would make sense to not have
+    gtMode        % Seems like it would make sense to not have
                   % JLabelData know about this---it's really more
                   % a property of the View, not the Model, it seems to
                   % me.  --ALT, Jan 17 2013
@@ -413,22 +347,17 @@ classdef JLabelData < handle
                   % This is set to empty unless a file is open.
     
     % Ground truthing suggestion
-    randomGTSuggestions = {};
-    thresholdGTSuggestions = [];
-    loadedGTSuggestions = {};
-    balancedGTSuggestions = {};
-    GTSuggestionMode = '';
+    randomGTSuggestions
+    thresholdGTSuggestions
+    loadedGTSuggestions
+    balancedGTSuggestions
+    GTSuggestionMode
     
-    cacheSize = 4000;
+    cacheSize
     
-    postprocessparams = []
-    version = '';
-    
-    % things related to the everything file
-    %userHasSpecifiedEverythingFileName=false;
-    %everythingFileName='';  % absolute file name
-    % This stuff is stored in JLabelGUIData now
-    
+    postprocessparams
+    version
+        
     % A place to store things for the other mode.
     % So if the JLabelData instance is created in GT mode, this stores the
     % normal experiment directory names, labels, and label statisitics.  If
@@ -436,64 +365,34 @@ classdef JLabelData < handle
     % directory names, etc.  This keeps the stuff for the other mode out of
     % our hair, but keeps it around so that we can save it to the
     % everything file.
-    otherModeLabelsEtc=struct('expDirNames',{cell(1,0)}, ...
-                              'labels',{struct([])});
+    otherModeLabelsEtc
     
     % you could argue that these are view-related, and so shouldn't be in
     % here, but they get saved to the everything file, so we'll include
     % them here.
-    labelGraphicParams=[];
-    trxGraphicParams=[];
-    labelcolors = [];
-    unknowncolor = [0 0 0];
+    labelGraphicParams
+    trxGraphicParams
+    labelcolors
+    unknowncolor
     
     % .jab-file handling stuff
-    thereIsAnOpenFile=false;
-    everythingFileNameAbs='';  % the name of the everything file, if one
+    thereIsAnOpenFile
+    everythingFileNameAbs      % the name of the everything file, if one
                                % is open.  We need this here b/c a new
                                % everything file doesn't have a JLabelData
                                % object yet.
-    userHasSpecifiedEverythingFileName=false;  % true iff the everything
+    userHasSpecifiedEverythingFileName         % true iff the everything
                                                % file name was specified by
                                                % the user, as opposed to
                                                % being chosen by default
                                                % when a new file was
                                                % created
-    needsave = false;  % true iff there are unsaved changes
+    needsave  % true iff there are unsaved changes
   end
 
-%   properties (Access=private,Constant=true)
-%     % these two properties together define the mapping between
-%     % field names in a classifier struct and field names in JLabelData.
-%     % Used in setClassifier() and getClassifier() methods.
-%     fieldNamesInSelf = {'classifiertype', ...
-%                         'classifier', ...
-%                         'classifier_params', ...
-%                         'classifierTS', ...
-%                         'confThresholds', ...
-%                         'scoreNorm', ...
-%                         'postprocessparams'};
-% %                        'windowfeaturesparams', ...
-%     fieldNamesInClassifier = {'type', ...
-%                               'params', ...
-%                               'trainingParams', ...
-%                               'timeStamp', ...
-%                               'confThresholds', ...
-%                               'scoreNorm', ...
-%                               'postProcessParams'}
-% %                              'windowFeaturesParams', ...
-%   end
   
-%   properties (Access=private)
-%     % cell array of input experiment directory paths
-%     expDirNames = {};
-%     
-%     % cell array of ground-truth experiment directories
-%     gtExpDirNames={};
-%   end
-  
+  % -----------------------------------------------------------------------
   properties (Access=public,Dependent=true)
-    %expdirs
     expnames
     nexps
     nTargetsInCurrentExp
@@ -559,6 +458,149 @@ classdef JLabelData < handle
   
   % -----------------------------------------------------------------------
   methods (Access=private)
+    % ---------------------------------------------------------------------
+    function initialize(self)
+      % Set all properties to the state they should have just after the
+      % JLabelData object is created, before any .jab file has been loaded
+      % or a new file is created.  The state of the object after calling
+      % this function does not depend at all on the state prior to calling
+      % it.  Nothing is spared.  Scorched earth.
+      % Also: No attempt is done to close open files, or anything like
+      % that.  It just sets the properties to the values they should have
+      % initially.
+      self.expi = 0;
+      self.flies = [];    
+      self.targettype = 'fly';
+      self.trx = {};
+      self.perframedata = {};
+      self.featureLexiconName='';
+      self.featureLexicon=[];
+      self.windowdata = ...
+        struct('X',single([]),'exp',[],'flies',[],'t',[],...
+               'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
+               'labelidx_imp',[],'featurenames',{{}},...
+               'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
+               'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
+               'scores_old',[],'scores_validated',[],'postprocessed',[]);
+        % X holds the actual window features     
+        % not used anymore: predicted, predicted_probs, isvalidprediciton,
+        % distNdx, scores, scores_old, maybe postprocessed             
+      self.predictdata = {};
+      self.predictblocks = struct('t0',[],'t1',[],'expi',[],'flies',[]);
+      self.fastPredict = ...
+        struct('classifier',[],...
+               'windowfeaturescellparams',[],...
+               'wfs',{{}},...
+               'pffs',[], ...
+               'wfidx',[], ...
+               'ts',[], ...
+               'wfidx_valid',false);
+      self.windowdatachunk_radius = 100;
+      self.predictwindowdatachunk_radius = 10000;
+      self.labels = struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
+      self.labelidx = struct('vals',[],'imp',[],'timestamp',[]);
+      self.labelidx_off = 0;
+      self.t0_curr = 0;
+      self.t1_curr = 0;
+      self.predictedidx = [];
+      self.scoresidx = [];  
+      self.scoresidx_old = [];
+      self.scoreTS = [];  
+      self.erroridx = [];
+      self.suggestedidx = [];
+      self.labelnames = {};
+      self.nbehaviors = 0;
+      self.labelstats = struct('nflies_labeled',{},'nbouts_labeled',{});
+      self.perframe_params = {};
+      self.landmark_params = struct;  % scalar struct with no fields
+      self.classifiertype = 'boosting';
+      self.classifier = [];
+      self.classifier_old = [];
+      self.lastFullClassifierTrainingSize = 0;
+      self.classifierTS = 0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
+      self.trainstats = [];
+      self.classifier_params = ...
+        struct('iter',100, ...
+               'iter_updates',10, ...
+               'numSample',2500, ...
+               'numBins',30, ...
+               'CVfolds',7, ...
+               'baseClassifierTypes',{'Decision Stumps'}, ...
+               'baseClassifierSelected',1);
+      self.predict_cache = struct;
+      self.filetypes = {'movie','trx','perframedir','clipsdir','scores'};
+      self.moviefilename = 0;
+      self.trxfilename = 0;
+      self.scorefilename = 0;
+      self.perframedir = 0;
+      self.clipsdir = 0;
+      self.scores = 0;
+      self.openmovie = true;
+      self.ismovie = false;
+      self.expdirs = {};
+      self.nflies_per_exp = [];
+      self.firstframes_per_exp = {};
+      self.endframes_per_exp = {};
+      self.frac_sex_per_exp = {};
+      self.sex_per_exp = {};
+      self.hassex = false;
+      self.hasperframesex = false;
+      self.defaultpath = '';
+      self.windowfeaturesparams = struct();
+      self.windowfeaturescellparams = {};
+      self.allperframefns = {};
+      self.curperframefns = {};
+      self.perframeunits = {};
+      self.scoreFeatures = struct('classifierfile',{}, ...
+                                  'ts',{}, ...
+                                  'scorefilename',{});
+      self.fileexists = [];
+      self.filetimestamps = [];
+      self.allfilesexist = true;
+      self.filesfixable = true;
+      self.perframeGenerate = [];
+      self.perframeOverwrite = [];
+      self.arenawarn = true;
+      self.hasarenaparams = [];
+      self.setstatusfn = '';
+      self.clearstatusfn = '';
+      self.frameFig = [];
+      self.distMat = [];
+      self.bagModels = {};
+      self.fastPredictBag = ...
+        struct('classifier',[], ...
+               'windowfeaturescellparams',[],...
+               'wfs',[], ...
+               'pffs',[], ...
+               'ts',[], ...
+               'tempname',[], ...
+               'curF',[], ...
+               'dist',[], ...
+               'trainDist',[]);
+      self.confThresholds = [0 0];
+      self.doUpdate = true;
+      self.gtMode = [];
+      self.randomGTSuggestions = {};
+      self.thresholdGTSuggestions = [];
+      self.loadedGTSuggestions = {};
+      self.balancedGTSuggestions = {};
+      self.GTSuggestionMode = '';
+      self.cacheSize = 4000;
+      self.postprocessparams = [];
+      self.version = '';
+      self.otherModeLabelsEtc=struct('expDirNames',{cell(1,0)}, ...
+                                     'labels',{struct([])});
+      self.labelGraphicParams=[];
+      self.trxGraphicParams=[];
+      self.labelcolors = [];
+      self.unknowncolor = [0 0 0];
+      self.thereIsAnOpenFile=false;
+      self.everythingFileNameAbs='';
+      self.userHasSpecifiedEverythingFileName=[];  % neither true nor false
+      self.needsave=[];  % neither true nor false
+    end  % method
+    
+    
     % ---------------------------------------------------------------------    
     function [success,msg] = setFeatureLexiconRaw(obj,featureLexicon,animalType,featureLexiconName)
       % This sets the feature lexicon to the given one.  If the
@@ -3136,6 +3178,9 @@ classdef JLabelData < handle
     % default string
     % classifierfilename: name of classifier file to save/load classifier from
  
+      % Initialize the object
+      obj.initialize();
+    
       % args should be key-value pairs
       if mod(numel(varargin),2) ~= 0,
         error('JLabelData:oddNumberOfArgsToConstructor',  ...
@@ -9612,10 +9657,22 @@ classdef JLabelData < handle
     
     % ---------------------------------------------------------------------
     function closeJabFile(self)
-      self.thereIsAnOpenFile=false;
-      self.everythingFileNameAbs='';
-      self.userHasSpecifiedEverythingFileName=[];
-      self.needsave=[];
+      % Save the things we want to persist after closing the file
+      defaultPath=self.defaultpath;
+      setStatusFunction=self.setstatusfn;
+      clearStatusFunction=self.clearstatusfn;
+      cacheSize=self.cacheSize;
+      version=self.version;
+      
+      % Nuke the site from orbit.  It's the only way to be sure.
+      self.initialize();
+      
+      % Re-load the things we want to persist
+      self.defaultpath=defaultPath;
+      self.setstatusfn=setStatusFunction;
+      self.clearstatusfn=clearStatusFunction;
+      self.cacheSize=cacheSize;
+      self.version=version;
     end
     
     
