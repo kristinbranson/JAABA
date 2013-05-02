@@ -1623,8 +1623,8 @@ classdef JLabelData < handle
     % data, and computes window data for all frames in a chunk of size
     % 2*obj.windowdatachunk_radius + 1 after this frame using the function
     % ComputeWindowDataChunk. Then, it updates the frames that are missing
-    % window data. It proceeds in this loop until there are not frames
-    % in the input ts missing window data. 
+    % window data. It proceeds in this loop until there are no frames
+    % in the input ts that lack window data. 
       
       success = false; msg = '';
 
@@ -1638,7 +1638,7 @@ classdef JLabelData < handle
       obj.CheckExp(expi); obj.CheckFlies(flies);
       
       
-      % which frames don't have window data yet
+      % which frames don't have window data, which do
       if isempty(obj.windowdata.exp),
         missingts = ts;
         tscurr = [];
@@ -1647,6 +1647,9 @@ classdef JLabelData < handle
         tscurr = obj.windowdata.t(idxcurr);
         missingts = setdiff(ts,tscurr);
       end
+      % tscurr: frame indices that do have window data for the whole track
+      %         (not just ts)
+      % missingts: frame indices in ts that do not have window data
         
       % no frames missing data?
       if isempty(missingts),
@@ -1672,20 +1675,23 @@ classdef JLabelData < handle
         end
         
         % update the status
-        obj.SetStatus('Computing window data for exp %s, fly%s: %d%% done...',...
-          obj.expnames{expi},sprintf(' %d',flies),round(100*(nts0-numel(missingts))/nts0));
+        obj.SetStatus('Computing window data for exp %s, target %d: %d%% done...',...
+          obj.expnames{expi},flies,round(100*(nts0-numel(missingts))/nts0));
         
         % compute window data for a chunk starting at t
         [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
         if ~success1, warning(msg); return; end
 
         % only store window data that isn't already cached
-        tsnew = t0:t1;
-        idxnew = (~ismember(tsnew,tscurr)) &ismember(tsnew,missingts);
-        m = nnz(idxnew);
-        if m==0; return; end
+        tsnew = t0:t1;  % frame indices in the new chunk
+        idxnew = (~ismember(tsnew,tscurr)) & ismember(tsnew,missingts);
+          % a boolean array the same size as tsnew, each element true iff
+          % that element is not in tscurr, and is in missingts
+        m = nnz(idxnew);  % the number of frames for which we now have window data, but we didn't before
+        if m==0; return; end  % if we didn't make progress, return, signalling failure
 
-        % Add this to predict blocks.
+        % Add this chunk to predictblocks, which lists all the chunks for
+        % which we do prediction, when we do prediction
 %         obj.predictblocks.expi(end+1) = expi;
 %         obj.predictblocks.flies(end+1) = flies;
 %         obj.predictblocks.t0(end+1) = t0;
@@ -2037,7 +2043,7 @@ classdef JLabelData < handle
           for j = 1:numel(labels_curr.t0s),
             ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
           end
-          
+          % ts now holds a list of all labeled frames for curr exp, fly
           [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
           if ~success1,return;end            
           
