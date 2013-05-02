@@ -1035,7 +1035,7 @@ classdef JLabelData < handle
       
       % apply classifier
       switch obj.classifiertype,
-        case 'boosting',
+        case {'boosting','fancyboosting'},
           if(isempty(obj.predictblocks.t0)), return, end
           
           predictblocks = obj.predictblocks;
@@ -1184,18 +1184,66 @@ classdef JLabelData < handle
     function FindWfidx(obj,feature_names)
       
       wfs = obj.fastPredict.wfs;
-      wfidx = nan(1,numel(wfs));
-      for j = 1:numel(wfs),
-        idxcurr = find(WindowFeatureNameCompare(wfs{j},feature_names));
-        if numel(idxcurr) ~= 1,
-          error('Error matching wfs for classifier with window features computed');
-        end
-        wfidx(j) = idxcurr;
+
+      wfs_char = cellfun(@cell2str,wfs,'UniformOutput',false);
+      feature_names_char = cellfun(@cell2str,feature_names,'UniformOutput',false);
+      [ism,wfidx] = ismember(wfs_char,feature_names_char);
+      if ~all(ism),
+        error('Error matching wfs for classifier with window features computed');
       end
+      
+%       wfidx = nan(1,numel(wfs));
+%       for j = 1:numel(wfs),
+%         idxcurr = find(WindowFeatureNameCompare(wfs{j},feature_names));
+%         if numel(idxcurr) ~= 1,
+%           error('Error matching wfs for classifier with window features computed');
+%         end
+%         wfidx(j) = idxcurr;
+%       end
+      
       obj.fastPredict.wfidx = wfidx;
       obj.fastPredict.wfidx_valid = true;
     end
     
+    
+    % ---------------------------------------------------------------------
+    function finished = WindowDataPredictFast(obj,expi,flies,t0,t1)
+      % try to predict using data cached in windowdata
+
+      finished = false;
+      idxfly = find(obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2));
+      if isempty(idxfly),
+        return;
+      end
+      % ism(i) is whether there is windowdata for t0+i-1
+      % idxfly(idx1(i)) is which index of windowdata corresponds to t0+i-1
+      [ism,idx1] = ismember(t0:t1,obj.windowdata.t(idxfly));
+      idxism = find(ism);
+      if isempty(idxism),
+        return;
+      end      
+      % idx(i) is the index into windowdata for t0+idxism(i)-1
+      idx = idxfly(idx1(idxism));
+
+      % run the classifier: scores(i) is the score for t0+idxism(i)-1
+      scores = myBoostClassify(obj.windowdata.X(idx,:),obj.classifier);
+      
+      % store in predictdata
+      % predictism(i) is whether t0+idxism(i)-1 is in predictdata
+      % predictidx(i) is the location in predictdata{expi}{flies} of
+      % t0+idxism-1
+      [predictism,predictidx] = ismember(t0+idxism-1,obj.predictdata{expi}{flies}.t);
+      if ~all(predictism),
+        error('This should never happen: there are ts requested that are not in predictdata');
+      end
+      obj.predictdata{expi}{flies}.cur(predictidx) = scores;
+      obj.predictdata{expi}{flies}.timestamp(predictidx) = obj.classifierTS;
+      obj.predictdata{expi}{flies}.cur_valid(predictidx) = true;
+      
+      finished = all(ism);
+      
+    end
+      
     
     % ---------------------------------------------------------------------
     function PredictFast(obj,expi,flies,t0,t1)
@@ -1218,6 +1266,10 @@ classdef JLabelData < handle
 %         
       idxcurr_t = obj.predictdata{expi}{flies}.t>=t0 & obj.predictdata{expi}{flies}.t<=t1;
       if all(obj.predictdata{expi}{flies}.cur_valid(idxcurr_t)), return; end
+      finished = obj.WindowDataPredictFast(expi,flies,t0,t1);
+      if finished,
+        return
+      end
       missingts = obj.predictdata{expi}{flies}.t(idxcurr_t);
         
       perframeInMemory = ~isempty(obj.flies) && obj.IsCurFly(expi,flies);
@@ -1411,7 +1463,9 @@ classdef JLabelData < handle
       errorRates.numbers = confMat;
       errorRates.frac = errorRates.numbers./repmat( sum(errorRates.numbers,2),[1 3]);
     end
+
     
+    % ---------------------------------------------------------------------
     function bouts = getLabeledBouts(obj)
     % Find the bouts from window data.
 
@@ -1433,6 +1487,31 @@ classdef JLabelData < handle
             bouts.timestamp(end+1) = curLabels.timestamp(boutNum);
           end
           
+        end
+      end
+      
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function bouts = GetLabeledBouts_KB(obj)
+      
+      bouts = struct('t0s',[],'t1s',[],'flies',[],'expis',[],'timestamps',[],'names',{{}});
+      for expi = 1:numel(obj.labels),
+        for flyi = 1:size(obj.labels(expi).flies,1),
+          flies = obj.labels(expi).flies(flyi,:);
+          t0s = obj.labels(expi).t0s{flyi};
+          t1s = obj.labels(expi).t1s{flyi};
+          if isempty(t0s),
+            continue;
+          end
+          n = numel(t0s);
+          bouts.t0s(end+1:end+n) = t0s;
+          bouts.t1s(end+1:end+n) = t1s;
+          bouts.flies(end+1:end+n,:) = flies;
+          bouts.expis(end+1:end+n) = expi;
+          bouts.timestamps(end+1:end+n) = obj.labels(expi).timestamp{flyi};
+          bouts.names(end+1:end+n) = obj.labels(expi).names{flyi};
         end
       end
       
@@ -1565,11 +1644,17 @@ classdef JLabelData < handle
         if m==0; return; end
 
         % Add this to predict blocks.
-        obj.predictblocks.expi(end+1) = expi;
-        obj.predictblocks.flies(end+1) = flies;
-        obj.predictblocks.t0(end+1) = t0;
-        obj.predictblocks.t1(end+1) = t1;
-        
+%         obj.predictblocks.expi(end+1) = expi;
+%         obj.predictblocks.flies(end+1) = flies;
+%         obj.predictblocks.t0(end+1) = t0;
+%         obj.predictblocks.t1(end+1) = t1;
+        [i0s,i1s] = get_interval_ends(idxnew); i1s = i1s-1;
+        for j = 1:numel(i0s),
+          obj.predictblocks.expi(end+1) = expi;
+          obj.predictblocks.flies(end+1) = flies;
+          obj.predictblocks.t0(end+1) = t0+i0s(j)-1;
+          obj.predictblocks.t1(end+1) = t0+i1s(j)-1;
+        end
 
         % add to windowdata
         obj.windowdata.X(end+1:end+m,:) = X(idxnew,:);
@@ -3155,6 +3240,34 @@ classdef JLabelData < handle
     % ---------------------------------------------------------------------
     function nflies = GetNumFlies(obj,expi)
       nflies = obj.nflies_per_exp(expi);
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function firstframes = GetFirstFrames(obj,expi,flies)
+      
+      if nargin < 2,
+        firstframes = obj.firstframes_per_exp;
+      elseif nargin < 3,
+        firstframes = obj.firstframes_per_exp(expi);
+      else
+        firstframes = obj.firstframes_per_exp{expi}(flies);
+      end
+      
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function endframes = GetEndFrames(obj,expi,flies)
+      
+      if nargin < 2,
+        endframes = obj.endframes_per_exp;
+      elseif nargin < 3,
+        endframes = obj.endframes_per_exp(expi);
+      else
+        endframes = obj.endframes_per_exp{expi}(flies);
+      end
+      
     end
 
     
@@ -7317,6 +7430,35 @@ classdef JLabelData < handle
     
     
     % ---------------------------------------------------------------------
+    function SetLabel_KB(obj,expi,flies,ts,behaviori,important)
+
+      % SetLabel_KB(obj,expi,flies,ts,behaviori)
+      % Set label for experiment expi, flies, and frames ts to behaviori.
+      % Store everywhere.
+      
+      % store in labelidx
+      if obj.IsCurFly(expi,flies),
+        obj.labelidx.vals(ts+obj.labelidx_off) = behaviori;
+        obj.labelidx.imp(ts+obj.labelidx_off) = important;
+        obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
+      end      
+
+      % store in labels
+      [labelidx,T0] = obj.GetLabelIdx(expi,flies);
+      labelidx.vals(ts+1-T0) = behaviori;
+      labelidx.imp(ts+1-T0) = important;
+      labelidx.timestamp(ts+1-T0) = now;
+      obj.StoreLabels1(expi,flies,labelidx,1-T0);
+      
+      % store in windowdata
+      idxcurr = obj.windowdata.exp == expi & obj.windowdata.flies == flies & ismember(obj.windowdata.t,ts);
+      obj.windowdata.labelidx_new(idxcurr) = behaviori;
+      obj.windowdata.labelidx_imp(idxcurr) = important;
+      
+    end
+    
+    
+    % ---------------------------------------------------------------------
     function setWindowFeaturesParams(obj,windowFeaturesParams)
       % Updates the feature params.  Called after user clicks Done in Select
       % Features...
@@ -7395,15 +7537,16 @@ classdef JLabelData < handle
       
       switch obj.classifiertype,
                 
-        case 'boosting',
+        case {'boosting','fancyboosting'},
+          
+          %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
+          %stream = RandStream.getGlobalStream;
+          %reset(stream);                    
+          
           if nargin<2
             doFastUpdates = false;
           end
 
-          %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
-          %stream = RandStream.getGlobalStream;
-          %reset(stream);
-          
           if obj.DoFullTraining(doFastUpdates),
             obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
 
@@ -7423,11 +7566,22 @@ classdef JLabelData < handle
             %stream = RandStream.getGlobalStream;
             %reset(stream);
             
-            [obj.classifier, ~, trainstats] =...
-                boostingWrapper( obj.windowdata.X(islabeled,:), ...
-                                 obj.windowdata.labelidx_new(islabeled),obj,...
-                                 obj.windowdata.binVals,...
-                                 bins,obj.classifier_params);
+           if strcmp(obj.classifiertype,'boosting'),
+              [obj.classifier, ~, trainstats] =...
+                boostingWrapper(obj.windowdata.X(islabeled,:), ...
+                                obj.windowdata.labelidx_new(islabeled),obj,...
+                                obj.windowdata.binVals,...
+                                bins, ...
+                                obj.classifier_params);
+            else
+              [obj.classifier] = ...
+                fastBag(obj.windowdata.X(islabeled,:),...
+                        obj.windowdata.labelidx_new(islabeled),...
+                        obj.windowdata.binVals,...
+                        bins, ...
+                        obj.classifier_params);
+              trainstats = struct;
+            end
             obj.lastFullClassifierTrainingSize = nnz(islabeled);
             
           else
@@ -7439,10 +7593,17 @@ classdef JLabelData < handle
             bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
             
             obj.classifier_old = obj.classifier;
-            [obj.classifier, ~, trainstats] = boostingUpdate(obj.windowdata.X(islabeled,:),...
-                                          obj.windowdata.labelidx_new(islabeled),...
-                                          obj.classifier,obj.windowdata.binVals,...
-                                          bins,obj.classifier_params);
+            if strcmp(obj.classifiertype,'boosting'),
+              [obj.classifier, ~, trainstats] = ...
+                boostingUpdate(obj.windowdata.X(islabeled,:),...
+                               obj.windowdata.labelidx_new(islabeled),...
+                               obj.classifier, ...
+                               obj.windowdata.binVals,...
+                               bins, ...
+                               obj.classifier_params);
+            else
+              error('Fast updates not defined for fancy boosting.');
+            end
           end
           obj.classifierTS = now();
           
@@ -7496,12 +7657,11 @@ classdef JLabelData < handle
             
       % apply classifier
       switch obj.classifiertype,
-        case 'boosting',
-          obj.SetStatus('Updating Predictions ...');
-          obj.PredictFast(expi,flies,t0,t1)
-          obj.ApplyPostprocessing();
-          obj.ClearStatus();
-
+      case {'boosting','fancyboosting'},
+        obj.SetStatus('Updating Predictions ...');
+        obj.PredictFast(expi,flies,t0,t1)
+        obj.ApplyPostprocessing();
+        obj.ClearStatus();
       end
            
       obj.UpdatePredictedIdx();
