@@ -13,7 +13,7 @@ else
 end
 animalParamsFromAnimalType = ReadXMLParams(filename);
 
-markerParamsRaw=[];
+markerParamsRaw=struct([]);
 if isfield(animalParamsFromAnimalType,animalType)
   thing1=animalParamsFromAnimalType.(animalType);
   if isfield(thing1,'plot')
@@ -22,13 +22,6 @@ if isfield(animalParamsFromAnimalType,animalType)
       markerParamsRaw=thing2.trx;
     end
   end
-end
-if isempty(markerParamsRaw)
-  markerParamsRaw=struct();
-  markerParamsRaw.nextra_markers=1;
-  markerParamsRaw.extra_linestyle = '-';
-  markerParamsRaw.extra_marker = '.';
-  markerParamsRaw.extra_markersize = 12;
 end
 markerParams=cookMarkerParams(markerParamsRaw);
 trxGraphicParams=markerParams;
