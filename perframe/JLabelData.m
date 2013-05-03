@@ -214,7 +214,7 @@ classdef JLabelData < handle
     scores
     
     % Properties relating to whether there is a movie to show
-    openmovie  % true iff a movie is one of the required files for each experiment
+    %openmovie  % true iff a movie is one of the required files for each experiment
     %ismovie  
     
     % experiment info: expi indexes the following
@@ -455,9 +455,9 @@ classdef JLabelData < handle
 %     end
     
     function ismovie=get.ismovie(self)
-      % Get whether the movie file name is set, and whether we should open
-      % movies
-      ismovie=~isempty(self.moviefilename) && self.openmovie;
+      % Get whether the movie file name is set
+      ismovie=~isempty(self.moviefilename);
+      % ismovie=~isempty(self.moviefilename) && self.openmovie;
     end
     
   end  % methods block
@@ -542,7 +542,7 @@ classdef JLabelData < handle
       self.perframedir = 0;
       self.clipsdir = 0;
       self.scores = 0;
-      self.openmovie = true;
+      %self.openmovie = false;
       % self.ismovie = false;
       self.expdirs = {};
       self.nflies_per_exp = [];
@@ -3259,12 +3259,13 @@ classdef JLabelData < handle
 % Some helper functions.
 
     % ---------------------------------------------------------------------
-    function res = IsRequiredFile(obj,file)
-      if obj.openmovie
-        res = ismember(file,{'movie','trx','perframedir'});
-      else
-        res = ismember(file,{'trx','perframedir'});
-      end
+    function res = IsRequiredFile(~,file)  % could be make a class method, but leave for now
+      res = ismember(file,{'trx','perframedir'});
+%       if obj.openmovie
+%         res = ismember(file,{'movie','trx','perframedir'});
+%       else
+%         res = ismember(file,{'trx','perframedir'});
+%       end
     end
 
 

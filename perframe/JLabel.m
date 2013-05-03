@@ -723,7 +723,7 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
 end
 
 % If the movie has changed, want to re-initialize the frame cache
-if(handles.data.ismovie && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
+if(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
@@ -886,7 +886,7 @@ for i = axes,
   
   if refreshim,
     
-    if handles.data.ismovie,
+    if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
 
       j = find((Mframenum.Data==handles.guidata.ts(i)) & ...
                (~isnan(Mlastused.Data)) & ...
@@ -1125,7 +1125,7 @@ if expi == handles.data.expi,
 end
 
 % check that the current movie exists
-if handles.data.ismovie,
+if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
   [moviefilename,timestamp] = handles.data.GetFile('movie',expi);
   if isinf(timestamp) && ~exist(moviefilename,'file'),
     uiwait(warndlg(sprintf('Movie file %s does not exist.',moviefilename),'Error setting movie'));
@@ -1183,8 +1183,8 @@ if ~success,
   return;
 end
 
-% if no movie, then set limits
-if ~handles.data.ismovie,
+% if no movie, then set limits, or we don't want to use
+if ~(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent),
   maxx = max([handles.data.trx.x]+[handles.data.trx.a]*2);
   maxy = max([handles.data.trx.y]+[handles.data.trx.a]*2);
   handles.guidata.movie_height = ceil(maxy);
