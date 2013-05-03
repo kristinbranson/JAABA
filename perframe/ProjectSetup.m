@@ -90,7 +90,7 @@ handles.featureLexiconNameList = getFeatureLexiconListsFromXML();
 % Populate the featureLexiconName popuplist with options
 set(handles.featureconfigpopup,'String',handles.featureLexiconNameList);
 
-% Either copy or 
+% Either copy or make one up
 if isempty(basicParamsStruct)
   old=warning('query','MATLAB:structOnObject');
   warning('off','MATLAB:structOnObject');  % turn off annoying warning
@@ -364,9 +364,13 @@ for ndx = 1:numel(fnames)
     list{end+1,1} = [pathTillNow fnames{ndx}]; %#ok<AGROW>
     param = curStruct.(fnames{ndx});
     if isnumeric(param)
-      q = num2str(param(1));
-      for jj = 2:numel(param)
-        q = [q ',' num2str(param(jj))]; %#ok<AGROW>
+      if isempty(param)
+        q='';
+      else
+        q = num2str(param(1));
+        for jj = 2:numel(param)
+          q = [q ',' num2str(param(jj))]; %#ok<AGROW>
+        end
       end
       list{end,2} = q;
     else
@@ -768,14 +772,15 @@ if isempty(behaviorName) ,
   return
 end
 
-% Check for an empty movie file name
-movieFileName=handles.basicParamsStruct.file.moviefilename;
-if isempty(movieFileName) ,
-  uiwait(errordlg('You must enter a movie file name.', ...
-                  'No movie file name', ...
-                  'modal'));
-  return
-end
+% In some cases, the user doesn't have the movie.  We can deal with this.
+% % Check for an empty movie file name
+% movieFileName=handles.basicParamsStruct.file.moviefilename;
+% if isempty(movieFileName) ,
+%   uiwait(errordlg('You must enter a movie file name.', ...
+%                   'No movie file name', ...
+%                   'modal'));
+%   return
+% end
 
 % Check for an empty track file name
 trackFileName=handles.basicParamsStruct.file.trxfilename;
