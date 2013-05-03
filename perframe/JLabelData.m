@@ -215,7 +215,7 @@ classdef JLabelData < handle
     
     % Properties relating to whether there is a movie to show
     openmovie  % true iff a movie is one of the required files for each experiment
-    ismovie  % true iff a movie is one of the required files, and the movie file name has been specified
+    %ismovie  
     
     % experiment info: expi indexes the following
     
@@ -361,7 +361,7 @@ classdef JLabelData < handle
     % A place to store things for the other mode.
     % So if the JLabelData instance is created in GT mode, this stores the
     % normal experiment directory names, labels, and label statisitics.  If
-    % JLabelData is created in Normal mose, this store the GT experiment
+    % JLabelData is created in Normal mode, this store the GT experiment
     % directory names, etc.  This keeps the stuff for the other mode out of
     % our hair, but keeps it around so that we can save it to the
     % everything file.
@@ -392,10 +392,11 @@ classdef JLabelData < handle
 
   
   % -----------------------------------------------------------------------
-  properties (Access=public,Dependent=true)
+  properties (GetAccess=public,SetAccess=immutable,Dependent=true)
     expnames
     nexps
     nTargetsInCurrentExp
+    ismovie    % true iff we plan to open movies, and the movie file name has been specified
   end
 
   
@@ -423,22 +424,22 @@ classdef JLabelData < handle
       expnames=cellfun(@fileBaseName,expDirNames,'UniformOutput',false);
     end
     
-    function set.expnames(self,newValue)  %#ok
-      % Do nothing, b/c now we just compute expnames when we need it 
-      % Eventually this method should go away, and all calls to it also.
-      warning('Trying to set JLabelData.expnames');
-    end    
+%     function set.expnames(self,newValue)  %#ok
+%       % Do nothing, b/c now we just compute expnames when we need it 
+%       % Eventually this method should go away, and all calls to it also.
+%       warning('Trying to set JLabelData.expnames');
+%     end    
     
     function nexps=get.nexps(self)
       % Get the number of experiments for the current GT mode
       nexps=length(self.expdirs);
     end
     
-    function set.nexps(self,newValue)  %#ok
-      % Do nothing, b/c now we just compute nexps when we need it 
-      % Eventually this method should go away, and all calls to it also.
-      warning('Trying to set JLabelData.nexps');
-    end
+%     function set.nexps(self,newValue)  %#ok
+%       % Do nothing, b/c now we just compute nexps when we need it 
+%       % Eventually this method should go away, and all calls to it also.
+%       warning('Trying to set JLabelData.nexps');
+%     end
 
     function nTargetsInCurrentExp=get.nTargetsInCurrentExp(self)
       if self.nexps>0 && ~isempty(self.expi) && self.expi~=0 ,
@@ -448,9 +449,15 @@ classdef JLabelData < handle
       end
     end
     
-    function set.nTargetsInCurrentExp(self,newValue)  %#ok
-      % do nothing---this property is read-only
-      warning('Trying to set JLabelData.nTargetsInCurrentExp');
+%     function set.nTargetsInCurrentExp(self,newValue)  %#ok
+%       % do nothing---this property is read-only
+%       warning('Trying to set JLabelData.nTargetsInCurrentExp');
+%     end
+    
+    function ismovie=get.ismovie(self)
+      % Get whether the movie file name is set, and whether we should open
+      % movies
+      ismovie=~isempty(self.moviefilename) && self.openmovie;
     end
     
   end  % methods block
@@ -536,7 +543,7 @@ classdef JLabelData < handle
       self.clipsdir = 0;
       self.scores = 0;
       self.openmovie = true;
-      self.ismovie = false;
+      % self.ismovie = false;
       self.expdirs = {};
       self.nflies_per_exp = [];
       self.firstframes_per_exp = {};
@@ -748,7 +755,7 @@ classdef JLabelData < handle
       % get some silly stuff out of projectParams
       %obj.projectParams=projectParams;
       obj.labelGraphicParams=everythingParams.labelGraphicParams;
-      obj.trxGraphicParams=everythingParams.trxGraphicParams;
+      obj.trxGraphicParams=cookTrxGraphicParams(everythingParams.trxGraphicParams);
       obj.labelcolors=everythingParams.behaviors.labelcolors;
       obj.unknowncolor=everythingParams.behaviors.unknowncolor;
       
@@ -3412,7 +3419,7 @@ classdef JLabelData < handle
         end
         oldmoviefilename = obj.moviefilename;
         obj.moviefilename = moviefilename;
-        obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
+        %obj.ismovie = ~isempty(moviefilename) && obj.openmovie;
         [success1,msg] = obj.CheckMovies();
         if ~success1,
           obj.moviefilename = oldmoviefilename;
@@ -6066,7 +6073,9 @@ classdef JLabelData < handle
       end
       
     end
+
     
+    % ---------------------------------------------------------------------
     function RemoveArenaPFs(obj)
       %settings = ReadXMLParams(obj.featureConfigFile);
       settings = obj.featureLexicon;
