@@ -179,8 +179,11 @@ classdef Macguffin < handle
       self.file=fileParams;
       if isfield(projectParams,'trx')
         trxGraphicParamsRaw=projectParams.trx;
-      else
+      elseif isfield(projectParams,'plot')  && ...
+             isfield(projectParams.plot,'trx')
         trxGraphicParamsRaw=projectParams.plot.trx;
+      else
+        trxGraphicParamsRaw=trxGraphicParamsFromAnimalType(animalType);
       end
       self.trxGraphicParams=cookTrxGraphicParams(trxGraphicParamsRaw);
       if isfield(projectParams,'labels')
