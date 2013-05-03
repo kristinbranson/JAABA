@@ -98,10 +98,10 @@ classdef JLabelGUIData < handle
     in_border_y = [];
     labelcolors = [];
     labelunknowncolor = [0,0,0];
-    nextra_markers = 1;
-    flies_extra_markersize = 12;
-    flies_extra_marker = {'o'};
-    flies_extra_linestyle = {'-'};
+    % nextra_markers = 1;
+    % flies_extra_markersize = 12;
+    % flies_extra_marker = {'o'};
+    % flies_extra_linestyle = {'-'};
 
     scorecolor = [];
     
@@ -551,67 +551,67 @@ classdef JLabelGUIData < handle
         end
       end
 
-      self.flies_extra_markersize = repmat(12,[1,self.nextra_markers]);
-      if isfield(basicParamsStruct,'trxGraphicParams') && ...
-         isfield(basicParamsStruct.trxGraphicParams,'extra_markersize') && ...
-         ~isempty(basicParamsStruct.trxGraphicParams.extra_markersize),
-        if ~ischar(basicParamsStruct.trxGraphicParams.extra_markersize),
-          extra_markersize = basicParamsStruct.trxGraphicParams.extra_markersize;
-        else
-          tmp = regexp(basicParamsStruct.trxGraphicParams.extra_markersize,',','split');
-          extra_markersize = str2double(tmp);
-          if any(isnan(extra_markersize)),
-            warndlg(sprintf('Could not parse some entries of trxGraphicParams.extra_markersize: %s',tmp{isnan(extra_markersize)}), ...
-                    'Problem parsing trxGraphicParams.extra_markersize');
-            extra_markersize(isnan(extra_markersize)) = 12;
-          end
-        end
-        if numel(extra_markersize) < self.nextra_markers,
-          warndlg('Number of extra marker size entries less than number of extra markers', ...
-                  'Problem parsing trxGraphicParams.extra_markersize');
-        end
-        for j = 1:self.nextra_markers,
-          self.flies_extra_markersize(j) = extra_markersize(min(j,numel(extra_markersize)));
-        end
-      end
-
-      self.flies_extra_marker = repmat({'o'},[1,self.nextra_markers]);
-      if isfield(basicParamsStruct,'trxGraphicParams') && ...
-         isfield(basicParamsStruct.trxGraphicParams,'extra_marker') && ...
-         ~isempty(basicParamsStruct.trxGraphicParams.extra_marker),
-        if ischar(basicParamsStruct.trxGraphicParams.extra_marker),
-          extra_marker = regexp(basicParamsStruct.trxGraphicParams.extra_marker,',','split');
-        else
-          extra_marker = basicParamsStruct.trxGraphicParams.extra_marker;
-        end
-        if numel(extra_marker) < self.nextra_markers,
-          warndlg('Number of extra marker entries less than number of extra markers', ...
-                  'Problem parsing trxGraphicParams.extra_marker');
-          self.flies_extra_marker = [extra_marker,...
-            repmat({'None'},[1,self.nextra_markers-numel(extra_marker)])];
-        else
-          self.flies_extra_marker = extra_marker(1:self.nextra_markers);
-        end
-      end
-      
-      self.flies_extra_linestyle = repmat({'-'},[1,self.nextra_markers]);
-      if isfield(basicParamsStruct,'trxGraphicParams') && ...
-         isfield(basicParamsStruct.trxGraphicParams,'extra_linestyle') && ...
-         ~isempty(basicParamsStruct.trxGraphicParams.extra_linestyle),
-        if ischar(basicParamsStruct.trxGraphicParams.extra_linestyle),
-          extra_linestyle = regexp(basicParamsStruct.trxGraphicParams.extra_linestyle,',','split');
-        else
-          extra_linestyle = basicParamsStruct.trxGraphicParams.extra_linestyle;
-        end
-        if numel(extra_linestyle) < self.nextra_markers,
-          warndlg('Number of extra linestyle entries less than number of extra markers', ...
-                  'Problem parsing trxGraphicParams.extra_linestyle');
-          self.flies_extra_linestyle = [extra_linestyle,...
-            repmat({'None'},[1,self.nextra_markers-numel(extra_linestyle)])];
-        else
-          self.flies_extra_linestyle = extra_linestyle(1:self.nextra_markers);
-        end  
-      end
+%       self.flies_extra_markersize = repmat(12,[1,self.nextra_markers]);
+%       if isfield(basicParamsStruct,'trxGraphicParams') && ...
+%          isfield(basicParamsStruct.trxGraphicParams,'extra_markersize') && ...
+%          ~isempty(basicParamsStruct.trxGraphicParams.extra_markersize),
+%         if ~ischar(basicParamsStruct.trxGraphicParams.extra_markersize),
+%           extra_markersize = basicParamsStruct.trxGraphicParams.extra_markersize;
+%         else
+%           tmp = regexp(basicParamsStruct.trxGraphicParams.extra_markersize,',','split');
+%           extra_markersize = str2double(tmp);
+%           if any(isnan(extra_markersize)),
+%             warndlg(sprintf('Could not parse some entries of trxGraphicParams.extra_markersize: %s',tmp{isnan(extra_markersize)}), ...
+%                     'Problem parsing trxGraphicParams.extra_markersize');
+%             extra_markersize(isnan(extra_markersize)) = 12;
+%           end
+%         end
+%         if numel(extra_markersize) < self.nextra_markers,
+%           warndlg('Number of extra marker size entries less than number of extra markers', ...
+%                   'Problem parsing trxGraphicParams.extra_markersize');
+%         end
+%         for j = 1:self.nextra_markers,
+%           self.flies_extra_markersize(j) = extra_markersize(min(j,numel(extra_markersize)));
+%         end
+%       end
+% 
+%       self.flies_extra_marker = repmat({'o'},[1,self.nextra_markers]);
+%       if isfield(basicParamsStruct,'trxGraphicParams') && ...
+%          isfield(basicParamsStruct.trxGraphicParams,'extra_marker') && ...
+%          ~isempty(basicParamsStruct.trxGraphicParams.extra_marker),
+%         if ischar(basicParamsStruct.trxGraphicParams.extra_marker),
+%           extra_marker = regexp(basicParamsStruct.trxGraphicParams.extra_marker,',','split');
+%         else
+%           extra_marker = basicParamsStruct.trxGraphicParams.extra_marker;
+%         end
+%         if numel(extra_marker) < self.nextra_markers,
+%           warndlg('Number of extra marker entries less than number of extra markers', ...
+%                   'Problem parsing trxGraphicParams.extra_marker');
+%           self.flies_extra_marker = [extra_marker,...
+%             repmat({'None'},[1,self.nextra_markers-numel(extra_marker)])];
+%         else
+%           self.flies_extra_marker = extra_marker(1:self.nextra_markers);
+%         end
+%       end
+%       
+%       self.flies_extra_linestyle = repmat({'-'},[1,self.nextra_markers]);
+%       if isfield(basicParamsStruct,'trxGraphicParams') && ...
+%          isfield(basicParamsStruct.trxGraphicParams,'extra_linestyle') && ...
+%          ~isempty(basicParamsStruct.trxGraphicParams.extra_linestyle),
+%         if ischar(basicParamsStruct.trxGraphicParams.extra_linestyle),
+%           extra_linestyle = regexp(basicParamsStruct.trxGraphicParams.extra_linestyle,',','split');
+%         else
+%           extra_linestyle = basicParamsStruct.trxGraphicParams.extra_linestyle;
+%         end
+%         if numel(extra_linestyle) < self.nextra_markers,
+%           warndlg('Number of extra linestyle entries less than number of extra markers', ...
+%                   'Problem parsing trxGraphicParams.extra_linestyle');
+%           self.flies_extra_linestyle = [extra_linestyle,...
+%             repmat({'None'},[1,self.nextra_markers-numel(extra_linestyle)])];
+%         else
+%           self.flies_extra_linestyle = extra_linestyle(1:self.nextra_markers);
+%         end  
+%       end
            
       for channel = 1:3
         midValue = self.labelunknowncolor(channel);
