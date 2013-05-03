@@ -2137,7 +2137,9 @@ classdef JLabelData < handle
     % [success,msg] = UpdateStatusTable(obj,filetypes,expis)
     % Update the tables of what files exist for what experiments. This
     % returns false if all files were in existence or could be generated
-    % and now they are/can not. 
+    % and now they are/can not.  It mutates the instance variables
+    % fileexists and filetimestamps, and sets filesfixable and
+    % allfilesexists.
 
       msg = '';
       success = false;
@@ -2167,11 +2169,11 @@ classdef JLabelData < handle
       
       % loop through all file types
       for filei = fileis,
-        file = obj.filetypes{filei};
+        fileType = obj.filetypes{filei};
         % loop through experiments
         for expi = expis,
           
-          if strcmpi(file,'perframedir'),
+          if strcmpi(fileType,'perframedir'),
             [fn,timestamps] = obj.GetPerframeFiles(expi);
             if isempty(fn),
               obj.fileexists(expi,filei) = false;
@@ -2179,7 +2181,7 @@ classdef JLabelData < handle
             else
               pfexists = cellfun(@(s) exist(s,'file'),fn);
               obj.fileexists(expi,filei) = all(pfexists);
-              if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file),
+              if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(fileType),
                 for tmpi = find(~pfexists(:)'),
                   if numel(missingfiles{expi})<10
                     [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
@@ -2195,7 +2197,7 @@ classdef JLabelData < handle
           else
           
             % check for existence of current file(s)
-            [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(file,expi);
+            [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(fileType,expi);
             if iscell(fn),
               obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || ...
                 all(cellfun(@(s) exist(s,'file'),fn));
@@ -2204,8 +2206,8 @@ classdef JLabelData < handle
             else
               obj.fileexists(expi,filei) = false;
             end
-            if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(file)
-              missingfiles{expi}{end+1} = file;
+            if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(fileType)
+              missingfiles{expi}{end+1} = fileType;
             end
               
           end
@@ -2222,18 +2224,18 @@ classdef JLabelData < handle
       obj.allfilesexist = true;
 
       for filei = 1:numel(obj.filetypes),
-        file = obj.filetypes{filei};
+        fileType = obj.filetypes{filei};
         % loop through experiments
         for expi = 1:obj.nexps,
           
           % if file doesn't exist and is required, then not all files exist
           if ~obj.fileexists(expi,filei),
-            if obj.IsRequiredFile(file),
+            if obj.IsRequiredFile(fileType),
               obj.allfilesexist = false;
               % if furthermore file can't be generated, then not fixable
-              if ~JLabelData.CanGenerateFile(file),
+              if ~JLabelData.CanGenerateFile(fileType),
                 obj.filesfixable = false;                
-                msg1 = sprintf('%s missing and cannot be generated.',file);
+                msg1 = sprintf('%s missing and cannot be generated.',fileType);
                 if isempty(msg),
                   msg = msg1;
                 else
@@ -5956,7 +5958,7 @@ classdef JLabelData < handle
 
     
     % ---------------------------------------------------------------------    
-    function [filename,timestamp] = GetFile(obj,file,expi)
+    function [filename,timestamp] = GetFile(obj,fileType,expi)
         % [filename,timestamp] = GetFile(obj,file,expi)
     % Get the full path to the file of type file for experiment expi. 
   
@@ -5965,7 +5967,7 @@ classdef JLabelData < handle
 %       end
       
       % base name
-      fn = obj.GetFileName(file);
+      fileNameLocal = obj.GetFileName(fileType);
       
       % if this is an output file, only look in output experiment directory
 %       if dowrite && JLabelData.IsOutputFile(file),
@@ -5982,9 +5984,9 @@ classdef JLabelData < handle
       % initialize timestamp = -inf if we never set
       timestamp = -inf;
 
-      % non-char filename signals it's absence
-      if ~ischar(fn)
-        filename=fn;
+      % non-char or empty filename signals its absence
+      if ~ischar(fileNameLocal) || isempty(fileNameLocal)
+        filename=fileNameLocal;
         return
       end
       
@@ -5993,7 +5995,7 @@ classdef JLabelData < handle
         expdir = expdirs_try{j}; 
         
         % just one file to look for
-        filename = fullfile(expdir,fn);
+        filename = fullfile(expdir,fileNameLocal);
         if exist(filename,'file'),
           tmp = dir(filename);
           timestamp = tmp.datenum;
@@ -6001,14 +6003,14 @@ classdef JLabelData < handle
         end
         % check for lnk files
         if ispc && exist([filename,'.lnk'],'file'),
-          isseq = ~isempty(regexp(fn,'\.seq$','once'));
+          isseq = ~isempty(regexp(fileNameLocal,'\.seq$','once'));
           % for seq file, just keep the soft link, get_readframe_fcn will
           % deal with it
           [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
           if didfind,
             tmp = dir(actualfilename);
             timestamp = tmp.datenum;
-            if ~isseq || ~strcmpi(file,'movie'),
+            if ~isseq || ~strcmpi(fileType,'movie'),
               filename = actualfilename;
             end              
             break;
