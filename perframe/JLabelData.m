@@ -5150,8 +5150,8 @@ classdef JLabelData < matlab.mixin.Copyable
       % make sure directory exists
       obj.SetStatus('Checking that %s exists...',expDirName);
       if ~exist(expDirName,'file'),
-        msg = sprintf('expdir %s does not exist',expDirName);
-        return;
+        error('JLabelData:expDirDoesNotExist', ...
+              expDirName);
       end
       
 %       % Is there an output directory?
@@ -5343,7 +5343,6 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.needsave=true;
       success = true;
     end
-    
     
     
 %     % ---------------------------------------------------------------------
@@ -9574,7 +9573,29 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function openJabFile(self, ...
                          fileNameAbs, ...
-                         groundTruthingMode) 
+                         groundTruthingMode, ...
+                         originalExpDirNames, ...
+                         substituteExpDirNames) 
+                       
+      % originalExpDirNames and substituteExpDirNames are optional.
+      % If given, they should be cell arrays of the same length, each
+      % element a string giving an absolute path to an experiment
+      % directory.  Each element of originalExpDirNames should be an
+      % experiment directory in the .jab file, and the corresponding
+      % element of substitureExpDirNames gives an experiment dir name to be
+      % used in place of the original one.  This is to enable the user to
+      % manually locate exp dir names that are missing.  Whether these
+      % experiment dir names are treated as normal exp dir names of
+      % ground-truthing exp dir names depends on groundTruthingMode.
+                       
+      % process the args
+      if ~exist('originalExpDirNames','var')
+        originalExpDirNames=cell(0,1);
+      end
+      if ~exist('substituteExpDirNames','var')
+        substituteExpDirNames=cell(0,1);
+      end
+      
       % Set the ground-truthing mode
       self.gtMode=groundTruthingMode;
 
@@ -9589,15 +9610,50 @@ classdef JLabelData < matlab.mixin.Copyable
 
       % load the file
       macguffin=loadAnonymous(fileNameAbs);
-
       % if we get here, file was read successfully
+      
+      % do the substiutions, if any
+      substitutionsMade=false;
+      if groundTruthingMode
+        expDirNames=macguffin.gtExpDirNames;
+        labels=macguffin.gtLabels;
+      else
+        expDirNames=macguffin.expDirNames;
+        labels=macguffin.labels;
+      end
+      newExpDirNames=cell(1,0);
+      newLabels=struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
+      for i=1:length(expDirNames)
+        expDirName=expDirNames{i};
+        j=whichstr(expDirName,originalExpDirNames);
+        if isempty(j) ,
+          newExpDirNames{end+1}=expDirNames{i};  %#ok
+          newLabels(end+1)=labels(i);  %#ok
+        else
+          newExpDirName=substituteExpDirNames{j};
+          if ~isempty(newExpDirName)
+            newExpDirNames{end+1}=substituteExpDirNames{j};  %#ok
+            newLabels(end+1)=labels(i);  %#ok
+          end
+          substitutionsMade=true;
+        end
+      end
+      if groundTruthingMode
+        macguffin.gtExpDirNames=newExpDirNames;
+        macguffin.gtLabels=newLabels;
+      else
+        macguffin.expDirNames=newExpDirNames;
+        macguffin.labels=newLabels;
+      end
+      
+      % Set the JLD to match the Macguffin
       self.setMacguffin(macguffin);
       
       % Store file-related stuff
       self.thereIsAnOpenFile=true;
       self.everythingFileNameAbs=fileNameAbs;
       self.userHasSpecifiedEverythingFileName=true;
-      self.needsave = false;  % b/c just opened
+      self.needsave=substitutionsMade;  % Only need save if substitutions were made
       self.defaultpath=fileDirPathAbs;
      
       % initialize the status table describing what required files exist
