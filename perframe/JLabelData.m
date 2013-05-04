@@ -1,4 +1,4 @@
-classdef JLabelData < handle
+classdef JLabelData < matlab.mixin.Copyable
   % This is the class that is essentially the JLabel "model" in MVC terms 
   % --- it holds all of the critical data that JLabel allows a user to
   % manipulate, but doesn't deal with visual or presentational issues.
@@ -387,7 +387,7 @@ classdef JLabelData < handle
                                                % being chosen by default
                                                % when a new file was
                                                % created
-    needsave  % true iff there are unsaved changes
+    needsave  % true iff a file is open and there are unsaved changes.  False if no file is open.
   end
 
   
@@ -603,8 +603,8 @@ classdef JLabelData < handle
       self.unknowncolor = [0 0 0];
       self.thereIsAnOpenFile=false;
       self.everythingFileNameAbs='';
-      self.userHasSpecifiedEverythingFileName=[];  % neither true nor false
-      self.needsave=[];  % neither true nor false
+      self.userHasSpecifiedEverythingFileName=false;
+      self.needsave=false;
     end  % method
     
     
@@ -744,122 +744,130 @@ classdef JLabelData < handle
       % This initializes the JLabelData object based on the contents of
       % everythingParams
   
-      % feature config file
-      if isequal(everythingParams.featureLexiconName,'custom')
-        obj.setFeatureLexiconCustom(everythingParams.featureLexicon, ...
-                                    everythingParams.behaviors.type);
-      else
-        obj.setFeatureLexiconFromName(everythingParams.featureLexiconName);
-      end
+      before=obj.copy();  % make a copy of the object, in case something goes wrong
+      try
+        % feature config file
+        if isequal(everythingParams.featureLexiconName,'custom')
+          obj.setFeatureLexiconCustom(everythingParams.featureLexicon, ...
+                                      everythingParams.behaviors.type);
+        else
+          obj.setFeatureLexiconFromName(everythingParams.featureLexiconName);
+        end
 
-      % get some silly stuff out of projectParams
-      %obj.projectParams=projectParams;
-      obj.labelGraphicParams=everythingParams.labelGraphicParams;
-      obj.trxGraphicParams=cookTrxGraphicParams(everythingParams.trxGraphicParams);
-      obj.labelcolors=everythingParams.behaviors.labelcolors;
-      obj.unknowncolor=everythingParams.behaviors.unknowncolor;
-      
-      %
-      % load in the rest of the stuff, depending on the fields present
-      %
+        % get some silly stuff out of projectParams
+        %obj.projectParams=projectParams;
+        obj.labelGraphicParams=everythingParams.labelGraphicParams;
+        obj.trxGraphicParams=cookTrxGraphicParams(everythingParams.trxGraphicParams);
+        obj.labelcolors=everythingParams.behaviors.labelcolors;
+        obj.unknowncolor=everythingParams.behaviors.unknowncolor;
 
-      % read in behavior names
-      if isfield(everythingParams.behaviors,'names'),
-        obj.labelnames = everythingParams.behaviors.names;
-        if ~iscell(obj.labelnames),
-          obj.labelnames = {obj.labelnames};
-        end
-        % add none label
-        if ~ismember('none',lower(obj.labelnames)),
-          obj.labelnames{end+1} = 'None';
-        end
-      else
-        obj.labelnames = {'Behavior','None'};
-      end        
-      obj.nbehaviors = numel(obj.labelnames);
-      % rearrange so that None is the last label
-      nonei = find(strcmpi('None',obj.labelnames),1);
-      obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
+        %
+        % load in the rest of the stuff, depending on the fields present
+        %
 
-      if isfield(everythingParams.file,'moviefilename'),
-        [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
-        if ~success1,
-          error('JLabelData:unableToSetMovieFileName', ...
-                msg);
-        end
-      end
-      if isfield(everythingParams.file,'trxfilename'),
-        [success1,msg] = obj.SetTrxFileName(everythingParams.file.trxfilename);
-        if ~success1,
-          error('JLabelData:unableToSetTrxFileName', ...
-                msg);
-        end
-      end
-      if isfield(everythingParams.file,'scorefilename'),
-        scorefilename = everythingParams.file.scorefilename;
-      else
-        scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
-      end
-      [success1,msg] = obj.setScoreFileName(scorefilename);
-      if ~success1,
-        error('JLabelData:unableToSetScoreFileName', ...
-              msg);
-      end
-      if isfield(everythingParams.file,'perframedir'),
-        [success1,msg] = obj.SetPerFrameDir(everythingParams.file.perframedir);
-        if ~success1,
-          error('JLabelData:unableToSetPerframeDirName', ...
-                msg);
-        end
-      end
-      if isfield(everythingParams.file,'clipsdir') && ~isempty(everythingParams.file.clipsdir),
-        [success1,msg] = obj.SetClipsDir(everythingParams.file.clipsdir);
-        if ~success1,
-          error('JLabelData:unableToSetClipsDirName', ...
-                msg);
-        end
-      end
-      
-      % Update allperframefns
-      obj.allperframefns = everythingParams.sublexiconPFNames;
+        % read in behavior names
+        if isfield(everythingParams.behaviors,'names'),
+          obj.labelnames = everythingParams.behaviors.names;
+          if ~iscell(obj.labelnames),
+            obj.labelnames = {obj.labelnames};
+          end
+          % add none label
+          if ~ismember('none',lower(obj.labelnames)),
+            obj.labelnames{end+1} = 'None';
+          end
+        else
+          obj.labelnames = {'Behavior','None'};
+        end        
+        obj.nbehaviors = numel(obj.labelnames);
+        % rearrange so that None is the last label
+        nonei = find(strcmpi('None',obj.labelnames),1);
+        obj.labelnames = obj.labelnames([1:nonei-1,nonei+1:obj.nbehaviors,nonei]);
 
-      % Note sure what to do here---Macguffin class doesn't have a perframe
-      % property at present
-      if isfield(everythingParams.extra,'perframe'),
-        if isfield(everythingParams.extra.perframe,'params'),
-          pf_fields = fieldnames(everythingParams.extra.perframe.params);
-          for ndx = 1:numel(pf_fields),
-            obj.perframe_params.(pf_fields{ndx}) = everythingParams.extra.perframe.params.(pf_fields{ndx});
+        if isfield(everythingParams.file,'moviefilename'),
+          [success1,msg] = obj.SetMovieFileName(everythingParams.file.moviefilename);
+          if ~success1,
+            error('JLabelData:unableToSetMovieFileName', ...
+                  msg);
           end
         end
-        if isfield(everythingParams.extra.perframe,'landmarkParams'),
-          obj.landmark_params = everythingParams.extra.perframe.landmarkParams;
+        if isfield(everythingParams.file,'trxfilename'),
+          [success1,msg] = obj.SetTrxFileName(everythingParams.file.trxfilename);
+          if ~success1,
+            error('JLabelData:unableToSetTrxFileName', ...
+                  msg);
+          end
         end
-      end  % isfield(basicParams,'perframe'),
-      
-%       if isfield(basicParams,'scoreFeatures') ,
-%         obj.scoreFeatures = basicParams.scoreFeatures;
-%         nScoreFeaturess=length(basicParams.scoreFeatures);
-%         scoreFeaturesPFNames=cell(nScoreFeaturess,1);
-%         for i = 1:nScoreFeaturess ,
-%           [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
-%           scoreFeaturesPFNames{i} = pfName;
-%         end
-%         obj.allperframefns=[obj.allperframefns ; ...
-%                             scoreFeaturesPFNames];
-%       end  % if isfield(basicParams,'scoreFeatures'),
-      
-      % Re-load the perframe feature signals, since the PFFs may have changed
-      obj.loadPerframeData(obj.expi,obj.flies);
+        if isfield(everythingParams.file,'scorefilename'),
+          scorefilename = everythingParams.file.scorefilename;
+        else
+          scorefilename = sprintf('scores_%s.mat',obj.labelnames{1});
+        end
+        [success1,msg] = obj.setScoreFileName(scorefilename);
+        if ~success1,
+          error('JLabelData:unableToSetScoreFileName', ...
+                msg);
+        end
+        if isfield(everythingParams.file,'perframedir'),
+          [success1,msg] = obj.SetPerFrameDir(everythingParams.file.perframedir);
+          if ~success1,
+            error('JLabelData:unableToSetPerframeDirName', ...
+                  msg);
+          end
+        end
+        if isfield(everythingParams.file,'clipsdir') && ~isempty(everythingParams.file.clipsdir),
+          [success1,msg] = obj.SetClipsDir(everythingParams.file.clipsdir);
+          if ~success1,
+            error('JLabelData:unableToSetClipsDirName', ...
+                  msg);
+          end
+        end
 
-%       % initialize the post-processing parameters
-%       obj.InitPostprocessparams();
+        % Update allperframefns
+        obj.allperframefns = everythingParams.sublexiconPFNames;
 
-      % initialize everything else
-      obj.setAllLabels(everythingParams);
-      obj.setScoreFeatures(everythingParams.scoreFeatures);
-      obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
-      obj.setClassifierStuff(everythingParams.classifierStuff);
+        % Note sure what to do here---Macguffin class doesn't have a perframe
+        % property at present
+        if isfield(everythingParams.extra,'perframe'),
+          if isfield(everythingParams.extra.perframe,'params'),
+            pf_fields = fieldnames(everythingParams.extra.perframe.params);
+            for ndx = 1:numel(pf_fields),
+              obj.perframe_params.(pf_fields{ndx}) = everythingParams.extra.perframe.params.(pf_fields{ndx});
+            end
+          end
+          if isfield(everythingParams.extra.perframe,'landmarkParams'),
+            obj.landmark_params = everythingParams.extra.perframe.landmarkParams;
+          end
+        end  % isfield(basicParams,'perframe'),
+
+  %       if isfield(basicParams,'scoreFeatures') ,
+  %         obj.scoreFeatures = basicParams.scoreFeatures;
+  %         nScoreFeaturess=length(basicParams.scoreFeatures);
+  %         scoreFeaturesPFNames=cell(nScoreFeaturess,1);
+  %         for i = 1:nScoreFeaturess ,
+  %           [~,pfName] = fileparts(obj.scoreFeatures(i).scorefilename);
+  %           scoreFeaturesPFNames{i} = pfName;
+  %         end
+  %         obj.allperframefns=[obj.allperframefns ; ...
+  %                             scoreFeaturesPFNames];
+  %       end  % if isfield(basicParams,'scoreFeatures'),
+
+        % Re-load the perframe feature signals, since the PFFs may have changed
+        obj.loadPerframeData(obj.expi,obj.flies);
+
+  %       % initialize the post-processing parameters
+  %       obj.InitPostprocessparams();
+
+        % initialize everything else
+        obj.setAllLabels(everythingParams);
+        obj.setScoreFeatures(everythingParams.scoreFeatures);
+        obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
+        obj.setClassifierStuff(everythingParams.classifierStuff);
+      catch excp
+        % If there's a problem, restore the object to its original state.
+        obj.setToValue(before);
+        rethrow(excp);
+      end
+        
     end  % method
     
 
@@ -9743,6 +9751,22 @@ classdef JLabelData < handle
 
       % Note that we now need saving
       self.needsave=true;
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function setToValue(self,jld)
+      % Makes self into a clone of jld.  I.e. sets all the independent
+      % properties of self to have the same _value_ as the corresponding
+      % property of jld.
+      mc=metaclass(self);
+      propertyList=mc.PropertyList;
+      for i=1:length(propertyList)
+        property=propertyList(i);
+        if ~property.Dependent
+          self.(property.Name)=jld.(property.Name);
+        end
+      end
     end  % method
     
     
