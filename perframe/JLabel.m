@@ -7817,25 +7817,69 @@ fileNameRel=[baseName ext];
 SetStatus(handles,sprintf('Opening %s...',fileNameRel));
 
 % Don't want to see "No experiment loaded" when status is cleared!
+originalClearStatusText=handles.guidata.status_bar_text_when_clear;
 handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % load the file
-try
-  handles.data.openJabFile(fileNameAbs,groundTruthingMode);
-catch excp
+% This is a loop because we try, then if we fail b/c an exp dir is missing,
+% we prompt the user to locate it, then try again, etc, etc.
+successfullyOpened=false;
+openCancelled=false;
+keepTrying=true;
+originalExpDirs=cell(0,1); 
+substituteExpDirs=cell(0,1);
+while ~successfullyOpened && keepTrying ,
+  try
+    handles.data.openJabFile(fileNameAbs, ...
+                             groundTruthingMode, ...
+                             originalExpDirs, ...
+                             substituteExpDirs);
+    successfullyOpened=true;
+  catch excp
+    %ClearStatus(handles);
+    if isequal(excp.identifier,'JLabelData:expDirDoesNotExist') ,
+      originalExpDir=excp.message;
+      originalExpName=fileNameRelFromAbs(originalExpDir);
+      answer=questdlg(sprintf('Unable to open experiment directory %s.  Would you like to locate it manually?',originalExpName), ...
+                      'Unable to Open', ...
+                      'Yes, Locate It','No, Leave It Out and Discard All Labels For It','Cancel File Open', ...
+                      'Yes, Locate It');
+      if isempty(answer) || isequal(answer,'Cancel File Open')
+        keepTrying=false;
+        openCancelled=true;
+      elseif isequal(answer,'No, Leave It Out and Discard All Labels For It')
+        substituteExpDir='';  % Means to leave it out
+        originalExpDirs{end+1}=originalExpDir;  %#ok
+        substituteExpDirs{end+1}=substituteExpDir;  %#ok
+      else % Answer was 'Yes, Locate It'
+        substituteExpDir= ...
+          uigetdir(handles.data.defaultpath, ...
+                   sprintf('Locate Experiment Directory %s',originalExpName));
+        if isempty(substituteExpDir)
+          % means user hit Cancel button
+          keepTrying=false;
+        else
+          originalExpDirs{end+1}=originalExpDir;  %#ok
+          substituteExpDirs{end+1}=substituteExpDir;  %#ok
+        end
+      end
+    else
+      message=excp.message;
+      keepTrying=false;
+    end  % if
+  end  % try/catch
+end  % while
+if ~successfullyOpened ,
+  if ~openCancelled ,
+    uiwait(errordlg(message,'Error','modal'));
+  end
+  handles.guidata.status_bar_text_when_clear=originalClearStatusText;
   ClearStatus(handles);
-  uiwait(errordlg(excp.message,'Error','modal'));
-  % uiwait(errordlg(sprintf('Unable to open %s.',fileNameRel),'Error'));
   return
 end
-
-% % Create the JLabelData object
-% handles.guidata.initializeGivenMacguffin(everythingParams, ...
-%                                          figureJLabel, ...
-%                                          groundTruthingMode, ...
-%                                          @(s)SetStatusCallback(s,figureJLabel) , ...
-%                                          @()ClearStatusCallback(figureJLabel) );
+% If we get here then the JLabelData object has successfully opened the
+% .jab file
 
 % First set the project parameters, which will initialize the JLabelData
 %basicParams=basicParamsFromMacguffin(everythingParams);

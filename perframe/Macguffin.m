@@ -229,7 +229,7 @@ classdef Macguffin < handle
 
       % append the GT labels
       self.gtExpDirNames=gtExpDirAbsPathNames;
-      self.gtLabels=gtLabels;
+      self.gtLabels=cookLabels(gtLabels);
     end  % method
     
     
@@ -237,7 +237,7 @@ classdef Macguffin < handle
     function appendClassifierAndLabels(self,projectParams,classifierParams)
       % this is used when converting old-style files to .jab files
       self.expDirNames=classifierParams.expdirs;
-      self.labels=classifierParams.labels;
+      self.labels=cookLabels(classifierParams.labels);
       if isfield(projectParams.windowfeatures,'windowfeaturesparams')
         self.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
       end
