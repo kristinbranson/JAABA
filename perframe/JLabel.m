@@ -7825,7 +7825,7 @@ try
   handles.data.openJabFile(fileNameAbs,groundTruthingMode);
 catch excp
   ClearStatus(handles);
-  uiwait(errordlg(excp.message),'Error','modal');
+  uiwait(errordlg(excp.message,'Error','modal'));
   % uiwait(errordlg(sprintf('Unable to open %s.',fileNameRel),'Error'));
   return
 end
