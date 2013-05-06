@@ -18,13 +18,18 @@ classdef Macguffin < handle
     gtExpDirNames
     classifierStuff
     extra=struct()  % a structure that stores additional information
-    version='0.5.0'
+    version='0.5.1'
+      % 0.5.0 : Original
+      % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
+      %           flies_extra_marker, and flies_extra_linestyle fields in
+      %           trxGraphicParams.
   end  % properties
     
   % -----------------------------------------------------------------------
   methods (Access=private)
     % ---------------------------------------------------------------------
     function initFromFeatureLexiconName(self,featureLexiconName)
+      [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
       self.featureLexiconName=featureLexiconName;
       self.behaviors.names = {};  % no behaviors defined yet
       self.file.perframedir = 'perframe';
@@ -32,18 +37,13 @@ classdef Macguffin < handle
       %self.windowfeatures = struct;
       self.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
       self.behaviors.unknowncolor = [0,0,0];
-      self.trxGraphicParams.colormap = 'jet';
-      self.trxGraphicParams.colormap_multiplier = 0.7;
-      self.trxGraphicParams.extra_linestyle = '-';
-      self.trxGraphicParams.extra_marker = '.';
-      self.trxGraphicParams.extra_markersize = 12;
+      self.trxGraphicParams=trxGraphicParamsFromAnimalType(animalType);
       self.labelGraphicParams.colormap = 'line';
       self.labelGraphicParams.linewidth = 3;
       self.file.scorefilename = '';
       self.file.trxfilename = '';
       self.file.moviefilename = '';
       self.scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
-      featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
       self.featureLexicon=featureLexicon;
       featureLexiconPFNames = fieldnames(featureLexicon.perframe);
       self.sublexiconPFNames = featureLexiconPFNames;
@@ -178,10 +178,14 @@ classdef Macguffin < handle
       end
       self.file=fileParams;
       if isfield(projectParams,'trx')
-        self.trxGraphicParams=projectParams.trx;
+        trxGraphicParamsRaw=projectParams.trx;
+      elseif isfield(projectParams,'plot')  && ...
+             isfield(projectParams.plot,'trx')
+        trxGraphicParamsRaw=projectParams.plot.trx;
       else
-        self.trxGraphicParams=projectParams.plot.trx;
+        trxGraphicParamsRaw=trxGraphicParamsFromAnimalType(animalType);
       end
+      self.trxGraphicParams=cookTrxGraphicParams(trxGraphicParamsRaw);
       if isfield(projectParams,'labels')
         self.labelGraphicParams=projectParams.labels;
       else
@@ -225,7 +229,7 @@ classdef Macguffin < handle
 
       % append the GT labels
       self.gtExpDirNames=gtExpDirAbsPathNames;
-      self.gtLabels=gtLabels;
+      self.gtLabels=cookLabels(gtLabels);
     end  % method
     
     
@@ -233,7 +237,7 @@ classdef Macguffin < handle
     function appendClassifierAndLabels(self,projectParams,classifierParams)
       % this is used when converting old-style files to .jab files
       self.expDirNames=classifierParams.expdirs;
-      self.labels=classifierParams.labels;
+      self.labels=cookLabels(classifierParams.labels);
       if isfield(projectParams.windowfeatures,'windowfeaturesparams')
         self.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
       end
