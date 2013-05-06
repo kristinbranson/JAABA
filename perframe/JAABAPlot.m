@@ -263,9 +263,11 @@ parfor ge=1:length(handlesexperimentlist)
     behavior_data=[];
     parfor_tmp=zeros(1,length(handles.scorefiles));
     for s=1:length(handles.scorefiles)
-      classifier=load(handles.classifierlist{s});
+      %classifier=load(handles.classifierlist{s});
+      classifier=load(handles.classifierlist{s},'-mat');
+      %classifier=x;
       parfor_tmp(s)=get_nindividuals_behavior(handlesexperimentlist{ge},handles.scorefiles{s},...
-          classifier.classifierTS);
+          classifier.x.classifierStuff.timeStamp);
     end
     handlesindividualsbehavior(ge,:)=parfor_tmp;
 
@@ -1075,9 +1077,11 @@ parfor n=1:length(newexperiments)
   behavior_data=[];
   parfor_tmp=zeros(1,length(handles.scorefiles));
   for s=1:length(handles.scorefiles)
-    classifier=load(handles.classifierlist{s});
+    %classifier=load();
+    classifier=load(handles.classifierlist{s},'-mat');
+    %classifier=x;
     parfor_tmp(s)=get_nindividuals_behavior(newexperiments{n},handles.scorefiles{s},...
-        classifier.classifierTS);
+        classifier.x.classifierStuff.timeStamp);
   end
   handlesindividualsbehavior(n,:)=parfor_tmp;
 
@@ -1422,8 +1426,9 @@ handlesscorefiles=cell(1,length(newclassifiers));
 handlesindividualsbehavior=zeros(sum(cellfun(@length,handles.experimentlist)),length(newclassifiers));
 timestamps=nan(1,length(newclassifiers));
 parfor c=1:length(newclassifiers)
-  load(newclassifiers{c},'-mat');
-  classifier=x;
+%for c=1:length(newclassifiers)
+  classifier=load(newclassifiers{c},'-mat');
+  %classifier=x;
   %if(~isfield(classifier,'postprocessparams'))
   %  uiwait(errordlg(['not a valid classifier file.  skipping ' newclassifiers{c}],''));  drawnow;
   %  newclassifiers{c}='';
@@ -1473,22 +1478,22 @@ parfor c=1:length(newclassifiers)
   %  continue;
   %end
 
-  timestamps(c)=classifier.classifierStuff.timeStamp;
+  timestamps(c)=classifier.x.classifierStuff.timeStamp;
 
   %if iscell(params.behaviors.names),
   %  handlesbehaviorlist{c} = params.behaviors.names{1};
   %else
   %  handlesbehaviorlist{c}=params.behaviors.names;
   %end
-  handlesbehaviorlist{c}=classifier.behaviors.names{1};
+  handlesbehaviorlist{c}=classifier.x.behaviors.names{1};
   %handlesscorefiles{c}=params.file.scorefilename;
-  handlesscorefiles{c}=classifier.file.scorefilename;
+  handlesscorefiles{c}=classifier.x.file.scorefilename;
 
   ee=0;  behavior_data=[];  parfor_tmp=zeros(sum(cellfun(@length,handles.experimentlist)),1);
   for g=1:length(handles.grouplist)
     for e=1:length(handles.experimentlist{g})
       parfor_tmp(ee+e)=get_nindividuals_behavior(handles.experimentlist{g}{e},handlesscorefiles{c},...
-          classifier.classifierTS);
+          classifier.x.classifierStuff.timeStamp);
     end
     ee=ee+length(handles.experimentlist{g});
   end
@@ -1497,7 +1502,7 @@ end
 
 handlesexperimentlist=[handles.experimentlist{:}];
 if((isnan(handles.fps))&&(length(handlesexperimentlist)>0))
-  handles.fps=get_fps(fullfile(handlesexperimentlist{1},classifier.file.trxfilename));
+  handles.fps=get_fps(fullfile(handlesexperimentlist{1},classifier.x.file.trxfilename));
 end
 
 idx=find(~cellfun(@isempty,newclassifiers));
@@ -1576,7 +1581,8 @@ persistent directory
 if(isempty(directory))  directory=pwd;  end
 
 tmp=directory;
-[newclassifiers directory]=uigetfile(directory,'Select classifier files','multiselect','on');
+[newclassifiers directory]=uigetfile(fullfile(directory,'*.jab'),...
+    'Select classifier files','multiselect','on');
 if(isnumeric(newclassifiers)&&(newclassifiers==0))  directory=tmp; return;  end
 if(~iscell(newclassifiers))  newclassifiers={newclassifiers};  end
 newclassifiers=cellfun(@(x) fullfile(directory,x),newclassifiers,'uniformoutput',false);
@@ -1647,8 +1653,8 @@ handlesexperimentlist=[handles.experimentlist{:}];
 
 classifiers_found=cell(1,length(handlesexperimentlist));
 classifiers_notfound=cell(1,length(handlesexperimentlist));
-%for ge=1:length(handlesexperimentlist)
 parfor ge=1:length(handlesexperimentlist)
+%for ge=1:length(handlesexperimentlist)
   tmp=dir(fullfile(handlesexperimentlist{ge},'*.mat'));
   possiblescorefiles=setdiff({tmp.name},handles.scorefiles);
   classifiers_found{ge}={};
@@ -1707,8 +1713,8 @@ parfor ge=1:length(handlesexperimentlist)
   behavior_data=[];
   parfor_tmp=cell(1,length(handles.scorefiles));
   for c=1:length(handles.classifierlist)
-    load(handles.classifierlist{c});
-    classifier=x;
+    classifier=load(handles.classifierlist{c},'-mat');
+    %classifier=x;
     try
       behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{c}));
     catch ME,
@@ -1716,8 +1722,8 @@ parfor ge=1:length(handlesexperimentlist)
       parfor_tmp{c}='missing';
       continue;
     end
-    if (classifier.classifierStuff.timeStamp ~= behavior_data.timestamp)
-      parfor_tmp{c}=[datestr(classifier.classifierStuff.timeStamp) ' ~= ' datestr(behavior_data.timestamp)];
+    if (classifier.x.classifierStuff.timeStamp ~= behavior_data.timestamp)
+      parfor_tmp{c}=[datestr(classifier.x.classifierStuff.timeStamp) ' ~= ' datestr(behavior_data.timestamp)];
     else
       parfor_tmp{c}='up-to-date';
     end
@@ -2487,8 +2493,8 @@ for b=bb
   num_indi=0;
   during_data=cell(length(ggee),length(individual));
   not_during_data=cell(length(ggee),length(individual));
-  %for gei=1:numel(ggee)
   parfor gei=1:numel(ggee)
+  %for gei=1:numel(ggee)
     ge = ggee(gei);
 
     if(b>0)
