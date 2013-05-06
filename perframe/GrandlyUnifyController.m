@@ -65,6 +65,7 @@ classdef GrandlyUnifyController < handle
           classifierFileName, ...
           gtExpDirNames);
       catch excp
+        self.view.unspin();  
         uiwait(errordlg(excp.message,'Error','modal'));
         return
       end  % try/catch
