@@ -1182,12 +1182,14 @@ tmp=directory;
 [newexperiments directory]=uigetfile([fullfile(directory,'*.txt') ';*.csv'],'Select batch file');
 if(isnumeric(newexperiments)&&(newexperiments==0))  directory=tmp; return;  end
 newexperiments=textread(fullfile(directory,newexperiments),'%s','delimiter',',');
-sum(cellfun(@exist,newexperiments)~=0);
-if(ans==(length(newexperiments)/2))
+%sum(cellfun(@(x) exist(x,'dir'),newexperiments)~=0);
+%if(ans==(length(newexperiments)/2))
+if(all(cellfun(@(x) exist(x,'dir'),newexperiments(1:2:end))))
   newgroups=newexperiments(2:2:end);
   newcolors=[];
   newexperiments=newexperiments(1:2:end);
-elseif(ans==(length(newexperiments)/3))
+%elseif(ans==(length(newexperiments)/3))
+elseif(all(cellfun(@(x) exist(x,'dir'),newexperiments(1:3:end))))
   newgroups=newexperiments(2:3:end);
   newcolors=newexperiments(3:3:end);
   newexperiments=newexperiments(1:3:end);
