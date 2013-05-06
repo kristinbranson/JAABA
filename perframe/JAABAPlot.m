@@ -2366,8 +2366,8 @@ end
 
 
 % ---
-function [behavior_data,behavior_data2,behavior_data3,feature_data,sex_data]=...
-    cull_short_trajectories(handles,behavior_data,behavior_data2,behavior_data3,feature_data,sex_data)
+function [behavior_data, behavior_data2, behavior_data3, feature_data, sex_data]=...
+    cull_short_trajectories(handles, behavior_data, behavior_data2, behavior_data3, feature_data, sex_data)
 
 if(~isempty(behavior_data))
   idx=find((behavior_data.allScores.tEnd-behavior_data.allScores.tStart+1)./handles.fps < ...
@@ -2768,10 +2768,11 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   table_data=zeros(nexperiments,max(1,nbehaviors),nfeatures,9);
   parfor ge=1:nexperiments
   %for ge=1:nexperiments
-    behavior_data={};
+    bdata={};
     for b=1:nbehaviors
-      behavior_data{b}=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
-      num_indi=num_indi+length(behavior_data{b}.allScores.scores);
+      behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
+      [bdata{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data,[],[],[],[]);
+      num_indi=num_indi+length(bdata{b}.allScores.scores);
     end
 
     bad{ge}={};
@@ -2780,7 +2781,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
       feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
           [handles.featurelist{f} '.mat']));
-      [bdata,~,~,fdata,~]=cull_short_trajectories(handles,behavior_data{b},[],[],feature_data,[]);
+      [~,~,~,fdata,~]=cull_short_trajectories(handles,[],[],[],feature_data,[]);
 
       sexdata={};
       for s=1:length(fdata.data)
@@ -2789,7 +2790,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       for b=1:nbehaviors
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
-        [during not_during]=calculate_feature_histogram(bdata,1,[],...
+        [during not_during]=calculate_feature_histogram(bdata{b},1,[],...
             fdata,sexdata,nan,handles.featurehistogram_style,0);
         parfor_tmp(b,f,:)=[mean(during) mean(not_during) mean([during not_during]) ...
             std(during) std(not_during) std([during not_during]) ...
