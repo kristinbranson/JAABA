@@ -3178,8 +3178,9 @@ for b=bb
         calculate_entiretimeseries(behavior_data,feature_data,tmp2,tmp,xoffset);
         raw_parfor_tmp{ii}=nanmean(ans,1);
         if(~isempty(raw_parfor_tmp{ii}))
-          conv(raw_parfor_tmp{ii},ones(1,convolutionwidth),'same');
-          parfor_tmp{ii}=ans./conv(ones(1,length(ans)),ones(1,convolutionwidth),'same');
+          conv(raw_parfor_tmp{ii},ones(1,convolutionwidth),'valid');
+          ans./conv(ones(1,length(raw_parfor_tmp{ii})),ones(1,convolutionwidth),'valid');
+          parfor_tmp{ii}=[nan(1,floor((convolutionwidth-1)/2)) ans nan(1,ceil((convolutionwidth-1)/2))];
         else
           parfor_tmp{ii}=raw_parfor_tmp{ii};
         end
@@ -4190,8 +4191,10 @@ for b=bb
       end
       parfor_tmp2{ii2}(1,:)=parfor_tmp(1,:)./parfor_tmp(2,:);
       find(parfor_tmp(2,:)==0);  parfor_tmp(2,ans)=nan;
-      parfor_tmp2{ii2}(2,:)=conv(parfor_tmp(1,:),ones(1,convolutionwidth),'same') ./ ...
-         conv(parfor_tmp(2,:),ones(1,convolutionwidth),'same');
+      parfor_tmp2{ii2}(2,:)=[nan(1,floor((convolutionwidth-1)/2)) ...
+         conv(parfor_tmp(1,:),ones(1,convolutionwidth),'valid') ./ ...
+         conv(parfor_tmp(2,:),ones(1,convolutionwidth),'valid') ...
+         nan(1,ceil((convolutionwidth-1)/2))];
     end
     raw_data(gei,:)=cellfun(@(x) x(1,:),parfor_tmp2,'uniformoutput',false);
     behavior_cumulative(gei,:)=cellfun(@(x) x(2,:),parfor_tmp2,'uniformoutput',false);
