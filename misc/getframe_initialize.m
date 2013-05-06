@@ -1,7 +1,24 @@
 function gfdata = getframe_initialize(haxes)
 
+inputType = getInputType(haxes);
+
+if strcmp(inputType,'figure'),
+    
+  hfig = haxes;
+
+  haxes = get(hfig,'children');
+  if length(haxes) > 1,
+    haxes = hfig;
+    %error('Figure has multiple children, please input handle of axes instead of figure');
+  end
+
+else
+  hfig = get(haxes,'parent');
+end
+
+
+
 gfdata.haxes = haxes;
-hfig = get(haxes,'parent');
 gfdata.hfig = hfig;
 gfdata.units = get(hfig,'Units');
 gfdata.pos = get(hfig,'Position');
@@ -30,3 +47,14 @@ gfdata.hardcopy_args = {haxes,['-d',renderer],['-r',num2str(round(pixelsperinch)
 % TODO: put this in cleanup
 % noanimate('restore',get(haxes,'parent'));
 % warning(warnstate);
+
+function inputType = getInputType(frame)
+if isscalar(frame) && ishandle(frame) && (frame > 0)
+  inputType = get(frame,'type');
+elseif isstruct(frame) & isfield(frame,'cdata')
+  inputType = 'movie';
+elseif isa(frame,'numeric')
+  inputType = 'data';
+else
+  error('Invalid input argument.  Each frame must be a numeric matrix, a MATLAB movie structure, or a handle to a figure or axis.');
+end

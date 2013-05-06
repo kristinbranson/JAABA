@@ -72,7 +72,6 @@ switch InputDataType,
       leftovers{:},...
       'pxpermm',pxpermm);
 
-    
   otherwise
     success = false;
     msg = sprintf('Unknown data type %s',InputDataType);
