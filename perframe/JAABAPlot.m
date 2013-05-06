@@ -375,7 +375,7 @@ set(handles.XOffset,'enable','off');                set(handles.MinimumTrajector
 set(handles.OmitInf,'enable','off');                set(handles.OmitNaN,'enable','off');
 set(handles.AbsDPrime,'enable','off');              set(handles.SubtractMean,'enable','off');
 set(handles.LogBinSize,'enable','off');             set(handles.AllFrames,'enable','off');
-set(handles.NotDuring,'enable','off');
+set(handles.NotDuring,'enable','off');              set(handles.DumpToCSV,'enable','off');
 set(handles.CentralTendency,'enable','off');        set(handles.Dispersion,'enable','off');
 set(handles.Plot,'enable','off');
 
@@ -497,6 +497,7 @@ end
 if(~isempty(analysis2))
   set(handles.Plot,'enable','on');
   set(handles.MinimumTrajectoryLength,'enable','on');
+  set(handles.DumpToCSV,'enable','on');
   if((ismember(analysis2,{'feature_histogram','behavior_barchart','behavior_timeseries','bout_stats'}) || ...
      (strcmp(analysis2,'feature_timeseries')&&(handles.featuretimeseries_style2~=1))) && ...
       (length(handles.behaviorlist)>0))
@@ -601,7 +602,7 @@ if ~isdeployed,
   SetUpJAABAPath;
 end
 
-if false && (exist('matlabpool')==2 && matlabpool('size')==0)
+if (exist('matlabpool')==2 && matlabpool('size')==0)
   
   useparallel = true;
   if isdeployed,
