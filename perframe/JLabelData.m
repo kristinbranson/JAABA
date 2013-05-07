@@ -396,7 +396,7 @@ classdef JLabelData < matlab.mixin.Copyable
     expnames
     nexps
     nTargetsInCurrentExp
-    ismovie    % true iff we plan to open movies, and the movie file name has been specified
+    ismovie    % true iff the movie file name is nonempty.  If movie file name is empty, it means we don't try to open movies.
   end
 
   
