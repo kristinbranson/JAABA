@@ -23,11 +23,11 @@ for i=1:nTests
       fprintf('%s Failed.\n\n',testFunctionName);
     end
   catch excp
+      successThis=false;      
       fprintf('%s failed with uncaught exception: id: %s, message: %s.\n\n', ...
               testFunctionName, ...
               excp.identifier, ...
               excp.message);
-      successThis=false;      
   end
   success(i)=successThis;
 end
