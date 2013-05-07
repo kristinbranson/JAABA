@@ -700,6 +700,7 @@ void StructuredSVM::DumpModelIfNecessary(const char *modelfile, bool force) {
     char modelfile_times[1000], modelfile_dump[1000];
     sprintf(modelfile_times, "%s.times", modelfile);
     sprintf(modelfile_dump, "%s.%d", modelfile, numModelDumps);
+    fprintf(stderr, "Saving model %s...", modelfile_dump);
     Save(modelfile_dump, false);
     double loss = 0, svm_err = 0;
     if(validationfile)
@@ -710,6 +711,7 @@ void StructuredSVM::DumpModelIfNecessary(const char *modelfile, bool force) {
     fclose(fout);
     while(elapsedTime >= dumpModelStartTime*pow(dumpModelFactor,numModelDumps)) 
       numModelDumps++;
+    fprintf(stderr, "done\n");
     double tm_end = get_runtime();
     start_time += tm_end-tm_beg;
   }

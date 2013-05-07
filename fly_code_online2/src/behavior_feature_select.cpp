@@ -234,6 +234,7 @@ void SVMBehaviorSequence::AugmentFeatureSpace() {
   int num_samples=0, num_samples_old = -1;
   double **f = NULL;
   do {
+    fprintf(stderr, "Augment feature space...");
     ExampleWeights *samples = ComputeExampleWeights(trainset, &num_samples);
     if(num_samples_old >= 0) assert(num_samples == num_samples_old);
     num_samples_old = num_samples;
