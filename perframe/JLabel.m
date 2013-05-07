@@ -2389,6 +2389,7 @@ openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.data.needsave;
 % else
 %   nExps=0;
 % end
+nExps=data.nexps;
 someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
                      ~isempty(data) && ...
@@ -2429,6 +2430,7 @@ set(handles.menu_file_change_target_type,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_behavior_name,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_score_file_name,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_remove_experiments_with_no_labels,'Enable',onIff( thereIsAnOpenFile&&(nExps>0) ));
 set(handles.menu_file_import_classifier, ...
     'Enable',onIff(thereIsAnOpenFile));
 % Import Scores... and it's submenu items
@@ -9210,4 +9212,40 @@ chandles = CompareFrames('JLabelH',handles, ...
                          'fly',handles.data.flies, ...
                          't',handles.guidata.ts);
 handles.guidata.open_peripherals(end+1) = chandles;
+return
+
+
+% --------------------------------------------------------------------
+function menu_file_remove_experiments_with_no_labels_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_remove_experiments_with_no_labels (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+removeExperimentsWithNoLabels(handles.figure_JLabel);
+return
+
+
+% -------------------------------------------------------------------------
+function removeExperimentsWithNoLabels(figureJLabel)
+handles=guidata(figureJLabel);
+data=handles.data;  % a ref
+% Save the current exp dir name
+iExp=data.expi;
+currentExpDirName=data.expdirs{iExp};
+% Tell the model to remove experiments with no labels
+data.removeExperimentsWithNoLabels();
+% If the once-current experiment is now removed, update the view
+% accordingly
+iExpNow=whichstr(currentExpDirName,data.expdirs);
+if isempty(iExpNow) ,
+  % Update the movie to reflect the current movie
+  iExp=handles.data.expi;
+  handles = UnsetCurrentMovie(handles);
+  if handles.data.nexps > 0 && iExp>0
+    handles = SetCurrentMovie(handles,iExp);
+  end
+  % Update the GUI to match the current "model" state
+  UpdateEnablementAndVisibilityOfControls(handles);
+  UpdatePlots(handles)
+  guidata(figureJLabel,handles);
+end
 return
