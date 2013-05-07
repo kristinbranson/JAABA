@@ -98,6 +98,7 @@ handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
 handles.defaultcolors=[1 0 0;  0 0.5 0;  0 0 1;  0 1 1;  1 0 1;  0.749 0.749 0;  0 0 0];
 handles.colors=[];
+handles.trx_file='registered_trx.mat';
 
 
 % ---
@@ -160,6 +161,7 @@ try
   handles.interestingfeaturetimeseries_cache=handles_saved.interestingfeaturetimeseries_cache;
   handles.defaultcolors=handles_saved.defaultcolors;
   handles.colors=handles_saved.colors;
+  handles.trx_file=handles_saved.trx_file;
   handles.table=[];
 catch me
   handles=initialize(handles);
@@ -207,24 +209,31 @@ end
 
 
 % ---
-function ret_val=get_fps(filename)
+function [fps,trxfile]=get_fps(expdir,trxfile)
+
+filename=fullfile(expdir,trxfile);
+if(~exist(filename))
+  [trxfile,~,~]=uigetfile(fullfile(expdir,'*.mat'),...
+      ['can''t find ' trxfile '.  what is the name of the tracks file?']);
+  filename=fullfile(expdir,trxfile);
+  %[fps,trxfile]=get_fps(expdir,trxfile);
+  %return;
+end
 
 t=load(filename);
 if isfield(t.trx(1),'fps'),
-  ret_val=t.trx(1).fps;
+  fps=t.trx(1).fps;
 elseif isfield(t.trx(1),'dt'),
   fps = 1/mean(t.trx(1).dt(1:10));
-  if ~isnan(fps)
-    ret_val = fps;
-  else
+  if isnan(fps)
     uiwait(warndlg('Trx file does not have recording fps (frames per second). Assuming fps as 30'));
     drawnow;
-    ret_val = 30;
+    fps = 30;
   end
 else
   uiwait(warndlg('Trx file does not have recording fps (frames per second). Assuming fps as 30'));
   drawnow;
-  ret_val = 30;
+  fps = 30;
 end
 
 
@@ -292,7 +301,7 @@ end
 
 %classifier=load(handles.classifierlist{1});
 %handles.fps=get_fps(fullfile(handlesexperiments{1},classifier.trxfilename));
-handles.fps=get_fps(fullfile(handlesexperimentlist{1},'registered_trx.mat'));
+[handles.fps,handles.trx_file]=get_fps(handlesexperimentlist{1},handles.trx_file);
 
 handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
@@ -1141,7 +1150,7 @@ if(isnan(handles.fps))
 %if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
 %  classifier=load(handles.classifierlist{1});
 %  handles.fps=get_fps(fullfile(newexperiments{1},classifier.trxfilename));
-  handles.fps=get_fps(fullfile(newexperiments{1},'registered_trx.mat'));
+  [handles.fps,handles.trx_file]=get_fps(newexperiments{1},handles.trx_file);
 end
 
 handles.features={handles.features{:} handlesfeatures{:}};
@@ -1503,7 +1512,8 @@ end
 
 handlesexperimentlist=[handles.experimentlist{:}];
 if((isnan(handles.fps))&&(length(handlesexperimentlist)>0))
-  handles.fps=get_fps(fullfile(handlesexperimentlist{1},classifier.x.file.trxfilename));
+  handles.trx_file=classifier.x.file.trxfilename;
+  [handles.fps,handles.trx_file]=get_fps(handlesexperimentlist{1},handles.trx_file);
 end
 
 idx=find(~cellfun(@isempty,newclassifiers));
