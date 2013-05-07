@@ -140,7 +140,7 @@ bool StructuredLearnerJaabaRpc::SetFrameFeatures(const Json::Value& root, Json::
 bool StructuredLearnerJaabaRpc::SetBoutFeatures(const Json::Value& root, Json::Value& response) {
   SVMFlyBehaviorSequence *l = ((SVMFlyBehaviorSequence*)learner);
   if(root.isMember("bout_features")) {
-    l->LoadBoutFeatureParams(root["frame_features"]);
+    l->LoadBoutFeatureParams(root["bout_features"]);
     l->Init(l->GetBehaviors(), l->GetFrameFeatureDefs(), l->NumFrameFeatures(), l->GetBoutFeatureDefs(), l->NumBoutFeatures());
 
     char str[1000];
@@ -173,6 +173,7 @@ bool StructuredLearnerJaabaRpc::SetBehaviors(const Json::Value& root, Json::Valu
 #ifndef AS_LIBRARY
 int main(int argc, const char **argv) {
   char pname[1000], debug_name[1000];
+  SVMFlyBehaviorSequence *svm = new SVMFlyBehaviorSequence();
   strcpy(pname, "");
   strcpy(debug_name, "");
 
@@ -182,6 +183,7 @@ int main(int argc, const char **argv) {
       switch ((argv[i])[1]) {
       case 'B': i++; sprintf(pname, "%s", argv[i]); break;
       case 'D': i++; sprintf(debug_name, "%s", argv[i]); break;
+      case 'u': i++; svm->SetTimeApproximation(atof(argv[i])); break;
       default: break; 
       }
     }
@@ -189,7 +191,6 @@ int main(int argc, const char **argv) {
   }
   
   //assert(strlen(feat_name) && behaviors);
-  SVMFlyBehaviorSequence *svm = new SVMFlyBehaviorSequence();
   if(strlen(debug_name)) svm->SetDebugDir(debug_name);
   if(strlen(pname)) ((StructuredSVM*)svm)->Load((const char*)pname, false);
 
@@ -231,7 +232,7 @@ bool FlyBehaviorBoutFeatures::load(const char *pname, SVMBehaviorSequence *svm) 
   MAT_GET_VARIABLE(trx, "trx");
   MAT_GET_DOUBLE_FIELD(trx, fly_id, "id");
   this->fly_id = (int)fly_id;
-  id = this->fly_id-1;
+  id = 0;//this->fly_id-1;
   if(id < 0) { fprintf(stderr, "Invalid fly_id %d\n", id); id = 0; }
   MAT_GET_DOUBLE_FIELD(trx, firstframe, "firstframe");
   MAT_GET_DOUBLE_FIELD(trx, lastframe, "endframe");
@@ -302,7 +303,7 @@ bool FlyBehaviorBoutSequence::load(const char *pname) {
   char name[1001];
 
   this->fly_id = xx->fly_id;
-  int id = this->fly_id-1;
+  int id = 0;//this->fly_id-1;
   if(id < 0) { fprintf(stderr, "Invalid fly_id %d\n", id); id = 0; }
 
   tmp2 = matGetVariable(pmat, "t0s"); 
@@ -375,8 +376,24 @@ bool FlyBehaviorBoutSequence::load(const Json::Value &r, StructuredSVM *s) {
 }
 
 Json::Value FlyBehaviorBoutSequence::save(StructuredSVM *s) {
-  Json::Value r = BehaviorBoutSequence::save(s);
+  Json::Value r;// = BehaviorBoutSequence::save(s);
+  FlyBehaviorBoutFeatures *xx = (FlyBehaviorBoutFeatures*)x;
+
   r["fly_id"] = fly_id;
+  if(xx) r["moviename"] = xx->moviename;
+  r["firstframe"] = xx->firstframe;
+
+  if(bouts) {
+    Json::Value b(Json::arrayValue);
+    for(int j = 0; j < num_bouts; j++) {
+      Json::Value c;
+      c["start_frame"] = bouts[j].start_frame + xx->firstframe;
+      c["end_frame"] = bouts[j].end_frame + xx->firstframe;
+      c["behavior"] = bouts[j].behavior;
+      b[j] = c;
+    }
+    r["bouts"] = b;
+  }
 
   if(s->IsTesting()) {
     r["fname"] = fname;

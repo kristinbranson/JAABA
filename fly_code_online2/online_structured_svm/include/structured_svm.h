@@ -392,6 +392,8 @@ public:
   virtual char *VisualizeExample(const char *htmlDir, StructuredExample *ex, const char *extraInfo=NULL);
 
   virtual void OnFinishedPassThroughTrainset() {} 
+ 
+  virtual void AugmentFeatureSpace() {}
 
   /************************** Routines used for training **************************/
 public:
@@ -501,7 +503,7 @@ y_predicted y_ground_truth loss score_prediction score_ground_truth
    */
   double GetLambda() { return lambda; }
 
-  void PauseWorkerThreads(bool pause, bool wait=false);
+  void PauseWorkerThreads(bool pause, bool wait=false, bool lock=true);
   void FlushCache(bool lock = true);
 
   /**
@@ -654,7 +656,6 @@ protected:
 
   
   /************************ Variables used for online learning ******************************/
-  double *u_i_buff;     // memory buffer used for a non-sparse version of u_i, u_i = \sum_y alpha_{i,y} (psi(x_i,ybar)-psi(x_i,y_i))
   bool runForever;
   bool hasConverged;
   long curr;  /**< the next example to process */ 
@@ -699,9 +700,14 @@ protected:
   StructuredDataset *trainset;
   bool keepAllEvictedLabels;
   bool isTesting;
+  double maxDual;
+  double *u_i_buff;     // memory buffer used for a non-sparse version of u_i, u_i = \sum_y alpha_{i,y} (psi(x_i,ybar)-psi(x_i,y_i))
   
   void SVM_cached_sample_set_compute_features(struct _SVM_cached_sample_set *set, StructuredExample *ex);
+  void SVM_cached_sample_set_recompute_caches(struct _SVM_cached_sample_set *set);
 
+  void CondenseSamples(struct _SVM_cached_sample_set *set);
+  void UncondenseSamples(struct _SVM_cached_sample_set *set);
  private:
 
   int ChooseNextExample();
@@ -721,8 +727,6 @@ protected:
 
   void ExtractSampleSet(int num_samples, bool augment);
   void ConvertCachedExamplesToBinaryTrainingSet();
-  void CondenseSamples(struct _SVM_cached_sample_set *set);
-  void UncondenseSamples(struct _SVM_cached_sample_set *set);
   void UpdateFromCache(bool lock=true, int *num=NULL, int i=-1);
   void TrainMain(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL); 
   void TrainBinary(const char *modelfile=NULL, bool runForever=false, const char *initial_sample_set=NULL); 
@@ -810,6 +814,7 @@ typedef struct _SVM_cached_sample_set {
   StructuredLabel *ybar;
   double dot_sum_w_psi_gt;
   double *alphas;
+  SparseVector **sample_feature_expansions, *gt_feature_expansions;
 
   SparseVector *u_i;           /**< u_i = \sum_ybar alpha_{i,ybar} Psi(x_i,ybar) */
   VFLOAT D_i;                  /**< D_i = \sum_ybar alpha_{i,ybar} loss(y_i,ybar) */

@@ -99,6 +99,7 @@ bool StructuredSVM::Save(const char *fname, bool saveFull) {
   root["Regularization (C)"] = C;
   root["Training accuracy (epsilon)"] = eps;
   root["T"] = (int)t;
+  root["maxDual"] = maxDual;
   if(trainfile) root["Training Set"] = trainfile;
   root["Custom"] = Save();
   if(saveFull) {
@@ -152,6 +153,7 @@ bool StructuredSVM::Load(const char *fname, bool loadFull) {
     C = root.get("Regularization (C)", 0).asDouble();
     lambda = 1/C;
   }
+  maxDual = root.get("maxDual", 0).asDouble();
   t = root.get("T", 0).asInt();
   if(root.isMember("Training Set")) { 
     char str[1000]; strcpy(str, root.get("Training Set", "").asString().c_str()); trainfile = StringCopy(str); 
@@ -184,6 +186,7 @@ StructuredSVM::StructuredSVM() {
   u_i_buff = NULL;
   trainLatent = false;
   pauseWorkers = false;
+  maxDual = 0;
 
   trainfile = modelfile = NULL; 
 

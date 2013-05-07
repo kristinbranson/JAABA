@@ -20,7 +20,7 @@ ARFLAGS=rcs
 CONFIGURATION=debug_static
 
 CPP_FILES := $(wildcard src/*.cpp)
-HEADER_FILES := $(wildcard include/*.h)  
+HEADER_FILES := $(wildcard include/*.h)  $(wildcard online_structured_svm/include/*.h) $(wildcard online_structured_svm/json/json/*.h)
 OBJ_FILES=$(addprefix obj/$(CONFIGURATION)/,$(notdir $(CPP_FILES:.cpp=.o)))
 
 

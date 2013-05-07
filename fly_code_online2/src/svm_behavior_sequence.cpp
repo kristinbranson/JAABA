@@ -13,10 +13,6 @@ char *g_currFile; // CSC 20110420: hack to pass current filename for debug purpo
 
 #define CAP_BOUT_FEATURES 4.0  // cap bout-level features to be no more than 4 standard deviations
 
-// Assume no score (other than transition costs) for the "none" behavior.  Effectively, removes all
-// bout features, unary score, and duration score for the none behavior
-// This allows an exhaustive search for all bout durations for the "none" behavior
-#define NONE_CLASS_HAS_NO_SCORE 1
 
 #define INST_VERSION "0.0.0"
 
@@ -55,6 +51,8 @@ SVMBehaviorSequence::SVMBehaviorSequence() : StructuredSVM() {
 #endif
   false_negative_cost = false_positive_cost = NULL;
   Init(NULL, NULL, 0, NULL, 0);
+  bout_expansion_features = NULL; 
+  num_bout_expansion_features = 0;
 }
 
 void SVMBehaviorSequence::Init(Behaviors *behaviors, FrameFeature *frame_features, int num_frame_features, 
@@ -72,6 +70,7 @@ void SVMBehaviorSequence::Init(Behaviors *behaviors, FrameFeature *frame_feature
   this->frame_features = frame_features;
   this->num_frame_features = num_frame_features;
 
+  dontComputeFeatureMeanVarianceMedianStatistics = false;
   max_inference_learning_frames = -1;  // don't disregard any frames at train time to speedup inference
 
   // Speed up inference, only searching over bout durations of size time_approximation^k, for some integer k.
@@ -151,7 +150,8 @@ SVMBehaviorSequence::~SVMBehaviorSequence() {
   if(class_training_count) free(class_training_count);
   
   FreeFrameFeatureParams();
-  FreeBoutFeatureParams();
+  FreeBoutFeatureParams(bout_features, num_bout_features);
+  FreeBoutFeatureParams(bout_expansion_features, num_bout_expansion_features);
   FreeBehaviorDefinitions();
 }
 
@@ -247,8 +247,6 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
   BehaviorBoutFeatures *x;
   StructuredExample **ex = dataset->examples;
 
-  if(!trainset) trainset = dataset;
-  ComputeClassTrainsitionCounts();
       
   // Count the total number of bouts in the training set
   for(n = 0; n < dataset->num_examples; n++) {
@@ -282,6 +280,8 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
       x = ((BehaviorBoutFeatures*)ex[n]->x);
       int c = 0;
       for(j = 0; j < y->num_bouts; j++) {
+	assert(y->bouts[j].start_frame < y->bouts[j].end_frame && y->bouts[j].start_frame >= 0 &&  y->bouts[j].end_frame <= x->num_frames);
+	if(j) assert(y->bouts[j].start_frame >= y->bouts[j-1].end_frame);
 	for(k = y->bouts[j].start_frame; k < y->bouts[j].end_frame; k++) {
 	  assert(k >= 0);  // CSC 20110324
 	  frame_feat[curr_frame++] = x->features[i][k];
@@ -290,6 +290,7 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 	if (y->bouts[j].end_frame == y->bouts[j].start_frame)
 	  printf("Warning: bout has 0 frames!");
       }
+      assert(c <=  x->num_frames);
     }
 
     // Compute thresholds for assigning histogram bins.  The thresholds are chosen such that an equal number
@@ -442,7 +443,13 @@ void SVMBehaviorSequence::compute_feature_mean_variance_median_statistics(Struct
 * are dynamically allocated.
 */
 double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int c, 
-				      double *f, bool normalize, bool fast_update) {
+				      double *f, bool normalize, bool fast_update, 
+				      BoutFeature *bout_features, int num_bout_features) {
+  if(!bout_features) {
+    bout_features = this->bout_features;
+    num_bout_features = this->num_bout_features;
+  }
+
   if(!f) 
     f = (double*)malloc(num_bout_features*sizeof(double));
 
@@ -476,11 +483,14 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
   }
   
   if(normalize)
-    for(i = 0; i < num_bout_features; i++) 
+    for(i = 0; i < num_bout_features; i++) {
+      assert(!isnan(f[i]) && my_abs(f[i]) < 100000000);
       f[i] = (f[i]-bout_features[i].mu)*bout_features[i].gamma; 
-
+      assert(!isnan(f[i]) && my_abs(f[i]) < 100000000);
+    }
   return f;
 }
+
 
 
 SparseVector SVMBehaviorSequence::Psi(StructuredData *x, StructuredLabel *yy) {
@@ -677,7 +687,12 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
 
     // Compute all feature cache data structures for all training examples.  This requires first computing some
     // statistics of the training set features for normalization purposes
-    compute_feature_mean_variance_median_statistics(dataset);
+    if(!trainset) trainset = dataset;
+    ComputeClassTrainsitionCounts();
+    if(!dontComputeFeatureMeanVarianceMedianStatistics) {
+      compute_feature_mean_variance_median_statistics(dataset);
+      dontComputeFeatureMeanVarianceMedianStatistics = true;
+    }
 
     // Compute features for each training bout, normalized to have (0,1) mean and standard deviation
     for(j = 0; j < dataset->num_examples; j++) {
@@ -2067,23 +2082,26 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
 
       delete ybar_partial;
       t_start += importance_sample_interval_size;
+
     }
     y->disable_checks = false;
   }
 
   // Now run the full exhaustive Inference() procedure to find the most violated constraint
-  StructuredLabel *ybar = NewStructuredLabel(x);
-  retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
-  Lock();
-  set->score_gt = w_curr->dot(*set->psi_gt);
-  SVM_cached_sample_set_add_sample(set, ybar);
-  SVM_cached_sample_set_compute_features(set, trainset->examples[set->i]);
-  if(set->num_samples) {
-    SVM_cached_sample s = set->samples[0];
-    set->samples[0] = set->samples[set->num_samples-1];
-    set->samples[set->num_samples-1] = s;
+  if(!pauseWorkers) {
+    StructuredLabel *ybar = NewStructuredLabel(x);
+    retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
+    Lock();
+    set->score_gt = w_curr->dot(*set->psi_gt);
+    SVM_cached_sample_set_add_sample(set, ybar);
+    SVM_cached_sample_set_compute_features(set, trainset->examples[set->i]);
+    if(set->num_samples) {
+      SVM_cached_sample s = set->samples[0];
+      set->samples[0] = set->samples[set->num_samples-1];
+      set->samples[set->num_samples-1] = s;
+    }
+    Unlock();
   }
-  Unlock();
 
   delete w_curr;
 
@@ -2256,6 +2274,8 @@ Json::Value SVMBehaviorSequence::Save() {
   if(behaviors)
     root["behaviors"] = SaveBehaviorDefinitions();
 
+  root["dontComputeFeatureMeanVarianceMedianStatistics"] = dontComputeFeatureMeanVarianceMedianStatistics;
+  
   Json::Value t;
   for(i = 0; i < behaviors->num_values; i++) {
     Json::Value o, tt;
@@ -2280,7 +2300,9 @@ Json::Value SVMBehaviorSequence::Save() {
   root["smoothness_window"] = feature_sample_smoothness_window;
 
   if(bout_features) 
-    root["bout_feature_params"] = SaveBoutFeatureParams();
+    root["bout_feature_params"] = SaveBoutFeatureParams(bout_features, num_bout_features);
+  if(bout_expansion_features) 
+    root["bout_expansion_feature_params"] = SaveBoutFeatureParams(bout_expansion_features, num_bout_expansion_features);
 	
   if(frame_features) 
     root["frame_feature_params"] = SaveFrameFeatureParams();
@@ -2313,9 +2335,13 @@ bool SVMBehaviorSequence::Load(const Json::Value &root) {
   if(root.isMember("frame_feature_params")) 
     LoadFrameFeatureParams(root["frame_feature_params"]);
   if(root.isMember("bout_feature_params")) 
-    LoadBoutFeatureParams(root["bout_feature_params"]);
+    LoadBoutFeatureParams(root["bout_feature_params"], bout_features, num_bout_features);
+  if(root.isMember("bout_expansion_feature_params")) 
+    LoadBoutFeatureParams(root["bout_expansion_feature_params"], bout_expansion_features, num_bout_expansion_features);
 
   Init(behaviors, frame_features, num_frame_features, bout_features, num_bout_features);
+
+  dontComputeFeatureMeanVarianceMedianStatistics = root.get("dontComputeFeatureMeanVarianceMedianStatistics",false).asBool();
 
   if(behaviors && root.isMember("transitions")) {
     class_training_transitions = (int**)malloc(behaviors->num_values*sizeof(int*));
@@ -2368,7 +2394,7 @@ bool SVMBehaviorSequence::Load(const Json::Value &root) {
 bool SVMBehaviorSequence::LoadBehaviorDefinitions(const Json::Value &p) {
   FreeBehaviorDefinitions();
 
-  int noneInd;
+  int noneInd = -1;
   Behaviors *behaviors = (Behaviors*)malloc(sizeof(Behaviors)); 
   behaviors->num_values = p.size();
   behaviors->values = (Behavior*)malloc(behaviors->num_values*sizeof(Behavior)); 
@@ -2441,7 +2467,7 @@ BoutOperator BoutOperatorFromString(char *str) {
   return (BoutOperator)-1;
 }
 
-Json::Value SVMBehaviorSequence::SaveBoutFeatureParams() {
+Json::Value SVMBehaviorSequence::SaveBoutFeatureParams(BoutFeature* &bout_features, int &num_bout_features) {
    Json::Value fe;
    char op[1000];
    for(int i = 0; i < num_bout_features; i++) {
@@ -2458,6 +2484,7 @@ Json::Value SVMBehaviorSequence::SaveBoutFeatureParams() {
        w[j] = bout_features[i].weights[j];
        reg[j] = r;
      }
+     if(bout_features[i].name) f["name"] = bout_features[i].name;
      f["regions"] = reg;
      f["weights"] = w;
      f["thresh"] = bout_features[i].thresh;
@@ -2471,8 +2498,9 @@ Json::Value SVMBehaviorSequence::SaveBoutFeatureParams() {
    return fe;
  }
 
- void SVMBehaviorSequence::LoadBoutFeatureParams(const Json::Value &fe) {
-   FreeBoutFeatureParams();
+
+ void SVMBehaviorSequence::LoadBoutFeatureParams(const Json::Value &fe, BoutFeature* &bout_features, int &num_bout_features) {
+   FreeBoutFeatureParams(bout_features, num_bout_features);
 
    num_bout_features = fe.size();
    bout_features = (BoutFeature*)realloc(bout_features, num_bout_features*sizeof(BoutFeature));
@@ -2507,7 +2535,7 @@ Json::Value SVMBehaviorSequence::SaveBoutFeatureParams() {
    }
  }
 
-void SVMBehaviorSequence::FreeBoutFeatureParams() {
+void SVMBehaviorSequence::FreeBoutFeatureParams(BoutFeature* &bout_features, int &num_bout_features) {
   if(bout_features) {
     for(int i = 0; i < num_bout_features; i++)
       if(bout_features[i].name)
@@ -2515,6 +2543,7 @@ void SVMBehaviorSequence::FreeBoutFeatureParams() {
     free(bout_features);
   }
   bout_features = NULL;
+  num_bout_features = 0;
 }
 
 
@@ -2685,6 +2714,8 @@ void BehaviorBoutFeatures::ComputeCaches(SVMBehaviorSequence *svm) {
   for(i = 0; i < num_frame_features; i++) {
     integral_features[i] = ((double*)ptr)+pad1;
     ptr += (T+pad1+pad2+1)*sizeof(double);
+    for(j = 0; j < T; j++) 
+      assert(!isnan(features[i][j])); 
 
     integral_features[i][-pad1] = 0;
     for(j = -pad1; j < 0; j++) 
@@ -2893,7 +2924,7 @@ bool BehaviorBoutSequence::load(const Json::Value &r, StructuredSVM *s) {
     ((SVMBehaviorSequence*)s)->init_bout_label(this, NULL);
     num_bouts = r["bouts"].size();
 
-    ((SVMBehaviorSequence*)s)->init_bout_label(this, NULL);
+    
     this->bouts = (BehaviorBout*)malloc(sizeof(BehaviorBout)*num_bouts);
     for(int j = 0; j < num_bouts; j++) {
       Json::Value c = r["bouts"][j];
@@ -3075,3 +3106,4 @@ void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence 
      }
    }
 }
+
