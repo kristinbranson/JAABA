@@ -723,7 +723,10 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
 end
 
 % If the movie has changed, want to re-initialize the frame cache
-if(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
+if(handles.data.ismovie && ...
+   handles.guidata.shouldOpenMovieIfPresent && ...
+   handles.guidata.thisMoviePresent && ...
+   (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
   N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
@@ -886,8 +889,7 @@ for i = axes,
   
   if refreshim,
     
-    if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
-
+    if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && handles.guidata.thisMoviePresent ,
       j = find((Mframenum.Data==handles.guidata.ts(i)) & ...
                (~isnan(Mlastused.Data)) & ...
                (Mlastused.Data>0) ...
@@ -1117,7 +1119,7 @@ return
 % -------------------------------------------------------------------------
 function [handles,success] = SetCurrentMovie(handles,expi)
 
-success = false;
+% success = false;
 
 if expi == handles.data.expi,
   success = true;
@@ -1125,11 +1127,15 @@ if expi == handles.data.expi,
 end
 
 % check that the current movie exists
+handles.guidata.thisMoviePresent=false;
 if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
   [moviefilename,timestamp] = handles.data.GetFile('movie',expi);
   if isinf(timestamp) && ~exist(moviefilename,'file'),
-    uiwait(warndlg(sprintf('Movie file %s does not exist.',moviefilename),'Error setting movie'));
-    return;
+    uiwait(warndlg(sprintf('Movie file %s does not exist for current experiment.  No movie will be shown.',moviefilename), ...
+                   'Error setting movie'));
+    handles.guidata.thisMoviePresent=false;             
+  else
+    handles.guidata.thisMoviePresent=true;
   end
 
   % close previous movie
@@ -1139,30 +1145,30 @@ if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
     end
   end
 
-  % open menu_file_open_old_school_files movie
-  % try
-  SetStatus(handles,'Opening movie...');
-  %if 1,
-  [handles.guidata.readframe,handles.guidata.nframes,handles.guidata.movie_fid,handles.guidata.movieheaderinfo] = ...
-    get_readframe_fcn(moviefilename);
-  %else
-  %  fprintf('DEBUG!!!! USING GLOBAL VARIABLE WITH MOVIE READFRAME !!!DEBUG\n');
-  %  global JLABEL__READFRAME;
-  %  handles.guidata.readframe = JLABEL__READFRAME.readframe;
-  %  handles.guidata.nframes = JLABEL__READFRAME.nframes;
-  %  handles.guidata.movie_fid = JLABEL__READFRAME.movie_fid;
-  %  handles.guidata.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
-  %end
-  im = handles.guidata.readframe(1);
-  handles.guidata.movie_depth = size(im,3);
-  handles.guidata.movie_width = size(im,2);
-  handles.guidata.movie_height = size(im,1);
-  handles.guidata.movie_filename = moviefilename;
-  % catch ME,
-  %   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
-  %   ClearStatus(handles);
-  %   return;
-  % end
+  if handles.guidata.thisMoviePresent ,
+    SetStatus(handles,'Opening movie...');
+    %if 1,
+    [handles.guidata.readframe,handles.guidata.nframes,handles.guidata.movie_fid,handles.guidata.movieheaderinfo] = ...
+      get_readframe_fcn(moviefilename);
+    %else
+    %  fprintf('DEBUG!!!! USING GLOBAL VARIABLE WITH MOVIE READFRAME !!!DEBUG\n');
+    %  global JLABEL__READFRAME;
+    %  handles.guidata.readframe = JLABEL__READFRAME.readframe;
+    %  handles.guidata.nframes = JLABEL__READFRAME.nframes;
+    %  handles.guidata.movie_fid = JLABEL__READFRAME.movie_fid;
+    %  handles.guidata.movieheaderinfo = JLABEL__READFRAME.movieheaderinfo;
+    %end
+    im = handles.guidata.readframe(1);
+    handles.guidata.movie_depth = size(im,3);
+    handles.guidata.movie_width = size(im,2);
+    handles.guidata.movie_height = size(im,1);
+    handles.guidata.movie_filename = moviefilename;
+    % catch ME,
+    %   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
+    %   ClearStatus(handles);
+    %   return;
+    % end
+  end
   
 end
 
@@ -1184,7 +1190,7 @@ if ~success,
 end
 
 % if no movie, then set limits, or we don't want to use
-if ~(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent),
+if ~(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && handles.guidata.thisMoviePresent),
   maxx = max([handles.data.trx.x]+[handles.data.trx.a]*2);
   maxy = max([handles.data.trx.y]+[handles.data.trx.a]*2);
   handles.guidata.movie_height = ceil(maxy);

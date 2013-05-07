@@ -147,6 +147,7 @@ classdef JLabelGUIData < handle
     
     NJObj = [];
     shouldOpenMovieIfPresent=true;  % if false, we don't show the movie, even if it's available
+    thisMoviePresent=false;  % set to true once we know the current movie exists.
     
     hplaying = nan;
 
