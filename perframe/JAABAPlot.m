@@ -3856,7 +3856,8 @@ for b=bb
         traj_len=cellfun(@(x) x{4}(i),collated_data,'uniformoutput',false);
     end
 
-    if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');
+    if(handles.dump2csv)
+      fprintf(fid,'\n%% raw data\n');
       for g=1:length(handles.grouplist)
         if ~isnumeric(individual)
           idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
@@ -3963,6 +3964,7 @@ for b=bb
       end
     end
   end
+
   if(handles.dump2csv)
     fprintf(fid,'\n%% summary data\n');
     fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
@@ -4529,65 +4531,96 @@ for b=bb
   idx=cellfun(@isempty,collated_data);
   collated_data=collated_data(~idx);
 
-  idx=handles.boutstats_style2*2-1;
-  switch(individual)
-    case 'A'
-      length_data=cellfun(@(x) x{idx},collated_data,'uniformoutput',false);
-    case {'M'}
-      for ge=1:length(collated_data)
-        length_data{ge}=cellfun(@(x,y) x(y==1),...
-            collated_data{ge}{idx},collated_data{ge}{idx+1},'uniformoutput',false);
-      end
-    case {'F'}
-      for ge=1:length(collated_data)
-        length_data{ge}=cellfun(@(x,y) x(y==0),...
-            collated_data{ge}{idx},collated_data{ge}{idx+1},'uniformoutput',false);
-      end
-    otherwise
-      length_data=cellfun(@(x) x{idx}(individual),collated_data,'uniformoutput',false);
-  end
-
-  exp_separators=[];  maxy=0;  k=[];  m=0;  table_data{end+1}=[];
-  for g=1:length(handles.grouplist)
-    color=handles.colors(g,:);
-
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
-    end
-
-    xticklabels{g}=handles.grouplist{g};
-
-    switch(handles.boutstats_style)
-      case 1  % per experiment, error bars
-        table_data{end}{g}=cellfun(@(x) nanmean([x{:}]./handles.fps),length_data(idx));
-        [ct(g),dp(g),dn(g)]=...
-            calculate_ct_d(table_data{end}{g},handles.centraltendency,handles.dispersion);
-        h(g)=errorbarplot(ha,g,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
-      case 2  % per fly, grouped
-        cumsum(cellfun(@length,length_data(idx)))';
-        exp_separators=[exp_separators; ans+sum(k)];
-        table_data{end}{g}=cellfun(@nanmean,[length_data{idx}])./handles.fps;
-        maxy=max([maxy table_data{end}{g}]);
-        h(g)=bar(ha,(1:length(table_data{end}{g}))+sum(k),table_data{end}{g},...
-            'barwidth',1,'edgecolor','none');
-        set(h(g),'facecolor',color);
-        k(end+1)=length(table_data{end}{g});
-        if(handles.dump2csv)
-          fprintf(fid,['%% data, %s\n'],xticklabels{g});
-          fprintf(fid,'%g, ',[table_data{end}{g}]);
-          fprintf(fid,'\n');
+  exp_separators=[];  maxy=0;  k=[];  m=0;  ii=0;  table_data{end+1}=[];
+  for i = individual
+    if(iscell(i))  i=char(i);  end
+    idx=handles.boutstats_style2*2-1;
+    switch(i)
+      case 'A'
+        length_data=cellfun(@(x) x{idx},collated_data,'uniformoutput',false);
+      case {'M'}
+        for ge=1:length(collated_data)
+          length_data{ge}=cellfun(@(x,y) x(y==1),...
+              collated_data{ge}{idx},collated_data{ge}{idx+1},'uniformoutput',false);
         end
+      case {'F'}
+        for ge=1:length(collated_data)
+          length_data{ge}=cellfun(@(x,y) x(y==0),...
+              collated_data{ge}{idx},collated_data{ge}{idx+1},'uniformoutput',false);
+        end
+      otherwise
+        length_data=cellfun(@(x) x{idx}(individual),collated_data,'uniformoutput',false);
+    end
+
+    if(handles.dump2csv)
+      fprintf(fid,'\n%% raw data\n');
+      for g=1:length(handles.grouplist)
+        if ~isnumeric(individual)
+          idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+        else
+          find(cumsum_num_exp_per_group<ggee,1,'last');
+          if(ans~=g)  continue;  end
+          idx=1;
+        end
+        fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
+        for e=1:length(idx)
+          fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
+          for i2=1:length(length_data{idx(e)})
+            fprintf(fid,'%% individual %d\n',i2);
+            print_csv_data(fid,length_data{idx(e)}{i2}./handles.fps);
+            fprintf(fid,'\n');
+          end
+        end
+      end
+    end
+
+    for g=1:length(handles.grouplist)
+      color=handles.colors(g,:);
+      ii=ii+1;
+
+      if ischar(i)
+        idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
+      else
+        find(cumsum_num_exp_per_group<ggee,1,'last');
+        if(ans~=g)  continue;  end
+        idx=1;
+      end
+
+      xticklabels{ii}=handles.grouplist{g};
+
+      switch(handles.boutstats_style)
+        case 1  % per experiment, error bars
+          table_data{end}{ii}=cellfun(@(x) nanmean([x{:}]./handles.fps),length_data(idx));
+          [ct(g),dp(g),dn(g)]=...
+              calculate_ct_d(table_data{end}{ii},handles.centraltendency,handles.dispersion);
+          h{ii}=errorbarplot(ha,ii,ct(g),ct(g)-dn(g),dp(g)-ct(g),color);
+        case 2  % per fly, grouped
+          cumsum(cellfun(@length,length_data(idx)))';
+          exp_separators=[exp_separators; ans+sum(k)];
+          table_data{end}{ii}=cellfun(@nanmean,[length_data{idx}])./handles.fps;
+          maxy=max([maxy table_data{end}{ii}]);
+          h{ii}=bar(ha,(1:length(table_data{end}{ii}))+sum(k),table_data{end}{ii},...
+              'barwidth',1,'edgecolor','none');
+          set(h{ii},'facecolor',color);
+          k(end+1)=length(table_data{end}{ii});
+      end
     end
   end
 
+  if(ismember(handles.behaviorbarchart_style,[1 2 4 6]) && (length(individual)==2))
+    for g=(length(h)/2+1):length(h)
+      findobj([h{g}],'type','patch');
+      hatchfill(ans,'single',45,5,handles.colors(g-length(h)/2,:));
+    end
+  end
+
+  if(handles.dump2csv)
+    fprintf(fid,'\n%% summary data\n');
+    fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
+  end
   switch(handles.boutstats_style)
     case 1  % per experiment, error bars
       if(handles.dump2csv)
-        fprintf(fid,['%% xdata\n']);  fprintf(fid,'%s, ',xticklabels{:});  fprintf(fid,'\n');
         fprintf(fid,['%% ydata, CT+D\n']);  fprintf(fid,'%g, ',dp);  fprintf(fid,'\n');
         fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
         fprintf(fid,['%% ydata, CT\n']);    fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
@@ -4598,30 +4631,15 @@ for b=bb
       hh=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
           [0.95 0.95 0.95],'parent',ha);
       set(hh,'edgecolor','none');
-      set(ha,'children',flipud(get(ha,'children')));
+      set(ha,'children',circshift(get(ha,'children'),-1));
       k=round(cumsum(k)-k/2);
-  end
-
-  if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');  end
-  for g=1:length(handles.grouplist)
-    if ischar(individual)
-      idx=(cumsum_num_selexp_per_group(g)+1):(cumsum_num_selexp_per_group(g+1));
-    else
-      find(cumsum_num_exp_per_group<ggee,1,'last');
-      if(ans~=g)  continue;  end
-      idx=1;
-    end
-    if(handles.dump2csv)
-      fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
-      for e=1:length(idx)
-        fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
-        for i=1:length(length_data{idx(e)})
-          fprintf(fid,'%% individual %d\n',i);
-          print_csv_data(fid,length_data{idx(e)}{i}./handles.fps);
+      if(handles.dump2csv)
+        fprintf(fid,['%% ydata\n']);
+        for i=1:length(table_data{end})
+          fprintf(fid,'%g, ',[table_data{end}{i}]);
           fprintf(fid,'\n');
         end
       end
-    end
   end
 
   if(isempty(k))  k=1:length(length_data);  end
@@ -4635,8 +4653,14 @@ for b=bb
   else
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
-  if(handles.dump2csv)  fprintf(fid,'\n');  end
+  %if(handles.dump2csv)  fprintf(fid,'\n');  end
+end
 
+if(iscell(individual))
+  h2(1)=plot(0,0,'k-');   hh2{1}='males';
+  h2(2)=plot(0,0,'k--');  hh2{2}='females';
+  set(h2,'visible','off');
+  legend(ha,h2,hh2,'interpreter','none');
 end
 
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
