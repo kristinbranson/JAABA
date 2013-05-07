@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+
+    <bodyangle trans_types="relative,abs,flip" type="position"/>
+    <bodyangleSpeed trans_types="relative,abs,flip" type="locomotion"/>
+    <centroidSpeed trans_types="relative,none" type="locomotion"/>
+    <centroidposition_x_mm trans_types="relative,none" type="position"/>
+    <centroidposition_y_mm trans_types="relative,none" type="position"/>
+    <headSpeed trans_types="relative,none" type="locomotion"/>
+    <headangle trans_types="relative,abs,flip" type="appearance"/>
+    <headangleSpeed trans_types="relative,abs,flip" type="locomotion"/>
+    <headposition_x_mm trans_types="relative,none" type="position"/>
+    <headposition_y_mm trans_types="relative,none" type="position"/>
+    <led trans_types="relative,none" type="unknown"/>
+    <ledSpeed trans_types="relative,abs,flip,none" type="unknown"/>
+    <ledSpeedRaw trans_types="relative,abs,flip,none" type="unknown"/>
+    <midSpeed trans_types="relative,none" type="locomotion"/>
+    <midposition_x_mm trans_types="relative,none" type="position"/>
+    <midposition_y_mm trans_types="relative,none" type="position"/>
+    <mode trans_types="relative,none" type="unknown"/>
+    <skeL trans_types="relative,none" type="appearance"/>
+    <tailSpeed trans_types="relative,none" type="locomotion"/>
+    <tailposition_x_mm trans_types="relative,none" type="position"/>
+    <tailposition_y_mm trans_types="relative,none" type="position"/>
+    <theta_mm trans_types="relative,none" type="position"/>
+    <stagex trans_types="relative,none" type="position"/>
+    <stagey trans_types="relative,none" type="position"/>
+     
+   </perframe>
+</params>
