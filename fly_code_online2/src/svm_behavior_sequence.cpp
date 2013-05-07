@@ -1940,17 +1940,18 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 
   } // for(int t = 0; ...)
 
-
+  if(!aborted) {
 #if USE_DURATION_COST > 0
-  // Backtrack through table and states to extract the optimal solution
-  backtrack_optimal_solution(ybar, table, states, duration_weights, T);
-  if(!aborted) sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, duration_weights, table, states, T, y_partial);
+    // Backtrack through table and states to extract the optimal solution
+    backtrack_optimal_solution(ybar, table, states, duration_weights, T);
+    sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, duration_weights, table, states, T, y_partial);
 #else
-  // Backtrack through table and states to extract the optimal solution
-  backtrack_optimal_solution(ybar, table, states, T);
-  if(!aborted) sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, table, states, T, y_partial);
+    // Backtrack through table and states to extract the optimal solution
+    backtrack_optimal_solution(ybar, table, states, T);
+    sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, table, states, T, y_partial);
 #endif
-  
+  }
+
   // Restore modified transition tables, if necessary
   restore_transition_counts(y_partial, old_class_transitions, old_class_transition_counts, old_class_training_counts);
       
