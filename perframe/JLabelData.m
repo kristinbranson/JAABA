@@ -5333,8 +5333,8 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.InitPredictionData(obj.nexps);
       end
             
-      % % Set the default path to the experiment directory
-      % obj.defaultpath = expDirName;
+      % % Set the default path to the experiment directory's parent
+      obj.defaultpath = fileparts(expDirName);
 
       % Update the status
       obj.SetStatus('Successfully added experiment %s...',expDirName);
@@ -9826,6 +9826,26 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
     
     
+    % ---------------------------------------------------------------------
+    function removeExperimentsWithNoLabels(self)
+      self.StoreLabelsForCurrentAnimal();  % make sure labels are commited
+      nExps=self.nexps;
+      markedForRemoval=false(1,nExps);
+      for i=1:nExps
+        t0sThis=self.labels(i).t0s;
+        % t0sThis is a cell array, with one element per labeled target.
+        % Each element holds a double array, with the start frames of each
+        % labelled bout for that target.
+        nBoutsPerLabeledTarget=cellfun(@(a)length(a),t0sThis);
+        nBouts=sum(nBoutsPerLabeledTarget);
+        markedForRemoval(i)=(nBouts==0);
+      end
+      expIndicesToRemove=find(markedForRemoval);
+      self.RemoveExpDirs(expIndicesToRemove);  %#ok
+    end  % method
+    
+    
+
 % Deprecated
 
     % ---------------------------------------------------------------------
