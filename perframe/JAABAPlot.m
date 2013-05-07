@@ -2689,13 +2689,33 @@ for b=bb
   axis(ha,'tight');  zoom(ha,'reset');
 end
 
-idx=find(h>0);
+h2=[];  hh2={};
 if ~isnumeric(individual)
+  idx=find(h>0);
+  h2=[h2 h(idx)];
+  hh2=[hh2 handles.grouplist];
   %legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
   %    handles.grouplist,'uniformoutput',false)],'interpreter','none');
-  legend(ha,h(idx), handles.grouplist,'interpreter','none');
-else
-  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
+%else
+%  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
+end
+if(iscell(individual))
+  h2=[h2 plot(0,0,'k-')];   hh2={hh2{:} 'males'};
+  h2=[h2 plot(0,0,'k--')];  hh2={hh2{:} 'females'};
+  %set(h((end-1):end),'visible','off');
+end
+if(comparison>0)
+  h2=[h2 plot(0,0,'k-','linewidth',2)];  hh2={hh2{:} 'during'};
+  if(comparison==1)
+    h2=[h2 plot(0,0,'k-','linewidth',1)];  hh2={hh2{:} 'all frames'};
+  else
+    h2=[h2 plot(0,0,'k-','linewidth',1)];  hh2={hh2{:} 'not during'};
+  end
+  %set(h2,'visible','off');
+  %legend(ha,h2,hh2,'interpreter','none');
+end
+if(~isempty(h2))
+  legend(ha,h2,hh2,'interpreter','none');
 end
 
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
@@ -3275,7 +3295,10 @@ for b=bb
       if(handles.dump2csv)  fprintf(fid,['%% group ' handles.grouplist{g} '\n']);  end
       plot_it(ha,time_base,ydata(idx2,:),style,centraltendency,dispersion,color,1,linestyle,...
           fid,handlesexperimentlist(idx));
-      if (ii==1)  h(g)=ans;  end
+      if (ii==1)
+        h(g)=ans;
+        hh{g}=handles.grouplist{g};
+      end
     end
 
     if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');  end
@@ -3288,7 +3311,6 @@ for b=bb
         idx=1;
       end
       idx2=idx+(ii-1)*numel(ggee);
-      linestyle='-';  if(ii>1)  linestyle='--';  end
 
       if(handles.dump2csv)
         fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
@@ -3305,15 +3327,21 @@ for b=bb
   ylabel(ha,ystr,'interpreter','none');
   title(ha,tstr,'interpreter','none');
   axis(ha,'tight');  zoom(ha,'reset');
-
 end
+
+if(iscell(individual))
+  h(end+1)=plot(0,0,'k-');   hh{end+1}='males';
+  h(end+1)=plot(0,0,'k--');  hh{end+1}='females';
+  set(h((end-1):end),'visible','off');
+end
+
 idx=find(h>0);
 if ~isnumeric(individual)
   %legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
   %    handles.grouplist,'uniformoutput',false)],'interpreter','none');
-  legend(ha,h(idx),handles.grouplist,'interpreter','none');
-else
-  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
+  legend(ha,h(idx),hh(idx),'interpreter','none');
+%else
+%  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
@@ -3890,19 +3918,20 @@ for b=bb
           k(end+1)=length(table_data{end}{ii});
         case 5  % per fly, stern-style
           table_data{end}{ii}=cell(1,length(frames_labelled(idx)));
+          h{ii}=[];
           for e=1:length(idx)
             table_data{end}{ii}{e}=100.*frames_labelled{idx(e)}./frames_total{idx(e)};
             [ct,dp,dn]=calculate_ct_d(table_data{end}{ii}{e},...
                 handles.centraltendency,handles.dispersion);
-            h{g}=plot(ha,m,ct,'o','color',color);
-            plot(ha,[m m],[dp dn],'-','color',color);
+            plot(ha,m,ct,'o','color',color);
+            h{ii}(end+1)=plot(ha,[m m],[dp dn],'-','color',color);
             plot(ha,m+(1:length(table_data{end}{ii}{e})),table_data{end}{ii}{e},'.','color',color);
             m=m+16+length(table_data{end}{ii}{e});
           end
           [ct,dp,dn]=calculate_ct_d([table_data{end}{ii}{:}],...
               handles.centraltendency,handles.dispersion);
           plot(ha,m,ct,'o','color',color,'markersize',9);
-          plot(ha,[m m],[dp dn],'-','color',color,'linewidth',3);
+          h{ii}(end+1)=plot(ha,[m m],[dp dn],'-','color',color,'linewidth',3);
           m=m+24;
           k(end+1)=24+16*length(table_data{end}{ii})+length([table_data{end}{ii}{:}]);
         case 6  % per fly, trajectory length
@@ -3924,7 +3953,7 @@ for b=bb
       hatchfill(ans,'single',45,5,handles.colors(g-length(h)/2,:));
     end
   end
-  if((handles.behaviorbarchart_style==3) && (length(individual)==2))
+  if(ismember(handles.behaviorbarchart_style,[3 5]) && (length(individual)==2))
     for g=1:length(h)
       findobj([h{g}],'type','line');
       if (g<=(length(h)/2))
@@ -3957,7 +3986,7 @@ for b=bb
       hh=patch(0.5+[l r r l l]',repmat([0 0 maxy*1.05 maxy*1.05 0]',1,floor(length(exp_separators)/2)),...
           [0.95 0.95 0.95],'parent',ha);
       set(hh,'edgecolor','none');
-      set(ha,'children',flipud(get(ha,'children')));
+      set(ha,'children',circshift(get(ha,'children'),-1));
       k=round(cumsum(k)-k/2);
       if(handles.dump2csv)
         fprintf(fid,['%% ydata\n']);
@@ -3991,7 +4020,13 @@ for b=bb
   else
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
+end
 
+if(iscell(individual))
+  h2(1)=plot(0,0,'k-');   hh2{1}='males';
+  h2(2)=plot(0,0,'k--');  hh2{2}='females';
+  set(h2,'visible','off');
+  legend(ha,h2,hh2,'interpreter','none');
 end
 %idx=find(~cellfun(@isempty,h));
 %if ischar(individual)
@@ -4072,7 +4107,7 @@ dispersion=handles.dispersion;
 xoffset=handles.xoffset;
 behaviornot=handles.behaviornot;
 
-h=[];
+h=[];  hh={};
 for b=bb
 
   if(length(bb)>1)
@@ -4269,7 +4304,10 @@ for b=bb
 
       plot_it(ha,time_base,100.*behavior_cumulative(idx2,:),...
           style,centraltendency,dispersion,color,1,linestyle,fid,handlesexperimentlist(idx));
-      if (ii==1)  h(g)=ans;  end
+      if (ii==1)
+        h(g)=ans;
+        hh{g}=handles.grouplist{g};
+      end
     end
 
     if(handles.dump2csv)  fprintf(fid,'\n%% raw data\n');  end
@@ -4282,7 +4320,6 @@ for b=bb
         idx=1;
       end
       idx2=idx+(ii-1)*numel(ggee);
-      linestyle='-';  if(ii>1)  linestyle='--';  end
 
       if(handles.dump2csv)
         fprintf(fid,['%% group ' handles.grouplist{g} '\n']);
@@ -4298,15 +4335,21 @@ for b=bb
   xlabel(ha,xstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
   axis(ha,'tight');  zoom(ha,'reset');
-
 end
+
+if(iscell(individual))
+  h(end+1)=plot(0,0,'k-');   hh{end+1}='males';
+  h(end+1)=plot(0,0,'k--');  hh{end+1}='females';
+  set(h((end-1):end),'visible','off');
+end
+
 idx=find(h>0);
 if ~isnumeric(individual)
 %  legend(ha,h(idx),[cellfun(@(x) [x ' ' handles.individuallist{handles.individualvalue}],...
 %      handles.grouplist,'uniformoutput',false)],'interpreter','none');
-  legend(ha,h(idx),handles.grouplist,'interpreter','none');
-else
-  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
+  legend(ha,h(idx),hh(idx),'interpreter','none');
+%else
+%  legend(ha,h(idx),handles.individuallist(handles.individualvalue),'interpreter','none');
 end
 
 uicontrol(hf,'style','pushbutton','string','Params','position',[5 5 60 20],...
