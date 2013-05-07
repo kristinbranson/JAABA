@@ -1696,7 +1696,7 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
     table[0][c] = 0;
     states[0][c].start_frame = states[0][c].end_frame = states[0][c].behavior = -1;
   }
-
+  
   gt_bout[0] = 0;
   partial_label_bout[0] = 0;
   
@@ -1710,9 +1710,11 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
     // depend on any frames before t.  We can therefore enumerate all possible completed bouts and 
     // take the one with the highest score
 
-    for(int c = 0; c < behaviors->num_values; c++) 
+    for(int c = 0; c < behaviors->num_values; c++) {
       table[t][c] = -INFINITY;
-    
+      store_solution(states[t][c], 0, t, c, -INFINITY, 0, 0, 0, 0, 0);  // in case we abort, return something
+    }
+
     // When given a manually supplied partial labelling, store the index of the bout corresponding to 
     // this timestep in b->partial_label->bouts
     int restrict_c_prev = -1, restrict_c_next = -1;
@@ -1940,17 +1942,16 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 
   } // for(int t = 0; ...)
 
-  if(!aborted) {
+  
 #if USE_DURATION_COST > 0
-    // Backtrack through table and states to extract the optimal solution
-    backtrack_optimal_solution(ybar, table, states, duration_weights, T);
-    sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, duration_weights, table, states, T, y_partial);
+  // Backtrack through table and states to extract the optimal solution
+  backtrack_optimal_solution(ybar, table, states, duration_weights, T);
+  if(!aborted) sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, duration_weights, table, states, T, y_partial);
 #else
-    // Backtrack through table and states to extract the optimal solution
-    backtrack_optimal_solution(ybar, table, states, T);
-    sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, table, states, T, y_partial);
+  // Backtrack through table and states to extract the optimal solution
+  backtrack_optimal_solution(ybar, table, states, T);
+  if(!aborted) sanity_check_dynamic_programming_solution(b, ybar, y, w, class_weights, transition_weights, unary_weights, table, states, T, y_partial);
 #endif
-  }
 
   // Restore modified transition tables, if necessary
   restore_transition_counts(y_partial, old_class_transitions, old_class_transition_counts, old_class_training_counts);
