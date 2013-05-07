@@ -164,7 +164,8 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
 
   SetTrainset(trainset);
   
-  if(!sum_w) {
+  if(!sum_w || t == 0) {
+    if(sum_w) delete sum_w;
     sum_w = new SparseVector;
     sum_w->make_non_sparse(true, sizePsi);
   }
@@ -202,9 +203,11 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
       while(!finished) {
         while(savingCachedExamples || relabelingExample || pauseWorkers) 
 	  usleep(100000);
-        
+
+ 
         // Choose a training example 'i' to process
 	Lock();
+
         double w_scale = numThreads==1 && canScaleW ? (t ? 1.0/sum_w_scale : 1) : 1;
         i = ChooseNextExample();
         if(i < 0) {
@@ -213,7 +216,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
           continue;
         }
         StructuredExample *ex = trainset->examples[i];
-
+	
         SVM_cached_sample_set *set = trainset->examples[i]->set;
         if(!set) {
           trainset->examples[i]->set = set = new_SVM_cached_sample_set(i, Psi(ex->x, ex->y).ptr());
@@ -245,6 +248,20 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
           } else {
 	    // Extract a set of samples with non-zero slack.  Should include the most violated label ybar
             score_loss = ImportanceSample(ex->x, w, ex->y, set, w_scale);
+          }
+	  if(pauseWorkers) {  // inference was aborted
+            OnFinishedIteration(ex->x, ex->y);  
+	    Lock();
+	    if(numThreads!=1 || !canScaleW) delete w;
+	    if(!cache_old_examples) 
+	      free_SVM_cached_sample_set(set);
+	    else if(!useFixedSampleSet && mergeSamples) {
+              CondenseSamples(set);
+            }
+            UpdateExampleIterationQueue(set, -1);
+	    set->lock = false;
+	    Unlock();
+	    continue;
           }
 
           SVM_cached_sample_set_compute_features(set, ex);
@@ -291,7 +308,6 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
                  i, ex_num_iters[i], (VFLOAT)set->slack_before, (VFLOAT)set->slack_after, (VFLOAT)(score), 
                  (VFLOAT)(set->score_gt), (VFLOAT)set->loss, (VFLOAT)set->alpha, set->num_samples);
         }
-        set->lock = false;
 
         // Cleanup
         if(numThreads!=1 || !canScaleW) delete w;
@@ -300,6 +316,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
         else if(!useFixedSampleSet && mergeSamples) {
           CondenseSamples(set);
         }
+        set->lock = false;
 
 	if(t % n == n-1) {
 	  OnFinishedPassThroughTrainset();   
@@ -322,8 +339,14 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
       // if the operation of finding the most violated constraint is much more expensive than the operation of updating w
       while(!finished) {
         //usleep(1);
-        while(t < 1) // wait for at least one first constraint
+        while(t < 1 && (maxDual <= 0 || sum_dual/n <= maxDual)) { // wait for at least one first constraint
           usleep(100000);
+        }
+	if(maxDual > 0 && sum_dual/n > maxDual) {
+          Lock();
+	  AugmentFeatureSpace();
+	  Unlock();
+        }
 	UpdateFromCache(true, &num);
         //  usleep(100000);
       }
@@ -337,8 +360,9 @@ void StructuredSVM::UpdateFromCache(bool lock, int *num, int i) {
   // dual parameters
   if(!n) return;
   if(lock) Lock();
+  
   if(i < 0) i = rand()%(n);
-  if(!trainset->examples[i]->set || trainset->examples[i]->set->lock) {
+  if(!trainset->examples[i]->set || trainset->examples[i]->set->lock || !trainset->examples[i]->set->psi_gt || !trainset->examples[i]->set->num_samples || (trainset->examples[i]->set->num_samples==1 && !trainset->examples[i]->set->samples[0].psi)) {
     if(lock) Unlock();
     return;
   }
@@ -496,7 +520,7 @@ VFLOAT StructuredSVM::Test(StructuredDataset *testset, const char *predictionsFi
       pred["score"] = score;
       gt["y"] = testset->examples[i]->y->save(this);
       gt["score"] = score_gt;
-      o["predicted"] = y->save(this);
+      o["predicted"] = pred;
       o["ground_truth"] = gt;
       o["loss"] = los;
       Json::FastWriter writer;
@@ -719,7 +743,7 @@ void StructuredSVM::CheckConvergence() {
 } 
 
 void StructuredSVM::UpdateExampleIterationQueue(SVM_cached_sample_set *ex, int iter) {
-  iter_examples[iter] = ex->i;  
+  if(iter >= 0) iter_examples[iter] = ex->i;  
   ex_num_iters[ex->i]++;
 
   if(ex_num_iters[ex->i] > M) {
@@ -966,9 +990,13 @@ void StructuredSVM::OptimizeAllConstraints(int num_iter) {
   int i = 0;
   while(i < num_iter || sum_dual/n-iter_dual/(i+1) > eps) {
     for(int j = 0; j < n; j++) {
-      if(trainset->examples[j]->set) {
+      SVM_cached_sample_set *set = trainset->examples[j]->set;
+      if(set) {
 	UncondenseSamples(trainset->examples[j]->set);
 	SVM_cached_sample_set_compute_features(trainset->examples[j]->set, trainset->examples[j]);
+        set->score_gt = sum_w->dot(*set->psi_gt)/sum_w_scale;
+        for(int k = 0; k < set->num_samples; k++) 
+          set->samples[k].dot_w = sum_w ? sum_w->dot(*set->samples[k].psi) - set->score_gt*sum_w_scale : 0;
 	UpdateWeights(trainset->examples[j]->set, j);
 	//CondenseSamples(trainset->examples[j]->set);
       }
@@ -1081,10 +1109,10 @@ SparseVector *StructuredSVM::GetCurrentWeights(bool lock) {
 }
 
 
-void StructuredSVM::PauseWorkerThreads(bool pause, bool wait) { 
+void StructuredSVM::PauseWorkerThreads(bool pause, bool wait, bool lock) { 
     pauseWorkers = pause; 
     if(wait) {
-      Lock();
+      if(lock) Lock();
       for(int i = 0; i < trainset->num_examples; i++) {
 	StructuredExample *ex = trainset->examples[i];
 	while(ex->set && ex->set->lock) {
@@ -1093,7 +1121,7 @@ void StructuredSVM::PauseWorkerThreads(bool pause, bool wait) {
 	  Lock();
 	}
       }
-      Unlock();
+      if(lock) Unlock();
     }
 }
 
@@ -1328,6 +1356,7 @@ void StructuredSVM::SVM_cached_sample_set_compute_features(SVM_cached_sample_set
   for(int j = 0; j < set->num_samples; j++) {
     if(!set->samples[j].psi) {
       set->samples[j].psi = Psi(ex->x, set->samples[j].ybar).ptr();
+      //set->samples[j].psi->check_invalid(100000000);
       set->samples[j].loss = Loss(ex->y, set->samples[j].ybar);
       set->samples[j].dot_psi_gt_psi = set->psi_gt->dot(*set->samples[j].psi, useWeights);
       set->samples[j].sqr = set->psi_gt_sqr - 2*set->samples[j].dot_psi_gt_psi + set->samples[j].psi->dot(*set->samples[j].psi, useWeights);
@@ -1338,6 +1367,33 @@ void StructuredSVM::SVM_cached_sample_set_compute_features(SVM_cached_sample_set
     }
   }
 }
+
+void StructuredSVM::SVM_cached_sample_set_recompute_caches(SVM_cached_sample_set *set) {
+  assert(set->psi_gt);
+  set->psi_gt_sqr = set->psi_gt->dot(*set->psi_gt, useWeights);
+  if(set->num_samples) {
+    assert(set->u_i);
+    delete set->u_i;
+    set->u_i = new SparseVector;
+    double a = 0, d = 0;
+    for(int j = 0; j < set->num_samples; j++) {
+      assert(set->samples[j].psi);
+      set->samples[j].dot_psi_gt_psi = set->psi_gt->dot(*set->samples[j].psi, useWeights);
+      set->samples[j].sqr = set->psi_gt_sqr - 2*set->samples[j].dot_psi_gt_psi + set->samples[j].psi->dot(*set->samples[j].psi, useWeights);
+      if(set->samples[j].alpha) 
+        *set->u_i += (*set->samples[j].psi * set->samples[j].alpha);
+      a += set->samples[j].alpha;
+      d += set->samples[j].alpha*set->samples[j].loss;
+    }
+    assert(my_abs(a-set->alpha)<.0001);
+    set->alpha=a;
+    set->D_i=d;
+    double d_u_gt = set->u_i->dot(*set->psi_gt, useWeights);
+    set->dot_u_psi_gt = d_u_gt - set->alpha*set->psi_gt_sqr;
+    set->u_i_sqr = set->u_i->dot(*set->u_i, useWeights) - 2*set->alpha*d_u_gt + SQR(set->alpha)*set->psi_gt_sqr;
+  }
+}
+
 
 void StructuredSVM::SetTrainset(StructuredDataset *t) { 
   M = 0;
@@ -1410,6 +1466,7 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
   VFLOAT s_u = 1;
   int j, r;
   assert(!isnan(sum_w_sqr) && !isnan(sum_dual));
+  assert(set->D_i >= -1e-8 && set->D_i < 100000);
 
   //if(!set->num_samples && !set->alpha) return;
 
@@ -1474,6 +1531,7 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
     set->dot_u_psi_gt *= s_u;
     set->D_i *= s_u;
     L_i = dot_w_u + set->D_i;
+    assert(set->D_i >= -1e-8 && set->D_i < 100000);
 
     set->drift_bits += s_u <= 0 ? MAX_DRIFT_BITS : my_abs(LOG2(s_u));
     if(set->drift_bits > MAX_DRIFT_BITS) {
@@ -1483,8 +1541,13 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
       double d_u_gt = set->u_i->dot(*set->psi_gt, useWeights);
       set->dot_u_psi_gt = d_u_gt - set->alpha*set->psi_gt_sqr;
       set->u_i_sqr = set->u_i->dot(*set->u_i, useWeights) - 2*set->alpha*d_u_gt + SQR(set->alpha)*set->psi_gt_sqr;
-      for(int jj = 0; jj < set->num_samples; jj++)
+      double a = 0, d = 0;
+      for(int jj = 0; jj < set->num_samples; jj++) {
         set->samples[jj].alpha *= s_u;
+        a += set->samples[jj].alpha;
+        d += set->samples[jj].alpha*set->samples[jj].loss;
+      }
+      if(!set->num_evicted_labels) { assert(my_abs(a-set->alpha)<.0001); set->alpha=a; set->D_i = d; }
       s_u = 1;
     }
   }
@@ -1550,12 +1613,18 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
 	  set->dot_u_psi_gt = d_u_gt - alpha*set->psi_gt_sqr;
 	  set->u_i_sqr = u_i_scaled->dot(*u_i_scaled, useWeights) - 2*alpha*d_u_gt + SQR(alpha)*set->psi_gt_sqr;
 	  set->D_i = scale*set->D_i;
+          assert(set->D_i >= -1e-8 && set->D_i < 100000);
 	  dot_u_w_without_u = sum_w_without_u_i->dot(*u_i_scaled-(*set->psi_gt*alpha))/(sum_w_scale);
 	  dot_w_u = dot_u_w_without_u - set->u_i_sqr/(sum_w_scale);
 	  dot_u_v = u_i_scaled->dot(*s->psi, useWeights) - set->dot_u_psi_gt - alpha*s->dot_psi_gt_psi; 
 	  dot = s->dot_w - dot_u_v;
-	  for(int jj = 0; jj < set->num_samples; jj++)
-	    set->samples[jj].alpha *= s_u;
+          double a = dalpha, d = dalpha*s->loss;
+          for(int jj = 0; jj < set->num_samples; jj++) {
+            set->samples[jj].alpha *= s_u;
+            a += set->samples[jj].alpha;
+            d += set->samples[jj].alpha*set->samples[jj].loss;
+          }
+          //if(!set->num_evicted_labels) { assert(my_abs(a-new_alpha)<.0001); new_alpha=a; set->D_i = d; }
 	  scale = 1;
 	  s_u = 1;
 	  u_i_scaled->make_non_sparse(true, sizePsi, true, u_i_buff);
@@ -1571,6 +1640,7 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
 	set->u_i_sqr = SQR(scale)*set->u_i_sqr + 2*scale*dalpha*dot_u_v + s->sqr*SQR(dalpha);
 	set->dot_u_psi_gt = scale*set->dot_u_psi_gt + dalpha*(s->dot_psi_gt_psi - set->psi_gt_sqr);
 	set->D_i = scale*set->D_i + dalpha*s->loss;
+        assert(set->D_i >= -1e-8 && set->D_i < 100000);
 	L_i = dot_w_u + set->D_i;
 	assert(!isnan(L_i));
 #ifdef DEBUG_MULTI_SAMPLE_UPDATE
@@ -1612,6 +1682,7 @@ void StructuredSVM::MultiSampleUpdate(SVM_cached_sample_set *set, StructuredExam
   fprintf(stderr, "t=%d, i=%d, sum_w_sqr=%lg:%lg\n", (int)t, set->i, sum_w_sqr_real, sum_w_sqr);
   assert(sum_w_sqr_real/sum_w_sqr > .99999 && sum_w_sqr_real/sum_w_sqr < 1.0001);
 #endif
+  assert(set->D_i >= -1e-8 && set->D_i < 100000);
 
   //fprintf(stderr, "sum dual is %lg, dual_change=%lg, D=%lg\n", sum_dual, -d_sum_w_sqr/(2*sum_w_scale) + set->D_i - D_i_orig, set->D_i);
 }
@@ -1786,13 +1857,9 @@ void StructuredSVM::ExtractSampleSet(int num_per_negative, bool augment) {
 void StructuredSVM::SaveCachedExamples(const char *output_name, bool saveFull) {
   FILE *fout = fopen(output_name, "wb");
   fwrite(&n, sizeof(long), 1, fout);
+  PauseWorkerThreads(true, true);
   savingCachedExamples = true;
   for(int i = 0; i < n; i++) {
-    while(trainset->examples[i]->set && trainset->examples[i]->set->lock) {
-      Unlock();
-      usleep(100000);
-      Lock();
-    }
     if(trainset->examples[i]->set)
       trainset->examples[i]->set->lock = true;
     bool b = trainset->examples[i]->set ? true : false;
@@ -1804,6 +1871,7 @@ void StructuredSVM::SaveCachedExamples(const char *output_name, bool saveFull) {
   }
   fclose(fout);
   savingCachedExamples = false;
+  PauseWorkerThreads(false, false);
 }
 
 

@@ -67,16 +67,16 @@ obj/release_shared/%.o: src/%.cpp $(HEADER_FILES)
 	$(CC) $(CFLAGS) $(CFLAGS_RELEASE) $(CFLAGS_SHARED) -Ijson -c $< -o $@
 
 
-lib/libonline_structured_svm.so: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+lib/libonline_structured_svm.so: $(addprefix obj/release_shared/,$(notdir $(CPP_FILES:.cpp=.o))) $(EXTRA_OBJ_FILES)
 	$(LD) $(LDFLAGS) $(OBJ_FILES) $(EXTRA_OBJ_FILES) -o lib/libonline_structured_svm.so
 
-lib/libonline_structured_svm.a: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+lib/libonline_structured_svm.a: $(addprefix obj/release_static/,$(notdir $(CPP_FILES:.cpp=.o))) $(EXTRA_OBJ_FILES)
 	$(AR) $(ARFLAGS) lib/libonline_structured_svm.a $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
 
-lib/libdonline_structured_svm.so: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+lib/libdonline_structured_svm.so: $(addprefix obj/debug_shared/,$(notdir $(CPP_FILES:.cpp=.o))) $(EXTRA_OBJ_FILES)
 	$(LD) $(LDFLAGS) $(OBJ_FILES) $(EXTRA_OBJ_FILES) -o lib/libdonline_structured_svm.so
 
-lib/libdonline_structured_svm.a: $(OBJ_FILES)  $(EXTRA_OBJ_FILES)
+lib/libdonline_structured_svm.a: $(addprefix obj/debug_static/,$(notdir $(CPP_FILES:.cpp=.o))) $(EXTRA_OBJ_FILES)
 	$(AR) $(ARFLAGS) lib/libdonline_structured_svm.a $(OBJ_FILES) $(EXTRA_OBJ_FILES)
 
 

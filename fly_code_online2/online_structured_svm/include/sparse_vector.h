@@ -213,6 +213,18 @@ public:
     return v;
   }
     
+  void check_invalid(double m) { 
+    assert(shiftAmount < 0);
+    if(non_sparse) {
+      int j;
+      for(j = 0; j < maxIndex+1; j++)
+	assert(!isnan(non_sparse[j]) && my_abs(non_sparse[j]) < m);
+    } else {
+      for(int j = 0; j < numNonZero; j++)
+	assert(!isnan(elements[j].val) && my_abs(elements[j].val) < m);
+    }
+  }
+
   void zero() {
     assert(shiftAmount < 0);
     if(non_sparse) {
@@ -875,6 +887,72 @@ public:
     } else {
       SparseVector retval = (*this) - v;
       takeover(retval);
+    }
+  }
+
+  double get(int ind) {
+    if(non_sparse) 
+      return non_sparse[ind];
+    else {
+      // binary search
+      int s = 0, e = numNonZero, m;
+      while(s != e) {
+	m = (s+e)/2;
+	if(elements[m].ind == ind) 
+	  return elements[m].val;
+	else if(elements[m].ind < ind)
+	  e = m;
+	else 
+	  s = m+1;
+      }
+      return 0;
+    }
+  }
+  void append(double v) {
+    maxIndex++;
+    if(non_sparse) {
+      non_sparse = (double*)realloc(non_sparse, sizeof(double)*(maxIndex+1));
+      non_sparse[maxIndex] = v;
+      if(used_inds && v) {
+	used_inds = (int*)realloc(used_inds, 3*sizeof(int)*(maxIndex+1));
+	used_inds[numUsed++] = maxIndex;
+      }
+    } else if(v) {
+      if((numNonZero+2) > numAlloc) {
+	numAlloc = (int)(numAlloc*REALLOC_SCALE)+REALLOC_ADD;
+	elements = (SparseVectorElement*)realloc(elements, numAlloc*sizeof(SparseVectorElement));
+      }
+      elements[numNonZero].ind = maxIndex;
+      elements[numNonZero].val = v; 
+      numNonZero++;
+    }
+  }
+  void InsertAt(int ind, double v) {
+    maxIndex++;
+    if(non_sparse) {
+      non_sparse = (double*)realloc(non_sparse, sizeof(double)*(maxIndex+1));
+      for(int i = maxIndex; i > ind; i--)
+	non_sparse[i] = non_sparse[i-1];
+      non_sparse[ind] = v;
+      assert(!used_inds);
+    } else {
+      if((numNonZero+2) > numAlloc) {
+	numAlloc = (int)(numAlloc*REALLOC_SCALE)+REALLOC_ADD;
+	elements = (SparseVectorElement*)realloc(elements, numAlloc*sizeof(SparseVectorElement));
+      }
+      
+      int i = 0;
+      while(i < numNonZero && elements[i].ind < ind)
+	i++;
+      for(int j = numNonZero; j > i; j--) {
+	elements[j-1].ind++;
+	if(v) elements[j] = elements[j-1];
+      }
+      if(v) {
+        elements[i].ind = ind;
+        elements[i].val = v;
+        numNonZero++;
+      }
     }
   }
 

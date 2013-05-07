@@ -33,6 +33,12 @@ extern const char *bout_feature_names[]; // initialized in svm_struct_api_behavi
 #define INTERPOLATE_INTEGRAL_FEATURES
 #define MAX_REGIONS 10
 
+// Assume no score (other than transition costs) for the "none" behavior.  Effectively, removes all
+// bout features, unary score, and duration score for the none behavior
+// This allows an exhaustive search for all bout durations for the "none" behavior
+#define NONE_CLASS_HAS_NO_SCORE 1
+
+
 // Single behavior class. 
 typedef struct _Behavior {
   char name[400];
@@ -85,6 +91,16 @@ typedef struct {
   char *name;
 } BoutFeature;
 
+
+#define REGION_FEATURE_FAST() (integral_features[f->frame_feature][it2] - \
+			       integral_features[f->frame_feature][it1])
+#define REGION_SQR_FEATURE_FAST() (integral_sqr_features[f->frame_feature][it2] - \
+				   integral_sqr_features[f->frame_feature][it1])
+#define FRAME_FEATURE_FAST(it) (safe_features[f->frame_feature][it])
+#define REGION_HIST_FEATURE_FAST() (integral_histogram_features[f->frame_feature][f->hist_bin][it2] - \
+				    integral_histogram_features[f->frame_feature][f->hist_bin][it1])
+#define FRAME_HIST_FEATURE_FAST(it) (histogram_bins[f->frame_feature][it]==f)
+
 #ifdef INTERPOLATE_INTEGRAL_FEATURES
 #define REGION_FEATURE() (integral_features[f->frame_feature][it2] +	\
 			  r2*safe_features[f->frame_feature][it2] -	\
@@ -102,19 +118,17 @@ typedef struct {
 #define FRAME_HIST_FEATURE(it,r) ((histogram_bins[f->frame_feature][it]==f->hist_bin)*(1-(r)) + \
 				  (histogram_bins[f->frame_feature][(it)+1]==f->hist_bin)*(r))
 #else
-#define REGION_FEATURE(int_f,f) (integral_features[f->frame_feature][it2] - \
-				 integral_features[f->frame_feature][it1])
-#define REGION_SQR_FEATURE(int_f,f) (integral_sqr_features[f->frame_feature][it2] - \
-				     integral_sqr_features[f->frame_feature][it1])
-#define FRAME_FEATURE(it,r) (safe_features[f->frame_feature][it])
-#define REGION_HIST_FEATURE(int_f,f) (integral_histogram_features[f->frame_feature][f->hist_bin][it2] - \
-				      integral_histogram_features[f->frame_feature][f->hist_bin][it1])
-#define FRAME_HIST_FEATURE(it,r) (histogram_bins[f->frame_feature][it]==f)
+#define REGION_FEATURE() REGION_FEATURE_FAST()
+#define REGION_SQR_FEATURE() REGION_SQR_FEATURE_FAST()
+#define FRAME_FEATURE(it,r) FRAME_FEATURE_FAST(it)
+#define REGION_HIST_FEATURE() REGION_HIST_FEATURE_FAST()
+#define FRAME_HIST_FEATURE(it,r) FRAME_HIST_FEATURE_FAST(it)
 #endif
 
 
 
-
+struct _DecisionStump;
+struct _ExampleWeights;
 class BehaviorBoutFeatures;
 class SVMBehaviorSequence;
 
@@ -355,6 +369,37 @@ protected:
     return 0;
   }
 
+  inline double ComputeFastRegionFeature(BoutRegionFeature *f, int it1, int it2, int dur, double inv_dur, double inv_fps) {
+    double sum, ave, sum_sqr;
+
+    switch(f->op) {
+    case B_SUM: 
+      return REGION_FEATURE_FAST();
+    case B_AVE: 
+      sum = REGION_FEATURE_FAST();
+      return sum*inv_dur;
+    case B_VAR: 
+      sum = REGION_FEATURE_FAST();
+      ave = sum*inv_dur;
+      sum_sqr = REGION_SQR_FEATURE_FAST();
+      return my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur);
+    case B_DEV: 
+      sum = REGION_FEATURE_FAST();
+      ave = sum*inv_dur;
+      sum_sqr = REGION_SQR_FEATURE_FAST();
+      return sqrt(my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur)*inv_dur); 
+    case B_RAW:
+	return FRAME_FEATURE_FAST(it2-1)-FRAME_FEATURE_FAST(it1);
+    case B_DUR:
+      return dur*inv_fps;
+    case B_MIN:
+    case B_MAX:
+      assert(0);
+    }
+    assert(0);
+    return 0;
+  }
+
   inline double ComputeBoutFeature(BoutFeature *f, double t_bout_start, double t_bout_end) {
     double r = 0, w;
     for(int i = 0; i < f->num_regions; i++) {
@@ -410,13 +455,17 @@ class SVMBehaviorSequence : public StructuredSVM {
 
   char debugdir[400];
   bool debug_predictions, debug_weights, debug_features, debug_model;
-  
+
+  bool dontComputeFeatureMeanVarianceMedianStatistics;
   
   BoutFeature *bout_features; /**< The total number of bout-level features (not including class transition features) */
   int num_bout_features;
   FrameFeature *frame_features;  /**< For each frame feature, a set of parameters defining how frame-level features are expanded into bout-level features */
   int num_frame_features; /**< The total number of frame-level features */
   int feature_sample_smoothness_window;
+
+  BoutFeature *bout_expansion_features; 
+  int num_bout_expansion_features;
 
  public:
 
@@ -455,6 +504,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   void DebugFeatures(const char *fname, BehaviorBoutSequence *y, double *ww);
   void DebugExample(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar, SparseVector *w);
   void OnFinishedPassThroughTrainset();
+  void AugmentFeatureSpace();
 
   virtual StructuredLabel *NewStructuredLabel(StructuredData *x) = 0;
   virtual StructuredData *NewStructuredData() = 0;
@@ -464,9 +514,10 @@ class SVMBehaviorSequence : public StructuredSVM {
   virtual char **load_examples(const char *fname, int *num) = 0;
   virtual void save_examples(const char *fname, StructuredDataset *dataset) = 0;
 
-  void LoadBoutFeatureParams(const Json::Value &fe);
-  Json::Value SaveBoutFeatureParams();
-  void FreeBoutFeatureParams();
+  void LoadBoutFeatureParams(const Json::Value &fe, BoutFeature *&bout_features, int &num_bout_features);
+  void LoadBoutFeatureParams(const Json::Value &fe) { LoadBoutFeatureParams(fe, bout_features, num_bout_features); }
+  Json::Value SaveBoutFeatureParams(BoutFeature *&bout_features, int &num_bout_features);
+  void FreeBoutFeatureParams(BoutFeature *&bout_features, int &num_bout_features);
   void LoadFrameFeatureParams(const Json::Value &fe);
   Json::Value SaveFrameFeatureParams();
   void FreeFrameFeatureParams();
@@ -498,7 +549,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   double loss2(StructuredLabel *y_gt,  StructuredLabel *y_pred, int debug);
 
   double *psi_bout(BehaviorBoutFeatures *b, int t_start, int t_end, int c, double *feat, bool normalize=true, 
-		   bool fast_update=false);
+		   bool fast_update=false, BoutFeature *bout_features=NULL, int num_bout_features=0);
   void saveBoutFeatures(StructuredDataset *dataset, const char *filename, bool sphered=true, bool addRandBouts=true, int window_size=32); 
   void compute_feature_mean_variance_median_statistics(StructuredDataset *dataset);
   int compute_feature_space_size();
@@ -514,6 +565,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   double match_false_negative_cost(double duration, int behavior) {
     return false_negative_cost[behavior];
   }
+  void SetTimeApproximation(double a) { time_approximation = a; }
 
   friend class BehaviorBoutFeatures;
   friend class BehaviorBoutSequence;
@@ -540,6 +592,10 @@ class SVMBehaviorSequence : public StructuredSVM {
   double get_duration_score(int duration, int c, double *duration_weights);
   bool fill_unlabeled_gt_frames(BehaviorBoutSequence *&y_gt, BehaviorBoutSequence *&y_partial);
   void ComputeClassTrainsitionCounts();
+
+  struct _DecisionStump *SelectBestFeature(struct _ExampleWeights *samples, int num_samples, double **f);
+  void AppendNewFeature(struct _DecisionStump *s, struct _ExampleWeights *samples, int num_samples);
+  struct _ExampleWeights *ComputeExampleWeights(StructuredDataset *trainset, int *numEx);
 };
 
 void free_behavior_bout_sequence(BehaviorBoutSequence *b, int num);
