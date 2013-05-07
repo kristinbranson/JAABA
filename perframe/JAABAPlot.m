@@ -99,6 +99,7 @@ handles.interestingfeaturetimeseries_cache=[];
 handles.defaultcolors=[1 0 0;  0 0.5 0;  0 0 1;  0 1 1;  1 0 1;  0.749 0.749 0;  0 0 0];
 handles.colors=[];
 handles.trx_file='registered_trx.mat';
+handles.perframe_dir='perframe';
 
 
 % ---
@@ -162,6 +163,7 @@ try
   handles.defaultcolors=handles_saved.defaultcolors;
   handles.colors=handles_saved.colors;
   handles.trx_file=handles_saved.trx_file;
+  handles.perframe_dir=handles_saved.perframe_dir;
   handles.table=[];
 catch me
   handles=initialize(handles);
@@ -192,12 +194,12 @@ end
 
 
 % ---
-function ret_val=get_nindividuals_feature(experiment_path,feature_file)
+function ret_val=get_nindividuals_feature(experiment_path,perframe_dir,feature_file)
 
 % could do more error checking here by loading them all in
 
 try
-  feature_data=load(fullfile(experiment_path,'perframe',[feature_file{1} '.mat']));
+  feature_data=load(fullfile(experiment_path,perframe_dir,[feature_file{1} '.mat']));
 catch
   feature_data.data={};
 end
@@ -249,20 +251,20 @@ handlesindividualsfeature=zeros(1,length(handlesexperimentlist));
 
 parfor ge=1:length(handlesexperimentlist)
   if(features)
-    tmp=dir(fullfile(handlesexperimentlist{ge},'perframe','*.mat'));
+    tmp=dir(fullfile(handlesexperimentlist{ge},handles.perframe_dir,'*.mat'));
     [handlesfeatures{ge}{1:length(tmp)}]=deal(tmp.name);
     handlesfeatures{ge}=cellfun(@(x) x(1:(end-4)),handlesfeatures{ge},'uniformoutput',false);
   end
 
   if(sexdata)
-    fullfile(handlesexperimentlist{ge},'perframe','sex.mat');
+    fullfile(handlesexperimentlist{ge},handles.perframe_dir,'sex.mat');
     if(exist(ans,'file'))
       tmp=load(ans);
       cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
       handlessexdata(ge)={ans};
     else
-      tmp=dir(fullfile(handlesexperimentlist{ge},'perframe','*.mat'));
-      tmp=load(fullfile(handlesexperimentlist{ge},'perframe',tmp(1).name));
+      tmp=dir(fullfile(handlesexperimentlist{ge},handles.perframe_dir,'*.mat'));
+      tmp=load(fullfile(handlesexperimentlist{ge},handles.perframe_dir,tmp(1).name));
       cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
       handlessexdata(ge)={ans};
     end
@@ -280,7 +282,8 @@ parfor ge=1:length(handlesexperimentlist)
     end
     handlesindividualsbehavior(ge,:)=parfor_tmp;
 
-    handlesindividualsfeature(ge)=get_nindividuals_feature(handlesexperimentlist{ge},handlesfeatures{ge});
+    handlesindividualsfeature(ge)=...
+        get_nindividuals_feature(handlesexperimentlist{ge},handles.perframe_dir,handlesfeatures{ge});
   end
 end
 
@@ -1052,6 +1055,12 @@ set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
 drawnow;
 
+if(~exist(fullfile(newexperiments{1},handles.perframe_dir)))
+  uigetdir(newexperiments{1},...
+      ['can''t find ' handles.perframe_dir '.  what is the name of the perframe directory?']);
+  [~,handles.perframe_dir,~]=fileparts(ans);
+end
+
 handlesfeatures=cell(1,length(newexperiments));
 handlessexdata=cell(1,length(newexperiments));
 handlesindividualsbehavior=zeros(length(newexperiments),length(handles.scorefiles));
@@ -1059,7 +1068,7 @@ handlesindividualsfeature=zeros(1,length(newexperiments));
 idx_error=false(1,length(newexperiments));
 parfor n=1:length(newexperiments)
 %for n=1:length(newexperiments)
-  tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
+  tmp=dir(fullfile(newexperiments{n},handles.perframe_dir,'*.mat'));
   if isempty(tmp),
     handlesfeatures{n} = {};
   else
@@ -1067,15 +1076,15 @@ parfor n=1:length(newexperiments)
     handlesfeatures{n}=cellfun(@(x) x(1:(end-4)),handlesfeatures{n},'uniformoutput',false);
   end
 
-  fullfile(newexperiments{n},'perframe','sex.mat');
+  fullfile(newexperiments{n},handles.perframe_dir,'sex.mat');
   if(exist(ans,'file'))
     tmp=load(ans);
     cellfun(@(x) strcmp(x,'M'),tmp.data,'uniformoutput',false);
     handlessexdata(n)={ans};
   else
-    tmp=dir(fullfile(newexperiments{n},'perframe','*.mat'));
+    tmp=dir(fullfile(newexperiments{n},handles.perframe_dir,'*.mat'));
     if(~isempty(tmp))
-      tmp=load(fullfile(newexperiments{n},'perframe',tmp(1).name));
+      tmp=load(fullfile(newexperiments{n},handles.perframe_dir,tmp(1).name));
       cellfun(@(x) nan(1,length(x)),tmp.data,'uniformoutput',false);
       handlessexdata(n)={ans};
     else
@@ -1095,7 +1104,8 @@ parfor n=1:length(newexperiments)
   end
   handlesindividualsbehavior(n,:)=parfor_tmp;
 
-  handlesindividualsfeature(n)=get_nindividuals_feature(newexperiments{n},handlesfeatures{n});
+  handlesindividualsfeature(n)=...
+      get_nindividuals_feature(newexperiments{n},handles.perframe_dir,handlesfeatures{n});
 end
 
 if(sum(idx_error)>0)
@@ -2483,7 +2493,7 @@ for b=bb
   if(handles.behaviorlogic>1)
     tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
   end
-  units=load(fullfile(handlesexperimentlist{ggee(1)},'perframe',...
+  units=load(fullfile(handlesexperimentlist{ggee(1)},handles.perframe_dir,...
       [feature_list{feature_value} '.mat']),'units');
   xstr=get_label(feature_list(feature_value),units.units);
   ystr='normalized';
@@ -2519,7 +2529,7 @@ for b=bb
       behavior_data=[];
       behavior_data2=[];
     end
-    feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
+    feature_data=load(fullfile(handlesexperimentlist{ge},handles.perframe_dir,...
           [feature_list{feature_value} '.mat']));
 
     [behavior_data,behavior_data2,~,feature_data,sex_data]=...
@@ -2810,7 +2820,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     parfor_tmp=zeros(nbehaviors,nfeatures,9);
     for f=1:nfeatures
       if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
-      feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
+      feature_data=load(fullfile(handlesexperimentlist{ge},handles.perframe_dir,...
           [handles.featurelist{f} '.mat']));
       [~,~,~,fdata,~]=cull_short_trajectories(handles,[],[],[],feature_data,[]);
 
@@ -3182,7 +3192,7 @@ for b=bb
       behavior_data=[];
       behavior_data2=[];
     end
-    feature_data=load(fullfile(handlesexperimentlist{ge},'perframe',...
+    feature_data=load(fullfile(handlesexperimentlist{ge},handles.perframe_dir,...
         [feature_list{feature_value} '.mat']));
 
     [behavior_data,behavior_data2,~,feature_data,sex_data]=...
@@ -3279,7 +3289,7 @@ for b=bb
     time_base=time_base./24;
     xstr='time (d)';
   end
-  units=load(fullfile(handlesexperimentlist{ggee(1)},'perframe',...
+  units=load(fullfile(handlesexperimentlist{ggee(1)},handles.perframe_dir,...
       [feature_list{feature_value} '.mat']),'units');
   ystr=get_label(feature_list(feature_value),units.units);
 
@@ -3368,7 +3378,7 @@ drawnow;
 
 % ---
 function table_data=calculate_interesting_timeseries(experiment_value,experiment_list,...
-    behavior_list,feature_list,windowradius)
+    behavior_list,feature_list,perframe_dir,windowradius)
 
 table_data=cell(length(behavior_list),length(feature_list),2);
 parfor b=1:length(behavior_list)
@@ -3379,7 +3389,7 @@ parfor b=1:length(behavior_list)
       parfor_tmp{f,t-1}=[];
       for e=1:length(experiment_value)
         behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
-        feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
+        feature_data=load(fullfile(experiment_list{experiment_value(e)},perframe_dir,...
           [feature_list{f} '.mat']));
         sexdata={};
         for i=1:length(feature_data.data)
@@ -3420,11 +3430,11 @@ windowradius=handles.windowradius;
 if(isempty(handles.interestingfeaturetimeseries_cache))
   if(length(experiment_value)>0)
     table_data=calculate_interesting_timeseries(experiment_value,experiment_list,...
-        behavior_list,feature_list,windowradius);
+        behavior_list,feature_list,handles.perframe_dir,windowradius);
   end
   if(length(experiment_value2)>0)
     table_data2=calculate_interesting_timeseries(experiment_value2,experiment_list2,...
-        behavior_list,feature_list,windowradius);
+        behavior_list,feature_list,handles.perframe_dir,windowradius);
   end
 
   if((length(experiment_value)>0) && (length(experiment_value2)>0))
@@ -4763,7 +4773,7 @@ ret_val=[ans(1:(end-1)) ' (' num2str(arg{2},3) '%)']; %#ok<COLND>
 % ---
 function [table_data raw_table_data]=plot_social(experiment_value,experiment_list,...
     behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-    feature_value,feature_list,color)
+    feature_value,feature_list,perframe_dir,color)
 
 during={};  not_during={};
 parfor e=1:length(experiment_value)
@@ -4776,7 +4786,7 @@ parfor e=1:length(experiment_value)
   else
     behavior_data2=[];
   end
-  feature_data=load(fullfile(experiment_list{experiment_value(e)},'perframe',...
+  feature_data=load(fullfile(experiment_list{experiment_value(e)},perframe_dir,...
         [feature_list{feature_value} '.mat']));
 
   [during{e} not_during{e} raw_during{e} raw_not_during{e}]=...
@@ -4855,12 +4865,12 @@ figure;  hold on;
 if(length(experiment_value)>0)
   [table_data raw_table_data]=plot_social(experiment_value,experiment_list,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,'R');
+      feature_value,feature_list,handles.perframe_dir,'R');
 end
 if(length(experiment_value2)>0)
   [table_data2 raw_table_data2]=plot_social(experiment_value2,experiment_list2,...
       behavior_value,behavior_list,behavior_logic,behavior_value2,behavior_list2,...
-      feature_value,feature_list,'B');
+      feature_value,feature_list,handles.perframe_dir,'B');
 end
 
 if((length(experiment_value)>0) && (length(experiment_value2)>0))
