@@ -36,6 +36,10 @@ while numel(block_rect) == 4 && block_rect(1)>=0
       %break;
   %end
   bb(j,[2,1,4,3]) = block_rect;
+  if block_rect(3)>header.height || block_rect(4) > header.width || any(block_rect<=0),
+    break;
+  end
+
   % then interlaced row ordered image data
   block_data = fread(fp,block_rect(3)*block_rect(4),'*uint8');
   block_data = reshape(block_data,[block_rect(3),block_rect(4)]);
