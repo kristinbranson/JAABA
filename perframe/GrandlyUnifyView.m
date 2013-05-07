@@ -62,8 +62,8 @@ classdef GrandlyUnifyView < handle
                'numbertitle','off', ...
                'menubar','none', ...
                'name','Grandly Unify', ...
-               'windowstyle','normal');
-%               'closeRequestFcn',@(g,e)(self.quitButtonPressed()), ...
+               'windowstyle','normal', ...
+               'closeRequestFcn',@(g,e)(controller.quit()));
       
       % make the labels, but make them invisible, so we can get their
       % extents
@@ -333,6 +333,14 @@ classdef GrandlyUnifyView < handle
       
       % Update enablement of convert button
       set(self.convertButton,'enable',onIff(self.model.projectFileSpecified));
+    end  % method
+    
+    % ---------------------------------------------------------------------
+    function close(self)
+      if ishandle(self.fig)
+        delete(self.fig);
+        self.fig=[];
+      end
     end  % method
     
   end
