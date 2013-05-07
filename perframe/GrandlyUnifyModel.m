@@ -9,7 +9,11 @@ classdef GrandlyUnifyModel < handle
       % again.
     iCurrentGTExpDir=[]
       % The index of the currently selected GT experiment dir.  Empty
-      % iff gtExpDirNames is empty.      
+      % iff gtExpDirNames is empty.
+  end
+  properties (SetAccess=private)
+    defaultDirName='';
+      % the absolute path of the default dir used for file choosers
   end    
   properties (Dependent)
     projectFileSpecified
@@ -17,12 +21,15 @@ classdef GrandlyUnifyModel < handle
   end
   methods
     function self=GrandlyUnifyModel()
+      defaultDirName=pwd();
     end  % constructor method
     function set.projectFileName(self,newValue)
       self.projectFileName=newValue;
+      self.defaultDirName=fileparts(newValue);
     end
     function set.classifierFileName(self,newValue)
       self.classifierFileName=newValue;
+      self.defaultDirName=fileparts(newValue);
     end
     function result=get.projectFileSpecified(self)
       result=~isempty(self.projectFileName);
@@ -30,9 +37,10 @@ classdef GrandlyUnifyModel < handle
     function result=get.classifierFileSpecified(self)
       result=~isempty(self.classifierFileName);
     end
-    function addGTExpDirName(self,fileNameAbs)
-      self.gtExpDirNames{end+1}=fileNameAbs;
+    function addGTExpDirName(self,dirNameAbs)
+      self.gtExpDirNames{end+1}=dirNameAbs;
       self.iCurrentGTExpDir = length(self.gtExpDirNames);
+      self.defaultDirName=fileparts(dirNameAbs);
     end
     function removeCurrentGTExpDirName(self)
       i = self.iCurrentGTExpDir;

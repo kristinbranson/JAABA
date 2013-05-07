@@ -13,7 +13,8 @@ classdef GrandlyUnifyController < handle
     function chooseProjectFileButtonPressed(self)
       [fileNameRel,pathName] = ...
         uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
-                  'Choose JAABA Project File');
+                  'Choose JAABA Project File', ...
+                  self.model.defaultDirName);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
       self.model.projectFileName=fileNameAbs;
@@ -24,7 +25,8 @@ classdef GrandlyUnifyController < handle
     function chooseClassifierFileButtonPressed(self)
       [fileNameRel,pathName] = ...
         uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
-                  'Choose JAABA Classifier File');
+                  'Choose JAABA Classifier File', ...
+                  self.model.defaultDirName);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
       self.model.classifierFileName=fileNameAbs;
@@ -35,7 +37,8 @@ classdef GrandlyUnifyController < handle
     function gtExpDirsAddButtonPressed(self)
       dirNameAbs = ...
         uigetdir('', ...
-                 'Add Ground-Truth Experiment Directory');
+                 'Add Ground-Truth Experiment Directory', ...
+                 self.model.defaultDirName);
       if dirNameAbs == 0; return; end;
       self.model.addGTExpDirName(dirNameAbs);
       self.view.update();
@@ -49,9 +52,12 @@ classdef GrandlyUnifyController < handle
     
     % ---------------------------------------------------------------------
     function convertButtonPressed(self)
+      [dirName,baseName,ext]=fileparts(self.model.classifierFileName);
+      suggestedFileNameAbs=fullfile(dirName,[baseName '.jab']);
       [fileNameRel, pathName] = ...
         uiputfile({'*.jab','JAABA files (*.jab)'}, ...
-                  'Save JAABA File As...');
+                  'Save JAABA File As...', ...
+                  suggestedFileNameAbs);
       if fileNameRel == 0; return; end;  % user hit cancel
       self.view.spin();  
       fileNameAbs = fullfile(pathName,fileNameRel);
@@ -71,8 +77,16 @@ classdef GrandlyUnifyController < handle
       end  % try/catch
       h=helpdlg('Conversion was successful','Success!');
       set(h,'windowstyle','modal');
-      self.view.unspin();  
+      self.view.unspin();
       uiwait(h);
+      self.quit();
     end  % method
+
+    % ---------------------------------------------------------------------
+    function quit(self)
+      self.view.close();
+      self.view=[];
+      self.model=[];
+    end
   end
 end
