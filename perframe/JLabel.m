@@ -2389,6 +2389,7 @@ openFileHasUnsavedChanges=thereIsAnOpenFile&&handles.data.needsave;
 % else
 %   nExps=0;
 % end
+nExps=data.nexps;
 someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 inGroundTruthingMode=thereIsAnOpenFile && ...
                      ~isempty(data) && ...
@@ -2429,6 +2430,7 @@ set(handles.menu_file_change_target_type,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_behavior_name,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_score_file_name,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_remove_experiments_with_no_labels,'Enable',onIff( thereIsAnOpenFile&&(nExps>0) ));
 set(handles.menu_file_import_classifier, ...
     'Enable',onIff(thereIsAnOpenFile));
 % Import Scores... and it's submenu items
@@ -9247,4 +9249,3 @@ if isempty(iExpNow) ,
   guidata(figureJLabel,handles);
 end
 return
-

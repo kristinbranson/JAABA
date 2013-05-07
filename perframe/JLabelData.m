@@ -5333,8 +5333,8 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.InitPredictionData(obj.nexps);
       end
             
-      % % Set the default path to the experiment directory
-      % obj.defaultpath = expDirName;
+      % % Set the default path to the experiment directory's parent
+      obj.defaultpath = fileparts(expDirName);
 
       % Update the status
       obj.SetStatus('Successfully added experiment %s...',expDirName);
