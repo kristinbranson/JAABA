@@ -168,12 +168,14 @@ DecisionStump *SVMBehaviorSequence::SelectBestFeature(ExampleWeights *samples, i
       if(samples[j].ex_ind != last_example && last_example != -1)
 	OnFinishedIteration(trainset->examples[last_example]->x, trainset->examples[last_example]->y);
       last_example = samples[j].ex_ind;
-      if(!f[j] || chunk_size < num_bout_expansion_features || !trainset->examples[samples[j].ex_ind]->set->samples[samples[j].samp_ind].psi) {
+      bool noFeat = ((!samples[j].is_gt && !trainset->examples[samples[j].ex_ind]->set->samples[samples[j].samp_ind].psi) || 
+		      (samples[j].is_gt && !trainset->examples[samples[j].ex_ind]->set->psi_gt));
+
+      if(!f[j] || chunk_size < num_bout_expansion_features || noFeat) {
 	BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)trainset->examples[samples[j].ex_ind]->x;
 	if(!x->memory_buffer)
 	  x->ComputeCaches(this);
-	if((!samples[j].is_gt && !trainset->examples[samples[j].ex_ind]->set->samples[samples[j].samp_ind].psi) || 
-	   (samples[j].is_gt && !trainset->examples[samples[j].ex_ind]->set->psi_gt))
+	if(noFeat)
 	  SVM_cached_sample_set_compute_features(trainset->examples[samples[j].ex_ind]->set, trainset->examples[samples[j].ex_ind]);
 	if(f[j]) delete [] f[j];
 	f[j] = psi_bout(x, samples[j].bout.start_frame, samples[j].bout.end_frame, samples[j].bout.behavior, NULL, false, false, 
