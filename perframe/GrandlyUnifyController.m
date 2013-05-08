@@ -14,10 +14,10 @@ classdef GrandlyUnifyController < handle
       [fileNameRel,pathName] = ...
         uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
                   'Choose JAABA Project File', ...
-                  self.model.defaultDirName);
+                  self.model.workingDirName);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
-      self.model.projectFileName=fileNameAbs;
+      self.model.setProjectFileName(fileNameAbs);
       self.view.update();
     end
     
@@ -26,19 +26,18 @@ classdef GrandlyUnifyController < handle
       [fileNameRel,pathName] = ...
         uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
                   'Choose JAABA Classifier File', ...
-                  self.model.defaultDirName);
+                  self.model.workingDirName);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
-      self.model.classifierFileName=fileNameAbs;
+      self.model.setClassifierFileName(fileNameAbs);
       self.view.update();
     end
     
     % ---------------------------------------------------------------------
     function gtExpDirsAddButtonPressed(self)
       dirNameAbs = ...
-        uigetdir('', ...
-                 'Add Ground-Truth Experiment Directory', ...
-                 self.model.defaultDirName);
+        uigetdir(self.model.workingDirName, ...
+                 'Add Ground-Truth Experiment Directory');
       if dirNameAbs == 0; return; end;
       self.model.addGTExpDirName(dirNameAbs);
       self.view.update();
