@@ -2489,6 +2489,8 @@ for b=bb
       tstr=[tstr ' AND NOT '];
     case 4
       tstr=[tstr ' OR '];
+    case 5
+      tstr=[tstr ' OR NOT '];
   end
   if(handles.behaviorlogic>1)
     tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
@@ -3266,10 +3268,10 @@ for b=bb
         tstr=[tstr ' AND '];
       case 3
         tstr=[tstr ' AND NOT '];
-      case 4
-        tstr=[tstr ' OR '];
-      case 5
-        tstr=[tstr ' OR NOT '];
+%      case 4
+%        tstr=[tstr ' OR '];
+%      case 5
+%        tstr=[tstr ' OR NOT '];
     end
     if(behavior_logic>1)
       tstr=[tstr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
@@ -3736,6 +3738,8 @@ for b=bb
       ystr=[ystr ' AND NOT '];
     case 4
       ystr=[ystr ' OR '];
+    case 5
+      ystr=[ystr ' OR NOT '];
   end
   if(handles.behaviorlogic>1)
     ystr=[ystr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
@@ -4297,6 +4301,8 @@ for b=bb
       ystr=[ystr ' AND NOT '];
     case 4
       ystr=[ystr ' OR '];
+    case 5
+      ystr=[ystr ' OR NOT '];
   end
   if(handles.behaviorlogic>1)
     ystr=[ystr char(strrep(handles.behaviorlist(handles.behaviorvalue2),'_','-'))];
