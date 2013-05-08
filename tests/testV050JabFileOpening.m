@@ -1,6 +1,6 @@
 function success=testV050JabFileOpening()
 
-jabFileName='/groups/branson/bransonlab/adam/may01ing.jab';
+jabFileName='/groups/branson/bransonlab/projects/JAABA/test_data/may01ing.jab';
 gtMode=false;
 data=JLabelData('setstatusfn',@(str)(fprintf('%s\n',str)), ...
                 'clearstatusfn',@()(nop()));
