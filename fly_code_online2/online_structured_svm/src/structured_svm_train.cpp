@@ -990,7 +990,7 @@ void StructuredSVM::OptimizeAllConstraints(int num_iter) {
 
   double iter_dual = 0;
   int i = 0;
-  while(i < num_iter || sum_dual/n-iter_dual/(i+1) > eps) {
+  while(i < num_iter/* || sum_dual/n-iter_dual/(i+1) > eps*/) {
     for(int j = 0; j < n; j++) {
       SVM_cached_sample_set *set = trainset->examples[j]->set;
       if(set) {
