@@ -1,6 +1,6 @@
 function success=testMissingMovieTimeStamp()
 
-jabFileName='/groups/branson/bransonlab/adam/larva_mwt_rolling.jab';
+jabFileName='/groups/branson/bransonlab/projects/JAABA/test_data/larva_mwt_rolling.jab';
 gtMode=false;
 data=JLabelData('setstatusfn',@(str)(fprintf('%s\n',str)), ...
                 'clearstatusfn',@()(nop()));
