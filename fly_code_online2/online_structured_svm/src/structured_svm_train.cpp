@@ -1387,7 +1387,7 @@ void StructuredSVM::SVM_cached_sample_set_recompute_caches(SVM_cached_sample_set
       a += set->samples[j].alpha;
       d += set->samples[j].alpha*set->samples[j].loss;
     }
-    assert(my_abs(a-set->alpha)<.0001);
+    //assert(my_abs(a-set->alpha)<.0001);
     set->alpha=a;
     set->D_i=d;
     double d_u_gt = set->u_i->dot(*set->psi_gt, useWeights);

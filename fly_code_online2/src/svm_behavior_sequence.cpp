@@ -484,9 +484,9 @@ double *SVMBehaviorSequence::psi_bout(BehaviorBoutFeatures *b, int t_start, int 
   
   if(normalize)
     for(i = 0; i < num_bout_features; i++) {
-      assert(!isnan(f[i]) && my_abs(f[i]) < 100000000);
+      //assert(!isnan(f[i]) && my_abs(f[i]) < 100000000);
       f[i] = (f[i]-bout_features[i].mu)*bout_features[i].gamma; 
-      assert(!isnan(f[i]) && my_abs(f[i]) < 100000000);
+      //assert(!isnan(f[i]) && my_abs(f[i]) < 100000000);
     }
   return f;
 }
