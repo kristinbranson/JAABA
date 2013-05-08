@@ -1,13 +1,13 @@
 function success=testRemovingExperimentWithRecentlyDeletedLabel()
 
-jabFileName='/groups/branson/bransonlab/adam/may01ing.jab';
+jabFileName='/groups/branson/bransonlab/projects/JAABA/test_data/may01ing.jab';
 gtMode=false;
 data=JLabelData('setstatusfn',@(str)(fprintf('%s\n',str)), ...
                 'clearstatusfn',@()(nop()));
 data.openJabFile(jabFileName,gtMode);
 
 % Add a new exp dir
-nameOfExpDirToAdd='/groups/branson/bransonlab/adam/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
+nameOfExpDirToAdd='/groups/branson/bransonlab/projects/JAABA/test_data/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
 data.AddExpDir(nameOfExpDirToAdd);
 
 % Change the current target to the first fly of the new experiment
