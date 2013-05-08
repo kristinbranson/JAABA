@@ -303,7 +303,7 @@ classdef GrandlyUnifyView < handle
       % Update the view to match the model
       
       % Update the project file text object
-      if self.model.projectFileSpecified ,
+      if self.model.isProjectFileSpecified() ,
         set(self.projectFileText, ...
             'String',self.model.projectFileName, ...
             'FontAngle','normal');
@@ -314,7 +314,7 @@ classdef GrandlyUnifyView < handle
       end
         
       % Update the classifier file text object
-      if self.model.classifierFileSpecified ,
+      if self.model.isClassifierFileSpecified() ,
         set(self.classifierFileText, ...
             'String',self.model.classifierFileName, ...
             'FontAngle','normal');
@@ -332,7 +332,7 @@ classdef GrandlyUnifyView < handle
       set(self.gtExpDirsRemoveButton,'enable',offIff(isempty(self.model.gtExpDirNames)));
       
       % Update enablement of convert button
-      set(self.convertButton,'enable',onIff(self.model.projectFileSpecified));
+      set(self.convertButton,'enable',onIff(self.model.isProjectFileSpecified()));
     end  % method
     
     % ---------------------------------------------------------------------
