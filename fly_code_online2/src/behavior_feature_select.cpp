@@ -65,7 +65,7 @@ ExampleWeights *SVMBehaviorSequence::ComputeExampleWeights(StructuredDataset *tr
 	if((!NONE_CLASS_HAS_NO_SCORE || y_gt->bouts[k].behavior != 0)) {
 	  r[num].bout = y_gt->bouts[k];
 	  r[num].ex_ind = i;
-	  r[num].samp_ind = j;
+	  r[num].samp_ind = -1;
 	  r[num].bout_ind = k;
 	  r[num].is_gt = true;
 	  r[num].alpha = -trainset->examples[i]->set->alpha;
@@ -172,7 +172,8 @@ DecisionStump *SVMBehaviorSequence::SelectBestFeature(ExampleWeights *samples, i
 	BehaviorBoutFeatures *x = (BehaviorBoutFeatures*)trainset->examples[samples[j].ex_ind]->x;
 	if(!x->memory_buffer)
 	  x->ComputeCaches(this);
-	if(!trainset->examples[samples[j].ex_ind]->set->samples[samples[j].samp_ind].psi)
+	if((!samples[j].is_gt && !trainset->examples[samples[j].ex_ind]->set->samples[samples[j].samp_ind].psi) || 
+	   (samples[j].is_gt && !trainset->examples[samples[j].ex_ind]->set->psi_gt))
 	  SVM_cached_sample_set_compute_features(trainset->examples[samples[j].ex_ind]->set, trainset->examples[samples[j].ex_ind]);
 	if(f[j]) delete [] f[j];
 	f[j] = psi_bout(x, samples[j].bout.start_frame, samples[j].bout.end_frame, samples[j].bout.behavior, NULL, false, false, 
