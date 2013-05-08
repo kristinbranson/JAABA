@@ -2,11 +2,13 @@ classdef GrandlyUnifyController < handle
   properties
     model  % a ref to the model
     view  % a ref to the view
+    workingDirName
   end
   methods
     function self=GrandlyUnifyController()
       self.model=GrandlyUnifyModel();
       self.view=GrandlyUnifyView(self.model,self);
+      self.workingDirName=pwd();
     end  % constructor method
 
     % ---------------------------------------------------------------------
@@ -14,10 +16,11 @@ classdef GrandlyUnifyController < handle
       [fileNameRel,pathName] = ...
         uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
                   'Choose JAABA Project File', ...
-                  self.model.workingDirName);
+                  self.workingDirName);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
       self.model.setProjectFileName(fileNameAbs);
+      self.workingDirName=fileparts(fileNameAbs);
       self.view.update();
     end
     
@@ -26,20 +29,22 @@ classdef GrandlyUnifyController < handle
       [fileNameRel,pathName] = ...
         uigetfile({'*.mat','Matlab MAT files (*.mat)'}, ...
                   'Choose JAABA Classifier File', ...
-                  self.model.workingDirName);
+                  self.workingDirName);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
       self.model.setClassifierFileName(fileNameAbs);
+      self.workingDirName=fileparts(fileNameAbs);
       self.view.update();
     end
     
     % ---------------------------------------------------------------------
     function gtExpDirsAddButtonPressed(self)
       dirNameAbs = ...
-        uigetdir(self.model.workingDirName, ...
+        uigetdir(self.workingDirName, ...
                  'Add Ground-Truth Experiment Directory');
       if dirNameAbs == 0; return; end;
       self.model.addGTExpDirName(dirNameAbs);
+      self.workingDirName=fileparts(dirNameAbs);
       self.view.update();
     end
     
@@ -51,24 +56,25 @@ classdef GrandlyUnifyController < handle
     
     % ---------------------------------------------------------------------
     function convertButtonPressed(self)
-      [dirName,baseName,ext]=fileparts(self.model.classifierFileName);
-      suggestedFileNameAbs=fullfile(dirName,[baseName '.jab']);
+      [~,baseName,ext]=fileparts(self.model.classifierFileName);
+      suggestedFileNameAbs=fullfile(self.workingDirName,[baseName '.jab']);
       [fileNameRel, pathName] = ...
         uiputfile({'*.jab','JAABA files (*.jab)'}, ...
                   'Save JAABA File As...', ...
                   suggestedFileNameAbs);
       if fileNameRel == 0; return; end;  % user hit cancel
-      self.view.spin();  
       fileNameAbs = fullfile(pathName,fileNameRel);
-      projectFileName=self.model.projectFileName;
-      classifierFileName=self.model.classifierFileName;
-      gtExpDirNames=self.model.gtExpDirNames;
+      %projectFileName=self.model.projectFileName;
+      %classifierFileName=self.model.classifierFileName;
+      %gtExpDirNames=self.model.gtExpDirNames;
+      self.view.spin();  
       try
-        everythingFileFromOldStyleProjectAndClassifierFiles(...
-          fileNameAbs, ...
-          projectFileName, ...
-          classifierFileName, ...
-          gtExpDirNames);
+        self.model.convert(fileNameAbs)
+%         everythingFileFromOldStyleProjectAndClassifierFiles(...
+%           fileNameAbs, ...
+%           projectFileName, ...
+%           classifierFileName, ...
+%           gtExpDirNames);
       catch excp
         self.view.unspin();  
         uiwait(errordlg(excp.message,'Error','modal'));
