@@ -6213,12 +6213,12 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success, msg] = ScoresToPerframe(obj,expi,fn,ts)
+    function [success, msg] = ScoresToPerframe(obj,expi,fileName,ts)
       success = true; msg = '';
       %outdir = obj.outexpdirs{expi};
       outdir = obj.expdirs{expi};      
-      scoresFileIn = [fullfile(outdir,fn) '.mat'];
-      scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fn) '.mat'];
+      scoresFileIn = [fullfile(outdir,fileName) '.mat'];
+      scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fileName) '.mat'];
       if ~exist(scoresFileIn,'file'),
         success = false; 
         msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
@@ -6242,7 +6242,7 @@ classdef JLabelData < matlab.mixin.Copyable
       try
         save(scoresFileOut,'-struct','OUT');
       catch ME,
-        questmsg = sprintf('Could not write perframe file from scores file:%s. Continue',fn);
+        questmsg = sprintf('Could not write perframe file from scores file: %s. Continue',fileName);
         button = questdlg(questmsg,'Continue','Yes');
         if ~strcmp(button,'Yes')
           success = false;
