@@ -411,9 +411,9 @@ switch(handles.analysis)
     set(handles.FeatureHistogram,'backgroundcolor',fg);
     set(handles.FeatureHistogram,'foregroundcolor',bg);
     set(handles.StyleList,'string',handles.featurehistogram_stylelist,...
-        'value',handles.featurehistogram_style2);
-    set(handles.StyleList2,'string',handles.featurehistogram_stylelist2,...
         'value',handles.featurehistogram_style);
+    set(handles.StyleList2,'string',handles.featurehistogram_stylelist2,...
+        'value',handles.featurehistogram_style2);
     if(strcmp(get(handles.FeatureHistogram,'enable'),'off'))
       analysis2='';
     else
@@ -634,7 +634,7 @@ if (exist('matlabpool')==2 && matlabpool('size')==0)
 end
 
 handles.featurehistogram_stylelist=...
-    {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means'};
+    {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means', 'Box Plot'};
 handles.featurehistogram_stylelist2=...
     {'per Frame','Mean per Bout','Median per Bout','Max per Bout','Min per Bout','Std. Dev. per Bout'};
 handles.featuretimeseries_stylelist=...
@@ -2468,7 +2468,7 @@ feature_list=handles.featurelist;
 comparison=handles.comparison;
 if((length(bb)==1) && (bb==0))  comparison=0;  end
 nbins=handles.nbins;
-style=handles.featurehistogram_style2;
+style=handles.featurehistogram_style;
 centraltendency=handles.centraltendency;
 dispersion=handles.dispersion;
 behaviornot=handles.behaviornot;
@@ -2497,8 +2497,13 @@ for b=bb
   end
   units=load(fullfile(handlesexperimentlist{ggee(1)},handles.perframe_dir,...
       [feature_list{feature_value} '.mat']),'units');
-  xstr=get_label(feature_list(feature_value),units.units);
-  ystr='normalized';
+  if(style<4)
+    xstr=get_label(feature_list(feature_value),units.units);
+    ystr='normalized';
+  else
+    xstr='group';
+    ystr=get_label(feature_list(feature_value),units.units);
+  end
 
   if(handles.dump2csv)  print_csv_help(fid,handles.type,tstr,xstr,ystr);  end
 
@@ -2557,7 +2562,7 @@ for b=bb
 
       [parfor_tmp{ii} not_parfor_tmp{ii}]=calculate_feature_histogram(...
           behavior_data,behavior_logic,behavior_data2,feature_data,tmp2,tmploop,...
-          handles.featurehistogram_style,handles.behaviornot);
+          handles.featurehistogram_style2,handles.behaviornot);
 
       if(comparison==1)
         not_parfor_tmp{ii}=[parfor_tmp{ii} not_parfor_tmp{ii}];
@@ -2591,10 +2596,6 @@ for b=bb
   if((comparison>0) && ~isempty(not_during_data))
     tmp=[tmp reshape(not_during_data,1,numel(not_during_data))];
   end
-  foo=prctile(tmp,[1 99]);
-  low=foo(1);  high=foo(2);
-  unique(abs(tmp));
-  nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
 
   %low=[];  high=[];  nearzero=[];
   %if(~isempty(during_data))
@@ -2611,6 +2612,10 @@ for b=bb
   %  nearzero=min(tmp,nearzero);
   %end
 
+  foo=prctile(tmp,[1 99]);
+  low=foo(1);  high=foo(2);
+  unique(abs(tmp));
+  nearzero=ans(1);  if(ans(1)==0)  nearzero=ans(2);  end
   if(~isempty(low) && ~isempty(high) && ~isempty(nearzero))
     if(handles.logbinsize)
       if((low>=0) && (high>0))
@@ -2646,27 +2651,93 @@ for b=bb
       idx2=idx+(ii-1)*numel(ggee);
       linestyle='-';  if(ii>1)  linestyle='--';  end
 
-      if(comparison>0)
-        if(handles.dump2csv)  fprintf(fid,['%% not during\n']);  end
-        if(~isempty(not_during_data))
-          hist_not_during=histc(not_during_data(idx2,:)',bins);
-          if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
-          hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
-          hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
-          plot_it(ha,bins,hist_not_during',style,centraltendency,dispersion,color,1,linestyle,...
-              fid,handlesexperimentlist(idx));
+      if(style<4)
+        if(comparison>0)
+          if(handles.dump2csv)
+            if(comparison==1)
+              fprintf(fid,['%% all frames\n']);
+            else
+              fprintf(fid,['%% not during\n']);
+            end
+          end
+          if(~isempty(not_during_data))
+            hist_not_during=histc(not_during_data(idx2,:)',bins);
+            if(size(hist_not_during,1)==1)  hist_not_during=hist_not_during';  end
+            hist_not_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_not_during,2));
+            hist_not_during=hist_not_during./repmat(sum(ans,1),size(hist_not_during,1),1);
+            plot_it(ha,bins,hist_not_during',style,centraltendency,dispersion,color,1,linestyle,...
+                fid,handlesexperimentlist(idx));
+          end
         end
-      end
-      if(handles.dump2csv)  fprintf(fid,['%% during\n']);  end
-      if(~isempty(during_data))
-        hist_during=histc(during_data(idx2,:)',bins);
-        if(size(hist_during,1)==1)  hist_during=hist_during';  end
-        hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
-        hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
-        linewidth=1;  if(comparison>0)  linewidth=2;  end
-        plot_it(ha,bins,hist_during',style,centraltendency,dispersion,color,linewidth,linestyle,...
-            fid,handlesexperimentlist(idx));
-        if (ii==1)  h(g)=ans;  end
+        if(handles.dump2csv)
+          if(comparison==1)
+            fprintf(fid,['%% all frames\n']);
+          else
+            fprintf(fid,['%% not during\n']);
+          end
+        end
+        if(~isempty(during_data))
+          hist_during=histc(during_data(idx2,:)',bins);
+          if(size(hist_during,1)==1)  hist_during=hist_during';  end
+          hist_during.*repmat(([0 diff(bins)]+[diff(bins) 0])'/2,1,size(hist_during,2));
+          hist_during=hist_during./repmat(sum(ans,1),size(hist_during,1),1);
+          linewidth=1;  if(comparison>0)  linewidth=2;  end
+          plot_it(ha,bins,hist_during',style,centraltendency,dispersion,color,linewidth,linestyle,...
+              fid,handlesexperimentlist(idx));
+          if(ii==1)  h(g)=ans;  end
+        end
+      else
+        if(comparison>0)
+          xticklabels{g+(ii-1)*length(handles.grouplist)}=handles.grouplist{g};
+          tmp=nanmean(not_during_data(idx2,:),2);
+          if(handles.dump2csv)
+            if(comparison==1)
+              fprintf(fid,['%% all frames\n']);
+            else
+              fprintf(fid,['%% not during\n']);
+            end
+            fprintf(fid,['%% percentiles 1, 5, 25, 50, 75, 95, 99\n']);
+            fprintf(fid,'%g, ',prctile(tmp,[1 5 25 50 75 95 99]));
+            fprintf(fid,'\n');
+          end
+          tmp=boxplot(ha,tmp,'positions',g+(ii-1)*length(handles.grouplist)+0.5,...
+              'widths',0.5/((comparison>0)+1),'colors',color);
+  %        if(ii==1)  h{g}=tmp;  end
+          findobj(tmp,'type','line');
+          if(ii==1)
+            set(ans,'linestyle','-');
+          else
+            set(ans,'linestyle','--');
+          end
+          findobj(tmp,'tag','Outliers');
+          set(ans,'markeredgecolor',color);
+        end
+        xticklabels{g+(ii-1)*length(handles.grouplist)}=handles.grouplist{g};
+        tmp=nanmean(during_data(idx2,:),2);
+        if(handles.dump2csv)
+          if(comparison==1)
+            fprintf(fid,['%% all frames\n']);
+          else
+            fprintf(fid,['%% not during\n']);
+          end
+          fprintf(fid,['%% percentiles 1, 5, 25, 50, 75, 95, 99\n']);
+          fprintf(fid,'%g, ',prctile(tmp,[1 5 25 50 75 95 99]));
+          fprintf(fid,'\n');
+        end
+        tmp=boxplot(ha,tmp,'positions',g+(ii-1)*length(handles.grouplist),...
+            'widths',0.5/((comparison>0)+1),'colors',color);
+%        if(ii==1)  h{g}=tmp;  end
+        findobj(tmp,'type','line');
+        if(ii==1)
+          set(ans,'linestyle','-');
+        else
+          set(ans,'linestyle','--');
+        end
+        if(comparison>0)
+          set(ans,'linewidth',2);
+        end
+        findobj(tmp,'tag','Outliers');
+        set(ans,'markeredgecolor',color);
       end
     end
 
@@ -2685,12 +2756,20 @@ for b=bb
         for e=1:length(idx)
           fprintf(fid,'%% experiment %s\n',handlesexperimentlist{selected_exp(idx(e))});
           if(comparison>0)
-            fprintf(fid,'%% not during\n');
+            if(comparison==1)
+              fprintf(fid,'%% all frames\n');
+            else
+              fprintf(fid,'%% not during\n');
+            end
             if(~isempty(not_during_data))
               print_csv_data(fid,not_during_data(idx(e),:));
             end
           end
-          fprintf(fid,'%% during\n');
+          if(comparison==1)
+            fprintf(fid,'%% all frames\n');
+          else
+            fprintf(fid,'%% during\n');
+          end
           if(~isempty(during_data))
             print_csv_data(fid,during_data(idx(e),:));
           end
@@ -2708,11 +2787,17 @@ for b=bb
   title(ha,tstr,'interpreter','none');
   xlabel(ha,xstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
-  axis(ha,'tight');  zoom(ha,'reset');
+  if(style<4)
+    axis(ha,'tight');
+  else
+    axisalmosttight([],ha);
+    set(ha,'xtick',(1:length(xticklabels))+0.25*(comparison>0),'xticklabel',xticklabels);
+  end
+  zoom(ha,'reset');
 end
 
 h2=[];  hh2={};
-if ~isnumeric(individual)
+if(~isnumeric(individual) && (style<4))
   idx=find(h>0);
   h2=[h2 h(idx)];
   hh2=[hh2 handles.grouplist];
@@ -3932,6 +4017,8 @@ for b=bb
         case 3  % per experiment, box
           table_data{end}{ii}=100*cellfun(@sum,frames_labelled(idx))./cellfun(@sum,frames_total(idx));
           h{ii}=boxplot(ha,table_data{end}{ii},'positions',ii,'widths',0.5,'colors',color);
+          findobj(h{ii},'tag','Outliers');
+          set(ans,'markeredgecolor',color);
         case 4  % per fly, grouped
           cumsum(cellfun(@length,frames_labelled(idx)))';
           exp_separators=[exp_separators; ans+sum(k)];
@@ -4006,6 +4093,14 @@ for b=bb
         fprintf(fid,['%% ydata, CT-D\n']);  fprintf(fid,'%g, ',dn);  fprintf(fid,'\n');
         fprintf(fid,['%% ydata, CT\n']);    fprintf(fid,'%g, ',ct);  fprintf(fid,'\n');
       end
+    case 3  % per experiment, box
+      if(handles.dump2csv)
+        fprintf(fid,['%% ydata, percentiles 1, 5, 25, 50, 75, 95, 99\n']);
+        for i=1:length(table_data{end})
+          fprintf(fid,'%g, ',prctile([table_data{end}{i}],[1 5 25 50 75 95 99]));
+          fprintf(fid,'\n');
+        end
+      end
     case {4,6}  % per fly, grouped
       l=exp_separators(1:2:(end-1));
       r=exp_separators(2:2:end);
@@ -4040,7 +4135,7 @@ for b=bb
   ylabel(ha,ystr,'interpreter','none');
   set(ha,'xtick',k,'xticklabel',xticklabels);
   axis(ha,'tight');  vt=axis;
-  axisalmosttight;  vat=axis;
+  axisalmosttight([],ha);  vat=axis;
   if(handles.behaviorbarchart_style==4)
     axis(ha,[vat(1) vat(2) 0 vt(4)]);
   else
@@ -4673,7 +4768,7 @@ for b=bb
   ylabel(ha,ystr,'interpreter','none');
   set(ha,'xtick',k,'xticklabel',xticklabels);
   axis(ha,'tight');  vt=axis;
-  axisalmosttight;  vat=axis;
+  axisalmosttight([],ha);  vat=axis;
   if(handles.boutstats_style==2)
     axis(ha,[vat(1) vat(2) 0 vt(4)]);
   else
@@ -5520,7 +5615,7 @@ function StyleList_Callback(hObject, eventdata, handles)
 get(hObject,'Value');
 switch(handles.analysis)
   case 'feature_histogram'
-    handles.featurehistogram_style2=ans;
+    handles.featurehistogram_style=ans;
   case 'feature_timeseries'
     handles.featuretimeseries_style=ans;
   case 'behavior_barchart'
@@ -5559,7 +5654,7 @@ function StyleList2_Callback(hObject, eventdata, handles)
 get(hObject,'Value');
 switch(handles.analysis)
   case 'feature_histogram'
-    handles.featurehistogram_style=ans;
+    handles.featurehistogram_style2=ans;
   case 'feature_timeseries'
     handles.featuretimeseries_style2=ans;
     update_figure(handles);
