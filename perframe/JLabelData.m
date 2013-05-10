@@ -2147,7 +2147,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % returns false if all files were in existence or could be generated
     % and now they are/can not.  It mutates the instance variables
     % fileexists and filetimestamps, and sets filesfixable and
-    % allfilesexists.
+    % allfilesexist.
 
       msg = '';
       success = false;
@@ -5245,7 +5245,7 @@ classdef JLabelData < matlab.mixin.Copyable
             if strcmpi(res,'Yes')
               obj.SetGenerateMissingFiles();
             end
-          else obj.GetGenerateMissingFiles()
+          else 
             res = 'Yes';
           end
         else
@@ -5253,7 +5253,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         if strcmpi(res,'Yes'),
           obj.SetStatus('Generating missing files for %s...',expName);
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps,interactivemode);
           if ~success,
             msg = sprintf(['Error generating missing required files %s '...
               'for experiment %s: %s. Removing...'],...
@@ -6033,10 +6033,14 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.perframeGenerate = true;
     end
     
+    
+    % ---------------------------------------------------------------------
     function perframeGenerate = GetGenerateMissingFiles(obj)
       perframeGenerate = obj.perframeGenerate;
     end
+
     
+    % ---------------------------------------------------------------------
     function [success,msg] = GenerateMissingFiles(obj,expi,isInteractive)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
@@ -6176,7 +6180,7 @@ classdef JLabelData < matlab.mixin.Copyable
           uiwait(warndlg(['Landmark params were not defined in the configuration file'...
             ' or in the trx file. Not computing arena features and removing them from the perframe list']));
         else
-          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list');
+          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list.\n');
         end
         obj.RemoveArenaPFs();
         obj.arenawarn = false;
@@ -6451,12 +6455,12 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [fe,ft] = FileExists(obj,file,expi)
+    function [fe,ft] = FileExists(obj,fileType,expi)
     % [fe,ft] = FileExists(obj,file,expi)
     % Returns whether the input file exists for the input experiment. 
-      filei = find(strcmpi(file,obj.filetypes),1);
+      filei = find(strcmpi(fileType,obj.filetypes),1);
       if isempty(filei),
-        error('file type %s does not match any known file type',file);
+        error('file type %s does not match any known file type',fileType);
       end
       if nargin < 3,
         expi = 1:obj.nexps;

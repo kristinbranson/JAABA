@@ -364,5 +364,26 @@ classdef Macguffin < handle
       end
     end  % method
 
+    
+    % ---------------------------------------------------------------------
+    function setMainBehaviorName(self,behaviorName)
+      self.behaviors.names={behaviorName};
+    end  % method
+
+    % ---------------------------------------------------------------------
+    function setScoreFileName(self,scoreFileName)
+      self.file.scorefilename = scoreFileName;
+    end
+    
+    % ---------------------------------------------------------------------
+    function setTrxFileName(self,trxFileName)
+      self.file.trxfilename = trxFileName;
+    end
+    
+    % ---------------------------------------------------------------------
+    function setMovieFileName(self,movieFileName)
+      self.file.moviefilename = movieFileName;
+    end
+    
   end  % methods
 end  % classdef
