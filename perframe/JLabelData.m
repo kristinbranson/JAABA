@@ -1876,14 +1876,14 @@ classdef JLabelData < matlab.mixin.Copyable
         
         if ~exist(perframefile{ndx},'file'),
           if ~isdeployed 
-            if isempty(obj.GetGenerateMissingFiles) || ~obj.GenerateMissingFiles()
+            if isempty(obj.GetGenerateMissingFiles()) || ~obj.GetGenerateMissingFiles()
               res = questdlg(sprintf(['Experiment %s is missing some perframe files '...
                 '(%s, possibly more). Generate now?'],obj.expnames{expi},perframefile{ndx}),...
                 'Generate missing files?','Yes','Cancel','Yes');
               if strcmpi(res,'Yes');
                 obj.SetGenerateMissingFiles();
               end
-            else obj.GetGenerateMissingFiles()
+            else 
               res = 'Yes';
             end
           else
@@ -5269,18 +5269,18 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      % Convert the scores file into perframe files.      
-      for i = 1:numel(obj.scoreFeatures)
-        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-        [success,msg] = obj.ScoresToPerframe(obj.nexps, ...
-                                             obj.scoreFeatures(i).scorefilename, ...
-                                             obj.scoreFeatures(i).ts);
-          if ~success,
-            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-            obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-            return;
-          end
-      end
+%       % Convert the scores file into perframe files.      
+%       for i = 1:numel(obj.scoreFeatures)
+%         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+%         [success,msg] = obj.ScoresToPerframe(obj.nexps, ...
+%                                              obj.scoreFeatures(i).scorefilename, ...
+%                                              obj.scoreFeatures(i).ts);
+%           if ~success,
+%             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+%             obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+%             return;
+%           end
+%       end
       
       % Set the fields describing the tracks, either using info provided by
       % the caller, or by reading from the trx file.
@@ -6070,10 +6070,15 @@ classdef JLabelData < matlab.mixin.Copyable
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
-              [success1,msg1] = obj.GeneratePerFrameFiles(expi,isInteractive);
+              [success1,msg1] = obj.GeneratePerframeFilesExceptScoreFeatures(expi,isInteractive);
               success = success && success1;
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
+              end
+              [success2,msg2] = obj.GenerateScoreFeaturePerframeFiles(expi);
+              success = success && success2;
+              if ~success2,
+                msg = [msg,'\n',msg2]; %#ok<AGROW>
               end
           end
         end
@@ -6122,7 +6127,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
+    function [success,msg] = GeneratePerframeFilesExceptScoreFeatures(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
 
@@ -6213,8 +6218,26 @@ classdef JLabelData < matlab.mixin.Copyable
       
       success = true;
       
-    end
+    end  % method
+
     
+    % ---------------------------------------------------------------------
+    function [success,msg] = GenerateScoreFeaturePerframeFiles(obj,expi)
+    
+      % Convert the scores file into perframe files.      
+      for i = 1:numel(obj.scoreFeatures)
+        %obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+        [success,msg] = obj.ScoresToPerframe(expi, ...
+                                             obj.scoreFeatures(i).scorefilename, ...
+                                             obj.scoreFeatures(i).ts);
+          if ~success,
+            %obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+            %obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+            return
+          end
+      end
+    end  % method
+
     
     % ---------------------------------------------------------------------
     function [success, msg] = ScoresToPerframe(obj,expi,fileName,ts)
