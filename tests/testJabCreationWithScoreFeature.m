@@ -1,7 +1,7 @@
 function success=testJabCreationWithScoreFeature()
 
-%testDataDirName='/groups/branson/bransonlab/projects/JAABA/test_data';
-testDataDirName='/Users/taylora/jaaba/test_data';
+testDataDirName='/groups/branson/bransonlab/projects/JAABA/test_data';
+%testDataDirName='/Users/taylora/jaaba/test_data';
 nameOfExpToAdd='GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
 
 % % Copy the fooing scores into the exp dir
@@ -47,8 +47,8 @@ fooingJLabelData=[];
 data.setScoreFeatures({scoreFeatureJabFileNameAbs},timeStamp,{scoreFeatureName});
 
 % Add a new exp dir
-%nameOfExpDirToAdd='/groups/branson/bransonlab/projects/JAABA/test_data/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
-nameOfExpDirToAdd='/Users/taylora/jaaba/test_data/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
+nameOfExpDirToAdd='/groups/branson/bransonlab/projects/JAABA/test_data/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
+%nameOfExpDirToAdd='/Users/taylora/jaaba/test_data/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
 data.SetGenerateMissingFiles();  % tell JLabelData to generate any missing perframe files
 isInteractive=false;
 [success,msg]=data.AddExpDir(nameOfExpDirToAdd,isInteractive);
