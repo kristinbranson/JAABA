@@ -56,6 +56,14 @@ fooingJLabelData.closeJabFile();
 fooingJLabelData=[];  %#ok
 data.setScoreFeatures({scoreFeatureJabFileNameAbs},timeStamp,{scoreFeatureName});
 
+% Check the status table
+perframeDirExists=data.FileExists('perframedir');
+if perframeDirExists ,
+  fprintf('The JLabelData object says that the perframe directory exists, as it should.\n');
+else
+  error('The JLabelData object says that the perframe directory does not exist, which is not as it should be.');
+end
+
 % Add the score feature to the current vocabulary
 featureLexicon = data.featureLexicon;
 scoreFeatures = data.scoreFeatures;
