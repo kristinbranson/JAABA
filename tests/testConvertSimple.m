@@ -5,6 +5,12 @@ classifierFileName='/groups/branson/bransonlab/projects/JAABA/test_data/fooing_l
 gtExpDirNames={'/groups/branson/bransonlab/projects/JAABA/test_data/GMR_82E08_AE_01_TrpA_Rig1Plate10BowlA_20110323T092430'}';               
 jabFileName='/tmp/fooing_labels_and_classifier.jab';
 
+% Delete the converted .jab file if it exsits
+if exist(jabFileName,'file') ,
+  cmd=sprintf('rm "%s"',jabFileName);
+  system(cmd);          
+end
+
 gum=GrandlyUnifyModel();
 gum.setProjectFileName(projectFileName);
 gum.setClassifierFileName(classifierFileName);
@@ -19,8 +25,10 @@ data=JLabelData('setstatusfn',@(str)(fprintf('%s\n',str)), ...
                 'clearstatusfn',@()(nop()));
 data.openJabFile(jabFileName,gtMode);
 
+data
+
 labels=data.labels;
-if length(labels) ~= 2 ,
+if length(labels(1).t0s{1}) ~= 2 ,
   data.closeJabFile();
   error('.jab file has the wrong number of labels');
 end
