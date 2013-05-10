@@ -5228,6 +5228,21 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
       
+      % Always regenerate the score feature perframe files, to make sure
+      % they're from the right classifier
+      % Have to do this _before_ calling GenerateMissingFiles() so that
+      % when UpdateStatusTable() gets called wihtin GenerateMissingFiles(), 
+      % any score feature perframe files are already in place
+      [success,msg] = obj.GenerateScoreFeaturePerframeFiles(obj.nexps);
+      if ~success,
+        %msg = sprintf(['Error generating missing required files %s '...
+        %  'for experiment %s: %s. Removing...'],...
+        %  sprintf(' %s',missingfiles{:}),expDirName,msg);
+        obj.SetStatus('Error generating score feature perframe files for %s...',expName);
+        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+        return
+      end
+      
       % If some files are missing, and we can generate them, do so
       if obj.filesfixable && ~obj.allfilesexist,
         obj.SetStatus('Some files missing for %s...',expName);
@@ -6075,11 +6090,11 @@ classdef JLabelData < matlab.mixin.Copyable
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
               end
-              [success2,msg2] = obj.GenerateScoreFeaturePerframeFiles(expi);
-              success = success && success2;
-              if ~success2,
-                msg = [msg,'\n',msg2]; %#ok<AGROW>
-              end
+%               [success2,msg2] = obj.GenerateScoreFeaturePerframeFiles(expi);
+%               success = success && success2;
+%               if ~success2,
+%                 msg = [msg,'\n',msg2]; %#ok<AGROW>
+%               end
           end
         end
       end
@@ -6223,7 +6238,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = GenerateScoreFeaturePerframeFiles(obj,expi)
-    
+      success=true;
+      msg='';
       % Convert the scores file into perframe files.      
       for i = 1:numel(obj.scoreFeatures)
         %obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
