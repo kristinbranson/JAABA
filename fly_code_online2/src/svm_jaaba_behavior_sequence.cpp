@@ -390,6 +390,14 @@ Json::Value FlyBehaviorBoutSequence::save(StructuredSVM *s) {
       c["start_frame"] = bouts[j].start_frame + xx->firstframe;
       c["end_frame"] = bouts[j].end_frame + xx->firstframe;
       c["behavior"] = bouts[j].behavior;
+      if(s->IsTesting()) {
+	c["bout_score"] = bouts[j].bout_score;
+	c["transition_score"] = bouts[j].transition_score;
+	c["duration_score"] = bouts[j].duration_score;
+	c["unary_score"] = bouts[j].unary_score;
+	c["loss_fn"] = bouts[j].loss_fn;
+	c["loss_fp"] = bouts[j].loss_fp;
+      }
       b[j] = c;
     }
     r["bouts"] = b;
