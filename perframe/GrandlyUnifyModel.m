@@ -1,46 +1,41 @@
 classdef GrandlyUnifyModel < handle
-  properties
+  properties (GetAccess=public, SetAccess=private)
     projectFileName=''
-      % The absolute path of the project file name to be converted.
+      % The project file name to be converted.
     classifierFileName=''  
-      % The absolute path of the classifier file name to be converted.
+      % The classifier file name to be converted.
     gtExpDirNames={}
-      % The list of ground-truth experiment directories.  Absolute paths,
-      % again.
+      % The list of ground-truth experiment directory names.
     iCurrentGTExpDir=[]
       % The index of the currently selected GT experiment dir.  Empty
       % iff gtExpDirNames is empty.
-  end
-  properties (SetAccess=private)
-    defaultDirName='';
-      % the absolute path of the default dir used for file choosers
-  end    
-  properties (Dependent)
-    projectFileSpecified
-    classifierFileSpecified
+%     workingDirName='';
+%       % the absolute path of the default dir used for file choosers, etc.
   end
   methods
     function self=GrandlyUnifyModel()
-      defaultDirName=pwd();
+      %self.workingDirName=pwd();
     end  % constructor method
-    function set.projectFileName(self,newValue)
-      self.projectFileName=newValue;
-      self.defaultDirName=fileparts(newValue);
+    function setProjectFileName(self,projectFileName)
+      self.projectFileName=projectFileName;
+      %self.workingDirName=fileparts(projectFileNameAbs);
     end
-    function set.classifierFileName(self,newValue)
-      self.classifierFileName=newValue;
-      self.defaultDirName=fileparts(newValue);
+    function setClassifierFileName(self,fileName)
+      %fileNameAbs=absolutifyFileName(fileName,self.workingDirName);
+      self.classifierFileName=fileName;
+      %self.workingDirName=fileparts(fileNameAbs);
     end
-    function result=get.projectFileSpecified(self)
+    function result=isProjectFileSpecified(self)
       result=~isempty(self.projectFileName);
     end
-    function result=get.classifierFileSpecified(self)
+    function result=isClassifierFileSpecified(self)
       result=~isempty(self.classifierFileName);
     end
-    function addGTExpDirName(self,dirNameAbs)
-      self.gtExpDirNames{end+1}=dirNameAbs;
+    function addGTExpDirName(self,dirName)
+      %dirNameAbs=absolutifyFileName(dirName,self.workingDirName);
+      self.gtExpDirNames{end+1}=dirName;
       self.iCurrentGTExpDir = length(self.gtExpDirNames);
-      self.defaultDirName=fileparts(dirNameAbs);
+      %self.workingDirName=fileparts(dirName);
     end
     function removeCurrentGTExpDirName(self)
       i = self.iCurrentGTExpDir;
@@ -53,6 +48,14 @@ classdef GrandlyUnifyModel < handle
         i=fif(i>1,i-1,[]);
       end
       self.iCurrentGTExpDir=i;
+    end  % method
+    function convert(self,jabFileName)
+      %jabFileNameAbs=absolutifyFileName(jabFileName,self.workingDirName);
+      everythingFileFromOldStyleProjectAndClassifierFiles(...
+        jabFileName, ...
+        self.projectFileName, ...
+        self.classifierFileName, ...
+        self.gtExpDirNames);    
     end  % method
   end  % methods
 end  % classdef
