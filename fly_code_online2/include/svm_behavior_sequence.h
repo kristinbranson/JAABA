@@ -89,6 +89,7 @@ typedef struct {
   int num_thresholds;                      // If num_thresholds>1, assumes bout_features[i,...,i+num_thresholds-1] are clones of this one and collectively define a set of histogram bins
   double mu, gamma;                        // for normalization
   char *name;
+  bool isFast;
 } BoutFeature;
 
 
@@ -99,7 +100,7 @@ typedef struct {
 #define FRAME_FEATURE_FAST(it) (safe_features[f->frame_feature][it])
 #define REGION_HIST_FEATURE_FAST() (integral_histogram_features[f->frame_feature][f->hist_bin][it2] - \
 				    integral_histogram_features[f->frame_feature][f->hist_bin][it1])
-#define FRAME_HIST_FEATURE_FAST(it) (histogram_bins[f->frame_feature][it]==f)
+#define FRAME_HIST_FEATURE_FAST(it) (histogram_bins[f->frame_feature][it]==f->hist_bin)
 
 #ifdef INTERPOLATE_INTEGRAL_FEATURES
 #define REGION_FEATURE() (integral_features[f->frame_feature][it2] +	\
@@ -369,37 +370,6 @@ protected:
     return 0;
   }
 
-  inline double ComputeFastRegionFeature(BoutRegionFeature *f, int it1, int it2, int dur, double inv_dur, double inv_fps) {
-    double sum, ave, sum_sqr;
-
-    switch(f->op) {
-    case B_SUM: 
-      return REGION_FEATURE_FAST();
-    case B_AVE: 
-      sum = REGION_FEATURE_FAST();
-      return sum*inv_dur;
-    case B_VAR: 
-      sum = REGION_FEATURE_FAST();
-      ave = sum*inv_dur;
-      sum_sqr = REGION_SQR_FEATURE_FAST();
-      return my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur);
-    case B_DEV: 
-      sum = REGION_FEATURE_FAST();
-      ave = sum*inv_dur;
-      sum_sqr = REGION_SQR_FEATURE_FAST();
-      return sqrt(my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur)*inv_dur); 
-    case B_RAW:
-	return FRAME_FEATURE_FAST(it2-1)-FRAME_FEATURE_FAST(it1);
-    case B_DUR:
-      return dur*inv_fps;
-    case B_MIN:
-    case B_MAX:
-      assert(0);
-    }
-    assert(0);
-    return 0;
-  }
-
   inline double ComputeBoutFeature(BoutFeature *f, double t_bout_start, double t_bout_end) {
     double r = 0, w;
     for(int i = 0; i < f->num_regions; i++) {
@@ -411,6 +381,80 @@ protected:
     if(f->time_normalize) 
       r /= t_bout_end-t_bout_start;
     return ((f->absolute_value && r<0) ? -r : r);
+  }
+
+  
+  // Special case for bout features with one region that is unweighted, the size of the entire bout, and not a min/max
+  inline double ComputeFastBoutFeature(BoutFeature *bf, int it1, int it2, int dur, double inv_dur, double inv_fps) {
+    double sum, ave, sum_sqr, retval = 0;
+    BoutRegionFeature *f = bf->regions;
+
+    if(f->hist_bin < 0) {
+      switch(f->op) {
+      case B_SUM: 
+	retval = REGION_FEATURE_FAST(); 
+	break;
+      case B_AVE: 
+	sum = REGION_FEATURE_FAST(); 
+	retval = sum*inv_dur;
+	break;
+      case B_VAR: 
+	sum = REGION_FEATURE_FAST();
+	ave = sum*inv_dur;
+	sum_sqr = REGION_SQR_FEATURE_FAST();
+	retval = my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur); 
+	break;
+      case B_DEV: 
+	sum = REGION_FEATURE_FAST();
+	ave = sum*inv_dur;
+	sum_sqr = REGION_SQR_FEATURE_FAST();
+	retval = sqrt(my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur)*inv_dur); 
+	break;
+      case B_RAW:
+	retval = FRAME_FEATURE_FAST(it2-1)-FRAME_FEATURE_FAST(it1);
+	break;
+      case B_DUR:
+	retval = dur*inv_fps;
+	break;
+      case B_MIN:
+      case B_MAX:
+	fprintf(stderr, "ERROR: min, max region responses are not fast features\n");
+	assert(0);
+      }
+    } else {
+      switch(f->op) {
+      case B_SUM: 
+	retval = REGION_HIST_FEATURE_FAST(); 
+	break;
+      case B_AVE: 
+	sum = REGION_HIST_FEATURE_FAST(); 
+	retval = sum*inv_dur;
+	break;
+      case B_VAR: 
+	sum = REGION_HIST_FEATURE_FAST();
+	ave = sum*inv_dur;
+	sum_sqr = sum;
+	retval = my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur); 
+	break;
+      case B_DEV: 
+	sum = REGION_HIST_FEATURE_FAST();
+	ave = sum*inv_dur;
+	sum_sqr = sum;
+	retval = sqrt(my_max(0,sum_sqr - 2*ave*sum + SQR(ave)*dur)*inv_dur); 
+	break;
+      case B_RAW:
+	retval = FRAME_HIST_FEATURE_FAST(it2-1)-FRAME_HIST_FEATURE_FAST(it1);
+	break;
+      case B_DUR:
+	retval = dur*inv_fps;
+	break;
+      case B_MIN:
+      case B_MAX:
+	fprintf(stderr, "ERROR: min, max region responses are not fast features\n");
+	assert(0);
+      }
+    }
+    return ((bf->absolute_value && retval<0) ? -retval : retval);
   }
 
 

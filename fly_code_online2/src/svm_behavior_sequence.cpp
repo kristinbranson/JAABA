@@ -1810,6 +1810,13 @@ double SVMBehaviorSequence::Inference(StructuredData *x, StructuredLabel *y_bar,
 	  // Check if the completed bout has a higher score than all previously examined solutions that 
 	  // begin a bout of class c at time t
 	  double f = table[t_p][c_prev] + score;
+	  if(isnan(f)) {
+	    double s = 0;
+	    for(int k = 0; k < num_bout_features; k++) {
+	      s += class_weights[c_prev][k]*tmp_features[k];
+	      assert(!isnan(s));
+	    }
+	  }
 	  assert(!isnan(f));
 	  if(f > table[t][c_next]) {
 	    table[t][c_next] = f;
@@ -2039,7 +2046,11 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
     //if(y && y->num_bouts && y->num_bouts[0]) 
     //  T = my_min(T, y->bouts[0][y->num_bouts[0]-1].end_frame);
     y->disable_checks = true;
-    while(t_start < T && !relabelingExample && !pauseWorkers) {
+    int num = (T+importance_sample_interval_size-1)/importance_sample_interval_size;
+    int *perm = RandPerm(num);
+    int curr = 0;
+    for(int curr = 0; curr < num && !relabelingExample && !pauseWorkers; curr++) {
+      t_start = perm[curr]*importance_sample_interval_size;
       // Consider selecting the segmentation with the highest slack among all segmentations for this example that
       // have been considered so far.  We will see if there's some local change to this segmentation that will increase
       // the slack even more
@@ -2067,7 +2078,7 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
       retval = Inference(x, ybar, w_curr, ybar_partial, y_gt, 1);
       sprintf(ybar->fname+strlen(ybar->fname), "_%d", t_start);
       fprintf(stderr, ".");
-      if(retval > set->score_gt) { 
+      if(retval > set->score_gt && !relabelingExample && !pauseWorkers) { 
 	Lock();
 	SVM_cached_sample_set_add_sample(set, ybar);
 	SVM_cached_sample_set_compute_features(set, trainset->examples[set->i]);
@@ -2083,7 +2094,6 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
 	delete ybar;
 
       delete ybar_partial;
-      t_start += importance_sample_interval_size;
 
     }
     y->disable_checks = false;
@@ -2508,6 +2518,7 @@ Json::Value SVMBehaviorSequence::SaveBoutFeatureParams(BoutFeature* &bout_featur
    bout_features = (BoutFeature*)realloc(bout_features, num_bout_features*sizeof(BoutFeature));
 
    char tmp[1000], op[1000];
+   int numFast = 0;
    for(int i = 0; i < num_bout_features; i++) {
      Json::Value f = fe[i];
      Json::Value w = f["weights"];
@@ -2534,6 +2545,9 @@ Json::Value SVMBehaviorSequence::SaveBoutFeatureParams(BoutFeature* &bout_featur
      bout_features[i].time_normalize = f.get("time_normalize",false).asBool();
      strcpy(tmp, f.get("name","").asString().c_str());
      bout_features[i].name = strlen(tmp) ? StringCopy(tmp) : NULL;
+     bout_features[i].isFast = bout_features[i].num_regions==1 && bout_features[i].regions[0].t_start==0 && 
+       bout_features[i].regions[0].t_end==1 && bout_features[i].regions[0].op != B_MIN && bout_features[i].regions[0].op != B_MAX;
+     if(bout_features[i].isFast) numFast++;
    }
  }
 

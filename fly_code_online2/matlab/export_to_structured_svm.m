@@ -547,6 +547,16 @@ function bout_feat = bout_feature_parameters(base_feat, p, trainvals, FPS)
                 sprintf('%s-duration', base_feat{ii}.name));
         bout_feat{ind} = f;
         ind = ind+1;
+    end
+    if p.num_duration_hist_bins
+        % note: B_DUR feature divides by the fps parameter in trx file
+        r = struct('op', 'dur', 'frame_feature', -1, 't_start', 0, 't_end', 1);
+        f = struct('regions', {r}, 'weights', {1}, 'name', ...
+                sprintf('%s-duration', base_feat{ii}.name), 'num_thresholds', p.num_duration_hist_bins);
+        for jj=1:p.num_duration_hist_bins,
+            bout_feat{ind} = f;
+            ind = ind+1;
+        end
     end  
     
     % set feature normalization factors
@@ -710,19 +720,19 @@ function p=default_params()
         p.num_histogram_bins                          = 8;
         p.num_temporal_levels                         = 3;
         p.use_histogram_ave_features                  = true;
-        p.use_histogram_sum_features                  = false;
+        p.use_histogram_sum_features                  = true; %false;
         p.use_bout_ave_absolute_features              = true;
         p.use_bout_ave_features                       = true;
         p.use_bout_max_feature                        = true;
         p.use_bout_min_feature                        = true;
-        p.use_bout_sum_absolute_features              = false;
-        p.use_bout_sum_features                       = false;
+        p.use_bout_sum_absolute_features              = true; %false;
+        p.use_bout_sum_features                       = true; %false;
         p.use_bout_standard_deviation                 = true;
-        p.use_bout_sum_variance                       = false;
+        p.use_bout_sum_variance                       = true; %false;
         p.use_ave_absolute_harmonic_features          = true;
         p.use_ave_harmonic_features                   = true;
-        p.use_sum_absolute_harmonic_features          = false;
-        p.use_sum_harmonic_features                   = false;
+        p.use_sum_absolute_harmonic_features          = true; %false;
+        p.use_sum_harmonic_features                   = true; %false;
         p.use_bout_change                             = true;        
         p.use_bout_absolute_change                    = true;
         p.use_start_ave_absolute_diff_haar_features   = true;
@@ -740,6 +750,7 @@ function p=default_params()
         p.use_global_difference_min_ave_features      = false;
         p.use_global_difference_min_sum_features      = false; 
         p.use_duration_feature                        = true;
+        p.num_duration_hist_bins                     = 20;%= 0;
 end
 
 end
