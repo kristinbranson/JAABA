@@ -249,7 +249,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
 	    // Extract a set of samples with non-zero slack.  Should include the most violated label ybar
             score_loss = ImportanceSample(ex->x, w, ex->y, set, w_scale);
           }
-	  if(pauseWorkers) {  // inference was aborted
+	  /*if(pauseWorkers) {  // inference was aborted
             OnFinishedIteration(ex->x, ex->y);  
 	    Lock();
 	    if(numThreads!=1 || !canScaleW) delete w;
@@ -262,7 +262,7 @@ void StructuredSVM::TrainMain(const char *modelout, bool saveFull, const char *i
 	    set->lock = false;
 	    Unlock();
 	    continue;
-          }
+	    }*/
 
           SVM_cached_sample_set_compute_features(set, ex);
           set->loss = set->num_samples ? set->samples[0].loss : 0;

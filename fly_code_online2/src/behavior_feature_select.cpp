@@ -43,6 +43,7 @@ ExampleWeights *SVMBehaviorSequence::ComputeExampleWeights(StructuredDataset *tr
   int i, j, k, numTotal = 0, num = 0;
   for(i = 0; i < trainset->num_examples; i++) {
     if(!trainset->examples[i]->set) continue;
+    UncondenseSamples(trainset->examples[i]->set);
     BehaviorBoutSequence *y_gt = (BehaviorBoutSequence*)trainset->examples[i]->y;
     numTotal += y_gt->num_bouts;
     for(j = 0; j < trainset->examples[i]->set->num_samples; j++) {
@@ -59,7 +60,6 @@ ExampleWeights *SVMBehaviorSequence::ComputeExampleWeights(StructuredDataset *tr
     for(i = 0, num = 0; i < trainset->num_examples; i++) {
       int num_old = num;
       if(!trainset->examples[i]->set) continue;
-      UncondenseSamples(trainset->examples[i]->set);
       BehaviorBoutSequence *y_gt = (BehaviorBoutSequence*)trainset->examples[i]->y;
       for(k = 0; k < y_gt->num_bouts; k++) {
 	if((!NONE_CLASS_HAS_NO_SCORE || y_gt->bouts[k].behavior != 0)) {
