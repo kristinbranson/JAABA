@@ -1876,14 +1876,14 @@ classdef JLabelData < matlab.mixin.Copyable
         
         if ~exist(perframefile{ndx},'file'),
           if ~isdeployed 
-            if isempty(obj.GetGenerateMissingFiles) || ~obj.GenerateMissingFiles()
+            if isempty(obj.GetGenerateMissingFiles()) || ~obj.GetGenerateMissingFiles()
               res = questdlg(sprintf(['Experiment %s is missing some perframe files '...
                 '(%s, possibly more). Generate now?'],obj.expnames{expi},perframefile{ndx}),...
                 'Generate missing files?','Yes','Cancel','Yes');
               if strcmpi(res,'Yes');
                 obj.SetGenerateMissingFiles();
               end
-            else obj.GetGenerateMissingFiles()
+            else 
               res = 'Yes';
             end
           else
@@ -2147,7 +2147,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % returns false if all files were in existence or could be generated
     % and now they are/can not.  It mutates the instance variables
     % fileexists and filetimestamps, and sets filesfixable and
-    % allfilesexists.
+    % allfilesexist.
 
       msg = '';
       success = false;
@@ -5228,6 +5228,21 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
       
+      % Always regenerate the score feature perframe files, to make sure
+      % they're from the right classifier
+      % Have to do this _before_ calling GenerateMissingFiles() so that
+      % when UpdateStatusTable() gets called wihtin GenerateMissingFiles(), 
+      % any score feature perframe files are already in place
+      [success,msg] = obj.GenerateScoreFeaturePerframeFiles(obj.nexps);
+      if ~success,
+        %msg = sprintf(['Error generating missing required files %s '...
+        %  'for experiment %s: %s. Removing...'],...
+        %  sprintf(' %s',missingfiles{:}),expDirName,msg);
+        obj.SetStatus('Error generating score feature perframe files for %s...',expName);
+        obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+        return
+      end
+      
       % If some files are missing, and we can generate them, do so
       if obj.filesfixable && ~obj.allfilesexist,
         obj.SetStatus('Some files missing for %s...',expName);
@@ -5245,7 +5260,7 @@ classdef JLabelData < matlab.mixin.Copyable
             if strcmpi(res,'Yes')
               obj.SetGenerateMissingFiles();
             end
-          else obj.GetGenerateMissingFiles()
+          else 
             res = 'Yes';
           end
         else
@@ -5253,7 +5268,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         if strcmpi(res,'Yes'),
           obj.SetStatus('Generating missing files for %s...',expName);
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps,interactivemode);
           if ~success,
             msg = sprintf(['Error generating missing required files %s '...
               'for experiment %s: %s. Removing...'],...
@@ -5269,18 +5284,18 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      % Convert the scores file into perframe files.      
-      for i = 1:numel(obj.scoreFeatures)
-        obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-        [success,msg] = obj.ScoresToPerframe(obj.nexps, ...
-                                             obj.scoreFeatures(i).scorefilename, ...
-                                             obj.scoreFeatures(i).ts);
-          if ~success,
-            obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
-            obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
-            return;
-          end
-      end
+%       % Convert the scores file into perframe files.      
+%       for i = 1:numel(obj.scoreFeatures)
+%         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+%         [success,msg] = obj.ScoresToPerframe(obj.nexps, ...
+%                                              obj.scoreFeatures(i).scorefilename, ...
+%                                              obj.scoreFeatures(i).ts);
+%           if ~success,
+%             obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+%             obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+%             return;
+%           end
+%       end
       
       % Set the fields describing the tracks, either using info provided by
       % the caller, or by reading from the trx file.
@@ -6033,10 +6048,14 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.perframeGenerate = true;
     end
     
+    
+    % ---------------------------------------------------------------------
     function perframeGenerate = GetGenerateMissingFiles(obj)
       perframeGenerate = obj.perframeGenerate;
     end
+
     
+    % ---------------------------------------------------------------------
     function [success,msg] = GenerateMissingFiles(obj,expi,isInteractive)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
@@ -6066,11 +6085,16 @@ classdef JLabelData < matlab.mixin.Copyable
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
-              [success1,msg1] = obj.GeneratePerFrameFiles(expi,isInteractive);
+              [success1,msg1] = obj.GeneratePerframeFilesExceptScoreFeatures(expi,isInteractive);
               success = success && success1;
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
               end
+%               [success2,msg2] = obj.GenerateScoreFeaturePerframeFiles(expi);
+%               success = success && success2;
+%               if ~success2,
+%                 msg = [msg,'\n',msg2]; %#ok<AGROW>
+%               end
           end
         end
       end
@@ -6118,7 +6142,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = GeneratePerFrameFiles(obj,expi,isInteractive)
+    function [success,msg] = GeneratePerframeFilesExceptScoreFeatures(obj,expi,isInteractive)
       success = false; %#ok<NASGU>
       msg = '';
 
@@ -6176,7 +6200,7 @@ classdef JLabelData < matlab.mixin.Copyable
           uiwait(warndlg(['Landmark params were not defined in the configuration file'...
             ' or in the trx file. Not computing arena features and removing them from the perframe list']));
         else
-          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list');
+          fprintf('Landmark params were not defined in the configuration file. Not computing arena features and removing them from the perframe list.\n');
         end
         obj.RemoveArenaPFs();
         obj.arenawarn = false;
@@ -6209,16 +6233,35 @@ classdef JLabelData < matlab.mixin.Copyable
       
       success = true;
       
-    end
-    
+    end  % method
+
     
     % ---------------------------------------------------------------------
-    function [success, msg] = ScoresToPerframe(obj,expi,fn,ts)
+    function [success,msg] = GenerateScoreFeaturePerframeFiles(obj,expi)
+      success=true;
+      msg='';
+      % Convert the scores file into perframe files.      
+      for i = 1:numel(obj.scoreFeatures)
+        %obj.SetStatus('Generating score-based per-frame feature file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+        [success,msg] = obj.ScoresToPerframe(expi, ...
+                                             obj.scoreFeatures(i).scorefilename, ...
+                                             obj.scoreFeatures(i).ts);
+          if ~success,
+            %obj.SetStatus('Error generating score-based per-frame file %s for %s...',obj.scoreFeatures(i).scorefilename,expName);
+            %obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
+            return
+          end
+      end
+    end  % method
+
+    
+    % ---------------------------------------------------------------------
+    function [success, msg] = ScoresToPerframe(obj,expi,fileName,ts)
       success = true; msg = '';
       %outdir = obj.outexpdirs{expi};
       outdir = obj.expdirs{expi};      
-      scoresFileIn = [fullfile(outdir,fn) '.mat'];
-      scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fn) '.mat'];
+      scoresFileIn = [fullfile(outdir,fileName) '.mat'];
+      scoresFileOut = [fullfile(outdir,obj.GetFileName('perframe'),fileName) '.mat'];
       if ~exist(scoresFileIn,'file'),
         success = false; 
         msg = sprintf('Scores file %s does not exist to be used as perframe feature',scoresFileIn);
@@ -6242,7 +6285,7 @@ classdef JLabelData < matlab.mixin.Copyable
       try
         save(scoresFileOut,'-struct','OUT');
       catch ME,
-        questmsg = sprintf('Could not write perframe file from scores file:%s. Continue',fn);
+        questmsg = sprintf('Could not write perframe file from scores file: %s. Continue',fileName);
         button = questdlg(questmsg,'Continue','Yes');
         if ~strcmp(button,'Yes')
           success = false;
@@ -6451,12 +6494,12 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [fe,ft] = FileExists(obj,file,expi)
+    function [fe,ft] = FileExists(obj,fileType,expi)
     % [fe,ft] = FileExists(obj,file,expi)
     % Returns whether the input file exists for the input experiment. 
-      filei = find(strcmpi(file,obj.filetypes),1);
+      filei = find(strcmpi(fileType,obj.filetypes),1);
       if isempty(filei),
-        error('file type %s does not match any known file type',file);
+        error('file type %s does not match any known file type',fileType);
       end
       if nargin < 3,
         expi = 1:obj.nexps;
