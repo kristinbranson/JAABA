@@ -17,11 +17,13 @@ GRAYBORDER = 204;
 inputType = getInputType(img);
 
 if strcmp(inputType,'figure'),
-  
+    
   hfig = img;
+
   haxes = get(hfig,'children');
   if length(haxes) > 1,
-    error('Figure has multiple children, please input handle of axes instead of figure');
+    haxes = hfig;
+    %error('Figure has multiple children, please input handle of axes instead of figure');
   end
 
 else

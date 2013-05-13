@@ -384,7 +384,6 @@ for j = 1:nframesout,
       end
     end
       
-    isfirstframe = false;
   end
 
   if ~debug,
@@ -420,6 +419,9 @@ for j = 1:nframesout,
   if debug,
     drawnow;
   end
+  
+  isfirstframe = false;
+  
 end
 
 

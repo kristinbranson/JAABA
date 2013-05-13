@@ -40,10 +40,11 @@ classdef NextJump < handle
     end
     
     function SetState(obj,state)
-      if any(strcmp(state.curType,obj.curType)),
+      if isstruct(state) && isfield(state,'curType') && any(strcmp(state.curType,obj.curType)),
         obj.curType = state.curType;
       end
-      if state.perframeSelFeatures <= numel(obj.perframefns);
+      if isstruct(state) && isfield(state,'perframeSelFeatures') && ...
+          numel(state.perframeSelFeatures) <= numel(obj.perframefns);
         obj.perframeSelFeatures = state.perframeSelFeatures;
         obj.perframeSelThresholds = state.perframeSelThresholds;
         obj.perframeComparisonType = state.perframeComparisonType;
@@ -52,7 +53,7 @@ classdef NextJump < handle
         obj.perframeSelThresholds = 0;
         obj.perframeComparisonType = 1;
       end
-      if (isfield(state,'hthresh'))
+      if isstruct(state) && isfield(state,'hthresh'),
         obj.hthresh = state.hthresh;
         obj.lthresh = state.lthresh;
       end
