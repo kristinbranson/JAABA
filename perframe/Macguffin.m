@@ -237,7 +237,12 @@ classdef Macguffin < handle
     function appendClassifierAndLabels(self,projectParams,classifierParams)
       % this is used when converting old-style files to .jab files
       self.expDirNames=classifierParams.expdirs;
-      self.labels=cookLabels(classifierParams.labels);
+      if isfield(classifierParams,'labels')
+        self.labels=cookLabels(classifierParams.labels);
+      else
+        % Look for labels in the experiment directories
+        self.labels=getLabelsFromExpDirs(self.expDirNames,projectParams.file.labelfilename);
+      end
       if isfield(projectParams.windowfeatures,'windowfeaturesparams')
         self.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
       end
@@ -359,5 +364,26 @@ classdef Macguffin < handle
       end
     end  % method
 
+    
+    % ---------------------------------------------------------------------
+    function setMainBehaviorName(self,behaviorName)
+      self.behaviors.names={behaviorName};
+    end  % method
+
+    % ---------------------------------------------------------------------
+    function setScoreFileName(self,scoreFileName)
+      self.file.scorefilename = scoreFileName;
+    end
+    
+    % ---------------------------------------------------------------------
+    function setTrxFileName(self,trxFileName)
+      self.file.trxfilename = trxFileName;
+    end
+    
+    % ---------------------------------------------------------------------
+    function setMovieFileName(self,movieFileName)
+      self.file.moviefilename = movieFileName;
+    end
+    
   end  % methods
 end  % classdef
