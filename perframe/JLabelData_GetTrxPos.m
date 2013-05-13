@@ -175,5 +175,5 @@ switch obj.targettype,
     %pos.ycontour = obj.trx(fly).ycontour{is};
     pos.xspine = obj.trx(fly).xspine(:,is);
     pos.yspine = obj.trx(fly).yspine(:,is);
-    
+
 end
