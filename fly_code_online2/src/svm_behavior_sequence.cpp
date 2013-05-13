@@ -2080,8 +2080,10 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
       fprintf(stderr, ".");
       if(retval > set->score_gt && !relabelingExample && !pauseWorkers) { 
 	Lock();
-	SVM_cached_sample_set_add_sample(set, ybar);
+	SVM_cached_sample *s = SVM_cached_sample_set_add_sample(set, ybar);
+	fprintf(stderr, "[%d]", set->i);
 	SVM_cached_sample_set_compute_features(set, trainset->examples[set->i]);
+	assert(s->psi);
       
 	// Use the current sample set to update the weights immediately.  Usually we would never do this, but
 	// this allows us to update the model weights more frequently when bout sequences are really
@@ -2105,8 +2107,10 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
     retval = Inference(x, ybar, w_curr, NULL, y_gt, 1);
     Lock();
     set->score_gt = w_curr->dot(*set->psi_gt);
-    SVM_cached_sample_set_add_sample(set, ybar);
+    SVM_cached_sample *s = SVM_cached_sample_set_add_sample(set, ybar);
+    fprintf(stderr, "(%d)", set->i);
     SVM_cached_sample_set_compute_features(set, trainset->examples[set->i]);
+    assert(s->psi);
     if(set->num_samples) {
       SVM_cached_sample s = set->samples[0];
       set->samples[0] = set->samples[set->num_samples-1];
@@ -2114,6 +2118,7 @@ double SVMBehaviorSequence::ImportanceSample(StructuredData *x, SparseVector *w,
     }
     Unlock();
   }
+  fprintf(stderr, "*%d*", set->i);
 
   delete w_curr;
 
@@ -2916,6 +2921,14 @@ Json::Value BehaviorBoutSequence::save(StructuredSVM *s) {
       c["start_frame"] = bouts[j].start_frame;
       c["end_frame"] = bouts[j].end_frame;
       c["behavior"] = bouts[j].behavior;
+      if(s->IsTesting()) {
+	c["bout_score"] = bouts[j].bout_score;
+	c["transition_score"] = bouts[j].transition_score;
+	c["duration_score"] = bouts[j].duration_score;
+	c["unary_score"] = bouts[j].unary_score;
+	c["loss_fn"] = bouts[j].loss_fn;
+	c["loss_fp"] = bouts[j].loss_fp;
+      }
       b[j] = c;
     }
     r["bouts"] = b;
