@@ -218,82 +218,59 @@ file.isdir = 0;
 file.exts = {'*.mat'};
 InputDataTypes.LarvaeReid.files = structappend(InputDataTypes.LarvaeReid.files,file);
 
-%% Ibraheem's single larva tracker data
+%% Matthieu Louis' larvae
 
-InputDataTypes.LarvaeIbraheem = struct;
-InputDataTypes.LarvaeIbraheem.name = 'Ibraheem''s Single Larva Tracker Data';
-InputDataTypes.LarvaeIbraheem.videorequired = false;
-InputDataTypes.LarvaeIbraheem.readarena = 'no';
-InputDataTypes.LarvaeIbraheem.readpxpermm = 'maybe';
-InputDataTypes.LarvaeIbraheem.readfps = 'no';
-InputDataTypes.LarvaeIbraheem.writearena = 'yes';
-InputDataTypes.LarvaeIbraheem.writepxpermm = 'maybe';
-InputDataTypes.LarvaeIbraheem.writefps = 'no';
-InputDataTypes.LarvaeIbraheem.files = [];
+InputDataTypes.LarvaeLouis = struct;
+InputDataTypes.LarvaeLouis.name = 'Louis'' Larva Data';
+InputDataTypes.LarvaeLouis.videorequired = false;
+InputDataTypes.LarvaeLouis.readarena = 'no';
+InputDataTypes.LarvaeLouis.readpxpermm = 'yes';
+InputDataTypes.LarvaeLouis.readfps = 'yes';
+InputDataTypes.LarvaeLouis.writearena = 'no';
+InputDataTypes.LarvaeLouis.writepxpermm = 'no';
+InputDataTypes.LarvaeLouis.writefps = 'no';
+InputDataTypes.LarvaeLouis.files = [];
+InputDataTypes.LarvaeLouis.inputs = [];
 
 file = struct;
-file.name = 'First frame image file';
-file.code = 'firstframeimfile';
-file.description = 'First frame of the video';
+file.name = 'Data txt file';
+file.code = 'indatafile';
+file.description = 'Txt file containing data output by the single larva tracker';
 file.required = true;
 file.multiplefiles = 0;
 file.isdir = 0;
-file.exts = {'*.BMP'};
-InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+file.exts = {'*.txt'};
+InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
 
 file = struct;
-file.name = 'Cropped images from the video';
-file.code = 'croppedimsmatfile';
-file.description = 'Mat file containing cropped images around the larva.';
-file.required = true;
-file.multiplefiles = 0;
-file.isdir = 0;
-file.exts = {'*.mat'};
-InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
-
-file = struct;
-file.name = 'Bounding box mat file';
-file.code = 'bboxmatfile';
-file.description = 'Mat file containing bounding boxes of cropped images';
+file.name = 'kinData mat file';
+file.code = 'inkinmatfile';
+file.description = 'kinData mat file computed by single larva tracker analysis';
 file.required = true;
 file.multiplefiles = 0;
 file.isdir = 0;
 file.exts = {'*.mat'};
-InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
+InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
 
+% file = struct;
+% file.name = 'Config txt file';
+% file.code = 'inconfigfile';
+% file.description = 'Config txt file computed by single larva tracker analysis';
+% file.required = true;
+% file.multiplefiles = 0;
+% file.isdir = 0;
+% file.exts = {'*.txt'};
+% InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
 
-file = struct;
-file.name = 'Contour mat file';
-file.code = 'contourmatfile';
-file.description = 'Mat file containing larva contours';
-file.required = true;
-file.multiplefiles = 0;
-file.isdir = 0;
-file.exts = {'*.mat'};
-InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
-
-
-file = struct;
-file.name = 'Coordinates mat file';
-file.code = 'coordsmatfile';
-file.description = 'Mat file containing coordinates of points on the larva, in pixels';
-file.required = true;
-file.multiplefiles = 0;
-file.isdir = 0;
-file.exts = {'*.mat'};
-InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
-
-
-file = struct;
-file.name = 'MotorData mat file';
-file.code = 'motormatfile';
-file.description = 'Mat file containing motorData';
-file.required = true;
-file.multiplefiles = 0;
-file.isdir = 0;
-file.exts = {'*.mat'};
-InputDataTypes.LarvaeIbraheem.files = structappend(InputDataTypes.LarvaeIbraheem.files,file);
-
+% file = struct;
+% file.name = 'eventData mat file';
+% file.code = 'eventmatfile';
+% file.description = 'eventData mat file computed by Reid''s analysis on top of the MWT output';
+% file.required = false;
+% file.multiplefiles = 0;
+% file.isdir = 0;
+% file.exts = {'*.mat'};
+% InputDataTypes.LarvaeLouis.files = structappend(InputDataTypes.LarvaeLouis.files,file);
 
 %%
 

@@ -107,6 +107,7 @@ classdef JLabelGUIData < handle
     
     preview_zoom_mode = 'center_on_fly';
     zoom_fly_radius = nan(1,2);
+    meana = 1;
     
     menu_view_zoom_options = [];
 
@@ -151,6 +152,7 @@ classdef JLabelGUIData < handle
     htimeline_gt_suggestions = [];
     hcurr_timelines = [];
     hselection = [];
+    bkgdgrid = zeros(2,0);
     
     callbacks = struct;
 

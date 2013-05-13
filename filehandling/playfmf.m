@@ -130,14 +130,15 @@ guidata(hObject, handles);
 
 function play(hObject)
 
+global ISPLAYING;
+
 handles = guidata(hObject);
 set(hObject,'String','Stop','BackgroundColor',[.5,0,0]);
-handles.isplaying = true;
-guidata(hObject,handles);
+ISPLAYING = true;
 tic;
 for f = handles.f:handles.nframes,
   handles = guidata(hObject);
-  if ~handles.isplaying,
+  if ~ISPLAYING,
     break;
   end
   handles.f = f;
@@ -158,10 +159,12 @@ stop(hObject);
 
 function stop(hObject)
 
+global ISPLAYING;
+
 handles = guidata(hObject);
-handles.isplaying = false;
-set(hObject,'String','Play','BackgroundColor',[0,.5,0]);
+ISPLAYING = false;
 guidata(hObject,handles);
+set(hObject,'String','Play','BackgroundColor',[0,.5,0]);
 
 % --- Outputs from this function are returned to the command line.
 function varargout = playfmf_OutputFcn(hObject, eventdata, handles) 
@@ -216,7 +219,9 @@ function pushbutton_PlayStop_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~handles.isplaying,
+global ISPLAYING;
+
+if ~ISPLAYING,
   play(hObject);
 else
   stop(hObject);
@@ -269,7 +274,9 @@ guidata(hObject,handles);
 
 function handles = open_fmf(handles)
 
-if isfield(handles,'isplaying') && handles.isplaying,
+global ISPLAYING;
+
+if ~isempty(ISPLAYING) && ISPLAYING,
   stop(handles.figure1);
   handles = guidata(handles.figure1);
 end
@@ -325,13 +332,13 @@ handles.f = 1;
 if size(handles.im,3) == 1,
   handles.himage = imagesc(handles.im,'Parent',handles.axes_Video,[0,255]);
 else
-  handles.himage = image(uint8(handles.im,'Parent',handles.axes_Video));
+  handles.himage = image(uint8(handles.im),'Parent',handles.axes_Video);
 end
 colormap(handles.axes_Video,'gray');
 axis(handles.axes_Video,'image','off');
 handles = update_frame(handles);
 
-handles.isplaying = false;
+ISPLAYING = false;
 
 % --------------------------------------------------------------------
 function menu_File_Quit_Callback(hObject, eventdata, handles)
@@ -348,7 +355,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 
-if isfield(handles,'fid') && ~isempty(fopen(handles.fid)),
+if isfield(handles,'fid') && ~isempty(fopen(handles.fid)) && handles.fid > 1,
   fclose(handles.fid);
 end
 
