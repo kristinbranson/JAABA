@@ -740,7 +740,7 @@ classdef JLabelData < matlab.mixin.Copyable
   
     
     % ---------------------------------------------------------------------
-    function setMacguffin(obj,everythingParams)
+    function setMacguffin(obj,everythingParams,loadexps)
       % This initializes the JLabelData object based on the contents of
       % everythingParams
   
@@ -858,7 +858,9 @@ classdef JLabelData < matlab.mixin.Copyable
   %       obj.InitPostprocessparams();
 
         % initialize everything else
-        obj.setAllLabels(everythingParams);
+        if loadexps,
+          obj.setAllLabels(everythingParams);
+        end
         obj.setScoreFeatures(everythingParams.scoreFeatures);
         obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
         obj.setClassifierStuff(everythingParams.classifierStuff);
@@ -4746,7 +4748,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function SaveCurScores(self,expi,sfn)
     % Saves the current scores to a file.
       if nargin < 3
-        sfn = self.GetFile('scores',expi,true);
+        sfn = self.GetFile('scores',expi);
       end
     
       if ~self.HasCurrentScores(),
@@ -9690,7 +9692,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       % Set the JLD to match the Macguffin
-      self.setMacguffin(macguffin);
+      self.setMacguffin(macguffin,true);
       
       % Store file-related stuff
       self.thereIsAnOpenFile=true;
@@ -9707,6 +9709,57 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
 
     
+    % ---------------------------------------------------------------------
+    function openJabFileNoExps(self, ...
+                         fileNameAbs, ...
+                         groundTruthingMode) 
+                       
+      % originalExpDirNames and substituteExpDirNames are optional.
+      % If given, they should be cell arrays of the same length, each
+      % element a string giving an absolute path to an experiment
+      % directory.  Each element of originalExpDirNames should be an
+      % experiment directory in the .jab file, and the corresponding
+      % element of substitureExpDirNames gives an experiment dir name to be
+      % used in place of the original one.  This is to enable the user to
+      % manually locate exp dir names that are missing.  Whether these
+      % experiment dir names are treated as normal exp dir names of
+      % ground-truthing exp dir names depends on groundTruthingMode.
+                       
+      
+      % Set the ground-truthing mode
+      self.gtMode=groundTruthingMode;
+
+      %
+      % Open the file
+      %
+      
+      % get just the relative file name
+      fileDirPathAbs=fileparts(fileNameAbs);
+      %[fileDirPathAbs,baseName,ext]=fileparts(fileNameAbs);
+      %fileNameRel=[baseName ext];
+
+      % load the file
+      macguffin=loadAnonymous(fileNameAbs);
+      % if we get here, file was read successfully
+      
+      % Set the JLD to match the Macguffin
+      self.setMacguffin(macguffin,false);
+      
+      % Store file-related stuff
+      self.thereIsAnOpenFile=true;
+      self.everythingFileNameAbs=fileNameAbs;
+      self.userHasSpecifiedEverythingFileName=true;
+      self.needsave=false; 
+      self.defaultpath=fileDirPathAbs;
+     
+      % initialize the status table describing what required files exist
+      [success,msg] = self.UpdateStatusTable();
+      if ~success,
+        error('JLabelData:unableToUpdateStatusTable',msg);
+      end      
+    end  % method
+
+
     % ---------------------------------------------------------------------
     function newJabFile(obj,macguffin,varargin) 
       % optional args should be key-value pairs
