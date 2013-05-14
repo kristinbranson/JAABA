@@ -81,5 +81,14 @@ for ndx = order(:)'
   if ~success,
     error(msg);
   end
+  if ~forcecompute
+    sfn = data.GetFile('scores',1);
+    if exist(sfn,'file'),
+      Q = load(sfn);
+      if Q.timestamp == jabts(ndx),
+        continue;
+      end
+    end
+  end
   data.PredictSaveMovie(1);
 end
