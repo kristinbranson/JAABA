@@ -330,29 +330,14 @@ for seti = 1:numel(classifiersets),
     
     fprintf('Classifying flies %s...\n',mat2str(flies));
     
-    % load per-frame data
-    if flies == 1,
-      perframedata = data.perframedata;
-      if any(cellfun(@isempty,perframedata)),
-        file = data.GetPerframeFiles(expi);
-        for j = 1:numel(file),
-          if ~exist(file{j},'file'),
-            error('Per-frame data file %s does not exist',file{j});
-          end
-          tmp = load(file{j});
-          perframedata{j} = tmp.data{flies(1)};
-        end
+    file = data.GetPerframeFiles(expi);
+    for j = 1:numel(file),
+      if ~exist(file{j},'file'),
+        error('Per-frame data file %s does not exist',file{j});
       end
-      
-    else
-      file = data.GetPerframeFiles(expi);
-      for j = 1:numel(file),
-        if ~exist(file{j},'file'),
-          error('Per-frame data file %s does not exist',file{j});
-        end
-        tmp = load(file{j});
-        perframedata{j} = tmp.data{flies(1)};
-      end
+      tmp = load(file{j});
+      ndx = find(strcmp(data.allperframefns{j},pffs));
+      perframedata{ndx} = tmp.data{flies(1)};
     end
     
     % frames for this fly
