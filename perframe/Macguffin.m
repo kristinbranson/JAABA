@@ -243,7 +243,9 @@ classdef Macguffin < handle
         % Look for labels in the experiment directories
         self.labels=getLabelsFromExpDirs(self.expDirNames,projectParams.file.labelfilename);
       end
-      if isfield(projectParams.windowfeatures,'windowfeaturesparams')
+      if isfield(classifierParams,'windowfeaturesparams')
+        self.windowFeaturesParams=classifierParams.windowfeaturesparams;
+      elseif isfield(projectParams.windowfeatures,'windowfeaturesparams')
         self.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
       end
       % if isfield(classifierParams,'gt_labels')
