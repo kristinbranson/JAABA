@@ -744,6 +744,11 @@ classdef JLabelData < matlab.mixin.Copyable
       % This initializes the JLabelData object based on the contents of
       % everythingParams
   
+      % Deal with arguments
+      if ~exist('loadexps','var')
+        loadexps=true;
+      end
+      
       before=obj.copy();  % make a copy of the object, in case something goes wrong
       try
         % feature config file
