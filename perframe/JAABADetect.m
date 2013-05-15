@@ -2,11 +2,16 @@ function JAABADetect(expdir,varargin)
 % Run classifiers trained from JAABA on experiments
 % scores = JAABADetectNew(expdir,'jabfiles',jabfiles)
 % scores = JAABADetectNew(expdir,'jablistfile',jablistfile)
-% expdir (String) -- is the experiment directory. 
+% expdir (String or cell array of string) -- is the experiment directory 
+% or a list of experiment directories. 
 % jabfiles (Cell array of Strings) -- locations of the jab files
 % for the behaviors that you want to detect.
 % Example usage:
 % JAABADetectNew('testExp','jabfiles',{'ChaseClassifier.jab'});
+
+if ~isdeployed,
+  SetUpJAABAPath;
+end
 
 [blockSize,jabfiles,jablistfile,forcecompute,DEBUG] = ...
   myparse(varargin,'blockSize',10000,...
@@ -15,15 +20,15 @@ function JAABADetect(expdir,varargin)
   'forcecompute',false,...
   'debug',false);
 
-if ~isdeployed,
-  SetUpJAABAPath;
-end
 
 if ischar(forcecompute),
   forcecompute = str2double(forcecompute) ~= 0;
 end
 if ischar(DEBUG),
   DEBUG = str2double(DEBUG);
+end
+if ~iscell(expdir)
+  expdir = {expdir};
 end
 
 if ischar(jablistfile),
@@ -77,18 +82,24 @@ data = JLabelData();
 for ndx = order(:)'
   
   data.openJabFileNoExps(jabfiles{ndx},false);
-  [success,msg] = data.AddExpDir(expdir,false);
-  if ~success,
-    error(msg);
-  end
-  if ~forcecompute
-    sfn = data.GetFile('scores',1);
-    if exist(sfn,'file'),
-      Q = load(sfn);
-      if Q.timestamp == jabts(ndx),
-        continue;
+  for expi = 1:numel(expdir)
+    if ~forcecompute
+      sfn = fullfile(expdir{expi},scorefilenames{ndx});
+      if exist(sfn,'file'),
+        Q = load(sfn);
+        if Q.timestamp == jabts(ndx),
+          fprintf('Skipping experiment %d for behavior %s\n, predictions already exist',expi,behavior{ndx});
+          continue;
+        end
       end
     end
+    [success,msg] = data.AddExpDir(expdir{expi},false);
+    if ~success,
+      error(msg);
+    end
+    fprintf('Added experiment %d for behavior %s\n',expi,behavior{ndx});
+
+    fprintf('Predicting on experiment %d for behavior %s\n',expi,behavior{ndx});
+    data.PredictSaveMovie(data.nexps);
   end
-  data.PredictSaveMovie(1);
 end
