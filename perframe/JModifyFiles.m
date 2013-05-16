@@ -330,9 +330,15 @@ function pushbutton_addlist_Callback(hObject, eventdata, handles)
 % get the figure handle
 figureJModifyFiles=findAncestorFigure(hObject);
 
+% Get the default dir
+figureJLabel=handles.figureJLabel;
+g=guidata(figureJLabel);
+defaultPath=g.data.defaultpath;
+
 % ask user for experiment directory
 [listfile,pname] = uigetfile({'*.txt','Text Files (*.txt)'}, ...
-                             'Add experiments list from text file');
+                             'Add experiments list from text file' ,...
+                             defaultPath);
 if listfile==0 ,
   % means user hit Cancel button
   return

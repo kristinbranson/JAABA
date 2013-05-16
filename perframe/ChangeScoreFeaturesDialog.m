@@ -156,9 +156,12 @@ classdef ChangeScoreFeaturesDialog < handle
     end
 
     function addButtonPressed(self)
+      handles=guidata(self.figureJLabel);
+      defaultPath=handles.data.defaultpath;
       [fileNameRel,pathName] = ...
         uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
-                  'Add .jab file containing classifier to be used as input');
+                  'Add .jab file containing classifier to be used as input', ...
+                  defaultPath);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
       everythingParams = loadAnonymous(fileNameAbs);
