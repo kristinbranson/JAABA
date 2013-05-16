@@ -206,10 +206,16 @@ classdef Macguffin < handle
 %       else
 %         self.behaviorName=projectParams.behaviors.names{1};
 %       end
-      if isfield(projectParams,'landmark_params')
-        self.extra.perframe.landmarkParams=projectParams.landmark_params;
+      if isfield(projectParams,'perframe') && isfield(projectParams.perframe,'landmark_params')
+        self.extra.perframe.landmarkParams=projectParams.perframe.landmark_params;
       else
         self.extra.perframe.landmarkParams=[];
+      end
+      
+      if isfield(projectParams,'perframe') && isfield(projectParams.perframe,'params')
+        self.extra.perframe.params=projectParams.perframe.params;
+      else
+        self.extra.perframe.params=[];
       end
 
       % copy the experiment dirs, labels over
