@@ -6451,7 +6451,8 @@ function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, 
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 tstring = sprintf('Scores file for %s',handles.data.expnames{handles.data.expi});
-[fname,pname,~] = uigetfile('*.mat',tstring);
+defaultPath=handles.data.defaultpath;
+[fname,pname,~] = uigetfile('*.mat',tstring,defaultPath);
 if ~fname; return; end;
 sfn = fullfile(pname,fname);
 handles.data.LoadScores(handles.data.expi,sfn);
@@ -6479,7 +6480,7 @@ function menu_file_import_scores_curr_exp_diff_rootdir_Callback(hObject, eventda
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 tstring = sprintf('Root dir to load scores for current experiment');
-fname = uigetdir('*.mat',tstring);
+fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
 if ~fname; return; end;
 scoreFileName = handles.data.GetFile('scores',handles.data.expi);
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
@@ -6541,7 +6542,7 @@ function menu_file_import_scores_all_exp_diff_rootdir_Callback(hObject, eventdat
 % handles    structure with handles and user data (see GUIDATA)
 
 tstring = sprintf('Root dir to load scores for all experiments');
-fname = uigetdir('*.mat',tstring);
+fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
 if ~fname; return; end;
 scoreFileName = handles.data.GetFile('scores',handles.data.expi);
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
@@ -7794,11 +7795,7 @@ function openEverythingFileViaChooser(figureJLabel,groundTruthingMode)
 
 % Prompt user for filename
 handles=guidata(figureJLabel);
-jld=handles.data;
-defaultPath=jld.defaultpath;
-if isempty(defaultPath)
-  defaultPath=pwd();
-end
+defaultPath=handles.data.defaultpath;
 title=fif(groundTruthingMode, ...
           'Open in Ground-Truthing Mode...', ...
           'Open...');
@@ -8832,9 +8829,11 @@ handles=guidata(figureJLabel);
 
 % Prompt user for filename
 title='Import Classifier...';
+defaultPath=handles.data.defaultpath;
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
-            title);
+            title, ...
+            defaultPath);
 if ~ischar(filename),
   % user hit cancel
   return;
