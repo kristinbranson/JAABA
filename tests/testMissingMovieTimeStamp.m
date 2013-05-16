@@ -1,5 +1,8 @@
 function success=testMissingMovieTimeStamp()
 
+% This tests to make sure that if an experiment has no movie, the
+% JLabelData object represents that appropriately.
+
 jabFileName='/groups/branson/bransonlab/projects/JAABA/test_data/larva_mwt_rolling.jab';
 gtMode=false;
 data=JLabelData('setstatusfn',@(str)(fprintf('%s\n',str)), ...
