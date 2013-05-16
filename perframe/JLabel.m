@@ -7793,12 +7793,19 @@ return
 function openEverythingFileViaChooser(figureJLabel,groundTruthingMode)
 
 % Prompt user for filename
+handles=guidata(figureJLabel);
+jld=handles.data;
+defaultPath=jld.defaultpath;
+if isempty(defaultPath)
+  defaultPath=pwd();
+end
 title=fif(groundTruthingMode, ...
           'Open in Ground-Truthing Mode...', ...
           'Open...');
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
-            title);
+            title, ...
+            defaultPath);
 if ~ischar(filename),
   % user hit cancel
   return;
