@@ -536,6 +536,8 @@ class SVMBehaviorSequence : public StructuredSVM {
    */
   ~SVMBehaviorSequence();
 
+  bool GetDebugFeatures() { return debug_features; }
+  void SetDebugFeatures(bool s) { debug_features = s; }
 
   virtual bool Load(const Json::Value &root);
   virtual Json::Value Save();
@@ -545,7 +547,7 @@ class SVMBehaviorSequence : public StructuredSVM {
   void OnFinishedIteration(StructuredData *x, StructuredLabel *y, SparseVector *w=NULL, StructuredLabel *ybar=NULL);
   double ImportanceSample(StructuredData *x, SparseVector *w, StructuredLabel *y_gt, struct _SVM_cached_sample_set *set, double w_scale=1);
   void Debug();
-  void DebugFeatures(const char *fname, BehaviorBoutSequence *y, double *ww);
+  void DebugFeatures(const char *fname, BehaviorBoutSequence *y, double *ww, double **ff=NULL);
   void DebugExample(StructuredData *x, StructuredLabel *y, StructuredLabel *ybar, SparseVector *w);
   void OnFinishedPassThroughTrainset();
   void AugmentFeatureSpace();

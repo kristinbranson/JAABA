@@ -60,7 +60,8 @@ ExampleWeights *SVMBehaviorSequence::ComputeExampleWeights(StructuredDataset *tr
     for(i = 0, num = 0; i < trainset->num_examples; i++) {
       int num_old = num;
       if(!trainset->examples[i]->set) continue;
-      BehaviorBoutSequence *y_gt = (BehaviorBoutSequence*)trainset->examples[i]->y;
+      BehaviorBoutSequence *y_gt = (BehaviorBoutSequence*)trainset->examples[i]->y, *y_partial = NULL;
+      fill_unlabeled_gt_frames(y_gt, y_partial);
       for(k = 0; k < y_gt->num_bouts; k++) {
 	if((!NONE_CLASS_HAS_NO_SCORE || y_gt->bouts[k].behavior != 0)) {
 	  r[num].bout = y_gt->bouts[k];
@@ -86,6 +87,10 @@ ExampleWeights *SVMBehaviorSequence::ComputeExampleWeights(StructuredDataset *tr
 	  }
 	}
       }
+      if(y_gt != trainset->examples[i]->y)
+	delete y_gt;
+      if(y_partial)
+	delete y_partial;
       //fprintf(stderr, " %d:%d:%d", i, num-num_old, trainset->examples[i]->set->num_samples);
     }
   } else if(weighting_scheme == WS_FUNCTIONAL_GRADIENT_DESCENT) {
@@ -95,7 +100,8 @@ ExampleWeights *SVMBehaviorSequence::ComputeExampleWeights(StructuredDataset *tr
       if(!trainset->examples[i]->set) continue;
       SVM_cached_sample_set_compute_features(trainset->examples[i]->set, trainset->examples[i]);
       double best = -1;
-      BehaviorBoutSequence *y_gt = (BehaviorBoutSequence*)trainset->examples[i]->y;
+      BehaviorBoutSequence *y_gt = (BehaviorBoutSequence*)trainset->examples[i]->y, *y_partial = NULL;
+      fill_unlabeled_gt_frames(y_gt, y_partial);
       int num2 = num;
       for(k = 0; k < y_gt->num_bouts; k++) {
 	if((!NONE_CLASS_HAS_NO_SCORE || y_gt->bouts[k].behavior != 0)) {
@@ -128,6 +134,10 @@ ExampleWeights *SVMBehaviorSequence::ComputeExampleWeights(StructuredDataset *tr
 	}
       }
       if(best > 0) num=num2;
+      if(y_gt != trainset->examples[i]->y)
+	delete y_gt;
+      if(y_partial)
+	delete y_partial;
       OnFinishedIteration(trainset->examples[i]->x, trainset->examples[i]->y);
     }
   }
@@ -260,7 +270,10 @@ void SVMBehaviorSequence::AugmentFeatureSpace() {
 
 void SVMBehaviorSequence::AppendNewFeature(DecisionStump *s, ExampleWeights *samples, int num_samples) {
   bout_features = (BoutFeature*)realloc(bout_features, (num_bout_features+1)*sizeof(BoutFeature));
+  char name[1000];
+  sprintf(name, "%s<%.3f", bout_expansion_features[s->feat].name, bout_expansion_features[s->feat].thresh);
   bout_features[num_bout_features] = bout_expansion_features[s->feat];
+  bout_features[num_bout_features].name = StringCopy(name);
   bout_features[num_bout_features].thresh = s->thresh; 
   bout_features[num_bout_features].num_thresholds = 1;
   bout_features[num_bout_features].mu = 0;

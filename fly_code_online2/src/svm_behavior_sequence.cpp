@@ -53,6 +53,9 @@ SVMBehaviorSequence::SVMBehaviorSequence() : StructuredSVM() {
   Init(NULL, NULL, 0, NULL, 0);
   bout_expansion_features = NULL; 
   num_bout_expansion_features = 0;
+  
+  strcpy(debugdir, "");
+  debug_predictions = debug_weights = debug_features = debug_model = false;
 }
 
 void SVMBehaviorSequence::Init(Behaviors *behaviors, FrameFeature *frame_features, int num_frame_features, 
@@ -89,9 +92,6 @@ void SVMBehaviorSequence::Init(Behaviors *behaviors, FrameFeature *frame_feature
   numMultiSampleIterations = 10;
   keepAllEvictedLabels = true;
   updateFromCacheThread = true;
-  
-  strcpy(debugdir, "");
-  debug_predictions = debug_weights = debug_features = debug_model = false;
 
   this->behaviors = behaviors;
 
@@ -675,7 +675,12 @@ StructuredDataset *SVMBehaviorSequence::LoadDataset(const char *fname) {
     //StructuredExample *ex = read_struct_example(train_list[j], train_list[j], false);
     //dataset->AddExample(ex);
     BehaviorBoutSequence *y = (BehaviorBoutSequence*)dataset->examples[j]->y;
-		
+    /*if(j == 27) {
+      BehaviorBoutSequence *ybar_partial = bout_sequence_remove_section(y, 28600, 28800); 
+      fill_unlabeled_gt_frames(y, ybar_partial);
+    }
+    */
+
     // Temporary fix, ground truth segmentations should have bouts that span all the way to b->num_frames
     int T = ((BehaviorBoutFeatures*)dataset->examples[j]->x)->num_frames;
     if(y->num_bouts && y->bouts[y->num_bouts-1].end_frame==T-1)
@@ -1490,8 +1495,6 @@ bool SVMBehaviorSequence::fill_unlabeled_gt_frames(BehaviorBoutSequence *&y_gt, 
     lastframe = 0;
     for(int i = 0; i <= y_gt->num_bouts; i++) {
       if(i == y_gt->num_bouts) {
-	if(e >= x->num_frames)
-	  break;
 	s = e = x->num_frames;
 	b = 0;
       } else {
@@ -1507,6 +1510,9 @@ bool SVMBehaviorSequence::fill_unlabeled_gt_frames(BehaviorBoutSequence *&y_gt, 
 	  y_partial_new->bouts[y_partial_new->num_bouts++] = y_partial->bouts[partial_ind++];
 	}
       }
+      if(i == y_gt->num_bouts && e >= x->num_frames)
+	  break;
+
       if(s > lastframe || i == y_gt->num_bouts) {
 	// Pad unlabelled bouts in y_gt as the "None" class
 	y_gt_new->bouts = (BehaviorBout*)realloc(y_gt_new->bouts, sizeof(BehaviorBout)*(y_gt->num_bouts+num_added+1));
@@ -2965,10 +2971,10 @@ bool BehaviorBoutSequence::load(const Json::Value &r, StructuredSVM *s) {
   return true;
 }
 
-void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence *y, double *ww) {
+ void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence *y, double *ww, double **ff) {
    BehaviorBoutFeatures *b = y->features;
 
-  double *tmp_features = (double*)malloc((num_bout_features+3)*sizeof(double));
+  double *tmp_features = ff ? NULL : (double*)malloc((num_bout_features+3)*sizeof(double));
   double *class_features = (double*)malloc(sizeof(double)*(num_bout_features+behaviors->num_values+2));
   double *class_transitions = class_features + num_bout_features;
   double *unary = class_transitions + behaviors->num_values;
@@ -2979,11 +2985,12 @@ void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence 
   g_class_transitions = class_transitions;
   double **class_weights, **transition_weights, *unary_weights, *duration_weights;
   init_weight_pointers(ww, class_weights, transition_weights, unary_weights, duration_weights);
-  FILE *fout = fopen(fname, "w");
+  FILE *fout = fname ? fopen(fname, "w") : NULL;
 
   y->score = 0;
   y->loss = 0;
   for(int i = 0; i < y->num_bouts; i++) {
+    if(ff) tmp_features = ff[i];
     int t_p = y->bouts[i].start_frame, t = y->bouts[i].end_frame, 
       c_prev = y->bouts[i].behavior, 
       c_next = i<y->num_bouts-1 ? y->bouts[i+1].behavior : -1;
@@ -3004,28 +3011,30 @@ void SVMBehaviorSequence::DebugFeatures(const char *fname, BehaviorBoutSequence 
     double score = y->bouts[i].bout_score + y->bouts[i].transition_score + y->bouts[i].unary_score + y->bouts[i].duration_score;
     y->score += score;
     y->loss += y->bouts[i].loss_fn + y->bouts[i].loss_fp;
-		    
-    for(int j = 0; j < num_bout_features+behaviors->num_values+2; j++)
-      inds[j] = j;
-    qsort(inds, num_bout_features+behaviors->num_values+2, sizeof(int), cmp_feature_inds);
-    fprintf(fout, "<br><br><a name=\"%d\">Behavior=%s score=%f t=(%d-%d)</a>: bout_score=%f transition_score=%f unary_score=%f duration_score=%f loss_fn=%f loss_fp=%f\n", i, behaviors->values[c_prev].name, (float)score, t_p, t,
-	    (float)y->bouts[i].bout_score, (float)y->bouts[i].transition_score, (float)y->bouts[i].unary_score, (float)y->bouts[i].duration_score, (float)y->bouts[i].loss_fn,  (float)y->bouts[i].loss_fp);
-    for(int j = 0; j < num_bout_features+behaviors->num_values; j++) {
-      if(inds[j] < num_bout_features)
-	fprintf(fout, "<br>%lf=%f*%f, %s %s\n", class_features[inds[j]], class_weights[c_prev][inds[j]], tmp_features[inds[j]], behaviors->values[c_prev].name, bout_features[inds[j]].name);
-      else if(inds[j] < num_bout_features+behaviors->num_values)
-	fprintf(fout, "<br>%lf, %s->%s\n", class_transitions[inds[j]-num_bout_features], behaviors->values[c_prev].name, behaviors->values[inds[j]-num_bout_features].name);
-      else if(inds[j] < num_bout_features+behaviors->num_values+1)
-	fprintf(fout, "<br>%lf, %s unary\n", *unary, behaviors->values[c_prev].name);
-      else 
-	fprintf(fout, "<br>%lf, %s duration\n", *duration, behaviors->values[c_prev].name);
+
+    if(fname) {
+      for(int j = 0; j < num_bout_features+behaviors->num_values+2; j++)
+	inds[j] = j;
+      qsort(inds, num_bout_features+behaviors->num_values+2, sizeof(int), cmp_feature_inds);
+      fprintf(fout, "<br><br><a name=\"%d\">Behavior=%s score=%f t=(%d-%d)</a>: bout_score=%f transition_score=%f unary_score=%f duration_score=%f loss_fn=%f loss_fp=%f\n", i, behaviors->values[c_prev].name, (float)score, t_p, t,
+	      (float)y->bouts[i].bout_score, (float)y->bouts[i].transition_score, (float)y->bouts[i].unary_score, (float)y->bouts[i].duration_score, (float)y->bouts[i].loss_fn,  (float)y->bouts[i].loss_fp);
+      for(int j = 0; j < num_bout_features+behaviors->num_values; j++) {
+	if(inds[j] < num_bout_features)
+	  fprintf(fout, "<br>%lf=%f*%f, %s %s\n", class_features[inds[j]], class_weights[c_prev][inds[j]], tmp_features[inds[j]], behaviors->values[c_prev].name, bout_features[inds[j]].name);
+	else if(inds[j] < num_bout_features+behaviors->num_values)
+	  fprintf(fout, "<br>%lf, %s->%s\n", class_transitions[inds[j]-num_bout_features], behaviors->values[c_prev].name, behaviors->values[inds[j]-num_bout_features].name);
+	else if(inds[j] < num_bout_features+behaviors->num_values+1)
+	  fprintf(fout, "<br>%lf, %s unary\n", *unary, behaviors->values[c_prev].name);
+	else 
+	  fprintf(fout, "<br>%lf, %s duration\n", *duration, behaviors->values[c_prev].name);
+      }
     }
   }
   free(class_weights);
   free(class_features);
-  free(tmp_features);
+  if(!ff) free(tmp_features);
   free(inds);
-  fclose(fout);
+  if(fname) fclose(fout);
 }
 
 #ifdef HAVE_OPENCV

@@ -184,6 +184,7 @@ int main(int argc, const char **argv) {
       case 'B': i++; sprintf(pname, "%s", argv[i]); break;
       case 'D': i++; sprintf(debug_name, "%s", argv[i]); break;
       case 'u': i++; svm->SetTimeApproximation(atof(argv[i])); break;
+      case 'F': i++; svm->SetDebugFeatures(atoi(argv[i])>0); break;
       default: break; 
       }
     }
@@ -339,7 +340,10 @@ bool FlyBehaviorBoutSequence::load(const char *pname) {
     this->bouts[i].start_frame = (int)t0[i]-this->firstframe;
     this->bouts[i].end_frame = (int)t1[i]-this->firstframe;
     this->bouts[i].behavior = j;
+    this->bouts[i].bout_score = this->bouts[i].transition_score = this->bouts[i].duration_score = 
+      this->bouts[i].unary_score = this->bouts[i].loss_fn = this->bouts[i].loss_fp = 0;
   }
+
   mxDestroyArray(names);
   free(t0);
   free(t1);
@@ -383,6 +387,17 @@ Json::Value FlyBehaviorBoutSequence::save(StructuredSVM *s) {
   if(xx) r["moviename"] = xx->moviename;
   r["firstframe"] = xx->firstframe;
 
+  double **ff = NULL;
+  int nf = ((SVMBehaviorSequence*)s)->NumBoutFeatures();
+  if(((SVMBehaviorSequence*)s)->GetDebugFeatures()) {
+    ff = Create2DArray<double>(num_bouts, nf);
+    SparseVector *w = s->GetCurrentWeights(false);
+    double *ww = w->get_non_sparse<double>(s->GetSizePsi());
+    ((SVMBehaviorSequence*)s)->DebugFeatures(NULL, this, ww, ff);
+    delete [] ww;
+    delete w;
+  }
+
   if(bouts) {
     Json::Value b(Json::arrayValue);
     for(int j = 0; j < num_bouts; j++) {
@@ -398,6 +413,12 @@ Json::Value FlyBehaviorBoutSequence::save(StructuredSVM *s) {
 	c["loss_fn"] = bouts[j].loss_fn;
 	c["loss_fp"] = bouts[j].loss_fp;
       }
+      if(((SVMBehaviorSequence*)s)->GetDebugFeatures()) {
+	Json::Value a;
+	for(int i = 0; i < nf; i++) 
+	  a[i] = ff[j][i];
+	c["bout_features"] = a;
+      }
       b[j] = c;
     }
     r["bouts"] = b;
@@ -407,6 +428,7 @@ Json::Value FlyBehaviorBoutSequence::save(StructuredSVM *s) {
     r["fname"] = fname;
     save(fname);
   }
+  if(ff) free(ff);
 
   return r;
 }
