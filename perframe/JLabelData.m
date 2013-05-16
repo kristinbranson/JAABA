@@ -833,7 +833,7 @@ classdef JLabelData < matlab.mixin.Copyable
         % Note sure what to do here---Macguffin class doesn't have a perframe
         % property at present
         if isfield(everythingParams.extra,'perframe'),
-          if isfield(everythingParams.extra.perframe,'params'),
+          if isfield(everythingParams.extra.perframe,'params') && isstruct(everythingParams.extra.perframe.params),
             pf_fields = fieldnames(everythingParams.extra.perframe.params);
             for ndx = 1:numel(pf_fields),
               obj.perframe_params.(pf_fields{ndx}) = everythingParams.extra.perframe.params.(pf_fields{ndx});

@@ -7861,9 +7861,10 @@ while ~successfullyOpened && keepTrying ,
         originalExpDirs{end+1}=originalExpDir;  %#ok
         substituteExpDirs{end+1}=substituteExpDir;  %#ok
       else % Answer was 'Yes, Locate It'
+        [~,dname,~] = fileparts(originalExpName);
         substituteExpDir= ...
           uigetdir(handles.data.defaultpath, ...
-                   sprintf('Locate Experiment Directory %s',originalExpName));
+                   sprintf('Locate Experiment Directory %s',dname));
         if isempty(substituteExpDir)
           % means user hit Cancel button
           keepTrying=false;
