@@ -16,13 +16,13 @@ scorePerframeFileNameAbs= ...
           testDataDirName, ...
           nameOfExpInMetafooingClassifier);
 if exist(scorePerframeFileNameAbs,'file') ,
-  cmd=sprintf('rm "%s"',scorePerframeFileNameAbs);
+  cmd=sprintf('rm -f "%s"',scorePerframeFileNameAbs);
   system(cmd);          
 end
 
 % Also deleted the converted .jab file if it exsits
 if exist(jabFileName,'file') ,
-  cmd=sprintf('rm "%s"',jabFileName);
+  cmd=sprintf('rm -f "%s"',jabFileName);
   system(cmd);          
 end
 
