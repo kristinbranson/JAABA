@@ -12,6 +12,27 @@ classdef JLabelData < matlab.mixin.Copyable
   % everythingParams is generally the contents of a .jab file, which may
   % well have experiments, labels, and/or a classifier.
   
+  % About lexicons, sublexicons, dialects, subdialects, vocabularies, and 
+  % all that: 
+  %   The feature lexicon is the set of all possible features, not 
+  %   including the score features (a.k.a. scores-as-inputs).
+  %
+  %   The feature dialect is the feature lexicon plus the score features.
+  %   (In this analogy, the score features are like region-specific words,
+  %   or jargon.)
+  % 
+  %   The feature sublexicon is the subset of the feature lexicon that
+  %   actually gets calculated for a particular .jab file.
+  % 
+  %   The feature subdialect is the sublexicon plus the score features.
+  % 
+  %   The feature vocabulary is the enabled features of the sublexicon, plus
+  %   the enabled score features.  (The idea is that the classifier only "speaks"
+  %   this vocabulary.)
+  %
+  %   Note that in all of the above, "features" can mean "per-frame
+  %   features" or "window features", depending on the context.
+  
   % -----------------------------------------------------------------------
   properties (SetAccess=private, GetAccess=public)
     expi  % currently selected  experiment
@@ -609,7 +630,19 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconRaw(obj,featureLexicon,animalType,featureLexiconName)
+    function [success,msg] = setFeatureLexiconAndTargetSpeciesRaw(obj,featureLexicon,targetSpecies,varargin)
+      % This sets the feature lexicon to the given one, and also sets the target species.  If the
+      % featureLexicon is not one of the named ones, then either no
+      % featureLexiconName should be given, or the name should be 'custom'.
+            
+      obj.targettype=targetSpecies;  % what species the targets are
+      [success,msg] = ...
+        obj.setFeatureLexiconAndFLName(featureLexicon,varargin{:});
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------    
+    function [success,msg] = setFeatureLexiconAndFLName(obj,featureLexicon,featureLexiconName)
       % This sets the feature lexicon to the given one.  If the
       % featureLexicon is not one of the named ones, then either no
       % featureLexiconName should be given, or the name should be 'custom'.
@@ -626,7 +659,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Store the lexicon-associated stuff in obj
       obj.featureLexiconName=featureLexiconName;
       obj.featureLexicon=featureLexicon;  % save to obj
-      obj.targettype=animalType;
+      %obj.targettype=targetSpecies;  % what species the targets are
       
       % Update obj.perframe_params based on the new feature lexicon
       if isfield(featureLexicon,'perframe_params'),
@@ -753,10 +786,10 @@ classdef JLabelData < matlab.mixin.Copyable
       try
         % feature config file
         if isequal(everythingParams.featureLexiconName,'custom')
-          obj.setFeatureLexiconCustom(everythingParams.featureLexicon, ...
-                                      everythingParams.behaviors.type);
+          obj.setFeatureLexiconAndTargetSpeciesCustom(everythingParams.featureLexicon, ...
+                                                      everythingParams.behaviors.type);
         else
-          obj.setFeatureLexiconFromName(everythingParams.featureLexiconName);
+          obj.setFeatureLexiconAndTargetSpeciesFromFLName(everythingParams.featureLexiconName);
         end
 
         % get some silly stuff out of projectParams
@@ -1880,7 +1913,7 @@ classdef JLabelData < matlab.mixin.Copyable
         ndx = find(strcmp(fn,allperframefns));
         if isempty(ndx),
           success = false;
-          msg = 'There is at least one per-frame feature that is not in the lexicon, and is not a score feature';
+          msg = sprintf('Internal error: There is at least one per-frame feature in the vocabulary (%s) that is not in the subdialect.',fn);
           return;
         end
         
@@ -6306,7 +6339,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconFromName(obj,featureLexiconName)
+    function [success,msg] = setFeatureLexiconAndTargetSpeciesFromFLName(obj,featureLexiconName)
       % This sets the feature lexicon to the one named by
       % featureLexiconName
       
@@ -6322,17 +6355,27 @@ classdef JLabelData < matlab.mixin.Copyable
         featureLexiconFromFeatureLexiconName(featureLexiconName);     
 
       % Store the lexicon-associated stuff in obj
-      [success,msg] = obj.setFeatureLexiconRaw(featureLexicon,animalType,featureLexiconName);
+      [success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,featureLexiconName);
     end  % method
     
     
     % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon,animalType)
+    function [success,msg] = setFeatureLexiconAndTargetSpeciesCustom(obj,featureLexicon,animalType)
       % This sets the feature lexicon to the given one, and stores a
       % featureLexiconName of 'custom'.
       
       % Store the lexicon-associated stuff in obj
-      [success,msg] = obj.setFeatureLexiconRaw(featureLexicon,animalType,'custom');
+      [success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,'custom');
+    end  % method
+
+    
+    % ---------------------------------------------------------------------    
+    function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon)
+      % This sets the feature lexicon to the given one, and stores a
+      % featureLexiconName of 'custom'.
+      
+      % Store the lexicon-associated stuff in obj
+      [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
     end  % method
 
     
@@ -9526,7 +9569,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function setScoreFeatures(obj,varargin)
-      % Update obj.scoreFeatures, preserving invariants
+      % Update obj.scoreFeatures, preserving invariants.  If an exception
+      % occurs, this function will roll back the object to its original
+      % state.
 
       % Process arguments
       if length(varargin)==1
@@ -9906,6 +9951,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
       % Set the classifier in self
       self.setScoreFeatures(macguffin.scoreFeatures);
+      self.setFeatureLexiconAndFLName(macguffin.featureLexicon, ...
+                                      macguffin.featureLexiconName);
       self.setWindowFeaturesParams(macguffin.windowFeaturesParams);
       self.setClassifierStuff(macguffin.classifierStuff);
 
