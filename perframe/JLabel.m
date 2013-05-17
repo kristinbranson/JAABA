@@ -9038,7 +9038,7 @@ end
 SetStatus(handles,'Changing target type...');
 
 % Set the feature dictionary, basic params in JLabelData
-[success,msg]=data.setFeatureLexiconFromName(newFeatureLexiconName);
+[success,msg]=data.setFeatureLexiconAndTargetSpeciesFromFLName(newFeatureLexiconName);
 if ~success,
   uiwait(errordlg(msg,'Error Changing Target Type','modal'));
 end
