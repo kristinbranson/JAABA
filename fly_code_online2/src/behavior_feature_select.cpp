@@ -187,7 +187,7 @@ DecisionStump *SVMBehaviorSequence::SelectBestFeature(ExampleWeights *samples, i
 	  x->ComputeCaches(this);
 	if(noFeat)
 	  SVM_cached_sample_set_compute_features(trainset->examples[samples[j].ex_ind]->set, trainset->examples[samples[j].ex_ind]);
-	if(f[j]) delete [] f[j];
+	if(f[j]) free(f[j]);
 	f[j] = psi_bout(x, samples[j].bout.start_frame, samples[j].bout.end_frame, samples[j].bout.behavior, NULL, false, false, 
 			bout_expansion_features+i, n);
       }
@@ -263,7 +263,7 @@ void SVMBehaviorSequence::AugmentFeatureSpace() {
     delete [] samples;
   } while(sum_dual/n > maxDual);
   for(int j = 0; j < num_samples; j++) 
-    delete [] f[j];
+    free(f[j]);
   delete [] f;
   PauseWorkerThreads(false, false, false);
 }
