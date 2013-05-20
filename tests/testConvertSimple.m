@@ -7,7 +7,7 @@ jabFileName='/tmp/fooing_labels_and_classifier.jab';
 
 % Delete the converted .jab file if it exsits
 if exist(jabFileName,'file') ,
-  cmd=sprintf('rm "%s"',jabFileName);
+  cmd=sprintf('rm -f "%s"',jabFileName);
   system(cmd);          
 end
 

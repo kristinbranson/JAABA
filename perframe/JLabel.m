@@ -6451,7 +6451,8 @@ function menu_file_import_scores_curr_exp_diff_loc_Callback(hObject, eventdata, 
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 tstring = sprintf('Scores file for %s',handles.data.expnames{handles.data.expi});
-[fname,pname,~] = uigetfile('*.mat',tstring);
+defaultPath=handles.data.defaultpath;
+[fname,pname,~] = uigetfile('*.mat',tstring,defaultPath);
 if ~fname; return; end;
 sfn = fullfile(pname,fname);
 handles.data.LoadScores(handles.data.expi,sfn);
@@ -6479,7 +6480,7 @@ function menu_file_import_scores_curr_exp_diff_rootdir_Callback(hObject, eventda
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 tstring = sprintf('Root dir to load scores for current experiment');
-fname = uigetdir('*.mat',tstring);
+fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
 if ~fname; return; end;
 scoreFileName = handles.data.GetFile('scores',handles.data.expi);
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
@@ -6541,7 +6542,7 @@ function menu_file_import_scores_all_exp_diff_rootdir_Callback(hObject, eventdat
 % handles    structure with handles and user data (see GUIDATA)
 
 tstring = sprintf('Root dir to load scores for all experiments');
-fname = uigetdir('*.mat',tstring);
+fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
 if ~fname; return; end;
 scoreFileName = handles.data.GetFile('scores',handles.data.expi);
 [~, scoreFileName, ext] = myfileparts(scoreFileName);
@@ -7793,12 +7794,15 @@ return
 function openEverythingFileViaChooser(figureJLabel,groundTruthingMode)
 
 % Prompt user for filename
+handles=guidata(figureJLabel);
+defaultPath=handles.data.defaultpath;
 title=fif(groundTruthingMode, ...
           'Open in Ground-Truthing Mode...', ...
           'Open...');
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
-            title);
+            title, ...
+            defaultPath);
 if ~ischar(filename),
   % user hit cancel
   return;
@@ -7861,9 +7865,10 @@ while ~successfullyOpened && keepTrying ,
         originalExpDirs{end+1}=originalExpDir;  %#ok
         substituteExpDirs{end+1}=substituteExpDir;  %#ok
       else % Answer was 'Yes, Locate It'
+        [~,dname,~] = fileparts(originalExpName);
         substituteExpDir= ...
           uigetdir(handles.data.defaultpath, ...
-                   sprintf('Locate Experiment Directory %s',originalExpName));
+                   sprintf('Locate Experiment Directory %s',dname));
         if isempty(substituteExpDir)
           % means user hit Cancel button
           keepTrying=false;
@@ -8825,9 +8830,11 @@ handles=guidata(figureJLabel);
 
 % Prompt user for filename
 title='Import Classifier...';
+defaultPath=handles.data.defaultpath;
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
-            title);
+            title, ...
+            defaultPath);
 if ~ischar(filename),
   % user hit cancel
   return;
