@@ -3877,7 +3877,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % [success,msg] = SetClipsDir(obj,clipsdir)
     % Sets the clips directory name within the experiment directory.
       
-      success = false;
+      success = true;
       msg = '';
 
       if ischar(clipsdir),
