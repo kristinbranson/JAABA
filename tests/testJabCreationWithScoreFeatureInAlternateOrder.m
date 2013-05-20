@@ -17,7 +17,7 @@ scorePerframeFileNameAbs= ...
           testDataDirName, ...
           nameOfExpToAdd);
 if exist(scorePerframeFileNameAbs,'file') ,
-  cmd=sprintf('rm "%s"',scorePerframeFileNameAbs);
+  cmd=sprintf('rm -f "%s"',scorePerframeFileNameAbs);
   system(cmd);          
 end
 

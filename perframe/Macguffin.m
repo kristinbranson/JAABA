@@ -64,6 +64,12 @@ classdef Macguffin < handle
       self.expDirNames={};
       self.gtExpDirNames={};
       self.classifierStuff=ClassifierStuff();
+      
+      self.extra.perframe.landmarkParams.arena_center_mm_x = 0;
+      self.extra.perframe.landmarkParams.arena_center_mm_y = 0;
+      self.extra.perframe.landmarkParams.arena_radius_mm = 60;
+      self.extra.perframe.landmarkParams.arena_type = 'circle';
+      
     end  % method
     
     
@@ -200,10 +206,16 @@ classdef Macguffin < handle
 %       else
 %         self.behaviorName=projectParams.behaviors.names{1};
 %       end
-      if isfield(projectParams,'landmark_params')
-        self.extra.perframe.landmarkParams=projectParams.landmark_params;
+      if isfield(projectParams,'perframe') && isfield(projectParams.perframe,'landmark_params')
+        self.extra.perframe.landmarkParams=projectParams.perframe.landmark_params;
       else
         self.extra.perframe.landmarkParams=[];
+      end
+      
+      if isfield(projectParams,'perframe') && isfield(projectParams.perframe,'params')
+        self.extra.perframe.params=projectParams.perframe.params;
+      else
+        self.extra.perframe.params=[];
       end
 
       % copy the experiment dirs, labels over
@@ -243,7 +255,9 @@ classdef Macguffin < handle
         % Look for labels in the experiment directories
         self.labels=getLabelsFromExpDirs(self.expDirNames,projectParams.file.labelfilename);
       end
-      if isfield(projectParams.windowfeatures,'windowfeaturesparams')
+      if isfield(classifierParams,'windowfeaturesparams')
+        self.windowFeaturesParams=classifierParams.windowfeaturesparams;
+      elseif isfield(projectParams.windowfeatures,'windowfeaturesparams')
         self.windowFeaturesParams=projectParams.windowfeatures.windowfeaturesparams;
       end
       % if isfield(classifierParams,'gt_labels')
