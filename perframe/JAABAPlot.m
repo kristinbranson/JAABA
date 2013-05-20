@@ -509,8 +509,8 @@ switch(handles.analysis)
       set(handles.ZScore,'enable','on');
     end
   otherwise
-    set(handles.StyleList,'string',{''});
-    set(handles.StyleList2,'string',{''});
+    set(handles.StyleList,'string',{''},'value',1);
+    set(handles.StyleList2,'string',{''},'value',1);
 end
 
 if(~isempty(analysis2))
