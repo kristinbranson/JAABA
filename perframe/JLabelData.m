@@ -299,11 +299,13 @@ classdef JLabelData < matlab.mixin.Copyable
                     % each frame, plus the scores-as-input feature
                     % names.  I would call this the the 'subdialect'.
                     % --ALT, Apr 5, 2013
-    curperframefns  % The list of all per-frame feature names 
-                    % that are used for classifier training.  This is
-                    % a subset of allperframefns, and includes all the
-                    % scores-as-input feature names.  I would call
-                    % this the 'vocabulary'. --ALT, Apr 5, 2013
+    curperframefns  % The list of all per-frame feature names
+                    % that are enabled, i.e. used for used for classifier 
+                    % training.  This is a subset of allperframefns, and will 
+                    % include a subset of the score features (but the
+                    % subset might be the empty set).  I would 
+                    % call this the 'vocabulary'.  --ALT, May 18, 2013
+      % Thus curperframefns is the subset of allperframefns that are enabled.                    
     perframeunits 
 
     % the scores from other classifiers that that used as features for this
@@ -629,20 +631,92 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
     
     
-    % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconAndTargetSpeciesRaw(obj,featureLexicon,targetSpecies,varargin)
-      % This sets the feature lexicon to the given one, and also sets the target species.  If the
-      % featureLexicon is not one of the named ones, then either no
-      % featureLexiconName should be given, or the name should be 'custom'.
-            
-      obj.targettype=targetSpecies;  % what species the targets are
-      [success,msg] = ...
-        obj.setFeatureLexiconAndFLName(featureLexicon,varargin{:});
-    end  % method
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesRaw(obj,featureLexicon,targetSpecies,varargin)
+%       % This sets the feature lexicon to the given one, and also sets the target species.  If the
+%       % featureLexicon is not one of the named ones, then either no
+%       % featureLexiconName should be given, or the name should be 'custom'.
+%             
+%       obj.targettype=targetSpecies;  % what species the targets are
+%       [success,msg] = ...
+%         obj.setFeatureLexiconAndFLName(featureLexicon,varargin{:});
+%     end  % method
+    
+    
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesFromFLName(obj,featureLexiconName)
+%       % This sets the feature lexicon to the one named by
+%       % featureLexiconName
+%       
+% %       % Only do stuff if the new lexicon name is different than the current
+% %       % one
+% %       if isequal(featureLexiconName,obj.featureLexiconName)
+% %         success=true;
+% %         return
+% %       end
+%       
+%       % Get the lexicon itself and the associated animal type
+%       [featureLexicon,animalType]= ...
+%         featureLexiconFromFeatureLexiconName(featureLexiconName);     
+% 
+%       % Store the lexicon-associated stuff in obj
+%       %[success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,featureLexiconName);
+%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,featureLexiconName);
+%       
+%       % Set the animal type
+%       obj.targettype=animalType;
+%     end  % method
+    
+    
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndFLName(obj,featureLexicon,featureLexiconName)
+%       % This sets the feature lexicon to the given one.  If the
+%       % featureLexicon is not one of the named ones, then either no
+%       % featureLexiconName should be given, or the name should be 'custom'.
+%       
+%       % process args
+%       if ~exist('featureLexiconName','var')
+%         featureLexiconName='custom';
+%       end
+%       
+%       % Setup the default return values
+%       %success = false;
+%       msg = '';
+% 
+%       % Store the lexicon-associated stuff in obj
+%       obj.featureLexiconName=featureLexiconName;
+%       obj.featureLexicon=featureLexicon;  % save to obj
+%       %obj.targettype=targetSpecies;  % what species the targets are
+%       
+%       % Update obj.perframe_params based on the new feature lexicon
+%       if isfield(featureLexicon,'perframe_params'),
+%         obj.perframe_params=featureLexicon.perframe_params;
+%         % pf_fields = fieldnames(featureLexicon.perframe_params);
+%         % for ndx = 1:numel(pf_fields),
+%         %   obj.perframe_params.(pf_fields{ndx}) = ...
+%         %     featureLexicon.perframe_params.(pf_fields{ndx});
+%         % end
+%       end
+% 
+%       % Update obj.allperframefns based on the new feature lexicon
+%       obj.allperframefns =  fieldnames(featureLexicon.perframe);
+%       
+%       % Re-load the perframe feature signals, since the PFFs may have changed
+%       obj.loadPerframeData(obj.expi,obj.flies);
+% 
+%       % Clear the classifier, since the feature lexicon has changed
+%       % This also clears the features currently in use by the classifier
+%       % trainer
+%       obj.clearClassifierProper();
+%       
+%       % If we got this far, all is good
+%       obj.needsave=true;
+%       success = true;
+%     end  % method
     
     
     % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconAndFLName(obj,featureLexicon,featureLexiconName)
+    function [success,msg] = setFeatureSublexicon(obj,featureLexicon,featureLexiconName,sublexiconPFNames)
       % This sets the feature lexicon to the given one.  If the
       % featureLexicon is not one of the named ones, then either no
       % featureLexiconName should be given, or the name should be 'custom'.
@@ -681,12 +755,15 @@ classdef JLabelData < matlab.mixin.Copyable
       % This also clears the features currently in use by the classifier
       % trainer
       obj.clearClassifierProper();
+
+      % Set the sublexicon
+      obj.allperframefns = sublexiconPFNames;      
       
       % If we got this far, all is good
       obj.needsave=true;
       success = true;
     end  % method
-    
+
     
     % ---------------------------------------------------------------------
     function [success,msg]=loadPerframeData(obj,expi,indicesOfTargets)
@@ -785,13 +862,24 @@ classdef JLabelData < matlab.mixin.Copyable
       before=obj.copy();  % make a copy of the object, in case something goes wrong
       try
         % feature config file
-        if isequal(everythingParams.featureLexiconName,'custom')
-          obj.setFeatureLexiconAndTargetSpeciesCustom(everythingParams.featureLexicon, ...
-                                                      everythingParams.behaviors.type);
-        else
-          obj.setFeatureLexiconAndTargetSpeciesFromFLName(everythingParams.featureLexiconName);
+        [success,msg]=obj.setFeatureSublexicon(everythingParams.featureLexicon, ...
+                                               everythingParams.featureLexiconName, ...
+                                               everythingParams.sublexiconPFNames);
+%         if isequal(everythingParams.featureLexiconName,'custom')
+%           %obj.setFeatureLexiconAndTargetSpeciesCustom(everythingParams.featureLexicon, ...
+%           %                                            everythingParams.behaviors.type);
+%           [success,msg] = obj.setFeatureLexiconAndFLName(everythingParams.featureLexicon,'custom');
+%           obj.targettype=everythingParams.behaviors.type;
+%         else
+%           [success,msg]=obj.setFeatureLexiconAndTargetSpeciesFromFLName(everythingParams.featureLexiconName);
+%         end
+        if ~success , 
+          error('JLabelData:unableToSetFeatureSublexicon',msg);
         end
 
+        % Set the target species
+        obj.targettype=everythingParams.behaviors.type;
+                
         % get some silly stuff out of projectParams
         %obj.projectParams=projectParams;
         obj.labelGraphicParams=everythingParams.labelGraphicParams;
@@ -859,9 +947,6 @@ classdef JLabelData < matlab.mixin.Copyable
                   msg);
           end
         end
-
-        % Update allperframefns
-        obj.allperframefns = everythingParams.sublexiconPFNames;
 
         % Note sure what to do here---Macguffin class doesn't have a perframe
         % property at present
@@ -1802,7 +1887,6 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end  % method
 
-    
     % ---------------------------------------------------------------------
     function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
     % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
@@ -1919,7 +2003,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
         if ~exist(perframefile{ndx},'file'),
           if ~isdeployed 
-            if isempty(obj.GetGenerateMissingFiles()) || ~obj.GetGenerateMissingFiles()
+            if isempty(obj.GetGenerateMissingFiles())
               res = questdlg(sprintf(['Experiment %s is missing some perframe files '...
                 '(%s, possibly more). Generate now?'],obj.expnames{expi},perframefile{ndx}),...
                 'Generate missing files?','Yes','Cancel','Yes');
@@ -1927,7 +2011,7 @@ classdef JLabelData < matlab.mixin.Copyable
                 obj.SetGenerateMissingFiles();
               end
             else 
-              res = 'Yes';
+              res = fif(obj.GetGenerateMissingFiles(),'Yes','No');
             end
           else
             res = 'Yes';
@@ -1944,7 +2028,7 @@ classdef JLabelData < matlab.mixin.Copyable
             
           else
             success = false;
-            msg = sprintf('Cannot compute window data for %s ',expdir);
+            msg = sprintf('Cannot compute window data for %s ',obj.expnames{expi});
             return;
           end
 
@@ -1954,6 +2038,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       parfor j = 1:numel(curperframefns),
+      %for j = 1:numel(curperframefns),
         fn = curperframefns{j};
         
         % get per-frame data
@@ -6194,15 +6279,13 @@ classdef JLabelData < matlab.mixin.Copyable
       if ~isInteractive,
         dooverwrite = false;
       elseif ~isempty(obj.perframeOverwrite) 
-        if obj.perframeOverwrite
-          dooverwrite = true;
-        else
-          dooverwrite = false;
-        end
+        dooverwrite = obj.perframeOverwrite;
       elseif exist(perframedir,'dir'),
-        res = questdlg('Do you want to overwrite existing files or keep them?',...
-          'Regenerate files?','Overwrite','Keep','Keep');
-        dooverwrite = strcmpi(res,'Overwrite');
+        res = questdlg('Do you want to regenerate existing files or keep them?',...
+                       'Regenerate files?', ...
+                       'Regenerate','Keep', ...
+                       'Keep');
+        dooverwrite = strcmpi(res,'Regenerate');
         obj.perframeOverwrite = dooverwrite;
       else
         dooverwrite = true;
@@ -6220,8 +6303,8 @@ classdef JLabelData < matlab.mixin.Copyable
                         'moviefilestr',obj.GetFileName('movie'),...
                         'perframedir',obj.GetFileName('perframedir'),...
                         'default_landmark_params',obj.landmark_params,...
-                        'perframe_params',obj.perframe_params,...
-                        'rootwritedir',expdir);
+                        'perframe_params',obj.perframe_params);
+                        %'rootwritedir',expdir);
 %                        'rootwritedir',obj.rootoutputdir);
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
@@ -6338,45 +6421,28 @@ classdef JLabelData < matlab.mixin.Copyable
     end
 
     
-    % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconAndTargetSpeciesFromFLName(obj,featureLexiconName)
-      % This sets the feature lexicon to the one named by
-      % featureLexiconName
-      
-%       % Only do stuff if the new lexicon name is different than the current
-%       % one
-%       if isequal(featureLexiconName,obj.featureLexiconName)
-%         success=true;
-%         return
-%       end
-      
-      % Get the lexicon itself and the associated animal type
-      [featureLexicon,animalType]= ...
-        featureLexiconFromFeatureLexiconName(featureLexiconName);     
-
-      % Store the lexicon-associated stuff in obj
-      [success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,featureLexiconName);
-    end  % method
-    
-    
-    % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconAndTargetSpeciesCustom(obj,featureLexicon,animalType)
-      % This sets the feature lexicon to the given one, and stores a
-      % featureLexiconName of 'custom'.
-      
-      % Store the lexicon-associated stuff in obj
-      [success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,'custom');
-    end  % method
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesCustom(obj,featureLexicon,animalType)
+%       % This sets the feature lexicon to the given one, and stores a
+%       % featureLexiconName of 'custom'.
+%       
+%       % Store the lexicon-associated stuff in obj
+%       %[success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,'custom');
+%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
+%       
+%       % Set the animal type
+%       obj.targettype=animalType;
+%     end  % method
 
     
-    % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon)
-      % This sets the feature lexicon to the given one, and stores a
-      % featureLexiconName of 'custom'.
-      
-      % Store the lexicon-associated stuff in obj
-      [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
-    end  % method
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon)
+%       % This sets the feature lexicon to the given one, and stores a
+%       % featureLexiconName of 'custom'.
+%       
+%       % Store the lexicon-associated stuff in obj
+%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
+%     end  % method
 
     
 %     % ---------------------------------------------------------------------
@@ -6967,7 +7033,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
 
     % ---------------------------------------------------------------------
-    function [success,msg] = setCurrentTarget(obj,expi,flies)
+    function [success,msg] = setCurrentTarget(obj,expi,flies,force)
       % This is the method formerly known as PreLoad(). Sets the current
       % target to experiment expi, animal flies.  This implies preloading
       % data associated with the input experiment and flies. If neither the
@@ -6981,6 +7047,10 @@ classdef JLabelData < matlab.mixin.Copyable
       success = false;
       msg = '';
       
+      if ~exist('force','var')
+        force=false;
+      end
+      
       if numel(expi) ~= 1,
         error('expi must be a scalar');
       end
@@ -6993,7 +7063,7 @@ classdef JLabelData < matlab.mixin.Copyable
       diffexpi = isempty(obj.expi) || expi ~= obj.expi;
       diffflies = diffexpi || numel(flies) ~= numel(obj.flies) || ~all(flies == obj.flies);
       % nothing to do
-      if ~diffflies,
+      if ~diffflies && ~force,
         success = true;
         return;
       end
@@ -7003,7 +7073,7 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.StoreLabelsAndPreLoadWindowData();
       end
       
-      if diffexpi,
+      if diffexpi || force,
         
         % load trx
 %         try
@@ -7805,6 +7875,11 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
+    function predictForCurrentTargetAndTimeSpan(obj)
+      obj.Predict(obj.expi,obj.flies,obj.t0_curr,obj.t1_curr)
+    end
+      
+    % ---------------------------------------------------------------------
     function Predict(obj,expi,flies,t0,t1)
     % Predict(obj,expi,flies,ts)
     % Runs the behavior classifier on the input experiment, flies, and
@@ -7821,6 +7896,13 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
             
+      % Get the relevant window data in main memory so that we can predict on it
+      [success,msg] = obj.PreLoadWindowData(expi,flies,t0:t1);
+      if ~success ,
+        error('JLabelData:unableToLoadWindowDataForPrediction', ...
+              msg);
+      end
+      
       % apply classifier
       switch obj.classifiertype,
       case {'boosting','fancyboosting'},
@@ -9945,17 +10027,42 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function importClassifier(self,fileNameAbs)
+    function importClassifier(self,fileNameAbs,isInteractive)
+      % deal with args
+      if ~exist('isInteractive','var') ,
+        isInteractive=true;
+      end
+      
       % load the file
       macguffin=loadAnonymous(fileNameAbs);
 
       % Set the classifier in self
       self.setScoreFeatures(macguffin.scoreFeatures);
-      self.setFeatureLexiconAndFLName(macguffin.featureLexicon, ...
-                                      macguffin.featureLexiconName);
+      %larping=copy(self);
+      self.setFeatureSublexicon(macguffin.featureLexicon, ...
+                                macguffin.featureLexiconName, ...
+                                macguffin.sublexiconPFNames);
       self.setWindowFeaturesParams(macguffin.windowFeaturesParams);
+      
+      % Generate the necessary files now, so that any problems occur now.
+      for iExp=1:self.nexps
+        [success,msg]=self.GenerateScoreFeaturePerframeFiles(iExp);
+        if ~success,
+          error('JLabelData:unableToGenerateScoreFeaturePerframeFile',msg);
+        end
+        [success,msg]=self.GeneratePerframeFilesExceptScoreFeatures(iExp,isInteractive);
+        if ~success,
+          error('JLabelData:unableToGeneratePerframeFile',msg);
+        end
+      end
+      
+      % Load the classifier proper, training params, etc.
       self.setClassifierStuff(macguffin.classifierStuff);
 
+%       % do this to prompt loading of windowdata
+%       force=true;
+%       self.setCurrentTarget(self.expi,self.flies,force);
+      
       % Note that we now need saving
       self.needsave=true;
     end  % method
