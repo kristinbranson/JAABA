@@ -509,8 +509,8 @@ switch(handles.analysis)
       set(handles.ZScore,'enable','on');
     end
   otherwise
-    set(handles.StyleList,'string',{''});
-    set(handles.StyleList2,'string',{''});
+    set(handles.StyleList,'string',{''},'value',1);
+    set(handles.StyleList2,'string',{''},'value',1);
 end
 
 if(~isempty(analysis2))
@@ -1216,7 +1216,10 @@ if(isnumeric(newexperiments)&&(newexperiments==0))  directory=tmp; return;  end
 newexperiments=textread(fullfile(directory,newexperiments),'%s','delimiter',',');
 %sum(cellfun(@(x) exist(x,'dir'),newexperiments)~=0);
 %if(ans==(length(newexperiments)/2))
-if(all(cellfun(@(x) exist(x,'dir'),newexperiments(1:2:end))))
+if(all(cellfun(@(x) exist(x,'dir'),newexperiments)))
+  newgroups=[];
+  newcolors=[];
+elseif(all(cellfun(@(x) exist(x,'dir'),newexperiments(1:2:end))))
   newgroups=newexperiments(2:2:end);
   newcolors=[];
   newexperiments=newexperiments(1:2:end);
@@ -1225,9 +1228,6 @@ elseif(all(cellfun(@(x) exist(x,'dir'),newexperiments(1:3:end))))
   newgroups=newexperiments(2:3:end);
   newcolors=newexperiments(3:3:end);
   newexperiments=newexperiments(1:3:end);
-else
-  newgroups=[];
-  newcolors=[];
 end
 if((length(handles.grouplist)==0)&&(isempty(newgroups)))
   uiwait(errordlg('Add a new group before adding ungrouped experiments'));
@@ -1694,13 +1694,13 @@ parfor ge=1:length(handlesexperimentlist)
     %  continue;
     %end
     tmp=load(fullfile(handlesexperimentlist{ge},possiblescorefiles{p}));
-    if(~isfield(tmp,'classifierfilename'))
+    if(~isfield(tmp,'jabFileNameAbs'))
       continue;
     end
-    if(exist(tmp.classifierfilename)==2)
-      classifiers_found{ge}{end+1}=tmp.classifierfilename;
+    if(exist(tmp.jabFileNameAbs)==2)
+      classifiers_found{ge}{end+1}=tmp.jabFileNameAbs;
     else
-      classifiers_notfound{ge}{end+1}=tmp.classifierfilename;
+      classifiers_notfound{ge}{end+1}=tmp.jabFileNameAbs;
     end
   end
 end
@@ -1763,7 +1763,7 @@ parfor ge=1:length(handlesexperimentlist)
   table2{ge}={};
   for s=1:length(extrascorefiles)
     tmp=load(fullfile(handlesexperimentlist{ge},extrascorefiles{s}));
-    if(~isfield(tmp,'classifierfilename'))
+    if(~isfield(tmp,'jabFileNameAbs'))
       continue;
     end
     table2{ge}{end+1}=extrascorefiles{s};
