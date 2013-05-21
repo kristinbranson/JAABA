@@ -2933,7 +2933,12 @@ classdef JLabelData < matlab.mixin.Copyable
       %obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
 
       %didbak = false;
+      
       if exist(sfn,'file'),
+        if exist([sfn '~'],'file')
+            delete([sfn '~']);
+        end
+          
         [didbak,msg] = copyfile(sfn,[sfn,'~']);
         if ~didbak,
           error('JLabelData.unableToBackupScores', ...
