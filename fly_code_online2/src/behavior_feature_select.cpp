@@ -271,7 +271,7 @@ void SVMBehaviorSequence::AugmentFeatureSpace() {
 void SVMBehaviorSequence::AppendNewFeature(DecisionStump *s, ExampleWeights *samples, int num_samples) {
   bout_features = (BoutFeature*)realloc(bout_features, (num_bout_features+1)*sizeof(BoutFeature));
   char name[1000];
-  sprintf(name, "%s<%.3f", bout_expansion_features[s->feat].name, bout_expansion_features[s->feat].thresh);
+  sprintf(name, "%s<%.3f", bout_expansion_features[s->feat].name, s->thresh);
   bout_features[num_bout_features] = bout_expansion_features[s->feat];
   bout_features[num_bout_features].name = StringCopy(name);
   bout_features[num_bout_features].thresh = s->thresh; 

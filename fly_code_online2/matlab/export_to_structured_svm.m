@@ -71,7 +71,7 @@ for ii=1:(numel(behs)+1),
     testsets{ii} = {};
 end
 for ii=1:numel(movies),
-    [bouts,behs,feat,basenames{ii},moviename] = loadmovie(fullfile(datadir, movies{ii}));
+    [bouts,~,~,basenames{ii},moviename] = loadmovie(fullfile(datadir, movies{ii}));
     for fly_id=1:size(feat.data,1),
         if ii <= numel(train),
             [valid_beh, trainsets]=save_example(export_dir, basenames{ii}, moviename, bouts, behs, feat, fly_id, FPS, params.frame_feature_params, trainsets, detect_percent_overlap_train, max_frames_train);
@@ -117,12 +117,17 @@ end
 
 
 function [bouts,behs,feat,basename,moviename] = loadmovie(moviedir)
-    f = dir(fullfile(moviedir, '*-updated_actions.mat'));
+    f = dir(fullfile(moviedir, '*actions.mat'));
     b = load(fullfile(moviedir,f.name));
     bouts = b.bouts;
     behs = b.behs;
     
-    basename = f.name(1:(length(f.name)-length('-updated_actions.mat')));
+    
+    if isempty(strfind(f.name,'-updated_actions.mat')),
+        basename = f.name(1:(length(f.name)-length('_actions.mat')));
+    else
+        basename = f.name(1:(length(f.name)-length('-updated_actions.mat')));
+    end
     b = load(fullfile(moviedir, basename, strcat(basename,'-feat.mat')));
     feat = b.feat;
 
