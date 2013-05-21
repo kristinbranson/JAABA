@@ -3429,6 +3429,12 @@ classdef JLabelData < matlab.mixin.Copyable
       behaviorName=obj.labelnames{1};
     end
         
+    % ---------------------------------------------------------------------
+    function setNeedSave(obj)
+      % Get the behavior name, a string
+      obj.needsave = true;
+    end
+        
         
     % ---------------------------------------------------------------------
     function [success,msg] = SetMovieFileName(obj,moviefilename)
