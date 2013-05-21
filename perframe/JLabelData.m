@@ -760,17 +760,37 @@ classdef JLabelData < matlab.mixin.Copyable
 %       end
       
       % Generate the necessary files now, so that any problems occur now.
+      generateMissingPerframeFiles=obj.perframeGenerate;
       for iExp=1:obj.nexps
-%         [success,msg]=obj.GenerateScoreFeaturePerframeFiles(iExp);
-%         if ~success,
-%           error('JLabelData:unableToGenerateScoreFeaturePerframeFile',msg);
-%         end
-        %obj.UpdateStatusTable('perframedir',iExp);
-        %allPerframeFilesExist=obj.fileexists(iExp,whichstr('perframedir',obj.filetypes));
-        allPerframeFilesExist=obj.fileOfGivenTypesExistForGivenExps('perframedir',iExp)
-        if ~allPerframeFilesExist , 
-          [success,msg]=obj.GeneratePerframeFilesExceptScoreFeatures(iExp);
-          if ~success,
+        expName=obj.expnames{iExp};
+        allPerframeFilesExist=obj.fileOfGivenTypesExistForGivenExps('perframedir',iExp);
+        if ~allPerframeFilesExist ,
+          % Figure out whether to try to generate the missing files
+          obj.SetStatus('Some files missing for %s...',expName);
+          if isempty(generateMissingPerframeFiles) && obj.isInteractive ,
+            % Would be good to move UI stuff out of JLabelData, which is
+            % essentially a model in MVC terms --ALT, Apr 30, 2013
+            questionString=sprintf('Experiment %s is missing required per-frame files. Generate now?',expName);
+            res = questdlg(questionString, ...
+                           'Generate missing per-frame files?', ...
+                           'Yes','No', ...
+                           'Yes');
+            if strcmpi(res,'Yes')
+              generateMissingPerframeFiles=true;
+            elseif isempty(res) || strcmpi(res,'No')
+              generateMissingPerframeFiles=false;
+            end
+          end
+          % Generate the missing files, or generate an error  
+          if ~isempty(generateMissingPerframeFiles) && generateMissingPerframeFiles,
+            obj.SetStatus('Generating missing files for %s...',expName);
+            [success,msg]=obj.GeneratePerframeFilesExceptScoreFeatures(iExp);
+            if ~success,
+              error('JLabelData:unableToGeneratePerframeFile',msg);
+            end
+          else
+            obj.SetStatus('Not generating missing files for %s...',expName);
+            msg='Unable to generate per-frame files because user declined to.';
             error('JLabelData:unableToGeneratePerframeFile',msg);
           end
         end
@@ -2305,117 +2325,85 @@ classdef JLabelData < matlab.mixin.Copyable
     % fileexists and filetimestamps, and sets filesfixable and
     % allfilesexist.
 
+      % Initialize return vars
       msg = '';
       success = false;
-
-      if nargin > 1 && ~isempty(filetypes),
-        [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
-        if any(~fileTypeIsValid),
-          msg = 'Unknown filetypes';
-          return;
-        end
-      else
-        fileTypeIndices = 1:numel(obj.filetypes);
-      end
-      if nargin <= 2 || isempty(expis),
-        expis = 1:obj.nexps;
-      end
-
       missingfiles = cell(1,obj.nexps);
       for i = 1:obj.nexps,
         missingfiles{i} = {};
       end
-      
-      % initialize fileexists table
-      obj.fileexists(expis,fileTypeIndices) = false;
-      obj.filetimestamps(expis,fileTypeIndices) = nan;      
-      
-      % loop through all file types
-      for fileTypeIndex = fileTypeIndices,
-        fileType = obj.filetypes{fileTypeIndex};
-        % loop through experiments
-        for expi = expis,
-          
-          if strcmpi(fileType,'perframedir'),
-            [fn,timestamps] = obj.GetPerframeFiles(expi);
-            if isempty(fn),
-              obj.fileexists(expi,fileTypeIndex) = false;
-              obj.filetimestamps(expi,fileTypeIndex) = -inf;
-            else
-              pfexists = cellfun(@(s) exist(s,'file'),fn);
-              obj.fileexists(expi,fileTypeIndex) = all(pfexists);
-              if ~obj.fileexists(expi,fileTypeIndex) && obj.IsRequiredFile(fileType),
-                for tmpi = find(~pfexists(:)'),
-                  if numel(missingfiles{expi})<10
-                    [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
-                    missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
-                    if numel(missingfiles{expi}) == 10,
-                       missingfiles{expi}{end+1} = ' and possibly more';
-                    end
-                  end
-                end
-              end
-              obj.filetimestamps(expi,fileTypeIndex) = max(timestamps);
-            end
-          else
-          
-            % check for existence of current file(s)
-            [fn,obj.filetimestamps(expi,fileTypeIndex)] = obj.GetFile(fileType,expi);
-            if iscell(fn),
-              obj.fileexists(expi,fileTypeIndex) = ~isinf(obj.filetimestamps(expi,fileTypeIndex)) || ...
-                all(cellfun(@(s) exist(s,'file'),fn));
-            elseif ischar(fn),
-              obj.fileexists(expi,fileTypeIndex) = ~isinf(obj.filetimestamps(expi,fileTypeIndex)) || exist(fn,'file');
-            else
-              obj.fileexists(expi,fileTypeIndex) = false;
-            end
-            if ~obj.fileexists(expi,fileTypeIndex) && obj.IsRequiredFile(fileType)
-              missingfiles{expi}{end+1} = fileType;
-            end
-              
-          end
-          
-        end
+
+      % Process arguments
+      if ~exist('filetypes','var') || isempty(filetypes)
+        filetypes=obj.filetypes;
+      end
+      if ~exist('expis','var') || isempty(expis),
+        expis = 1:obj.nexps;
       end
 
+      % Check that the file types requested are valid
+      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
+      if any(~fileTypeIsValid),
+        msg = 'Unknown filetypes';
+        return
+      end
+
+      % Get the file existance and time-stamp tables
+      [fileExists,fileTimeStamps,missingFileNames] = ...
+        obj.fileOfGivenTypesExistForGivenExps(filetypes,expis);
+      
+      % Update the state vars accordingly
+      obj.fileexists(expis,fileTypeIndices) = fileExists;
+      obj.filetimestamps(expis,fileTypeIndices) = fileTimeStamps;      
+      missingfiles(expis)=missingFileNames;
+      
       % store old values to see if latest change broke something
       old_filesfixable = obj.filesfixable;
       old_allfilesexist = obj.allfilesexist;
 
       % initialize summaries to true
-      obj.filesfixable = true;
-      obj.allfilesexist = true;
-
-      for fileTypeIndex = 1:numel(obj.filetypes),
-        fileType = obj.filetypes{fileTypeIndex};
-        % loop through experiments
-        for expi = 1:obj.nexps,
-          
-          % if file doesn't exist and is required, then not all files exist
-          if ~obj.fileexists(expi,fileTypeIndex),
-            if obj.IsRequiredFile(fileType),
-              obj.allfilesexist = false;
-              % if furthermore file can't be generated, then not fixable
-              if ~JLabelData.CanGenerateFile(fileType),
-                obj.filesfixable = false;                
-                msg1 = sprintf('%s missing and cannot be generated.',fileType);
-                if isempty(msg),
-                  msg = msg1;
-                else
-                  msg = sprintf('%s\n%s',msg,msg1);
-                end
-              end
-            end
+      [allRequiredFilesExist, ...
+       missingFilesCanBeGenerated, ...
+       oneMissingFileTypeThatCantBeGenerated]= ...
+        obj.allRequiredFilesExist(obj.fileexists);
+      
+      % Write the file status summaries into the object state, and
+      % modify the error message if necessary to reflect missing files that
+      % cannot be generated.
+      obj.allfilesexist = allRequiredFilesExist;
+      if allRequiredFilesExist
+        obj.filesfixable = true;
+      else
+        obj.filesfixable=missingFilesCanBeGenerated;
+        if ~missingFilesCanBeGenerated
+          msg1=sprintf('%s missing and cannot be generated.',oneMissingFileTypeThatCantBeGenerated);
+          if isempty(msg),
+            msg = msg1;
+          else
+            msg = sprintf('%s\n%s',msg,msg1);
           end
         end
       end
-      if exist('missingfiles','var') && ~isempty(missingfiles) && isempty(missingfiles{expi}),
-          msg = [msg,' Missing',sprintf(' %s',missingfiles{expi}{:})];
-      end
 
+      % Modify the error message to reflect missing files for each exp
+      nFileNamesMissingTotal=sum(cellfun(@(c)length(c),missingFileNames));
+      if nFileNamesMissingTotal>0 ,
+        stringForEachExpWithMissingFiles={};        
+        for i=1:length(missingFileNames)
+          expi=expis(i);
+          missingFileNamesThis=missingFileNames{i};
+          if ~isempty(missingFileNamesThis)
+            stringForEachExpWithMissingFiles{end+1}= ...
+              [civilizedStringFromCellArrayOfStrings(missingFileNamesThis) ' from experiment ' obj.expnames{expi}];  %#ok
+          end
+        end
+        msg= [msg ' Missing ' civilizedStringFromCellArrayOfStrings(stringForEachExpWithMissingFiles,';')];
+      end
+      msg
+      
       % fail if was ok and now not ok
       success = ~(old_allfilesexist || old_filesfixable) || ...
-        (obj.allfilesexist || obj.filesfixable);      
+                 (obj.allfilesexist || obj.filesfixable);      
     end  % method
     
     
@@ -3517,20 +3505,21 @@ classdef JLabelData < matlab.mixin.Copyable
       % the name.  Note that this function is a getter---it does not change
       % the object state at all.
 
-      % Process the arguments
-      if nargin > 1 && ~isempty(filetypes),
-        [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
-        if any(~fileTypeIsValid),
-          error('JLabelData:unknownFileType', ...
-                'Internal error: Unknown file type.  Please report to the JAABA developers.')
-        end
-      else
-        fileTypeIndices = 1:numel(obj.filetypes);
+      % Process arguments
+      if ~exist('filetypes','var') || isempty(filetypes)
+        filetypes=obj.filetypes;
       end
-      if nargin <= 2 || isempty(expis),
+      if ~exist('expis','var') || isempty(expis),
         expis = 1:obj.nexps;
       end
 
+      % Check that the file types requested are valid
+      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
+      if any(~fileTypeIsValid),
+        error('JLabelData:unknownFileType', ...
+              'Internal error: Unknown file type.  Please report to the JAABA developers.')
+      end
+      
       % Initialize the return vars
       nExpsToCheck=length(expis);
       nFileTypesToCheck=length(fileTypeIndices);
@@ -3634,8 +3623,8 @@ classdef JLabelData < matlab.mixin.Copyable
             if obj.IsRequiredFile(fileType),
               allRequiredFilesExist = false;
               % if furthermore file can't be generated, then not fixable
-              if ~JLabelData.CanGenerateFile(fileType),
-                missingFilesCanBeGenerated = false;
+              missingFilesCanBeGenerated = JLabelData.CanGenerateFile(fileType);
+              if ~missingFilesCanBeGenerated,
                 oneMissingFileTypeThatCantBeGenerated=fileType;
               end
             end
