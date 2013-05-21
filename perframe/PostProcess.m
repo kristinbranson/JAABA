@@ -190,7 +190,8 @@ if ~isempty(histscores),histscores(end) = [];
 histscores = histscores./max(histscores)*0.9*ylim(2);
 plot(handles.axes2,xLocs,histscores,'Color',max(handles.posColor,handles.negColor));
 end;
-handles.JLabelHandle = JLabel('SetNeedSave',handles.JLabelHandle);
+handles.JLabelHandle.data.setNeedSave();
+JLabel('UpdateEnablementAndVisibilityOfControls',handles.JLabelHandle);
 guidata(handles.JLabelHandle.figure_JLabel,handles.JLabelHandle);
 
 % --- Executes on button press in pushbutton_cancel.
@@ -221,7 +222,8 @@ JLabel('UpdatePlots',handles.JLabelHandle, ...
        'refresh_timeline_hcurr',false, ...
        'refresh_timeline_selection',false, ...
        'refresh_curr_prop',false);
-handles.JLabelHandle = JLabel('SetNeedSave',handles.JLabelHandle);
+handles.JLabelHandle.data.setNeedSave();
+JLabel('UpdateEnablementAndVisibilityOfControls',handles.JLabelHandle);
 guidata(handles.JLabelHandle.figure_JLabel,handles.JLabelHandle);
 delete(handles.figure1);
 
