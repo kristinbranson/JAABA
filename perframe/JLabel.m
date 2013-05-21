@@ -168,6 +168,23 @@ handles = LoadRC(handles);
 % Write the handles to the guidata
 guidata(hObject,handles);
 
+set(handles.figure_JLabel,'Visible','on');
+drawnow;
+
+% ask whether the user wants to open a project or start a new project
+res = questdlg('Open an existing project or start a new project?',...
+  'Project Startup','New','Open in Training Mode',...
+  'Open in Ground-Truthing Mode','Open in Training Mode');
+
+switch res,
+  case 'New',
+    newEverythingFile(handles.figure_JLabel);
+  case 'Open in Training Mode',
+    openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+  case 'Open in Ground-Truthing Mode',
+    openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+end
+    
 return
 
 

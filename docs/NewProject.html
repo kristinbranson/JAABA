@@ -47,17 +47,66 @@ strong.regular-font {
 <center><h1> Creating a new <a href="index.html">JAABA</a> Project </h1></center>
 
 <br>
-<p>Each behavior in JAABA corresponds to a different project. You can create a new project when JAABA starts up throught the <a href="#ProjectConfigurationDialog">Project Configuration Dialog</a>. </p>
+<p>Each behavior in JAABA corresponds to a different <a href="#JAABAProject">JAABA project</a>, stored in a MATLAB file with the extension <b>.jab</b>.
 
 <hr class="h2-divider">
 
 <h2><a id="Contents">Contents</a></h2>
 <ul>
-<li><a href="#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
+<li> <a href="#JAABAProject">JAABA Project Overview</a></li>
+<li><a href="#NewProject">Creating a New Project</a></li>
 <li><a href="#ScoresAsInput">Using Output of Previously Trained Classifiers</a></li>
 </ul>
 
 <hr class="h2-divider">
+
+<h2><a id="JAABAProject">JAABA Project Overview</a></h2>
+
+All data associated with a given behavior classifier is stored in a JAABA project file with the extension <b>.jab</b>. This includes the:
+<ul>
+<li><a href="#ProjectParameters">Project parameters</a>, such as the behavior name and what type of animal is being labeled. </li>
+<li>Trained <a href="#Classifier">behavior classifier</a>, which inputs information from the animals' trajectories and predicts the behavior class. </li>
+<li><a href="#TrainingData">Training data</a> labels and locations.</li>
+</ul>
+
+<h3><a id="ProjectParameters">JAABA Project Parameters</a></h3>
+
+<p>The following parameters must be set for each JAABA project. Information on the experiment directory structure referred to below can be found <a href="DataFormatting.html#ExperimentDirectoryStructure">here</a>.</p>
+
+<table border=1 style="margin-bottom:15px;margin-top:35px">
+<tr> <th>Field name</th><th>Example value</th><th>Description</th> </tr>
+
+<tr> <td>Target Type</td><td>flies</td><td>Type of animal whose behavior is being analyzed. This really refers to the type of tracking data which is being input. In our work, we use "flies" for both flies and mice and "larvae" for larvae. Other options, e.g. "larvae_mwt" correspond to larvae as well, but tracking using the MWT. This affects what per-frame and window features are used and how the animal's current position is plotted.</td></tr>
+
+<tr> <td>Behavior Name</td><td >Chase</td><td>Name of the behavior, used in the GUI for referring to the behavior.</td> </tr>
+
+<tr> <td>Movie File Name</td><td >movie.ufmf</td><td>Name of the movie
+file. For each experiment, JAABA reads and shows this file from the experiment directory. </td> </tr>
+
+<tr> <td>Tracking Data File Name</td><td >trx.mat</td><td>Name of the MATLAB mat file within each experiment directory in which the animals' trajectories are stored.</td> </tr>
+
+<tr> <td>Output/Score File Name</td><td
+>scoresChase.mat</td><td>Name of the MATLAB mat file within the experiment directory where the automatic behavior classifications will be output.</td> </tr>
+
+</table>
+<center><i>Description of JAABA project parameters.</i></center>
+
+<h3><a id="Classifier">Behavior Classifier</a></h3>
+
+The most recent behavior classifier trained using JAABA is also saved in the JAABA project file. The classifier is what is used to automatically predict the behavior of a given animal in a given frame from the 
+
+When JAABA starts, it will ask you whether you want to:
+<ul>
+<li>Start a new project</li>
+<li>Open an existing project in training mode</li>
+<li>Open an existing project in ground-truthing mode</li>
+</ul>
+Training mode is the standard mode 
+</p>
+
+If you choose to <b>start a new project</b> the <b>New...</b> dialog box will open. 
+
+You can create a new project when JAABA starts up throught the <a href="#ProjectConfigurationDialog">Project Configuration Dialog</a>. </p>
 
 <h2><a id="ProjectConfigurationDialog">Project Configuration Dialog</a></h2>
 
