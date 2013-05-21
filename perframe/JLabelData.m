@@ -1275,6 +1275,9 @@ classdef JLabelData < matlab.mixin.Copyable
       % try to predict using data cached in windowdata
 
       finished = false;
+      if isempty(obj.windowdata.exp),
+          return;
+      end
       idxfly = find(obj.windowdata.exp == expi & all(bsxfun(@eq,obj.windowdata.flies,flies),2));
       if isempty(idxfly),
         return;
