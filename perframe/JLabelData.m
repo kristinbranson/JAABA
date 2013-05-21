@@ -2399,7 +2399,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         msg= [msg ' Missing ' civilizedStringFromCellArrayOfStrings(stringForEachExpWithMissingFiles,';')];
       end
-      msg
+      %msg
       
       % fail if was ok and now not ok
       success = ~(old_allfilesexist || old_filesfixable) || ...
