@@ -30,7 +30,8 @@ macguffin.setMovieFileName('movie.ufmf');
 
 % Create the JLabelData object
 data=JLabelData('setstatusfn',@(str)(fprintf('%s\n',str)), ...
-                'clearstatusfn',@()(nop()));
+                'clearstatusfn',@()(nop()), ...
+                'isInteractive',false);
 
 % Create a new file in the JLabelData object
 data.newJabFile(macguffin);
@@ -39,8 +40,7 @@ data.newJabFile(macguffin);
 nameOfExpDirToAdd='/groups/branson/bransonlab/projects/JAABA/test_data/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
 %nameOfExpDirToAdd='/Users/taylora/jaaba/test_data/GMR_71G01_AE_01_TrpA_Rig2Plate14BowlD_20110707T154929';
 data.SetGenerateMissingFiles();  % tell JLabelData to generate any missing perframe files
-isInteractive=false;
-[success,msg]=data.AddExpDir(nameOfExpDirToAdd,isInteractive);
+[success,msg]=data.AddExpDir(nameOfExpDirToAdd);
 if ~success ,
   error(msg);
 end
