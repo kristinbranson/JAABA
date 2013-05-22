@@ -31,6 +31,7 @@ classdef Macguffin < handle
     function initFromFeatureLexiconName(self,featureLexiconName)
       [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
       self.featureLexiconName=featureLexiconName;
+      self.behaviors.type=animalType;
       self.behaviors.names = {};  % no behaviors defined yet
       self.file.perframedir = 'perframe';
       self.file.clipsdir = 'clips';

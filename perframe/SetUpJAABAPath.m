@@ -2,6 +2,7 @@
 
 jlabelpath = fileparts(mfilename('fullpath'));
 % Initialize all the paths.
+addpath(jlabelpath);  % in case we ever want to cd out of this dir
 baseDir = fileparts(jlabelpath);
 addpath(fullfile(baseDir,'misc'));
 addpath(fullfile(baseDir,'filehandling'));
