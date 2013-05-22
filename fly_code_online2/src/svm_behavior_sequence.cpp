@@ -1530,6 +1530,7 @@ bool SVMBehaviorSequence::fill_unlabeled_gt_frames(BehaviorBoutSequence *&y_gt, 
 	num_added++;
       }
       if(i != y_gt->num_bouts) {
+	y_gt_new->bouts = (BehaviorBout*)realloc(y_gt_new->bouts, sizeof(BehaviorBout)*(y_gt_new->num_bouts+num_added+1));
 	y_gt_new->bouts[y_gt_new->num_bouts].start_frame = s;
 	y_gt_new->bouts[y_gt_new->num_bouts].end_frame = lastframe = e;
 	y_gt_new->bouts[y_gt_new->num_bouts].behavior = b;
