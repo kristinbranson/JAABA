@@ -2449,7 +2449,7 @@ set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 % set(handles.menu_file_import_old_style_classifier, ...
 %     'Enable',onIff(thereIsAnOpenFile&&(nExps==0)));
 %set(handles.menu_file_basic_settings,'Enable',onIff(thereIsAnOpenFile));
-set(handles.menu_file_change_target_type,'Enable',onIff(thereIsAnOpenFile));
+%set(handles.menu_file_change_target_type,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_behavior_name,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_change_score_file_name,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_modify_experiment_list,'Enable',onIff(thereIsAnOpenFile));
@@ -9006,58 +9006,58 @@ ProjectSetup('figureJLabel',handles.figure_JLabel, ...
 return
 
 
-% --------------------------------------------------------------------
-function menu_file_change_target_type_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_file_change_target_type (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% % --------------------------------------------------------------------
+% function menu_file_change_target_type_Callback(hObject, eventdata, handles)
+% % hObject    handle to menu_file_change_target_type (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% featureLexiconName=handles.data.featureLexiconName;
+% ChangeFeatureLexiconDialog(featureLexiconName,handles.figure_JLabel);
+% return
 
-featureLexiconName=handles.data.featureLexiconName;
-ChangeFeatureLexiconDialog(featureLexiconName,handles.figure_JLabel);
-return
 
-
-% -------------------------------------------------------------------------
-function changeFeatureLexiconDone(figureJLabel,newFeatureLexiconName)
-
-% get handles
-handles=guidata(figureJLabel);
-data=handles.data;  % a ref
-
-% % if new same as old, do nothing
-% if isequal(newFeatureLexiconName,data.featureLexiconName)
+% % -------------------------------------------------------------------------
+% function changeFeatureLexiconDone(figureJLabel,newFeatureLexiconName)
+% 
+% % get handles
+% handles=guidata(figureJLabel);
+% data=handles.data;  % a ref
+% 
+% % % if new same as old, do nothing
+% % if isequal(newFeatureLexiconName,data.featureLexiconName)
+% %   return
+% % end
+% 
+% % If the user selected custom, no change is required.
+% if isequal(newFeatureLexiconName,'custom')
 %   return
 % end
-
-% If the user selected custom, no change is required.
-if isequal(newFeatureLexiconName,'custom')
-  return
-end
-
-% Update the status, change the pointer to the watch
-SetStatus(handles,'Changing target type...');
-
-% Set the feature dictionary, basic params in JLabelData
-[success,msg]=data.setFeatureLexiconFromName(newFeatureLexiconName);
-if ~success,
-  uiwait(errordlg(msg,'Error Changing Target Type','modal'));
-end
-
-% % Note that we now need saving
-% handles.data.needsave=true;
-
-% Update the plots
-%UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
-UpdatePlots(handles);
-
-% Done, set status message to cleared message, pointer to normal
-syncStatusBarTextWhenClear(handles);
-ClearStatus(handles);
-
-% write the handles back to figure
-guidata(figureJLabel,handles);
-
-return
+% 
+% % Update the status, change the pointer to the watch
+% SetStatus(handles,'Changing target type...');
+% 
+% % Set the feature dictionary, basic params in JLabelData
+% [success,msg]=data.setFeatureLexiconAndTargetSpeciesFromFLName(newFeatureLexiconName);
+% if ~success,
+%   uiwait(errordlg(msg,'Error Changing Target Type','modal'));
+% end
+% 
+% % % Note that we now need saving
+% % handles.data.needsave=true;
+% 
+% % Update the plots
+% %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
+% UpdatePlots(handles);
+% 
+% % Done, set status message to cleared message, pointer to normal
+% syncStatusBarTextWhenClear(handles);
+% ClearStatus(handles);
+% 
+% % write the handles back to figure
+% guidata(figureJLabel,handles);
+% 
+% return
 
 
 % --------------------------------------------------------------------
