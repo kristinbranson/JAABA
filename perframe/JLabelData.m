@@ -3570,7 +3570,7 @@ classdef JLabelData < matlab.mixin.Copyable
               fileExists(i,j) = false;
             end
             if ~fileExists(i,j) && obj.IsRequiredFile(fileType)
-              missingFileNamesComplete{expi}{end+1} = fileType;
+              missingFileNamesComplete{i}{end+1} = fileType;
             end
           end
         end
