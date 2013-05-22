@@ -1506,7 +1506,7 @@ bool SVMBehaviorSequence::fill_unlabeled_gt_frames(BehaviorBoutSequence *&y_gt, 
       if(y_partial && y_partial_new) {
 	num_partial = y_partial->num_bouts;
 	while(partial_ind < y_partial->num_bouts && y_partial->bouts[partial_ind].end_frame <= s) {
-	  y_partial_new->bouts = (BehaviorBout*)realloc(y_partial_new->bouts, sizeof(BehaviorBout)*(num_partial+num_added+1));
+	  y_partial_new->bouts = (BehaviorBout*)realloc(y_partial_new->bouts, sizeof(BehaviorBout)*(y_partial_new->num_bouts+num_added+1));
 	  y_partial_new->bouts[y_partial_new->num_bouts++] = y_partial->bouts[partial_ind++];
 	}
       }

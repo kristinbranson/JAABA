@@ -46,12 +46,12 @@ disp('computing feature definitions...')
 params = {};
 params.behaviors = behavior_parameters(behs);
 params.frame_feature_params = frame_feature_parameters(feat, p, trainvals);
-if do_feature_selection,
-    params.maxDual = .03;
-    params.bout_expansion_feature_params = bout_feature_parameters(params.frame_feature_params, p, trainvals, FPS);
-else
+%if do_feature_selection,
+%    params.maxDual = .03;
+%    params.bout_expansion_feature_params = bout_feature_parameters(params.frame_feature_params, p, trainvals, FPS);
+%else
     params.bout_feature_params = bout_feature_parameters(params.frame_feature_params, p, trainvals, FPS);
-end
+%end
 if ~isempty(trainvals) && ~isempty(trainvals.feat_mu) && ~isempty(trainvals.feat_gamma) && ~isempty(trainvals.histogram_thresholds) 
     params.dontComputeFeaturMeanVarianceMedianStatistics = true;
 end
@@ -98,6 +98,13 @@ for ii=1:(numel(behs)+1),
     % Save behavior and feature definitions
     fout = fopen(sprintf('%s/params_%s.txt', export_dir, beh), 'w');
     fprintf(fout, '%s', savejson(params2));
+    fclose(fout);
+    
+    fout = fopen(sprintf('%s/params_%s_fs.txt', export_dir, beh), 'w');
+    params3 = rmfield(params2,'bout_feature_params');
+    params3.maxDual = .03;
+    params3.bout_expansion_feature_params = params2.bout_feature_params;
+    fprintf(fout, '%s', savejson(params3));
     fclose(fout);
     
     % Save train/test file lists
@@ -587,12 +594,18 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
     [m, ~]=ind2sub(size(f),find(isnan(f)));
     
     trx = {};
-    if(isempty(m)), 
-        trx.firstframe = 1; 
-    else
-        trx.firstframe = max(m)+1;
-    end
+    trx.firstframe = 1;
     trx.endframe = feat.end_frame;
+    if ~isempty(m), 
+        if feat.end_frame-min(m) < max(m)-1,
+            trx.endframe = min(m)-1;
+        else
+            trx.firstframe = max(m)+1;
+        end
+        discarded = feat.end_frame-1-(trx.endframe-trx.firstframe);
+        disp(sprintf('Discarding %d frames in %s due to nan valued features', discarded, dirname));
+        assert(discarded < 100);
+    end
     trx.id = fly_id;
     trx.fps = FPS;
     trx.moviefile = '';
@@ -614,8 +627,8 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
         if isempty(bouts{fly_id,kk}),
             t0s = [];   t1s = [];  be = [];
         else
-            t0s = bouts{fly_id,kk}(:,1);
-            t1s = bouts{fly_id,kk}(:,2)+1;
+            t0s = max(bouts{fly_id,kk}(:,1), trx.firstframe);
+            t1s = min(bouts{fly_id,kk}(:,2)+1, trx.endframe);
             be = ones(length(t0s),1)*(kk+1);
         end
         if ~strcmp(behs{kk}, 'unknown')

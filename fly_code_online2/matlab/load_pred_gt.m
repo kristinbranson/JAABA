@@ -19,8 +19,11 @@ function [pred_frames, gt_frames, max_dur, pred_bouts, gt_bouts, gt_movie_names,
         gt_movie_names{ii} = o.ground_truth.y.moviename;
         gt_frames{ii} = [];
         pred_frames{ii} = [];
+        n = max(o.ground_truth.y.bouts(length(o.ground_truth.y.bouts)).end_frame, o.predicted.y.bouts(length(o.predicted.y.bouts)).end_frame)-t0;
         gt_bouts{ii} = zeros(length(o.ground_truth.y.bouts),6);
         pred_bouts{ii} = zeros(length(o.predicted.y.bouts),6);
+        pred_frames{ii} = zeros(n,1);
+        gt_frames{ii} = zeros(n,1);
         for jj=1:length(o.ground_truth.y.bouts),
             s = o.ground_truth.y.bouts(jj).start_frame+1-t0;
             e = o.ground_truth.y.bouts(jj).end_frame-t0;
