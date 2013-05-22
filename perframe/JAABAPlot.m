@@ -445,12 +445,13 @@ switch(handles.analysis)
     else
       set(handles.FeatureList,'enable','on');
       set(handles.ConvolutionWidth,'enable','on');
-      set(handles.WindowRadius,'enable','on');
-      set(handles.XOffset,'enable','on');
       set(handles.CentralTendency,'enable','on');
       set(handles.Dispersion,'enable','on');
-      if(handles.featuretimeseries_style2~=1)
+      if(handles.featuretimeseries_style2==1)
+        set(handles.XOffset,'enable','on');
+      else
         set(handles.SubtractMean,'enable','on');
+        set(handles.WindowRadius,'enable','on');
       end
     end
   case 'behavior_barchart'
@@ -523,6 +524,9 @@ if(~isempty(analysis2))
     set(handles.BehaviorNot,'enable','on');
     set(handles.BehaviorList,'enable','on');
     set(handles.BehaviorLogic,'enable','on');
+    if(handles.behaviorlogic>1)
+      set(handles.BehaviorList2,'enable','on');
+    end
   end
   if((ismember(analysis2,{'behavior_barchart','behavior_timeseries'})) && ...
       (length(handles.behaviorlist)>0))
@@ -530,9 +534,6 @@ if(~isempty(analysis2))
   end
   if(~isempty(handles.classifierlist) && (handles.behaviorvalue3>1))
     set(handles.BehaviorNormalizeNot,'enable','on');
-  end
-  if(handles.behaviorlogic>1)
-    set(handles.BehaviorList2,'enable','on');
   end
   if(~strcmp(analysis2,'interesting_feature_histograms'))
     set(handles.IndividualList,'enable','on');
