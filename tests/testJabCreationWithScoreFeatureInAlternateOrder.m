@@ -105,12 +105,14 @@ data.SetLabel(iExp,iFly,ts2,iBehavior2,isImportant2);
 data.Train();
 
 % The predictions should be correct for the labeled bouts
+data.Predict(iExp,iFly,ts1(1),ts1(end));  % Make sure the prediction has been done
 pred1=data.GetPredictedIdx(iExp,iFly,ts1(1),ts1(end));
 if all(pred1.predictedidx==iBehavior1)
   fprintf('Predictions are correct for first labeled bout!\n');
 else
   error('Predictions are wrong for first label');
 end
+data.Predict(iExp,iFly,ts2(1),ts2(end));  % Make sure the prediction has been done
 pred2=data.GetPredictedIdx(iExp,iFly,ts2(1),ts2(end));
 if all(pred2.predictedidx==iBehavior2)
   fprintf('Predictions are correct for second labeled bout!\n');
