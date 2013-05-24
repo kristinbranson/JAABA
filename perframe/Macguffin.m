@@ -143,8 +143,16 @@ classdef Macguffin < handle
                                                   projectParams, ...
                                                   classifierParams, ...
                                                   gtExpDirNames, ...
-                                                  gtLabels)
+                                                  gtLabels, ...
+                                                  scoreFeatureMatFileNames, ...
+                                                  scoreFeatureJabFileNames)
     
+      % process args
+      if ~exist('scoreFeatureMatFileNames','var') || ~exist('scoreFeatureJabFileNames','var')
+        scoreFeatureMatFileNames=cell(0,1);
+        scoreFeatureJabFileNames=cell(0,1);
+      end
+      
       % get the featureLexicon from the relevant file
       featureLexiconFileNameRel=projectParams.file.featureconfigfile;
       pathToMisc=fileparts(mfilename());
@@ -201,7 +209,10 @@ classdef Macguffin < handle
       self.featureLexiconName=featureLexiconName;
       self.featureLexicon=featureLexicon;
       self.sublexiconPFNames=sublexiconPFNames;
-      self.scoreFeatures=projectParams.scoresinput;
+      self.scoreFeatures= ...
+        replaceScoreFeatureClassifierFileNames(projectParams.scoresinput, ...
+                                               scoreFeatureMatFileNames, ...
+                                               scoreFeatureJabFileNames);
 %       if isempty(projectParams.behaviors.names) ,
 %         self.behaviorName='';
 %       else
