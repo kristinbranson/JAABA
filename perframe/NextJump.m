@@ -44,7 +44,7 @@ classdef NextJump < handle
         obj.curType = state.curType;
       end
       if isstruct(state) && isfield(state,'perframeSelFeatures') && ...
-          state.perframeSelFeatures <= numel(obj.perframefns);
+          numel(state.perframeSelFeatures) <= numel(obj.perframefns);
         obj.perframeSelFeatures = state.perframeSelFeatures;
         obj.perframeSelThresholds = state.perframeSelThresholds;
         obj.perframeComparisonType = state.perframeComparisonType;
