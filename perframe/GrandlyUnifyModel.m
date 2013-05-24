@@ -110,7 +110,9 @@ classdef GrandlyUnifyModel < handle
         jabFileName, ...
         self.projectFileName, ...
         self.classifierFileName, ...
-        self.gtExpDirNames);    
+        self.gtExpDirNames, ...
+        self.scoreFeatureMatFileNames, ...
+        self.scoreFeatureJabFileNames);    
     end  % method
   end  % methods
 
@@ -122,8 +124,8 @@ classdef GrandlyUnifyModel < handle
       scoreFeatureMatFileNames={scoresAsInput.classifierfile}';
       nScoreFeatures=length(scoresAsInput);
       scoreFeatureJabFileNames=cell(nScoreFeatures,1);
-      if nScoreFeatures>0
-        scoreFeatureJabFileNames{:}='';
+      for i=1:nScoreFeatures
+        scoreFeatureJabFileNames{i}='';
       end
     end % method
   end  % class methods
