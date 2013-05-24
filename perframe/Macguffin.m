@@ -350,15 +350,24 @@ classdef Macguffin < handle
       elseif length(varargin)==1 && isstruct(varargin{1})
         basicDataStruct=varargin{1};
         self.initFromBasicDataStruct(basicDataStruct);
-      elseif length(varargin)==4
+      elseif length(varargin)==4 || length(varargin)==6
         projectParams=varargin{1};
         classifierParams=varargin{2};
         gtExpDirNames=varargin{3};
         gtLabels=varargin{4};
+        if length(varargin)==6
+           scoreFeatureMatFileNames=varargin{5};
+           scoreFeatureJabFileNames=varargin{6};
+        else
+           scoreFeatureMatFileNames=cell(0,1);
+           scoreFeatureJabFileNames=cell(0,1);
+        end
         self.initFromOldStyleProjectAndClassifier(projectParams, ...
                                                   classifierParams, ...
                                                   gtExpDirNames, ...
-                                                  gtLabels);
+                                                  gtLabels, ...
+                                                  scoreFeatureMatFileNames, ...
+                                                  scoreFeatureJabFileNames);
       else
         error('Macguffin:badArgumentsToConstructor', ...
               'The arguments to Macguffin() are no good');
