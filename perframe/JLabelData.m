@@ -3551,7 +3551,7 @@ classdef JLabelData < matlab.mixin.Copyable
               if ~fileExists(i,j) && obj.IsRequiredFile(fileType),
                 for indicesOfMissingPerframeFiles = find(~perframeFileExists(:)'),
                   [~,fileNameThis] = myfileparts(perframeFileNames{indicesOfMissingPerframeFiles});
-                  missingFileNamesComplete{expi}{end+1} = ['perframe_' fileNameThis];
+                  missingFileNamesComplete{i}{end+1} = ['perframe_' fileNameThis];
                 end
               end
               fileTimeStamps(i,j) = max(timestamps);
@@ -6457,6 +6457,8 @@ classdef JLabelData < matlab.mixin.Copyable
       
       expdir = obj.expdirs{expi};
       
+      hwait=-1;  % make sure hwait var exists, and is not a graphics handle
+                 % unless it gets overwritten
       if isInteractive
         hwait = mywaitbar(0,sprintf('Generating perframe files for %s',expdir),'interpreter','none');
       else
@@ -6511,10 +6513,25 @@ classdef JLabelData < matlab.mixin.Copyable
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
         
+        % Generate the per-frame files that are not score features
         % Don't generate the per-frame files from scores here anymore..
-        if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
-          perframetrx.(fn);
-        end        
+        
+        try
+          if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
+            perframetrx.(fn);
+          end        
+        catch excp
+          if isInteractive && ishandle(hwait),
+            delete(hwait);
+          end
+          if isequal(excp.identifier,'MATLAB:UndefinedFunction')
+            msg=sprintf('Unable to calculate per-frame feature %s.',fn);
+            success=false;
+            return
+          else
+            rethrow(excp);
+          end
+        end
       end
       
       if isInteractive && ishandle(hwait),
@@ -10137,22 +10154,33 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function closeJabFile(self)
+      % The list of things we want to be persistent
+      listOfPersistentSlots={'defaultpath' ...
+                             'setstatusfn' ...
+                             'clearstatusfn' ...
+                             'cacheSize' ...
+                             'version' ...
+                             'perframeGenerate' ...
+                             'perframeOverwrite' ...
+                             'isInteractive'}';
+      
       % Save the things we want to persist after closing the file
-      defaultPath=self.defaultpath;
-      setStatusFunction=self.setstatusfn;
-      clearStatusFunction=self.clearstatusfn;
-      cacheSize=self.cacheSize;
-      version=self.version;
+      nPersistentSlots=length(listOfPersistentSlots);
+      for i=1:1:nPersistentSlots
+        thisSlot=listOfPersistentSlots{i};
+        evalString=sprintf('%s=self.%s;',thisSlot,thisSlot);
+        eval(evalString);
+      end
       
       % Nuke the site from orbit.  It's the only way to be sure.
       self.initialize();
       
       % Re-load the things we want to persist
-      self.defaultpath=defaultPath;
-      self.setstatusfn=setStatusFunction;
-      self.clearstatusfn=clearStatusFunction;
-      self.cacheSize=cacheSize;
-      self.version=version;
+      for i=1:1:nPersistentSlots
+        thisSlot=listOfPersistentSlots{i};
+        evalString=sprintf('self.%s=%s;',thisSlot,thisSlot);
+        eval(evalString);
+      end
     end
     
     
