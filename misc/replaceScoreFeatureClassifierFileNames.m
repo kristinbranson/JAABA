@@ -1,5 +1,5 @@
 function scoreFeatures= ...
-  replaceScoreFeatureClassifierFileNames(scoresFeatures, ...
+  replaceScoreFeatureClassifierFileNames(scoreFeatures, ...
                                          scoreFeatureMatFileNames, ...
                                          scoreFeatureJabFileNames)
 
@@ -11,12 +11,12 @@ function scoreFeatures= ...
 % scoreFeatureMatFileNames, it is replaced (in the output) with the corresponding 
 % element of scoreFeatureJabFileNames
 
-classifierFileNames={scoresFeatures.classifierfilename};
-n=length(scoresFeatures);
+classifierFileNames={scoreFeatures.classifierfile};
+n=length(scoreFeatures);
 for i=1:n
   j=whichstr(classifierFileNames{i},scoreFeatureMatFileNames);
   if ~isempty(j)
-    scoresFeatures{i}.classifierfilename=scoreFeatureJabFileNames{j};
+    scoreFeatures(i).classifierfile=scoreFeatureJabFileNames{j};
   end
 end
 
