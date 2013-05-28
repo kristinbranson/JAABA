@@ -12,6 +12,27 @@ classdef JLabelData < matlab.mixin.Copyable
   % everythingParams is generally the contents of a .jab file, which may
   % well have experiments, labels, and/or a classifier.
   
+  % About lexicons, sublexicons, dialects, subdialects, vocabularies, and 
+  % all that: 
+  %   The feature lexicon is the set of all possible features, not 
+  %   including the score features (a.k.a. scores-as-inputs).
+  %
+  %   The feature dialect is the feature lexicon plus the score features.
+  %   (In this analogy, the score features are like region-specific words,
+  %   or jargon.)
+  % 
+  %   The feature sublexicon is the subset of the feature lexicon that
+  %   actually gets calculated for a particular .jab file.
+  % 
+  %   The feature subdialect is the sublexicon plus the score features.
+  % 
+  %   The feature vocabulary is the enabled features of the sublexicon, plus
+  %   the enabled score features.  (The idea is that the classifier only "speaks"
+  %   this vocabulary.)
+  %
+  %   Note that in all of the above, "features" can mean "per-frame
+  %   features" or "window features", depending on the context.
+  
   % -----------------------------------------------------------------------
   properties (SetAccess=private, GetAccess=public)
     expi  % currently selected  experiment
@@ -32,7 +53,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % This seems to generally be a cell array with as many elements as
     % allperframefns.  (I.e. as many features as are in the subdialect.)
     % Each element contains a double array with approximately as many
-    % elements as their are frames in the current track, which gives the
+    % elements as there are frames in the current track, which gives the
     % value of that per-frame feature for that frame, for the current
     % experiment and target.  --ALT, Apr 10 2013
     perframedata
@@ -278,11 +299,13 @@ classdef JLabelData < matlab.mixin.Copyable
                     % each frame, plus the scores-as-input feature
                     % names.  I would call this the the 'subdialect'.
                     % --ALT, Apr 5, 2013
-    curperframefns  % The list of all per-frame feature names 
-                    % that are used for classifier training.  This is
-                    % a subset of allperframefns, and includes all the
-                    % scores-as-input feature names.  I would call
-                    % this the 'vocabulary'. --ALT, Apr 5, 2013
+    curperframefns  % The list of all per-frame feature names
+                    % that are enabled, i.e. used for used for classifier 
+                    % training.  This is a subset of allperframefns, and will 
+                    % include a subset of the score features (but the
+                    % subset might be the empty set).  I would 
+                    % call this the 'vocabulary'.  --ALT, May 18, 2013
+      % Thus curperframefns is the subset of allperframefns that are enabled.                    
     perframeunits 
 
     % the scores from other classifiers that that used as features for this
@@ -374,6 +397,12 @@ classdef JLabelData < matlab.mixin.Copyable
     trxGraphicParams
     labelcolors
     unknowncolor
+    
+    % A slot to store whether the JLabelData object is being used
+    % interactively.  Controls whether the object tries to ask the user
+    % questions, etc.  At some point, it might be nice to refactor so that
+    % this went away, and the JLabelData object _never_ did UI type stuff.
+    isInteractive
     
     % .jab-file handling stuff
     thereIsAnOpenFile
@@ -601,6 +630,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.trxGraphicParams=[];
       self.labelcolors = [];
       self.unknowncolor = [0 0 0];
+      self.isInteractive=true;
       self.thereIsAnOpenFile=false;
       self.everythingFileNameAbs='';
       self.userHasSpecifiedEverythingFileName=false;
@@ -608,25 +638,104 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
     
     
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesRaw(obj,featureLexicon,targetSpecies,varargin)
+%       % This sets the feature lexicon to the given one, and also sets the target species.  If the
+%       % featureLexicon is not one of the named ones, then either no
+%       % featureLexiconName should be given, or the name should be 'custom'.
+%             
+%       obj.targettype=targetSpecies;  % what species the targets are
+%       [success,msg] = ...
+%         obj.setFeatureLexiconAndFLName(featureLexicon,varargin{:});
+%     end  % method
+    
+    
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesFromFLName(obj,featureLexiconName)
+%       % This sets the feature lexicon to the one named by
+%       % featureLexiconName
+%       
+% %       % Only do stuff if the new lexicon name is different than the current
+% %       % one
+% %       if isequal(featureLexiconName,obj.featureLexiconName)
+% %         success=true;
+% %         return
+% %       end
+%       
+%       % Get the lexicon itself and the associated animal type
+%       [featureLexicon,animalType]= ...
+%         featureLexiconFromFeatureLexiconName(featureLexiconName);     
+% 
+%       % Store the lexicon-associated stuff in obj
+%       %[success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,featureLexiconName);
+%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,featureLexiconName);
+%       
+%       % Set the animal type
+%       obj.targettype=animalType;
+%     end  % method
+    
+    
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndFLName(obj,featureLexicon,featureLexiconName)
+%       % This sets the feature lexicon to the given one.  If the
+%       % featureLexicon is not one of the named ones, then either no
+%       % featureLexiconName should be given, or the name should be 'custom'.
+%       
+%       % process args
+%       if ~exist('featureLexiconName','var')
+%         featureLexiconName='custom';
+%       end
+%       
+%       % Setup the default return values
+%       %success = false;
+%       msg = '';
+% 
+%       % Store the lexicon-associated stuff in obj
+%       obj.featureLexiconName=featureLexiconName;
+%       obj.featureLexicon=featureLexicon;  % save to obj
+%       %obj.targettype=targetSpecies;  % what species the targets are
+%       
+%       % Update obj.perframe_params based on the new feature lexicon
+%       if isfield(featureLexicon,'perframe_params'),
+%         obj.perframe_params=featureLexicon.perframe_params;
+%         % pf_fields = fieldnames(featureLexicon.perframe_params);
+%         % for ndx = 1:numel(pf_fields),
+%         %   obj.perframe_params.(pf_fields{ndx}) = ...
+%         %     featureLexicon.perframe_params.(pf_fields{ndx});
+%         % end
+%       end
+% 
+%       % Update obj.allperframefns based on the new feature lexicon
+%       obj.allperframefns =  fieldnames(featureLexicon.perframe);
+%       
+%       % Re-load the perframe feature signals, since the PFFs may have changed
+%       obj.loadPerframeData(obj.expi,obj.flies);
+% 
+%       % Clear the classifier, since the feature lexicon has changed
+%       % This also clears the features currently in use by the classifier
+%       % trainer
+%       obj.clearClassifierProper();
+%       
+%       % If we got this far, all is good
+%       obj.needsave=true;
+%       success = true;
+%     end  % method
+    
+    
     % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconRaw(obj,featureLexicon,animalType,featureLexiconName)
+    function setFeatureSublexicon(obj,featureLexicon,featureLexiconName,sublexiconPFNames)
       % This sets the feature lexicon to the given one.  If the
       % featureLexicon is not one of the named ones, then either no
       % featureLexiconName should be given, or the name should be 'custom'.
       
-      % process args
-      if ~exist('featureLexiconName','var')
-        featureLexiconName='custom';
-      end
-      
       % Setup the default return values
       %success = false;
-      msg = '';
+      %msg = '';
 
       % Store the lexicon-associated stuff in obj
       obj.featureLexiconName=featureLexiconName;
       obj.featureLexicon=featureLexicon;  % save to obj
-      obj.targettype=animalType;
+      %obj.targettype=targetSpecies;  % what species the targets are
       
       % Update obj.perframe_params based on the new feature lexicon
       if isfield(featureLexicon,'perframe_params'),
@@ -639,21 +748,70 @@ classdef JLabelData < matlab.mixin.Copyable
       end
 
       % Update obj.allperframefns based on the new feature lexicon
-      obj.allperframefns =  fieldnames(featureLexicon.perframe);
+      %obj.allperframefns =  fieldnames(featureLexicon.perframe);
+      obj.allperframefns = sublexiconPFNames;      
+      
+%       % Generate any missing per-frame files that might be needed
+%       for iExp=1:obj.nexps
+%         [success,msg] =obj.GeneratePerframeFilesExceptScoreFeatures(iExp);
+%         if ~success
+%           error('JLabelData:unableToGeneratePerframefiles',msg);
+%         end
+%       end
+      
+      % Generate the necessary files now, so that any problems occur now.
+      generateMissingPerframeFiles=obj.perframeGenerate;
+      for iExp=1:obj.nexps
+        expName=obj.expnames{iExp};
+        allPerframeFilesExist=obj.fileOfGivenTypesExistForGivenExps('perframedir',iExp);
+        if ~allPerframeFilesExist ,
+          % Figure out whether to try to generate the missing files
+          obj.SetStatus('Some files missing for %s...',expName);
+          if isempty(generateMissingPerframeFiles) && obj.isInteractive ,
+            % Would be good to move UI stuff out of JLabelData, which is
+            % essentially a model in MVC terms --ALT, Apr 30, 2013
+            questionString=sprintf('Experiment %s is missing required per-frame files. Generate now?',expName);
+            res = questdlg(questionString, ...
+                           'Generate missing per-frame files?', ...
+                           'Yes','No', ...
+                           'Yes');
+            if strcmpi(res,'Yes')
+              generateMissingPerframeFiles=true;
+            elseif isempty(res) || strcmpi(res,'No')
+              generateMissingPerframeFiles=false;
+            end
+          end
+          % Generate the missing files, or generate an error  
+          if ~isempty(generateMissingPerframeFiles) && generateMissingPerframeFiles,
+            obj.SetStatus('Generating missing files for %s...',expName);
+            [success,msg]=obj.GeneratePerframeFilesExceptScoreFeatures(iExp);
+            if ~success,
+              error('JLabelData:unableToGeneratePerframeFile',msg);
+            end
+          else
+            obj.SetStatus('Not generating missing files for %s...',expName);
+            msg='Unable to generate per-frame files because user declined to.';
+            error('JLabelData:unableToGeneratePerframeFile',msg);
+          end
+        end
+      end
       
       % Re-load the perframe feature signals, since the PFFs may have changed
-      obj.loadPerframeData(obj.expi,obj.flies);
+      [success,msg]=obj.loadPerframeData(obj.expi,obj.flies);
+      if ~success ,
+        error('JLabelData:unableToLoadPerframeData',msg);
+      end
 
       % Clear the classifier, since the feature lexicon has changed
       % This also clears the features currently in use by the classifier
       % trainer
       obj.clearClassifierProper();
-      
+
       % If we got this far, all is good
       obj.needsave=true;
-      success = true;
+      %success = true;
     end  % method
-    
+
     
     % ---------------------------------------------------------------------
     function [success,msg]=loadPerframeData(obj,expi,indicesOfTargets)
@@ -752,13 +910,24 @@ classdef JLabelData < matlab.mixin.Copyable
       before=obj.copy();  % make a copy of the object, in case something goes wrong
       try
         % feature config file
-        if isequal(everythingParams.featureLexiconName,'custom')
-          obj.setFeatureLexiconCustom(everythingParams.featureLexicon, ...
-                                      everythingParams.behaviors.type);
-        else
-          obj.setFeatureLexiconFromName(everythingParams.featureLexiconName);
-        end
+        obj.setFeatureSublexicon(everythingParams.featureLexicon, ...
+                                 everythingParams.featureLexiconName, ...
+                                 everythingParams.sublexiconPFNames);
+%         if isequal(everythingParams.featureLexiconName,'custom')
+%           %obj.setFeatureLexiconAndTargetSpeciesCustom(everythingParams.featureLexicon, ...
+%           %                                            everythingParams.behaviors.type);
+%           [success,msg] = obj.setFeatureLexiconAndFLName(everythingParams.featureLexicon,'custom');
+%           obj.targettype=everythingParams.behaviors.type;
+%         else
+%           [success,msg]=obj.setFeatureLexiconAndTargetSpeciesFromFLName(everythingParams.featureLexiconName);
+%         end
+%         if ~success , 
+%           error('JLabelData:unableToSetFeatureSublexicon',msg);
+%         end
 
+        % Set the target species
+        obj.targettype=everythingParams.behaviors.type;
+                
         % get some silly stuff out of projectParams
         %obj.projectParams=projectParams;
         obj.labelGraphicParams=everythingParams.labelGraphicParams;
@@ -826,9 +995,6 @@ classdef JLabelData < matlab.mixin.Copyable
                   msg);
           end
         end
-
-        % Update allperframefns
-        obj.allperframefns = everythingParams.sublexiconPFNames;
 
         % Note sure what to do here---Macguffin class doesn't have a perframe
         % property at present
@@ -1769,7 +1935,6 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end  % method
 
-    
     % ---------------------------------------------------------------------
     function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
     % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
@@ -1880,13 +2045,13 @@ classdef JLabelData < matlab.mixin.Copyable
         ndx = find(strcmp(fn,allperframefns));
         if isempty(ndx),
           success = false;
-          msg = 'There is at least one per-frame feature that is not in the lexicon, and is not a score feature';
+          msg = sprintf('Internal error: There is at least one per-frame feature in the vocabulary (%s) that is not in the subdialect.',fn);
           return;
         end
         
         if ~exist(perframefile{ndx},'file'),
           if ~isdeployed 
-            if isempty(obj.GetGenerateMissingFiles()) || ~obj.GetGenerateMissingFiles()
+            if isempty(obj.GetGenerateMissingFiles())
               res = questdlg(sprintf(['Experiment %s is missing some perframe files '...
                 '(%s, possibly more). Generate now?'],obj.expnames{expi},perframefile{ndx}),...
                 'Generate missing files?','Yes','Cancel','Yes');
@@ -1894,7 +2059,7 @@ classdef JLabelData < matlab.mixin.Copyable
                 obj.SetGenerateMissingFiles();
               end
             else 
-              res = 'Yes';
+              res = fif(obj.GetGenerateMissingFiles(),'Yes','No');
             end
           else
             res = 'Yes';
@@ -1911,7 +2076,7 @@ classdef JLabelData < matlab.mixin.Copyable
             
           else
             success = false;
-            msg = sprintf('Cannot compute window data for %s ',expdir);
+            msg = sprintf('Cannot compute window data for %s ',obj.expnames{expi});
             return;
           end
 
@@ -1921,6 +2086,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       parfor j = 1:numel(curperframefns),
+      %for j = 1:numel(curperframefns),
         fn = curperframefns{j};
         
         % get per-frame data
@@ -2159,118 +2325,85 @@ classdef JLabelData < matlab.mixin.Copyable
     % fileexists and filetimestamps, and sets filesfixable and
     % allfilesexist.
 
+      % Initialize return vars
       msg = '';
       success = false;
-
-      if nargin > 1 && ~isempty(filetypes),
-        [ism,fileis] = ismember(filetypes,obj.filetypes);
-        if any(~ism),
-          msg = 'Unknown filetypes';
-          return;
-        end
-      else
-        fileis = 1:numel(obj.filetypes);
-      end
-      if nargin <= 2 || isempty(expis),
-        expis = 1:obj.nexps;
-      end
-
       missingfiles = cell(1,obj.nexps);
       for i = 1:obj.nexps,
         missingfiles{i} = {};
       end
-      
-      % initialize fileexists table
-      obj.fileexists(expis,fileis) = false;
-      obj.filetimestamps(expis,fileis) = nan;
-      
-      
-      % loop through all file types
-      for filei = fileis,
-        fileType = obj.filetypes{filei};
-        % loop through experiments
-        for expi = expis,
-          
-          if strcmpi(fileType,'perframedir'),
-            [fn,timestamps] = obj.GetPerframeFiles(expi);
-            if isempty(fn),
-              obj.fileexists(expi,filei) = false;
-              obj.filetimestamps(expi,filei) = -inf;
-            else
-              pfexists = cellfun(@(s) exist(s,'file'),fn);
-              obj.fileexists(expi,filei) = all(pfexists);
-              if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(fileType),
-                for tmpi = find(~pfexists(:)'),
-                  if numel(missingfiles{expi})<10
-                    [~,missingfiles{expi}{end+1}] = myfileparts(fn{tmpi});
-                    missingfiles{expi}{end} = ['perframe_',missingfiles{expi}{end}];
-                    if numel(missingfiles{expi}) == 10,
-                       missingfiles{expi}{end+1} = ' and possibly more';
-                    end
-                  end
-                end
-              end
-              obj.filetimestamps(expi,filei) = max(timestamps);
-            end
-          else
-          
-            % check for existence of current file(s)
-            [fn,obj.filetimestamps(expi,filei)] = obj.GetFile(fileType,expi);
-            if iscell(fn),
-              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || ...
-                all(cellfun(@(s) exist(s,'file'),fn));
-            elseif ischar(fn),
-              obj.fileexists(expi,filei) = ~isinf(obj.filetimestamps(expi,filei)) || exist(fn,'file');
-            else
-              obj.fileexists(expi,filei) = false;
-            end
-            if ~obj.fileexists(expi,filei) && obj.IsRequiredFile(fileType)
-              missingfiles{expi}{end+1} = fileType;
-            end
-              
-          end
-          
-        end
+
+      % Process arguments
+      if ~exist('filetypes','var') || isempty(filetypes)
+        filetypes=obj.filetypes;
+      end
+      if ~exist('expis','var') || isempty(expis),
+        expis = 1:obj.nexps;
       end
 
+      % Check that the file types requested are valid
+      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
+      if any(~fileTypeIsValid),
+        msg = 'Unknown filetypes';
+        return
+      end
+
+      % Get the file existance and time-stamp tables
+      [fileExists,fileTimeStamps,missingFileNames] = ...
+        obj.fileOfGivenTypesExistForGivenExps(filetypes,expis);
+      
+      % Update the state vars accordingly
+      obj.fileexists(expis,fileTypeIndices) = fileExists;
+      obj.filetimestamps(expis,fileTypeIndices) = fileTimeStamps;      
+      missingfiles(expis)=missingFileNames;
+      
       % store old values to see if latest change broke something
       old_filesfixable = obj.filesfixable;
       old_allfilesexist = obj.allfilesexist;
 
       % initialize summaries to true
-      obj.filesfixable = true;
-      obj.allfilesexist = true;
-
-      for filei = 1:numel(obj.filetypes),
-        fileType = obj.filetypes{filei};
-        % loop through experiments
-        for expi = 1:obj.nexps,
-          
-          % if file doesn't exist and is required, then not all files exist
-          if ~obj.fileexists(expi,filei),
-            if obj.IsRequiredFile(fileType),
-              obj.allfilesexist = false;
-              % if furthermore file can't be generated, then not fixable
-              if ~JLabelData.CanGenerateFile(fileType),
-                obj.filesfixable = false;                
-                msg1 = sprintf('%s missing and cannot be generated.',fileType);
-                if isempty(msg),
-                  msg = msg1;
-                else
-                  msg = sprintf('%s\n%s',msg,msg1);
-                end
-              end
-            end
+      [allRequiredFilesExist, ...
+       missingFilesCanBeGenerated, ...
+       oneMissingFileTypeThatCantBeGenerated]= ...
+        obj.allRequiredFilesExist(obj.fileexists);
+      
+      % Write the file status summaries into the object state, and
+      % modify the error message if necessary to reflect missing files that
+      % cannot be generated.
+      obj.allfilesexist = allRequiredFilesExist;
+      if allRequiredFilesExist
+        obj.filesfixable = true;
+      else
+        obj.filesfixable=missingFilesCanBeGenerated;
+        if ~missingFilesCanBeGenerated
+          msg1=sprintf('%s missing and cannot be generated.',oneMissingFileTypeThatCantBeGenerated);
+          if isempty(msg),
+            msg = msg1;
+          else
+            msg = sprintf('%s\n%s',msg,msg1);
           end
         end
       end
-      if exist('missingfiles','var') && ~isempty(missingfiles) && isempty(missingfiles{expi}),
-          msg = [msg,' Missing',sprintf(' %s',missingfiles{expi}{:})];
-      end
 
+      % Modify the error message to reflect missing files for each exp
+      nFileNamesMissingTotal=sum(cellfun(@(c)length(c),missingFileNames));
+      if nFileNamesMissingTotal>0 ,
+        stringForEachExpWithMissingFiles={};        
+        for i=1:length(missingFileNames)
+          expi=expis(i);
+          missingFileNamesThis=missingFileNames{i};
+          if ~isempty(missingFileNamesThis)
+            stringForEachExpWithMissingFiles{end+1}= ...
+              [civilizedStringFromCellArrayOfStrings(missingFileNamesThis) ' from experiment ' obj.expnames{expi}];  %#ok
+          end
+        end
+        msg= [msg ' Missing ' civilizedStringFromCellArrayOfStrings(stringForEachExpWithMissingFiles,';')];
+      end
+      %msg
+      
       % fail if was ok and now not ok
       success = ~(old_allfilesexist || old_filesfixable) || ...
-        (obj.allfilesexist || obj.filesfixable);      
+                 (obj.allfilesexist || obj.filesfixable);      
     end  % method
     
     
@@ -3255,6 +3388,12 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
+      % isInteractive
+      i = find(strcmpi(keys,'isInteractive'),1);
+      if ~isempty(i),
+        obj.isInteractive=values{i};
+      end
+      
       % cacheSize
       % Not used for anything as of Apr 30, 2013 --ALT
       i = find(strcmpi(keys,'cacheSize'),1);
@@ -3354,6 +3493,151 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
 
+    
+    % ---------------------------------------------------------------------
+    function [fileExists,fileTimeStamps,missingFileNamesComplete] = ...
+        fileOfGivenTypesExistForGivenExps(obj,filetypes,expis)
+      % This gets whether the experiment files of filetypes (a cell array
+      % of strings) exist, for the experiments indicated by expis.  On
+      % return, fileExists is a length(expis) x length(filetypes) logical
+      % array, indicating whether the given file type exists for the given
+      % experiment.  fileTimeStamps has the same shape, and given the time
+      % stamp of each file if it exists, and -inf otherwise.
+      % missingFileNamesComplete is a cell array vector of length
+      % length(expis).  Each element is a cell array of strings, listing
+      % the missing files for that experiment.  These lists are not 
+      % truncated to any particular length.  (That's why 'Complete' is in 
+      % the name.  Note that this function is a getter---it does not change
+      % the object state at all.
+
+      % Process arguments
+      if ~exist('filetypes','var') || isempty(filetypes)
+        filetypes=obj.filetypes;
+      end
+      if ~exist('expis','var') || isempty(expis),
+        expis = 1:obj.nexps;
+      end
+
+      % Check that the file types requested are valid
+      [fileTypeIsValid,fileTypeIndices] = ismember(filetypes,obj.filetypes);
+      if any(~fileTypeIsValid),
+        error('JLabelData:unknownFileType', ...
+              'Internal error: Unknown file type.  Please report to the JAABA developers.')
+      end
+      
+      % Initialize the return vars
+      nExpsToCheck=length(expis);
+      nFileTypesToCheck=length(fileTypeIndices);
+      fileExists = false(nExpsToCheck,nFileTypesToCheck);
+      fileTimeStamps = nan(nExpsToCheck,nFileTypesToCheck);
+      missingFileNamesComplete = cell(1,nExpsToCheck);
+      for i = 1:nExpsToCheck
+        missingFileNamesComplete{i} = {};
+      end
+      
+      % Loop through all file types, checking the existence of files of
+      % that type.
+      for j=1:nFileTypesToCheck
+        fileTypeIndex = fileTypeIndices(j);
+        fileType = obj.filetypes{fileTypeIndex};
+        % loop through experiments
+        for i=1:nExpsToCheck
+          expi=expis(i);
+          if strcmpi(fileType,'perframedir'),
+            % fileType of 'perframedir' is a special case, and has to be
+            % handled separately
+            [perframeFileNames,timestamps] = obj.GetPerframeFiles(expi);
+            if isempty(perframeFileNames),
+              fileExists(i,j) = false;
+              fileTimeStamps(i,j) = -inf;
+            else
+              perframeFileExists = cellfun(@(s) exist(s,'file'),perframeFileNames);
+              fileExists(i,j) = all(perframeFileExists);
+              if ~fileExists(i,j) && obj.IsRequiredFile(fileType),
+                for indicesOfMissingPerframeFiles = find(~perframeFileExists(:)'),
+                  [~,fileNameThis] = myfileparts(perframeFileNames{indicesOfMissingPerframeFiles});
+                  missingFileNamesComplete{i}{end+1} = ['perframe_' fileNameThis];
+                end
+              end
+              fileTimeStamps(i,j) = max(timestamps);
+            end
+          else
+            % if fileType is anything besides 'perframedir'
+            % check for existence of current file(s)
+            [fn,fileTimeStamps(i,j)] = obj.GetFile(fileType,expi);
+            if iscell(fn),
+              fileExists(i,j) = ...
+                ~isinf(fileTimeStamps(i,j)) || ...
+                all(cellfun(@(s) exist(s,'file'),fn));
+            elseif ischar(fn),
+              fileExists(i,j) = ~isinf(fileTimeStamps(i,j)) || exist(fn,'file');
+            else
+              fileExists(i,j) = false;
+            end
+            if ~fileExists(i,j) && obj.IsRequiredFile(fileType)
+              missingFileNamesComplete{i}{end+1} = fileType;
+            end
+          end
+        end
+      end
+    end  % method
+
+
+    % ---------------------------------------------------------------------
+    function [allRequiredFilesExist, ...
+              missingFilesCanBeGenerated, ...
+              oneMissingFileTypeThatCantBeGenerated]=allRequiredFilesExist(obj,fileExists)
+      % Check whether all required files exist for all experiments.
+      % fileExists is optional, and if provided should be a complete matrix
+      % of file existance information, e.g. as returned by
+      % fileExists=obj.fileOfGivenTypesExistForGivenExps().  If this
+      % argument is not provided, this method calls
+      % fileOfGivenTypesExistForGivenExps() to get current file existance
+      % information.  (The idea is that if you just called
+      % fileOfGivenTypesExistForGivenExps(), you can give its output to
+      % this method, and then this method won't have to figure that stuff
+      % out again.)
+      % On return, allRequiredFilesExist is a logical scalar.  If
+      % allRequiredFilesExist is false, missingFilesCanBeGenerated is a
+      % logical scalar indicating whether the missing files can be
+      % generated.  If both allRequiredFilesExist and
+      % missingFilesCanBeGenerated are false,
+      % oneMissingFileTypeThatCantBeGenerated gives the name of one file
+      % type that cannot be generated.  Note that this function is a
+      % getter---it does not change the object state at all.
+
+      % Get detailed information about file existance, if not given as
+      % argument
+      if ~exist('fileExists','var')
+        fileExists = obj.fileOfGivenTypesExistForGivenExps();
+          % with no args, computed for all file types, all exps
+      end
+      
+      % initialize summaries to true
+      allRequiredFilesExist = true;
+      missingFilesCanBeGenerated = [];
+      oneMissingFileTypeThatCantBeGenerated='';
+
+      % Loop over file types and experiments, checking file existance.
+      for fileTypeIndex = 1:numel(obj.filetypes),
+        fileType = obj.filetypes{fileTypeIndex};
+        % loop through experiments
+        for expi = 1:obj.nexps,          
+          % if file doesn't exist and is required, then not all files exist
+          if ~fileExists(expi,fileTypeIndex),
+            if obj.IsRequiredFile(fileType),
+              allRequiredFilesExist = false;
+              % if furthermore file can't be generated, then not fixable
+              missingFilesCanBeGenerated = JLabelData.CanGenerateFile(fileType);
+              if ~missingFilesCanBeGenerated,
+                oneMissingFileTypeThatCantBeGenerated=fileType;
+              end
+            end
+          end
+        end
+      end
+    end  % method
+    
     
 % Configuration settings.
 
@@ -5153,7 +5437,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [success,msg] = AddExpDir(obj, ...
                                        expDirName, ...
-                                       interactivemode)
+                                       interactivemode)  %#ok
       % Add a new experiment to the GUI.  This does not change self.expi,
       % and does not not do any preloading.
       
@@ -5163,10 +5447,15 @@ classdef JLabelData < matlab.mixin.Copyable
       % If the experiment dir name is numeric, return without doing anything.
       if isnumeric(expDirName), return; end
       
-      % interactive mode is the default
-      if ~exist('interactivemode','var'),
-        interactivemode = true;
+      % interactive mode is not stored in the instance vars
+      if exist('interactivemode','var')
+        warning(['JLabelData.AddExpDir: Whether or not the JLabelData is interactive is now stored in the object.  ' ...
+                 'Seting it for the call to AddExpDir() is ignored.']);
       end
+      interactivemode=obj.isInteractive;
+%       if ~exist('interactivemode','var'),
+%         interactivemode = true;
+%       end
 
       % make sure directory exists
       obj.SetStatus('Checking that %s exists...',expDirName);
@@ -5289,7 +5578,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         if strcmpi(res,'Yes'),
           obj.SetStatus('Generating missing files for %s...',expName);
-          [success,msg] = obj.GenerateMissingFiles(obj.nexps,interactivemode);
+          [success,msg] = obj.GenerateMissingFiles(obj.nexps);
           if ~success,
             msg = sprintf(['Error generating missing required files %s '...
               'for experiment %s: %s. Removing...'],...
@@ -6077,22 +6366,14 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------
-    function [success,msg] = GenerateMissingFiles(obj,expi,isInteractive)
+    function [success,msg] = GenerateMissingFiles(obj,expi)
     % [success,msg] = GenerateMissingFiles(obj,expi)
     % Generate required, missing files for experiments expi. 
     % TODO: implement this!
       
       success = true;
       msg = '';
-      
-      if nargin< 3
-        if isdeployed 
-          isInteractive = false;
-        else
-          isInteractive = true;
-        end
-      end
-      
+            
       for i = 1:numel(obj.filetypes),
         file = obj.filetypes{i};
         if obj.IsRequiredFile(file) && obj.CanGenerateFile(file) && ...
@@ -6106,7 +6387,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %                 msg = [msg,'\n',msg1]; %#ok<AGROW>
 %               end
             case 'perframedir',
-              [success1,msg1] = obj.GeneratePerframeFilesExceptScoreFeatures(expi,isInteractive);
+              [success1,msg1] = obj.GeneratePerframeFilesExceptScoreFeatures(expi);
               success = success && success1;
               if ~success1,
                 msg = [msg,'\n',msg1]; %#ok<AGROW>
@@ -6163,24 +6444,23 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = GeneratePerframeFilesExceptScoreFeatures(obj,expi,isInteractive)
+    function [success,msg] = GeneratePerframeFilesExceptScoreFeatures(obj,expi)
       success = false; %#ok<NASGU>
       msg = '';
 
       perframedir = obj.GetFile('perframedir',expi);
       
+      isInteractive=obj.isInteractive;
       if ~isInteractive,
         dooverwrite = false;
       elseif ~isempty(obj.perframeOverwrite) 
-        if obj.perframeOverwrite
-          dooverwrite = true;
-        else
-          dooverwrite = false;
-        end
+        dooverwrite = obj.perframeOverwrite;
       elseif exist(perframedir,'dir'),
-        res = questdlg('Do you want to overwrite existing files or keep them?',...
-          'Regenerate files?','Overwrite','Keep','Keep');
-        dooverwrite = strcmpi(res,'Overwrite');
+        res = questdlg('Do you want to leave existing files alone or regenerate them?',...
+                       'Regenerate existing files?', ...
+                       'Leave Alone','Regenerate', ...
+                       'Leave Alone');
+        dooverwrite = strcmpi(res,'Regenerate');
         obj.perframeOverwrite = dooverwrite;
       else
         dooverwrite = true;
@@ -6188,18 +6468,20 @@ classdef JLabelData < matlab.mixin.Copyable
       
       expdir = obj.expdirs{expi};
       
+      hwait=-1;  % make sure hwait var exists, and is not a graphics handle
+                 % unless it gets overwritten
       if isInteractive
-        hwait = mywaitbar(0,sprintf('Initializing perframe directory for %s',expdir),'interpreter','none');
+        hwait = mywaitbar(0,sprintf('Generating perframe files for %s',expdir),'interpreter','none');
       else
-        fprintf('Initializing perframe directory for %s\n',expdir);
+        fprintf('Generating perframe files for %s\n',expdir);
       end
       
       perframetrx = Trx('trxfilestr',obj.GetFileName('trx'),...
                         'moviefilestr',obj.GetFileName('movie'),...
                         'perframedir',obj.GetFileName('perframedir'),...
                         'default_landmark_params',obj.landmark_params,...
-                        'perframe_params',obj.perframe_params,...
-                        'rootwritedir',expdir);
+                        'perframe_params',obj.perframe_params);
+                        %'rootwritedir',expdir);
 %                        'rootwritedir',obj.rootoutputdir);
       
       perframetrx.AddExpDir(expdir,'dooverwrite',dooverwrite,'openmovie',false);
@@ -6242,10 +6524,25 @@ classdef JLabelData < matlab.mixin.Copyable
           fprintf('Computing %s and saving to file %s\n',fn,file);
         end
         
+        % Generate the per-frame files that are not score features
         % Don't generate the per-frame files from scores here anymore..
-        if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
-          perframetrx.(fn);
-        end        
+        
+        try
+          if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
+            perframetrx.(fn);
+          end        
+        catch excp
+          if isInteractive && ishandle(hwait),
+            delete(hwait);
+          end
+          if isequal(excp.identifier,'MATLAB:UndefinedFunction')
+            msg=sprintf('Unable to calculate per-frame feature %s.',fn);
+            success=false;
+            return
+          else
+            rethrow(excp);
+          end
+        end
       end
       
       if isInteractive && ishandle(hwait),
@@ -6316,35 +6613,28 @@ classdef JLabelData < matlab.mixin.Copyable
     end
 
     
-    % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconFromName(obj,featureLexiconName)
-      % This sets the feature lexicon to the one named by
-      % featureLexiconName
-      
-%       % Only do stuff if the new lexicon name is different than the current
-%       % one
-%       if isequal(featureLexiconName,obj.featureLexiconName)
-%         success=true;
-%         return
-%       end
-      
-      % Get the lexicon itself and the associated animal type
-      [featureLexicon,animalType]= ...
-        featureLexiconFromFeatureLexiconName(featureLexiconName);     
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconAndTargetSpeciesCustom(obj,featureLexicon,animalType)
+%       % This sets the feature lexicon to the given one, and stores a
+%       % featureLexiconName of 'custom'.
+%       
+%       % Store the lexicon-associated stuff in obj
+%       %[success,msg] = obj.setFeatureLexiconAndTargetSpeciesRaw(featureLexicon,animalType,'custom');
+%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
+%       
+%       % Set the animal type
+%       obj.targettype=animalType;
+%     end  % method
 
-      % Store the lexicon-associated stuff in obj
-      [success,msg] = obj.setFeatureLexiconRaw(featureLexicon,animalType,featureLexiconName);
-    end  % method
     
-    
-    % ---------------------------------------------------------------------    
-    function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon,animalType)
-      % This sets the feature lexicon to the given one, and stores a
-      % featureLexiconName of 'custom'.
-      
-      % Store the lexicon-associated stuff in obj
-      [success,msg] = obj.setFeatureLexiconRaw(featureLexicon,animalType,'custom');
-    end  % method
+%     % ---------------------------------------------------------------------    
+%     function [success,msg] = setFeatureLexiconCustom(obj,featureLexicon)
+%       % This sets the feature lexicon to the given one, and stores a
+%       % featureLexiconName of 'custom'.
+%       
+%       % Store the lexicon-associated stuff in obj
+%       [success,msg] = obj.setFeatureLexiconAndFLName(featureLexicon,'custom');
+%     end  % method
 
     
 %     % ---------------------------------------------------------------------
@@ -6935,7 +7225,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
 
     % ---------------------------------------------------------------------
-    function [success,msg] = setCurrentTarget(obj,expi,flies)
+    function [success,msg] = setCurrentTarget(obj,expi,flies,force)
       % This is the method formerly known as PreLoad(). Sets the current
       % target to experiment expi, animal flies.  This implies preloading
       % data associated with the input experiment and flies. If neither the
@@ -6949,6 +7239,10 @@ classdef JLabelData < matlab.mixin.Copyable
       success = false;
       msg = '';
       
+      if ~exist('force','var')
+        force=false;
+      end
+      
       if numel(expi) ~= 1,
         error('expi must be a scalar');
       end
@@ -6961,7 +7255,7 @@ classdef JLabelData < matlab.mixin.Copyable
       diffexpi = isempty(obj.expi) || expi ~= obj.expi;
       diffflies = diffexpi || numel(flies) ~= numel(obj.flies) || ~all(flies == obj.flies);
       % nothing to do
-      if ~diffflies,
+      if ~diffflies && ~force,
         success = true;
         return;
       end
@@ -6971,7 +7265,7 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.StoreLabelsAndPreLoadWindowData();
       end
       
-      if diffexpi,
+      if diffexpi || force,
         
         % load trx
 %         try
@@ -7619,7 +7913,10 @@ classdef JLabelData < matlab.mixin.Copyable
       % obj.classifier = [];
       % obj.classifier_old = [];
       obj.ClearWindowData();
-      obj.PreLoadPeriLabelWindowData();
+      [success,msg]=obj.PreLoadPeriLabelWindowData();
+      if ~success, 
+        error('JLabelData:unableToLoadPerLabelWindowData',msg);
+      end
       obj.needsave=true;
 %       if hasClassifier && dotrain,
 %         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
@@ -7773,6 +8070,11 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
+    function predictForCurrentTargetAndTimeSpan(obj)
+      obj.Predict(obj.expi,obj.flies,obj.t0_curr,obj.t1_curr)
+    end
+      
+    % ---------------------------------------------------------------------
     function Predict(obj,expi,flies,t0,t1)
     % Predict(obj,expi,flies,ts)
     % Runs the behavior classifier on the input experiment, flies, and
@@ -7789,6 +8091,13 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
             
+      % Get the relevant window data in main memory so that we can predict on it
+      [success,msg] = obj.PreLoadWindowData(expi,flies,t0:t1);
+      if ~success ,
+        error('JLabelData:unableToLoadWindowDataForPrediction', ...
+              msg);
+      end
+      
       % apply classifier
       switch obj.classifiertype,
       case {'boosting','fancyboosting'},
@@ -9537,7 +9846,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function setScoreFeatures(obj,varargin)
-      % Update obj.scoreFeatures, preserving invariants
+      % Update obj.scoreFeatures, preserving invariants.  If an exception
+      % occurs, this function will roll back the object to its original
+      % state.
 
       % Process arguments
       if length(varargin)==1
@@ -9854,22 +10165,33 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function closeJabFile(self)
+      % The list of things we want to be persistent
+      listOfPersistentSlots={'defaultpath' ...
+                             'setstatusfn' ...
+                             'clearstatusfn' ...
+                             'cacheSize' ...
+                             'version' ...
+                             'perframeGenerate' ...
+                             'perframeOverwrite' ...
+                             'isInteractive'}';
+      
       % Save the things we want to persist after closing the file
-      defaultPath=self.defaultpath;
-      setStatusFunction=self.setstatusfn;
-      clearStatusFunction=self.clearstatusfn;
-      cacheSize=self.cacheSize;
-      version=self.version;
+      nPersistentSlots=length(listOfPersistentSlots);
+      for i=1:1:nPersistentSlots
+        thisSlot=listOfPersistentSlots{i};
+        evalString=sprintf('%s=self.%s;',thisSlot,thisSlot);
+        eval(evalString);
+      end
       
       % Nuke the site from orbit.  It's the only way to be sure.
       self.initialize();
       
       % Re-load the things we want to persist
-      self.defaultpath=defaultPath;
-      self.setstatusfn=setStatusFunction;
-      self.clearstatusfn=clearStatusFunction;
-      self.cacheSize=cacheSize;
-      self.version=version;
+      for i=1:1:nPersistentSlots
+        thisSlot=listOfPersistentSlots{i};
+        evalString=sprintf('self.%s=%s;',thisSlot,thisSlot);
+        eval(evalString);
+      end
     end
     
     
@@ -9911,15 +10233,41 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function importClassifier(self,fileNameAbs)
+    function importClassifier(self,fileNameAbs)      
       % load the file
       macguffin=loadAnonymous(fileNameAbs);
 
       % Set the classifier in self
       self.setScoreFeatures(macguffin.scoreFeatures);
+      %larping=copy(self);
+      self.setFeatureSublexicon(macguffin.featureLexicon, ...
+                                macguffin.featureLexiconName, ...
+                                macguffin.sublexiconPFNames);
       self.setWindowFeaturesParams(macguffin.windowFeaturesParams);
+      
+%       % Generate the necessary files now, so that any problems occur now.
+%       for iExp=1:self.nexps
+%         [success,msg]=self.GenerateScoreFeaturePerframeFiles(iExp);
+%         if ~success,
+%           error('JLabelData:unableToGenerateScoreFeaturePerframeFile',msg);
+%         end
+%         self.UpdateStatusTable('perframedir',iExp);
+%         allPerframeFilesExist=self.fileexists(iExp,whichstr('perframedir',self.filetypes));
+%         if ~allPerframeFilesExist , 
+%           [success,msg]=self.GeneratePerframeFilesExceptScoreFeatures(iExp);
+%           if ~success,
+%             error('JLabelData:unableToGeneratePerframeFile',msg);
+%           end
+%         end
+%       end
+      
+      % Load the classifier proper, training params, etc.
       self.setClassifierStuff(macguffin.classifierStuff);
 
+%       % do this to prompt loading of windowdata
+%       force=true;
+%       self.setCurrentTarget(self.expi,self.flies,force);
+      
       % Note that we now need saving
       self.needsave=true;
     end  % method
