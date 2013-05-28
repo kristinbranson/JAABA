@@ -31,6 +31,7 @@ classdef Macguffin < handle
     function initFromFeatureLexiconName(self,featureLexiconName)
       [featureLexicon,animalType]=featureLexiconFromFeatureLexiconName(featureLexiconName);
       self.featureLexiconName=featureLexiconName;
+      self.behaviors.type=animalType;
       self.behaviors.names = {};  % no behaviors defined yet
       self.file.perframedir = 'perframe';
       self.file.clipsdir = 'clips';
@@ -142,8 +143,16 @@ classdef Macguffin < handle
                                                   projectParams, ...
                                                   classifierParams, ...
                                                   gtExpDirNames, ...
-                                                  gtLabels)
+                                                  gtLabels, ...
+                                                  scoreFeatureMatFileNames, ...
+                                                  scoreFeatureJabFileNames)
     
+      % process args
+      if ~exist('scoreFeatureMatFileNames','var') || ~exist('scoreFeatureJabFileNames','var')
+        scoreFeatureMatFileNames=cell(0,1);
+        scoreFeatureJabFileNames=cell(0,1);
+      end
+      
       % get the featureLexicon from the relevant file
       featureLexiconFileNameRel=projectParams.file.featureconfigfile;
       pathToMisc=fileparts(mfilename());
@@ -200,7 +209,10 @@ classdef Macguffin < handle
       self.featureLexiconName=featureLexiconName;
       self.featureLexicon=featureLexicon;
       self.sublexiconPFNames=sublexiconPFNames;
-      self.scoreFeatures=projectParams.scoresinput;
+      self.scoreFeatures= ...
+        replaceScoreFeatureClassifierFileNames(projectParams.scoresinput, ...
+                                               scoreFeatureMatFileNames, ...
+                                               scoreFeatureJabFileNames);
 %       if isempty(projectParams.behaviors.names) ,
 %         self.behaviorName='';
 %       else
@@ -338,15 +350,24 @@ classdef Macguffin < handle
       elseif length(varargin)==1 && isstruct(varargin{1})
         basicDataStruct=varargin{1};
         self.initFromBasicDataStruct(basicDataStruct);
-      elseif length(varargin)==4
+      elseif length(varargin)==4 || length(varargin)==6
         projectParams=varargin{1};
         classifierParams=varargin{2};
         gtExpDirNames=varargin{3};
         gtLabels=varargin{4};
+        if length(varargin)==6
+           scoreFeatureMatFileNames=varargin{5};
+           scoreFeatureJabFileNames=varargin{6};
+        else
+           scoreFeatureMatFileNames=cell(0,1);
+           scoreFeatureJabFileNames=cell(0,1);
+        end
         self.initFromOldStyleProjectAndClassifier(projectParams, ...
                                                   classifierParams, ...
                                                   gtExpDirNames, ...
-                                                  gtLabels);
+                                                  gtLabels, ...
+                                                  scoreFeatureMatFileNames, ...
+                                                  scoreFeatureJabFileNames);
       else
         error('Macguffin:badArgumentsToConstructor', ...
               'The arguments to Macguffin() are no good');

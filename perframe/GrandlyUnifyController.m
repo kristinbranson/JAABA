@@ -19,7 +19,26 @@ classdef GrandlyUnifyController < handle
                   self.workingDirName);
       if fileNameRel == 0; return; end;
       fileNameAbs = fullfile(pathName,fileNameRel);
-      self.model.setProjectFileName(fileNameAbs);
+      try
+        self.model.setProjectFileName(fileNameAbs);
+      catch excp
+        uiwait(errordlg(sprintf('There was a problem setting the project file: %s',excp.message), ...
+                        'Error', ...
+                        'modal'));
+      end
+      self.workingDirName=fileparts(fileNameAbs);
+      self.view.update();
+    end
+    
+    % ---------------------------------------------------------------------
+    function chooseScoreFeatureJabFileButtonPressed(self,scoreFeatureMatFileName)
+      [fileNameRel,pathName] = ...
+        uigetfile({'*.jab','JAABA files (*.jab)'}, ...
+                  'Choose JAABA File', ...
+                  self.workingDirName);
+      if fileNameRel == 0; return; end;
+      fileNameAbs = fullfile(pathName,fileNameRel);
+      self.model.setScoreFeatureJabFileName(scoreFeatureMatFileName,fileNameAbs);
       self.workingDirName=fileparts(fileNameAbs);
       self.view.update();
     end
@@ -56,7 +75,7 @@ classdef GrandlyUnifyController < handle
     
     % ---------------------------------------------------------------------
     function convertButtonPressed(self)
-      [~,baseName,ext]=fileparts(self.model.classifierFileName);
+      [~,baseName]=fileparts(self.model.classifierFileName);
       suggestedFileNameAbs=fullfile(self.workingDirName,[baseName '.jab']);
       [fileNameRel, pathName] = ...
         uiputfile({'*.jab','JAABA files (*.jab)'}, ...
