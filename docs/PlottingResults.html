@@ -28,7 +28,7 @@ strong.regular-font {
 <br>
 <p>After importing data with PrepareJAABAData, and training a classifier
 with StartJAABA, one can then classify and visualize large data sets with
-<a href="#JAABAPlot">JAABAPlot</a></p>
+JAABAPlot</p>
 
 <hr class="h2-divider">
 
@@ -36,131 +36,401 @@ with StartJAABA, one can then classify and visualize large data sets with
 <ul>
   <li><a class="reference" href="#LoadingExperiments">Loading Experiments</a></li>
   <li><a class="reference" href="#LoadingClassifiers">Loading Classifiers</a></li>
-  <li><a class="reference" href="#BehaviorStatistics">Behavior Statistics</a></li>
   <li><a class="reference" href="#FeatureStatistics">Feature Statistics</a></li>
+  <ul>
+    <li><a class="reference" href="#FeatureHistograms">Histograms</a></li>
+    <li><a class="reference" href="#FeatureBoxPlots">Box Plots</a></li>
+    <li><a class="reference" href="#FeatureTimeSeries">Time Series</a></li>
+  </ul>
+  <li><a class="reference" href="#BehaviorStatistics">Behavior Statistics</a></li>
+  <ul>
+    <li><a class="reference" href="#BehaviorBarCharts">Bar Charts</a></li>
+    <li><a class="reference" href="#BehaviorTimeSeries">Time Series</a></li>
+  </ul>
+  <li><a class="reference" href="#BoutStatistics">Bout Statistics</a></li>
   <li><a class="reference" href="#InterestingDifferences">Interesting Differences</a></li>
 </ul>
 
+<hr class="h2-divider">
+
+<p>
+	<center><img src="images/JAABAPlot.png"></center>
+	<center><i>Screen capture of JAABAPlot</i></center>
+</p>
+	
 <hr class="h2-divider">
 
 <h2><a id="LoadingExperiments">Loading Experiments</a></h2>
 
 <p>
 Multiple experiments can be divided into an arbitrary number of groups for
-multi-variate analysis.  Use the "New" button to create a new group and
-give it a name, then the "Add" button to browse directories for experiments.
-Remove selected experiments with the "Delete" button.  Deleting all of the
-experiments in a group will also delete the group.  Transfer experiments from
-one group to another with the "Move" button.  Designate loaded experiments
-to analyze by selecting (a subset of) them with <shift/ctrl> left button.
+multi-variate analysis.
 </p>
 
-<p>
-The features analyzed are only those common to all of the current experiments.
-</p>
+<p> Use the <b>New</b> button to create a group and give it a name and color.
+The name and color can subsequently be altered using the <b>Change</b>
+button.  </p>
 
-<p>
-Experiment lists and other settings are maintained from one session to
-the next by automatically saving the configuration to disk when exiting
-("most_recent_config.mat").  Multiple different configurations can be
-maintained using the "Load" and "Save" buttons.  The "Reset" button deletes
-all groups and experiments and returns all settings to their defaults.
-</p>
+<p> Use the <b>Add</b> button to browse for experiments to add to the
+current group.  Multiple experiments can be selected at once by shift-
+or control-clicking.  </p>
+
+<p> Alternatively, put a list of experiment directories on separate lines
+of a text file and use the <b>Batch</b> button.  If each experiment directory
+is followed by a comma and then the corresponding group name, new groups
+are automatically created.  Group color can be specified by an additional
+comma and a <a href='http://en.wikipedia.org/wiki/Web_colors'>hexidecimal
+color code</a>.  For example: </p>
+
+<pre>
+/my/nobel/prize/data/experiment1,control,FF0000
+/my/nobel/prize/data/experiment2,control,FF0000
+/my/nobel/prize/data/experiment3,control,FF0000
+/my/nobel/prize/data/experiment4,group1,00FF00
+/my/nobel/prize/data/experiment5,group1,00FF00
+/my/nobel/prize/data/experiment6,group1,00FF00
+/my/nobel/prize/data/experiment7,group2,0000FF
+/my/nobel/prize/data/experiment8,group2,0000FF
+/my/nobel/prize/data/experiment9,group2,0000FF
+</pre>
+
+<p> To delete experiments first select them by (shift/control) clicking
+and then press the <b>Delete</b> button.  Deleting all of the experiments
+in a group will also delete the group itself.</p>
+
+<p>Transfer selected experiments from one group to another with the <b>Move</b>
+button.</p>
+
+<p> To temporarily omit one or more experiments from the analysis without
+deleting them simply de-select them by (shift/control) clicking.  </p>
+
+<p> The features analyzed are only those common to all of the current
+experiments.  </p>
+
+<p> Experiment lists and other settings are maintained from one
+session to the next by automatically saving the configuration to
+<b>most_recent_config.mat</b>.  Multiple different configurations can be
+maintained under different names using the <b>Load</b> and <b>Save</b>
+buttons.</p>
+
+<p>The <b>Reset</b> button deletes all groups and experiments and
+returns all settings to their defaults.  </p>
 
 <hr class="h2-divider">
 
 <h2><a id="LoadingClassifiers">Loading Classifiers</a></h2>
 
-<p>A set of classifiers to be applied to the above experiments are specified
-with the "Add" button.  Remove selected classifers with the "Delete" button.
-Use the "Classify" button to apply the classifiers to the data.  An option
-in the contextual menu on this button permits one to either classify only
-the data not already classified.
+<p>Experiments can be annotated with multiple classifiers to compare
+different behaviors.</p>
+
+<p>Use the <b>Add</b> button to navigate to a classifier's project file.
+Multiple classifiers can be selected at once by shift- or control-clicking.
+Remove selected classifers with the <b>Delete</b> button.</p>
+
+<p>Project filenames can also be put into a text file and loaded all at once
+with the <b>Batch</b> button.</p>
+
+<p>If the experiments have already been classified, then project files
+can be found based on information contained in the scores files using the
+<b>Auto</b> button.</p>
+
+<p>Use the <b>Check</b> button to compare the classifier list with the
+existing scores files in the listed experiment directories.  A table will
+open in a new window, and be save to <b>most_recent_table.csv</b>.</p>
+
+<ul>
+<li>Scores files whose corresponding classifier is not listed are labelled <b>extra</b>.</li>
+<li>Listed classifiers for which a corresponding scores file is not found are labelled <b>missing</b>.</li>
+<li> If the classifier's and score file's <b>time stamps</b> do not match, they are both listed.</li>
+<li>Otherwise the entry is considered <b>up-to-date</b>.</li>
+</ul>
 </p>
 
-<hr class="h2-divider">
-
-<h2><a id="BehaviorStatistics">Behavior Statistics</a></h2>
-
-<p>
-Create bar charts of the fraction of time each behavior is performed using the
-"Behavior Bar Chart" button.  A contextual menu on the "Behavior Bar Chart"
-button controls whether averages are done on a per-fly or per-frame basis.
-</p>
-
-<p>
-Logical combinations of behaviors can be analyzed using the pull-down menu
-in the "Behavior" box to the left.  So for example, if "And" "Behavior <X>"
-is chosen, then the bars in the panels show the fraction of time when each
-behavior and Behavior <X> are performed simultaneously.
-</p>
-
-<p>
-Plots for just a single individual or a specific sex can be chosen using
-the pull-down mneu in the "Individual" box.  If "All" is specified here,
-then all individuals from the experiments selected in the "Experiments"
-box are analyzed.
-</p>
-
-<p>
-The table is filled with the p-values from K-S normality tests and two-sided
-t-tests and Wilcoxen rank sum tests.
-</p>
-
-<p>
-The fraction of time a selected behavior is performed as a function of time
-during the experiment can be plotted using the "Behavior Time Series" button.
-A contextual menu controls whether error bars are plotted or per-experiment
-data overlayed.  Flies are first pooled within an experiment and then combined
-across experiments according to the central tendency and dispersion measures
-specified in a shared contextual menu on the "Prefs" button.  The experiment
-groups are color coded to match that in text of the group pull-down menu.
-</p>
+<p> Use the <b>Classify</b> button if some of the experiments have not been
+classified or are out of date.  Control click (right click in Windows)
+to choose whether to classify all the experiments or just those needed.</p>
 
 <hr class="h2-divider">
 
 <h2><a id="FeatureStatistics">Feature Statistics</a></h2>
 
-<p>
-Histograms of feature values during behaviors of interest can be created by
-selecting the desired behavior, feature, and individuals using the pull-down
-menus on the left and clicking on the "Feature Histogram" button.  As with
-behavior statistics, the experiment groups are color coded, a contextual
-menu controls the the specific calculations, and logical operations on
-behaviors can be performed.
-</p>
+<p>Features extracted during tracking can be analyzed over all frames,
+during just a specific behavior, or as a function of time.  Each experiment
+is considered one sample.</p>
 
-<p>
-A time series of feature values can be plotted with the "Feature Time
-Series" button.  Colors and contextual buttons are as before, but not logical
-operators.  The time axis can either be absolute time during the experiment,
-or relative to the beginning or end of a bout of the specified behavior.
-</p>
+<h3><a id="FeatureHistograms">Histograms</a></h3>
+
+<p>Histograms can be made of feature values during a behavior.  Corresponding
+histograms for all of the feature values in the recording, or just those
+<i>not</i> during the behavior, can be optionally overlayed for comparison.</p>
+
+<p>Click on the <b>Feature Histogram</b> button and set the following
+parameters:</p>
+
+<ul>
+<li><b>Style</b></li>
+<ul>
+<li>Choose <b>Central Tendency</b>, <b>Central Tendency
+& Dispersion</b>, or <b>Overlayed per-Exp Means</b>.   Central tendency
+is either the mean, median, or mode, as specified by <b>CT</b> under
+<b>Parameters</b>.  Similarly dispersion is either the standard deviation,
+standard error, 5-95 percentiles, or 25-75 percentiles, according to
+<b>Disp.</b> under <b>Parameters</b>.</li>
+
+<li>Choose whether the accumulated measure is the feature value during each
+frame, or the mean, median, maximum, minimum, or standard deviation of the
+feature value during each bout of behavior.</li> </ul>
+
+<li><b>Behavior</b></li>
+<ul>
+
+<li>If classifiers have been added, choose which subset of frames to analyze
+by selecting a particular behavior.</li>
+<li>Depressing the <b>not</b> button chooses
+those frames not during the selected behavior.</li>
+<li>Specify frames corresponding
+to a logical combination of two behaviors by selecting <b>and</b> or <b>or</b>
+from the pull-down menu.  For example, walking and not chasing.</li>
+
+</ul>
+
+<li>Choose a <b>Feature</b>.</li>
+
+<li>From the <b>Individuals</b> panel choose <b>All</b>, <b>Male</b>, <b>Female</b>, <b>Male vs. Female</b>, or a particular individual.</li>
+
+<li><b>Parameters</b></li>
+<ul>
+
+<li>Specify a <b>Min. Traj. Len.</b> greater than zero to omit short trajectories
+from the analysis</li>
+
+<li>Specify a <b>P-value</b> below which to highlight significant statistics in red</li>
+
+<li>Specify the <b># bins</b> to use</li>
+
+<li>Depress either <b>all frames</b> or <b>not during</b> to plot an
+additional histogram for comparative purposes</li>
+
+<li>Depress <b>log bin size</b> to space the bins logarithmically</li>
+
+<li>Depress <b>dump to .csv</b> to write the raw and summary data to a
+comma-delimited text file named <b>most_recent_figure.csv</b></li>
+
+</ul>
+
+</ul>
+
+<p>Click on the <b>Plot</b> button and a new window will open with the
+requested analysis plotted.  A text file named <b>most_recent_figure.csv</b>
+is also created containing the raw and processed data.</p>
+
+<p>The <b>Params</b> button in each figure opens a new window showing the
+parameters used to create the data in that figure.</p>
+
+<p>The <b>Stats</b> button in each figure opens a new window showing
+parametric and non-parametric comparisons between groups.</p>
+
+<p>Multiple figure windows can be simultaneously closed with the <b>Close
+All</b> button.</p>
+
+<h3><a id="FeatureBoxPlots">Box Plots</a></h3>
+
+<p>Click on the <b>Feature Histogram</b> button and set <b>Style</b> to
+<b>Box Plot</b>.  The same parameters are used to extract the same data as
+for the histograms above.</p>
+
+<h3><a id="FeatureTimeSeries">Time Series</a></h3>
+
+<p>Feature values for every frame in the recording can be plotted consecutively,
+irrespective of any annotated behaviors.  Alternatively, short snippets
+in time around the start and end of each bout of behavior can be aligned
+and overlayed.  </p>
+
+<P>For the former, click on <b>Feature Histogram</b>, choose <b>Entire
+Recording</b> from the right pull-down <b>Style</b> menu, and set the
+following parameters: <p>
+
+<ul>
+
+<li>From the left pull-down <b>Style</b> menu choose <b>Central Tendency</b>,
+etc. as described in Feature Histograms above</li>
+
+<li>Choose a <b>Feature</b> and <b>Individual</b> as described in Feature Histograms above as well</li>
+
+<li><b>Parameters</b></li>
+<ul>
+
+<li>Specify a <b>Conv. Width</b> greater than zero to smooth with a box kernel</li>
+
+<li>From the <b>X-Offset</b> pull-down menu choose:</li>
+<ul>
+
+<li><b>Start</b> to shift the beginning of each experiment's time series to zero on the x-axis</li>
+<li><b>min(Start)</b> to retain the relative timing between experiments and shift them as a group</li>
+<li><b>None</b> to not shift at all</li>
+
+</ul>
+
+</ul>
+</ul>
+
+<P>For the latter, click on <b>Feature Histogram</b>, choose <b>Onset
+Triggered</b> or <b>Offset Triggered</b> from the right pull-down <b>Style</b>
+menu, and set the following parameters: <p>
+
+<ul>
+
+<li>From the left pull-down <b>Style</b> menu choose <b>Central Tendency</b>,
+etc. as described in Feature Histograms above</li>
+
+<li>Choose a <b>Feature</b> and <b>Individual</b> as described in Feature Histograms above as well</li>
+
+<li><b>Parameters</b></li>
+<ul>
+
+<li>Specify a <b>Radius</b> of frames around the trigger to plot</li>
+
+<li>Depress <b>Subtract Mean</b> to vertically shift each time series</li>
+</ul>
+
+</ul>
+
+<p>In each case generate the figure and <b>most_recent_figure.csv</b>
+by clicking on the <b>Plot</b> button.  A <b>Params</b> button is on this
+figure as well.</p>
+
+<hr class="h2-divider">
+
+<h2><a id="BehaviorStatistics">Behavior Statistics</a></h2>
+
+<p>The fraction of time each behavior is performed can be analyzed in aggregate
+or as a time series.  Each experiment is considered one sample.  </p>
+
+<h3><a id="BehaviorBarCharts">Bar Charts</a></h3>
+
+<p>Click on the <b>Behavior Bar Chart</b> button and set the following parameters:</p>
+<ul>
+
+<li>In the <b>Style</b> pull-down menu choose</li>
+<ul>
+<li><b>per Group</b> to simply sum frames across experiments </li>
+<li><b>per Experiment, CT&D</b> to sum within each experiment and then take the mean and variance across them</li>
+<li><b>per Experiment, box</b> to sum within each experiment and plot non-parametric statistics</li>
+<li><b>per Fly, grouped</b> to sum within each fly and don't average at all</li>
+<li><b>per Fly, scatter</b> to sum within each fly and average across experiments and groups</li>
+<li><b>per Fly, trajectory length</b> to not sum frames but rather to plot the trajectory length</li>
+</ul>
+
+<li><b>Behavior</b></li>
+<ul>
+
+<li>Choose a behavior, optionally depressing the <b>not</b> button to select
+those frames not during the behavior.</li>
+<li>Specify a logical combination of two behaviors by selecting <b>and</b> or <b>or</b>
+and a second behavior.</li>
+<li>Form a percentage by normalizing with either all frames or a third selected
+behavior, optionally inverted with it's own <b>not</b> button.</li>
+<li>For example, walking not chasing divided by not stopped.</li>
+
+</ul>
+
+<li>Choose an <b>Individual</b></li>
+
+<li>In <b>Parameters</b> set <b>Min. Traj. Len</b>, <b>P-Value</b>, and
+<b>dump to .csv</b> as described in Feature Statistics above</li>
+
+</ul>
+
+<p>Generate the figure and <b>most_recent_figure.csv</b> by clicking on
+the <b>Plot</b> button.</p>
+
+<p>A <b>Params</b> button, and for certain styles a <b>Stats</b> button,
+are on these figures as well.</p>
+
+
+<h3><a id="BehaviorTimeSeries">Time Series</a></h3>
+
+<p>Click on the <b>Behavior Time Series</b> button and set the following
+parameters:</p>
+<ul>
+
+<li>From the <b>Style</b> menu choose <b>Central Tendency</b>,
+etc. as described in Feature Statistics above</li>
+
+<li>Choose a <b>Behavior</b> as described in Bar Chart above</li>
+
+<li>Choose an <b>Individual</b></li>
+
+<li>In <b>Parameters</b> set <b>Min. Traj. Len</b>, <b>Conv. Width</b>,
+<b>X-Offset</b> and <b>dump to .csv</b> as described in Feature Statistics above</li>
+
+</ul>
+
+<p>Click on the <b>Plot</b> button</p>
+
+
+<hr class="h2-divider">
+
+<h2><a id="BoutStatistics">Bout Statistics</a></h2>
+
+<p>The duration of each bout of behavior can be quantified on a per-group or per-fly basis. </p>
+
+<p>Click on the <b>Bout Stats</b> button and set the following parameters:</p>
+<ul>
+
+<li>From the left pull-down menu in <b>Style</b> choose <b>per Experiment
+CT&D</b> or <b>per Fly, grouped</b> as described in Behavior Bar Chart
+above</li>
+
+<li>From the right pull-down menu in <b>Style</b> choose <b>bout length</b>
+or <b>inter-bout length</b></li>
+
+<li>Choose a <b>Behavior</b> as described in Bar Chart above</li>
+
+<li>Choose an <b>Individual</b></li>
+
+</ul>
+
+<p>Click on the <b>Plot</b> button</p>
+
 
 <hr class="h2-divider">
 
 <h2><a id="InterestingDifferences">Interesting Differences</a></h2>
 
-<p>
-Create a table of behavior-feature pairs whose feature histograms are most
-different using the "Interesting Feature Histograms" button.  The metric used
-is the difference in the means normalized by the combined standard deviations
-(i.e. d-prime of signal detection theory).  Differences between both during
-versus not-during the behavior, as well as during the behavior for each
-possible pair of groups are considered.  Selecting a cell in the table changes
-the "Behavior" and "Feature" boxes and plots the corresponding histograms.
-A contextual menu provides options to include or exclude Nan and Inf d-primes.
-</p>
+<p> A table of feature histograms which are most different can be created
+to help in finding effects of experimental manipulations.</p>
 
-<p>
-These calculations take a (really long) time and so the results are cached
-to disk.
-</p>
+<p>Click on the <b>Interesting Feature Histograms</b> button and set the following
+parameters:</p>
+<ul>
+  <li>Depress either</li>
+  <ul>
+    <li><b>d'</b> to perform pairwise comparisons between group scores (&agrave; la <a href="http://en.wikipedia.org/wiki/D'">signal detection theory</a>)</li>
+    <li><b>z</b> to <a href='http://en.wikipedia.org/wiki/Standard_score'>standardize</a> each groups score to the global mean and variance</li>
+  </ul>
+  <li><b>Parameters</b></li>
+  <ul>
+    <li>Depress <b>Omit NaN</b></li>
+    <li>Depress <b>Omit Inf</b> to remove entries with zero variance</li>
+    <li>Depress <b>abs(d',z')</b> to interleave negative and positive differences</li>
+  </ul>
+</ul>
+
+<p>Click on the <b>Plot</b> button.  And wait.  For a while.</p>
+
+<p> Selecting a cell in the d' or z column of the table plots the
+corresponding histograms.  Select cells in any other column to delete
+similar rows.</p>
+
+<p>The results are saved in <b>most_recent_table.csv</b>, as well as stored
+in <b>most_recent_config.mat</b> upon exiting JAABAPlot.  The latter are
+cleared if any changes are made to the group or experiment lists.</p>
 
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated May 24, 2013</i>
 </center>
 </footer>
 
