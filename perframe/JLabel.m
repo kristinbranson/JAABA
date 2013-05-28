@@ -8401,7 +8401,16 @@ function newEverythingFile(figureJLabel)
 handles=guidata(figureJLabel);
 
 % launch the project setup GUI
-ProjectSetup('figureJLabel',handles.figure_JLabel);
+uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel));
+
+% no experiments? ask to add
+if handles.data.nexps == 0,
+
+  drawnow;
+  JModifyFiles('figureJLabel',handles.figure_JLabel);
+  
+end
+  
            
 return
 
