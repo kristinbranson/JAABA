@@ -5609,7 +5609,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.SetStatus('Getting basic trx info for %s...',expName);
       trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
       try
-        [nFlies,firstFrames,endFrames,~,~,fracSex,sex] = ...
+        [nFlies,firstFrames,endFrames,~,hasSex,fracSex,sex] = ...
           JLabelData.readTrxInfoFromFile(trxFileNameAbs);
       catch err
          if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
@@ -5621,6 +5621,7 @@ classdef JLabelData < matlab.mixin.Copyable
            rethrow(err);
          end
       end
+      obj.hassex = obj.hassex || hasSex;
       obj.nflies_per_exp(end+1) = nFlies;
       obj.sex_per_exp{end+1} = sex;
       obj.frac_sex_per_exp{end+1} = fracSex;
