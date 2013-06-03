@@ -2723,6 +2723,11 @@ end
     handles.data.cacheSize = 4000;
   end
   
+  if isfield(handles.guidata.rc,'expdefaultpath'),
+    handles.data.SetExpDefaultPath(handles.guidata.rc.expdefaultpath);
+  end
+
+  
 %   % load the default configfilename, if present
 %   if isfield(handles.guidata.rc,'previousConfigFileName'),
 %     handles.guidata.previousConfigFileName = ...
@@ -2750,6 +2755,11 @@ function handles = SaveRC(handles)
   if ~isempty(handles.data.defaultpath),
     rc.defaultpath = handles.data.defaultpath;
   end
+  
+  if ~isempty(handles.data.expdefaultpath),
+    rc.expdefaultpath = handles.data.expdefaultpath;
+  end
+  
   rc.timeline_nframes = handles.guidata.timeline_nframes;
   
   set(handles.figure_JLabel,'Units','pixels');
@@ -7884,7 +7894,7 @@ while ~successfullyOpened && keepTrying ,
       else % Answer was 'Yes, Locate It'
         [~,dname,~] = fileparts(originalExpName);
         substituteExpDir= ...
-          uigetdir(handles.data.defaultpath, ...
+          uigetdir(handles.data.expdefaultpath, ...
                    sprintf('Locate Experiment Directory %s',dname));
         if isempty(substituteExpDir)
           % means user hit Cancel button
