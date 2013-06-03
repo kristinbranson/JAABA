@@ -864,14 +864,16 @@ classdef JLabelData < matlab.mixin.Copyable
       for iExp=1:nExps
         expName=obj.expnames{iExp};
         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',pfName,expName);
-        success = obj.ScoresToPerframe(iExp, ...
-                                       pfName, ...
-                                       timeStamp);
+        [success,msg,timeStamp] = obj.ScoresToPerframe(iExp, ...
+          pfName, ...
+          timeStamp);
         if ~success,
           error('JLabelData:errorGeneratingPerframeFileFromScoreFile', ...
-                sprintf('Error generating score-based per-frame file %s for %s',pfName,expName));  %#ok
+                sprintf('Error generating score-based per-frame file %s for %s: %s',pfName,expName,msg));  %#ok
         end
       end
+      
+      scoreFeature.ts = timeStamp;
       
       % store scoreFeatures in self
       obj.scoreFeatures = [obj.scoreFeatures;scoreFeature];
@@ -3066,7 +3068,12 @@ classdef JLabelData < matlab.mixin.Copyable
       %obj.data.SetStatus('Saving scores for experiment %s to %s',obj.data.expnames{expi},sfn);
 
       %didbak = false;
+      
       if exist(sfn,'file'),
+        if exist([sfn '~'],'file')
+            delete([sfn '~']);
+        end
+          
         [didbak,msg] = copyfile(sfn,[sfn,'~']);
         if ~didbak,
           error('JLabelData.unableToBackupScores', ...
@@ -3708,6 +3715,12 @@ classdef JLabelData < matlab.mixin.Copyable
       behaviorName=obj.labelnames{1};
     end
         
+    % ---------------------------------------------------------------------
+    function setNeedSave(obj)
+      % Get the behavior name, a string
+      obj.needsave = true;
+    end
+        
         
     % ---------------------------------------------------------------------
     function [success,msg] = SetMovieFileName(obj,moviefilename)
@@ -4161,7 +4174,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % [success,msg] = SetClipsDir(obj,clipsdir)
     % Sets the clips directory name within the experiment directory.
       
-      success = false;
+      success = true;
       msg = '';
 
       if ischar(clipsdir),
@@ -6563,7 +6576,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------
-    function [success, msg] = ScoresToPerframe(obj,expi,fileName,ts)
+    function [success, msg, ts] = ScoresToPerframe(obj,expi,fileName,ts)
       success = true; msg = '';
       %outdir = obj.outexpdirs{expi};
       outdir = obj.expdirs{expi};      
@@ -6575,6 +6588,23 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
       Q = load(scoresFileIn);
+      if obj.isInteractive,
+        if Q.timestamp > ts,
+          res = questdlg(sprintf('The timestamp for scores file %s (%s) is newer than that expected for this project (%s). Do you want to update the current project, proceed without updating, or cancel?',...
+              scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Update project','Proceed without updating','Cancel','Update project');
+          if strcmpi(res,'Update project'),
+              ts = Q.timestamp;
+          elseif strcmpi(res,'Proceed without updating'),
+              Q.timestamp = ts;
+          end
+        elseif Q.timestamp < ts,
+          res = questdlg(sprintf('The timestamp for scores file %s (%s) is older than that expected for this project (%s). Do you want to add this experiment anyways or cancel?',...
+            scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Add experiment anyway','Cancel','Cancel');
+          if strcmpi(res,'Add experiment anyway'),
+            Q.timestamp = ts;
+          end
+        end
+      end
       if Q.timestamp ~= ts, % check the timestamps match the classifier's timestamp.
         success = false; 
         msg = sprintf(['The scores file %s was generated using a classifier' ...
@@ -10202,8 +10232,8 @@ classdef JLabelData < matlab.mixin.Copyable
           [success,message,identifier]=copyfile(fileNameAbs,backupFileNameAbs);  %#ok
           if ~success,
             backupFileNameRel=fileNameRelFromAbs(backupFileNameAbs);
-            error('JLabelData:unableToCreateBackup', ...
-                  'Unable to create backup file %s.  Save aborted.',backupFileNameRel);
+            warning('JLabelData:unableToCreateBackup', ...
+                  'Unable to create backup file %s.',backupFileNameRel);
           end
         end
         saveAnonymous(fileNameAbs,macguffin);
