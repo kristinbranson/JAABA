@@ -71,6 +71,7 @@ handles.pagePos = get(handles.popupmenu_Page,'Position');
 % initialize page number
 handles.page_number = [];
 
+
 % added an extra guidata here, as sometimes I was getting an error that
 % figurePos wasn't getting set
 guidata(hObject,handles);
@@ -317,6 +318,10 @@ function varargout = SwitchTarget_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+% set double click callback
+uitablepeer  = findjobj(hObject,'-nomenu','class','uitablepeer');
+set(uitablepeer,'MouseClickedCallback',@MouseClickHandler);
+
 varargout{1} = handles.output;
 
 
@@ -429,3 +434,21 @@ function popupmenu_Page_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+% From http://www.mathworks.com/matlabcentral/newsreader/view_thread/270514
+
+function MouseClickHandler(handle,cbData)
+  % handle ~ java object UITablePeer
+  % cbData ~ callback data for the MouseClickedCallback event
+
+  if get(cbData,'ClickCount') == 2
+      curfig = findall(0,'type','figure','name','SwitchTarget');
+      if numel(curfig)~=1,
+        return;
+      end
+        
+      pushSwitchfly_Callback(curfig,[],guidata(curfig));
+  end
+
