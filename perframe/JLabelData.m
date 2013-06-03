@@ -864,13 +864,15 @@ classdef JLabelData < matlab.mixin.Copyable
       for iExp=1:nExps
         expName=obj.expnames{iExp};
         obj.SetStatus('Generating score-based per-frame feature file %s for %s...',pfName,expName);
-        [success,msg,timeStamp] = obj.ScoresToPerframe(iExp, ...
+        [success,msg,timeStamp,newProjectName] = obj.ScoresToPerframe(iExp, ...
           pfName, ...
-          timeStamp);
+          timeStamp,...
+          scoreFeature.classifierfile);
         if ~success,
           error('JLabelData:errorGeneratingPerframeFileFromScoreFile', ...
                 sprintf('Error generating score-based per-frame file %s for %s: %s',pfName,expName,msg));  %#ok
         end
+        scoreFeature.classifierfile = newProjectName;
       end
       
       scoreFeature.ts = timeStamp;
@@ -6576,7 +6578,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------
-    function [success, msg, ts] = ScoresToPerframe(obj,expi,fileName,ts)
+    function [success, msg, ts, projectName] = ScoresToPerframe(obj,expi,fileName,ts, projectName)
       success = true; msg = '';
       %outdir = obj.outexpdirs{expi};
       outdir = obj.expdirs{expi};      
@@ -6593,7 +6595,31 @@ classdef JLabelData < matlab.mixin.Copyable
           res = questdlg(sprintf('The timestamp for scores file %s (%s) is newer than that expected for this project (%s). Do you want to update the current project, proceed without updating, or cancel?',...
               scoresFileIn,datestr(Q.timestamp),datestr(ts)),'Scores file timestamp mismatch','Update project','Proceed without updating','Cancel','Update project');
           if strcmpi(res,'Update project'),
-              ts = Q.timestamp;
+            
+            while true,
+              [f,p] = uigetfile('*.jab',sprintf('Choose the project corresponding to %s',fileName),projectName);
+              if ~ischar(f),
+                break;
+              end
+              newProjectName = fullfile(p,f);
+              if ~exist(newProjectName,'file'),
+                uiwait(warndlg(sprintf('File %s does not exist',newProjectName)));
+                continue;
+              end
+              projectData = loadAnonymous(newProjectName);
+              if projectData.classifierStuff.timeStamp ~= Q.timestamp,
+                uiwait(warndlg(sprintf('Timestamp in project file %s = %s does not match time stamp in score file %s = %s',newProjectName,datestr(projectData.classifierStuff.timeStamp),fileName,datestr(ts))));
+                continue;
+              end
+              if ~strcmp(projectData.file.scorefilename,[fileName,'.mat']),
+                uiwait(warndlg(sprintf('Score file name in %s = %s does not match score file name %s',newProjectName,projectData.file.scorefilename,[fileName,'.mat'])));
+                continue;
+              end
+              projectName = newProjectName;
+              ts = projectData.classifierStuff.timeStamp;
+              break;
+            end
+            
           elseif strcmpi(res,'Proceed without updating'),
               Q.timestamp = ts;
           end
