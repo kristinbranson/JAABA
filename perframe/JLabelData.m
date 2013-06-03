@@ -265,9 +265,12 @@ classdef JLabelData < matlab.mixin.Copyable
     % whether sex is computed on a per-frame basis
     hasperframesex
     
-    % last-used path for loading experiment
+    % last-used path for loading jabfiles
     defaultpath
-    
+
+    % last-used path for loading experiments
+    expdefaultpath
+
     % parameters of window features, represented as a struct
     % Each field holds the parameters for a single per-frame feature in the
     % feature vocabulary, with the field name being the per-frame feature
@@ -417,6 +420,8 @@ classdef JLabelData < matlab.mixin.Copyable
                                                % when a new file was
                                                % created
     needsave  % true iff a file is open and there are unsaved changes.  False if no file is open.
+    
+    
   end
 
   
@@ -582,6 +587,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.hassex = false;
       self.hasperframesex = false;
       self.defaultpath = '';
+      self.expdefaultpath = '';
       self.windowfeaturesparams = struct();
       self.windowfeaturescellparams = {};
       self.allperframefns = {};
@@ -1182,22 +1188,22 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.StoreLabelsForCurrentAnimal();
             
-      % preload labeled window data while we have the per-frame data loaded
-      ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
-      if ~obj.IsGTMode(),
-        [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
-        if ~success,
-          warning(msg);
-        end
-      end
-      
-      % update windowdata's labelidx_new
-      if ~isempty(obj.windowdata.exp),
-        idxcurr = obj.windowdata.exp == obj.expi & ...
-          all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2);
-        obj.windowdata.labelidx_new(idxcurr) = obj.labelidx.vals(obj.windowdata.t(idxcurr)+obj.labelidx_off);
-        obj.windowdata.labelidx_imp(idxcurr) = obj.labelidx.imp(obj.windowdata.t(idxcurr)+obj.labelidx_off);
-      end
+%       % preload labeled window data while we have the per-frame data loaded
+%       ts = find(obj.labelidx.vals~=0) - obj.labelidx_off;
+%       if ~obj.IsGTMode(),
+%         [success,msg] = obj.PreLoadWindowData(obj.expi,obj.flies,ts);
+%         if ~success,
+%           warning(msg);
+%         end
+%       end
+%       
+%       % update windowdata's labelidx_new
+%       if ~isempty(obj.windowdata.exp),
+%         idxcurr = obj.windowdata.exp == obj.expi & ...
+%           all(bsxfun(@eq,obj.windowdata.flies,obj.flies),2);
+%         obj.windowdata.labelidx_new(idxcurr) = obj.labelidx.vals(obj.windowdata.t(idxcurr)+obj.labelidx_off);
+%         obj.windowdata.labelidx_imp(idxcurr) = obj.labelidx.imp(obj.windowdata.t(idxcurr)+obj.labelidx_off);
+%       end
       
       %obj.UpdateWindowDataLabeled(obj.expi,obj.flies);
       
@@ -4220,6 +4226,27 @@ classdef JLabelData < matlab.mixin.Copyable
 
     end
     
+    function [success,msg] = SetExpDefaultPath(obj,defaultpath)
+    % [success,msg] = SetDefaultPath(obj,defaultpath)
+    % sets the default path to load experiments from. only checks for
+    % existence of the directory.
+      
+      success = false;
+      msg = '';
+      
+      if ischar(defaultpath),
+        
+        if ~isempty(defaultpath) && ~exist(defaultpath,'file'),
+          msg = sprintf('defaultpath directory %s does not exist',defaultpath);
+          return;
+        end
+          
+        obj.expdefaultpath = defaultpath;
+        success = true;
+      end
+
+    end
+    
     
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = SetRootOutputDir(obj,rootoutputdir)
@@ -4737,8 +4764,8 @@ classdef JLabelData < matlab.mixin.Copyable
       self.windowdata.featurenames = feature_names;
             
       % Update the window data near the labels
-      [success,msg] = self.PreLoadPeriLabelWindowData();
-      if ~success,error(msg);end   
+%       [success,msg] = self.PreLoadPeriLabelWindowData();
+%       if ~success,error(msg);end   
 
       % Move the current predictions out of the way
       self.MoveCurPredictionsToOld();
@@ -5437,7 +5464,6 @@ classdef JLabelData < matlab.mixin.Copyable
     
 % Experiment handling
 
-
     % ---------------------------------------------------------------------
     function [success,msg] = AddExpDir(obj, ...
                                        expDirName, ...
@@ -5664,7 +5690,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
             
       % % Set the default path to the experiment directory's parent
-      obj.defaultpath = fileparts(expDirName);
+      obj.expdefaultpath = fileparts(expDirName);
 
       % Update the status
       obj.SetStatus('Successfully added experiment %s...',expDirName);
@@ -7959,10 +7985,10 @@ classdef JLabelData < matlab.mixin.Copyable
       % obj.classifier = [];
       % obj.classifier_old = [];
       obj.ClearWindowData();
-      [success,msg]=obj.PreLoadPeriLabelWindowData();
-      if ~success, 
-        error('JLabelData:unableToLoadPerLabelWindowData',msg);
-      end
+%       [success,msg]=obj.PreLoadPeriLabelWindowData();
+%       if ~success, 
+%         error('JLabelData:unableToLoadPerLabelWindowData',msg);
+%       end
       obj.needsave=true;
 %       if hasClassifier && dotrain,
 %         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
@@ -7993,10 +8019,9 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.StoreLabelsAndPreLoadWindowData();
       
       % load all labeled data
-      [success,msg] = obj.PreLoadPeriLabelWindowData();
-      if ~success,
-        warning(msg);
-        return;
+      [success,msg]=obj.PreLoadPeriLabelWindowData();
+      if ~success, 
+        error('JLabelData:unableToLoadPerLabelWindowData',msg);
       end
       
       islabeled = (obj.windowdata.labelidx_new ~= 0) & (obj.windowdata.labelidx_imp);
@@ -8138,11 +8163,11 @@ classdef JLabelData < matlab.mixin.Copyable
       end
             
       % Get the relevant window data in main memory so that we can predict on it
-      [success,msg] = obj.PreLoadWindowData(expi,flies,t0:t1);
-      if ~success ,
-        error('JLabelData:unableToLoadWindowDataForPrediction', ...
-              msg);
-      end
+%       [success,msg] = obj.PreLoadWindowData(expi,flies,t0:t1);
+%       if ~success ,
+%         error('JLabelData:unableToLoadWindowDataForPrediction', ...
+%               msg);
+%       end
       
       % apply classifier
       switch obj.classifiertype,
@@ -8186,7 +8211,9 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       wfidx = obj.fastPredict.wfidx;
       
-      
+%       tfile = tempname();
+%       wbar = waitbar(0,'Predicting..');
+%       pause(0.01);
       parfor flies = 1:numFlies
         blockSize = 5000*2;
         tStart = tStartAll(flies);
@@ -8202,6 +8229,14 @@ classdef JLabelData < matlab.mixin.Copyable
           scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
         end
         scoresA{flies} = scores;
+%         fid = fopen(tfile,'a');
+%         fprintf(fid,'.');
+%         fclose(fid);  
+%         fid = fopen(tfile,'r');
+%         xx = fgetl(fid);
+%         fclose(fid);
+%         numdone = numel(xx);
+%         waitbar(numdone/numFlies,wbar);
         fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
       end
       
@@ -10213,6 +10248,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function closeJabFile(self)
       % The list of things we want to be persistent
       listOfPersistentSlots={'defaultpath' ...
+                             'expdefaultpath' ...
                              'setstatusfn' ...
                              'clearstatusfn' ...
                              'cacheSize' ...
