@@ -445,12 +445,13 @@ switch(handles.analysis)
     else
       set(handles.FeatureList,'enable','on');
       set(handles.ConvolutionWidth,'enable','on');
-      set(handles.WindowRadius,'enable','on');
-      set(handles.XOffset,'enable','on');
       set(handles.CentralTendency,'enable','on');
       set(handles.Dispersion,'enable','on');
-      if(handles.featuretimeseries_style2~=1)
+      if(handles.featuretimeseries_style2==1)
+        set(handles.XOffset,'enable','on');
+      else
         set(handles.SubtractMean,'enable','on');
+        set(handles.WindowRadius,'enable','on');
       end
     end
   case 'behavior_barchart'
@@ -523,6 +524,9 @@ if(~isempty(analysis2))
     set(handles.BehaviorNot,'enable','on');
     set(handles.BehaviorList,'enable','on');
     set(handles.BehaviorLogic,'enable','on');
+    if(handles.behaviorlogic>1)
+      set(handles.BehaviorList2,'enable','on');
+    end
   end
   if((ismember(analysis2,{'behavior_barchart','behavior_timeseries'})) && ...
       (length(handles.behaviorlist)>0))
@@ -530,9 +534,6 @@ if(~isempty(analysis2))
   end
   if(~isempty(handles.classifierlist) && (handles.behaviorvalue3>1))
     set(handles.BehaviorNormalizeNot,'enable','on');
-  end
-  if(handles.behaviorlogic>1)
-    set(handles.BehaviorList2,'enable','on');
   end
   if(~strcmp(analysis2,'interesting_feature_histograms'))
     set(handles.IndividualList,'enable','on');
@@ -1213,21 +1214,30 @@ if(isempty(directory))  directory=pwd;  end
 tmp=directory;
 [newexperiments directory]=uigetfile([fullfile(directory,'*.txt') ';*.csv'],'Select batch file');
 if(isnumeric(newexperiments)&&(newexperiments==0))  directory=tmp; return;  end
+fid=fopen(fullfile(directory,newexperiments),'r');
+textscan(fgetl(fid),'%s','delimiter',',');
+ncol=numel(ans{1});
+fclose(fid);
 newexperiments=textread(fullfile(directory,newexperiments),'%s','delimiter',',');
 %sum(cellfun(@(x) exist(x,'dir'),newexperiments)~=0);
 %if(ans==(length(newexperiments)/2))
-if(all(cellfun(@(x) exist(x,'dir'),newexperiments)))
-  newgroups=[];
-  newcolors=[];
-elseif(all(cellfun(@(x) exist(x,'dir'),newexperiments(1:2:end))))
-  newgroups=newexperiments(2:2:end);
-  newcolors=[];
-  newexperiments=newexperiments(1:2:end);
-%elseif(ans==(length(newexperiments)/3))
-elseif(all(cellfun(@(x) exist(x,'dir'),newexperiments(1:3:end))))
-  newgroups=newexperiments(2:3:end);
-  newcolors=newexperiments(3:3:end);
-  newexperiments=newexperiments(1:3:end);
+switch(ncol)
+  case 1
+    newgroups=[];
+    newcolors=[];
+  case 2
+    newgroups=newexperiments(2:2:end);
+    newcolors=[];
+    newexperiments=newexperiments(1:2:end);
+  case 3
+    newgroups=newexperiments(2:3:end);
+    newcolors=newexperiments(3:3:end);
+    newexperiments=newexperiments(1:3:end);
+end
+find(cellfun(@(x) ~exist(x,'dir'),newexperiments));
+if(~isempty(ans))
+  uiwait(errordlg({'These experiments were not found:','',newexperiments{ans}}));
+  return;
 end
 if((length(handles.grouplist)==0)&&(isempty(newgroups)))
   uiwait(errordlg('Add a new group before adding ungrouped experiments'));

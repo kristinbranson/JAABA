@@ -52,6 +52,7 @@ strong.regular-font {
 <li><a href="#KeyboardShortcuts">Label Keyboard Shortcuts</a></li>
 <li><a href="#Training">Training</a></li>
 <li><a href="#SelectFeaturesQuick">Select Features (Quick)</a></li>
+<li><a href="#ScoresAsInput">Using the Output of Previously Trained Classifiers</a></li>
 <li><a href="#Predictions">Examining the Classifier's Predictions</a></li>
 <li><a href="#Memory">Memory Usage</a></li>
 <li><a href="#Retraining">Retraining</a></li>
@@ -118,6 +119,11 @@ continue. </p>
 More details on perframe features, window computations and window size can be found 
 <a href=WindowFeatureComputation.html>here</a>.
 </p>
+
+<h2><a id="ScoresAsInput">Using the Output of Previously Trained Classifiers</a></h2>
+
+<p> In JAABA, you can use the output of previously trained behavior classifiers as inputs for the current behavior classifier. To do this, select the menu <b>Classifier->Change Score Features</b>.  Use the <i>Add</i> and <i>Remove</i> buttons to specify the list of <a href="NewProject.html"/>JAABA projects</a> whose output you want to use as inputs. Note that the <a href=SavingAndLoading.html#Predictions>scores/predictions</a> for the classifiers should already be <b>computed</b> for all the experiments that you want to use for this project. 
+
 
 <center>
 <table style="border:0px;margin-bottom:5px;margin-top:5px"; >

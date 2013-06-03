@@ -47,17 +47,79 @@ strong.regular-font {
 <center><h1> Creating a new <a href="index.html">JAABA</a> Project </h1></center>
 
 <br>
-<p>Each behavior in JAABA corresponds to a different project. You can create a new project when JAABA starts up throught the <a href="#ProjectConfigurationDialog">Project Configuration Dialog</a>. </p>
+<p>Each behavior in JAABA corresponds to a different <a href="#JAABAProject">JAABA project</a>, stored in a MATLAB file with the extension <b>.jab</b>.
 
 <hr class="h2-divider">
 
 <h2><a id="Contents">Contents</a></h2>
 <ul>
-<li><a href="#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
-<li><a href="#ScoresAsInput">Using Output of Previously Trained Classifiers</a></li>
+<li> <a href="#JAABAProject">JAABA Project Overview</a></li>
+<li><a href="#NewProject">Creating a New Project</a></li>
 </ul>
 
 <hr class="h2-divider">
+
+<h2><a id="JAABAProject">JAABA Project Overview</a></h2>
+
+All data associated with a given behavior classifier is stored in a JAABA project file with the extension <b>.jab</b>. <p>For <b>each behavior</b>, you need a <b>separate</b> JAABA project. This includes the:
+<ul>
+<li><a href="#ProjectParameters">Project parameters</a>, such as the behavior name and what type of animal is being labeled. </li>
+<li>Trained <a href="#Classifier">behavior classifier</a>, which inputs information from the animals' trajectories and predicts the behavior class. </li>
+<li><a href="#TrainingData">Training data</a> labels and locations.</li>
+</ul>
+
+<h3><a id="ProjectParameters">JAABA Project Parameters</a></h3>
+
+<p>The following parameters must be set for each JAABA project. Information on the experiment directory structure referred to below can be found <a href="DataFormatting.html#ExperimentDirectoryStructure">here</a>.</p>
+
+<table border=1 style="margin-bottom:15px;margin-top:35px">
+<tr> <th>Field name</th><th>Example value</th><th>Description</th> </tr>
+
+<tr> <td>Target Type</td><td>flies</td><td>Type of animal whose behavior is being analyzed. This really refers to the type of tracking data which is being input. In our work, we use "flies" for both flies and mice and "larvae" for larvae. Other options, e.g. "larvae_mwt" correspond to larvae as well, but tracking using the MWT. This affects what per-frame and window features are used and how the animal's current position is plotted.</td></tr>
+
+<tr> <td>Behavior Name</td><td >Chase</td><td>Name of the behavior, used in the GUI for referring to the behavior.</td> </tr>
+
+<tr> <td>Movie File Name</td><td >movie.ufmf</td><td>Name of the movie
+file. For each experiment, JAABA reads and shows this file from the experiment directory. </td> </tr>
+
+<tr> <td>Tracking Data File Name</td><td >trx.mat</td><td>Name of the MATLAB mat file within each experiment directory in which the animals' trajectories are stored.</td> </tr>
+
+<tr> <td>Output/Score File Name</td><td
+>scoresChase.mat</td><td>Name of the MATLAB mat file within the experiment directory where the automatic behavior classifications will be output.</td> </tr>
+
+</table>
+<center><i>Description of JAABA project parameters.</i></center>
+
+TODO: add the advanced parameters
+
+<h3><a id="Classifier">Behavior Classifier</a></h3>
+
+The most recent behavior classifier trained using JAABA is also saved in the JAABA project file. The classifier is what is used to automatically predict the behavior of a given animal in a given frame. This classifier can be used to classify the behavior of the animals in a new video outside of your training data set. 
+
+<h3><a id="TrainingData">Training Data Labels and Locations</a></h3>
+
+The data that has been used for training the classifier is also stored in the JAABA project file. This includes:
+<ul>
+<li> The locations of the experiment directories added to this project (see <a href="AddExperiments.html">Adding Experiments to the Current Project</a>). </li>
+<li> The behavior labels manually entered by the user for any experiments, animals, and frames in this project.</li>
+</ul>
+
+<h2><a id="NewProject">Creating a New Project</a></h2>
+
+You can create a new project either by
+<ul>
+<li> Selecting <b>Start a new project</b> in the initial dialog when JAABA starts</li>
+<li> Selecting the <b>File->New</b> menu at any time.</li>
+</ul>
+
+This will cause the <b>New...</b> project dialog box to open:
+<center><img src="images/NewProjectDialog.png"></center>
+<center><i>New Project Dialog</i></center>
+In this dialog, you can specify the <a href="#ProjectParameters">Project Parameters</a> described above. 
+
+After you have set the JAABA project parameters, you can add experiments to the project by selecting the <b>File->Modify experiment list</b> menu. 
+
+You can create a new project when JAABA starts up throught the <a href="#ProjectConfigurationDialog">Project Configuration Dialog</a>. </p>
 
 <h2><a id="ProjectConfigurationDialog">Project Configuration Dialog</a></h2>
 
@@ -100,10 +162,6 @@ where the output predictions for this project  will be stored.</td> </tr>
 
 
 <p> Click <i>Done</i> to save the project and close the window. JAABA will ask for a location to save the project as a <i>mat</i> file. Once you create a project, you can continue working on this project, use <i>Select Project</i> button in the Edit Project and Files window to select this project file. Also, you can edit an existing project using <i>Edit Project</i> button after you select the project.  When creating a new project, you can copy the settings from an existing project using the <i>Copy Settings From </i> button.</p>
-
-<h2><a id="ScoresAsInput">Using Output of Previously Trained Classifiers</a></h2>
-
-<p> In JAABA, you can use output of previously trained behavior detectors as inputs for the current behavior. Use the <i>Add</i> and <i>Remove</i> buttons to specify the list of <a href="SavingAndLoading.html"/>saved classifiers</a> whose output you want to use as inputs. Note that the <a href=SavingAndLoading.html#Predictions>scores/predictions</a> for the classifiers should already be <b>generated</b> for all the experiments that you want to use for this project. 
 
 </p>
 
