@@ -208,6 +208,9 @@ classdef JLabelGUIData < handle
     fly2idx = [];
     idx2fly = [];
     
+    defaultmoviefilename = 0;
+    defaulttrxfilename = 0;
+    
     
     maxWindowRadiusCommonCached = [];  
       % need to remember between calls to SelectFeatures, because it needs

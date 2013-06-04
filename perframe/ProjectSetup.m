@@ -59,10 +59,14 @@ handles.defpath = pwd;
 
 % Parse the arguments
 [figureJLabel, ...
- basicParamsStruct] = ...
+ basicParamsStruct,...
+ defaultmoviefilename,...
+ defaulttrxfilename] = ...
    myparse(varargin,...
            'figureJLabel',[],...
-           'basicParamsStruct',[]);
+           'basicParamsStruct',[],...
+           'defaultmoviefilename',0,...
+           'defaulttrxfilename',0);
 
 % If we got called via New..., basicParamsStruct should be empty
 % If via Basic Settings..., basicParamsStruct should be nonempty
@@ -96,8 +100,18 @@ if isempty(basicParamsStruct)
   warning('off','MATLAB:structOnObject');  % turn off annoying warning
   handles.basicParamsStruct = struct(Macguffin('flies'));  % the default featureLexiconName
   warning(old);  % restore annoying warning  
+  if ischar(defaultmoviefilename)
+    handles.basicParamsStruct.file.moviefilename = defaultmoviefilename;
+  end
+  if ischar(defaulttrxfilename)
+    handles.basicParamsStruct.file.trxfilename = defaulttrxfilename;
+  end
+  
 else  
-  handles.basicParamsStruct = basicParamsStruct;
+  old=warning('query','MATLAB:structOnObject');
+  warning('off','MATLAB:structOnObject');  % turn off annoying warning
+  handles.basicParamsStruct = struct(basicParamsStruct);
+  warning(old);  % restore annoying warning  
 end
 
 % Update the configuration table in the GUI
@@ -321,7 +335,8 @@ function updateConfigTable(handles)
 basicParamsStruct = handles.basicParamsStruct;
 fields2remove = {'featureLexicon','windowfeatures','scoreFeatures', ...
                  'sublexiconPFNames','labels','gtLabels','expDirNames', ...
-                 'gtExpDirNames', 'classifierStuff', 'version'};
+                 'gtExpDirNames', 'classifierStuff', 'version','classifierfile',...
+                 'windowFeaturesParams'};
 for ndx = 1:numel(fields2remove)
   if isfield(basicParamsStruct,fields2remove{ndx}),
     basicParamsStruct = rmfield(basicParamsStruct,fields2remove{ndx});
@@ -814,9 +829,12 @@ if (handles.new)
          everythingParams);
 else
   % we were called via Basic Settings..., so act accordingly
-  JLabel('basicSettingsChanged', ...
+%   JLabel('basicSettingsChanged', ...
+%          figureJLabel, ...
+%          everythingParams); 
+  JLabel('newFileSetupDone', ...
          figureJLabel, ...
-         everythingParams); 
+         everythingParams);
 end
 
 % Delete the ProjectSetup window
