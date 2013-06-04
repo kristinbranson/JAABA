@@ -12,4 +12,11 @@ else
   trxGraphicParams.colormap_multiplier = 0.7;
 end
 
+if isfield(trxGraphicParamsRaw,'assignment') && ~isempty(trxGraphicParamsRaw.assignment)
+  trxGraphicParams.assignment = trxGraphicParamsRaw.assignment;  
+else
+  trxGraphicParams.assignment = 'random';
+end
+
+
 end
