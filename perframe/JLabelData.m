@@ -1053,6 +1053,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
     end  % method
     
+    
 
     % ---------------------------------------------------------------------
     function setLabelsFromStructForAllExps(self,labelsForAll)
@@ -9207,6 +9208,8 @@ classdef JLabelData < matlab.mixin.Copyable
             
       obj.StoreLabelsAndPreLoadWindowData();
       [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
+      curlabels = zeros(1,0);
+      curts = zeros(1,0);
       if ism,
         nbouts = numel(obj.labels(expi).t0s{j});  %#ok
         posframes = 0; negframes = 0;
@@ -9214,9 +9217,12 @@ classdef JLabelData < matlab.mixin.Copyable
           numFrames = obj.labels(expi).t1s{j}(ndx)-obj.labels(expi).t0s{j}(ndx);
           if strcmp(obj.labels(expi).names{j}{ndx},obj.labelnames{1}) 
             posframes = posframes + numFrames;
+            curlabels(1,end+1:end+numFrames) = 1;
           else
             negframes = negframes + numFrames;
+            curlabels(1,end+1:end+numFrames) = 2;
           end
+          curts(1,end+1:end+numFrames) = obj.labels(expi).t0s{j}(ndx):(obj.labels(expi).t1s{j}(ndx)-1);
         end
         posframes = posframes;  %#ok
         negframes = negframes;  %#ok
@@ -9270,20 +9276,16 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       curNdx = obj.predictdata{expi}{flyNum}.cur_valid;
-      curWNdx = obj.FlyNdx(expi,flyNum);
       
       if any(curNdx) && ~isempty(obj.classifier)
         curScores = obj.predictdata{expi}{flyNum}.cur(curNdx);
 
-        if ~isempty(curWNdx)
-          curWScores = myBoostClassify(obj.windowdata.X(curWNdx,:),obj.classifier);
-        else
-          curWScores = [];
+        if ~isempty(curlabels)
+          curWScores = curScores(curts - obj.GetFirstFrames(expi,flyNum)+1);
         end
-        curLabels = obj.windowdata.labelidx_new(curWNdx);
         
-        curPosMistakes = nnz( curWScores<0 & curLabels ==1 );
-        curNegMistakes = nnz( curWScores>0 & curLabels >1 );
+        curPosMistakes = nnz( curWScores<0 & curlabels ==1 );
+        curNegMistakes = nnz( curWScores>0 & curlabels >1 );
 
         flyStats.nscoreframes = nnz(curNdx);
         flyStats.nscorepos = nnz(curScores>0);
@@ -10390,6 +10392,20 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
     
     
+    
+    function isRandom = getColorAssignment(self)
+      if isfield(self.trxGraphicParams,'assignment') && ...
+          strcmp(self.trxGraphicParams.assignment,'static')
+        isRandom = false;
+      else
+        isRandom = true;
+      end
+      
+    end
+    
+    
+    
+
 
 % Deprecated
 

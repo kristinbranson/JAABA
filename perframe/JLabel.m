@@ -171,20 +171,29 @@ guidata(hObject,handles);
 set(handles.figure_JLabel,'Visible','on');
 drawnow;
 
-% ask whether the user wants to open a project or start a new project
-res = questdlg('Open an existing project or start a new project?',...
-  'Project Startup','New','Open in Training Mode',...
-  'Open in Ground-Truthing Mode','Open in Training Mode');
+res = JAABAInitOpen(handles.figure_JLabel);
 
-switch res,
-  case 'New',
-    newEverythingFile(handles.figure_JLabel);
-  case 'Open in Training Mode',
-    openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
-  case 'Open in Ground-Truthing Mode',
-    openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+if ~isempty(res.val)
+  if ~res.edit
+    switch res.val,
+      case 'New',
+        newEverythingFile(handles.figure_JLabel);
+      case 'Open',
+        openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+      case 'OpenGT',
+        openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+    end
+  else
+    switch res.val,
+      case 'New',
+        newEverythingFile(handles.figure_JLabel);
+      case 'Open',
+        editEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+      case 'OpenGT',
+        editEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+    end
+  end
 end
-    
 return
 
 
@@ -301,7 +310,9 @@ handles.guidata.htrx = zeros(handles.guidata.nflies_label,nPreviewAxes);
 nTargetsInCurrentExp=handles.data.nTargetsInCurrentExp;
 nColors=fif(isempty(nTargetsInCurrentExp),0,nTargetsInCurrentExp);
 handles.guidata.fly_colors = jet(nColors)*.7;
-handles.guidata.fly_colors = handles.guidata.fly_colors(randperm(nColors),:);
+handles.guidata.fly_colors = fif(handles.data.getColorAssignment,...
+  handles.guidata.fly_colors(randperm(nColors),:),...
+  handles.guidata.fly_colors);
 
 handles.guidata.hlabel_curr = nan(1,numel(handles.guidata.axes_previews));
 for i = 1:numel(handles.guidata.axes_previews),
@@ -1269,7 +1280,9 @@ ClearStatus(handles);
 nTargetsInCurrentExp=handles.data.nTargetsInCurrentExp;
 nColors=fif(isempty(nTargetsInCurrentExp),0,nTargetsInCurrentExp);
 handles.guidata.fly_colors = jet(nColors)*.7;
-handles.guidata.fly_colors = handles.guidata.fly_colors(randperm(nColors),:);
+handles.guidata.fly_colors = fif(handles.data.getColorAssignment,...
+  handles.guidata.fly_colors(randperm(nColors),:),...
+  handles.guidata.fly_colors);
 
 % delete old fly current positions
 if ~isempty(handles.guidata.hflies),
@@ -2727,6 +2740,13 @@ end
     handles.data.SetExpDefaultPath(handles.guidata.rc.expdefaultpath);
   end
 
+  if isfield(handles.guidata.rc,'moviefilename')
+    handles.guidata.defaultmoviefilename = handles.guidata.rc.moviefilename;
+  end
+  
+  if isfield(handles.guidata.rc,'trxfilename')
+    handles.guidata.defaulttrxfilename = handles.guidata.rc.trxfilename;
+  end
   
 %   % load the default configfilename, if present
 %   if isfield(handles.guidata.rc,'previousConfigFileName'),
@@ -2803,6 +2823,15 @@ function handles = SaveRC(handles)
   % cache size
   % rc.cacheSize = handles.guidata.cacheSize;
   rc.cacheSize = handles.data.cacheSize;
+  
+  if ischar(handles.data.moviefilename),
+    rc.moviefilename = handles.data.moviefilename;
+  end
+  
+  if ischar(handles.data.trxfilename),
+    rc.trxfilename = handles.data.trxfilename;
+  end
+  
   
   % % save the configfilename, if present
   % if ~isempty(handles.guidata.configfilename),
@@ -8392,6 +8421,30 @@ ClearStatus(handles);
 % Write the handles to the guidata
 guidata(hObject,handles);
 
+res = JAABAInitOpen(handles.figure_JLabel);
+
+if ~isempty(res.val)
+  if ~res.edit
+    switch res.val,
+      case 'New',
+        newEverythingFile(handles.figure_JLabel);
+      case 'Open',
+        openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+      case 'OpenGT',
+        openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+    end
+  else
+    switch res.val,
+      case 'New',
+        newEverythingFile(handles.figure_JLabel);
+      case 'Open',
+        editEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+      case 'OpenGT',
+        editEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+    end
+  end
+end
+
 return
 
 
@@ -8411,7 +8464,9 @@ function newEverythingFile(figureJLabel)
 handles=guidata(figureJLabel);
 
 % launch the project setup GUI
-uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel));
+uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
+  'defaultmoviefilename',handles.guidata.defaultmoviefilename,...
+  'defaulttrxfilename',handles.guidata.defaulttrxfilename));
 
 % no experiments? ask to add
 if handles.data.nexps == 0,
@@ -8422,6 +8477,49 @@ if handles.data.nexps == 0,
 end
   
            
+return
+
+
+% -------------------------------------------------------------------------
+function editEverythingFileViaChooser(figureJLabel,groundTruthingMode)
+
+% Prompt user for filename
+handles=guidata(figureJLabel);
+defaultPath=handles.data.defaultpath;
+title=fif(groundTruthingMode, ...
+          'Open in Ground-Truthing Mode...', ...
+          'Open...');
+[filename,pathname] = ...
+  uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
+            title, ...
+            defaultPath);
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+fileNameAbs=fullfile(pathname,filename);
+
+try 
+  Q = load(fileNameAbs,'-mat');
+catch ME,
+  warndlg('Could not read the jab file');
+  return;
+end
+
+% launch the project setup GUI
+uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
+  'defaultmoviefilename',handles.guidata.defaultmoviefilename,...
+  'defaulttrxfilename',handles.guidata.defaulttrxfilename,...
+  'basicParamsStruct',Q.x));
+
+% no experiments? ask to add
+if handles.data.nexps == 0,
+
+  drawnow;
+  JModifyFiles('figureJLabel',handles.figure_JLabel);
+  
+end
+
 return
 
 
