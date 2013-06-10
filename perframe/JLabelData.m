@@ -9278,6 +9278,12 @@ classdef JLabelData < matlab.mixin.Copyable
       curNdx = obj.predictdata{expi}{flyNum}.cur_valid;
       
       if any(curNdx) && ~isempty(obj.classifier)
+        
+        % Ignore labels that don't have predicted scores.
+        missingScores = curNdx(curts - obj.GetFirstFrames(expi,flyNum)+1);
+        curts(~missingScores) = [];
+        curlabels(~missingScores) = [];
+        
         curScores = obj.predictdata{expi}{flyNum}.cur(curNdx);
 
         if ~isempty(curlabels)
@@ -9917,6 +9923,19 @@ classdef JLabelData < matlab.mixin.Copyable
           atLeastOneNormalLabelOfEachClassExists=true;
         end
       end        
+    end
+    
+    function res = HasWindowdata(self)
+      res = false;
+      if ~self.getAtLeastOneNormalLabelOfEachClassExists()
+        return;
+      end
+      
+      if isempty(self.windowdata.X),
+        return;
+      end
+      
+      res = true;
     end
     
     

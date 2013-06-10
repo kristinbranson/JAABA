@@ -2444,7 +2444,6 @@ perFrameFeatureSetIsNonEmpty= ...
   data.getPerFrameFeatureSetIsNonEmpty();
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
-
 %                      
 % Update the File menu items.
 %
@@ -6722,6 +6721,11 @@ function menu_classifier_visualize_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_visualize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+if ~handles.data.HasWindowdata();
+  uiwait(warndlg('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata.'));
+  return;
+end
 
 SetStatus(handles,'Creating classifier visualization');
 
