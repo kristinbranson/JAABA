@@ -79,12 +79,13 @@ end
 order = graphtopoorder(sparse(E));
 
 data = JLabelData();
+data.isInteractive = false;
 for ndx = order(:)'
   
   data.openJabFileNoExps(jabfiles{ndx},false);
   for expi = 1:numel(expdir)
     if ~forcecompute
-      sfn = fullfile(expdir{expi},scorefilenames{ndx});
+      sfn = fullfile(expdir{expi},[scorefilenames{ndx},'.mat']);
       if exist(sfn,'file'),
         Q = load(sfn);
         if Q.timestamp == jabts(ndx),
@@ -93,7 +94,7 @@ for ndx = order(:)'
         end
       end
     end
-    [success,msg] = data.AddExpDir(expdir{expi},false);
+    [success,msg] = data.AddExpDir(expdir{expi});
     if ~success,
       error(msg);
     end
