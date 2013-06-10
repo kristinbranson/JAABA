@@ -9288,6 +9288,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
         if ~isempty(curlabels)
             curWScores = obj.predictdata{expi}{flyNum}.cur(curts - obj.GetFirstFrames(expi,flyNum)+1);
+        else
+            curWScores = zeros(size(curlabels));
         end
         
         curPosMistakes = nnz( curWScores<0 & curlabels ==1 );
