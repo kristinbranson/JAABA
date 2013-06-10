@@ -69,7 +69,7 @@ for ndx = 1:nbehaviors
       continue;
     end
     if scoresasinputs{ndx}(sndx).ts ~= jabts(matchndx)
-      error('Classifier for behavior %s depends on %s generated on %s. The matching classifier:%s was trained on:',...
+      error('Classifier for behavior %s depends on %s generated on %s. The matching classifier:%s was trained on:%s',...
         behavior{ndx},behavior{matchndx},datestr(scoresasinputs{ndx}(sndx).ts),jabfiles{matchndx},datestr(jabts(matchndx)));
     end
     E(matchndx,ndx) = 1;
@@ -79,21 +79,25 @@ end
 order = graphtopoorder(sparse(E));
 
 data = JLabelData();
+data.isInteractive = false;
 for ndx = order(:)'
   
   data.openJabFileNoExps(jabfiles{ndx},false);
   for expi = 1:numel(expdir)
     if ~forcecompute
       sfn = fullfile(expdir{expi},scorefilenames{ndx});
+      if ~strcmp(sfn(end-3:end),'.mat')
+        sfn = [sfn '.mat'];
+      end
       if exist(sfn,'file'),
         Q = load(sfn);
         if Q.timestamp == jabts(ndx),
-          fprintf('Skipping experiment %d for behavior %s\n, predictions already exist',expi,behavior{ndx});
+          fprintf('Skipping experiment %d for behavior %s, predictions already exist\n',expi,behavior{ndx});
           continue;
         end
       end
     end
-    [success,msg] = data.AddExpDir(expdir{expi},false);
+    [success,msg] = data.AddExpDir(expdir{expi});
     if ~success,
       error(msg);
     end
@@ -101,5 +105,7 @@ for ndx = order(:)'
 
     fprintf('Predicting on experiment %d for behavior %s\n',expi,behavior{ndx});
     data.PredictSaveMovie(data.nexps);
+    data.RemoveExpDirs(data.nexps);
   end
+  data.closeJabFile();
 end
