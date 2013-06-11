@@ -7975,7 +7975,7 @@ classdef JLabelData < matlab.mixin.Copyable
         JLabelData.convertParams2CellParams(windowFeaturesParams);
       obj.windowfeaturescellparams = windowFeaturesCellParams;
       obj.curperframefns = fieldnames(windowFeaturesParams);
-      
+      oldScoreNorm = obj.windowdata.scoreNorm;
 %       if nargin>2
 %         %obj.basicFeatureTable = basicFeatureTable;
 %         obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
@@ -7991,6 +7991,11 @@ classdef JLabelData < matlab.mixin.Copyable
 %         error('JLabelData:unableToLoadPerLabelWindowData',msg);
 %       end
       obj.needsave=true;
+      
+      if obj.HasLoadedScores(),
+          data.windowdata.scoreNorm = oldScoreNorm;
+      end
+      
 %       if hasClassifier && dotrain,
 %         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
 %         obj.Train();
