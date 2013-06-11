@@ -1441,7 +1441,7 @@ handles = guidata(hObject);
 
 % update featureVocabulary
 featureVocabulary=handles.featureVocabulary;  % a ref
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+pfName=handles.featureVocabulary.vocabulary{handles.pfNdx}.name;
 wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='flip';
 if get(hObject,'Value')
@@ -1490,7 +1490,7 @@ handles = guidata(hObject);
 
 % update featureVocabulary
 featureVocabulary=handles.featureVocabulary;  % a ref
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+pfName=handles.featureVocabulary.vocabulary{handles.pfNdx}.name;
 wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='abs';
 if get(hObject,'Value')
@@ -1539,7 +1539,7 @@ handles = guidata(hObject);
 
 % update featureVocabulary
 featureVocabulary=handles.featureVocabulary;  % a ref
-pfName=handles.featureVocabulary.pfNameList{handles.pfNdx};
+pfName=handles.featureVocabulary.vocabulary{handles.pfNdx}.name;
 wfType = fv.wfTypes{handles.wfTypeNdx};
 transformation='relative';
 if get(hObject,'Value')
