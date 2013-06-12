@@ -3612,7 +3612,11 @@ if penDown, return; end
 
 % check if the user wants to switch to this fly
 % TODO: this directly accesses handles.data.labels -- abstract this
-[ism,j] = ismember(fly,handles.data.labels(handles.data.expi).flies,'rows');
+if isempty(handles.data.labels(handles.data.expi).flies)
+  ism = false;
+else
+  [ism,j] = ismember(fly,handles.data.labels(handles.data.expi).flies,'rows');
+end
 if ism,
   nbouts = nnz(~strcmpi(handles.data.labels(handles.data.expi).names{j},'None'));
 else
