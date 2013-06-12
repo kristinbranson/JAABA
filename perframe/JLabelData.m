@@ -2695,48 +2695,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-% Status display
-    
-
-    % ---------------------------------------------------------------------
-    function SetStatus(obj,varargin)
-    % SetStatus(obj,<sprintf-like arguments>)
-    % Update an associated status text according to the input sprintf-like
-    % arguments.
-      
-      if isempty(obj.setstatusfn),
-        fprintf(varargin{:});
-        fprintf('\n');
-      else
-        obj.setstatusfn(sprintf(varargin{:}));
-        drawnow;
-      end
-%       allF = findall(0,'type','figure');
-%       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
-%       jfig = allF(jfigNdx);
-%       if ~isempty(jfig),
-%         set(jfig,'pointer','watch');
-%       end
-    end  % method
-
-    
-    % ---------------------------------------------------------------------
-    function ClearStatus(obj)
-    % ClearStatus(obj)
-    % Return an associated status text to the default.
-      
-      if ~isempty(obj.clearstatusfn),
-        obj.clearstatusfn();
-        drawnow;
-      end
-%       allF = findall(0,'type','figure');
-%       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
-%       jfig = allF(jfigNdx);
-%       if ~isempty(jfig),
-%         set(jfig,'pointer','arrow');
-%       end
-    end  % method
-    
     
 % Ground truthing functions.    
 
@@ -3848,6 +3806,47 @@ classdef JLabelData < matlab.mixin.Copyable
       [success,msg] = obj.UpdateStatusTable('scores');
     end
 
+% Status display
+    
+
+    % ---------------------------------------------------------------------
+    function SetStatus(obj,varargin)
+      % SetStatus(obj,<sprintf-like arguments>)
+      % Update an associated status text according to the input sprintf-like
+      % arguments.
+      
+      if isempty(obj.setstatusfn),
+        fprintf(varargin{:});
+        fprintf('\n');
+      else
+        obj.setstatusfn(sprintf(varargin{:}));
+        drawnow;
+      end
+      %       allF = findall(0,'type','figure');
+      %       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+      %       jfig = allF(jfigNdx);
+      %       if ~isempty(jfig),
+      %         set(jfig,'pointer','watch');
+      %       end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function ClearStatus(obj)
+      % ClearStatus(obj)
+      % Return an associated status text to the default.
+      
+      if ~isempty(obj.clearstatusfn),
+        obj.clearstatusfn();
+        drawnow;
+      end
+      %       allF = findall(0,'type','figure');
+      %       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+      %       jfig = allF(jfigNdx);
+      %       if ~isempty(jfig),
+      %         set(jfig,'pointer','arrow');
+      %       end
+    end  % method
 
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = SetClassifierType(obj,classifiertype)
@@ -6235,7 +6234,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
       for curex = sort(expi(:)','descend'), %#ok<UDIM>
         if numel(obj.predictdata)>=curex,
-          obj.predictdata(expi) = [];
+          obj.predictdata(curex) = [];
         end
       end
       
@@ -9288,12 +9287,13 @@ classdef JLabelData < matlab.mixin.Copyable
 
         if ~isempty(curlabels)
             curWScores = obj.predictdata{expi}{flyNum}.cur(curts - obj.GetFirstFrames(expi,flyNum)+1);
+            curPosMistakes = nnz( curWScores<0 & curlabels ==1 );
+            curNegMistakes = nnz( curWScores>0 & curlabels >1 );
         else
-            curWScores = zeros(size(curlabels));
+            curPosMistakes = [];
+            curNegMistakes = [];
         end
         
-        curPosMistakes = nnz( curWScores<0 & curlabels ==1 );
-        curNegMistakes = nnz( curWScores>0 & curlabels >1 );
 
         flyStats.nscoreframes = nnz(curNdx);
         flyStats.nscorepos = nnz(curScores>0);
