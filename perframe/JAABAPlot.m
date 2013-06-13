@@ -4150,7 +4150,7 @@ for b=bb
                 handles.centraltendency,handles.dispersion);
             plot(ha,m,ct,'o','color',color);
             h{ii}(end+1)=plot(ha,[m m],[dp dn],'-','color',color);
-            plot(ha,m+(1:length(table_data{end}{ii}{e})),table_data{end}{ii}{e},'.','color',color);
+            plot(ha,m+(1:length(table_data{end}{ii}{e})),table_data{end}{ii}{e},'.','color',color,'markersize',12);
             m=m+16+length(table_data{end}{ii}{e});
           end
           [ct,dp,dn]=calculate_ct_d([table_data{end}{ii}{:}],...
