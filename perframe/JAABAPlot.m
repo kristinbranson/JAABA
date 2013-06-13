@@ -3129,8 +3129,8 @@ if(handles.comparison2==1)
   for g=1:length(handles.grouplist)
     gg=cumsum_num_selexp_per_group(g)+(1:length(handles.experimentlist{g}));
     if(nbehaviors>0)
-      mu2=repmat(mu,[length(gg) nbehaviors 1]);
-      sigma2=repmat(sigma,[length(gg) nbehaviors 1]);
+      mu2=repmat(shiftdim(mu,-1),[length(gg) nbehaviors 1]);
+      sigma2=repmat(shiftdim(sigma,-1),[length(gg) nbehaviors 1]);
       tmp2=[tmp2; ...
           repmat(g,nbehaviors*nfeatures,1) ...
           reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
