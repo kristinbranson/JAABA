@@ -165,6 +165,8 @@ set(handles.text_selection_info,'string','');
 % load the RC file (is this the time and place?)
 handles = LoadRC(handles);
 
+handles = InitSelectionCallbacks(handles);
+
 % Write the handles to the guidata
 guidata(hObject,handles);
 
@@ -2439,9 +2441,6 @@ classifierExists=~isempty(data) && ...
 atLeastOneNormalLabelOfEachClassExists= ...
   ~isempty(data) && ...
   data.getAtLeastOneNormalLabelOfEachClassExists;
-perFrameFeatureSetIsNonEmpty= ...
-  ~isempty(data) && ...
-  data.getPerFrameFeatureSetIsNonEmpty();
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 %                      
@@ -2610,8 +2609,7 @@ set(grobjectsVisibileIffMovie,'Visible',onIff(someExperimentIsCurrent));
 % per-frame feature set is non-empty.
 set(handles.pushbutton_train, ...
     'enable',onIff(labelPenIsUp && ...
-                   atLeastOneNormalLabelOfEachClassExists && ...
-                   perFrameFeatureSetIsNonEmpty));
+                   atLeastOneNormalLabelOfEachClassExists));
 
 % The Predict button is enabled iff a classifier exists.
 set(handles.pushbutton_predict, ...
@@ -3614,7 +3612,11 @@ if penDown, return; end
 
 % check if the user wants to switch to this fly
 % TODO: this directly accesses handles.data.labels -- abstract this
-[ism,j] = ismember(fly,handles.data.labels(handles.data.expi).flies,'rows');
+if isempty(handles.data.labels(handles.data.expi).flies)
+  ism = false;
+else
+  [ism,j] = ismember(fly,handles.data.labels(handles.data.expi).flies,'rows');
+end
 if ism,
   nbouts = nnz(~strcmpi(handles.data.labels(handles.data.expi).names{j},'None'));
 else
@@ -3679,10 +3681,17 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % check that the user has selected features already
-perframeFeatureNames=fieldnames(handles.data.windowfeaturesparams);
-if isempty(perframeFeatureNames)
-  error('No features selected!');
-end      
+
+perFrameFeatureSetIsNonEmpty= ...
+  ~isempty(handles.data) && ...
+  handles.data.getPerFrameFeatureSetIsNonEmpty();
+if ~perFrameFeatureSetIsNonEmpty,
+  uiwait(helpdlg('Select Features before training'));
+  oldPointer=pointerToWatch(hObject);
+  SelectFeatures(handles.figure_JLabel);
+  restorePointer(hObject,oldPointer);
+  return;
+end
 % store the current labels to windowdata_labeled
 %handles.data.StoreLabelsAndPreLoadWindowData();  
 %  now do this inside JLabelData.Train()
@@ -5022,6 +5031,21 @@ propi = numel(handles.guidata.axes_timeline_props)+1;
 % how much height we will add
 hadd = handles.guidata.guipos.timeline_prop_height + handles.guidata.guipos.timeline_bottom_borders(2);
 
+% make the preview panel smaller
+panel_previews_pos = get(handles.guidata.panel_previews,'Position');
+panel_previews_pos(2) = panel_previews_pos(2) + hadd;
+panel_previews_pos(4) = panel_previews_pos(4) - hadd;
+
+axes_pos = [handles.guidata.guipos.preview_axes_left_border,...
+  handles.guidata.guipos.preview_axes_bottom_border,...
+  panel_previews_pos(3) - handles.guidata.guipos.preview_axes_left_border - handles.guidata.guipos.preview_axes_right_border,...
+  panel_previews_pos(4) - handles.guidata.guipos.preview_axes_top_border - handles.guidata.guipos.preview_axes_bottom_border];
+
+if any(axes_pos<0),
+  uiwait(warndlg('Not enough space to add another timeline'));
+  return;
+end
+
 % set the sizes of the other axes to shrink
 panel_pos = get(handles.panel_timelines,'Position');
 Z0 = panel_pos(4) - sum(handles.guidata.guipos.timeline_bottom_borders) - handles.guidata.guipos.timeline_top_border;
@@ -5142,10 +5166,7 @@ panel_timelines_pos = get(handles.panel_timelines,'Position');
 panel_timelines_pos(4) = panel_timelines_pos(4) + hadd;
 set(handles.panel_timelines,'Position',panel_timelines_pos);
 
-% make the preview panel smaller
-panel_previews_pos = get(handles.guidata.panel_previews,'Position');
-panel_previews_pos(2) = panel_previews_pos(2) + hadd;
-panel_previews_pos(4) = panel_previews_pos(4) - hadd;
+
 set(handles.guidata.panel_previews,'Position',panel_previews_pos);
 
 handles = guidata(handles.figure_JLabel);
@@ -6915,7 +6936,8 @@ h_prediction = [handles.axes_timeline_auto,handles.guidata.himage_timeline_auto,
     handles.automaticTimelinePredictionLabel,...
     handles.automaticTimelineScoresLabel,...
     handles.automaticTimelineBottomRowPopup,...
-    handles.timeline_label_automatic];
+    handles.timeline_label_automatic,...
+    handles.text_scores];
 
 if strfind(get(hObject,'Label'),'Show')
   set(hObject,'Label','Hide Predictions');
@@ -8345,7 +8367,8 @@ end
 delete(get(handles.axes_preview,'children'));
 delete(get(handles.axes_timeline_manual,'children'));
 delete(get(handles.axes_timeline_auto,'children'));
-delete(get(handles.axes_timeline_prop1,'children'));
+valid_props = ishandle(handles.axes_timeline_prop1);
+delete(get(handles.axes_timeline_prop1(valid_props),'children'));
 
 % % Release the JLabelData
 % if ~isempty(handles.data)
