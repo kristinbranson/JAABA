@@ -517,7 +517,7 @@ classdef JLabelGUIData < handle
       % label colors
       if isfield(basicParamsStruct,'behaviors') && ...
          isfield(basicParamsStruct.behaviors,'labelcolors'),
-        labelcolors = basicParamsStruct.behaviors.labelcolors;
+        labelcolors = basicParamsStruct.behaviors.labelcolors; %#ok<*PROP>
         if numel(labelcolors) >= 3*self.data.nbehaviors,
           self.labelcolors = reshape(labelcolors(1:3*self.data.nbehaviors),[self.data.nbehaviors,3]);
         else
