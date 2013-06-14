@@ -8002,7 +8002,7 @@ classdef JLabelData < matlab.mixin.Copyable
         JLabelData.convertParams2CellParams(windowFeaturesParams);
       obj.windowfeaturescellparams = windowFeaturesCellParams;
       obj.curperframefns = fieldnames(windowFeaturesParams);
-      
+      oldScoreNorm = obj.windowdata.scoreNorm;
 %       if nargin>2
 %         %obj.basicFeatureTable = basicFeatureTable;
 %         obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
@@ -8018,6 +8018,11 @@ classdef JLabelData < matlab.mixin.Copyable
 %         error('JLabelData:unableToLoadPerLabelWindowData',msg);
 %       end
       obj.needsave=true;
+      
+      if obj.HasLoadedScores(),
+          data.windowdata.scoreNorm = oldScoreNorm;
+      end
+      
 %       if hasClassifier && dotrain,
 %         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
 %         obj.Train();
@@ -8249,23 +8254,29 @@ classdef JLabelData < matlab.mixin.Copyable
         
         scores = nan(1,tEnd);
         
-        for curt0 = tStart:blockSize:tEnd
-          curt1 = min(curt0+blockSize-1,tEnd);
-          X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-            allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
-        
-          scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
+        if tEnd-tStart < 3,
+            scores(tStart:tEnd) = -1;
+            fprintf('Not predicting for %d fly, Trajectory is too short\n',flies);
+        else
+            
+            for curt0 = tStart:blockSize:tEnd
+                curt1 = min(curt0+blockSize-1,tEnd);
+                X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+                    allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
+                
+                scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
+            end
+            %         fid = fopen(tfile,'a');
+            %         fprintf(fid,'.');
+            %         fclose(fid);
+            %         fid = fopen(tfile,'r');
+            %         xx = fgetl(fid);
+            %         fclose(fid);
+            %         numdone = numel(xx);
+            %         waitbar(numdone/numFlies,wbar);
+            fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
         end
         scoresA{flies} = scores;
-%         fid = fopen(tfile,'a');
-%         fprintf(fid,'.');
-%         fclose(fid);  
-%         fid = fopen(tfile,'r');
-%         xx = fgetl(fid);
-%         fclose(fid);
-%         numdone = numel(xx);
-%         waitbar(numdone/numFlies,wbar);
-        fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
       end
       
       allScores = struct;
