@@ -753,12 +753,12 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
 end
 
 % If the movie has changed, want to re-initialize the frame cache
+N=200;  % cache size
 if(handles.data.ismovie && ...
    handles.guidata.shouldOpenMovieIfPresent && ...
    handles.guidata.thisMoviePresent && ...
    (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
-  N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
 
   % release data used in thread
@@ -952,7 +952,7 @@ for i = axes,
       end
 
       % add to the queue frames subsequent to current frame
-      tmp=handles.guidata.nframes_jump_go;
+      tmp=min(N,handles.guidata.nframes_jump_go);
       j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
                 Mframenum.Data);
       j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
@@ -2484,14 +2484,6 @@ set(handles.menu_file_import_scores_all_exp_default_loc, ...
 % Export scores... and it's submenu items    
 % These may need refining
 set(handles.menu_file_export_scores, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_curr_exp_default_loc, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_curr_exp_diff_loc, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_all_exp_default_loc, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_all_exp_diff_loc, ...
     'Enable',onIff(someExperimentIsCurrent));
 % The rest of the File menu items
 % These may need refining
@@ -7098,6 +7090,9 @@ set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+
+handles = UpdateTimelineImages(handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',false,...
@@ -7105,6 +7100,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+
 return
 
 

@@ -2774,10 +2774,22 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
+      % Suggest frames such that half the suggested frames are predicted
+      % positive and half are negative.
+      % Excludes frames that have normal labels.
+      
       success = true; msg = '';
       
       if ~obj.HasLoadedScores(),
         uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
+      end
+      
+      jabparams = load(obj.everythingFileNameAbs,'-mat');
+      frames2exclude = cell(1,obj.nexps);
+      for ndx = numel(jabparams.x.expDirNames)
+        matchingGtexp = find(strcmp(jabparams.x.expDirNames{ndx},obj.expdirs));
+        if isempty(matchingGtexp), continue; end
+        frames2exclude{matchingGtexp} = jabparams.x.labels(ndx);
       end
       
       numpos = 0;
@@ -2809,9 +2821,25 @@ classdef JLabelData < matlab.mixin.Copyable
           int.flies(1,end+1:end+numT) = flies;
           int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
           curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
+          
           cumwt = cumsum(curwt);
           sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
           sumwt = [cumwt(intsize) sumwt]; %#ok<AGROW>
+
+          if ~isempty(frames2exclude{endx}) && any(frames2exclude{endx}.flies == flies)
+            
+            fndx = find(frames2exclude{endx}.flies == flies);
+            labeledF = false(size(curwt));
+            for bndx = 1:numel(frames2exclude{endx}.t0s{fndx})
+              tStart = frames2exclude{endx}.off(fndx);
+              curt0 = max(1, frames2exclude{endx}.t0s{fndx}(bndx)-intsize + tStart );
+              curt1 = min(numel(sumwt),frames2exclude{endx}.t1s{fndx}(bndx)+intsize +tStart);
+              labeledF(curt0:curt1-1) = true;
+            end
+            
+            sumwt(labeledF) = 0;
+          end
+          
           int.wt(1,end+1:end+numT) = sumwt;
           
         end
@@ -8253,7 +8281,7 @@ classdef JLabelData < matlab.mixin.Copyable
       allScores.postprocessparams = obj.postprocessparams;
       
       for flies = 1:numFlies
-        [i0s,i1s] = get_interval_ends(allScores.scores{flies}>0);
+        [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
         allScores.t0s{flies} = i0s;
         allScores.t1s{flies} = i1s;
       end
