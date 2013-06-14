@@ -180,6 +180,15 @@ end
 
 
 % ---
+function behavior_data=update_t01s_from_postprocessed(behavior_data)
+
+for i=1:length(behavior_data.allScores.postprocessed)
+  [behavior_data.allScores.t0s{i} behavior_data.allScores.t1s{i}]=...
+      get_interval_ends(behavior_data.allScores.postprocessed{i}==1);
+end
+
+
+% ---
 function ret_val=get_nindividuals_behavior(experiment_path,score_file,classifier_timestamp)
 
 try
@@ -1466,63 +1475,9 @@ timestamps=nan(1,length(newclassifiers));
 parfor c=1:length(newclassifiers)
 %for c=1:length(newclassifiers)
   classifier=load(newclassifiers{c},'-mat');
-  %classifier=x;
-  %if(~isfield(classifier,'postprocessparams'))
-  %  uiwait(errordlg(['not a valid classifier file.  skipping ' newclassifiers{c}],''));  drawnow;
-  %  newclassifiers{c}='';
-  %  continue;
-  %end
-  %params=[];  params.behaviors.names='';
-  %try
-  %  handlesconfigurations{c}=classifier.configfilename;
-  %  [~,~,ext] = fileparts(classifier.configfilename);
-  %  if strcmpi(ext,'.xml');
-  %    params=ReadXMLConfigParams(handlesconfigurations{c});
-  %  else
-  %    params = load(handlesconfigurations{c});
-  %  end
-  %catch
-  %  directory = fileparts(newclassifiers{c});
-  %  fullfile(directory,classifier.configfilename);
-  %  if(exist(ans,'file'))
-  %    [pa,na,ex]=fileparts(ans);
-  %  else
-  %    pa=directory;  na='';  ex='';
-  %  end
-  %  [~,tmp,~]=fileparts(newclassifiers{c});
-  %  [configfile tmp]=uigetfile(pa,['Select configuration file for ' tmp],[na ex]);
-  %  if(isnumeric(configfile) && isnumeric(tmp) && (configfile==0) && (tmp==0))
-  %    uiwait(errordlg(['skipping ' newclassifiers{c}],''));
-  %    newclassifiers{c}='';
-  %    continue;
-  %  else
-  %    try
-  %      handlesconfigurations{c}=fullfile(tmp,configfile);
-  %      if strcmpi(ext,'.xml');
-  %        params=ReadXMLConfigParams(handlesconfigurations{c});
-  %      else
-  %        params = load(handlesconfigurations{c});
-  %      end
-  %    catch
-  %      uiwait(errordlg(['problem loading config file.  skipping ' newclassifiers{c}],''));
-  %      newclassifiers{c}='';
-  %      continue;
-  %    end
-  %  end
-  %end
-  %if(~isfield(params.behaviors,'names') || ~isfield(params.file,'scorefilename'))
-  %  uiwait(errordlg(['not a valid config file.  skipping ' newclassifiers{c}],''));  drawnow;
-  %  newclassifiers{c}='';
-  %  continue;
-  %end
 
   timestamps(c)=classifier.x.classifierStuff.timeStamp;
 
-  %if iscell(params.behaviors.names),
-  %  handlesbehaviorlist{c} = params.behaviors.names{1};
-  %else
-  %  handlesbehaviorlist{c}=params.behaviors.names;
-  %end
   handlesbehaviorlist{c}=classifier.x.behaviors.names{1};
   %handlesscorefiles{c}=params.file.scorefilename;
   handlesscorefiles{c}=classifier.x.file.scorefilename;
@@ -2548,8 +2503,10 @@ for b=bb
 
     if(b>0)
       behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
+      behavior_data=update_t01s_from_postprocessed(behavior_data);
       if(behavior_logic>1)
         behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
+        behavior_data2=update_t01s_from_postprocessed(behavior_data2);
       else
         behavior_data2=[];
       end
@@ -2920,6 +2877,7 @@ if(isempty(handles.interestingfeaturehistograms_cache))
     bdata={};
     for b=1:nbehaviors
       behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
+      behavior_data=update_t01s_from_postprocessed(behavior_data);
       [bdata{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data,[],[],[],[]);
       num_indi=num_indi+length(bdata{b}.allScores.scores);
     end
@@ -3129,8 +3087,8 @@ if(handles.comparison2==1)
   for g=1:length(handles.grouplist)
     gg=cumsum_num_selexp_per_group(g)+(1:length(handles.experimentlist{g}));
     if(nbehaviors>0)
-      mu2=repmat(mu,[length(gg) nbehaviors 1]);
-      sigma2=repmat(sigma,[length(gg) nbehaviors 1]);
+      mu2=repmat(shiftdim(mu,-1),[length(gg) nbehaviors 1]);
+      sigma2=repmat(shiftdim(sigma,-1),[length(gg) nbehaviors 1]);
       tmp2=[tmp2; ...
           repmat(g,nbehaviors*nfeatures,1) ...
           reshape(repmat(1:nbehaviors,nfeatures,1),nbehaviors*nfeatures,1) ...
@@ -3383,8 +3341,10 @@ for b=bb
 
     if(b>0)
       behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
+      behavior_data=update_t01s_from_postprocessed(behavior_data);
       if(behavior_logic>1)
         behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
+        behavior_data2=update_t01s_from_postprocessed(behavior_data2);
       else
         behavior_data2=[];
       end
@@ -3589,6 +3549,7 @@ parfor b=1:length(behavior_list)
       parfor_tmp{f,t-1}=[];
       for e=1:length(experiment_value)
         behavior_data=load(fullfile(experiment_list{experiment_value(e)},[behavior_list{b} '.mat']));
+        behavior_data=update_t01s_from_postprocessed(behavior_data);
         feature_data=load(fullfile(experiment_list{experiment_value(e)},perframe_dir,...
           [feature_list{f} '.mat']));
         sexdata={};
@@ -3966,13 +3927,16 @@ for b=bb
     %if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
 
     behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
+    behavior_data=update_t01s_from_postprocessed(behavior_data);
     behavior_data2=[];
     if(behavior_logic>1)
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
+      behavior_data2=update_t01s_from_postprocessed(behavior_data2);
     end
     behavior_data3=[];
     if(handles.behaviorvalue3>1)
       behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
+      behavior_data3=update_t01s_from_postprocessed(behavior_data3);
     end
 
     [behavior_data,behavior_data2,behavior_data3,~,sex_data]=...
@@ -4150,7 +4114,7 @@ for b=bb
                 handles.centraltendency,handles.dispersion);
             plot(ha,m,ct,'o','color',color);
             h{ii}(end+1)=plot(ha,[m m],[dp dn],'-','color',color);
-            plot(ha,m+(1:length(table_data{end}{ii}{e})),table_data{end}{ii}{e},'.','color',color);
+            plot(ha,m+(1:length(table_data{end}{ii}{e})),table_data{end}{ii}{e},'.','color',color,'markersize',12);
             m=m+16+length(table_data{end}{ii}{e});
           end
           [ct,dp,dn]=calculate_ct_d([table_data{end}{ii}{:}],...
@@ -4364,13 +4328,16 @@ for b=bb
     %if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
 
     behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
+    behavior_data=update_t01s_from_postprocessed(behavior_data);
     behavior_data2=[];
     if(behavior_logic>1)
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
+      behavior_data2=update_t01s_from_postprocessed(behavior_data2);
     end
     behavior_data3=[];
     if(handles.behaviorvalue3>1)
       behavior_data3=load(fullfile(handlesexperimentlist{ge},score_file3));
+      behavior_data3=update_t01s_from_postprocessed(behavior_data3);
     end
 
     [behavior_data,behavior_data2,behavior_data3,~,sex_data]=...
@@ -4719,9 +4686,11 @@ for b=bb
     ge = ggee(gei);
 
     behavior_data=load(fullfile(handlesexperimentlist{ge},score_file));
+    behavior_data=update_t01s_from_postprocessed(behavior_data);
     behavior_data2=[];
     if(behavior_logic>1)
       behavior_data2=load(fullfile(handlesexperimentlist{ge},score_file2));
+      behavior_data2=update_t01s_from_postprocessed(behavior_data2);
     end
 
     [behavior_data,behavior_data2,~,~,sex_data]=...
@@ -4994,9 +4963,11 @@ parfor e=1:length(experiment_value)
 %for e=1:length(experiment_value)
   behavior_data=load(fullfile(experiment_list{experiment_value(e)},...
         [behavior_list{behavior_value} '.mat']));
+  behavior_data=update_t01s_from_postprocessed(behavior_data);
   if(behavior_logic>1)
     behavior_data2=load(fullfile(experiment_list{experiment_value(e)},...
         [behavior_list2{behavior_value2} '.mat']));
+    behavior_data2=update_t01s_from_postprocessed(behavior_data2);
   else
     behavior_data2=[];
   end
