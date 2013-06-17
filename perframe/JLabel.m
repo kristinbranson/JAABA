@@ -2539,11 +2539,11 @@ set(handles.menu_go_previous_automatic_bout_end, ...
 %
 set(handles.menu_classifier,'enable',onIff(labelPenIsUp));
 set(handles.menu_classifier_change_score_features, ...
-    'Enable',onIff(thereIsAnOpenFile));
+    'Enable',onIff(thereIsAnOpenFile&&~inGroundTruthingMode));
 set(handles.menu_classifier_select_features, ...
-    'Enable',onIff(thereIsAnOpenFile));  
+    'Enable',onIff(thereIsAnOpenFile&&~inGroundTruthingMode));  
 set(handles.menu_classifier_training_parameters, ...
-    'Enable',onIff(thereIsAnOpenFile));  
+    'Enable',onIff(thereIsAnOpenFile&&~inGroundTruthingMode));  
 set(handles.menu_classifier_classify, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent));
 set(handles.menu_classifier_classifyCurrentMovieSave, ...
@@ -2555,19 +2555,19 @@ set(handles.menu_classifier_classifyall_default, ...
 set(handles.menu_classifier_classifyall_new, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&userHasSpecifiedEverythingFileName));
 set(handles.menu_classifier_set_confidence_thresholds, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_cross_validate, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_evaluate_on_new_labels, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_visualize, ...
-    'Enable',onIff(classifierExists));  
+    'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compute_gt_performance, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&inGroundTruthingMode));  
 set(handles.menu_classifier_post_processing, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compareFrames, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
 
@@ -7645,6 +7645,10 @@ if isempty(oldexpdir) || ~ismember(oldexpdir,handles.data.expdirs),
   else
     handles = SetCurrentMovie(handles,handles.data.expi);
   end
+  if handles.data.gtMode
+    set(handles.menu_view_show_predictions,'Label','Hide Predictions');
+    menu_view_show_predictions_Callback(handles.menu_view_show_predictions,[],handles);
+  end
 end
 
 % Don't need this anymore, so clear it
@@ -7652,6 +7656,7 @@ handles.guidata.oldexpdir='';
 
 % Update the GUI to match the current "model" state
 UpdateEnablementAndVisibilityOfControls(handles);
+
 
 % Set the status message back to the clear message.
 ClearStatus(handles);
