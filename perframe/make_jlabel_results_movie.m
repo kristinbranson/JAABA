@@ -9,7 +9,7 @@ clipsdir = myparse(varargin,'clipsdir','');
 hselection_visible = get(handles.guidata.hselection,'Visible');
 set(handles.guidata.hselection,'Visible','off');
 if isempty(clipsdir),
-  clipsdir = handles.guidata.data.GetFile('clipsdir',handles.guidata.expi);
+  clipsdir = handles.guidata.data.GetFile('clipsdir',handles.data.expi);
 end
 if ~exist(clipsdir,'dir'),
   [success1,msg1] = mkdir(clipsdir);
@@ -19,12 +19,12 @@ if ~exist(clipsdir,'dir'),
   end
 end
   
-flystr = sprintf('%02d_',handles.guidata.flies);
+flystr = sprintf('%02d_',handles.data.flies);
 flystr = flystr(1:end-1);
-if iscell(handles.guidata.configparams.behaviors.names),
-  behaviorname = sprintf('%s',handles.guidata.configparams.behaviors.names{:});
+if handles.data.nbehaviors>2,
+  behaviorname = sprintf('%s',handles.data.labelnames{1:end-1});
 else
-  behaviorname = handles.guidata.configparams.behaviors.names;
+  behaviorname = handles.data.labelnames{1};
 end
 
 avibasename = sprintf('%s_Target%s_Frames%05dto%05d.avi',behaviorname,flystr,t0,t1);
