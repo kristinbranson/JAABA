@@ -2695,48 +2695,6 @@ classdef JLabelData < matlab.mixin.Copyable
     end
     
     
-% Status display
-    
-
-    % ---------------------------------------------------------------------
-    function SetStatus(obj,varargin)
-    % SetStatus(obj,<sprintf-like arguments>)
-    % Update an associated status text according to the input sprintf-like
-    % arguments.
-      
-      if isempty(obj.setstatusfn),
-        fprintf(varargin{:});
-        fprintf('\n');
-      else
-        obj.setstatusfn(sprintf(varargin{:}));
-        drawnow;
-      end
-%       allF = findall(0,'type','figure');
-%       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
-%       jfig = allF(jfigNdx);
-%       if ~isempty(jfig),
-%         set(jfig,'pointer','watch');
-%       end
-    end  % method
-
-    
-    % ---------------------------------------------------------------------
-    function ClearStatus(obj)
-    % ClearStatus(obj)
-    % Return an associated status text to the default.
-      
-      if ~isempty(obj.clearstatusfn),
-        obj.clearstatusfn();
-        drawnow;
-      end
-%       allF = findall(0,'type','figure');
-%       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
-%       jfig = allF(jfigNdx);
-%       if ~isempty(jfig),
-%         set(jfig,'pointer','arrow');
-%       end
-    end  % method
-    
     
 % Ground truthing functions.    
 
@@ -2816,10 +2774,22 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success,msg] = SuggestBalancedGT(obj,intsize,numint)
+      % Suggest frames such that half the suggested frames are predicted
+      % positive and half are negative.
+      % Excludes frames that have normal labels.
+      
       success = true; msg = '';
       
       if ~obj.HasLoadedScores(),
         uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
+      end
+      
+      jabparams = load(obj.everythingFileNameAbs,'-mat');
+      frames2exclude = cell(1,obj.nexps);
+      for ndx = numel(jabparams.x.expDirNames)
+        matchingGtexp = find(strcmp(jabparams.x.expDirNames{ndx},obj.expdirs));
+        if isempty(matchingGtexp), continue; end
+        frames2exclude{matchingGtexp} = jabparams.x.labels(ndx);
       end
       
       numpos = 0;
@@ -2851,9 +2821,25 @@ classdef JLabelData < matlab.mixin.Copyable
           int.flies(1,end+1:end+numT) = flies;
           int.tStart(1,end+1:end+numT) = curt(1:end-intsize+1);
           curwt = (obj.predictdata{endx}{flies}.loaded<0)*negwt +(obj.predictdata{endx}{flies}.loaded>0)*poswt ;
+          
           cumwt = cumsum(curwt);
           sumwt = cumwt(intsize+1:end)-cumwt(1:end-intsize);
           sumwt = [cumwt(intsize) sumwt]; %#ok<AGROW>
+
+          if ~isempty(frames2exclude{endx}) && any(frames2exclude{endx}.flies == flies)
+            
+            fndx = find(frames2exclude{endx}.flies == flies);
+            labeledF = false(size(curwt));
+            for bndx = 1:numel(frames2exclude{endx}.t0s{fndx})
+              tStart = frames2exclude{endx}.off(fndx);
+              curt0 = max(1, frames2exclude{endx}.t0s{fndx}(bndx)-intsize + tStart );
+              curt1 = min(numel(sumwt),frames2exclude{endx}.t1s{fndx}(bndx)+intsize +tStart);
+              labeledF(curt0:curt1-1) = true;
+            end
+            
+            sumwt(labeledF) = 0;
+          end
+          
           int.wt(1,end+1:end+numT) = sumwt;
           
         end
@@ -3848,6 +3834,47 @@ classdef JLabelData < matlab.mixin.Copyable
       [success,msg] = obj.UpdateStatusTable('scores');
     end
 
+% Status display
+    
+
+    % ---------------------------------------------------------------------
+    function SetStatus(obj,varargin)
+      % SetStatus(obj,<sprintf-like arguments>)
+      % Update an associated status text according to the input sprintf-like
+      % arguments.
+      
+      if isempty(obj.setstatusfn),
+        fprintf(varargin{:});
+        fprintf('\n');
+      else
+        obj.setstatusfn(sprintf(varargin{:}));
+        drawnow;
+      end
+      %       allF = findall(0,'type','figure');
+      %       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+      %       jfig = allF(jfigNdx);
+      %       if ~isempty(jfig),
+      %         set(jfig,'pointer','watch');
+      %       end
+    end  % method
+    
+    
+    % ---------------------------------------------------------------------
+    function ClearStatus(obj)
+      % ClearStatus(obj)
+      % Return an associated status text to the default.
+      
+      if ~isempty(obj.clearstatusfn),
+        obj.clearstatusfn();
+        drawnow;
+      end
+      %       allF = findall(0,'type','figure');
+      %       jfigNdx = find(strcmp(get(allF,'name'),'JAABA'));
+      %       jfig = allF(jfigNdx);
+      %       if ~isempty(jfig),
+      %         set(jfig,'pointer','arrow');
+      %       end
+    end  % method
 
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = SetClassifierType(obj,classifiertype)
@@ -6235,7 +6262,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
       for curex = sort(expi(:)','descend'), %#ok<UDIM>
         if numel(obj.predictdata)>=curex,
-          obj.predictdata(expi) = [];
+          obj.predictdata(curex) = [];
         end
       end
       
@@ -7975,7 +8002,7 @@ classdef JLabelData < matlab.mixin.Copyable
         JLabelData.convertParams2CellParams(windowFeaturesParams);
       obj.windowfeaturescellparams = windowFeaturesCellParams;
       obj.curperframefns = fieldnames(windowFeaturesParams);
-      
+      oldScoreNorm = obj.windowdata.scoreNorm;
 %       if nargin>2
 %         %obj.basicFeatureTable = basicFeatureTable;
 %         obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
@@ -7991,6 +8018,11 @@ classdef JLabelData < matlab.mixin.Copyable
 %         error('JLabelData:unableToLoadPerLabelWindowData',msg);
 %       end
       obj.needsave=true;
+      
+      if obj.HasLoadedScores(),
+          data.windowdata.scoreNorm = oldScoreNorm;
+      end
+      
 %       if hasClassifier && dotrain,
 %         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
 %         obj.Train();
@@ -8222,23 +8254,29 @@ classdef JLabelData < matlab.mixin.Copyable
         
         scores = nan(1,tEnd);
         
-        for curt0 = tStart:blockSize:tEnd
-          curt1 = min(curt0+blockSize-1,tEnd);
-          X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
-            allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
-        
-          scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
+        if tEnd-tStart < 3,
+            scores(tStart:tEnd) = -1;
+            fprintf('Not predicting for %d fly, Trajectory is too short\n',flies);
+        else
+            
+            for curt0 = tStart:blockSize:tEnd
+                curt1 = min(curt0+blockSize-1,tEnd);
+                X = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
+                    allperframefns,perframefile,flies,windowfeaturescellparams,curt0-tStart+1,curt1-tStart+1);
+                
+                scores(curt0:curt1) = myBoostClassify(X(:,wfidx),classifier);
+            end
+            %         fid = fopen(tfile,'a');
+            %         fprintf(fid,'.');
+            %         fclose(fid);
+            %         fid = fopen(tfile,'r');
+            %         xx = fgetl(fid);
+            %         fclose(fid);
+            %         numdone = numel(xx);
+            %         waitbar(numdone/numFlies,wbar);
+            fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
         end
         scoresA{flies} = scores;
-%         fid = fopen(tfile,'a');
-%         fprintf(fid,'.');
-%         fclose(fid);  
-%         fid = fopen(tfile,'r');
-%         xx = fgetl(fid);
-%         fclose(fid);
-%         numdone = numel(xx);
-%         waitbar(numdone/numFlies,wbar);
-        fprintf('Prediction done for %d fly, total number of flies:%d\n',flies,numFlies);
       end
       
       allScores = struct;
@@ -8254,7 +8292,7 @@ classdef JLabelData < matlab.mixin.Copyable
       allScores.postprocessparams = obj.postprocessparams;
       
       for flies = 1:numFlies
-        [i0s,i1s] = get_interval_ends(allScores.scores{flies}>0);
+        [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
         allScores.t0s{flies} = i0s;
         allScores.t1s{flies} = i1s;
       end
@@ -9287,11 +9325,14 @@ classdef JLabelData < matlab.mixin.Copyable
         curScores = obj.predictdata{expi}{flyNum}.cur(curNdx);
 
         if ~isempty(curlabels)
-          curWScores = curScores(curts - obj.GetFirstFrames(expi,flyNum)+1);
+            curWScores = obj.predictdata{expi}{flyNum}.cur(curts - obj.GetFirstFrames(expi,flyNum)+1);
+            curPosMistakes = nnz( curWScores<0 & curlabels ==1 );
+            curNegMistakes = nnz( curWScores>0 & curlabels >1 );
+        else
+            curPosMistakes = [];
+            curNegMistakes = [];
         end
         
-        curPosMistakes = nnz( curWScores<0 & curlabels ==1 );
-        curNegMistakes = nnz( curWScores>0 & curlabels >1 );
 
         flyStats.nscoreframes = nnz(curNdx);
         flyStats.nscorepos = nnz(curScores>0);

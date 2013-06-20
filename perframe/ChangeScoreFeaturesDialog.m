@@ -209,7 +209,8 @@ classdef ChangeScoreFeaturesDialog < handle
     end
     
     function removeButtonPressed(self)
-      i = self.iCurrent;
+%       i = self.iCurrent;
+      i = get(self.listBox,'Value');
       if isempty(i), return; end
       nScoreFeatures=length(self.fileNameList);
       % delete the i'th entries
