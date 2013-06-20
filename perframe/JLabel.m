@@ -165,6 +165,8 @@ set(handles.text_selection_info,'string','');
 % load the RC file (is this the time and place?)
 handles = LoadRC(handles);
 
+handles = InitSelectionCallbacks(handles);
+
 % Write the handles to the guidata
 guidata(hObject,handles);
 
@@ -751,12 +753,12 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
 end
 
 % If the movie has changed, want to re-initialize the frame cache
+N=200;  % cache size
 if(handles.data.ismovie && ...
    handles.guidata.shouldOpenMovieIfPresent && ...
    handles.guidata.thisMoviePresent && ...
    (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
-  N=200;  % cache size
   HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
 
   % release data used in thread
@@ -950,7 +952,7 @@ for i = axes,
       end
 
       % add to the queue frames subsequent to current frame
-      tmp=handles.guidata.nframes_jump_go;
+      tmp=min(N,handles.guidata.nframes_jump_go);
       j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
                 Mframenum.Data);
       j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
@@ -2439,9 +2441,6 @@ classifierExists=~isempty(data) && ...
 atLeastOneNormalLabelOfEachClassExists= ...
   ~isempty(data) && ...
   data.getAtLeastOneNormalLabelOfEachClassExists;
-perFrameFeatureSetIsNonEmpty= ...
-  ~isempty(data) && ...
-  data.getPerFrameFeatureSetIsNonEmpty();
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
 %                      
@@ -2485,14 +2484,6 @@ set(handles.menu_file_import_scores_all_exp_default_loc, ...
 % Export scores... and it's submenu items    
 % These may need refining
 set(handles.menu_file_export_scores, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_curr_exp_default_loc, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_curr_exp_diff_loc, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_all_exp_default_loc, ...
-    'Enable',onIff(someExperimentIsCurrent));
-set(handles.menu_file_export_scores_all_exp_diff_loc, ...
     'Enable',onIff(someExperimentIsCurrent));
 % The rest of the File menu items
 % These may need refining
@@ -2548,11 +2539,11 @@ set(handles.menu_go_previous_automatic_bout_end, ...
 %
 set(handles.menu_classifier,'enable',onIff(labelPenIsUp));
 set(handles.menu_classifier_change_score_features, ...
-    'Enable',onIff(thereIsAnOpenFile));
+    'Enable',onIff(thereIsAnOpenFile&&~inGroundTruthingMode));
 set(handles.menu_classifier_select_features, ...
-    'Enable',onIff(thereIsAnOpenFile));  
+    'Enable',onIff(thereIsAnOpenFile&&~inGroundTruthingMode));  
 set(handles.menu_classifier_training_parameters, ...
-    'Enable',onIff(thereIsAnOpenFile));  
+    'Enable',onIff(thereIsAnOpenFile&&~inGroundTruthingMode));  
 set(handles.menu_classifier_classify, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent));
 set(handles.menu_classifier_classifyCurrentMovieSave, ...
@@ -2564,19 +2555,19 @@ set(handles.menu_classifier_classifyall_default, ...
 set(handles.menu_classifier_classifyall_new, ...
     'Enable',onIff(classifierExists&&someExperimentIsCurrent&&userHasSpecifiedEverythingFileName));
 set(handles.menu_classifier_set_confidence_thresholds, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_cross_validate, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_evaluate_on_new_labels, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_visualize, ...
-    'Enable',onIff(classifierExists));  
+    'Enable',onIff(classifierExists&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compute_gt_performance, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&inGroundTruthingMode));  
 set(handles.menu_classifier_post_processing, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_compareFrames, ...
-    'Enable',onIff(classifierExists&&someExperimentIsCurrent));  
+    'Enable',onIff(classifierExists&&someExperimentIsCurrent&&~inGroundTruthingMode));  
 set(handles.menu_classifier_clear, ...
     'Enable',onIff(classifierExists));  
 
@@ -2610,8 +2601,7 @@ set(grobjectsVisibileIffMovie,'Visible',onIff(someExperimentIsCurrent));
 % per-frame feature set is non-empty.
 set(handles.pushbutton_train, ...
     'enable',onIff(labelPenIsUp && ...
-                   atLeastOneNormalLabelOfEachClassExists && ...
-                   perFrameFeatureSetIsNonEmpty));
+                   atLeastOneNormalLabelOfEachClassExists));
 
 % The Predict button is enabled iff a classifier exists.
 set(handles.pushbutton_predict, ...
@@ -3614,7 +3604,11 @@ if penDown, return; end
 
 % check if the user wants to switch to this fly
 % TODO: this directly accesses handles.data.labels -- abstract this
-[ism,j] = ismember(fly,handles.data.labels(handles.data.expi).flies,'rows');
+if isempty(handles.data.labels(handles.data.expi).flies)
+  ism = false;
+else
+  [ism,j] = ismember(fly,handles.data.labels(handles.data.expi).flies,'rows');
+end
 if ism,
   nbouts = nnz(~strcmpi(handles.data.labels(handles.data.expi).names{j},'None'));
 else
@@ -3679,10 +3673,17 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % check that the user has selected features already
-perframeFeatureNames=fieldnames(handles.data.windowfeaturesparams);
-if isempty(perframeFeatureNames)
-  error('No features selected!');
-end      
+
+perFrameFeatureSetIsNonEmpty= ...
+  ~isempty(handles.data) && ...
+  handles.data.getPerFrameFeatureSetIsNonEmpty();
+if ~perFrameFeatureSetIsNonEmpty,
+  uiwait(helpdlg('Select Features before training'));
+  oldPointer=pointerToWatch(hObject);
+  SelectFeatures(handles.figure_JLabel);
+  restorePointer(hObject,oldPointer);
+  return;
+end
 % store the current labels to windowdata_labeled
 %handles.data.StoreLabelsAndPreLoadWindowData();  
 %  now do this inside JLabelData.Train()
@@ -5022,6 +5023,21 @@ propi = numel(handles.guidata.axes_timeline_props)+1;
 % how much height we will add
 hadd = handles.guidata.guipos.timeline_prop_height + handles.guidata.guipos.timeline_bottom_borders(2);
 
+% make the preview panel smaller
+panel_previews_pos = get(handles.guidata.panel_previews,'Position');
+panel_previews_pos(2) = panel_previews_pos(2) + hadd;
+panel_previews_pos(4) = panel_previews_pos(4) - hadd;
+
+axes_pos = [handles.guidata.guipos.preview_axes_left_border,...
+  handles.guidata.guipos.preview_axes_bottom_border,...
+  panel_previews_pos(3) - handles.guidata.guipos.preview_axes_left_border - handles.guidata.guipos.preview_axes_right_border,...
+  panel_previews_pos(4) - handles.guidata.guipos.preview_axes_top_border - handles.guidata.guipos.preview_axes_bottom_border];
+
+if any(axes_pos<0),
+  uiwait(warndlg('Not enough space to add another timeline'));
+  return;
+end
+
 % set the sizes of the other axes to shrink
 panel_pos = get(handles.panel_timelines,'Position');
 Z0 = panel_pos(4) - sum(handles.guidata.guipos.timeline_bottom_borders) - handles.guidata.guipos.timeline_top_border;
@@ -5142,10 +5158,7 @@ panel_timelines_pos = get(handles.panel_timelines,'Position');
 panel_timelines_pos(4) = panel_timelines_pos(4) + hadd;
 set(handles.panel_timelines,'Position',panel_timelines_pos);
 
-% make the preview panel smaller
-panel_previews_pos = get(handles.guidata.panel_previews,'Position');
-panel_previews_pos(2) = panel_previews_pos(2) + hadd;
-panel_previews_pos(4) = panel_previews_pos(4) - hadd;
+
 set(handles.guidata.panel_previews,'Position',panel_previews_pos);
 
 handles = guidata(handles.figure_JLabel);
@@ -6915,7 +6928,8 @@ h_prediction = [handles.axes_timeline_auto,handles.guidata.himage_timeline_auto,
     handles.automaticTimelinePredictionLabel,...
     handles.automaticTimelineScoresLabel,...
     handles.automaticTimelineBottomRowPopup,...
-    handles.timeline_label_automatic];
+    handles.timeline_label_automatic,...
+    handles.text_scores];
 
 if strfind(get(hObject,'Label'),'Show')
   set(hObject,'Label','Hide Predictions');
@@ -7076,6 +7090,9 @@ set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
+
+handles = UpdateTimelineImages(handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
   'refresh_timeline_manual',false,...
@@ -7083,6 +7100,7 @@ UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refresh_timeline_hcurr',false,...
   'refresh_timeline_selection',false,...
   'refresh_curr_prop',false);
+
 return
 
 
@@ -7627,6 +7645,10 @@ if isempty(oldexpdir) || ~ismember(oldexpdir,handles.data.expdirs),
   else
     handles = SetCurrentMovie(handles,handles.data.expi);
   end
+  if handles.data.gtMode
+    set(handles.menu_view_show_predictions,'Label','Hide Predictions');
+    menu_view_show_predictions_Callback(handles.menu_view_show_predictions,[],handles);
+  end
 end
 
 % Don't need this anymore, so clear it
@@ -7634,6 +7656,7 @@ handles.guidata.oldexpdir='';
 
 % Update the GUI to match the current "model" state
 UpdateEnablementAndVisibilityOfControls(handles);
+
 
 % Set the status message back to the clear message.
 ClearStatus(handles);
@@ -8345,7 +8368,8 @@ end
 delete(get(handles.axes_preview,'children'));
 delete(get(handles.axes_timeline_manual,'children'));
 delete(get(handles.axes_timeline_auto,'children'));
-delete(get(handles.axes_timeline_prop1,'children'));
+valid_props = ishandle(handles.axes_timeline_prop1);
+delete(get(handles.axes_timeline_prop1(valid_props),'children'));
 
 % % Release the JLabelData
 % if ~isempty(handles.data)
