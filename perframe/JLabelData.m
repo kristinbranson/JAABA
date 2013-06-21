@@ -1882,7 +1882,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         
         % update the status
-        obj.SetStatus('Computing window data for exp %s, target %d: %d%% done...',...
+        obj.SetStatus('Computing windowdata for exp %s, target %d: %d%% done...',...
           obj.expnames{expi},flies,round(100*(nts0-numel(missingts))/nts0));
         
         % compute window data for a chunk starting at t
@@ -9643,20 +9643,21 @@ classdef JLabelData < matlab.mixin.Copyable
             ts = [];
             
             for j = 1:numel(labels_curr.t0s),
-              ts = [ts,labels_curr.t0s(j):(labels_curr.t1s(j)-1)]; %#ok<AGROW>
+%               ts = [ts,labels_curr.t0s(j):(labels_curr.t1s(j)-1)]; %#ok<AGROW>
+              obj.PredictFast(expi,flies,labels_curr.t0s(j),labels_curr.t1s(j)-1);
             end
             
             % assumes that if have any loaded score for an experiment we
             % have scores for all the flies and for every frame.
-            [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
-            if ~success1,
-              warndlg(msg);
-              return;
-            end
+%             [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
+%             if ~success1,
+%               warndlg(msg);
+%               return;
+%             end
             
           end
         end
-        obj.PredictLoaded();
+%        obj.PredictLoaded();
       end
       
       gt_scores =[];
@@ -9841,7 +9842,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.StoreLabelsForCurrentAnimal();
       
       % create the classifier object from fields in self
-      if self.savewindowdata
+      if self.savewindowdata && ~self.IsGTMode(),
         classifierStuff = ...
           ClassifierStuff('type',self.classifiertype, ...
           'params',self.classifier, ...
@@ -10211,7 +10212,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       
      if isprop(macguffin.classifierStuff,'windowdata') && ...
-         ~substitutionsMade && self.loadwindowdata && ...
+         ~substitutionsMade && self.loadwindowdata &&...
          ~self.IsGTMode(),
         isPerframeNewer = false;
         perframeNdx = find(strcmp('perframedir',self.filetypes));
@@ -10224,7 +10225,7 @@ classdef JLabelData < matlab.mixin.Copyable
           end
         end
         
-        if ~isPerframeNewer,
+        if isPerframeNewer && self.isInteractive,
           
           qstr = sprintf('One of the perframe file (Generated on %s) is newer than the classifier (Trained on %s) for the experiment %s. Still load the windowdata stored in the jab file?',...
             datestr(perframeTS),datestr(self.classifierTS),expnamenewer);
@@ -10236,6 +10237,8 @@ classdef JLabelData < matlab.mixin.Copyable
           if strcmpi(res,'Yes'),
             self.windowdata = macguffin.classifierStuff.windowdata;
           end
+        else
+          self.windowdata = macguffin.classifierStuff.windowdata;
         end
         
       end
