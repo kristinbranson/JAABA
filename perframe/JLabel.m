@@ -3641,7 +3641,7 @@ if handles.data.hassex,
     if iscell(sex),
       sex = sex{1};
     end
-    prompt{i} = sprintf('Sex: %s',sex);
+    prompt{end+1} = sprintf('Sex: %s',sex);
   end
 end
 
