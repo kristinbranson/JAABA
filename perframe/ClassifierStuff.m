@@ -9,6 +9,9 @@ classdef ClassifierStuff < handle
     scoreNorm
     postProcessParams
     trainingParams
+    featureNames
+    windowdata
+    savewindowdata
   end  % properties
   methods
     function self=ClassifierStuff(varargin)
@@ -35,7 +38,9 @@ classdef ClassifierStuff < handle
                'CVfolds',7, ...
                'baseClassifierTypes','Decision Stumps', ...
                'baseClassifierSelected',1);
-      
+      self.featureNames = {};
+      self.windowdata = [];
+      self.savewindowdata = false;
       % varargin should be key-value pairs
       % Keys should be property names, values should be initialization
       % values for the corresponding property

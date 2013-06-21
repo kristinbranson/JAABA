@@ -380,6 +380,8 @@ classdef JLabelData < matlab.mixin.Copyable
     GTSuggestionMode
     
     cacheSize
+    savewindowdata
+    loadwindowdata
     
     postprocessparams
     version
@@ -641,6 +643,8 @@ classdef JLabelData < matlab.mixin.Copyable
       self.everythingFileNameAbs='';
       self.userHasSpecifiedEverythingFileName=false;
       self.needsave=false;
+      self.savewindowdata = false;
+      self.loadwindowdata = true;
     end  % method
     
     
@@ -1045,6 +1049,7 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.setScoreFeatures(everythingParams.scoreFeatures);
         obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
         obj.setClassifierStuff(everythingParams.classifierStuff);
+        
       catch excp
         % If there's a problem, restore the object to its original state.
         obj.setToValue(before);
@@ -4764,6 +4769,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.confThresholds=classifierStuff.confThresholds;
       self.windowdata.scoreNorm=classifierStuff.scoreNorm;
       self.postprocessparams=classifierStuff.postProcessParams;
+      self.savewindowdata = classifierStuff.savewindowdata;
 %       nFields=numel(fieldNamesInSelf);
 %       for i = 1:nFields,
 %         fieldNameInSelf = fieldNamesInSelf{i};
@@ -4788,6 +4794,12 @@ classdef JLabelData < matlab.mixin.Copyable
                                                              self.windowfeaturescellparams.(fn){:});
         feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
         feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+      end
+      
+      if ~isempty(classifierStuff.featureNames) && ...
+          ~isequal(classifierStuff.featureNames,feature_names)
+        uiwait(warndlg('The feature names stored in the jab files don'' match the current feature names. The loaded classifier shouldn''t be use. Retrain an a new classifier.'));
+        self.loadwindowdata = false;
       end
       self.windowdata.featurenames = feature_names;
             
@@ -7946,11 +7958,11 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.labelidx.imp(ts+obj.labelidx_off) = important;
         obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
       else
-        [labelidx,T0] = obj.GetLabelIdx(expi,flies);
-        labelidx.vals(ts+1-T0) = behaviori;
-        labelidx.imp(ts+1-T0) = important;
-        labelidx.timestamp(ts+1-T0) = now;
-        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);        
+        [labelidx,T0] = obj.GetLabelIdx(expi,flies);                  %#ok<*PROP>
+        labelidx.vals(ts+1-T0) = behaviori;                         
+        labelidx.imp(ts+1-T0) = important;                          
+        labelidx.timestamp(ts+1-T0) = now;                          
+        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);    
       end
       obj.UpdateErrorIdx();      
       obj.needsave=true;
@@ -8020,7 +8032,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.needsave=true;
       
       if obj.HasLoadedScores(),
-          data.windowdata.scoreNorm = oldScoreNorm;
+          obj.windowdata.scoreNorm = oldScoreNorm;
       end
       
 %       if hasClassifier && dotrain,
@@ -9829,14 +9841,31 @@ classdef JLabelData < matlab.mixin.Copyable
       self.StoreLabelsForCurrentAnimal();
       
       % create the classifier object from fields in self
-      classifierStuff = ...
-        ClassifierStuff('type',self.classifiertype, ...
-                        'params',self.classifier, ...
-                        'trainingParams',self.classifier_params, ...
-                        'timeStamp',self.classifierTS, ...
-                        'confThresholds',self.confThresholds, ...
-                        'scoreNorm',self.windowdata.scoreNorm, ...
-                        'postProcessParams',self.postprocessparams);
+      if self.savewindowdata
+        classifierStuff = ...
+          ClassifierStuff('type',self.classifiertype, ...
+          'params',self.classifier, ...
+          'trainingParams',self.classifier_params, ...
+          'timeStamp',self.classifierTS, ...
+          'confThresholds',self.confThresholds, ...
+          'scoreNorm',self.windowdata.scoreNorm, ...
+          'postProcessParams',self.postprocessparams,...
+          'featureNames',self.windowdata.featurenames,...
+          'savewindowdata',self.savewindowdata,....
+          'windowdata',self.windowdata);
+        
+      else
+        classifierStuff = ...
+          ClassifierStuff('type',self.classifiertype, ...
+          'params',self.classifier, ...
+          'trainingParams',self.classifier_params, ...
+          'timeStamp',self.classifierTS, ...
+          'confThresholds',self.confThresholds, ...
+          'scoreNorm',self.windowdata.scoreNorm, ...
+          'postProcessParams',self.postprocessparams,...
+          'savewindowdata',self.savewindowdata,....
+          'featureNames',self.windowdata.featurenames);
+      end
 
 %       % build the classifier structure
 %       classifier = Classifier();  % struct to be returned
@@ -10179,6 +10208,38 @@ classdef JLabelData < matlab.mixin.Copyable
       if ~success,
         error('JLabelData:unableToUpdateStatusTable',msg);
       end      
+      
+      
+     if isprop(macguffin.classifierStuff,'windowdata') && ...
+         ~substitutionsMade && self.loadwindowdata && ...
+         ~self.IsGTMode(),
+        isPerframeNewer = false;
+        perframeNdx = find(strcmp('perframedir',self.filetypes));
+        perframeTS = 0; expnamenewer = '';
+        for ndx = 1:self.nexps
+          if self.classifierTS < self.filetimestamps(ndx,perframeNdx); %#ok<FNDSB>
+            isPerframeNewer = true;
+            expnamenewer = self.expnames{ndx};
+            perframeTS = self.filetimestamps(ndx,perframeNdx);
+          end
+        end
+        
+        if ~isPerframeNewer,
+          
+          qstr = sprintf('One of the perframe file (Generated on %s) is newer than the classifier (Trained on %s) for the experiment %s. Still load the windowdata stored in the jab file?',...
+            datestr(perframeTS),datestr(self.classifierTS),expnamenewer);
+          res = questdlg(qstr, ...
+            'Load Window Data?', ...
+            'Yes','No', ...
+            'No');
+
+          if strcmpi(res,'Yes'),
+            self.windowdata = macguffin.classifierStuff.windowdata;
+          end
+        end
+        
+      end
+      
     end  % method
 
     
@@ -10463,6 +10524,12 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
     
+    
+    function setsavewindowdata(self,value)
+      self.savewindowdata = value;
+      self.needsave = true;
+      
+    end
     
     
 
