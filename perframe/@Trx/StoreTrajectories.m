@@ -100,10 +100,12 @@ if isfield(traj(1),'arena')
   end
 end
 if ~setlandmarkparams,
-  fns = fieldnames(obj.default_landmark_params);
   obj.landmark_params{n} = obj.default_landmark_params;
-  for i = 1:numel(fns),
-    obj.landmark_params{n}.(fns{i}) = repmat(obj.landmark_params{n}.(fns{i}),[1,numel(flies)]);
+  if ~isempty(obj.default_landmark_params),
+    fns = fieldnames(obj.default_landmark_params);
+    for i = 1:numel(fns),
+      obj.landmark_params{n}.(fns{i}) = repmat(obj.landmark_params{n}.(fns{i}),[1,numel(flies)]);
+    end
   end
 end
 
