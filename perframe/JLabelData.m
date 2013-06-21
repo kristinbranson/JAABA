@@ -3227,7 +3227,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % --------------------------------------------------------------------------
-    function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex] = ...
+    function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex,hasPerFrameSex] = ...
         readTrxInfoFromFile(trxFileName)
       % Read the trx file
       [trx,~,success] = load_tracks(trxFileName);
@@ -3259,8 +3259,8 @@ classdef JLabelData < matlab.mixin.Copyable
           % this trx file has per-frame sex
           for iFly = 1:nFlies,
             n = numel(trx(iFly).sex);
-            nMale = nnz(strcmpi(trx(iFly).sex,'M'));
-            nFemale = nnz(strcmpi(trx(iFly).sex,'F'));
+            nMale = nnz(max(strcmpi(trx(iFly).sex,'M'),strcmpi(trx(iFly).sex,'male')));
+            nFemale = nnz(max(strcmpi(trx(iFly).sex,'F'),strcmpi(trx(iFly).sex,'female')));
             fracSex(iFly).M = nMale/n;
             fracSex(iFly).F = nFemale/n;
             if nMale > nFemale,
@@ -3699,10 +3699,25 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function setBehaviorName(obj,behaviorName)
       % Set the behavior name, a string
-      if JLabelData.isValidBehaviorName(behaviorName), ...
+      if JLabelData.isValidBehaviorName(behaviorName),
+        oldbehaviorname = obj.labelnames{1};
         obj.labelnames = {behaviorName 'None'};
         obj.nbehaviors = 2;
         obj.needsave=true;
+        
+        for expi = 1:obj.nexps
+          for flynum = 1:numel(obj.labels(expi).flies)
+            for bnum = 1:numel(obj.labels(expi).names{flynum})
+              if strcmp(obj.labels(expi).names{flynum}{bnum},oldbehaviorname),
+                obj.labels(expi).names{flynum}{bnum} = behaviorName;
+              end
+              
+            end
+            
+          end
+          
+        end
+        
       else
         error('JLabelData:invalidBehaviorName','Invalid behavior name');
       end
@@ -5690,7 +5705,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.SetStatus('Getting basic trx info for %s...',expName);
       trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
       try
-        [nFlies,firstFrames,endFrames,~,hasSex,fracSex,sex] = ...
+        [nFlies,firstFrames,endFrames,~,hasSex,fracSex,sex,hasperframesex] = ...
           JLabelData.readTrxInfoFromFile(trxFileNameAbs);
       catch err
          if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
@@ -5703,6 +5718,7 @@ classdef JLabelData < matlab.mixin.Copyable
          end
       end
       obj.hassex = obj.hassex || hasSex;
+      obj.hasperframesex = hasperframesex;
       obj.nflies_per_exp(end+1) = nFlies;
       obj.sex_per_exp{end+1} = sex;
       obj.frac_sex_per_exp{end+1} = fracSex;
@@ -10212,6 +10228,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       
      if isprop(macguffin.classifierStuff,'windowdata') && ...
+        isstruct(macguffin.classifierStuff.windowdata) && ...
          ~substitutionsMade && self.loadwindowdata &&...
          ~self.IsGTMode(),
         isPerframeNewer = false;
