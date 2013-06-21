@@ -766,9 +766,9 @@ if(handles.data.ismovie && ...
     delete(handles.guidata.cache_thread);
     handles.guidata.cache_thread = [];
   end
-  Mframenum = struct('Data',[]); 
-  Mlastused = struct('Data',[]);
-  Mimage = struct('Data',[]); 
+%   Mframenum = struct('Data',[]); 
+%   Mlastused = struct('Data',[]);
+%   Mimage = struct('Data',[]); 
   
   cache_filename= [handles.guidata.tempname 'cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
@@ -2443,6 +2443,7 @@ atLeastOneNormalLabelOfEachClassExists= ...
   data.getAtLeastOneNormalLabelOfEachClassExists;
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
+savewindowdata = handles.data.savewindowdata;
 %                      
 % Update the File menu items.
 %
@@ -2454,6 +2455,7 @@ set(handles.menu_file_open_in_ground_truthing_mode, ...
 set(handles.menu_file_save,'Enable',onIff(openFileHasUnsavedChanges));
 set(handles.pushtool_save,'Enable',onIff(openFileHasUnsavedChanges));
 set(handles.menu_file_save_as,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_savewindowdata,'Enable',onIff(thereIsAnOpenFile));
 set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 % set(handles.menu_file_import_old_style_project, ...
 %     'Enable',offIff(thereIsAnOpenFile));
@@ -2607,6 +2609,13 @@ set(handles.pushbutton_train, ...
 set(handles.pushbutton_predict, ...
     'enable',onIff(classifierExists&&someExperimentIsCurrent));
 
+if savewindowdata,
+  set(handles.menu_file_savewindowdata,'checked','on' );
+else
+  set(handles.menu_file_savewindowdata,'checked','off' );
+  
+end
+  
 return
 
 
@@ -9424,3 +9433,19 @@ if isempty(iExpNow) ,
   guidata(figureJLabel,handles);
 end
 return
+
+
+% --------------------------------------------------------------------
+function menu_file_savewindowdata_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_savewindowdata (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if strcmp(get(handles.menu_file_savewindowdata,'checked'),'on')
+  handles.data.setsavewindowdata(false);
+  set(handles.menu_file_savewindowdata,'checked','off');
+else
+  handles.data.setsavewindowdata(true);
+  set(handles.menu_file_savewindowdata,'checked','on');
+  
+end
