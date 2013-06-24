@@ -847,8 +847,8 @@ end
 
 if refresh_timeline_auto,
   set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
-  pred = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
-  if pred.predictedidx~=0
+  [pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
+  if t0 <= handles.guidata.ts(1) && t1>=handles.guidata.ts(1) &&    pred.predictedidx~=0 
     cur_scores = handles.data.NormalizeScores(pred.scoresidx);
     set(handles.text_scores,'String',sprintf('%+.2f',cur_scores));
   else
@@ -1460,7 +1460,7 @@ function slider_preview_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 
 % get slider value
 % t = min(max(1,round(get(hObject,'Value'))),handles.guidata.nframes);
-t = min(max(handles.data.t0_curr,round(get(hObject,'Value'))),handles.data.t1_curr);
+t = min(max(handles.data.GetMinFirstFrame,round(get(hObject,'Value'))),handles.data.GetMaxEndFrame);
 set(hObject,'Value',t);
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
@@ -1785,9 +1785,13 @@ end
 
 t = round(t);
 
-if t<handles.data.t0_curr || t>handles.data.t1_curr,
+minFirstFrame = min(cell2mat(handles.data.GetFirstFrames(handles.data.expi)));
+maxEndFrame = max(cell2mat(handles.data.GetEndFrames(handles.data.expi)));
+
+
+if t<minFirstFrame || t>maxEndFrame,
   fprintf('Current frame is out of range for the current fly');
-  t = min(max(handles.data.t0_curr,round(pt(1,1))),handles.data.t1_curr);
+  t = min(max(minFirstFrame,round(pt(1,1))),maxEndFrame);
 end
 
 
@@ -3668,7 +3672,8 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % end
 
 pt = get(hObject,'CurrentPoint');
-t = min(max(handles.data.t0_curr,round(pt(1,1))),handles.data.t1_curr);%nframes);
+
+t = min(max(handles.data.GetMinFirstFrame,round(pt(1,1))),handles.data.GetMaxEndFrame);
 % TODO: which axes?
 SetCurrentFrame(handles,1,t,hObject);
 return
@@ -4302,7 +4307,7 @@ function menu_go_next_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(1,handles.guidata.ts(axesi)+1),handles.data.t1_curr);%handles.guidata.nframes);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)+1),handles.data.GetMaxEndFrame);%handles.guidata.nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4316,7 +4321,7 @@ function menu_go_previous_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)-1),handles.data.t1_curr);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)-1),handles.data.GetMaxEndFrame);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4331,7 +4336,7 @@ function menu_go_forward_several_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)+handles.guidata.nframes_jump_go),handles.data.t1_curr);%nframes);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)+handles.guidata.nframes_jump_go),handles.data.GetMaxEndFrame);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4346,7 +4351,7 @@ function menu_go_back_several_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)-handles.guidata.nframes_jump_go),handles.data.t1_curr);%nframes);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)-handles.guidata.nframes_jump_go),handles.data.GetMaxEndFrame);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -5488,7 +5493,7 @@ guidata(hObject,handles);
 ticker = tic;
 if nargin < 3,
   t0 = handles.guidata.ts(axi);
-  t1 = handles.data.t1_curr;%nframes;
+  t1 = handles.data.GetMaxEndFrame;
   doloop = false;
 end
 

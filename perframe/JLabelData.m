@@ -3495,6 +3495,16 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
 
+    % ---------------------------------------------------------------------
+    function minFirstframes = GetMinFirstFrame(obj)
+      minFirstframes = min(obj.firstframes_per_exp{obj.expi});
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function maxEndframe = GetMaxEndFrame(obj)
+      maxEndframe = max(obj.endframes_per_exp{obj.expi});
+    end
     
     % ---------------------------------------------------------------------
     function [fileExists,fileTimeStamps,missingFileNamesComplete] = ...
@@ -7648,6 +7658,10 @@ classdef JLabelData < matlab.mixin.Copyable
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
+          if T0<obj.t0_curr || T1>obj.t1_curr
+            T0 = max(obj.t0_curr,T0);
+            T1 = min(obj.t1_curr,T1);
+          end
           prediction = struct(...
             'predictedidx', obj.predictedidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
             'scoresidx',  obj.scoresidx(T0+obj.labelidx_off:T1+obj.labelidx_off));
@@ -10235,7 +10249,7 @@ classdef JLabelData < matlab.mixin.Copyable
         perframeNdx = find(strcmp('perframedir',self.filetypes));
         perframeTS = 0; expnamenewer = '';
         for ndx = 1:self.nexps
-          if self.classifierTS < self.filetimestamps(ndx,perframeNdx); %#ok<FNDSB>
+          if self.classifierTS < self.filetimestamps(ndx,perframeNdx);
             isPerframeNewer = true;
             expnamenewer = self.expnames{ndx};
             perframeTS = self.filetimestamps(ndx,perframeNdx);
@@ -10244,8 +10258,11 @@ classdef JLabelData < matlab.mixin.Copyable
         
         if isPerframeNewer && self.isInteractive,
           
-          qstr = sprintf('One of the perframe file (Generated on %s) is newer than the classifier (Trained on %s) for the experiment %s. Still load the windowdata stored in the jab file?',...
-            datestr(perframeTS),datestr(self.classifierTS),expnamenewer);
+          qstr{1} = sprintf('One of the perframe file (Generated on %s) ',...
+            datestr(perframeTS));
+          qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS));
+          qstr{end+1} = sprintf('for the experiment %s.',expnamenewer);
+          qstr{end+1} = ' Still load the windowdata stored in the jab file?';
           res = questdlg(qstr, ...
             'Load Window Data?', ...
             'Yes','No', ...
