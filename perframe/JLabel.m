@@ -5691,7 +5691,10 @@ else
       else
         set(handles.guidata.hfly_markers(j,i),'Visible','off','Marker','*');
       end
-    
+      if ismember(curfly,handles.data.flies),
+        set(handles.guidata.hfly_markers(j,i),'Visible','on');
+        set(handles.guidata.hflies(j,i),'LineWidth',3);
+      end
     end
   end
 end
