@@ -63,11 +63,13 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % parse optional inputs
 [defaultPath,...
  hsplash,...
- hsplashstatus] = ...
+ hsplashstatus,...
+ jabfile] = ...
   myparse(varargin,...
           'defaultpath','',...
           'hsplash',[],...
-          'hsplashstatus',[]);
+          'hsplashstatus',[],...
+          'jabfile','');
 
 % Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
 figureJLabel=handles.figure_JLabel;
@@ -173,26 +175,31 @@ guidata(hObject,handles);
 set(handles.figure_JLabel,'Visible','on');
 drawnow;
 
-res = JAABAInitOpen(handles.figure_JLabel);
-
-if ~isempty(res.val)
-  if ~res.edit
-    switch res.val,
-      case 'New',
-        newEverythingFile(handles.figure_JLabel);
-      case 'Open',
-        openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
-      case 'OpenGT',
-        openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
-    end
-  else
-    switch res.val,
-      case 'New',
-        newEverythingFile(handles.figure_JLabel);
-      case 'Open',
-        editEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
-      case 'OpenGT',
-        editEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+if ~isempty(jabfile),
+  openEverythingFileGivenFileNameAbs(handles.figure_JLabel,jabfile,false);
+else
+  
+  res = JAABAInitOpen(handles.figure_JLabel);
+  
+  if ~isempty(res.val)
+    if ~res.edit
+      switch res.val,
+        case 'New',
+          newEverythingFile(handles.figure_JLabel);
+        case 'Open',
+          openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+        case 'OpenGT',
+          openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+      end
+    else
+      switch res.val,
+        case 'New',
+          newEverythingFile(handles.figure_JLabel);
+        case 'Open',
+          editEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+        case 'OpenGT',
+          editEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+      end
     end
   end
 end
@@ -1027,7 +1034,7 @@ for i = axes,
 
       set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.data.GetSex1(handles.data.expi,fly,t);
-      if lower(sexcurr(1)) == 'm',
+      if lower(sexcurr(1)) == 'm' && handles.doplottracks,
         set(handles.guidata.hfly_markers(j,i),'Visible','on');
       else
         set(handles.guidata.hfly_markers(j,i),'Visible','off');
@@ -1046,6 +1053,7 @@ for i = axes,
 %         handles.data.trx(fly).b(j));
       %updatefly(handles.guidata.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.data.flies),
+        set(handles.guidata.hfly_markers(j,i),'Visible','on');
         set(handles.guidata.hflies(j,i),'LineWidth',3);
         if labelidx <= 0,
           set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelunknowncolor);
@@ -4220,7 +4228,7 @@ if strcmpi(eventdata.Modifier,'control')
     case 'j',
       menu_go_switch_target_Callback(hObject,eventdata,handles);
     case 'k'
-      menu_view_plottracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
+      menu_view_plot_tracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
   end
 end
 
@@ -5651,11 +5659,41 @@ if strcmpi(v,'on'),
   handles.doplottracks = false;
   set(h,'Visible','off');
   set(hObject,'Checked','off');
+  
+  %  Show the marker for just the current fly.
+  for i = 1:numel(handles.guidata.axes_previews)
+    for curfly = handles.data.flies(:)'
+      
+      j = handles.guidata.fly2idx(curfly);
+      set(handles.guidata.hfly_markers(j,i),'Visible','on','Marker','o');
+      
+    end
+  end
+  
 else
   handles.tracks_visible = handles.tracks_visible(ishandle(handles.tracks_visible));
   handles.doplottracks = true;
   set(handles.tracks_visible(:),'Visible','on');
   set(hObject,'Checked','on');
+  
+
+  %  Change the markers back to sex markers.
+
+  for i = 1:numel(handles.guidata.axes_previews)
+    t = handles.guidata.ts(i);
+    for curfly = handles.data.flies(:)'
+      
+      j = handles.guidata.fly2idx(curfly);
+      
+      sexcurr = handles.data.GetSex1(handles.data.expi,curfly,t);
+      if lower(sexcurr(1)) == 'm',
+        set(handles.guidata.hfly_markers(j,i),'Visible','on','Marker','*');
+      else
+        set(handles.guidata.hfly_markers(j,i),'Visible','off','Marker','*');
+      end
+    
+    end
+  end
 end
 guidata(hObject,handles);
 return
