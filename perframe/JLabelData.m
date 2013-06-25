@@ -3243,6 +3243,7 @@ classdef JLabelData < matlab.mixin.Copyable
       endFrames = [trx.endframe];
       hasArenaParams=isfield(trx,'arena');
       hasSex = isfield(trx,'sex');
+      hasPerFrameSex = false;
         
       % Compute fracSex and sex from the trx file contents
       fracSex = struct('M',repmat({nan},[1 nFlies]), ...
