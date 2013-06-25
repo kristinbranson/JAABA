@@ -9,6 +9,9 @@ classdef ClassifierStuff < handle
     scoreNorm
     postProcessParams
     trainingParams
+    featureNames
+    windowdata
+    savewindowdata
   end  % properties
   methods
     function self=ClassifierStuff(varargin)
@@ -35,7 +38,14 @@ classdef ClassifierStuff < handle
                'CVfolds',7, ...
                'baseClassifierTypes','Decision Stumps', ...
                'baseClassifierSelected',1);
-      
+      self.featureNames = {};
+      self.windowdata =         struct('X',single([]),'exp',[],'flies',[],'t',[],...
+               'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
+               'labelidx_imp',[],'featurenames',{{}},...
+               'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
+               'distNdx',[],'scores',[],'scoreNorm',[],'binVals',[],...
+               'scores_old',[],'scores_validated',[],'postprocessed',[]);
+      self.savewindowdata = false;
       % varargin should be key-value pairs
       % Keys should be property names, values should be initialization
       % values for the corresponding property
