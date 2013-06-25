@@ -59,7 +59,7 @@ for i = 1:nbehaviors,
   if isempty(configfiles{i})
 % JAB File    
     params = load(classifiermatfiles{i},'-mat');
-    params = params.x;
+    params = struct(params.x);
     params.classifierfile = classifiermatfiles{i};
     params.configfile = classifiermatfiles{i};
     

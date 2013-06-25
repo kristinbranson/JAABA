@@ -380,6 +380,8 @@ classdef JLabelData < matlab.mixin.Copyable
     GTSuggestionMode
     
     cacheSize
+    savewindowdata
+    loadwindowdata
     
     postprocessparams
     version
@@ -641,6 +643,8 @@ classdef JLabelData < matlab.mixin.Copyable
       self.everythingFileNameAbs='';
       self.userHasSpecifiedEverythingFileName=false;
       self.needsave=false;
+      self.savewindowdata = false;
+      self.loadwindowdata = true;
     end  % method
     
     
@@ -1045,6 +1049,7 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.setScoreFeatures(everythingParams.scoreFeatures);
         obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
         obj.setClassifierStuff(everythingParams.classifierStuff);
+        
       catch excp
         % If there's a problem, restore the object to its original state.
         obj.setToValue(before);
@@ -1877,7 +1882,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         
         % update the status
-        obj.SetStatus('Computing window data for exp %s, target %d: %d%% done...',...
+        obj.SetStatus('Computing windowdata for exp %s, target %d: %d%% done...',...
           obj.expnames{expi},flies,round(100*(nts0-numel(missingts))/nts0));
         
         % compute window data for a chunk starting at t
@@ -3222,7 +3227,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % --------------------------------------------------------------------------
-    function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex] = ...
+    function [nFlies,firstFrames,endFrames,hasArenaParams,hasSex,fracSex,sex,hasPerFrameSex] = ...
         readTrxInfoFromFile(trxFileName)
       % Read the trx file
       [trx,~,success] = load_tracks(trxFileName);
@@ -3254,8 +3259,8 @@ classdef JLabelData < matlab.mixin.Copyable
           % this trx file has per-frame sex
           for iFly = 1:nFlies,
             n = numel(trx(iFly).sex);
-            nMale = nnz(strcmpi(trx(iFly).sex,'M'));
-            nFemale = nnz(strcmpi(trx(iFly).sex,'F'));
+            nMale = nnz(max(strcmpi(trx(iFly).sex,'M'),strcmpi(trx(iFly).sex,'male')));
+            nFemale = nnz(max(strcmpi(trx(iFly).sex,'F'),strcmpi(trx(iFly).sex,'female')));
             fracSex(iFly).M = nMale/n;
             fracSex(iFly).F = nFemale/n;
             if nMale > nFemale,
@@ -3490,6 +3495,16 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
 
+    % ---------------------------------------------------------------------
+    function minFirstframes = GetMinFirstFrame(obj)
+      minFirstframes = min(obj.firstframes_per_exp{obj.expi});
+    end
+
+    
+    % ---------------------------------------------------------------------
+    function maxEndframe = GetMaxEndFrame(obj)
+      maxEndframe = max(obj.endframes_per_exp{obj.expi});
+    end
     
     % ---------------------------------------------------------------------
     function [fileExists,fileTimeStamps,missingFileNamesComplete] = ...
@@ -3694,10 +3709,25 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function setBehaviorName(obj,behaviorName)
       % Set the behavior name, a string
-      if JLabelData.isValidBehaviorName(behaviorName), ...
+      if JLabelData.isValidBehaviorName(behaviorName),
+        oldbehaviorname = obj.labelnames{1};
         obj.labelnames = {behaviorName 'None'};
         obj.nbehaviors = 2;
         obj.needsave=true;
+        
+        for expi = 1:obj.nexps
+          for flynum = 1:numel(obj.labels(expi).flies)
+            for bnum = 1:numel(obj.labels(expi).names{flynum})
+              if strcmp(obj.labels(expi).names{flynum}{bnum},oldbehaviorname),
+                obj.labels(expi).names{flynum}{bnum} = behaviorName;
+              end
+              
+            end
+            
+          end
+          
+        end
+        
       else
         error('JLabelData:invalidBehaviorName','Invalid behavior name');
       end
@@ -4764,6 +4794,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.confThresholds=classifierStuff.confThresholds;
       self.windowdata.scoreNorm=classifierStuff.scoreNorm;
       self.postprocessparams=classifierStuff.postProcessParams;
+      self.savewindowdata = classifierStuff.savewindowdata;
 %       nFields=numel(fieldNamesInSelf);
 %       for i = 1:nFields,
 %         fieldNameInSelf = fieldNamesInSelf{i};
@@ -4788,6 +4819,12 @@ classdef JLabelData < matlab.mixin.Copyable
                                                              self.windowfeaturescellparams.(fn){:});
         feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
         feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
+      end
+      
+      if ~isempty(classifierStuff.featureNames) && ...
+          ~isequal(classifierStuff.featureNames,feature_names)
+        uiwait(warndlg('The feature names stored in the jab files don'' match the current feature names. The loaded classifier shouldn''t be use. Retrain an a new classifier.'));
+        self.loadwindowdata = false;
       end
       self.windowdata.featurenames = feature_names;
             
@@ -5678,7 +5715,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.SetStatus('Getting basic trx info for %s...',expName);
       trxFileNameAbs = fullfile(expDirName,obj.GetFileName('trx'));
       try
-        [nFlies,firstFrames,endFrames,~,hasSex,fracSex,sex] = ...
+        [nFlies,firstFrames,endFrames,~,hasSex,fracSex,sex,hasperframesex] = ...
           JLabelData.readTrxInfoFromFile(trxFileNameAbs);
       catch err
          if (strcmp(err.identifier,'JAABA:JLabelData:readTrxInfoFromFile:errorReadingTrxFile'))
@@ -5691,6 +5728,7 @@ classdef JLabelData < matlab.mixin.Copyable
          end
       end
       obj.hassex = obj.hassex || hasSex;
+      obj.hasperframesex = hasperframesex;
       obj.nflies_per_exp(end+1) = nFlies;
       obj.sex_per_exp{end+1} = sex;
       obj.frac_sex_per_exp{end+1} = fracSex;
@@ -7620,6 +7658,10 @@ classdef JLabelData < matlab.mixin.Copyable
           T0 = obj.t0_curr;
           T1 = obj.t1_curr;
         else
+          if T0<obj.t0_curr || T1>obj.t1_curr
+            T0 = max(obj.t0_curr,T0);
+            T1 = min(obj.t1_curr,T1);
+          end
           prediction = struct(...
             'predictedidx', obj.predictedidx(T0+obj.labelidx_off:T1+obj.labelidx_off),...
             'scoresidx',  obj.scoresidx(T0+obj.labelidx_off:T1+obj.labelidx_off));
@@ -7946,11 +7988,11 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.labelidx.imp(ts+obj.labelidx_off) = important;
         obj.labelidx.timestamp(ts+obj.labelidx_off) = now;
       else
-        [labelidx,T0] = obj.GetLabelIdx(expi,flies);
-        labelidx.vals(ts+1-T0) = behaviori;
-        labelidx.imp(ts+1-T0) = important;
-        labelidx.timestamp(ts+1-T0) = now;
-        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);        
+        [labelidx,T0] = obj.GetLabelIdx(expi,flies);                  %#ok<*PROP>
+        labelidx.vals(ts+1-T0) = behaviori;                         
+        labelidx.imp(ts+1-T0) = important;                          
+        labelidx.timestamp(ts+1-T0) = now;                          
+        obj.StoreLabelsForGivenAnimal(expi,flies,labelidx,1-T0);    
       end
       obj.UpdateErrorIdx();      
       obj.needsave=true;
@@ -8020,7 +8062,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.needsave=true;
       
       if obj.HasLoadedScores(),
-          data.windowdata.scoreNorm = oldScoreNorm;
+          obj.windowdata.scoreNorm = oldScoreNorm;
       end
       
 %       if hasClassifier && dotrain,
@@ -9631,20 +9673,21 @@ classdef JLabelData < matlab.mixin.Copyable
             ts = [];
             
             for j = 1:numel(labels_curr.t0s),
-              ts = [ts,labels_curr.t0s(j):(labels_curr.t1s(j)-1)]; %#ok<AGROW>
+%               ts = [ts,labels_curr.t0s(j):(labels_curr.t1s(j)-1)]; %#ok<AGROW>
+              obj.PredictFast(expi,flies,labels_curr.t0s(j),labels_curr.t1s(j)-1);
             end
             
             % assumes that if have any loaded score for an experiment we
             % have scores for all the flies and for every frame.
-            [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
-            if ~success1,
-              warndlg(msg);
-              return;
-            end
+%             [success1,msg] = obj.PreLoadWindowData(expi,flies,ts);
+%             if ~success1,
+%               warndlg(msg);
+%               return;
+%             end
             
           end
         end
-        obj.PredictLoaded();
+%        obj.PredictLoaded();
       end
       
       gt_scores =[];
@@ -9829,14 +9872,31 @@ classdef JLabelData < matlab.mixin.Copyable
       self.StoreLabelsForCurrentAnimal();
       
       % create the classifier object from fields in self
-      classifierStuff = ...
-        ClassifierStuff('type',self.classifiertype, ...
-                        'params',self.classifier, ...
-                        'trainingParams',self.classifier_params, ...
-                        'timeStamp',self.classifierTS, ...
-                        'confThresholds',self.confThresholds, ...
-                        'scoreNorm',self.windowdata.scoreNorm, ...
-                        'postProcessParams',self.postprocessparams);
+      if self.savewindowdata && ~self.IsGTMode(),
+        classifierStuff = ...
+          ClassifierStuff('type',self.classifiertype, ...
+          'params',self.classifier, ...
+          'trainingParams',self.classifier_params, ...
+          'timeStamp',self.classifierTS, ...
+          'confThresholds',self.confThresholds, ...
+          'scoreNorm',self.windowdata.scoreNorm, ...
+          'postProcessParams',self.postprocessparams,...
+          'featureNames',self.windowdata.featurenames,...
+          'savewindowdata',self.savewindowdata,....
+          'windowdata',self.windowdata);
+        
+      else
+        classifierStuff = ...
+          ClassifierStuff('type',self.classifiertype, ...
+          'params',self.classifier, ...
+          'trainingParams',self.classifier_params, ...
+          'timeStamp',self.classifierTS, ...
+          'confThresholds',self.confThresholds, ...
+          'scoreNorm',self.windowdata.scoreNorm, ...
+          'postProcessParams',self.postprocessparams,...
+          'savewindowdata',self.savewindowdata,....
+          'featureNames',self.windowdata.featurenames);
+      end
 
 %       % build the classifier structure
 %       classifier = Classifier();  % struct to be returned
@@ -10179,6 +10239,44 @@ classdef JLabelData < matlab.mixin.Copyable
       if ~success,
         error('JLabelData:unableToUpdateStatusTable',msg);
       end      
+      
+      
+     if isprop(macguffin.classifierStuff,'windowdata') && ...
+        isstruct(macguffin.classifierStuff.windowdata) && ...
+         ~substitutionsMade && self.loadwindowdata &&...
+         ~self.IsGTMode(),
+        isPerframeNewer = false;
+        perframeNdx = find(strcmp('perframedir',self.filetypes));
+        perframeTS = 0; expnamenewer = '';
+        for ndx = 1:self.nexps
+          if self.classifierTS < self.filetimestamps(ndx,perframeNdx);
+            isPerframeNewer = true;
+            expnamenewer = self.expnames{ndx};
+            perframeTS = self.filetimestamps(ndx,perframeNdx);
+          end
+        end
+        
+        if isPerframeNewer && self.isInteractive,
+          
+          qstr{1} = sprintf('One of the perframe file (Generated on %s) ',...
+            datestr(perframeTS));
+          qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS));
+          qstr{end+1} = sprintf('for the experiment %s.',expnamenewer);
+          qstr{end+1} = ' Still load the windowdata stored in the jab file?';
+          res = questdlg(qstr, ...
+            'Load Window Data?', ...
+            'Yes','No', ...
+            'No');
+
+          if strcmpi(res,'Yes'),
+            self.windowdata = macguffin.classifierStuff.windowdata;
+          end
+        else
+          self.windowdata = macguffin.classifierStuff.windowdata;
+        end
+        
+      end
+      
     end  % method
 
     
@@ -10463,6 +10561,12 @@ classdef JLabelData < matlab.mixin.Copyable
       
     end
     
+    
+    function setsavewindowdata(self,value)
+      self.savewindowdata = value;
+      self.needsave = true;
+      
+    end
     
     
 
