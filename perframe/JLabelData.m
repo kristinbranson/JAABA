@@ -10242,10 +10242,11 @@ classdef JLabelData < matlab.mixin.Copyable
       end      
       
       
-     if isprop(macguffin.classifierStuff,'windowdata') && ...
-        isstruct(macguffin.classifierStuff.windowdata) && ...
-         ~substitutionsMade && self.loadwindowdata &&...
-         ~self.IsGTMode(),
+      oldScoreNorm = self.windowdata.scoreNorm;
+      if isprop(macguffin.classifierStuff,'windowdata') && ...
+          isstruct(macguffin.classifierStuff.windowdata) && ...
+          ~substitutionsMade && self.loadwindowdata &&...
+          ~self.IsGTMode(),
         isPerframeNewer = false;
         perframeNdx = find(strcmp('perframedir',self.filetypes));
         perframeTS = 0; expnamenewer = '';
@@ -10268,7 +10269,7 @@ classdef JLabelData < matlab.mixin.Copyable
             'Load Window Data?', ...
             'Yes','No', ...
             'No');
-
+          
           if strcmpi(res,'Yes'),
             self.windowdata = macguffin.classifierStuff.windowdata;
           end
@@ -10276,16 +10277,20 @@ classdef JLabelData < matlab.mixin.Copyable
           self.windowdata = macguffin.classifierStuff.windowdata;
         end
         
+        if isempty(self.windowdata.scoreNorm)
+          self.windowdata.scoreNorm = oldScoreNorm;
+        end
+        
       end
       
     end  % method
-
+    
     
     % ---------------------------------------------------------------------
     function openJabFileNoExps(self, ...
-                         fileNameAbs, ...
-                         groundTruthingMode) 
-                       
+        fileNameAbs, ...
+        groundTruthingMode)
+      
       % originalExpDirNames and substituteExpDirNames are optional.
       % If given, they should be cell arrays of the same length, each
       % element a string giving an absolute path to an experiment
@@ -10296,11 +10301,11 @@ classdef JLabelData < matlab.mixin.Copyable
       % manually locate exp dir names that are missing.  Whether these
       % experiment dir names are treated as normal exp dir names of
       % ground-truthing exp dir names depends on groundTruthingMode.
-                       
+      
       
       % Set the ground-truthing mode
       self.gtMode=groundTruthingMode;
-
+      
       %
       % Open the file
       %
@@ -10309,7 +10314,7 @@ classdef JLabelData < matlab.mixin.Copyable
       fileDirPathAbs=fileparts(fileNameAbs);
       %[fileDirPathAbs,baseName,ext]=fileparts(fileNameAbs);
       %fileNameRel=[baseName ext];
-
+      
       % load the file
       macguffin=loadAnonymous(fileNameAbs);
       % if we get here, file was read successfully
@@ -10321,14 +10326,14 @@ classdef JLabelData < matlab.mixin.Copyable
       self.thereIsAnOpenFile=true;
       self.everythingFileNameAbs=fileNameAbs;
       self.userHasSpecifiedEverythingFileName=true;
-      self.needsave=false; 
+      self.needsave=false;
       self.defaultpath=fileDirPathAbs;
-     
+      
       % initialize the status table describing what required files exist
       [success,msg] = self.UpdateStatusTable();
       if ~success,
         error('JLabelData:unableToUpdateStatusTable',msg);
-      end      
+      end
     end  % method
 
 
