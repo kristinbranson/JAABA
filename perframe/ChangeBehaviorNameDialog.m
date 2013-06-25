@@ -16,6 +16,7 @@ classdef ChangeBehaviorNameDialog < handle
       self.figureJLabel=figureJLabel;
       
       % Set figure layout parameters
+      margin = 20;
       figureWidth=350;
       figureHeight=130;
       editBoxHeight=24;
@@ -24,7 +25,7 @@ classdef ChangeBehaviorNameDialog < handle
       buttonWidth=100;
       buttonHeight=30;
       interButtonWidth=40;
-      editBoxYOffset=82;
+      editBoxYOffset=82-margin;
       buttonYBaseline=22;
       
       % Figure the placement of the figure, want it centered relative to
@@ -57,15 +58,15 @@ classdef ChangeBehaviorNameDialog < handle
       labelTextSize=extentSize+2;  % pad a little
       
       % calculate placement of editBox and label
-      editBoxAndLabelWidth=labelTextSize(1)+interLabelEditBoxWidth+editBoxWidth;
-      labelTextXOffset=(figureWidth-editBoxAndLabelWidth)/2;
+      editBoxAndLabelWidth=labelTextSize(1)+interLabelEditBoxWidth+editBoxWidth-margin;
+      labelTextXOffset=(figureWidth-editBoxAndLabelWidth)/2-2*margin;
       editBoxXOffset=labelTextXOffset+labelTextSize(1)+interLabelEditBoxWidth;
       labelTextYOffset=editBoxYOffset+(editBoxHeight-labelTextSize(2))/2;
       
       % calculate placement of buttons
       allButtonsWidth=buttonWidth+interButtonWidth+buttonWidth;
-      cancelButtonXOffset=(figureWidth-allButtonsWidth)/2;
-      doneButtonXOffset=cancelButtonXOffset+buttonWidth+interButtonWidth;
+      cancelButtonXOffset=(figureWidth-allButtonsWidth)/2-margin;
+      doneButtonXOffset=cancelButtonXOffset+buttonWidth+interButtonWidth-margin;
             
       % Create and/or position the controls
       set(self.labelText, ...
