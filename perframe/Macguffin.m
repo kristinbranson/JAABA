@@ -155,7 +155,7 @@ classdef Macguffin < handle
       
       % get the featureLexicon from the relevant file
       featureLexiconFileNameRel=projectParams.file.featureconfigfile;
-      pathToMisc=fileparts(mfilename());
+      pathToMisc=fileparts(mfilename('fullpath'));
       pathToJaaba=fileparts(pathToMisc);
       featureLexiconFileNameAbs= ...
         fullfile(pathToJaaba,'perframe',featureLexiconFileNameRel);

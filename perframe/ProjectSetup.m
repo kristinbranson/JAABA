@@ -279,7 +279,8 @@ function handles = fileNameEditTwiddled(handles,editName)
 % This is like a controller method.
 varName=editName(5:end);  % trim 'edit' off of start
 newFileName=strtrim(get(handles.(editName),'String'));
-[handles,whatHappened]=setFileName(handles,varName,newFileName);
+allowEmpty = ismember(varName,{'moviefilename'});
+[handles,whatHappened]=setFileName(handles,varName,newFileName,allowEmpty);
 warnIfInvalid(varName,whatHappened);
 updateFileNameEdit(handles,editName);
 updateConfigTable(handles);
@@ -287,12 +288,27 @@ return
 
 
 % -------------------------------------------------------------------------
-function [handles,whatHappened] = setFileName(handles,varName,newFileName)
+function [handles,whatHappened] = setFileName(handles,varName,newFileName,allowEmpty)
 % Set the given file name in the model, if it's a valid name.  whatHappened
 % is a string that can be 'notChanged', 'emptyEntry','changed', or
 % 'invalidEntry', depending.
 
+if nargin < 4,
+  allowEmpty = false;
+end
+
 fileName=handles.basicParamsStruct.file.(varName);
+
+if allowEmpty && isempty(newFileName),
+  handles.basicParamsStruct.file.(varName)=newFileName;
+  if strcmp(newFileName,fileName),
+    whatHappened='notChanged';
+  else
+    whatHappened='changed';
+  end
+  return;
+end
+
 if isequal(newFileName,fileName)
   whatHappened='notChanged';
 elseif isempty(newFileName)
