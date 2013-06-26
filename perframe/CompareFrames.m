@@ -101,6 +101,13 @@ adjustColorsIfMac(hObject);
 guidata(hObject, handles);
 JLabel('predict',handles.JLabelH);
 
+set(handles.radiobutton_sync,'Value',1);
+radiobutton_sync_Callback(handles.radiobutton_sync,[],handles);
+set(handles.radiobutton_align,'Value',1);
+radiobutton_align_Callback(handles.radiobutton_align,[],handles);
+set(handles.edit_ignore,'String',5);
+edit_ignore_Callback(handles.edit_ignore, eventdata, handles)
+
 % UIWAIT makes CompareFrames wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 return
@@ -576,8 +583,8 @@ function pushbutton_setcurrent_Callback(hObject, eventdata, handles)
 
 set(handles.figure1,'Pointer','watch');
 drawnow();
-expnum = handles.JLabelH.guidata.expi;
-fly = handles.JLabelH.guidata.flies;
+expnum = handles.JLabelH.data.expi;
+fly = handles.JLabelH.data.flies;
 t = handles.JLabelH.guidata.ts;
 
 handles.expnum = expnum;
