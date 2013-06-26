@@ -81,8 +81,8 @@ classdef Macguffin < handle
       self.scoreFeatures=jld.scoreFeatures;
       subdialectPFNames=jld.allperframefns;
       nScoreFeaturess=length(jld.scoreFeatures);
-      sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess);
-      self.sublexiconPFNames=sublexiconPFNames;
+      sublexiconPFNames=subdialectPFNames(1:end-nScoreFeaturess); %#ok<PROP>
+      self.sublexiconPFNames=sublexiconPFNames; %#ok<PROP>
       self.behaviors.type=jld.targettype;
       self.behaviors.names=jld.labelnames;
       self.behaviors.labelcolors=jld.labelcolors;
@@ -155,7 +155,7 @@ classdef Macguffin < handle
       
       % get the featureLexicon from the relevant file
       featureLexiconFileNameRel=projectParams.file.featureconfigfile;
-      pathToMisc=fileparts(mfilename());
+      pathToMisc=fileparts(mfilename('fullpath'));
       pathToJaaba=fileparts(pathToMisc);
       featureLexiconFileNameAbs= ...
         fullfile(pathToJaaba,'perframe',featureLexiconFileNameRel);

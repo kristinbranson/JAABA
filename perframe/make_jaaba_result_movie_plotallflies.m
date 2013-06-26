@@ -79,6 +79,7 @@ mencoder_maxnframes = inf;
   behaviorweight,...
   printnone,...
   DEBUG,...
+  animaltype,...
   behavior2color] = ...
   myparse(varargin,'moviefilestr','movie.ufmf','trxfilestr','registered_trx.mat',...
   'aviname','','colors',[],'behavior_cm',@jet,...
@@ -99,6 +100,7 @@ mencoder_maxnframes = inf;
   'behaviorweight',[],...
   'printnone',false,...
   'debug',false,...
+  'animaltype','fly',...
   'behavior2color',{});
 
 if ~ischar(compression),
@@ -147,16 +149,55 @@ end
 nbehaviors = numel(behaviors);
 
 %% open files
-moviename = fullfile(expdir,moviefilestr);
-[readframe,nframes,fid] = get_readframe_fcn(moviename);
-im = readframe(1);
-[nr,nc,ncolors] = size(im);
 
 trxname = fullfile(expdir,trxfilestr);
 [trx,trxname,loadsucceeded,timestamps] = load_tracks(trxname);
 if ~loadsucceeded,
   error('Could not load trx from file %s',trxname);
 end
+
+if ~isempty(moviefilestr)
+  moviename = fullfile(expdir,moviefilestr);
+  [readframe,nframes,fid] = get_readframe_fcn(moviename);
+  im = readframe(1);
+  [nr,nc,ncolors] = size(im);
+  showgrid = false;
+else
+  maxx = max([trx.x]+[trx.a]*2);
+  maxy = max([trx.y]+[trx.a]*2);
+  nr = ceil(maxy);
+  nc = ceil(maxx);
+  ncolors = 1;
+  nframes = max([trx.endframe]);
+  readframe = @(x)(uint8(256*ones(nr,nc)));
+  fid = 0;
+  showgrid = true;
+  % grid width
+  gridwidth = nanmean([trx.a])*5;
+
+  % create new grid
+  handles.guidata.bkgdgrid = nan(2,1);
+  xgrid = gridwidth/2:gridwidth:nc;
+  xgrid1 = [xgrid;xgrid;nan(1,numel(xgrid))];
+  xgrid2 = [zeros(1,numel(xgrid));nr+ones(1,numel(xgrid));nan(1,numel(xgrid))];
+  ygrid = gridwidth/2:gridwidth:nr;
+  ygrid2 = [ygrid;ygrid;nan(1,numel(ygrid))];
+  ygrid1 = [zeros(1,numel(ygrid));nc+ones(1,numel(ygrid));nan(1,numel(ygrid))];
+%   for i = 1:numel(handles.guidata.axes_previews),
+%     holdstate = ishold(handles.guidata.axes_previews(i));
+%     hold(handles.guidata.axes_previews(i),'on');
+%     handles.guidata.bkgdgrid(1,i) = plot(handles.guidata.axes_previews(i),xgrid1(:),xgrid2(:),'--','Color',[.7,.7,.7],'LineWidth',.5,'HitTest','off');
+%     handles.guidata.bkgdgrid(2,i) = plot(handles.guidata.axes_previews(i),ygrid1(:),ygrid2(:),'--','Color',[.7,.7,.7],'LineWidth',.5,'HitTest','off');
+%     if ~holdstate,
+%       hold(handles.guidata.axes_previews(i),'off');
+%     end
+%     
+%   end
+  
+
+  
+end
+
 nids = length(trx);
 trxendframes = [trx.endframe];
 trxfirstframes = [trx.firstframe];
@@ -315,7 +356,9 @@ if isempty(zoomflies),
 elseif nzoom > length(zoomflies),
   zoomflies = [zoomflies,nan(1,nzoom-length(zoomflies))];
 end
-zoomflies = reshape(zoomflies,[nzoomr,nzoomc]);
+if nzoomr>0
+  zoomflies = reshape(zoomflies,[nzoomr,nzoomc]);
+end
 rowszoom = floor(nr/nzoomr);
 
 %% choose colors for each behavior
@@ -408,11 +451,21 @@ hzoom = zeros(nzoomr,nzoomc);
 hzoomwing = zeros(nzoomr,nzoomc);
 htextzoom = zeros(nzoomr,nzoomc);
 hzoombox = zeros(nzoomr,nzoomc);
+if strcmpi(animaltype,'larvacontour')
+  hextra = zeros(nids,2);
+  hextrazoom = zeros(nzoomr,nzoomc,2);
+end
 
 % initialize plots
 him = image([1,nc],[1,nr],zeros([nr,nc,3]));
 axis image;
-axis([.5,x1(end)+.5,.5,y1(end)+.5]);
+
+if nzoom >0
+  axis([.5,x1(end)+.5,.5,y1(end)+.5]);
+else
+  axis([.5,nc+.5,.5,nr+.5]);
+end
+axis tight; 
 axis off;
 
 if titletext && isdisplay,
@@ -434,6 +487,11 @@ for fly = 1:nids,
   if doplotwings,
     hwing(fly) = plot(nan,nan,'k.-');
   end
+  if strcmpi(animaltype,'larvacontour')
+    hextra(fly,1) = plot(nan,nan,'Marker','.','LineStyle','-');
+    hextra(fly,2) = plot(nan,nan,'Marker','o','LineStyle','None');
+  end
+
 end
 
 for i = 1:nzoomr,
@@ -450,6 +508,11 @@ for i = 1:nzoomr,
       'FontSize',18);
     if doshowsex,
       hsexmarker_zoom(i,j) = plot(nan,nan,'k.');
+    end
+    
+    if strcmpi(animaltype,'larvacontour')
+      hextrazoom(i,j,1) = plot(nan,nan,'Marker','.','LineStyle','-');
+      hextrazoom(i,j,2) = plot(nan,nan,'Marker','o','LineStyle','None');
     end
 
   end
@@ -644,8 +707,21 @@ for segi = 1:numel(firstframes),
             'marker',sexmarker,...
             'markerfacecolor',sexcolorcurr);
         end
-        updatefly(htri(fly),trx(fly),idx(fly));
+        if strcmpi(animaltype,'fly'),
+          updatefly(htri(fly),trx(fly),idx(fly));
+        elseif strcmpi(animaltype,'larvacontour'),
+          pos.xcontour = trx(fly).xcontour{idx(fly) };
+          pos.ycontour = trx(fly).ycontour{idx(fly) };
+          pos.xspine = trx(fly).xspine(:,idx(fly) );
+          pos.yspine = trx(fly).yspine(:,idx(fly));
+
+          updatelarvacontour(htri(fly),hextra(fly,:),pos);
+          
+        end
         set(htri(fly),'Color',colortmp(fly,:));
+        if strcmpi(animaltype,'larvacontour'),
+          set(hextra(fly,:),'Color',colortmp(fly,:));
+        end
         if isbehavior(fly),
           set(htri(fly),'Linewidth',2);
         else
@@ -664,6 +740,10 @@ for segi = 1:numel(firstframes),
         end
         if doplotwings,
           set(hwing(fly),'XData',[],'YData',[]);
+        end
+        if strcmpi(animaltype,'larvacontour'),
+          set(hextra(fly,1),'XData',[],'YData',[]);
+          set(hextra(fly,2),'XData',[],'YData',[]);
         end
       end
     end
@@ -688,6 +768,24 @@ for segi = 1:numel(firstframes),
           a = trx(fly).a(idx(fly))*scalefactor;
           b = trx(fly).b(idx(fly))*scalefactor;
           theta = trx(fly).theta(idx(fly));
+          if strcmpi(animaltype,'larvacontour')
+            pos.xcontour = trx(fly).xcontour{idx(fly)};
+            pos.ycontour = trx(fly).ycontour{idx(fly)};
+            pos.xspine = trx(fly).xspine(:,idx(fly));
+            pos.yspine = trx(fly).yspine(:,idx(fly));
+            cx = trx(fly).x(idx(fly));
+            cy = trx(fly).y(idx(fly));
+            pos.xcontour = pos.xcontour + boxradius - round(cx) + 0.5;
+            pos.ycontour = pos.ycontour + boxradius - round(cy) + 0.5;
+            pos.xspine = pos.xspine + boxradius - round(cx) + 0.5;
+            pos.yspine = pos.yspine + boxradius - round(cy) + 0.5;
+            
+            pos.xcontour = pos.xcontour*scalefactor + x0(j) -1;
+            pos.ycontour = pos.ycontour*scalefactor + y0(i) -1;
+            pos.xspine = pos.xspine*scalefactor + x0(j) -1;
+            pos.yspine = pos.yspine*scalefactor + y0(i) -1;
+
+          end
           
           labelis = find(scores{fly}(:,idx(fly)) > 0);
           tmpscores = scores{fly}(labelis,idx(fly));
@@ -734,7 +832,11 @@ for segi = 1:numel(firstframes),
             ywing = [ywingl,y,ywingr];
           end
 
-          updatefly(hzoom(i,j),x,y,theta,a,b);
+          if strcmpi(animaltype,'fly'),
+            updatefly(hzoom(i,j),x,y,theta,a,b);
+          elseif strcmpi(animaltype,'larvacontour'),
+            updatelarvacontour(hzoom(i,j),hextrazoom(i,j,:),pos);
+          end
           if doplotwings,
             set(hzoomwing(i,j),'XData',xwing,'YData',ywing,'Color',colortmp(fly,:));
           end
