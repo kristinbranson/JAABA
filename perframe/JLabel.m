@@ -63,11 +63,13 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % parse optional inputs
 [defaultPath,...
  hsplash,...
- hsplashstatus] = ...
+ hsplashstatus,...
+ jabfile] = ...
   myparse(varargin,...
           'defaultpath','',...
           'hsplash',[],...
-          'hsplashstatus',[]);
+          'hsplashstatus',[],...
+          'jabfile','');
 
 % Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
 figureJLabel=handles.figure_JLabel;
@@ -173,26 +175,31 @@ guidata(hObject,handles);
 set(handles.figure_JLabel,'Visible','on');
 drawnow;
 
-res = JAABAInitOpen(handles.figure_JLabel);
-
-if ~isempty(res.val)
-  if ~res.edit
-    switch res.val,
-      case 'New',
-        newEverythingFile(handles.figure_JLabel);
-      case 'Open',
-        openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
-      case 'OpenGT',
-        openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
-    end
-  else
-    switch res.val,
-      case 'New',
-        newEverythingFile(handles.figure_JLabel);
-      case 'Open',
-        editEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
-      case 'OpenGT',
-        editEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+if ~isempty(jabfile),
+  openEverythingFileGivenFileNameAbs(handles.figure_JLabel,jabfile,false);
+else
+  
+  res = JAABAInitOpen(handles.figure_JLabel);
+  
+  if ~isempty(res.val)
+    if ~res.edit
+      switch res.val,
+        case 'New',
+          newEverythingFile(handles.figure_JLabel);
+        case 'Open',
+          openEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+        case 'OpenGT',
+          openEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+      end
+    else
+      switch res.val,
+        case 'New',
+          newEverythingFile(handles.figure_JLabel);
+        case 'Open',
+          editEverythingFileViaChooser(findAncestorFigure(hObject),false); % false means labeling mode
+        case 'OpenGT',
+          editEverythingFileViaChooser(findAncestorFigure(hObject),true);  % true means ground-truthing mode
+      end
     end
   end
 end
@@ -766,9 +773,9 @@ if(handles.data.ismovie && ...
     delete(handles.guidata.cache_thread);
     handles.guidata.cache_thread = [];
   end
-  Mframenum = struct('Data',[]); 
-  Mlastused = struct('Data',[]);
-  Mimage = struct('Data',[]); 
+%   Mframenum = struct('Data',[]); 
+%   Mlastused = struct('Data',[]);
+%   Mimage = struct('Data',[]); 
   
   cache_filename= [handles.guidata.tempname 'cache-' num2str(feature('getpid')) '.dat'];
   fid=fopen(cache_filename,'w');
@@ -847,8 +854,8 @@ end
 
 if refresh_timeline_auto,
   set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
-  pred = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
-  if pred.predictedidx~=0
+  [pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
+  if t0 <= handles.guidata.ts(1) && t1>=handles.guidata.ts(1) &&    pred.predictedidx~=0 
     cur_scores = handles.data.NormalizeScores(pred.scoresidx);
     set(handles.text_scores,'String',sprintf('%+.2f',cur_scores));
   else
@@ -1027,7 +1034,7 @@ for i = axes,
 
       set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.data.GetSex1(handles.data.expi,fly,t);
-      if lower(sexcurr(1)) == 'm',
+      if lower(sexcurr(1)) == 'm' && handles.doplottracks,
         set(handles.guidata.hfly_markers(j,i),'Visible','on');
       else
         set(handles.guidata.hfly_markers(j,i),'Visible','off');
@@ -1046,6 +1053,7 @@ for i = axes,
 %         handles.data.trx(fly).b(j));
       %updatefly(handles.guidata.hflies(fly,i),trx(fly).x,trx(fly).y,trx(fly).theta,trx(fly).a,trx(fly).b);
       if ismember(fly,handles.data.flies),
+        set(handles.guidata.hfly_markers(j,i),'Visible','on');
         set(handles.guidata.hflies(j,i),'LineWidth',3);
         if labelidx <= 0,
           set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelunknowncolor);
@@ -1460,7 +1468,7 @@ function slider_preview_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 
 % get slider value
 % t = min(max(1,round(get(hObject,'Value'))),handles.guidata.nframes);
-t = min(max(handles.data.t0_curr,round(get(hObject,'Value'))),handles.data.t1_curr);
+t = min(max(handles.data.GetMinFirstFrame,round(get(hObject,'Value'))),handles.data.GetMaxEndFrame);
 set(hObject,'Value',t);
 % which preview panel is this
 i = GetPreviewPanelNumber(hObject);
@@ -1785,9 +1793,13 @@ end
 
 t = round(t);
 
-if t<handles.data.t0_curr || t>handles.data.t1_curr,
+minFirstFrame = min(cell2mat(handles.data.GetFirstFrames(handles.data.expi)));
+maxEndFrame = max(cell2mat(handles.data.GetEndFrames(handles.data.expi)));
+
+
+if t<minFirstFrame || t>maxEndFrame,
   fprintf('Current frame is out of range for the current fly');
-  t = min(max(handles.data.t0_curr,round(pt(1,1))),handles.data.t1_curr);
+  t = min(max(minFirstFrame,round(pt(1,1))),maxEndFrame);
 end
 
 
@@ -2443,6 +2455,7 @@ atLeastOneNormalLabelOfEachClassExists= ...
   data.getAtLeastOneNormalLabelOfEachClassExists;
 labelPenIsUp=(handles.guidata.label_state==0);
 userHasSpecifiedEverythingFileName=handles.data.userHasSpecifiedEverythingFileName;
+savewindowdata = handles.data.savewindowdata;
 %                      
 % Update the File menu items.
 %
@@ -2454,6 +2467,7 @@ set(handles.menu_file_open_in_ground_truthing_mode, ...
 set(handles.menu_file_save,'Enable',onIff(openFileHasUnsavedChanges));
 set(handles.pushtool_save,'Enable',onIff(openFileHasUnsavedChanges));
 set(handles.menu_file_save_as,'Enable',onIff(thereIsAnOpenFile));
+set(handles.menu_file_savewindowdata,'Enable',onIff(thereIsAnOpenFile&&~inGroundTruthingMode));
 set(handles.menu_file_close,'Enable',onIff(thereIsAnOpenFile));
 % set(handles.menu_file_import_old_style_project, ...
 %     'Enable',offIff(thereIsAnOpenFile));
@@ -2607,6 +2621,13 @@ set(handles.pushbutton_train, ...
 set(handles.pushbutton_predict, ...
     'enable',onIff(classifierExists&&someExperimentIsCurrent));
 
+if savewindowdata,
+  set(handles.menu_file_savewindowdata,'checked','on' );
+else
+  set(handles.menu_file_savewindowdata,'checked','off' );
+  
+end
+  
 return
 
 
@@ -3632,7 +3653,7 @@ if handles.data.hassex,
     if iscell(sex),
       sex = sex{1};
     end
-    prompt{i} = sprintf('Sex: %s',sex);
+    prompt{end+1} = sprintf('Sex: %s',sex);
   end
 end
 
@@ -3659,7 +3680,8 @@ function axes_timeline_ButtonDownFcn(hObject, eventdata, handles)
 % end
 
 pt = get(hObject,'CurrentPoint');
-t = min(max(handles.data.t0_curr,round(pt(1,1))),handles.data.t1_curr);%nframes);
+
+t = min(max(handles.data.GetMinFirstFrame,round(pt(1,1))),handles.data.GetMaxEndFrame);
 % TODO: which axes?
 SetCurrentFrame(handles,1,t,hObject);
 return
@@ -4206,7 +4228,7 @@ if strcmpi(eventdata.Modifier,'control')
     case 'j',
       menu_go_switch_target_Callback(hObject,eventdata,handles);
     case 'k'
-      menu_view_plottracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
+      menu_view_plot_tracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
   end
 end
 
@@ -4293,7 +4315,7 @@ function menu_go_next_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(1,handles.guidata.ts(axesi)+1),handles.data.t1_curr);%handles.guidata.nframes);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)+1),handles.data.GetMaxEndFrame);%handles.guidata.nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4307,7 +4329,7 @@ function menu_go_previous_frame_Callback(hObject, eventdata, handles)
 
 % TODO: make this work with multiple preview axes
 axesi = 1;
-t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)-1),handles.data.t1_curr);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)-1),handles.data.GetMaxEndFrame);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4322,7 +4344,7 @@ function menu_go_forward_several_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)+handles.guidata.nframes_jump_go),handles.data.t1_curr);%nframes);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)+handles.guidata.nframes_jump_go),handles.data.GetMaxEndFrame);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -4337,7 +4359,7 @@ function menu_go_back_several_frames_Callback(hObject, eventdata, handles)
 % TODO: make this work with multiple preview axes
 axesi = 1;
 % TODO: hardcoded in 10 as up/down arrow step
-t = min(max(handles.data.t0_curr,handles.guidata.ts(axesi)-handles.guidata.nframes_jump_go),handles.data.t1_curr);%nframes);
+t = min(max(handles.data.GetMinFirstFrame,handles.guidata.ts(axesi)-handles.guidata.nframes_jump_go),handles.data.GetMaxEndFrame);%nframes);
 % set current frame
 SetCurrentFrame(handles,axesi,t,hObject);
 return
@@ -5479,7 +5501,7 @@ guidata(hObject,handles);
 ticker = tic;
 if nargin < 3,
   t0 = handles.guidata.ts(axi);
-  t1 = handles.data.t1_curr;%nframes;
+  t1 = handles.data.GetMaxEndFrame;
   doloop = false;
 end
 
@@ -5637,11 +5659,44 @@ if strcmpi(v,'on'),
   handles.doplottracks = false;
   set(h,'Visible','off');
   set(hObject,'Checked','off');
+  
+  %  Show the marker for just the current fly.
+  for i = 1:numel(handles.guidata.axes_previews)
+    for curfly = handles.data.flies(:)'
+      
+      j = handles.guidata.fly2idx(curfly);
+      set(handles.guidata.hfly_markers(j,i),'Visible','on','Marker','o');
+      
+    end
+  end
+  
 else
   handles.tracks_visible = handles.tracks_visible(ishandle(handles.tracks_visible));
   handles.doplottracks = true;
   set(handles.tracks_visible(:),'Visible','on');
   set(hObject,'Checked','on');
+  
+
+  %  Change the markers back to sex markers.
+
+  for i = 1:numel(handles.guidata.axes_previews)
+    t = handles.guidata.ts(i);
+    for curfly = handles.data.flies(:)'
+      
+      j = handles.guidata.fly2idx(curfly);
+      
+      sexcurr = handles.data.GetSex1(handles.data.expi,curfly,t);
+      if lower(sexcurr(1)) == 'm',
+        set(handles.guidata.hfly_markers(j,i),'Visible','on','Marker','*');
+      else
+        set(handles.guidata.hfly_markers(j,i),'Visible','off','Marker','*');
+      end
+      if ismember(curfly,handles.data.flies),
+        set(handles.guidata.hfly_markers(j,i),'Visible','on');
+        set(handles.guidata.hflies(j,i),'LineWidth',3);
+      end
+    end
+  end
 end
 guidata(hObject,handles);
 return
@@ -5803,8 +5858,9 @@ flystr = sprintf('%d, ',handles.data.flies);
 flystr = flystr(1:end-2);
 SetStatus(handles,sprintf('Saving AVI for experiment %s, %s %s, frames %d to %d...',...
   handles.data.expnames{handles.data.expi},handles.data.targettype,flystr,clip.t0,clip.t1));
+clipsdir = 'touchclips';
 
-handles = make_jlabel_results_movie(handles,clip.t0,clip.t1);
+handles = make_jlabel_results_movie(handles,clip.t0,clip.t1,'clipsdir',clipsdir);
 ClearStatus(handles);
 
 %{
@@ -6838,7 +6894,6 @@ end
 
 % specify graphics object visible in only one mode or another
 labelingOnlyGrobjects = [handles.pushbutton_train,...
-                         handles.pushbutton_predict,...
                          handles.axes_timeline_auto, ...
                          handles.guidata.himage_timeline_auto,...
                          handles.guidata.htimeline_errors, ...
@@ -9424,3 +9479,19 @@ if isempty(iExpNow) ,
   guidata(figureJLabel,handles);
 end
 return
+
+
+% --------------------------------------------------------------------
+function menu_file_savewindowdata_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_savewindowdata (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if strcmp(get(handles.menu_file_savewindowdata,'checked'),'on')
+  handles.data.setsavewindowdata(false);
+  set(handles.menu_file_savewindowdata,'checked','off');
+else
+  handles.data.setsavewindowdata(true);
+  set(handles.menu_file_savewindowdata,'checked','on');
+  
+end
