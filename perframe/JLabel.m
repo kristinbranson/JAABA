@@ -811,7 +811,7 @@ end
 % WARNING: we directly access handles.data.trx for speed here -- 
 % REMOVED! NOT SO SLOW
 
-[axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
+[axes2,refreshim,refreshflies,refreshtrx,refreshlabels,...
   refresh_timeline_manual,refresh_timeline_auto,refresh_timeline_suggest,refresh_timeline_error,...
   refresh_timeline_xlim,refresh_timeline_hcurr,...
   refresh_timeline_props,refresh_timeline_selection,...
@@ -922,7 +922,7 @@ end
 
 %drawnow;
 
-for i = axes,
+for i = axes2,
   
   if refreshim,
     
@@ -945,9 +945,59 @@ for i = axes,
         %disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
         %    num2str(sum(isnan(Mlastused.Data)))]);
       end
-
       Mlastused.Data(j) = now;
       set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
+      
+      if (any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9)) && ...
+            (handles.guidata.ts(i)-1)>0)
+        j_last = find((Mframenum.Data==(handles.guidata.ts(i)-1)) & ...
+                 (~isnan(Mlastused.Data)) & ...
+                 (Mlastused.Data>0) ...
+                 ,1,'first');
+        if isempty(j_last),
+          j_last = argmin(Mlastused.Data);
+          Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
+          Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
+          %disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+          %    num2str(sum(isnan(Mlastused.Data)))]);
+        else
+          %disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
+          %    num2str(sum(isnan(Mlastused.Data)))]);
+        end
+        Mlastused.Data(j_last) = now;
+        fly=handles.data.flies(1);
+        ts=handles.guidata.ts(i);
+        imnorm = compute_spacetime_transform(Mimage.Data(j).x, ...
+            handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
+            handles.spacetime.meana, handles.spacetime.meanb);
+        ts=handles.guidata.ts(i)-1;
+        imnorm_last = compute_spacetime_transform(Mimage.Data(j_last).x, ...
+            handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
+            handles.spacetime.meana, handles.spacetime.meanb);
+        gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
+            handles.spacetime.binidx, handles.spacetime.nbins,...
+            handles.data.trx(fly).dt(handles.guidata.ts(i)-1));
+        rb_nog(:,:,1)=imnorm;
+        rb_nog(:,:,2)=imnorm_last;
+        rb_nog(:,:,3)=imnorm_last;
+        image(rb_nog,'parent',handles.spacetime.ax);
+        axis(handles.spacetime.ax,'square');
+        for k=1:length(handles.spacetime.featurelocations)
+          line(handles.spacetime.featurelocations{k}(:,2), handles.spacetime.featurelocations{k}(:,1),...
+              'color','g','parent',handles.spacetime.ax);
+          text(handles.spacetime.featurecenters{k}(1), handles.spacetime.featurecenters{k}(2),...
+              handles.spacetime.featurenames{k},'Interpreter','none','HorizontalAlignment','center',...
+              'color','g','parent',handles.spacetime.ax);
+        end
+      end
 
       % remove from the queue frames preceeding current frame
       j=(Mframenum.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
@@ -4939,6 +4989,25 @@ else
   set(handles.guidata.hselection(propi),'YData',ydata([1,2,2,1,1]));
   s = sprintf('%.3f',perframedata(handles.guidata.ts(1)-T0+1));
   set(handles.guidata.text_timeline_props(propi),'String',s);
+  
+  if any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9))
+    if ((~isfield(handles,'spacetime')) || (~isfield(handles.spacetime,'fig')) || (~ishandle(handles.spacetime.fig)))
+      handles.spacetime.fig=figure;
+      handles.spacetime.ax=axes('position',[0 0 1 1]);
+      [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).a);
+      handles.spacetime.meana = prctile(cellfun(@mean,tmp),90);
+      [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).b);
+      handles.spacetime.meanb = prctile(cellfun(@mean,tmp),90);
+      [handles.spacetime.binidx, handles.spacetime.nbins, ...
+          handles.spacetime.featurenames, handles.spacetime.featurelocations, handles.spacetime.featurecenters] = ...
+          compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);
+    end
+  else
+    if isfield(handles,'spacetime')
+      rmfield(handles,'spacetime');
+    end
+  end
+
   guidata(hObject,handles);
 end
 return
