@@ -3159,7 +3159,7 @@ if(handles.comparison2==1)
     fid=fopen('most_recent_table.csv','w');
     fprintf(fid,'%% group, behavior, feature, sample size, z-score\n');
     transpose(tmp);
-    fprintf(fid,'%s, %s, %s, %s, %s, %s, %s, %s\n',ans{:});
+    fprintf(fid,'%s, %s, %s, %s, %s\n',ans{:});
     fclose(fid);
   end
 end
