@@ -699,6 +699,11 @@ return
 % -------------------------------------------------------------------------
 function cache_thread(N,HWD,cache_filename,movie_filename)
 
+% lastused = nan means please add framenum to cache
+%          = 0 means image is invalid and removed from cache
+%          = -1 means it is locked and being added to cache
+%          otherwise it is the timestamp the valid image was last used
+
 if isempty(movie_filename),
   return;
 end
@@ -714,27 +719,29 @@ while true
   idx=find(isnan(Mlastused.Data));
   if(~isempty(idx))
     idx2=argmax(Mframenum.Data(idx));
+    Mlastused.Data(idx(idx2))=-1;
     fnum = Mframenum.Data(idx(idx2));
     dd = uint8(readframe(fnum));
-    pause(0.0003);
+    pause(0.0003);     % BJA: why this pause??
     % MK: Cache the read frame to reduce the number of clashes with
     % UpdatePlots
-    if Mframenum.Data(idx(idx2))== fnum
+    if Mframenum.Data(idx(idx2)) == fnum
       Mimage.Data(idx(idx2)).x = dd;
       Mlastused.Data(idx(idx2)) = now;
-      Mframenum.Data(idx(idx2)) = fnum;
+      %Mframenum.Data(idx(idx2)) = fnum;
     end
   else
-    pause(1);
+    pause(0.1);
   end
 end
+
 return  %#ok
 
 
 % -------------------------------------------------------------------------
 function UpdatePlots(handles,varargin)
 
-persistent Mframenum Mlastused Mimage movie_filename
+persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total
 
 % if no experiments are loaded, nothing to do
 %if isempty(handles.data) || handles.data.nexps==0 ,
@@ -746,7 +753,9 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
   %fprintf('Clearing UpdatePlots data\n');
   try
     if isfield(handles,'guidata') && ~isempty(handles.guidata.cache_thread),
-      delete(handles.guidata.cache_thread);
+      for i=1:length(handles.guidata.cache_thread)
+        delete(handles.guidata.cache_thread{i});
+      end
       handles.guidata.cache_thread = [];
     end
     Mframenum = struct('Data',[]);
@@ -761,6 +770,7 @@ end
 
 % If the movie has changed, want to re-initialize the frame cache
 N=200;  % cache size
+verbose_cache=false;
 if(handles.data.ismovie && ...
    handles.guidata.shouldOpenMovieIfPresent && ...
    handles.guidata.thisMoviePresent && ...
@@ -770,7 +780,9 @@ if(handles.data.ismovie && ...
 
   % release data used in thread
   if ~isempty(handles.guidata.cache_thread),
-    delete(handles.guidata.cache_thread);
+    for i=1:length(handles.guidata.cache_thread)
+      delete(handles.guidata.cache_thread{i});
+    end
     handles.guidata.cache_thread = [];
   end
 %   Mframenum = struct('Data',[]); 
@@ -802,9 +814,18 @@ if(handles.data.ismovie && ...
   Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
   Mimage =    memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
-  handles.guidata.cache_thread=batch(@cache_thread,0,...
-    {N,HWD,cache_filename,handles.guidata.movie_filename},...
-    'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
+  c=parcluster;
+  framecache_threads = min(c.NumWorkers - matlabpool('size'), feature('numCores'));
+  if verbose_cache
+    disp(['starting ' num2str(framecache_threads) ' frame cache thread(s)']);
+  end
+  for i=1:framecache_threads
+    handles.guidata.cache_thread{i}=batch(@cache_thread,0,...
+      {N,HWD,cache_filename,handles.guidata.movie_filename},...
+      'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
+  end
+  cache_miss=0;
+  cache_total=0;
   %if(ismac),  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
 end
 
@@ -932,18 +953,26 @@ for i = axes2,
                (Mlastused.Data>0) ...
                ,1,'first');
       %if(numel(j)>1)  j=j(1);  end
+      cache_total=cache_total+1;
       if isempty(j),
-        j = argmin(Mlastused.Data);
+        cache_miss=cache_miss+1;
+        tmp=find(Mlastused.Data>=0);
+        j=tmp(argmin(Mlastused.Data(tmp)));
+        %j = argmin(Mlastused.Data);
         Mframenum.Data(j) = handles.guidata.ts(i);
         Mimage.Data(j).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)));
           % ALT: Added uint8() 2012-09-14.  Without that, threw error when
           % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
           % being of class double
-        %disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-        %    num2str(sum(isnan(Mlastused.Data)))]);
+        if verbose_cache
+          disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+             num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        end
       else
-        %disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
-        %    num2str(sum(isnan(Mlastused.Data)))]);
+        if verbose_cache
+          disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
+             num2str(sum(isnan(Mlastused.Data)))]);
+        end
       end
       Mlastused.Data(j) = now;
       set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
@@ -954,15 +983,23 @@ for i = axes2,
                  (~isnan(Mlastused.Data)) & ...
                  (Mlastused.Data>0) ...
                  ,1,'first');
+        cache_total=cache_total+1;
         if isempty(j_last),
-          j_last = argmin(Mlastused.Data);
+          cache_miss=cache_miss+1;
+          tmp=find(Mlastused.Data>=0);
+          j_last=tmp(argmin(Mlastused.Data(tmp)));
+          %j_last = argmin(Mlastused.Data);
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-          %disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-          %    num2str(sum(isnan(Mlastused.Data)))]);
+          if verbose_cache
+            disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+               num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+          end
         else
-          %disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
-          %    num2str(sum(isnan(Mlastused.Data)))]);
+          if verbose_cache
+            disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
+               num2str(sum(isnan(Mlastused.Data)))]);
+          end
         end
         Mlastused.Data(j_last) = now;
         fly=handles.data.flies(1);
@@ -1014,7 +1051,10 @@ for i = axes2,
                 Mframenum.Data);
       j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
       [y,idx]=sort(Mlastused.Data);
-      idx=idx(1:min([length(j) -1+find(isnan(y),1,'first')]));
+      idx1=find(y>=0,1,'first');
+      idx2=min([-1+idx1+length(j) -1+find(isnan(y),1,'first')]);
+      idx=idx(idx1:idx2);
+      %idx=idx(1:min([length(j) -1+find(isnan(y),1,'first')]));
       if(~isempty(idx))
         Mframenum.Data(idx) = j(1:length(idx));
         Mlastused.Data(idx) = nan;
@@ -2947,7 +2987,9 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
 
-delete(handles.guidata.cache_thread);
+for i=1:length(handles.guidata.cache_thread)
+  delete(handles.guidata.cache_thread{i});
+end
 handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
@@ -8435,7 +8477,9 @@ function menu_file_close_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Release the thread cache
-delete(handles.guidata.cache_thread);
+for i=1:length(handles.guidata.cache_thread)
+  delete(handles.guidata.cache_thread{i});
+end
 handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
