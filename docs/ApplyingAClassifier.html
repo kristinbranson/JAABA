@@ -2,28 +2,6 @@
 <html>
 <head>
 
-<!--- OLD FORMATTING
-
-<style type="text/css">
-table {
-background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
-}
-table, td
-{
-padding:3px;
-}
-table, th{
-padding:3px; background-color:orange;color:white;
-}
-table, tr
-{
-padding:3px; background-color:yellow;color:black;
-
-}
-</style>
-
---->
-
 <link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
 href="styles/common.css">
 <link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
@@ -44,25 +22,54 @@ strong.regular-font {
 
 </head>
 </body>
-<center><h1> <a href="index.html">JAABA</a>: Saving and Loading Results </h1></center>
+<center><h1> Applying a <a href="index.html">JAABA</a> Classifier to a New Video</h1></center>
+
+After you have <a href="Training.html">trained a behavior classifier</a>, 
+there are several ways to apply it to automatically classify the behaviors
+of all animals in novel videos. This can be done <a href="#UsingJAABA">within JAABA</a>, <a href="#UsingJAABAPlot">with JAABAPlot</a>, or from the MATLAB command-line using <a href="#JAABADetect">JAABADetect</a>. 
+
+The classifier's automatic predictions for a given experiment are output
+to a <a href="#ScoresFile">scores .mat file</a> within the experiment
+directory. 
 
 <hr class="h2-divider">
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#LabelsAndClassifiers">Labels and Classifiers</a>
+<li></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="ApplyingAClassifier">Applying a Behavior Classifier</a></h2>
+
+<h3><a id="UsingJAABA">Using JAABA</a></h3>
+
+Within JAABA, you can apply the classifier associated with the current <a href="NewProject.html">JAABA project</a> using the <b>Classifier->Predict</b> menu:
 <ul>
-<li><a href="#SavingLabels">Saving Labels</a></li>
-<li><a href="#LoadingLabels">Loading Labels</a></li>
-<li><a href="#SavingClassifier">Saving the Classifier and Labels</a></li>
-<li><a href="#LoadingClassifier">Loading a Classifier</a></li>
+<li><b>->Current Fly</b>: The entire trajectory of a single animal. The
+predictions are <b>not</b> saved to a <a href="#ScoresFile">scores file</a>,
+and are only viewable within the current JAABA session.</li>
+<li><b>->Current Experiment</b>: All animals in the current experiment. Results <b>will</b> be store to a <a href="#ScoresFile">scores file</a>.</li>
+<li><b>->All Experiments</b>: All experiments in the current project. Results <b>will</b> be store to <a href="#ScoresFile">scores files</a>.</li>
 </ul>
-<li><a href="#Predictions">Classifier's Predictions</a></li>
+
+<h3><a id="UsingJAABAPlot">Using JAABAPlot</a></h3>
+
+You can use <a href="PlottingResults.html#LoadingClassifiers">JAABAPlot</a>
+to apply behavior classifiers in batch to a set of experiments. As described
+in <a href="PlottingResults.html">Plotting JAABA's Output</a>,
+this can be done by 
 <ul>
-<li><a href="#SavingPredictions">Saving Predictions</a></li>
-<li><a href="#LoadingPredictions">Loading Predictions</a></li>
+<li>Adding the experiment(s) of interest to JAABAPlot, see <a href="PlottingResults.html#LoadingExperiments">Loading Experiments</a> for more information.</li>
+<li>Adding the classifier(s) of interest to JAABAPlot, see <a href="PlottingResults.html#LoadingClassifiers"</a> for more information. </li>
+<li>Pushing the <b>Classify</b> button.</li>
 </ul>
-</ul>
+
+<h3><a id="JAABADetect">Using JAABADetect</a></h3>
+
+From the MATLAB command-line, you can run the function <b>JAABADetect</b>
+to classify input experiment(s) with input classifier(s). 
 
 <hr class="h2-divider">
 

@@ -117,6 +117,19 @@ height:1em;
 
 <hr class="h2-divider">
 
+<h2>News</h2>
+
+<ul>
+<li> July 4, 2013: <b>Version XXX of JAABA released</b>. There are 
+significant changes made to the file formatting and interface to 
+improve usability. The new file formats are described 
+<a href="DataFormatting.html">here</a>. If you have JAABA classifiers 
+and projects in the old format, please contact us about converting 
+them to the new format. </li>
+</ul>
+
+<hr class="h2-divider">
+
 <h2>Contents</h2>
 
 <ul id="Contents">
@@ -131,17 +144,17 @@ height:1em;
 <li><h3><a href="Installation.html">Installation </a></h3></li>
 <ul>
 <li><a href="Installation.html#ComputerRequirements">Minimum Computer Requirements</a></li>
-<li><a href="Installation.html#Executables">Installation and Start-up: Easy</a></li>
+<li><a href="Installation.html#Executables">Installation and Start-up: </a></li>
 <ul>
-<li><a href="Installation.html#ExecutablesSoftwareRequirements">Software Requirements (Easy)</a></li>
-<li><a href="Installation.html#ExecutablesInstallation">Installation (Easy)</a></li>
-<li><a href="Installation.html#ExecutablesStartUp">Start-Up (Easy)</a></li>
+<li><a href="Installation.html#ExecutablesSoftwareRequirements">Software Requirements (No MATLAB)</a></li>
+<li><a href="Installation.html#ExecutablesInstallation">Installation (No MATLAB)</a></li>
+<li><a href="Installation.html#ExecutablesStartUp">Start-Up (No MATLAB)</a></li>
 </ul>
-<li><a href="Installation.html#Source">Installation and Start-up: Advanced</a></li>
+<li><a href="Installation.html#Source">Installation and Start-up: With MATLAB</a></li>
 <ul>
-<li><a href="Installation.html#SourceSoftwareRequirements">Software Requirements (Advanced)</a></li>
-<li><a href="Installation.html#SourceInstallation">Installation (Advanced)</a></li>
-<li><a href="Installation.html#SourceStartUp">Start-Up (Advanced)</a></li>
+<li><a href="Installation.html#SourceSoftwareRequirements">Software Requirements (With MATLAB)</a></li>
+<li><a href="Installation.html#SourceInstallation">Installation (With MATLAB)</a></li>
+<li><a href="Installation.html#SourceStartUp">Start-Up (With MATLAB)</a></li>
 </ul>
 </ul>
 </li>
@@ -164,17 +177,32 @@ height:1em;
   <li><a class="reference" href="DataFormatting.html#PerFrameDirectoryStructure">Per-Frame Directory Structure</a></li>
 </ul>
 </li>
-<li><h3><a href="NewProject.html">Creating New Projects</a></h3>
+<li><h3><a href="NewProject.html">JAABA Projects</a></h3>
 <ul>
-<li><a href="NewProject.html#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
-<li><a href="NewProject.html#ScoresAsInput">Using Output of Previously Trained Classifiers</a></li>
+<li> <a href="NewProject.html#JAABAProject">JAABA Project Overview</a></li>
+<ul>
+<li> <a href="NewProject.html#ProjectParameters">JAABA Project Parameters</a></li>
+<li><a href="NewProject.html#Classifier">Behavior Classifier</a></li>
+<li><a href="NewProject.html#TrainingData">Training Data Labels and Locations</a></li>
+</ul>
+<li><a href="NewProject.html#NewProject">Creating a New Project</a>
+<ul>
+<li><a href="NewProject.html#CopySettingsFrom">Using an Existing Project as a Template</a></li>
 </ul>
 </li>
-
-<li><h3><a href="AddExperiments.html">Adding Experiments to Projects</a></h3></li>
+<li><a href="NewProject.html#SavingJAABAProjects">Saving a JAABA Project</a>
+<ul>
+<li><a href="NewProject.html#Saving">Saving</a></li>
+<li><a href="NewProject.html#CachingWindowData">Caching Window Data in the .jab File</a></li>
+<li><a href="NewProject.html#VersioningClassifiers">Creating Different Versions of a Behavior Classifier</a></li>
+</ul>
+</li>
+</ul>
+<li><h3><a href="AddExperiments.html">Adding Experiments to a JAABA Project</a></h3></li>
 <li><h3><a href="GUIOverview.html">GUI Overview</a></h3>
 <ul>
-<li><a class="reference" href="Main">Main JAABA Interface</a></li>
+<li><a href="GUIOverview.html#Main">Main JAABA Interface</a></li>
+<li><a href="GUIOverview.html#Menus">Menu Items</a></li>
 </ul>
 </li>
 <li><h3><a href="BasicNavigation.html">Navigating within and between Videos</a></h3>
@@ -203,7 +231,7 @@ height:1em;
 </li>
 --->
 
-<li><h3><a href="Training.html">Training</a></h3>
+<li><h3><a href="Training.html">Training a Behavior Classifier</a></h3>
 <ul>
 <li><a href="Training.html#AddingLabels">Adding or Changing Labels</a></li>
 <li><a href="Training.html#KeyboardShortcuts">Label Keyboard Shortcuts</a></li>
@@ -322,8 +350,7 @@ height:1em;
 <h2>Acknowledgments</h2>
 
 <p>JAABA was developed by Mayank Kabra, Alice Robie, and Kristin Branson with
-help from Marta Rivera-Alba, Steven Branson, Ben Arthur, Jinyang Liu, 
-Roian Egnor, Andrew Miller. It was funded by the Howard Hughes Medical
+help from Marta Rivera-Alba, Steven Branson, Ben Arthur, Adam Taylor, Jinyang Liu, Roian Egnor, Andrew Miller. It was funded by the Howard Hughes Medical
 Institute.</p>
 
 <footer>
