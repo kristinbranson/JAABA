@@ -3077,11 +3077,11 @@ end
 
 if(handles.comparison2==1)
   if(nbehaviors>0)
-    mu=mean(reshape(shiftdim(table_data(:,:,:,1:3),3),numel(table_data(:,:,:,1:3))/nfeatures,nfeatures),1);
-    sigma=std(reshape(shiftdim(table_data(:,:,:,1:3),3),numel(table_data(:,:,:,1:3))/nfeatures,nfeatures),1);
+    mu=nanmean(reshape(shiftdim(table_data(:,:,:,1:3),3),numel(table_data(:,:,:,1:3))/nfeatures,nfeatures),1);
+    sigma=nanstd(reshape(shiftdim(table_data(:,:,:,1:3),3),numel(table_data(:,:,:,1:3))/nfeatures,nfeatures),1);
   else
-    mu=mean(reshape(shiftdim(table_data(:,:,:,3),3),numel(table_data(:,:,:,3))/nfeatures,nfeatures),1);
-    sigma=std(reshape(shiftdim(table_data(:,:,:,3),3),numel(table_data(:,:,:,3))/nfeatures,nfeatures),1);
+    mu=nanmean(reshape(shiftdim(table_data(:,:,:,3),3),numel(table_data(:,:,:,3))/nfeatures,nfeatures),1);
+    sigma=nanstd(reshape(shiftdim(table_data(:,:,:,3),3),numel(table_data(:,:,:,3))/nfeatures,nfeatures),1);
   end
   tmp2=[];
   for g=1:length(handles.grouplist)
@@ -3159,7 +3159,7 @@ if(handles.comparison2==1)
     fid=fopen('most_recent_table.csv','w');
     fprintf(fid,'%% group, behavior, feature, sample size, z-score\n');
     transpose(tmp);
-    fprintf(fid,'%s, %s, %s, %s, %s, %s, %s, %s\n',ans{:});
+    fprintf(fid,'%s, %s, %s, %s, %s\n',ans{:});
     fclose(fid);
   end
 end
