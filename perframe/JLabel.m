@@ -7296,6 +7296,12 @@ function menu_edit_memory_usage_Callback(hObject, eventdata, handles)
 % curval = sprintf('%d',handles.data.cacheSize);
 curval = sprintf('%d',handles.data.cacheSize);
 v = inputdlg('Memory usage (MB)','Cache Size',1,{curval});
+if isempty(v),
+  return;
+end
+if ~ischar(v),
+  return;
+end
 sz = str2double(v{1});
 if isnan(sz) || sz<0;
   return;

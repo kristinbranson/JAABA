@@ -32,7 +32,8 @@ strong.regular-font {
 
 <h2><a id="Contents">Contents</a></h2>
 <ul>
-  <li><a class="reference" href="Main">Main JAABA Interface</a></li>
+  <li><a class="reference" href="#Main">Main JAABA Interface</a></li>
+  <li><a class="reference" href="#Menus">Menu Items</a></li>
 </ul>
 
 <hr class="h2-divider">
@@ -46,7 +47,7 @@ strong.regular-font {
 
 <ol>
 <li> <a id="MenuBar"><b>Menu Bar</b></a></li>
-<li> <a id="ZoomButtons"><b>Zoom Buttons</b></li></a>: When toggled on, these buttons can be used to 
+<li> <a id="ZoomButtons"><b>Zoom Buttons</b></a>: When toggled on, these buttons can be used to 
 zoom in or out on the <a href="#MoviePreviewer">Movie Previewer</a> view, the number of frames shown
 in all the timelines, and the y-axis limits for the
 <a href="#PerFrameFeatureTimeline">Per-Frame Feature Timelines</a>. Be sure to toggle these buttons
@@ -169,21 +170,113 @@ limits can be set using the <a href="#ZoomButtons">Zoom</a> and <a href="#PanBut
 <li><a id="TimelineCurrentFrame"><b>Timeline Current Frame</b></a>: This line indicates the current frame in the timelines. </li>
 </ol>
 
+<hr class="h2-divider">
 
+<h2><a id="Menus">Menu Items</a></h2>
 
+<ul>
+<li><b>File</b>
+<ul>
+<li><b>->New</b>: Create a new JAABA project. This is only enabled when no JAABA project is open. See <a href="NewProject.html#NewProject">Creating a New Project</a> for more information.</li>
+<li><b>->Open</b>: Open an existing JAABA project in training mode (in training mode, you can add labels and train new classifiers). This is only enabled when no JAABA project is open. See <a href="NewProject.html">JAABA Projects</a> for more information.</li>
+<li><b>->Open in Ground-Truthing Mode</b>: Open an existing JAABA project in ground-truthing mode (in ground-truthing mode, you can quantitatively evaluate an existing classifier's performance by labeling ground-truth). This is only enabled when no JAABA project is open. See <a href="GroundTruthing.html">Ground-Truthing</a> for more information.</li>
+<li><b>->Close</b>: Close the current JAABA project.</li>
+<li><b>->Save</b>: Save the current JAABA project. See <a href="NewProject.html">JAABA Projects</a> for more information.</li>
+<li><b>->Save As...</b>: Save the current JAABA project to a new file. See <a href="NewProject.html">JAABA Projects</a> for more information.</li>
+<li><b>->Cache WindowData in the jab File</b>: If this is checked, the window data for all labeled frames will be cached in the jab file. This can take a significant amount of disk space, but can save time when closing and opening the same project. See <a href="NewProject.html">JAABA Projects</a> for more information.</li>
+<li><b>->Change Behavior Name...</b>: Change the name of the behavior being labeled. See <a href="NewProject.html#ProjectParameters">Project Parameters</a> for more information.</li>
+<li><b>->Change Score File Name...</b>: Change the name of the <a href="SavingAndLoading.html#SavingPredictions">score file</a> associated with this project. See <a href="NewProject.html#ProjectParameters">Project Parameters</a> for more information.</li>
+<li><b>->Change Experiment List...</b>: Modify the experiments (videos) within the current project. See <a href="AddExperiments.html">Adding Experiments to a JAABA Project</a> for details.</li>
+<li><b>->Remove Experiments With No Labels</b>: Remove all experiments (videos) for which there are currently no labels from the project. This can be used for cleaning up a project to the bare minimum number of experiments necessary for training. </li>
+<li><b>->Import Classifier...</b>: Import the classifier from another JAABA project into this one. This will allow you to try this classifier on experiments in the current project. If you train after importing, the imported classifier will no longer be used. See <a href="NewProject.html#ProjectParameters">Project Parameters</a> for more information.
+</li>
+<li><b>->Import Scores</b>: Import the output of a classifier (termed scores) for experiments in the current project. Note that imported scores will show up in the third row of the automatic timeline if "Imported" is selected. See <a href="SavingAndLoading.html#LoadingPredictions">Loading Predictions</a> for more information. 
+<ul>
+<li><b>->For current experiment from default location</b>: Import scores stored in the <a href="NewProject.html#JAABAProject">scores file associated with the current JAABA project</a> for the currently open experiment (video).</li>
+<li><b>->For current experiment from different location</b>: Import scores stored in a selected MATLAB mat file for the currently open experiment (video).</li>
+<li><b>->For all experiments from default location</b>: Import scores stored in the <a href="NewProject.html#JAABAProject">scores file associated with the current JAABA project</a> for all experiments in the project.</li>
+</ul>
+</li>
+<li><b>->Export Scores</b>: Export the output of a classifier (termed scores) for experiments in the current project. See <a href="SavingAndLoading.html#SavingPredictions">Saving Predictions</a> for more information.
+<ul>
+<li><b>->For current experiment to default location</b>: Export the current classifier's output (scores) to the <a href="NewProject.html#JAABAProject">scores file associated with the current JAABA project</a> for the currently open experiment (video). This scores file will be within the experiment directory for the current experiment.</li>
+<li><b>->For current experiment from different location</b>: Export scores to a selected MATLAB mat file for the currently open experiment (video).</li>
+<li><b>->For all experiments from default location</b>: Export scores to the <a href="NewProject.html#JAABAProject">scores file associated with the current JAABA project</a> for all experiments in the project. These scores files will be within the respective experiment directories for each experiment in the project.</li>
+<li><b>->For all experiments to different location</b>: Export scores for all experiments in the project to a MATLAB mat file within each experiment directory specified.</li>
+</ul>
+</li>
+<li><b>->Quit</b>: Quit JAABA. </li>
+</ul>
+</li>
 
+<li><b>Edit</b>
+<ul>
+<li><b>->Undo</b>: Not implemented yet.</li>
+<li><b>->Shortcuts for labeling...</b>: Assign keyboard shortcuts to the label buttons. See <a href="Training.html#KeyboardShortcuts">Label Keyboard Shortcuts</a> for more information.</li>
+<li><b>->Compression Preferences...</b>: Change the compression preferences for bookmarking example video clips.</li>
+<li><b>->Normal mode</b> vs <b>->Ground-truthing mode</b>: Whether JAABA is opened in the normal mode, in which training data can be added and new classifiers can be trained, or in ground-truthing mode, in which the performance of an existing classifier can be quantitatively evaluated. </li>
+<li><b>->Basic mode</b> vs <b>->Advanced mode</b>: Whether labeling is being done in basic mode, in which there are three possible labels (the behavior, unknown, or not the behavior), or advanced mode, in which there are five possible labels (important example of the behavior, unimportant example of the behavior, unknown, unimportant example of not the behavior, important example of not the behavior). We use basic mode during training and advanced mode during ground-truthing. </li>
+<li><b>->Memory usage</b>: Modify how much data JAABA uses for caching data. The default amount is 4GB. </li>
+</ul>
+</li>
 
+<li><b>View</b>
+<ul>
+<li><b>->Keep target in view</b>: The axes of the preview window will be moved as little as possible to keep the current animal within them. See <a href="BasicNavigation.html#Space">Navigating in Space</a> for more information.</li>
+<li><b>->Center on target</b>: The currently selected animal will stay at the center of the video preview window. See <a href="BasicNavigation.html#Space">Navigating in Space</a> for more information.</li>
+<li><b>->Static view</b>: The axes of the video preview window are not updated based on the current animal's position. See <a href="BasicNavigation.html#Space">Navigating in Space</a> for more information.</li>
+<li><b>->Show whole frame</b>: Zoom out to show the entire video, and set view mode to <i>Static view</i>.</li>
+<li><b>->Plot tracks</b>: Whether to overlay the animals' trajectories on the preview window.</li>
+<li><b>->Manual Labels</b> vs <b>Automatic Labels</b>: Whether to color the current fly's plotted position and trajectory by the manually entered labels or the automatic predictions.</li>
+<li><b>->Timeline View Options...</b>: Modify the number of frames shown in the timelines.</li>
+<li><b>->Preview Options...</b>: Modify parameters related to the preview video window:
+<ul>
+<li> The <b>playback speed</b> of the video</li>
+<li> The number of trajectory frames plotted into the past and into the future.</li>
+</ul>
+</li>
+<li><b>->Show Bookmarked Clips</b>: Show video clips for the current experiment that have been bookmarked.</li>
+<li><b>->Show Predictions/Hide Predictions</b>: Show or hide the automatic predictions. We show the predictions in training mode and hide them during groundtruthin mode. </li>
+</ul>
+</li>
 
+<li><b>Go</b>: Navigation in time and between different animals and videos. See <a href="BasicNavigation.html">Navigating within and between Videos</a> for more information. 
+<ul>
+<li><b>->Switch Target...</b>: Switch to labeling a different animal in the same video or a different animal in a different video. See <a href="BasicNavigation.html#SwitchTarget">Switching to Different Animals and Videos</a> for more information.</li>
+<li><b>->Navigation Preferences...</b>: Modify how we can move around in the current video using the arrow keys. See <a href="BasicNavigation.html#Advanced">Navigation Preferences</a> for details.</li>
+<li><b>->Next frame (right arrow)</b>: Go forward one frame (can also be accomplished by pushing the right arrow key).</li>
+<li><b>->Previous frame (left arrow)</b>: Go backward one frame (can also be accomplished by pushing the left arrow key).</li>
+<li><b>->Forward X frames (down arrow)</b>: Go forward X frames (where X is set in <a href="BasicNavigation.html#Advanced">Navigation Preferences</a> (can also be accomplished by pushing the down arrow key).</li>
+<li><b>->Backward X frames (up arrow)</b>: Go backward X frames (where X is set in <a href="BasicNavigation.html#Advanced">Navigation Preferences</a> (can also be accomplished by pushing the up arrow key).</li>
+<li><b>->Next manual bout start (Ctrl+right arrow)</b>: Go forward to the start of the next labeled bout, if there is one (can also be accomplished by holding down control and pushing the right arrow key).</li>
+<li><b>->Previous manual bout end (Ctrl+left arrow)</b>: Go backward to the end of the previous labeled bout, if there is one (can also be accomplished by holding down control and pushing the left arrow key).</li>
+</ul>
+</li>
 
+<li><b>Classifier</b>
+<ul>
+<li><b>->Select Features...</b>: Select which per-frame and window features can be used by the classifier. See <a href="WindowFeatureComputation.html#SelectFeatures">Select Features</a> for more information.</li>
+<li><b>->Change Score Features...</b>: JAABA can use the output of one classifier as the input to another. For example, we use the output of our "Jump" classifier as an input to our "Righting" classifier. This menu allows you to select which JAABA projects to use as inputs to this one. </li>
+<li><b>->Training Parameters...</b>: Set the machine learning parameters. See <a href="Training.html#ClassifierParameters">Classifier Parameters (Advanced)</a> for more information. </li>
+<li><b>->Predict</b>: Run the current classifier either on the currently selected animal (<b>Current fly</b>), all animals in the currently selected experiment (<b>Current experiment</b>), or all animals in all experiments (<b>All experiments</b>). See <a href="SavingAndLoading.html#Predictions">Classifier's Predictions</a> for more information. </li>
+</ul>
+</li>
 
+<li><b>Help</b>
+<ul>
+<li><b>->About</b>: Show JAABA version. </li>
+<li><b>->Documentation</b>: Show this documentation. </li>
+</ul>
+</li>
 
+</ul>
 
 </body>
 
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated December 5, 2012</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated July 8, 2013</i>
 </center>
 </footer>
 
