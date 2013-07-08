@@ -699,6 +699,11 @@ return
 % -------------------------------------------------------------------------
 function cache_thread(N,HWD,cache_filename,movie_filename)
 
+% lastused = nan means please add framenum to cache
+%          = 0 means image is invalid and removed from cache
+%          = -1 means it is locked and being added to cache
+%          otherwise it is the timestamp the valid image was last used
+
 if isempty(movie_filename),
   return;
 end
@@ -714,27 +719,29 @@ while true
   idx=find(isnan(Mlastused.Data));
   if(~isempty(idx))
     idx2=argmax(Mframenum.Data(idx));
+    Mlastused.Data(idx(idx2))=-1;
     fnum = Mframenum.Data(idx(idx2));
     dd = uint8(readframe(fnum));
-    pause(0.0003);
+    pause(0.0003);     % BJA: why this pause??
     % MK: Cache the read frame to reduce the number of clashes with
     % UpdatePlots
-    if Mframenum.Data(idx(idx2))== fnum
+    if Mframenum.Data(idx(idx2)) == fnum
       Mimage.Data(idx(idx2)).x = dd;
       Mlastused.Data(idx(idx2)) = now;
-      Mframenum.Data(idx(idx2)) = fnum;
+      %Mframenum.Data(idx(idx2)) = fnum;
     end
   else
-    pause(1);
+    pause(0.1);
   end
 end
+
 return  %#ok
 
 
 % -------------------------------------------------------------------------
 function UpdatePlots(handles,varargin)
 
-persistent Mframenum Mlastused Mimage movie_filename
+persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total
 
 % if no experiments are loaded, nothing to do
 %if isempty(handles.data) || handles.data.nexps==0 ,
@@ -746,7 +753,9 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
   %fprintf('Clearing UpdatePlots data\n');
   try
     if isfield(handles,'guidata') && ~isempty(handles.guidata.cache_thread),
-      delete(handles.guidata.cache_thread);
+      for i=1:length(handles.guidata.cache_thread)
+        delete(handles.guidata.cache_thread{i});
+      end
       handles.guidata.cache_thread = [];
     end
     Mframenum = struct('Data',[]);
@@ -761,6 +770,7 @@ end
 
 % If the movie has changed, want to re-initialize the frame cache
 N=200;  % cache size
+verbose_cache=false;
 if(handles.data.ismovie && ...
    handles.guidata.shouldOpenMovieIfPresent && ...
    handles.guidata.thisMoviePresent && ...
@@ -770,7 +780,9 @@ if(handles.data.ismovie && ...
 
   % release data used in thread
   if ~isempty(handles.guidata.cache_thread),
-    delete(handles.guidata.cache_thread);
+    for i=1:length(handles.guidata.cache_thread)
+      delete(handles.guidata.cache_thread{i});
+    end
     handles.guidata.cache_thread = [];
   end
 %   Mframenum = struct('Data',[]); 
@@ -802,16 +814,25 @@ if(handles.data.ismovie && ...
   Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
   Mimage =    memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
 
-  handles.guidata.cache_thread=batch(@cache_thread,0,...
-    {N,HWD,cache_filename,handles.guidata.movie_filename},...
-    'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
+  c=parcluster;
+  framecache_threads = min(c.NumWorkers - matlabpool('size'), feature('numCores'));
+  if verbose_cache
+    disp(['starting ' num2str(framecache_threads) ' frame cache thread(s)']);
+  end
+  for i=1:framecache_threads
+    handles.guidata.cache_thread{i}=batch(@cache_thread,0,...
+      {N,HWD,cache_filename,handles.guidata.movie_filename},...
+      'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
+  end
+  cache_miss=0;
+  cache_total=0;
   %if(ismac),  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
 end
 
 % WARNING: we directly access handles.data.trx for speed here -- 
 % REMOVED! NOT SO SLOW
 
-[axes,refreshim,refreshflies,refreshtrx,refreshlabels,...
+[axes2,refreshim,refreshflies,refreshtrx,refreshlabels,...
   refresh_timeline_manual,refresh_timeline_auto,refresh_timeline_suggest,refresh_timeline_error,...
   refresh_timeline_xlim,refresh_timeline_hcurr,...
   refresh_timeline_props,refresh_timeline_selection,...
@@ -922,7 +943,7 @@ end
 
 %drawnow;
 
-for i = axes,
+for i = axes2,
   
   if refreshim,
     
@@ -932,22 +953,88 @@ for i = axes,
                (Mlastused.Data>0) ...
                ,1,'first');
       %if(numel(j)>1)  j=j(1);  end
+      cache_total=cache_total+1;
       if isempty(j),
-        j = argmin(Mlastused.Data);
+        cache_miss=cache_miss+1;
+        tmp=find(Mlastused.Data>=0);
+        j=tmp(argmin(Mlastused.Data(tmp)));
+        %j = argmin(Mlastused.Data);
         Mframenum.Data(j) = handles.guidata.ts(i);
         Mimage.Data(j).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)));
           % ALT: Added uint8() 2012-09-14.  Without that, threw error when
           % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
           % being of class double
-        %disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-        %    num2str(sum(isnan(Mlastused.Data)))]);
+        if verbose_cache
+          disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+             num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        end
       else
-        %disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
-        %    num2str(sum(isnan(Mlastused.Data)))]);
+        if verbose_cache
+          disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
+             num2str(sum(isnan(Mlastused.Data)))]);
+        end
       end
-
       Mlastused.Data(j) = now;
       set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
+      
+      if (any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9)) && ...
+            (handles.guidata.ts(i)-1)>0)
+        j_last = find((Mframenum.Data==(handles.guidata.ts(i)-1)) & ...
+                 (~isnan(Mlastused.Data)) & ...
+                 (Mlastused.Data>0) ...
+                 ,1,'first');
+        cache_total=cache_total+1;
+        if isempty(j_last),
+          cache_miss=cache_miss+1;
+          tmp=find(Mlastused.Data>=0);
+          j_last=tmp(argmin(Mlastused.Data(tmp)));
+          %j_last = argmin(Mlastused.Data);
+          Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
+          Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
+          if verbose_cache
+            disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+               num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+          end
+        else
+          if verbose_cache
+            disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
+               num2str(sum(isnan(Mlastused.Data)))]);
+          end
+        end
+        Mlastused.Data(j_last) = now;
+        fly=handles.data.flies(1);
+        ts=handles.guidata.ts(i);
+        imnorm = compute_spacetime_transform(Mimage.Data(j).x, ...
+            handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
+            handles.spacetime.meana, handles.spacetime.meanb);
+        ts=handles.guidata.ts(i)-1;
+        imnorm_last = compute_spacetime_transform(Mimage.Data(j_last).x, ...
+            handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
+            handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
+            handles.spacetime.meana, handles.spacetime.meanb);
+        gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
+            handles.spacetime.binidx, handles.spacetime.nbins,...
+            handles.data.trx(fly).dt(handles.guidata.ts(i)-1));
+        rb_nog(:,:,1)=imnorm;
+        rb_nog(:,:,2)=imnorm_last;
+        rb_nog(:,:,3)=imnorm_last;
+        image(rb_nog,'parent',handles.spacetime.ax);
+        axis(handles.spacetime.ax,'square');
+        for k=1:length(handles.spacetime.featurelocations)
+          line(handles.spacetime.featurelocations{k}(:,2), handles.spacetime.featurelocations{k}(:,1),...
+              'color','g','parent',handles.spacetime.ax);
+          text(handles.spacetime.featurecenters{k}(1), handles.spacetime.featurecenters{k}(2),...
+              handles.spacetime.featurenames{k},'Interpreter','none','HorizontalAlignment','center',...
+              'color','g','parent',handles.spacetime.ax);
+        end
+      end
 
       % remove from the queue frames preceeding current frame
       j=(Mframenum.Data<handles.guidata.ts(i)) & isnan(Mlastused.Data);
@@ -964,7 +1051,10 @@ for i = axes,
                 Mframenum.Data);
       j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
       [y,idx]=sort(Mlastused.Data);
-      idx=idx(1:min([length(j) -1+find(isnan(y),1,'first')]));
+      idx1=find(y>=0,1,'first');
+      idx2=min([-1+idx1+length(j) -1+find(isnan(y),1,'first')]);
+      idx=idx(idx1:idx2);
+      %idx=idx(1:min([length(j) -1+find(isnan(y),1,'first')]));
       if(~isempty(idx))
         Mframenum.Data(idx) = j(1:length(idx));
         Mlastused.Data(idx) = nan;
@@ -2897,7 +2987,9 @@ function figure_JLabel_CloseRequestFcn(hObject, eventdata, handles)
 % Hint: delete(hObject) closes the figure
 %delete(hObject);
 
-delete(handles.guidata.cache_thread);
+for i=1:length(handles.guidata.cache_thread)
+  delete(handles.guidata.cache_thread{i});
+end
 handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
@@ -4939,6 +5031,25 @@ else
   set(handles.guidata.hselection(propi),'YData',ydata([1,2,2,1,1]));
   s = sprintf('%.3f',perframedata(handles.guidata.ts(1)-T0+1));
   set(handles.guidata.text_timeline_props(propi),'String',s);
+  
+  if any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9))
+    if ((~isfield(handles,'spacetime')) || (~isfield(handles.spacetime,'fig')) || (~ishandle(handles.spacetime.fig)))
+      handles.spacetime.fig=figure;
+      handles.spacetime.ax=axes('position',[0 0 1 1]);
+      [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).a);
+      handles.spacetime.meana = prctile(cellfun(@mean,tmp),90);
+      [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).b);
+      handles.spacetime.meanb = prctile(cellfun(@mean,tmp),90);
+      [handles.spacetime.binidx, handles.spacetime.nbins, ...
+          handles.spacetime.featurenames, handles.spacetime.featurelocations, handles.spacetime.featurecenters] = ...
+          compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);
+    end
+  else
+    if isfield(handles,'spacetime')
+      rmfield(handles,'spacetime');
+    end
+  end
+
   guidata(hObject,handles);
 end
 return
@@ -8372,7 +8483,9 @@ function menu_file_close_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Release the thread cache
-delete(handles.guidata.cache_thread);
+for i=1:length(handles.guidata.cache_thread)
+  delete(handles.guidata.cache_thread{i});
+end
 handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
