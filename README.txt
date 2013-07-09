@@ -16,7 +16,7 @@ used to automatically classify the behaviors of animals in large data
 sets with high throughput. JAABA combines an intuitive graphical user
 interface, a fast and powerful machine learning algorithm, and
 visualizations of the classifier into an interactive, usable system
-for creating automatic behavior detectors. 
+for creating automatic behavior detectors.  
 
 ***
 
