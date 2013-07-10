@@ -44,76 +44,162 @@ strong.regular-font {
 
 </head>
 </body>
-<center><h1> Creating a new <a href="index.html">JAABA</a> Project </h1></center>
+<center><h1><a href="index.html">JAABA</a> Projects</h1></center>
 
 <br>
-<p>Each behavior in JAABA corresponds to a different project. You can create a new project when JAABA starts up throught the <a href="#ProjectConfigurationDialog">Project Configuration Dialog</a>. </p>
+<p>Each behavior in JAABA corresponds to a different <a href="#JAABAProject">JAABA project</a>, stored in a MATLAB file with the extension <b>.jab</b>.
 
 <hr class="h2-divider">
 
 <h2><a id="Contents">Contents</a></h2>
 <ul>
-<li><a href="#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
-<li><a href="#ScoresAsInput">Using Output of Previously Trained Classifiers</a></li>
+<li> <a href="#JAABAProject">JAABA Project Overview</a></li>
+<ul>
+<li> <a href="#ProjectParameters">JAABA Project Parameters</a></li>
+<li><a href="#Classifier">Behavior Classifier</a></li>
+<li><a href="#TrainingData">Training Data Labels and Locations</a></li>
+</ul>
+<li><a href="#NewProject">Creating a New Project</a>
+<ul>
+<li><a href="#CopySettingsFrom">Using an Existing Project as a Template</a></li>
+</ul>
+</li>
+<li><a href="#SavingJAABAProjects">Saving a JAABA Project</a>
+<ul>
+<li><a href="#Saving">Saving</a></li>
+<li><a href="#CachingWindowData">Caching Window Data in the .jab File</a></li>
+<li><a href="#VersioningClassifiers">Creating Different Versions of a Behavior Classifier</a></li>
+</ul>
+</li>
 </ul>
 
 <hr class="h2-divider">
 
-<h2><a id="ProjectConfigurationDialog">Project Configuration Dialog</a></h2>
+<h2><a id="JAABAProject">JAABA Project Overview</a></h2>
 
-<p>For <b>each behavior</b>, you need a <b>separate</b> JAABA project. To add a new project,
-	click on the <i>New Project</i> button in the initial JAABA edit
-	project and experiments interface. </p>
-	
-	<center><img src="images/EditFilesInitial.png"></center>
-	<center><i>Screen capture of Edit Projects and Files interface</i></center>
-	
-<p>	This will open a Project Setup window. In this window, select the <b>animal</b> type for the project using the <i>Target Type</i> drop down menu and specify the name of the behavior for the project and the files that will be used by JAABA for this project. 
-	</p> 
-	<center><img src="images/ProjectSetup_filled.png"></center>
-	<center><i>Screen capture of the Project Setup interface</i></center>
+All data associated with a given behavior classifier is stored in a JAABA project file with the extension <b>.jab</b>. <p>For <b>each behavior</b>, you need a <b>separate</b> JAABA project. This includes the:
+<ul>
+<li><a href="#ProjectParameters">Project parameters</a>, such as the behavior name and what type of animal is being labeled. </li>
+<li>Trained <a href="#Classifier">behavior classifier</a>, which inputs information from the animals' trajectories and predicts the behavior class. </li>
+<li><a href="#TrainingData">Training data</a> labels and locations.</li>
+</ul>
+
+<h3><a id="ProjectParameters">JAABA Project Parameters</a></h3>
+
+<p>The following parameters must be set for each JAABA project. Information on the experiment directory structure referred to below can be found <a href="DataFormatting.html#ExperimentDirectoryStructure">here</a>.</p>
 
 <table border=1 style="margin-bottom:15px;margin-top:35px">
-<tr> <th>Field Name</th><th>Typical Value</th><th>Details</th> </tr>
-<tr> <td>Behavior Name</td><td >Chase</td><td>Name of the behavior</td> </tr>
+<tr> <th>Field name</th><th>Example value</th><th>Description</th> </tr>
+
+<tr> <td>Target Type</td><td>flies</td><td>Type of animal whose behavior is being analyzed. This really refers to the type of tracking data which is being input. In our work, we use "flies" for both flies and mice and "larvae" for larvae. Other options, e.g. "larvae_mwt" correspond to larvae as well, but tracking using the MWT. This affects what per-frame and window features are used and how the animal's current position is plotted.</td></tr>
+
+<tr> <td>Behavior Name</td><td >Chase</td><td>Name of the behavior, used in the GUI for referring to the behavior.</td> </tr>
 
 <tr> <td>Movie File Name</td><td >movie.ufmf</td><td>Name of the movie
 file. For each experiment, JAABA reads and shows this file from the experiment directory. </td> </tr>
 
-<tr> <td>file.trxfilename</td><td >trx.mat</td><td>Name of the mat file
-in which the tracks are stored. For each experiment, JAABA reads this file to find the animals trajectories. </td> </tr>
-
-<tr> <td>Label File Name</td><td
->labeledChases.mat</td><td>File within the experiment directory
-where the labels for this project/behavior will be stored.</td> </tr>
-
-<tr> <td>Ground Truth Label File Name</td><td
->labeledChases_gt.mat</td><td>File within the experiment directory
-where the <a href="GroundTruthing.html">ground truthing</a> labels for this project will be stored.</td> </tr>
+<tr> <td>Tracking Data File Name</td><td >trx.mat</td><td>Name of the MATLAB mat file within each experiment directory in which the animals' trajectories are stored.</td> </tr>
 
 <tr> <td>Output/Score File Name</td><td
->scoresChase.mat</td><td>File within the experiment directory
-where the output predictions for this project  will be stored.</td> </tr>
+>scoresChase.mat</td><td>Name of the MATLAB mat file within the experiment directory where the automatic behavior classifications will be output.</td> </tr>
 
 </table>
-	<center><i>Details of the fields in the Project Setup interface</i></center>
+<center><i>Description of JAABA project parameters.</i></center>
 
+TODO: add the advanced parameters
 
-<p> Click <i>Done</i> to save the project and close the window. JAABA will ask for a location to save the project as a <i>mat</i> file. Once you create a project, you can continue working on this project, use <i>Select Project</i> button in the Edit Project and Files window to select this project file. Also, you can edit an existing project using <i>Edit Project</i> button after you select the project.  When creating a new project, you can copy the settings from an existing project using the <i>Copy Settings From </i> button.</p>
+<h3><a id="Classifier">Behavior Classifier</a></h3>
 
-<h2><a id="ScoresAsInput">Using Output of Previously Trained Classifiers</a></h2>
+The most recent behavior classifier trained using JAABA is also saved in the JAABA project file. The classifier is what is used to automatically predict the behavior of a given animal in a given frame. This classifier can be used to classify the behavior of the animals in a new video outside of your training data set. 
 
-<p> In JAABA, you can use output of previously trained behavior detectors as inputs for the current behavior. Use the <i>Add</i> and <i>Remove</i> buttons to specify the list of <a href="SavingAndLoading.html"/>saved classifiers</a> whose output you want to use as inputs. Note that the <a href=SavingAndLoading.html#Predictions>scores/predictions</a> for the classifiers should already be <b>generated</b> for all the experiments that you want to use for this project. 
+<h3><a id="TrainingData">Training Data Labels and Locations</a></h3>
 
+The data that has been used for training the classifier is also stored in the JAABA project file. This includes:
+<ul>
+<li> The locations of the experiment directories added to this project (see <a href="AddExperiments.html">Adding Experiments to the Current Project</a>). </li>
+<li> The behavior labels manually entered by the user for any experiments, animals, and frames in this project.</li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="NewProject">Creating a New Project</a></h2>
+
+<p>You can create a new project either by
+<ul>
+<li> Selecting <b>Start a new project</b> in the initial dialog when JAABA starts</li>
+<li> Selecting the <b>File->New</b> menu at any time.</li>
+</ul>
+This will cause the <b>New...</b> project dialog box to open:</p>
+
+<center><img src="images/NewProjectDialog.png"></center>
+<center><i>New Project Dialog</i></center>
+
+<p>In this dialog, you can specify the <a href="#ProjectParameters">Project Parameters</a> described above.</p>
+
+<p>After you have set the JAABA project parameters, you can <a href="AddExperiments.html">add experiments</a> to the project. At any time while JAABA is open, you can create a new project by selecting the <b>File->New</b> menu. You can change many of the project settings after JAABA is open by selecting the appropriate menu option:
+<ul>
+<li>File->Change Behavior Name...</li>
+<li>File->Change Score File Name...</li>
+<li>File->Change Experiment List...</li>
+</ul>
 </p>
 
+<h3><a id="CopySettingsFrom">Using an Existing Project as a Template</a></h3>
+
+It may be useful to create a new JAABA project using an existing project
+as a template. For example, suppose you have made a "walk" classifier 
+and now want to make a "stop" classifier that uses all the same settings. 
+To do this, you must perform the following steps:
+<ul>
+<li>Open your existing JAABA project (e.g. your "walk" project).</li>
+<li>Save the existing project with a new name by selecting the 
+<b>File->Save As...</b> menu (e.g. "stop_v1.jab").</li>
+<li>Remove all the experiments in this project by selecting
+<b>File->Change Experiment List...</b> and deleting all experiments. </li>
+<li>Change the behavior name in this project by selecting 
+<b>File->Change Behavior Name...</b> (e.g. change to "stop").</li>
+<li>Change the score file name in this project by selecting 
+<b>File->Change Score File Name...</b> (e.g. change to "scores_stop.mat").</li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="SavingJAABAProjects">Saving a JAABA Project</a></h2>
+
+<h3><a id="Saving">Saving</a></h3>
+
+All data associated with the current JAABA project can be saved to the 
+current .jab file by selecting <b>File->Save</b> or to a new .jab file 
+by selecting <b>File->Save As...</b> from the main JAABA GUI. 
+
+<h3><a id="CachingWindowData">Caching Window Data in the .jab File</a></h3>
+
+The <a href="WindowFeatureComputation.html">window features</a> for all 
+labeled training data must be computed. If you close and open a 
+JAABA project with a large training data set, it can be time-consuming 
+to recompute all the window data. It is possible to store (cache) the 
+window data into the .jab file by selecting the menu 
+<b>File->Cache WindowData in the Jab file</b>. While this will require
+some disk space, it decreases the amount of time involved in
+closing and re-opening a JAABA project. 
+
+<h3><a id="VersioningClassifiers">Creating Different Versions of a Behavior Classifier</a></h2>
+
+We often find it useful to create different versions of a behavior
+classifier. This can be thought of as creating a "restore point" that
+we can go back to if we do not like the modifications to the classifier
+we make. For example, we might do this if we have a classifier that is
+working fairly well, but we want to see what happens if we add a new
+type of data. To do this, we use the <b>File->Save As...</b> to create a
+new .jab file. Then, we can go back to the previous .jab file if we are
+unhappy with the changes we make. 
 
 </body>
 
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated June 26, 2013</i>
 </center>
 </footer>
 
