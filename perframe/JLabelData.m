@@ -4823,8 +4823,9 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       if ~isempty(classifierStuff.featureNames) && ...
+          ~isempty(classifierStuff.featureNames{1}) && ...
           ~isequal(classifierStuff.featureNames,feature_names)
-        uiwait(warndlg('The feature names stored in the jab files don'' match the current feature names. The loaded classifier shouldn''t be use. Retrain an a new classifier.'));
+        uiwait(warndlg('The feature names stored in the jab files don''t match the current feature names. The loaded classifier shouldn''t be use. Retrain an a new classifier.'));
         self.loadwindowdata = false;
       end
       self.windowdata.featurenames = feature_names;
