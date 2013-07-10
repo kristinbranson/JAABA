@@ -23,7 +23,15 @@ SetUpJAABAPath;
 try
   c=parcluster;
   if (c.NumWorkers>2) && (matlabpool('size')<1)
-    matlabpool('open',c.NumWorkers-1);  % BJA: must save one for frame cache thread
+    % BJA: as of matlab 2013a 12 workers can be used even on a 1-core machine
+    if c.NumWorkers < min(12, 2 * feature('numCores'))
+      disp(['WARNING: for best performance set NumWorkers in parallel prefs / cluster profile to be at least min(12, 2 * #cores) = ' num2str(min(12, 2 * feature('numCores'))) ' on this machine']);
+    end
+    min_framecache_threads = 1;  % might put this in a menu somewhere
+    % how to put these next two parameters in handles.guidata?
+    parfor_threads = min(c.NumWorkers - min_framecache_threads, feature('numCores'));
+    %framecache_threads=min(c.NumWorkers-parfor_threads,feature('numCores'));
+    matlabpool('open',parfor_threads);
   end
 end
 % Start JAABA.

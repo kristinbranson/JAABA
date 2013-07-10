@@ -1,13 +1,13 @@
 function JAABADetect(expdir,varargin)
 % Run classifiers trained from JAABA on experiments
-% scores = JAABADetectNew(expdir,'jabfiles',jabfiles)
-% scores = JAABADetectNew(expdir,'jablistfile',jablistfile)
+% JAABADetect(expdir,'jabfiles',jabfiles)
+% JAABADetect(expdir,'jablistfile',jablistfile)
 % expdir (String or cell array of string) -- is the experiment directory 
 % or a list of experiment directories. 
 % jabfiles (Cell array of Strings) -- locations of the jab files
 % for the behaviors that you want to detect.
 % Example usage:
-% JAABADetectNew('testExp','jabfiles',{'ChaseClassifier.jab'});
+% JAABADetect('testExp','jabfiles',{'ChaseClassifier.jab'});
 
 if ~isdeployed,
   SetUpJAABAPath;
@@ -45,6 +45,10 @@ if ischar(jablistfile),
     end
     jabfiles{end+1} = l;
   end
+end
+
+if ischar(jabfiles),
+  jabfiles = {jabfiles};
 end
 
 nbehaviors = numel(jabfiles);
