@@ -1021,7 +1021,7 @@ for i = axes2,
             handles.spacetime.meana, handles.spacetime.meanb);
         gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
             handles.spacetime.binidx, handles.spacetime.nbins,...
-            handles.data.trx(fly).dt(handles.guidata.ts(i)-1));
+            handles.data.trx(fly).dt(handles.guidata.ts(i)-1+handles.data.trx(fly).off));
         rb_nog(:,:,1)=imnorm;
         rb_nog(:,:,2)=imnorm_last;
         rb_nog(:,:,3)=imnorm_last;
