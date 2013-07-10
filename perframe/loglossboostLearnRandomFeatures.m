@@ -73,9 +73,9 @@ for itt = 1:numIters
     if numel(etimehist) > etimehistlength,
       etimehist = etimehist(end-etimehistlength+1:end);
     end
-    obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
-      round(itt/numIters*100),round((numIters-itt)/nittoutput*mean(etimehist)));
-    drawnow();
+    %obj.SetStatus('%d%% training done. Time Remaining:%ds ',...
+    %  round(itt/numIters*100),round((numIters-itt)/nittoutput*mean(etimehist)));
+    %drawnow();
     clk = tic;
   end
   

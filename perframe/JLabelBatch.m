@@ -23,7 +23,7 @@ else
       return;
     end
     
-    [success,msg] = data.PreLoadLabeledData();
+    [success,msg] = data.PreLoadPeriLabelWindowData();
     if ~success,
       fprintf('Error computing window data for experiment %s: %s. Removing...',expdir,msg);
       return;

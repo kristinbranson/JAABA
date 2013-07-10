@@ -160,7 +160,25 @@ trx.AddExpDir(expdir,'openmovie',false);
 %% for video reading
 
 moviename = fullfile(expdir,trx.moviefilestr);
-[readframe,~,fid,headerinfo] = get_readframe_fcn(moviename);
+if ~isempty(trx.moviefilestr)
+  [readframe,~,fid,headerinfo] = get_readframe_fcn(moviename);
+else
+  
+  maxx = 0; maxy = 0;
+  for ndx = 1:numel(trx.x)
+    maxx = max(max(trx(ndx).x+trx(ndx).a*2),maxx);
+    maxy = max(max(trx(ndx).y+trx(ndx).a*2),maxy);
+  end
+  nr = ceil(maxy);
+  nc = ceil(maxx);
+  headerinfo.nr = nr;
+  headerinfo.nc = nc;
+  ncolors = 1;
+  nframes = max([trx.endframe]);
+  readframe = @(x)(uint8(256*ones(nr,nc)));
+  fid = 0;
+  
+end
 
 %% choose frames, target to show
 
@@ -356,7 +374,11 @@ for segi = 1:numel(framestarts),
   y = trx(target).y;
   a = trx(target).a;
   b = trx(target).b;
-  sex = trx(target).sex;
+  if isfield(trx,'sex'), 
+    sex = trx(target).sex;
+  else
+    sex = repmat({'?'},numel(x));
+  end
   theta = trx(target).theta;
   % try to make sector somewhat continuous
   fil = [0.000263865082737   0.106450771973592   0.786570725887342   0.106450771973592   0.000263865082737];
@@ -557,8 +579,9 @@ else
   aviobj = close(aviobj); %#ok<NASGU>
 end
 
-fclose(fid);
-
+if fid>0,
+  fclose(fid);
+end
 %% compress using mencoder
 
 if isunix && usemencoder,
