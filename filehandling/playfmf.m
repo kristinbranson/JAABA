@@ -306,7 +306,7 @@ end
 handles.filename = fullfile(pathname,filename);
 [handles.filedir,handles.filenamebase,handles.fileext] = fileparts(handles.filename);
 
-if isfield(handles,'fid') && ~isempty(fopen(handles.fid)),
+if isfield(handles,'fid') && ~isempty(fopen(handles.fid)) && handles.fid > 1,
   fclose(handles.fid);
 end
 if isfield(handles,'himage') && ishandle(handles.himage),
