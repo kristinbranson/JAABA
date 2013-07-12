@@ -364,7 +364,7 @@ are on these figures as well.</p>
 
 <p>
 	<center><img src="images/BehaviorBarChartPerExp.png"><img src="images/BehaviorBarChartScatter.png"></center>
-	<center><i>Screen capture of behavior bar charts</i></center>
+	<center><i>Screen captures of behavior bar charts</i></center>
 </p>
 	
 
@@ -434,10 +434,34 @@ to help in finding effects of experimental manipulations.</p>
 <p>Click on the <b>Interesting Feature Histograms</b> button and set the following
 parameters:</p>
 <ul>
-  <li>Depress either</li>
+  <li>Depress</li>
   <ul>
-    <li><b>d'</b> to perform pairwise comparisons between group scores (&agrave; la <a href="http://en.wikipedia.org/wiki/D'">signal detection theory</a>)</li>
-    <li><b>z</b> to <a href='http://en.wikipedia.org/wiki/Standard_score'>standardize</a> each groups score to the global mean and variance</li>
+
+    <li><b>d'</b> to perform pairwise comparisons of features between
+    groups (&agrave; la <a href="http://en.wikipedia.org/wiki/D'">signal
+    detection theory</a>).</li>
+
+    <ul>
+
+      <li>"all frames" in the Behavior column indicates the comparision
+      is between the entire trajectores, otherwise it is limited to only
+      those frames during the indicated behavior.</li>
+
+      <li>If Group2 is "not during" then the comparison is between frames
+      in Group1 labelled and not labelled as the corresponding behavior.
+      Similarly, a Group2 of "all frames" compares Group1 frames during
+      the behavior to the entire Group1 trajectory.</li>
+
+      <li>The rightmost "d' all frames" column shows d' computed across
+      the entire trajectory.  Entries exist for those rows in which the d'
+      column to the left is otherwise restricted to a subset of frames.</li>
+
+    </ul>
+
+    <li><b>z</b> to <a
+    href='http://en.wikipedia.org/wiki/Standard_score'>standardize</a>
+    each groups score to the global mean and variance</li>
+
   </ul>
   <li><b>Parameters</b></li>
   <ul>
@@ -458,14 +482,14 @@ in <b>most_recent_config.mat</b> upon exiting JAABAPlot.  The latter are
 cleared if any changes are made to the group or experiment lists.</p>
 
 <p>
-	<center><img src="images/InterestingFeatureHistogramsZ.png"><img src="images/InterestingFeatureHistogramsD.png"></center>
+	<center><img src="images/InterestingFeatureHistogramsD.png"><img src="images/InterestingFeatureHistogramsZ.png"></center>
 	<center><i>Screen capture of interesting feature histogram differences</i></center>
 </p>
 	
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated June 13, 2013</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated July 12, 2013</i>
 </center>
 </footer>
 
