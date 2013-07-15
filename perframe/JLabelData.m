@@ -10244,9 +10244,11 @@ classdef JLabelData < matlab.mixin.Copyable
       
       
       oldScoreNorm = self.windowdata.scoreNorm;
+      oldfeaturenames = self.windowdata.featurenames;
       if isprop(macguffin.classifierStuff,'windowdata') && ...
           isstruct(macguffin.classifierStuff.windowdata) && ...
           ~substitutionsMade && self.loadwindowdata &&...
+          macguffin.classifierStuff.savewindowdata && ...
           ~self.IsGTMode(),
         isPerframeNewer = false;
         perframeNdx = find(strcmp('perframedir',self.filetypes));
@@ -10280,6 +10282,10 @@ classdef JLabelData < matlab.mixin.Copyable
         
         if isempty(self.windowdata.scoreNorm)
           self.windowdata.scoreNorm = oldScoreNorm;
+        end
+        
+        if isempty(self.windowdata.featurenames),
+          self.windowdata.featurenames = oldfeaturenames;
         end
         
       end

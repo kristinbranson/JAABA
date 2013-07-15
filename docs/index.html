@@ -110,7 +110,7 @@ height:1em;
 <li> <b>Git repository</b> with the latest version of the code:
 <a href="https://github.com/kristinbranson/JAABA">https://github.com/kristinbranson/JAABA</a></li>
 <li> <b>JAABA mailing list</b>: <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">https://groups.google.com/forum/?fromgroups#!forum/jaaba</a></li>
-<li> <b>JAABA paper</b>: <a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.2281.html">"JAABA: Interactive machine learning for automatic annotation of animal behavior"</a>, Kabra, Robie, et al., <i>Nature Methods</i>, 2012</li>
+<li> <b>JAABA paper</b>: <a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.2281.html">"JAABA: Interactive machine learning for automatic annotation of animal behavior"</a>, Kabra, Robie, et al., <i>Nature Methods</i>, 2013</li>
 <li> <b>Branson lab</b> at HHMI Janelia Farm: <a href="http://www.janelia.org/lab/branson-lab">http://www.janelia.org/lab/branson-lab</a></li>
 <li> <b>Contact information</b>: Kristin Branson bransonk@janelia.hhmi.org</li>
 </ul>
@@ -120,10 +120,10 @@ height:1em;
 <h2>News</h2>
 
 <ul>
-<li> July 4, 2013: <b>Version XXX of JAABA released</b>. There are 
+<li> July 10, 2013: <b>Version 0.5.0 of JAABA released</b>. There are 
 significant changes made to the file formatting and interface to 
-improve usability. The new file formats are described 
-<a href="DataFormatting.html">here</a>. If you have JAABA classifiers 
+improve usability. The new JAABA project file format is described 
+<a href="NewProject.html">here</a>. If you have JAABA classifiers 
 and projects in the old format, please contact us about converting 
 them to the new format. </li>
 </ul>
@@ -274,20 +274,17 @@ them to the new format. </li>
 <li><h3><a href="AdvancedNavigation.html">Advanced Navigation</a></h3></li>
 --->
 
-<li><h3><a href="SavingAndLoading.html">Saving and Loading Results</a></h3>
+<li><h3><a href="ApplyingAClassifier.html">Applying a Behavior Classifier to a New Video</a></h3>
 <ul>
-<li><a href="SavingAndLoading.html#LabelsAndClassifiers">Labels and Classifiers</a>
+<li><a href="ApplyingAClassifier.html#ApplyingAClassifier">Applying a Behavior Classifier</a>
 <ul>
-<li><a href="SavingAndLoading.html#SavingLabels">Saving Labels</a></li>
-<li><a href="SavingAndLoading.html#LoadingLabels">Loading Labels</a></li>
-<li><a href="SavingAndLoading.html#SavingClassifier">Saving the Classifier and Labels</a></li>
-<li><a href="SavingAndLoading.html#LoadingClassifier">Loading a Classifier</a></li>
+<li><a href="ApplyingAClassifier.html#UsingJAABA">Using JAABA</a></li>
+<li><a href="ApplyingAClassifier.html#UsingJAABAPlot">Using JAABAPlot</a></li>
+<li><a href="ApplyingAClassifier.html#JAABADetect">Using <code>JAABADetect</code></a></li>
 </ul>
-<li><a href="SavingAndLoading.html#Predictions">Classifier's Predictions</a></li>
-<ul>
-<li><a href="SavingAndLoading.html#SavingPredictions">Saving Predictions</a></li>
-<li><a href="SavingAndLoading.html#LoadingPredictions">Loading Predictions</a></li>
-</ul>
+</li>
+<li><a href="ApplyingAClassifier.html#ScoresFile">Scores File Structure</a></li>
+<li><a href="ApplyingAClassifier.html#LoadingPredictions">Loading Predictions</a></li>
 </ul>
 </li>
 
@@ -308,13 +305,21 @@ them to the new format. </li>
 </li>
 
 <li><h3><a href="GroundTruthing.html">Ground-Truthing Mode</a></h3>
+
 <ul>
-<li><a href="GroundTruthing.html#Starting">Starting JAABA in Ground-Truthing Mode</a></li>
-<li><a href="GroundTruthing.html#Classifier">Selecting the Classifier</a></li>
+<li><a href="GroundTruthing.html#Preparing">Preparing Data for Ground-Truthing</a>
+<ul>
+<li><a href="GroundTruthing.html#Starting">Running JAABA in Ground-Truthing Mode</a></li>
+<li><a href="GroundTruthing.html#Experiments">Setting Videos to Ground-Truth</a></li>
+</ul>
+</li>
+<li><a href="GroundTruthing.html#SelectingFrames">Selecting Frames to Ground Truth</a>
+<ul>
+<li><a href="GroundTruthing.htmlNavigatingToSuggestions">Navigating to Suggestions</a></li>
+</ul>
+</li>
 <li><a href="GroundTruthing.html#Labeling">Labeling in Ground-Truthing Mode</a></li>
-<li><a href="GroundTruthing.html#SelectingFrames">Selecting Frames to Ground Truth</a></li>
-<li><a href="GroundTruthing.html#Performance">Ground Truth Performance</a></li>
-<li><a href="GroundTruthing.html#Viewing">Viewing Predictions</a></li>
+<li><a href="GroundTruthing.html#Performance">Ground-Truth Performance</a></li>
 <li><a href="GroundTruthing.html#Saving">Saving Labels</a></li>
 </ul>
 </li>
@@ -356,7 +361,7 @@ Institute.</p>
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated May 24, 2013</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated July 10, 2013</i>
 </center>
 </footer>
 
