@@ -5152,18 +5152,26 @@ if(((strcmp(handles2.table,'dprime')) && ismember(eventdata.Indices(end,2),[1 3]
   group=handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
   switch(group)
     case(-1)
-      questdlg('Remove all during / all-frames comparisons from table?','','Yes','No','No');
+      answer=questdlg('____ __ during / all-frames comparisons from table?','','Remove all','Retain only','cancel','cancel');
     case(-2)
-      questdlg('Remove all during / not-during comparisons from table?','','Yes','No','No');
+      answer=questdlg('____ __ during / not-during comparisons from table?','','Remove all','Retain only','cancel','cancel');
     otherwise
-      questdlg(['Remove all ' handles.grouplist{group} ' groups from table?'],'','Yes','No','No');
+      answer=questdlg(['____ __ ' handles.grouplist{group} ' groups from table?'],'','Remove all','Retain only','cancel','cancel');
   end
-  if(strcmp(ans,'No'))  return;  end
+  if(ismember(answer,{'cancel',''}))  return;  end
   tmp=get(handles2.Table,'Data');
   if(strcmp(handles2.table,'dprime'))
-    idx=find((handles2.table_data(:,1)~=group)&(handles2.table_data(:,3)~=group));
+    if(strcmp(answer,'Remove all'))
+      idx=find((handles2.table_data(:,1)~=group)&(handles2.table_data(:,3)~=group));
+    else
+      idx=find((handles2.table_data(:,1)==group)|(handles2.table_data(:,3)==group));
+    end
   else
-    idx=find(handles2.table_data(:,1)~=group);
+    if(strcmp(answer,'Remove all'))
+      idx=find(handles2.table_data(:,1)~=group);
+    else
+      idx=find(handles2.table_data(:,1)==group);
+    end
   end
   set(handles2.Table,'Data',tmp(idx,:));
   handles2.table_data=handles2.table_data(idx,:);
@@ -5172,14 +5180,22 @@ end
 if(((strcmp(handles2.table,'dprime')) && ismember(eventdata.Indices(end,2),[2 4])) || ...
    ((strcmp(handles2.table,'zscore')) && (eventdata.Indices(end,2)==4)))
   thresh=handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
-  questdlg(['Remove all rows for which the sample size is less than or equal to ' num2str(thresh) ...
-      ' from table?'],'','Yes','No','No');
-  if(strcmp(ans,'No'))  return;  end
+  answer=questdlg(['Remove all rows for which the sample size is ____ than or equal to ' num2str(thresh) ...
+      ' from table?'],'','less','greater','cancel','cancel');
+  if(ismember(answer,{'cancel',''}))  return;  end
   tmp=get(handles2.Table,'Data');
   if(strcmp(handles2.table,'dprime'))
-    idx=find((handles2.table_data(:,2)>thresh)&(handles2.table_data(:,4)>thresh));
+    if(strcmp(answer,'less'))
+      idx=find((handles2.table_data(:,2)>thresh)&(handles2.table_data(:,4)>thresh));
+    else
+      idx=find((handles2.table_data(:,2)<thresh)&(handles2.table_data(:,4)<thresh));
+    end
   else
-    idx=find(handles2.table_data(:,4)>thresh);
+    if(strcmp(answer,'less'))
+      idx=find(handles2.table_data(:,4)>thresh);
+    else
+      idx=find(handles2.table_data(:,4)<thresh);
+    end
   end
   set(handles2.Table,'Data',tmp(idx,:));
   handles2.table_data=handles2.table_data(idx,:);
@@ -5191,26 +5207,40 @@ if(((strcmp(handles2.table,'dprime')) && (eventdata.Indices(end,2)==5)) || ...
   if(handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2))<0)
     not_txt='not ';
   end
-  questdlg(['Remove all ' not_txt ...
-      handles.behaviorlist{abs(handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2)))} ...
-      ' behaviors from table?'],'','Yes','No','No');
-  if(strcmp(ans,'No'))  return;  end
+  beh='all frames';
+  handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2));
+  if(ans~=0)
+    beh=handles.behaviorlist{abs(ans)};
+  end
+  answer=questdlg(['____ __ ' not_txt beh ...
+      ' behaviors from table?'],'','Remove all','Retain only','cancel','cancel');
+  if(ismember(answer,{'cancel',''}))  return;  end
   tmp=get(handles2.Table,'Data');
-  idx=find(handles2.table_data(:,eventdata.Indices(end,2)) ~= ...
-      handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2)));
+  if(strcmp(answer,'Remove all'))
+    idx=find(handles2.table_data(:,eventdata.Indices(end,2)) ~= ...
+        handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2)));
+  else
+    idx=find(handles2.table_data(:,eventdata.Indices(end,2)) == ...
+        handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2)));
+  end
   set(handles2.Table,'Data',tmp(idx,:));
   handles2.table_data=handles2.table_data(idx,:);
 end
 
 if(((strcmp(handles2.table,'dprime')) && (eventdata.Indices(end,2)==6)) || ...
    ((strcmp(handles2.table,'zscore')) && (eventdata.Indices(end,2)==3)))
-  questdlg(['Remove all ' ...
+  answer=questdlg(['____ __ ' ...
       handles.featurelist{handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2))} ...
-      ' features from table?'],'','Yes','No','No');
-  if(strcmp(ans,'No'))  return;  end
+      ' features from table?'],'','Remove all','Retain only','cancel','cancel');
+  if(ismember(answer,{'cancel',''}))  return;  end
   tmp=get(handles2.Table,'Data');
-  idx=find(handles2.table_data(:,eventdata.Indices(end,2)) ~= ...
-      handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2)));
+  if(strcmp(answer,'Remove all'))
+    idx=find(handles2.table_data(:,eventdata.Indices(end,2)) ~= ...
+        handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2)));
+  else
+    idx=find(handles2.table_data(:,eventdata.Indices(end,2)) == ...
+        handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2)));
+  end
   set(handles2.Table,'Data',tmp(idx,:));
   handles2.table_data=handles2.table_data(idx,:);
 end
@@ -5243,17 +5273,17 @@ end
 
 if((strcmp(handles2.table,'dprime')) && (eventdata.Indices(end,2)==8))
   if(isnan(handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2))))
-    questdlg(['Remove all rows for which d'' all frames is NaN?'],'','Yes','No','No');
-    if(strcmp(ans,'No'))  return;  end
+    answer=questdlg(['Remove all rows for which d'' all frames is NaN?'],'','Yes','No','No');
+    if(ismember(answer,{'No',''}))  return;  end
     tmp=get(handles2.Table,'Data');
     idx=find(~isnan(handles2.table_data(:,8)));
     set(handles2.Table,'Data',tmp(idx,:));
     handles2.table_data=handles2.table_data(idx,:);
   else
     crit=handles2.table_data(eventdata.Indices(end,1),7) ./ handles2.table_data(eventdata.Indices(end,1),8);
-    questdlg(['Remove all rows for which the ratio of d'' to d'' all frames is less than ' num2str(crit) '?'],...
+    answer=questdlg(['Remove all rows for which the ratio of d'' to d'' all frames is less than ' num2str(crit) '?'],...
         '','Yes','No','No');
-    if(strcmp(ans,'No'))  return;  end
+    if(ismember(answer,{'No',''}))  return;  end
     tmp=get(handles2.Table,'Data');
     idx=find((handles2.table_data(:,7)./handles2.table_data(:,8))>=crit);
     set(handles2.Table,'Data',tmp(idx,:));
