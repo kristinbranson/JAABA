@@ -5237,6 +5237,7 @@ if(((strcmp(handles2.table,'dprime')) && (eventdata.Indices(end,2)==7)) || ...
   end
   button_comparison_set(handles);
   %FeatureHistogram_Callback(hObject, eventdata, handles);
+  update_figure(handles);
   handles=feature_histogram_plot(handles);
 end
 
