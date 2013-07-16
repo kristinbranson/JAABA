@@ -1845,6 +1845,8 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.CheckExp(expi); obj.CheckFlies(flies);
       
       
+      [labelidxStruct,t0_labelidx] = obj.GetLabelIdx(expi,flies);
+
       % which frames don't have window data, which do
       if isempty(obj.windowdata.exp),
         missingts = ts;
@@ -1852,6 +1854,8 @@ classdef JLabelData < matlab.mixin.Copyable
       else      
         idxcurr = obj.FlyNdx(expi,flies);
         tscurr = obj.windowdata.t(idxcurr);
+        obj.windowdata.labelidx_new(idxcurr) = labelidxStruct.vals(tscurr-t0_labelidx+1);
+        obj.windowdata.labelidx_imp(idxcurr) = labelidxStruct.imp(tscurr-t0_labelidx+1);
         missingts = setdiff(ts,tscurr);
       end
       % tscurr: frame indices that do have window data for the whole track
@@ -1866,7 +1870,6 @@ classdef JLabelData < matlab.mixin.Copyable
 
       % get labels for current flies -- will be used when filling in
       % windowdata
-      [labelidxStruct,t0_labelidx] = obj.GetLabelIdx(expi,flies);
 
       % total number of frames to compute window data for -- used for
       % showing prctage complete. 
