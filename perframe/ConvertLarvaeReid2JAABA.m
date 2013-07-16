@@ -233,9 +233,10 @@ idxend = [idxstart(2:end)-1,numel(dataids)];
 
 maxmatches = -1;
 for i = 1:numel(idxstart),
-  dataids_curr = [dataall(idxstart(i):idxend(i)).id];
+  idxcurr = idxstart(i):idxend(i);
+  dataids_curr = [dataall(idxcurr).id];
   [ism,order] = ismember(dataids_curr,trxids);
-  ismatch = [dataall(ism).nframes] == [trx(order(ism)).nframes];
+  ismatch = [dataall(idxcurr(ism)).nframes] == [trx(order(ism)).nframes];
   fracmatches = nnz(ismatch) / nnz(ism);
   if fracmatches > maxmatches,
     bestmatch = i;
