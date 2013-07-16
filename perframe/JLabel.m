@@ -959,9 +959,10 @@ for i = axes2,
         tmp=find(Mlastused.Data>=0);
         j=tmp(argmin(Mlastused.Data(tmp)));
         if isempty(j), % If all frames last used is nan i.e., they are waiting to be cached.
-          j = 1;
+          j = find(isnan(Mlastused.Data),1);
         end
         %j = argmin(Mlastused.Data);
+        Mlastused.Data(j) = -1;
         Mframenum.Data(j) = handles.guidata.ts(i);
         Mimage.Data(j).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)));
           % ALT: Added uint8() 2012-09-14.  Without that, threw error when
@@ -991,7 +992,11 @@ for i = axes2,
           cache_miss=cache_miss+1;
           tmp=find(Mlastused.Data>=0);
           j_last=tmp(argmin(Mlastused.Data(tmp)));
+          if isempty(j_last), % If all frames last used is nan i.e., they are waiting to be cached.
+            j_last = find(isnan(Mlastused.Data),1);
+          end
           %j_last = argmin(Mlastused.Data);
+          Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
           if verbose_cache
