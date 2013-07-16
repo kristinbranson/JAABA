@@ -941,8 +941,6 @@ if refresh_timeline_props,
   end
 end
 
-%drawnow;
-
 for i = axes2,
   
   if refreshim,
