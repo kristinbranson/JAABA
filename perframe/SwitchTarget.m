@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before SwitchTarget is made visible.
-function SwitchTarget_OpeningFcn(hObject, eventdata, handles, varargin)
+function SwitchTarget_OpeningFcn(hObject, eventdata, handles, varargin)  
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -70,6 +70,7 @@ handles.pagePos = get(handles.popupmenu_Page,'Position');
 
 % initialize page number
 handles.page_number = [];
+
 
 % added an extra guidata here, as sometimes I was getting an error that
 % figurePos wasn't getting set
@@ -107,6 +108,8 @@ function [exp,target] = PageRow2LocalTarget(handles,page,row)
 
 [exp,target] = GlobalTarget2LocalTarget(handles,PageRow2GlobalTarget(handles,page,row));
 
+
+% -------------------------------------------------------------------------
 function handles = updateTable(handles)
 % Initialize the table
 
@@ -280,6 +283,7 @@ set(handles.pushbutton_update,'enable','on');
 % uiwait(handles.figure1);
 
 
+% -------------------------------------------------------------------------
 function initTable(hObject)
 % Use java objects to tweak the table. Found this online at 
 % http://www.mathworks.com/matlabcentral/newsreader/view_thread/298335
@@ -314,6 +318,10 @@ function varargout = SwitchTarget_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+% set double click callback
+uitablepeer  = findjobj(hObject,'-nomenu','class','uitablepeer');
+set(uitablepeer,'MouseClickedCallback',@MouseClickHandler);
+
 varargout{1} = handles.output;
 
 
@@ -340,10 +348,11 @@ function pushSwitchfly_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 JLabelHandles = guidata(handles.JLabelhObject);
-[JLabelHandles,~] = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
+JLabelHandles = JLabel('SetCurrentMovie',JLabelHandles,handles.curExp);
 guidata(handles.JLabelhObject,JLabelHandles);
 JLabelHandles = JLabel('SetCurrentFlies',JLabelHandles,handles.curFly);
 guidata(handles.JLabelhObject,JLabelHandles);
+return
 
 
 % --- Executes on button press in pushClose.
@@ -425,3 +434,21 @@ function popupmenu_Page_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+% From http://www.mathworks.com/matlabcentral/newsreader/view_thread/270514
+
+function MouseClickHandler(handle,cbData)
+  % handle ~ java object UITablePeer
+  % cbData ~ callback data for the MouseClickedCallback event
+
+  if get(cbData,'ClickCount') == 2
+      curfig = findall(0,'type','figure','name','SwitchTarget');
+      if numel(curfig)~=1,
+        return;
+      end
+        
+      pushSwitchfly_Callback(curfig,[],guidata(curfig));
+  end
+
