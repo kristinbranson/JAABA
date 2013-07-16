@@ -9,7 +9,7 @@ datext = 'dat';
 perframedict = {'x','x_mm'
   'y','y_mm'
   'area','area_mm'};
-trxfns = {'x','y','a','b','theta','x_mm','y_mm','a_mm','b_mm','theta_mm','dt','timestamps'};
+trxfns = {'x','y','a','b','theta','x_mm','y_mm','a_mm','b_mm','theta_mm','dt','timestamps','sex'};
 trxunits = {
   parseunits('px'),...
   parseunits('px'),...
@@ -297,20 +297,38 @@ end
 
 for i = 1:numel(trx),
   trx(i).pxpermm = pxpermm;
-  if ~isfield(trx,'x_mm'),
-    trx(i).x_mm = (trx(i).x - arenacenterx) / pxpermm;
-  end
-  if ~isfield(trx,'y_mm'),
-    trx(i).y_mm = (trx(i).y - arenacentery) / pxpermm;
-  end
   trx(i).a_mm = trx(i).a / pxpermm;
   trx(i).b_mm = trx(i).b / pxpermm;
   trx(i).theta_mm = trx(i).theta;
-  if isfield(trx,'xspine_mm'),
+end
+
+if ~isfield(trx,'x_mm'),
+  for i = 1:numel(trx),
+    trx(i).x_mm = (trx(i).x - arenacenterx) / pxpermm;
+  end
+end
+if ~isfield(trx,'y_mm'),
+  for i = 1:numel(trx),
+    trx(i).y_mm = (trx(i).y - arenacentery) / pxpermm;
+  end
+end
+
+if isfield(trx,'xspine_mm') && ~isfield(trx,'xspine'),
+  for i = 1:numel(trx),
     trx(i).xspine = trx(i).xspine_mm * pxpermm;
   end
-  if isfield(trx,'yspine_mm'),
+elseif isfield(trx,'xspine') && ~isfield(trx,'xspine_mm'),
+  for i = 1:numel(trx),
+    trx(i).xspine_mm = (trx(i).xspine-arenacenterx) * pxpermm;
+  end
+end
+if isfield(trx,'yspine_mm') && ~isfield(trx,'yspine'),
+  for i = 1:numel(trx),
     trx(i).yspine = trx(i).yspine_mm * pxpermm;
+  end
+elseif isfield(trx,'yspine') && ~isfield(trx,'yspine_mm'),
+  for i = 1:numel(trx),
+    trx(i).yspine_mm = (trx(i).yspine-arenacentery) * pxpermm;
   end
 end
 
@@ -384,6 +402,31 @@ for i = 1:numel(trxfns),
       msg = getReport(ME);
       return;
     end
+  end
+end
+
+%% save spine data
+
+spinefns = {'xspine','yspine','xspine_mm','yspine_mm'};
+spineunits = { ...
+  parseunits('px'),...
+  parseunits('px'),...
+  parseunits('mm'),...
+  parseunits('mm')};
+
+for i = 1:numel(spinefns),
+  fn = spinefns{i};
+  units = spineunits{i}; %#ok<NASGU>
+  if ~isfield(trx,fn),
+    continue;
+  end
+  data = {trx.(fn)}; %#ok<NASGU>
+  outfile = fullfile(perframedir,[fn,'.mat']);
+  try
+    save(outfile,'data','units');
+  catch ME,
+    msg = getReport(ME);
+    return;
   end
 end
 

@@ -135,11 +135,13 @@ the following tracking systems:
 <ul>
 <li> <a href="http://ctrax.sourceforge.net/">Ctrax</a> (flies)</li>
 <li> Marta Rivera-Alba's larva tracker</li>
-<li> MoTr (mice) </li>
+<li> <a href="http://janelia.org/lab/egnor-lab">MoTr</a> (mice) </li>
 <li> <a href="http://www.vision.caltech.edu/cadabra/">Qtrax</a> (part of CADABRA, flies)</li>
 <li> <a href="https://github.com/samuellab/MAGATAnalyzer">MAGATAnalyzer</a> (larvae)</li>
 <li> <a href="http://sourceforge.net/projects/mwt">Multi-Worm Tracker</a> (<i>C. elegans</i>, larvae)</li>
+<li> Reid's and Louis' larva data (larvae)</li>
 <li> Ctrax + wing tracker (flies)</li>
+<li> Kristin's Simple Two-Fly Tracker (flies)</li>
 </ul>
 Ctrax, Marta Rivera-Alba's larva tracker, and MoTr are the trackers used in the original JAABA paper. 
 Please email <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> 
@@ -192,6 +194,33 @@ input data types are listed below.
 <li> Dat file(s) (optional): Text files output by the MWT's Choreography containing derived statistics.</li>
 </ul>
 </li>
+<li> Reid's Larva Data</a>:
+<ul>
+<li> Video file (optional) </li>
+<li> Blobs file(s): Text file(s) output by the MWT, each containing the real-time tracked positions of groups of up to 1,000 animals (note that this is the "blobs" file, not the "blob" file).</li>
+<li> kinData mat file output by Reid's analysis program.</li>
+<li> eventData mat file output by Reid's analysis program (optional).</li>
+</ul>
+<li> Louis' Larva Data</a>:
+<ul>
+<li> Video file (optional) </li>
+<li> Data txt file output by Louis' larva tracker.</li>
+<li> kinData mat file output by Reid's analysis program.</li>
+</ul>
+</li>
+<li> Ctrax plus wing tracker</a></li>
+<ul> 
+<li> Video file </li>
+<li> Trx mat file: MATLAB mat file containing trajectories including the wing positions, output by first running Ctrax then the simple wing tracking program.</li>
+<li> Ann file: Annotation file output by Ctrax, see <a href="http://ctrax.sourceforge.net/ctrax.html#annotation-file-format">Ctrax documentation</a>.</li>
+<li> Per-frame directory: Directory containing per-frame data output by the wing tracker.</li>
+</ul>
+<li> Kristin's Simple Two-Fly Tracker</a></li>
+<ul> 
+<li> Video file </li>
+<li> Trx mat file: MATLAB mat file containing trajectories including the wing positions, output by the simple two fly tracker.</li>
+<li> Per-frame directory: Directory containing per-frame data output by the wing tracker.</li> 
+</ul>
 
 </ul>
 
@@ -307,6 +336,8 @@ variable.</p>
 frame of the movie, represented as a serial date number (described in 
 the table above). </p>
 
+<hr class="h2-divider">
+
 <h2><a id="PerFrameDirectoryStructure">Per-Frame Directory Structure</a></h2>
 
 The per-frame features for a given experiment directory are pre-computed and stored in the <b>per-frame directory</b>. Within this directory, there is a MATLAB mat file for each per-frame feature. 
@@ -316,7 +347,7 @@ The per-frame features for a given experiment directory are pre-computed and sto
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated June 26, 2013</i>
 </center>
 </footer>
 

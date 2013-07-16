@@ -98,7 +98,7 @@ height:1em;
 
 <p>JAABA is an open-source, freely available program developed by members of the <a href="http://www.janelia.org/lab/branson-lab">Branson lab at HHMI Janelia Farm</a>. It is described in detail in the paper <a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.2281.html">"JAABA: Interactive machine learning for automatic annotation of animal behavior"</a>, Kabra, Robie, et al., <i>Nature Methods</i>, 2012. </p>
 
-<center><b>This webpage is currently under development. We will add more documentation shortly.</b></center>
+<center><b>This webpage is currently under development. We will continue to update the documentation.</b></center>
 
 <hr class="h2-divider">
 
@@ -110,9 +110,22 @@ height:1em;
 <li> <b>Git repository</b> with the latest version of the code:
 <a href="https://github.com/kristinbranson/JAABA">https://github.com/kristinbranson/JAABA</a></li>
 <li> <b>JAABA mailing list</b>: <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">https://groups.google.com/forum/?fromgroups#!forum/jaaba</a></li>
-<li> <b>JAABA paper</b>: <a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.2281.html">"JAABA: Interactive machine learning for automatic annotation of animal behavior"</a>, Kabra, Robie, et al., <i>Nature Methods</i>, 2012</li>
+<li> <b>JAABA paper</b>: <a href="http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.2281.html">"JAABA: Interactive machine learning for automatic annotation of animal behavior"</a>, Kabra, Robie, et al., <i>Nature Methods</i>, 2013</li>
 <li> <b>Branson lab</b> at HHMI Janelia Farm: <a href="http://www.janelia.org/lab/branson-lab">http://www.janelia.org/lab/branson-lab</a></li>
 <li> <b>Contact information</b>: Kristin Branson bransonk@janelia.hhmi.org</li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2>News</h2>
+
+<ul>
+<li> July 10, 2013: <b>Version 0.5.0 of JAABA released</b>. There are 
+significant changes made to the file formatting and interface to 
+improve usability. The new JAABA project file format is described 
+<a href="NewProject.html">here</a>. If you have JAABA classifiers 
+and projects in the old format, please contact us about converting 
+them to the new format. </li>
 </ul>
 
 <hr class="h2-divider">
@@ -131,17 +144,17 @@ height:1em;
 <li><h3><a href="Installation.html">Installation </a></h3></li>
 <ul>
 <li><a href="Installation.html#ComputerRequirements">Minimum Computer Requirements</a></li>
-<li><a href="Installation.html#Executables">Installation and Start-up: Easy</a></li>
+<li><a href="Installation.html#Executables">Installation and Start-up: </a></li>
 <ul>
-<li><a href="Installation.html#ExecutablesSoftwareRequirements">Software Requirements (Easy)</a></li>
-<li><a href="Installation.html#ExecutablesInstallation">Installation (Easy)</a></li>
-<li><a href="Installation.html#ExecutablesStartUp">Start-Up (Easy)</a></li>
+<li><a href="Installation.html#ExecutablesSoftwareRequirements">Software Requirements (No MATLAB)</a></li>
+<li><a href="Installation.html#ExecutablesInstallation">Installation (No MATLAB)</a></li>
+<li><a href="Installation.html#ExecutablesStartUp">Start-Up (No MATLAB)</a></li>
 </ul>
-<li><a href="Installation.html#Source">Installation and Start-up: Advanced</a></li>
+<li><a href="Installation.html#Source">Installation and Start-up: With MATLAB</a></li>
 <ul>
-<li><a href="Installation.html#SourceSoftwareRequirements">Software Requirements (Advanced)</a></li>
-<li><a href="Installation.html#SourceInstallation">Installation (Advanced)</a></li>
-<li><a href="Installation.html#SourceStartUp">Start-Up (Advanced)</a></li>
+<li><a href="Installation.html#SourceSoftwareRequirements">Software Requirements (With MATLAB)</a></li>
+<li><a href="Installation.html#SourceInstallation">Installation (With MATLAB)</a></li>
+<li><a href="Installation.html#SourceStartUp">Start-Up (With MATLAB)</a></li>
 </ul>
 </ul>
 </li>
@@ -164,17 +177,32 @@ height:1em;
   <li><a class="reference" href="DataFormatting.html#PerFrameDirectoryStructure">Per-Frame Directory Structure</a></li>
 </ul>
 </li>
-<li><h3><a href="NewProject.html">Creating New Projects</a></h3>
+<li><h3><a href="NewProject.html">JAABA Projects</a></h3>
 <ul>
-<li><a href="NewProject.html#ProjectConfigurationDialog">Project Configuration Dialog</a></li>
-<li><a href="NewProject.html#ScoresAsInput">Using Output of Previously Trained Classifiers</a></li>
+<li> <a href="NewProject.html#JAABAProject">JAABA Project Overview</a></li>
+<ul>
+<li> <a href="NewProject.html#ProjectParameters">JAABA Project Parameters</a></li>
+<li><a href="NewProject.html#Classifier">Behavior Classifier</a></li>
+<li><a href="NewProject.html#TrainingData">Training Data Labels and Locations</a></li>
+</ul>
+<li><a href="NewProject.html#NewProject">Creating a New Project</a>
+<ul>
+<li><a href="NewProject.html#CopySettingsFrom">Using an Existing Project as a Template</a></li>
 </ul>
 </li>
-
-<li><h3><a href="AddExperiments.html">Adding Experiments to Projects</a></h3></li>
+<li><a href="NewProject.html#SavingJAABAProjects">Saving a JAABA Project</a>
+<ul>
+<li><a href="NewProject.html#Saving">Saving</a></li>
+<li><a href="NewProject.html#CachingWindowData">Caching Window Data in the .jab File</a></li>
+<li><a href="NewProject.html#VersioningClassifiers">Creating Different Versions of a Behavior Classifier</a></li>
+</ul>
+</li>
+</ul>
+<li><h3><a href="AddExperiments.html">Adding Experiments to a JAABA Project</a></h3></li>
 <li><h3><a href="GUIOverview.html">GUI Overview</a></h3>
 <ul>
-<li><a class="reference" href="Main">Main JAABA Interface</a></li>
+<li><a href="GUIOverview.html#Main">Main JAABA Interface</a></li>
+<li><a href="GUIOverview.html#Menus">Menu Items</a></li>
 </ul>
 </li>
 <li><h3><a href="BasicNavigation.html">Navigating within and between Videos</a></h3>
@@ -203,7 +231,7 @@ height:1em;
 </li>
 --->
 
-<li><h3><a href="Training.html">Training</a></h3>
+<li><h3><a href="Training.html">Training a Behavior Classifier</a></h3>
 <ul>
 <li><a href="Training.html#AddingLabels">Adding or Changing Labels</a></li>
 <li><a href="Training.html#KeyboardShortcuts">Label Keyboard Shortcuts</a></li>
@@ -246,20 +274,17 @@ height:1em;
 <li><h3><a href="AdvancedNavigation.html">Advanced Navigation</a></h3></li>
 --->
 
-<li><h3><a href="SavingAndLoading.html">Saving and Loading Results</a></h3>
+<li><h3><a href="ApplyingAClassifier.html">Applying a Behavior Classifier to a New Video</a></h3>
 <ul>
-<li><a href="SavingAndLoading.html#LabelsAndClassifiers">Labels and Classifiers</a>
+<li><a href="ApplyingAClassifier.html#ApplyingAClassifier">Applying a Behavior Classifier</a>
 <ul>
-<li><a href="SavingAndLoading.html#SavingLabels">Saving Labels</a></li>
-<li><a href="SavingAndLoading.html#LoadingLabels">Loading Labels</a></li>
-<li><a href="SavingAndLoading.html#SavingClassifier">Saving the Classifier and Labels</a></li>
-<li><a href="SavingAndLoading.html#LoadingClassifier">Loading a Classifier</a></li>
+<li><a href="ApplyingAClassifier.html#UsingJAABA">Using JAABA</a></li>
+<li><a href="ApplyingAClassifier.html#UsingJAABAPlot">Using JAABAPlot</a></li>
+<li><a href="ApplyingAClassifier.html#JAABADetect">Using <code>JAABADetect</code></a></li>
 </ul>
-<li><a href="SavingAndLoading.html#Predictions">Classifier's Predictions</a></li>
-<ul>
-<li><a href="SavingAndLoading.html#SavingPredictions">Saving Predictions</a></li>
-<li><a href="SavingAndLoading.html#LoadingPredictions">Loading Predictions</a></li>
-</ul>
+</li>
+<li><a href="ApplyingAClassifier.html#ScoresFile">Scores File Structure</a></li>
+<li><a href="ApplyingAClassifier.html#LoadingPredictions">Loading Predictions</a></li>
 </ul>
 </li>
 
@@ -280,13 +305,21 @@ height:1em;
 </li>
 
 <li><h3><a href="GroundTruthing.html">Ground-Truthing Mode</a></h3>
+
 <ul>
-<li><a href="GroundTruthing.html#Starting">Starting JAABA in Ground-Truthing Mode</a></li>
-<li><a href="GroundTruthing.html#Classifier">Selecting the Classifier</a></li>
+<li><a href="GroundTruthing.html#Preparing">Preparing Data for Ground-Truthing</a>
+<ul>
+<li><a href="GroundTruthing.html#Starting">Running JAABA in Ground-Truthing Mode</a></li>
+<li><a href="GroundTruthing.html#Experiments">Setting Videos to Ground-Truth</a></li>
+</ul>
+</li>
+<li><a href="GroundTruthing.html#SelectingFrames">Selecting Frames to Ground Truth</a>
+<ul>
+<li><a href="GroundTruthing.htmlNavigatingToSuggestions">Navigating to Suggestions</a></li>
+</ul>
+</li>
 <li><a href="GroundTruthing.html#Labeling">Labeling in Ground-Truthing Mode</a></li>
-<li><a href="GroundTruthing.html#SelectingFrames">Selecting Frames to Ground Truth</a></li>
-<li><a href="GroundTruthing.html#Performance">Ground Truth Performance</a></li>
-<li><a href="GroundTruthing.html#Viewing">Viewing Predictions</a></li>
+<li><a href="GroundTruthing.html#Performance">Ground-Truth Performance</a></li>
 <li><a href="GroundTruthing.html#Saving">Saving Labels</a></li>
 </ul>
 </li>
@@ -299,8 +332,18 @@ height:1em;
 <ul>
   <li><a class="reference" href="PlottingResults.html#LoadingExperiments">Loading Experiments</a></li>
   <li><a class="reference" href="PlottingResults.html#LoadingClassifiers">Loading Classifiers</a></li>
-  <li><a class="reference" href="PlottingResults.html#BehaviorStatistics">Behavior Statistics</a></li>
   <li><a class="reference" href="PlottingResults.html#FeatureStatistics">Feature Statistics</a></li>
+  <ul>
+    <li><a class="reference" href="PlottingResults.html#FeatureHistograms">Histograms</a></li>
+    <li><a class="reference" href="PlottingResults.html#FeatureBoxPlots">Box Plots</a></li>
+    <li><a class="reference" href="PlottingResults.html#FeatureTimeSeries">Time Series</a></li>
+  </ul>
+  <li><a class="reference" href="PlottingResults.html#BehaviorStatistics">Behavior Statistics</a></li>
+  <ul>
+    <li><a class="reference" href="PlottingResults.html#BehaviorBarCharts">Bar Charts</a></li>
+    <li><a class="reference" href="PlottingResults.html#BehaviorTimeSeries">Time Series</a></li>
+  </ul>
+  <li><a class="reference" href="PlottingResults.html#BoutStatistics">Bout Statistics</a></li>
   <li><a class="reference" href="PlottingResults.html#InterestingDifferences">Interesting Differences</a></li>
 </ul>
 
@@ -312,14 +355,13 @@ height:1em;
 <h2>Acknowledgments</h2>
 
 <p>JAABA was developed by Mayank Kabra, Alice Robie, and Kristin Branson with
-help from Marta Rivera-Alba, Steven Branson, Ben Arthur, Jinyang Liu, 
-Roian Egnor, Andrew Miller. It was funded by the Howard Hughes Medical
+help from Marta Rivera-Alba, Steven Branson, Ben Arthur, Adam Taylor, Jinyang Liu, Roian Egnor, Andrew Miller. It was funded by the Howard Hughes Medical
 Institute.</p>
 
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated July 10, 2013</i>
 </center>
 </footer>
 
