@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.exe" build-checksum="1488781675" preferred-package-location="C:\Code\Jdetect\perframe">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.zip" build-checksum="2506613624" preferred-package-location="C:\Code\Jdetect\perframe">
     <param.project.name>C:\Code\Jdetect\perframe\JAABA.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA</param.appname>
@@ -114,7 +114,9 @@
       <file>C:\Code\Jdetect\filehandling\ReadChoreSpineFile.m</file>
       <file>C:\Code\Jdetect\filehandling\readmtrax.m</file>
       <file>C:\Code\Jdetect\filehandling\ReadMWTBlobFile.m</file>
+      <file>C:\Code\Jdetect\filehandling\ReadSingleLarvaTrackerFrame.m</file>
       <file>C:\Code\Jdetect\filehandling\save_tracks.m</file>
+      <file>C:\Code\Jdetect\filehandling\SaveFMFSettings.fig</file>
       <file>C:\Code\Jdetect\filehandling\SaveFMFSettings.m</file>
       <file>C:\Code\Jdetect\filehandling\sbfmf_read_frame.m</file>
       <file>C:\Code\Jdetect\filehandling\sbfmf_read_header.m</file>
@@ -137,6 +139,7 @@
       <file>C:\Code\Jdetect\filehandling\UFMFDescription.txt</file>
       <file>C:\Code\Jdetect\filehandling\uigetdir2.m</file>
       <file>C:\Code\Jdetect\filehandling\videoioreadframe.m</file>
+      <file>C:\Code\Jdetect\misc\absolutepath.m</file>
       <file>C:\Code\Jdetect\misc\accummatrix.mexw64</file>
       <file>C:\Code\Jdetect\misc\angle_subtract.m</file>
       <file>C:\Code\Jdetect\misc\angledist.m</file>
@@ -369,12 +372,12 @@
       <file>${PROJECT_ROOT}\version.txt</file>
     </fileset.resources>
     <fileset.package>
+      <file>C:\Code\Jdetect\compiled\params</file>
+      <file>C:\Code\Jdetect\docs</file>
       <file>C:\Code\Jdetect\LICENSE.txt</file>
       <file>${PROJECT_ROOT}\mkshortcut.vbs</file>
       <file>${PROJECT_ROOT}\version.txt</file>
       <file>C:\Code\Jdetect\README.txt</file>
-      <file>C:\Code\Jdetect\sampledata\docs</file>
-      <file>C:\Code\Jdetect\sampledata\params</file>
     </fileset.package>
     <build-deliverables>
       <file name="JAABA.exe" location="${PROJECT_ROOT}\JAABA\distrib" optional="false">C:\Code\Jdetect\perframe\JAABA\distrib\JAABA.exe</file>
@@ -389,6 +392,8 @@
         <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
         <directory>C:\Code\Jdetect\filehandling</directory>
         <directory>C:\Code\Jdetect\misc</directory>
+        <directory>C:\Code\Ctrax\trunk\matlab\netlab</directory>
+        <directory>C:\Code\JCtrax\misc</directory>
         <directory>C:\Users\bransonk\Documents\MATLAB</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>

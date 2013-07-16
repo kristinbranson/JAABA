@@ -118,7 +118,7 @@ if doflipud,
   msg{end+1} = 'Flipped the trajectories up-down.';
 end
 if dotransposeimage,
-  for i = 1:numel(tx),
+  for i = 1:numel(trx),
     tmp = trx(i).x;
     trx(i).x = trx(i).y;
     trx(i).y = tmp;

@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+
+    <ang_vel trans_types="none,flip,abs" type="eyrun"/>
+    <ang_vel_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <ang_vel_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <angle_between trans_types="none" type="eyrun"/>
+    <angle_between_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <angle_between_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <axis_ratio trans_types="none" type="eyrun"/>
+    <axis_ratio_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <axis_ratio_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <contrast trans_types="none" type="eyrun"/>
+    <contrast_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <contrast_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <dist_to_other trans_types="none" type="eyrun"/>
+    <dist_to_other_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <dist_to_other_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <facing_angle trans_types="none" type="eyrun"/>
+    <facing_angle_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <facing_angle_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <fg_body_ratio trans_types="none" type="eyrun"/>
+    <fg_body_ratio_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <fg_body_ratio_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <leg_dist trans_types="none" type="eyrun"/>
+    <leg_dist_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <leg_dist_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <max_wing_ang trans_types="none,flip,abs" type="eyrun"/>
+    <max_wing_ang_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <max_wing_ang_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <min_wing_ang trans_types="none,flip,abs" type="eyrun"/>
+    <min_wing_ang_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <min_wing_ang_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <vel trans_types="none,flip,abs" type="eyrun"/>
+    <vel_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <vel_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <wing_length trans_types="none" type="eyrun"/>
+    <wing_length_1diff trans_types="none,flip,abs" type="eyrun"/>
+    <wing_length_2diff trans_types="none,flip,abs" type="eyrun"/>
+
+  </perframe>
+
+</params>

@@ -44,7 +44,7 @@ strong.regular-font {
 </head>
 
 <body>
-<h1><a href="index.html">JAABA</a>: Ground Truthing </h1>
+<h1><a href="index.html">JAABA</a>: Ground-Truthing </h1>
 
 <p>
 JAABA's ground-truthing mode is designed to quantitatively measure the classifier's performance.
@@ -58,47 +58,83 @@ against which the classifier's predictions are compared. Note that these labels 
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Starting">Starting JAABA in Ground-Truthing Mode</a></li>
-<li><a href="#Classifier">Selecting the Classifier</a></li>
+<li><a href="#Preparing">Preparing Data for Ground-Truthing</a>
+<ul>
+<li><a href="#Starting">Running JAABA in Ground-Truthing Mode</a></li>
+<li><a href="#Experiments">Setting Videos to Ground-Truth</a></li>
+</ul>
+</li>
+<li><a href="#SelectingFrames">Selecting Frames to Ground Truth</a>
+<ul>
+<li><a href="NavigatingToSuggestions">Navigating to Suggestions</a></li>
+</ul>
+</li>
 <li><a href="#Labeling">Labeling in Ground-Truthing Mode</a></li>
-<li><a href="#SelectingFrames">Selecting Frames to Ground Truth</a></li>
-<li><a href="#Performance">Ground Truth Performance</a></li>
-<li><a href="#Viewing">Viewing Predictions</a></li>
+<li><a href="#Performance">Ground-Truth Performance</a></li>
 <li><a href="#Saving">Saving Labels</a></li>
 </ul>
 
 <hr class="h2-divider">
 
-<h2><a id="Starting">Starting JAABA in Ground-Truthing Mode</a></h2>
+<h2><a id="Preparing">Preparing Data for Ground-Truthing</a></h2>
 
-<p>To start JAABA in ground-truthing mode, in the inital <b>Edit Files</b> dialog that is displayed
-immediately after starting JAABA, selecting the desired projcet, then select
-<b>Ground Truthing</b> as the <b>Labeling Mode</b> in the initial. After selecting
-ground-truthing mode, add experiments for which you would like to check
-the classifier's performance and then click Done.
-</p>
-<center>
-<a href="images/EditFilesGT.png"><img src="images/EditFilesGT.png"></a>
-<br>
-<i>Screen capture of Edit Files dialog indicating where to select <b>Ground Truthing</b> mode</i>
-</center>
+<h3><a id="Starting">Running JAABA in Ground-Truthing Mode</a></h3>
+
+<p>To run JAABA in ground-truthing mode, select <b>Open in Ground-Truthing Mode</b> from
+the File menu. This can only be done when no JAABA project is currently open. Then, select the 
+<a href="NewProject.html">JAABA project</a> for which you want to perform ground-truthing.</p>
+
+<h3><a id="Experiments">Setting Videos to Ground-Truth</a></h3>
+
+<p>Next you will need to modify the experiment list. To do this, select the menu 
+<b>File->Change Experiment List</b>, then add the 
+<a href="DataFormatting.html">experiment directories</a> you want to use
+for ground-truthing. In most cases, we recommend that you do <b>not</b>
+ground-truth on experiments you trained the classifier on, if it can be avoided. This
+will give you the best sense of how your classifier will generalize to videos it has
+never seen.</p>
 
 <hr class="h2-divider">
 
-<h2><a id="Classifier">Selecting the Classifier</a></h3>
+<h2><a id="SelectingFrames">Selecting Frames to Ground Truth</a></h2>
 
-<p>The classifier on which you want to compute the performance can be loaded at the
-initial gui using the <b>Load w/o exps</b> button. This will load the classifier but
-not the experiments that were used to train the classifier. The classifier can
-also be loaded later using <b>File -> Load Classifier -> without experiments</b>. 
+<p>
+To get an accurate estimate of JAABA's performance, we suggest using an unbiased method 
+to choose frames to label. JAABA provides several methods to select frames for labeling that
+are all available under the menu <b>View->Suggest Ground-Truthing Intervals</b>:
+<ul>
+<li><b>Random</b>: The user can ask JAABA to suggest random intervals to label by selecting
+<b>View->Ground Truth Suggestion -> Random</b>. The user is prompted for the size of the 
+interval and the number of such intervals. Then, JAABA randomly selects such intervals 
+for the user to label.</li>
+<li><b>Balanced Random</b>: For behaviors that occur rarely, if frames are selected randomly, 
+there will be very few positive frames to label. Thus, the number of frames that the user 
+needs to label to obtain an accurate estimate of the false negative rate will be quite large. 
+In such cases, users can select <b>View-> Ground Truth Suggestion - Balanced Random</b>. 
+As with Random, this will ask the user for the size of the interval and the number of 
+intervals per experiment. However, in <b>Balanced Random</b>, JAABA selects intervals to 
+label randomly, but increases the weight of intervals that contain predicted positive frames. 
+The weight of a given interval is the sum of the weights of its constituent frames, and 
+the weights of individual frames are set so that the total weight of predicted positive 
+and predicted negative examples is the same. To use this method of suggestion, the 
+scores must already be computed and imported for all the movies.</li>
+</ul>
 </p>
 
-<p> Alternatively, if you have already produced predictions using the desired classifier for the
-experiments you want to ground truth, you can instead load these scores into JAABA. This can be
-done in the main JAABA interface by selecting the menu item <b>File -> Load Scores</b>. If the scores 
-are not saved at the default location then you'll have to load scores individually for each experiment. If
-both the classifier and scores are loaded then the performance is computed for the loaded classifier.
-</p>
+<p>The suggested intervals are shown by a <b>cyan line</b> below the manual label
+timeline. </p>
+
+<h3><a id="NavigatingToSuggestions">Navigating to Suggestions</a></h3>
+
+To navigate to the suggested frames to label:
+<ul>
+<li>Use the <b>Switch Target</b> interface to find animals and videos for which some
+frames have been suggested. The <b>Switch Target</b> interface gives information about the 
+number of frames that have been suggested by JAABA for each animal. </li>
+<li>Under <b>Go->NavigationPreferences</b>, set Shift+Arrows to jump to 
+<b>Ground Truth Suggestions</b>. Once this is done, shift+right and shift+left will jump to the
+next and previous suggested intervals to label.</li>
+</ul>
 
 <hr class="h2-divider">
 
@@ -106,13 +142,14 @@ both the classifier and scores are loaded then the performance is computed for t
 
 <p> In ground-truthing mode, you can label trajectories for flies as you
 would in the normal training mode. These labels are used as the <b>ground truth</b> against which
-the classifier's predictions are compared. If the ground-truthing mode is started in
-advanced mode (recommended), JAABA provides <b>5 buttons</b> to label behavior: <b>Important [Behavior]</b>,
-<b>[Behavior]</b>, <b>Important None</b>, <b>None</b> and <b>Unknown</b>.</p>
+the classifier's predictions are compared.</p>
+<p>We recommend performing ground-truthing in <b>Advanced Mode</b> (select this under 
+the <b>Edit</b> menu). In Advanced mode, JAABA provides <b>5 buttons</b> to label behavior: 
+<b>Important [Behavior]</b>, <b>[Behavior]</b>, <b>Important None</b>, 
+<b>None</b> and <b>Unknown</b>.</p>
 
 <p>Frames that are clearly the behavior or clearly not the behavior should be labeled as 
-<b>Important [Behavior]</b> and <b>Important None</b>, respectively. A high error rate on these <b>important</b>
-frames would cause you to be reluctant to use the classifier.</p>
+<b>Important [Behavior]</b> and <b>Important None</b>, respectively. A high error rate on these <b>important</b> frames would cause you to be reluctant to use the classifier.</p>
 
 <p> Frames in which the behavior or not-behavior is somewhat present but are on border should
 be labeled as <b>[Behavior]</b> and <b>None</b>. These are frames for which either the user
@@ -128,38 +165,7 @@ provided: <b>[Behavior]</b>, <b>None</b> and <b>Unknown</b>. Frames labeled as
 
 <hr class="h2-divider">
 
-<h2><a id="SelectingFrames">Selecting Frames to Ground Truth</a></h2>
-
-<p>
-To get an accurate estimate of JAABA's performance, we suggest using an unbiased method 
-to choose frames to label. JAABA provides 2 methods to randomly select frames for labeling. 
-<ul>
-<li><b>Random</b>: The user can ask JAABA to suggest random intervals to label by selecting
-<b>View->Ground Truth Suggestion -> Random</b>. The user is prompted for the size of the interval and the
-number of such intervals. Then, JAABA randomly selects such intervals for the user to label.</li>
-<li><b>Balanced Random</b>: For behaviors that occur rarely, if frames are selected randomly, there will be
-very few positive frames to label. Thus, the number of frames that the user needs to label to obtain an 
-accurate estimate of the false negative rate will be quite large. In such cases, users can select 
-<b>View-> Ground Truth Suggestion - Balanced Random</b>. As with Random, this will ask the user for the 
-size of the interval and the number of intervals per experiment. However, in <b>Balanced Random</b>, 
-JAABA selects intervals to label randomly, but increases the weight of intervals that contain predicted
-positive frames. The weight of a given interval is the sum of the weights of its constituent frames, and 
-the weights of individual frames are set so that the total weight of predicted positive and predicted 
-negative examples is the same. To use this method of suggestion, the scores must already be computed
-and loaded for all the movies.</li>
-</ul>
-</p>
-
-<p>The suggested intervals are shown by a <b>cyan line</b> below the manual label
-timeline. The <b>Switch Target</b> interface gives information about the number of
-frames that have been suggested by JAABA for each animal. To search for the suggested intervals,
-users can set the <b>Shift + Arrow</b> keys to jump to suggested intervals by selecting the menu item
-<b>Go-> Navigation Preferences</b>, then setting <b>Shift + Arrows jumps to ..</b> to
-<b>Ground Truth Suggestions</b>.
-
-<hr class="h2-divider">
-
-<h2><a id="Performance">Ground Truth Performance</a></h2>
+<h2><a id="Performance">Ground-Truth Performance</a></h2>
 
 <p> After labeling ground truth, the user can get a measure of the classifier's accuracy on
 the ground-truth labels by selecting the menu item 
@@ -190,7 +196,7 @@ there is a prediction for each frame and the middle column should be all zeros. 
 <ol>
 <li><b>[Behavior] Important</b>: Frames that were labeled as important examples of the behavior (<i>Chase</i> below). 
 <li><b>[Behavior]</b>: Frames that were labeled as the behavior (<i>e.g. Chase</i>), regardless of
-their importance.<li>
+their importance.</li>
 <li><b>None Important</b>: Frames that were labeled as important examples of not the behavior.</li>
 <li><b>None All</b>: Frames that were labeled as not the behavior, regardless of their importance.</li>
 </ol>
@@ -208,18 +214,17 @@ correct files are loaded in), they can select <b>View -> Show Predictions</b>.
 
 <h2><a id="Saving">Saving Labels</a></h2>
 
-The user can save the ground-truth labels by selecting the menu item <b>File->Save Labels</b>. This will save the
-labels to the <b>ground-truth label file</b> specified during the project setup by 
-<b>Ground Truth Label File Name</b>. The saved labels can be used 
-to measure the performance of a different classifier (for the same project and behavior) later. We,
-however, recommend not to test ground-truth too often as this may cause the
-user to select a classifier that over-fits to the ground-truth labels.
+The user can save the ground-truth labels to the current JAABA project by selecting the menu 
+item <b>File->Save</b>. Note that this will not affect any labels used for training the 
+classifier, as both the experiments and labels for ground-truthing are stored in a separate
+field from those used for training. 
+
 </body>
 
 <footer>
 <hr class="h1-divider">
 <center>
-<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated November 28, 2012</i>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated July 10, 2013</i>
 </center>
 </footer>
 

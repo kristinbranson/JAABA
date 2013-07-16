@@ -22,7 +22,7 @@ function varargout = ProjectSetup(varargin)
 
 % Edit the above text to modify the response to help ProjectSetup
 
-% Last Modified by GUIDE v2.5 07-Nov-2012 12:56:26
+% Last Modified by GUIDE v2.5 22-Apr-2013 21:12:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -44,6 +44,7 @@ end
 % End initialization code - DO NOT EDIT
 
 
+% -------------------------------------------------------------------------
 % --- Executes just before ProjectSetup is made visible.
 function ProjectSetup_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
@@ -53,134 +54,91 @@ function ProjectSetup_OpeningFcn(hObject, ~, handles, varargin)
 % varargin   command line arguments to ProjectSetup (see VARARGIN)
 
 % Choose default command line output for ProjectSetup
-set(hObject,'Visible','off');
-
 handles.output = hObject;
 handles.defpath = pwd;
 
-params = [];
-[project_params, xml_file, mat_file, visible, outfile] = myparse(varargin,...
-  'project_params',[],...
-  'xml_file','',...
-  'mat_file','',...
-  'visible',true,...
-  'outfile',0);
+% Parse the arguments
+[figureJLabel, ...
+ basicParamsStruct,...
+ defaultmoviefilename,...
+ defaulttrxfilename] = ...
+   myparse(varargin,...
+           'figureJLabel',[],...
+           'basicParamsStruct',[],...
+           'defaultmoviefilename',0,...
+           'defaulttrxfilename',0);
 
-handles.outfile = outfile;
+% If we got called via New..., basicParamsStruct should be empty
+% If via Basic Settings..., basicParamsStruct should be nonempty
+handles.new=isempty(basicParamsStruct);
+handles.figureJLabel=figureJLabel;
+handles.basicParamsStruct = basicParamsStruct;
 
+% Change a few things so they still work well on Mac
+adjustColorsIfMac(hObject);
 
-if ~isempty(project_params);
-  params = project_params;
-end
-if ~isempty(xml_file),
-  if ~exist(xml_file,'file'),
-    errordlg('Cannot open the xml file');
-    error('Cannot open the xml file');
+% Need to derive the basic and advanced sizes (part of the model) from
+% the current figure dimensions
+handles=setBasicAndAdvancedSizesToMatchFigure(handles);
+
+% Set to basic mode, update the figure
+handles.mode = 'basic';
+handles = updateFigurePosition(handles);
+
+% Center the window on the JLabel figure
+centerOnParentFigure(hObject,figureJLabel);
+
+% Initialize the list of possible feature lexicon names
+handles.featureLexiconNameList = getFeatureLexiconListsFromXML();
+
+% Populate the featureLexiconName popuplist with options
+set(handles.featureconfigpopup,'String',handles.featureLexiconNameList);
+
+% Either copy or make one up
+if isempty(basicParamsStruct)
+  old=warning('query','MATLAB:structOnObject');
+  warning('off','MATLAB:structOnObject');  % turn off annoying warning
+  handles.basicParamsStruct = struct(Macguffin('flies'));  % the default featureLexiconName
+  warning(old);  % restore annoying warning  
+  if ischar(defaultmoviefilename)
+    handles.basicParamsStruct.file.moviefilename = defaultmoviefilename;
   end
-  params = ReadXMLParams(xml_file);
-  [dpath,fpath,~] = fileparts(xml_file);
-  handles.defpath = fullfile(dpath,[fpath '.mat']);
-  if ~iscell(params.behaviors.names),
-    params.behaviors.names = {params.behaviors.names};
-  end
-end
-if ~isempty(mat_file),
-  if ~exist(mat_file,'file')
-    errordlg('Cannot open the mat file');
-    error('Cannot open the mat file');
-  end
-  handles.defpath = mat_file;
-  params = load(mat_file);
-end
-
-buttons = findall(hObject,'Style','pushbutton');
-for ndx = 1:numel(buttons)
-  SetButtonImage(buttons(ndx));
-end
-
-buttons = findall(hObject,'Style','togglebutton');
-for ndx = 1:numel(buttons)
-  SetButtonImage(buttons(ndx));
-end
-
-if ismac, % On mac change the foreground color to black.
-  allpopups = findall(hObject,'Style','popup');
-  set(allpopups,'ForegroundColor',[0 0 0]);
-end
-
-curPos = get(handles.figure1,'Position');
-tablePos = get(handles.config_table,'Position');
-reducedWidth = tablePos(1)-15;
-reducedHeight = curPos(4);
-handles.advancedSize = curPos(3:4);
-handles.basicSize = [reducedWidth reducedHeight];
-handles.mode = 'advanced';
-set(handles.togglebutton_advanced,'Value',0);
-handles = updatePosition(handles,'basic');
-
-handles = initFeatureconfig(handles);
-if ~isempty(params)
-  handles.params = params;
-  handles = addversion(handles);
-  if isfield(params,'windowfeatures')
-      handles.params.windowfeatures = params.windowfeatures;
-  elseif isfield(params.file,'featureparamfilename')
-    [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
-      ReadPerFrameParams(params.file.featureparamfilename,params.file.featureconfigfile);
-    handles.params.windowfeatures.windowfeaturesparams = windowfeaturesparams;
-    handles.params.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
-    handles.params.windowfeatures.basicFeatureTable = basicFeatureTable;
-    handles.params.windowfeatures.featureWindowSize = featureWindowSize;
-    handles.params.file = rmfield(handles.params.file,'featureparamfilename');
-  else
-    uiwait(warndlg(['The selected configuration file does not have any '...
-      'window features. Not copying the window features']));
+  if ischar(defaulttrxfilename)
+    handles.basicParamsStruct.file.trxfilename = defaulttrxfilename;
   end
   
-  if ~isfield(params.file,'scorefilename')
-    name_str = [sprintf('%s_',handles.params.behaviors.names{1:end-1}),handles.params.behaviors.names{end}];
-    handles.params.file.scorefilename = sprintf('scores_%s',name_str);
-  end
+else  
+  old=warning('query','MATLAB:structOnObject');
+  warning('off','MATLAB:structOnObject');  % turn off annoying warning
+  handles.basicParamsStruct = struct(basicParamsStruct);
+  warning(old);  % restore annoying warning  
+end
+
+% Update the configuration table in the GUI
+updateConfigTable(handles);
+
+% Set the window title
+set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
+
+% Set the current score-as-feature file
+fileNameList = {handles.basicParamsStruct.scoreFeatures(:).classifierfile};
+handles.indexOfScoreFeaturesFile=fif(isempty(fileNameList),[],1);
   
-  if ~isfield(params,'scoresinput')
-    handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
-  end
-else
-  handles = initParams(handles);
-end
-
-% set animal defaults
-if isdeployed,
-  filename = deployedRelative2Global('params/animalList.xml');
-else
-  filename = 'animalList.xml';
-end
-handles.animaldefaults = ReadXMLParams(filename);
-
-setConfigTable(handles);
-
 % Update handles structure
 guidata(hObject, handles);
 
-updateText(handles);
+% Update all the text fields in the figure
+updateEditsListboxesAndPopupmenus(handles);
 
-if visible,
-  set(hObject,'Visible','on');
-end
+% Make the figure visible
+set(hObject,'Visible','on');
 
-
-% UIWAIT makes ProjectSetup wait for user response (see UIRESUME)
-if ~ischar(handles.outfile),
-  uiwait(handles.figure1);
-else
-  params2save = handles.params(1); %#ok<NASGU>
-  save(handles.outfile,'-struct','params2save');
-end
+return
 
 
-
+% -------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
-function varargout = ProjectSetup_OutputFcn(hObject, ~, handles) 
+function varargout = ProjectSetup_OutputFcn(hObject, ~, handles)  %#ok
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -188,66 +146,89 @@ function varargout = ProjectSetup_OutputFcn(hObject, ~, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-varargout{2} = handles.outfile;
-delete(handles.figure1);
+%varargout{2} = handles.outfile;
+%delete(handles.figureProjectSetup);
+return
 
-function handles = updatePosition(handles,mode)
-if strcmp(handles.mode,mode), return; end
-if strcmp(handles.mode,'advanced')
-  curPos = get(handles.figure1,'Position');
-  set(handles.figure1,'Position',[curPos(1:2) handles.basicSize]);
+
+% -------------------------------------------------------------------------
+function handles=setBasicAndAdvancedSizesToMatchFigure(handles)
+% Derive the basic and advanced sizes (part of the model) from
+% the current figure dimensions
+curPos = get(handles.figureProjectSetup,'Position');
+tablePos = get(handles.config_table,'Position');
+reducedWidth = tablePos(1)-15;
+reducedHeight = curPos(4);
+handles.advancedSize = curPos(3:4);
+handles.basicSize = [reducedWidth reducedHeight];
+return
+
+
+% -------------------------------------------------------------------------
+function handles = updateFigurePosition(handles)
+% Update the figure to match the current mode (which is in the model)
+if strcmp(handles.mode,'basic')
+  curPos = get(handles.figureProjectSetup,'Position');
+  set(handles.figureProjectSetup,'Position',[curPos(1:2) handles.basicSize]);
   set(handles.togglebutton_advanced,'Value',0);
 else
-  curPos = get(handles.figure1,'Position');
-  set(handles.figure1,'Position',[curPos(1:2) handles.advancedSize]);
+  curPos = get(handles.figureProjectSetup,'Position');
+  set(handles.figureProjectSetup,'Position',[curPos(1:2) handles.advancedSize]);
   set(handles.togglebutton_advanced,'Value',1);  
 end
-handles.mode = mode;
-
-function handles = initFeatureconfig(handles)
-if isdeployed,
-  filename = deployedRelative2Global('params/featureConfigList.xml');
-else
-  filename = 'featureConfigList.xml';
-end
-list = ReadXMLParams(filename);
-animal_types = fieldnames(list);
-
-handles.list = list;
-handles.animal_types = animal_types;
-set(handles.featureconfigpopup,'String',animal_types);
+return
 
 
-function handles = initParams(handles)
-handles.params.behaviors.names = {};
-handles.params.file.featureconfigfile = handles.list.(handles.animal_types{1}).file;
-handles.params.behaviors.type = handles.list.(handles.animal_types{1}).animal;
-handles.params.file.perframedir = 'perframe';
-handles.params.file.clipsdir = 'clips';
-handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
-handles.params.windowfeatures = struct;
-handles.params.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
-handles.params.behaviors.unknowncolor = [0,0,0];
-handles.params.plot.trx.colormap = 'jet';
-handles.params.plot.trx.colormap_multiplier = 0.7;
-handles.params.plot.trx.extra_linestyle = '-';
-handles.params.plot.trx.extra_marker = '.';
-handles.params.plot.trx.extra_markersize = 12;
-handles.params.plot.labels.colormap = 'line';
-handles.params.plot.labels.linewidth = 3;
-handles.params.file.labelfilename = '';
-handles.params.file.gt_labelfilename = '';
-handles.params.file.scorefilename = '';
-handles.params.file.trxfilename = '';
-handles.params.file.moviefilename = '';
-handles = addversion(handles);
-handles.params.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+% % -------------------------------------------------------------------------
+% function handles = initFeatureLexiconLists(handles)
+% [featureLexiconNameList, ...
+%  featureLexiconFileNameList, ...
+%  featureLexiconAnimalTypeList] = ...
+%   getFeatureLexiconListsFromXML();
+% % store the three cell arrays in the handles
+% handles.featureLexiconNameList=featureLexiconNameList;
+% handles.featureLexiconFileNameList=featureLexiconFileNameList;
+% handles.featureLexiconAnimalTypeList=featureLexiconAnimalTypeList;
+% return
 
-function updateText(handles)
-% Copies the parameters in the params structure to the gui.
 
-if isfield(handles.params.behaviors,'names');
-  names = handles.params.behaviors.names;
+% % -------------------------------------------------------------------------
+% function basicParams = newBasicParams(featureLexiconName)
+% basicParams.featureLexiconName=featureLexiconName;
+% basicParams.behaviors.names = {};
+% basicParams.file.perframedir = 'perframe';
+% basicParams.file.clipsdir = 'clips';
+% basicParams.scoreFeatures = struct('classifierfile',{},'ts',{},'scorefilename',{});
+% %basicParams.windowfeatures = struct;
+% basicParams.behaviors.labelcolors = [0.7,0,0,0,0,0.7];
+% basicParams.behaviors.unknowncolor = [0,0,0];
+% basicParams.trxGraphicParams.colormap = 'jet';
+% basicParams.trxGraphicParams.colormap_multiplier = 0.7;
+% basicParams.trxGraphicParams.extra_linestyle = '-';
+% basicParams.trxGraphicParams.extra_marker = '.';
+% basicParams.trxGraphicParams.extra_markersize = 12;
+% basicParams.labelGraphicParams.colormap = 'line';
+% basicParams.labelGraphicParams.linewidth = 3;
+% %basicParams.file.labelfilename = '';
+% %basicParams.file.gtlabelfilename = '';
+% basicParams.file.scorefilename = '';
+% basicParams.file.trxfilename = '';
+% basicParams.file.moviefilename = '';
+% %handles = addversion(handles);
+% %basicParams.scoresinput = struct('classifierfile',{},'ts',{},'scorefilename',{});
+% featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
+% featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+% basicParams.sublexiconPFNames = featureLexiconPFNames;
+% 
+% return
+
+
+% -------------------------------------------------------------------------
+function updateEditsListboxesAndPopupmenus(handles)
+
+% update the behavior name editbox
+if isfield(handles.basicParamsStruct.behaviors,'names');
+  names = handles.basicParamsStruct.behaviors.names;
   if numel(names)>0
     namestr = [sprintf('%s,',names{1:end-1}),names{end}];
   else
@@ -258,88 +239,133 @@ else
   set(handles.editName,'String','');
 end
 
-fnames = {'labelfilename','gt_labelfilename','scorefilename',...
-  'moviefilename','trxfilename'};
-boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
-  'editmoviefilename','edittrxfilename'};
-
+% Update all the editboxes
+% fnames = {'labelfilename','gtlabelfilename','scorefilename',...
+%           'moviefilename','trxfilename'};
+% boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
+%             'editmoviefilename','edittrxfilename'};
+fnames = {'scorefilename',...
+          'moviefilename','trxfilename'};
+boxnames = {'editscorefilename',...
+            'editmoviefilename','edittrxfilename'};
 for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
-  if isfield(handles.params.file,curf);
-    set(handles.(curbox),'String',handles.params.file.(curf));
+  if isfield(handles.basicParamsStruct.file,curf);
+    set(handles.(curbox),'String',handles.basicParamsStruct.file.(curf));
   else
     set(handles.(curbox),'String','');
   end
 end
 
-alltypes = fieldnames(handles.list);
-listndx = [];
-for andx = 1:numel(alltypes)
-  curfname = handles.list.(alltypes{andx}).file;
-  if strcmp(handles.params.file.featureconfigfile,curfname);
-    listndx = andx;
-  end
+% Update the select feature dictionary name
+indexOfFeatureLexicon=find(strcmp(handles.basicParamsStruct.featureLexiconName,handles.featureLexiconNameList));
+set(handles.featureconfigpopup,'Value',indexOfFeatureLexicon);
+
+% % Update the list of scores-an-inputs
+% fileNameList = {handles.basicParamsStruct.scoreFeatures(:).classifierfile};
+% set(handles.listbox_inputscores,'String',fileNameList);
+% set(handles.listbox_inputscores,'Value',handles.indexOfScoreFeaturesFile);
+
+% % Disble the Remove button iff the list of scores-as-inputs is empty
+% set(handles.pushbutton_removelist,'enable',offIff(isempty(fileNameList)));
+
+return
+
+
+% -------------------------------------------------------------------------
+function handles = fileNameEditTwiddled(handles,editName)
+% Deal with one of the file name edits being modified.
+% This is like a controller method.
+varName=editName(5:end);  % trim 'edit' off of start
+newFileName=strtrim(get(handles.(editName),'String'));
+allowEmpty = ismember(varName,{'moviefilename'});
+[handles,whatHappened]=setFileName(handles,varName,newFileName,allowEmpty);
+warnIfInvalid(varName,whatHappened);
+updateFileNameEdit(handles,editName);
+updateConfigTable(handles);
+return
+
+
+% -------------------------------------------------------------------------
+function [handles,whatHappened] = setFileName(handles,varName,newFileName,allowEmpty)
+% Set the given file name in the model, if it's a valid name.  whatHappened
+% is a string that can be 'notChanged', 'emptyEntry','changed', or
+% 'invalidEntry', depending.
+
+if nargin < 4,
+  allowEmpty = false;
 end
-if ~isempty(listndx),
-  set(handles.featureconfigpopup,'Value',listndx);
-else
-  uiwait(warndlg(['The feature config file used (', handles.params.file.featureconfigfile,...
-    ') does not exist.']));
+
+fileName=handles.basicParamsStruct.file.(varName);
+
+if allowEmpty && isempty(newFileName),
+  handles.basicParamsStruct.file.(varName)=newFileName;
+  if strcmp(newFileName,fileName),
+    whatHappened='notChanged';
+  else
+    whatHappened='changed';
+  end
   return;
 end
 
-clist = {handles.params.scoresinput(:).classifierfile};
-if isempty(clist),
-  set(handles.listbox_inputscores,'String',{});
+if isequal(newFileName,fileName)
+  whatHappened='notChanged';
+elseif isempty(newFileName)
+  whatHappened='emptyEntry';
+elseif IsNiceFileName(newFileName)
+  whatHappened='changed';
+  handles.basicParamsStruct.file.(varName)=newFileName;
 else
-  set(handles.listbox_inputscores,'String',clist,'Value',1);
+  whatHappened='invalidEntry';
 end
 
+return
 
-function handles = updateParams(handles)
 
-fnames = {'labelfilename','gt_labelfilename','scorefilename',...
-  'moviefilename','trxfilename'};
-boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
-  'editmoviefilename','edittrxfilename'};
-
-for ndx = 1:numel(fnames)
-  curf = fnames{ndx};
-  curbox = boxnames{ndx};
-  str = strtrim(get(handles.(curbox),'String'));
-  if ~isempty(str) && ~IsNiceFileName(str),
-      uiwait(warndlg(sprintf(...
-          ['The name specified for %s cannot have special characters.'...
-          'Please use only alphanumeric characters and underscore'],curf)));
-      set(handles.(curbox),'String',handles.params.file.(curf));
-      continue;
-  end
-
-  
-  %if ~isempty(str)
-    handles.params.file.(curf) = str;
-  %end
+% -------------------------------------------------------------------------
+function warnIfInvalid(varName,whatHappened)
+% Throw up a warning dialog if whatHappened equals 'invalidEntry'
+if isequal(whatHappened,'invalidEntry')
+  message=...
+    sprintf(['The name specified for %s cannot have special characters.'...
+             'Please use only alphanumeric characters and underscore.'],varName);
+  title='Invalid File Name';
+  uiwait(warndlg(message,title,'modal'));
 end
+return
 
-setConfigTable(handles);
+
+% -------------------------------------------------------------------------
+function updateFileNameEdit(handles,editName)
+  % Update the named file name edit to match the model.
+  varName=editName(5:end);  % trim 'edit' off of start
+  set(handles.(editName),'String',handles.basicParamsStruct.file.(varName));
+return
 
 
-function setConfigTable(handles)
-params = handles.params;
-fields2remove = {'featureparamlist','windowfeatures','scoresinput'};
+% -------------------------------------------------------------------------
+function updateConfigTable(handles)
+% Update the config table (a GUI element) to match the current "model"
+% state
+basicParamsStruct = handles.basicParamsStruct;
+fields2remove = {'featureLexicon','windowfeatures','scoreFeatures', ...
+                 'sublexiconPFNames','labels','gtLabels','expDirNames', ...
+                 'gtExpDirNames', 'classifierStuff', 'version','classifierfile',...
+                 'windowFeaturesParams'};
 for ndx = 1:numel(fields2remove)
-  if isfield(params,fields2remove{ndx}),
-    params = rmfield(params,fields2remove{ndx});
-  end
-  
+  if isfield(basicParamsStruct,fields2remove{ndx}),
+    basicParamsStruct = rmfield(basicParamsStruct,fields2remove{ndx});
+  end  
 end
-data = GetParamsAsTable(params);
+data = GetParamsAsTable(basicParamsStruct);
 set(handles.config_table,'Data',data);
+return
 
 
-function data = GetParamsAsTable(configparams)
-data = addToList(configparams,{},'');
+% -------------------------------------------------------------------------
+function data = GetParamsAsTable(basicParamsStruct)
+data = addToList(basicParamsStruct,{},'');
 idx = cellfun(@iscell,data(:,2));
 if any(idx),
   for i = find(idx(:)'),
@@ -358,6 +384,7 @@ if any(cellfun(@iscell,data(:,2))),
 end
 
 
+% -------------------------------------------------------------------------
 function list = addToList(curStruct,list,pathTillNow)
 if isempty(fieldnames(curStruct)), return; end
 fnames = fieldnames(curStruct);
@@ -368,9 +395,13 @@ for ndx = 1:numel(fnames)
     list{end+1,1} = [pathTillNow fnames{ndx}]; %#ok<AGROW>
     param = curStruct.(fnames{ndx});
     if isnumeric(param)
-      q = num2str(param(1));
-      for jj = 2:numel(param)
-        q = [q ',' num2str(param(jj))]; %#ok<AGROW>
+      if isempty(param)
+        q='';
+      else
+        q = num2str(param(1));
+        for jj = 2:numel(param)
+          q = [q ',' num2str(param(jj))]; %#ok<AGROW>
+        end
       end
       list{end,2} = q;
     else
@@ -379,15 +410,19 @@ for ndx = 1:numel(fnames)
   end
 end
 
-function handles = addversion(handles)
-if ~isfield(handles.params,'ver')
-  vid = fopen('version.txt','r');
-  vv = textscan(vid,'%s');
-  fclose(vid);
-  handles.params.ver = vv{1};
-end
 
-function editName_Callback(hObject, eventdata, handles)
+% % -------------------------------------------------------------------------
+% function handles = addversion(handles)
+% if ~isfield(handles.basicParams,'ver')
+%   vid = fopen('version.txt','r');
+%   vv = textscan(vid,'%s');
+%   fclose(vid);
+%   handles.basicParams.ver = vv{1};
+% end
+
+
+% -------------------------------------------------------------------------
+function editName_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editName (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -397,23 +432,28 @@ function editName_Callback(hObject, eventdata, handles)
 name = get(hObject,'String');
 if isempty(regexp(name,'^[a-zA-Z][\w_,]*$','once','start'));
    uiwait(warndlg(['The behavior name cannot have special characters.'...
-       'Please use only alphanumeric characters and _']));
-   return;
+                   'Please use only alphanumeric characters and _']));
+   updateEditsListboxesAndPopupmenus(handles);              
+   return
 end
     
 name = regexp(name,',','split');
 name_str = [sprintf('%s_',name{1:end-1}),name{end}];
-handles.params.behaviors.names = name;
-handles.params.file.labelfilename = sprintf('label_%s.mat',name_str);
-handles.params.file.gt_labelfilename = sprintf('gt_label_%s.mat',name_str);
-handles.params.file.scorefilename = sprintf('scores_%s.mat',name_str);
-updateText(handles);
+handles.basicParamsStruct.behaviors.names = name;
+%handles.basicParamsStruct.file.moviefilename = 'movie.ufmf';
+%handles.basicParamsStruct.file.trxfilename = 'registered_trx.mat';
+%handles.basicParamsStruct.file.labelfilename = sprintf('label_%s.mat',name_str);
+%handles.basicParamsStruct.file.gtlabelfilename = sprintf('gt_label_%s.mat',name_str);
+handles.basicParamsStruct.file.scorefilename = sprintf('scores_%s.mat',name_str);
 guidata(hObject,handles);
-setConfigTable(handles);
+updateEditsListboxesAndPopupmenus(handles);
+updateConfigTable(handles);
+return
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editName_CreateFcn(hObject, eventdata, handles)
+function editName_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editName (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -423,35 +463,43 @@ function editName_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+return
 
 
+% -------------------------------------------------------------------------
 % --- Executes on selection change in featureconfigpopup.
-function featureconfigpopup_Callback(hObject, eventdata, handles)
+function featureconfigpopup_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to featureconfigpopup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns featureconfigpopup contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from featureconfigpopup
-
-contents = cellstr(get(hObject,'String'));
-curtype = contents{get(hObject,'Value')};
-handles.params.file.featureconfigfile = handles.list.(curtype).file;
-handles.params.behaviors.type = handles.list.(curtype).animal;
-
-animal = handles.params.behaviors.type;
-
-% set config file defaults
-if isfield(handles.animaldefaults,animal),
-  handles.params = CopyStructFields(handles.animaldefaults.(animal),handles.params);
-end
+iFeatureLexicon=get(hObject,'Value');
+featureLexiconNameNew = handles.featureLexiconNameList{iFeatureLexicon};
+% Save the current values of the main four fields
+% (Note that any changes in the advanced part of the window will be lost.)
+behaviorName=handles.basicParamsStruct.behaviors.names;
+movieFileName=handles.basicParamsStruct.file.moviefilename;
+trackFileName=handles.basicParamsStruct.file.trxfilename;
+scoreFileName=handles.basicParamsStruct.file.scorefilename;
+% Replace basicParamsStruct with one appropriate to the new feature lexicon
+% name
+old=warning('query','MATLAB:structOnObject');
+warning('off','MATLAB:structOnObject');  % turn off annoying warning
+handles.basicParamsStruct = struct(Macguffin(featureLexiconNameNew));
+warning(old);  % restore annoying warning  
+% Now restore fields from the old basicParamsStruct
+handles.basicParamsStruct.behaviors.names=behaviorName;
+handles.basicParamsStruct.file.moviefilename=movieFileName;
+handles.basicParamsStruct.file.trxfilename=trackFileName;
+handles.basicParamsStruct.file.scorefilename=scoreFileName;
 guidata(hObject,handles);
+updateConfigTable(handles);
+updateEditsListboxesAndPopupmenus(handles);
+return
 
-setConfigTable(handles);
 
-
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function featureconfigpopup_CreateFcn(hObject, ~, ~)
+function featureconfigpopup_CreateFcn(hObject, ~, ~)  %#ok
 % hObject    handle to featureconfigpopup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -463,20 +511,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
-function editlabelfilename_Callback(hObject, eventdata, handles) %#ok<DEFNU>
+% -------------------------------------------------------------------------
+function editlabelfilename_Callback(hObject, eventdata, handles) %#ok
 % hObject    handle to editlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of editlabelfilename as text
 %        str2double(get(hObject,'String')) returns contents of editlabelfilename as a double
-handles = updateParams(handles);
+editName=get(hObject,'tag');
+handles = fileNameEditTwiddled(handles,editName);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editlabelfilename_CreateFcn(hObject, eventdata, handles) %#ok<*DEFNU>
+function editlabelfilename_CreateFcn(hObject, eventdata, handles) %#ok
 % hObject    handle to editlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -488,20 +538,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
-function editgtlabelfilename_Callback(hObject, eventdata, handles)
+% -------------------------------------------------------------------------
+function editgtlabelfilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editgtlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of editgtlabelfilename as text
 %        str2double(get(hObject,'String')) returns contents of editgtlabelfilename as a double
-handles = updateParams(handles);
+editName=get(hObject,'tag');
+handles = fileNameEditTwiddled(handles,editName);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editgtlabelfilename_CreateFcn(hObject, eventdata, handles)
+function editgtlabelfilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editgtlabelfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -513,20 +565,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
-function editscorefilename_Callback(hObject, eventdata, handles)
+% -------------------------------------------------------------------------
+function editscorefilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editscorefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of editscorefilename as text
 %        str2double(get(hObject,'String')) returns contents of editscorefilename as a double
-handles = updateParams(handles);
+editName=get(hObject,'tag');
+handles = fileNameEditTwiddled(handles,editName);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editscorefilename_CreateFcn(hObject, eventdata, handles)
+function editscorefilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editscorefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -538,19 +592,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-function editmoviefilename_Callback(hObject, eventdata, handles)
+% -------------------------------------------------------------------------
+function editmoviefilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to editmoviefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of editmoviefilename as text
 %        str2double(get(hObject,'String')) returns contents of editmoviefilename as a double
-handles = updateParams(handles);
+editName=get(hObject,'tag');
+handles = fileNameEditTwiddled(handles,editName);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function editmoviefilename_CreateFcn(hObject, eventdata, handles)
+function editmoviefilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to editmoviefilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -562,20 +619,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
-function edittrxfilename_Callback(hObject, eventdata, handles)
+% -------------------------------------------------------------------------
+function edittrxfilename_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to edittrxfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of edittrxfilename as text
 %        str2double(get(hObject,'String')) returns contents of edittrxfilename as a double
-handles = updateParams(handles);
+editName=get(hObject,'tag');
+handles = fileNameEditTwiddled(handles,editName);
 guidata(hObject,handles);
 
 
+% -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function edittrxfilename_CreateFcn(hObject, eventdata, handles)
+function edittrxfilename_CreateFcn(hObject, eventdata, handles)  %#ok
 % hObject    handle to edittrxfilename (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -587,389 +646,497 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on butuiresume(handles.figure1);ton press in pushbutton_setfeatures.
-function pushbutton_setfeatures_Callback(hObject, eventdata, handles)
+% -------------------------------------------------------------------------
+% --- Executes on butuiresume(handles.figureProjectSetup);ton press in pushbutton_setfeatures.
+function pushbutton_setfeatures_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_setfeatures (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_copyfeatures.
-function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)
+function pushbutton_copyfeatures_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_copyfeatures (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on selection change in listbox_inputscores.
-function listbox_inputscores_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox_inputscores (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% % -------------------------------------------------------------------------
+% % --- Executes on selection change in listbox_inputscores.
+% function listbox_inputscores_Callback(hObject, eventdata, handles)
+% % hObject    handle to listbox_inputscores (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% handles.indexOfScoreFeaturesFile=get(hObject,'Value');
+% guidata(hObject,handles);
+% return
 
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox_inputscores contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox_inputscores
-
-
-% --- Executes during object creation, after setting all properties.
-function listbox_inputscores_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox_inputscores (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in pushbutton_addlist.
-function pushbutton_addlist_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_addlist (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-[fnames,pname] = uigetfile('*.mat','Classifier whose scores should be used as input');
-if fnames == 0; return; end;
-
-cfile = fullfile(pname,fnames);
-classifier = load(cfile);
-curs = struct;
-curs.classifierfile = cfile;
-if isfield(classifier,'classifierTS');
-  curs.ts = classifier.classifierTS;
-else
-  uiwait(warndlg(['The selected file does not have all the required fields,'...
-    ' Check to make sure it is a classifier file']));
-  return;
-end
-
-if isfield(classifier,'scorefilename')
-  scorefilename = classifier.scorefilename;
-  [~,scorefilename,~] = fileparts(scorefilename);
-  curs.scorefilename = scorefilename;
-else
-  configfile = classifier.configfilename;
-  if exist(configfile,'file')
-    configparams = ReadXMLParams(configfile);
-    if isfield(configparams,'scorefilename');
-      scorefilename = configparams.file.scorefilename;
-      [~,scorefilename,~] = fileparts(scorefilename);
-      curs.scorefilename = scorefilename;
-    else
-      curs.scorefilename = sprintf('scores_%s',configparams.behaviors.names);
-    end
-  else
-    sname = inputdlg(['Cannot find the config file pointed by the classifier.'...
-      'Input the file name used to stored the scores computed by the classifier'],...
-      'Score file name');
-    if isempty(sname), return; end
-    curs.scorefilename = sname;
-  end
-end
-
-handles.params.scoresinput(end+1) = curs;
-guidata(hObject,handles);
-updateText(handles);
+% % -------------------------------------------------------------------------
+% % --- Executes during object creation, after setting all properties.
+% function listbox_inputscores_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to listbox_inputscores (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% 
+% % Hint: listbox controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
 
 
-% --- Executes on button press in pushbutton_removelist.
-function pushbutton_removelist_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_removelist (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-curndx = get(handles.listbox_inputscores,'Value');
-if isempty(curndx), return; end
-handles.params.scoresinput(curndx) = [];
-guidata(hObject,handles);
-updateText(handles);
+% % -------------------------------------------------------------------------
+% % --- Executes on button press in pushbutton_addlist.
+% function pushbutton_addlist_Callback(hObject, eventdata, handles)
+% % hObject    handle to pushbutton_addlist (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% [fname,pname] = ...
+%   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
+%             'Add .jab file containing classifier to be used as input');
+% if fname == 0; return; end;
+% 
+% fileNameAbs = fullfile(pname,fname);
+% everythingParams = load(fileNameAbs,'-mat');
+% if isempty(everythingParams.classifier)
+%   uiwait(errordlg(sprintf('%s does not contain a classifier.',fname), ...
+%                   'Error', ...
+%                   'modal'));
+%   return
+% end               
+% 
+% % [fnames,pname] = uigetfile('*.mat','Classifier whose scores should be used as input');
+% % if fnames == 0; return; end;
+% % 
+% % cfile = fullfile(pname,fnames);
+% % classifier = load(cfile);
+% 
+% curs = struct;  % this is the thing we'll return
+% 
+% % Add the .jab file name, with maybe not the best field name
+% curs.classifierfile = fileNameAbs;
+% 
+% % Add the classifier time stamp
+% classifier=everythingParams.classifier;
+% if isfield(classifier,'timeStamp');
+%   curs.ts = classifier.timeStamp;
+% else
+%   uiwait(errordlg('The classifier in the selected field lacks a timestamp.  Aborting.', ...
+%                   'Error', ...
+%                   'modal'));
+%   return
+% end
+% 
+% % Add the name of the score file (without the .mat extension)
+% if isfield(classifier,'file') && isfield(classifier.file,'scorefilename')
+%   scorefilename = classifier.scorefilename;
+%   [~,scoreBaseName] = fileparts(scorefilename);
+%   curs.scorefilename = scoreBaseName;
+% elseif isfield(everythingParams,'behaviors') && ...
+%        isfield(everythingParams.behaviors,'names') && ...
+%        ~isempty(everythingParams.behaviors.names)
+%   behaviorName=everythingParams.behaviors.names{1};
+%   curs.scorefilename = sprintf('scores_%s',behaviorName);
+% else
+%   uiwait(errordlg('Unable to determine score file name.  Aborting.', ...
+%                   'Error', ...
+%                   'modal'));
+%   return
+% end
+% 
+% handles.basicParams.scoreFeatures(end+1) = curs;
+% handles.indexOfScoreFeaturesFile = length(handles.basicParams.scoreFeatures);
+% updateEditsListboxesAndPopupmenus(handles);
+% guidata(hObject,handles);
+% return
 
+
+% % -------------------------------------------------------------------------
+% % --- Executes on button press in pushbutton_removelist.
+% function pushbutton_removelist_Callback(hObject, eventdata, handles)
+% % hObject    handle to pushbutton_removelist (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% i = handles.indexOfScoreFeaturesFile;
+% if isempty(i), return; end
+% nScoreFeatures=length(handles.basicParams.scoreFeatures);
+% handles.basicParams.scoreFeatures(i) = [];
+% if (i==nScoreFeatures)
+%   i=i-1;
+%   if i==0
+%     i=[];
+%   end
+% end
+% handles.indexOfScoreFeaturesFile=i;
+% guidata(hObject,handles);
+% updateEditsListboxesAndPopupmenus(handles);
+% return
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_cancel.
-function pushbutton_cancel_Callback(hObject, eventdata, handles)
+function pushbutton_cancel_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.outfile = 0;
 guidata(hObject,handles);
-uiresume(handles.figure1);
+delete(findAncestorFigure(hObject));              
+%uiresume(handles.figureProjectSetup);
+return
 
 
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_done.
-function pushbutton_done_Callback(hObject, ~, handles)
+function pushbutton_done_Callback(hObject, ~, handles)  %#ok
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[fname,pname] = uiputfile('*.mat','Select a location to store the project',....
-  handles.defpath);
-
-if fname == 0; return; end;
-
-handles.outfile = fullfile(pname,fname);
-
-if exist(handles.outfile,'file')
-  [didback,msg] = copyfile(handles.outfile,[handles.outfile '~']);
-  if ~didback,
-    warning('Could not create backup of %s: %s',handles.outfile,msg);
-  end
+% Check for an empty behavior name
+behaviorName=handles.basicParamsStruct.behaviors.names;
+if isempty(behaviorName) ,
+  uiwait(errordlg('You must enter a behavior name.', ...
+                  'No behavior name', ...
+                  'modal'));
+  return
 end
 
-params2save = handles.params(1); %#ok<NASGU>
-save(handles.outfile,'-struct','params2save');
+% In some cases, the user doesn't have the movie.  We can deal with this.
+% % Check for an empty movie file name
+% movieFileName=handles.basicParamsStruct.file.moviefilename;
+% if isempty(movieFileName) ,
+%   uiwait(errordlg('You must enter a movie file name.', ...
+%                   'No movie file name', ...
+%                   'modal'));
+%   return
+% end
 
-guidata(hObject,handles);
-uiresume(handles.figure1);
+% Check for an empty track file name
+trackFileName=handles.basicParamsStruct.file.trxfilename;
+if isempty(trackFileName) ,
+  uiwait(errordlg('You must enter a track file name.', ...
+                  'No track file name', ...
+                  'modal'));
+  return
+end
 
+% Check for an empty score file name
+scoreFileName=handles.basicParamsStruct.file.scorefilename;
+if isempty(scoreFileName) ,
+  uiwait(errordlg('You must enter a score file name.', ...
+                  'No score file name', ...
+                  'modal'));
+  return
+end
 
-% --- Executes on button press in pushbutton_copy.
-function pushbutton_copy_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_copy (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-[fnames,pname] = uigetfile('*.mat','Select a project to copy settings from');
-if fnames == 0; return; end;
+% Get the info we need out of the handles
+basicParamsStruct=handles.basicParamsStruct;
+figureJLabel=handles.figureJLabel;
+everythingParams=Macguffin(basicParamsStruct);
 
-list = {'Target Type','Behavior Name and File Names','Window Features',...
-  'List of perframe features','Classifier files used as input',...
-  'Advanced Parameters'};
-
-dstr = {'Select the parameters to copy.','Use Control/Command click to select multiple entries'};
-[sel,ok] = listdlg('PromptString',dstr,'ListSize',[350 120],'Name','Parameters to copy',...
-  'ListString',list);
-sellist = list(sel);
-
-if ok == 0, return; end
-[~,~,ext] = fileparts(fnames);
-if strcmp(ext,'.xml')
-  origparams = ReadXMLParams(fullfile(pname,fnames));
+% Call the appropriate function to notify the JLabel "object" that 
+% we're done.
+if (handles.new)
+  % we were called via New..., so act accordingly
+  JLabel('newFileSetupDone', ...
+         figureJLabel, ...
+         everythingParams);
 else
-  origparams = load(fullfile(pname,fnames));
+  % we were called via Basic Settings..., so act accordingly
+%   JLabel('basicSettingsChanged', ...
+%          figureJLabel, ...
+%          everythingParams); 
+  JLabel('newFileSetupDone', ...
+         figureJLabel, ...
+         everythingParams);
 end
 
-if ismember('Target Type',sellist)
-  alltypes = fieldnames(handles.list);
-  listndx = [];
-  for andx = 1:numel(alltypes)
-    curfname = handles.list.(alltypes{andx}).file;
-    if strcmp(origparams.file.featureconfigfile,curfname); 
-      listndx = andx;
-    end
-  end
-  if ~isempty(listndx),
-    set(handles.featureconfigpopup,'Value',listndx);
-  else
-    uiwait(warndlg(['The feature config file used (', origparams.file.featureconfigfile,...
-      ') does not exist. Cannot import from the project']));
-    return;
-  end
-  handles.params.file.featureconfigfile = origparams.file.featureconfigfile;
-end
+% Delete the ProjectSetup window
+delete(get(hObject,'parent'));
+
+return
 
 
-if ismember('Behavior Name and File Names',sellist)
-  origfeatureconfigfile = handles.params.file.featureconfigfile;
-  handles.params.file = origparams.file;
-  handles.params.file.featureconfigfile = origfeatureconfigfile;
-  if iscell(origparams.behaviors.names),
-    handles.params.behaviors.names = origparams.behaviors.names;
-  else
-    handles.params.behaviors.names = {origparams.behaviors.names};
-  end
-  if ~isfield(origparams.file,'scorefilename')
-     name = handles.params.behaviors.names;
-     name_str = [sprintf('%s_',name{1:end-1}),name{end}];
-     handles.params.file.scorefilename =  sprintf('scores_%s.mat',name_str);
-  end
-end
+% % -------------------------------------------------------------------------
+% % --- Executes on button press in pushbutton_copy.
+% function pushbutton_copy_Callback(hObject, eventdata, handles)
+% % hObject    handle to pushbutton_copy (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% [fnames,pname] = uigetfile('*.mat','Select a project to copy settings from');
+% if fnames == 0; return; end;
+% 
+% list = {'Target Type','Behavior Name and File Names','Window Features',...
+%   'List of perframe features','Classifier files used as input',...
+%   'Advanced Parameters'};
+% 
+% dstr = {'Select the parameters to copy.','Use Control/Command click to select multiple entries'};
+% [sel,ok] = listdlg('PromptString',dstr,'ListSize',[350 120],'Name','Parameters to copy',...
+%   'ListString',list);
+% sellist = list(sel);
+% 
+% if ok == 0, return; end
+% [~,~,ext] = fileparts(fnames);
+% if strcmp(ext,'.xml')
+%   origparams = ReadXMLParams(fullfile(pname,fnames));
+% else
+%   origparams = load(fullfile(pname,fnames));
+% end
+% 
+% if ismember('Target Type',sellist)
+%   alltypes = fieldnames(handles.featureLexiconFileLookup);
+%   listndx = [];
+%   for andx = 1:numel(alltypes)
+%     curfname = handles.featureLexiconFileLookup.(alltypes{andx}).file;
+%     if strcmp(origparams.file.featureconfigfile,curfname); 
+%       listndx = andx;
+%     end
+%   end
+%   if ~isempty(listndx),
+%     set(handles.featureconfigpopup,'Value',listndx);
+%   else
+%     uiwait(warndlg(['The feature config file used (', origparams.file.featureconfigfile,...
+%       ') does not exist. Cannot import from the project']));
+%     return;
+%   end
+%   handles.basicParams.file.featureconfigfile = origparams.file.featureconfigfile;
+% end
+% 
+% 
+% if ismember('Behavior Name and File Names',sellist)
+%   origfeatureconfigfile = handles.basicParams.file.featureconfigfile;
+%   handles.basicParams.file = origparams.file;
+%   handles.basicParams.file.featureconfigfile = origfeatureconfigfile;
+%   if iscell(origparams.behaviors.names),
+%     handles.basicParams.behaviors.names = origparams.behaviors.names;
+%   else
+%     handles.basicParams.behaviors.names = {origparams.behaviors.names};
+%   end
+%   if ~isfield(origparams.file,'scorefilename')
+%      name = handles.basicParams.behaviors.names;
+%      name_str = [sprintf('%s_',name{1:end-1}),name{end}];
+%      handles.basicParams.file.scorefilename =  sprintf('scores_%s.mat',name_str);
+%   end
+% end
+% 
+% if ismember('Window Features',sellist),
+%   if isfield(origparams,'windowfeatures')
+%     
+%     if ~strcmp(handles.basicParams.file.featureconfigfile,origparams.file.featureconfigfile),
+%       res = questdlg(['Target type are not the same for the current project '...
+%         'and the original project. Are you sure you want to import the window features?'],...
+%         'Import Window features','Yes','No','No');
+%       if strcmp(res,'Yes')
+%         handles.basicParams.windowfeatures = origparams.windowfeatures;
+%       end
+%     else
+%       handles.basicParams.windowfeatures = origparams.windowfeatures;
+%     end
+%   elseif isfield(origparams.file,'featureparamfilename')
+%     uiwait(warndlg(['The selected configuration file does not have any '...
+%       'window features, but points to a file that does have the window features. '...
+%       'Loading the window features from the referenced file:' origparams.file.featureparamfilename]));
+%     [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
+%       ReadPerFrameParams(origparams.file.featureparamfilename,handles.basicParams.file.featureconfigfile); 
+% 
+%     handles.basicParams.windowfeatures.windowfeaturesparams = windowfeaturesparams;
+%     handles.basicParams.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
+%     handles.basicParams.windowfeatures.basicFeatureTable = basicFeatureTable;
+%     handles.basicParams.windowfeatures.featureWindowSize = featureWindowSize;
+%     if isfield(handles.basicParams.file,'featureparamfilename'),
+%         handles.basicParams.file = rmfield(handles.basicParams.file,'featureparamfilename');
+%     end
+%   else
+%     uiwait(warndlg(['The selected configuration file does not have any '...
+%       'window features. Not copying the window features']));
+%   end
+% end
+% 
+% if ismember('List of perframe features',sellist)
+%   
+%   if isfield(origparams,'featureparamlist')
+%     
+%     if ~strcmp(handles.basicParams.file.featureconfigfile,origparams.file.featureconfigfile),
+%       res = questdlg(['Target type are not the same for the current project '...
+%         'and the original project. Are you sure you want to import the list of perframe features?'],...
+%         'Import list of perframe features','Yes','No','No');
+%       if strcmp(res,'Yes')
+%         handles.basicParams.featureparamlist = origparams.featureparamlist;
+%       end
+%     else
+%       handles.basicParams.featureparamlist= origparams.featureparamlist;
+%       
+%     end
+%   end
+% end
+% 
+% if ismember('Classifier files used as input', sellist);
+%   if isfield(origparams,'scoreFeatures')
+%     
+%     handles.basicParams.scoreFeatures = origparams.scoreFeatures;
+%   end
+% end
+% 
+% if ismember('Advanced Parameters',sellist),
+%   adv_params = {'behaviors.labelcolors',...
+%     'behaviors.unknowncolor',...
+%     'plot.trx.colormap',...
+%     'plot.trx.colormap_multiplier',...
+%     'plot.trx.nextra_markers',...
+%     'plot.trx.extra_marker',...
+%     'plot.trx.extra_markersize',...
+%     'plot.trx.extra_linestyle',...
+%     'plot.labels.colormap',...
+%     'plot.labels.linewidth',...
+%     'perframe.basicParams.fov',...
+%     'perframe.basicParams.nbodylengths_near',...
+%     'perframe.basicParams.thetafil',...
+%     'perframe.basicParams.max_dnose2ell_anglerange',...
+%     'perframe.landmark_params.arena_center_mm_x',...
+%     'perframe.landmark_params.arena_center_mm_y',...
+%     'perframe.landmark_params.arena_radius_mm',...
+%     'perframe.landmark_params.arena_type'};
+%   
+%   for str = adv_params(:)',
+%     try %#ok<TRYNC>
+%       eval(sprintf('handles.basicParams.%s = origparams.%s;',str{1},str{1}));
+%     end
+%   end
+% 
+% end
+% 
+% handles = addversion(handles);
+% guidata(hObject,handles);
+% updateEditsListboxesAndPopupmenus(handles);
+% updateConfigTable(handles);
+% return
 
-if ismember('Window Features',sellist),
-  if isfield(origparams,'windowfeatures')
-    
-    if ~strcmp(handles.params.file.featureconfigfile,origparams.file.featureconfigfile),
-      res = questdlg(['Target type are not the same for the current project '...
-        'and the original project. Are you sure you want to import the window features?'],...
-        'Import Window features','Yes','No','No');
-      if strcmp(res,'Yes')
-        handles.params.windowfeatures = origparams.windowfeatures;
-      end
-    else
-      handles.params.windowfeatures = origparams.windowfeatures;
-    end
-  elseif isfield(origparams.file,'featureparamfilename')
-    uiwait(warndlg(['The selected configuration file does not have any '...
-      'window features, but points to a file that does have the window features. '...
-      'Loading the window features from the referenced file:' origparams.file.featureparamfilename]));
-    [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
-      ReadPerFrameParams(origparams.file.featureparamfilename,handles.params.file.featureconfigfile); 
-
-    handles.params.windowfeatures.windowfeaturesparams = windowfeaturesparams;
-    handles.params.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
-    handles.params.windowfeatures.basicFeatureTable = basicFeatureTable;
-    handles.params.windowfeatures.featureWindowSize = featureWindowSize;
-    if isfield(handles.params.file,'featureparamfilename'),
-        handles.params.file = rmfield(handles.params.file,'featureparamfilename');
-    end
-  else
-    uiwait(warndlg(['The selected configuration file does not have any '...
-      'window features. Not copying the window features']));
-  end
-end
-
-if ismember('List of perframe features',sellist)
-  
-  if isfield(origparams,'featureparamlist')
-    
-    if ~strcmp(handles.params.file.featureconfigfile,origparams.file.featureconfigfile),
-      res = questdlg(['Target type are not the same for the current project '...
-        'and the original project. Are you sure you want to import the list of perframe features?'],...
-        'Import list of perframe features','Yes','No','No');
-      if strcmp(res,'Yes')
-        handles.params.featureparamlist = origparams.featureparamlist;
-      end
-    else
-      handles.params.featureparamlist= origparams.featureparamlist;
-      
-    end
-  end
-end
-
-if ismember('Classifier files used as input', sellist);
-  if isfield(origparams,'scoresinput')
-    
-    handles.params.scoresinput = origparams.scoresinput;
-  end
-end
-
-if ismember('Advanced Parameters',sellist),
-  adv_params = {'behaviors.labelcolors',...
-    'behaviors.unknowncolor',...
-    'plot.trx.colormap',...
-    'plot.trx.colormap_multiplier',...
-    'plot.trx.nextra_markers',...
-    'plot.trx.extra_marker',...
-    'plot.trx.extra_markersize',...
-    'plot.trx.extra_linestyle',...
-    'plot.labels.colormap',...
-    'plot.labels.linewidth',...
-    'perframe.params.fov',...
-    'perframe.params.nbodylengths_near',...
-    'perframe.params.thetafil',...
-    'perframe.params.max_dnose2ell_anglerange',...
-    'perframe.landmark_params.arena_center_mm_x',...
-    'perframe.landmark_params.arena_center_mm_y',...
-    'perframe.landmark_params.arena_radius_mm',...
-    'perframe.landmark_params.arena_type'};
-  
-  for str = adv_params(:)',
-    try %#ok<TRYNC>
-      eval(sprintf('handles.params.%s = origparams.%s;',str{1},str{1}));
-    end
-  end
-
-end
-
-handles = addversion(handles);
-guidata(hObject,handles);
-updateText(handles);
-setConfigTable(handles);
-
+% -------------------------------------------------------------------------
 % --- Executes on button press in togglebutton_advanced.
-function togglebutton_advanced_Callback(hObject, eventdata, handles)
+function togglebutton_advanced_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to togglebutton_advanced (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of togglebutton_advanced
-if get(hObject,'Value') ==1
-  handles = updatePosition(handles,'advanced');
-else
-  handles = updatePosition(handles,'basic');
-end
+handles.mode=fif(get(hObject,'Value'),'advanced','basic');
+handles = updateFigurePosition(handles);
 guidata(hObject,handles);
+return
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_perframe.
-function pushbutton_perframe_Callback(hObject, eventdata, handles)
+function pushbutton_perframe_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_perframe (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[allpflist,selected,missing] = GetAllPerframeList(handles.params);
-if ~isempty(missing),
-   list = missing{1};
-  for ndx = 2:numel(missing)
-    list = sprintf('%s %s ',list,missing{ndx});
+% Get the boolean array that tells which PFs in the feature lexicon are in 
+% the to-be-calculated feature vocabulary
+featureLexiconName=handles.basicParamsStruct.featureLexiconName;
+sublexiconPFNames = handles.basicParamsStruct.sublexiconPFNames;
+[featureLexiconPFNames,isSelected,missingPFNames] = ...
+  GetAllPerframeList(featureLexiconName,sublexiconPFNames);
+
+% If some to-be-calculated PFs are not in the lexicon, warn the user.
+if ~isempty(missingPFNames),
+  list = naturalLanguageListFromStringList(missingPFNames);
+  if length(missingPFNames)==1
+    wstr = ...
+      sprintf(['Perframe feature %s is defined in the project file ' ...
+               'but is not defined for the current target type.\n' ...
+               'Ignoring it.'],...
+              list);
+  else
+    wstr = ...
+      sprintf(['Perframe features %s are defined in the project file ' ...
+               'but are not defined for the current target type.\n' ...
+               'Ignoring them.'],...
+              list);
   end
-  wstr = sprintf('Perframe feature(s) %s are defined in the project file%s\n%s',...
-        list,...
-        ' but are not defined for the current target type.',...
-        'Ignoring them.');
-  uiwait(warndlg(wstr));
- 
+  uiwait(warndlg(wstr)); 
 end
 
-[sel,ok] = listdlg('ListString',allpflist,...
-  'InitialValue',find(selected),'Name','Selecte perframe features',...
-  'PromptString',{'Control/Command click to','select/deselect perframe features'},...
-  'ListSize',[250,700]);
+% Put up the dialog that allows users to pick which PFs will be computed
 
+[isSelected,ok] = listdlg('ListString',featureLexiconPFNames, ...
+                          'InitialValue',find(isSelected), ...
+                          'Name','Selecte perframe features',...
+                          'PromptString',{sprintf('%s-click to',fif(ismac(),'Command','Control')), ...
+                                          'select/deselect perframe features'}, ...
+                                          'ListSize',[250,700]);
+
+% If the user clicked OK, update the list of to-be-calculated PFs                 
 if ok,
-  tstruct = struct();
-  for ndx = sel(:)'
-    tstruct.(allpflist{ndx}) = 1;
-  end
-  handles.params.featureparamlist = tstruct;
-  
+  sublexiconPFNames=featureLexiconPFNames(isSelected);
+  handles.basicParamsStruct.sublexiconPFNames = sublexiconPFNames;
+  guidata(hObject,handles);
 end
 
-guidata(hObject,handles);
+return
 
 
+% -------------------------------------------------------------------------
+function [featureLexiconPFNames,isSelected,missingPFNames]= ...
+  GetAllPerframeList(featureLexiconName,sublexiconPFNames)
+% Returns the list of all per-frame feature names in the lexicon indicated
+% by featureLexiconName.  Also returns isSelected, a boolean array of the
+% same size as featureLexiconPFNames, which is true iff that PF is in the
+% sublexiconPFNames list.  Finally, missingPFNames is a list of all PF
+% names in sublexiconPFNames that are not present in
+% featureLexiconPFNames.
 
-function [allPfList selected missing]= GetAllPerframeList(configparams)
-featureconfigfile = configparams.file.featureconfigfile;
-params = ReadXMLParams(featureconfigfile);
-allPfList = fieldnames(params.perframe);
-selected = false(numel(allPfList),1);
-missing = {};
-if isfield(configparams,'featureparamlist');
-  curpf = fieldnames(configparams.featureparamlist);
+%featureLexiconName=handles.basicParamsStruct.featureLexiconName;
+%featureconfigfile = basicParamsStruct.file.featureconfigfile;
+featureLexicon=featureLexiconFromFeatureLexiconName(featureLexiconName);
+%basicParamsStruct = ReadXMLParams(featureconfigfile);
+%allPfList = fieldnames(basicParamsStruct.perframe);
+featureLexiconPFNames = fieldnames(featureLexicon.perframe);
+nFeatureLexiconPFNames=length(featureLexiconPFNames);
+isSelected = false(nFeatureLexiconPFNames,1);
+missingPFNames = {};
+%toBeCalculatedPFNames = basicParamsStruct.toBeCalculatedPFNames;
+if isempty(sublexiconPFNames),
+  isSelected = true(nFeatureLexiconPFNames,1);
+  missingPFNames = {};
 else
-  curpf = {};
-end
-if ~isempty(curpf),
-  for ndx = 1:numel(curpf),
-    allndx = find(strcmp(curpf{ndx},allPfList));
+  for ndx = 1:length(sublexiconPFNames),
+    sublexiconPFName=sublexiconPFNames{ndx};
+    allndx = find(strcmp(sublexiconPFName,featureLexiconPFNames));
     if isempty(allndx)
-      missing{end+1} = curpf{ndx};
+      missingPFNames{end+1} = sublexiconPFName;  %#ok
     else
-      selected(allndx) = true;
+      isSelected(allndx) = true;
     end
   end
-else
-  missing = {};
-  selected = true(numel(allPfList,1));
 end
+return
 
 
-
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_addadvanced.
-function pushbutton_addadvanced_Callback(hObject, eventdata, handles)
+function pushbutton_addadvanced_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_addadvanced (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 in = inputdlg({'Configuration Parameter Name','Configuration Parameter Value'});
-if isempty(in) || numel(in) < 2
+if isempty(in) || length(in) < 2
   return;
 end
 
 handles = AddConfig(handles,in{1},in{2});
-setConfigTable(handles);
-updateText(handles);
+updateConfigTable(handles);
+updateEditsListboxesAndPopupmenus(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 % --- Executes on button press in pushbutton_removeadvanced.
-function pushbutton_removeadvanced_Callback(hObject, eventdata, handles)
+function pushbutton_removeadvanced_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_removeadvanced (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -983,13 +1150,15 @@ if numel(allndx)==1 && allndx <1, return, end
 for ndx = allndx(:)'
   handles = RemoveConfig(handles,data{ndx,1});
 end
-setConfigTable(handles);
-updateText(handles);
+updateConfigTable(handles);
+updateEditsListboxesAndPopupmenus(handles);
 guidata(hObject,handles);
+return
 
 
+% -------------------------------------------------------------------------
 % --- Executes when entered data in editable cell(s) in config_table.
-function config_table_CellEditCallback(hObject, eventdata, handles)
+function config_table_CellEditCallback(hObject, eventdata, handles)  %#ok
 % hObject    handle to config_table (see GCBO)
 % eventdata  structure with the following fields (see UITABLE)
 %	Indices: row and column indices of the cell(s) edited
@@ -1006,62 +1175,101 @@ if eventdata.Indices(2) == 2
 else
   handles = EditConfigName(handles,eventdata.PreviousData,eventdata.NewData);
 end
-updateText(handles);
+updateEditsListboxesAndPopupmenus(handles);
 guidata(hObject,handles);
 
+
+% -------------------------------------------------------------------------
 function handles = RemoveConfig(handles,name)
 
-[fpath,lastfield] = splitext(name);
-if isempty(lastfield)
-  handles.params = rmfield(handles.params,fpath);
+[fieldNamePath,dotLastField] = splitext(name);
+if isempty(dotLastField)
+  handles.basicParamsStruct = rmfield(handles.basicParamsStruct,fieldNamePath);
 else
+  lastField=dotLastField(2:end);  %#ok
   evalStr = sprintf(...
-    'handles.params.%s = rmfield(handles.params.%s,lastfield(2:end));',...
-    fpath,fpath);
+    'handles.basicParamsStruct.%s = rmfield(handles.basicParamsStruct.%s,lastField);',...
+    fieldNamePath,fieldNamePath);
   eval(evalStr);
 end
 
 
+% -------------------------------------------------------------------------
 function handles = EditConfigName(handles,oldName,newName)
 eval_str = sprintf(...
-  'value = handles.params.%s;',...
+  'value = handles.basicParamsStruct.%s;',...
   oldName);
 eval(eval_str);
 handles = AddConfig(handles,newName,value);
 handles = RemoveConfig(handles,oldName);
+return
 
-function handles = EditConfigValue(handles,name,value) %#ok<INUSD>
-eval_str = sprintf('handles.params.%s = value;',name);
+
+% -------------------------------------------------------------------------
+function handles = EditConfigValue(handles,name,value)  %#ok
+eval_str = sprintf('handles.basicParamsStruct.%s = value;',name);
 eval(eval_str);
+return
 
+
+% -------------------------------------------------------------------------
 function handles = AddConfig(handles,name,value)
 
-if ischar(value) && ~isempty(str2num(value)) %#ok<ST2NM>
-  value = str2num(value); %#ok<NASGU,ST2NM>
+% If value is a string, convert to a double matrix, if that works
+if ischar(value) && ~isempty(str2num(value)),  %#ok<ST2NM>
+  value = str2num(value);  %#ok
 end
 
-iname = fliplr(name);
-curstruct = handles.params;
-while true,
-  [iname,lastfield] = splitext(iname);
-  if isempty(lastfield)
-    fexist = isfield(curstruct,iname);
-    break;
-  else
-    fexist = isfield(curstruct,fliplr(iname(2:end)));
-    if ~fexist, break;    end
-    curstruct = curstruct.(fliplir(iname(2:end)));
-  end
-end
+% The code below doesn't seem to matter, since curstruct is never passed
+% out of the function, nor is anything that depends upon it.
+% iname = fliplr(name);
+% curstruct = handles.basicParamsStruct;
+% while true,
+%   [iname,lastfield] = splitext(iname);
+%   if isempty(lastfield)
+%     fexist = isfield(curstruct,iname);
+%     break;
+%   else
+%     fexist = isfield(curstruct,fliplr(iname(2:end)));
+%     if ~fexist, break;    end
+%     curstruct = curstruct.(fliplir(iname(2:end)));
+%   end
+% end
 
-eval(sprintf('handles.params.%s = value;',name));
+evalStr=sprintf('handles.basicParamsStruct.%s = value;',name);
+eval(evalStr);
+
+return
 
 
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to figure1 (see GCBO)
+% -------------------------------------------------------------------------
+% --- Executes when user attempts to close figureProjectSetup.
+function figureProjectSetup_CloseRequestFcn(hObject, eventdata, handles)  %#ok
+% hObject    handle to figureProjectSetup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-uiresume(hObject);
+%uiresume(hObject);
+pushbutton_cancel_Callback(hObject, eventdata, handles)
+return
+
+
+% -------------------------------------------------------------------------
+% --- Executes on key press with focus on figureProjectSetup and none of its controls.
+function figureProjectSetup_WindowKeyPressFcn(hObject, eventdata, handles)  %#ok
+% hObject    handle to figureProjectSetup (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+if isequal(eventdata.Key,'f') && isControlLike(eventdata.Modifier)
+  handles.basicParamsStruct.file.moviefilename = 'movie.ufmf';
+  handles.basicParamsStruct.file.trxfilename = 'registered_trx.mat';
+  guidata(hObject,handles);  % write the changes to the figure
+  updateEditsListboxesAndPopupmenus(handles);
+end
+
+return

@@ -66,41 +66,25 @@ strong.regular-font {
 
 <hr class="h2-divider">
 
-<h2><a id="LabelsAndClassifiers">Labels and Classifiers</a></h2>
+<h2><a id="LabelsAndClassifiers">Saving the Classifier, Labels, and Project Parameters</a></h2>
 
-<h3><a id="SavingLabels">Saving Labels</a></h3>
+As described in <a href="NewProject.html">Creating a New Project</a>, all
+data associated with a given behavior classifier is stored in a JAABA 
+project file with the extension <b>.jab</b>, including the project 
+parameters, classifier, and training data labels and locations. These 
+can be saved to the current .jab file by selecting <b>File->Save</b> or 
+to a new .jab file by selecting <b>File->Save As...</b>. 
 
-<p>The current set of manual labels for all videos can be saved by selecting the menu item 
-<b>File -> Save Labels</b>. The labels for each video get saved in a file in its corresponding
-<a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of 
-this file is the same for all experiments, and is specified by the <b>Label File Name</b> during project setup. We will refer to this labels file in each experiment directory as the <i>default location</i>.
-</p>
+<h3><a id="VersioningClassifiers">Creating Different Versions of a Behavior Classifier</a></h2>
 
-
-<h3><a id="LoadingLabels">Loading Labels</a></h3>
-
-<p>If you close JAABA, start a new JAABA session, open this project, and add this experiment, these saved labels
-are automatically loaded. The label filename should be different for each different project, so if you add the 
-same experiment, but select a different project, labels for the current project won't be loaded.
-</p>
-
-<h3><a id="SavingClassifier">Saving the Classifier and Labels</a></h3>
-
-<p>Similarly, <b>File -> Save classifier and labels</b> will save both the current
-classifier and the labels. The labels are saved to their default location. JAABA will prompt you
-each time for the location to save the classifier to.</p>
-
-<h3><a id="LoadingClassifier">Loading a Classifier</a></h3>
-
-<p>A saved classifier can be loaded using the <b>Load</b> and <b>Load w/o exps</b>
-buttons in the Edit Files dialog when starting a new JAABA session. 
-<ul>
-<li> <b>Load</b> will load a selected classifier along with all the videos/experiments that were used to 
-train that classifier. While loading, JAABA will ask if you want to load the labels that were used to train the classifier or to load the labels that are stored in the experiment directories. This provides you the option of reverting to old labels by loading the labels from an old classifier. This helps in experimenting with different labeling strategies because this allows you to have stable fallback version of the behavior detector. </li>
-<li> <b>Load w/o exps</b> loads the classifier without any of the experiments.</li>
-</ul>
-These same choices are also available under the <b>File -> Load Classifier</b> menu. For both <b>Load</b> and <b>Load w/o exps</b> if the window features computation settings differ between classifier and in the project file, JAABA will warn the user that the settings differ and will use the settings from the classifier.
-</p>
+We often find it useful to create different versions of a behavior
+classifier. This can be thought of as creating a "restore point" that
+we can go back to if we do not like the modifications to the classifier
+we make. For example, we might do this if we have a classifier that is
+working fairly well, but we want to see what happens if we add a new
+type of data. To do this, we use the <b>File->Save As...</b> to create a
+new .jab file. Then, we can go back to the previous .jab file if we are
+unhappy with the changes we make. 
 
 <hr class="h2-divider">
 
