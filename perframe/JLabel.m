@@ -961,9 +961,9 @@ for i = axes2,
         %j = argmin(Mlastused.Data);
         Mframenum.Data(j) = handles.guidata.ts(i);
         Mimage.Data(j).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)));
-          % ALT: Added uint8() 2012-09-14.  Without that, threw error when
-          % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
-          % being of class double
+        % ALT: Added uint8() 2012-09-14.  Without that, threw error when
+        % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
+        % being of class double
         if verbose_cache
           disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
@@ -1360,6 +1360,10 @@ if isnan(handles.guidata.zoom_fly_radius(1)),
   handles.guidata.meana = nanmean([handles.data.trx.a]);
   handles.guidata.zoom_fly_radius = handles.guidata.meana*20 + [0,0];
 end
+for previewi = 1:numel(handles.guidata.axes_previews),
+  [handles] = UpdateZoomFlyRadius(handles,previewi,true);
+end
+  
 
 % count the maximum number of flies in any frames
 off = 1-min(handles.data.firstframes_per_exp{expi});
@@ -2691,6 +2695,16 @@ grobjectsEnabledIffMovie = ...
   grobjectsEnabledIffMovie(~isnan(grobjectsEnabledIffMovie));
 set(grobjectsEnabledIffMovie,'Enable',onIff(someExperimentIsCurrent));
 
+if ispc && someExperimentIsCurrent,
+
+  % refresh button text colors
+  h = [handles.guidata.togglebutton_label_behaviors,handles.togglebutton_label_unknown];
+  h = h(ishandle(h));
+  set(h,'ForegroundColor','k');
+  set(h,'ForegroundColor','w');
+  
+end
+
 % These require a movie to currently be open and should be _invisible_
 % if there's no movie.
 grobjectsVisibileIffMovie = [handles.guidata.panel_previews,...
@@ -3059,9 +3073,17 @@ function toggletool_zoomin_OnCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set([handles.toggletool_zoomout,handles.toggletool_pan],'State','off');
-pan(handles.figure_JLabel,'off');
+if strcmpi(get(handles.toggletool_zoomout,'State'),'on'),
+  set(handles.toggletool_zoomout,'State','off');
+end
+if strcmpi(get(handles.toggletool_pan,'State'),'on'),
+  set(handles.toggletool_pan,'State','off');
+end
+if strcmpi(get(handles.guidata.hpan,'Enable'),'on'),
+  pan(handles.figure_JLabel,'off');
+end
 set(handles.guidata.hzoom,'Direction','in','Enable','on');
+
 return
 
 
@@ -3072,6 +3094,10 @@ function toggletool_zoomin_OffCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(handles.guidata.hzoom,'Enable','off');
+for i = 1:numel(handles.guidata.axes_previews),
+  [handles] = UpdateZoomFlyRadius(handles,i);
+end
+
 return
 
 
@@ -3082,6 +3108,10 @@ function toggletool_zoomout_OffCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 set(handles.guidata.hzoom,'Enable','off');
+for i = 1:numel(handles.guidata.axes_previews),
+  [handles] = UpdateZoomFlyRadius(handles,i);
+end
+
 return
 
 
@@ -3091,8 +3121,15 @@ function toggletool_zoomout_OnCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set([handles.toggletool_zoomin,handles.toggletool_pan],'State','off');
-pan(handles.figure_JLabel,'off');
+if strcmpi(get(handles.toggletool_zoomin,'State'),'on'),
+  set(handles.toggletool_zoomin,'State','off');
+end
+if strcmpi(get(handles.toggletool_pan,'State'),'on'),
+  set(handles.toggletool_pan,'State','off');
+end
+if strcmpi(get(handles.guidata.hpan,'Enable'),'on'),
+  pan(handles.figure_JLabel,'off');
+end
 set(handles.guidata.hzoom,'Direction','out','Enable','on');
 return
 
@@ -3122,6 +3159,10 @@ function toggletool_pan_OffCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 pan(handles.figure_JLabel,'off');
+for i = 1:numel(handles.guidata.axes_previews),
+  [handles] = UpdateZoomFlyRadius(handles,i);
+end
+
 return
 
 
@@ -4149,10 +4190,14 @@ return
 
 
 % -------------------------------------------------------------------------
-function KeepFliesInView(handles,indicesOfPreviewAxes)
+function KeepFliesInView(handles,indicesOfPreviewAxes,doforce)
 % Modify the limits of the given preview axes to get all of the current 
 % flies in view, without changing the zoom level.  (I think.  ALT; Feb 3,
 % 2013)
+
+if nargin < 3,
+  doforce = false;
+end
 
 someExperimentIsCurrent=handles.data.getSomeExperimentIsCurrent();
 if ~someExperimentIsCurrent,
@@ -4198,7 +4243,7 @@ for i = indicesOfPreviewAxes,
   yl(2) = yl(2) - dy*border;
   % If any of the flies is out of view, re-center on the fly, without
   % changing the size of the viewport
-  if min(xs)-handles.guidata.meana*2 < xl(1) || min(ys)-handles.guidata.meana*2 < yl(1) || ...
+  if doforce || min(xs)-handles.guidata.meana*2 < xl(1) || min(ys)-handles.guidata.meana*2 < yl(1) || ...
      max(xs)+handles.guidata.meana*2 > xl(2) || max(ys)+handles.guidata.meana*2 > yl(2),
     % center on flies
     newxlim = [max([.5,xs-zoom_fly_radius(1)]), ...
@@ -4886,25 +4931,7 @@ axes_pos = [handles.guidata.guipos.preview_axes_left_border,...
   panel_pos(3) - handles.guidata.guipos.preview_axes_left_border - handles.guidata.guipos.preview_axes_right_border,...
   panel_pos(4) - handles.guidata.guipos.preview_axes_top_border - handles.guidata.guipos.preview_axes_bottom_border];
 set(handles.guidata.axes_previews(previewi),'Position',axes_pos);
-
-max_ry = min(handles.guidata.zoom_fly_radius(1) * axes_pos(4) / axes_pos(3),handles.guidata.movie_height/2);
-max_rx = min(handles.guidata.zoom_fly_radius(2) * axes_pos(3) / axes_pos(4),handles.guidata.movie_width/2);
-ischange = false;
-if max_ry > handles.guidata.zoom_fly_radius(2),
-  handles.guidata.zoom_fly_radius(2) = max_ry;
-  ischange = true;
-elseif max_rx > handles.guidata.zoom_fly_radius(1),
-  handles.guidata.zoom_fly_radius(1) = max_rx;
-  ischange = true;
-end
-if ischange,
-  guidata(hObject,handles);
-  if strcmpi(handles.guidata.preview_zoom_mode,'center_on_fly'),
-    ZoomInOnFlies(handles,previewi);
-  elseif strcmpi(handles.guidata.preview_zoom_mode,'follow_fly'),
-    KeepFliesInView(handles,previewi);
-  end
-end
+[handles] = UpdateZoomFlyRadius(handles,previewi);
 
 slider_pos = get(handles.guidata.slider_previews(previewi),'Position');
 new_slider_pos = [handles.guidata.guipos.preview_slider_left_border,...
@@ -4924,6 +4951,48 @@ new_edit_pos = [new_play_pos(1) + new_play_pos(3) + handles.guidata.guipos.previ
   handles.guidata.guipos.preview_edit_bottom_border,edit_pos(3:4)];
 set(handles.guidata.edit_framenumbers(previewi),'Position',new_edit_pos);
 return
+
+function [handles] = UpdateZoomFlyRadius(handles,previewi,ignorecurr)
+
+if nargin < 3,
+  ignorecurr = false;
+end
+
+axes_pos = get(handles.guidata.axes_previews(previewi),'Position');
+
+if ignorecurr,
+  rxcurr = 0;
+  rycurr = 0;
+else
+  ax = axis(handles.guidata.axes_previews(previewi));
+  dx = ax(2)-ax(1);
+  dy = ax(4)-ax(3);
+  rxcurr = (dx-1)/2;
+  rycurr = (dy-1)/2;
+end
+
+max_ry = max(rycurr,min(handles.guidata.zoom_fly_radius(1) * axes_pos(4) / axes_pos(3),handles.guidata.movie_height/2));
+max_rx = max(rxcurr,min(handles.guidata.zoom_fly_radius(2) * axes_pos(3) / axes_pos(4),handles.guidata.movie_width/2));
+ischange = false;
+if max_ry - handles.guidata.zoom_fly_radius(2) >= 1,
+  handles.guidata.zoom_fly_radius(2) = max_ry;
+  ischange = true;
+elseif max_rx - handles.guidata.zoom_fly_radius(1) >= 1,
+  handles.guidata.zoom_fly_radius(1) = max_rx;
+  ischange = true;
+end
+if max_ry - rycurr >= 1 || max_rx - rxcurr >= 1,
+  ischange = true;
+end
+if ischange,
+  guidata(handles.figure_JLabel,handles);
+  if strcmpi(handles.guidata.preview_zoom_mode,'center_on_fly'),
+    ZoomInOnFlies(handles,previewi);
+  elseif strcmpi(handles.guidata.preview_zoom_mode,'follow_fly'),
+    KeepFliesInView(handles,previewi,true);
+  end
+end
+
 
 
 % --------------------------------------------------------------------
