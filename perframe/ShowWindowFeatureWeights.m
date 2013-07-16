@@ -6,6 +6,12 @@ if isempty(data.classifier),
   warndlg('Classifier is empty'); 
 end
 
+% make sure the window data is in place --added by ALT, Feb 26 2013
+data.MaybeStoreLabelsAndPreLoadWindowDataNow();
+% This sort of self-consistency is the kind of thing JLabelData should 
+% take care of on its own.  Other parties shouldn't need to tell JLabelData
+% to get its house in order.
+
 [hax,hfig,figpos,...
   nfeatures_show] = ...
   myparse(varargin,'axes',[],'figure',[],...
@@ -119,7 +125,12 @@ if didcreateaxes,
   hticks = text(tLabelsX,tLabelsY,print_names,'Parent',hax(2),'Interpreter','none');
   axes_pos = get(hax,'Position');
   set(hticks,'Units','normalized');
-  maxx1 = max(cellfun(@(x) x(3), get(hticks,'Extent')));
+  hticksExtent=get(hticks,'Extent');
+  if iscell(hticksExtent) ,
+    maxx1 = max(cellfun(@(x) x(3), get(hticks,'Extent')));
+  else
+    maxx1=hticksExtent(3);
+  end
   % put in figure's units
   maxx = axes_pos{2}(1) + axes_pos{2}(3) + (maxx1+0.05)*axes_pos{2}(3);
   

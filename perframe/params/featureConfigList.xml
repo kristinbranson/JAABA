@@ -2,8 +2,8 @@
 <params>
 <flies file="params/featureConfig.xml" animal="fly"/>
 <flies_wing file="params/featureConfigWings.xml" animal="wingedfly"/>
-<eyrun_flies file="params/featureConfigEyrun2.xml" animal="wingedfly"/>
-<!--mice file="params/featureConfig.xml" animal="fly"/-->
+<eyrun_flies file="params/featureConfigEyrun.xml" animal="wingedfly"/>
+<mice file="params/featureConfig_mice.xml" animal="fly"/>
 <eric_flies file="params/featureConfigEric.xml" animal="fly"/>
 <larvae file="params/featureConfigLarvae.xml" animal="larva"/>
 <larvae_mwt file="params/featureConfigMWTContour.xml" animal="larvacontour"/>
@@ -12,5 +12,6 @@
 <larvae_louis file="params/featureConfigLarvaeLouis.xml" animal="larvacontour"/>
 <vivek_mice file="params/featureConfigVivekMice.xml" animal="fly"/>
 <adam_flies file="params/featureConfig_adam.xml" animal="fly"/>
+<spacetime_flies file="params/featureConfig_spacetime.xml" animal="fly"/>
 
 </params>

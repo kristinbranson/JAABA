@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="5" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="10" 
+    nwindow_radii="2" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+
+  <perframe>
+
+    <FArea trans_types="none,relative" type="appearance"/>
+    <FLength trans_types="none,relative" type="appearance"/>
+    <a_mm trans_types="none,relative" type="appearance"/> 
+    <acc trans_types="none,abs,flip,relative" type="locomotion"/>
+    <area trans_types="none,relative" type="appearance"/>
+    <b_mm trans_types="none,relative" type="appearance"/>
+    <chase trans_types="none" type="behaviorlabel"/>
+    <court trans_types="none" type="behaviorlabel"/>
+    <der_distc trans_types="none,abs" type="social"/>
+    <der_disth trans_types="none,abs" type="social"/>
+    <der_disthc12 trans_types="none,abs" type="social"/>
+    <der_disthc21 trans_types="none,abs" type="social"/>
+    <der_obj1_headdir trans_types="flip,abs" type="locomotion"/>
+    <der_obj1_movedir trans_types="flip,abs" type="locomotion"/>
+    <der_obj1_orient trans_types="flip,abs" type="locomotion"/>
+    <der_obj2_headdir trans_types="flip,abs" type="locomotion"/>
+    <der_obj2_movedir trans_types="flip,abs" type="locomotion"/>
+    <der_obj2_orient trans_types="flip,abs" type="locomotion"/>
+    <distc trans_types="none,relative" type="social"/>
+    <disth trans_types="none,relative" type="social"/>
+    <disth1t2 trans_types="none,relative" type="social"/>
+    <disth2t1 trans_types="none,relative" type="social"/>
+    <distt trans_types="none,relative" type="social"/>
+    <headdir trans_types="none" type="position"/>
+    <jump trans_types="none" type="behaviorlabel"/>
+    <lab trans_types="none" type="unknown"/>
+    <length trans_types="none,relative" type="appearance"/> 
+    <lunge trans_types="none" type="behaviorlabel"/>
+    <mea trans_types="none" type="appearance"/>
+    <movedir trans_types="none" type="position"/>
+    <obj1to2mvdirdiff trans_types="none,flip,abs" type="social"/>
+    <obj2to1mvdirdiff trans_types="none,flip,abs" type="social"/>
+    <obj_dirdiff trans_types="none,flip,abs" type="social"/>
+    <obj_mvdirdiff trans_types="none,flip,abs" type="social"/>
+    <orient trans_types="none" type="position"/>
+    <phil trans_types="none" type="wing"/>
+    <phir trans_types="none" type="wing"/>
+    <pos_change trans_types="none" type="locomotion"/>
+    <pos_x trans_types="none" type="position"/>
+    <pos_y trans_types="none" type="position"/>
+    <r trans_types="none" type="arena,position"/>
+    <vel trans_types="none" type="locomotion"/>
+    <wing trans_types="none" type="behaviorlabel"/>
+    <wingl trans_types="none" type="behaviorlabel"/>
+    <wingll trans_types="none" type="wing"/>
+    <winglr trans_types="none" type="wing"/>
+    <wingr trans_types="none" type="behaviorlabel"/>
+    <x_mm trans_types="none" type="position"/>
+    <y_mm trans_types="none" type="position"/>
+    
+  </perframe>
+</params>
+

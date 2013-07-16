@@ -58,6 +58,23 @@ elseif strcmpi(ext,'.mmf'),
   readframe = mmf_get_readframe_fcn(headerinfo,varargin{:});
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
+elseif strcmpi(ext,'.mat'),
+
+  videofiletype = load(filename,'videofiletype');
+  switch videofiletype,
+    
+    case 'SingleLarvaTracker',
+      videodata = load(filename);
+      readframe = @(f) ReadSingleLarvaTrackerFrame(f,videodata.firstframeim,videodata.imraw,videodata.finalbbox,videodata.fps,varargin{:});
+      nframes = numel(imraw);
+      fid = 0;
+      [nr,nc,~] = size(firstframeim);
+      headerinfo = struct('nr',nr,'nc',nc,'nframes',nframes,'bgcenter',firstframeim,...
+        'type','SingleLarvaTracker');
+    otherwise
+      error('Do not know how to parse mat file of type %s',videofiletype);
+  end
+  
 elseif strcmpi(ext,'.seq'),
   [indexfilename,seqtype] = myparse(varargin,'indexfilename',0,'seqtype',0);
   

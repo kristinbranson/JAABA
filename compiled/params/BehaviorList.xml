@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <behaviors>
-   <FlyBowl_Chase configfile="params/FlyBowl_Chase_params.xml"/>
+   <larvaespecies_crawling configfile="params/JLabelParams_LarvaeSpecies_Crawling.xml"/>
+   <FlyBowl_Chase configfile="params/JLabelParams_FlyBowl_Chase.xml"/>
+   <FlyBowl_Jump configfile="params/JLabelParams_FlyBowl_Jump.xml"/>
+   <FlyBowl_Righting configfile="params/JLabelParams_FlyBowl_Righting.xml"/>
+   <FlyBowl_Walk configfile="params/JLabelParams_FlyBowl_Walk.xml"/>
+   <FlyBowl_Touch configfile="params/JLabelParams_FlyBowl_Touch.xml"/>
+   <FlyBowl_Crabwalk configfile="params/JLabelParams_FlyBowl_Crabwalk.xml"/>
+   <FlyBowl_WingGrooming configfile="params\JLabelParams_FlyBowl_WingGrooming.xml"/>
+   <FlyBowl_Backup configfile="C:\Code\Jdetect\perframe\params\JLabelParams_FlyBowl_Backup.xml"/>
+   <FlyBowl_Stop configfile="params/JLabelParams_FlyBowl_Stop.xml"/>
+   <FlyBowl_TailPivotTurn configfile="params/JLabelParams_FlyBowl_TailPivotTurn.xml"/>
+   <FlyBowl_Chase_ActiveLearningDemo configfile="params\FlyBowl_ChaseActive_params.xml"/>
+   <RoianMouse_Walking configfile="params\RoianMouse_Walking_params.xml"/>
+   <RoianMouse_MaleFollowing configfile="params\RoianMouse_MaleFollowing_params.xml"/>
+   <RoianMouse_Association configfile="params\RoianMouse_Association_params.xml"/>
+   <FlyBowl_Clustering configfile="params\JLabelParams_FlyBowl_Clustering.xml"/>
+   <larvamwt_test configfile="params\larvamwt_test_params.xml"/>
+   <cadabra_test configfile="params\JLabelParams_Eric.xml"/>
+   <FlyBowl_WingTest configfile="params\FlyBowl_WingTest_params.xml"/>
+   <FlyBowl_WingExtension configfile="params\FlyBowl_WingExtension_params.xml"/>
 </behaviors>

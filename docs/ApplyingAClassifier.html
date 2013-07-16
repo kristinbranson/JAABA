@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+
+</head>
+</body>
+<center><h1> Applying a <a href="index.html">JAABA</a> Classifier to a New Video</h1></center>
+
+<p>After you have <a href="Training.html">trained a behavior classifier</a>, 
+there are several ways to apply it to automatically classify the behaviors
+of all animals in novel videos. This can be done <a href="#UsingJAABA">within JAABA</a>, <a href="#UsingJAABAPlot">with JAABAPlot</a>, or from the MATLAB command-line using <a href="#JAABADetect"><code>JAABADetect</code></a>. </p>
+
+<p>The classifier's automatic predictions for a given experiment are output
+to a <a href="#ScoresFile">scores .mat file</a> within the experiment
+directory. </p>
+
+<hr class="h2-divider">
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#ApplyingAClassifier">Applying a Behavior Classifier</a>
+<ul>
+<li><a href="#UsingJAABA">Using JAABA</a></li>
+<li><a href="#UsingJAABAPlot">Using JAABAPlot</a></li>
+<li><a href="#JAABADetect">Using <code>JAABADetect</code></a></li>
+</ul>
+</li>
+<li><a href="#ScoresFile">Scores File Structure</a></li>
+<li><a href="#LoadingPredictions">Loading Predictions</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="ApplyingAClassifier">Applying a Behavior Classifier</a></h2>
+
+<h3><a id="UsingJAABA">Using JAABA</a></h3>
+
+Within JAABA, you can apply the classifier associated with the current <a href="NewProject.html">JAABA project</a> using the <b>Classifier->Predict</b> menu:
+<ul>
+<li><b>->Current Fly</b>: The entire trajectory of a single animal. The
+predictions are <b>not</b> saved to a <a href="#ScoresFile">scores file</a>,
+and are only viewable within the current JAABA session.</li>
+<li><b>->Current Experiment</b>: All animals in the current experiment. Results <b>will</b> be store to a <a href="#ScoresFile">scores file</a>.</li>
+<li><b>->All Experiments</b>: All experiments in the current project. Results <b>will</b> be store to <a href="#ScoresFile">scores files</a>.</li>
+</ul>
+
+<h3><a id="UsingJAABAPlot">Using JAABAPlot</a></h3>
+
+You can use <a href="PlottingResults.html#LoadingClassifiers">JAABAPlot</a>
+to apply behavior classifiers in batch to a set of experiments. As described
+in <a href="PlottingResults.html">Plotting JAABA's Output</a>,
+this can be done by 
+<ul>
+<li>Adding the experiment(s) of interest to JAABAPlot, see <a href="PlottingResults.html#LoadingExperiments">Loading Experiments</a> for more information.</li>
+<li>Adding the classifier(s) of interest to JAABAPlot, see <a href="PlottingResults.html#LoadingClassifiers"</a> for more information. </li>
+<li>Pushing the <b>Classify</b> button. The automatic classifications
+will be stored to the <a href="#ScoresFile">scores files</a> within
+the experiment directory.</li>
+</ul>
+
+<h3><a id="JAABADetect">Using <code>JAABADetect</code></a></h3>
+
+<p>From the MATLAB command-line, you can run the function <code>JAABADetect</code>
+to classify input experiment(s) with input classifier(s). To do this:
+<ul>
+<li>Change into the directory <code>JAABA/perframe</code> within MATLAB.</li>
+<li>Run <code>SetUpJAABAPath</code> to add necessary directories to the MATLAB path.</li>
+<li>Run <code>JAABADetect</code>.</li>
+</ul>
+This will result in the scores files being saved to the experiment 
+directories. 
+</p>
+
+<p>JAABADetect usage:<br>
+<xmp>JAABADetect(expdirs,'jabfiles',jabfiles,...)
+JAABADetect(expdirs,'jabfilelist',jabfilelist,...)</xmp>
+
+Inputs:
+<ul>
+<li><code>expdirs</code>: Path(s) to experiment directories on which to
+run the classifier(s). This should either be a string (one experiment) 
+or a cell array of strings (multiple experiments). </li>
+<li><code>jabfiles</code>: Path(s) to JAABA project(s) corresponding to the 
+classifier(s) to apply. This should be either a string (one classifier)
+or a cell array of strings (multiple classifiers). </li>
+<li><code>jabfilelist</code>: Path to a file containing a list of the JAABA
+project(s) corresponding to the classifier(s) to apply. This file should
+have one JAABA project per line. 
+</ul>
+
+Optional inputs are given using the form <code>'name',value</code>:
+<ul>
+<li><code>'forcecompute'</code>: Whether to run the classifier even if the
+scores files already exist. Default value: <code>false</code>.</li>
+<li><code>'debug'</code>: Whether to just test running the classifier
+and not actually save any files. Default value: <code>false</code>.</li>
+</ul>
+
+Example usage:
+<xmp>JAABADetect('/home/bransonk/JAABA/demo/SampleChaseExperiment','jabfiles','/home/bransonk/JAABA/demo/SampleChaseJAABAProject.jab')</xmp>
+
+<hr class="h2-divider">
+
+<h2><a id="ScoresFile">Scores File Structure</a></h2>
+
+The output of the JAABA classifier associated with a given JAABA project
+is stored to a <b>scores .mat file</b> within the 
+<a href="DataFormatting.html">experiment directory</a>. This is a MATLAB
+mat file containing the following variables:
+<ul>
+<li><code>allScores</code>: Main output struct with the following fields:
+<ul>
+<li><code>scores</code>: Raw, continuous output of the classifier. This is
+a cell array with one entry for each animal. 
+<code>allScores.scores{i}(t)</code> is the output of the classifier for 
+animal <code>i</code> at frame <code>t</code>. This should be 
+<code>NaN</code> for frames for which there is no data (if the animal's 
+trajectory does not last the entire length of the movie). This will be 
+a positive number if the animal is predicted to be performing the behavior
+in this frame and a negative number if it is not. The magnitude of this
+score reflects the confidence of the classifier. </li>
+<li><code>tStart</code>: The first frame on which each animal is tracked. 
+This is an array with an element for each animal trajectory in the video. </li>
+<li><code>tEnd</code>: The last frame on which each animal is tracked. 
+This is an array with an element for each animal trajectory in the video. </li>
+<li><code>postprocessed</code>: The thresholded classifications for each 
+animal and each frame. This is a cell array with an element for each animal.
+<code>allScores.postprocessed{i}(t)</code> is the behavior classification 
+for animal <code>i</code> at frame <code>t</code>. It is 
+<code>NaN</code> for frames for which there is no data (if the animal's 
+trajectory does not last the entire length of the movie). It is 1 if the 
+animal is predicted to be performing the behavior in this frame and 0
+if it is not. </li>
+<li><code>postprocessparams</code>: Parameters for postprocessing the
+continuous scores into binary classififications. </li>
+<li><code>t0s</code>: Frames on which bouts of the behavior start. This is
+a cell array with an element for each animal trajectory. 
+<code>allScores.t0s{i}(j)</code> is the frame on which bout 
+<code>j</code> starts for animal trajectory <code>i</code>.</li>
+<li><code>t1s</code>: Frames on which bouts of the behavior end. This is
+a cell array with an element for each animal trajectory. 
+<code>allScores.t1s{i}(j)</code> is the frame on which bout 
+<code>j</code> ends for animal trajectory <code>i</code>. Because
+we use the convention that the animal is performing the behavior from 
+frame <code>t</code> to <code>t+1</code> if it is labeled/classified as
+performing the behavior at frame <code>t</code>, 
+<code>allScores.postprocessed{i}(allScores.t1s{i}(j))</code> will be 0
+and 
+<code>allScores.postprocessed{i}(allScores.t1s{i}(j))</code> will be 1.</li>
+<li><code>scoreNorm</code>: Normalization factor for moving scores 
+into the range of -1 to 1, after thresholding. </li>
+</ul>
+</li>
+<li><code>timestamp</code>: Timestamp of the classifier used to create
+the scores file.</li>
+<li><code>version</code>: Version of JAABA used when creating the
+scores tils.</li>
+<li><code>jabFileNameAbs</code>: Path to the JAABA project corresponding
+to the behavior classifier used to create the scores file.</li>
+</ul>
+
+<hr class="h2-divider">
+
+<h2><a id="LoadingPredictions">Loading Predictions</a></h2>
+
+<p> Previously saved predictions can be loaded from file into the current 
+JAABA session. These loaded scores will be 
+shown in the bottom portion of the Automatic Timeline if <b>Loaded</b> is selected from the pop-up menu 
+on the left. Predictions can be loaded by selecting any of the options under the menu <b>File -> Import Scores</b>:
+<ul>
+<li> <b>File -> Import Scores -> For current experiment from default location</b>: Loads the scores for the current
+experiment from the default scores file within its corresponding 
+<a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of the 
+scores file within the experiment directory is the same for all experiments, and is specified 
+during project setup as <b>Score/Output File Name</b>.</li> 
+<li> <b>File -> Import Scores -> For current experiment from different location</b>: Prompts the user
+for a file location, and loads the scores for the current experiment from that file.</li>
+<li> <b>File -> Import Scores -> For all experiments from default location</b>: Loads the scores for all
+experiments from the default scores file within each corresponding 
+<a href="DataFormatting.html#ExperimentDirectoryStructure">experiment directory</a>. The name of the 
+scores file within the experiment directory is the same for all experiments, and is specified
+during project setup as <b>Score/Output File Name</b>.</li> 
+</ul>
+
+</body>
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated July 9, 2013</i>
+</center>
+</footer>
+
+
+</html>

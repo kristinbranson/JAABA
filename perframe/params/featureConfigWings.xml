@@ -141,7 +141,7 @@
     
     <dnose2tail trans_types="none,relative" type="social"/>
     
-    <dphi trans_types="none,abs" type="position,locomotion"/>
+    <dphi trans_types="none,abs" type="locomotion"/>
     
     <dtheta trans_types="flip,abs" type="locomotion"/>
     
