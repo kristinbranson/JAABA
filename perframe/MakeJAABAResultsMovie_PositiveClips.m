@@ -126,8 +126,8 @@ scores = cell(1,nids);
 labels = cell(1,nids);
 for j = 1:nids,
   scores{j} = tmp.allScores.scores{j}(trxfirstframes(j):trxendframes(j));
-  labels{j} = scores{j} > 0;
-end
+  labels{j} = tmp.allScores.postprocessed{j}(trxfirstframes(j):trxendframes(j))>0;
+ end
 
 %% compute statistics of bouts
 
