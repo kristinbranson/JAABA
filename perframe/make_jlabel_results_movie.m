@@ -1,4 +1,4 @@
-function [handles,aviname] = make_jlabel_results_movie(handles,t0,t1,varargin)
+function [handles,aviname,height,width] = make_jlabel_results_movie(handles,t0,t1,varargin)
 
 clipsdir = myparse(varargin,'clipsdir','');
 
