@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.zip" build-checksum="2506613624" preferred-package-location="C:\Code\Jdetect\perframe">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.zip" build-checksum="3513647213" preferred-package-location="C:\Code\Jdetect\perframe">
     <param.project.name>C:\Code\Jdetect\perframe\JAABA.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA</param.appname>
@@ -94,6 +94,7 @@
       <file>C:\Code\Jdetect\filehandling\GetPCShortcutFileActualPath.m</file>
       <file>C:\Code\Jdetect\filehandling\getperframepropnames.m</file>
       <file>C:\Code\Jdetect\filehandling\load_tracks.m</file>
+      <file>C:\Code\Jdetect\filehandling\MakeCtraxResultsMovieWrapper.m</file>
       <file>C:\Code\Jdetect\filehandling\mmf_get_readframe_fcn.m</file>
       <file>C:\Code\Jdetect\filehandling\mmf_read_frame.m</file>
       <file>C:\Code\Jdetect\filehandling\mmf_read_header.m</file>
@@ -102,7 +103,12 @@
       <file>C:\Code\Jdetect\filehandling\mmfwriter2.m</file>
       <file>C:\Code\Jdetect\filehandling\mmfwritertrans.m</file>
       <file>C:\Code\Jdetect\filehandling\mtrax2fixedtrx.m</file>
+      <file>C:\Code\Jdetect\filehandling\parsejpg8.mexa64</file>
+      <file>C:\Code\Jdetect\filehandling\parsejpg8.mexglx</file>
+      <file>C:\Code\Jdetect\filehandling\parsejpg8.mexmaci</file>
+      <file>C:\Code\Jdetect\filehandling\parsejpg8.mexw32</file>
       <file>C:\Code\Jdetect\filehandling\parsejpg8.mexw64</file>
+      <file>C:\Code\Jdetect\filehandling\playfmf.fig</file>
       <file>C:\Code\Jdetect\filehandling\playfmf.m</file>
       <file>C:\Code\Jdetect\filehandling\plot2svg.m</file>
       <file>C:\Code\Jdetect\filehandling\r_readseqinfo.m</file>
@@ -140,22 +146,35 @@
       <file>C:\Code\Jdetect\filehandling\uigetdir2.m</file>
       <file>C:\Code\Jdetect\filehandling\videoioreadframe.m</file>
       <file>C:\Code\Jdetect\misc\absolutepath.m</file>
+      <file>C:\Code\Jdetect\misc\absolutifyFileName.m</file>
+      <file>C:\Code\Jdetect\misc\accummatrix.mexa64</file>
+      <file>C:\Code\Jdetect\misc\accummatrix.mexmaci64</file>
+      <file>C:\Code\Jdetect\misc\accummatrix.mexw32</file>
       <file>C:\Code\Jdetect\misc\accummatrix.mexw64</file>
+      <file>C:\Code\Jdetect\misc\adjustButtonColorsIfMac.m</file>
+      <file>C:\Code\Jdetect\misc\adjustColorsIfMac.m</file>
       <file>C:\Code\Jdetect\misc\angle_subtract.m</file>
       <file>C:\Code\Jdetect\misc\angledist.m</file>
       <file>C:\Code\Jdetect\misc\argmax.m</file>
       <file>C:\Code\Jdetect\misc\argmin.m</file>
+      <file>C:\Code\Jdetect\misc\arrayFilter.m</file>
       <file>C:\Code\Jdetect\misc\assignmentallpossible.m</file>
       <file>C:\Code\Jdetect\misc\assignmentoptimal.m</file>
       <file>C:\Code\Jdetect\misc\assignmentsuboptimal1.m</file>
       <file>C:\Code\Jdetect\misc\assignmentsuboptimal2.m</file>
       <file>C:\Code\Jdetect\misc\axes2cov.m</file>
       <file>C:\Code\Jdetect\misc\axisalmosttight.m</file>
+      <file>C:\Code\Jdetect\misc\baseNameFromFileName.m</file>
       <file>C:\Code\Jdetect\misc\bwrotate.m</file>
+      <file>C:\Code\Jdetect\misc\cell2str.m</file>
+      <file>C:\Code\Jdetect\misc\cellFilter.m</file>
+      <file>C:\Code\Jdetect\misc\centerOnParentFigure.m</file>
       <file>C:\Code\Jdetect\misc\change_value.m</file>
       <file>C:\Code\Jdetect\misc\changeaxisunits.m</file>
       <file>C:\Code\Jdetect\misc\changelogaxisunits.m</file>
       <file>C:\Code\Jdetect\misc\choose_orientations.m</file>
+      <file>C:\Code\Jdetect\misc\civilizedStringFromCellArrayOfStrings.m</file>
+      <file>C:\Code\Jdetect\misc\collectScoreFeatures.m</file>
       <file>C:\Code\Jdetect\misc\coloredge.m</file>
       <file>C:\Code\Jdetect\misc\colormap_image.m</file>
       <file>C:\Code\Jdetect\misc\colorspace.m</file>
@@ -164,7 +183,12 @@
       <file>C:\Code\Jdetect\misc\conic_project_hack.m</file>
       <file>C:\Code\Jdetect\misc\conic_properties.m</file>
       <file>C:\Code\Jdetect\misc\conic_standard_form.m</file>
+      <file>C:\Code\Jdetect\misc\convertToTableCore.m</file>
+      <file>C:\Code\Jdetect\misc\cookLabels.m</file>
+      <file>C:\Code\Jdetect\misc\cookMarkerParams.m</file>
+      <file>C:\Code\Jdetect\misc\cookTrxGraphicParams.m</file>
       <file>C:\Code\Jdetect\misc\coords2normfig.m</file>
+      <file>C:\Code\Jdetect\misc\CopyClassProperties.m</file>
       <file>C:\Code\Jdetect\misc\cornerfinder.m</file>
       <file>C:\Code\Jdetect\misc\cornerfinder_saddle_point.m</file>
       <file>C:\Code\Jdetect\misc\cov2ell.m</file>
@@ -204,8 +228,11 @@
       <file>C:\Code\Jdetect\misc\ellipsepixels.m</file>
       <file>C:\Code\Jdetect\misc\ellipsepoints.m</file>
       <file>C:\Code\Jdetect\misc\ellipseupdate.m</file>
+      <file>C:\Code\Jdetect\misc\everythingFileFromOldStyleProjectAndClassifierFiles.m</file>
       <file>C:\Code\Jdetect\misc\exportfig.m</file>
       <file>C:\Code\Jdetect\misc\fakeaxislabels.m</file>
+      <file>C:\Code\Jdetect\misc\featureLexiconFromFeatureLexiconName.m</file>
+      <file>C:\Code\Jdetect\misc\featureNamesNewFromOld.m</file>
       <file>C:\Code\Jdetect\misc\fernsClfAddFeature.m</file>
       <file>C:\Code\Jdetect\misc\fernsClfAddTrainingData.m</file>
       <file>C:\Code\Jdetect\misc\fernsClfApply.m</file>
@@ -218,7 +245,10 @@
       <file>C:\Code\Jdetect\misc\fernsClfTrain.m</file>
       <file>C:\Code\Jdetect\misc\fernsClfTrain2.m</file>
       <file>C:\Code\Jdetect\misc\fernsInds_test.m</file>
+      <file>C:\Code\Jdetect\misc\fileBaseName.m</file>
+      <file>C:\Code\Jdetect\misc\fileNameRelFromAbs.m</file>
       <file>C:\Code\Jdetect\misc\filenamesplit.m</file>
+      <file>C:\Code\Jdetect\misc\findAncestorFigure.m</file>
       <file>C:\Code\Jdetect\misc\findfirstdim.m</file>
       <file>C:\Code\Jdetect\misc\fitcircle_manual.m</file>
       <file>C:\Code\Jdetect\misc\furthestfirst.m</file>
@@ -229,34 +259,46 @@
       <file>C:\Code\Jdetect\misc\get_new_color.m</file>
       <file>C:\Code\Jdetect\misc\getcovariance.m</file>
       <file>C:\Code\Jdetect\misc\getellipse.m</file>
+      <file>C:\Code\Jdetect\misc\getFeatureLexiconListsFromXML.m</file>
       <file>C:\Code\Jdetect\misc\getframe_cleanup.m</file>
       <file>C:\Code\Jdetect\misc\getframe_initialize.m</file>
       <file>C:\Code\Jdetect\misc\getframe_invisible.m</file>
       <file>C:\Code\Jdetect\misc\getframe_invisible_nocheck.m</file>
+      <file>C:\Code\Jdetect\misc\getGuidataField.m</file>
+      <file>C:\Code\Jdetect\misc\getLabelsFromExpDirs.m</file>
       <file>C:\Code\Jdetect\misc\getstructarrayfield.m</file>
       <file>C:\Code\Jdetect\misc\gmm_lines_2d.m</file>
       <file>C:\Code\Jdetect\misc\gold.m</file>
       <file>C:\Code\Jdetect\misc\gridaxes.m</file>
+      <file>C:\Code\Jdetect\misc\hatchfill.m</file>
       <file>C:\Code\Jdetect\misc\histn.m</file>
       <file>C:\Code\Jdetect\misc\houghcirclepeaks.m</file>
+      <file>C:\Code\Jdetect\misc\houghcircles.mexa64</file>
+      <file>C:\Code\Jdetect\misc\houghcircles.mexw32</file>
       <file>C:\Code\Jdetect\misc\hungarian.m</file>
       <file>C:\Code\Jdetect\misc\imscwrite.m</file>
       <file>C:\Code\Jdetect\misc\isabspath.m</file>
+      <file>C:\Code\Jdetect\misc\isControlLike.m</file>
       <file>C:\Code\Jdetect\misc\isdisplay.m</file>
+      <file>C:\Code\Jdetect\misc\isFileNameAbsolute.m</file>
       <file>C:\Code\Jdetect\misc\isglobalpath.m</file>
       <file>C:\Code\Jdetect\misc\isnaturalnumber.m</file>
       <file>C:\Code\Jdetect\misc\IsNiceFileName.m</file>
+      <file>C:\Code\Jdetect\misc\isnonempty.m</file>
       <file>C:\Code\Jdetect\misc\kjet.m</file>
       <file>C:\Code\Jdetect\misc\label_edges.m</file>
       <file>C:\Code\Jdetect\misc\label_open_edges.m</file>
       <file>C:\Code\Jdetect\misc\laprint.m</file>
+      <file>C:\Code\Jdetect\misc\loadAnonymous.m</file>
       <file>C:\Code\Jdetect\misc\logscale_colormap.m</file>
       <file>C:\Code\Jdetect\misc\mahdist.m</file>
       <file>C:\Code\Jdetect\misc\matcrop_withpad.m</file>
       <file>C:\Code\Jdetect\misc\matlabclass2dtypechar.m</file>
       <file>C:\Code\Jdetect\misc\matset_withcrop.m</file>
+      <file>C:\Code\Jdetect\misc\mean_cov.m</file>
       <file>C:\Code\Jdetect\misc\meanfilter.m</file>
       <file>C:\Code\Jdetect\misc\meanignorenan.m</file>
+      <file>C:\Code\Jdetect\misc\mergeStructures.m</file>
       <file>C:\Code\Jdetect\misc\mixgetcovariance.m</file>
       <file>C:\Code\Jdetect\misc\mod1.m</file>
       <file>C:\Code\Jdetect\misc\modrange.m</file>
@@ -279,17 +321,22 @@
       <file>C:\Code\Jdetect\misc\mytitle.m</file>
       <file>C:\Code\Jdetect\misc\mywaitbar.m</file>
       <file>C:\Code\Jdetect\misc\myweb_nocheck.m</file>
+      <file>C:\Code\Jdetect\misc\naturalLanguageListFromStringList.m</file>
       <file>C:\Code\Jdetect\misc\nonmaxsuppts.m</file>
+      <file>C:\Code\Jdetect\misc\nop.m</file>
       <file>C:\Code\Jdetect\misc\normalizep.m</file>
       <file>C:\Code\Jdetect\misc\normfig2coords.m</file>
+      <file>C:\Code\Jdetect\misc\offIff.m</file>
       <file>C:\Code\Jdetect\misc\oned_binary_imdilate.m</file>
       <file>C:\Code\Jdetect\misc\onedim2class.m</file>
       <file>C:\Code\Jdetect\misc\onedim2interval.m</file>
       <file>C:\Code\Jdetect\misc\onedim2kclass.m</file>
       <file>C:\Code\Jdetect\misc\onedimkmeans.m</file>
+      <file>C:\Code\Jdetect\misc\onIff.m</file>
       <file>C:\Code\Jdetect\misc\padgrab.m</file>
       <file>C:\Code\Jdetect\misc\padgrab2.m</file>
       <file>C:\Code\Jdetect\misc\plot_arrow.m</file>
+      <file>C:\Code\Jdetect\misc\pointerToWatch.m</file>
       <file>C:\Code\Jdetect\misc\polarerrorpatch.m</file>
       <file>C:\Code\Jdetect\misc\polarimagesc.m</file>
       <file>C:\Code\Jdetect\misc\printmatrix.m</file>
@@ -297,6 +344,8 @@
       <file>C:\Code\Jdetect\misc\read_array.m</file>
       <file>C:\Code\Jdetect\misc\read_array_int.m</file>
       <file>C:\Code\Jdetect\misc\read_smatrix.m</file>
+      <file>C:\Code\Jdetect\misc\replaceScoreFeatureClassifierFileNames.m</file>
+      <file>C:\Code\Jdetect\misc\restorePointer.m</file>
       <file>C:\Code\Jdetect\misc\reverse_cumsum.m</file>
       <file>C:\Code\Jdetect\misc\reverse_vector.m</file>
       <file>C:\Code\Jdetect\misc\rotatearound.m</file>
@@ -304,13 +353,17 @@
       <file>C:\Code\Jdetect\misc\rows.m</file>
       <file>C:\Code\Jdetect\misc\samplep.m</file>
       <file>C:\Code\Jdetect\misc\samplepnoreplace.m</file>
+      <file>C:\Code\Jdetect\misc\saveAnonymous.m</file>
       <file>C:\Code\Jdetect\misc\saveaseps.m</file>
       <file>C:\Code\Jdetect\misc\saveaspdf.m</file>
       <file>C:\Code\Jdetect\misc\savefig.m</file>
       <file>C:\Code\Jdetect\misc\set_interval_ends.m</file>
       <file>C:\Code\Jdetect\misc\setcurrentfigure.m</file>
       <file>C:\Code\Jdetect\misc\setdiag.m</file>
+      <file>C:\Code\Jdetect\misc\setDifferencesScoreFeatures.m</file>
       <file>C:\Code\Jdetect\misc\SetFigureSize.m</file>
+      <file>C:\Code\Jdetect\misc\setGuidataField.m</file>
+      <file>C:\Code\Jdetect\misc\setLabelButtonColor.m</file>
       <file>C:\Code\Jdetect\misc\solve_tril.m</file>
       <file>C:\Code\Jdetect\misc\split_path_and_filename.m</file>
       <file>C:\Code\Jdetect\misc\splitext.m</file>
@@ -327,8 +380,10 @@
       <file>C:\Code\Jdetect\misc\test_choose_orientations.m</file>
       <file>C:\Code\Jdetect\misc\test_invisible_videoWriter.m</file>
       <file>C:\Code\Jdetect\misc\testassignment.m</file>
+      <file>C:\Code\Jdetect\misc\testNewFileCreationInJLabel.m</file>
       <file>C:\Code\Jdetect\misc\thresholdBSE.m</file>
       <file>C:\Code\Jdetect\misc\treeprob.m</file>
+      <file>C:\Code\Jdetect\misc\trxGraphicParamsFromAnimalType.m</file>
       <file>C:\Code\Jdetect\misc\uigetdir2.m</file>
       <file>C:\Code\Jdetect\misc\uigetfilehelp.m</file>
       <file>C:\Code\Jdetect\misc\uipickfiles.m</file>
@@ -343,33 +398,35 @@
       <file>C:\Code\Jdetect\misc\weighted_mean_cov.m</file>
       <file>C:\Code\Jdetect\misc\weighted_prctile.m</file>
       <file>C:\Code\Jdetect\misc\weightedkmeans.m</file>
+      <file>C:\Code\Jdetect\misc\whichstr.m</file>
+      <file>C:\Code\Jdetect\misc\whichstri.m</file>
       <file>C:\Code\Jdetect\misc\write_array.m</file>
       <file>C:\Code\Jdetect\misc\xticklabel_rotate.m</file>
       <file>C:\Code\Jdetect\misc\zoomin.m</file>
-      <file>${PROJECT_ROOT}\@Trx</file>
-      <file>${PROJECT_ROOT}\ClassifierOptions.fig</file>
-      <file>${PROJECT_ROOT}\ClassifierOptions.m</file>
-      <file>${PROJECT_ROOT}\CompressionPreferences.fig</file>
       <file>${PROJECT_ROOT}\compute_perframe_features</file>
-      <file>${PROJECT_ROOT}\ConfidenceThresholds.fig</file>
-      <file>${PROJECT_ROOT}\JAABASplashScreen.fig</file>
-      <file>${PROJECT_ROOT}\JAABASplashScreen.m</file>
-      <file>${PROJECT_ROOT}\janelia_logo.png</file>
-      <file>${PROJECT_ROOT}\JLabel.fig</file>
-      <file>${PROJECT_ROOT}\JLabelEditFiles.fig</file>
       <file>${PROJECT_ROOT}\larva_compute_perframe_features</file>
-      <file>${PROJECT_ROOT}\mkshortcut.vbs</file>
-      <file>${PROJECT_ROOT}\NavigationPreferences.fig</file>
-      <file>${PROJECT_ROOT}\NewProjectSettings.fig</file>
-      <file>${PROJECT_ROOT}\ParallelComputingConfiguration_Local_Win4.settings</file>
-      <file>${PROJECT_ROOT}\PostProcess.fig</file>
-      <file>${PROJECT_ROOT}\ProjectSetup.fig</file>
-      <file>${PROJECT_ROOT}\SelectFeatures.fig</file>
-      <file>${PROJECT_ROOT}\ShowROCCurve.fig</file>
-      <file>${PROJECT_ROOT}\showSimilarFrames.fig</file>
-      <file>${PROJECT_ROOT}\SwitchTarget.fig</file>
-      <file>${PROJECT_ROOT}\TimelineViewOptions.fig</file>
-      <file>${PROJECT_ROOT}\version.txt</file>
+      <file>${PROJECT_ROOT}\params\animalList.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig_adam.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig_ARjumps.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig_attemptedcopulation.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig_mice.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig_pivot_headAR.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig_RightingAR.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfig_spacetime.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigEric.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigEyrun.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigLarvae.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigLarvaeLouis.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigLarvaeReid.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigLarvaeSamuel.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigLarvaeSpecies.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigList.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigMWTContour.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigVivekMice.xml</file>
+      <file>${PROJECT_ROOT}\params\featureConfigWings.xml</file>
+      <file>C:\Code\Jdetect\win64dlls\msvcp100.dll</file>
+      <file>C:\Code\Jdetect\win64dlls\msvcr100.dll</file>
     </fileset.resources>
     <fileset.package>
       <file>C:\Code\Jdetect\compiled\params</file>
@@ -387,13 +444,14 @@
     <matlab>
       <root>C:\Program Files\MATLAB\R2012a</root>
       <path>
+        <directory>C:\Code\Jdetect\docs\..\tests</directory>
+        <directory>C:\Code\Jdetect\tests</directory>
         <directory>${PROJECT_ROOT}\params</directory>
         <directory>${PROJECT_ROOT}\larva_compute_perframe_features</directory>
         <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
         <directory>C:\Code\Jdetect\filehandling</directory>
         <directory>C:\Code\Jdetect\misc</directory>
-        <directory>C:\Code\Ctrax\trunk\matlab\netlab</directory>
-        <directory>C:\Code\JCtrax\misc</directory>
+        <directory>C:\Code\Jdetect\perframe</directory>
         <directory>C:\Users\bransonk\Documents\MATLAB</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>
