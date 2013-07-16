@@ -3052,7 +3052,7 @@ if(handles.comparison2==0)
   handles2.figure2=figure('menubar','none','toolbar','none','numbertitle','off',...
       'name','interesting feature histograms');
   handles2.Table=uitable('Data',tmp,...
-      'ColumnName',{'Group' 'n' 'Group2' 'n2' 'Behavior' 'Feature' 'd''' 'd''-AF'},...
+      'ColumnName',{'Group1' 'n1' 'Group2' 'n2' 'Behavior' 'Feature' 'd''' 'd'' all frames'},...
       'ColumnWidth',num2cell(7*max(cellfun(@length,tmp))),...
       'RowName',[],'RowStriping','on','BackgroundColor',[1 1 1; 0.95 0.95 0.95],...
       'CellSelectionCallback',@CellSelectionCallback);
@@ -5233,7 +5233,7 @@ end
 
 if((strcmp(handles2.table,'dprime')) && (eventdata.Indices(end,2)==8))
   if(isnan(handles2.table_data(eventdata.Indices(end,1),eventdata.Indices(end,2))))
-    questdlg(['Remove all rows for which d''-AF is NaN?'],'','Yes','No','No');
+    questdlg(['Remove all rows for which d'' all frames is NaN?'],'','Yes','No','No');
     if(strcmp(ans,'No'))  return;  end
     tmp=get(handles2.Table,'Data');
     idx=find(~isnan(handles2.table_data(:,8)));
@@ -5241,7 +5241,7 @@ if((strcmp(handles2.table,'dprime')) && (eventdata.Indices(end,2)==8))
     handles2.table_data=handles2.table_data(idx,:);
   else
     crit=handles2.table_data(eventdata.Indices(end,1),7) ./ handles2.table_data(eventdata.Indices(end,1),8);
-    questdlg(['Remove all rows for which the ratio of d'' to d''-AF is less than ' num2str(crit) '?'],...
+    questdlg(['Remove all rows for which the ratio of d'' to d'' all frames is less than ' num2str(crit) '?'],...
         '','Yes','No','No');
     if(strcmp(ans,'No'))  return;  end
     tmp=get(handles2.Table,'Data');
