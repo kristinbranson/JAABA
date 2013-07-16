@@ -1577,6 +1577,13 @@ function pushbutton_done_Callback(hObject, eventdata, handles)  %#ok
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+res = questdlg('All cached window data and current classifier will be deleted. Are you sure you meant to click "Done"?');
+
+if ~strcmpi(res,'Yes'),
+  return;
+end
+
 handles = guidata(hObject);
 %basicData = get(handles.basicTable,'Data');
 fv=handles.featureVocabulary;
