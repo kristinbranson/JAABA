@@ -679,7 +679,7 @@ if(exist(handles.rcfilename)==2)
   try
     handles=load_configuration_file(handles.rcfilename,hObject,eventdata,handles);
   catch ME
-    errordlg({'Error loading last used configuration. Using default values.',getReport(ME)},'Error loading last used configuration');
+    %errordlg({'Error loading last used configuration. Using default values.',getReport(ME)},'Error loading last used configuration');
     handles=initialize(handles);
   end
 else
@@ -687,7 +687,11 @@ else
 end
 update_figure(handles);
 
-javaaddpath(fullfile(baseDir,'misc','javasysmon-0.3.4.jar'));
+if ~isdeployed
+  javaaddpath(fullfile(baseDir,'misc','javasysmon-0.3.4.jar'));
+else
+  javaaddpath('javasysmon-0.3.4.jar');
+end
 import com.jezhumble.javasysmon.JavaSysMon.*
 handles.system_monitor.object=com.jezhumble.javasysmon.JavaSysMon();
 handles.system_monitor.timer=timer('Name','system_monitor','Period',1,'ExecutionMode','fixedRate',...
@@ -737,7 +741,7 @@ handles.system_monitor=[];
 try
   save(handles.rcfilename,'handles');
 catch ME,
-  errordlg({'Error saving last configuration. State will not be saved.',getReport(ME)},'Error saving last configuration');
+  warndlg('Could not save the last configuration. State will not be saved.');
 end
 delete(hObject);
 
