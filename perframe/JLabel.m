@@ -824,6 +824,7 @@ if(handles.data.ismovie && ...
       {handles.guidata.cache_size,HWD,handles.guidata.cache_filename,handles.guidata.movie_filename},...
       'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
   end
+  ClearStatus(handles);
   cache_miss=0;
   cache_total=0;
   %if(ismac),  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
@@ -968,8 +969,8 @@ for i = axes2,
           % ALT: Added uint8() 2012-09-14.  Without that, threw error when
           % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
           % being of class double
-        SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
-             num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+%         SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+%              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
       else
         ClearStatus(handles);
       end
@@ -994,8 +995,8 @@ for i = axes2,
           Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-          SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
-               num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+%           SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+%                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
           ClearStatus(handles);
         end
