@@ -74,6 +74,7 @@ classdef JLabelGUIData < handle
     useVideoWriter = false;
 
     play_FPS = 2;
+    framecache_threads = 1;
     traj_nprev = 25;
     traj_npost = 25;
 
@@ -200,6 +201,8 @@ classdef JLabelGUIData < handle
     open_peripherals = [];
 
     cache_thread = [];
+    cache_size = 200;
+    cache_filename = [];
     % cacheSize = 4000;  % now stored only in JLabelData
      
     tempname = [];
