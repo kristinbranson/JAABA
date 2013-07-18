@@ -27,10 +27,11 @@ try
     if c.NumWorkers < min(12, 2 * feature('numCores'))
       disp(['WARNING: for best performance set NumWorkers in parallel prefs / cluster profile to be at least min(12, 2 * #cores) = ' num2str(min(12, 2 * feature('numCores'))) ' on this machine']);
     end
-    min_framecache_threads = 1;  % might put this in a menu somewhere
-    % how to put these next two parameters in handles.guidata?
-    parfor_threads = min(c.NumWorkers - min_framecache_threads, feature('numCores'));
-    %framecache_threads=min(c.NumWorkers-parfor_threads,feature('numCores'));
+    rc=load('.JLabelrc.mat');  % would've been nice to be able to just call LoadRC
+    if(~isfield(rc,'framecache_threads'))
+      rc.framecache_threads=1;
+    end
+    parfor_threads = min(c.NumWorkers - rc.framecache_threads, feature('numCores'));
     matlabpool('open',parfor_threads);
   end
 end
