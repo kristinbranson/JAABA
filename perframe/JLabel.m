@@ -5711,6 +5711,7 @@ while true,
       ticker = tic;
       continue;
     else
+      SetCurrentFrame(handles,axi,t1,hObject);
       break;
     end
   end
