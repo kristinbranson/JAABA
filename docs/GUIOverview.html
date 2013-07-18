@@ -232,6 +232,7 @@ limits can be set using the <a href="#ZoomButtons">Zoom</a> and <a href="#PanBut
 <li><b>->Preview Options...</b>: Modify parameters related to the preview video window:
 <ul>
 <li> The <b>playback speed</b> of the video</li>
+<li> The number of threads used to fill the frame cache.  Matlab permits a maximum of 12 threads total, which JAABA must proportion between window feature computation and pre-loading of video frames.  The number of window feature threads allocated is the smaller of the number of CPU cores and 12 less the specified number of frame cache threads.</li>
 <li> The number of trajectory frames plotted into the past and into the future.</li>
 </ul>
 </li>
