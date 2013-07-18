@@ -87,9 +87,14 @@ set(handles.figure1,'Pointer','arrow');
 
 fgColor = get(handles.text_status,'ForegroundColor');
 bgColor = get(handles.text_status,'BackgroundColor');
-set([handles.uipanel_jump,handles.radiobutton_all,...
-    handles.radiobutton_behavior,handles.radiobutton_none,...
-    handles.radiobutton_shortcut],....
+set([handles.uipanel_jump
+    handles.radiobutton_all
+    handles.radiobutton_behavior
+    handles.radiobutton_none
+    handles.radiobutton_shortcut
+    handles.pushbutton_prev
+    handles.pushbutton_next
+    ],....
   'BackgroundColor',bgColor,'ForegroundColor',fgColor);
 set(handles.radiobutton_all,'Value',1);
 handles.jump_restrict = 'all';
@@ -863,3 +868,24 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in pushbutton_prev.
+function pushbutton_prev_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_prev (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if CheckBag(handles)
+  handles = Jump(handles,'prev');
+  JLabel('UpdatePrediction',handles.JLabelH);
+end
+
+
+% --- Executes on button press in pushbutton_next.
+function pushbutton_next_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_next (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if CheckBag(handles)
+  handles = Jump(handles,'next');
+  JLabel('UpdatePrediction',handles.JLabelH);
+end
