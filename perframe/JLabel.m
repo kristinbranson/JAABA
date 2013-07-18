@@ -769,8 +769,7 @@ if ~isempty(varargin) && strcmp(varargin{1},'CLEAR'),
 end
 
 % If the movie has changed, want to re-initialize the frame cache
-N=200;  % cache size
-verbose_cache=false;
+handles.guidata.cache_size=200;  % cache size
 if(handles.data.ismovie && ...
    handles.guidata.shouldOpenMovieIfPresent && ...
    handles.guidata.thisMoviePresent && ...
@@ -789,11 +788,14 @@ if(handles.data.ismovie && ...
 %   Mlastused = struct('Data',[]);
 %   Mimage = struct('Data',[]); 
   
-  cache_filename= [handles.guidata.tempname 'cache-' num2str(feature('getpid')) '.dat'];
-  fid=fopen(cache_filename,'w');
+  if(isfield(handles.guidata,'cachefilename') && exist(handles.guidata.cachefilename,'file'))
+    delete(handles.guidata.cachefilename);
+  end
+  handles.guidata.cache_filename=[handles.guidata.tempname 'cache-' num2str(feature('getpid')) '.dat'];
+  fid=fopen(handles.guidata.cache_filename,'w');
   if fid < 1,
     pause(.1);
-    fid=fopen(cache_filename,'w');
+    fid=fopen(handles.guidata.cache_filename,'w');
   end
 
   for i = 1:5,
@@ -801,29 +803,28 @@ if(handles.data.ismovie && ...
       break;
     end
     new_cache_filename = fullfile(tempdir(),['cache-' num2str(feature('getpid')) '_' num2str(i) '.dat']);
-    warning('Could not open cache file %s, trying %s',cache_filename,new_cache_filename); 
-    cache_filename = new_cache_filename;
-    fid=fopen(cache_filename,'w');
+    warning('Could not open cache file %s, trying %s',handles.guidata.cache_filename,new_cache_filename); 
+    handles.guidata.cache_filename = new_cache_filename;
+    fid=fopen(handles.guidata.cache_filename,'w');
   end
     
-  fwrite(fid,zeros(1,N),'double');
-  fwrite(fid,zeros(1,N),'double');
-  fwrite(fid,zeros(1,N*prod(HWD),'uint8'),'uint8');  % need to make this work for other formats
+  fwrite(fid,zeros(1,handles.guidata.cache_size),'double');
+  fwrite(fid,zeros(1,handles.guidata.cache_size),'double');
+  fwrite(fid,zeros(1,handles.guidata.cache_size*prod(HWD),'uint8'),'uint8');  % need to make this work for other formats
   fclose(fid);
-  Mframenum = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
-  Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-  Mimage =    memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, 'Offset', 2*N*8);
+  Mframenum = memmapfile(handles.guidata.cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', handles.guidata.cache_size);
+  Mlastused = memmapfile(handles.guidata.cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', handles.guidata.cache_size, 'Offset', handles.guidata.cache_size*8);
+  Mimage =    memmapfile(handles.guidata.cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', handles.guidata.cache_size, 'Offset', 2*handles.guidata.cache_size*8);
 
   c=parcluster;
   framecache_threads = min(c.NumWorkers - matlabpool('size'), feature('numCores'));
-  if verbose_cache
-    disp(['starting ' num2str(framecache_threads) ' frame cache thread(s)']);
-  end
   for i=1:framecache_threads
+    SetStatus(handles,['Batching ' num2str(i) ' of ' num2str(framecache_threads) '  frame cache thread(s)']);
     handles.guidata.cache_thread{i}=batch(@cache_thread,0,...
-      {N,HWD,cache_filename,handles.guidata.movie_filename},...
+      {handles.guidata.cache_size,HWD,handles.guidata.cache_filename,handles.guidata.movie_filename},...
       'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
   end
+  ClearStatus(handles);
   cache_miss=0;
   cache_total=0;
   %if(ismac),  pause(10);  end  % BJA: only necessary if on a mac and using a remote file system, not sure why
@@ -957,23 +958,19 @@ for i = axes2,
         tmp=find(Mlastused.Data>=0);
         j=tmp(argmin(Mlastused.Data(tmp)));
         if isempty(j), % If all frames last used is nan i.e., they are waiting to be cached.
-          j = 1;
+          j = find(isnan(Mlastused.Data),1);
         end
         %j = argmin(Mlastused.Data);
+        Mlastused.Data(j) = -1;
         Mframenum.Data(j) = handles.guidata.ts(i);
         Mimage.Data(j).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)));
         % ALT: Added uint8() 2012-09-14.  Without that, threw error when
         % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
         % being of class double
-        if verbose_cache
-          disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-             num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
-        end
+%         SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+%              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
       else
-        if verbose_cache
-          disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
-             num2str(sum(isnan(Mlastused.Data)))]);
-        end
+        ClearStatus(handles);
       end
       Mlastused.Data(j) = now;
       set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
@@ -989,18 +986,17 @@ for i = axes2,
           cache_miss=cache_miss+1;
           tmp=find(Mlastused.Data>=0);
           j_last=tmp(argmin(Mlastused.Data(tmp)));
+          if isempty(j_last), % If all frames last used is nan i.e., they are waiting to be cached.
+            j_last = find(isnan(Mlastused.Data),1);
+          end
           %j_last = argmin(Mlastused.Data);
+          Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-          if verbose_cache
-            disp(['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-               num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
-          end
+%           SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+%                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
-          if verbose_cache
-            disp(['frame #' num2str(handles.guidata.ts(i)) ' cached, len queue = ' ...
-               num2str(sum(isnan(Mlastused.Data)))]);
-          end
+          ClearStatus(handles);
         end
         Mlastused.Data(j_last) = now;
         fly=handles.data.flies(1);
@@ -1050,7 +1046,7 @@ for i = axes2,
       end
 
       % add to the queue frames subsequent to current frame
-      tmp=min(N,handles.guidata.nframes_jump_go);
+      tmp=min(handles.guidata.cache_size,handles.guidata.nframes_jump_go);
       j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
                 Mframenum.Data);
       j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
@@ -2827,6 +2823,12 @@ try
     handles.guidata.play_FPS = 2;
   end
   
+  if isfield(handles.guidata.rc,'framecache_threads'),
+    handles.guidata.framecache_threads = handles.guidata.rc.framecache_threads;
+  else
+    handles.guidata.framecache_threads = 1;
+  end
+  
   if isfield(handles.guidata.rc,'traj_nprev'),
     handles.guidata.traj_nprev = handles.guidata.rc.traj_nprev;
   else
@@ -2927,6 +2929,7 @@ function handles = SaveRC(handles)
   % playback speed
   rc.play_FPS = handles.guidata.play_FPS;
   
+  rc.framecache_threads = handles.guidata.framecache_threads;
   rc.traj_nprev = handles.guidata.traj_nprev;
   rc.traj_npost = handles.guidata.traj_npost;
   
@@ -3012,9 +3015,8 @@ handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
 if ispc, pause(.1); end
-cachefilename = ['cache-' num2str(feature('getpid')) '.dat'];
-if exist(cachefilename,'file'),
-  delete(cachefilename);
+if isfield(handles.guidata,'cache_filename') & exist(handles.guidata.cache_filename,'file'),
+  delete(handles.guidata.cache_filename);
 end
 
 % Check if we need to save.
@@ -5007,12 +5009,12 @@ function menu_view_preview_options_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-prompts = {'Playback Speed (fps):','N. previous positions plotted:',...
-  'N. future positions plotted:'};
+prompts = {'Playback Speed (fps):','N. frame cache threads',...
+  'N. previous positions plotted:','N. future positions plotted:'};
 
 while true,
-  defaults = {num2str(handles.guidata.play_FPS),num2str(handles.guidata.traj_nprev),...
-    num2str(handles.guidata.traj_npost)};
+  defaults = {num2str(handles.guidata.play_FPS),num2str(handles.guidata.framecache_threads),...
+    num2str(handles.guidata.traj_nprev),num2str(handles.guidata.traj_npost)};
   res = inputdlg(prompts,'Preview Options',1,defaults);
   if isempty(res), return, end;
   errs = {};
@@ -5023,14 +5025,50 @@ while true,
     handles.guidata.play_FPS = play_FPS;
   end
   
-  traj_nprev = str2double(res{2});
+  framecache_threads = str2double(res{2});
+  if isnan(framecache_threads) || framecache_threads < 1 || framecache_threads > feature('numCores') || rem(framecache_threads,1) ~= 0,
+    errs{end+1} = 'N. frame cache threads must be a positive integer less than or equal to the number of CPU cores'; %#ok<AGROW>
+  else
+    if(handles.guidata.framecache_threads ~= framecache_threads)
+      c=parcluster;
+      parfor_threads = min(c.NumWorkers - framecache_threads, feature('numCores'));
+      tmp=length(handles.guidata.cache_thread)-framecache_threads;
+      if((tmp>0) && ~isempty(handles.guidata.cache_thread))
+        SetStatus(handles,['Deleting ' num2str(tmp) ' frame cache thread(s) leaving a toal of ' num2str(framecache_threads)]);
+        for i=1:tmp
+          delete(handles.guidata.cache_thread{end});
+          handles.guidata.cache_thread(end)=[];
+        end
+        pause(2);
+      end
+      if(matlabpool('size')~=parfor_threads)
+        SetStatus(handles,['Resizing matlab pool to ' num2str(parfor_threads) ' workers']);
+        matlabpool close
+        matlabpool('open',parfor_threads);
+      end
+      if((tmp<0) && ~isempty(handles.guidata.cache_thread))
+        for i=1:(-tmp)
+          SetStatus(handles,['Batching ' num2str(i) ' of ' num2str(-tmp) ' new frame cache thread(s) for a total of ' num2str(framecache_threads)]);
+          handles.guidata.cache_thread{end+1}=batch(@cache_thread,0,...
+            {handles.guidata.cache_size,...
+            [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth],...
+            handles.guidata.cache_filename,handles.guidata.movie_filename},...
+            'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
+        end
+      end
+      handles.guidata.framecache_threads = framecache_threads;
+      ClearStatus(handles);
+    end
+  end
+  
+  traj_nprev = str2double(res{3});
   if isnan(traj_nprev) || traj_nprev < 0 || rem(traj_nprev,1) ~= 0,
     errs{end+1} = 'N. previous positions plotted must be a postive integer'; %#ok<AGROW>
   else
     handles.guidata.traj_nprev = traj_nprev;
   end
   
-  traj_npost = str2double(res{3});
+  traj_npost = str2double(res{4});
   if isnan(traj_npost) || traj_npost < 0 || rem(traj_npost,1) ~= 0,
     errs{end+1} = 'N. future positions plotted must be a postive integer'; %#ok<AGROW>
   else
@@ -5742,6 +5780,7 @@ while true,
       ticker = tic;
       continue;
     else
+      SetCurrentFrame(handles,axi,t1,hObject);
       break;
     end
   end
@@ -8565,9 +8604,8 @@ handles.guidata.cache_thread = [];
 UpdatePlots(handles,'CLEAR');
 %clear functions  % BJA: need to clear persistent vars in UpdatePlots
 if ispc, pause(.1); end
-cachefilename = ['cache-' num2str(feature('getpid')) '.dat'];
-if exist(cachefilename,'file'),
-  delete(cachefilename);
+if isfield(handles.guidata,'cachefilename') & exist(handles.guidata.cachefilename,'file'),
+  delete(handles.guidata.cachefilename);
 end
 
 % Check if we need to save.
