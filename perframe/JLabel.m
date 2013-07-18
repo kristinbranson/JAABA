@@ -2751,13 +2751,13 @@ else
 end
 handles.guidata.rc = struct;
 if exist(handles.guidata.rcfilename,'file'),
-%   try
+  try
     handles.guidata.rc = load(handles.guidata.rcfilename);
-%   catch ME,
-%     warning('Error loading rc file %s: %s',handles.guidata.rcfilename,getReport(ME));
-%   end
+  catch ME,
+    warning('Error loading rc file %s: %s',handles.guidata.rcfilename,getReport(ME));
+  end
 end
-% try
+try
   if isfield(handles.guidata.rc,'defaultpath'),
 %     handles.guidata.defaultpath = handles.guidata.rc.defaultpath;
 % %     if ~isempty(handles.data),
@@ -2873,9 +2873,9 @@ end
 %   end
   
   
-% catch ME,
-%   warning('Error loading RC file: %s',getReport(ME));  
-% end
+catch ME,
+  warning('Error loading RC file: %s',getReport(ME));  
+end
 return
 
 
@@ -4370,6 +4370,8 @@ if strcmpi(eventdata.Modifier,'control')
       menu_go_switch_target_Callback(hObject,eventdata,handles);
     case 'k'
       menu_view_plot_tracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
+    case 'f'
+      menu_view_show_whole_frame_Callback(handles.menu_view_show_whole_frame,eventdata,handles);
   end
 end
 
