@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings name="parallel" xmlns="urn:mathworks.matlab.settings" xsi:schemaLocation="urn:mathworks.matlab.settings settings.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <settings name="profiles">
+        <settings name="JAABAParCompProfile" visible="true">
+            <key name="SchedulerComponent" visible="true">
+                <string>
+                    <value><![CDATA[Profile1SchedulerComponent]]></value>
+                </string>
+            </key>
+        </settings>
+    </settings>
+    <settings name="schedulercomponents">
+        <settings name="Local" visible="true">
+            <settings name="Profile1SchedulerComponent" visible="true">
+                <key name="NumWorkers" visible="true">
+                    <double>
+                        <value>12.0</value>
+                    </double>
+                </key>
+            </settings>
+        </settings>
+    </settings>
+</settings>

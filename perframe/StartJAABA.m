@@ -20,20 +20,10 @@
 
 SetUpJAABAPath;
 
-try
-  c=parcluster;
-  if (c.NumWorkers>2) && (matlabpool('size')<1)
-    % BJA: as of matlab 2013a 12 workers can be used even on a 1-core machine
-    if c.NumWorkers < min(12, 2 * feature('numCores'))
-      disp(['WARNING: for best performance set NumWorkers in parallel prefs / cluster profile to be at least min(12, 2 * #cores) = ' num2str(min(12, 2 * feature('numCores'))) ' on this machine']);
-    end
-    rc=load('.JLabelrc.mat');  % would've been nice to be able to just call LoadRC
-    if(~isfield(rc,'framecache_threads'))
-      rc.framecache_threads=1;
-    end
-    parfor_threads = min(c.NumWorkers - rc.framecache_threads, feature('numCores'));
-    matlabpool('open',parfor_threads);
-  end
-end
+%try
+  
+  nthreads = SetUpMatlabPool();
+
+%end
 % Start JAABA.
-JLabel();
+JLabel('nthreads',nthreads);
