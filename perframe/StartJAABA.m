@@ -20,10 +20,15 @@
 
 SetUpJAABAPath;
 
-%try
+try
   
   nthreads = SetUpMatlabPool();
 
-%end
+catch ME
+  
+  warning('Could not set up matlabpool: %s',getReport(ME));
+  nthreads = struct;
+  
+end
 % Start JAABA.
 JLabel('nthreads',nthreads);
