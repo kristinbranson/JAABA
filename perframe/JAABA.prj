@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.zip" build-checksum="2297810649" preferred-package-location="C:\Code\Jdetect\perframe">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.zip" build-checksum="2619064989" preferred-package-location="C:\Code\Jdetect\perframe">
     <param.project.name>C:\Code\Jdetect\perframe\JAABA.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA</param.appname>
@@ -404,6 +404,7 @@
       <file>C:\Code\Jdetect\misc\xticklabel_rotate.m</file>
       <file>C:\Code\Jdetect\misc\zoomin.m</file>
       <file>${PROJECT_ROOT}\compute_perframe_features</file>
+      <file>${PROJECT_ROOT}\JAABAParCompProfile.settings</file>
       <file>${PROJECT_ROOT}\janelia_logo.png</file>
       <file>${PROJECT_ROOT}\larva_compute_perframe_features</file>
       <file>${PROJECT_ROOT}\params\animalList.xml</file>
@@ -432,6 +433,7 @@
     <fileset.package>
       <file>C:\Code\Jdetect\docs</file>
       <file>C:\Code\Jdetect\LICENSE.txt</file>
+      <file>${PROJECT_ROOT}\JAABAParCompProfile.settings</file>
       <file>${PROJECT_ROOT}\mkshortcut.vbs</file>
       <file>${PROJECT_ROOT}\params</file>
       <file>${PROJECT_ROOT}\version.txt</file>

@@ -23,17 +23,22 @@ try
   end
   if isdeployed,
     if ispc || (isunix && ~ismac),
-      filename = deployedRelative2Global('JAABAParCompProfile.settings');
-      if ~exist(filename,'file'),
-        fprintf('Could not find file %s, not using parallel computing.\n',filename);
-      else
-        setmcruserdata('ParallelProfile','JAABAParCompProfile.settings');
+      c = parcluster;
+      fprintf('Current profile: %s\n',c.Profile);
+      if ~strcmp(c.Profile,'JAABAParCompProfile'),
+        filename = deployedRelative2Global('JAABAParCompProfile.settings');
+        if ~exist(filename,'file'),
+          fprintf('Could not find file %s, not using parallel computing.\n',filename);
+        else
+          setmcruserdata('ParallelProfile','JAABAParCompProfile.settings');
+        end
       end
     end
   end
-  SetUpMatlabPool;
+  nthreads = SetUpMatlabPool;
 catch ME,
   uiwait(warndlg(sprintf('Error starting parallel computing: %s',getReport(ME))));
+  nthreads = struct;
 end
 
 % Start JAABA.
@@ -46,7 +51,7 @@ end
 try
   if ishandle(hstatustext),
     set(hstatustext,'String','Starting JAABA...');
-    args = {'hsplash',hsplash,'hsplashstatus',hstatustext};
+    args = {'hsplash',hsplash,'hsplashstatus',hstatustext,'nthreads',nthreads};
   else
     args = {};
   end
