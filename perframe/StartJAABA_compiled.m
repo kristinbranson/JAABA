@@ -21,22 +21,24 @@ try
   if ishandle(hstatustext),
     set(hstatustext,'String','Starting parallel computing workers...');
   end
-  useparallel = true;
   if isdeployed,
     if ispc || (isunix && ~ismac),
-      filename = deployedRelative2Global('ParallelComputingConfiguration_Local_Win4.settings');
-      if ~exist(filename,'file'),
-        useparallel = false;
-      else
-        setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
+      c = parcluster;
+      fprintf('Current profile: %s\n',c.Profile);
+      if ~strcmp(c.Profile,'JAABAParCompProfile'),
+        filename = deployedRelative2Global('JAABAParCompProfile.settings');
+        if ~exist(filename,'file'),
+          fprintf('Could not find file %s, not using parallel computing.\n',filename);
+        else
+          setmcruserdata('ParallelProfile',filename);
+        end
       end
     end
   end
-  if useparallel && matlabpool('size') < 1,
-    matlabpool('open');
-  end
+  nthreads = SetUpMatlabPool;
 catch ME,
   uiwait(warndlg(sprintf('Error starting parallel computing: %s',getReport(ME))));
+  nthreads = struct;
 end
 
 % Start JAABA.
@@ -49,7 +51,7 @@ end
 try
   if ishandle(hstatustext),
     set(hstatustext,'String','Starting JAABA...');
-    args = {'hsplash',hsplash,'hsplashstatus',hstatustext};
+    args = {'hsplash',hsplash,'hsplashstatus',hstatustext,'nthreads',nthreads};
   else
     args = {};
   end
@@ -66,4 +68,8 @@ try %#ok<TRYNC>
   if matlabpool('size')>=1
     matlabpool close;
   end
+end
+
+if isdeployed,
+  delete(findall(0,'type','figure'));
 end

@@ -75,6 +75,7 @@ classdef JLabelGUIData < handle
 
     play_FPS = 2;
     framecache_threads = 1;
+    computation_threads = 1;
     traj_nprev = 25;
     traj_npost = 25;
 
@@ -278,6 +279,7 @@ classdef JLabelGUIData < handle
     function obj = JLabelGUIData(jld)
       % Constructor
       obj.data=jld;  % store a reference to the "model"
+      obj.computation_threads = max(1,matlabpool('size'));        
     end
 
     
