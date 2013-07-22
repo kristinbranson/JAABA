@@ -351,7 +351,7 @@ behavior, optionally inverted with it's own <b>not</b> button.</li>
 
 <li>Choose an <b>Individual</b></li>
 
-<li>In <b>Parameters</b> set <b>Min. Traj. Len</b>, <b>P-Value</b>, and
+<li>In <b>Parameters</b> set <b>Min. Traj. Len.</b>, <b>P-Value</b>, and
 <b>dump to .csv</b> as described in Feature Statistics above</li>
 
 </ul>
@@ -381,7 +381,7 @@ etc. as described in Feature Statistics above</li>
 
 <li>Choose an <b>Individual</b></li>
 
-<li>In <b>Parameters</b> set <b>Min. Traj. Len</b>, <b>Conv. Width</b>,
+<li>In <b>Parameters</b> set <b>Min. Traj. Len.</b>, <b>Conv. Width</b>,
 <b>X-Offset</b> and <b>dump to .csv</b> as described in Feature Statistics above</li>
 
 </ul>
@@ -464,9 +464,11 @@ parameters:</p>
     frames.</li>
 
   </ul>
-  <li><b>Parameters</b></li>
+  <li> Choose the accumulated measure under <b>Style</b></li>
+  <li> Choose a set of <b>Individuals</b></li>
+  <li>In <b>Parameters</b> set <b>Min. Traj. Len.</b> as above, and</li>
   <ul>
-    <li>Depress <b>Omit NaN</b></li>
+    <li>Depress <b>Omit NaN</b> to remove invalid data</li>
     <li>Depress <b>Omit Inf</b> to remove entries with zero variance</li>
     <li>Depress <b>abs(d',z')</b> to interleave negative and positive differences</li>
   </ul>
@@ -475,12 +477,14 @@ parameters:</p>
 <p>Click on the <b>Plot</b> button.  And wait.  For a while.</p>
 
 <p> Selecting a cell in the d' or z column of the table plots the
-corresponding histograms.  Select cells in any other column to delete
-similar rows.</p>
+corresponding histograms.  Select cells in any other column to retain
+or delete similar rows.</p>
 
-<p>The results are saved in <b>most_recent_table.csv</b>, as well as stored
-in <b>most_recent_config.mat</b> upon exiting JAABAPlot.  The latter are
-cleared if any changes are made to the group or experiment lists.</p>
+<p>The results are saved in <b>most_recent_table.csv</b>, as well
+as stored in <b>most_recent_config.mat</b> upon exiting JAABAPlot.
+The are also cached in memory, which is cleared if any changes
+are made to the group list, experiment lists, style, individuals,
+or parameters.</p>
 
 <p>
 	<center><img src="images/InterestingFeatureHistogramsD.png"><img src="images/InterestingFeatureHistogramsZ.png"></center>
