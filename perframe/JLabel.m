@@ -4384,6 +4384,14 @@ if strcmpi(eventdata.Modifier,'control')
       menu_view_plot_tracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
     case 'f'
       menu_view_show_whole_frame_Callback(handles.menu_view_show_whole_frame,eventdata,handles);
+    case '9'
+      if (handles.data.expi -1)>0,
+        SetCurrentMovie(handles,handles.data.expi-1);
+      end
+    case '0'
+      if (handles.data.expi +1) < handles.data.nexps 
+        SetCurrentMovie(handles,handles.data.expi+1);
+      end
   end
 end
 
@@ -5035,14 +5043,14 @@ while true,
     handles.guidata.play_FPS = play_FPS;
   end
   
-  traj_nprev = str2double(res{3});
+  traj_nprev = str2double(res{2});
   if isnan(traj_nprev) || traj_nprev < 0 || rem(traj_nprev,1) ~= 0,
     errs{end+1} = 'N. previous positions plotted must be a postive integer'; %#ok<AGROW>
   else
     handles.guidata.traj_nprev = traj_nprev;
   end
   
-  traj_npost = str2double(res{4});
+  traj_npost = str2double(res{3});
   if isnan(traj_npost) || traj_npost < 0 || rem(traj_npost,1) ~= 0,
     errs{end+1} = 'N. future positions plotted must be a postive integer'; %#ok<AGROW>
   else
