@@ -64,12 +64,14 @@ function JLabel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 [defaultPath,...
  hsplash,...
  hsplashstatus,...
- jabfile] = ...
+ jabfile,...
+ nthreads] = ...
   myparse(varargin,...
           'defaultpath','',...
           'hsplash',[],...
           'hsplashstatus',[],...
-          'jabfile','');
+          'jabfile','',...
+          'nthreads',struct);
 
 % Create the JLabelData object (which functions as a model in the MVC sense), store a reference to it
 figureJLabel=handles.figure_JLabel;
@@ -89,6 +91,12 @@ set(handles.automaticTimelineBottomRowPopup,'String',...
 %@menu_classifier_compareFrames_Callback);
 
 handles.guidata = JLabelGUIData(handles.data);
+if isfield(nthreads,'framecache_threads'),
+  handles.guidata.framecache_threads = nthreads.framecache_threads;
+end
+if isfield(nthreads,'computation_threads'),
+  handles.guidata.computation_threads = nthreads.computation_threads;
+end
 
 % stash optional inputs
 handles.guidata.hsplash=hsplash;
@@ -816,10 +824,11 @@ if(handles.data.ismovie && ...
   Mlastused = memmapfile(handles.guidata.cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', handles.guidata.cache_size, 'Offset', handles.guidata.cache_size*8);
   Mimage =    memmapfile(handles.guidata.cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', handles.guidata.cache_size, 'Offset', 2*handles.guidata.cache_size*8);
 
-  c=parcluster;
-  framecache_threads = min(c.NumWorkers - matlabpool('size'), feature('numCores'));
-  for i=1:framecache_threads
-    SetStatus(handles,['Batching ' num2str(i) ' of ' num2str(framecache_threads) '  frame cache thread(s)']);
+  %c=parcluster;
+  %framecache_threads = min(c.NumWorkers - matlabpool('size'), feature('numCores'));
+  for i=1:handles.guidata.framecache_threads,
+    SetStatus(handles,sprintf('Adding %d of %d frame cache thread(s)',...
+      i,handles.guidata.framecache_threads));
     handles.guidata.cache_thread{i}=batch(@cache_thread,0,...
       {handles.guidata.cache_size,HWD,handles.guidata.cache_filename,handles.guidata.movie_filename},...
       'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
@@ -2930,6 +2939,7 @@ function handles = SaveRC(handles)
   rc.play_FPS = handles.guidata.play_FPS;
   
   rc.framecache_threads = handles.guidata.framecache_threads;
+  rc.computation_threads = handles.guidata.computation_threads;
   rc.traj_nprev = handles.guidata.traj_nprev;
   rc.traj_npost = handles.guidata.traj_npost;
   
@@ -4374,6 +4384,14 @@ if strcmpi(eventdata.Modifier,'control')
       menu_view_plot_tracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
     case 'f'
       menu_view_show_whole_frame_Callback(handles.menu_view_show_whole_frame,eventdata,handles);
+    case '9'
+      if (handles.data.expi -1)>0,
+        SetCurrentMovie(handles,handles.data.expi-1);
+      end
+    case '0'
+      if (handles.data.expi +1) < handles.data.nexps 
+        SetCurrentMovie(handles,handles.data.expi+1);
+      end
   end
 end
 
@@ -5009,11 +5027,11 @@ function menu_view_preview_options_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-prompts = {'Playback Speed (fps):','N. frame cache threads',...
+prompts = {'Playback Speed (fps):',...
   'N. previous positions plotted:','N. future positions plotted:'};
 
 while true,
-  defaults = {num2str(handles.guidata.play_FPS),num2str(handles.guidata.framecache_threads),...
+  defaults = {num2str(handles.guidata.play_FPS),...
     num2str(handles.guidata.traj_nprev),num2str(handles.guidata.traj_npost)};
   res = inputdlg(prompts,'Preview Options',1,defaults);
   if isempty(res), return, end;
@@ -5025,50 +5043,14 @@ while true,
     handles.guidata.play_FPS = play_FPS;
   end
   
-  framecache_threads = str2double(res{2});
-  if isnan(framecache_threads) || framecache_threads < 1 || framecache_threads > feature('numCores') || rem(framecache_threads,1) ~= 0,
-    errs{end+1} = 'N. frame cache threads must be a positive integer less than or equal to the number of CPU cores'; %#ok<AGROW>
-  else
-    if(handles.guidata.framecache_threads ~= framecache_threads)
-      c=parcluster;
-      parfor_threads = min(c.NumWorkers - framecache_threads, feature('numCores'));
-      tmp=length(handles.guidata.cache_thread)-framecache_threads;
-      if((tmp>0) && ~isempty(handles.guidata.cache_thread))
-        SetStatus(handles,['Deleting ' num2str(tmp) ' frame cache thread(s) leaving a toal of ' num2str(framecache_threads)]);
-        for i=1:tmp
-          delete(handles.guidata.cache_thread{end});
-          handles.guidata.cache_thread(end)=[];
-        end
-        pause(2);
-      end
-      if(matlabpool('size')~=parfor_threads)
-        SetStatus(handles,['Resizing matlab pool to ' num2str(parfor_threads) ' workers']);
-        matlabpool close
-        matlabpool('open',parfor_threads);
-      end
-      if((tmp<0) && ~isempty(handles.guidata.cache_thread))
-        for i=1:(-tmp)
-          SetStatus(handles,['Batching ' num2str(i) ' of ' num2str(-tmp) ' new frame cache thread(s) for a total of ' num2str(framecache_threads)]);
-          handles.guidata.cache_thread{end+1}=batch(@cache_thread,0,...
-            {handles.guidata.cache_size,...
-            [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth],...
-            handles.guidata.cache_filename,handles.guidata.movie_filename},...
-            'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
-        end
-      end
-      handles.guidata.framecache_threads = framecache_threads;
-      ClearStatus(handles);
-    end
-  end
-  
-  traj_nprev = str2double(res{3});
+  traj_nprev = str2double(res{2});
   if isnan(traj_nprev) || traj_nprev < 0 || rem(traj_nprev,1) ~= 0,
     errs{end+1} = 'N. previous positions plotted must be a postive integer'; %#ok<AGROW>
   else
     handles.guidata.traj_nprev = traj_nprev;
   end
   
-  traj_npost = str2double(res{4});
+  traj_npost = str2double(res{3});
   if isnan(traj_npost) || traj_npost < 0 || rem(traj_npost,1) ~= 0,
     errs{end+1} = 'N. future positions plotted must be a postive integer'; %#ok<AGROW>
   else
@@ -9727,3 +9709,111 @@ else
   set(handles.menu_file_savewindowdata,'checked','on');
   
 end
+
+
+% --------------------------------------------------------------------
+function menu_edit_multithreading_preferences_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_edit_multithreading_preferences (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+numCores = feature('numCores');
+prompts = {sprintf('N. threads for display (btn 1 and %d)',numCores),...
+  sprintf('N. threads for computation (btn 1 and %d)',numCores)};
+c = parcluster;
+NumWorkers = c.NumWorkers;
+
+while true,
+  defaults = {num2str(handles.guidata.framecache_threads),...
+    num2str(handles.guidata.computation_threads)};
+  res = inputdlg(prompts,'Multi-threading Preferences',1,defaults);
+  if isempty(res), return, end;
+  errs = {};
+
+  framecache_threads = str2double(res{1});
+  ischange = false;
+  if isnan(framecache_threads) || framecache_threads < 1 || framecache_threads > feature('numCores') || rem(framecache_threads,1) ~= 0,
+    errs{end+1} = 'Number of threads devoted to display must be a positive integer less than or equal to the number of CPU cores';  %#ok<AGROW>
+  else
+    if(handles.guidata.framecache_threads ~= framecache_threads)
+      ischange = true;
+    end
+  end
+  
+  computation_threads = str2double(res{2});
+  if isnan(computation_threads) || computation_threads < 1 || computation_threads > numCores || rem(computation_threads,1) ~= 0,
+    errs{end+1} = 'Number of threads devoted to computation must be a positive integer less than or equal to the number of CPU cores';  %#ok<AGROW>
+  else
+    if(handles.guidata.computation_threads ~= computation_threads)
+      ischange = true;
+    end
+  end
+  
+  if framecache_threads+computation_threads > NumWorkers,
+    errs{end+1} = sprintf('Total number of threads (%d + %d) must be at most %d',...
+      framecache_threads,computation_threads,NumWorkers); %#ok<AGROW>
+  end
+
+  if ischange && isempty(errs),
+    
+    % remove extra computation threads
+    if matlabpool('size') > computation_threads,
+      SetStatus(handles,sprintf('Shrinking matlab pool to %d workers',computation_threads));
+      pause(2);
+      matlabpool close;
+      matlabpool('open',computation_threads);
+    end
+    
+    % remove extra frame cache threads
+    nremove=numel(handles.guidata.cache_thread)-framecache_threads;
+    if (nremove>0) && ~isempty(handles.guidata.cache_thread)
+      SetStatus(handles,sprintf('Deleting %d frame cache thread(s) leaving a total of %d',nremove,framecache_threads));
+      for i=1:nremove,
+        delete(handles.guidata.cache_thread{end});
+        handles.guidata.cache_thread(end)=[];
+      end
+      pause(2);
+    end
+   
+    % add extra computation threads
+    if matlabpool('size') < computation_threads,
+      SetStatus(handles,sprintf('Growing matlab pool to %d workers',computation_threads));
+      if matlabpool('size') > 0,
+        matlabpool close;
+      end
+      pause(1);
+      matlabpool('open',computation_threads);
+      pause(1);
+    end
+    
+    % add extra frame cache threads
+    nadd = -nremove;
+    if nadd > 0 && ~isempty(handles.guidata.cache_thread)
+      for i=1:nadd,
+        SetStatus(handles,sprintf('Adding %d of %d new frame cache thread(s) for a total of %d',...
+          i,nadd,framecache_threads));
+        handles.guidata.cache_thread{end+1}=batch(@cache_thread,0,...
+          {handles.guidata.cache_size,...
+          [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth],...
+          handles.guidata.cache_filename,handles.guidata.movie_filename},...
+          'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
+      end
+    end
+    
+    handles.guidata.framecache_threads = framecache_threads;
+    handles.guidata.computation_threads = computation_threads;
+    ClearStatus(handles);
+    
+  end
+  
+  if isempty(errs),
+    break;
+  else
+    uiwait(warndlg(errs,'Bad preview options'));
+  end
+  
+end
+guidata(hObject,handles);
+return
+
+
