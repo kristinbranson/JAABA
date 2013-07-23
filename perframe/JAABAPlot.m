@@ -508,7 +508,9 @@ switch(handles.analysis)
     set(handles.InterestingFeatureHistograms,'backgroundcolor',fg);
     set(handles.InterestingFeatureHistograms,'foregroundcolor',bg);
     set(handles.StyleList,'string',{''},'value',1);
-    set(handles.StyleList2,'string',{''},'value',1);
+%     set(handles.StyleList2,'string',{''},'value',1);
+    set(handles.StyleList2,'string',handles.featurehistogram_stylelist2,...
+        'value',handles.featurehistogram_style2);
     if(strcmp(get(handles.InterestingFeatureHistograms,'enable'),'off'))
       analysis2='';
     else
@@ -524,6 +526,7 @@ switch(handles.analysis)
 end
 
 if(~isempty(analysis2))
+  set(handles.IndividualList,'enable','on');
   set(handles.Plot,'enable','on');
   set(handles.MinimumTrajectoryLength,'enable','on');
   set(handles.DumpToCSV,'enable','on');
@@ -545,8 +548,14 @@ if(~isempty(analysis2))
     set(handles.BehaviorNormalizeNot,'enable','on');
   end
   if(~strcmp(analysis2,'interesting_feature_histograms'))
-    set(handles.IndividualList,'enable','on');
     set(handles.StyleList,'enable','on');
+    if(isempty(handles.individuallist))
+      set(handles.IndividualList,'String',{''},'Value',1);
+    else
+      set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
+    end
+  else
+    set(handles.IndividualList,'String',handles.individuallist(1:3),'Value',handles.individualvalue);
   end
   if(length(get(handles.StyleList2,'string'))>1)
     set(handles.StyleList2,'enable','on');
@@ -590,11 +599,6 @@ if(isempty(handles.featurelist))
   set(handles.FeatureList,'String',{''},'Value',1);
 else
   set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
-end
-if(isempty(handles.individuallist))
-  set(handles.IndividualList,'String',{''},'Value',1);
-else
-  set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
 end
 %set(handles.Table,'Data',[]);
 
@@ -802,6 +806,8 @@ end
 if ((handles.individualidx=='M') && length(handles.individuallist{handles.individualvalue})>5)
   handles.individualidx={'M' 'F'};
 end
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 
@@ -1930,6 +1936,9 @@ function InterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user experiment (see GUIDATA)
 
 handles.analysis='interesting_feature_histograms';
+handles.individualvalue=min(3,handles.individualvalue);
+tmp=cellfun(@(x) x(1),get(handles.IndividualList,'String'));
+handles.individualidx=tmp(handles.individualvalue);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2858,6 +2867,7 @@ cumsum_num_selexp_per_group=[0 cumsum(cellfun(@length,handles.experimentvalue))]
 
 handlesexperimentlist=[handles.experimentlist{:}];
 handlesexperimentlist=handlesexperimentlist(selected_exp);
+handlessexdata=handles.sexdata(selected_exp);
 
 nexperiments=length(handlesexperimentlist);
 nbehaviors=length(handles.behaviorlist);
@@ -2885,6 +2895,16 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       [bdata{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data,[],[],[],[]);
       num_indi=num_indi+length(bdata{b}.allScores.scores);
     end
+    [~,~,~,~,sex_data]=cull_short_trajectories(handles,bdata{1},[],[],[],handlessexdata{ge});
+    sexdata=[];
+    switch(handles.individualidx)
+      case('A')
+        sexdata=cellfun(@(x) ones(1,length(x)),sex_data,'uniformoutput',false);
+      case('M')
+        sexdata=sex_data;
+      case('F')
+        sexdata=cellfun(@not,sex_data,'uniformoutput',false);
+    end
 
     bad{ge}={};
     parfor_tmp=zeros(nbehaviors,nfeatures,9);
@@ -2894,10 +2914,10 @@ if(isempty(handles.interestingfeaturehistograms_cache))
           [handles.featurelist{f} '.mat']));
       [~,~,~,fdata,~]=cull_short_trajectories(handles,[],[],[],feature_data,[]);
 
-      sexdata={};
-      for s=1:length(fdata.data)
-        sexdata{s}=ones(1,length(fdata.data{s}));
-      end
+      %sexdata={};
+      %for s=1:length(fdata.data)
+      %  sexdata{s}=ones(1,length(fdata.data{s}));
+      %end
       for b=1:nbehaviors
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
@@ -3043,6 +3063,13 @@ if(handles.comparison2==0)
   end
   tmp2=sortrows(tmp2,-7);
 
+  if(isempty(tmp2))
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check individual sex.'));  drawnow;
+    return;
+  end
+
   tmp=cell(size(tmp2,1),8);
   tmp(:,1)=handles.grouplist(tmp2(:,1));
   tmp(:,2)=cellstr(num2str(tmp2(:,2),'%-d'));
@@ -3140,6 +3167,13 @@ if(handles.comparison2==1)
     tmp2(:,5)=abs(tmp2(:,5));
   end
   tmp2=sortrows(tmp2,-5);
+
+  if(isempty(tmp2))
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check individual sex.'));  drawnow;
+    return;
+  end
 
   tmp=cell(size(tmp2,1),5);
   tmp(:,1)=handles.grouplist(tmp2(:,1));
@@ -5819,7 +5853,7 @@ function StyleList2_Callback(hObject, eventdata, handles)
 
 get(hObject,'Value');
 switch(handles.analysis)
-  case 'feature_histogram'
+  case {'feature_histogram','interesting_feature_histograms'}
     handles.featurehistogram_style2=ans;
   case 'feature_timeseries'
     handles.featuretimeseries_style2=ans;
@@ -5828,8 +5862,9 @@ switch(handles.analysis)
   case 'behavior_timeseries'
   case 'bout_stats'
     handles.boutstats_style2=ans;
-  case 'interesting_feature_histograms'
 end
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 
