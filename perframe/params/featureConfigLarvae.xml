@@ -66,6 +66,8 @@
   <absangchvsangtc trans_types="none" type="abs_appearance"/>
   <angchvsangtc trans_types="abs,flip" type="appearance"/>
   <area_mm trans_types="none,relative" type="appearance"/>
+  <normarea trans_types="none" type="appearance"/>
+  <dnormarea trans_types="none" type="appearance"/>
   <centralheadang trans_types="none" type="position"/>
   <centralheadmag trans_types="none,relative" type="appearance"/>
   <ratioarealength trans_types="none,relative" type="appearance"/>
