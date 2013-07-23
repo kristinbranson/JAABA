@@ -7236,46 +7236,8 @@ end
 handles.data.setGTSuggestionMode('Random',perfly,perexp);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
-set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
-handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
-return
-  
-  
-% --------------------------------------------------------------------
-function menu_view_suggest_gt_intervals_threshold_on_scores_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest_gt_intervals_threshold_on_scores (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-in = inputdlg({'Threshold for suggestion'});
-if isempty(in) || ~ischar(in{1}) ,
-  return;
-end
-threshold = str2double(in{1});
-if isnan(threshold) || abs(threshold-0.5)>0.5  
-  warndlg('Input value between 0 and 1');
-  return;
-end
-
-%handles.data.SuggestThresholdGT(threshold);
-handles.data.setGTSuggestionMode('Threshold',threshold);
-
-set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','on');
-set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineImages(handles);
@@ -7296,7 +7258,6 @@ function menu_view_suggest_gt_intervals_none_Callback(hObject, eventdata, handle
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','on');
@@ -7347,7 +7308,6 @@ end
 if ~success, warndlg(msg); return; end
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
@@ -7383,7 +7343,6 @@ handles.data.setGTSuggestionMode('Imported', ...
                                          fullfile(pathname,filename));
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
