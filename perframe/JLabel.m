@@ -1366,7 +1366,8 @@ end
 
 % set zoom radius
 if isnan(handles.guidata.zoom_fly_radius(1)),
-  handles.guidata.meana = nanmean([handles.data.trx.a]);
+  tmp = [handles.data.trx.a];
+  handles.guidata.meana = nanmean(tmp(:));
   handles.guidata.zoom_fly_radius = handles.guidata.meana*20 + [0,0];
 end
 for previewi = 1:numel(handles.guidata.axes_previews),
