@@ -7426,7 +7426,17 @@ classdef JLabelData < matlab.mixin.Copyable
           global CACHED_TRX_EXPNAME; %#ok<TLEV>
           if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
               ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-            obj.trx = load_tracks(trxfilename);
+            trx = load_tracks(trxfilename);
+            ff = fieldnames(trx);
+            for fnum = 1:numel(ff)
+              if numel(trx(1).(ff{fnum})) == trx(1).nframes && ~strcmpi(ff{fnum},'sex');
+                for fly = 1:numel(trx)
+                  trx(fly).(ff{fnum}) = trx(fly).(ff{fnum})(:)';
+                end
+              end
+            end
+
+            obj.trx = trx;
             CACHED_TRX = obj.trx;
             CACHED_TRX_EXPNAME = obj.expnames{expi};
           else
@@ -10251,6 +10261,7 @@ classdef JLabelData < matlab.mixin.Copyable
       if isprop(macguffin.classifierStuff,'windowdata') && ...
           isstruct(macguffin.classifierStuff.windowdata) && ...
           ~substitutionsMade && self.loadwindowdata &&...
+          ~isempty(macguffin.classifierStuff.savewindowdata) && ...
           macguffin.classifierStuff.savewindowdata && ...
           ~self.IsGTMode(),
         isPerframeNewer = false;
