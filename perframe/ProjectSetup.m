@@ -357,7 +357,7 @@ function updateConfigTable(handles)
 % Update the config table (a GUI element) to match the current "model"
 % state
 basicParamsStruct = handles.basicParamsStruct;
-fields2remove = {'featureLexicon','windowfeatures','scoreFeatures', ...
+fields2remove = {'featureLexicon','windowFeaturesParams','scoreFeatures', ...
                  'sublexiconPFNames','labels','gtLabels','expDirNames', ...
                  'gtExpDirNames', 'classifierStuff', 'version','classifierfile',...
                  'windowFeaturesParams'};
@@ -911,7 +911,7 @@ if ismember('Window Features',sellist),
       'and the original project. Are you sure you want to import the window features?'],...
       'Import Window features','Yes','No','No');
     if strcmp(res,'Yes')
-      handles.basicParamsStruct.windowFeatureParams = origparams.x.windowFeaturesParams;
+      handles.basicParamsStruct.windowFeaturesParams = origparams.x.windowFeaturesParams;
     end
   else
       handles.basicParamsStruct.windowFeatureParams = origparams.x.windowFeaturesParams;
@@ -935,9 +935,7 @@ end
 
 
 if ismember('Classifier files used as input', sellist);
-  if isfield(origparams,'scoreFeatures')
-    handles.basicParamsStruct.scoreFeatures = origparams.x.scoreFeatures;
-  end
+  handles.basicParamsStruct.scoreFeatures = origparams.x.scoreFeatures;
 end
 
 if ismember('Classifier Settings',sellist),
