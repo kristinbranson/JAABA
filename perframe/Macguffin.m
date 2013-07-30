@@ -18,7 +18,7 @@ classdef Macguffin < handle
     gtExpDirNames
     classifierStuff
     extra=struct()  % a structure that stores additional information
-    version='0.5.1'
+    version=''
       % 0.5.0 : Original
       % 0.5.1 : Supports nextra_markers, flies_extra_markersize, 
       %           flies_extra_marker, and flies_extra_linestyle fields in
@@ -68,8 +68,9 @@ classdef Macguffin < handle
       
       self.extra.perframe.landmarkParams.arena_center_mm_x = 0;
       self.extra.perframe.landmarkParams.arena_center_mm_y = 0;
-      self.extra.perframe.landmarkParams.arena_radius_mm = 60;
+      self.extra.perframe.landmarkParams.arena_radius_mm = 65;
       self.extra.perframe.landmarkParams.arena_type = 'circle';
+      self.addversion
       
     end  % method
     
@@ -110,6 +111,8 @@ classdef Macguffin < handle
       self.windowFeaturesParams=jld.windowfeaturesparams;
       % Put the classifier in self
       self.classifierStuff=jld.getClassifierStuff();
+      self.version = jld.version;
+
     end  % method
 
     
@@ -135,6 +138,7 @@ classdef Macguffin < handle
           self.extra.(fieldName)=basicDataStruct.(fieldName);
         end
       end  % for loop
+      self.addversion
     end  % method
 
     
@@ -254,6 +258,7 @@ classdef Macguffin < handle
       % append the GT labels
       self.gtExpDirNames=gtExpDirAbsPathNames;
       self.gtLabels=cookLabels(gtLabels);
+      self.addversion;
     end  % method
     
     
@@ -418,6 +423,13 @@ classdef Macguffin < handle
     % ---------------------------------------------------------------------
     function setMovieFileName(self,movieFileName)
       self.file.moviefilename = movieFileName;
+    end
+    
+    function addversion(self)
+        vid = fopen('version.txt','r');
+        vv = textscan(vid,'%s');
+        fclose(vid);
+        self.version = vv{1};
     end
     
   end  % methods
