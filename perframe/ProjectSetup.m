@@ -118,7 +118,15 @@ end
 updateConfigTable(handles);
 
 % Set the window title
-set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
+if handles.new,
+  set(hObject,'name',fif(handles.new,'New...','Basic Settings...'));
+  set(handles.pushbutton_copy,'visible','on');
+  set(handles.featureconfigpopup,'enable','on');
+else
+  set(hObject,'name',fif(handles.new,'Edit...','Basic Settings...'));
+  set(handles.pushbutton_copy,'visible','off')
+  set(handles.featureconfigpopup,'enable','off');
+end
 
 % Set the current score-as-feature file
 fileNameList = {handles.basicParamsStruct.scoreFeatures(:).classifierfile};
@@ -859,159 +867,117 @@ delete(get(hObject,'parent'));
 return
 
 
-% % -------------------------------------------------------------------------
-% % --- Executes on button press in pushbutton_copy.
-% function pushbutton_copy_Callback(hObject, eventdata, handles)
-% % hObject    handle to pushbutton_copy (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% [fnames,pname] = uigetfile('*.mat','Select a project to copy settings from');
-% if fnames == 0; return; end;
-% 
-% list = {'Target Type','Behavior Name and File Names','Window Features',...
-%   'List of perframe features','Classifier files used as input',...
-%   'Advanced Parameters'};
-% 
-% dstr = {'Select the parameters to copy.','Use Control/Command click to select multiple entries'};
-% [sel,ok] = listdlg('PromptString',dstr,'ListSize',[350 120],'Name','Parameters to copy',...
-%   'ListString',list);
-% sellist = list(sel);
-% 
-% if ok == 0, return; end
-% [~,~,ext] = fileparts(fnames);
-% if strcmp(ext,'.xml')
-%   origparams = ReadXMLParams(fullfile(pname,fnames));
-% else
-%   origparams = load(fullfile(pname,fnames));
-% end
-% 
-% if ismember('Target Type',sellist)
-%   alltypes = fieldnames(handles.featureLexiconFileLookup);
-%   listndx = [];
-%   for andx = 1:numel(alltypes)
-%     curfname = handles.featureLexiconFileLookup.(alltypes{andx}).file;
-%     if strcmp(origparams.file.featureconfigfile,curfname); 
-%       listndx = andx;
-%     end
-%   end
-%   if ~isempty(listndx),
-%     set(handles.featureconfigpopup,'Value',listndx);
-%   else
-%     uiwait(warndlg(['The feature config file used (', origparams.file.featureconfigfile,...
-%       ') does not exist. Cannot import from the project']));
-%     return;
-%   end
-%   handles.basicParams.file.featureconfigfile = origparams.file.featureconfigfile;
-% end
-% 
-% 
-% if ismember('Behavior Name and File Names',sellist)
-%   origfeatureconfigfile = handles.basicParams.file.featureconfigfile;
-%   handles.basicParams.file = origparams.file;
-%   handles.basicParams.file.featureconfigfile = origfeatureconfigfile;
-%   if iscell(origparams.behaviors.names),
-%     handles.basicParams.behaviors.names = origparams.behaviors.names;
-%   else
-%     handles.basicParams.behaviors.names = {origparams.behaviors.names};
-%   end
-%   if ~isfield(origparams.file,'scorefilename')
-%      name = handles.basicParams.behaviors.names;
-%      name_str = [sprintf('%s_',name{1:end-1}),name{end}];
-%      handles.basicParams.file.scorefilename =  sprintf('scores_%s.mat',name_str);
-%   end
-% end
-% 
-% if ismember('Window Features',sellist),
-%   if isfield(origparams,'windowfeatures')
-%     
-%     if ~strcmp(handles.basicParams.file.featureconfigfile,origparams.file.featureconfigfile),
-%       res = questdlg(['Target type are not the same for the current project '...
-%         'and the original project. Are you sure you want to import the window features?'],...
-%         'Import Window features','Yes','No','No');
-%       if strcmp(res,'Yes')
-%         handles.basicParams.windowfeatures = origparams.windowfeatures;
-%       end
-%     else
-%       handles.basicParams.windowfeatures = origparams.windowfeatures;
-%     end
-%   elseif isfield(origparams.file,'featureparamfilename')
-%     uiwait(warndlg(['The selected configuration file does not have any '...
-%       'window features, but points to a file that does have the window features. '...
-%       'Loading the window features from the referenced file:' origparams.file.featureparamfilename]));
-%     [windowfeaturesparams,windowfeaturescellparams,basicFeatureTable,featureWindowSize] = ...
-%       ReadPerFrameParams(origparams.file.featureparamfilename,handles.basicParams.file.featureconfigfile); 
-% 
-%     handles.basicParams.windowfeatures.windowfeaturesparams = windowfeaturesparams;
-%     handles.basicParams.windowfeatures.windowfeaturescellparams = windowfeaturescellparams;
-%     handles.basicParams.windowfeatures.basicFeatureTable = basicFeatureTable;
-%     handles.basicParams.windowfeatures.featureWindowSize = featureWindowSize;
-%     if isfield(handles.basicParams.file,'featureparamfilename'),
-%         handles.basicParams.file = rmfield(handles.basicParams.file,'featureparamfilename');
-%     end
-%   else
-%     uiwait(warndlg(['The selected configuration file does not have any '...
-%       'window features. Not copying the window features']));
-%   end
-% end
-% 
-% if ismember('List of perframe features',sellist)
-%   
-%   if isfield(origparams,'featureparamlist')
-%     
-%     if ~strcmp(handles.basicParams.file.featureconfigfile,origparams.file.featureconfigfile),
-%       res = questdlg(['Target type are not the same for the current project '...
-%         'and the original project. Are you sure you want to import the list of perframe features?'],...
-%         'Import list of perframe features','Yes','No','No');
-%       if strcmp(res,'Yes')
-%         handles.basicParams.featureparamlist = origparams.featureparamlist;
-%       end
-%     else
-%       handles.basicParams.featureparamlist= origparams.featureparamlist;
-%       
-%     end
-%   end
-% end
-% 
-% if ismember('Classifier files used as input', sellist);
-%   if isfield(origparams,'scoreFeatures')
-%     
-%     handles.basicParams.scoreFeatures = origparams.scoreFeatures;
-%   end
-% end
-% 
-% if ismember('Advanced Parameters',sellist),
-%   adv_params = {'behaviors.labelcolors',...
-%     'behaviors.unknowncolor',...
-%     'plot.trx.colormap',...
-%     'plot.trx.colormap_multiplier',...
-%     'plot.trx.nextra_markers',...
-%     'plot.trx.extra_marker',...
-%     'plot.trx.extra_markersize',...
-%     'plot.trx.extra_linestyle',...
-%     'plot.labels.colormap',...
-%     'plot.labels.linewidth',...
-%     'perframe.basicParams.fov',...
-%     'perframe.basicParams.nbodylengths_near',...
-%     'perframe.basicParams.thetafil',...
-%     'perframe.basicParams.max_dnose2ell_anglerange',...
-%     'perframe.landmark_params.arena_center_mm_x',...
-%     'perframe.landmark_params.arena_center_mm_y',...
-%     'perframe.landmark_params.arena_radius_mm',...
-%     'perframe.landmark_params.arena_type'};
-%   
-%   for str = adv_params(:)',
-%     try %#ok<TRYNC>
-%       eval(sprintf('handles.basicParams.%s = origparams.%s;',str{1},str{1}));
-%     end
-%   end
-% 
-% end
-% 
-% handles = addversion(handles);
-% guidata(hObject,handles);
-% updateEditsListboxesAndPopupmenus(handles);
-% updateConfigTable(handles);
-% return
+% -------------------------------------------------------------------------
+% --- Executes on button press in pushbutton_copy.
+function pushbutton_copy_Callback(hObject, eventdata, handles) %#ok
+% hObject    handle to pushbutton_copy (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[fnames,pname] = uigetfile('*.jab','Select a project to copy settings from');
+if fnames == 0; return; end;
+
+list = {'Target Type','Behavior Name and File Names','Window Features',...
+  'List of perframe features','Classifier files used as input',...
+  'Classifier Settings',...
+  'Advanced Parameters'};
+
+dstr = {'Select the parameters to copy.','Use Control/Command click to select multiple entries'};
+[sel,ok] = listdlg('PromptString',dstr,'ListSize',[350 120],'Name','Parameters to copy',...
+  'ListString',list);
+sellist = list(sel);
+
+if ok == 0, return; end
+
+try
+
+  origparams = load(fullfile(pname,fnames),'-mat');
+
+if ismember('Target Type',sellist)
+    handles.basicParamsStruct.featureLexiconName = origparams.x.featureLexiconName;
+    handles.basicParamsStruct.featureLexicon = origparams.x.featureLexicon;
+end
+
+if ismember('Behavior Name and File Names',sellist)
+  behnames = origparams.x.behaviors.names;
+  isNone=strcmpi('none',behnames);
+  behnames=behnames(~isNone);
+  handles.basicParamsStruct.behaviors.names = behnames;
+  handles.basicParamsStruct.file = origparams.x.file;
+end
+
+if ismember('Window Features',sellist),
+  if ~isequal(handles.basicParamsStruct.featureLexicon,origparams.x.featureLexicon),
+    res = questdlg(['Target type (or some settings) are not the same for the current project '...
+      'and the original project. Are you sure you want to import the window features?'],...
+      'Import Window features','Yes','No','No');
+    if strcmp(res,'Yes')
+      handles.basicParamsStruct.windowFeatureParams = origparams.x.windowFeaturesParams;
+    end
+  else
+      handles.basicParamsStruct.windowFeatureParams = origparams.x.windowFeaturesParams;
+  end
+end
+
+
+if ismember('List of perframe features',sellist)
+  if ~isequal(handles.basicParamsStruct.featureLexicon,origparams.x.featureLexicon),
+    res = questdlg(['Target type (or some settings) are not the same for the current project '...
+        'and the original project. Are you sure you want to import the list of perframe features?'],...
+        'Import list of perframe features','Yes','No','No');
+      if strcmp(res,'Yes')
+        handles.basicParamsStruct.sublexiconPFNames= origparams.x.sublexiconPFNames;
+      end
+  else
+    handles.basicParamsStruct.sublexiconPFNames= origparams.x.sublexiconPFNames;
+    
+  end
+end
+
+
+if ismember('Classifier files used as input', sellist);
+  if isfield(origparams,'scoreFeatures')
+    handles.basicParamsStruct.scoreFeatures = origparams.x.scoreFeatures;
+  end
+end
+
+if ismember('Classifier Settings',sellist),
+  clf_params_specific = {'classifierStuff.type'
+    'classifierStuff.postProcessParams'
+    'classifierStuff.trainingParams'
+    'classifierStuff.savewindowdata'};
+  
+  for str = clf_params_specific(:)',
+    try %#ok<TRYNC>
+      eval(sprintf('handles.basicParamsStruct.%s = origparams.x.%s;',str{1},str{1}));
+    end
+  end
+  
+end
+
+
+if ismember('Advanced Parameters',sellist),
+  adv_params_specific = {'behaviors.labelcolors'
+    'behaviors.unknowncolor' 
+    'labelGraphicParams'
+    'trxGraphicParams'
+    'extra'};
+  
+  for str = adv_params_specific(:)',
+    try %#ok<TRYNC>
+      eval(sprintf('handles.basicParamsStruct.%s = origparams.x.%s;',str{1},str{1}));
+    end
+  end
+  
+end
+
+guidata(hObject,handles);
+updateEditsListboxesAndPopupmenus(handles);
+updateConfigTable(handles);
+
+catch ME,
+  uiwait(warndlg(sprintf('Could not copy settings from previous project:%s',ME.message)));
+end
+return
 
 % -------------------------------------------------------------------------
 % --- Executes on button press in togglebutton_advanced.
