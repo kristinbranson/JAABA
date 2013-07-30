@@ -68,7 +68,7 @@ classdef Macguffin < handle
       
       self.extra.perframe.landmarkParams.arena_center_mm_x = 0;
       self.extra.perframe.landmarkParams.arena_center_mm_y = 0;
-      self.extra.perframe.landmarkParams.arena_radius_mm = 65;
+      self.extra.perframe.landmarkParams.arena_radius_mm = 60;
       self.extra.perframe.landmarkParams.arena_type = 'circle';
       self.addversion
       
