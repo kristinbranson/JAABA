@@ -1028,20 +1028,24 @@ for i = axes2,
             handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
             handles.spacetime.meana, handles.spacetime.meanb);
-        gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
-            handles.spacetime.binidx, handles.spacetime.nbins,...
-            handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
+%         gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
+%             handles.spacetime.binidx, handles.spacetime.nbins,...
+%             handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
         rb_nog(:,:,1)=imnorm;
         rb_nog(:,:,2)=imnorm_last;
         rb_nog(:,:,3)=imnorm_last;
         image(rb_nog,'parent',handles.spacetime.ax);
         axis(handles.spacetime.ax,'square');
         for k=1:length(handles.spacetime.featurelocations)
+          handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
+              ['spacetime_' handles.spacetime.featurenames{k}],ts,ts);
+          color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
+          color=min(1,max(0,color));
           line(handles.spacetime.featurelocations{k}(:,2), handles.spacetime.featurelocations{k}(:,1),...
-              'color','g','parent',handles.spacetime.ax);
+              'color',[0 color 0],'parent',handles.spacetime.ax);
           text(handles.spacetime.featurecenters{k}(1), handles.spacetime.featurecenters{k}(2),...
               handles.spacetime.featurenames{k},'Interpreter','none','HorizontalAlignment','center',...
-              'color','g','parent',handles.spacetime.ax);
+              'color',[0 color 0],'parent',handles.spacetime.ax);
         end
       end
 
@@ -5139,6 +5143,10 @@ else
       [handles.spacetime.binidx, handles.spacetime.nbins, ...
           handles.spacetime.featurenames, handles.spacetime.featurelocations, handles.spacetime.featurecenters] = ...
           compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);
+      idx=find(cellfun(@(x) strncmp('spacetime_',x,10),handles.data.allperframefns));
+      prctile([handles.data.perframedata{idx}],[1 99]);
+      handles.spacetime.prc1=ans(1);
+      handles.spacetime.prc99=ans(2);
     end
   else
     if isfield(handles,'spacetime')
