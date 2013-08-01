@@ -441,8 +441,10 @@ switch(handles.analysis)
       set(handles.CentralTendency,'enable','on');
       set(handles.Dispersion,'enable','on');
       set(handles.LogBinSize,'enable','on');
-      set(handles.AllFrames,'enable','on');
-      set(handles.NotDuring,'enable','on');
+      if(~isempty(handles.classifierlist))
+        set(handles.AllFrames,'enable','on');
+        set(handles.NotDuring,'enable','on');
+      end
       set(handles.NBins,'enable','on');
     end
   case 'feature_timeseries'
