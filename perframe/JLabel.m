@@ -5129,7 +5129,10 @@ else
   end
   ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
   set(handles.guidata.hselection(propi),'YData',ydata([1,2,2,1,1]));
-  s = sprintf('%.3f',perframedata(handles.guidata.ts(1)-T0+1));
+  s='NaN';
+  if(((handles.guidata.ts(1)-T0+1)>0) && ((handles.guidata.ts(1)-T0+1)<length(perframedata)))
+    s = sprintf('%.3f',perframedata(handles.guidata.ts(1)-T0+1));
+  end
   set(handles.guidata.text_timeline_props(propi),'String',s);
   
   if any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9))
