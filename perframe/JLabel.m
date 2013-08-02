@@ -1038,7 +1038,7 @@ for i = axes2,
         axis(handles.spacetime.ax,'square');
         for k=1:length(handles.spacetime.featurelocations)
           handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
-              ['spacetime_' handles.spacetime.featurenames{k}],ts,ts);
+              ['spacetime_' handles.spacetime.featurenames{k}], handles.guidata.ts(i), handles.guidata.ts(i));
           color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
           color=min(1,max(0,color));
           line(handles.spacetime.featurelocations{k}(:,2), handles.spacetime.featurelocations{k}(:,1),...
