@@ -8189,7 +8189,7 @@ while ~successfullyOpened && keepTrying ,
         end
       end
     else
-      message=excp.message;
+      message=getReport(excp,'extended','hyperlinks','off');
       keepTrying=false;
     end  % if
   end  % try/catch
