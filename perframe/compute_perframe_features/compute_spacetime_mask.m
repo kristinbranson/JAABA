@@ -1,7 +1,7 @@
 function [binidx, nbins, featurenames, featureboundaries, featurecenters] = compute_spacetime_mask(meana, meanb)
 
-boxwidth2 = round(meanb*6);
-boxheight2 = round(meana*3);
+boxwidth2 = round(meanb*8);
+boxheight2 = round(meana*4);
 
 nbinsr = 4;
 nbinstheta = 8;
