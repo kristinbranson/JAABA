@@ -89,6 +89,7 @@ handles.omitinf=1;
 handles.absdprimezscore=1;
 handles.comparison2=0;
 handles.dump2csv=1;
+handles.dump2mat=1;
 handles.centraltendency=1;
 handles.dispersion=1;
 handles.xoffset=1;
@@ -154,6 +155,7 @@ try
   handles.absdprimezscore=handles_saved.absdprimezscore;
   handles.comparison2=handles_saved.comparison2;
   handles.dump2csv=handles_saved.dump2csv;
+  handles.dump2mat=handles_saved.dump2mat;
   handles.centraltendency=handles_saved.centraltendency;
   handles.dispersion=handles_saved.dispersion;
   handles.xoffset=handles_saved.xoffset;
@@ -324,6 +326,9 @@ handles.interestingfeaturetimeseries_cache=[];
 % ---
 function update_figure(handles)
 
+set(handles.DumpToCSV,'enable','off');
+set(handles.DumpToMAT,'enable','off');
+
 if(isempty(handles.grouplist) || length(handles.experimentlist{handles.groupvalue})==0)
   set(handles.ExperimentList,'enable','off');
 else
@@ -351,6 +356,8 @@ if(sum(cellfun(@length,handles.experimentlist))==0)
 else
   set(handles.ClassifierAuto,'enable','on');
   set(handles.ClassifierCheck,'enable','on');
+  set(handles.DumpToCSV,'enable','on');
+  set(handles.DumpToMAT,'enable','on');
 end
 if(isempty(handles.classifierlist))
   set(handles.ClassifierList,'enable','off');
@@ -398,7 +405,7 @@ set(handles.XOffset,'enable','off');                set(handles.MinimumTrajector
 set(handles.OmitInf,'enable','off');                set(handles.OmitNaN,'enable','off');
 set(handles.AbsDPrimeZScore,'enable','off');        set(handles.SubtractMean,'enable','off');
 set(handles.LogBinSize,'enable','off');             set(handles.AllFrames,'enable','off');
-set(handles.NotDuring,'enable','off');              set(handles.DumpToCSV,'enable','off');
+set(handles.NotDuring,'enable','off');
 set(handles.CentralTendency,'enable','off');        set(handles.Dispersion,'enable','off');
 set(handles.DPrime,'enable','off');                 set(handles.ZScore,'enable','off');
 set(handles.Plot,'enable','off');
@@ -434,8 +441,10 @@ switch(handles.analysis)
       set(handles.CentralTendency,'enable','on');
       set(handles.Dispersion,'enable','on');
       set(handles.LogBinSize,'enable','on');
-      set(handles.AllFrames,'enable','on');
-      set(handles.NotDuring,'enable','on');
+      if(~isempty(handles.classifierlist))
+        set(handles.AllFrames,'enable','on');
+        set(handles.NotDuring,'enable','on');
+      end
       set(handles.NBins,'enable','on');
     end
   case 'feature_timeseries'
@@ -530,6 +539,7 @@ if(~isempty(analysis2))
   set(handles.Plot,'enable','on');
   set(handles.MinimumTrajectoryLength,'enable','on');
   set(handles.DumpToCSV,'enable','on');
+  set(handles.DumpToMAT,'enable','on');
   if((ismember(analysis2,{'feature_histogram','behavior_barchart','behavior_timeseries','bout_stats'}) || ...
      (strcmp(analysis2,'feature_timeseries')&&(handles.featuretimeseries_style2~=1))) && ...
       (length(handles.behaviorlist)>0))
@@ -616,6 +626,7 @@ set(handles.LogBinSize,'value',handles.logbinsize);
 set(handles.SubtractMean,'value',handles.subtractmean);
 set(handles.AbsDPrimeZScore,'value',handles.absdprimezscore);
 set(handles.DumpToCSV,'value',handles.dump2csv);
+set(handles.DumpToMAT,'value',handles.dump2mat);
 set(handles.OmitNaN,'value',handles.omitnan);
 set(handles.OmitInf,'value',handles.omitinf);
 set(handles.XOffset,'value',handles.xoffset);
@@ -1788,6 +1799,10 @@ if(handles.dump2csv)
   fclose(fid);
 end
 
+if(handles.dump2mat)
+  save('most_recent_table.mat','table');
+end
+
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
@@ -2774,6 +2789,12 @@ for b=bb
       end
     end
   end
+  
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_during_data{ans}=during_data;
+    raw_not_during_data{ans}=not_during_data;
+  end
 
   title(ha,tstr,'interpreter','none');
   xlabel(ha,xstr,'interpreter','none');
@@ -2785,6 +2806,10 @@ for b=bb
     set(ha,'xtick',(1:length(xticklabels))+0.25*(comparison>0),'xticklabel',xticklabels);
   end
   zoom(ha,'reset');
+end
+
+if(handles.dump2mat)
+  save('most_recent_figure.mat','handles','raw_during_data','raw_not_during_data');
 end
 
 h2=[];  hh2={};
@@ -3211,6 +3236,10 @@ if(handles.comparison2==1)
   end
 end
 
+if(handles.dump2mat)
+  save('most_recent_table.mat','tmp');
+end
+
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
@@ -3550,10 +3579,20 @@ for b=bb
     end
   end
 
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data2{ans}=raw_data;
+  end
+
   xlabel(ha,xstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
   title(ha,tstr,'interpreter','none');
   axis(ha,'tight');  zoom(ha,'reset');
+end
+
+if(handles.dump2mat)
+  raw_data=raw_data2;
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -4265,6 +4304,15 @@ for b=bb
   else
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
+
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data{ans}=collated_data;
+  end
+end
+
+if(handles.dump2mat)
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -4582,9 +4630,19 @@ for b=bb
     end
   end
 
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data2{ans}=raw_data;
+  end
+
   xlabel(ha,xstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
   axis(ha,'tight');  zoom(ha,'reset');
+end
+
+if(handles.dump2mat)
+  raw_data=raw_data2;
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -4892,6 +4950,11 @@ for b=bb
       end
   end
 
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data{ans}=collated_data;
+  end
+
   if(isempty(k))  k=1:length(length_data);  end
   title(ha,tstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
@@ -4904,6 +4967,10 @@ for b=bb
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
   %if(handles.dump2csv)  fprintf(fid,'\n');  end
+end
+
+if(handles.dump2mat)
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -5998,6 +6065,16 @@ function DumpToCSV_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.dump2csv=~handles.dump2csv;
+guidata(hObject,handles);
+
+
+% --- Executes on button press in DumpToMAT.
+function DumpToMAT_Callback(hObject, eventdata, handles)
+% hObject    handle to DumpToMAT (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.dump2mat=~handles.dump2mat;
 guidata(hObject,handles);
 
 
