@@ -914,7 +914,7 @@ if ismember('Window Features',sellist),
       handles.basicParamsStruct.windowFeaturesParams = origparams.x.windowFeaturesParams;
     end
   else
-      handles.basicParamsStruct.windowFeatureParams = origparams.x.windowFeaturesParams;
+      handles.basicParamsStruct.windowFeaturesParams = origparams.x.windowFeaturesParams;
   end
 end
 
