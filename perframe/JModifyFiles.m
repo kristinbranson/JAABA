@@ -398,7 +398,7 @@ listbox_experiment=getGuidataField(figureJModifyFiles,'listbox_experiment');
 uitable_status=getGuidataField(figureJModifyFiles,'uitable_status');
 
 v = get(listbox_experiment,'Value');
-if isempty(v) || v <= 0 || data.nexps == 0 ,
+if isempty(v) || any(v <= 0) || data.nexps == 0 ,
   set(uitable_status,'Data',{},'Enable','off');
   return;
 end
