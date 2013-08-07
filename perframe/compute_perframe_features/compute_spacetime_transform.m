@@ -1,12 +1,13 @@
 function imnorm = compute_spacetime_transform(im,x,y,theta,a,b,meana,meanb)
 
-boxwidth2 = round(meanb*6);
-boxheight2 = round(meana*3);
+clipsize = 5;
+boxwidth2 = round(meanb*8);
+boxheight2 = round(meana*4);
 
-x1 = floor(max(1,x-a*3));
-x2 = floor(min(size(im,2),x+a*3));
-y1 = ceil(max(1,y-a*3));
-y2 = ceil(min(size(im,1),y+a*3));
+x1 = floor(max(1,x-a*clipsize));
+x2 = floor(min(size(im,2),x+a*clipsize));
+y1 = ceil(max(1,y-a*clipsize));
+y2 = ceil(min(size(im,1),y+a*clipsize));
 %[x1,x2,y1,y2] = ellipse_to_bounding_box(pos.x,pos.y,pos.a*2,pos.b*2,pos.theta);
 % y1 = floor(y1);
 % y2 = ceil(y2);
