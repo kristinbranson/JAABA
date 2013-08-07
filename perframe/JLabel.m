@@ -1062,7 +1062,7 @@ for i = axes2,
       tmp=min(handles.guidata.cache_size,handles.guidata.nframes_jump_go);
       j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
                 Mframenum.Data);
-      j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
+      j=j(find(j>=handles.data.GetMinFirstFrame & j<=handles.data.GetMaxEndFrame));  %#ok
       [y,idx]=sort(Mlastused.Data);
       idx1=find(y>=0,1,'first');
       idx2=min([-1+idx1+length(j) -1+find(isnan(y),1,'first')]);
