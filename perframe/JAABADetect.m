@@ -1,4 +1,4 @@
-function JAABADetect(expdir,varargin)
+function classifierinfo = JAABADetect(expdir,varargin)
 % Run classifiers trained from JAABA on experiments
 % JAABADetect(expdir,'jabfiles',jabfiles)
 % JAABADetect(expdir,'jablistfile',jablistfile)
@@ -57,12 +57,19 @@ scorefilenames = cell(1,nbehaviors);
 scoresasinputs = cell(1,nbehaviors);
 jabts = zeros(1,nbehaviors);
 behavior = cell(1,nbehaviors);
+classifierinfo = [];
 for ndx = 1:nbehaviors
   Q = load(jabfiles{ndx},'-mat');
   [~,scorefilenames{ndx},~] = fileparts(Q.x.file.scorefilename);
   scoresasinputs{ndx} = Q.x.scoreFeatures;
   jabts(ndx) = Q.x.classifierStuff.timeStamp;
   behavior{ndx} = Q.x.behaviors.names{1};
+  classifierinfocurr = struct('jabfile',jabfiles{ndx},...
+    'behavior',behavior{ndx},...
+    'scorefilename',scorefilenames{ndx},...
+    'timestamp',Q.x.classifierStuff.timeStamp,...
+    'jaaba_version',Q.x.version);
+  classifierinfo = structappend(classifierinfo,classifierinfocurr);
 end
 
 E = false(nbehaviors);
@@ -80,7 +87,12 @@ for ndx = 1:nbehaviors
   end
 end
 
-order = graphtopoorder(sparse(E));
+if ~any(E(:))
+  order = graphtopoorder(sparse(E));
+else
+  order = 1:nbehaviors;
+end
+classifierinfo = classifierinfo(order);
 
 data = JLabelData();
 data.isInteractive = false;
