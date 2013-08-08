@@ -5771,37 +5771,95 @@ classdef JLabelData < matlab.mixin.Copyable
       success = true;
     end
     
-    function [success,msg] = AddExpDirAndLabels(obj,expdirname,labels)
-      
-      
+    function [success,msg] = AddExpDirAndLabelsFromJab(obj,jabfilename,importlabels)
+
       success = true; 
       msg = '';
-      curexp = find(strcmp(expdirname,obj.expdirs)); %#ok<EFIND>
-      if isempty(curexp);
-        [success,msg] = obj.AddExpDir(expdirname);
-        if ~success,
-          return;
+      
+      try
+        Q = load(jabfilename,'-mat');
+      catch ME,
+        success = false;
+        msg = ME.message;
+        return;
+      end
+      
+      for ndx = 1:numel(Q.x.expDirNames)
+        expdirname = Q.x.expDirNames{ndx};
+        labels = Q.x.labels(ndx);
+        if importlabels % Change the names
+          for fly = 1:numel(labels.flies)
+            for bnum = 1:numel(labels.names{fly})
+              if ~strcmpi(labels.names{fly}{bnum},'none')
+                labels.names{fly}{bnum} = obj.labelnames{1};
+              end
+            end
+          end
+          
+          
         end
-        obj.labels(end) = labels;
-      else
-        if obj.haslabels(curexp)
-          dlgstr = sprintf('Experiment %s already has labels. Discard the existing (current) labels and load the new ones?',...
-            expdirname);
-          res = questdlg(dlgstr,'Load new labels?',...
-            'Keep Existing','Load New','Cancel','Keep Existing');
-          if strcmp(res,'Load New')
+        
+        curexp = find(strcmp(expdirname,obj.expdirs)); %#ok<EFIND>
+        if isempty(curexp);
+          [success,msg] = obj.AddExpDir(expdirname);
+          if ~success,
+            return;
+          end
+          if importlabels
+            obj.labels(end) = labels;
+          end
+        elseif importlabels
+          if obj.haslabels(curexp)
+            dlgstr = sprintf('Experiment %s already has labels. Discard the existing (current) labels and load the new ones?',...
+              expdirname);
+            res = questdlg(dlgstr,'Load new labels?',...
+              'Keep Existing','Load New','Cancel','Keep Existing');
+            if strcmp(res,'Load New')
+              obj.labels(curexp) = labels;
+            end
+            
+          else
             obj.labels(curexp) = labels;
           end
           
-        else
-          obj.labels(curexp) = labels;
+          if curexp == obj.expi
+            
+            T0 = max(obj.GetTrxFirstFrame(obj.expi,obj.flies));
+            T1 = min(obj.GetTrxEndFrame(obj.expi,obj.flies));
+            n = T1-T0+1;
+            off = 1 - T0;
+            flyndx = find(labels.flies==obj.flies);
+            if isempty(flyndx),
+              continue;
+            end
+            
+            labelidx.vals = zeros(1,n);
+            labelidx.imp = zeros(1,n);
+            labelidx.timestamp = zeros(1,n);
+            
+            for i = 1:obj.nbehaviors,
+              for j = find(strcmp(labels.names{flyndx},obj.labelnames{i})),
+                t0 = labels.t0s{flyndx}(j);
+                t1 = labels.t1s{flyndx}(j);
+                if t0>T1 || t1<T0; continue;end
+                t0 = max(T0,t0);
+                t1 = min(T1+1,t1);
+                labelidx.vals(t0+off:t1-1+off) = i;
+                labelidx.timestamp(t0+off:t1-1+off) = labels.timestamp{flyndx}(j);
+              end
+            end
+            for j = 1:numel(labels.imp_t0s{flyndx})
+              t0 = labels.imp_t0s{flyndx}(j); 
+              t1 = labels.imp_t1s{flyndx}(j);
+              if t0>T1 || t1<T0; continue;end
+              t0 = max(T0,t0);
+              t1 = min(T1+1,t1);
+              labelidx.imp(t0+off:t1-1+off) = 1;
+            end
+            obj.labelidx = labelidx;
+          end
+          
         end
-        
-        if curexp == obj.expi
-          [obj.labelidx,obj.t0_curr,obj.t1_curr] = obj.GetLabelIdx(expi,flies);
-          obj.labelidx_off = 1 - obj.t0_curr;
-        end
-        
       end
       
     end
