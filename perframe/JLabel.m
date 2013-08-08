@@ -964,10 +964,14 @@ for i = axes2,
       cache_total=cache_total+1;
       if isempty(j),
         cache_miss=cache_miss+1;
-        tmp=find(Mlastused.Data>=0);
-        j=tmp(argmin(Mlastused.Data(tmp)));
-        if isempty(j), % If all frames last used is nan i.e., they are waiting to be cached.
-          j = find(isnan(Mlastused.Data),1);
+        j = find(Mframenum.Data==handles.guidata.ts(i));
+        
+        if isempty(j)
+            tmp=find(Mlastused.Data>=0);
+            j=tmp(argmin(Mlastused.Data(tmp)));
+            if isempty(j), % If all frames last used is nan i.e., they are waiting to be cached.
+                j = find(isnan(Mlastused.Data),1);
+            end
         end
         %j = argmin(Mlastused.Data);
         Mlastused.Data(j) = -1;
@@ -976,8 +980,8 @@ for i = axes2,
         % ALT: Added uint8() 2012-09-14.  Without that, threw error when
         % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
         % being of class double
-%         SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-%              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+             num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
       else
         ClearStatus(handles);
       end
@@ -1002,8 +1006,8 @@ for i = axes2,
           Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-%           SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
-%                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+          SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+               num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
           ClearStatus(handles);
         end
@@ -1062,8 +1066,12 @@ for i = axes2,
       tmp=min(handles.guidata.cache_size,handles.guidata.nframes_jump_go);
       j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
                 Mframenum.Data);
-      j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
+      j=j(find(j>=handles.data.GetMinFirstFrame & j<=handles.data.GetMaxEndFrame));  %#ok
+      
       [y,idx]=sort(Mlastused.Data);
+      
+      
+      
       idx1=find(y>=0,1,'first');
       idx2=min([-1+idx1+length(j) -1+find(isnan(y),1,'first')]);
       idx=idx(idx1:idx2);
