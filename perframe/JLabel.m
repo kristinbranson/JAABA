@@ -9788,3 +9788,52 @@ guidata(hObject,handles);
 return
 
 
+% --------------------------------------------------------------------
+function menu_file_import_exps_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_exps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+title='Import Experiments and Labels from...';
+defaultPath=handles.data.defaultpath;
+[filename,pathname] = ...
+  uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
+            title, ...
+            defaultPath);
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+
+fileNameAbs=fullfile(pathname,filename);
+
+choice = questdlg('Would you like to import both experiments and labels or only the experiments and labels?', ...
+ title,...
+ 'Experiments and Labels','Experiments only', ...
+ 'Cancel','Experiments and Labels');
+% Handle response
+importlabels = true;
+switch choice
+  case 'Experiments and Labels'
+    importlabels = true;
+  case 'Experiments only'
+    importlabels = false;
+  case 'Cancel'
+    return;
+end
+
+
+% Update the status, change the pointer to the watch
+SetStatus(handles,sprintf('Importing Experiments and Labels from %s...',filename));
+% try
+  [success,msg] = handles.guidata.data.AddExpDirAndLabelsFromJab(fileNameAbs,importlabels);
+  if ~success,
+    uiwait(warndlg(sprintf('Could not import:%s',msg)));
+  end
+% catch ME,
+%   uiwait(warndlg(sprintf('Could not import: %s',ME.message)));
+% end
+handles = UpdateTimelineImages(handles);
+UpdatePlots(handles,'refresh_timeline_manual',true);
+guidata(handles.figure_JLabel,handles);
+ClearStatus(handles);

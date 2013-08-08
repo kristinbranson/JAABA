@@ -81,13 +81,13 @@
     
     <corfrac_min trans_types="flip,abs" type="locomotion"/>
     
-    <darea trans_types="none,abs" type="appearance"/>
+    <darea trans_types="none,abs,relative" type="appearance"/>
     
-    <da trans_types="none,abs" type="appearance"/>
+    <da trans_types="none,abs,relative" type="appearance"/>
     
-    <db trans_types="none,abs" type="appearance"/>
+    <db trans_types="none,abs,relative" type="appearance"/>
 
-    <decc trans_types="none,abs" type="appearance"/>
+    <decc trans_types="none,abs,relative" type="appearance"/>
     
     <dphi trans_types="none,abs" type="position,locomotion"/>
     
