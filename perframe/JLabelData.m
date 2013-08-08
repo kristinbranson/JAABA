@@ -1607,6 +1607,7 @@ classdef JLabelData < matlab.mixin.Copyable
         feature_names_list = cell(1,numel(pffs));
         x_curr_all = cell(1,numel(pffs));
           
+        try
         parfor j = 1:numel(pffs),
 
           fn = pffs{j};
@@ -1631,7 +1632,12 @@ classdef JLabelData < matlab.mixin.Copyable
           x_curr_all{j} = single(x_curr);
           feature_names_list{j} = cur_f;
         end  % parfor
-          
+        
+        catch ME,
+            
+            uiwait(warndlg('Could not predict:%s',ME.message));
+            
+        end
           
         for j = 1:numel(pffs),
           fn = pffs{j};
