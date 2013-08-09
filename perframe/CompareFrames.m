@@ -187,6 +187,7 @@ colormap(handles.axes_preview,'gray');
 
 handles.trx_plot = plot(handles.axes_preview,nan,nan,'-o','MarkerSize',3);
 handles.fly_plot = plot(handles.axes_preview,nan,nan,'r','LineWidth',2);
+handles.fly_plot_extra = [];
 for j = 1:handles.data.trxGraphicParams.nextra_markers,
   handles.fly_plot_extra(j) = ...
     line('parent',handles.axes_preview, ...
