@@ -9833,15 +9833,18 @@ end
 
 % Update the status, change the pointer to the watch
 SetStatus(handles,sprintf('Importing Experiments and Labels from %s...',filename));
-% try
+try
   [success,msg] = handles.guidata.data.AddExpDirAndLabelsFromJab(fileNameAbs,importlabels);
   if ~success,
     uiwait(warndlg(sprintf('Could not import:%s',msg)));
   end
-% catch ME,
-%   uiwait(warndlg(sprintf('Could not import: %s',ME.message)));
-% end
-handles = UpdateTimelineImages(handles);
-UpdatePlots(handles,'refresh_timeline_manual',true);
+catch ME,
+  uiwait(warndlg(sprintf('Could not import: %s',ME.message)));
+end
+if handles.data.expi == 0 && handles.data.nexps>0
+  handles = SetCurrentMovie(handles,1);
+  handles = UpdateTimelineImages(handles);
+  UpdatePlots(handles,'refresh_timeline_manual',true);
+end
 guidata(handles.figure_JLabel,handles);
 ClearStatus(handles);
