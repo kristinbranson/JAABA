@@ -980,7 +980,7 @@ for i = axes2,
         % ALT: Added uint8() 2012-09-14.  Without that, threw error when
         % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
         % being of class double
-        SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+        fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
       else
         ClearStatus(handles);
@@ -1006,7 +1006,7 @@ for i = axes2,
           Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-          SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+          fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
           ClearStatus(handles);

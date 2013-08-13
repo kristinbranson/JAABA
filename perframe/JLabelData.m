@@ -1635,7 +1635,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
         catch ME,
             
-            uiwait(warndlg('Could not predict:%s',ME.message));
+            uiwait(warndlg(sprintf('Could not predict:%s',ME.message)));
             
         end
           
