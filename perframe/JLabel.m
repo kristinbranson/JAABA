@@ -9703,6 +9703,7 @@ c = parcluster;
 NumWorkers = c.NumWorkers;
 
 while true,
+    ischange = false;
   defaults = {num2str(handles.guidata.framecache_threads),...
     num2str(handles.guidata.computation_threads)};
   res = inputdlg(prompts,'Multi-threading Preferences',1,defaults);
