@@ -89,6 +89,7 @@ handles.omitinf=1;
 handles.absdprimezscore=1;
 handles.comparison2=0;
 handles.dump2csv=1;
+handles.dump2mat=1;
 handles.centraltendency=1;
 handles.dispersion=1;
 handles.xoffset=1;
@@ -154,6 +155,7 @@ try
   handles.absdprimezscore=handles_saved.absdprimezscore;
   handles.comparison2=handles_saved.comparison2;
   handles.dump2csv=handles_saved.dump2csv;
+  handles.dump2mat=handles_saved.dump2mat;
   handles.centraltendency=handles_saved.centraltendency;
   handles.dispersion=handles_saved.dispersion;
   handles.xoffset=handles_saved.xoffset;
@@ -324,6 +326,9 @@ handles.interestingfeaturetimeseries_cache=[];
 % ---
 function update_figure(handles)
 
+set(handles.DumpToCSV,'enable','off');
+set(handles.DumpToMAT,'enable','off');
+
 if(isempty(handles.grouplist) || length(handles.experimentlist{handles.groupvalue})==0)
   set(handles.ExperimentList,'enable','off');
 else
@@ -351,6 +356,8 @@ if(sum(cellfun(@length,handles.experimentlist))==0)
 else
   set(handles.ClassifierAuto,'enable','on');
   set(handles.ClassifierCheck,'enable','on');
+  set(handles.DumpToCSV,'enable','on');
+  set(handles.DumpToMAT,'enable','on');
 end
 if(isempty(handles.classifierlist))
   set(handles.ClassifierList,'enable','off');
@@ -398,7 +405,7 @@ set(handles.XOffset,'enable','off');                set(handles.MinimumTrajector
 set(handles.OmitInf,'enable','off');                set(handles.OmitNaN,'enable','off');
 set(handles.AbsDPrimeZScore,'enable','off');        set(handles.SubtractMean,'enable','off');
 set(handles.LogBinSize,'enable','off');             set(handles.AllFrames,'enable','off');
-set(handles.NotDuring,'enable','off');              set(handles.DumpToCSV,'enable','off');
+set(handles.NotDuring,'enable','off');
 set(handles.CentralTendency,'enable','off');        set(handles.Dispersion,'enable','off');
 set(handles.DPrime,'enable','off');                 set(handles.ZScore,'enable','off');
 set(handles.Plot,'enable','off');
@@ -434,8 +441,10 @@ switch(handles.analysis)
       set(handles.CentralTendency,'enable','on');
       set(handles.Dispersion,'enable','on');
       set(handles.LogBinSize,'enable','on');
-      set(handles.AllFrames,'enable','on');
-      set(handles.NotDuring,'enable','on');
+      if(~isempty(handles.classifierlist))
+        set(handles.AllFrames,'enable','on');
+        set(handles.NotDuring,'enable','on');
+      end
       set(handles.NBins,'enable','on');
     end
   case 'feature_timeseries'
@@ -508,7 +517,9 @@ switch(handles.analysis)
     set(handles.InterestingFeatureHistograms,'backgroundcolor',fg);
     set(handles.InterestingFeatureHistograms,'foregroundcolor',bg);
     set(handles.StyleList,'string',{''},'value',1);
-    set(handles.StyleList2,'string',{''},'value',1);
+%     set(handles.StyleList2,'string',{''},'value',1);
+    set(handles.StyleList2,'string',handles.featurehistogram_stylelist2,...
+        'value',handles.featurehistogram_style2);
     if(strcmp(get(handles.InterestingFeatureHistograms,'enable'),'off'))
       analysis2='';
     else
@@ -524,9 +535,11 @@ switch(handles.analysis)
 end
 
 if(~isempty(analysis2))
+  set(handles.IndividualList,'enable','on');
   set(handles.Plot,'enable','on');
   set(handles.MinimumTrajectoryLength,'enable','on');
   set(handles.DumpToCSV,'enable','on');
+  set(handles.DumpToMAT,'enable','on');
   if((ismember(analysis2,{'feature_histogram','behavior_barchart','behavior_timeseries','bout_stats'}) || ...
      (strcmp(analysis2,'feature_timeseries')&&(handles.featuretimeseries_style2~=1))) && ...
       (length(handles.behaviorlist)>0))
@@ -545,8 +558,14 @@ if(~isempty(analysis2))
     set(handles.BehaviorNormalizeNot,'enable','on');
   end
   if(~strcmp(analysis2,'interesting_feature_histograms'))
-    set(handles.IndividualList,'enable','on');
     set(handles.StyleList,'enable','on');
+    if(isempty(handles.individuallist))
+      set(handles.IndividualList,'String',{''},'Value',1);
+    else
+      set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
+    end
+  else
+    set(handles.IndividualList,'String',handles.individuallist(1:3),'Value',handles.individualvalue);
   end
   if(length(get(handles.StyleList2,'string'))>1)
     set(handles.StyleList2,'enable','on');
@@ -591,11 +610,6 @@ if(isempty(handles.featurelist))
 else
   set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
 end
-if(isempty(handles.individuallist))
-  set(handles.IndividualList,'String',{''},'Value',1);
-else
-  set(handles.IndividualList,'String',handles.individuallist,'Value',handles.individualvalue);
-end
 %set(handles.Table,'Data',[]);
 
 menu_classify_forcecompute_set(handles);
@@ -612,6 +626,7 @@ set(handles.LogBinSize,'value',handles.logbinsize);
 set(handles.SubtractMean,'value',handles.subtractmean);
 set(handles.AbsDPrimeZScore,'value',handles.absdprimezscore);
 set(handles.DumpToCSV,'value',handles.dump2csv);
+set(handles.DumpToMAT,'value',handles.dump2mat);
 set(handles.OmitNaN,'value',handles.omitnan);
 set(handles.OmitInf,'value',handles.omitinf);
 set(handles.XOffset,'value',handles.xoffset);
@@ -632,24 +647,9 @@ if ~isdeployed,
   SetUpJAABAPath;
 end
 
-if (exist('matlabpool')==2 && matlabpool('size')==0)
-  
-  useparallel = true;
-  if isdeployed,
-    if ispc || (isunix && ~ismac),
-      filename = deployedRelative2Global('ParallelComputingConfiguration_Local_Win4.settings');
-      if ~exist(filename,'file'),
-        useparallel = false;
-      else
-        setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
-      end
-    end
-  end
-  if useparallel
-    matlabpool('open');
-  end
 
-end
+handles.computation_threads = SetUpMatlabPoolforJAABAPlot;
+
 
 handles.featurehistogram_stylelist=...
     {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means', 'Box Plot'};
@@ -802,6 +802,8 @@ end
 if ((handles.individualidx=='M') && length(handles.individuallist{handles.individualvalue})>5)
   handles.individualidx={'M' 'F'};
 end
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 
@@ -1782,6 +1784,10 @@ if(handles.dump2csv)
   fclose(fid);
 end
 
+if(handles.dump2mat)
+  save('most_recent_table.mat','table');
+end
+
 set(handles.Status,'string','Ready.','foregroundcolor','g');
 set(handles.figure1,'pointer','arrow');
 drawnow;
@@ -1930,6 +1936,9 @@ function InterestingFeatureHistograms_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user experiment (see GUIDATA)
 
 handles.analysis='interesting_feature_histograms';
+handles.individualvalue=min(3,handles.individualvalue);
+tmp=cellfun(@(x) x(1),get(handles.IndividualList,'String'));
+handles.individualidx=tmp(handles.individualvalue);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2765,6 +2774,12 @@ for b=bb
       end
     end
   end
+  
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_during_data{ans}=during_data;
+    raw_not_during_data{ans}=not_during_data;
+  end
 
   title(ha,tstr,'interpreter','none');
   xlabel(ha,xstr,'interpreter','none');
@@ -2776,6 +2791,10 @@ for b=bb
     set(ha,'xtick',(1:length(xticklabels))+0.25*(comparison>0),'xticklabel',xticklabels);
   end
   zoom(ha,'reset');
+end
+
+if(handles.dump2mat)
+  save('most_recent_figure.mat','handles','raw_during_data','raw_not_during_data');
 end
 
 h2=[];  hh2={};
@@ -2858,6 +2877,7 @@ cumsum_num_selexp_per_group=[0 cumsum(cellfun(@length,handles.experimentvalue))]
 
 handlesexperimentlist=[handles.experimentlist{:}];
 handlesexperimentlist=handlesexperimentlist(selected_exp);
+handlessexdata=handles.sexdata(selected_exp);
 
 nexperiments=length(handlesexperimentlist);
 nbehaviors=length(handles.behaviorlist);
@@ -2885,6 +2905,16 @@ if(isempty(handles.interestingfeaturehistograms_cache))
       [bdata{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data,[],[],[],[]);
       num_indi=num_indi+length(bdata{b}.allScores.scores);
     end
+    [~,~,~,~,sex_data]=cull_short_trajectories(handles,bdata{1},[],[],[],handlessexdata{ge});
+    sexdata=[];
+    switch(handles.individualidx)
+      case('A')
+        sexdata=cellfun(@(x) ones(1,length(x)),sex_data,'uniformoutput',false);
+      case('M')
+        sexdata=sex_data;
+      case('F')
+        sexdata=cellfun(@not,sex_data,'uniformoutput',false);
+    end
 
     bad{ge}={};
     parfor_tmp=zeros(nbehaviors,nfeatures,9);
@@ -2894,10 +2924,10 @@ if(isempty(handles.interestingfeaturehistograms_cache))
           [handles.featurelist{f} '.mat']));
       [~,~,~,fdata,~]=cull_short_trajectories(handles,[],[],[],feature_data,[]);
 
-      sexdata={};
-      for s=1:length(fdata.data)
-        sexdata{s}=ones(1,length(fdata.data{s}));
-      end
+      %sexdata={};
+      %for s=1:length(fdata.data)
+      %  sexdata{s}=ones(1,length(fdata.data{s}));
+      %end
       for b=1:nbehaviors
         if(exist(fullfile(tempdir,'cancel.txt')))  break;  end
 
@@ -3043,6 +3073,13 @@ if(handles.comparison2==0)
   end
   tmp2=sortrows(tmp2,-7);
 
+  if(isempty(tmp2))
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check individual sex.'));  drawnow;
+    return;
+  end
+
   tmp=cell(size(tmp2,1),8);
   tmp(:,1)=handles.grouplist(tmp2(:,1));
   tmp(:,2)=cellstr(num2str(tmp2(:,2),'%-d'));
@@ -3141,6 +3178,13 @@ if(handles.comparison2==1)
   end
   tmp2=sortrows(tmp2,-5);
 
+  if(isempty(tmp2))
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    uiwait(errordlg('no valid data.  check individual sex.'));  drawnow;
+    return;
+  end
+
   tmp=cell(size(tmp2,1),5);
   tmp(:,1)=handles.grouplist(tmp2(:,1));
   idx=(tmp2(:,2)>0);   tmp(idx,2)=handles.behaviorlist(tmp2(idx,2));
@@ -3175,6 +3219,10 @@ if(handles.comparison2==1)
     fprintf(fid,'%s, %s, %s, %s, %s\n',ans{:});
     fclose(fid);
   end
+end
+
+if(handles.dump2mat)
+  save('most_recent_table.mat','tmp');
 end
 
 set(handles.Status,'string','Ready.','foregroundcolor','g');
@@ -3516,10 +3564,20 @@ for b=bb
     end
   end
 
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data2{ans}=raw_data;
+  end
+
   xlabel(ha,xstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
   title(ha,tstr,'interpreter','none');
   axis(ha,'tight');  zoom(ha,'reset');
+end
+
+if(handles.dump2mat)
+  raw_data=raw_data2;
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -4231,6 +4289,15 @@ for b=bb
   else
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
+
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data{ans}=collated_data;
+  end
+end
+
+if(handles.dump2mat)
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -4548,9 +4615,19 @@ for b=bb
     end
   end
 
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data2{ans}=raw_data;
+  end
+
   xlabel(ha,xstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
   axis(ha,'tight');  zoom(ha,'reset');
+end
+
+if(handles.dump2mat)
+  raw_data=raw_data2;
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -4858,6 +4935,11 @@ for b=bb
       end
   end
 
+  if(handles.dump2mat)
+    find(b==bb);
+    raw_data{ans}=collated_data;
+  end
+
   if(isempty(k))  k=1:length(length_data);  end
   title(ha,tstr,'interpreter','none');
   ylabel(ha,ystr,'interpreter','none');
@@ -4870,6 +4952,10 @@ for b=bb
     axis(ha,[vat(1) vat(2) 0 vat(4)]);
   end
   %if(handles.dump2csv)  fprintf(fid,'\n');  end
+end
+
+if(handles.dump2mat)
+  save('most_recent_figure.mat','handles','raw_data');
 end
 
 if(iscell(individual))
@@ -5429,6 +5515,79 @@ update_figure(handles);
 set(handles.figure1,'pointer','arrow');
 guidata(hObject, handles);
 
+% --------------------------------------------------------------------
+function MenuFileMultithreading_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFileReset (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+numCores = feature('numCores');
+c = parcluster;
+NumWorkers = c.NumWorkers;
+maxJobs = min(numCores,NumWorkers);
+prompts = {sprintf('N. threads for computation (btn 1 and %d)',maxJobs)};
+
+while true,
+    defaults = {num2str(handles.computation_threads)};
+    res = inputdlg(prompts,'Multi-threading Preferences',1,defaults);
+    if isempty(res), return, end;
+    errs = {};
+    
+    ischange = false;
+    
+    computation_threads = str2double(res{1});
+    if isnan(computation_threads) || computation_threads < 1 || computation_threads > maxJobs || rem(computation_threads,1) ~= 0,
+        errs{end+1} = 'Number of threads devoted to computation must be a positive integer less than or equal to the number of CPU cores';  %#ok<AGROW>
+    else
+        if(handles.computation_threads ~= computation_threads)
+            ischange = true;
+        end
+    end
+    
+    if ischange && isempty(errs),
+        
+        % remove extra computation threads
+        if matlabpool('size') > computation_threads,
+            set(handles.Status,'string',sprintf('Shrinking matlab pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            pause(2);
+            matlabpool close;
+            matlabpool('open',computation_threads);
+        end
+        
+        % add extra computation threads
+        if matlabpool('size') < computation_threads,
+            set(handles.Status,'string',sprintf('Growing matlab pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            drawnow;
+            if matlabpool('size') > 0,
+                matlabpool close;
+            end
+            pause(1);
+            matlabpool('open',computation_threads);
+            pause(1);
+        end
+        
+        
+        handles.computation_threads = computation_threads;
+        %     ClearStatus(handles);
+        set(handles.Status,'string','Ready','foregroundcolor','g');
+        set(handles.figure1,'pointer','arrow');
+        drawnow;
+        
+    end
+    
+    if isempty(errs),
+        break;
+    else
+        uiwait(warndlg(errs,'Bad multithreading options'));
+    end
+    
+end
+guidata(hObject,handles);
+return
+
 
 % --------------------------------------------------------------------
 function MenuFileUpdate_Callback(hObject, eventdata, handles)
@@ -5819,7 +5978,7 @@ function StyleList2_Callback(hObject, eventdata, handles)
 
 get(hObject,'Value');
 switch(handles.analysis)
-  case 'feature_histogram'
+  case {'feature_histogram','interesting_feature_histograms'}
     handles.featurehistogram_style2=ans;
   case 'feature_timeseries'
     handles.featuretimeseries_style2=ans;
@@ -5828,8 +5987,9 @@ switch(handles.analysis)
   case 'behavior_timeseries'
   case 'bout_stats'
     handles.boutstats_style2=ans;
-  case 'interesting_feature_histograms'
 end
+handles.interestingfeaturehistograms_cache=[];
+handles.interestingfeaturetimeseries_cache=[];
 guidata(hObject,handles);
 
 
@@ -5963,6 +6123,16 @@ function DumpToCSV_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.dump2csv=~handles.dump2csv;
+guidata(hObject,handles);
+
+
+% --- Executes on button press in DumpToMAT.
+function DumpToMAT_Callback(hObject, eventdata, handles)
+% hObject    handle to DumpToMAT (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.dump2mat=~handles.dump2mat;
 guidata(hObject,handles);
 
 
