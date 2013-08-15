@@ -7323,8 +7323,10 @@ if isnan(intsize) || (round(intsize)-intsize)~=0 || ...
   return;
 end
 
+SetStatus(handles,'Finding suggestions for ground truthing...');
 %[success,msg ] = handles.data.SuggestBalancedGT(intsize,numint);
 [success,msg] = handles.data.setGTSuggestionMode('Balanced',intsize,numint);
+ClearStatus(handles);
 if ~success, warndlg(msg); return; end
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
