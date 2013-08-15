@@ -1434,7 +1434,7 @@ handles.guidata.fly2idx = zeros(1,handles.data.nTargetsInCurrentExp);
 
 for i = 1:nPreviewAxes,
   % fly current positions
-  for fly = 1:handles.data.nTargetsInCurrentExp,
+  for fly = 1:maxnflies_curr,
     % handles.guidata.hflies(fly,i) = plot(handles.guidata.axes_previews(i),nan,nan,'-',...
     %   'color',handles.guidata.fly_colors(fly,:),'linewidth',3,...
     %   'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
