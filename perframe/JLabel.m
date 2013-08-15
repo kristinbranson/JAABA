@@ -704,46 +704,46 @@ handles = UpdateGUIToMatchGroundTruthingMode(handles);
 return
 
 
-% -------------------------------------------------------------------------
-function cache_thread(N,HWD,cache_filename,movie_filename)
-
-% lastused = nan means please add framenum to cache
-%          = 0 means image is invalid and removed from cache
-%          = -1 means it is locked and being added to cache
-%          otherwise it is the timestamp the valid image was last used
-
-if isempty(movie_filename),
-  return;
-end
-
-Mframenum = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
-Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
-Mimage    = memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, ...
-    'Offset', 2*N*8);
-
-readframe=get_readframe_fcn(movie_filename);
-
-while true
-  idx=find(isnan(Mlastused.Data));
-  if(~isempty(idx))
-    idx2=argmax(Mframenum.Data(idx));
-    Mlastused.Data(idx(idx2))=-1;
-    fnum = Mframenum.Data(idx(idx2));
-    dd = uint8(readframe(fnum));
-    pause(0.0003);     % BJA: why this pause??
-    % MK: Cache the read frame to reduce the number of clashes with
-    % UpdatePlots
-    if Mframenum.Data(idx(idx2)) == fnum
-      Mimage.Data(idx(idx2)).x = dd;
-      Mlastused.Data(idx(idx2)) = now;
-      %Mframenum.Data(idx(idx2)) = fnum;
-    end
-  else
-    pause(0.1);
-  end
-end
-
-return  %#ok
+% % -------------------------------------------------------------------------
+% function cache_thread(N,HWD,cache_filename,movie_filename)
+% 
+% % lastused = nan means please add framenum to cache
+% %          = 0 means image is invalid and removed from cache
+% %          = -1 means it is locked and being added to cache
+% %          otherwise it is the timestamp the valid image was last used
+% 
+% if isempty(movie_filename),
+%   return;
+% end
+% 
+% Mframenum = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N);
+% Mlastused = memmapfile(cache_filename, 'Writable', true, 'Format', 'double', 'Repeat', N, 'Offset', N*8);
+% Mimage    = memmapfile(cache_filename, 'Writable', true, 'Format', {'uint8' HWD 'x'},  'Repeat', N, ...
+%     'Offset', 2*N*8);
+% 
+% readframe=get_readframe_fcn(movie_filename);
+% 
+% while true
+%   idx=find(isnan(Mlastused.Data));
+%   if(~isempty(idx))
+%     idx2=argmax(Mframenum.Data(idx));
+%     Mlastused.Data(idx(idx2))=-1;
+%     fnum = Mframenum.Data(idx(idx2));
+%     dd = uint8(readframe(fnum));
+%     pause(0.0003);     % BJA: why this pause??
+%     % MK: Cache the read frame to reduce the number of clashes with
+%     % UpdatePlots
+%     if Mframenum.Data(idx(idx2)) == fnum
+%       Mimage.Data(idx(idx2)).x = dd;
+%       Mlastused.Data(idx(idx2)) = now;
+%       %Mframenum.Data(idx(idx2)) = fnum;
+%     end
+%   else
+%     pause(0.1);
+%   end
+% end
+% 
+% return  %#ok
 
 
 % -------------------------------------------------------------------------
@@ -964,10 +964,14 @@ for i = axes2,
       cache_total=cache_total+1;
       if isempty(j),
         cache_miss=cache_miss+1;
-        tmp=find(Mlastused.Data>=0);
-        j=tmp(argmin(Mlastused.Data(tmp)));
-        if isempty(j), % If all frames last used is nan i.e., they are waiting to be cached.
-          j = find(isnan(Mlastused.Data),1);
+        j = find(Mframenum.Data==handles.guidata.ts(i));
+        
+        if isempty(j)
+            tmp=find(Mlastused.Data>=0);
+            j=tmp(argmin(Mlastused.Data(tmp)));
+            if isempty(j), % If all frames last used is nan i.e., they are waiting to be cached.
+                j = find(isnan(Mlastused.Data),1);
+            end
         end
         %j = argmin(Mlastused.Data);
         Mlastused.Data(j) = -1;
@@ -976,8 +980,8 @@ for i = axes2,
         % ALT: Added uint8() 2012-09-14.  Without that, threw error when
         % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
         % being of class double
-%         SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-%              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+             num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
       else
         ClearStatus(handles);
       end
@@ -1002,8 +1006,8 @@ for i = axes2,
           Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-%           SetStatus(handles,['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
-%                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+          fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+               num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
           ClearStatus(handles);
         end
@@ -1028,20 +1032,24 @@ for i = axes2,
             handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
             handles.spacetime.meana, handles.spacetime.meanb);
-        gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
-            handles.spacetime.binidx, handles.spacetime.nbins,...
-            handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
+%         gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
+%             handles.spacetime.binidx, handles.spacetime.nbins,...
+%             handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
         rb_nog(:,:,1)=imnorm;
         rb_nog(:,:,2)=imnorm_last;
         rb_nog(:,:,3)=imnorm_last;
         image(rb_nog,'parent',handles.spacetime.ax);
         axis(handles.spacetime.ax,'square');
         for k=1:length(handles.spacetime.featurelocations)
+          handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
+              ['spacetime_' handles.spacetime.featurenames{k}], handles.guidata.ts(i), handles.guidata.ts(i));
+          color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
+          color=min(1,max(0,color));
           line(handles.spacetime.featurelocations{k}(:,2), handles.spacetime.featurelocations{k}(:,1),...
-              'color','g','parent',handles.spacetime.ax);
+              'color',[0 color 0],'parent',handles.spacetime.ax);
           text(handles.spacetime.featurecenters{k}(1), handles.spacetime.featurecenters{k}(2),...
               handles.spacetime.featurenames{k},'Interpreter','none','HorizontalAlignment','center',...
-              'color','g','parent',handles.spacetime.ax);
+              'color',[0 color 0],'parent',handles.spacetime.ax);
         end
       end
 
@@ -1058,8 +1066,12 @@ for i = axes2,
       tmp=min(handles.guidata.cache_size,handles.guidata.nframes_jump_go);
       j=setdiff(handles.guidata.ts(i)+[1:tmp -1 -tmp], ...
                 Mframenum.Data);
-      j=j(find(j>=handles.data.t0_curr & j<=handles.data.t1_curr));  %#ok
+      j=j(find(j>=handles.data.GetMinFirstFrame & j<=handles.data.GetMaxEndFrame));  %#ok
+      
       [y,idx]=sort(Mlastused.Data);
+      
+      
+      
       idx1=find(y>=0,1,'first');
       idx2=min([-1+idx1+length(j) -1+find(isnan(y),1,'first')]);
       idx=idx(idx1:idx2);
@@ -1366,7 +1378,8 @@ end
 
 % set zoom radius
 if isnan(handles.guidata.zoom_fly_radius(1)),
-  handles.guidata.meana = nanmean([handles.data.trx.a]);
+  tmp = [handles.data.trx.a];
+  handles.guidata.meana = nanmean(tmp(:));
   handles.guidata.zoom_fly_radius = handles.guidata.meana*20 + [0,0];
 end
 for previewi = 1:numel(handles.guidata.axes_previews),
@@ -4384,6 +4397,14 @@ if strcmpi(eventdata.Modifier,'control')
       menu_view_plot_tracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
     case 'f'
       menu_view_show_whole_frame_Callback(handles.menu_view_show_whole_frame,eventdata,handles);
+    case '9'
+      if (handles.data.expi -1)>0,
+        SetCurrentMovie(handles,handles.data.expi-1);
+      end
+    case '0'
+      if (handles.data.expi +1) < handles.data.nexps 
+        SetCurrentMovie(handles,handles.data.expi+1);
+      end
   end
 end
 
@@ -5035,14 +5056,14 @@ while true,
     handles.guidata.play_FPS = play_FPS;
   end
   
-  traj_nprev = str2double(res{3});
+  traj_nprev = str2double(res{2});
   if isnan(traj_nprev) || traj_nprev < 0 || rem(traj_nprev,1) ~= 0,
     errs{end+1} = 'N. previous positions plotted must be a postive integer'; %#ok<AGROW>
   else
     handles.guidata.traj_nprev = traj_nprev;
   end
   
-  traj_npost = str2double(res{4});
+  traj_npost = str2double(res{3});
   if isnan(traj_npost) || traj_npost < 0 || rem(traj_npost,1) ~= 0,
     errs{end+1} = 'N. future positions plotted must be a postive integer'; %#ok<AGROW>
   else
@@ -5116,7 +5137,10 @@ else
   end
   ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
   set(handles.guidata.hselection(propi),'YData',ydata([1,2,2,1,1]));
-  s = sprintf('%.3f',perframedata(handles.guidata.ts(1)-T0+1));
+  s='NaN';
+  if(((handles.guidata.ts(1)-T0+1)>0) && ((handles.guidata.ts(1)-T0+1)<length(perframedata)))
+    s = sprintf('%.3f',perframedata(handles.guidata.ts(1)-T0+1));
+  end
   set(handles.guidata.text_timeline_props(propi),'String',s);
   
   if any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9))
@@ -5130,6 +5154,10 @@ else
       [handles.spacetime.binidx, handles.spacetime.nbins, ...
           handles.spacetime.featurenames, handles.spacetime.featurelocations, handles.spacetime.featurecenters] = ...
           compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);
+      idx=find(cellfun(@(x) strncmp('spacetime_',x,10),handles.data.allperframefns));
+      prctile([handles.data.perframedata{idx}],[1 99]);
+      handles.spacetime.prc1=ans(1);
+      handles.spacetime.prc99=ans(2);
     end
   else
     if isfield(handles,'spacetime')
@@ -7228,46 +7256,8 @@ end
 handles.data.setGTSuggestionMode('Random',perfly,perexp);
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','on');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
-set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
-handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
-UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
-  'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
-return
-  
-  
-% --------------------------------------------------------------------
-function menu_view_suggest_gt_intervals_threshold_on_scores_Callback(hObject, eventdata, handles)
-% hObject    handle to menu_view_suggest_gt_intervals_threshold_on_scores (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-in = inputdlg({'Threshold for suggestion'});
-if isempty(in) || ~ischar(in{1}) ,
-  return;
-end
-threshold = str2double(in{1});
-if isnan(threshold) || abs(threshold-0.5)>0.5  
-  warndlg('Input value between 0 and 1');
-  return;
-end
-
-%handles.data.SuggestThresholdGT(threshold);
-handles.data.setGTSuggestionMode('Threshold',threshold);
-
-set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','on');
-set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineImages(handles);
@@ -7288,7 +7278,6 @@ function menu_view_suggest_gt_intervals_none_Callback(hObject, eventdata, handle
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','on');
@@ -7339,7 +7328,6 @@ end
 if ~success, warndlg(msg); return; end
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_balanced_random,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
@@ -7375,7 +7363,6 @@ handles.data.setGTSuggestionMode('Imported', ...
                                          fullfile(pathname,filename));
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
-set(handles.menu_view_suggest_gt_intervals_threshold_on_scores,'Checked','off');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','on');
 set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
@@ -8221,7 +8208,7 @@ while ~successfullyOpened && keepTrying ,
         end
       end
     else
-      message=excp.message;
+      message=getReport(excp,'extended','hyperlinks','off');
       keepTrying=false;
     end  % if
   end  % try/catch
@@ -9716,6 +9703,7 @@ c = parcluster;
 NumWorkers = c.NumWorkers;
 
 while true,
+    ischange = false;
   defaults = {num2str(handles.guidata.framecache_threads),...
     num2str(handles.guidata.computation_threads)};
   res = inputdlg(prompts,'Multi-threading Preferences',1,defaults);
@@ -9809,3 +9797,55 @@ guidata(hObject,handles);
 return
 
 
+% --------------------------------------------------------------------
+function menu_file_import_exps_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_file_import_exps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+title='Import Experiments and Labels from...';
+defaultPath=handles.data.defaultpath;
+[filename,pathname] = ...
+  uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
+            title, ...
+            defaultPath);
+if ~ischar(filename),
+  % user hit cancel
+  return;
+end
+
+fileNameAbs=fullfile(pathname,filename);
+
+choice = questdlg('Would you like to import both experiments and labels or only the experiments and labels?', ...
+ title,...
+ 'Experiments and Labels','Experiments only', ...
+ 'Cancel','Experiments and Labels');
+% Handle response
+importlabels = true;
+switch choice
+  case 'Experiments and Labels'
+    importlabels = true;
+  case 'Experiments only'
+    importlabels = false;
+  case 'Cancel'
+    return;
+end
+
+
+% Update the status, change the pointer to the watch
+SetStatus(handles,sprintf('Importing Experiments and Labels from %s...',filename));
+try
+  [success,msg] = handles.guidata.data.AddExpDirAndLabelsFromJab(fileNameAbs,importlabels);
+  if ~success,
+    uiwait(warndlg(sprintf('Could not import:%s',msg)));
+  end
+catch ME,
+  uiwait(warndlg(sprintf('Could not import: %s',ME.message)));
+end
+if handles.data.expi == 0 && handles.data.nexps>0
+  handles = SetCurrentMovie(handles,1);
+  handles = UpdateTimelineImages(handles);
+  UpdatePlots(handles,'refresh_timeline_manual',true);
+end
+guidata(handles.figure_JLabel,handles);
+ClearStatus(handles);

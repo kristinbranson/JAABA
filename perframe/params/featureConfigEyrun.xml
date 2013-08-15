@@ -64,41 +64,41 @@
   <perframe>
 
     <ang_vel trans_types="none,flip,abs" type="eyrun"/>
-    <ang_vel_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <ang_vel_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <ang_vel_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <ang_vel_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <angle_between trans_types="none" type="eyrun"/>
-    <angle_between_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <angle_between_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <angle_between_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <angle_between_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <axis_ratio trans_types="none" type="eyrun"/>
-    <axis_ratio_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <axis_ratio_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <axis_ratio_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <axis_ratio_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <contrast trans_types="none" type="eyrun"/>
-    <contrast_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <contrast_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <contrast_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <contrast_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <dist_to_other trans_types="none" type="eyrun"/>
-    <dist_to_other_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <dist_to_other_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <dist_to_other_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <dist_to_other_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <facing_angle trans_types="none" type="eyrun"/>
-    <facing_angle_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <facing_angle_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <facing_angle_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <facing_angle_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <fg_body_ratio trans_types="none" type="eyrun"/>
-    <fg_body_ratio_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <fg_body_ratio_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <fg_body_ratio_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <fg_body_ratio_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <leg_dist trans_types="none" type="eyrun"/>
-    <leg_dist_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <leg_dist_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <leg_dist_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <leg_dist_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <max_wing_ang trans_types="none,flip,abs" type="eyrun"/>
-    <max_wing_ang_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <max_wing_ang_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <max_wing_ang_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <max_wing_ang_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <min_wing_ang trans_types="none,flip,abs" type="eyrun"/>
-    <min_wing_ang_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <min_wing_ang_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <min_wing_ang_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <min_wing_ang_diff2 trans_types="none,flip,abs" type="eyrun"/>
     <vel trans_types="none,flip,abs" type="eyrun"/>
-    <vel_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <vel_2diff trans_types="none,flip,abs" type="eyrun"/>
-    <wing_length trans_types="none" type="eyrun"/>
-    <wing_length_1diff trans_types="none,flip,abs" type="eyrun"/>
-    <wing_length_2diff trans_types="none,flip,abs" type="eyrun"/>
+    <vel_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <vel_diff2 trans_types="none,flip,abs" type="eyrun"/>
+    <mean_wing_length trans_types="none" type="eyrun"/>
+    <mean_wing_length_diff1 trans_types="none,flip,abs" type="eyrun"/>
+    <mean_wing_length_diff2 trans_types="none,flip,abs" type="eyrun"/>
 
   </perframe>
 

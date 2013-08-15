@@ -1607,6 +1607,7 @@ classdef JLabelData < matlab.mixin.Copyable
         feature_names_list = cell(1,numel(pffs));
         x_curr_all = cell(1,numel(pffs));
           
+        try
         parfor j = 1:numel(pffs),
 
           fn = pffs{j};
@@ -1631,7 +1632,12 @@ classdef JLabelData < matlab.mixin.Copyable
           x_curr_all{j} = single(x_curr);
           feature_names_list{j} = cur_f;
         end  % parfor
-          
+        
+        catch ME,
+            
+            uiwait(warndlg(sprintf('Could not predict:%s',ME.message)));
+            
+        end
           
         for j = 1:numel(pffs),
           fn = pffs{j};
@@ -5771,6 +5777,112 @@ classdef JLabelData < matlab.mixin.Copyable
       success = true;
     end
     
+    function [success,msg] = AddExpDirAndLabelsFromJab(obj,jabfilename,importlabels)
+
+      success = true; 
+      msg = '';
+      
+      try
+        Q = load(jabfilename,'-mat');
+      catch ME,
+        success = false;
+        msg = ME.message;
+        return;
+      end
+      
+      for ndx = 1:numel(Q.x.expDirNames)
+        expdirname = Q.x.expDirNames{ndx};
+        labels = Q.x.labels(ndx);
+        if importlabels % Change the names
+          for fly = 1:numel(labels.flies)
+            for bnum = 1:numel(labels.names{fly})
+              if ~strcmpi(labels.names{fly}{bnum},'none')
+                labels.names{fly}{bnum} = obj.labelnames{1};
+              end
+            end
+          end
+          
+          
+        end
+        
+        curexp = find(strcmp(expdirname,obj.expdirs)); %#ok<EFIND>
+        if isempty(curexp);
+          [success,msg] = obj.AddExpDir(expdirname);
+          if ~success,
+            return;
+          end
+          if importlabels
+            obj.labels(end) = labels;
+          end
+        elseif importlabels
+          if obj.haslabels(curexp)
+            dlgstr = sprintf('Experiment %s already has labels. Discard the existing (current) labels and load the new ones?',...
+              expdirname);
+            res = questdlg(dlgstr,'Load new labels?',...
+              'Keep Existing','Load New','Cancel','Keep Existing');
+            if strcmp(res,'Load New')
+              obj.labels(curexp) = labels;
+            end
+            
+          else
+            obj.labels(curexp) = labels;
+          end
+          
+          if curexp == obj.expi
+            
+            T0 = max(obj.GetTrxFirstFrame(obj.expi,obj.flies));
+            T1 = min(obj.GetTrxEndFrame(obj.expi,obj.flies));
+            n = T1-T0+1;
+            off = 1 - T0;
+            flyndx = find(labels.flies==obj.flies);
+            if isempty(flyndx),
+              continue;
+            end
+            
+            labelidx.vals = zeros(1,n);
+            labelidx.imp = zeros(1,n);
+            labelidx.timestamp = zeros(1,n);
+            
+            for i = 1:obj.nbehaviors,
+              for j = find(strcmp(labels.names{flyndx},obj.labelnames{i})),
+                t0 = labels.t0s{flyndx}(j);
+                t1 = labels.t1s{flyndx}(j);
+                if t0>T1 || t1<T0; continue;end
+                t0 = max(T0,t0);
+                t1 = min(T1+1,t1);
+                labelidx.vals(t0+off:t1-1+off) = i;
+                labelidx.timestamp(t0+off:t1-1+off) = labels.timestamp{flyndx}(j);
+              end
+            end
+            for j = 1:numel(labels.imp_t0s{flyndx})
+              t0 = labels.imp_t0s{flyndx}(j); 
+              t1 = labels.imp_t1s{flyndx}(j);
+              if t0>T1 || t1<T0; continue;end
+              t0 = max(T0,t0);
+              t1 = min(T1+1,t1);
+              labelidx.imp(t0+off:t1-1+off) = 1;
+            end
+            obj.labelidx = labelidx;
+          end
+          
+        end
+      end
+      
+    end
+
+    
+    
+    
+    % ---------------------------------------------------------------------
+    function has = haslabels(obj,expnum)
+      has = false;
+      for fly = 1:numel(obj.labels(expnum).flies)
+        if ~isempty(obj.labels(expnum).t0s{fly})
+          has = true;
+        end
+      end
+    end
+    
     
 %     % ---------------------------------------------------------------------
 %     function [success,msg] = AddExpDir(obj,expdir,outexpdir,nflies_per_exp,sex_per_exp,...
@@ -5839,7 +5951,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       % create clips dir
 %       clipsdir = obj.GetFileName('clipsdir');
 %       outclipsdir = fullfile(outexpdir,clipsdir);  %#ok
-% %       if ~exist(outclipsdir,'dir'),
+% %       if ~existrmdir(outclipsdir,'dir'),
 % %         [success1,msg1] = mkdir(outexpdir,clipsdir);
 % %         if ~success1,
 % %           msg = (sprintf('Could not create output clip directory %s, failed to set expdirs: %s',outclipsdir,msg1));
@@ -7426,7 +7538,17 @@ classdef JLabelData < matlab.mixin.Copyable
           global CACHED_TRX_EXPNAME; %#ok<TLEV>
           if isempty(CACHED_TRX) || isempty(CACHED_TRX_EXPNAME) || ...
               ~strcmp(obj.expnames{expi},CACHED_TRX_EXPNAME),
-            obj.trx = load_tracks(trxfilename);
+            trx = load_tracks(trxfilename);
+            ff = fieldnames(trx);
+            for fnum = 1:numel(ff)
+              if numel(trx(1).(ff{fnum})) == trx(1).nframes && ~strcmpi(ff{fnum},'sex');
+                for fly = 1:numel(trx)
+                  trx(fly).(ff{fnum}) = trx(fly).(ff{fnum})(:)';
+                end
+              end
+            end
+
+            obj.trx = trx;
             CACHED_TRX = obj.trx;
             CACHED_TRX_EXPNAME = obj.expnames{expi};
           else
@@ -9292,7 +9414,11 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
             
       obj.StoreLabelsAndPreLoadWindowData();
-      [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
+      if isempty(obj.labels(expi).flies),
+        ism = false;
+      else
+        [ism,j] = ismember(flyNum,obj.labels(expi).flies,'rows');
+      end
       curlabels = zeros(1,0);
       curts = zeros(1,0);
       if ism,
@@ -10251,6 +10377,7 @@ classdef JLabelData < matlab.mixin.Copyable
       if isprop(macguffin.classifierStuff,'windowdata') && ...
           isstruct(macguffin.classifierStuff.windowdata) && ...
           ~substitutionsMade && self.loadwindowdata &&...
+          ~isempty(macguffin.classifierStuff.savewindowdata) && ...
           macguffin.classifierStuff.savewindowdata && ...
           ~self.IsGTMode(),
         isPerframeNewer = false;

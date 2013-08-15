@@ -445,11 +445,15 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_done (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-InitJLabelGui(handles);
-handles = guidata(hObject);
-SetLabelingMode(handles);
-handles.success = true;
-guidata(hObject,handles);
+try 
+  InitJLabelGui(handles);
+  handles = guidata(hObject);
+  SetLabelingMode(handles);
+  handles.success = true;
+  guidata(hObject,handles);
+catch ME
+  uiwait(warndlg(sprintf('Error:%s',ME,message)));
+end
 uiresume(handles.figure_JLabelEditFiles);
 
 % --- Executes on button press in pushbutton_load.

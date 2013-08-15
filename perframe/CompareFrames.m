@@ -153,8 +153,11 @@ for ndx = 1:numel(ts)
   handles.imgcache(:,:,:,ndx) = img;
 end
 
-handles.trxcache = handles.data.GetTrxValues('Trx',handles.expnum,handles.fly,ts);
+handles.trxcache = handles.data.GetTrxPos1(handles.expnum,handles.fly,ts);
 
+if ~isfield(handles.trxcache,'theta')
+  handles.trxcache.theta = zeros(size(handles.trxcache.x));
+end
 
 handles.labelsCache = handles.data.GetLabelIdx(handles.expnum,handles.fly,ts(1),ts(end));
 handles.predCache = handles.data.GetPredictedIdx(handles.expnum,handles.fly,ts(1),ts(end));
@@ -184,7 +187,16 @@ colormap(handles.axes_preview,'gray');
 
 handles.trx_plot = plot(handles.axes_preview,nan,nan,'-o','MarkerSize',3);
 handles.fly_plot = plot(handles.axes_preview,nan,nan,'r','LineWidth',2);
-handles.fly_plot_extra = plot(handles.axes_preview,nan,nan);
+handles.fly_plot_extra = [];
+for j = 1:handles.data.trxGraphicParams.nextra_markers,
+  handles.fly_plot_extra(j) = ...
+    line('parent',handles.axes_preview, ...
+    'xdata',nan, ...
+    'ydata',nan, ...
+    'Marker',handles.data.trxGraphicParams.extra_marker{j}, ...
+    'LineStyle',handles.data.trxGraphicParams.extra_linestyle{j}, ...
+    'MarkerSize',handles.data.trxGraphicParams.extra_markersize(j));
+end
 
 handles.timeline = imagesc(0,'Parent',handles.axes_timeline,[0,255]);
 set(handles.timeline,'HitTest','off');
@@ -348,24 +360,54 @@ if handles.align,
 
   dtheta = theta-theta_jlabel;
   timg = imrotate(timg,dtheta*180/pi,'bilinear','crop');
-  rotmat = [cos(-dtheta) sin(-dtheta); -sin(-dtheta) cos(-dtheta)];
-  temp = [(handles.trxcache.x-x)' (handles.trxcache.y-y)']*rotmat;
-  rotatedtrxx = temp(:,1)+smsz+0.5; 
-  rotatedtrxy = temp(:,2)+smsz+0.5;
-  set(handles.trx_plot,'XData',rotatedtrxx,'Ydata',rotatedtrxy);
-  pos.x = rotatedtrxx(t);
-  pos.y = rotatedtrxy(t);
+
   pos.theta = handles.trxcache.theta(t)-dtheta;
-  pos.a = handles.trxcache.a(t);
-  pos.b = handles.trxcache.b(t);
+  if isfield(handles.trxcache,'a');
+    pos.a = handles.trxcache.a(t);
+    pos.b = handles.trxcache.b(t);
+  end
+  fnames = fieldnames(handles.trxcache);
+  rotmat = [cos(-dtheta) sin(-dtheta); -sin(-dtheta) cos(-dtheta)];
+  for ndx = 1:numel(fnames)
+    if ~strcmpi(fnames{ndx}(1),'x'); continue ;end
+    xfield = fnames{ndx};
+    yfield = fnames{ndx};
+    yfield(1) = 'y';
+    
+    temp = [(handles.trxcache.(xfield)(:,t)-x)'; (handles.trxcache.(yfield)(:,t)-y)']'*rotmat;
+    pos.(xfield)  = temp(:,1)+smsz+0.5;
+    pos.(yfield)  = temp(:,2)+smsz+0.5;
+    
+  end
+  temp = [(handles.trxcache.x-x)' (handles.trxcache.y-y)']*rotmat;
+  set(handles.trx_plot,'XData',temp(:,1)+smsz+0.5,'Ydata',temp(:,2)+smsz+0.5);
 else
+  
+  
+  pos.theta = handles.trxcache.theta(t);
+  if isfield(handles.trxcache,'a');
+    pos.a = handles.trxcache.a(t);
+    pos.b = handles.trxcache.b(t);
+  end
+  
+  fnames = fieldnames(handles.trxcache);
+  for ndx = 1:numel(fnames)
+    if ~strcmpi(fnames{ndx}(1),'x'); continue ;end
+    xfield = fnames{ndx};
+    yfield = fnames{ndx};
+    yfield(1) = 'y';
+    pos.(xfield) = handles.trxcache.(xfield)(:,t)-x+smsz+0.5;
+    pos.(yfield) = handles.trxcache.(yfield)(:,t)-y+smsz+0.5;
+  end
+
+  
   set(handles.trx_plot,'XData',handles.trxcache.x-x+smsz+0.5,...
                        'Ydata',handles.trxcache.y-y+smsz+0.5);  
-  pos.x = handles.trxcache.x(t) - handles.trxcache.x(handles.centralframe)+smsz;
-  pos.y = handles.trxcache.y(t) - handles.trxcache.y(handles.centralframe)+smsz;
   pos.theta = handles.trxcache.theta(t);
-  pos.a = handles.trxcache.a(t);
-  pos.b = handles.trxcache.b(t);
+  if isfield(handles.trxcache,'a');
+    pos.a = handles.trxcache.a(t);
+    pos.b = handles.trxcache.b(t);
+  end
 end
 
 set(handles.himage_preview,'CData',uint8(timg));
@@ -384,7 +426,6 @@ else
 end
 
 set(handles.text_status,'String',status_str);
-
 
 
 

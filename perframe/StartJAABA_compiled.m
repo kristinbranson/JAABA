@@ -30,7 +30,7 @@ try
         if ~exist(filename,'file'),
           fprintf('Could not find file %s, not using parallel computing.\n',filename);
         else
-          setmcruserdata('ParallelProfile','JAABAParCompProfile.settings');
+          setmcruserdata('ParallelProfile',filename);
         end
       end
     end
