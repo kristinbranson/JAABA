@@ -16,6 +16,16 @@ catch
 
   [binidx, nbins, featurenames, featureboundaries, featurecenters] = compute_spacetime_mask(meana, meanb);
   
+  featurenames={featurenames{:} ...
+      'theta28_r1' 'theta28_r2' 'theta28_r3' ...
+      'theta37_r1' 'theta37_r2' 'theta37_r3' ...
+      'theta46_r1' 'theta46_r2' 'theta46_r3' ...
+      'theta42_r1' 'theta42_r2' 'theta42_r3' ...
+      'theta51_r1' 'theta51_r2' 'theta51_r3' ...
+      'theta68_r1' 'theta68_r2' 'theta68_r3' ...
+      'theta1_r0' 'theta2_r0' 'theta3_r0' 'theta4_r0' ...
+      'theta5_r0' 'theta6_r0' 'theta7_r0' 'theta8_r0'};
+  
   % generate a random image
   % 
   % nr = 1024;
@@ -53,7 +63,7 @@ catch
 
   parfor chunk=1:ceil((max(endframes)-min(firstframes)+1)/chunk_size)
     for i1=1:nflies
-      parfor_tmp{chunk}{i1}=nan(min(chunk_size,max(endframes)-min(firstframes)+1-chunk*chunk_size),nbins);
+      parfor_tmp{chunk}{i1}=nan(min(chunk_size,max(endframes)-min(firstframes)+1-chunk*chunk_size),nbins+26);
     end
     imnorm=nan([nflies size(binidx)]);
     imnorm_last=[];
@@ -84,7 +94,7 @@ catch
         if ((framei==pooh) || (framei==firstframes(i1)))  continue;  end
 
         parfor_tmp{chunk}{i1}(framei-pooh,:) = ...
-            compute_spacetime_gradient(imnorm(i1,:,:),imnorm_last(i1,:,:),binidx,nbins,...
+            compute_spacetime_gradient(imnorm(i1,:,:),imnorm_last(i1,:,:),binidx,nbins,featurenames,...
             dt0{fly1}(framei-firstframes(i1)));
       end
 
@@ -96,7 +106,7 @@ catch
   data=cell(1,nflies);
   for i=1:nflies
     cellfun(@(x) transpose(x{i}), parfor_tmp,'uniformoutput',false);
-    data{i}=[ans{:}]';
+    data{i}=[ans{:}];
   end
 
   units = parseunits('??/s');
@@ -106,5 +116,5 @@ end
 
 idx=find(strcmp(featurenames,['theta' num2str(theta_in) '_r' num2str(r_in)]));
 for i=1:length(data)
-  data{i}=data{i}(:,idx);
+  data{i}=data{i}(idx,:);
 end

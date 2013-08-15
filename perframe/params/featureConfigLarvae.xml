@@ -66,6 +66,8 @@
   <absangchvsangtc trans_types="none" type="abs_appearance"/>
   <angchvsangtc trans_types="abs,flip" type="appearance"/>
   <area_mm trans_types="none,relative" type="appearance"/>
+  <normarea trans_types="none" type="appearance"/>
+  <dnormarea trans_types="none" type="appearance"/>
   <centralheadang trans_types="none" type="position"/>
   <centralheadmag trans_types="none,relative" type="appearance"/>
   <ratioarealength trans_types="none,relative" type="appearance"/>
@@ -84,10 +86,18 @@
   <x_mm trans_types="none" type="position"/>
   <xhead_mm trans_types="none" type="position"/>
   <xtail_mm trans_types="none" type="position"/>
+  <xtailcentral_mm trans_types='none' type="appearance"/>
+  <xtailhead_mm trans_types='none' type="appearance"/>
+  <xcentralhead_mm trans_types='none' type="appearance"/>
   <ycentral_mm trans_types="none" type="position"/>
   <y_mm trans_types="none" type="position"/>
   <yhead_mm trans_types="none" type="position"/>
   <ytail_mm trans_types="none" type="position"/>
+  <rhead_mm trans_types="none" type="position"/>
+  <disthead2wall_mm trans_types="none" type="position"/>
+  <ytailcentral_mm trans_types='none' type="appearance"/>
+  <ytailhead_mm trans_types='none' type="appearance"/>
+  <ycentralhead_mm trans_types='none' type="appearance"/>
   <dtailheadmag trans_types="none,abs,relative" type="locomotion"/>
   <dtailcentralmag trans_types="none,abs,relative" type="locomotion"/>
   <dcentralheadmag trans_types="none,abs,relative" type="locomotion"/>
@@ -100,6 +110,12 @@
   <dycentral_mm trans_types="none,abs,relative" type="locomotion_global"/>
   <dxtail_mm trans_types="none,abs,relative" type="locomotion_global"/>
   <dytail_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxtailcentral_mm trans_types='none,abs,relative' type="locomotion"/>
+  <dxtailhead_mm trans_types='none,abs,relative' type="locomotion"/>
+  <dxcentralhead_mm trans_types='none,abs,relative' type="locomotion"/>
+  <dytailcentral_mm trans_types='none,abs,relative' type="locomotion"/>
+  <dytailhead_mm trans_types='none,abs,relative' type="locomotion"/>
+  <dycentralhead_mm trans_types='none,abs,relative' type="locomotion"/>
   <dspinelength trans_types="none,abs,relative" type="locomotion"/>
   <darea trans_types="none,abs,relative" type="locomotion"/>
   <dratioarealength trans_types="none,abs,relative" type="locomotion"/>
@@ -115,9 +131,15 @@
   <velmaghead trans_types="none,relative" type="locomotion"/>
   <velmagcentral trans_types="none,relative" type="locomotion"/>
   <velmagtail trans_types="none,relative" type="locomotion"/>
+  <velmagtailcentral trans_types="none,relative" type="locomotion"/>
+  <velmagtailhead trans_types="none,relative" type="locomotion"/>
+  <velmagcentralhead trans_types="none,relative" type="locomotion"/>
   <velanghead trans_types="none,abs,relative" type="locomotion_global"/>
   <velangcentral trans_types="none,abs,relative" type="locomotion_global"/>
   <velangtail trans_types="none,abs,relative" type="locomotion_global"/>
+  <velangtailcentral trans_types="none,abs,relative" type="locomotion"/>
+  <velangtailhead trans_types="none,abs,relative" type="locomotion"/>
+  <velangcentralhead trans_types="none,abs,relative" type="locomotion"/>
   <velheadch trans_types="none,relative" type="locomotion"/>
   <velcentralch trans_types="none,relative" type="locomotion"/>
   <veltailch trans_types="none,relative" type="locomotion"/>
@@ -160,5 +182,7 @@
   <dtailinflang trans_types="none,abs,relative" type="locomotion_global"/>
   <dinflheadmag trans_types="none,abs,relative" type="locomotion"/>
   <dinflheadang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dcenter trans_types="none,relative" type="position"/>
+  <dhead2central trans_types="none,relative" type="position"/>
 </perframe>
 </params>

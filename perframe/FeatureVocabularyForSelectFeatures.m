@@ -190,7 +190,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % including the scores-as-inputs ones
       lexiconPFNames=fieldnames(featureLexicon.perframe);
       scorePFNames = {scoreFeatures(:).scorefilename};
-      subdialectPFNames=[lexiconPFNames;scorePFNames];
+      subdialectPFNames=[lexiconPFNames;scorePFNames'];
 
       % Make one entry in the result structure per PF
       defaultPFTransTypesFromName = struct;
@@ -221,7 +221,7 @@ classdef FeatureVocabularyForSelectFeatures < handle
       % including the scores-as-inputs ones
       lexiconPFNames=fieldnames(featureLexicon.perframe);
       scorePFNames = {scoreFeatures(:).scorefilename};
-      subdialectPFNames=[lexiconPFNames;scorePFNames];
+      subdialectPFNames=[lexiconPFNames;scorePFNames'];
 
       % Make one entry in the result structure per PF
       pfCategoriesFromName = struct;
