@@ -647,24 +647,9 @@ if ~isdeployed,
   SetUpJAABAPath;
 end
 
-if (exist('matlabpool')==2 && matlabpool('size')==0)
-  
-  useparallel = true;
-  if isdeployed,
-    if ispc || (isunix && ~ismac),
-      filename = deployedRelative2Global('ParallelComputingConfiguration_Local_Win4.settings');
-      if ~exist(filename,'file'),
-        useparallel = false;
-      else
-        setmcruserdata('ParallelProfile','ParallelComputingConfiguration_Local_Win4.settings');
-      end
-    end
-  end
-  if useparallel
-    matlabpool('open');
-  end
 
-end
+handles.computation_threads = SetUpMatlabPoolforJAABAPlot;
+
 
 handles.featurehistogram_stylelist=...
     {'Central Tendency','Central Tendency & Dispersion','Overlayed per-Exp Means', 'Box Plot'};
@@ -5529,6 +5514,79 @@ handles=initialize(handles);
 update_figure(handles);
 set(handles.figure1,'pointer','arrow');
 guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+function MenuFileMultithreading_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFileReset (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+numCores = feature('numCores');
+c = parcluster;
+NumWorkers = c.NumWorkers;
+maxJobs = min(numCores,NumWorkers);
+prompts = {sprintf('N. threads for computation (btn 1 and %d)',maxJobs)};
+
+while true,
+    defaults = {num2str(handles.computation_threads)};
+    res = inputdlg(prompts,'Multi-threading Preferences',1,defaults);
+    if isempty(res), return, end;
+    errs = {};
+    
+    ischange = false;
+    
+    computation_threads = str2double(res{1});
+    if isnan(computation_threads) || computation_threads < 1 || computation_threads > maxJobs || rem(computation_threads,1) ~= 0,
+        errs{end+1} = 'Number of threads devoted to computation must be a positive integer less than or equal to the number of CPU cores';  %#ok<AGROW>
+    else
+        if(handles.computation_threads ~= computation_threads)
+            ischange = true;
+        end
+    end
+    
+    if ischange && isempty(errs),
+        
+        % remove extra computation threads
+        if matlabpool('size') > computation_threads,
+            set(handles.Status,'string',sprintf('Shrinking matlab pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            pause(2);
+            matlabpool close;
+            matlabpool('open',computation_threads);
+        end
+        
+        % add extra computation threads
+        if matlabpool('size') < computation_threads,
+            set(handles.Status,'string',sprintf('Growing matlab pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            drawnow;
+            if matlabpool('size') > 0,
+                matlabpool close;
+            end
+            pause(1);
+            matlabpool('open',computation_threads);
+            pause(1);
+        end
+        
+        
+        handles.computation_threads = computation_threads;
+        %     ClearStatus(handles);
+        set(handles.Status,'string','Ready','foregroundcolor','g');
+        set(handles.figure1,'pointer','arrow');
+        drawnow;
+        
+    end
+    
+    if isempty(errs),
+        break;
+    else
+        uiwait(warndlg(errs,'Bad multithreading options'));
+    end
+    
+end
+guidata(hObject,handles);
+return
 
 
 % --------------------------------------------------------------------
