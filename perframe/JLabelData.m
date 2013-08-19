@@ -10677,7 +10677,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function removeExperimentsWithNoLabels(self)
+    function expdirs_removed = removeExperimentsWithNoLabels(self)
       self.StoreLabelsForCurrentAnimal();  % make sure labels are commited
       nExps=self.nexps;
       markedForRemoval=false(1,nExps);
@@ -10691,6 +10691,7 @@ classdef JLabelData < matlab.mixin.Copyable
         markedForRemoval(i)=(nBouts==0);
       end
       expIndicesToRemove=find(markedForRemoval);
+      expdirs_removed = self.expdirs(expIndicesToRemove);
       self.RemoveExpDirs(expIndicesToRemove);  %#ok
     end  % method
     
