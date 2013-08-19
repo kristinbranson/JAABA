@@ -5629,6 +5629,7 @@ function MenuFileSave_Callback(hObject, eventdata, handles)
 
 [file,path]=uiputfile('*.mat','Select file to save configuration to');
 if(isnumeric(file) && isnumeric(path) && (file==0) && (path==0))  return;  end
+handles = rmfield(handles,'system_monitor');
 save(fullfile(path,file),'handles');
 
 
