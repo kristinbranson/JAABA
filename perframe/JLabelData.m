@@ -2820,6 +2820,7 @@ classdef JLabelData < matlab.mixin.Copyable
       int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
       obj.balancedGTSuggestions = {};
       for endx = 1:obj.nexps
+        obj.SetStatus('Couting predictions on experiment%d',endx);
         for flies = 1:obj.nflies_per_exp(endx)
           if ~obj.predictdata{endx}{flies}.loaded_valid(1),
             msg = sprintf('No Scores have been loaded for %s, cannot suggest intervals for ground truthing\n',...
@@ -2861,6 +2862,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.balancedGTSuggestions = [];
       for ndx = 1:numint
+        obj.SetStatus('Finding interval %d to label',ndx);
         cumwt = cumsum(int.wt)/sum(int.wt);
         intlocs = rand;
         locsSel = find(cumwt<=intlocs,1,'last');
