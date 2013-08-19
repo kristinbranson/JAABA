@@ -43,7 +43,7 @@ if ischar(jablistfile),
     if l(1) == '#',
       continue;
     end
-    jabfiles{end+1} = l;
+    jabfiles{end+1} = l; %#ok<AGROW>
   end
 end
 
@@ -103,7 +103,7 @@ for ndx = order(:)'
     if ~forcecompute
       sfn = fullfile(expdir{expi},scorefilenames{ndx});
       if ~strcmp(sfn(end-3:end),'.mat')
-        sfn = [sfn '.mat'];
+        sfn = [sfn '.mat']; %#ok<*AGROW>
       end
       if exist(sfn,'file'),
         Q = load(sfn);
@@ -113,6 +113,7 @@ for ndx = order(:)'
         end
       end
     end
+    try 
     [success,msg] = data.AddExpDir(expdir{expi});
     if ~success,
       error(msg);
@@ -122,6 +123,11 @@ for ndx = order(:)'
     fprintf('Predicting on experiment %d for behavior %s\n',expi,behavior{ndx});
     data.PredictSaveMovie(data.nexps);
     data.RemoveExpDirs(data.nexps);
+    catch ME
+      fprintf('Could not classify experiment %d for %s: %s',expi,behavior{ndx},ME.message);
+      data.closeJabFile();
+      data.openJabFileNoExps(jabfiles{ndx},false);
+    end
   end
   data.closeJabFile();
 end
