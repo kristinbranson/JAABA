@@ -8750,7 +8750,7 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaulttrxfilename',handles.guidata.defaulttrxfilename));
 
 % no experiments? ask to add
-if handles.data.nexps == 0,
+if handles.data.thereIsAnOpenFile && handles.data.nexps == 0,
 
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
@@ -8797,7 +8797,7 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'basicParamsStruct',Q.x));
 
 % no experiments? ask to add
-if handles.data.nexps == 0,
+if handles.data.thereIsAnOpenFile && handles.data.nexps == 0,
 
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
