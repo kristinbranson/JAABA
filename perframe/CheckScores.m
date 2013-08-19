@@ -18,8 +18,15 @@ for i = 1:nbehaviors,
     behavior = behavior(1:end-1);
   end
   try
-    tmp = load(classifierfilecurr,'classifierTS');
-    classifier_timestamp = tmp.classifierTS;
+    [~,~,ext] = fileparts(classifierfilecurr);
+    isjabfile = ~strcmp(ext,'.mat');
+    if ~isjabfile,
+      tmp = load(classifierfilecurr,'classifierTS');
+      classifier_timestamp = tmp.classifierTS;
+    else
+      tmp = load(classifierfilecurr,'-mat');
+      classifier_timestamp = tmp.x.classifierStuff.timeStamp;
+    end
   catch ME,
     warning('Could not load timestamp for %s classifier from %s\n%s',behavior,classifierfilecurr,getReport(ME));
     continue;
