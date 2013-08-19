@@ -2820,6 +2820,7 @@ classdef JLabelData < matlab.mixin.Copyable
       int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
       obj.balancedGTSuggestions = {};
       for endx = 1:obj.nexps
+        obj.SetStatus('Couting predictions on experiment%d',endx);
         for flies = 1:obj.nflies_per_exp(endx)
           if ~obj.predictdata{endx}{flies}.loaded_valid(1),
             msg = sprintf('No Scores have been loaded for %s, cannot suggest intervals for ground truthing\n',...
@@ -2861,6 +2862,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.balancedGTSuggestions = [];
       for ndx = 1:numint
+        obj.SetStatus('Finding interval %d to label',ndx);
         cumwt = cumsum(int.wt)/sum(int.wt);
         intlocs = rand;
         locsSel = find(cumwt<=intlocs,1,'last');
@@ -6741,22 +6743,22 @@ classdef JLabelData < matlab.mixin.Copyable
         % Generate the per-frame files that are not score features
         % Don't generate the per-frame files from scores here anymore..
         
-         try
+%          try
            if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
             perframetrx.(fn);
            end        
-         catch excp
-           if isInteractive && ishandle(hwait),
-             delete(hwait);
-           end
-           if isequal(excp.identifier,'MATLAB:UndefinedFunction')
-             msg=sprintf('Unable to calculate per-frame feature %s.',fn);
-             success=false;
-             return
-          else
-             rethrow(excp);
-           end
-         end
+%          catch excp
+%            if isInteractive && ishandle(hwait),
+%              delete(hwait);
+%            end
+%            if isequal(excp.identifier,'MATLAB:UndefinedFunction')
+%              msg=sprintf('Unable to calculate per-frame feature %s.',fn);
+%              success=false;
+%              return
+%           else
+%              rethrow(excp);
+%            end
+%          end
       end
       
       if isInteractive && ishandle(hwait),

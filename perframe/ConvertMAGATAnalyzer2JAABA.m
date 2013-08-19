@@ -20,6 +20,20 @@ msg = '';
   'dosoftlink',false,...
   'dotransposeimage',false);
 
+%% make sure that MAGATAnalyzer code is on the path
+
+res = which('Experiment');
+if isempty(res),
+  msg = 'MAGATAnalyzer-Matlab-Analysis code must be on the MATLAB path';
+  return;
+end
+res = which('deg2rad');
+if isempty(res),
+  msg = '"MAGATAnalyzer-Matlab-Analysis/utility functions" code must be on the MATLAB path';
+  return;
+end
+  
+
 %% check for files
 
 if isempty(expfile),
@@ -91,6 +105,8 @@ for i = 1:nflies,
   trk.firstframe = min(frameidx);
   trk.endframe = max(frameidx);
   trk.nframes = trk.endframe - trk.firstframe+1;
+  % make this start counting at 1
+  frameidx = frameidx - trk.firstframe + 1;
   
   if trk.nframes > numel(expdata.experiment_1.track(i).pt),
     fprintf('%d frames missing for larva %d\n',trk.nframes - numel(expdata.experiment_1.track(i).pt),i);
@@ -168,6 +184,9 @@ for i = 1:nflies,
   yspine_cm = nan(nspinepts,trk.nframes);
   xspine_cm(:,frameidx(isspine)) = cell2mat(cellfun(@(x) double(x(1,:)'),spine(isspine),'UniformOutput',false));
   yspine_cm(:,frameidx(isspine)) = cell2mat(cellfun(@(x) double(x(2,:)'),spine(isspine),'UniformOutput',false));
+  % spines are backwards
+  xspine_cm = xspine_cm(end:-1:1,:);
+  yspine_cm = yspine_cm(end:-1:1,:);
   if dotransposeimage,
     trk.xspine = expdata.experiment_1.camcalinfo.r2cY(xspine_cm,yspine_cm)+1;
     trk.yspine = expdata.experiment_1.camcalinfo.r2cX(xspine_cm,yspine_cm)+1;
@@ -452,7 +471,8 @@ end
 data = cell(1,nflies);
 for i = 1:nflies,
   data{i} = nan(1,trx(i).nframes);
-  data{i}(allframeidx{i}) = [expdata.experiment_1.track(i).pt.area];
+  frameidx = allframeidx{i} - trx(i).firstframe + 1;
+  data{i}(frameidx) = [expdata.experiment_1.track(i).pt.area];
 end
 matfilename = fullfile(perframedir,['area','.mat']);
 save(matfilename,'data','units');
