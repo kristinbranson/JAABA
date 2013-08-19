@@ -1434,7 +1434,7 @@ handles.guidata.fly2idx = zeros(1,handles.data.nTargetsInCurrentExp);
 
 for i = 1:nPreviewAxes,
   % fly current positions
-  for fly = 1:handles.data.nTargetsInCurrentExp,
+  for fly = 1:maxnflies_curr,
     % handles.guidata.hflies(fly,i) = plot(handles.guidata.axes_previews(i),nan,nan,'-',...
     %   'color',handles.guidata.fly_colors(fly,:),'linewidth',3,...
     %   'ButtonDownFcn',@(hObject,eventdata) JLabel('fly_ButtonDownFcn',hObject,eventdata,guidata(hObject),fly,i));
@@ -7323,8 +7323,10 @@ if isnan(intsize) || (round(intsize)-intsize)~=0 || ...
   return;
 end
 
+SetStatus(handles,'Finding suggestions for ground truthing...');
 %[success,msg ] = handles.data.SuggestBalancedGT(intsize,numint);
 [success,msg] = handles.data.setGTSuggestionMode('Balanced',intsize,numint);
+ClearStatus(handles);
 if ~success, warndlg(msg); return; end
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
@@ -8129,6 +8131,9 @@ defaultPath=handles.data.defaultpath;
 title=fif(groundTruthingMode, ...
           'Open in Ground-Truthing Mode...', ...
           'Open...');
+if ispc,
+  pause(1);
+end
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
             title, ...
@@ -8765,6 +8770,9 @@ defaultPath=handles.data.defaultpath;
 title=fif(groundTruthingMode, ...
           'Open in Ground-Truthing Mode...', ...
           'Open...');
+if ispc,
+  pause(1);
+end
 [filename,pathname] = ...
   uigetfile({'*.jab','JAABA Files (*.jab)'}, ...
             title, ...
@@ -9703,6 +9711,7 @@ c = parcluster;
 NumWorkers = c.NumWorkers;
 
 while true,
+    ischange = false;
   defaults = {num2str(handles.guidata.framecache_threads),...
     num2str(handles.guidata.computation_threads)};
   res = inputdlg(prompts,'Multi-threading Preferences',1,defaults);
