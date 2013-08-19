@@ -200,6 +200,23 @@ fclose(fid);
         yspine = yspine + y;
       end
       
+      % first time reading a contour
+      if readcontour && ~havereadcontour,
+        for tmpi = 1:numel(trx),
+          nframescurr = trx(tmpi).endframe - trx(tmpi).firstframe + 1;
+          trx(tmpi).xcontour = cell(1,nframescurr);
+          trx(tmpi).ycontour = cell(1,nframescurr);
+        end
+      end
+      % first time reading a spine
+      if readspine && ~havereadspine,
+        for tmpi = 1:numel(trx),
+          nframescurr = trx(tmpi).endframe - trx(tmpi).firstframe + 1;
+          trx(tmpi).xspine = nan(nspinepts,nframescurr);
+          trx(tmpi).yspine = nan(nspinepts,nframescurr);
+        end
+      end
+      
       if isempty(idi),
         idi = numel(ids) + 1;
         newtrx = struct('x',x,'y',y,'theta',theta,'a',a,'b',b,'id',id,...
@@ -219,32 +236,17 @@ fclose(fid);
           newtrx.xspine = nan(nspinepts,1);
           newtrx.yspine = nan(nspinepts,1);
         end
+                
         if isempty(ids),
           trx = newtrx;
         else
-          trx(idi) = newtrx;
+          trx = structarrayset(trx,idi,newtrx);
         end
         ids(idi) = id;
         
       else
         
-        % first time reading a contour
-        if readcontour && ~havereadcontour,
-          for tmpi = 1:numel(trx),
-            nframescurr = trx(tmpi).endframe - trx(tmpi).firstframe + 1;
-            trx(tmpi).xcontour = cell(1,nframescurr);
-            trx(tmpi).ycontour = cell(1,nframescurr);
-          end
-        end
-        % first time reading a spine
-        if readspine && ~havereadspine,
-          for tmpi = 1:numel(trx),
-            nframescurr = trx(tmpi).endframe - trx(tmpi).firstframe + 1;
-            trx(tmpi).xspine = nan(nspinepts,nframescurr);
-            trx(tmpi).yspine = nan(nspinepts,nframescurr);
-          end
-        end
-
+        
         % assume everything comes in order of frames, but some frames may
         % be skipped
         npad = f-trx(idi).endframe-1;
