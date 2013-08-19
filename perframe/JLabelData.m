@@ -6743,22 +6743,22 @@ classdef JLabelData < matlab.mixin.Copyable
         % Generate the per-frame files that are not score features
         % Don't generate the per-frame files from scores here anymore..
         
-         try
+%          try
            if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
             perframetrx.(fn);
            end        
-         catch excp
-           if isInteractive && ishandle(hwait),
-             delete(hwait);
-           end
-           if isequal(excp.identifier,'MATLAB:UndefinedFunction')
-             msg=sprintf('Unable to calculate per-frame feature %s.',fn);
-             success=false;
-             return
-          else
-             rethrow(excp);
-           end
-         end
+%          catch excp
+%            if isInteractive && ishandle(hwait),
+%              delete(hwait);
+%            end
+%            if isequal(excp.identifier,'MATLAB:UndefinedFunction')
+%              msg=sprintf('Unable to calculate per-frame feature %s.',fn);
+%              success=false;
+%              return
+%           else
+%              rethrow(excp);
+%            end
+%          end
       end
       
       if isInteractive && ishandle(hwait),
