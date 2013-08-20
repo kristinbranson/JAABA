@@ -7,8 +7,8 @@ meanarea=zeros(1,numlarvae);
 numelements=zeros(1,numlarvae);
 for i=1:numlarvae
     larva=larvae(i);
-    meanarea(i)=mean(trx(larva).area(1:end));
-    numelements(i)=numel(trx(larva).area(1:end));
+    meanarea(i)=nanmean(trx(larva).area(1:end));
+    numelements(i)=nnz(~isnan(trx(larva).area(1:end)));
 end
 normvalue=sum(meanarea.*numelements./(sum(numelements)));
 normarea=cell(1,numlarvae);
