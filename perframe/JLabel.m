@@ -8379,6 +8379,7 @@ handles.guidata.initializeAfterBasicParamsSet();
 handles.guidata.setLayout(figureJLabel);
 handles=InitializeStateAfterBasicParamsSet(handles);
 handles=InitializePlotsAfterBasicParamsSet(handles);
+handles = updatePanelPositions(handles);
 guidata(figureJLabel,handles);
 return
 
