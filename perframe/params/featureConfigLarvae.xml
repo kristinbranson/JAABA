@@ -124,8 +124,8 @@
   <a_mm trans_types="none,relative" type="appearance"/>
   <b_mm trans_types="none,relative" type="appearance"/>
   <ecc trans_types="none,relative" type="appearance"/>
-  <da trans_types="none,relative" type="locomotion_global"/>
-  <db trans_types="none,relative" type="locomotion_global"/>
+  <da_mm trans_types="none,relative" type="locomotion_global"/>
+  <db_mm trans_types="none,relative" type="locomotion_global"/>
   <decc trans_types="none,relative" type="locomotion_global"/>
   <dtheta trans_types="none" type="locomotion_global"/>
   <velmaghead trans_types="none,relative" type="locomotion"/>
@@ -182,7 +182,26 @@
   <dtailinflang trans_types="none,abs,relative" type="locomotion_global"/>
   <dinflheadmag trans_types="none,abs,relative" type="locomotion"/>
   <dinflheadang trans_types="none,abs,relative" type="locomotion_global"/>
-  <dcenter trans_types="none,relative" type="position"/>
-  <dhead2central trans_types="none,relative" type="position"/>
+  <dcentral trans_types="none,relative" type="social"/>
+  <dhead2central trans_types="none,relative" type="social"/>
+  <xheadsm_mm trans_types="none" type="position"/>
+  <yheadsm_mm trans_types="none" type="position"/>
+  <xtailsm_mm trans_types="none" type="position"/>
+  <ytailsm_mm trans_types="none" type="position"/>
+  <dxheadsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dyheadsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxtailsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dytailsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <centralheadsmang trans_types="none" type="position"/>
+  <tailsmcentralang trans_types="none" type="position"/>
+  <tailsmheadsmang trans_types="none" type="position"/>
+  <velchsm trans_types="none,relative" type="locomotion"/>
+  <veltsmc trans_types="none,relative" type="locomotion"/>
+  <veltsmhsm trans_types="none,relative" type="locomotion"/>
+  <tailsminflang trans_types="none" type="position"/>
+  <inflheadsmang trans_types="none" type="position"/>
+  <angihsmvsangtsmi trans_types="abs,flip" type="appearance"/>
+  <ratiolengthvsth trans_types="none,relative" type="appearance"/>
+  <dratiolengthvsth trans_types="none,abs,relative" type="locomotion"/>
 </perframe>
 </params>
