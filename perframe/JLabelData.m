@@ -6742,22 +6742,22 @@ classdef JLabelData < matlab.mixin.Copyable
         % Generate the per-frame files that are not score features
         % Don't generate the per-frame files from scores here anymore..
         
-         try
+%          try
            if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
             perframetrx.(fn);
            end        
-         catch excp
-           if isInteractive && ishandle(hwait),
-             delete(hwait);
-           end
-           if isequal(excp.identifier,'MATLAB:UndefinedFunction')
-             msg=sprintf('Unable to calculate per-frame feature %s.',fn);
-             success=false;
-             return
-          else
-             rethrow(excp);
-           end
-         end
+%          catch excp
+%            if isInteractive && ishandle(hwait),
+%              delete(hwait);
+%            end
+%            if isequal(excp.identifier,'MATLAB:UndefinedFunction')
+%              msg=sprintf('Unable to calculate per-frame feature %s.',fn);
+%              success=false;
+%              return
+%           else
+%              rethrow(excp);
+%            end
+%          end
       end
       
       if isInteractive && ishandle(hwait),
@@ -10676,7 +10676,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function removeExperimentsWithNoLabels(self)
+    function expdirs_removed = removeExperimentsWithNoLabels(self)
       self.StoreLabelsForCurrentAnimal();  % make sure labels are commited
       nExps=self.nexps;
       markedForRemoval=false(1,nExps);
@@ -10690,6 +10690,7 @@ classdef JLabelData < matlab.mixin.Copyable
         markedForRemoval(i)=(nBouts==0);
       end
       expIndicesToRemove=find(markedForRemoval);
+      expdirs_removed = self.expdirs(expIndicesToRemove);
       self.RemoveExpDirs(expIndicesToRemove);  %#ok
     end  % method
     
