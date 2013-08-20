@@ -8785,7 +8785,7 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaulttrxfilename',handles.guidata.defaulttrxfilename));
 
 % no experiments? ask to add
-if handles.data.nexps == 0,
+if handles.data.thereIsAnOpenFile && handles.data.nexps == 0,
 
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
@@ -8832,7 +8832,7 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'basicParamsStruct',Q.x));
 
 % no experiments? ask to add
-if handles.data.nexps == 0,
+if handles.data.thereIsAnOpenFile && handles.data.nexps == 0,
 
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
@@ -9698,7 +9698,7 @@ data=handles.data;  % a ref
 iExp=data.expi;
 currentExpDirName=data.expdirs{iExp};
 % Tell the model to remove experiments with no labels
-data.removeExperimentsWithNoLabels();
+expdirs_removed = data.removeExperimentsWithNoLabels();
 % If the once-current experiment is now removed, update the view
 % accordingly
 iExpNow=whichstr(currentExpDirName,data.expdirs);
@@ -9714,6 +9714,13 @@ if isempty(iExpNow) ,
   UpdatePlots(handles)
   guidata(figureJLabel,handles);
 end
+
+if isempty(expdirs_removed),
+  uiwait(msgbox('No experiments without labels. Project not changed.'));
+else
+  uiwait(msgbox([{sprintf('Removed %d experiments with no labels:',numel(expdirs_removed))},expdirs_removed]));
+end
+
 return
 
 
