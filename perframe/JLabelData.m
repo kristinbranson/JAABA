@@ -2820,6 +2820,7 @@ classdef JLabelData < matlab.mixin.Copyable
       int = struct('exp',[],'flies',[],'tStart',[],'wt',[]);
       obj.balancedGTSuggestions = {};
       for endx = 1:obj.nexps
+        obj.SetStatus('Couting predictions on experiment%d',endx);
         for flies = 1:obj.nflies_per_exp(endx)
           if ~obj.predictdata{endx}{flies}.loaded_valid(1),
             msg = sprintf('No Scores have been loaded for %s, cannot suggest intervals for ground truthing\n',...
@@ -2861,6 +2862,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       obj.balancedGTSuggestions = [];
       for ndx = 1:numint
+        obj.SetStatus('Finding interval %d to label',ndx);
         cumwt = cumsum(int.wt)/sum(int.wt);
         intlocs = rand;
         locsSel = find(cumwt<=intlocs,1,'last');
@@ -5144,7 +5146,38 @@ classdef JLabelData < matlab.mixin.Copyable
       if nargin < 3
         sfn = self.GetFile('scores',expi);
       end
-      allScores = self.PredictWholeMovie(expi);
+
+      allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
+        'postprocessed',{{}},'postprocessedparams',[]);
+      scores_valid = true;
+      
+      for fly = 1:self.nflies_per_exp(expi)
+        
+        curt = self.predictdata{expi}{fly}.t;
+        if any(curt(2:end)-curt(1:end-1) ~= 1)
+          %uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
+          error('JLabelData.scoresOutOfOrder', ...
+            'Scores are out of order. This shouldn''t happen.  Not saving them');  %#ok
+        end
+        
+        if ~all(self.predictdata{expi}{fly}.cur_valid),
+          scores_valid = false;
+          break;
+        end
+        
+        tStart = self.firstframes_per_exp{expi}(fly);
+        tEnd = self.endframes_per_exp{expi}(fly);
+        
+        allScores.scores{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur;
+        allScores.tStart(fly) = tStart;
+        allScores.tEnd(fly) = tEnd;
+        allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
+      end
+
+      if ~scores_valid
+        allScores = self.PredictWholeMovie(expi);
+      end
+      
       self.SaveScores(allScores,expi,sfn);
       self.AddScores(expi,allScores,now(),'',true);
       
@@ -5624,10 +5657,9 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Update the status table        
       obj.SetStatus('Updating status table for %s...',expName);
-      [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
+      [success,msg,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
       missingfiles = missingfiles{obj.nexps};
-      if ~success1,
-        msg = msg1;
+      if ~success,
         obj.SetStatus('Bad experiment directory %s...',expDirName);
         obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
         return
@@ -6741,22 +6773,22 @@ classdef JLabelData < matlab.mixin.Copyable
         % Generate the per-frame files that are not score features
         % Don't generate the per-frame files from scores here anymore..
         
-         try
+%          try
            if isempty(obj.scoreFeatures) || ~any(strcmp(fn,{obj.scoreFeatures(:).scorefilename}))
             perframetrx.(fn);
            end        
-         catch excp
-           if isInteractive && ishandle(hwait),
-             delete(hwait);
-           end
-           if isequal(excp.identifier,'MATLAB:UndefinedFunction')
-             msg=sprintf('Unable to calculate per-frame feature %s.',fn);
-             success=false;
-             return
-          else
-             rethrow(excp);
-           end
-         end
+%          catch excp
+%            if isInteractive && ishandle(hwait),
+%              delete(hwait);
+%            end
+%            if isequal(excp.identifier,'MATLAB:UndefinedFunction')
+%              msg=sprintf('Unable to calculate per-frame feature %s.',fn);
+%              success=false;
+%              return
+%           else
+%              rethrow(excp);
+%            end
+%          end
       end
       
       if isInteractive && ishandle(hwait),
@@ -10675,7 +10707,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function removeExperimentsWithNoLabels(self)
+    function expdirs_removed = removeExperimentsWithNoLabels(self)
       self.StoreLabelsForCurrentAnimal();  % make sure labels are commited
       nExps=self.nexps;
       markedForRemoval=false(1,nExps);
@@ -10689,6 +10721,7 @@ classdef JLabelData < matlab.mixin.Copyable
         markedForRemoval(i)=(nBouts==0);
       end
       expIndicesToRemove=find(markedForRemoval);
+      expdirs_removed = self.expdirs(expIndicesToRemove);
       self.RemoveExpDirs(expIndicesToRemove);  %#ok
     end  % method
     
