@@ -5626,10 +5626,9 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Update the status table        
       obj.SetStatus('Updating status table for %s...',expName);
-      [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
+      [success,msg,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
       missingfiles = missingfiles{obj.nexps};
-      if ~success1,
-        msg = msg1;
+      if ~success,
         obj.SetStatus('Bad experiment directory %s...',expDirName);
         obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
         return
