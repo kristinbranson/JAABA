@@ -5151,6 +5151,7 @@ classdef JLabelData < matlab.mixin.Copyable
         'postprocessed',{{}},'postprocessedparams',[]);
       scores_valid = true;
       
+      % See if the current scores are valid.
       for fly = 1:self.nflies_per_exp(expi)
         
         curt = self.predictdata{expi}{fly}.t;
@@ -5174,6 +5175,7 @@ classdef JLabelData < matlab.mixin.Copyable
         allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
       end
 
+      % Need to compute scores.
       if ~scores_valid
         allScores = self.PredictWholeMovie(expi);
       end
@@ -9882,14 +9884,14 @@ classdef JLabelData < matlab.mixin.Copyable
             if hasloaded,
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.loaded(idx);
+              scores = obj.predictdata{expi}{flies}.loaded_pp(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
             else
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.cur(idx);
+              scores = obj.predictdata{expi}{flies}.cur_pp(idx);
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
