@@ -500,6 +500,10 @@ classdef JLabelGUIData < handle
     function initializeAfterBasicParamsSet(self)
       % number of flies to label at a time
       self.nflies_label = 1;
+      
+      % by default, be in advanced mode if ground-truthing and basic mode
+      % if training
+      self.GUIAdvancedMode = self.data.gtMode;
 
       % learned classifier
       % self.classifier = [];
