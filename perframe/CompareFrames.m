@@ -917,8 +917,9 @@ function pushbutton_prev_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if CheckBag(handles)
   handles = Jump(handles,'prev');
-  JLabel('UpdatePrediction',handles.JLabelH);
+  JLabel('predict',handles.JLabelH);
 end
+guidata(hObject,handles);
 
 
 % --- Executes on button press in pushbutton_next.
@@ -928,5 +929,6 @@ function pushbutton_next_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if CheckBag(handles)
   handles = Jump(handles,'next');
-  JLabel('UpdatePrediction',handles.JLabelH);
+  JLabel('predict',handles.JLabelH);
 end
+guidata(hObject,handles);

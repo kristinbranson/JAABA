@@ -207,15 +207,22 @@ for ndx = 1:numel(allexpdirs)
     return;
   end
   SetStatusEditFiles(findAncestorFigure(hObject),sprintf('Adding experiment directory %s',expdir));
-  [success,msg] = data.AddExpDir(expdir);
-  if ~success,
-    if iscell(msg)
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
-    else
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+  try
+    [success,msg] = data.AddExpDir(expdir);
+    if ~success,
+      if iscell(msg)
+        uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+      else
+        uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+      end
+      ClearStatusEditFiles(figureJModifyFiles);
     end
+    
+  catch ME
+    
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s:%s',expdir,ME.identifier,ME.message)));
     ClearStatusEditFiles(figureJModifyFiles);
-    return;
+    
   end
   set(handles.listbox_experiment,'String',data.expdirs,'Value',data.nexps);
   setGuidataField(figureJModifyFiles,'listChanged',true);
@@ -362,13 +369,18 @@ while(ischar(expdir))
     expdir = fgetl(fid);
     continue;
   end
+
+  try
+    [success,msg] = data.AddExpDir(expdir);
+    if ~success,
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    end
+  catch ME
     
-  [success,msg] = data.AddExpDir(expdir);
-  if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
-    expdir = fgetl(fid);
-    continue;
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s:%s',expdir,ME.identifier,ME.message)));
+    ClearStatusEditFiles(figureJModifyFiles);
   end
+
   setGuidataField(findAncestorFigure(hObject),'listChanged',true);
   
   expdir = fgetl(fid);
