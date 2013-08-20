@@ -5146,7 +5146,38 @@ classdef JLabelData < matlab.mixin.Copyable
       if nargin < 3
         sfn = self.GetFile('scores',expi);
       end
-      allScores = self.PredictWholeMovie(expi);
+
+      allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
+        'postprocessed',{{}},'postprocessedparams',[]);
+      scores_valid = true;
+      
+      for fly = 1:self.nflies_per_exp(expi)
+        
+        curt = self.predictdata{expi}{fly}.t;
+        if any(curt(2:end)-curt(1:end-1) ~= 1)
+          %uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
+          error('JLabelData.scoresOutOfOrder', ...
+            'Scores are out of order. This shouldn''t happen.  Not saving them');  %#ok
+        end
+        
+        if ~all(self.predictdata{expi}{fly}.cur_valid),
+          scores_valid = false;
+          break;
+        end
+        
+        tStart = self.firstframes_per_exp{expi}(fly);
+        tEnd = self.endframes_per_exp{expi}(fly);
+        
+        allScores.scores{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur;
+        allScores.tStart(fly) = tStart;
+        allScores.tEnd(fly) = tEnd;
+        allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
+      end
+
+      if ~scores_valid
+        allScores = self.PredictWholeMovie(expi);
+      end
+      
       self.SaveScores(allScores,expi,sfn);
       self.AddScores(expi,allScores,now(),'',true);
       
