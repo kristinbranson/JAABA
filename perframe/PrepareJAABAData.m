@@ -165,7 +165,12 @@ data{1,2} = handles.InputVideoFile;
 data{1,3} = ~InputDataType.videorequired || CheckInputFile(handles,1,handles.InputVideoFile);
 for i = 1:ninputfiles,
   data{i+1,1} = InputDataType.files(i).name;
-  data{i+1,2} = InputFiles{i};
+  if iscell(InputFiles{i}),
+    s = sprintf('%s, ',InputFiles{i}{:});
+    data{i+1,2} = s(1:end-2);
+  else    
+    data{i+1,2} = InputFiles{i};
+  end
   data{i+1,3} = ~InputDataType.files(i).required;
   data{i+1,3} = ~InputDataType.files(i).required || CheckInputFile(handles,i+1,InputFiles{i});
 end
