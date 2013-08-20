@@ -751,6 +751,8 @@ function UpdatePlots(handles,varargin)
 
 persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total
 
+debug_cache = false;
+
 % if no experiments are loaded, nothing to do
 %if isempty(handles.data) || handles.data.nexps==0 ,
 if ~handles.data.thereIsAnOpenFile || handles.data.nexps==0 ,
@@ -980,8 +982,10 @@ for i = axes2,
         % ALT: Added uint8() 2012-09-14.  Without that, threw error when
         % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
         % being of class double
+        if debug_cache
         fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        end
       else
         ClearStatus(handles);
       end
@@ -4405,6 +4409,37 @@ if strcmpi(eventdata.Modifier,'control')
       if (handles.data.expi +1) < handles.data.nexps 
         SetCurrentMovie(handles,handles.data.expi+1);
       end
+    case '1'
+
+      if handles.data.flies - 1 > 0
+        handles = SetCurrentFlies(handles,handles.data.flies - 1);
+        guidata(hObject,handles);
+      end
+      
+    case '2'
+      if handles.data.flies + 1 <= handles.data.nflies_per_exp
+        handles = SetCurrentFlies(handles,handles.data.flies + 1);
+        guidata(hObject,handles);
+      end
+      
+    case 's'
+      if strcmp(get(handles.menu_file_save,'Enable'),'on')
+        menu_file_save_Callback(hObject,[],handles);
+      end
+    case 'ii'
+      for i = 1:numel(handles.guidata.axes_previews),
+        xx = get(handles.guidata.axes_previews(i),'XLim');
+        yy = get(handles.guidata.axes_previews(i),'YLim');
+        set(handles.guidata.axes_previews(i),'XLim',xx/2);
+        set(handles.guidata.axes_previews(i),'YLim',yy/2);
+        [handles] = UpdateZoomFlyRadius(handles,i);
+      end
+      guidata(hObject,handles);
+    case 'oo'
+      handles.guidata.zoom_fly_radius = handles.guidata.zoom_fly_radius*2;
+      handles = UpdateZoomFlyRadius(handles,1);
+      guidata(hObject,handles);
+      
   end
 end
 
@@ -8750,7 +8785,7 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaulttrxfilename',handles.guidata.defaulttrxfilename));
 
 % no experiments? ask to add
-if handles.data.thereIsAnOpenFile && handles.data.nexps == 0,
+if handles.data.nexps == 0,
 
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
@@ -8797,7 +8832,7 @@ uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'basicParamsStruct',Q.x));
 
 % no experiments? ask to add
-if handles.data.thereIsAnOpenFile && handles.data.nexps == 0,
+if handles.data.nexps == 0,
 
   drawnow;
   JModifyFiles('figureJLabel',handles.figure_JLabel);
@@ -9663,7 +9698,7 @@ data=handles.data;  % a ref
 iExp=data.expi;
 currentExpDirName=data.expdirs{iExp};
 % Tell the model to remove experiments with no labels
-expdirs_removed = data.removeExperimentsWithNoLabels();
+data.removeExperimentsWithNoLabels();
 % If the once-current experiment is now removed, update the view
 % accordingly
 iExpNow=whichstr(currentExpDirName,data.expdirs);
@@ -9679,13 +9714,6 @@ if isempty(iExpNow) ,
   UpdatePlots(handles)
   guidata(figureJLabel,handles);
 end
-
-if isempty(expdirs_removed),
-  uiwait(msgbox('No experiments without labels. Project not changed.'));
-else
-  uiwait(msgbox([{sprintf('Removed %d experiments with no labels:',numel(expdirs_removed))},expdirs_removed]));
-end
-
 return
 
 
@@ -9864,3 +9892,33 @@ if handles.data.expi == 0 && handles.data.nexps>0
 end
 guidata(handles.figure_JLabel,handles);
 ClearStatus(handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_clearcache_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_clearcache (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+UpdatePlots(handles,'CLEAR');
+UpdatePlots(handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_shortcutslist_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_shortcutslist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+str = {'Ctrl + t  --  Train'
+  'Ctrl + p  --  Predict'
+  'Ctrl + n  --  Navigation Preferences'
+  'Ctrl + j  --  Switch Target'
+  'Ctrl + k  --  Plot tracks'
+  'Ctrl + f  --  Show Whole Frame'
+  'Ctrl + s  --  Save Project'
+  'Ctrl + 9  --  Previous Movie'
+  'Ctrl + 0 (zero)  --  Next Movie'
+  'Ctrl + 1  --  Previous Target'
+  'Ctrl + 2  --  Next Target'
+  'Space     --  Play (Does not always work)' 
+  };
+helpdlg(str,'List of Shortcuts')
