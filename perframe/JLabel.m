@@ -1010,7 +1010,7 @@ for i = axes2,
           Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-          fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+          fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
           ClearStatus(handles);
@@ -1042,18 +1042,23 @@ for i = axes2,
         rb_nog(:,:,1)=imnorm;
         rb_nog(:,:,2)=imnorm_last;
         rb_nog(:,:,3)=imnorm_last;
-        image(rb_nog,'parent',handles.spacetime.ax);
-        axis(handles.spacetime.ax,'square');
-        for k=1:length(handles.spacetime.featurelocations)
-          handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
-              ['spacetime_' handles.spacetime.featurenames{k}], handles.guidata.ts(i), handles.guidata.ts(i));
-          color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
-          color=min(1,max(0,color));
-          line(handles.spacetime.featurelocations{k}(:,2), handles.spacetime.featurelocations{k}(:,1),...
-              'color',[0 color 0],'parent',handles.spacetime.ax);
-          text(handles.spacetime.featurecenters{k}(1), handles.spacetime.featurecenters{k}(2),...
-              handles.spacetime.featurenames{k},'Interpreter','none','HorizontalAlignment','center',...
-              'color',[0 color 0],'parent',handles.spacetime.ax);
+        for l=1:length(handles.spacetime.featureboundaries)
+          image(rb_nog,'parent',handles.spacetime.ax{l});
+          axis(handles.spacetime.ax{l},'image');
+          axis(handles.spacetime.ax{l},'off');
+          for k=1:length(handles.spacetime.featureboundaries{l})
+            handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
+                ['spacetime_' handles.spacetime.featurenames{l}{k}], handles.guidata.ts(i), handles.guidata.ts(i));
+            color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
+            color=min(1,max(0,color));
+            for m=1:length(handles.spacetime.featureboundaries{l}{k})
+              line(handles.spacetime.featureboundaries{l}{k}{m}(:,2), handles.spacetime.featureboundaries{l}{k}{m}(:,1),...
+                  'color',[0 color 0],'parent',handles.spacetime.ax{l});
+            end
+            text(handles.spacetime.featurecenters{l}{k}(1), handles.spacetime.featurecenters{l}{k}(2),...
+                handles.spacetime.featurenames{l}{k},'Interpreter','none','HorizontalAlignment','center',...
+                'color',[0 color 0],'parent',handles.spacetime.ax{l});
+          end
         end
       end
 
@@ -5180,19 +5185,23 @@ else
   
   if any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9))
     if ((~isfield(handles,'spacetime')) || (~isfield(handles.spacetime,'fig')) || (~ishandle(handles.spacetime.fig)))
-      handles.spacetime.fig=figure;
-      handles.spacetime.ax=axes('position',[0 0 1 1]);
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).a);
       handles.spacetime.meana = prctile(cellfun(@mean,tmp),90);
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).b);
       handles.spacetime.meanb = prctile(cellfun(@mean,tmp),90);
       [handles.spacetime.binidx, handles.spacetime.nbins, ...
-          handles.spacetime.featurenames, handles.spacetime.featurelocations, handles.spacetime.featurecenters] = ...
+          handles.spacetime.featurenames, handles.spacetime.featureboundaries, handles.spacetime.featurecenters] = ...
           compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);
       idx=find(cellfun(@(x) strncmp('spacetime_',x,10),handles.data.allperframefns));
       prctile([handles.data.perframedata{idx}],[1 99]);
       handles.spacetime.prc1=ans(1);
       handles.spacetime.prc99=ans(2);
+      handles.spacetime.fig=figure('position',...
+          [0 0 10*length(handles.spacetime.featurenames)*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)]);
+      for i=1:length(handles.spacetime.featurenames)
+        handles.spacetime.ax{i}=axes('position',...
+            [(i-1)/length(handles.spacetime.featurenames) 0 1/length(handles.spacetime.featurenames) 1]);
+      end
     end
   else
     if isfield(handles,'spacetime')
