@@ -54,6 +54,12 @@ nbehaviors = numel(configfiles);
 
 % names of scores files
 classifierparams = [];
+
+warningstate = warning('query','MATLAB:structOnObject');
+if strcmp(warningstate.state,'on'),
+  warning('off','MATLAB:structOnObject');
+end
+
 for i = 1:nbehaviors,
   
   if isempty(configfiles{i})
@@ -96,4 +102,8 @@ for i = 1:nbehaviors,
   
   end
   classifierparams = structappend(classifierparams,params);  
+end
+
+if strcmp(warningstate.state,'on'),
+  warning('on','MATLAB:structOnObject');
 end
