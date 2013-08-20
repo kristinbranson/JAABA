@@ -1,5 +1,5 @@
 % absolute azimuthal angle to from fly to closest fly according to type
-function [data,units] = compute_spacetime(trx,n,theta_in,r_in)
+function [data,units] = compute_spacetime(trx,n,theta_in,r_in,type_in)
 
 try
   load(fullfile(trx.expdirs{n},trx.perframedir,'spacetime.mat'));
@@ -16,16 +16,16 @@ catch
 
   [binidx, nbins, featurenames, featureboundaries, featurecenters] = compute_spacetime_mask(meana, meanb);
   
-  featurenames={featurenames{:} ...
-      'theta28_r1' 'theta28_r2' 'theta28_r3' ...
-      'theta37_r1' 'theta37_r2' 'theta37_r3' ...
-      'theta46_r1' 'theta46_r2' 'theta46_r3' ...
-      'theta42_r1' 'theta42_r2' 'theta42_r3' ...
-      'theta51_r1' 'theta51_r2' 'theta51_r3' ...
-      'theta68_r1' 'theta68_r2' 'theta68_r3' ...
-      'theta1_r0' 'theta2_r0' 'theta3_r0' 'theta4_r0' ...
-      'theta5_r0' 'theta6_r0' 'theta7_r0' 'theta8_r0'};
-  
+%   featurenames{1}={featurenames{1}{:} ...
+%       'theta28_r1' 'theta28_r2' 'theta28_r3' ...
+%       'theta37_r1' 'theta37_r2' 'theta37_r3' ...
+%       'theta46_r1' 'theta46_r2' 'theta46_r3' ...
+%       'theta42_r1' 'theta42_r2' 'theta42_r3' ...
+%       'theta51_r1' 'theta51_r2' 'theta51_r3' ...
+%       'theta68_r1' 'theta68_r2' 'theta68_r3' ...
+%       'theta1_r0' 'theta2_r0' 'theta3_r0' 'theta4_r0' ...
+%       'theta5_r0' 'theta6_r0' 'theta7_r0' 'theta8_r0'};
+%   
   % generate a random image
   % 
   % nr = 1024;
@@ -62,15 +62,16 @@ catch
   parfor_tmp=cell(1,ceil((max(endframes)-min(firstframes)+1)/chunk_size));
 
   parfor chunk=1:ceil((max(endframes)-min(firstframes)+1)/chunk_size)
+    frame_from = min(firstframes) + (chunk-1)*chunk_size;
+    frame_to = min(max(endframes), frame_from+chunk_size);
     for i1=1:nflies
-      parfor_tmp{chunk}{i1}=nan(min(chunk_size,max(endframes)-min(firstframes)+1-chunk*chunk_size),nbins+26);
+      parfor_tmp{chunk}{i1}=cell(1, frame_to-frame_from);
     end
-    imnorm=nan([nflies size(binidx)]);
+    imnorm=nan([nflies size(binidx{1})]);
     imnorm_last=[];
     [readframe,nframes,fid,headerinfo] = get_readframe_fcn(fullfile(trx.expdirs{n},trx.moviefilestr));
     
-    pooh=min(firstframes)+(chunk-1)*chunk_size;
-    for framei=pooh:min(max(endframes),pooh+chunk_size)
+    for framei = frame_from : frame_to
       disp(['frame ' num2str(framei) ', ' num2str(100*(framei-min(firstframes))/(max(endframes)-min(firstframes)),3) '%']);
       im=readframe(framei);
 
@@ -91,9 +92,9 @@ catch
 
         % example: average value within each box
 
-        if ((framei==pooh) || (framei==firstframes(i1)))  continue;  end
+        if ((framei==frame_from) || (framei==firstframes(i1)))  continue;  end
 
-        parfor_tmp{chunk}{i1}(framei-pooh,:) = ...
+        parfor_tmp{chunk}{i1}{framei-frame_from} = ...
             compute_spacetime_gradient(imnorm(i1,:,:),imnorm_last(i1,:,:),binidx,nbins,featurenames,...
             dt0{fly1}(framei-firstframes(i1)));
       end
@@ -103,10 +104,19 @@ catch
     fclose(fid);
   end
   
+  tmp=cell(1,nflies);
+  for flyi=1:nflies
+    cellfun(@(x) x{flyi}, parfor_tmp, 'uniformoutput',false);
+    tmp{flyi}=[ans{:}];
+  end
+
   data=cell(1,nflies);
-  for i=1:nflies
-    cellfun(@(x) transpose(x{i}), parfor_tmp,'uniformoutput',false);
-    data{i}=[ans{:}];
+  for flyi=1:nflies
+    data{flyi}=cell(1,length(featurenames));
+    for maski=1:length(featurenames)
+      cellfun(@(x) x{maski}, tmp{flyi}, 'uniformoutput',false);
+      data{flyi}{maski}=[ans{:}];
+    end
   end
 
   units = parseunits('??/s');
@@ -114,7 +124,11 @@ catch
   save(fullfile(trx.expdirs{n},trx.perframedir,'spacetime.mat'),'data','units','featurenames');
 end
 
-idx=find(strcmp(featurenames,['theta' num2str(theta_in) '_r' num2str(r_in)]));
+idx=[];  idx2=0;
+while isempty(idx) && (idx2<length(featurenames))
+  idx2 = idx2+1;
+  idx=find(strcmp(featurenames{idx2},['theta' num2str(theta_in) '_r' num2str(r_in) type_in]));
+end
 for i=1:length(data)
-  data{i}=data{i}(idx,:);
+  data{i}=data{i}{idx2}(idx,:);
 end
