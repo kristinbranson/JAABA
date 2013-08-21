@@ -1048,26 +1048,23 @@ for i = axes2,
               isempty(find(strcmp(handles.spacetime.featurenames{l}, handles.data.allperframefns{handles.guidata.perframepropis}(11:end))))
           l = l+1;
         end
-        if ~ishandle(handles.spacetime.ax)
-          handles.spacetime.fig=figure('position',...
-              [0 0 10*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)]);
-          handles.spacetime.ax=axes('position',[0 0 1 1]);
-        end
-        image(rb_nog,'parent',handles.spacetime.ax);
-        axis(handles.spacetime.ax,'image');
-        axis(handles.spacetime.ax,'off');
-        for k=1:length(handles.spacetime.featureboundaries{l})
-          handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
-              ['spacetime_' handles.spacetime.featurenames{l}{k}], handles.guidata.ts(i), handles.guidata.ts(i));
-          color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
-          color=min(1,max(0,color));
-          for m=1:length(handles.spacetime.featureboundaries{l}{k})
-            line(handles.spacetime.featureboundaries{l}{k}{m}(:,2), handles.spacetime.featureboundaries{l}{k}{m}(:,1),...
+        if ishandle(handles.spacetime.fig)
+          image(rb_nog,'parent',handles.spacetime.ax);
+          axis(handles.spacetime.ax,'image');
+          axis(handles.spacetime.ax,'off');
+          for k=1:length(handles.spacetime.featureboundaries{l})
+            handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
+                ['spacetime_' handles.spacetime.featurenames{l}{k}], handles.guidata.ts(i), handles.guidata.ts(i));
+            color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
+            color=min(1,max(0,color));
+            for m=1:length(handles.spacetime.featureboundaries{l}{k})
+              line(handles.spacetime.featureboundaries{l}{k}{m}(:,2), handles.spacetime.featureboundaries{l}{k}{m}(:,1),...
+                  'color',[0 color 0],'parent',handles.spacetime.ax);
+            end
+            text(handles.spacetime.featurecenters{l}{k}(1), handles.spacetime.featurecenters{l}{k}(2),...
+                handles.spacetime.featurenames{l}{k},'Interpreter','none','HorizontalAlignment','center',...
                 'color',[0 color 0],'parent',handles.spacetime.ax);
           end
-          text(handles.spacetime.featurecenters{l}{k}(1), handles.spacetime.featurecenters{l}{k}(2),...
-              handles.spacetime.featurenames{l}{k},'Interpreter','none','HorizontalAlignment','center',...
-              'color',[0 color 0],'parent',handles.spacetime.ax);
         end
 %         end
       end
@@ -4395,6 +4392,10 @@ function figure_JLabel_KeyPressFcn(hObject, eventdata, handles)
 %   return;
 % end
 
+if isempty(handles)
+  handles=guidata(get(hObject,'UserData'));
+end
+
 if strcmpi(eventdata.Modifier,'control')
   switch eventdata.Key,
     case 't',
@@ -5207,7 +5208,9 @@ else
 %       handles.spacetime.fig=figure('position',...
 %           [0 0 10*length(handles.spacetime.featurenames)*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)]);
       handles.spacetime.fig=figure('position',...
-          [0 0 10*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)]);
+          [0 0 10*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)],...
+          'UserData',hObject,...
+          'KeyPressFcn',get(handles.figure_JLabel,'KeyPressFcn'));
 %       for i=1:length(handles.spacetime.featurenames)
 %         handles.spacetime.ax{i}=axes('position',...
 %             [(i-1)/length(handles.spacetime.featurenames) 0 1/length(handles.spacetime.featurenames) 1]);
