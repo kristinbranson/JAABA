@@ -9635,6 +9635,23 @@ end
 
 % Update the plots
 UpdateTimelineImages(handles);
+
+% update the list in the drop down timelines.
+oldprops = handles.guidata.timeline_prop_options;
+handles.guidata.timeline_prop_options = [handles.guidata.timeline_prop_options(1:2) handles.data.allperframefns(:)'];
+
+for ndx = 1:numel(handles.guidata.axes_timeline_props)
+  timelinendx = find(handles.guidata.axes_timelines == handles.guidata.axes_timeline_props(ndx),1);
+  hobj = handles.guidata.labels_timelines(timelinendx);
+  v = get(hobj,'Value');
+  s = oldprops{v};
+  if ~any(strcmpi(s,handles.data.allperframefns))
+     set(hobj,'Value',3);    
+  end
+  set(hobj,'String',handles.guidata.timeline_prop_options);
+  timeline_label_prop1_Callback(hobj,[],handles); 
+end
+
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
 UpdatePlots(handles);
 
@@ -9648,6 +9665,7 @@ ClearStatus(handles);
 % write the handles back to figure
 guidata(figureJLabel,handles);
 
+helpdlg('Remember to add the score features in Select Features','Add score features');
 return
 
 
