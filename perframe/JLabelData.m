@@ -5909,6 +5909,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function has = haslabels(obj,expnum)
+      obj.StoreLabelsForCurrentAnimal();
       has = false;
       for fly = 1:numel(obj.labels(expnum).flies)
         if ~isempty(obj.labels(expnum).t0s{fly})
