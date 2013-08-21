@@ -7874,7 +7874,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
     
     % ---------------------------------------------------------------------
-    function scores = GetLoadedScores(obj,expi,flies,T0,T1)
+    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
@@ -7889,6 +7889,9 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.loaded(idxcurr);      
+        predictions = zeros(1,n);
+        predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
+          2-obj.predictdata{expi}{flies}.loaded_pp(idxcurr);      
       
     end
     
@@ -8437,7 +8440,7 @@ classdef JLabelData < matlab.mixin.Copyable
       allperframefns = obj.allperframefns;
       classifier = obj.fastPredict.classifier;
       
-      obj.SetStatus('Classifying current movie...');
+      obj.SetStatus(sprintf('Classifying movie %d:%s...',expi,obj.expnames{expi}));
       
       if ~obj.fastPredict.wfidx_valid,
         [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
