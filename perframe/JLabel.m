@@ -7306,14 +7306,71 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
+
+handles = NavigateToGTSuggestion(handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
 return
+
+function handles = NavigateToGTSuggestion(handles)
+
+i = 1;
+nextexpi = nan;
+nextfly = nan;
+nextframe = nan;
+for expi = 1:numel(handles.data.randomGTSuggestions),
+  for flies = 1:numel(handles.data.randomGTSuggestions{expi}),
+    t0 = handles.data.randomGTSuggestions{expi}(flies).start;
+    if isempty(t0),
+      continue;
+    end
+    t1 = handles.data.randomGTSuggestions{expi}(flies).end;
+
+    % ground-truth suggestions are frames in the video, same as the input
+    % to GetLabelIdx
+    
+    % are there labels within this interval?
+    labelidxcurr = handles.data.GetLabelIdx(expi,flies,t0,t1);
+    if all(labelidxcurr.vals == 0),
+      nextexpi = expi;
+      nextfly = flies;
+      nextframe = t0;
+      break;
+    end
+    i = i+1;
+  end
+end
+
+if isnan(nextexpi),
+  uiwait(msgbox('No more ground-truthing suggestion intervals to label'));
+else
+  nextexp = handles.data.expnames{nextexpi};
+end
+
+if i == 1,
+  res = questdlg(sprintf('Navigate to first ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
+else
+  res = questdlg(sprintf('Navigate to next ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
+end
+if ~strcmpi(res,'Yes'),
+  return;
+end
+
+[handles,success] = SetCurrentMovie(handles,nextexpi);
+if ~success,
+  uiwait(warndlg(sprintf('Could not switch to experiment %s',expname)));
+  return;
+end
+
+handles = SetCurrentFlies(handles,nextfly,false,false);
+
+handles = SetCurrentFrame(handles,1,nextframe,handles.figure_JLabel,false,false);
 
 
 % --------------------------------------------------------------------
@@ -7381,13 +7438,18 @@ set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 
 handles = UpdateTimelineImages(handles);
 
+
+handles = NavigateToGTSuggestion(handles);
+
+guidata(hObject,handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
 
 return
 
@@ -7414,14 +7476,18 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
+handles = NavigateToGTSuggestion(handles);
+
+guidata(hObject,handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
+
 return
 
 
