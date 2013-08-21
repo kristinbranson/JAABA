@@ -8191,6 +8191,14 @@ fileNameAbs=fullfile(pathname,filename);
 % Call the function that does the real work
 openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
 
+if handles.data.nexps == 0,
+
+  drawnow;
+  JModifyFiles('figureJLabel',handles.figure_JLabel);
+  
+end
+
+
 return
 
 

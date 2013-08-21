@@ -9884,14 +9884,14 @@ classdef JLabelData < matlab.mixin.Copyable
             if hasloaded,
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.loaded_pp(idx);
+              scores = obj.predictdata{expi}{flies}.loaded_pp(idx)-0.5;
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
             else
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.cur_pp(idx);
+              scores = obj.predictdata{expi}{flies}.cur_pp(idx)-0.5;
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
