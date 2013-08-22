@@ -7,14 +7,15 @@ meanarea=zeros(1,numlarvae);
 numelements=zeros(1,numlarvae);
 for i=1:numlarvae
     larva=larvae(i);
-    meanarea(i)=nanmean(trx(larva).area(1:end));
-    numelements(i)=nnz(~isnan(trx(larva).area(1:end)));
+    meanarea(i)=nanmean(trx(larva).area_mm(1:end));
+    numelements(i)=numel(trx(larva).area_mm(1:end));
+
 end
 normvalue=sum(meanarea.*numelements./(sum(numelements)));
 normarea=cell(1,numlarvae);
 for i=1:numlarvae
     larva=larvae(i);
-    normarea{1,i}=trx(larva).area(1:end)/normvalue;
+    normarea{1,i}=trx(larva).area_mm(1:end)/normvalue;
 end
 
 units=parseunits([]);
