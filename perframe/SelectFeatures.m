@@ -1584,7 +1584,24 @@ if ~strcmpi(res,'Yes'),
   return;
 end
 
-handles = guidata(hObject);
+hashist = false;
+for ndx = 1:numel(handles.featureVocabulary.vocabulary)
+  if handles.featureVocabulary.vocabulary{ndx}.hist.enabled
+    hashist = true;
+  end
+end
+
+qstr = {'Hist computation was selected for features.'
+  'Run find hist bins to find the bin edges appropriate for the current dataset? '
+  '(Recommended the first time you select hist features'};
+res = questdlg(qstr,'Run find hist bins','Yes','No','Cancel','Yes');
+if strcmpi(res,'Yes')
+  pushbutton_hist_Callback(hObject,eventdata,handles);
+else strcmpi(res,'Cancel');
+  return;
+end
+  
+
 %basicData = get(handles.basicTable,'Data');
 fv=handles.featureVocabulary;
 [thereIsConsensus,maxWindowRadiusConsensus]= ...
