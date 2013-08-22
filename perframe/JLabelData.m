@@ -5386,7 +5386,7 @@ classdef JLabelData < matlab.mixin.Copyable
         classifierfilename = '';
       end
       
-      if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm),
+      if isempty(obj.windowdata.scoreNorm) || isnan(obj.windowdata.scoreNorm) || obj.windowdata.scoreNorm==0,
         if isfield(allScores,'scoreNorm'),
           obj.windowdata.scoreNorm = allScores.scoreNorm;
         elseif exist(classifierfilename,'file'),
