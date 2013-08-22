@@ -371,17 +371,22 @@ for ndx = 1:numel(allexpdirs)
   end
   
   SetStatusEditFiles(hObject,sprintf('Adding experiment directory %s',expdir));
-  
-  [success,msg] = handles.data.AddExpDir(expdir);
-  if ~success,
-    if iscell(msg)
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
-    else
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+  try
+    [success,msg] = handles.data.AddExpDir(expdir);
+    if ~success,
+      if iscell(msg)
+        uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+      else
+        uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+      end
+      ClearStatusEditFiles(hObject);
+      
+      return;
     end
+  catch ME,
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s:%s',expdir,ME.identifier,ME.message)));
     ClearStatusEditFiles(hObject);
     
-    return;
   end
   
   set(handles.listbox_experiment,'String',handles.data.expdirs,'Value',handles.data.nexps);

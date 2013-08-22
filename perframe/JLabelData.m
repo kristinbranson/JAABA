@@ -2892,9 +2892,29 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function SuggestLoadedGT(obj,expi,filename)
+    function [success,msg] = SuggestLoadedGT(obj,expi,filename)
+      success = false;
+      msg = '';
       fid = fopen(filename);
-      dat = textscan(fid,'fly:%d,start:%d,end:%d');
+      if fid < 0,
+        msg = sprintf('Could not open file %s for reading',filename);
+      end
+      dat = cell(0,3);
+      while true,
+        s = fgetl(fid);
+        if ~ischar(s),
+          break;
+        end
+        s = strtrim(s);
+        m = regexp(s,'^fly:(.*),start:(.*),end:(.*)','tokens','once');
+        if isempty(m),
+          continue;
+        end
+        if isempty(m{2}) || isempty(m{3}),
+          continue;
+        end
+        dat(end+1,:) = cellfun(@(x) str2double(x),m,'UniformOutput',false);
+      end
       fclose(fid);
       fly = dat{1}; t0s = dat{2}; t1s = dat{3};
       for ndx = 1:obj.nflies_per_exp(expi)
@@ -2908,6 +2928,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       obj.GTSuggestionMode = 'Imported';
+      success = true;
     end  % method
 
     
@@ -5146,7 +5167,40 @@ classdef JLabelData < matlab.mixin.Copyable
       if nargin < 3
         sfn = self.GetFile('scores',expi);
       end
-      allScores = self.PredictWholeMovie(expi);
+
+      allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
+        'postprocessed',{{}},'postprocessedparams',[]);
+      scores_valid = true;
+      
+      % See if the current scores are valid.
+      for fly = 1:self.nflies_per_exp(expi)
+        
+        curt = self.predictdata{expi}{fly}.t;
+        if any(curt(2:end)-curt(1:end-1) ~= 1)
+          %uiwait(warndlg('Scores are out of order. This shouldn''t happen. Not saving them'));
+          error('JLabelData.scoresOutOfOrder', ...
+            'Scores are out of order. This shouldn''t happen.  Not saving them');  %#ok
+        end
+        
+        if ~all(self.predictdata{expi}{fly}.cur_valid),
+          scores_valid = false;
+          break;
+        end
+        
+        tStart = self.firstframes_per_exp{expi}(fly);
+        tEnd = self.endframes_per_exp{expi}(fly);
+        
+        allScores.scores{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur;
+        allScores.tStart(fly) = tStart;
+        allScores.tEnd(fly) = tEnd;
+        allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
+      end
+
+      % Need to compute scores.
+      if ~scores_valid
+        allScores = self.PredictWholeMovie(expi);
+      end
+      
       self.SaveScores(allScores,expi,sfn);
       self.AddScores(expi,allScores,now(),'',true);
       
@@ -5626,10 +5680,9 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Update the status table        
       obj.SetStatus('Updating status table for %s...',expName);
-      [success1,msg1,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
+      [success,msg,missingfiles] = obj.UpdateStatusTable('',obj.nexps);
       missingfiles = missingfiles{obj.nexps};
-      if ~success1,
-        msg = msg1;
+      if ~success,
         obj.SetStatus('Bad experiment directory %s...',expDirName);
         obj.RemoveExpDirs(obj.nexps,needSaveIfSuccessfulRemoval);
         return
@@ -5877,6 +5930,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function has = haslabels(obj,expnum)
+      obj.StoreLabelsForCurrentAnimal();
       has = false;
       for fly = 1:numel(obj.labels(expnum).flies)
         if ~isempty(obj.labels(expnum).t0s{fly})
@@ -7842,7 +7896,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
     
     % ---------------------------------------------------------------------
-    function scores = GetLoadedScores(obj,expi,flies,T0,T1)
+    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
@@ -7857,6 +7911,9 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.loaded(idxcurr);      
+        predictions = zeros(1,n);
+        predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
+          2-obj.predictdata{expi}{flies}.loaded_pp(idxcurr);      
       
     end
     
@@ -8405,7 +8462,7 @@ classdef JLabelData < matlab.mixin.Copyable
       allperframefns = obj.allperframefns;
       classifier = obj.fastPredict.classifier;
       
-      obj.SetStatus('Classifying current movie...');
+      obj.SetStatus(sprintf('Classifying movie %d:%s...',expi,obj.expnames{expi}));
       
       if ~obj.fastPredict.wfidx_valid,
         [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
@@ -9852,14 +9909,14 @@ classdef JLabelData < matlab.mixin.Copyable
             if hasloaded,
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.loaded(idx);
+              scores = obj.predictdata{expi}{flies}.loaded_pp(idx)-0.5;
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
             else
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.cur(idx);
+              scores = obj.predictdata{expi}{flies}.cur_pp(idx)-0.5;
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
@@ -10677,7 +10734,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function removeExperimentsWithNoLabels(self)
+    function expdirs_removed = removeExperimentsWithNoLabels(self)
       self.StoreLabelsForCurrentAnimal();  % make sure labels are commited
       nExps=self.nexps;
       markedForRemoval=false(1,nExps);
@@ -10691,6 +10748,7 @@ classdef JLabelData < matlab.mixin.Copyable
         markedForRemoval(i)=(nBouts==0);
       end
       expIndicesToRemove=find(markedForRemoval);
+      expdirs_removed = self.expdirs(expIndicesToRemove);
       self.RemoveExpDirs(expIndicesToRemove);  %#ok
     end  % method
     
