@@ -795,17 +795,29 @@ else
 end
 update_figure(handles);
 
-if ~isdeployed
-  javaaddpath(fullfile(baseDir,'misc','javasysmon-0.3.4.jar'));
-else
-  javaaddpath('javasysmon-0.3.4.jar');
+addedsystemmonitor = false;
+try
+  if ~isdeployed
+    javaaddpath(fullfile(baseDir,'misc','javasysmon-0.3.4.jar'));
+    addedsystemmonitor = true;
+  else
+    javaaddpath('javasysmon-0.3.4.jar');
+    addedsystemmonitor = true;
+  end
+  catch ME,
+    fprintf('Could not add javasysmon to path, disabling system monitor:\n%s\n',getReport(ME));
 end
-import com.jezhumble.javasysmon.JavaSysMon.*
-handles.system_monitor.object=com.jezhumble.javasysmon.JavaSysMon();
-handles.system_monitor.timer=timer('Name','system_monitor','Period',1,'ExecutionMode','fixedRate',...
+
+if addedsystemmonitor,
+  import com.jezhumble.javasysmon.JavaSysMon.*
+  handles.system_monitor.object=com.jezhumble.javasysmon.JavaSysMon();
+  handles.system_monitor.timer=timer('Name','system_monitor','Period',1,'ExecutionMode','fixedRate',...
     'TimerFcn',@(hObject,eventdata)system_monitor_callback(hObject,eventdata,handles));
-warning('off','MATLAB:Java:ConvertFromOpaque');
-start(handles.system_monitor.timer);
+  warning('off','MATLAB:Java:ConvertFromOpaque');
+  start(handles.system_monitor.timer);
+else
+  handles.system_monitor = [];
+end
 
 
 % Choose default command line output for JAABAPlot
@@ -872,8 +884,14 @@ function figure_CloseRequestFcn(hObject, eventdata)
 
 handles=guidata(hObject);
 
-stop(handles.system_monitor.timer);
-delete(handles.system_monitor.timer);
+if ~isempty(handles.system_monitor),
+  try
+    stop(handles.system_monitor.timer);
+    delete(handles.system_monitor.timer);
+  catch ME,
+    fprintf('Error stopping system monitor:\n%s\n',getReport(ME));
+  end
+end
 handles.system_monitor=[];
 
 filename = handles.rcfilename;
