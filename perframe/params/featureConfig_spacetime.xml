@@ -209,34 +209,59 @@
     <spacetime_theta7_r3 trans_types="none" type="spacetime,spacetime_FB_symmetric"/>
     <spacetime_theta8_r3 trans_types="none" type="spacetime"/>
     
-    <spacetime_theta28_r1 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta37_r1 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta46_r1 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta28_r2 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta37_r2 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta46_r2 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta28_r3 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta37_r3 trans_types="none" type="spacetime_LR_symmetric"/>
-    <spacetime_theta46_r3 trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta1_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta2_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta3_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta4_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta5_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta6_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta7_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta8_r1_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta1_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta2_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta3_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta4_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta5_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta6_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta7_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta8_r2_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta1_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta2_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta3_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta4_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta5_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta6_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta7_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    <spacetime_theta8_r3_overlap trans_types="none" type="spacetime_overlap"/>
+    
+    <spacetime_theta28_r1_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta37_r1_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta46_r1_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta28_r2_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta37_r2_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta46_r2_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta28_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta37_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_theta46_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
 
-    <spacetime_theta42_r1 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta51_r1 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta68_r1 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta42_r2 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta51_r2 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta68_r2 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta42_r3 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta51_r3 trans_types="none" type="spacetime_FB_symmetric"/>
-    <spacetime_theta68_r3 trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta42_r1_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta51_r1_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta68_r1_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta42_r2_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta51_r2_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta68_r2_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta42_r3_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta51_r3_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
+    <spacetime_theta68_r3_symmetric trans_types="none" type="spacetime_FB_symmetric"/>
 
-    <spacetime_theta1_r0 trans_types="none" type="spacetime_R_symmetric"/>
-    <spacetime_theta2_r0 trans_types="none" type="spacetime_R_symmetric"/>
-    <spacetime_theta3_r0 trans_types="none" type="spacetime_R_symmetric"/>
-    <spacetime_theta4_r0 trans_types="none" type="spacetime_R_symmetric"/>
-    <spacetime_theta5_r0 trans_types="none" type="spacetime_R_symmetric"/>
-    <spacetime_theta6_r0 trans_types="none" type="spacetime_R_symmetric"/>
-    <spacetime_theta7_r0 trans_types="none" type="spacetime_R_symmetric"/>
-    <spacetime_theta8_r0 trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta1_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta2_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta3_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta4_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta5_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta6_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta7_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
+    <spacetime_theta8_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
 
     <velmag trans_types="none,relative" type="locomotion"/>
     

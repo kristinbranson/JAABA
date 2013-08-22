@@ -103,73 +103,109 @@ handles.colors=[];
 handles.trx_file='registered_trx.mat';
 handles.perframe_dir='perframe';
 
+% fnssave = ConfigFileFeatures2Save()
+% returns the field names that should get saved and loaded into the rc/configuration
+% files
+
+function fnssave = ConfigFileFeatures2Save()
+
+fnssave = {
+  'grouplist'
+  'groupvalue'
+  'experimentlist'
+  'experimentvalue'
+  'classifierlist'
+  'classifiervalue'
+  'analysis'
+  'scorefiles'
+  'behaviorlist'
+  'behaviornot'
+  'behaviorvalue'
+  'behaviorlogic'
+  'behaviorvalue2'
+  'behaviornormalizenot'
+  'behaviorvalue3'
+  'features'
+  'featurelist'
+  'featurevalue'
+  'individuals_behavior'
+  'individuals_feature'
+  'individuallist'
+  'individualvalue'
+  'individualidx'
+  'sexdata'
+  'fps'
+  'classify_forcecompute'
+  'behaviorbarchart_style'
+  'behaviortimeseries_style'
+  'featurehistogram_style'
+  'featurehistogram_style2'
+  'comparison'
+  'logbinsize'
+  'nbins'
+  'featuretimeseries_style'
+  'featuretimeseries_style2'
+  'subtractmean'
+  'windowradius'
+  'boutstats_style'
+  'boutstats_style2'
+  'omitnan'
+  'omitinf'
+  'absdprimezscore'
+  'comparison2'
+  'dump2csv'
+  'dump2mat'
+  'centraltendency'
+  'dispersion'
+  'xoffset'
+  'minimumtrajectorylength'
+  'convolutionwidth'
+  'pvalue'
+  'interestingfeaturehistograms_cache'
+  'interestingfeaturetimeseries_cache'
+  'defaultcolors'
+  'colors'
+  'trx_file'
+  'perframe_dir'
+  };
+  
 
 % ---
 function handles=load_configuration_file(filename,hObject,eventdata,handles)
 
+% try to load from filename
+if ~exist(filename,'file'),
+  uiwait(warndlg('File %s does not exist.',filename));
+  return;
+end
+
 handles_saved=load(filename);
 handles_saved=handles_saved.handles;
-handles.grouplist=handles_saved.grouplist;
-handles.groupvalue=handles_saved.groupvalue;
-handles.experimentlist=handles_saved.experimentlist;
-handles.experimentvalue=handles_saved.experimentvalue;
-try
-  handles.classifierlist=handles_saved.classifierlist;
-  handles.classifiervalue=handles_saved.classifiervalue;
-%  handles.configurations=handles_saved.configurations;
-  handles.analysis=handles_saved.analysis;
-  handles.scorefiles=handles_saved.scorefiles;
-  handles.behaviorlist=handles_saved.behaviorlist;
-  handles.behaviornot=handles_saved.behaviornot;
-  handles.behaviorvalue=handles_saved.behaviorvalue;
-  handles.behaviorlogic=handles_saved.behaviorlogic;
-  handles.behaviorvalue2=handles_saved.behaviorvalue2;
-  handles.behaviornormalizenot=handles_saved.behaviornormalizenot;
-  handles.behaviorvalue3=handles_saved.behaviorvalue3;
-  handles.features=handles_saved.features;
-  handles.featurelist=handles_saved.featurelist;
-  handles.featurevalue=handles_saved.featurevalue;
-  handles.individuals_behavior=handles_saved.individuals_behavior;
-  handles.individuals_feature=handles_saved.individuals_feature;
-  handles.individuallist=handles_saved.individuallist;
-  handles.individualvalue=handles_saved.individualvalue;
-  handles.individualidx=handles_saved.individualidx;
-  handles.sexdata=handles_saved.sexdata;
-  handles.fps=handles_saved.fps;
-  handles.classify_forcecompute=handles_saved.classify_forcecompute;
-  handles.behaviorbarchart_style=handles_saved.behaviorbarchart_style;
-  handles.behaviortimeseries_style=handles_saved.behaviortimeseries_style;
-  handles.featurehistogram_style=handles_saved.featurehistogram_style;
-  handles.featurehistogram_style2=handles_saved.featurehistogram_style2;
-  handles.comparison=handles_saved.comparison;
-  handles.logbinsize=handles_saved.logbinsize;
-  handles.nbins=handles_saved.nbins;
-  handles.featuretimeseries_style=handles_saved.featuretimeseries_style;
-  handles.featuretimeseries_style2=handles_saved.featuretimeseries_style2;
-  handles.subtractmean=handles_saved.subtractmean;
-  handles.windowradius=handles_saved.windowradius;
-  handles.boutstats_style=handles_saved.boutstats_style;
-  handles.boutstats_style2=handles_saved.boutstats_style2;
-  handles.omitnan=handles_saved.omitnan;
-  handles.omitinf=handles_saved.omitinf;
-  handles.absdprimezscore=handles_saved.absdprimezscore;
-  handles.comparison2=handles_saved.comparison2;
-  handles.dump2csv=handles_saved.dump2csv;
-  handles.dump2mat=handles_saved.dump2mat;
-  handles.centraltendency=handles_saved.centraltendency;
-  handles.dispersion=handles_saved.dispersion;
-  handles.xoffset=handles_saved.xoffset;
-  handles.minimumtrajectorylength=handles_saved.minimumtrajectorylength;
-  handles.convolutionwidth=handles_saved.convolutionwidth;
-  handles.pvalue=handles_saved.pvalue;
-  handles.interestingfeaturehistograms_cache=handles_saved.interestingfeaturehistograms_cache;
-  handles.interestingfeaturetimeseries_cache=handles_saved.interestingfeaturetimeseries_cache;
-  handles.defaultcolors=handles_saved.defaultcolors;
-  handles.colors=handles_saved.colors;
-  handles.trx_file=handles_saved.trx_file;
-  handles.perframe_dir=handles_saved.perframe_dir;
-  handles.table=[];
-catch me
+
+fnssave = ConfigFileFeatures2Save();
+
+iserror = false;
+for i = 1:numel(fnssave),
+  
+  fn = fnssave{i};
+  
+  if isfield(handles_saved,fn),
+    try
+      handles.(fn) = handles_saved.(fn);
+    catch ME,
+      warning('Could not set handles.%s to handles_saved.%s: %s',fn,fn,getReport(ME));
+      iserror = true;
+      break;
+    end
+  else
+    warning('Required field %s not saved in configuration file %s.',fn,filename);
+    iserror = true;
+  end
+  
+end
+
+if iserror,
+  
   handles=initialize(handles);
   handles.grouplist=handles_saved.grouplist;
   handles.groupvalue=handles_saved.groupvalue;
@@ -178,7 +214,79 @@ catch me
   handles.colors=zeros(length(handles.grouplist),3);
   handles=update_experiment_data(handles,true,true,true);
   uiwait(warndlg([filename ' is in an old format.  only group and experiment lists are salvageable.  save a new version']));  drawnow;
+  
 end
+
+% handles.grouplist=handles_saved.grouplist;
+% handles.groupvalue=handles_saved.groupvalue;
+% handles.experimentlist=handles_saved.experimentlist;
+% handles.experimentvalue=handles_saved.experimentvalue;
+% try
+%   handles.classifierlist=handles_saved.classifierlist;
+%   handles.classifiervalue=handles_saved.classifiervalue;
+% %  handles.configurations=handles_saved.configurations;
+%   handles.analysis=handles_saved.analysis;
+%   handles.scorefiles=handles_saved.scorefiles;
+%   handles.behaviorlist=handles_saved.behaviorlist;
+%   handles.behaviornot=handles_saved.behaviornot;
+%   handles.behaviorvalue=handles_saved.behaviorvalue;
+%   handles.behaviorlogic=handles_saved.behaviorlogic;
+%   handles.behaviorvalue2=handles_saved.behaviorvalue2;
+%   handles.behaviornormalizenot=handles_saved.behaviornormalizenot;
+%   handles.behaviorvalue3=handles_saved.behaviorvalue3;
+%   handles.features=handles_saved.features;
+%   handles.featurelist=handles_saved.featurelist;
+%   handles.featurevalue=handles_saved.featurevalue;
+%   handles.individuals_behavior=handles_saved.individuals_behavior;
+%   handles.individuals_feature=handles_saved.individuals_feature;
+%   handles.individuallist=handles_saved.individuallist;
+%   handles.individualvalue=handles_saved.individualvalue;
+%   handles.individualidx=handles_saved.individualidx;
+%   handles.sexdata=handles_saved.sexdata;
+%   handles.fps=handles_saved.fps;
+%   handles.classify_forcecompute=handles_saved.classify_forcecompute;
+%   handles.behaviorbarchart_style=handles_saved.behaviorbarchart_style;
+%   handles.behaviortimeseries_style=handles_saved.behaviortimeseries_style;
+%   handles.featurehistogram_style=handles_saved.featurehistogram_style;
+%   handles.featurehistogram_style2=handles_saved.featurehistogram_style2;
+%   handles.comparison=handles_saved.comparison;
+%   handles.logbinsize=handles_saved.logbinsize;
+%   handles.nbins=handles_saved.nbins;
+%   handles.featuretimeseries_style=handles_saved.featuretimeseries_style;
+%   handles.featuretimeseries_style2=handles_saved.featuretimeseries_style2;
+%   handles.subtractmean=handles_saved.subtractmean;
+%   handles.windowradius=handles_saved.windowradius;
+%   handles.boutstats_style=handles_saved.boutstats_style;
+%   handles.boutstats_style2=handles_saved.boutstats_style2;
+%   handles.omitnan=handles_saved.omitnan;
+%   handles.omitinf=handles_saved.omitinf;
+%   handles.absdprimezscore=handles_saved.absdprimezscore;
+%   handles.comparison2=handles_saved.comparison2;
+%   handles.dump2csv=handles_saved.dump2csv;
+%   handles.dump2mat=handles_saved.dump2mat;
+%   handles.centraltendency=handles_saved.centraltendency;
+%   handles.dispersion=handles_saved.dispersion;
+%   handles.xoffset=handles_saved.xoffset;
+%   handles.minimumtrajectorylength=handles_saved.minimumtrajectorylength;
+%   handles.convolutionwidth=handles_saved.convolutionwidth;
+%   handles.pvalue=handles_saved.pvalue;
+%   handles.interestingfeaturehistograms_cache=handles_saved.interestingfeaturehistograms_cache;
+%   handles.interestingfeaturetimeseries_cache=handles_saved.interestingfeaturetimeseries_cache;
+%   handles.defaultcolors=handles_saved.defaultcolors;
+%   handles.colors=handles_saved.colors;
+%   handles.trx_file=handles_saved.trx_file;
+%   handles.perframe_dir=handles_saved.perframe_dir;
+%   handles.table=[];
+% catch me
+%   handles=initialize(handles);
+%   handles.grouplist=handles_saved.grouplist;
+%   handles.groupvalue=handles_saved.groupvalue;
+%   handles.experimentlist=handles_saved.experimentlist;
+%   handles.experimentvalue=handles_saved.experimentvalue;
+%   handles.colors=zeros(length(handles.grouplist),3);
+%   handles=update_experiment_data(handles,true,true,true);
+%   uiwait(warndlg([filename ' is in an old format.  only group and experiment lists are salvageable.  save a new version']));  drawnow;
+% end
 
 
 % ---
@@ -728,6 +836,36 @@ if(~isempty(last_cpu))
 end
 last_cpu=next_cpu;
 
+function [success,msg] = SaveConfiguration(handles,filename)
+
+fnssave = ConfigFileFeatures2Save();
+handles_save = struct;
+
+for i = 1:numel(fnssave),
+  
+  fn = fnssave{i};
+  
+  if isfield(handles,fn),
+    try
+      handles_save.(fn) = handles.(fn);
+    catch ME,
+      warning('Could not set handles_save.%s to handles.%s: %s',fn,fn,getReport(ME));
+    end
+  end
+  
+end
+
+handles = handles_save;
+
+try
+  save(filename,'handles');
+  success = true;
+  msg = '';
+catch ME
+  success = false;
+  msg = getReport(ME);
+end
+
 
 % ---
 function figure_CloseRequestFcn(hObject, eventdata)
@@ -738,9 +876,15 @@ stop(handles.system_monitor.timer);
 delete(handles.system_monitor.timer);
 handles.system_monitor=[];
 
+filename = handles.rcfilename;
+
 try
-  save(handles.rcfilename,'handles');
+  [success,msg] = SaveConfiguration(handles,filename);
+  if ~success,
+    error(msg);
+  end
 catch ME,
+  warning(getReport(ME));
   warndlg('Could not save the last configuration. State will not be saved.');
 end
 delete(hObject);
@@ -5629,7 +5773,12 @@ function MenuFileSave_Callback(hObject, eventdata, handles)
 
 [file,path]=uiputfile('*.mat','Select file to save configuration to');
 if(isnumeric(file) && isnumeric(path) && (file==0) && (path==0))  return;  end
-save(fullfile(path,file),'handles');
+
+filename = fullfile(path,file);
+[success,msg] = SaveConfiguration(handles,filename);
+if ~success,
+  warning('Error saving to file %s: %s',filename,msg);
+end
 
 
 % --------------------------------------------------------------------
