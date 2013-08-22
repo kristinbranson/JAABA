@@ -80,13 +80,13 @@ for j=1:2
     %t = t*2;      if(j==1)  t = t-1;  end
     
     %featurenames{i} = sprintf('theta%d_r%d',round((thetalims(1)+dtheta*(t-.5))*180/pi),r);
-    featurenames{j}{i} = sprintf('theta%d_r%d',t,r);
+    featurenames{j}{i} = sprintf('t%d_r%d',t,r);
     if(j==2)
       featurenames{j}{i} = [featurenames{j}{i} '_overlap'];
     end
   end
   if(j==1)
-    featurenames{j}{1} = 'theta0_r0';
+    featurenames{j}{1} = 't0_r0';
   end
 
   for i = 1:nbins0,
@@ -99,16 +99,16 @@ for j=1:2
     nbins{3}=1;
     for r=1:3
       for theta=[1 5]
-        idx=find(strcmp(featurenames{j},['theta' num2str(theta) '_r' num2str(r)]));
+        idx=find(strcmp(featurenames{j},['t' num2str(theta) '_r' num2str(r)]));
         binidx{3}(binidx{3}==idx)=0;
       end
       for theta=[2 8; 3 7; 4 6]'
-        idx=find(strcmp(featurenames{j},['theta' num2str(theta(1)) '_r' num2str(r)]));
-        idx2=find(strcmp(featurenames{j},['theta' num2str(theta(2)) '_r' num2str(r)]));
+        idx=find(strcmp(featurenames{j},['t' num2str(theta(1)) '_r' num2str(r)]));
+        idx2=find(strcmp(featurenames{j},['t' num2str(theta(2)) '_r' num2str(r)]));
         nbins{3}=nbins{3}+1;
         binidx{3}(binidx{3}==idx )=-nbins{3};
         binidx{3}(binidx{3}==idx2)=-nbins{3};
-        featurenames{3}{nbins{3}-1}=['theta' num2str(theta(1)) num2str(theta(2)) '_r' num2str(r) '_symmetric'];
+        featurenames{3}{nbins{3}-1}=['t' num2str(theta(1)) num2str(theta(2)) '_r' num2str(r) '_symmetric'];
         [featureboundaries{3}{nbins{3}-1} featurecenters{3}{nbins{3}-1}]=...
               compute_feature_boundaries_and_centers(binidx{3},-nbins{3});
       end
@@ -142,14 +142,14 @@ for j=1:2
     binidx{4}((binidx{4}==1)|(binidx{4}==-1))=0;
     nbins{4}=1;
     for theta=1:8
-      idx=find(strcmp(featurenames{j},['theta' num2str(theta) '_r1']));
-      idx2=find(strcmp(featurenames{j},['theta' num2str(theta) '_r2']));
-      idx3=find(strcmp(featurenames{j},['theta' num2str(theta) '_r3']));
+      idx=find(strcmp(featurenames{j},['t' num2str(theta) '_r1']));
+      idx2=find(strcmp(featurenames{j},['t' num2str(theta) '_r2']));
+      idx3=find(strcmp(featurenames{j},['t' num2str(theta) '_r3']));
       nbins{4}=nbins{4}+1;
       binidx{4}(binidx{4}==idx )=-nbins{4};
       binidx{4}(binidx{4}==idx2)=-nbins{4};
       binidx{4}(binidx{4}==idx3)=-nbins{4};
-      featurenames{4}{nbins{4}-1}=['theta' num2str(theta) '_r0_symmetric'];
+      featurenames{4}{nbins{4}-1}=['t' num2str(theta) '_r0_symmetric'];
       [featureboundaries{4}{nbins{4}-1} featurecenters{4}{nbins{4}-1}]=...
             compute_feature_boundaries_and_centers(binidx{4},-nbins{4});
     end
