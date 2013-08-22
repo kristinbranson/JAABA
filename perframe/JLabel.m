@@ -211,6 +211,7 @@ else
     end
   end
 end
+
 return
 
 
@@ -896,7 +897,7 @@ if refresh_timeline_auto,
   end
     
 end
-if refresh_timeline_suggest,
+if refresh_timeline_suggest && ~handles.data.IsGTMode(),
   set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
   %set(handles.himage_timeline_suggest,'CData',handles.guidata.labels_plot.suggested_im);
@@ -1806,7 +1807,7 @@ switch handles.guidata.bottomAutomatic
     scores_bottom = handles.data.GetValidatedScores(handles.data.expi,handles.data.flies);
     scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'Imported'
-    scores_bottom = handles.data.GetLoadedScores(handles.data.expi,handles.data.flies);
+    [scores_bottom,prediction_bottom] = handles.data.GetLoadedScores(handles.data.expi,handles.data.flies);
     scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'Old'
     scores_bottom = handles.data.GetOldScores(handles.data.expi,handles.data.flies);
@@ -1823,7 +1824,7 @@ switch handles.guidata.bottomAutomatic
     warndlg('Undefined scores type to display for the bottom part of the automatic');
 end
 
-if ~(any(strcmp(handles.guidata.bottomAutomatic,{'Postprocessed','Distance'})))
+if ~(any(strcmp(handles.guidata.bottomAutomatic,{'Postprocessed','Distance','Imported'})))
 prediction_bottom = zeros(size(scores_bottom));
 prediction_bottom(scores_bottom>0) = 1;
 prediction_bottom(scores_bottom<0) = 2;
@@ -1866,20 +1867,21 @@ error_t1s = error_t1s + handles.data.t0_curr - 1.5;
 handles.guidata.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
 set(handles.guidata.htimeline_errors,'XData',handles.guidata.labels_plot.error_xs,...
   'YData',zeros(size(handles.guidata.labels_plot.error_xs))+1.5);
-[suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
-suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
-suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
-handles.guidata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
-set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
-  'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
-
-[suggest_t0s,suggest_t1s] = get_interval_ends(handles.data.GetGTSuggestionIdx(handles.data.expi,handles.data.flies));
-suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
-suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
-handles.guidata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
-set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
-  'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
-
+  [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
+  suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
+  suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
+  handles.guidata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+  [suggest_t0s,suggest_t1s] = get_interval_ends(handles.data.GetGTSuggestionIdx(handles.data.expi,handles.data.flies));
+  suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
+  suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
+  handles.guidata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+if ~handles.data.IsGTMode,
+  set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
+    'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
+else
+  set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
+    'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
+end
 %{
 %handles.guidata.labels_plot.suggested_im(:) = 0;
 %for behaviori = 1:handles.data.nbehaviors
@@ -6232,7 +6234,11 @@ t = handles.guidata.NJObj.JumpToStart(handles.data,handles.data.expi,handles.dat
   handles.guidata.ts(axesi),handles.data.t0_curr,handles.data.t1_curr);
 if isempty(t),  return; end
 
-SetCurrentFrame(handles,axesi,t,hObject);
+try
+  SetCurrentFrame(handles,axesi,t,hObject);
+catch ME,
+  uiwait(warndlg(sprintf('Could not switch target:%s',ME.message)));
+end
 return
 
 
@@ -8283,6 +8289,19 @@ fileNameAbs=fullfile(pathname,filename);
 % Call the function that does the real work
 openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
 
+if handles.data.nexps == 0,
+
+  drawnow;
+  JModifyFiles('figureJLabel',handles.figure_JLabel);
+  
+end
+
+% Set the jump type to be ground truth suggestions for gtmode
+if handles.data.IsGTMode
+  handles.guidata.NJObj.SetCurrentType('Ground Truth Suggestions');
+end
+
+
 return
 
 
@@ -9644,6 +9663,8 @@ ClearStatus(handles);
 % write the handles back to figure
 guidata(figureJLabel,handles);
 
+uiwait(helpdlg('You have changed the behavior name. You may want to change the score file name.','Change score file name'));
+
 return
 
 
@@ -9706,6 +9727,23 @@ end
 
 % Update the plots
 UpdateTimelineImages(handles);
+
+% update the list in the drop down timelines.
+oldprops = handles.guidata.timeline_prop_options;
+handles.guidata.timeline_prop_options = [handles.guidata.timeline_prop_options(1:2) handles.data.allperframefns(:)'];
+
+for ndx = 1:numel(handles.guidata.axes_timeline_props)
+  timelinendx = find(handles.guidata.axes_timelines == handles.guidata.axes_timeline_props(ndx),1);
+  hobj = handles.guidata.labels_timelines(timelinendx);
+  v = get(hobj,'Value');
+  s = oldprops{v};
+  if ~any(strcmpi(s,handles.data.allperframefns))
+     set(hobj,'Value',3);    
+  end
+  set(hobj,'String',handles.guidata.timeline_prop_options);
+  timeline_label_prop1_Callback(hobj,[],handles); 
+end
+
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
 UpdatePlots(handles);
 
@@ -9719,6 +9757,7 @@ ClearStatus(handles);
 % write the handles back to figure
 guidata(figureJLabel,handles);
 
+helpdlg('Remember to add the score features in Select Features','Add score features');
 return
 
 

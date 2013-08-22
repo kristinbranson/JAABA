@@ -5172,6 +5172,7 @@ classdef JLabelData < matlab.mixin.Copyable
         'postprocessed',{{}},'postprocessedparams',[]);
       scores_valid = true;
       
+      % See if the current scores are valid.
       for fly = 1:self.nflies_per_exp(expi)
         
         curt = self.predictdata{expi}{fly}.t;
@@ -5195,6 +5196,7 @@ classdef JLabelData < matlab.mixin.Copyable
         allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
       end
 
+      % Need to compute scores.
       if ~scores_valid
         allScores = self.PredictWholeMovie(expi);
       end
@@ -5928,6 +5930,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function has = haslabels(obj,expnum)
+      obj.StoreLabelsForCurrentAnimal();
       has = false;
       for fly = 1:numel(obj.labels(expnum).flies)
         if ~isempty(obj.labels(expnum).t0s{fly})
@@ -7893,7 +7896,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
     
     % ---------------------------------------------------------------------
-    function scores = GetLoadedScores(obj,expi,flies,T0,T1)
+    function [scores,predictions] = GetLoadedScores(obj,expi,flies,T0,T1)
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
         T1 = min(obj.GetTrxEndFrame(expi,flies));
@@ -7908,6 +7911,9 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.predictdata{expi}{flies}.t<=T1;
         scores(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
           obj.predictdata{expi}{flies}.loaded(idxcurr);      
+        predictions = zeros(1,n);
+        predictions(obj.predictdata{expi}{flies}.t(idxcurr)+off) = ...
+          2-obj.predictdata{expi}{flies}.loaded_pp(idxcurr);      
       
     end
     
@@ -8456,7 +8462,7 @@ classdef JLabelData < matlab.mixin.Copyable
       allperframefns = obj.allperframefns;
       classifier = obj.fastPredict.classifier;
       
-      obj.SetStatus('Classifying current movie...');
+      obj.SetStatus(sprintf('Classifying movie %d:%s...',expi,obj.expnames{expi}));
       
       if ~obj.fastPredict.wfidx_valid,
         [~,feature_names] = JLabelData.ComputeWindowDataChunkStatic(curperframefns,...
@@ -9903,14 +9909,14 @@ classdef JLabelData < matlab.mixin.Copyable
             if hasloaded,
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.loaded(idx);
+              scores = obj.predictdata{expi}{flies}.loaded_pp(idx)-0.5;
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('Loaded scores are missing scores for some loaded frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
             else
               idx = obj.predictdata{expi}{flies}.t(:) >=t0 & obj.predictdata{expi}{flies}.t(:) <t1;
               ts = obj.predictdata{expi}{flies}.t(idx);
-              scores = obj.predictdata{expi}{flies}.cur(idx);
+              scores = obj.predictdata{expi}{flies}.cur_pp(idx)-0.5;
               [check,ndxInLoaded] = ismember(t0:(t1-1),ts);
               if any(check==0), warndlg('calculated scores are missing for some labeled frames'); end
               gt_scores = [gt_scores scores(ndxInLoaded)];  %#ok
