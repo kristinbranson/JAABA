@@ -2892,9 +2892,29 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function SuggestLoadedGT(obj,expi,filename)
+    function [success,msg] = SuggestLoadedGT(obj,expi,filename)
+      success = false;
+      msg = '';
       fid = fopen(filename);
-      dat = textscan(fid,'fly:%d,start:%d,end:%d');
+      if fid < 0,
+        msg = sprintf('Could not open file %s for reading',filename);
+      end
+      dat = cell(0,3);
+      while true,
+        s = fgetl(fid);
+        if ~ischar(s),
+          break;
+        end
+        s = strtrim(s);
+        m = regexp(s,'^fly:(.*),start:(.*),end:(.*)','tokens','once');
+        if isempty(m),
+          continue;
+        end
+        if isempty(m{2}) || isempty(m{3}),
+          continue;
+        end
+        dat(end+1,:) = cellfun(@(x) str2double(x),m,'UniformOutput',false);
+      end
       fclose(fid);
       fly = dat{1}; t0s = dat{2}; t1s = dat{3};
       for ndx = 1:obj.nflies_per_exp(expi)
@@ -2908,6 +2928,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       obj.GTSuggestionMode = 'Imported';
+      success = true;
     end  % method
 
     
