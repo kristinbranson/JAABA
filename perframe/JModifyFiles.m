@@ -133,6 +133,10 @@ set(statusMessageTextbox,'String','');
 % initialize status table
 UpdateStatusTable(figureJModifyFiles);
 
+% Don't select any experiment.
+listbox_experiment=getGuidataField(findAncestorFigure(hObject),'listbox_experiment');
+set(listbox_experiment,'Value',[]);
+
 return
 
 
@@ -207,15 +211,22 @@ for ndx = 1:numel(allexpdirs)
     return;
   end
   SetStatusEditFiles(findAncestorFigure(hObject),sprintf('Adding experiment directory %s',expdir));
-  [success,msg] = data.AddExpDir(expdir);
-  if ~success,
-    if iscell(msg)
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
-    else
-      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+  try
+    [success,msg] = data.AddExpDir(expdir);
+    if ~success,
+      if iscell(msg)
+        uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg{:})));
+      else
+        uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+      end
+      ClearStatusEditFiles(figureJModifyFiles);
     end
+    
+  catch ME
+    
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s:%s',expdir,ME.identifier,ME.message)));
     ClearStatusEditFiles(figureJModifyFiles);
-    return;
+    
   end
   set(handles.listbox_experiment,'String',data.expdirs,'Value',data.nexps);
   setGuidataField(figureJModifyFiles,'listChanged',true);
@@ -227,6 +238,10 @@ SetStatusEditFiles(figureJModifyFiles,'Final update to status table...\n');
 UpdateStatusTable(figureJModifyFiles);
 
 ClearStatusEditFiles(figureJModifyFiles);
+
+% Don't select any experiment.
+listbox_experiment=getGuidataField(findAncestorFigure(hObject),'listbox_experiment');
+set(listbox_experiment,'Value',[]);
 
 return
 
@@ -270,10 +285,26 @@ v = get(listbox_experiment,'Value');
 if isempty(v),
   return;
 end
-data.RemoveExpDirs(v);
+
+v = sort(v,'descend');
+for ndx = 1:numel(v)
+  if data.haslabels(v(ndx))
+    qstr = sprintf('Experiment:%d %s has labels. Remove it?',v(ndx),data.expnames{v(ndx)});
+    res = questdlg(qstr,'Remove experiment?','Yes','No','No');
+    if strcmp(res,'Yes')
+      data.RemoveExpDirs(v(ndx));
+    end
+  else
+    data.RemoveExpDirs(v(ndx));
+  end
+end
 set(listbox_experiment,'String',data.expdirs,'Value',data.nexps);
 setGuidataField(findAncestorFigure(hObject),'listChanged',true);
 UpdateStatusTable(hObject);
+% Don't select any experiment.
+listbox_experiment=getGuidataField(findAncestorFigure(hObject),'listbox_experiment');
+set(listbox_experiment,'Value',[]);
+
 return
 
 
@@ -285,6 +316,14 @@ function pushbutton_done_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 figureJLabel=getGuidataField(findAncestorFigure(hObject),'figureJLabel');
 listChanged=getGuidataField(findAncestorFigure(hObject),'listChanged');
+listbox_experiment=getGuidataField(findAncestorFigure(hObject),'listbox_experiment');
+v = get(listbox_experiment,'Value');
+if numel(v) == 1
+  data=getGuidataField(findAncestorFigure(hObject),'data'); 
+  if data.expi ~= v
+    JLabel('SetCurrentMovie',guidata(figureJLabel),v);
+  end
+end
 JLabel('modifyFilesDone',figureJLabel,listChanged);
 delete(findAncestorFigure(hObject));
 return
@@ -362,13 +401,18 @@ while(ischar(expdir))
     expdir = fgetl(fid);
     continue;
   end
+
+  try
+    [success,msg] = data.AddExpDir(expdir);
+    if ~success,
+      uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
+    end
+  catch ME
     
-  [success,msg] = data.AddExpDir(expdir);
-  if ~success,
-    uiwait(warndlg(sprintf('Error adding expdir %s: %s',expdir,msg)));
-    expdir = fgetl(fid);
-    continue;
+    uiwait(warndlg(sprintf('Error adding expdir %s: %s:%s',expdir,ME.identifier,ME.message)));
+    ClearStatusEditFiles(figureJModifyFiles);
   end
+
   setGuidataField(findAncestorFigure(hObject),'listChanged',true);
   
   expdir = fgetl(fid);
@@ -384,6 +428,9 @@ UpdateStatusTable(figureJModifyFiles);
 
 % Make sure the status is cleared, and that the cursor is normal
 ClearStatusEditFiles(figureJModifyFiles);
+% Don't select any experiment.
+listbox_experiment=getGuidataField(findAncestorFigure(hObject),'listbox_experiment');
+set(listbox_experiment,'Value',[]);
 
 return
 

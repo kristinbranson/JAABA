@@ -211,6 +211,7 @@ else
     end
   end
 end
+
 return
 
 
@@ -751,6 +752,8 @@ function UpdatePlots(handles,varargin)
 
 persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total
 
+debug_cache = false;
+
 % if no experiments are loaded, nothing to do
 %if isempty(handles.data) || handles.data.nexps==0 ,
 if ~handles.data.thereIsAnOpenFile || handles.data.nexps==0 ,
@@ -894,7 +897,7 @@ if refresh_timeline_auto,
   end
     
 end
-if refresh_timeline_suggest,
+if refresh_timeline_suggest && ~handles.data.IsGTMode(),
   set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
     'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
   %set(handles.himage_timeline_suggest,'CData',handles.guidata.labels_plot.suggested_im);
@@ -980,8 +983,10 @@ for i = axes2,
         % ALT: Added uint8() 2012-09-14.  Without that, threw error when
         % loading a .fmf file, which led to handles.guidata.readframe(handles.guidata.ts(i))
         % being of class double
+        if debug_cache
         fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
              num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        end
       else
         ClearStatus(handles);
       end
@@ -1006,7 +1011,7 @@ for i = axes2,
           Mlastused.Data(j_last) = -1;
           Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
           Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-          fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' not cached, len queue = ' ...
+          fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
           ClearStatus(handles);
@@ -1038,18 +1043,23 @@ for i = axes2,
         rb_nog(:,:,1)=imnorm;
         rb_nog(:,:,2)=imnorm_last;
         rb_nog(:,:,3)=imnorm_last;
-        image(rb_nog,'parent',handles.spacetime.ax);
-        axis(handles.spacetime.ax,'square');
-        for k=1:length(handles.spacetime.featurelocations)
-          handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
-              ['spacetime_' handles.spacetime.featurenames{k}], handles.guidata.ts(i), handles.guidata.ts(i));
-          color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
-          color=min(1,max(0,color));
-          line(handles.spacetime.featurelocations{k}(:,2), handles.spacetime.featurelocations{k}(:,1),...
-              'color',[0 color 0],'parent',handles.spacetime.ax);
-          text(handles.spacetime.featurecenters{k}(1), handles.spacetime.featurecenters{k}(2),...
-              handles.spacetime.featurenames{k},'Interpreter','none','HorizontalAlignment','center',...
-              'color',[0 color 0],'parent',handles.spacetime.ax);
+        for l=1:length(handles.spacetime.featureboundaries)
+          image(rb_nog,'parent',handles.spacetime.ax{l});
+          axis(handles.spacetime.ax{l},'image');
+          axis(handles.spacetime.ax{l},'off');
+          for k=1:length(handles.spacetime.featureboundaries{l})
+            handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
+                ['spacetime_' handles.spacetime.featurenames{l}{k}], handles.guidata.ts(i), handles.guidata.ts(i));
+            color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
+            color=min(1,max(0,color));
+            for m=1:length(handles.spacetime.featureboundaries{l}{k})
+              line(handles.spacetime.featureboundaries{l}{k}{m}(:,2), handles.spacetime.featureboundaries{l}{k}{m}(:,1),...
+                  'color',[0 color 0],'parent',handles.spacetime.ax{l});
+            end
+            text(handles.spacetime.featurecenters{l}{k}(1), handles.spacetime.featurecenters{l}{k}(2),...
+                handles.spacetime.featurenames{l}{k},'Interpreter','none','HorizontalAlignment','center',...
+                'color',[0 color 0],'parent',handles.spacetime.ax{l});
+          end
         end
       end
 
@@ -1797,7 +1807,7 @@ switch handles.guidata.bottomAutomatic
     scores_bottom = handles.data.GetValidatedScores(handles.data.expi,handles.data.flies);
     scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'Imported'
-    scores_bottom = handles.data.GetLoadedScores(handles.data.expi,handles.data.flies);
+    [scores_bottom,prediction_bottom] = handles.data.GetLoadedScores(handles.data.expi,handles.data.flies);
     scores_bottom = handles.data.NormalizeScores(scores_bottom);
   case 'Old'
     scores_bottom = handles.data.GetOldScores(handles.data.expi,handles.data.flies);
@@ -1814,7 +1824,7 @@ switch handles.guidata.bottomAutomatic
     warndlg('Undefined scores type to display for the bottom part of the automatic');
 end
 
-if ~(any(strcmp(handles.guidata.bottomAutomatic,{'Postprocessed','Distance'})))
+if ~(any(strcmp(handles.guidata.bottomAutomatic,{'Postprocessed','Distance','Imported'})))
 prediction_bottom = zeros(size(scores_bottom));
 prediction_bottom(scores_bottom>0) = 1;
 prediction_bottom(scores_bottom<0) = 2;
@@ -1857,20 +1867,21 @@ error_t1s = error_t1s + handles.data.t0_curr - 1.5;
 handles.guidata.labels_plot.error_xs = reshape([error_t0s;error_t1s;nan(size(error_t0s))],[1,numel(error_t0s)*3]);
 set(handles.guidata.htimeline_errors,'XData',handles.guidata.labels_plot.error_xs,...
   'YData',zeros(size(handles.guidata.labels_plot.error_xs))+1.5);
-[suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
-suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
-suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
-handles.guidata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
-set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
-  'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
-
-[suggest_t0s,suggest_t1s] = get_interval_ends(handles.data.GetGTSuggestionIdx(handles.data.expi,handles.data.flies));
-suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
-suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
-handles.guidata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
-set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
-  'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
-
+  [suggest_t0s,suggest_t1s] = get_interval_ends(labelidx.vals == 0 & predictedidx ~= 0);
+  suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
+  suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
+  handles.guidata.labels_plot.suggest_xs = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+  [suggest_t0s,suggest_t1s] = get_interval_ends(handles.data.GetGTSuggestionIdx(handles.data.expi,handles.data.flies));
+  suggest_t0s = suggest_t0s + handles.data.t0_curr - 1.5;
+  suggest_t1s = suggest_t1s + handles.data.t0_curr - 1.5;
+  handles.guidata.labels_plot.suggest_gt = reshape([suggest_t0s;suggest_t1s;nan(size(suggest_t0s))],[1,numel(suggest_t0s)*3]);
+if ~handles.data.IsGTMode,
+  set(handles.guidata.htimeline_suggestions,'XData',handles.guidata.labels_plot.suggest_xs,...
+    'YData',zeros(size(handles.guidata.labels_plot.suggest_xs))+1.5);
+else
+  set(handles.guidata.htimeline_gt_suggestions,'XData',handles.guidata.labels_plot.suggest_gt,...
+    'YData',zeros(size(handles.guidata.labels_plot.suggest_gt))+1.5);
+end
 %{
 %handles.guidata.labels_plot.suggested_im(:) = 0;
 %for behaviori = 1:handles.data.nbehaviors
@@ -4405,6 +4416,37 @@ if strcmpi(eventdata.Modifier,'control')
       if (handles.data.expi +1) < handles.data.nexps 
         SetCurrentMovie(handles,handles.data.expi+1);
       end
+    case '1'
+
+      if handles.data.flies - 1 > 0
+        handles = SetCurrentFlies(handles,handles.data.flies - 1);
+        guidata(hObject,handles);
+      end
+      
+    case '2'
+      if handles.data.flies + 1 <= handles.data.nflies_per_exp
+        handles = SetCurrentFlies(handles,handles.data.flies + 1);
+        guidata(hObject,handles);
+      end
+      
+    case 's'
+      if strcmp(get(handles.menu_file_save,'Enable'),'on')
+        menu_file_save_Callback(hObject,[],handles);
+      end
+    case 'ii'
+      for i = 1:numel(handles.guidata.axes_previews),
+        xx = get(handles.guidata.axes_previews(i),'XLim');
+        yy = get(handles.guidata.axes_previews(i),'YLim');
+        set(handles.guidata.axes_previews(i),'XLim',xx/2);
+        set(handles.guidata.axes_previews(i),'YLim',yy/2);
+        [handles] = UpdateZoomFlyRadius(handles,i);
+      end
+      guidata(hObject,handles);
+    case 'oo'
+      handles.guidata.zoom_fly_radius = handles.guidata.zoom_fly_radius*2;
+      handles = UpdateZoomFlyRadius(handles,1);
+      guidata(hObject,handles);
+      
   end
 end
 
@@ -5145,19 +5187,23 @@ else
   
   if any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9))
     if ((~isfield(handles,'spacetime')) || (~isfield(handles.spacetime,'fig')) || (~ishandle(handles.spacetime.fig)))
-      handles.spacetime.fig=figure;
-      handles.spacetime.ax=axes('position',[0 0 1 1]);
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).a);
       handles.spacetime.meana = prctile(cellfun(@mean,tmp),90);
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).b);
       handles.spacetime.meanb = prctile(cellfun(@mean,tmp),90);
       [handles.spacetime.binidx, handles.spacetime.nbins, ...
-          handles.spacetime.featurenames, handles.spacetime.featurelocations, handles.spacetime.featurecenters] = ...
+          handles.spacetime.featurenames, handles.spacetime.featureboundaries, handles.spacetime.featurecenters] = ...
           compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);
       idx=find(cellfun(@(x) strncmp('spacetime_',x,10),handles.data.allperframefns));
       prctile([handles.data.perframedata{idx}],[1 99]);
       handles.spacetime.prc1=ans(1);
       handles.spacetime.prc99=ans(2);
+      handles.spacetime.fig=figure('position',...
+          [0 0 10*length(handles.spacetime.featurenames)*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)]);
+      for i=1:length(handles.spacetime.featurenames)
+        handles.spacetime.ax{i}=axes('position',...
+            [(i-1)/length(handles.spacetime.featurenames) 0 1/length(handles.spacetime.featurenames) 1]);
+      end
     end
   else
     if isfield(handles,'spacetime')
@@ -6188,7 +6234,11 @@ t = handles.guidata.NJObj.JumpToStart(handles.data,handles.data.expi,handles.dat
   handles.guidata.ts(axesi),handles.data.t0_curr,handles.data.t1_curr);
 if isempty(t),  return; end
 
-SetCurrentFrame(handles,axesi,t,hObject);
+try
+  SetCurrentFrame(handles,axesi,t,hObject);
+catch ME,
+  uiwait(warndlg(sprintf('Could not switch target:%s',ME.message)));
+end
 return
 
 
@@ -7262,14 +7312,78 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
+
+GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
+for i = 1:numel(handles.data.randomGTSuggestions),
+  for j = 1:numel(handles.data.randomGTSuggestions{i}),
+    for k = 1:numel(handles.data.randomGTSuggestions{i}(j).start),
+      GTSuggestions(end+1) = struct('start',handles.data.randomGTSuggestions{i}(j).start(k),...
+        'end',handles.data.randomGTSuggestions{i}(j).end(k),...
+        'exp',i,'flies',j);
+    end
+  end
+end
+
+handles = NavigateToGTSuggestion(handles,GTSuggestions);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
 return
+
+function handles = NavigateToGTSuggestion(handles,GTSuggestions)
+
+nextexpi = nan;
+nextfly = nan;
+nextframe = nan;
+for i = 1:numel(GTSuggestions),
+  expi = GTSuggestions(i).exp;
+  flies = GTSuggestions(i).flies;
+  t0 = GTSuggestions(i).start;
+  t1 = GTSuggestions(i).end;
+  
+  % ground-truth suggestions are frames in the video, same as the input
+  % to GetLabelIdx
+  
+  % are there labels within this interval?
+  labelidxcurr = handles.data.GetLabelIdx(expi,flies,t0,t1);
+  if all(labelidxcurr.vals == 0),
+    nextexpi = expi;
+    nextfly = flies;
+    nextframe = t0;
+    break;
+  end
+end
+
+if isnan(nextexpi),
+  uiwait(msgbox('No more ground-truthing suggestion intervals to label'));
+  return;
+else
+  nextexp = handles.data.expnames{nextexpi};
+end
+
+if i == 1,
+  res = questdlg(sprintf('Navigate to first ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
+else
+  res = questdlg(sprintf('Navigate to next ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
+end
+if ~strcmpi(res,'Yes'),
+  return;
+end
+
+[handles,success] = SetCurrentMovie(handles,nextexpi);
+if ~success,
+  uiwait(warndlg(sprintf('Could not switch to experiment %s',expname)));
+  return;
+end
+
+handles = SetCurrentFlies(handles,nextfly,false,false);
+
+handles = SetCurrentFrame(handles,1,nextframe,handles.figure_JLabel,false,false);
 
 
 % --------------------------------------------------------------------
@@ -7337,13 +7451,18 @@ set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 
 handles = UpdateTimelineImages(handles);
 
+
+handles = NavigateToGTSuggestion(handles,handles.data.balancedGTSuggestions);
+
+guidata(hObject,handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
 
 return
 
@@ -7370,14 +7489,37 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
+
+if iscell(handles.data.loadedGTSuggestions),
+  GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
+  for i = 1:numel(handles.data.loadedGTSuggestions),
+    for j = 1:numel(handles.data.loadedGTSuggestions{i}),
+      for k = 1:numel(handles.data.loadedGTSuggestions{i}(j).start),
+        if handles.data.loadedGTSuggestions{i}(j).start(k) > handles.data.loadedGTSuggestions{i}(j).end(k),
+          continue;
+        end
+        GTSuggestions(end+1) = struct('start',handles.data.loadedGTSuggestions{i}(j).start(k),...
+          'end',handles.data.loadedGTSuggestions{i}(j).end(k),...
+          'exp',i,'flies',j);
+      end
+    end
+  end
+else
+  GTSuggestions = handles.data.loadedGTSuggestions;
+end
+
+handles = NavigateToGTSuggestion(handles,GTSuggestions);
+
+guidata(hObject,handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
+
 return
 
 
@@ -8147,6 +8289,19 @@ fileNameAbs=fullfile(pathname,filename);
 % Call the function that does the real work
 openEverythingFileGivenFileNameAbs(figureJLabel,fileNameAbs,groundTruthingMode)
 
+if handles.data.nexps == 0,
+
+  drawnow;
+  JModifyFiles('figureJLabel',handles.figure_JLabel);
+  
+end
+
+% Set the jump type to be ground truth suggestions for gtmode
+if handles.data.IsGTMode
+  handles.guidata.NJObj.SetCurrentType('Ground Truth Suggestions');
+end
+
+
 return
 
 
@@ -8335,6 +8490,7 @@ handles.guidata.initializeAfterBasicParamsSet();
 handles.guidata.setLayout(figureJLabel);
 handles=InitializeStateAfterBasicParamsSet(handles);
 handles=InitializePlotsAfterBasicParamsSet(handles);
+handles = updatePanelPositions(handles);
 guidata(figureJLabel,handles);
 return
 
@@ -9507,6 +9663,8 @@ ClearStatus(handles);
 % write the handles back to figure
 guidata(figureJLabel,handles);
 
+uiwait(helpdlg('You have changed the behavior name. You may want to change the score file name.','Change score file name'));
+
 return
 
 
@@ -9569,6 +9727,23 @@ end
 
 % Update the plots
 UpdateTimelineImages(handles);
+
+% update the list in the drop down timelines.
+oldprops = handles.guidata.timeline_prop_options;
+handles.guidata.timeline_prop_options = [handles.guidata.timeline_prop_options(1:2) handles.data.allperframefns(:)'];
+
+for ndx = 1:numel(handles.guidata.axes_timeline_props)
+  timelinendx = find(handles.guidata.axes_timelines == handles.guidata.axes_timeline_props(ndx),1);
+  hobj = handles.guidata.labels_timelines(timelinendx);
+  v = get(hobj,'Value');
+  s = oldprops{v};
+  if ~any(strcmpi(s,handles.data.allperframefns))
+     set(hobj,'Value',3);    
+  end
+  set(hobj,'String',handles.guidata.timeline_prop_options);
+  timeline_label_prop1_Callback(hobj,[],handles); 
+end
+
 %UpdatePlots(handles,'refresh_timeline_props',true,'refresh_timeline_selection',true);
 UpdatePlots(handles);
 
@@ -9582,6 +9757,7 @@ ClearStatus(handles);
 % write the handles back to figure
 guidata(figureJLabel,handles);
 
+helpdlg('Remember to add the score features in Select Features','Add score features');
 return
 
 
@@ -9857,3 +10033,33 @@ if handles.data.expi == 0 && handles.data.nexps>0
 end
 guidata(handles.figure_JLabel,handles);
 ClearStatus(handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_clearcache_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_clearcache (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+UpdatePlots(handles,'CLEAR');
+UpdatePlots(handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_shortcutslist_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_shortcutslist (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+str = {'Ctrl + t  --  Train'
+  'Ctrl + p  --  Predict'
+  'Ctrl + n  --  Navigation Preferences'
+  'Ctrl + j  --  Switch Target'
+  'Ctrl + k  --  Plot tracks'
+  'Ctrl + f  --  Show Whole Frame'
+  'Ctrl + s  --  Save Project'
+  'Ctrl + 9  --  Previous Movie'
+  'Ctrl + 0 (zero)  --  Next Movie'
+  'Ctrl + 1  --  Previous Target'
+  'Ctrl + 2  --  Next Target'
+  'Space     --  Play (Does not always work)' 
+  };
+helpdlg(str,'List of Shortcuts')
