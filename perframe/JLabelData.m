@@ -3400,7 +3400,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Set the function to be called when the SetStatus method is invoked
       i = find(strcmpi(keys,'setstatusfn'),1);
       if isempty(i),
-        obj.setstatusfn=@(str)([]);  % do-nothing function
+        obj.setstatusfn = @disp;  % do-nothing function
       else
         obj.setstatusfn = values{i};
       end
