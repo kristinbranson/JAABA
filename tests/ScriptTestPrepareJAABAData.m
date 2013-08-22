@@ -1,5 +1,9 @@
 %% set up paths
 
+function success = ScriptTestPrepareJAABAData
+
+success = true;
+
 SetUpJAABAPath;
 jaabapath = fileparts(which('StartJAABA'));
 magatanalyzerdir = fullfile(jaabapath,'..','..','MAGATAnalyzer-Matlab-Analysis');
@@ -43,6 +47,6 @@ datatypes = {
 for i = 1:numel(datatypes),
   
   fprintf('Testing PrepareJAABAData for %s...\n',datatypes{i});
-  testPrepareJAABAData(datatypes{i},rootdir);
+  success = success & testPrepareJAABAData(datatypes{i},rootdir);
   
 end
