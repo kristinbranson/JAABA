@@ -1,5 +1,6 @@
-function testPrepareJAABAData(datatype,rootdir)
+function success = testPrepareJAABAData(datatype,rootdir)
 
+success = false;
 if nargin < 2,
   rootdir = '/groups/branson/bransonlab/projects/JAABA/sampledata';
 end
@@ -457,3 +458,5 @@ PrepareJAABAData('figure1_CloseRequestFcn',hfig,[],guidata(hfig));
 %% see if we can run JAABADetect on this experiment
 
 JAABADetect(outexpdir,'jabfiles',{params.jabfile},'forcecompute',true);
+
+success = true;
