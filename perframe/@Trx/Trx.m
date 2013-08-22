@@ -274,7 +274,7 @@ classdef Trx < handle
       m_dnose2ellanglerange = regexp(fn,'^dnose2ell_angle_(\w+)to(\w+)$','tokens','once');
       m_closestfly_nose2ellanglerange = regexp(fn,'^closestfly_nose2ell_angle_(\w+)to(\w+)$','tokens','once');
       m_nflies_close = regexp(fn,'^nflies_close_(.+)$','tokens','once');
-      m_spacetime = regexp(fn,'^spacetime_theta(\d+)_r(\d+)($|_[a-z]+$)','tokens','once');
+      m_spacetime = regexp(fn,'^spacetime_t(\d+)_r(\d+)($|_[a-z]+$)','tokens','once');
       if ~isempty(m_magveldiff),
         [data,units] = compute_magveldiff(obj,n,m_magveldiff{1});
       elseif ~isempty(m_veltoward),

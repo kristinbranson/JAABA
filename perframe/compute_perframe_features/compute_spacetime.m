@@ -127,7 +127,7 @@ end
 idx=[];  idx2=0;
 while isempty(idx) && (idx2<length(featurenames))
   idx2 = idx2+1;
-  idx=find(strcmp(featurenames{idx2},['theta' num2str(theta_in) '_r' num2str(r_in) type_in]));
+  idx=find(strcmp(featurenames{idx2},['t' num2str(theta_in) '_r' num2str(r_in) type_in]));
 end
 for i=1:length(data)
   data{i}=data{i}{idx2}(idx,:);
