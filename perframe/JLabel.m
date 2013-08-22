@@ -4404,6 +4404,8 @@ if strcmpi(eventdata.Modifier,'control')
       menu_go_navigation_preferences_Callback(hObject,eventdata,handles);
     case 'j',
       menu_go_switch_target_Callback(hObject,eventdata,handles);
+    case 'u',
+      menu_go_switch_exp_Callback(hObject,eventdata,handles);
     case 'k'
       menu_view_plot_tracks_Callback(handles.menu_view_plot_tracks,eventdata,handles);
     case 'f'
@@ -7312,78 +7314,14 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
-
-GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
-for i = 1:numel(handles.data.randomGTSuggestions),
-  for j = 1:numel(handles.data.randomGTSuggestions{i}),
-    for k = 1:numel(handles.data.randomGTSuggestions{i}(j).start),
-      GTSuggestions(end+1) = struct('start',handles.data.randomGTSuggestions{i}(j).start(k),...
-        'end',handles.data.randomGTSuggestions{i}(j).end(k),...
-        'exp',i,'flies',j);
-    end
-  end
-end
-
-handles = NavigateToGTSuggestion(handles,GTSuggestions);
-
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',true,...
-  'refresh_timeline_xlim',true,...
-  'refresh_timeline_hcurr',true,...
-  'refresh_timeline_selection',true,...
-  'refresh_curr_prop',true);
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 return
-
-function handles = NavigateToGTSuggestion(handles,GTSuggestions)
-
-nextexpi = nan;
-nextfly = nan;
-nextframe = nan;
-for i = 1:numel(GTSuggestions),
-  expi = GTSuggestions(i).exp;
-  flies = GTSuggestions(i).flies;
-  t0 = GTSuggestions(i).start;
-  t1 = GTSuggestions(i).end;
-  
-  % ground-truth suggestions are frames in the video, same as the input
-  % to GetLabelIdx
-  
-  % are there labels within this interval?
-  labelidxcurr = handles.data.GetLabelIdx(expi,flies,t0,t1);
-  if all(labelidxcurr.vals == 0),
-    nextexpi = expi;
-    nextfly = flies;
-    nextframe = t0;
-    break;
-  end
-end
-
-if isnan(nextexpi),
-  uiwait(msgbox('No more ground-truthing suggestion intervals to label'));
-  return;
-else
-  nextexp = handles.data.expnames{nextexpi};
-end
-
-if i == 1,
-  res = questdlg(sprintf('Navigate to first ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
-else
-  res = questdlg(sprintf('Navigate to next ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
-end
-if ~strcmpi(res,'Yes'),
-  return;
-end
-
-[handles,success] = SetCurrentMovie(handles,nextexpi);
-if ~success,
-  uiwait(warndlg(sprintf('Could not switch to experiment %s',expname)));
-  return;
-end
-
-handles = SetCurrentFlies(handles,nextfly,false,false);
-
-handles = SetCurrentFrame(handles,1,nextframe,handles.figure_JLabel,false,false);
 
 
 % --------------------------------------------------------------------
@@ -7451,18 +7389,13 @@ set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 
 handles = UpdateTimelineImages(handles);
 
-
-handles = NavigateToGTSuggestion(handles,handles.data.balancedGTSuggestions);
-
-guidata(hObject,handles);
-
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',true,...
-  'refresh_timeline_xlim',true,...
-  'refresh_timeline_hcurr',true,...
-  'refresh_timeline_selection',true,...
-  'refresh_curr_prop',true);
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 
 return
 
@@ -7489,37 +7422,14 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 handles = UpdateTimelineImages(handles);
-
-if iscell(handles.data.loadedGTSuggestions),
-  GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
-  for i = 1:numel(handles.data.loadedGTSuggestions),
-    for j = 1:numel(handles.data.loadedGTSuggestions{i}),
-      for k = 1:numel(handles.data.loadedGTSuggestions{i}(j).start),
-        if handles.data.loadedGTSuggestions{i}(j).start(k) > handles.data.loadedGTSuggestions{i}(j).end(k),
-          continue;
-        end
-        GTSuggestions(end+1) = struct('start',handles.data.loadedGTSuggestions{i}(j).start(k),...
-          'end',handles.data.loadedGTSuggestions{i}(j).end(k),...
-          'exp',i,'flies',j);
-      end
-    end
-  end
-else
-  GTSuggestions = handles.data.loadedGTSuggestions;
-end
-
-handles = NavigateToGTSuggestion(handles,GTSuggestions);
-
-guidata(hObject,handles);
-
+guidata(handles.figure_JLabel,handles);
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',true,...
-  'refresh_timeline_xlim',true,...
-  'refresh_timeline_hcurr',true,...
-  'refresh_timeline_selection',true,...
-  'refresh_curr_prop',true);
-
+  'refresh_timeline_manual',false,...
+  'refresh_timeline_xlim',false,...
+  'refresh_timeline_hcurr',false,...
+  'refresh_timeline_selection',false,...
+  'refresh_curr_prop',false);
 return
 
 
@@ -10053,6 +9963,7 @@ str = {'Ctrl + t  --  Train'
   'Ctrl + p  --  Predict'
   'Ctrl + n  --  Navigation Preferences'
   'Ctrl + j  --  Switch Target'
+  'Ctrl + u  --  Switch Experiment'
   'Ctrl + k  --  Plot tracks'
   'Ctrl + f  --  Show Whole Frame'
   'Ctrl + s  --  Save Project'
@@ -10063,3 +9974,19 @@ str = {'Ctrl + t  --  Train'
   'Space     --  Play (Does not always work)' 
   };
 helpdlg(str,'List of Shortcuts')
+
+
+% --------------------------------------------------------------------
+function menu_go_switch_exp_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_go_switch_exp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+expnames = handles.data.expnames;
+[sel,ok] = listdlg('ListSize',[650 220],'Name','Select Experiments',...
+  'ListString',expnames,'SelectionMode','single','OKString','Switch..',...
+  'InitialValue',handles.data.expi);
+if ok == 0, return; end
+if numel(sel)>1, uiwait(warndlg('Select one experiment')); return; end
+
+handles = SetCurrentMovie(handles,sel);
+guidata(hObject,handles);
