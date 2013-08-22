@@ -340,7 +340,7 @@ end
 
 function updateConfidenceButtons(handles)
 
-if ~strcmp(handles.NJObj.GetCurrentType,'Low Confidence')
+if ~strcmp(handles.NJObj.GetCurrentType,'Low Confidence') && ~strcmp(handles.NJObj.GetCurrentType,'High Confidence Errors')
   set(handles.text_conf1,'Enable','off');
   set(handles.text_conf2,'Enable','off');
   set(handles.edit_thresh_high,'Enable','off');
