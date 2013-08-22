@@ -1,5 +1,6 @@
-function testPrepareJAABAData(datatype,rootdir)
+function success = testPrepareJAABAData(datatype,rootdir)
 
+success = false;
 if nargin < 2,
   rootdir = '/groups/branson/bransonlab/projects/JAABA/sampledata';
 end
@@ -90,7 +91,7 @@ switch datatype,
  
   case 'SimpleTwoFlies',
 
-    params.inputdir = fullfile(rootdir,'courtship_bowls','FCF_pBDPGAL4U_1500437_TrpA_Rig2Plate17BowlB_20121121T15242');
+    params.inputdir = fullfile(rootdir,'courtship_bowls','FCF_pBDPGAL4U_1500437_TrpA_Rig2Plate17BowlD_20121121T152832');
     params.inputmoviefilestr = 'movie.ufmf';
     params.inputmoviefile = fullfile(params.inputdir,params.inputmoviefilestr);
     params.inputfiledict = {'intrxfile','registered_trx.mat',fullfile(params.inputdir,'registered_trx.mat')
@@ -103,7 +104,7 @@ switch datatype,
     params.outputperframedir = 'perframe';
     
     % sample jab file
-    params.jabfile = fullfile(rootdir,'flies','WingExtension_AR_v1p0.jab');
+    params.jabfile = fullfile(rootdir,'courtship_bowls','copulation_cb_ARv1p8.jab');
     
     % options
     params.options = struct;
@@ -115,10 +116,10 @@ switch datatype,
     params.options.OverRideArena = false;
     params.options.CropFirstFrame = 1;
     params.options.CropEndFrame = inf;
-    params.options.ArenaType = 'circle';
+    params.options.ArenaType = 'None';
 
     % read arena or fps?
-    params.readarena = true;
+    params.readarena = false;
     params.readfps = true;
 
     
@@ -457,3 +458,5 @@ PrepareJAABAData('figure1_CloseRequestFcn',hfig,[],guidata(hfig));
 %% see if we can run JAABADetect on this experiment
 
 JAABADetect(outexpdir,'jabfiles',{params.jabfile},'forcecompute',true);
+
+success = true;

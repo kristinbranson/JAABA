@@ -525,7 +525,7 @@ classdef NextJump < handle
       scores = data.NormalizeScores(prediction.scoresidx);
       lowconfidx = false(size(scores));
       
-      idxScores = (abs(scores)>obj.lthresh) & (abs(scores)<obj.hthresh);
+      idxScores = scores>obj.lthresh & scores<obj.hthresh;
       lowconfidx(idxScores) = true;
 
       lowconfCandidates = lowconfidx(2:end)~=lowconfidx(1:end-1) & ...
@@ -546,7 +546,7 @@ classdef NextJump < handle
       prediction = data.GetPredictedIdx(expi,flies,t0,t1);
       scores = data.NormalizeScores(prediction.scoresidx);
       lowconfidx = false(size(scores));
-      idxScores = (abs(scores)>obj.lthresh) & (abs(scores)<obj.hthresh);
+      idxScores = scores>obj.lthresh & scores<obj.hthresh;
       lowconfidx(idxScores) = true;
       
       lowconfCandidates = lowconfidx(1:end-1)~=lowconfidx(2:end) & ...
@@ -569,12 +569,9 @@ classdef NextJump < handle
       erroridx = labelidx.vals ~=predictedidx;
       scores = data.NormalizeScores(prediction.scoresidx);
       highconfidx = false(size(scores));
+      idxScores = scores<obj.lthresh | scores>obj.hthresh;
       
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)>data.GetConfidenceThreshold(behaviori));
-        highconfidx(idxScores) = true;
-      end
+      highconfidx(idxScores) = true;
       highconfError = highconfidx & erroridx;
       highconfError(labelidx.vals==0) = 0;
 
@@ -601,11 +598,9 @@ classdef NextJump < handle
       scores = data.NormalizeScores(prediction.scoresidx);
       highconfidx = false(size(scores));
       
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)>data.GetConfidenceThreshold(behaviori));
-        highconfidx(idxScores) = true;
-      end
+      idxScores = scores<obj.lthresh | scores>obj.hthresh;
+      highconfidx(idxScores) = true;
+
       highconfError = highconfidx & erroridx;
       highconfError(labelidx.vals==0) = 0;
       
