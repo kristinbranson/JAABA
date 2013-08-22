@@ -124,7 +124,7 @@ for ndx = order(:)'
     data.PredictSaveMovie(data.nexps);
     data.RemoveExpDirs(data.nexps);
     catch ME
-      fprintf('Could not classify experiment %d for %s: %s',expi,behavior{ndx},ME.message);
+      fprintf('Could not classify experiment %d for %s:\n%s\n',expi,behavior{ndx},getReport(ME));
       data.closeJabFile();
       data.openJabFileNoExps(jabfiles{ndx},false);
     end
