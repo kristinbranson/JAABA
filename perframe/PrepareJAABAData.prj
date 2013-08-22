@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="PrepareJAABAData" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\PrepareJAABAData.prj" build-checksum="1431587899">
+  <configuration target="target.standalone" target-name="Console Application" name="PrepareJAABAData" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\PrepareJAABAData.prj" preferred-package-type="package.type.zip" build-checksum="3985812482" preferred-package-location="C:\Code\Jdetect\perframe">
     <param.project.name>C:\Code\Jdetect\perframe\PrepareJAABAData.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>PrepareJAABAData</param.appname>
@@ -77,12 +77,18 @@
     <matlab>
       <root>C:\Program Files\MATLAB\R2012a</root>
       <path>
+        <directory>C:\Code\Jdetect\tests</directory>
         <directory>${PROJECT_ROOT}\params</directory>
-        <directory>${PROJECT_ROOT}\larva_compute_perframe_features</directory>
         <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
+        <directory>${PROJECT_ROOT}\larva_compute_perframe_features</directory>
         <directory>C:\Code\Jdetect\filehandling</directory>
         <directory>C:\Code\Jdetect\misc</directory>
-        <directory>C:\Users\bransonk\Documents\MATLAB</directory>
+        <directory>C:\Code\Jdetect\perframe</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis</directory>
+        <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph3d</directory>
