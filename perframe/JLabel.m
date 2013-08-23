@@ -750,7 +750,7 @@ return
 % -------------------------------------------------------------------------
 function UpdatePlots(handles,varargin)
 
-persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total exp_last fly_last ts_last imnorm_last
+persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total exp_next fly_next ts_next imnorm
 
 debug_cache = false;
 
@@ -994,38 +994,13 @@ for i = axes2,
       set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
       
       idx=find(strncmp('spacetime',handles.data.allperframefns(handles.guidata.perframepropis),9));
-      if (~isempty(idx) && (handles.guidata.ts(i)-1)>0)
+      if (~isempty(idx) && (handles.guidata.ts(i)+1) <= handles.data.GetEndFrames{handles.data.expi}(handles.data.flies(1)))
         fly=handles.data.flies(1);
-        if isempty(exp_last) || (exp_last ~= handles.data.expi) || ...
-           isempty(fly_last) || (fly_last ~= fly) || ...
-           isempty(ts_last) || (ts_last ~= (handles.guidata.ts(i)-1))
-          j_last = find((Mframenum.Data==(handles.guidata.ts(i)-1)) & ...
-                   (~isnan(Mlastused.Data)) & ...
-                   (Mlastused.Data>0) ...
-                   ,1,'first');
-          cache_total=cache_total+1;
-          if isempty(j_last),
-            cache_miss=cache_miss+1;
-            tmp=find(Mlastused.Data>=0);
-            j_last=tmp(argmin(Mlastused.Data(tmp)));
-            if isempty(j_last), % If all frames last used is nan i.e., they are waiting to be cached.
-              j_last = find(isnan(Mlastused.Data),1);
-            end
-            %j_last = argmin(Mlastused.Data);
-            Mlastused.Data(j_last) = -1;
-            Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
-            Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
-            fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
-                 num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
-          else
-            ClearStatus(handles);
-          end
-          Mlastused.Data(j_last) = now;
-          
-          minFirstFrame = min(cell2mat(handles.data.GetFirstFrames(handles.data.expi)));
-          maxEndFrame = max(cell2mat(handles.data.GetEndFrames(handles.data.expi)));
-          ts = min(max(minFirstFrame,handles.guidata.ts(i)-1),maxEndFrame);
-          imnorm_last = compute_spacetime_transform(Mimage.Data(j_last).x, ...
+        if (isempty(exp_next) || (exp_next ~= handles.data.expi) || ...
+            isempty(fly_next) || (fly_next ~= fly) || ...
+            isempty(ts_next) || (ts_next ~= handles.guidata.ts(i)))
+          ts=handles.guidata.ts(i);
+          imnorm = compute_spacetime_transform(Mimage.Data(j).x, ...
               handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
               handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
               handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
@@ -1033,28 +1008,55 @@ for i = axes2,
               handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
               handles.spacetime.meana, handles.spacetime.meanb);
         end
-        ts=handles.guidata.ts(i);
-        imnorm = compute_spacetime_transform(Mimage.Data(j).x, ...
+
+        j_next = find((Mframenum.Data==(handles.guidata.ts(i)+1)) & ...
+                 (~isnan(Mlastused.Data)) & ...
+                 (Mlastused.Data>0) ...
+                 ,1,'first');
+        cache_total=cache_total+1;
+        if isempty(j_next),
+          cache_miss=cache_miss+1;
+          tmp=find(Mlastused.Data>=0);
+          j_next=tmp(argmin(Mlastused.Data(tmp)));
+          if isempty(j_next), % If all frames last used is nan i.e., they are waiting to be cached.
+            j_next = find(isnan(Mlastused.Data),1);
+          end
+          %j_last = argmin(Mlastused.Data);
+          Mlastused.Data(j_next) = -1;
+          Mframenum.Data(j_next) = handles.guidata.ts(i)+1;
+          Mimage.Data(j_next).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)+1));
+          fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
+               num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
+        else
+          ClearStatus(handles);
+        end
+        Mlastused.Data(j_next) = now;
+
+%         minFirstFrame = min(cell2mat(handles.data.GetFirstFrames(handles.data.expi)));
+%         maxEndFrame = max(cell2mat(handles.data.GetEndFrames(handles.data.expi)));
+%         ts = min(max(minFirstFrame,handles.guidata.ts(i)+1),maxEndFrame);
+        ts=handles.guidata.ts(i)+1;
+        imnorm_next = compute_spacetime_transform(Mimage.Data(j_next).x, ...
             handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
             handles.spacetime.meana, handles.spacetime.meanb);
-        
+
 %         gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
 %             handles.spacetime.binidx, handles.spacetime.nbins,...
 %             handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
-        rb_nog(:,:,1)=imnorm;
-        rb_nog(:,:,2)=imnorm_last;
-        rb_nog(:,:,3)=imnorm_last;
+        rb_nog(:,:,1)=imnorm_next;
+        rb_nog(:,:,2)=imnorm;
+        rb_nog(:,:,3)=imnorm;
 %         foo=double(reshape(imnorm,1,numel(imnorm)));
 %         foo_last=double(reshape(imnorm_last,1,numel(imnorm_last)));
 %         disp([num2str(ts) ': ' num2str(mean(foo)) '+/-' num2str(std(foo)) ', ' num2str(mean(foo_last)) '+/-' num2str(std(foo_last))]);
-        exp_last = handles.data.expi;
-        fly_last = fly;
-        ts_last = handles.guidata.ts(i);
-        imnorm_last = imnorm;
+        exp_next = handles.data.expi;
+        fly_next = fly;
+        ts_next = ts;
+        imnorm = imnorm_next;
 %         for l=1:length(handles.spacetime.featureboundaries)
 %         l=1;
 %         while(l<length(handles.spacetime.featurenames)) && ...
