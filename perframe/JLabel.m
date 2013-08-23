@@ -5243,20 +5243,25 @@ else
     tmp=length(handles.spacetime.mask)-length(handles.spacetime.fig);
     if tmp>0
       handles.spacetime.fig=[handles.spacetime.fig nan(1,tmp)];
-    end
-    for i=1:length(handles.spacetime.mask)
-      if (~ishandle(handles.spacetime.fig(i)))
-        handles.spacetime.fig(i)=figure('position',...
-            [0 0 10*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)],...
-            'UserData',hObject,...
-            'KeyPressFcn',get(handles.figure_JLabel,'KeyPressFcn'));
-        handles.spacetime.ax(i)=axes('position',[0 0 1 1],'parent',handles.spacetime.fig(i));
+      for i=1:length(handles.spacetime.mask)
+        if (~ishandle(handles.spacetime.fig(i)))
+          handles.spacetime.fig(i)=figure('position',...
+              [0 0 10*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)],...
+              'UserData',hObject,...
+              'KeyPressFcn',get(handles.figure_JLabel,'KeyPressFcn'));
+          handles.spacetime.ax(i)=axes('position',[0 0 1 1],'parent',handles.spacetime.fig(i));
+        end
       end
+    end
+    if tmp<0
+      close(handles.spacetime.fig(length(handles.spacetime.mask)+1:end));
+      handles.spacetime.fig=handles.spacetime.fig(1:length(handles.spacetime.mask));
+      handles.spacetime.ax=handles.spacetime.ax(1:length(handles.spacetime.mask));
     end
   else
     if isfield(handles,'spacetime')
       close(handles.spacetime.fig);
-      rmfield(handles,'spacetime');
+      handles=rmfield(handles,'spacetime');
     end
   end
 
@@ -5362,9 +5367,9 @@ if ((isfield(handles,'spacetime')) && (isfield(handles.spacetime,'fig')) && (len
     end
   end
   handles.spacetime.mask=unique(tmp);
-  close(handles.spacetime.fig(length(idx)+1:end));
-  handles.spacetime.fig=handles.spacetime.fig(1:length(idx));
-  handles.spacetime.ax=handles.spacetime.ax(1:length(idx));
+  close(handles.spacetime.fig(length(handles.spacetime.mask)+1:end));
+  handles.spacetime.fig=handles.spacetime.fig(1:length(handles.spacetime.mask));
+  handles.spacetime.ax=handles.spacetime.ax(1:length(handles.spacetime.mask));
   guidata(handles.figure_JLabel,handles);
 end
 
