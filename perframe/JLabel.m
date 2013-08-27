@@ -1032,9 +1032,6 @@ for i = axes2,
         end
         Mlastused.Data(j_next) = now;
 
-%         minFirstFrame = min(cell2mat(handles.data.GetFirstFrames(handles.data.expi)));
-%         maxEndFrame = max(cell2mat(handles.data.GetEndFrames(handles.data.expi)));
-%         ts = min(max(minFirstFrame,handles.guidata.ts(i)+1),maxEndFrame);
         ts=handles.guidata.ts(i)+1;
         imnorm_next = compute_spacetime_transform(Mimage.Data(j_next).x, ...
             handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
@@ -1044,26 +1041,13 @@ for i = axes2,
             handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
             handles.spacetime.meana, handles.spacetime.meanb);
 
-%         gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
-%             handles.spacetime.binidx, handles.spacetime.nbins,...
-%             handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
         rb_nog(:,:,1)=imnorm_next;
         rb_nog(:,:,2)=imnorm;
         rb_nog(:,:,3)=imnorm;
-%         foo=double(reshape(imnorm,1,numel(imnorm)));
-%         foo_last=double(reshape(imnorm_last,1,numel(imnorm_last)));
-%         disp([num2str(ts) ': ' num2str(mean(foo)) '+/-' num2str(std(foo)) ', ' num2str(mean(foo_last)) '+/-' num2str(std(foo_last))]);
         exp_next = handles.data.expi;
         fly_next = fly;
         ts_next = ts;
         imnorm = imnorm_next;
-%         for l=1:length(handles.spacetime.featureboundaries)
-%         l=1;
-%         while(l<length(handles.spacetime.featurenames)) && ...
-%               isempty(find(strcmp(handles.spacetime.featurenames{l}, handles.data.allperframefns{handles.guidata.perframepropis}(11:end))))
-%           l = l+1;
-%         end
-%         if ishandle(handles.spacetime.fig)
         for l=1:length(handles.spacetime.mask)
           image(rb_nog,'parent',handles.spacetime.ax(l));
           axis(handles.spacetime.ax(l),'image');
@@ -5231,10 +5215,18 @@ else
     end
     tmp=nan(1,length(idx));
     for i=1:length(idx)
+      foo=handles.data.allperframefns{handles.guidata.perframepropis(idx(i))}(11:end);
+      if (length(foo)>11) && strcmp(foo(end-10:end),'_difference')
+        bar=regexp(foo,'t(\d+)_r','tokens','once');  bar=bar{1};
+        if((str2num(bar(1))+str2num(bar(2)))==10)
+          foo=['t' bar(1) '_r1'];
+        else
+          foo=['t' bar(1) '_r1_overlap'];
+        end
+      end
       tmp(i)=1;
       while(tmp(i)<length(handles.spacetime.featurenames)) && ...
-            isempty(find(strcmp(handles.spacetime.featurenames{tmp(i)}, ...
-              handles.data.allperframefns{handles.guidata.perframepropis(idx(i))}(11:end))))
+            isempty(find(strcmp(handles.spacetime.featurenames{tmp(i)}, foo)))
         tmp(i) = tmp(i)+1;
       end
     end

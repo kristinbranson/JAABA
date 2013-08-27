@@ -244,6 +244,42 @@
     <spacetime_t37_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
     <spacetime_t46_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
 
+    <spacetime_t18_r1_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t27_r1_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t36_r1_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t45_r1_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t18_r2_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t27_r2_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t36_r2_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t45_r2_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t18_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t27_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t36_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+    <spacetime_t45_r3_symmetric trans_types="none" type="spacetime_LR_symmetric"/>
+
+    <spacetime_t28_r1_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t37_r1_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t46_r1_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t28_r2_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t37_r2_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t46_r2_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t28_r3_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t37_r3_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t46_r3_difference trans_types="none" type="spacetime_LR_difference"/>
+
+    <spacetime_t18_r1_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t27_r1_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t36_r1_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t45_r1_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t18_r2_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t27_r2_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t36_r2_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t45_r2_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t18_r3_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t27_r3_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t36_r3_difference trans_types="none" type="spacetime_LR_difference"/>
+    <spacetime_t45_r3_difference trans_types="none" type="spacetime_LR_difference"/>
+
     <spacetime_t1_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
     <spacetime_t2_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
     <spacetime_t3_r0_symmetric trans_types="none" type="spacetime_R_symmetric"/>
