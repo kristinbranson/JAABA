@@ -787,6 +787,7 @@ classdef JLabelData < matlab.mixin.Copyable
                            'Yes');
             if strcmpi(res,'Yes')
               generateMissingPerframeFiles=true;
+              obj.perframeGenerate = true;
             elseif isempty(res) || strcmpi(res,'No')
               generateMissingPerframeFiles=false;
             end
