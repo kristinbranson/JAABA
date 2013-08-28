@@ -101,7 +101,10 @@ catch
 
       imnorm_last=imnorm;
     end
-    fclose(fid);
+    try  % could also set fid=-1 for .seq in get_readframe_fcn and then if(fid~=-1) here...
+      fclose(fid);
+    catch
+    end
   end
   
   tmp=cell(1,nflies);
