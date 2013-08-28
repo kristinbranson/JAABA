@@ -12,6 +12,7 @@
 <larvae_louis file="params/featureConfigLarvaeLouis.xml" animal="larvacontour"/>
 <vivek_mice file="params/featureConfigVivekMice.xml" animal="fly"/>
 <adam_flies file="params/featureConfig_adam.xml" animal="fly"/>
-<spacetime_flies file="params/featureConfig_spacetime.xml" animal="fly"/>
+<spacetime_flies file="params/featureConfig_spacetime_flies.xml" animal="fly"/>
+<spacetime_mice file="params/featureConfig_spacetime_mice.xml" animal="fly"/>
 
 </params>
