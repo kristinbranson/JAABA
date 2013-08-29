@@ -8304,8 +8304,10 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 successfullyOpened=false;
 openCancelled=false;
 keepTrying=true;
+findinrootdir = false;
 originalExpDirs=cell(0,1); 
 substituteExpDirs=cell(0,1);
+rootdir = '';
 while ~successfullyOpened && keepTrying ,
   try
     handles.data.openJabFile(fileNameAbs, ...
@@ -8318,30 +8320,67 @@ while ~successfullyOpened && keepTrying ,
     if isequal(excp.identifier,'JLabelData:expDirDoesNotExist') ,
       originalExpDir=excp.message;
       originalExpName=fileNameRelFromAbs(originalExpDir);
-      answer=questdlg(sprintf('Unable to open experiment directory %s.  Would you like to locate it manually?',originalExpName), ...
-                      'Unable to Open', ...
-                      'Yes, Locate It','No, Leave It Out and Discard All Labels For It','Cancel File Open', ...
-                      'Yes, Locate It');
-      if isempty(answer) || isequal(answer,'Cancel File Open')
-        keepTrying=false;
-        openCancelled=true;
-      elseif isequal(answer,'No, Leave It Out and Discard All Labels For It')
-        substituteExpDir='';  % Means to leave it out
-        originalExpDirs{end+1}=originalExpDir;  %#ok
-        substituteExpDirs{end+1}=substituteExpDir;  %#ok
-      else % Answer was 'Yes, Locate It'
-        [~,dname,~] = fileparts(originalExpName);
-        substituteExpDir= ...
-          uigetdir(handles.data.expdefaultpath, ...
-                   sprintf('Locate Experiment Directory %s',dname));
-        if isempty(substituteExpDir)
-          % means user hit Cancel button
+      if findinrootdir && ~isempty(findMatchingFolder(rootdir,originalExpName));
+        
+        originalExpDirs{end+1} = originalExpDir; %#ok<AGROW>
+        substituteExpDirs{end+1} = findMatchingFolder(rootdir,originalExpName); %#ok<AGROW>
+        
+      else
+        
+        answer=questdlg(sprintf('Unable to open experiment directory %s.  Would you like to locate it manually?',originalExpName), ...
+          'Unable to Open', ...
+          'Yes, Locate It','No, Leave It Out and Discard All Labels For It','Cancel File Open', ...
+          'Yes, Locate It');
+        if isempty(answer) || isequal(answer,'Cancel File Open')
           keepTrying=false;
-        else
+          openCancelled=true;
+        elseif isequal(answer,'No, Leave It Out and Discard All Labels For It')
+          substituteExpDir='';  % Means to leave it out
           originalExpDirs{end+1}=originalExpDir;  %#ok
           substituteExpDirs{end+1}=substituteExpDir;  %#ok
+          
+        else % Answer was 'Yes, Locate It'
+
+          fanswer=questdlg(sprintf('Locate just %s or others?',originalExpName), ...
+            'Locate directories', ...
+            'Locate just this experiment','Locate this and others in a rootdir','Cancel File Open', ...
+            'Locate just this experiment');
+          if isempty(answer) || isequal(answer,'Cancel File Open')
+            keepTrying=false;
+            openCancelled=true;
+            
+          elseif isequal(fanswer,'Locate this and others in a rootdir')
+            findinrootdir = true;
+            rootdir= ...
+              uigetdir(handles.data.expdefaultpath, ...
+              'Locate Root dir to find Experiment Directories');
+            
+            if isempty(rootdir)
+              % means user hit Cancel button
+              keepTrying=false;
+            end
+
+            if ~isempty(findMatchingFolder(rootdir,originalExpName))
+              originalExpDirs{end+1} = originalExpDir; %#ok<AGROW>
+              substituteExpDirs{end+1} = findMatchingFolder(rootdir,originalExpName); %#ok<AGROW>
+            end
+            
+          else
+            
+            [~,dname,~] = fileparts(originalExpName);
+            substituteExpDir= ...
+              uigetdir(handles.data.expdefaultpath, ...
+              sprintf('Locate Experiment Directory %s',dname));
+            if isempty(substituteExpDir)
+              % means user hit Cancel button
+              keepTrying=false;
+            else
+              originalExpDirs{end+1}=originalExpDir;  %#ok
+              substituteExpDirs{end+1}=substituteExpDir;  %#ok
+            end
+          end
         end
-      end
+      end % rootdir
     else
       message=getReport(excp,'extended','hyperlinks','off');
       keepTrying=false;
