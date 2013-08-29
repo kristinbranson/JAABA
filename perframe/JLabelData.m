@@ -787,6 +787,7 @@ classdef JLabelData < matlab.mixin.Copyable
                            'Yes');
             if strcmpi(res,'Yes')
               generateMissingPerframeFiles=true;
+              obj.perframeGenerate = true;
             elseif isempty(res) || strcmpi(res,'No')
               generateMissingPerframeFiles=false;
             end
@@ -5196,9 +5197,19 @@ classdef JLabelData < matlab.mixin.Copyable
         allScores.tEnd(fly) = tEnd;
         allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
       end
+      
+      if scores_valid
+        self.SetStatus(sprintf('Exporting existing scores for movie %d:%s...',expi,self.expnames{expi}));
+        allScores.postprocessparams = self.postprocessparams;
+        for flies = 1:self.nflies_per_exp(expi)
+          [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
+          allScores.t0s{flies} = i0s;
+          allScores.t1s{flies} = i1s;
+        end
+        allScores.scoreNorm = self.windowdata.scoreNorm;
 
       % Need to compute scores.
-      if ~scores_valid
+      else 
         allScores = self.PredictWholeMovie(expi);
       end
       
@@ -5224,7 +5235,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-                         'postprocessed',{{}},'postprocessedparams',[]);
+                         'postprocessed',{{}},'postprocessparams',[]);
       scores_valid = true;
       for fly = 1:self.nflies_per_exp(expi)
         

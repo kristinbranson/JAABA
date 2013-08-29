@@ -905,23 +905,10 @@ if ismember('Behavior Name and File Names',sellist)
   handles.basicParamsStruct.file = origparams.x.file;
 end
 
-if ismember('Window Features',sellist),
-  if ~isequal(handles.basicParamsStruct.featureLexicon,origparams.x.featureLexicon),
-    res = questdlg(['Target type (or some settings) are not the same for the current project '...
-      'and the original project. Are you sure you want to import the window features?'],...
-      'Import Window features','Yes','No','No');
-    if strcmp(res,'Yes')
-      handles.basicParamsStruct.windowFeaturesParams = origparams.x.windowFeaturesParams;
-    end
-  else
-      handles.basicParamsStruct.windowFeaturesParams = origparams.x.windowFeaturesParams;
-  end
-end
-
 
 if ismember('List of perframe features',sellist)
   if ~isequal(handles.basicParamsStruct.featureLexicon,origparams.x.featureLexicon),
-    res = questdlg(['Target type (or some settings) are not the same for the current project '...
+    res = questdlg(['Target type (or one of the target settings) are not the same for the current project '...
         'and the original project. Are you sure you want to import the list of perframe features?'],...
         'Import list of perframe features','Yes','No','No');
       if strcmp(res,'Yes')
@@ -932,6 +919,21 @@ if ismember('List of perframe features',sellist)
     
   end
 end
+
+if ismember('Window Features',sellist),
+  if ~isequal(handles.basicParamsStruct.featureLexicon,origparams.x.featureLexicon) || ...
+    ~isequal(handles.basicParamsStruct.sublexiconPFNames,origparams.x.sublexiconPFNames)
+    res = questdlg(['Target type or list of perframe features (or one of the traget settings) are not the same for the current project '...
+      'and the original project. Are you sure you want to import the window features?'],...
+      'Import Window features','Yes','No','No');
+    if strcmp(res,'Yes')
+      handles.basicParamsStruct.windowFeaturesParams = origparams.x.windowFeaturesParams;
+    end
+  else
+      handles.basicParamsStruct.windowFeaturesParams = origparams.x.windowFeaturesParams;
+  end
+end
+
 
 
 if ismember('Classifier files used as input', sellist);
