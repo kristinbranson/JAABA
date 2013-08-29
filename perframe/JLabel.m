@@ -750,7 +750,7 @@ return
 % -------------------------------------------------------------------------
 function UpdatePlots(handles,varargin)
 
-persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total
+persistent Mframenum Mlastused Mimage movie_filename cache_miss cache_total exp_next fly_next ts_next imnorm
 
 debug_cache = false;
 
@@ -993,78 +993,80 @@ for i = axes2,
       Mlastused.Data(j) = now;
       set(handles.guidata.himage_previews(i),'CData',Mimage.Data(j).x);
       
-      if (any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9)) && ...
-            (handles.guidata.ts(i)-1)>0)
-        j_last = find((Mframenum.Data==(handles.guidata.ts(i)-1)) & ...
+      idx=find(strncmp('spacetime',handles.data.allperframefns(handles.guidata.perframepropis),9));
+      if (~isempty(idx) && (handles.guidata.ts(i)+1) <= handles.data.GetEndFrames{handles.data.expi}(handles.data.flies(1)))
+        fly=handles.data.flies(1);
+        if (isempty(exp_next) || (exp_next ~= handles.data.expi) || ...
+            isempty(fly_next) || (fly_next ~= fly) || ...
+            isempty(ts_next) || (ts_next ~= handles.guidata.ts(i)))
+          ts=handles.guidata.ts(i);
+          imnorm = compute_spacetime_transform(Mimage.Data(j).x, ...
+              handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
+              handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
+              handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
+              handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
+              handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
+              handles.spacetime.meana, handles.spacetime.meanb);
+        end
+
+        j_next = find((Mframenum.Data==(handles.guidata.ts(i)+1)) & ...
                  (~isnan(Mlastused.Data)) & ...
                  (Mlastused.Data>0) ...
                  ,1,'first');
         cache_total=cache_total+1;
-        if isempty(j_last),
+        if isempty(j_next),
           cache_miss=cache_miss+1;
           tmp=find(Mlastused.Data>=0);
-          j_last=tmp(argmin(Mlastused.Data(tmp)));
-          if isempty(j_last), % If all frames last used is nan i.e., they are waiting to be cached.
-            j_last = find(isnan(Mlastused.Data),1);
+          j_next=tmp(argmin(Mlastused.Data(tmp)));
+          if isempty(j_next), % If all frames last used is nan i.e., they are waiting to be cached.
+            j_next = find(isnan(Mlastused.Data),1);
           end
           %j_last = argmin(Mlastused.Data);
-          Mlastused.Data(j_last) = -1;
-          Mframenum.Data(j_last) = handles.guidata.ts(i)-1;
-          Mimage.Data(j_last).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)-1));
+          Mlastused.Data(j_next) = -1;
+          Mframenum.Data(j_next) = handles.guidata.ts(i)+1;
+          Mimage.Data(j_next).x = uint8(handles.guidata.readframe(handles.guidata.ts(i)+1));
           fprintf('%s\n',['frame #' num2str(handles.guidata.ts(i)) ' NOT CACHED, len queue = ' ...
                num2str(sum(isnan(Mlastused.Data))) ', miss rate = ' num2str(cache_miss/cache_total*100) '%']);
         else
           ClearStatus(handles);
         end
-        Mlastused.Data(j_last) = now;
-        fly=handles.data.flies(1);
-        ts=handles.guidata.ts(i);
-        imnorm = compute_spacetime_transform(Mimage.Data(j).x, ...
+        Mlastused.Data(j_next) = now;
+
+        ts=handles.guidata.ts(i)+1;
+        imnorm_next = compute_spacetime_transform(Mimage.Data(j_next).x, ...
             handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
             handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
             handles.spacetime.meana, handles.spacetime.meanb);
-        
-        minFirstFrame = min(cell2mat(handles.data.GetFirstFrames(handles.data.expi)));
-        maxEndFrame = max(cell2mat(handles.data.GetEndFrames(handles.data.expi)));
-        ts = min(max(minFirstFrame,handles.guidata.ts(i)-1),maxEndFrame);
-        imnorm_last = compute_spacetime_transform(Mimage.Data(j_last).x, ...
-            handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
-            handles.data.GetTrxValues('Y1',handles.data.expi,fly,ts), ...
-            handles.data.GetTrxValues('Theta1',handles.data.expi,fly,ts), ...
-            handles.data.GetTrxValues('A1',handles.data.expi,fly,ts), ...
-            handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
-            handles.spacetime.meana, handles.spacetime.meanb);
-%         gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
-%             handles.spacetime.binidx, handles.spacetime.nbins,...
-%             handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
-        rb_nog(:,:,1)=imnorm;
-        rb_nog(:,:,2)=imnorm_last;
-        rb_nog(:,:,3)=imnorm_last;
-%         for l=1:length(handles.spacetime.featureboundaries)
-        l=1;
-        while(l<length(handles.spacetime.featurenames)) && ...
-              isempty(find(strcmp(handles.spacetime.featurenames{l}, handles.data.allperframefns{handles.guidata.perframepropis}(11:end))))
-          l = l+1;
-        end
-        if ishandle(handles.spacetime.fig)
-          image(rb_nog,'parent',handles.spacetime.ax);
-          axis(handles.spacetime.ax,'image');
-          axis(handles.spacetime.ax,'off');
-          for k=1:length(handles.spacetime.featureboundaries{l})
+
+        rb_nog(:,:,1)=imnorm_next;
+        rb_nog(:,:,2)=imnorm;
+        rb_nog(:,:,3)=imnorm;
+        exp_next = handles.data.expi;
+        fly_next = fly;
+        ts_next = ts;
+        imnorm = imnorm_next;
+        for l=1:length(handles.spacetime.mask)
+          image(rb_nog,'parent',handles.spacetime.ax(l));
+          axis(handles.spacetime.ax(l),'image');
+          axis(handles.spacetime.ax(l),'off');
+          for k=1:length(handles.spacetime.featureboundaries{handles.spacetime.mask(l)})
             handles.data.GetPerFrameData(handles.data.expi,handles.data.flies,...
-                ['spacetime_' handles.spacetime.featurenames{l}{k}], handles.guidata.ts(i), handles.guidata.ts(i));
+                ['spacetime_' handles.spacetime.featurenames{handles.spacetime.mask(l)}{k}], ...
+                handles.guidata.ts(i), handles.guidata.ts(i));
             color=(ans-handles.spacetime.prc1)/(handles.spacetime.prc99-handles.spacetime.prc1);
             color=min(1,max(0,color));
-            for m=1:length(handles.spacetime.featureboundaries{l}{k})
-              line(handles.spacetime.featureboundaries{l}{k}{m}(:,2), handles.spacetime.featureboundaries{l}{k}{m}(:,1),...
-                  'color',[0 color 0],'parent',handles.spacetime.ax);
+            for m=1:length(handles.spacetime.featureboundaries{handles.spacetime.mask(l)}{k})
+              line(handles.spacetime.featureboundaries{handles.spacetime.mask(l)}{k}{m}(:,2), ...
+                   handles.spacetime.featureboundaries{handles.spacetime.mask(l)}{k}{m}(:,1),...
+                  'color',[0 color 0],'parent',handles.spacetime.ax(l));
             end
-            text(handles.spacetime.featurecenters{l}{k}(1), handles.spacetime.featurecenters{l}{k}(2),...
-                handles.spacetime.featurenames{l}{k},'Interpreter','none','HorizontalAlignment','center',...
-                'color',[0 color 0],'parent',handles.spacetime.ax);
+            text(handles.spacetime.featurecenters{handles.spacetime.mask(l)}{k}(1), ...
+                 handles.spacetime.featurecenters{handles.spacetime.mask(l)}{k}(2),...
+                 handles.spacetime.featurenames{handles.spacetime.mask(l)}{k},'Interpreter','none','HorizontalAlignment','center',...
+                'color',[0 color 0],'parent',handles.spacetime.ax(l));
           end
         end
 %         end
@@ -5196,8 +5198,9 @@ else
   end
   set(handles.guidata.text_timeline_props(propi),'String',s);
   
-  if any(strncmp('spacetime',handles.data.allperframefns{handles.guidata.perframepropis},9))
-    if ((~isfield(handles,'spacetime')) || (~isfield(handles.spacetime,'fig')) || (~ishandle(handles.spacetime.fig)))
+  idx=find(strncmp('spacetime',handles.data.allperframefns(handles.guidata.perframepropis),9));
+  if ~isempty(idx)
+    if (~isfield(handles,'spacetime'))
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).a);
       handles.spacetime.meana = prctile(cellfun(@mean,tmp),90);
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).b);
@@ -5205,25 +5208,54 @@ else
       [handles.spacetime.binidx, handles.spacetime.nbins, ...
           handles.spacetime.featurenames, handles.spacetime.featureboundaries, handles.spacetime.featurecenters] = ...
           compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);
-      idx=find(cellfun(@(x) strncmp('spacetime_',x,10),handles.data.allperframefns));
-      prctile([handles.data.perframedata{idx}],[1 99]);
+      find(cellfun(@(x) strncmp('spacetime_',x,10),handles.data.allperframefns));
+      prctile([handles.data.perframedata{ans}],[1 99]);
       handles.spacetime.prc1=ans(1);
       handles.spacetime.prc99=ans(2);
-%       handles.spacetime.fig=figure('position',...
-%           [0 0 10*length(handles.spacetime.featurenames)*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)]);
-      handles.spacetime.fig=figure('position',...
-          [0 0 10*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)],...
-          'UserData',hObject,...
-          'KeyPressFcn',get(handles.figure_JLabel,'KeyPressFcn'));
-%       for i=1:length(handles.spacetime.featurenames)
-%         handles.spacetime.ax{i}=axes('position',...
-%             [(i-1)/length(handles.spacetime.featurenames) 0 1/length(handles.spacetime.featurenames) 1]);
-%       end
-        handles.spacetime.ax=axes('position',[0 0 1 1]);
+    end
+    tmp=nan(1,length(idx));
+    for i=1:length(idx)
+      foo=handles.data.allperframefns{handles.guidata.perframepropis(idx(i))}(11:end);
+      if (length(foo)>11) && strcmp(foo(end-10:end),'_difference')
+        bar=regexp(foo,'t(\d+)_r','tokens','once');  bar=bar{1};
+        if((str2num(bar(1))+str2num(bar(2)))==10)
+          foo=['t' bar(1) '_r1'];
+        else
+          foo=['t' bar(1) '_r1_overlap'];
+        end
+      end
+      tmp(i)=1;
+      while(tmp(i)<length(handles.spacetime.featurenames)) && ...
+            isempty(find(strcmp(handles.spacetime.featurenames{tmp(i)}, foo)))
+        tmp(i) = tmp(i)+1;
+      end
+    end
+    handles.spacetime.mask=unique(tmp);
+    if (~isfield(handles.spacetime,'fig'))
+      handles.spacetime.fig=[];
+    end
+    tmp=length(handles.spacetime.mask)-length(handles.spacetime.fig);
+    if tmp>0
+      handles.spacetime.fig=[handles.spacetime.fig nan(1,tmp)];
+      for i=1:length(handles.spacetime.mask)
+        if (~ishandle(handles.spacetime.fig(i)))
+          handles.spacetime.fig(i)=figure('position',...
+              [0 0 10*size(handles.spacetime.binidx{1},2) 10*size(handles.spacetime.binidx{1},1)],...
+              'UserData',hObject,...
+              'KeyPressFcn',get(handles.figure_JLabel,'KeyPressFcn'));
+          handles.spacetime.ax(i)=axes('position',[0 0 1 1],'parent',handles.spacetime.fig(i));
+        end
+      end
+    end
+    if tmp<0
+      close(handles.spacetime.fig(length(handles.spacetime.mask)+1:end));
+      handles.spacetime.fig=handles.spacetime.fig(1:length(handles.spacetime.mask));
+      handles.spacetime.ax=handles.spacetime.ax(1:length(handles.spacetime.mask));
     end
   else
     if isfield(handles,'spacetime')
-      rmfield(handles,'spacetime');
+      close(handles.spacetime.fig);
+      handles=rmfield(handles,'spacetime');
     end
   end
 
@@ -5316,6 +5348,25 @@ handles = guidata(handles.figure_JLabel);
 
 handles.guidata.guipos.frac_height_timelines = panel_timelines_pos(4) / (panel_timelines_pos(4) + panel_previews_pos(4));
 guidata(handles.figure_JLabel,handles);
+
+idx=find(strncmp('spacetime',handles.data.allperframefns(handles.guidata.perframepropis),9));
+if ((isfield(handles,'spacetime')) && (isfield(handles.spacetime,'fig')) && (length(idx)<length(handles.spacetime.fig)))
+  tmp=nan(1,length(idx));
+  for i=1:length(idx)
+    tmp(i)=1;
+    while(tmp(i)<length(handles.spacetime.featurenames)) && ...
+          isempty(find(strcmp(handles.spacetime.featurenames{tmp(i)}, ...
+            handles.data.allperframefns{handles.guidata.perframepropis(idx(i))}(11:end))))
+      tmp(i) = tmp(i)+1;
+    end
+  end
+  handles.spacetime.mask=unique(tmp);
+  close(handles.spacetime.fig(length(handles.spacetime.mask)+1:end));
+  handles.spacetime.fig=handles.spacetime.fig(1:length(handles.spacetime.mask));
+  handles.spacetime.ax=handles.spacetime.ax(1:length(handles.spacetime.mask));
+  guidata(handles.figure_JLabel,handles);
+end
+
 return
 
 

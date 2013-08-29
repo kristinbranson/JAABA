@@ -496,11 +496,11 @@ classdef JLabelData < matlab.mixin.Copyable
       % ismovie=~isempty(self.moviefilename) && self.openmovie;
     end
     
-  end  % methods block
+  %end  % methods block
   
   
   % -----------------------------------------------------------------------
-  methods (Access=private)
+  %methods (Access=private)
     % ---------------------------------------------------------------------
     function initialize(self)
       % Set all properties to the state they should have just after the
@@ -2039,7 +2039,7 @@ classdef JLabelData < matlab.mixin.Copyable
         docompute(tscomputed+off) = false;
       end
       
-      X = [];
+      X = single([]);
       feature_names = {};
       if ~any(docompute),
         t1 = t0-1;
@@ -2065,7 +2065,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % loop through per-frame fields to check that they exist.
       for j = 1:numel(curperframefns),
-        fn = curperframefns{j};
+        fn = curperframefns{j};        
         
         % get per-frame data
         ndx = find(strcmp(fn,allperframefns));
@@ -2114,6 +2114,7 @@ classdef JLabelData < matlab.mixin.Copyable
       parfor j = 1:numel(curperframefns),
       %for j = 1:numel(curperframefns),
         fn = curperframefns{j};
+        fprintf('Computing window data for per-frame feature %d: %s\n',j,fn);
         
         % get per-frame data
         ndx = find(strcmp(fn,allperframefns));
@@ -2135,7 +2136,7 @@ classdef JLabelData < matlab.mixin.Copyable
           x_curr(:,end+1:end+i1-i11) = nan;
         end
         
-        x_curr_all{j} = x_curr;
+        x_curr_all{j} = single(x_curr);
         feature_names_all{j} = feature_names_curr;
         
       end
@@ -2156,7 +2157,7 @@ classdef JLabelData < matlab.mixin.Copyable
             'of examples for previous features'],fn);
           X(end+1:end+nnew-nold,:) = nan;
         end
-        X = [X,x_curr']; %#ok<AGROW>
+        X(:,end+1:end+size(x_curr,1)) = x_curr';
         % add the feature names
         feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
       end
@@ -2164,7 +2165,7 @@ classdef JLabelData < matlab.mixin.Copyable
       %         msg = getReport(ME);
       %         return;
       %       end
-      X = single(X);
+      %X = single(X);
       success = true;
      
     end  % method
