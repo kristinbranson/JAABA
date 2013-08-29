@@ -5197,9 +5197,18 @@ classdef JLabelData < matlab.mixin.Copyable
         allScores.tEnd(fly) = tEnd;
         allScores.postprocessed{fly}(tStart:tEnd) = self.predictdata{expi}{fly}.cur_pp;
       end
+      
+      if scores_valid
+        allScores.postprocessparams = obj.postprocessparams;
+        for flies = 1:numFlies
+          [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
+          allScores.t0s{flies} = i0s;
+          allScores.t1s{flies} = i1s;
+        end
+        allScores.scoreNorm = obj.windowdata.scoreNorm;
 
       % Need to compute scores.
-      if ~scores_valid
+      else 
         allScores = self.PredictWholeMovie(expi);
       end
       
