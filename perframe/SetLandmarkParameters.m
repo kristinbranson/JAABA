@@ -1,5 +1,5 @@
 function trx = SetLandmarkParameters(trx,arenatype,arenacenterx,arenacentery,...
-  arenaradius,arenawidth,arenaheight)
+  arenaradius,arenawidth,arenaheight,roi)
 
 switch lower(arenatype),
   case 'none',
@@ -17,4 +17,8 @@ switch lower(arenatype),
       trx(i).arena.bl = [arenacenterx - arenawidth/2,arenacentery + arenaheight/2];
       trx(i).arena.br = [arenacenterx + arenawidth/2,arenacentery + arenaheight/2];
     end
+end
+
+for i = 1:numel(trx),
+  trx(i).roi=roi;
 end
