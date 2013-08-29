@@ -5199,13 +5199,14 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       if scores_valid
-        allScores.postprocessparams = obj.postprocessparams;
-        for flies = 1:numFlies
+        self.SetStatus(sprintf('Exporting existing scores for movie %d:%s...',expi,self.expnames{expi}));
+        allScores.postprocessparams = self.postprocessparams;
+        for flies = 1:self.nflies_per_exp(expi)
           [i0s,i1s] = get_interval_ends(allScores.postprocessed{flies}>0);
           allScores.t0s{flies} = i0s;
           allScores.t1s{flies} = i1s;
         end
-        allScores.scoreNorm = obj.windowdata.scoreNorm;
+        allScores.scoreNorm = self.windowdata.scoreNorm;
 
       % Need to compute scores.
       else 
@@ -5234,7 +5235,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       allScores = struct('scores',{{}},'tStart',[],'tEnd',[],...
-                         'postprocessed',{{}},'postprocessedparams',[]);
+                         'postprocessed',{{}},'postprocessparams',[]);
       scores_valid = true;
       for fly = 1:self.nflies_per_exp(expi)
         
