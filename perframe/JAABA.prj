@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment-project plugin="plugin.deploytool" plugin-version="1.0">
-  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.zip" build-checksum="1421485856" preferred-package-location="C:\Code\Jdetect\perframe">
+  <configuration target="target.standalone" target-name="Console Application" name="JAABA" location="C:\Code\Jdetect\perframe" file="C:\Code\Jdetect\perframe\JAABA.prj" preferred-package-type="package.type.zip" build-checksum="4056652667" preferred-package-location="C:\Code\Jdetect">
     <param.project.name>C:\Code\Jdetect\perframe\JAABA.prj</param.project.name>
     <param.target.type>Console Application</param.target.type>
     <param.appname>JAABA</param.appname>
@@ -454,7 +454,11 @@
         <directory>C:\Code\Jdetect\filehandling</directory>
         <directory>C:\Code\Jdetect\misc</directory>
         <directory>C:\Code\Jdetect\perframe</directory>
-        <directory>C:\Users\bransonk\Documents\MATLAB</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis</directory>
+        <directory>${PROJECT_ROOT}\compute_perframe_features</directory>
+        <directory>${PROJECT_ROOT}\..\..\MAGATAnalyzer-Matlab-Analysis\utility functions</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\demos</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph2d</directory>
         <directory>${MATLAB_ROOT}\toolbox\matlab\graph3d</directory>

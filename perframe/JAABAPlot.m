@@ -795,17 +795,29 @@ else
 end
 update_figure(handles);
 
-if ~isdeployed
-  javaaddpath(fullfile(baseDir,'misc','javasysmon-0.3.4.jar'));
-else
-  javaaddpath('javasysmon-0.3.4.jar');
+addedsystemmonitor = false;
+try
+  if ~isdeployed
+    javaaddpath(fullfile(baseDir,'misc','javasysmon-0.3.4.jar'));
+    addedsystemmonitor = true;
+  else
+    javaaddpath('javasysmon-0.3.4.jar');
+    addedsystemmonitor = true;
+  end
+  catch ME,
+    fprintf('Could not add javasysmon to path, disabling system monitor:\n%s\n',getReport(ME));
 end
-import com.jezhumble.javasysmon.JavaSysMon.*
-handles.system_monitor.object=com.jezhumble.javasysmon.JavaSysMon();
-handles.system_monitor.timer=timer('Name','system_monitor','Period',1,'ExecutionMode','fixedRate',...
+
+if addedsystemmonitor,
+  import com.jezhumble.javasysmon.JavaSysMon.*
+  handles.system_monitor.object=com.jezhumble.javasysmon.JavaSysMon();
+  handles.system_monitor.timer=timer('Name','system_monitor','Period',1,'ExecutionMode','fixedRate',...
     'TimerFcn',@(hObject,eventdata)system_monitor_callback(hObject,eventdata,handles));
-warning('off','MATLAB:Java:ConvertFromOpaque');
-start(handles.system_monitor.timer);
+  warning('off','MATLAB:Java:ConvertFromOpaque');
+  start(handles.system_monitor.timer);
+else
+  handles.system_monitor = [];
+end
 
 
 % Choose default command line output for JAABAPlot
@@ -872,8 +884,14 @@ function figure_CloseRequestFcn(hObject, eventdata)
 
 handles=guidata(hObject);
 
-stop(handles.system_monitor.timer);
-delete(handles.system_monitor.timer);
+if ~isempty(handles.system_monitor),
+  try
+    stop(handles.system_monitor.timer);
+    delete(handles.system_monitor.timer);
+  catch ME,
+    fprintf('Error stopping system monitor:\n%s\n',getReport(ME));
+  end
+end
 handles.system_monitor=[];
 
 filename = handles.rcfilename;
@@ -1223,10 +1241,44 @@ set(handles.Status,'string','Thinking...','foregroundcolor','b');
 set(handles.figure1,'pointer','watch');
 drawnow;
 
-if(~exist(fullfile(newexperiments{1},handles.perframe_dir)))
-  uigetdir(newexperiments{1},...
-      ['can''t find ' handles.perframe_dir '.  what is the name of the perframe directory?']);
-  [~,handles.perframe_dir,~]=fileparts(ans);
+if(~exist(fullfile(newexperiments{1},handles.perframe_dir),'dir'))
+
+  [~,name] = fileparts(newexperiments{1});
+  res = questdlg(sprintf('Cannot find per-frame directory in default location %s, Generate per-frame data, Locate per-frame directory, or Cancel?',fullfile(name,'perframe')),'Per-Frame Directory Not Found','Generate Per-Frame Data','Locate Per-Frame Directory','Cancel','Cancel');
+  if strcmp(res,'Cancel'),
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    drawnow;
+    return;
+  elseif strcmp(res,'Generate Per-Frame Data'),
+    if ~(isfield(handles,'perframe_dir') && ischar(handles.perframe_dir) && ~isempty(handles.perframe_dir)),
+      handles.perframe_dir = 'perframe';
+    end
+    if ~(isfield(handles,'trx_file') && ischar(handles.trx_file) && ~isempty(handles.trx_file)) || ...
+        ~exist(fullfile(newexperiments{1},handles.trx_file),'file'),
+      filecurr = uigetfile(fullfile(newexperiments{1},'*.mat'),sprintf('Select trx file for %s',newexperiments{i}));
+      if ~ischar(filecurr),
+        set(handles.Status,'string','Ready.','foregroundcolor','g');
+        set(handles.figure1,'pointer','arrow');
+        drawnow;
+        return;
+      end
+      handles.trx_file = filecurr;
+    end 
+    perframetrx = Trx('trxfilestr',handles.trx_file,...
+      'perframedir',handles.perframe_dir);
+    perframetrx.AddExpDir(newexperiments{1},'dooverwrite',false,'openmovie',false);
+  else
+    res = uigetdir2(newexperiments{1},...
+      'Select per-frame directory');
+    if isempty(res),
+      set(handles.Status,'string','Ready.','foregroundcolor','g');
+      set(handles.figure1,'pointer','arrow');
+      drawnow;
+      return;
+    end
+    [~,handles.perframe_dir,~]=fileparts(res);
+  end
 end
 
 handlesfeatures=cell(1,length(newexperiments));
