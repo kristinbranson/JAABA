@@ -84,6 +84,22 @@ for i = 1:length(trx),
   trx(i).matname = matname;
 end
 
+% make everything column matrices
+fns = fieldnames(trx);
+for i = 1:numel(fns),
+  % don't do this for things that aren't numeric
+  if any(~cellfun(@(x) isnumeric(x),{trx.(fns{i})})),
+    continue;
+  end
+  % don't do this for things that have more than one dimension
+  if any(cellfun(@(x) nnz(size(x)>1)>1,{trx.(fns{i})}));
+    continue;
+  end
+  for j = 1:numel(trx),
+    trx(j).(fns{i}) = trx(j).(fns{i})(:)';
+  end
+end
+
 succeeded = true;
 if verbose,
   fprintf('Done. returning from load_tracks\n');
