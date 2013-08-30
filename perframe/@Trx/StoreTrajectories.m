@@ -109,6 +109,14 @@ if ~setlandmarkparams,
   end
 end
 
+if isfield(traj(1),'roi2') 
+  count = 1;
+  for ndx = flies(:)'
+    obj.roi2{n}.data{ndx} = traj(count).roi2;
+    count = count+1;
+  end
+end
+
 % fps
 if isfield(traj,'fps'),
   obj.fps(n) = traj(1).fps;
@@ -122,6 +130,7 @@ end
 %   obj.landmark_params{n} = obj.default_landmark_params;
 % end
 % roi
+
 if isfield(traj,'roi'),
   for i = 1:numel(flies),
     obj.roi(flies(i)) = traj(i).roi;
