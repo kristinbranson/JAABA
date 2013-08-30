@@ -87,7 +87,7 @@ for ndx = 1:nbehaviors
   end
 end
 
-if ~any(E(:))
+if any(E(:))
   order = graphtopoorder(sparse(E));
 else
   order = 1:nbehaviors;
