@@ -2114,7 +2114,7 @@ classdef JLabelData < matlab.mixin.Copyable
       parfor j = 1:numel(curperframefns),
       %for j = 1:numel(curperframefns),
         fn = curperframefns{j};
-        fprintf('Computing window data for per-frame feature %d: %s\n',j,fn);
+%        fprintf('Computing window data for per-frame feature %d: %s\n',j,fn);
         
         % get per-frame data
         ndx = find(strcmp(fn,allperframefns));
