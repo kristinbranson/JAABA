@@ -120,6 +120,8 @@ set(handles.edit_CropEndFrame,'String',num2str(handles.CropEndFrame));
 UpdateArenaParameters(handles);
 %set(handles.checkbox_ComputeArenaParameters,'Enable','off');
 
+UpdateROI(handles);
+
 function UpdateArenaSize(handles)
 
 if strcmpi(handles.ArenaType,'None'),
@@ -317,7 +319,7 @@ handles.config_fns = {'InputDataType','SoftLinkFiles','flipud','fliplr','dotrans
   'fps','pxpermm','OverRideFPS','OverRideArena','ArenaType','ArenaCenterX','ArenaCenterY',...
   'ArenaRadius','ArenaWidth','ArenaHeight',...
   'inputdir','ExperimentDirectory','moviefilestr',...
-  'trxfilestr','perframedirstr','inputfilestrs','inputmoviefilestr'};
+  'trxfilestr','perframedirstr','inputfilestrs','inputmoviefilestr','ROIdata'};
 
 handles.InputDataType = 'Ctrax';
 handles.SoftLinkFiles = false;
@@ -336,6 +338,7 @@ handles.ArenaWidth = 123;
 handles.ArenaHeight = 123;
 handles.CropFirstFrame = 1;
 handles.CropEndFrame = inf;
+handles.ROIdata = [];
 
 handles.inputdir = '';
 defaultExpDir = sprintf('Exp%s',datestr(now,'yyyymmddTHHMMSS'));
@@ -638,29 +641,7 @@ if isempty(handles.InputVideoFile),
   return;
 end
 
-SetBusy(handles,sprintf('Opening video file %s',handles.InputVideoFile));
-[readframe,nframes,fid,headerinfo] = get_readframe_fcn(handles.InputVideoFile);
-
-% choose a frame
-t = round(nframes/2);
-im = readframe(t);
-hfig = 1000;
-figure(hfig);
-clf;
-hax = gca;
-if size(im,3) > 1,
-  image(im);
-else
-  imagesc(im,'Parent',hax);
-  colormap gray;
-end
-axis(hax,'image');
-hold(hax,'on');
-if fid > 1,
-  fclose(fid);
-end
-
-ClearBusy(handles);
+hax=plot_regions(handles);
 
 hinstr = nan;
 
@@ -850,6 +831,8 @@ switch lower(handles.ArenaType),
     
 end
   
+plot_regions(handles);
+
 if ishandle(hinstr), 
   delete(hinstr); 
 end
@@ -914,6 +897,7 @@ try
   'arenaradius',handles.ArenaRadius,...
   'arenawidth',handles.ArenaWidth,...
   'arenaheight',handles.ArenaHeight,...
+  'roi',handles.ROIdata,...
   'frameinterval',[handles.CropFirstFrame,handles.CropEndFrame]);
 
 catch ME,
@@ -1253,6 +1237,10 @@ set(handles.edit_centery,'String',num2str(handles.ArenaCenterY));
 set(handles.edit_pxpermm,'String',num2str(handles.pxpermm));
 
 UpdateArenaSize(handles);
+
+function UpdateROI(handles)
+
+set(handles.ROItable,'Data',handles.ROIdata);
 
 % --- Executes on button press in pushbutton_ReadFPS.
 function pushbutton_ReadFPS_Callback(hObject, eventdata, handles)
@@ -1771,3 +1759,268 @@ if isdeployed,
 else
   web('-browser',html_file);
 end
+
+
+% --- Executes on button press in AddROI.
+function AddROI_Callback(hObject, eventdata, handles)
+% hObject    handle to AddROI (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isempty(handles.InputVideoFile),
+  warndlg('Input video file has not yet been set, can''t show a sample frame');
+  return;
+end
+
+hax=plot_regions(handles);
+
+hinstr = nan;
+
+switch lower(questdlg('Shape of ROI?','','Circle','Rectangle','Cancel','Circle')),
+  case 'circle',
+    title('Label circular ROI');
+    hinstr = msgbox({'Click to enter points on the circular ROI.'
+      'Use normal button clicks to add points to the '
+      'polyline.  A shift-, right-, or double-click adds '
+      'a final point and ends the polyline selection.  '
+      'Pressing RETURN or ENTER ends the polyline '
+      'selection without adding a final point.  Pressing '
+      'BACKSPACE or DELETE removes the previously '
+      'selected point from the polyline.'},...
+      'Label Circular Arena Wall');
+        
+    while true,
+      [xc,yc,radius,h] = fitcircle_manual(hax,'g');
+      if isempty(xc),
+        return;
+      end
+      axis(hax,'image');
+      res = questdlg('Are you happy with the results?','','Yes','Redo','Cancel','Yes');
+      switch lower(res),
+        case 'redo',
+          if any(ishandle(h)),
+            delete(h(ishandle(h)))
+          end
+          continue;
+        case 'cancel',
+          if any(ishandle(h)),
+            delete(h(ishandle(h)));
+          end
+          if ishandle(hinstr), delete(hinstr); end
+          return;
+        case 'yes',
+          break;
+      end
+    end
+
+    handles.ROIdata(end+1,:) = [xc yc radius nan];
+    guidata(hObject,handles);
+    
+    
+  case 'rectangle',
+    title('Label rectangular ROI');
+    hinstr = msgbox({'Outline the rectangular ROI.'
+      'Use the mouse to click and drag the desired rectangle.'},...
+      'Label Rectangular Arena Wall');
+    while true,
+
+      try
+        rect = getrect(hax);
+      catch  %#ok<CTCH>
+        return;
+      end
+      if isempty(rect),
+        return;
+      end
+      xc = rect(1)+rect(3)/2;
+      yc = rect(2)+rect(4)/2;
+      width = rect(3);
+      height = rect(4);
+
+      % display the calculated center
+      h = [];
+      h(1) = plot(xc,yc,'gx','LineWidth',2);
+      h(2) = text(xc,yc,sprintf('  (%.1f, %.1f)',xc,yc),'Color','g','FontWeight','bold');
+
+      % plot the rectangle
+      h(3) = plot(xc+width*.5*[-1,-1,1,1,-1],yc+height*.5*[-1,1,1,-1,-1],'g-','LineWidth',2);
+
+      message = sprintf('Width is %.1f pixels, height is %.1f pixels',width,height);
+      h(4) = text(15,15,message,'Color','g','FontWeight','bold','BackgroundColor','k');
+      
+      axis(hax,'image');
+      res = questdlg('Are you happy with the results?','','Yes','Redo','Cancel','Yes');
+      switch lower(res),
+        case 'redo',
+          if any(ishandle(h)),
+            delete(h(ishandle(h)));
+          end
+          continue;
+        case 'cancel',
+          if any(ishandle(h)),
+            delete(h(ishandle(h)));
+          end
+          if ishandle(hinstr), delete(hinstr); end
+          return;
+        case 'yes',
+          break;
+      end
+    end
+
+    handles.ROIdata(end+1,:) = [xc yc width height];
+    guidata(hObject,handles);
+end
+        
+UpdateROI(handles);
+  
+if ishandle(hinstr), 
+  delete(hinstr); 
+end
+
+
+% --- Executes on button press in DeleteROI.
+function DeleteROI_Callback(hObject, eventdata, handles)
+% hObject    handle to DeleteROI (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isempty(handles.InputVideoFile),
+  warndlg('Input video file has not yet been set, can''t show a sample frame');
+  return;
+end
+
+hax=plot_regions(handles);
+
+hinstr = nan;
+
+title('ROI to delete');
+hinstr = msgbox({'Click on ROI to delete.'});
+
+while true,
+  figure(get(hax,'parent'));
+  [x,y]=ginput(1);
+  axis(hax,'image');
+  
+  distance=[];
+  for i=1:size(handles.ROIdata,1)
+    xc = handles.ROIdata(i,1);
+    yc = handles.ROIdata(i,2);
+    distance(i) = sqrt((x-xc)^2+(y-yc)^2);
+    switch isnan(handles.ROIdata(i,4))
+      case 1
+        radius = handles.ROIdata(i,3);
+        distance(i) = distance(i) - radius;
+      case 0
+        width = handles.ROIdata(i,3);
+        height = handles.ROIdata(i,4);
+        direction = atan((y-yc)/(x-xc));
+        if direction < atan(height/width)
+          distance(i) = distance(i) - height/2/cos(direction);
+        else
+          distance(i) = distance(i) - width/2/cos(direction);
+        end
+    end
+  end
+  idx=argmin(abs(distance));
+  h=plot_region(handles.ROIdata(idx,:),'y-');
+
+  res = questdlg('Are you happy with the results?','','Yes','Redo','Cancel','Yes');
+  switch lower(res),
+    case 'redo',
+      if any(ishandle(h)),
+        delete(h(ishandle(h)))
+      end
+      continue;
+    case 'cancel',
+      if any(ishandle(h)),
+        delete(h(ishandle(h)))
+      end
+      if ishandle(hinstr), delete(hinstr); end
+      return;
+    case 'yes',
+      break;
+  end
+end
+
+handles.ROIdata(idx,:)=[];
+guidata(hObject,handles);
+
+UpdateROI(handles);
+
+plot_regions(handles);
+
+if ishandle(hinstr), 
+  delete(hinstr); 
+end
+
+function hax=plot_regions(handles)
+
+SetBusy(handles,sprintf('Opening video file %s',handles.InputVideoFile));
+[readframe,nframes,fid,headerinfo] = get_readframe_fcn(handles.InputVideoFile);
+
+% choose a frame
+t = round(nframes/2);
+im = readframe(t);
+hfig = 1000;
+figure(hfig);
+clf;
+hax = gca;
+if size(im,3) > 1,
+  image(im);
+else
+  imagesc(im,'Parent',hax);
+  colormap gray;
+end
+axis(hax,'image');
+hold(hax,'on');
+if fid > 1,
+  fclose(fid);
+end
+
+ClearBusy(handles);
+
+if(strcmp(handles.ArenaType,'circle'))
+  regions=[handles.ArenaCenterX handles.ArenaCenterY handles.ArenaRadius];
+else
+  regions=[handles.ArenaCenterX handles.ArenaCenterY handles.ArenaWidth handles.ArenaHeight];
+end
+regions=[regions; handles.ROIdata];
+
+for i=1:size(regions,1)
+  color='g-';  if (i==1)  color='m-';  end
+  plot_region(regions(i,:),color);
+end
+
+
+function h=plot_region(coords,color)
+
+xc = coords(1);
+yc = coords(2);
+switch isnan(coords(4))
+  case 1
+    radius = coords(3);
+    theta = 0:0.01:2*pi;
+    Xfit = radius*cos(theta) + xc;
+    Yfit = radius*sin(theta) + yc;
+    h=plot(Xfit, Yfit, color,'LineWidth',2);
+  case 0
+    width = coords(3);
+    height = coords(4);
+    h=plot(xc+width*.5*[-1,-1,1,1,-1], yc+height*.5*[-1,1,1,-1,-1], color, 'LineWidth',2);
+end
+
+
+% --- Executes when entered data in editable cell(s) in ROItable.
+function ROItable_CellEditCallback(hObject, eventdata, handles)
+% hObject    handle to ROItable (see GCBO)
+% eventdata  structure with the following fields (see UITABLE)
+%	Indices: row and column indices of the cell(s) edited
+%	PreviousData: previous data for the cell(s) edited
+%	EditData: string(s) entered by the user
+%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+%	Error: error string when failed to convert EditData to appropriate value for Data
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.ROIdata = get(handles.ROItable,'Data');
+plot_regions(handles);
+guidata(hObject,handles);
