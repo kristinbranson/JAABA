@@ -6131,9 +6131,9 @@ flystr = sprintf('%d, ',handles.data.flies);
 flystr = flystr(1:end-2);
 SetStatus(handles,sprintf('Saving AVI for experiment %s, %s %s, frames %d to %d...',...
   handles.data.expnames{handles.data.expi},handles.data.targettype,flystr,clip.t0,clip.t1));
-clipsdir = 'touchclips';
+%clipsdir = 'touchclips';
 
-handles = make_jlabel_results_movie(handles,clip.t0,clip.t1,'clipsdir',clipsdir);
+handles = make_jlabel_results_movie(handles,clip.t0,clip.t1);
 ClearStatus(handles);
 
 %{
