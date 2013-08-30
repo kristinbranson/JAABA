@@ -72,6 +72,8 @@
   <centralheadmag trans_types="none,relative" type="appearance"/>
   <ratioarealength trans_types="none,relative" type="appearance"/>
   <spinelength trans_types="none,relative" type="appearance"/>
+  <normlength trans_types="none" type="appearance"/>
+  <dnormlength trans_types="none" type="appearance"/>
   <tailcentralang trans_types="none" type="position"/>
   <tailcentralmag trans_types="none,relative" type="appearance"/>
   <tailheadang trans_types="none" type="position"/>

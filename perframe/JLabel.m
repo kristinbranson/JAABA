@@ -1032,9 +1032,6 @@ for i = axes2,
         end
         Mlastused.Data(j_next) = now;
 
-%         minFirstFrame = min(cell2mat(handles.data.GetFirstFrames(handles.data.expi)));
-%         maxEndFrame = max(cell2mat(handles.data.GetEndFrames(handles.data.expi)));
-%         ts = min(max(minFirstFrame,handles.guidata.ts(i)+1),maxEndFrame);
         ts=handles.guidata.ts(i)+1;
         imnorm_next = compute_spacetime_transform(Mimage.Data(j_next).x, ...
             handles.data.GetTrxValues('X1',handles.data.expi,fly,ts), ...
@@ -1044,26 +1041,13 @@ for i = axes2,
             handles.data.GetTrxValues('B1',handles.data.expi,fly,ts),...
             handles.spacetime.meana, handles.spacetime.meanb);
 
-%         gradient = compute_spacetime_gradient(imnorm, imnorm_last,...
-%             handles.spacetime.binidx, handles.spacetime.nbins,...
-%             handles.data.trx(fly).dt(ts+handles.data.trx(fly).off));
         rb_nog(:,:,1)=imnorm_next;
         rb_nog(:,:,2)=imnorm;
         rb_nog(:,:,3)=imnorm;
-%         foo=double(reshape(imnorm,1,numel(imnorm)));
-%         foo_last=double(reshape(imnorm_last,1,numel(imnorm_last)));
-%         disp([num2str(ts) ': ' num2str(mean(foo)) '+/-' num2str(std(foo)) ', ' num2str(mean(foo_last)) '+/-' num2str(std(foo_last))]);
         exp_next = handles.data.expi;
         fly_next = fly;
         ts_next = ts;
         imnorm = imnorm_next;
-%         for l=1:length(handles.spacetime.featureboundaries)
-%         l=1;
-%         while(l<length(handles.spacetime.featurenames)) && ...
-%               isempty(find(strcmp(handles.spacetime.featurenames{l}, handles.data.allperframefns{handles.guidata.perframepropis}(11:end))))
-%           l = l+1;
-%         end
-%         if ishandle(handles.spacetime.fig)
         for l=1:length(handles.spacetime.mask)
           image(rb_nog,'parent',handles.spacetime.ax(l));
           axis(handles.spacetime.ax(l),'image');
@@ -5231,10 +5215,18 @@ else
     end
     tmp=nan(1,length(idx));
     for i=1:length(idx)
+      foo=handles.data.allperframefns{handles.guidata.perframepropis(idx(i))}(11:end);
+      if (length(foo)>11) && strcmp(foo(end-10:end),'_difference')
+        bar=regexp(foo,'t(\d+)_r','tokens','once');  bar=bar{1};
+        if((str2num(bar(1))+str2num(bar(2)))==10)
+          foo=['t' bar(1) '_r1'];
+        else
+          foo=['t' bar(1) '_r1_overlap'];
+        end
+      end
       tmp(i)=1;
       while(tmp(i)<length(handles.spacetime.featurenames)) && ...
-            isempty(find(strcmp(handles.spacetime.featurenames{tmp(i)}, ...
-              handles.data.allperframefns{handles.guidata.perframepropis(idx(i))}(11:end))))
+            isempty(find(strcmp(handles.spacetime.featurenames{tmp(i)}, foo)))
         tmp(i) = tmp(i)+1;
       end
     end
@@ -8312,8 +8304,10 @@ guidata(figureJLabel,handles);  % sync the guidata to handles
 successfullyOpened=false;
 openCancelled=false;
 keepTrying=true;
+findinrootdir = false;
 originalExpDirs=cell(0,1); 
 substituteExpDirs=cell(0,1);
+rootdir = '';
 while ~successfullyOpened && keepTrying ,
   try
     handles.data.openJabFile(fileNameAbs, ...
@@ -8326,30 +8320,67 @@ while ~successfullyOpened && keepTrying ,
     if isequal(excp.identifier,'JLabelData:expDirDoesNotExist') ,
       originalExpDir=excp.message;
       originalExpName=fileNameRelFromAbs(originalExpDir);
-      answer=questdlg(sprintf('Unable to open experiment directory %s.  Would you like to locate it manually?',originalExpName), ...
-                      'Unable to Open', ...
-                      'Yes, Locate It','No, Leave It Out and Discard All Labels For It','Cancel File Open', ...
-                      'Yes, Locate It');
-      if isempty(answer) || isequal(answer,'Cancel File Open')
-        keepTrying=false;
-        openCancelled=true;
-      elseif isequal(answer,'No, Leave It Out and Discard All Labels For It')
-        substituteExpDir='';  % Means to leave it out
-        originalExpDirs{end+1}=originalExpDir;  %#ok
-        substituteExpDirs{end+1}=substituteExpDir;  %#ok
-      else % Answer was 'Yes, Locate It'
-        [~,dname,~] = fileparts(originalExpName);
-        substituteExpDir= ...
-          uigetdir(handles.data.expdefaultpath, ...
-                   sprintf('Locate Experiment Directory %s',dname));
-        if isempty(substituteExpDir)
-          % means user hit Cancel button
+      if findinrootdir && ~isempty(findMatchingFolder(rootdir,originalExpName));
+        
+        originalExpDirs{end+1} = originalExpDir; %#ok<AGROW>
+        substituteExpDirs{end+1} = findMatchingFolder(rootdir,originalExpName); %#ok<AGROW>
+        
+      else
+        
+        answer=questdlg(sprintf('Unable to open experiment directory %s.  Would you like to locate it manually?',originalExpName), ...
+          'Unable to Open', ...
+          'Yes, Locate It','No, Leave It Out and Discard All Labels For It','Cancel File Open', ...
+          'Yes, Locate It');
+        if isempty(answer) || isequal(answer,'Cancel File Open')
           keepTrying=false;
-        else
+          openCancelled=true;
+        elseif isequal(answer,'No, Leave It Out and Discard All Labels For It')
+          substituteExpDir='';  % Means to leave it out
           originalExpDirs{end+1}=originalExpDir;  %#ok
           substituteExpDirs{end+1}=substituteExpDir;  %#ok
+          
+        else % Answer was 'Yes, Locate It'
+
+          fanswer=questdlg(sprintf('Locate just %s or others?',originalExpName), ...
+            'Locate directories', ...
+            'Locate just this experiment','Locate this and others in a rootdir','Cancel File Open', ...
+            'Locate just this experiment');
+          if isempty(answer) || isequal(answer,'Cancel File Open')
+            keepTrying=false;
+            openCancelled=true;
+            
+          elseif isequal(fanswer,'Locate this and others in a rootdir')
+            findinrootdir = true;
+            rootdir= ...
+              uigetdir(handles.data.expdefaultpath, ...
+              'Locate Root dir to find Experiment Directories');
+            
+            if isempty(rootdir)
+              % means user hit Cancel button
+              keepTrying=false;
+            end
+
+            if ~isempty(findMatchingFolder(rootdir,originalExpName))
+              originalExpDirs{end+1} = originalExpDir; %#ok<AGROW>
+              substituteExpDirs{end+1} = findMatchingFolder(rootdir,originalExpName); %#ok<AGROW>
+            end
+            
+          else
+            
+            [~,dname,~] = fileparts(originalExpName);
+            substituteExpDir= ...
+              uigetdir(handles.data.expdefaultpath, ...
+              sprintf('Locate Experiment Directory %s',dname));
+            if isempty(substituteExpDir)
+              % means user hit Cancel button
+              keepTrying=false;
+            else
+              originalExpDirs{end+1}=originalExpDir;  %#ok
+              substituteExpDirs{end+1}=substituteExpDir;  %#ok
+            end
+          end
         end
-      end
+      end % rootdir
     else
       message=getReport(excp,'extended','hyperlinks','off');
       keepTrying=false;

@@ -101,7 +101,10 @@ catch
 
       imnorm_last=imnorm;
     end
-    fclose(fid);
+    try  % could also set fid=-1 for .seq in get_readframe_fcn and then if(fid~=-1) here...
+      fclose(fid);
+    catch
+    end
   end
   
   tmp=cell(1,nflies);
@@ -124,11 +127,28 @@ catch
   save(fullfile(trx.expdirs{n},trx.perframedir,'spacetime.mat'),'data','units','featurenames');
 end
 
-idx=[];  idx2=0;
-while isempty(idx) && (idx2<length(featurenames))
-  idx2 = idx2+1;
-  idx=find(strcmp(featurenames{idx2},['t' num2str(theta_in) '_r' num2str(r_in) type_in]));
-end
-for i=1:length(data)
-  data{i}=data{i}{idx2}(idx,:);
+if ~strcmp(type_in,'_difference')
+  idx=[];  idx2=0;
+  while isempty(idx) && (idx2<length(featurenames))
+    idx2 = idx2+1;
+    idx=find(strcmp(featurenames{idx2},['t' num2str(theta_in) '_r' num2str(r_in) type_in]));
+  end
+  for i=1:length(data)
+    data{i}=data{i}{idx2}(idx,:);
+  end
+else
+  theta_in=num2str(theta_in);
+  idx=[];  idx2=0;
+  while isempty(idx) && (idx2<length(featurenames))
+    idx2 = idx2+1;
+    idx=find(strcmp(featurenames{idx2},['t' theta_in(1) '_r' num2str(r_in)]));
+  end
+  idxb=[];  idx2b=0;
+  while isempty(idxb) && (idx2b<length(featurenames))
+    idx2b = idx2b+1;
+    idxb=find(strcmp(featurenames{idx2b},['t' theta_in(2) '_r' num2str(r_in)]));
+  end
+  for i=1:length(data)
+    data{i} = abs(data{i}{idx2}(idx,:) - data{i}{idx2b}(idxb,:));
+  end
 end
