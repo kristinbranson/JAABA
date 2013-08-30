@@ -1,4 +1,4 @@
-function [xc,yc,radius,h] = fitcircle_manual(hfig)
+function [xc,yc,radius,h] = fitcircle_manual(hfig,color)
 
 xc = [];
 yc = [];
@@ -32,8 +32,8 @@ yc = -b/2;
 radius  =  sqrt((xc^2+yc^2)-c);
 
 % display the calculated center
-h(1) = plot(xc,yc,'mx','LineWidth',2);
-h(2) = text(xc,yc,sprintf('  (%.1f, %.1f)',xc,yc),'Color','m','FontWeight','bold');
+h(1) = plot(xc,yc,[color 'x'],'LineWidth',2);
+h(2) = text(xc,yc,sprintf('  (%.1f, %.1f)',xc,yc),'Color',color,'FontWeight','bold');
 
 % plot the entire circle
 theta = 0:0.01:2*pi;
@@ -43,7 +43,7 @@ theta = 0:0.01:2*pi;
 Xfit = radius*cos(theta) + xc;
 Yfit = radius*sin(theta) + yc;
 
-h(3) = plot(Xfit, Yfit,'m-','LineWidth',2);
+h(3) = plot(Xfit, Yfit,[color '-'],'LineWidth',2);
 
 message = sprintf('The estimated radius is %2.3f pixels', radius);
-h(4) = text(15,15,message,'Color','m','FontWeight','bold','BackgroundColor','k');
+h(4) = text(15,15,message,'Color',color,'FontWeight','bold','BackgroundColor','k');
