@@ -113,11 +113,11 @@
     
     <danglesub trans_types="none,abs" type="social"/>
     
-    <darea trans_types="none,abs,relatinve" type="appearance"/>
+    <darea trans_types="none,abs,relative" type="appearance"/>
     
-    <da trans_types="none,abs,relatinve" type="appearance"/>
+    <da trans_types="none,abs,relative" type="appearance"/>
     
-    <db trans_types="none,abs,relatinve" type="appearance"/>
+    <db trans_types="none,abs,relative" type="appearance"/>
 
     <dcenter trans_types="none,relative" type="social"/>
     
@@ -125,7 +125,7 @@
     
     <ddist2wall trans_types="none" type="arena"/>
     
-    <decc trans_types="none,abs,relatinve" type="appearance"/>
+    <decc trans_types="none,abs,relative" type="appearance"/>
     
     <dell2nose trans_types="none,relative" type="social"/>
     
@@ -136,6 +136,8 @@
     <dnose2ell_angle_min30to30 trans_types="none" type="social"/>
     
     <dist2wall trans_types="none,relative" type="arena"/>
+    
+    <dist2roi trans_types="none,relative" type="arena"/>
     
     <dnose2ell trans_types="none,relative" type="social"/>
     
