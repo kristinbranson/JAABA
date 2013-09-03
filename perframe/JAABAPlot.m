@@ -335,9 +335,14 @@ end
 function [fps,trxfile]=get_fps(expdir,trxfile)
 
 filename=fullfile(expdir,trxfile);
-if(~exist(filename))
+if(~exist(filename) || isempty(trxfile))
   [trxfile,~,~]=uigetfile(fullfile(expdir,'*.mat'),...
-      ['can''t find ' trxfile '.  what is the name of the tracks file?']);
+      sprintf('Select trx file for %s',expdir));
+  if(isnumeric(trxfile) && (trxfile==0))
+    fps=nan;
+    trxfile='';
+    return;
+  end
   filename=fullfile(expdir,trxfile);
   %[fps,trxfile]=get_fps(expdir,trxfile);
   %return;
@@ -1281,6 +1286,19 @@ if(~exist(fullfile(newexperiments{1},handles.perframe_dir),'dir'))
   end
 end
 
+if(isnan(handles.fps))
+%if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
+%  classifier=load(handles.classifierlist{1});
+%  handles.fps=get_fps(fullfile(newexperiments{1},classifier.trxfilename));
+  [handles.fps,handles.trx_file]=get_fps(newexperiments{1},handles.trx_file);
+  if(isempty(handles.trx_file))
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    drawnow;
+    return;
+  end
+end
+
 handlesfeatures=cell(1,length(newexperiments));
 handlessexdata=cell(1,length(newexperiments));
 handlesindividualsbehavior=zeros(length(newexperiments),length(handles.scorefiles));
@@ -1374,13 +1392,6 @@ else
   handlessexdata=handlessexdata(ridx);
   handlesindividualsbehavior=handlesindividualsbehavior(ridx,:);
   handlesindividualsfeature=handlesindividualsfeature(ridx);
-end
-
-if(isnan(handles.fps))
-%if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
-%  classifier=load(handles.classifierlist{1});
-%  handles.fps=get_fps(fullfile(newexperiments{1},classifier.trxfilename));
-  [handles.fps,handles.trx_file]=get_fps(newexperiments{1},handles.trx_file);
 end
 
 handles.features={handles.features{:} handlesfeatures{:}};
