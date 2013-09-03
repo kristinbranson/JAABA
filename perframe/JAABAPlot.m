@@ -1767,6 +1767,17 @@ set(handles.figure1,'pointer','arrow');
 drawnow;
 
 
+% ---
+function delete_classifer_check_table()
+
+hh=findobj('type','figure');
+for h=1:length(hh)
+  if(strcmp(get(hh(h),'name'),'classifier check'))
+    close(hh(h));
+  end
+end
+
+
 % --- Executes on button press in ClassifierAdd.
 function ClassifierAdd_Callback(hObject, eventdata, handles)
 % hObject    handle to ClassifierAdd (see GCBO)
@@ -1789,6 +1800,8 @@ drawnow;
 
 handles=classifier_add(handles,newclassifiers);
 update_figure(handles);
+
+delete_classifer_check_table();
 
 guidata(hObject,handles);
 
@@ -1827,6 +1840,8 @@ update_figure(handles);
 
 handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
+
+delete_classifer_check_table();
 
 guidata(hObject,handles);
 
@@ -1882,6 +1897,8 @@ if(length(classifiers_notfound)>2)
 end
 
 update_figure(handles);
+
+delete_classifer_check_table();
 
 guidata(hObject,handles);
 
