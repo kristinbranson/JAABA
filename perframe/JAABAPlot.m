@@ -2063,7 +2063,7 @@ delete(fullfile(tempdir,'progressbar.txt'));
 %  return;
 %end
 
-handles=update_experiment_data(handles,false,false,true);
+handles=update_experiment_data(handles,true,true,true);
 update_figure(handles);
 
 handles.interestingfeaturehistograms_cache=[];
