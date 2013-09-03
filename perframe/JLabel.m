@@ -4426,7 +4426,7 @@ if strcmpi(eventdata.Modifier,'control')
         SetCurrentMovie(handles,handles.data.expi-1);
       end
     case '0'
-      if (handles.data.expi +1) < handles.data.nexps 
+      if (handles.data.expi +1) <= handles.data.nexps 
         SetCurrentMovie(handles,handles.data.expi+1);
       end
     case '1'
