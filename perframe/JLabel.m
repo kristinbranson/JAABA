@@ -5813,7 +5813,7 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
-  fprintf('Calling predictTimerCallback at time %s\n',datestr(now));
+  %fprintf('Calling predictTimerCallback at time %s\n',datestr(now));
   t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.data.t0_curr);
   t1 = min(t0+framesPerTick,handles.data.t1_curr);
   handles.data.Predict(handles.data.expi,handles.data.flies,t0,t1);
