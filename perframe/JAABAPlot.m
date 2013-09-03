@@ -4217,25 +4217,36 @@ for b=bb
     sex=nan(1,length(behavior_data.allScores.t0s));
 
     for i=1:length(behavior_data.allScores.t0s)  % individual
-      tmp1=zeros(1,behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1);
-      tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-      tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-      tmp1=logical(cumsum(tmp1));
+      tmp1 = compute_behavior_logic(behavior_data.allScores, i);
+      tmp1 = tmp1(behavior_data.allScores.tStart(i) : behavior_data.allScores.tEnd(i));
+%       tstart=behavior_data.allScores.tStart(i);
+%       tmp1=zeros(1,behavior_data.allScores.tEnd(i)-tstart+1);
+%       tmp1(behavior_data.allScores.t0s{i}-tstart+1)=1;
+%       tmp1(behavior_data.allScores.t1s{i}-tstart+1)=-1;
+%       tmp1=tmp1(1:(behavior_data.allScores.tEnd(i)-tstart+1));
+%       tmp1=logical(cumsum(tmp1));
 
       tmp2=[];
       if(behavior_logic>1)
-        tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-behavior_data2.allScores.tStart(i)+1);
-        tmp2(behavior_data2.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-        tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-        tmp2=logical(cumsum(tmp2));
+        tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
+        tmp2 = tmp1(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
+%         tstart=behavior_data2.allScores.tStart(i);
+%         tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-tstart+1);
+%         tmp2(behavior_data2.allScores.t0s{i}-tstart+1)=1;
+%         tmp2(behavior_data2.allScores.t1s{i}-tstart+1)=-1;
+%         tmp2=tmp2(1:(behavior_data2.allScores.tEnd(i)-tstart+1));
+%         tmp2=logical(cumsum(tmp2));
       end
 
       tmp3=[];
       if(handles.behaviorvalue3>1)
-        tmp3=zeros(1,behavior_data3.allScores.tEnd(i)-behavior_data3.allScores.tStart(i)+1);
-        tmp3(behavior_data3.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-        tmp3(behavior_data3.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-        tmp3=logical(cumsum(tmp3));
+        tmp3 = compute_behavior_logic(behavior_data3.allScores, i);
+        tmp3 = tmp1(behavior_data3.allScores.tStart(i) : behavior_data3.allScores.tEnd(i));
+%         tmp3=zeros(1,behavior_data3.allScores.tEnd(i)-behavior_data3.allScores.tStart(i)+1);
+%         tmp3(behavior_data3.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%         tmp3(behavior_data3.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%         tmp3=tmp3(1:(behavior_data3.allScores.tEnd(i)-tstart+1));
+%         tmp3=logical(cumsum(tmp3));
         if(handles.behaviornormalizenot)
           tmp3=~tmp3;
         end
@@ -4258,11 +4269,12 @@ for b=bb
       end
 
       % KB: for some reason partition_idx was of size > trajectory length
-      if numel(partition_idx) > numel(sex_data{i}),
-        warning('More frames of behaviors detected than frames in trajectory by %d',...
-            numel(partition_idx)-numel(sex_data{i}));
-        partition_idx = partition_idx(1:numel(sex_data{i}));
-      end
+      % BJA: problem was that t1s(end) is sometimes > than tEnd by 1.  fixed 40 lines above
+%       if numel(partition_idx) > numel(sex_data{i}),
+%         warning('More frames of behaviors detected than frames in trajectory by %d',...
+%             numel(partition_idx)-numel(sex_data{i}));
+%         partition_idx = partition_idx(1:numel(sex_data{i}));
+%       end
       
       sex(i)=sum(sex_data{i}(1:length(partition_idx))) > (length(partition_idx)/2);
       frames_labelled(i)=sum(partition_idx);
@@ -4535,6 +4547,17 @@ drawnow;
 
 
 % ---
+% returns a logical time series of when the behavior occurred
+function ret_val = compute_behavior_logic(allScores, i)
+
+ret_val=zeros(1,allScores.tEnd(i));
+ret_val(allScores.t0s{i})=1;
+ret_val(allScores.t1s{i})=-1;
+ret_val=logical(cumsum(ret_val));
+ret_val=ret_val(1:allScores.tEnd(i));
+
+        
+% ---
 function handles=behavior_timeseries_plot(handles)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
@@ -4598,7 +4621,7 @@ for b=bb
   raw_data=cell(length(ggee),length(individual));
   behavior_cumulative=cell(length(ggee),length(individual));
   parfor gei=1:numel(ggee),
-  %for gei=1:numel(ggee),
+%   for gei=1:numel(ggee),
     ge = ggee(gei);
     
     %if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
@@ -4634,25 +4657,16 @@ for b=bb
       for i=1:length(behavior_data.allScores.t0s)   % individual
         if(isnumeric(i2)&&(i2~=i))  continue;  end
 
-        tmp1=zeros(1,behavior_data.allScores.tEnd(i));
-        tmp1(behavior_data.allScores.t0s{i})=1;
-        tmp1(behavior_data.allScores.t1s{i})=-1;
-        tmp1=logical(cumsum(tmp1));
+        tmp1 = compute_behavior_logic(behavior_data.allScores, i);
 
         tmp2=[];
         if(behavior_logic>1)
-          tmp2=zeros(1,behavior_data2.allScores.tEnd(i));
-          tmp2(behavior_data2.allScores.t0s{i})=1;
-          tmp2(behavior_data2.allScores.t1s{i})=-1;
-          tmp2=logical(cumsum(tmp2));
+          tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
         end
 
         tmp3=[];
         if(handles.behaviorvalue3>1)
-          tmp3=zeros(1,behavior_data3.allScores.tEnd(i));
-          tmp3(behavior_data3.allScores.t0s{i})=1;
-          tmp3(behavior_data3.allScores.t1s{i})=-1;
-          tmp3=logical(cumsum(tmp3));
+          tmp3 = compute_behavior_logic(behavior_data3.allScores, i);
           if(handles.behaviornormalizenot)
             tmp3=~tmp3;
           end
@@ -4862,17 +4876,21 @@ inter_bout_lengths=cell(1,length(behavior_data.allScores.t0s));
 sex=cell(1,length(behavior_data.allScores.t0s));
 inter_sex=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)  % individual
-  tmp1=zeros(1,behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1);
-  tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-  tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-  tmp1=logical(cumsum(tmp1));
+  tmp1 = compute_behavior_logic(behavior_data.allScores, i);
+  tmp1 = tmp1(behavior_data.allScores.tStart(i) : behavior_data.allScores.tEnd(i));
+%   tmp1=zeros(1,behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1);
+%   tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%   tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%   tmp1=logical(cumsum(tmp1));
 
   tmp2=[];
   if(behavior_logic>1)
-    tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-behavior_data2.allScores.tStart(i)+1);
-    tmp2(behavior_data2.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-    tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-    tmp2=logical(cumsum(tmp2));
+    tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
+    tmp2 = tmp1(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
+%     tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-behavior_data2.allScores.tStart(i)+1);
+%     tmp2(behavior_data2.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%     tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%     tmp2=logical(cumsum(tmp2));
   end
 
   if(behaviornot)  tmp1=~tmp1;  end
