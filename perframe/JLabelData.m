@@ -7918,6 +7918,22 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.predictdata{expi}{flies}.cur(idxcurr);
     end
     
+    function predictions = GetPredictionsAllFlies(obj,expi,curt,fliesinrange)
+      
+      predictions = zeros(1,numel(fliesinrange));
+      
+      count = 1;
+      for curfly = fliesinrange(:)'
+        idxcurr = obj.predictdata{expi}{curfly}.cur_valid & ...
+          obj.predictdata{expi}{curfly}.t==curt;
+        if ~any(idxcurr); continue; end;
+        predictions(count) = obj.predictdata{expi}{curfly}.cur_pp(idxcurr);
+        count = count+1;
+      end
+      
+      
+    end
+    
     
     % ---------------------------------------------------------------------
     function scores = GetValidatedScores(obj,expi,flies,T0,T1)
