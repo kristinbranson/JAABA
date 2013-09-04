@@ -229,23 +229,24 @@ classdef NextJump < handle
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
-      scores = data.GetLoadedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
-
-      lowconfidx = false(size(scores));
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
-
-      j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
+      [~,predictedidx] = data.GetLoadedScores(expi,flies,t0,t1);
+%       predictedidx = double(scores~=0);
+%       predictedidx(scores>0) = 1;
+%       predictedidx(scores<0) = 2;
+% 
+%       lowconfidx = false(size(scores));
+%       for behaviori = 1:data.nbehaviors
+%         idxScores = (predictedidx == behaviori) & ...
+%           (abs(scores)<data.GetConfidenceThreshold(behaviori));
+%         lowconfidx(idxScores) = true;
+%       end
+% 
+%       j = find( (predictedidx ~= predictedidx(1)) & ~lowconfidx,1);
+      j = find( (predictedidx ~= predictedidx(1)) ,1);
       if isempty(j), return; end
       
       toUse = predictedidx(j:end);
-      toUse(lowconfidx(j:end)) = 0;
+%       toUse(lowconfidx(j:end)) = 0;
       k = find(ismember(toUse,obj.seek_behaviors_go),1);
       if isempty(k), return; end
       
@@ -258,23 +259,24 @@ classdef NextJump < handle
       if t0 >= ts, return; end
 
       t1 = min(max(ts,t0),t1);
-      scores = data.GetLoadedScores(expi,flies,t0,t1);
-      predictedidx = double(scores~=0);
-      predictedidx(scores>0) = 1;
-      predictedidx(scores<0) = 2;
-
-      lowconfidx = false(size(scores));
-      for behaviori = 1:data.nbehaviors
-        idxScores = (predictedidx == behaviori) & ...
-          (abs(scores)<data.GetConfidenceThreshold(behaviori));
-        lowconfidx(idxScores) = true;
-      end
-      
-      j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
+      [~,predictedidx] = data.GetLoadedScores(expi,flies,t0,t1);
+%       predictedidx = double(scores~=0);
+%       predictedidx(scores>0) = 1;
+%       predictedidx(scores<0) = 2;
+% 
+%       lowconfidx = false(size(scores));
+%       for behaviori = 1:data.nbehaviors
+%         idxScores = (predictedidx == behaviori) & ...
+%           (abs(scores)<data.GetConfidenceThreshold(behaviori));
+%         lowconfidx(idxScores) = true;
+%       end
+%       
+%       j = find( (predictedidx ~= predictedidx(end)) & ~lowconfidx,1,'last');
+      j = find( (predictedidx ~= predictedidx(end)) ,1,'last');
       if isempty(j), return; end
       
       toUse = predictedidx(1:j);
-      toUse(lowconfidx(1:j)) = 0;
+%       toUse(lowconfidx(1:j)) = 0;
       k = find(ismember(toUse,obj.seek_behaviors_go),1,'last');
       if isempty(k), return; end
       
