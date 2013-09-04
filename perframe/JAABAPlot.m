@@ -538,6 +538,47 @@ set(handles.BoutStats,'foregroundcolor',fg);
 set(handles.InterestingFeatureHistograms,'backgroundcolor',bg);
 set(handles.InterestingFeatureHistograms,'foregroundcolor',fg);
 analysis2=handles.analysis;
+
+if(isempty(handles.grouplist))
+  set(handles.GroupList,'String',{''},'Value',1);
+else
+  tmp=length(handles.grouplist);
+  cellstr(strcat(repmat('<html><font color=#"',tmp,1),...
+      reshape(dec2hex(round(handles.colors'*255),2)',6,size(handles.colors,1))',...
+      repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
+  set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
+end
+if(isempty(handles.experimentlist))
+  set(handles.ExperimentList,'String',{''},'Value',1);
+else
+  set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue});
+  set(handles.ExperimentList,'Value',handles.experimentvalue{handles.groupvalue});
+end
+if(isempty(handles.classifierlist))
+  set(handles.ClassifierList,'String',{''},'Value',1);
+else
+  set(handles.ClassifierList,'String',handles.classifierlist);
+  set(handles.ClassifierList,'Value',handles.classifiervalue);
+end
+if(isempty(handles.behaviorlist))
+  set(handles.BehaviorList,'String',{''},'Value',1);
+  set(handles.BehaviorList2,'String',{''},'Value',1);
+  set(handles.BehaviorList3,'String',{''},'Value',1);
+else
+  set(handles.BehaviorList,'String',{handles.behaviorlist{:} 'All behaviors'},'Value',handles.behaviorvalue);
+  set(handles.BehaviorList2,'String',handles.behaviorlist,'Value',handles.behaviorvalue2);
+  set(handles.BehaviorList3,'String',{'All frames' handles.behaviorlist{:}},'Value',handles.behaviorvalue3);
+end
+set(handles.BehaviorNot,'Value',handles.behaviornot);
+set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
+set(handles.BehaviorNormalizeNot,'Value',handles.behaviornormalizenot);
+if(isempty(handles.featurelist))
+  set(handles.FeatureList,'String',{''},'Value',1);
+else
+  set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
+end
+%set(handles.Table,'Data',[]);
+
 switch(handles.analysis)
   case 'feature_histogram'
     set(handles.FeatureHistogram,'backgroundcolor',fg);
@@ -546,6 +587,10 @@ switch(handles.analysis)
         'value',handles.featurehistogram_style);
     set(handles.StyleList2,'string',handles.featurehistogram_stylelist2,...
         'value',handles.featurehistogram_style2);
+    if(~isempty(handles.behaviorlist))
+      get(handles.BehaviorList,'String');
+      set(handles.BehaviorList,'String',{ans{:} 'All frames'});
+    end
     if(strcmp(get(handles.FeatureHistogram,'enable'),'off'))
       analysis2='';
     else
@@ -658,13 +703,15 @@ if(~isempty(analysis2))
       (length(handles.behaviorlist)>0))
     set(handles.BehaviorNot,'enable','on');
     set(handles.BehaviorList,'enable','on');
-    set(handles.BehaviorLogic,'enable','on');
+    if(length(handles.behaviorlist)>1)
+      set(handles.BehaviorLogic,'enable','on');
+    end
     if(handles.behaviorlogic>1)
       set(handles.BehaviorList2,'enable','on');
     end
   end
   if((ismember(analysis2,{'behavior_barchart','behavior_timeseries'})) && ...
-      (length(handles.behaviorlist)>0))
+      (length(handles.behaviorlist)>1))
     set(handles.BehaviorList3,'enable','on');
   end
   if(~isempty(handles.classifierlist) && (handles.behaviorvalue3>1))
@@ -684,46 +731,6 @@ if(~isempty(analysis2))
     set(handles.StyleList2,'enable','on');
   end
 end
-
-if(isempty(handles.grouplist))
-  set(handles.GroupList,'String',{''},'Value',1);
-else
-  tmp=length(handles.grouplist);
-  cellstr(strcat(repmat('<html><font color=#"',tmp,1),...
-      reshape(dec2hex(round(handles.colors'*255),2)',6,size(handles.colors,1))',...
-      repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
-  set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
-end
-if(isempty(handles.experimentlist))
-  set(handles.ExperimentList,'String',{''},'Value',1);
-else
-  set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue});
-  set(handles.ExperimentList,'Value',handles.experimentvalue{handles.groupvalue});
-end
-if(isempty(handles.classifierlist))
-  set(handles.ClassifierList,'String',{''},'Value',1);
-else
-  set(handles.ClassifierList,'String',handles.classifierlist);
-  set(handles.ClassifierList,'Value',handles.classifiervalue);
-end
-if(isempty(handles.behaviorlist))
-  set(handles.BehaviorList,'String',{''},'Value',1);
-  set(handles.BehaviorList2,'String',{''},'Value',1);
-  set(handles.BehaviorList3,'String',{''},'Value',1);
-else
-  set(handles.BehaviorList,'String',{handles.behaviorlist{:} 'All behaviors'},'Value',handles.behaviorvalue);
-  set(handles.BehaviorList2,'String',handles.behaviorlist,'Value',handles.behaviorvalue2);
-  set(handles.BehaviorList3,'String',{'All frames' handles.behaviorlist{:}},'Value',handles.behaviorvalue3);
-end
-set(handles.BehaviorNot,'Value',handles.behaviornot);
-set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
-set(handles.BehaviorNormalizeNot,'Value',handles.behaviornormalizenot);
-if(isempty(handles.featurelist))
-  set(handles.FeatureList,'String',{''},'Value',1);
-else
-  set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
-end
-%set(handles.Table,'Data',[]);
 
 menu_classify_forcecompute_set(handles);
 button_comparison_set(handles);
@@ -2127,6 +2134,7 @@ function BehaviorBarChart_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.analysis='behavior_barchart';
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2138,6 +2146,7 @@ function BehaviorTimeSeries_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.analysis='behavior_timeseries';
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2149,6 +2158,7 @@ function BoutStats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.analysis='bout_stats';
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2163,6 +2173,7 @@ handles.analysis='interesting_feature_histograms';
 handles.individualvalue=min(3,handles.individualvalue);
 tmp=cellfun(@(x) x(1),get(handles.IndividualList,'String'));
 handles.individualidx=tmp(handles.individualvalue);
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2173,7 +2184,7 @@ function Plot_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if(handles.behaviorvalue==(length(handles.behaviorlist)+1))
+if(handles.behaviorvalue>length(handles.behaviorlist))
   if((sum(sum(handles.individuals_behavior==-1))>0) || ...
      (sum(sum(diff(handles.individuals_behavior,[],2)~=0))>0))
     uiwait(errordlg('some experiments either have no individiuals or differ in the number of individuals across classifiers'));  drawnow;
@@ -2380,16 +2391,22 @@ during={};  not_during={};
 for i=1:length(behavior_data.allScores.t0s)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
 
-  tmp1=zeros(1,length(feature_data.data{i}));
-  tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-  tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-  tmp1=logical(cumsum(tmp1(1:length(feature_data.data{i}))));
+  tmp1 = compute_behavior_logic(behavior_data.allScores, i);
+  tstart = behavior_data.allScores.tStart(i);
+  tmp1 = tmp1(tstart : tstart+length(feature_data.data{i})-1);
+%   tmp1=zeros(1,length(feature_data.data{i}));
+%   tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%   tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%   tmp1=logical(cumsum(tmp1(1:length(feature_data.data{i}))));
   
   if(behavior_logic>1)
-    tmp2=zeros(1,length(feature_data.data{i}));
-    tmp2(behavior_data2.allScores.t0s{i}-behavior_data2.allScores.tStart(i)+1)=1;
-    tmp2(behavior_data2.allScores.t1s{i}-behavior_data2.allScores.tStart(i)+1)=-1;
-    tmp2=logical(cumsum(tmp2(1:length(feature_data.data{i}))));
+    tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
+    tstart = behavior_data2.allScores.tStart(i);
+    tmp2 = tmp1(tstart : tstart+length(feature_data.data{i})-1);
+%     tmp2=zeros(1,length(feature_data.data{i}));
+%     tmp2(behavior_data2.allScores.t0s{i}-behavior_data2.allScores.tStart(i)+1)=1;
+%     tmp2(behavior_data2.allScores.t1s{i}-behavior_data2.allScores.tStart(i)+1)=-1;
+%     tmp2=logical(cumsum(tmp2(1:length(feature_data.data{i}))));
   end
 
   if(behaviornot)  tmp1=~tmp1;  end
@@ -2670,8 +2687,11 @@ handles.type='feature histogram';
 hf=figure('toolbar','figure');
 
 bb=handles.behaviorvalue;
-if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
-if(strcmp(get(handles.BehaviorList,'enable'),'off'))  bb=0;  end
+if (bb==(length(handles.behaviorlist)+1))
+  bb=1:(bb-1);
+elseif((bb==(length(handles.behaviorlist)+2)) || (strcmp(get(handles.BehaviorList,'enable'),'off')))
+  bb=0;
+end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=[];
