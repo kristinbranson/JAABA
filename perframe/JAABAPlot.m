@@ -335,9 +335,14 @@ end
 function [fps,trxfile]=get_fps(expdir,trxfile)
 
 filename=fullfile(expdir,trxfile);
-if(~exist(filename))
+if(~exist(filename) || isempty(trxfile))
   [trxfile,~,~]=uigetfile(fullfile(expdir,'*.mat'),...
-      ['can''t find ' trxfile '.  what is the name of the tracks file?']);
+      sprintf('Select trx file for %s',expdir));
+  if(isnumeric(trxfile) && (trxfile==0))
+    fps=nan;
+    trxfile='';
+    return;
+  end
   filename=fullfile(expdir,trxfile);
   %[fps,trxfile]=get_fps(expdir,trxfile);
   %return;
@@ -533,6 +538,47 @@ set(handles.BoutStats,'foregroundcolor',fg);
 set(handles.InterestingFeatureHistograms,'backgroundcolor',bg);
 set(handles.InterestingFeatureHistograms,'foregroundcolor',fg);
 analysis2=handles.analysis;
+
+if(isempty(handles.grouplist))
+  set(handles.GroupList,'String',{''},'Value',1);
+else
+  tmp=length(handles.grouplist);
+  cellstr(strcat(repmat('<html><font color=#"',tmp,1),...
+      reshape(dec2hex(round(handles.colors'*255),2)',6,size(handles.colors,1))',...
+      repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
+  set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
+end
+if(isempty(handles.experimentlist))
+  set(handles.ExperimentList,'String',{''},'Value',1);
+else
+  set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue});
+  set(handles.ExperimentList,'Value',handles.experimentvalue{handles.groupvalue});
+end
+if(isempty(handles.classifierlist))
+  set(handles.ClassifierList,'String',{''},'Value',1);
+else
+  set(handles.ClassifierList,'String',handles.classifierlist);
+  set(handles.ClassifierList,'Value',handles.classifiervalue);
+end
+if(isempty(handles.behaviorlist))
+  set(handles.BehaviorList,'String',{''},'Value',1);
+  set(handles.BehaviorList2,'String',{''},'Value',1);
+  set(handles.BehaviorList3,'String',{''},'Value',1);
+else
+  set(handles.BehaviorList,'String',{handles.behaviorlist{:} 'All behaviors'},'Value',handles.behaviorvalue);
+  set(handles.BehaviorList2,'String',handles.behaviorlist,'Value',handles.behaviorvalue2);
+  set(handles.BehaviorList3,'String',{'All frames' handles.behaviorlist{:}},'Value',handles.behaviorvalue3);
+end
+set(handles.BehaviorNot,'Value',handles.behaviornot);
+set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
+set(handles.BehaviorNormalizeNot,'Value',handles.behaviornormalizenot);
+if(isempty(handles.featurelist))
+  set(handles.FeatureList,'String',{''},'Value',1);
+else
+  set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
+end
+%set(handles.Table,'Data',[]);
+
 switch(handles.analysis)
   case 'feature_histogram'
     set(handles.FeatureHistogram,'backgroundcolor',fg);
@@ -541,6 +587,10 @@ switch(handles.analysis)
         'value',handles.featurehistogram_style);
     set(handles.StyleList2,'string',handles.featurehistogram_stylelist2,...
         'value',handles.featurehistogram_style2);
+    if(~isempty(handles.behaviorlist))
+      get(handles.BehaviorList,'String');
+      set(handles.BehaviorList,'String',{ans{:} 'All frames'});
+    end
     if(strcmp(get(handles.FeatureHistogram,'enable'),'off'))
       analysis2='';
     else
@@ -653,13 +703,15 @@ if(~isempty(analysis2))
       (length(handles.behaviorlist)>0))
     set(handles.BehaviorNot,'enable','on');
     set(handles.BehaviorList,'enable','on');
-    set(handles.BehaviorLogic,'enable','on');
+    if(length(handles.behaviorlist)>1)
+      set(handles.BehaviorLogic,'enable','on');
+    end
     if(handles.behaviorlogic>1)
       set(handles.BehaviorList2,'enable','on');
     end
   end
   if((ismember(analysis2,{'behavior_barchart','behavior_timeseries'})) && ...
-      (length(handles.behaviorlist)>0))
+      (length(handles.behaviorlist)>1))
     set(handles.BehaviorList3,'enable','on');
   end
   if(~isempty(handles.classifierlist) && (handles.behaviorvalue3>1))
@@ -679,46 +731,6 @@ if(~isempty(analysis2))
     set(handles.StyleList2,'enable','on');
   end
 end
-
-if(isempty(handles.grouplist))
-  set(handles.GroupList,'String',{''},'Value',1);
-else
-  tmp=length(handles.grouplist);
-  cellstr(strcat(repmat('<html><font color=#"',tmp,1),...
-      reshape(dec2hex(round(handles.colors'*255),2)',6,size(handles.colors,1))',...
-      repmat('">',tmp,1),handles.grouplist',repmat('</font></html>',tmp,1)));
-  set(handles.GroupList,'String',ans,'Value',handles.groupvalue);
-end
-if(isempty(handles.experimentlist))
-  set(handles.ExperimentList,'String',{''},'Value',1);
-else
-  set(handles.ExperimentList,'String',handles.experimentlist{handles.groupvalue});
-  set(handles.ExperimentList,'Value',handles.experimentvalue{handles.groupvalue});
-end
-if(isempty(handles.classifierlist))
-  set(handles.ClassifierList,'String',{''},'Value',1);
-else
-  set(handles.ClassifierList,'String',handles.classifierlist);
-  set(handles.ClassifierList,'Value',handles.classifiervalue);
-end
-if(isempty(handles.behaviorlist))
-  set(handles.BehaviorList,'String',{''},'Value',1);
-  set(handles.BehaviorList2,'String',{''},'Value',1);
-  set(handles.BehaviorList3,'String',{''},'Value',1);
-else
-  set(handles.BehaviorList,'String',{handles.behaviorlist{:} 'All behaviors'},'Value',handles.behaviorvalue);
-  set(handles.BehaviorList2,'String',handles.behaviorlist,'Value',handles.behaviorvalue2);
-  set(handles.BehaviorList3,'String',{'All frames' handles.behaviorlist{:}},'Value',handles.behaviorvalue3);
-end
-set(handles.BehaviorNot,'Value',handles.behaviornot);
-set(handles.BehaviorLogic,'Value',handles.behaviorlogic);
-set(handles.BehaviorNormalizeNot,'Value',handles.behaviornormalizenot);
-if(isempty(handles.featurelist))
-  set(handles.FeatureList,'String',{''},'Value',1);
-else
-  set(handles.FeatureList,'String',handles.featurelist,'Value',handles.featurevalue);
-end
-%set(handles.Table,'Data',[]);
 
 menu_classify_forcecompute_set(handles);
 button_comparison_set(handles);
@@ -1281,6 +1293,19 @@ if(~exist(fullfile(newexperiments{1},handles.perframe_dir),'dir'))
   end
 end
 
+if(isnan(handles.fps))
+%if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
+%  classifier=load(handles.classifierlist{1});
+%  handles.fps=get_fps(fullfile(newexperiments{1},classifier.trxfilename));
+  [handles.fps,handles.trx_file]=get_fps(newexperiments{1},handles.trx_file);
+  if(isempty(handles.trx_file))
+    set(handles.Status,'string','Ready.','foregroundcolor','g');
+    set(handles.figure1,'pointer','arrow');
+    drawnow;
+    return;
+  end
+end
+
 handlesfeatures=cell(1,length(newexperiments));
 handlessexdata=cell(1,length(newexperiments));
 handlesindividualsbehavior=zeros(length(newexperiments),length(handles.scorefiles));
@@ -1374,13 +1399,6 @@ else
   handlessexdata=handlessexdata(ridx);
   handlesindividualsbehavior=handlesindividualsbehavior(ridx,:);
   handlesindividualsfeature=handlesindividualsfeature(ridx);
-end
-
-if(isnan(handles.fps))
-%if((isnan(handles.fps))&&(length(handles.classifierlist)>0))
-%  classifier=load(handles.classifierlist{1});
-%  handles.fps=get_fps(fullfile(newexperiments{1},classifier.trxfilename));
-  [handles.fps,handles.trx_file]=get_fps(newexperiments{1},handles.trx_file);
 end
 
 handles.features={handles.features{:} handlesfeatures{:}};
@@ -1767,6 +1785,17 @@ set(handles.figure1,'pointer','arrow');
 drawnow;
 
 
+% ---
+function delete_classifer_check_table()
+
+hh=findobj('type','figure');
+for h=1:length(hh)
+  if(strcmp(get(hh(h),'name'),'classifier check'))
+    close(hh(h));
+  end
+end
+
+
 % --- Executes on button press in ClassifierAdd.
 function ClassifierAdd_Callback(hObject, eventdata, handles)
 % hObject    handle to ClassifierAdd (see GCBO)
@@ -1789,6 +1818,8 @@ drawnow;
 
 handles=classifier_add(handles,newclassifiers);
 update_figure(handles);
+
+delete_classifer_check_table();
 
 guidata(hObject,handles);
 
@@ -1827,6 +1858,8 @@ update_figure(handles);
 
 handles.interestingfeaturehistograms_cache=[];
 handles.interestingfeaturetimeseries_cache=[];
+
+delete_classifer_check_table();
 
 guidata(hObject,handles);
 
@@ -1882,6 +1915,8 @@ if(length(classifiers_notfound)>2)
 end
 
 update_figure(handles);
+
+delete_classifer_check_table();
 
 guidata(hObject,handles);
 
@@ -2035,7 +2070,7 @@ delete(fullfile(tempdir,'progressbar.txt'));
 %  return;
 %end
 
-handles=update_experiment_data(handles,false,false,true);
+handles=update_experiment_data(handles,true,true,true);
 update_figure(handles);
 
 handles.interestingfeaturehistograms_cache=[];
@@ -2099,6 +2134,7 @@ function BehaviorBarChart_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.analysis='behavior_barchart';
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2110,6 +2146,7 @@ function BehaviorTimeSeries_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.analysis='behavior_timeseries';
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2121,6 +2158,7 @@ function BoutStats_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 handles.analysis='bout_stats';
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2135,6 +2173,7 @@ handles.analysis='interesting_feature_histograms';
 handles.individualvalue=min(3,handles.individualvalue);
 tmp=cellfun(@(x) x(1),get(handles.IndividualList,'String'));
 handles.individualidx=tmp(handles.individualvalue);
+handles.behaviorvalue = min(handles.behaviorvalue, length(handles.behaviorlist)+1);
 update_figure(handles);
 guidata(hObject,handles);
 
@@ -2145,7 +2184,7 @@ function Plot_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if(handles.behaviorvalue==(length(handles.behaviorlist)+1))
+if(handles.behaviorvalue>length(handles.behaviorlist))
   if((sum(sum(handles.individuals_behavior==-1))>0) || ...
      (sum(sum(diff(handles.individuals_behavior,[],2)~=0))>0))
     uiwait(errordlg('some experiments either have no individiuals or differ in the number of individuals across classifiers'));  drawnow;
@@ -2352,16 +2391,22 @@ during={};  not_during={};
 for i=1:length(behavior_data.allScores.t0s)  % individual
   if((~isnan(individual)) && (i~=individual))  continue;  end
 
-  tmp1=zeros(1,length(feature_data.data{i}));
-  tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-  tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-  tmp1=logical(cumsum(tmp1(1:length(feature_data.data{i}))));
+  tmp1 = compute_behavior_logic(behavior_data.allScores, i);
+  tstart = behavior_data.allScores.tStart(i);
+  tmp1 = tmp1(tstart : tstart+length(feature_data.data{i})-1);
+%   tmp1=zeros(1,length(feature_data.data{i}));
+%   tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%   tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%   tmp1=logical(cumsum(tmp1(1:length(feature_data.data{i}))));
   
   if(behavior_logic>1)
-    tmp2=zeros(1,length(feature_data.data{i}));
-    tmp2(behavior_data2.allScores.t0s{i}-behavior_data2.allScores.tStart(i)+1)=1;
-    tmp2(behavior_data2.allScores.t1s{i}-behavior_data2.allScores.tStart(i)+1)=-1;
-    tmp2=logical(cumsum(tmp2(1:length(feature_data.data{i}))));
+    tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
+    tstart = behavior_data2.allScores.tStart(i);
+    tmp2 = tmp1(tstart : tstart+length(feature_data.data{i})-1);
+%     tmp2=zeros(1,length(feature_data.data{i}));
+%     tmp2(behavior_data2.allScores.t0s{i}-behavior_data2.allScores.tStart(i)+1)=1;
+%     tmp2(behavior_data2.allScores.t1s{i}-behavior_data2.allScores.tStart(i)+1)=-1;
+%     tmp2=logical(cumsum(tmp2(1:length(feature_data.data{i}))));
   end
 
   if(behaviornot)  tmp1=~tmp1;  end
@@ -2642,8 +2687,11 @@ handles.type='feature histogram';
 hf=figure('toolbar','figure');
 
 bb=handles.behaviorvalue;
-if(bb==(length(handles.behaviorlist)+1))  bb=1:(bb-1);  end
-if(strcmp(get(handles.BehaviorList,'enable'),'off'))  bb=0;  end
+if (bb==(length(handles.behaviorlist)+1))
+  bb=1:(bb-1);
+elseif((bb==(length(handles.behaviorlist)+2)) || (strcmp(get(handles.BehaviorList,'enable'),'off')))
+  bb=0;
+end
 
 behavior_logic=handles.behaviorlogic;
 score_file2=[];
@@ -4217,25 +4265,36 @@ for b=bb
     sex=nan(1,length(behavior_data.allScores.t0s));
 
     for i=1:length(behavior_data.allScores.t0s)  % individual
-      tmp1=zeros(1,behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1);
-      tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-      tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-      tmp1=logical(cumsum(tmp1));
+      tmp1 = compute_behavior_logic(behavior_data.allScores, i);
+      tmp1 = tmp1(behavior_data.allScores.tStart(i) : behavior_data.allScores.tEnd(i));
+%       tstart=behavior_data.allScores.tStart(i);
+%       tmp1=zeros(1,behavior_data.allScores.tEnd(i)-tstart+1);
+%       tmp1(behavior_data.allScores.t0s{i}-tstart+1)=1;
+%       tmp1(behavior_data.allScores.t1s{i}-tstart+1)=-1;
+%       tmp1=tmp1(1:(behavior_data.allScores.tEnd(i)-tstart+1));
+%       tmp1=logical(cumsum(tmp1));
 
       tmp2=[];
       if(behavior_logic>1)
-        tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-behavior_data2.allScores.tStart(i)+1);
-        tmp2(behavior_data2.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-        tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-        tmp2=logical(cumsum(tmp2));
+        tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
+        tmp2 = tmp1(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
+%         tstart=behavior_data2.allScores.tStart(i);
+%         tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-tstart+1);
+%         tmp2(behavior_data2.allScores.t0s{i}-tstart+1)=1;
+%         tmp2(behavior_data2.allScores.t1s{i}-tstart+1)=-1;
+%         tmp2=tmp2(1:(behavior_data2.allScores.tEnd(i)-tstart+1));
+%         tmp2=logical(cumsum(tmp2));
       end
 
       tmp3=[];
       if(handles.behaviorvalue3>1)
-        tmp3=zeros(1,behavior_data3.allScores.tEnd(i)-behavior_data3.allScores.tStart(i)+1);
-        tmp3(behavior_data3.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-        tmp3(behavior_data3.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-        tmp3=logical(cumsum(tmp3));
+        tmp3 = compute_behavior_logic(behavior_data3.allScores, i);
+        tmp3 = tmp1(behavior_data3.allScores.tStart(i) : behavior_data3.allScores.tEnd(i));
+%         tmp3=zeros(1,behavior_data3.allScores.tEnd(i)-behavior_data3.allScores.tStart(i)+1);
+%         tmp3(behavior_data3.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%         tmp3(behavior_data3.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%         tmp3=tmp3(1:(behavior_data3.allScores.tEnd(i)-tstart+1));
+%         tmp3=logical(cumsum(tmp3));
         if(handles.behaviornormalizenot)
           tmp3=~tmp3;
         end
@@ -4258,11 +4317,12 @@ for b=bb
       end
 
       % KB: for some reason partition_idx was of size > trajectory length
-      if numel(partition_idx) > numel(sex_data{i}),
-        warning('More frames of behaviors detected than frames in trajectory by %d',...
-            numel(partition_idx)-numel(sex_data{i}));
-        partition_idx = partition_idx(1:numel(sex_data{i}));
-      end
+      % BJA: problem was that t1s(end) is sometimes > than tEnd by 1.  fixed 40 lines above
+%       if numel(partition_idx) > numel(sex_data{i}),
+%         warning('More frames of behaviors detected than frames in trajectory by %d',...
+%             numel(partition_idx)-numel(sex_data{i}));
+%         partition_idx = partition_idx(1:numel(sex_data{i}));
+%       end
       
       sex(i)=sum(sex_data{i}(1:length(partition_idx))) > (length(partition_idx)/2);
       frames_labelled(i)=sum(partition_idx);
@@ -4535,6 +4595,17 @@ drawnow;
 
 
 % ---
+% returns a logical time series of when the behavior occurred
+function ret_val = compute_behavior_logic(allScores, i)
+
+ret_val=zeros(1,allScores.tEnd(i));
+ret_val(allScores.t0s{i})=1;
+ret_val(allScores.t1s{i})=-1;
+ret_val=logical(cumsum(ret_val));
+ret_val=ret_val(1:allScores.tEnd(i));
+
+        
+% ---
 function handles=behavior_timeseries_plot(handles)
 
 set(handles.Status,'string','Thinking...','foregroundcolor','b');
@@ -4598,7 +4669,7 @@ for b=bb
   raw_data=cell(length(ggee),length(individual));
   behavior_cumulative=cell(length(ggee),length(individual));
   parfor gei=1:numel(ggee),
-  %for gei=1:numel(ggee),
+%   for gei=1:numel(ggee),
     ge = ggee(gei);
     
     %if(ischar(individual)&&(~ismember(ge,selected_exp)))  continue;  end
@@ -4634,25 +4705,16 @@ for b=bb
       for i=1:length(behavior_data.allScores.t0s)   % individual
         if(isnumeric(i2)&&(i2~=i))  continue;  end
 
-        tmp1=zeros(1,behavior_data.allScores.tEnd(i));
-        tmp1(behavior_data.allScores.t0s{i})=1;
-        tmp1(behavior_data.allScores.t1s{i})=-1;
-        tmp1=logical(cumsum(tmp1));
+        tmp1 = compute_behavior_logic(behavior_data.allScores, i);
 
         tmp2=[];
         if(behavior_logic>1)
-          tmp2=zeros(1,behavior_data2.allScores.tEnd(i));
-          tmp2(behavior_data2.allScores.t0s{i})=1;
-          tmp2(behavior_data2.allScores.t1s{i})=-1;
-          tmp2=logical(cumsum(tmp2));
+          tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
         end
 
         tmp3=[];
         if(handles.behaviorvalue3>1)
-          tmp3=zeros(1,behavior_data3.allScores.tEnd(i));
-          tmp3(behavior_data3.allScores.t0s{i})=1;
-          tmp3(behavior_data3.allScores.t1s{i})=-1;
-          tmp3=logical(cumsum(tmp3));
+          tmp3 = compute_behavior_logic(behavior_data3.allScores, i);
           if(handles.behaviornormalizenot)
             tmp3=~tmp3;
           end
@@ -4862,17 +4924,21 @@ inter_bout_lengths=cell(1,length(behavior_data.allScores.t0s));
 sex=cell(1,length(behavior_data.allScores.t0s));
 inter_sex=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)  % individual
-  tmp1=zeros(1,behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1);
-  tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-  tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-  tmp1=logical(cumsum(tmp1));
+  tmp1 = compute_behavior_logic(behavior_data.allScores, i);
+  tmp1 = tmp1(behavior_data.allScores.tStart(i) : behavior_data.allScores.tEnd(i));
+%   tmp1=zeros(1,behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1);
+%   tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%   tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%   tmp1=logical(cumsum(tmp1));
 
   tmp2=[];
   if(behavior_logic>1)
-    tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-behavior_data2.allScores.tStart(i)+1);
-    tmp2(behavior_data2.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-    tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-    tmp2=logical(cumsum(tmp2));
+    tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
+    tmp2 = tmp1(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
+%     tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-behavior_data2.allScores.tStart(i)+1);
+%     tmp2(behavior_data2.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
+%     tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
+%     tmp2=logical(cumsum(tmp2));
   end
 
   if(behaviornot)  tmp1=~tmp1;  end

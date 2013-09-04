@@ -661,7 +661,7 @@ switch lower(handles.ArenaType),
       'Label Circular Arena Wall');
         
     while true,
-      [xc,yc,radius,h] = fitcircle_manual(hax);
+      [xc,yc,radius,h] = fitcircle_manual(hax,'m');
       if isempty(xc),
         return;
       end
@@ -897,7 +897,7 @@ try
   'arenaradius',handles.ArenaRadius,...
   'arenawidth',handles.ArenaWidth,...
   'arenaheight',handles.ArenaHeight,...
-  'roi',handles.ROIdata,...
+  'roi2',handles.ROIdata,...
   'frameinterval',[handles.CropFirstFrame,handles.CropEndFrame]);
 
 catch ME,
@@ -1979,8 +1979,8 @@ end
 
 ClearBusy(handles);
 
-if(strcmp(handles.ArenaType,'circle'))
-  regions=[handles.ArenaCenterX handles.ArenaCenterY handles.ArenaRadius];
+if(strcmpi(handles.ArenaType,'circle'))
+  regions=[handles.ArenaCenterX handles.ArenaCenterY handles.ArenaRadius nan];
 else
   regions=[handles.ArenaCenterX handles.ArenaCenterY handles.ArenaWidth handles.ArenaHeight];
 end
