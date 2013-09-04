@@ -212,6 +212,8 @@ classdef JLabelGUIData < handle
     fly2idx = [];
     idx2fly = [];
     
+    showPredictionsAllFlies = true;
+    
     defaultmoviefilename = 0;
     defaulttrxfilename = 0;
     

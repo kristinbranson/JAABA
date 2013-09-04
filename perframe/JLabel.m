@@ -1152,13 +1152,31 @@ for i = axes2,
       set(handles.guidata.hflies_extra(~isinvisible,:,i),'Visible','on');
       set(handles.guidata.hfly_markers(~isinvisible,i),'Visible','on');
     end
+    
+    allflypredictions = handles.data.GetPredictionsAllFlies(...
+      handles.data.expi,handles.guidata.ts(i),find(inbounds));
+    
+    count = 0;
     for fly = find(inbounds),
-
+      count = count+1;
       t = handles.guidata.ts(i);
       pos = handles.data.GetTrxPos1(handles.data.expi,fly,t);
       j = handles.guidata.fly2idx(fly);
       UpdateTargetPosition(handles.data.targettype,handles.guidata.hflies(j,i),...
         handles.guidata.hflies_extra(j,:,i),pos);
+      
+%       if handles.guidata.showPredictionsAllFlies
+%         if allflypredictions(count) ==0
+%           curcolor = handles.guidata.labelunknowncolor;
+%         else
+%           curcolor = handles.guidata.labelcolors(allflypredictions(count),:);
+%         end
+%         set([handles.guidata.hflies(j,i) handles.guidata.hfly_markers(j,i)],...
+%           'Color',curcolor);
+%         if ~isempty(handles.guidata.hflies_extra)
+%           set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
+%         end
+%       end
 
       set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.data.GetSex1(handles.data.expi,fly,t);
