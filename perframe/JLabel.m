@@ -4426,7 +4426,7 @@ if strcmpi(eventdata.Modifier,'control')
         SetCurrentMovie(handles,handles.data.expi-1);
       end
     case '0'
-      if (handles.data.expi +1) < handles.data.nexps 
+      if (handles.data.expi +1) <= handles.data.nexps 
         SetCurrentMovie(handles,handles.data.expi+1);
       end
     case '1'
@@ -5797,6 +5797,9 @@ else
   if ~isnan(handles.guidata.hplaying),
     stopPlaying(handles);
   end
+  if any(isnan(handles.guidata.selected_ts)),
+    return;
+  end
   play(hObject,handles,handles.guidata.selected_ts(1),handles.guidata.selected_ts(2),true);
 end
 return
@@ -5810,6 +5813,7 @@ function predictTimerCallback(obj,event,hObject,framesPerTick)
   end
   global PLAY_TIMER_DONE CALC_FEATURES;
   CALC_FEATURES = true;
+  %fprintf('Calling predictTimerCallback at time %s\n',datestr(now));
   t0 = max(floor(handles.guidata.ts(1)-handles.guidata.timeline_nframes/2),handles.data.t0_curr);
   t1 = min(t0+framesPerTick,handles.data.t1_curr);
   handles.data.Predict(handles.data.expi,handles.data.flies,t0,t1);
