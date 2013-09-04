@@ -1496,13 +1496,26 @@ classdef JLabelData < matlab.mixin.Copyable
       
     
     % ---------------------------------------------------------------------
-    function PredictFast(obj,expi,flies,t0,t1)
+    function didpredict = PredictFast(obj,expi,flies,t0,t1)
     % Predict fast by computing only the required window features.
-      
+
+      didpredict = false;
+    
       if isempty(obj.classifier) || t0>t1 ,
         return;
       end
         
+      %fprintf('Checking whether all frames are predicted...\n');
+      %tic;
+      idxcurr_t = obj.predictdata{expi}{flies}.t>=t0 & obj.predictdata{expi}{flies}.t<=t1;
+      allpredicted = all(obj.predictdata{expi}{flies}.cur_valid(idxcurr_t));
+      %disp(toc);
+      if allpredicted, return; end
+      didpredict = true;
+      %fprintf('%d frames between frames %d and %d for fly %d need to be predicted.\n',...
+      %  nnz(~obj.predictdata{expi}{flies}.cur_valid(idxcurr_t)),...
+      %  t0,t1,flies);
+      
       if isempty(obj.fastPredict.classifier)
         obj.FindFastPredictParams();
       end
@@ -1514,8 +1527,6 @@ classdef JLabelData < matlab.mixin.Copyable
 %         missingts = setdiff(ts,tscurr);
 %         if numel(missingts)==0, return; end
 %         
-      idxcurr_t = obj.predictdata{expi}{flies}.t>=t0 & obj.predictdata{expi}{flies}.t<=t1;
-      if all(obj.predictdata{expi}{flies}.cur_valid(idxcurr_t)), return; end
       finished = obj.WindowDataPredictFast(expi,flies,t0,t1);
       if finished,
         return
@@ -2967,13 +2978,34 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------
-    function [success,msg] = ApplyPostprocessing(obj)
+    function [success,msg] = ApplyPostprocessing(obj,expis,allflies)
     % Applies postprocessing to loaded scores.
     % We do not apply any postprocessing to current scores.
       msg = ''; success = true;
+            
+      if nargin < 2,
+        expis = 1:obj.nexps;
+      end
+      if nargin >= 3,
+        if ~iscell(allflies),
+          allflies = {allflies};
+        end
+      else
+        allflies = {};
+      end
+      for i = 1:numel(expis),
+        if numel(allflies) < i,
+          endx = expis(i);
+          allflies{i} = 1:obj.nflies_per_exp(endx);
+        end
+      end
+          
+      %fprintf('Calling ApplyPostprocessing for %d experiments and %d flies...\n',numel(expis),sum(cellfun(@numel,allflies)));
+  
       
-      for endx = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(endx)
+      for expii = 1:numel(expis),
+        endx = expis(expii);
+        for flies = allflies{expii},
           idx = obj.predictdata{endx}{flies}.cur_valid;
           ts = obj.predictdata{endx}{flies}.t(idx);
           [sortedts, idxorder] = sort(ts);
@@ -2988,8 +3020,9 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      for endx = 1:obj.nexps
-        for flies = 1:obj.nflies_per_exp(endx)
+      for expii = 1:numel(expis),
+        endx = expis(expii);
+        for flies = allflies{expii},
           curidx = obj.predictdata{endx}{flies}.loaded_valid;
           curt = obj.predictdata{endx}{flies}.t(curidx);
           if any(curt(2:end)-curt(1:end-1) ~= 1)
@@ -8431,7 +8464,7 @@ classdef JLabelData < matlab.mixin.Copyable
         return;
       end
 
-      if isempty(t0>t1),
+      if isempty(t0) || t0>t1,
         return;
       end
             
@@ -8446,8 +8479,13 @@ classdef JLabelData < matlab.mixin.Copyable
       switch obj.classifiertype,
       case {'boosting','fancyboosting'},
         obj.SetStatus('Updating Predictions ...');
-        obj.PredictFast(expi,flies,t0,t1)
-        obj.ApplyPostprocessing();
+        didpredict = obj.PredictFast(expi,flies,t0,t1);
+        tic;
+        if didpredict,
+          obj.SetStatus('Predictions updated, applying postprocessing...\n');
+          obj.ApplyPostprocessing(expi,flies);
+          %fprintf('postprocessing takes %f seconds\n',toc);
+        end
         obj.ClearStatus();
       end
            
