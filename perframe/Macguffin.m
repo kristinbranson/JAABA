@@ -66,10 +66,12 @@ classdef Macguffin < handle
       self.gtExpDirNames={};
       self.classifierStuff=ClassifierStuff();
       
-      self.extra.perframe.fov = pi;
-      self.extra.perframe.thetafil = [0.0625,0.2500,0.3750,0.2500,0.0625];
-      self.extra.perframe.nbodylengths_near = 2.5;
-      self.extra.max_dnose2ell_anglerange = 127;
+      self.extra.perframe.params.fov = pi;
+      self.extra.perframe.params.thetafil = [0.0625,0.2500,0.3750,0.2500,0.0625];
+      self.extra.perframe.params.nbodylengths_near = 2.5;
+      self.extra.perframe.params.max_dnose2ell_anglerange = 127;
+      self.extra.perframe.params.nroi = '0';
+      self.extra.perframe.params.nflies_close = '';
       
       self.extra.perframe.landmarkParams.arena_center_mm_x = 0;
       self.extra.perframe.landmarkParams.arena_center_mm_y = 0;
