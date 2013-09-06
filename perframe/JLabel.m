@@ -3894,6 +3894,7 @@ function pushbutton_train_Callback(hObject, eventdata, handles)
 
 % check that the user has selected features already
 
+%t=tic;
 perFrameFeatureSetIsNonEmpty= ...
   ~isempty(handles.data) && ...
   handles.data.getPerFrameFeatureSetIsNonEmpty();
@@ -3914,6 +3915,7 @@ handles = predict(handles);
 % handles.data.needsave=true;  % done in .Train()
 UpdateEnablementAndVisibilityOfControls(handles);
 guidata(hObject,handles);
+%toc(t)
 return
 
 

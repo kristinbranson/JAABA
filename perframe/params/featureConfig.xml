@@ -137,8 +137,6 @@
     
     <dist2wall trans_types="none,relative" type="arena"/>
     
-    <dist2roi trans_types="none,relative" type="arena"/>
-    
     <dnose2ell trans_types="none,relative" type="social"/>
     
     <dnose2tail trans_types="none,relative" type="social"/>
