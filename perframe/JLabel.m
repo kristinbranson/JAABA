@@ -1165,18 +1165,18 @@ for i = axes2,
       UpdateTargetPosition(handles.data.targettype,handles.guidata.hflies(j,i),...
         handles.guidata.hflies_extra(j,:,i),pos);
       
-%       if handles.guidata.showPredictionsAllFlies
-%         if allflypredictions(count) ==0
-%           curcolor = handles.guidata.labelunknowncolor;
-%         else
-%           curcolor = handles.guidata.labelcolors(allflypredictions(count),:);
-%         end
-%         set([handles.guidata.hflies(j,i) handles.guidata.hfly_markers(j,i)],...
-%           'Color',curcolor);
-%         if ~isempty(handles.guidata.hflies_extra)
-%           set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
-%         end
-%       end
+      if handles.guidata.showPredictionsAllFlies
+        if allflypredictions(count) ==0
+          curcolor = handles.guidata.labelunknowncolor;
+        else
+          curcolor = handles.guidata.labelcolors(allflypredictions(count),:);
+        end
+        set([handles.guidata.hflies(j,i) handles.guidata.hfly_markers(j,i)],...
+          'Color',curcolor);
+        if ~isempty(handles.guidata.hflies_extra)
+          set(handles.guidata.hflies_extra(j,i),'Color',curcolor);
+        end
+      end
 
       set(handles.guidata.hfly_markers(j,i),'XData',pos.x,'YData',pos.y);
       sexcurr = handles.data.GetSex1(handles.data.expi,fly,t);
@@ -1201,6 +1201,11 @@ for i = axes2,
       if ismember(fly,handles.data.flies),
         set(handles.guidata.hfly_markers(j,i),'Visible','on');
         set(handles.guidata.hflies(j,i),'LineWidth',3);
+      else
+        set(handles.guidata.hflies(j,i),'LineWidth',1);
+      end
+      
+      if ismember(fly,handles.data.flies) && ~handles.guidata.showPredictionsAllFlies,
         if labelidx <= 0,
           set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelunknowncolor);
           set(handles.guidata.hflies_extra(j,:,i),'Color',handles.guidata.labelunknowncolor,...
@@ -1209,8 +1214,6 @@ for i = axes2,
           set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelcolors(labelidx,:),...
             'MarkerFaceColor',handles.guidata.labelcolors(labelidx,:));
         end
-      else
-        set(handles.guidata.hflies(j,i),'LineWidth',1);
       end
     end
     
@@ -10115,4 +10118,20 @@ if ok == 0, return; end
 if numel(sel)>1, uiwait(warndlg('Select one experiment')); return; end
 
 handles = SetCurrentMovie(handles,sel);
+guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function menu_view_showpredictionsall_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_view_showpredictionsall (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if handles.guidata.showPredictionsAllFlies 
+  handles.guidata.showPredictionsAllFlies = false;
+  set(handles.menu_view_showpredictionsall,'Checked','off');  
+else
+  handles.guidata.showPredictionsAllFlies = true;
+  set(handles.menu_view_showpredictionsall,'Checked','on');
+end
+UpdatePlots(handles);
 guidata(hObject,handles);

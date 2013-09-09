@@ -7927,7 +7927,7 @@ classdef JLabelData < matlab.mixin.Copyable
         idxcurr = obj.predictdata{expi}{curfly}.cur_valid & ...
           obj.predictdata{expi}{curfly}.t==curt;
         if ~any(idxcurr); continue; end;
-        predictions(count) = obj.predictdata{expi}{curfly}.cur_pp(idxcurr);
+        predictions(count) = 2-obj.predictdata{expi}{curfly}.cur_pp(idxcurr);
         count = count+1;
       end
       
