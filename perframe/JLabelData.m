@@ -748,20 +748,22 @@ classdef JLabelData < matlab.mixin.Copyable
       %obj.targettype=targetSpecies;  % what species the targets are
       
       % Update obj.perframe_params based on the new feature lexicon
+      
       if isfield(featureLexicon,'perframe_params'),
         obj.perframe_params=featureLexicon.perframe_params;
-        if ~isfield(obj.perframe_params,'nroi'),
-          obj.perframe_params.nroi = 0;
-        end
-        if ~isfield(obj.perframe_params,'nflies_close'),
-          obj.perframe_params.nflies_close = [];
-        end
-
         % pf_fields = fieldnames(featureLexicon.perframe_params);
         % for ndx = 1:numel(pf_fields),
         %   obj.perframe_params.(pf_fields{ndx}) = ...
         %     featureLexicon.perframe_params.(pf_fields{ndx});
         % end
+      elseif ~isstruct(obj.perframe_params),
+        obj.perframe_params = struct;
+      end
+      if ~isfield(obj.perframe_params,'nroi'),
+        obj.perframe_params.nroi = 0;
+      end
+      if ~isfield(obj.perframe_params,'nflies_close'),
+        obj.perframe_params.nflies_close = [];
       end
 
       % Update obj.allperframefns based on the new feature lexicon
