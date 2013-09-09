@@ -750,6 +750,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Update obj.perframe_params based on the new feature lexicon
       if isfield(featureLexicon,'perframe_params'),
         obj.perframe_params=featureLexicon.perframe_params;
+
         % pf_fields = fieldnames(featureLexicon.perframe_params);
         % for ndx = 1:numel(pf_fields),
         %   obj.perframe_params.(pf_fields{ndx}) = ...
@@ -768,6 +769,15 @@ classdef JLabelData < matlab.mixin.Copyable
 %           error('JLabelData:unableToGeneratePerframefiles',msg);
 %         end
 %       end
+      
+      for i=1:str2num(obj.perframe_params.nroi)
+        obj.allperframefns{end+1} = sprintf('dist2roi2_%02d',i);
+        obj.allperframefns{end+1} = sprintf('angle2roi2_%02d',i);
+      end
+      
+      for i=str2num(obj.perframe_params.nflies_close)
+        obj.allperframefns{end+1} = sprintf('nflies_close_%02d',i);
+      end
       
       % Generate the necessary files now, so that any problems occur now.
       generateMissingPerframeFiles=obj.perframeGenerate;
@@ -924,6 +934,20 @@ classdef JLabelData < matlab.mixin.Copyable
       
       before=obj.copy();  % make a copy of the object, in case something goes wrong
       try
+        % Note sure what to do here---Macguffin class doesn't have a perframe
+        % property at present
+        if isfield(everythingParams.extra,'perframe'),
+          if isfield(everythingParams.extra.perframe,'params') && isstruct(everythingParams.extra.perframe.params),
+            pf_fields = fieldnames(everythingParams.extra.perframe.params);
+            for ndx = 1:numel(pf_fields),
+              everythingParams.featureLexicon.perframe_params.(pf_fields{ndx}) = everythingParams.extra.perframe.params.(pf_fields{ndx});
+            end
+          end
+          if isfield(everythingParams.extra.perframe,'landmarkParams'),
+            obj.landmark_params = everythingParams.extra.perframe.landmarkParams;
+          end
+        end  % isfield(basicParams,'perframe'),
+
         % feature config file
         obj.setFeatureSublexicon(everythingParams.featureLexicon, ...
                                  everythingParams.featureLexiconName, ...
@@ -1011,19 +1035,6 @@ classdef JLabelData < matlab.mixin.Copyable
           end
         end
 
-        % Note sure what to do here---Macguffin class doesn't have a perframe
-        % property at present
-        if isfield(everythingParams.extra,'perframe'),
-          if isfield(everythingParams.extra.perframe,'params') && isstruct(everythingParams.extra.perframe.params),
-            pf_fields = fieldnames(everythingParams.extra.perframe.params);
-            for ndx = 1:numel(pf_fields),
-              obj.perframe_params.(pf_fields{ndx}) = everythingParams.extra.perframe.params.(pf_fields{ndx});
-            end
-          end
-          if isfield(everythingParams.extra.perframe,'landmarkParams'),
-            obj.landmark_params = everythingParams.extra.perframe.landmarkParams;
-          end
-        end  % isfield(basicParams,'perframe'),
 
   %       if isfield(basicParams,'scoreFeatures') ,
   %         obj.scoreFeatures = basicParams.scoreFeatures;
@@ -1907,7 +1918,11 @@ classdef JLabelData < matlab.mixin.Copyable
           obj.expnames{expi},flies,round(100*(nts0-numel(missingts))/nts0));
         
         % compute window data for a chunk starting at t
-        [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
+        if(~exist('feature_names','var'))
+          [success1,msg,t0,t1,X,feature_names] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
+        else
+          [success1,msg,t0,t1,X] = obj.ComputeWindowDataChunk(expi,flies,t,'center');
+        end
         if ~success1, warning(msg); return; end
 
         % only store window data that isn't already cached
@@ -2152,6 +2167,7 @@ classdef JLabelData < matlab.mixin.Copyable
         
       end
       
+      feature_names=cell(1,numel(curperframefns));
       for j = 1:numel(curperframefns),
         fn = curperframefns{j};
         x_curr = x_curr_all{j};
@@ -2170,8 +2186,11 @@ classdef JLabelData < matlab.mixin.Copyable
         end
         X(:,end+1:end+size(x_curr,1)) = x_curr';
         % add the feature names
-        feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
+        if nargout>5
+          feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); %#ok<AGROW>
+        end
       end
+      feature_names=[feature_names{:}];
       %       catch ME,
       %         msg = getReport(ME);
       %         return;
@@ -3212,7 +3231,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % per-frame feature.
     
     X = [];
-    feature_names = {};
+%     feature_names = {};
+    feature_names=cell(1,numel(curperframefns));
     
     for j = 1:numel(curperframefns),
       fn = curperframefns{j};
@@ -3241,9 +3261,12 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       X = [X,x_curr']; %#ok<AGROW>
       % add the feature names
-      feature_names = [feature_names,cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false)]; %#ok<AGROW>
+      if nargout>1
+        feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); %#ok<AGROW>
+      end
     end
     X = single(X);
+    feature_names=[feature_names{:}];
     
     end
     
@@ -7132,14 +7155,16 @@ classdef JLabelData < matlab.mixin.Copyable
         % loop through directories to look in
         for j = 1:numel(expdirs_try),
           expdir = expdirs_try{j};
-          perframedir = fullfile(expdir,fn);
+%           perframedir = fullfile(expdir,fn);  % BJA: slow by 10x
+          perframedir = [expdir filesep fn];
           if ispc && ~exist(perframedir,'dir'),
             [actualperframedir,didfind] = GetPCShortcutFileActualPath(perframedir);
             if didfind,
               perframedir = actualperframedir;
             end
           end
-          filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);
+%           filename = fullfile(perframedir,[obj.allperframefns{i},'.mat']);  % BJA: slow by 10x
+          filename = [perframedir filesep obj.allperframefns{i} '.mat'];
           if ispc && ~exist(filename,'file'),
             [actualfilename,didfind] = GetPCShortcutFileActualPath(filename);
             if didfind,
@@ -9127,7 +9152,7 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.fastPredictBag.t = t;
       
       
-      [success,msg,t0,t1,X,~] = obj.ComputeWindowDataChunk(exp,fly,t,'center',true);
+      [success,msg,t0,t1,X] = obj.ComputeWindowDataChunk(exp,fly,t,'center',true);
       curX = X((t0:t1)==t,:);
       curF = zeros(1,numel(obj.bagModels));
       for ndx = 1:numel(obj.bagModels);
