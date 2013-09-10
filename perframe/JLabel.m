@@ -5222,9 +5222,9 @@ else
   if ~isempty(idx)
     if (~isfield(handles,'spacetime'))
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).a);
-      handles.spacetime.meana = prctile(cellfun(@mean,tmp),90);
+      handles.spacetime.meana = prctile(cellfun(@nanmean,tmp),90);
       [tmp{1:length(handles.data.trx)}]=deal(handles.data.trx(:).b);
-      handles.spacetime.meanb = prctile(cellfun(@mean,tmp),90);
+      handles.spacetime.meanb = prctile(cellfun(@nanmean,tmp),90);
       [handles.spacetime.binidx, handles.spacetime.nbins, ...
           handles.spacetime.featurenames, handles.spacetime.featureboundaries, handles.spacetime.featurecenters] = ...
           compute_spacetime_mask(handles.spacetime.meana, handles.spacetime.meanb);

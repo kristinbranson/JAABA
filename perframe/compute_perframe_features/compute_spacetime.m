@@ -11,8 +11,8 @@ catch
 
   % parameters
 
-  meana = prctile(cellfun(@mean,trx(:).a),90);
-  meanb = prctile(cellfun(@mean,trx(:).b),90);
+  meana = prctile(cellfun(@nanmean,trx(:).a),90);
+  meanb = prctile(cellfun(@nanmean,trx(:).b),90);
 
   [binidx, nbins, featurenames, featureboundaries, featurecenters] = compute_spacetime_mask(meana, meanb);
   
