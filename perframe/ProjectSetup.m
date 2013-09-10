@@ -1172,11 +1172,12 @@ return
 
 
 % -------------------------------------------------------------------------
-function handles = EditConfigValue(handles,name,value)  %#ok
+function handles = EditConfigValue(handles,name,value) 
 
 % try to convert it to a number if possible
-valuen = str2double(value);
-if ~isnan(valuen),
+valuen = regexp(value,',','split');
+valuen = str2double(valuen);
+if all(~isnan(valuen)),
   value = valuen; %#ok<NASGU>
 end
 eval_str = sprintf('handles.basicParamsStruct.%s = value;',name);
