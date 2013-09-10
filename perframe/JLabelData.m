@@ -748,14 +748,22 @@ classdef JLabelData < matlab.mixin.Copyable
       %obj.targettype=targetSpecies;  % what species the targets are
       
       % Update obj.perframe_params based on the new feature lexicon
+      
       if isfield(featureLexicon,'perframe_params'),
         obj.perframe_params=featureLexicon.perframe_params;
-
         % pf_fields = fieldnames(featureLexicon.perframe_params);
         % for ndx = 1:numel(pf_fields),
         %   obj.perframe_params.(pf_fields{ndx}) = ...
         %     featureLexicon.perframe_params.(pf_fields{ndx});
         % end
+      elseif ~isstruct(obj.perframe_params),
+        obj.perframe_params = struct;
+      end
+      if ~isfield(obj.perframe_params,'nroi'),
+        obj.perframe_params.nroi = 0;
+      end
+      if ~isfield(obj.perframe_params,'nflies_close'),
+        obj.perframe_params.nflies_close = [];
       end
 
       % Update obj.allperframefns based on the new feature lexicon
@@ -770,12 +778,13 @@ classdef JLabelData < matlab.mixin.Copyable
 %         end
 %       end
       
-      for i=1:str2num(obj.perframe_params.nroi)
+      for i=1:obj.perframe_params.nroi
         obj.allperframefns{end+1} = sprintf('dist2roi2_%02d',i);
         obj.allperframefns{end+1} = sprintf('angle2roi2_%02d',i);
       end
       
-      for i=str2num(obj.perframe_params.nflies_close)
+      for ii = 1:numel(obj.perframe_params.nflies_close)
+        i = obj.perframe_params.nflies_close(ii);
         obj.allperframefns{end+1} = sprintf('nflies_close_%02d',i);
       end
       
@@ -7952,7 +7961,7 @@ classdef JLabelData < matlab.mixin.Copyable
         idxcurr = obj.predictdata{expi}{curfly}.cur_valid & ...
           obj.predictdata{expi}{curfly}.t==curt;
         if ~any(idxcurr); continue; end;
-        predictions(count) = obj.predictdata{expi}{curfly}.cur_pp(idxcurr);
+        predictions(count) = 2-obj.predictdata{expi}{curfly}.cur_pp(idxcurr);
         count = count+1;
       end
       
@@ -10752,7 +10761,11 @@ classdef JLabelData < matlab.mixin.Copyable
                   'Unable to create backup file %s.',backupFileNameRel);
           end
         end
-        saveAnonymous(fileNameAbs,macguffin);
+        old=warning('query','MATLAB:structOnObject');
+        warning('off','MATLAB:structOnObject');  % turn off annoying warning
+        macguffinStruct = struct(macguffin);
+        warning(old);  % restore annoying warning
+        saveAnonymous(fileNameAbs,macguffinStruct);
       catch excp
         self.ClearStatus();
         rethrow(excp);
