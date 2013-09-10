@@ -98,6 +98,7 @@ data = JLabelData();
 data.isInteractive = false;
 for ndx = order(:)'
   
+  fprintf('Opening project %s...\n',jabfiles{ndx});
   data.openJabFileNoExps(jabfiles{ndx},false);
   for expi = 1:numel(expdir)
     if ~forcecompute
