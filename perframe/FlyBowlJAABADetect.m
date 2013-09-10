@@ -1,6 +1,6 @@
 function FlyBowlJAABADetect(expdir,varargin)
 
-version = '0.1';
+version = '0.2';
 
 [analysis_protocol,settingsdir,datalocparamsfilestr,...
   forcecompute,DEBUG] = ...
