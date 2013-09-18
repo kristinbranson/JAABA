@@ -217,6 +217,7 @@ classdef JLabelGUIData < handle
     defaultmoviefilename = 0;
     defaulttrxfilename = 0;
     
+    GTSuggestions = struct;
     
     maxWindowRadiusCommonCached = [];  
       % need to remember between calls to SelectFeatures, because it needs
