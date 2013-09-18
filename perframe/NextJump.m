@@ -100,7 +100,7 @@ classdef NextJump < handle
       obj.hthresh = hthresh;
     end
     
-    function t = JumpToStart(obj,data,expi,flies,ts,t0,t1)
+    function [t,flies,expi] = JumpToStart(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
         case obj.allTypes{1}
@@ -124,7 +124,7 @@ classdef NextJump < handle
         case obj.allTypes{10}
           t = obj.Threshold_bout_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{11}
-          t = obj.GT_Suggestion_start(data,expi,flies,ts,t0,t1);
+          [t,flies,expi] = obj.GT_Suggestion_start(data,expi,flies,ts,t0,t1);
         case obj.allTypes{12}
           t = obj.SimilarFramesNext(data,expi,flies,ts,t0,t1);
         otherwise
@@ -132,7 +132,7 @@ classdef NextJump < handle
       end
     end
     
-    function t = JumpToEnd(obj,data,expi,flies,ts,t0,t1)
+    function [t,flies,expi] = JumpToEnd(obj,data,expi,flies,ts,t0,t1)
       
       switch obj.curType
         case obj.allTypes{1}
@@ -156,7 +156,7 @@ classdef NextJump < handle
         case  obj.allTypes{10}
           t = obj.Threshold_bout_end(data,expi,flies,ts,t0,t1);
         case obj.allTypes{11}
-          t = obj.GT_Suggestion_end(data,expi,flies,ts,t0,t1);
+          [t,flies,expi] = obj.GT_Suggestion_end(data,expi,flies,ts,t0,t1);
         case obj.allTypes{12}
           t = obj.SimilarFramesPrevious(data,expi,flies,ts,t0,t1);
         otherwise
@@ -682,27 +682,88 @@ classdef NextJump < handle
       t = t0 + j - 1;
     end
     
-    function t = GT_Suggestion_start(obj,data,expi,flies,ts,t0,t1)
-      t = [];
+    function [t,flies1,expi1] = GT_Suggestion_start(obj,data,expi,flies,ts,t0,t1)
+      t = []; flies1 = []; expi1 = [];
       if ts >= t1, return; end
       t0 = min(max(ts,t0),t1);
       
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
       
       j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1)+1;
-      if isempty(j), return; end
+      if ~isempty(j), 
+        
+        flies1 = flies;
+        expi1 = expi;
+        t = ts + j -1;
+        return; 
+        
+      else
+        
+        for curexpi = expi:data.nexps
+          if curexpi == expi,
+            flyStart = flies+1;
+          else
+            flyStart = 1;
+          end
+          for curfly = flyStart:data.nflies_per_exp(curexpi)
+            suggestidx = data.GetGTSuggestionIdx(curexpi,curfly);
+            
+            j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1)+1;
+            if ~isempty(j),
+              t = data.GetTrxFirstFrame(curexpi,curfly) + j -1;
+              flies1 = curfly;
+              expi1 = curexpi;
+              return;
+            end
+          end
+        end
+        
+      end
       
-      t = ts + j -1;
     end
     
-    function t = GT_Suggestion_end(obj,data,expi,flies,ts,t0,t1)
+    function [t,flies1,expi1] = GT_Suggestion_end(obj,data,expi,flies,ts,t0,t1)
       
-      t = [];
+      t = [];flies1 = []; expi1 = [];
       if t0 >= ts, return; end
       t1 = min(max(ts,t0),t1);
 
       suggestidx = data.GetGTSuggestionIdx(expi,flies,t0,t1);
       j = find(suggestidx(2:end-1) & ~suggestidx(1:end-2),1,'last')+1;
+
+      if ~isempty(j),
+        
+        flies1 = flies;
+        expi1 = expi;
+        t = t0 + j -1;
+        return;
+        
+      else
+        
+        for curexpi = expi:-1:1
+          if curexpi == expi,
+            flyend = flies-1;
+          else
+            flyend = data.nflies_per_exp(curexpi);
+          end
+          for curfly = flyend:-1:1
+            suggestidx = data.GetGTSuggestionIdx(curexpi,curfly);
+            
+            j = find(suggestidx(2:end) & ~suggestidx(1:end-1),1,'last')+1;
+            if ~isempty(j),
+              t = data.GetTrxFirstFrame(curexpi,curfly) + j -1;
+              flies1 = curfly;
+              expi1 = curexpi;
+              return;
+            end
+          end
+        end
+        
+      end
+
+      
+      
+      
       if isempty(j), return; end
       
       t = t0 + j - 1;
