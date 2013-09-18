@@ -7406,15 +7406,78 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 handles = UpdateTimelineImages(handles);
 guidata(handles.figure_JLabel,handles);
+
+GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
+for i = 1:numel(handles.data.randomGTSuggestions),
+  for j = 1:numel(handles.data.randomGTSuggestions{i}),
+    for k = 1:numel(handles.data.randomGTSuggestions{i}(j).start),
+      GTSuggestions(end+1) = struct('start',handles.data.randomGTSuggestions{i}(j).start(k),...
+        'end',handles.data.randomGTSuggestions{i}(j).end(k),...
+        'exp',i,'flies',j);
+    end
+  end
+end
+
+handles = NavigateToGTSuggestion(handles,GTSuggestions);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
 return
 
+function handles = NavigateToGTSuggestion(handles,GTSuggestions)
+
+nextexpi = nan;
+nextfly = nan;
+nextframe = nan;
+for i = 1:numel(GTSuggestions),
+  expi = GTSuggestions(i).exp;
+  flies = GTSuggestions(i).flies;
+  t0 = GTSuggestions(i).start;
+  t1 = GTSuggestions(i).end;
+  
+  % ground-truth suggestions are frames in the video, same as the input
+  % to GetLabelIdx
+  
+  % are there labels within this interval?
+  labelidxcurr = handles.data.GetLabelIdx(expi,flies,t0,t1);
+  if all(labelidxcurr.vals == 0),
+    nextexpi = expi;
+    nextfly = flies;
+    nextframe = t0;
+    break;
+  end
+end
+
+if isnan(nextexpi),
+  uiwait(msgbox('No more ground-truthing suggestion intervals to label'));
+  return;
+else
+  nextexp = handles.data.expnames{nextexpi};
+end
+
+if i == 1,
+  res = questdlg(sprintf('Navigate to first ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
+else
+  res = questdlg(sprintf('Navigate to next ground truth suggestion (exp %s, target %d, frame %d)?',nextexp,nextfly,nextframe));
+end
+if ~strcmpi(res,'Yes'),
+  return;
+end
+
+[handles,success] = SetCurrentMovie(handles,nextexpi);
+if ~success,
+  uiwait(warndlg(sprintf('Could not switch to experiment %s',expname)));
+  return;
+end
+
+handles = SetCurrentFlies(handles,nextfly,false,false);
+
+handles = SetCurrentFrame(handles,1,nextframe,handles.figure_JLabel,false,false);
 
 % --------------------------------------------------------------------
 function menu_view_suggest_gt_intervals_none_Callback(hObject, eventdata, handles)
@@ -7481,13 +7544,17 @@ set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 
 handles = UpdateTimelineImages(handles);
 
+handles = NavigateToGTSuggestion(handles,handles.data.balancedGTSuggestions);
+
+guidata(hObject,handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
 
 return
 
@@ -7514,14 +7581,38 @@ set(handles.menu_view_suggest_gt_intervals_none,'Checked','off');
 set(handles.guidata.htimeline_gt_suggestions,'Visible','on');
 set(handles.menu_view_suggest_gt_intervals_load,'Checked','off');
 handles = UpdateTimelineImages(handles);
-guidata(handles.figure_JLabel,handles);
+
+if iscell(handles.data.loadedGTSuggestions),
+  GTSuggestions = struct('start',{},'end',{},'exp',{},'flies',{});
+  for i = 1:numel(handles.data.loadedGTSuggestions),
+    for j = 1:numel(handles.data.loadedGTSuggestions{i}),
+      for k = 1:numel(handles.data.loadedGTSuggestions{i}(j).start),
+        if handles.data.loadedGTSuggestions{i}(j).start(k) > handles.data.loadedGTSuggestions{i}(j).end(k),
+          continue;
+        end
+        GTSuggestions(end+1) = struct('start',handles.data.loadedGTSuggestions{i}(j).start(k),...
+          'end',handles.data.loadedGTSuggestions{i}(j).end(k),...
+          'exp',i,'flies',j);
+      end
+    end
+  end
+else
+  GTSuggestions = handles.data.loadedGTSuggestions;
+end
+
+handles = NavigateToGTSuggestion(handles,GTSuggestions);
+
+guidata(hObject,handles);
+
 UpdatePlots(handles,'refreshim',false,'refreshflies',true,...
   'refreshtrx',true,'refreshlabels',true,...
-  'refresh_timeline_manual',false,...
-  'refresh_timeline_xlim',false,...
-  'refresh_timeline_hcurr',false,...
-  'refresh_timeline_selection',false,...
-  'refresh_curr_prop',false);
+  'refresh_timeline_manual',true,...
+  'refresh_timeline_xlim',true,...
+  'refresh_timeline_hcurr',true,...
+  'refresh_timeline_selection',true,...
+  'refresh_curr_prop',true);
+
+
 return
 
 
