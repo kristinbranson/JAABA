@@ -2933,39 +2933,63 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function [success,msg] = SuggestLoadedGT(obj,expi,filename)
+    function [success,msg] = SuggestLoadedGT(obj,filename)
       success = false;
       msg = '';
       fid = fopen(filename);
       if fid < 0,
         msg = sprintf('Could not open file %s for reading',filename);
       end
-      dat = cell(0,3);
+      dat = cell(0,4);
+      missingexps = {};
       while true,
         s = fgetl(fid);
         if ~ischar(s),
           break;
         end
         s = strtrim(s);
-        m = regexp(s,'^fly:(.*),start:(.*),end:(.*)','tokens','once');
+        m = regexp(s,'^exp:(.*),fly:(.*),start:(.*),end:(.*)','tokens','once');
         if isempty(m),
           continue;
         end
-        if isempty(m{2}) || isempty(m{3}),
+        if isempty(m{3}) || isempty(m{4}),
           continue;
         end
-        dat(end+1,:) = cellfun(@(x) str2double(x),m,'UniformOutput',false);
+        curexp = find(strcmp(m{1},obj.expnames));
+        if isempty(curexp)
+          if ~any(strcmp(m{1},missingexps))
+            missingexps{end+1} = m{1};
+          end
+          continue;
+        end
+        dat{end+1,1} = curexp; %#ok<AGROW>
+        dat(end,2:4) = cellfun(@(x) str2double(x),m(2:end),'UniformOutput',false);
       end
+      
+      if ~isempty(missingexps)
+        expstring = '';
+        for ii = 1:numel(missingexps),
+          expstring = [expstring ' ' missingexps{ii}];
+        end
+        uiwait(warndlg(sprintf(...
+          'Experiments:%s are not currently loaded. Not loading the GT suggestions for these experiments',...
+          expstring)));
+        
+      end
+      
+      dat = cell2mat(dat);
       fclose(fid);
-      fly = dat{1}; t0s = dat{2}; t1s = dat{3};
-      for ndx = 1:obj.nflies_per_exp(expi)
-        loc = ismember(fly,ndx);
-        if ~any(loc), 
-          obj.loadedGTSuggestions{expi}(ndx).start = 1;
-          obj.loadedGTSuggestions{expi}(ndx).end = 0;
-        else
-          obj.loadedGTSuggestions{expi}(ndx).start = t0s(loc);
-          obj.loadedGTSuggestions{expi}(ndx).end = t1s(loc);
+      expi = dat(:,1); fly = dat(:,2); t0s = dat(:,3); t1s = dat(:,4);
+      for curexpi = 1:obj.nexps
+        for ndx = 1:obj.nflies_per_exp(curexpi)
+          loc = ismember(fly,ndx) & ismember(expi,curexpi);
+          if ~any(loc),
+            obj.loadedGTSuggestions{curexpi}(ndx).start = 1;
+            obj.loadedGTSuggestions{curexpi}(ndx).end = 0;
+          else
+            obj.loadedGTSuggestions{curexpi}(ndx).start = t0s(loc);
+            obj.loadedGTSuggestions{curexpi}(ndx).end = t1s(loc);
+          end
         end
       end
       obj.GTSuggestionMode = 'Imported';
@@ -9812,28 +9836,32 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function SaveSuggestionGT(obj,expi,filename)
+    function SaveSuggestionGT(obj,filename)
       fid = fopen(filename,'w');
       switch obj.GTSuggestionMode
         
         case 'Random'
-          for fly = 1:obj.nflies_per_exp(expi)
-            start = obj.randomGTSuggestions{expi}(fly).start;
-            last = obj.randomGTSuggestions{expi}(fly).end;
-            fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,start,last);
+          for expi = 1:obj.nexps
+            for fly = 1:obj.nflies_per_exp(expi)
+              start = obj.randomGTSuggestions{expi}(fly).start;
+              last = obj.randomGTSuggestions{expi}(fly).end;
+              fprintf(fid,'exp:%s,fly:%d,start:%d,end:%d\n',obj.expnames{expi},fly,start,last);
+            end
           end
         case 'Threshold'
-          if obj.predictdata{expi}{1}.loaded_valid(1)
-            for fly = 1:obj.nflies_per_exp(expi)
-              T1 = obj.GetTrxEndFrame(expi,fly);
-              suggestedidx = zeros(1,T1);
-              suggestedidx( obj.predictdata{expi}{fly}.t) = ...
-                obj.NormalizeScores(obj.predictdata{expi}{fly}.loaded) > ...
-                -obj.thresholdGTSuggestions;
-              [t0s,t1s] = get_interval_ends(suggestedidx);
-              for ndx = 1:numel(t0s)
-                if t1s(ndx)< T0, continue ; end
-                fprintf(fid,'fly:%d,start:%d,end:%d\n',fly,t0s(ndx),t1s(ndx));
+          for expi = 1:obj.nexps
+            if obj.predictdata{expi}{1}.loaded_valid(1)
+              for fly = 1:obj.nflies_per_exp(expi)
+                T1 = obj.GetTrxEndFrame(expi,fly);
+                suggestedidx = zeros(1,T1);
+                suggestedidx( obj.predictdata{expi}{fly}.t) = ...
+                  obj.NormalizeScores(obj.predictdata{expi}{fly}.loaded) > ...
+                  -obj.thresholdGTSuggestions;
+                [t0s,t1s] = get_interval_ends(suggestedidx);
+                for ndx = 1:numel(t0s)
+                  if t1s(ndx)< T0, continue ; end
+                  fprintf(fid,'exp:%s,fly:%d,start:%d,end:%d\n',obj.expnames{expi}.fly,t0s(ndx),t1s(ndx));
+                end
               end
             end
           end
@@ -9841,15 +9869,32 @@ classdef JLabelData < matlab.mixin.Copyable
           
         case 'Balanced'
 
+          
           for ndx = 1:numel(obj.balancedGTSuggestions)
-            if obj.balancedGTSuggestions(ndx).exp ~= expi
-              continue;
-            end
+%             if obj.balancedGTSuggestions(ndx).exp ~= expi
+%               continue;
+%             end
             start = obj.balancedGTSuggestions(ndx).start;
             last = obj.balancedGTSuggestions(ndx).end;
-            fprintf(fid,'fly:%d,start:%d,end:%d\n',...
+            fprintf(fid,'exp:%s,fly:%d,start:%d,end:%d\n',...
+              obj.expnames{obj.balancedGTSuggestions(ndx).exp},...
               obj.balancedGTSuggestions(ndx).flies,start,last);
           end
+          
+        case 'Imported'
+          for expi = 1:obj.nexps
+            for fly = 1:obj.nflies_per_exp(expi)
+              start = obj.loadedGTSuggestions{expi}(fly).start;
+              last = obj.loadedGTSuggestions{expi}(fly).end;
+              if numel(start) == 1 && last < start,
+                continue;
+              end
+              for ndx = 1:numel(start)
+                fprintf(fid,'exp:%s,fly:%d,start:%d,end:%d\n',obj.expnames{expi},fly,start(ndx),last(ndx));
+              end
+            end
+          end
+          
           
       end
       fclose(fid);
