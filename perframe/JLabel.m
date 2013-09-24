@@ -7635,7 +7635,6 @@ if ~filename, return, end;
 
 %handles.data.SuggestLoadedGT(handles.data.expi,fullfile(pathname,filename));
 handles.data.setGTSuggestionMode('Imported', ...
-                                         handles.data.expi, ...
                                          fullfile(pathname,filename));
 
 set(handles.menu_view_suggest_gt_intervals_random,'Checked','off');
@@ -7764,13 +7763,13 @@ function menu_file_export_ground_truthing_suggestions_Callback(hObject, eventdat
 % hObject    handle to menu_file_export_ground_truthing_suggestions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-expi = handles.data.expi;
-expdir = handles.data.expdirs{expi};
-outfile = fullfile(expdir,'GTSuggestions.txt');
+% expi = handles.data.expi;
+% expdir = handles.data.expdirs{expi};
+outfile = fullfile('GTSuggestions.txt');
 [fname,pname] = uiputfile('*.txt','Save Ground Truth Suggestions',outfile);
 if isempty(fname), return; end;
 outfile = fullfile(pname,fname);
-handles.data.SaveSuggestionGT(expi,outfile);
+handles.data.SaveSuggestionGT(outfile);
 return
 
 
