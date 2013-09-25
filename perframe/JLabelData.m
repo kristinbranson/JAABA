@@ -5956,7 +5956,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       for ndx = 1:numel(origExpDirNames)
         expdirname = origExpDirNames{ndx};
-        labels = origLabels;
+        labels = origLabels(ndx);
         if importlabels % Change the names
           for fly = 1:numel(labels.flies)
             for bnum = 1:numel(labels.names{fly})
