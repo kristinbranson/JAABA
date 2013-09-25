@@ -8174,6 +8174,8 @@ handles=guidata(figureJLabel);
 handles.data.SetStatusFn(@(s) SetStatusCallback(s,figureJLabel));
 handles.data.SetClearStatusFn(@() ClearStatusCallback(figureJLabel));
 
+SetStatus(handles,sprintf('Saving changes to experiment list...'));
+
 % % Update our copy of the default path
 % handles.guidata.defaultpath = handles.data.defaultpath;
 
@@ -8188,6 +8190,7 @@ oldexpdir=handles.guidata.oldexpdir;
 if isempty(oldexpdir) || ~ismember(oldexpdir,handles.data.expdirs),
   % either there were no experiments before, or the old experiment is no
   % longer among the current experiment list
+  SetStatus(handles,sprintf('Opening new experiment...'));
   handles = UnsetCurrentMovie(handles);
   if handles.data.nexps > 0 && handles.data.expi == 0,
     handles = SetCurrentMovie(handles,1);
@@ -8202,6 +8205,9 @@ end
 
 % Don't need this anymore, so clear it
 handles.guidata.oldexpdir='';
+
+SetStatus(handles,sprintf('Updating GUI...'));
+
 
 % Update the GUI to match the current "model" state
 UpdateEnablementAndVisibilityOfControls(handles);
