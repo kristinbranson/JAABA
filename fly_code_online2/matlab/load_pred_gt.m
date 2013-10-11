@@ -1,5 +1,5 @@
 function [pred_frames, gt_frames, max_dur, pred_bouts, gt_bouts, gt_movie_names, gt_fly_ids, gt_start_frames]=load_pred_gt(pred_file)
-    strs = textread(pred_file, '%s', 'bufsize', 100000);
+    strs = textread(pred_file, '%s', 'bufsize', 1000000);
     max_dur = 0;
     pred_frames = {};
     gt_frames = {};
