@@ -1,4 +1,4 @@
-function classifierinfo = JAABADetect(expdir,varargin)
+function [classifierinfo,allScores] = JAABADetect(expdir,varargin)
 % Run classifiers trained from JAABA on experiments
 % JAABADetect(expdir,'jabfiles',jabfiles)
 % JAABADetect(expdir,'jablistfile',jablistfile)
@@ -96,6 +96,7 @@ classifierinfo = classifierinfo(order);
 
 data = JLabelData();
 data.isInteractive = false;
+allScores = cell(nbehaviors,numel(expdir));
 for ndx = order(:)'
   
   fprintf('Opening project %s...\n',jabfiles{ndx});
@@ -122,7 +123,7 @@ for ndx = order(:)'
     fprintf('Added experiment %d for behavior %s\n',expi,behavior{ndx});
 
     fprintf('Predicting on experiment %d for behavior %s\n',expi,behavior{ndx});
-    data.PredictSaveMovie(data.nexps);
+    allScores{ndx,expi} = data.PredictSaveMovie(data.nexps);
     data.RemoveExpDirs(data.nexps);
     catch ME
       fprintf('Could not classify experiment %d for %s:\n%s\n',expi,behavior{ndx},getReport(ME));
