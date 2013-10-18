@@ -12,6 +12,7 @@ if nargin < 3 || isempty(FPS), FPS = 200; end
 
 % Folder with the movies to import (Eyrun's format)
 if nargin < 4 || isempty(datadir), datadir = '/scratch/Datasets/FlyPairs/Jon_scored_movies/'; end
+%if nargin < 4 || isempty(datadir), datadir = '/Users/eyrun/Caltech/Data/Jon_scored_movies/'; end
 
 % Output folder (structured svm format)
 if nargin < 5 || isempty(export_dir), export_dir = 'data_ssvm'; end
@@ -76,7 +77,11 @@ for ii=1:numel(movies),
         if ii <= numel(train),
             [valid_beh, trainsets]=save_example(export_dir, basenames{ii}, moviename, bouts, behs, feat, fly_id, FPS, params.frame_feature_params, trainsets, detect_percent_overlap_train, max_frames_train);
         else
+            try
             [valid_beh, testsets]=save_example(export_dir, basenames{ii}, moviename, bouts, behs, feat, fly_id, FPS, params.frame_feature_params, testsets, detect_percent_overlap_test, max_frames_test);
+            catch 
+                a=1;
+            end
         end
     end
 end
@@ -124,7 +129,7 @@ end
 
 
 function [bouts,behs,feat,basename,moviename] = loadmovie(moviedir)
-    f = dir(fullfile(moviedir, '*actions.mat'));
+    f = dir(fullfile(moviedir, '*updated_actions.mat'));
     b = load(fullfile(moviedir,f.name));
     bouts = b.bouts;
     behs = b.behs;
@@ -591,11 +596,46 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
         
     T = size(feat.data,2);
     f=reshape(feat.data(fly_id,:,:),size(feat.data,2),size(feat.data,3));
-    [m, ~]=ind2sub(size(f),find(isnan(f)));
-    
     trx = {};
-    trx.firstframe = 1;
+    
+    % set first frame to be the first frame where both flies present
+    tmp = find(~isnan(feat.data(1,:,1)));
+    first1 = tmp(1);
+    tmp = find(~isnan(feat.data(2,:,1)));
+    first2 = tmp(1);
+    %trx.firstframe = 1;
+    trx.firstframe = max(first1,first2);
     trx.endframe = feat.end_frame;
+    
+    % handle in-between and edge nan values
+    for j=3:size(f,2)
+        tmp = find(~isnan(f(:,j)));
+        % interpolate in-between nan values
+        cc = bwconncomp(~isnan(f(:,j)));
+        for c=1:cc.NumObjects
+            prev_fr = cc.PixelIdxList{c}(1);
+            next_fr = cc.PixelIdxList{c}(end);
+            if prev_fr < 1 || next_fr > trx.endframe
+                continue
+            end
+            prev_val = f(prev_fr,j);
+            next_val = f(next_fr,j);
+            n_fr = next_fr-prev_fr+1;
+            d_val = (next_val-prev_val)/(n_fr-1);
+            f(prev_fr:next_fr,j) = prev_val + (0:n_fr-1)*d_val;
+        end
+        % extrapolate for edge nan values
+        last_invalid_fr = tmp(1)-1;
+        if last_invalid_fr+1 > trx.firstframe
+            f(trx.firstframe:last_invalid_fr,j) = f(last_invalid_fr+1,j);
+        end
+        last_valid_fr = tmp(end);
+        if last_valid_fr < size(f,1)
+            f(last_valid_fr+1:end,j) = f(last_valid_fr,j);
+        end
+    end
+    
+    [m, ~]=ind2sub(size(f),find(isnan(f)));
     if ~isempty(m), 
         if feat.end_frame-min(m) < max(m)-1,
             trx.endframe = min(m)-1;
@@ -604,7 +644,7 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
         end
         discarded = feat.end_frame-1-(trx.endframe-trx.firstframe);
         disp(sprintf('Discarding %d frames in %s due to nan valued features', discarded, dirname));
-        assert(discarded < 100);
+        %assert(discarded < 100);
     end
     trx.id = fly_id;
     trx.fps = FPS;
@@ -738,19 +778,19 @@ function p=default_params()
         p.num_histogram_bins                          = 8;
         p.num_temporal_levels                         = 3;
         p.use_histogram_ave_features                  = true;
-        p.use_histogram_sum_features                  = true; %false;
+        p.use_histogram_sum_features                  = false; %true; %
         p.use_bout_ave_absolute_features              = true;
         p.use_bout_ave_features                       = true;
         p.use_bout_max_feature                        = true;
         p.use_bout_min_feature                        = true;
-        p.use_bout_sum_absolute_features              = true; %false;
-        p.use_bout_sum_features                       = true; %false;
+        p.use_bout_sum_absolute_features              = false; %true; %
+        p.use_bout_sum_features                       = false; %true; %
         p.use_bout_standard_deviation                 = true;
-        p.use_bout_sum_variance                       = true; %false;
+        p.use_bout_sum_variance                       = false; %true; %
         p.use_ave_absolute_harmonic_features          = true;
         p.use_ave_harmonic_features                   = true;
-        p.use_sum_absolute_harmonic_features          = true; %false;
-        p.use_sum_harmonic_features                   = true; %false;
+        p.use_sum_absolute_harmonic_features          = false; %true; %
+        p.use_sum_harmonic_features                   = false; %true; %
         p.use_bout_change                             = true;        
         p.use_bout_absolute_change                    = true;
         p.use_start_ave_absolute_diff_haar_features   = true;
@@ -768,7 +808,7 @@ function p=default_params()
         p.use_global_difference_min_ave_features      = false;
         p.use_global_difference_min_sum_features      = false; 
         p.use_duration_feature                        = true;
-        p.num_duration_hist_bins                     = 20;%= 0;
+        p.num_duration_hist_bins                     = 0; %20; %
 end
 
 end

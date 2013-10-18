@@ -1,4 +1,4 @@
-CC = g++
+CC = gcc
 
 INCDIR_EXTRA = -I/opt/matlab/extern/include -I/usr/local/MATLAB/R2012a/extern/include
 LIBS_EXTRA = -L/opt/matlab/extern/lib -L/opt/matlab/bin/glnxa64 -lmat -lmx -Wl,-rpath,/opt/matlab/bin/glnxa64 -L/usr/local/MATLAB/R2012a/bin/glnxa64 -Wl,-rpath,/usr/local/MATLAB/R2012a/bin/glnxa64
@@ -11,7 +11,7 @@ CFLAGS_SHARED= -fPIC
 LIBS= -Llib -Lonline_structured_svm/lib -Lonline_structured_svm/json/lib  -lm $(LIBS_EXTRA)
 LIBS_RELEASE= -lonline_structured_svm -ljson
 LIBS_DEBUG= -ldonline_structured_svm -ldjson
-LD= g++
+LD= gcc
 LDFLAGS= -shared
 AR=ar
 ARFLAGS=rcs
