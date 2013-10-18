@@ -5253,7 +5253,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
 
     % ---------------------------------------------------------------------
-    function PredictSaveMovie(self,expi,sfn)
+    function allScores = PredictSaveMovie(self,expi,sfn)
     % Predicts for the whole movie and saves the scores.
       if nargin < 3
         sfn = self.GetFile('scores',expi);
@@ -5302,7 +5302,15 @@ classdef JLabelData < matlab.mixin.Copyable
         allScores = self.PredictWholeMovie(expi);
       end
       
-      self.SaveScores(allScores,expi,sfn);
+      try
+        self.SaveScores(allScores,expi,sfn);
+      catch ME,
+        if nargout > 0,
+          warning('Could not save scores to file %s: %s',sfn,getReport(ME));
+        else
+          error(getReport(ME));
+        end
+      end
       self.AddScores(expi,allScores,now(),'',true);
       
       if self.predictdata{expi}{1}.loaded_valid(1),
