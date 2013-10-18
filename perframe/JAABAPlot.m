@@ -2334,12 +2334,15 @@ switch(style)
     xdata=xdata(~idx);  data_dp=data_dp(~idx);  data_dn=data_dn(~idx);
     color2=(get(h,'color')+[4 4 4])/5;
     k=1;  m=0;  step=10000;
+    hfront = get(ha,'Children');
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
       patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
       k=k+step+1;  m=m+1;
     end
-    get(ha,'children');  set(ha,'children',circshift(ans,-m));  % send to back
+    hback = setdiff(get(ha,'Children'),hfront);
+    set(ha,'children',[hfront;hback]);
+    %get(ha,'children');  set(ha,'children',circshift(ans,-m));  % send to back
     if(~isnan(fid))
       fprintf(fid,['%% ydata, ' str_dp '\n']);
       print_csv_data(fid,data_dp);
@@ -4277,7 +4280,7 @@ for b=bb
       tmp2=[];
       if(behavior_logic>1)
         tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
-        tmp2 = tmp1(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
+        tmp2 = tmp2(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
 %         tstart=behavior_data2.allScores.tStart(i);
 %         tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-tstart+1);
 %         tmp2(behavior_data2.allScores.t0s{i}-tstart+1)=1;
@@ -4289,7 +4292,7 @@ for b=bb
       tmp3=[];
       if(handles.behaviorvalue3>1)
         tmp3 = compute_behavior_logic(behavior_data3.allScores, i);
-        tmp3 = tmp1(behavior_data3.allScores.tStart(i) : behavior_data3.allScores.tEnd(i));
+        tmp3 = tmp3(behavior_data3.allScores.tStart(i) : behavior_data3.allScores.tEnd(i));
 %         tmp3=zeros(1,behavior_data3.allScores.tEnd(i)-behavior_data3.allScores.tStart(i)+1);
 %         tmp3(behavior_data3.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
 %         tmp3(behavior_data3.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
@@ -4694,7 +4697,7 @@ for b=bb
     if(xoffset==1)
       parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd));
     else
-      parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart));
+      parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart)+1);
     end
 
     ii2=0;
@@ -6441,7 +6444,7 @@ function XOffset_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns XOffset contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from XOffset
 
-handles.xoffset=get(handles.Xoffset,'value');
+handles.xoffset=get(handles.XOffset,'value');
 guidata(hObject,handles);
 
 
