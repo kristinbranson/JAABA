@@ -4514,6 +4514,9 @@ switch eventdata.Key,
 
     
   case handles.guidata.label_shortcuts,
+    if strcmpi(eventdata.Modifier,'control')
+      return;
+    end
     buttonNum = find(strcmp(eventdata.Key,handles.guidata.label_shortcuts),1);
     if buttonNum > 2*handles.data.nbehaviors,
       if handles.guidata.label_state > 0,
