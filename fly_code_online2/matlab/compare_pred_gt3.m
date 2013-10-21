@@ -98,8 +98,8 @@ function OUT=plot_conf_mat(pred_frames, gt_frames, behs, repfile2)
         true_frames = true_frames + numel(find(diff==0));
         total_frames = total_frames + numel(gt_frames{i});
         for b=1:num_behs
-            gt_preds{b} = [gt_preds{b} pred_frames{i}(gt_frames{i}==(b-1))];
-            pred_gts{b} = [pred_gts{b} gt_frames{i}(pred_frames{i}==(b-1))];
+            gt_preds{b} = [gt_preds{b}; pred_frames{i}(gt_frames{i}==(b-1))];
+            pred_gts{b} = [pred_gts{b}; gt_frames{i}(pred_frames{i}==(b-1))];
         end
     end
 

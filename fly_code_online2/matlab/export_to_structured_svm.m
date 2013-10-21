@@ -11,8 +11,8 @@ if nargin < 2, trainvals = {}; end
 if nargin < 3 || isempty(FPS), FPS = 200; end
 
 % Folder with the movies to import (Eyrun's format)
-if nargin < 4 || isempty(datadir), datadir = '/scratch/Datasets/FlyPairs/Jon_scored_movies/'; end
-%if nargin < 4 || isempty(datadir), datadir = '/Users/eyrun/Caltech/Data/Jon_scored_movies/'; end
+%if nargin < 4 || isempty(datadir), datadir = '/scratch/Datasets/FlyPairs/Jon_scored_movies/'; end
+if nargin < 4 || isempty(datadir), datadir = '/Users/eyrun/Caltech/Data/Jon_scored_movies/'; end
 
 % Output folder (structured svm format)
 if nargin < 5 || isempty(export_dir), export_dir = 'data_ssvm'; end
@@ -72,7 +72,7 @@ for ii=1:(numel(behs)+1),
     testsets{ii} = {};
 end
 for ii=1:numel(movies),
-    [bouts,~,~,basenames{ii},moviename] = loadmovie(fullfile(datadir, movies{ii}));
+    [bouts,behs,feat,basenames{ii},moviename] = loadmovie(fullfile(datadir, movies{ii}));
     for fly_id=1:size(feat.data,1),
         if ii <= numel(train),
             [valid_beh, trainsets]=save_example(export_dir, basenames{ii}, moviename, bouts, behs, feat, fly_id, FPS, params.frame_feature_params, trainsets, detect_percent_overlap_train, max_frames_train);
@@ -603,9 +603,10 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
     first1 = tmp(1);
     tmp = find(~isnan(feat.data(2,:,1)));
     first2 = tmp(1);
-    %trx.firstframe = 1;
     trx.firstframe = max(first1,first2);
-    trx.endframe = feat.end_frame;
+    trx.endframe = T;
+    %trx.firstframe = 1;
+    %trx.endframe = feat.end_frame;
     
     % handle in-between and edge nan values
     for j=3:size(f,2)
@@ -668,7 +669,7 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
             t0s = [];   t1s = [];  be = [];
         else
             t0s = max(bouts{fly_id,kk}(:,1), trx.firstframe);
-            t1s = min(bouts{fly_id,kk}(:,2)+1, trx.endframe);
+            t1s = min(bouts{fly_id,kk}(:,2), trx.endframe);
             be = ones(length(t0s),1)*(kk+1);
         end
         if ~strcmp(behs{kk}, 'unknown')
