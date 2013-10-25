@@ -2,7 +2,7 @@
 function OUT = compare_pred_gt3(behs, pred_file)%compare_pred_gt3(model_file, pred_file)
 
 if nargin < 1, behs = {'none','lunge'}; end
-if nargin < 2, pred_file = 'data_ssvm_fragments/pred_lunge.txt'; end
+if nargin < 2, pred_file = 'data_ssvm/train_lunge.txt.pred.15'; end
 
 %repfile = 'reportsUpdated/model5iter17_new';
 repfile = 'dummy';
@@ -15,10 +15,6 @@ repfile2 = 'dummy2';
 plot_pred_gt(pred_frames, gt_frames, max_dur, behs, repfile);
 
 OUT=plot_conf_mat(pred_frames, gt_frames, behs, repfile2);
-
-
-
-
 
 
 %% Plot GT vs Prediction
