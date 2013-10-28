@@ -136,7 +136,7 @@ function [y,feature_names] = ComputeWindowFeatures(x,varargin)
 x = x(:)';
 N = numel(x);
 feature_names = {};
-feature_types_computed = {};
+% feature_types_computed = {};
 
 %% default parameters
 
@@ -402,8 +402,10 @@ for ndx = 1:length(feature_types)
     else
       y(end+1:end+size(y_new,1),:) = nan(size(y_new,1),size(y,2));      
     end
-    feature_names(end+1:end+numel(feature_names_new)) = feature_names_new;
-    feature_types_computed{end+1} = curFeature;
+    if(nargout>1)
+      feature_names(end+1:end+numel(feature_names_new)) = feature_names_new;
+%     feature_types_computed{end+1} = curFeature;
+    end
 
   %end  
 end
