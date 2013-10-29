@@ -610,12 +610,11 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
     
     % handle in-between and edge nan values
     for j=3:size(f,2)
-        tmp = find(~isnan(f(:,j)));
         % interpolate in-between nan values
-        cc = bwconncomp(~isnan(f(:,j)));
+        cc = bwconncomp(isnan(f(:,j)));
         for c=1:cc.NumObjects
-            prev_fr = cc.PixelIdxList{c}(1);
-            next_fr = cc.PixelIdxList{c}(end);
+            prev_fr = cc.PixelIdxList{c}(1)-1;
+            next_fr = cc.PixelIdxList{c}(end)+1;
             if prev_fr < 1 || next_fr > trx.endframe
                 continue
             end
@@ -626,6 +625,7 @@ function [valid_beh, datasets] = save_example(export_dir, basename, moviename, b
             f(prev_fr:next_fr,j) = prev_val + (0:n_fr-1)*d_val;
         end
         % extrapolate for edge nan values
+        tmp = find(~isnan(f(:,j)));
         last_invalid_fr = tmp(1)-1;
         if last_invalid_fr+1 > trx.firstframe
             f(trx.firstframe:last_invalid_fr,j) = f(last_invalid_fr+1,j);
