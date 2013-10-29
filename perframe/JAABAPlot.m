@@ -2474,9 +2474,9 @@ not_during=[not_during{:}];
 % ---
 function tmp=calculate_statistics2(table_data,behaviorlist,grouplist,comparison,fid,crit)
 
-nrows=9+3*(comparison>0);
+nrows=10+4*(comparison>0);
 if(((size(table_data{1},1)==2)&&(comparison==0)) || ((size(table_data{1},1)==1)&&(comparison>0)))
-  nrows=7+3*(comparison>0);
+  nrows=8+4*(comparison>0);
 end
 
 switch(comparison)
@@ -2502,25 +2502,27 @@ for b=1:length(table_data)
   tmp{nrows*b+1,1}=behaviorlist{b};
   for g=1:size(table_data{b},1)
     for c=1:(1+(comparison>0))
-      idx=2:4;  if(comparison>0)  idx=c+(1:2:5);  end
+      idx=2:5;  if(comparison>0)  idx=c+(1:2:7);  end
       p=nan;
       if(sum(~isnan(table_data{b}{g,c}))>0)
         [~,p,~,~]=kstest(table_data{b}{g,c});
       end
       tmp{nrows*b+idx(1),g}=color_red(length(table_data{b}{g,c}),0);
       tmp{nrows*b+idx(2),g}=color_red(p,p<crit);
-      tmp{nrows*b+idx(3),g}=color_red(nanstd(table_data{b}{g,c}),0);
+      tmp{nrows*b+idx(3),g}=color_red(nanmean(table_data{b}{g,c}),0);
+      tmp{nrows*b+idx(4),g}=color_red(nanstd(table_data{b}{g,c}),0);
       ctxt2='';
       if(comparison>0)
         ctxt2=ctxt;  if(c==1)  ctxt2=' during';  end
       end
       if(b==1)
-        tmp(idx,g)=repmat({[grouplistcopy{g} ctxt2]},3,1);
+        tmp(idx,g)=repmat({[grouplistcopy{g} ctxt2]},4,1);
         if(g==1)
-          idx=2:4;  if(comparison>0)  idx=[2:3; 4:5; 6:7]';  end
+          idx=2:5;  if(comparison>0)  idx=[2:3; 4:5; 6:7; 8:9]';  end
           tmp(idx(:,1),size(table_data{b},1)+1)=repmat({'(sample size)'},size(idx,1),1);
           tmp(idx(:,2),size(table_data{b},1)+1)=repmat({'(K-S normal)'},size(idx,1),1);
-          tmp(idx(:,3),size(table_data{b},1)+1)=repmat({'(std. dev.)'},size(idx,1),1);
+          tmp(idx(:,3),size(table_data{b},1)+1)=repmat({'(mean)'},size(idx,1),1);
+          tmp(idx(:,4),size(table_data{b},1)+1)=repmat({'(std. dev.)'},size(idx,1),1);
         end
       end
     end
@@ -2528,21 +2530,21 @@ for b=1:length(table_data)
 
   if(((size(table_data{1},1)==2)&&(comparison==0)) || ((size(table_data{1},1)==1)&&(comparison>0)))
   
-    if(b==1)  tmp{5+3*(comparison>0),1}='t-test';  end
+    if(b==1)  tmp{6+4*(comparison>0),1}='t-test';  end
     if(comparison>0)
       [~,p]=ttest2(table_data{b}{1,1},table_data{b}{1,2});
     else
       [~,p]=ttest2(table_data{b}{1,1},table_data{b}{2,1});
     end
-    tmp{nrows*b+5+3*(comparison>0),1}=color_red(p,p<crit);
+    tmp{nrows*b+6+4*(comparison>0),1}=color_red(p,p<crit);
 
-    if(b==1)  tmp{6+3*(comparison>0),1}='Wilcoxen';  end
+    if(b==1)  tmp{7+4*(comparison>0),1}='Wilcoxen';  end
     if(comparison>0)
       p=ranksum(table_data{b}{1,1},table_data{b}{1,2});
     else
       p=ranksum(table_data{b}{1,1},table_data{b}{2,1});
     end
-    tmp{nrows*b+6+3*(comparison>0),1}=color_red(p,p<crit);
+    tmp{nrows*b+7+4*(comparison>0),1}=color_red(p,p<crit);
 
   else
 
@@ -2559,38 +2561,38 @@ for b=1:length(table_data)
     end
     c=multcompare(stats,'alpha',crit,'display','off');
     for(pp=1:length(p))
-      tmp{nrows*b+5+3*(comparison>0),pp}=color_red(p(pp),p(pp)<crit);
+      tmp{nrows*b+6+4*(comparison>0),pp}=color_red(p(pp),p(pp)<crit);
     end
     if(b==1)
       if(comparison>0)
-        tmp(8,1:4)={'group','comparison','interaction','(ANOVA)'};
+        tmp(10,1:4)={'group','comparison','interaction','(ANOVA)'};
       else
-        tmp(5,1)={'(ANOVA)'};
+        tmp(6,1)={'(ANOVA)'};
       end
     end
     for g2=1:size(c,1)
       if(b==1)
-        tmp((6:8)+3*(comparison>0),g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
+        tmp((7:9)+4*(comparison>0),g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
       end
       foo=(sign(c(g2,3))==sign(c(g2,5)));
-      tmp{nrows*b+6+3*(comparison>0),g2}=color_red(c(g2,3),foo);
-      tmp{nrows*b+7+3*(comparison>0),g2}=color_red(c(g2,4),foo);
-      tmp{nrows*b+8+3*(comparison>0),g2}=color_red(c(g2,5),foo);
+      tmp{nrows*b+7+4*(comparison>0),g2}=color_red(c(g2,3),foo);
+      tmp{nrows*b+8+4*(comparison>0),g2}=color_red(c(g2,4),foo);
+      tmp{nrows*b+9+4*(comparison>0),g2}=color_red(c(g2,5),foo);
     end
     pooh=size(c,1);
     if(comparison>0)
       [p,table,stats]=anovan([table_data{b}{:}],{[f2{:}] [f1{:}]},'model','interaction','display','off');
       c=multcompare(stats,'alpha',crit,'display','off');
       if(b==1)
-        tmp((6:8)+3*(comparison>0),pooh+1)=repmat({strcat('during-',ctxt)},3,1);
+        tmp((7:9)+4*(comparison>0),pooh+1)=repmat({strcat('during-',ctxt)},3,1);
       end
       foo=(sign(c(1,3))==sign(c(1,5)));
-      tmp{nrows*b+6+3*(comparison>0),pooh+1}=color_red(c(1,3),foo);
-      tmp{nrows*b+7+3*(comparison>0),pooh+1}=color_red(c(1,4),foo);
-      tmp{nrows*b+8+3*(comparison>0),pooh+1}=color_red(c(1,5),foo);
+      tmp{nrows*b+7+4*(comparison>0),pooh+1}=color_red(c(1,3),foo);
+      tmp{nrows*b+8+4*(comparison>0),pooh+1}=color_red(c(1,4),foo);
+      tmp{nrows*b+9+4*(comparison>0),pooh+1}=color_red(c(1,5),foo);
     end
     if(b==1)
-      tmp((6:8)+3*(comparison>0),pooh+1+(comparison>0))={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
+      tmp((7:9)+4*(comparison>0),pooh+1+(comparison>0))={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
     end
   end
 end
@@ -4049,7 +4051,7 @@ end
 % ---
 function tmp=calculate_statistics(table_data,behaviorlist,grouplist,fid,crit)
 
-nrows=13;  if(length(table_data{1})==2)  nrows=7;  end
+nrows=14;  if(length(table_data{1})==2)  nrows=8;  end
 
 tmp={'behavior'};
 for b=1:length(table_data)
@@ -4067,30 +4069,32 @@ for b=1:length(table_data)
 
   tmp{nrows*b+1,1}=behaviorlist{b};
   for g=1:length(table_data{b})
-    if(b==1)  tmp(2:4,g)=repmat({grouplistcopy{g}},3,1);  end
+    if(b==1)  tmp(2:5,g)=repmat({grouplistcopy{g}},4,1);  end
     p=nan;
     if(sum(~isnan(table_data{b}{g}))>0)
       [~,p,~,~]=kstest(table_data{b}{g});
     end
     tmp{nrows*b+2,g}=color_red(length(table_data{b}{g}),0);
     tmp{nrows*b+3,g}=color_red(p,p<crit);
-    tmp{nrows*b+4,g}=color_red(nanstd(table_data{b}{g}),0);
+    tmp{nrows*b+4,g}=color_red(nanmean(table_data{b}{g}),0);
+    tmp{nrows*b+5,g}=color_red(nanstd(table_data{b}{g}),0);
   end
   if(b==1)
     tmp{2,length(table_data{b})+1}='(sample size)';
     tmp{3,length(table_data{b})+1}='(K-S normal)';
-    tmp{4,length(table_data{b})+1}='(std. dev.)';
+    tmp{4,length(table_data{b})+1}='(mean)';
+    tmp{5,length(table_data{b})+1}='(std. dev.)';
   end
 
   if(length(table_data{b})==2)
   
-    if(b==1)  tmp{5,1}='t-test';  end
+    if(b==1)  tmp{6,1}='t-test';  end
     [~,p]=ttest2(table_data{b}{1},table_data{b}{2});
-    tmp{nrows*b+5,1}=color_red(p,p<crit);
-
-    if(b==1)  tmp{6,1}='Wilcoxen';  end
-    p=ranksum(table_data{b}{1},table_data{b}{2});
     tmp{nrows*b+6,1}=color_red(p,p<crit);
+
+    if(b==1)  tmp{7,1}='Wilcoxen';  end
+    p=ranksum(table_data{b}{1},table_data{b}{2});
+    tmp{nrows*b+7,1}=color_red(p,p<crit);
 
   else
 
@@ -4098,38 +4102,38 @@ for b=1:length(table_data)
         'uniformoutput',false);
     [p,table,stats]=anova1([table_data{b}{:}],[foo{:}],'off');
     c=multcompare(stats,'alpha',crit,'display','off');
-    tmp{nrows*b+5,1}=color_red(p,p<crit);
-    if(b==1)  tmp{5,1}='ANOVA';  end
+    tmp{nrows*b+6,1}=color_red(p,p<crit);
+    if(b==1)  tmp{6,1}='ANOVA';  end
     for g2=1:size(c,1)
       if(b==1)
-        tmp(6:8,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
+        tmp(7:9,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
       end
       foo=(sign(c(g2,3))==sign(c(g2,5)));
-      tmp{nrows*b+6,g2}=color_red(c(g2,3),foo);
-      tmp{nrows*b+7,g2}=color_red(c(g2,4),foo);
-      tmp{nrows*b+8,g2}=color_red(c(g2,5),foo);
+      tmp{nrows*b+7,g2}=color_red(c(g2,3),foo);
+      tmp{nrows*b+8,g2}=color_red(c(g2,4),foo);
+      tmp{nrows*b+9,g2}=color_red(c(g2,5),foo);
     end
     if(b==1)
-      tmp(6:8,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
+      tmp(7:9,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
     end
 
     foo=cellfun(@(x,y) y*ones(1,length(x)),table_data{b},num2cell(1:length(table_data{b})),...
         'uniformoutput',false);
     [p,table,stats]=kruskalwallis([table_data{b}{:}],[foo{:}],'off');
     c=multcompare(stats,'alpha',crit,'display','off');
-    tmp{nrows*b+9,1}=color_red(p,p<crit);
-    if(b==1)  tmp{9,1}='Kruskal-Wallis';  end
+    tmp{nrows*b+10,1}=color_red(p,p<crit);
+    if(b==1)  tmp{10,1}='Kruskal-Wallis';  end
     for g2=1:size(c,1)
       if(b==1)
-        tmp(10:12,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
+        tmp(11:13,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
       end
       foo=(sign(c(g2,3))==sign(c(g2,5)));
-      tmp{nrows*b+10,g2}=color_red(c(g2,3),foo);
-      tmp{nrows*b+11,g2}=color_red(c(g2,4),foo);
-      tmp{nrows*b+12,g2}=color_red(c(g2,5),foo);
+      tmp{nrows*b+11,g2}=color_red(c(g2,3),foo);
+      tmp{nrows*b+12,g2}=color_red(c(g2,4),foo);
+      tmp{nrows*b+13,g2}=color_red(c(g2,5),foo);
     end
     if(b==1)
-      tmp(10:12,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
+      tmp(11:13,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
     end
   end
 end
