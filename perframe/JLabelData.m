@@ -2206,10 +2206,10 @@ classdef JLabelData < matlab.mixin.Copyable
     % This function precomputes any missing window data for all labeled
     % training examples by calling PreLoadWindowData on all labeled frames.
 
-      obj.SetStatus('Computing windowdata');
       success = false; msg = '';
       
       for expi = 1:obj.nexps,
+        obj.SetStatus('Computing windowdata for %s', obj.expnames{expi});
         obj.CheckExp(expi);
         obj_getperframefiles = obj.GetPerframeFiles(expi);
         flies_curr = obj.labels(expi).flies;
