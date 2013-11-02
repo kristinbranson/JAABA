@@ -72,6 +72,13 @@ switch InputDataType,
       leftovers{:},...
       'pxpermm',pxpermm);
 
+  case 'JCtrax',
+
+    [success,msg,pxpermm] = ...
+      ReadArenaParameters_JCtrax(...
+      leftovers{:},...
+      'pxpermm',pxpermm);
+    
   otherwise
     success = false;
     msg = sprintf('Unknown data type %s',InputDataType);

@@ -220,7 +220,7 @@ if (strcmpi(InputDataType.writearena,'no')&&strcmpi(InputDataType.writepxpermm,'
     (strcmpi(InputDataType.writearena,'no')&&strcmpi(InputDataType.readpxpermm,'no')),
   handles.visible_read_arena = 'off';
 end
-if strcmpi(InputDataType.writefps,'no'),
+if strcmpi(InputDataType.readfps,'no') || strcmpi(InputDataType.writefps,'no'),
   handles.visible_read_fps = 'off';
 end
 
@@ -1004,7 +1004,11 @@ else
   %description = InputDataType.files(i).description;
   name = InputDataType.files(i).name;
   inputfile = handles.InputFiles.(handles.InputDataType){i};
-  inputfilestr = handles.inputfilestrs.(handles.InputDataType){i};
+  if numel(handles.inputfilestrs.(handles.InputDataType)) >= i,
+    inputfilestr = handles.inputfilestrs.(handles.InputDataType){i};
+  else
+    inputfilestr = '';
+  end
 end
 
 if row > 1 && InputDataType.files(i).multiplefiles > 0,
@@ -1372,8 +1376,8 @@ if col ~= 2,
 end
 data = get(hObject,'Data');
 [parentdir,expname] = myfileparts(handles.ExperimentDirectory);
-if isempty(eventdata.NewData) && row > 1 || ...
-    ((row == 3) && ~handles.InputDataTypes.(handles.InputDataType).videorequired),
+if isempty(eventdata.NewData) && (row > 1 || ...
+    ((row == 3) && ~handles.InputDataTypes.(handles.InputDataType).videorequired)),
   switch row,
     case 2,
       data{2,2} = expname;

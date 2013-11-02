@@ -342,3 +342,36 @@ file.multiplefiles = 0;
 file.isdir = 1;
 file.exts = {'*'};
 InputDataTypes.SimpleTwoFlies.files = structappend(InputDataTypes.SimpleTwoFlies.files,file);
+
+%% JCtrax
+
+InputDataTypes.JCtrax = struct;
+InputDataTypes.JCtrax.name = 'JCtrax';
+InputDataTypes.JCtrax.videorequired = true;
+InputDataTypes.JCtrax.readarena = 'yes';
+InputDataTypes.JCtrax.readpxpermm = 'yes';
+InputDataTypes.JCtrax.readfps = 'yes';
+InputDataTypes.JCtrax.writearena = 'no';
+InputDataTypes.JCtrax.writepxpermm = 'no';
+InputDataTypes.JCtrax.writefps = 'no';
+InputDataTypes.JCtrax.files = [];
+
+file = struct;
+file.name = 'Track file';
+file.code = 'intrxfile';
+file.description = 'Track file output by JCtrax';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*-track.mat'};
+InputDataTypes.JCtrax.files = structappend(InputDataTypes.JCtrax.files,file);
+
+file.name = 'info mat file';
+file.code = 'infofile';
+file.description = 'Mat file information';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*info.mat'};
+InputDataTypes.JCtrax.files = structappend(InputDataTypes.JCtrax.files,file);
+
