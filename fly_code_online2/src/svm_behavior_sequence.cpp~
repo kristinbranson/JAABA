@@ -781,12 +781,11 @@ void SVMBehaviorSequence::ComputeClassTrainsitionCounts() {
     }
   }
 #if USE_DURATION_COST > 0
-  // make sure that we search each frame back up to the max duration of our behavior of interest
   int min_max = INFINITY;
   for(i = 0; i < behaviors->num_values; i++) {
-      min_max = my_min(max_frame_duration[i], min_max);
+      min_max = my_min(max_frame_duration[], min_max);
   }
-  search_all_bout_durations_up_to = my_max(min_max, search_all_bout_durations_up_to);     
+  max_frme_     
 #endif
 }
 
