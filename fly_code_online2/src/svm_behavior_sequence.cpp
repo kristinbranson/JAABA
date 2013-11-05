@@ -780,14 +780,14 @@ void SVMBehaviorSequence::ComputeClassTrainsitionCounts() {
 	class_training_transitions[i][class_training_transitions_count[i]++] = j;
     }
   }
-#if USE_DURATION_COST > 0
-  // make sure that we search each frame back up to the max duration of our behavior of interest
-  int min_max = INFINITY;
-  for(i = 0; i < behaviors->num_values; i++) {
-      min_max = my_min(max_frame_duration[i], min_max);
-  }
-  search_all_bout_durations_up_to = my_max(min_max, search_all_bout_durations_up_to);     
-#endif
+// #if USE_DURATION_COST > 0
+//   // make sure that we search each frame back up to the max duration of our behavior of interest
+//   int min_max = INFINITY;
+//   for(i = 0; i < behaviors->num_values; i++) {
+//       min_max = my_min(max_frame_duration[i], min_max);
+//   }
+//   search_all_bout_durations_up_to = my_max(min_max, search_all_bout_durations_up_to);     
+// #endif
 }
 
 StructuredExample *SVMBehaviorSequence::read_struct_example(const char *label_fname, const char *features_fname, bool computeFeatures) {
