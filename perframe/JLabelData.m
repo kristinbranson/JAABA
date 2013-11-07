@@ -5731,7 +5731,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % make sure directory exists
       obj.SetStatus('Checking that %s exists...',expDirName);
       if ~exist(expDirName,'file'),
-        error('JLabelData:expDirDoesNotExist', ...
+        error('JLabelData:expDirDoesNotExist', '%s', ...
               expDirName);
       end
       
