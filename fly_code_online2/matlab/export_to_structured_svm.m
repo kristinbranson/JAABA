@@ -5,14 +5,13 @@ if nargin < 1 || isempty(p), p = default_params(); end
 
 % If non-empty, trainval encodes pre-learned histogram thresholds and bout
 % feature normalization factors (output of generate_bouts_vec.m)
-if nargin < 2, trainvals = {}; end
+if nargin < 2 || isempty(trainvals), trainvals = {}; end
 
 % The framerate of the video
 if nargin < 3 || isempty(FPS), FPS = 200; end
 
 % Folder with the movies to import (Eyrun's format)
 if nargin < 4 || isempty(datadir), datadir = '/scratch/Datasets/FlyPairs/Jon_scored_movies/'; end
-%if nargin < 4 || isempty(datadir), datadir = '/Users/eyrun/Caltech/Data/Jon_scored_movies/'; end
 
 % Output folder (structured svm format)
 if nargin < 5 || isempty(export_dir), export_dir = 'data_ssvm'; end
