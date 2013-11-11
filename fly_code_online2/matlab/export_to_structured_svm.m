@@ -132,21 +132,21 @@ function [bouts,behs,feat,basename,moviename] = loadmovie(moviedir)
     if numel(tmp) == 0
         tmp = dir(fullfile(moviedir,'*.mp4'));
     end
-    [~,moviename,ext] = fileparts(tmp(1).name);
+    [~,basename,ext] = fileparts(tmp(1).name);
     if strcmp(ext,'.seq')
-        annofile = fullfile(moviedir,[moviename '-updated_actions.mat']);
+        annofile = fullfile(moviedir,[basename '-updated_actions.mat']);
     else
-        annofile = fullfile(moviedir,[moviename '_actions.mat']);
+        annofile = fullfile(moviedir,[basename '_actions.mat']);
     end
     b = load(annofile);    
     bouts = b.bouts;
     behs = b.behs;
     
-    featfile = fullfile(moviedir,moviename,[moviename '-feat.mat']);
+    featfile = fullfile(moviedir,basename,[basename '-feat.mat']);
     b = load(featfile);
     feat = b.feat;
 
-    moviename = fullfile(moviedir,[moviename ext]);
+    moviename = fullfile(moviedir,[basename ext]);    
 end
 
 

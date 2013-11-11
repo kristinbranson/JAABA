@@ -132,11 +132,11 @@ function [bouts,behs,feat,basename,moviename] = loadmovie(moviedir)
     if numel(tmp) == 0
         tmp = dir(fullfile(moviedir,'*.mp4'));
     end
-    [~,moviename,ext] = fileparts(tmp(1).name);
+    [~,basename,ext] = fileparts(tmp(1).name);
     if strcmp(ext,'.seq')
-        anno_file = fullfile(moviedir,[moviename '-updated_actions.mat']);
+        annofile = fullfile(moviedir,[moviename '-updated_actions.mat']);
     else
-        anno_file = fullfile(moviedir,[moviename '_actions.mat']);
+        annofile = fullfile(moviedir,[moviename '_actions.mat']);
     end
     b = load(annofile);    
     bouts = b.bouts;
@@ -144,6 +144,25 @@ function [bouts,behs,feat,basename,moviename] = loadmovie(moviedir)
     
     featfile = fullfile(moviedir,moviename,[moviename '-feat.mat']);
     b = load(featfile);
+    feat = b.feat;
+
+    moviename = fullfile(moviedir,[moviename ext]);    
+    
+    
+    
+    
+    f = dir(fullfile(moviedir, '*updated_actions.mat'));
+    b = load(fullfile(moviedir,f.name));
+    bouts = b.bouts;
+    behs = b.behs;
+    
+    
+    if isempty(strfind(f.name,'-updated_actions.mat')),
+        basename = f.name(1:(length(f.name)-length('_actions.mat')));
+    else
+        basename = f.name(1:(length(f.name)-length('-updated_actions.mat')));
+    end
+    b = load(fullfile(moviedir, basename, strcat(basename,'-feat.mat')));
     feat = b.feat;
 
     moviename = fullfile(moviedir,strcat(basename,'.seq'));
