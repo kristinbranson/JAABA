@@ -146,7 +146,7 @@ function [bouts,behs,feat,basename,moviename] = loadmovie(moviedir)
     b = load(featfile);
     feat = b.feat;
 
-    moviename = fullfile(moviedir,[moviename ext]);
+    moviename = fullfile(moviedir,strcat(basename,'.seq'));
 end
 
 
