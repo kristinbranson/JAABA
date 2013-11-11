@@ -134,9 +134,9 @@ function [bouts,behs,feat,basename,moviename] = loadmovie(moviedir)
     end
     [~,moviename,ext] = fileparts(tmp(1).name);
     if strcmp(ext,'.seq')
-        anno_file = fullfile(moviedir,[moviename '-updated_actions.mat']);
+        annofile = fullfile(moviedir,[moviename '-updated_actions.mat']);
     else
-        anno_file = fullfile(moviedir,[moviename '_actions.mat']);
+        annofile = fullfile(moviedir,[moviename '_actions.mat']);
     end
     b = load(annofile);    
     bouts = b.bouts;
