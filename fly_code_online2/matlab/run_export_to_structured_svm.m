@@ -6,12 +6,14 @@ if dataset_id == 1
     train = {'movie1','movie2','movie3'};
     test = {'movie4','movie5','movie6'};
     FPS = 200;
+    n_flies = 2;
 elseif dataset_id == 2
     datadir = '/scratch/Datasets/FlyPairs/Eric_scored_movies/';
     export_dir = 'data_ssvm_eric';
     train = {'movie3','movie9','movie10','movie13','movie28'};
     test = {'movie1','movie5','movie11','movie15','movie16'};
     FPS = 30;
+    n_flies = 2;
 else
     datadir = '/scratch/Datasets/FlyPairs/Eric_courtship_movies/';
     export_dir = 'data_ssvm_eric_courtship';
@@ -24,8 +26,9 @@ else
     'wild/movie10','wild/movie11','hyper/movie1','hyper/movie2', ...
     'hyper/movie3','hyper/movie6','hyper/movie12'};
     FPS = 30;
+    n_flies = 1;
 end
 
-export_to_structured_svm([], [], FPS, datadir, export_dir, [], train, test)
+export_to_structured_svm([], [], FPS, datadir, export_dir, [], train, test, n_flies)
 
 end

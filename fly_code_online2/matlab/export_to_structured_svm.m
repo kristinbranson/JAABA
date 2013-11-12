@@ -1,4 +1,4 @@
-function params = export_to_structured_svm(p, trainvals, FPS, datadir, export_dir, do_feature_selection, train, test, detect_percent_overlap_train, max_frames_train, max_frames_test)
+function params = export_to_structured_svm(p, trainvals, FPS, datadir, export_dir, do_feature_selection, train, test, n_flies, detect_percent_overlap_train, max_frames_train, max_frames_test)
 
 % p defines the set of bout features to use
 if nargin < 1 || isempty(p), p = default_params(); end
@@ -24,19 +24,22 @@ if nargin < 7 || isempty(train), train = { 'movie1', 'movie2', 'movie3' }; end
 % Test movies
 if nargin < 8 || isempty(test), test = { 'movie4', 'movie5', 'movie6' }; end
 
+% Number of flies
+if nargin < 9 || isempty(n_flies), n_flies = 2; end
+
 % If non-zero, purposefully leave unlabeled gaps.  The structured svm code
 % will ignore these gaps, effectively not penalizing predictions that move
 % the start/end of the bout by no more than detect_percent_overlap percent.
 % This might give better results when the start/end of bouts aren't precisely 
 % labeled or when
-if nargin < 9 || isempty(detect_percent_overlap_train), detect_percent_overlap_train = 0; end
+if nargin < 10 || isempty(detect_percent_overlap_train), detect_percent_overlap_train = 0; end
 detect_percent_overlap_test = 0;
 
 % Optionally break apart training movies into multiple segments for better
 % computational tractability
-if nargin < 10 || isempty(max_frames_train), max_frames_train = 50000; end
+if nargin < 11 || isempty(max_frames_train), max_frames_train = 50000; end
 
-if nargin < 11 || isempty(max_frames_test), max_frames_test = 50000; end
+if nargin < 12 || isempty(max_frames_test), max_frames_test = 50000; end
     
 
 [~,behs,feat]=loadmovie(fullfile(datadir, train{1}));
@@ -72,15 +75,11 @@ for ii=1:(numel(behs)+1),
 end
 for ii=1:numel(movies),
     [bouts,behs,feat,basenames{ii},moviename] = loadmovie(fullfile(datadir, movies{ii}));
-    for fly_id=1:size(feat.data,1),
+    for fly_id=1:n_flies
         if ii <= numel(train),
             [valid_beh, trainsets]=save_example(export_dir, basenames{ii}, moviename, bouts, behs, feat, fly_id, FPS, params.frame_feature_params, trainsets, detect_percent_overlap_train, max_frames_train);
         else
-            try
             [valid_beh, testsets]=save_example(export_dir, basenames{ii}, moviename, bouts, behs, feat, fly_id, FPS, params.frame_feature_params, testsets, detect_percent_overlap_test, max_frames_test);
-            catch 
-                a=1;
-            end
         end
     end
 end
