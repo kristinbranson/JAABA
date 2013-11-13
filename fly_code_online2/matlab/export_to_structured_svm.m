@@ -37,9 +37,9 @@ detect_percent_overlap_test = 0;
 
 % Optionally break apart training movies into multiple segments for better
 % computational tractability
-if nargin < 11 || isempty(max_frames_train), max_frames_train = 50000; end
+if nargin < 11 || isempty(max_frames_train), max_frames_train = 30000; end
 
-if nargin < 12 || isempty(max_frames_test), max_frames_test = 50000; end
+if nargin < 12 || isempty(max_frames_test), max_frames_test = 30000; end
     
 
 [~,behs,feat]=loadmovie(fullfile(datadir, train{1}));

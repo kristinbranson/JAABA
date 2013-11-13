@@ -16,6 +16,7 @@ elseif dataset_id == 2
     n_flies = 2;
 else
     datadir = '/scratch/Datasets/FlyPairs/Eric_courtship_movies/';
+    %datadir = '~/Caltech/Data/Eric_courtship_movies/';
     export_dir = 'data_ssvm_eric_courtship';
     train = {'wild/movie1','wild/movie12','wild/movie13','wild/movie14', ...
     'wild/movie15','wild/movie16','wild/movie17','wild/movie18', ...
