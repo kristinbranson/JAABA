@@ -1919,6 +1919,45 @@ classdef JLabelData < matlab.mixin.Copyable
 
     end
     
+    function [success,msg] = SetWindowFeatureNames(obj)
+      
+      success = false; msg = '';
+      obj.SetStatus('Setting window feature names...');
+            
+      if isempty(fieldnames(obj.windowfeaturesparams))
+        msg = 'No features selected';
+        obj.ClearStatus();
+        return;
+      end
+      
+      curperframefns = obj.curperframefns;
+      allperframefns = obj.allperframefns;
+      x_curr_all = cell(1,numel(curperframefns));
+      feature_names_all = cell(1,numel(curperframefns));
+      windowfeaturescellparams = obj.windowfeaturescellparams;
+
+      % make fake per-frame data
+      perframedata = zeros(1,101);
+
+      
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        [~,feature_names_all{j}] = ...
+          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',51,'t1',51);
+      end
+      
+      feature_names=cell(1,numel(curperframefns));
+      for j = 1:numel(curperframefns),
+        fn = curperframefns{j};
+        feature_names_curr = feature_names_all{j};
+        feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); 
+      end
+      obj.windowdata.featurenames=[feature_names{:}];
+      
+      success = true;
+      obj.ClearStatus();
+
+    end  % method
     
     function [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t,mode,forceCalc)
     % [success,msg,t0,t1,X,feature_names] = ComputeWindowDataChunk(obj,expi,flies,t)
@@ -2216,6 +2255,7 @@ classdef JLabelData < matlab.mixin.Copyable
         obj_getlabelidx_struct=cell(1,size(flies_curr,1));
         obj_getlabelidx_t0=cell(1,size(flies_curr,1));
         missingts=cell(1,size(flies_curr,1));
+        object = cell(1,size(flies_curr,1));
         for flyi = 1:size(flies_curr,1),
           flies = flies_curr(flyi,:);  % BJA: is this ever 2-D ?
           obj.CheckFlies(flies);
@@ -2248,7 +2288,7 @@ classdef JLabelData < matlab.mixin.Copyable
         parfor perframei = 1:numel(obj.curperframefns)
           ndx = find(strcmp(object{1}.curperframefns{perframei}, object{1}.allperframefns));
           perframedata = load(obj_getperframefiles{ndx});  %#ok
-          perframedata = perframedata.data;  %#ok
+          perframedata = perframedata.data; 
 
           parfor_predictblocks{perframei}=cell(1,size(flies_curr,1));
           parfor_windowdata{perframei}=cell(1,size(flies_curr,1));
@@ -2256,17 +2296,17 @@ classdef JLabelData < matlab.mixin.Copyable
           for flyi = 1:size(flies_curr,1),
             flies = flies_curr(flyi,:);
             
-            [success1,msg,predictblocks,windowdata] = ...
+            [~,~,predictblocks,windowdata] = ...
                   PreLoadWindowData(object{flyi}, perframei, perframedata{flies}, missingts{flyi}, ...
                   obj_getlabelidx_struct{flyi}, obj_getlabelidx_t0{flyi});
 
             if perframei==1
-              tmp = length(predictblocks.t0);
+              %tmp = length(predictblocks.t0);
               parfor_predictblocks{perframei}{flyi}.t0 = predictblocks.t0;
               parfor_predictblocks{perframei}{flyi}.t1 = predictblocks.t1;
             end
             
-            tmp = size(windowdata.X,1);
+            %tmp = size(windowdata.X,1);
             parfor_windowdata{perframei}{flyi}.X = windowdata.X;
             parfor_windowdata{perframei}{flyi}.t = windowdata.t;
             parfor_windowdata{perframei}{flyi}.labelidx_new = windowdata.labelidx_new;
@@ -8385,6 +8425,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % obj.classifier = [];
       % obj.classifier_old = [];
       obj.ClearWindowData();
+      obj.SetWindowFeatureNames();
 %       [success,msg]=obj.PreLoadPeriLabelWindowData();
 %       if ~success, 
 %         error('JLabelData:unableToLoadPerLabelWindowData',msg);
