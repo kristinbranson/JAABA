@@ -3138,15 +3138,15 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   num_indi=0;
   table_data=zeros(nexperiments,max(1,nbehaviors),nfeatures,9);
   parfor ge=1:nexperiments
-  %for ge=1:nexperiments
-    bdata={};
+%   for ge=1:nexperiments
+    bdata={};  behavior_data=[];
     for b=1:nbehaviors
       behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
       behavior_data=update_t01s_from_postprocessed(behavior_data);
       [bdata{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data,[],[],[],[]);
       num_indi=num_indi+length(bdata{b}.allScores.scores);
     end
-    [~,~,~,~,sex_data]=cull_short_trajectories(handles,bdata{1},[],[],[],handlessexdata{ge});
+    [~,~,~,~,sex_data]=cull_short_trajectories(handles,behavior_data,[],[],[],handlessexdata{ge});
     sexdata=[];
     switch(handles.individualidx)
       case('A')
