@@ -53,7 +53,8 @@ usemencoder = true;
   behaviorname_dict,...
   behaviororder,...
   textprefix,...
-  textsuffix] = ...
+  textsuffix,...
+  fixedaxis] = ...
   myparse(varargin,'framestarts',[],'nframesperseg',[],...
   'fracstarts',[],'fracperseg',1/60,...
   'targets',[],...
@@ -95,19 +96,15 @@ usemencoder = true;
   'behaviorname_dict',behaviorname_dict,...
   'behaviororder',{},...
   'textprefix','',...
-  'textsuffix','');
+  'textsuffix','',...
+  'fixedaxis',[]);
 
 classifierparams = ReadClassifierParamsFile(classifierparamsfile);
 nbehaviors = numel(classifierparams);
 behaviors = cell(1,nbehaviors);
 scorefns = cell(1,nbehaviors);
 for i = 1:nbehaviors,
-  if iscell(classifierparams(i).behaviors.names),
-    behaviors{i} = sprintf('%s_',classifierparams(i).behaviors.names{:});
-    behaviors{i} = behaviors{i}(1:end-1);
-  else
-    behaviors{i} = classifierparams(i).behaviors.names;
-  end
+  behaviors{i} = classifierparams(i).behaviors.names{1};
   j = find(strcmp(behaviors{i},behaviorname_dict(:,1)),1);
   if ~isempty(j),
     behaviors{i} = behaviorname_dict{j,2};
@@ -328,7 +325,13 @@ pxheightradius1 = min((pxwidthradius)*mainpos(4) / mainpos(3),(headerinfo.nr-1)/
 pxwidthradius1 = min((pxheightradius)*mainpos(3) / mainpos(4),(headerinfo.nc-1)/2);
 pxheightradius = max(pxheightradius1,pxheightradius);
 pxwidthradius = max(pxwidthradius1,pxwidthradius);
-ax = ResetAxis(headerinfo.nc/2,headerinfo.nr/2,1,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
+
+% if we want a static axis
+if ~isempty(fixedaxis),
+   ax = fixedaxis;
+else
+   ax = ResetAxis(headerinfo.nc/2,headerinfo.nr/2,1,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
+end
 
 hinfo = text(ax(1),ax(4),'','Parent',haxmain,'Color',textcolor,...
   'FontUnits','pixels','FontSize',fontsize,...
@@ -374,10 +377,10 @@ for segi = 1:numel(framestarts),
   y = trx(target).y;
   a = trx(target).a;
   b = trx(target).b;
-  if isfield(trx,'sex'), 
-    sex = trx(target).sex;
-  else
-    sex = repmat({'?'},numel(x));
+  try
+     sex = trx(target).sex;
+  catch
+     sex = repmat({'?'},1,numel(x));
   end
   theta = trx(target).theta;
   % try to make sector somewhat continuous
@@ -484,11 +487,15 @@ for segi = 1:numel(framestarts),
 
     set(hinfo,'String',ss)
     
-    outofbounds = x(i)-pxborder < ax(1) || ...
-      x(i)+pxborder > ax(2) || ...
-      y(i)-pxborder < ax(3) || ...
-      y(i)+pxborder > ax(4);
-    if t == framestarts(segi) || outofbounds,
+    if isempty(fixedaxis),
+       outofbounds = x(i)-pxborder < ax(1) || ...
+          x(i)+pxborder > ax(2) || ...
+          y(i)-pxborder < ax(3) || ...
+          y(i)+pxborder > ax(4);
+    else
+       outofbounds = false;
+    end
+    if isempty(fixedaxis) && (t == framestarts(segi) || outofbounds),
       ax = ResetAxis(x,y,i,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
       axis(haxmain,ax);
       set(hinfo,'Position',ax([1,4]));
