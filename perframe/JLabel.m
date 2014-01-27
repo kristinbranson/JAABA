@@ -4460,7 +4460,7 @@ if strcmpi(eventdata.Modifier,'control')
       end
       
     case '2'
-      if handles.data.flies + 1 <= handles.data.nflies_per_exp
+      if handles.data.flies + 1 <= handles.data.nflies_per_exp(handles.data.expi)
         handles = SetCurrentFlies(handles,handles.data.flies + 1);
         guidata(hObject,handles);
       end
