@@ -31,11 +31,12 @@ if isempty(inmoviefile),
   return;
 end
 [~,~,ext] = fileparts(inmoviefile);
-if ~strcmpi(ext,'.seq'),
-  msg = 'Input movie file must be a .seq file';
-  return;
-end
-if isempty(seqindexfile),
+% if ~strcmpi(ext,'.seq'),
+%   msg = 'Input movie file must be a .seq file';
+%   return;
+% end
+isseqmovie = strcmp(ext,'.seq');
+if isseqmovie && isempty(seqindexfile),
   msg = 'Input seq index file is empty';
   return;
 end
@@ -53,17 +54,31 @@ trxfile = fullfile(expdir,trxfilestr);
 perframedir = fullfile(expdir,perframedirstr);
 
 %% load in the data
-
-headerinfo = r_readseqinfo(inmoviefile);
 td = load(intrxfile);
 % orientation is backwards
 for i = 1:numel(td.astrctTrackers),
   td.astrctTrackers(i).m_afTheta = -td.astrctTrackers(i).m_afTheta;
 end
-% get image size if flipping
-imheight = headerinfo.m_iHeight;
-imwidth = headerinfo.m_iWidth;
 nmice = numel(td.astrctTrackers);
+nframes = numel(td.astrctTrackers(1).m_afX);
+       
+if isseqmovie
+  headerinfo = r_readseqinfo(inmoviefile);
+  vidmetadata.imwidth = headerinfo.m_iWidth;
+  vidmetadata.imheight = headerinfo.m_iHeight;
+  vidmetadata.timestamps = headerinfo.m_afTimestamp;
+else
+  try
+    vrdr = VideoReader(inmoviefile);
+    vidmetadata.imwidth = vrdr.Width;
+    vidmetadata.imheight = vrdr.Height;
+    vidmetadata.timestamps = [];
+    vidmetadata.framerate = vrdr.FrameRate;
+  catch ME
+    msg = sprintf('Cannot read metadata from video file: %s',ME.message);
+    return;
+  end
+end
 
 %% if sex not entered for each mice, ask for it
 
@@ -102,14 +117,14 @@ end
 %% flip if necessary
 if dofliplr,
   for i = 1:numel(td.astrctTrackers),
-    td.astrctTrackers(i).m_afX = imwidth-td.astrctTrackers(i).m_afX+1;
+    td.astrctTrackers(i).m_afX = vidmetadata.imwidth-td.astrctTrackers(i).m_afX+1;
     td.astrctTrackers(i).m_afTheta = modrange(pi - td.astrctTrackers(i).m_afTheta,-pi,pi);
   end
   msg{end+1} = 'Flipped the trajectories left-right.';
 end
 if doflipud,
   for i = 1:numel(td.astrctTrackers),
-    td.astrctTrackers(i).m_afY = imheight-td.astrctTrackers(i).m_afY+1;
+    td.astrctTrackers(i).m_afY = vidmetadata.imheight-td.astrctTrackers(i).m_afY+1;
     td.astrctTrackers(i).m_afTheta = modrange(-td.astrctTrackers(i).m_afTheta,-pi,pi);
   end
   msg{end+1} = 'Flipped the trajectories up-down.';
@@ -139,18 +154,24 @@ if ~isempty(frameinterval),
       td.astrctTrackers(j).(fn) = td.astrctTrackers(j).(fn)(frameinterval(1):frameinterval(2));
     end
   end
-  timestamps = headerinfo.m_afTimestamp(frameinterval(1):frameinterval(2));
+  if ~isempty(vidmetadata.timestamps)
+    timestamps = vidmetadata.timestamps(frameinterval(1):frameinterval(2));
+  else
+    timestamps = vidmetadata.timestamps;
+  end
 else
-  timestamps = headerinfo.m_afTimestamp;
+  timestamps = vidmetadata.timestamps;
 end
 
-% count
-nframes = numel(td.astrctTrackers(1).m_afX);
-
 % fps
-dt = diff(timestamps);
-fps = 1/median(dt);
-msg{end+1} = sprintf('Computed frame rate = %f fps from timestamps.',fps);
+if isempty(timestamps)
+  fps = vidmetadata.framerate;
+  dt = 1/fps;
+else
+  dt = diff(timestamps);
+  fps = 1/median(dt); % computed from *cropped* timestamps
+  msg{end+1} = sprintf('Computed frame rate = %f fps from timestamps.',fps);
+end
 
 if strcmpi(arenatype,'None'),
   arenacenterx = 0;
@@ -239,7 +260,7 @@ else
       delete(moviefile);
     end
     if isunix,
-      cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
+      cmd = sprintf('ln -s ''%s'' ''%s''',inmoviefile,moviefile);
       unix(cmd);
       % test to make sure it worked
       [status,result] = unix(sprintf('readlink %s',moviefile));
@@ -304,48 +325,50 @@ end
 
 %% copy/soft-link index file
 
-if isempty(frameinterval),
-  
-  if strcmp(fullfile(seqindexfile),fullfile(outseqindexfile)),
-    msg{end+1} = 'Input and out seq index files are the same, not copying/linking.';
-  else
-  
-    if dosoftlink,
-      if ispc,
-        cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',seqindexfile,outseqindexfile);
-        fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',outseqindexfile,seqindexfile);
-      else
-        cmd = sprintf('ln -s "%s" "%s"',seqindexfile,outseqindexfile);
-        fprintf('Soft-linking from "%s" with target "%s"\n',outseqindexfile,seqindexfile);
-      end
-      system(cmd);
-      
+if isseqmovie
+  if isempty(frameinterval),
+    
+    if strcmp(fullfile(seqindexfile),fullfile(outseqindexfile)),
+      msg{end+1} = 'Input and out seq index files are the same, not copying/linking.';
     else
       
-      fprintf('Copying "%s" to "%s"\n',seqindexfile,outseqindexfile);
-      copyfile(seqindexfile,outseqindexfile);
+      if dosoftlink,
+        if ispc,
+          cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',seqindexfile,outseqindexfile);
+          fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',outseqindexfile,seqindexfile);
+        else
+          cmd = sprintf('ln -s "%s" "%s"',seqindexfile,outseqindexfile);
+          fprintf('Soft-linking from "%s" with target "%s"\n',outseqindexfile,seqindexfile);
+        end
+        system(cmd);
+        
+      else
+        
+        fprintf('Copying "%s" to "%s"\n',seqindexfile,outseqindexfile);
+        copyfile(seqindexfile,outseqindexfile);
+        
+      end
       
     end
     
-  end
+  else
     
-else
-  
-  if strcmp(fullfile(seqindexfile),fullfile(outseqindexfile)),
-    msg = 'Input and output seq index file names are the same, but trying to crop seq file. Data will be lost, so this is not allowed.';
-    return;
+    if strcmp(fullfile(seqindexfile),fullfile(outseqindexfile)),
+      msg = 'Input and output seq index file names are the same, but trying to crop seq file. Data will be lost, so this is not allowed.';
+      return;
+    end
+    
+    % load in index file
+    indexdata = load(seqindexfile);
+    
+    % crop
+    indexdata.aiSeekPos = indexdata.aiSeekPos(frameinterval(1):frameinterval(2));
+    indexdata.afTimestamp = indexdata.afTimestamp(frameinterval(1):frameinterval(2));
+    indexdata.frameinterval = frameinterval;
+    
+    % save
+    save(outseqindexfile,'-struct','indexdata');
   end
-  
-  % load in index file
-  indexdata = load(seqindexfile);
-  
-  % crop
-  indexdata.aiSeekPos = indexdata.aiSeekPos(frameinterval(1):frameinterval(2));
-  indexdata.afTimestamp = indexdata.afTimestamp(frameinterval(1):frameinterval(2));
-  indexdata.frameinterval = frameinterval;
-  
-  % save
-  save(outseqindexfile,'-struct','indexdata');
 end
 
 %% make per-frame directory
