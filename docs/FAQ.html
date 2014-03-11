@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="styles/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="styles/screen.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="print" 
+href="styles/print.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" 
+media="projection" href="styles/projection.css">
+
+<style type="text/css">
+strong.regular-font {
+  font-family: Arial, Lucida Grande, sans-serif;
+  font-style: italic;
+  font-size: 0.9em;
+}
+</style>
+
+<!--- OLD FORMATTING
+<style type="text/css">
+table {
+background-color:yellow;border:1px dotted black;width:80%;border-collapse:collapse;
+}
+table, td
+{
+padding:3px;
+}
+table, th{
+padding:3px; background-color:orange;color:white;
+}
+table, tr
+{
+padding:3px; background-color:yellow;color:black;
+
+}
+</style>
+--->
+
+</head>
+
+<body>
+<center><h1><a href="index.html">JAABA</a> Frequently Asked Questions</h1></center>
+
+<hr class="h2-divider">
+
+<h2><a id="Contents">Contents</a></h2>
+<ul>
+<li><a href="#MacJavaWarning">JAABA gives a warning about matlabpool when starting on MAC OSX 10.6</a></li>
+</ul>
+
+<hr class="h2-divider">
+
+<h3><a id="MacJavaWarning">JAABA gives a warning about matlabpool when starting on MAC OSX 10.6</a></h3>
+
+There is an incompatibility between up-to-date versions of Java and MATLAB on MAC OSX 10.6. When starting JAABA, if you see a warning that looks like this:
+
+<pre>
+>> StartJAABA
+Warning: Could not set up matlabpool: Error using initclient (line 37)
+Java exception occurred:
+java.lang.NullPointerException
+        at java.util.logging.Logger.demandLogger(Logger.java:286)
+        at java.util.logging.Logger.getLogger(Logger.java:321)
+
+Error in distcomp/schema (line 11)
+initclient;
+
+Error in parcluster (line 39)
+    s = parallel.Settings;
+
+Error in SetUpMatlabPool (line 10)
+c=parcluster;
+
+Error in StartJAABA (line 25)
+  nthreads = SetUpMatlabPool();
+
+> In StartJAABA at 29
+>>
+</pre>
+
+then you may need to download and extract the MATLAB patch, as described at:
+<a href="http://www.mathworks.com/support/bugreports/919688">MathWorks Bug Report 919688</a>. 
+
+Note that this warning is actually fatal for JAABA, as it requires the Parallel Computing Toolbox. 
+
+<footer>
+<hr class="h1-divider">
+<center>
+<a href="index.html">JAABA Documentation Home</a> | <a href="https://groups.google.com/forum/?fromgroups#!forum/jaaba">jaaba@googlegroups.com</a> | <i>Last Updated February 27, 2014</i>
+</center>
+</footer>
+
+</body>
+</html>
