@@ -118,6 +118,7 @@ end
 fcn = get(handles.slider_Frame,'Callback');
 handles.hslider_listener = handle.listener(handles.slider_Frame,...
   'ActionEvent',fcn);
+set(handles.slider_Frame,'Callback','');
 
 % open video
 handles = open_fmf(handles);
@@ -142,7 +143,7 @@ for f = handles.f:handles.nframes,
     break;
   end
   handles.f = f;
-  handles = update_frame(handles);
+  handles = update_frame(handles,hObject);
   guidata(hObject,handles);
   if handles.MaxFPS > 0,
     tmp = toc;
@@ -176,17 +177,34 @@ function varargout = playfmf_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function handles = update_frame(handles)
+function handles = update_frame(handles,hObject)
 
-try
-  [handles.im,handles.timestamp] = handles.readframe(handles.f);
-catch ME
-  warning([sprintf('Error reading frame %d\n',handles.f),getReport(ME)]);
+if nargin == 1,
+  hObject = nan;
+end
+persistent update_frame_f;
+
+if ~isempty(update_frame_f) && update_frame_f == handles.f,
   return;
 end
-set(handles.himage,'CData',handles.im);
-set(handles.edit_Frame,'String',num2str(handles.f));
-set(handles.slider_Frame,'Value',(handles.f-1)/(handles.nframes-1));
+update_frame_f = handles.f;
+if handles.f ~= handles.lastfread,
+  try
+    [handles.im,handles.timestamp] = handles.readframe(handles.f);
+    handles.lastfread = handles.f;
+    guidata(handles.figure1,handles);
+  catch ME
+    warning('Failed to read frame %d: %s',handles.f,getReport(ME));
+  end  
+  set(handles.himage,'CData',handles.im);
+end
+if hObject ~= handles.edit_Frame,
+  set(handles.edit_Frame,'String',num2str(handles.f));
+end
+if hObject ~= handles.slider_Frame,
+  set(handles.slider_Frame,'Value',(handles.f-1)/(handles.nframes-1));
+end
+update_frame_f = [];
 
 % --- Executes on slider movement.
 function slider_Frame_Callback(hObject, eventdata, handles)
@@ -198,7 +216,7 @@ function slider_Frame_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 v = get(hObject,'Value');
 handles.f = round(1 + v * (handles.nframes - 1));
-handles = update_frame(handles);
+handles = update_frame(handles,hObject);
 guidata(hObject,handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -240,7 +258,7 @@ if isnan(f),
   return;
 end
 handles.f = max(1,min(f,handles.nframes));
-handles = update_frame(handles);
+handles = update_frame(handles,hObject);
 guidata(hObject,handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -329,6 +347,7 @@ set(handles.slider_Frame,'Value',0,'SliderStep',sliderstep);
 % show first image
 handles.f = 1;
 [handles.im,handles.timestamp] = handles.readframe(handles.f);
+handles.lastfread = handles.f;
 if size(handles.im,3) == 1,
   handles.himage = imagesc(handles.im,'Parent',handles.axes_Video,[0,255]);
 else
