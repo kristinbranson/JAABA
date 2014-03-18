@@ -9,10 +9,11 @@ QTRMIN = 0.2269;
 
 [inmoviefile,intrxfile,...
   expdir,moviefilestr,trxfilestr,perframedirstr,...
-  arenafile,dosoftlink] = myparse(varargin,...
+  arenafile,dosoftlink,uniqueframesonly] = myparse(varargin,...
   'inmoviefile','','intrxfile','',...
   'expdir','','moviefilestr','movie.avi','trxfilestr','trx.mat','perframedirstr','perframe',...
-  'arenafile','','dosoftlink',false);
+  'arenafile','','dosoftlink',false,...
+  'uniqueframesonly',true);
 
 %% check that required inputs are given
 % if isempty(inmoviefile),
@@ -80,6 +81,18 @@ while true,
   trx.timestamps(end+1) = idx.time;
   
 end
+
+if uniqueframesonly,
+  isunique = [true,diff(trx.x) ~= 0 & diff(trx.y) ~= 0];
+  trx.x = trx.x(isunique);
+  trx.y = trx.y(isunique);
+  trx.theta = trx.theta(isunique);
+  trx.a = trx.a(isunique);
+  trx.b = trx.b(isunique);
+  trx.timestamps = trx.timestamps(isunique);
+  trx.tidx = find(isunique);
+end
+
 trx.x_mm = trx.x;
 trx.y_mm = trx.y;
 trx.theta_mm = trx.theta;
