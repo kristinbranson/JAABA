@@ -1,3 +1,6 @@
 .DS_Store
 .JLabelrc.mat
 ._*
+*~
+*.bak
+#*#
