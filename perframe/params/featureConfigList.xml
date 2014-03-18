@@ -14,5 +14,6 @@
 <adam_flies file="params/featureConfig_adam.xml" animal="fly"/>
 <spacetime_flies file="params/featureConfig_spacetime_flies.xml" animal="fly"/>
 <spacetime_mice file="params/featureConfig_spacetime_mice.xml" animal="fly"/>
+<flies_withrois file="params/featureConfigWithROIs.xml" animal="fly"/>
 
 </params>
