@@ -76,7 +76,7 @@ InputDataTypes.Motr.files = structappend(InputDataTypes.Motr.files,file);
 
 file.name = 'Tracks file';
 file.code = 'intrxfile';
-file.description = 'File containing trajectories output by motr or Catalytic';
+file.description = 'File containing trajectories output by Motr or Catalytic';
 file.required = true;
 file.multiplefiles = 0;
 file.isdir = 0;
