@@ -39,10 +39,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MoTr',
+  case 'Motr',
 
     success = false;
-    msg = 'No arena parameters stored in MoTr files';
+    msg = 'No arena parameters stored in Motr files';
     
   case 'Qtrax',
 
