@@ -74,13 +74,13 @@ file.isdir = 0;
 file.exts = {'*.mat'};
 InputDataTypes.Motr.files = structappend(InputDataTypes.Motr.files,file);
 
-file.name = 'Trx mat file';
+file.name = 'Tracks file';
 file.code = 'intrxfile';
-file.description = 'Mat file containing trajectories output by Motr';
+file.description = 'File containing trajectories output by Motr or Catalytic';
 file.required = true;
 file.multiplefiles = 0;
 file.isdir = 0;
-file.exts = {'*.mat'};
+file.exts = {'*.mat' '*.ctc'};
 InputDataTypes.Motr.files = structappend(InputDataTypes.Motr.files,file);
 
 InputDataTypes.Qtrax = struct;
