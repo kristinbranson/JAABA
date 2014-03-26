@@ -22,7 +22,7 @@ switch InputDataType,
   case 'Motr',
 
     success = false;
-    msg = 'FPS not stored in Motr files';
+    msg = 'FPS not stored in motr files';
     
   case 'Qtrax',
 

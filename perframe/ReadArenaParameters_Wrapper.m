@@ -42,7 +42,7 @@ switch InputDataType,
   case 'Motr',
 
     success = false;
-    msg = 'No arena parameters stored in Motr files';
+    msg = 'No arena parameters stored in motr files';
     
   case 'Qtrax',
 
