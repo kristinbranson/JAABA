@@ -60,6 +60,18 @@ td = load('-mat',intrxfile);  % .ctc file
 trx=td.trx;
 clear td;  % no further need for this
 
+% Make sure trx is a struct
+if ~isstruct(trx) ,
+    msg='Tracks file is not a valid .ctc file';
+    return
+end
+
+% If trx has a pxpermm field, use that instead of the pixpermm from the
+% PrepareJAABAData UI, so user doesn't have to re-enter it.
+if ~isempty(trx) && isfield(trx,'pxpermm') ,
+    pxpermm=trx(1).pxpermm;
+end
+
 % remove all but the 'core' fields
 coreFieldNames={'x' 'y' 'a' 'b' 'theta'};
 allFieldNames=fieldnames(trx);
