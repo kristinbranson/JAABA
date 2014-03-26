@@ -19,10 +19,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MoTr',
+  case 'Motr',
 
     success = false;
-    msg = 'FPS not stored in MoTr files';
+    msg = 'FPS not stored in Motr files';
     
   case 'Qtrax',
 

@@ -53,16 +53,16 @@ file.isdir = 0;
 file.exts = {'*.mat'};
 InputDataTypes.LarvaeRiveraAlba.files = structappend(InputDataTypes.LarvaeRiveraAlba.files,file);
 
-InputDataTypes.MoTr = struct;
-InputDataTypes.MoTr.name = 'MoTr';
-InputDataTypes.MoTr.videorequired = true;
-InputDataTypes.MoTr.readarena = 'no';
-InputDataTypes.MoTr.readpxpermm = 'no';
-InputDataTypes.MoTr.readfps = 'yes';
-InputDataTypes.MoTr.writearena = 'yes';
-InputDataTypes.MoTr.writepxpermm = 'yes';
-InputDataTypes.MoTr.writefps = 'no';
-InputDataTypes.MoTr.files = [];
+InputDataTypes.Motr = struct;
+InputDataTypes.Motr.name = 'Motr';
+InputDataTypes.Motr.videorequired = true;
+InputDataTypes.Motr.readarena = 'no';
+InputDataTypes.Motr.readpxpermm = 'no';
+InputDataTypes.Motr.readfps = 'yes';
+InputDataTypes.Motr.writearena = 'yes';
+InputDataTypes.Motr.writepxpermm = 'yes';
+InputDataTypes.Motr.writefps = 'no';
+InputDataTypes.Motr.files = [];
 
 file = struct;
 file.name = 'Seq index file';
@@ -72,16 +72,16 @@ file.required = false;
 file.multiplefiles = 0;
 file.isdir = 0;
 file.exts = {'*.mat'};
-InputDataTypes.MoTr.files = structappend(InputDataTypes.MoTr.files,file);
+InputDataTypes.Motr.files = structappend(InputDataTypes.Motr.files,file);
 
 file.name = 'Trx mat file';
 file.code = 'intrxfile';
-file.description = 'Mat file containing trajectories output by MoTr';
+file.description = 'Mat file containing trajectories output by Motr';
 file.required = true;
 file.multiplefiles = 0;
 file.isdir = 0;
 file.exts = {'*.mat'};
-InputDataTypes.MoTr.files = structappend(InputDataTypes.MoTr.files,file);
+InputDataTypes.Motr.files = structappend(InputDataTypes.Motr.files,file);
 
 InputDataTypes.Qtrax = struct;
 InputDataTypes.Qtrax.name = 'Qtrax (CADABRA)';
