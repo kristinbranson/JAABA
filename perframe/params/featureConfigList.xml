@@ -15,5 +15,7 @@
 <spacetime_flies file="params/featureConfig_spacetime_flies.xml" animal="fly"/>
 <spacetime_mice file="params/featureConfig_spacetime_mice.xml" animal="fly"/>
 <larva_highres file="params/featureConfigLarvaehighres.xml" animal="larvacontour"/>
+<flies_withrois file="params/featureConfigWithROIs.xml" animal="fly"/>
+
 
 </params>

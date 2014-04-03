@@ -114,8 +114,11 @@ handles.output = handles.figure_JLabel;
 %handles.guidata.status_bar_text_when_clear = sprintf('Status: No experiment loaded');
 handles.guidata.idlestatuscolor = [0,1,0];
 handles.guidata.busystatuscolor = [1,0,1];
-handles.guidata.movie_height = 100;
-handles.guidata.movie_width = 100;
+handles.guidata.movie_maxx = 100;
+handles.guidata.movie_maxy = 100;
+handles.guidata.movie_minx = 1;
+handles.guidata.movie_miny = 1;
+handles.guidata.movie_pixelsize = 1;
 handles.guidata.movie_depth = 1;
 handles.guidata.tempname = tempname();
 
@@ -786,7 +789,7 @@ if(handles.data.ismovie && ...
    handles.guidata.thisMoviePresent && ...
    (isempty(movie_filename) || ~strcmp(movie_filename,handles.guidata.movie_filename)))
   movie_filename=handles.guidata.movie_filename;
-  HWD = [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth];
+  HWD = [handles.guidata.movie_maxy handles.guidata.movie_maxx handles.guidata.movie_depth];
 
   % release data used in thread
   if ~isempty(handles.guidata.cache_thread),
@@ -1347,8 +1350,11 @@ if handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent,
     %end
     im = handles.guidata.readframe(1);
     handles.guidata.movie_depth = size(im,3);
-    handles.guidata.movie_width = size(im,2);
-    handles.guidata.movie_height = size(im,1);
+    handles.guidata.movie_maxx = size(im,2);
+    handles.guidata.movie_maxy = size(im,1);
+    handles.guidata.movie_minx = 1;
+    handles.guidata.movie_miny = 1;
+    handles.guidata.movie_pixelsize = 1;
     handles.guidata.movie_filename = moviefilename;
     % catch ME,
     %   uiwait(warndlg(sprintf('Error opening movie file %s: %s',moviefilename,getReport(ME)),'Error setting movie'));
@@ -1380,24 +1386,36 @@ end
 if ~(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && handles.guidata.thisMoviePresent),
   maxx = max([handles.data.trx.x]+[handles.data.trx.a]*2);
   maxy = max([handles.data.trx.y]+[handles.data.trx.a]*2);
-  handles.guidata.movie_height = ceil(maxy);
-  handles.guidata.movie_width = ceil(maxx);
+  minx = min([handles.data.trx.x]-[handles.data.trx.a]*2);
+  miny = min([handles.data.trx.y]-[handles.data.trx.a]*2);
+  handles.guidata.movie_maxy = maxy;
+  handles.guidata.movie_maxx = maxx;
+  handles.guidata.movie_minx = minx;
+  handles.guidata.movie_miny = miny;
+  handles.guidata.movie_pixelsize = min([1,(maxy-miny)/100,(maxx-minx)/1000]);
   handles.guidata.nframes = max([handles.data.trx.endframe]);
 
   % remove old grid
   delete(handles.guidata.bkgdgrid(ishandle(handles.guidata.bkgdgrid)));
+  % remove old rois and arena
+  if any(ishandle(handles.guidata.hrois)),
+    delete(handles.guidata.hrois(ishandle(handles.guidata.hrois)));
+  end
+  if any(ishandle(handles.guidata.harena)),
+    delete(handles.guidata.harena(ishandle(handles.guidata.harena)));
+  end
 
   % grid width
   gridwidth = nanmean([handles.data.trx.a])*5;
 
   % create new grid
   handles.guidata.bkgdgrid = nan(2,numel(handles.guidata.axes_previews));
-  xgrid = gridwidth/2:gridwidth:handles.guidata.movie_width;
+  xgrid = minx-gridwidth/2:gridwidth:handles.guidata.movie_maxx;
   xgrid1 = [xgrid;xgrid;nan(1,numel(xgrid))];
-  xgrid2 = [zeros(1,numel(xgrid));handles.guidata.movie_height+ones(1,numel(xgrid));nan(1,numel(xgrid))];
-  ygrid = gridwidth/2:gridwidth:handles.guidata.movie_height;
+  xgrid2 = [miny+zeros(1,numel(xgrid));handles.guidata.movie_maxy+ones(1,numel(xgrid));nan(1,numel(xgrid))];
+  ygrid = miny-gridwidth/2:gridwidth:handles.guidata.movie_maxy;
   ygrid2 = [ygrid;ygrid;nan(1,numel(ygrid))];
-  ygrid1 = [zeros(1,numel(ygrid));handles.guidata.movie_width+ones(1,numel(ygrid));nan(1,numel(ygrid))];
+  ygrid1 = [minx+zeros(1,numel(ygrid));handles.guidata.movie_maxx+ones(1,numel(ygrid));nan(1,numel(ygrid))];
   for i = 1:numel(handles.guidata.axes_previews),
     holdstate = ishold(handles.guidata.axes_previews(i));
     hold(handles.guidata.axes_previews(i),'on');
@@ -1409,6 +1427,14 @@ if ~(handles.data.ismovie && handles.guidata.shouldOpenMovieIfPresent && handles
       
   end
   
+  % rois, if any
+  if isfield(handles.data.trx,'roi2'),
+    handles.guidata.hrois = [];
+    for roii = 1:size(handles.data.trx.roi2,1),
+      handles.guidata.hrois = [handles.guidata.hrois,PlotROI(handles,roii)];
+    end
+  end
+    
   % set axes colors to be white instead of black
   set(handles.guidata.axes_previews,'Color','w');
   
@@ -1536,7 +1562,10 @@ end
 
 % update zoom
 for i = 1:numel(handles.guidata.axes_previews),
-  axis(handles.guidata.axes_previews(i),[.5,handles.guidata.movie_width+.5,.5,handles.guidata.movie_height+.5]);
+  axis(handles.guidata.axes_previews(i),[handles.guidata.movie_minx-handles.guidata.movie_pixelsize/2,...
+    handles.guidata.movie_maxx+handles.guidata.movie_pixelsize/2,...
+    handles.guidata.movie_miny-handles.guidata.movie_pixelsize/2,...
+    handles.guidata.movie_maxy+handles.guidata.movie_pixelsize/2]);
 end
 for i = 1:numel(handles.guidata.axes_previews),
   zoom(handles.guidata.axes_previews(i),'reset');
@@ -4229,27 +4258,32 @@ for i = indicesOfPreviewAxes,
     %ylim = [max([.5,ys-handles.guidata.zoom_fly_radius(2)]),min([handles.guidata.movie_height+.5,ys+handles.guidata.zoom_fly_radius(2)])];
     x0 = min(xs) - handles.guidata.zoom_fly_radius(1);
     x1 = max(xs) + handles.guidata.zoom_fly_radius(1);
-    if x1 - x0 + 1 >= handles.guidata.movie_width,
-      xlim = [.5,handles.guidata.movie_width+.5];
-    elseif x0 < .5,
-      dx = .5 - x0;
+    if x1 >= handles.guidata.movie_maxx + handles.guidata.movie_pixelsize/2 && ...
+        x0 <= handles.guidata.movie_minx - handles.guidata.movie_pixelsize/2,
+      xlim = [handles.guidata.movie_minx-handles.guidata.movie_pixelsize/2,...
+        handles.guidata.movie_maxx+handles.guidata.movie_pixelsize/2];
+    elseif x0 < handles.guidata.movie_minx-handles.guidata.movie_pixelsize/2,
+      dx = handles.guidata.movie_minx-handles.guidata.movie_pixelsize/2 - x0;
       xlim = [.5,x1 + dx];
-    elseif x1 > handles.guidata.movie_width+.5,
-      dx = x1 - (handles.guidata.movie_width+.5);
-      xlim = [x0-dx,handles.guidata.movie_width+.5];
+    elseif x1 > handles.guidata.movie_maxx+handles.guidata.movie_pixelsize/2,
+      dx = x1 - (handles.guidata.movie_maxx+handles.guidata.movie_pixelsize/2);
+      xlim = [x0-dx,handles.guidata.movie_maxx+handles.guidata.movie_pixelsize/2];
     else
       xlim = [x0,x1];
     end
+    % HERE !!!
     y0 = min(ys) - handles.guidata.zoom_fly_radius(2);
     y1 = max(ys) + handles.guidata.zoom_fly_radius(2);
-    if y1 - y0 + 1 >= handles.guidata.movie_height,
-      ylim = [.5,handles.guidata.movie_height+.5];
-    elseif y0 < .5,
-      dy = .5 - y0;
-      ylim = [.5,y1 + dy];
-    elseif y1 > handles.guidata.movie_height+.5,
-      dy = y1 - (handles.guidata.movie_height+.5);
-      ylim = [y0-dy,handles.guidata.movie_height+.5];
+    if y1 >= handles.guidata.movie_maxy + handles.guidata.movie_pixelsize/2 && ...
+        y0 <= handles.guidata.movie_miny - handles.guidata.movie_pixelsize/2,
+      ylim = [handles.guidata.movie_miny-handles.guidata.movie_pixelsize/2,...
+        handles.guidata.movie_maxy+handles.guidata.movie_pixelsize/2];
+    elseif y0 < handles.guidata.movie_miny-handles.guidata.movie_pixelsize/2,
+      dy = handles.guidata.movie_miny-handles.guidata.movie_pixelsize/2 - y0;
+      ylim = [handles.guidata.movie_miny-handles.guidata.movie_pixelsize/2,y1 + dy];
+    elseif y1 > handles.guidata.movie_maxy+handles.guidata.movie_pixelsize/2,
+      dy = y1 - (handles.guidata.movie_maxy+handles.guidata.movie_pixelsize/2);
+      ylim = [y0-dy,handles.guidata.movie_maxy+handles.guidata.movie_pixelsize/2];
     else
       ylim = [y0,y1];
     end    
@@ -4283,8 +4317,11 @@ flies=handles.data.flies;  % indices of the current flies
 nFlies=numel(flies);
 expi=handles.data.expi;
 zoom_fly_radius=handles.guidata.zoom_fly_radius;  % 2x1
-movie_width=handles.guidata.movie_width;
-movie_height=handles.guidata.movie_height;
+movie_maxy=handles.guidata.movie_maxy;
+movie_maxx=handles.guidata.movie_maxx;
+movie_miny=handles.guidata.movie_miny;
+movie_minx=handles.guidata.movie_minx;
+ps = handles.guidata.movie_pixelsize/2;
 
 xs = nan(1,nFlies);
 ys = nan(1,nFlies);
@@ -4316,10 +4353,10 @@ for i = indicesOfPreviewAxes,
   if doforce || min(xs)-handles.guidata.meana*2 < xl(1) || min(ys)-handles.guidata.meana*2 < yl(1) || ...
      max(xs)+handles.guidata.meana*2 > xl(2) || max(ys)+handles.guidata.meana*2 > yl(2),
     % center on flies
-    newxlim = [max([.5,xs-zoom_fly_radius(1)]), ...
-               min([movie_width+.5,xs+zoom_fly_radius(1)])];
-    newylim = [max([.5,ys-zoom_fly_radius(2)]), ...
-               min([movie_height+.5,ys+zoom_fly_radius(2)])];
+    newxlim = [max([movie_minx-ps,xs-zoom_fly_radius(1)]), ...
+               min([movie_maxx+ps,xs+zoom_fly_radius(1)])];
+    newylim = [max([movie_miny-ps,ys-zoom_fly_radius(2)]), ...
+               min([movie_maxy+ps,ys+zoom_fly_radius(2)])];
     set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);    
   end
 end
@@ -4335,8 +4372,10 @@ if nargin < 2,
 end
 
 for i = is,
-  newxlim = [.5,handles.guidata.movie_width+.5];
-  newylim = [.5,handles.guidata.movie_height+.5];
+  newxlim = [handles.guidata.movie_minx-handles.guidata.movie_pixelsize/2,...
+    handles.guidata.movie_maxx+handles.guidata.movie_pixelsize/2];
+  newylim = [handles.guidata.movie_miny-handles.guidata.movie_pixelsize/2,...
+    handles.guidata.movie_maxy+handles.guidata.movie_pixelsize/2];
   set(handles.guidata.axes_previews(i),'XLim',newxlim,'YLim',newylim);  
 end
 return
@@ -5091,8 +5130,10 @@ else
   rycurr = (dy-1)/2;
 end
 
-max_ry = max(rycurr,min(handles.guidata.zoom_fly_radius(1) * axes_pos(4) / axes_pos(3),handles.guidata.movie_height/2));
-max_rx = max(rxcurr,min(handles.guidata.zoom_fly_radius(2) * axes_pos(3) / axes_pos(4),handles.guidata.movie_width/2));
+max_ry = max(rycurr,min(handles.guidata.zoom_fly_radius(1) * axes_pos(4) / axes_pos(3),...
+  (handles.guidata.movie_maxy-handles.guidata.movie_miny+handles.guidata.movie_pixelsize)/2));
+max_rx = max(rxcurr,min(handles.guidata.zoom_fly_radius(2) * axes_pos(3) / axes_pos(4),...
+  (handles.guidata.movie_maxx-handles.guidata.movie_minx+handles.guidata.movie_pixelsize)/2));
 ischange = false;
 if max_ry - handles.guidata.zoom_fly_radius(2) >= 1,
   handles.guidata.zoom_fly_radius(2) = max_ry;
@@ -5590,8 +5631,10 @@ elseif ~isempty(previewi),
   rx = round((diff(xlim)-1)/2);
   ry = round((diff(ylim)-1)/2);
   axes_pos = get(eventdata.Axes,'Position');
-  max_ry = min(rx * axes_pos(4) / axes_pos(3),handles.guidata.movie_height/2);
-  max_rx = min(ry * axes_pos(3) / axes_pos(4),handles.guidata.movie_width/2);
+  max_ry = min(rx * axes_pos(4) / axes_pos(3),...
+    (handles.guidata.movie_maxy-handles.guidata.movie_miny+handles.guidata.movie_pixelsize)/2);
+  max_rx = min(ry * axes_pos(3) / axes_pos(4),...
+    (handles.guidata.movie_maxx-handles.guidata.movie_minx+handles.guidata.movie_pixelsize)/2);
   ischange = false;
   if max_ry > ry,
     ry = max_ry;
@@ -10154,6 +10197,8 @@ while true,
     end
     
     % add extra frame cache threads
+    movie_height = handles.guidata.movie_maxy - handles.guidata.movie_miny + handles.guidata.movie_pixelsize;
+    movie_width = handles.guidata.movie_maxx - handles.guidata.movie_minx + handles.guidata.movie_pixelsize;
     nadd = -nremove;
     if nadd > 0 && ~isempty(handles.guidata.cache_thread)
       for i=1:nadd,
@@ -10161,7 +10206,7 @@ while true,
           i,nadd,framecache_threads));
         handles.guidata.cache_thread{end+1}=batch(@cache_thread,0,...
           {handles.guidata.cache_size,...
-          [handles.guidata.movie_height handles.guidata.movie_width handles.guidata.movie_depth],...
+          [movie_height movie_width handles.guidata.movie_depth],...
           handles.guidata.cache_filename,handles.guidata.movie_filename},...
           'CaptureDiary',true,'AdditionalPaths',{'../filehandling','../misc'});
       end
@@ -10299,3 +10344,45 @@ else
 end
 UpdatePlots(handles);
 guidata(hObject,handles);
+
+function h = PlotROI(handles,roii)
+
+roidata = handles.data.trx.roi2(roii,:);
+roitype = 'none';
+if all(isnan(roidata) == [false,false,false,true]),
+  roitype = 'circle';
+elseif all(isnan(roidata) == [false,false,true,true]),
+  roitype = 'point';
+elseif all(isnan(roidata) == [false,false,false,false]),
+  roitype = 'rectangle';
+end
+  
+h = [];
+for i = 1:numel(handles.guidata.axes_previews),
+  holdstate = ishold(handles.guidata.axes_previews(i));
+  hold(handles.guidata.axes_previews(i),'on');
+  switch roitype,
+    case 'circle',
+      tmp = linspace(0,2*pi,100);
+      h(end+1) = plot(roidata(1)+roidata(3)*cos(tmp),...
+        roidata(2)+roidata(3)*sin(tmp),'-','Color',[.7,.7,.7],...
+        'LineWidth',2,'Parent',handles.guidata.axes_previews(i));
+    case 'rectangle',
+      h(end+1) = plot(roidata(1)+roidata(3)*.5*[-1,-1,1,1,-1],...
+        roidata(2)+roidata(4)*.5*[-1,1,1,-1,-1],'-','Color',[.7,.7,.7],...
+        'LineWidth',2,'Parent',handles.guidata.axes_previews(i));
+    case 'point',
+      h(end+1) = plot(handles.guidata.axes_previews(i),roidata(1),roidata(2),...
+        'ks','MarkerFaceColor',[.7,.7,.7]);
+  end
+  if ismember(roitype,{'circle','rectangle'}) && ...
+      isfield(handles.data.trx,'roinames') && numel(handles.data.trx.roinames) >= i,
+    h(end+1) = text(roidata(1),roidata(2),handles.data.trx.roinames{roii},...
+      'Interpreter','none','HorizontalAlignment','center',...
+      'VerticalAlignment','middle','Parent',handles.guidata.axes_previews(i));
+  end
+
+  if ~holdstate,
+    hold(handles.guidata.axes_previews(i),'off');
+  end
+end
