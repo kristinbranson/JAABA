@@ -73,8 +73,8 @@ function savefig(fname, varargin)
 	cmdEnd=			' -sDEVICE=%s -sOutputFile="%s"';					% Essential.
 	epsCmd=			'';
 	epsCmd=	[epsCmd ' -dSubsetFonts=true -dEmbedAllFonts=false -dNOPLATFONTS'];% Future support?
-	epsCmd=	[epsCmd ' -dUseCIEColor=true -dColorConversionStrategy=/UseDeviceIndependentColor' ...
-					' -dProcessColorModel=/%s'];						% Color conversion.
+  epsCmd=	[epsCmd ' -dUseCIEColor=true -dColorConversionStrategy=/UseDeviceIndependentColor' ...
+    ' -dProcessColorModel=/%s'];						% Color conversion.
 	pdfCmd=	[epsCmd ' -dAntiAliasColorImages=false' cmdEnd];
 	epsCmd=	[epsCmd cmdEnd];
 	
@@ -92,10 +92,13 @@ function savefig(fname, varargin)
 		varargin=	{varargin{2:end}};
 	end
 	if(isempty(fighdl)), error('There is no figure to save!?');	end
+  oldunits = get(fighdl,'Units');
 	set(fighdl, 'Units', 'centimeters')									% Set paper stuff.
 	sz=			get(fighdl, 'Position');
 	sz(1:2)=	0;
 	set(fighdl, 'PaperUnits', 'centimeters', 'PaperSize', sz(3:4), 'PaperPosition', sz);
+  set(fighdl,'Units',oldunits);
+
 	
 	% Set up the various devices.
 	% Those commented out are not yet supported by gs (nor by savefig).
