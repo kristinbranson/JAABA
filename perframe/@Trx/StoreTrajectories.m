@@ -9,6 +9,14 @@ traj_fns = {'x','y','theta','a','b','timestamps','area',...
   'wing_anglel','wing_angler',...
   'xspine','yspine','xspine_mm','yspine_mm'};
 
+if isfield(traj,'xcontour'),
+  obj.xcontour = {traj.xcontour};
+end
+if isfield(traj,'ycontour'),
+  obj.ycontour = {traj.ycontour};
+end
+    
+
 for i = 1:numel(traj_fns),
   fn = traj_fns{i};
   if ~isfield(traj,fn), continue; end
@@ -61,7 +69,7 @@ for i = 1:numel(traj_fns),
 end
 % conversion from pixels to mm
 if isfield(traj,'pxpermm'),
-  obj.pxpermm(n) = traj(1).pxpermm;
+  obj.pxpermm(n) = traj(1).pxpermm(1);
 else
   obj.pxpermm(n) = nan;
 end
