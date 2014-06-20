@@ -29,6 +29,9 @@ useVideoWriter = exist('VideoWriter','file');
 aviname = '';
 fps = 10;
 usemencoder = true;
+animaltype='fly';
+headmarksize=10;
+bottomtextfontsize=8;
 
 [framestarts,nframesperseg,fracstarts,fracperseg,targets,hfig,...
   pxwidthradius,pxheightradius,awidthradius,aheightradius,frac_bottom,...
@@ -53,7 +56,11 @@ usemencoder = true;
   behaviorname_dict,...
   behaviororder,...
   textprefix,...
-  textsuffix] = ...
+  textsuffix,...
+  fixedaxis,...
+  animaltype,...
+  headmarksize,...
+  bottomtextfontsize] = ...
   myparse(varargin,'framestarts',[],'nframesperseg',[],...
   'fracstarts',[],'fracperseg',1/60,...
   'targets',[],...
@@ -95,19 +102,18 @@ usemencoder = true;
   'behaviorname_dict',behaviorname_dict,...
   'behaviororder',{},...
   'textprefix','',...
-  'textsuffix','');
+  'textsuffix','',...
+  'fixedaxis',[],...
+  'animaltype',animaltype,...
+  'headmarksize',headmarksize,...
+  'bottomtextfontsize',bottomtextfontsize);
 
 classifierparams = ReadClassifierParamsFile(classifierparamsfile);
 nbehaviors = numel(classifierparams);
 behaviors = cell(1,nbehaviors);
 scorefns = cell(1,nbehaviors);
 for i = 1:nbehaviors,
-  if iscell(classifierparams(i).behaviors.names),
-    behaviors{i} = sprintf('%s_',classifierparams(i).behaviors.names{:});
-    behaviors{i} = behaviors{i}(1:end-1);
-  else
-    behaviors{i} = classifierparams(i).behaviors.names;
-  end
+  behaviors{i} = classifierparams(i).behaviors.names{1};
   j = find(strcmp(behaviors{i},behaviorname_dict(:,1)),1);
   if ~isempty(j),
     behaviors{i} = behaviorname_dict{j,2};
@@ -160,12 +166,14 @@ trx.AddExpDir(expdir,'openmovie',false);
 %% for video reading
 
 moviename = fullfile(expdir,trx.moviefilestr);
-if ~isempty(trx.moviefilestr)
+if exist(moviename)
   [readframe,~,fid,headerinfo] = get_readframe_fcn(moviename);
+  im = readframe(1);
+  [headerinfo.nr,headerinfo.nc,~] = size(im);
 else
   
   maxx = 0; maxy = 0;
-  for ndx = 1:numel(trx.x)
+  for ndx = 1:trx.nflies
     maxx = max(max(trx(ndx).x+trx(ndx).a*2),maxx);
     maxy = max(max(trx(ndx).y+trx(ndx).a*2),maxy);
   end
@@ -179,6 +187,7 @@ else
   fid = 0;
   
 end
+
 
 %% choose frames, target to show
 
@@ -300,6 +309,13 @@ hold(haxmain,'on');
 %axis(haxmain,'image');
 htrx = plot(haxmain,nan,nan,'.-','LineWidth',trx_linewidth,'color',trxcolor);
 htarget = plot(haxmain,nan,nan,'-','LineWidth',target_linewidth,'color','k');
+if strcmp(animaltype,'larva')
+    htarget_extra=plot(haxmain,nan,nan,'.','MarkerSize',headmarksize,'color','k');
+end
+if strcmp(animaltype,'larva_highres')
+    htarget_extra(1)=plot(haxmain,nan,nan,'.-','MarkerSize',headmarksize,'color','k');
+    htarget_extra(2)=plot(haxmain,nan,nan,'.','MarkerSize',headmarksize,'color','b');
+end
 set(haxmain,'XTick',[],'YTick',[]);
 i = t+trx(target).off;
 
@@ -328,7 +344,13 @@ pxheightradius1 = min((pxwidthradius)*mainpos(4) / mainpos(3),(headerinfo.nr-1)/
 pxwidthradius1 = min((pxheightradius)*mainpos(3) / mainpos(4),(headerinfo.nc-1)/2);
 pxheightradius = max(pxheightradius1,pxheightradius);
 pxwidthradius = max(pxwidthradius1,pxwidthradius);
-ax = ResetAxis(headerinfo.nc/2,headerinfo.nr/2,1,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
+
+% if we want a static axis
+if ~isempty(fixedaxis),
+   ax = fixedaxis;
+else
+   ax = ResetAxis(headerinfo.nc/2,headerinfo.nr/2,1,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
+end
 
 hinfo = text(ax(1),ax(4),'','Parent',haxmain,'Color',textcolor,...
   'FontUnits','pixels','FontSize',fontsize,...
@@ -351,7 +373,7 @@ htext = text(nan,nan,'','Parent',haxmain,'Color',textcolor,...
   'FontUnits','pixels','FontSize',fontsize);
 plot(haxbottom,[0,nbehaviors+1],[0,0],'--','color',[.5,.5,.5]);
 set(haxbottom,'XTick',1:nbehaviors,'XTickLabel',behaviors,'YTick',[],...
-  'XLim',[.5,nbehaviors+.5],'YLim',[-1,1],'XColor','w','Color','k','TickLength',[0,0]);
+  'XLim',[.5,nbehaviors+.5],'YLim',[-1,1],'XColor','w','Color','k','TickLength',[0,0],'FontSize',bottomtextfontsize);
 
 set(hfig,'Color','k');
 
@@ -374,10 +396,20 @@ for segi = 1:numel(framestarts),
   y = trx(target).y;
   a = trx(target).a;
   b = trx(target).b;
-  if isfield(trx,'sex'), 
-    sex = trx(target).sex;
-  else
-    sex = repmat({'?'},numel(x));
+  if strcmp(animaltype,'larva')
+      pos.xspine=trx(target).xspine;
+      pos.yspine=trx(target).yspine;
+  end
+   if strcmp(animaltype,'larva_highres')
+      pos.xspine=trx(target).xspine;
+      pos.yspine=trx(target).yspine;
+      pos.xcontour=trx.xcontour{target};
+      pos.ycontour=trx.ycontour{target};
+  end
+  try
+     sex = trx(target).sex;
+  catch
+     sex = repmat({'?'},1,numel(x));
   end
   theta = trx(target).theta;
   % try to make sector somewhat continuous
@@ -408,18 +440,30 @@ for segi = 1:numel(framestarts),
   end
   
   for t = framestarts(segi):frameends(segi),
-    im = readframe(t);
-    set(him,'CData',im2double(im));
-    i = t+trx(target).off;
-    
-    i0 = max(1,min(nframes_curr,i-trx_rad(1)));
-    i1 = max(1,min(nframes_curr,i+trx_rad(1)));
-    
-    set(htrx,'XData',x(i0:i1),...
-      'YData',y(i0:i1));
-    
-    updatefly(htarget,x(i),y(i),...
-      theta(i),a(i),b(i));
+      im = readframe(t);
+      set(him,'CData',im2double(im));
+      i = t+trx(target).off;
+      
+      i0 = max(1,min(nframes_curr,i-trx_rad(1)));
+      i1 = max(1,min(nframes_curr,i+trx_rad(1)));
+      
+      
+      set(htrx,'XData',x(i0:i1),...
+          'YData',y(i0:i1));
+      switch animaltype
+          case 'fly'
+              updatefly(htarget,x(i),y(i),...
+                  theta(i),a(i),b(i));
+          case 'larva'
+              pos2=struct('xspine',pos.xspine(:,i),'yspine',pos.yspine(:,i));
+              updatelarvaspecies(htarget,htarget_extra,pos2)
+          case 'larva_highres'
+              pos2=struct('xspine',pos.xspine(:,i),'yspine',pos.yspine(:,i),'xcontour',pos.xcontour{i},'ycontour',pos.ycontour{i});
+              updatelarvacontour(htarget,htarget_extra,pos2);
+          otherwise
+              error('Unknown animal type %s',animaltype);
+      end
+  
     
     for behaviori = 1:nbehaviors,
       set(hbar(behaviori),'YData',[0,0,1,1,0]*scores(behaviori,i));
@@ -484,11 +528,15 @@ for segi = 1:numel(framestarts),
 
     set(hinfo,'String',ss)
     
-    outofbounds = x(i)-pxborder < ax(1) || ...
-      x(i)+pxborder > ax(2) || ...
-      y(i)-pxborder < ax(3) || ...
-      y(i)+pxborder > ax(4);
-    if t == framestarts(segi) || outofbounds,
+    if isempty(fixedaxis),
+       outofbounds = x(i)-pxborder < ax(1) || ...
+          x(i)+pxborder > ax(2) || ...
+          y(i)-pxborder < ax(3) || ...
+          y(i)+pxborder > ax(4);
+    else
+       outofbounds = false;
+    end
+    if isempty(fixedaxis) && (t == framestarts(segi) || outofbounds),
       ax = ResetAxis(x,y,i,headerinfo.nr,headerinfo.nc,pxwidthradius,pxheightradius,pxborder);
       axis(haxmain,ax);
       set(hinfo,'Position',ax([1,4]));

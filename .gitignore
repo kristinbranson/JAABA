@@ -1,3 +1,7 @@
 .DS_Store
 .JLabelrc.mat
 ._*
+*~
+*.bak
+#*#
+perframe/.PrepareJAABAData_rc.mat

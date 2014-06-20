@@ -53,35 +53,35 @@ file.isdir = 0;
 file.exts = {'*.mat'};
 InputDataTypes.LarvaeRiveraAlba.files = structappend(InputDataTypes.LarvaeRiveraAlba.files,file);
 
-InputDataTypes.MoTr = struct;
-InputDataTypes.MoTr.name = 'MoTr';
-InputDataTypes.MoTr.videorequired = true;
-InputDataTypes.MoTr.readarena = 'no';
-InputDataTypes.MoTr.readpxpermm = 'no';
-InputDataTypes.MoTr.readfps = 'yes';
-InputDataTypes.MoTr.writearena = 'yes';
-InputDataTypes.MoTr.writepxpermm = 'yes';
-InputDataTypes.MoTr.writefps = 'no';
-InputDataTypes.MoTr.files = [];
+InputDataTypes.Motr = struct;
+InputDataTypes.Motr.name = 'Motr';
+InputDataTypes.Motr.videorequired = true;
+InputDataTypes.Motr.readarena = 'no';
+InputDataTypes.Motr.readpxpermm = 'no';
+InputDataTypes.Motr.readfps = 'yes';
+InputDataTypes.Motr.writearena = 'yes';
+InputDataTypes.Motr.writepxpermm = 'yes';
+InputDataTypes.Motr.writefps = 'no';
+InputDataTypes.Motr.files = [];
 
 file = struct;
 file.name = 'Seq index file';
 file.code = 'seqindexfile';
 file.description = 'Index for video seq file';
-file.required = true;
+file.required = false;
 file.multiplefiles = 0;
 file.isdir = 0;
 file.exts = {'*.mat'};
-InputDataTypes.MoTr.files = structappend(InputDataTypes.MoTr.files,file);
+InputDataTypes.Motr.files = structappend(InputDataTypes.Motr.files,file);
 
-file.name = 'Trx mat file';
+file.name = 'Tracks file';
 file.code = 'intrxfile';
-file.description = 'Mat file containing trajectories output by MoTr';
+file.description = 'File containing trajectories output by Motr or Catalytic';
 file.required = true;
 file.multiplefiles = 0;
 file.isdir = 0;
-file.exts = {'*.mat'};
-InputDataTypes.MoTr.files = structappend(InputDataTypes.MoTr.files,file);
+file.exts = {'*.mat';'*.ctc'};
+InputDataTypes.Motr.files = structappend(InputDataTypes.Motr.files,file);
 
 InputDataTypes.Qtrax = struct;
 InputDataTypes.Qtrax.name = 'Qtrax (CADABRA)';
@@ -342,3 +342,36 @@ file.multiplefiles = 0;
 file.isdir = 1;
 file.exts = {'*'};
 InputDataTypes.SimpleTwoFlies.files = structappend(InputDataTypes.SimpleTwoFlies.files,file);
+
+%% JCtrax
+
+InputDataTypes.JCtrax = struct;
+InputDataTypes.JCtrax.name = 'JCtrax';
+InputDataTypes.JCtrax.videorequired = true;
+InputDataTypes.JCtrax.readarena = 'yes';
+InputDataTypes.JCtrax.readpxpermm = 'yes';
+InputDataTypes.JCtrax.readfps = 'yes';
+InputDataTypes.JCtrax.writearena = 'no';
+InputDataTypes.JCtrax.writepxpermm = 'no';
+InputDataTypes.JCtrax.writefps = 'no';
+InputDataTypes.JCtrax.files = [];
+
+file = struct;
+file.name = 'Track file';
+file.code = 'intrxfile';
+file.description = 'Track file output by JCtrax';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*-track.mat'};
+InputDataTypes.JCtrax.files = structappend(InputDataTypes.JCtrax.files,file);
+
+file.name = 'info mat file';
+file.code = 'infofile';
+file.description = 'Mat file information';
+file.required = true;
+file.multiplefiles = 0;
+file.isdir = 0;
+file.exts = {'*info.mat'};
+InputDataTypes.JCtrax.files = structappend(InputDataTypes.JCtrax.files,file);
+
