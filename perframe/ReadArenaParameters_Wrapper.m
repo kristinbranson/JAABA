@@ -39,10 +39,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MoTr',
+  case 'Motr',
 
     success = false;
-    msg = 'No arena parameters stored in MoTr files';
+    msg = 'No arena parameters stored in Motr files';
     
   case 'Qtrax',
 
@@ -72,6 +72,13 @@ switch InputDataType,
       leftovers{:},...
       'pxpermm',pxpermm);
 
+  case 'JCtrax',
+
+    [success,msg,pxpermm] = ...
+      ReadArenaParameters_JCtrax(...
+      leftovers{:},...
+      'pxpermm',pxpermm);
+    
   otherwise
     success = false;
     msg = sprintf('Unknown data type %s',InputDataType);

@@ -2334,12 +2334,15 @@ switch(style)
     xdata=xdata(~idx);  data_dp=data_dp(~idx);  data_dn=data_dn(~idx);
     color2=(get(h,'color')+[4 4 4])/5;
     k=1;  m=0;  step=10000;
+    hfront = get(ha,'Children');
     while(k<=length(xdata))
       idx=k:min(k+step,length(xdata));
       patch([xdata(idx) fliplr(xdata(idx))],[data_dp(idx) fliplr(data_dn(idx))],color2,'edgecolor','none','parent',ha);
       k=k+step+1;  m=m+1;
     end
-    get(ha,'children');  set(ha,'children',circshift(ans,-m));  % send to back
+    hback = setdiff(get(ha,'Children'),hfront);
+    set(ha,'children',[hfront;hback]);
+    %get(ha,'children');  set(ha,'children',circshift(ans,-m));  % send to back
     if(~isnan(fid))
       fprintf(fid,['%% ydata, ' str_dp '\n']);
       print_csv_data(fid,data_dp);
@@ -2394,19 +2397,11 @@ for i=1:length(behavior_data.allScores.t0s)  % individual
   tmp1 = compute_behavior_logic(behavior_data.allScores, i);
   tstart = behavior_data.allScores.tStart(i);
   tmp1 = tmp1(tstart : tstart+length(feature_data.data{i})-1);
-%   tmp1=zeros(1,length(feature_data.data{i}));
-%   tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-%   tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-%   tmp1=logical(cumsum(tmp1(1:length(feature_data.data{i}))));
   
   if(behavior_logic>1)
     tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
     tstart = behavior_data2.allScores.tStart(i);
-    tmp2 = tmp1(tstart : tstart+length(feature_data.data{i})-1);
-%     tmp2=zeros(1,length(feature_data.data{i}));
-%     tmp2(behavior_data2.allScores.t0s{i}-behavior_data2.allScores.tStart(i)+1)=1;
-%     tmp2(behavior_data2.allScores.t1s{i}-behavior_data2.allScores.tStart(i)+1)=-1;
-%     tmp2=logical(cumsum(tmp2(1:length(feature_data.data{i}))));
+    tmp2 = tmp2(tstart : tstart+length(feature_data.data{i})-1);
   end
 
   if(behaviornot)  tmp1=~tmp1;  end
@@ -2479,9 +2474,9 @@ not_during=[not_during{:}];
 % ---
 function tmp=calculate_statistics2(table_data,behaviorlist,grouplist,comparison,fid,crit)
 
-nrows=9+3*(comparison>0);
+nrows=10+4*(comparison>0);
 if(((size(table_data{1},1)==2)&&(comparison==0)) || ((size(table_data{1},1)==1)&&(comparison>0)))
-  nrows=7+3*(comparison>0);
+  nrows=8+4*(comparison>0);
 end
 
 switch(comparison)
@@ -2507,25 +2502,27 @@ for b=1:length(table_data)
   tmp{nrows*b+1,1}=behaviorlist{b};
   for g=1:size(table_data{b},1)
     for c=1:(1+(comparison>0))
-      idx=2:4;  if(comparison>0)  idx=c+(1:2:5);  end
+      idx=2:5;  if(comparison>0)  idx=c+(1:2:7);  end
       p=nan;
       if(sum(~isnan(table_data{b}{g,c}))>0)
         [~,p,~,~]=kstest(table_data{b}{g,c});
       end
       tmp{nrows*b+idx(1),g}=color_red(length(table_data{b}{g,c}),0);
       tmp{nrows*b+idx(2),g}=color_red(p,p<crit);
-      tmp{nrows*b+idx(3),g}=color_red(nanstd(table_data{b}{g,c}),0);
+      tmp{nrows*b+idx(3),g}=color_red(nanmean(table_data{b}{g,c}),0);
+      tmp{nrows*b+idx(4),g}=color_red(nanstd(table_data{b}{g,c}),0);
       ctxt2='';
       if(comparison>0)
         ctxt2=ctxt;  if(c==1)  ctxt2=' during';  end
       end
       if(b==1)
-        tmp(idx,g)=repmat({[grouplistcopy{g} ctxt2]},3,1);
+        tmp(idx,g)=repmat({[grouplistcopy{g} ctxt2]},4,1);
         if(g==1)
-          idx=2:4;  if(comparison>0)  idx=[2:3; 4:5; 6:7]';  end
+          idx=2:5;  if(comparison>0)  idx=[2:3; 4:5; 6:7; 8:9]';  end
           tmp(idx(:,1),size(table_data{b},1)+1)=repmat({'(sample size)'},size(idx,1),1);
           tmp(idx(:,2),size(table_data{b},1)+1)=repmat({'(K-S normal)'},size(idx,1),1);
-          tmp(idx(:,3),size(table_data{b},1)+1)=repmat({'(std. dev.)'},size(idx,1),1);
+          tmp(idx(:,3),size(table_data{b},1)+1)=repmat({'(mean)'},size(idx,1),1);
+          tmp(idx(:,4),size(table_data{b},1)+1)=repmat({'(std. dev.)'},size(idx,1),1);
         end
       end
     end
@@ -2533,21 +2530,21 @@ for b=1:length(table_data)
 
   if(((size(table_data{1},1)==2)&&(comparison==0)) || ((size(table_data{1},1)==1)&&(comparison>0)))
   
-    if(b==1)  tmp{5+3*(comparison>0),1}='t-test';  end
+    if(b==1)  tmp{6+4*(comparison>0),1}='t-test';  end
     if(comparison>0)
       [~,p]=ttest2(table_data{b}{1,1},table_data{b}{1,2});
     else
       [~,p]=ttest2(table_data{b}{1,1},table_data{b}{2,1});
     end
-    tmp{nrows*b+5+3*(comparison>0),1}=color_red(p,p<crit);
+    tmp{nrows*b+6+4*(comparison>0),1}=color_red(p,p<crit);
 
-    if(b==1)  tmp{6+3*(comparison>0),1}='Wilcoxen';  end
+    if(b==1)  tmp{7+4*(comparison>0),1}='Wilcoxen';  end
     if(comparison>0)
       p=ranksum(table_data{b}{1,1},table_data{b}{1,2});
     else
       p=ranksum(table_data{b}{1,1},table_data{b}{2,1});
     end
-    tmp{nrows*b+6+3*(comparison>0),1}=color_red(p,p<crit);
+    tmp{nrows*b+7+4*(comparison>0),1}=color_red(p,p<crit);
 
   else
 
@@ -2564,38 +2561,38 @@ for b=1:length(table_data)
     end
     c=multcompare(stats,'alpha',crit,'display','off');
     for(pp=1:length(p))
-      tmp{nrows*b+5+3*(comparison>0),pp}=color_red(p(pp),p(pp)<crit);
+      tmp{nrows*b+6+4*(comparison>0),pp}=color_red(p(pp),p(pp)<crit);
     end
     if(b==1)
       if(comparison>0)
-        tmp(8,1:4)={'group','comparison','interaction','(ANOVA)'};
+        tmp(10,1:4)={'group','comparison','interaction','(ANOVA)'};
       else
-        tmp(5,1)={'(ANOVA)'};
+        tmp(6,1)={'(ANOVA)'};
       end
     end
     for g2=1:size(c,1)
       if(b==1)
-        tmp((6:8)+3*(comparison>0),g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
+        tmp((7:9)+4*(comparison>0),g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
       end
       foo=(sign(c(g2,3))==sign(c(g2,5)));
-      tmp{nrows*b+6+3*(comparison>0),g2}=color_red(c(g2,3),foo);
-      tmp{nrows*b+7+3*(comparison>0),g2}=color_red(c(g2,4),foo);
-      tmp{nrows*b+8+3*(comparison>0),g2}=color_red(c(g2,5),foo);
+      tmp{nrows*b+7+4*(comparison>0),g2}=color_red(c(g2,3),foo);
+      tmp{nrows*b+8+4*(comparison>0),g2}=color_red(c(g2,4),foo);
+      tmp{nrows*b+9+4*(comparison>0),g2}=color_red(c(g2,5),foo);
     end
     pooh=size(c,1);
     if(comparison>0)
       [p,table,stats]=anovan([table_data{b}{:}],{[f2{:}] [f1{:}]},'model','interaction','display','off');
       c=multcompare(stats,'alpha',crit,'display','off');
       if(b==1)
-        tmp((6:8)+3*(comparison>0),pooh+1)=repmat({strcat('during-',ctxt)},3,1);
+        tmp((7:9)+4*(comparison>0),pooh+1)=repmat({strcat('during-',ctxt)},3,1);
       end
       foo=(sign(c(1,3))==sign(c(1,5)));
-      tmp{nrows*b+6+3*(comparison>0),pooh+1}=color_red(c(1,3),foo);
-      tmp{nrows*b+7+3*(comparison>0),pooh+1}=color_red(c(1,4),foo);
-      tmp{nrows*b+8+3*(comparison>0),pooh+1}=color_red(c(1,5),foo);
+      tmp{nrows*b+7+4*(comparison>0),pooh+1}=color_red(c(1,3),foo);
+      tmp{nrows*b+8+4*(comparison>0),pooh+1}=color_red(c(1,4),foo);
+      tmp{nrows*b+9+4*(comparison>0),pooh+1}=color_red(c(1,5),foo);
     end
     if(b==1)
-      tmp((6:8)+3*(comparison>0),pooh+1+(comparison>0))={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
+      tmp((7:9)+4*(comparison>0),pooh+1+(comparison>0))={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
     end
   end
 end
@@ -3141,15 +3138,15 @@ if(isempty(handles.interestingfeaturehistograms_cache))
   num_indi=0;
   table_data=zeros(nexperiments,max(1,nbehaviors),nfeatures,9);
   parfor ge=1:nexperiments
-  %for ge=1:nexperiments
-    bdata={};
+%   for ge=1:nexperiments
+    bdata={};  behavior_data=[];
     for b=1:nbehaviors
       behavior_data=load(fullfile(handlesexperimentlist{ge},handles.scorefiles{b}));
       behavior_data=update_t01s_from_postprocessed(behavior_data);
       [bdata{b},~,~,~,~]=cull_short_trajectories(handles,behavior_data,[],[],[],[]);
       num_indi=num_indi+length(bdata{b}.allScores.scores);
     end
-    [~,~,~,~,sex_data]=cull_short_trajectories(handles,bdata{1},[],[],[],handlessexdata{ge});
+    [~,~,~,~,sex_data]=cull_short_trajectories(handles,behavior_data,[],[],[],handlessexdata{ge});
     sexdata=[];
     switch(handles.individualidx)
       case('A')
@@ -4054,7 +4051,7 @@ end
 % ---
 function tmp=calculate_statistics(table_data,behaviorlist,grouplist,fid,crit)
 
-nrows=13;  if(length(table_data{1})==2)  nrows=7;  end
+nrows=14;  if(length(table_data{1})==2)  nrows=8;  end
 
 tmp={'behavior'};
 for b=1:length(table_data)
@@ -4072,30 +4069,32 @@ for b=1:length(table_data)
 
   tmp{nrows*b+1,1}=behaviorlist{b};
   for g=1:length(table_data{b})
-    if(b==1)  tmp(2:4,g)=repmat({grouplistcopy{g}},3,1);  end
+    if(b==1)  tmp(2:5,g)=repmat({grouplistcopy{g}},4,1);  end
     p=nan;
     if(sum(~isnan(table_data{b}{g}))>0)
       [~,p,~,~]=kstest(table_data{b}{g});
     end
     tmp{nrows*b+2,g}=color_red(length(table_data{b}{g}),0);
     tmp{nrows*b+3,g}=color_red(p,p<crit);
-    tmp{nrows*b+4,g}=color_red(nanstd(table_data{b}{g}),0);
+    tmp{nrows*b+4,g}=color_red(nanmean(table_data{b}{g}),0);
+    tmp{nrows*b+5,g}=color_red(nanstd(table_data{b}{g}),0);
   end
   if(b==1)
     tmp{2,length(table_data{b})+1}='(sample size)';
     tmp{3,length(table_data{b})+1}='(K-S normal)';
-    tmp{4,length(table_data{b})+1}='(std. dev.)';
+    tmp{4,length(table_data{b})+1}='(mean)';
+    tmp{5,length(table_data{b})+1}='(std. dev.)';
   end
 
   if(length(table_data{b})==2)
   
-    if(b==1)  tmp{5,1}='t-test';  end
+    if(b==1)  tmp{6,1}='t-test';  end
     [~,p]=ttest2(table_data{b}{1},table_data{b}{2});
-    tmp{nrows*b+5,1}=color_red(p,p<crit);
-
-    if(b==1)  tmp{6,1}='Wilcoxen';  end
-    p=ranksum(table_data{b}{1},table_data{b}{2});
     tmp{nrows*b+6,1}=color_red(p,p<crit);
+
+    if(b==1)  tmp{7,1}='Wilcoxen';  end
+    p=ranksum(table_data{b}{1},table_data{b}{2});
+    tmp{nrows*b+7,1}=color_red(p,p<crit);
 
   else
 
@@ -4103,38 +4102,38 @@ for b=1:length(table_data)
         'uniformoutput',false);
     [p,table,stats]=anova1([table_data{b}{:}],[foo{:}],'off');
     c=multcompare(stats,'alpha',crit,'display','off');
-    tmp{nrows*b+5,1}=color_red(p,p<crit);
-    if(b==1)  tmp{5,1}='ANOVA';  end
+    tmp{nrows*b+6,1}=color_red(p,p<crit);
+    if(b==1)  tmp{6,1}='ANOVA';  end
     for g2=1:size(c,1)
       if(b==1)
-        tmp(6:8,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
+        tmp(7:9,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
       end
       foo=(sign(c(g2,3))==sign(c(g2,5)));
-      tmp{nrows*b+6,g2}=color_red(c(g2,3),foo);
-      tmp{nrows*b+7,g2}=color_red(c(g2,4),foo);
-      tmp{nrows*b+8,g2}=color_red(c(g2,5),foo);
+      tmp{nrows*b+7,g2}=color_red(c(g2,3),foo);
+      tmp{nrows*b+8,g2}=color_red(c(g2,4),foo);
+      tmp{nrows*b+9,g2}=color_red(c(g2,5),foo);
     end
     if(b==1)
-      tmp(6:8,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
+      tmp(7:9,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
     end
 
     foo=cellfun(@(x,y) y*ones(1,length(x)),table_data{b},num2cell(1:length(table_data{b})),...
         'uniformoutput',false);
     [p,table,stats]=kruskalwallis([table_data{b}{:}],[foo{:}],'off');
     c=multcompare(stats,'alpha',crit,'display','off');
-    tmp{nrows*b+9,1}=color_red(p,p<crit);
-    if(b==1)  tmp{9,1}='Kruskal-Wallis';  end
+    tmp{nrows*b+10,1}=color_red(p,p<crit);
+    if(b==1)  tmp{10,1}='Kruskal-Wallis';  end
     for g2=1:size(c,1)
       if(b==1)
-        tmp(10:12,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
+        tmp(11:13,g2)=repmat({strcat(grouplistcopy{c(g2,1)},'-',grouplistcopy{c(g2,2)})},3,1);
       end
       foo=(sign(c(g2,3))==sign(c(g2,5)));
-      tmp{nrows*b+10,g2}=color_red(c(g2,3),foo);
-      tmp{nrows*b+11,g2}=color_red(c(g2,4),foo);
-      tmp{nrows*b+12,g2}=color_red(c(g2,5),foo);
+      tmp{nrows*b+11,g2}=color_red(c(g2,3),foo);
+      tmp{nrows*b+12,g2}=color_red(c(g2,4),foo);
+      tmp{nrows*b+13,g2}=color_red(c(g2,5),foo);
     end
     if(b==1)
-      tmp(10:12,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
+      tmp(11:13,size(c,1)+1)={'(5%, Tukey post-hoc)'; '(mean)'; '(95%)'};
     end
   end
 end
@@ -4267,34 +4266,17 @@ for b=bb
     for i=1:length(behavior_data.allScores.t0s)  % individual
       tmp1 = compute_behavior_logic(behavior_data.allScores, i);
       tmp1 = tmp1(behavior_data.allScores.tStart(i) : behavior_data.allScores.tEnd(i));
-%       tstart=behavior_data.allScores.tStart(i);
-%       tmp1=zeros(1,behavior_data.allScores.tEnd(i)-tstart+1);
-%       tmp1(behavior_data.allScores.t0s{i}-tstart+1)=1;
-%       tmp1(behavior_data.allScores.t1s{i}-tstart+1)=-1;
-%       tmp1=tmp1(1:(behavior_data.allScores.tEnd(i)-tstart+1));
-%       tmp1=logical(cumsum(tmp1));
 
       tmp2=[];
       if(behavior_logic>1)
         tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
-        tmp2 = tmp1(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
-%         tstart=behavior_data2.allScores.tStart(i);
-%         tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-tstart+1);
-%         tmp2(behavior_data2.allScores.t0s{i}-tstart+1)=1;
-%         tmp2(behavior_data2.allScores.t1s{i}-tstart+1)=-1;
-%         tmp2=tmp2(1:(behavior_data2.allScores.tEnd(i)-tstart+1));
-%         tmp2=logical(cumsum(tmp2));
+        tmp2 = tmp2(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
       end
 
       tmp3=[];
       if(handles.behaviorvalue3>1)
         tmp3 = compute_behavior_logic(behavior_data3.allScores, i);
-        tmp3 = tmp1(behavior_data3.allScores.tStart(i) : behavior_data3.allScores.tEnd(i));
-%         tmp3=zeros(1,behavior_data3.allScores.tEnd(i)-behavior_data3.allScores.tStart(i)+1);
-%         tmp3(behavior_data3.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-%         tmp3(behavior_data3.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-%         tmp3=tmp3(1:(behavior_data3.allScores.tEnd(i)-tstart+1));
-%         tmp3=logical(cumsum(tmp3));
+        tmp3 = tmp3(behavior_data3.allScores.tStart(i) : behavior_data3.allScores.tEnd(i));
         if(handles.behaviornormalizenot)
           tmp3=~tmp3;
         end
@@ -4316,14 +4298,6 @@ for b=bb
           partition_idx=tmp1 | ~tmp2;
       end
 
-      % KB: for some reason partition_idx was of size > trajectory length
-      % BJA: problem was that t1s(end) is sometimes > than tEnd by 1.  fixed 40 lines above
-%       if numel(partition_idx) > numel(sex_data{i}),
-%         warning('More frames of behaviors detected than frames in trajectory by %d',...
-%             numel(partition_idx)-numel(sex_data{i}));
-%         partition_idx = partition_idx(1:numel(sex_data{i}));
-%       end
-      
       sex(i)=sum(sex_data{i}(1:length(partition_idx))) > (length(partition_idx)/2);
       frames_labelled(i)=sum(partition_idx);
       if(handles.behaviorvalue3==1)
@@ -4694,7 +4668,7 @@ for b=bb
     if(xoffset==1)
       parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd));
     else
-      parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart));
+      parfor_tmp=zeros(2,max(behavior_data.allScores.tEnd)-min(behavior_data.allScores.tStart)+1);
     end
 
     ii2=0;
@@ -4926,19 +4900,11 @@ inter_sex=cell(1,length(behavior_data.allScores.t0s));
 for i=1:length(behavior_data.allScores.t0s)  % individual
   tmp1 = compute_behavior_logic(behavior_data.allScores, i);
   tmp1 = tmp1(behavior_data.allScores.tStart(i) : behavior_data.allScores.tEnd(i));
-%   tmp1=zeros(1,behavior_data.allScores.tEnd(i)-behavior_data.allScores.tStart(i)+1);
-%   tmp1(behavior_data.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-%   tmp1(behavior_data.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-%   tmp1=logical(cumsum(tmp1));
 
   tmp2=[];
   if(behavior_logic>1)
     tmp2 = compute_behavior_logic(behavior_data2.allScores, i);
-    tmp2 = tmp1(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
-%     tmp2=zeros(1,behavior_data2.allScores.tEnd(i)-behavior_data2.allScores.tStart(i)+1);
-%     tmp2(behavior_data2.allScores.t0s{i}-behavior_data.allScores.tStart(i)+1)=1;
-%     tmp2(behavior_data2.allScores.t1s{i}-behavior_data.allScores.tStart(i)+1)=-1;
-%     tmp2=logical(cumsum(tmp2));
+    tmp2 = tmp2(behavior_data2.allScores.tStart(i) : behavior_data2.allScores.tEnd(i));
   end
 
   if(behaviornot)  tmp1=~tmp1;  end
@@ -6441,7 +6407,7 @@ function XOffset_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns XOffset contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from XOffset
 
-handles.xoffset=get(handles.Xoffset,'value');
+handles.xoffset=get(handles.XOffset,'value');
 guidata(hObject,handles);
 
 

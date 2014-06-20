@@ -23,8 +23,13 @@ classdef JLabelGUIData < handle
     busystatuscolor = [1,0,1];
 
     movie_depth = 1;
-    movie_height = 100;
-    movie_width = 100;
+%     movie_height = 100;
+%     movie_width = 100;
+    movie_minx = 1;
+    movie_miny = 1;
+    movie_maxx = 100;
+    movie_maxy = 100;
+    movie_pixelsize = 1;
     movie_filename = [];
     
 %     thereIsAnOpenFile=false;
@@ -184,6 +189,8 @@ classdef JLabelGUIData < handle
     hcurr_timelines = [];
     hselection = [];
     bkgdgrid = zeros(2,0);
+    hrois = [];
+    harena = [];
     
     callbacks = struct;
 

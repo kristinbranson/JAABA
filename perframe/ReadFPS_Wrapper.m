@@ -19,10 +19,10 @@ switch InputDataType,
     success = false;
     msg = 'Not implemented';
 
-  case 'MoTr',
+  case 'Motr',
 
     success = false;
-    msg = 'FPS not stored in MoTr files';
+    msg = 'FPS not stored in Motr files';
     
   case 'Qtrax',
 
@@ -48,6 +48,11 @@ switch InputDataType,
   case 'LarvaeLouis',
     [success,msg,fps] = ReadFPS_LarvaeLouis(leftovers{:},'fps',fps);
 
+  case 'JCtrax',
+    
+    success = false;
+    msg = 'Not implemented';
+    
   otherwise
     success = false;
     msg = sprintf('Unknown data type %s',InputDataType);
