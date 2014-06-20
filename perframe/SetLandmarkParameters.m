@@ -19,6 +19,8 @@ switch lower(arenatype),
     end
 end
 
-for i = 1:numel(trx),
-  trx(i).roi2=roi2;
+if exist('roi2','var'),
+  for i = 1:numel(trx),
+    trx(i).roi2=roi2;
+  end
 end
