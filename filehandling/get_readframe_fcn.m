@@ -58,6 +58,13 @@ elseif strcmpi(ext,'.mmf'),
   readframe = mmf_get_readframe_fcn(headerinfo,varargin{:});
   nframes = headerinfo.nframes;
   fid = headerinfo.fid;
+elseif strcmpi(ext,'.tif'),
+  info = imfinfo(filename);
+  headerinfo = struct('nr',info(1).Height,'nc',info(1).Width,'nframes',numel(info),'type','tif',...
+    'bitdepth',info(1).BitDepth);
+  readframe = @(f) deal(imread(filename,f),f);
+  nframes = headerinfo.nframes;
+  fid = -1;
 elseif strcmpi(ext,'.mat'),
 
   videofiletype = load(filename,'videofiletype');
