@@ -1878,11 +1878,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
         % get per-frame data
         ndx = find(strcmp(fn,object.allperframefns));
-        if isempty(ndx),
-          success = false;
-          msg = sprintf('Internal error: There is at least one per-frame feature in the vocabulary (%s) that is not in the subdialect.',fn);
-          return;
-        end
+        assert(~isempty(ndx),...
+          'Internal error: There is at least one per-frame feature in the vocabulary (%s) that is not in the subdialect.',fn);
 
         if ~exist(object.perframefile{ndx},'file'),
           if ~isdeployed 
@@ -1903,16 +1900,12 @@ classdef JLabelData < matlab.mixin.Copyable
           if strcmpi(res,'Yes'),
             for ndx = 1:obj.nexps  
               [success1,msg1] = obj.GenerateMissingFiles(ndx);
-              if ~success1,
-                success = success1; msg = msg1;
-                return;
+              if ~success1
+                error(msg1);
               end
             end
-
           else
-            success = false;
-            msg = sprintf('Cannot compute window data for %s ',obj.expnames{expi});
-            return;
+            error('Cannot compute window data for %s.',obj.expnames{expi});
           end
         end
       end
@@ -2250,13 +2243,13 @@ classdef JLabelData < matlab.mixin.Copyable
       for expi = 1:obj.nexps,
         obj.SetStatus('Computing windowdata for %s', obj.expnames{expi});
         obj.CheckExp(expi);
-        obj_getperframefiles = obj.GetPerframeFiles(expi);
         flies_curr = obj.labels(expi).flies;
-        obj_getlabelidx_struct=cell(1,size(flies_curr,1));
-        obj_getlabelidx_t0=cell(1,size(flies_curr,1));
-        missingts=cell(1,size(flies_curr,1));
-        object = cell(1,size(flies_curr,1));
-        for flyi = 1:size(flies_curr,1),
+        Nfliescurr = size(flies_curr,1);
+        obj_getlabelidx_struct=cell(1,Nfliescurr);
+        obj_getlabelidx_t0=cell(1,Nfliescurr);
+        missingts=cell(1,Nfliescurr);
+        object = cell(1,Nfliescurr);
+        for flyi = 1:Nfliescurr
           flies = flies_curr(flyi,:);  % BJA: is this ever 2-D ?
           obj.CheckFlies(flies);
           [obj_getlabelidx_struct{flyi},obj_getlabelidx_t0{flyi}] = obj.GetLabelIdx(expi,flies);
@@ -2285,15 +2278,30 @@ classdef JLabelData < matlab.mixin.Copyable
         parfor_predictblocks=cell(1,numel(obj.curperframefns));
         parfor_windowdata=cell(1,numel(obj.curperframefns));
       
-        parfor perframei = 1:numel(obj.curperframefns)
-          ndx = find(strcmp(object{1}.curperframefns{perframei}, object{1}.allperframefns));
+        curperframefns = obj.curperframefns;
+        allperframefns = obj.allperframefns;
+        obj_getperframefiles = obj.GetPerframeFiles(expi);
+        assert(numel(allperframefns)==numel(obj_getperframefiles));
+        
+        % AL 20140313 Ensure consistency of curperframefns/allperframefns
+        % lists. At the moment there appears to be an obscure potential
+        % codepath from CreateObjectForComputeWindowDataChunk to
+        % removeArenaPFs which could lead to mutation of the perframefn 
+        % lists across object{1}, object{2}, etc.
+        for flyi = 1:Nfliescurr
+          object{flyi}.curperframefns = curperframefns;
+          object{flyi}.allperframefns = allperframefns;
+        end
+        
+        parfor perframei = 1:numel(curperframefns)
+          ndx = find(strcmp(curperframefns{perframei},allperframefns));
           perframedata = load(obj_getperframefiles{ndx});  %#ok
           perframedata = perframedata.data; 
 
-          parfor_predictblocks{perframei}=cell(1,size(flies_curr,1));
-          parfor_windowdata{perframei}=cell(1,size(flies_curr,1));
+          parfor_predictblocks{perframei}=cell(1,Nfliescurr);
+          parfor_windowdata{perframei}=cell(1,Nfliescurr);
       
-          for flyi = 1:size(flies_curr,1),
+          for flyi = 1:Nfliescurr
             flies = flies_curr(flyi,:);
             
             [~,~,predictblocks,windowdata] = ...
@@ -2323,7 +2331,7 @@ classdef JLabelData < matlab.mixin.Copyable
           end  % flyi
         end  % perframei
         
-        for flyi = 1:size(flies_curr,1)
+        for flyi = 1:Nfliescurr
           flies = flies_curr(flyi,:);
           
           tmp2 = length([parfor_predictblocks{1}{flyi}.t0]);
@@ -2953,7 +2961,13 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.balancedGTSuggestions = [];
       for ndx = 1:numint
         obj.SetStatus('Finding interval %d to label',ndx);
-        cumwt = cumsum(int.wt)/sum(int.wt);
+        
+        % weight sampling was off by 1
+        % fixed 20140331 by KB
+        
+        % old sampling
+        %cumwt = cumsum(int.wt)/sum(int.wt);
+        cumwt = cumsum([0,int.wt(1:end-1)])/sum(int.wt);
         intlocs = rand;
         locsSel = find(cumwt<=intlocs,1,'last');
         
@@ -5351,13 +5365,15 @@ classdef JLabelData < matlab.mixin.Copyable
         allScores = self.PredictWholeMovie(expi);
       end
       
-      try
-        self.SaveScores(allScores,expi,sfn);
-      catch ME,
-        if nargout > 0,
-          warning('Could not save scores to file %s: %s',sfn,getReport(ME));
-        else
-          error(getReport(ME));
+      if ischar(sfn),
+        try
+          self.SaveScores(allScores,expi,sfn);
+        catch ME,
+          if nargout > 0,
+            warning('Could not save scores to file %s: %s',sfn,getReport(ME));
+          else
+            error(getReport(ME));
+          end
         end
       end
       self.AddScores(expi,allScores,now(),'',true);
@@ -7011,6 +7027,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success, msg, ts, projectName] = ScoresToPerframe(obj,expi,fileName,ts, projectName)
+      persistent perframescoresfile_didselectyes;
       success = true; msg = '';
       %outdir = obj.outexpdirs{expi};
       outdir = obj.expdirs{expi};      
@@ -7080,11 +7097,17 @@ classdef JLabelData < matlab.mixin.Copyable
       try
         save(scoresFileOut,'-struct','OUT');
       catch ME,
-        questmsg = sprintf('Could not write perframe file from scores file: %s. Continue',fileName);
-        button = questdlg(questmsg,'Continue','Yes');
-        if ~strcmp(button,'Yes')
-          success = false;
-          msg = ME.message;
+        questmsg = sprintf('Could not write perframe file from scores file: %s.',fileName);
+        if obj.isInteractive && isempty(perframescoresfile_didselectyes),
+          button = questdlg([questmsg,' Continue?'],'Continue','Yes');
+          if ~strcmp(button,'Yes')
+            success = false;
+            msg = ME.message;
+          else
+            perframescoresfile_didselectyes = true;
+          end
+        else
+          warning(questmsg); %#ok<SPWRN>
         end
       end
     end
@@ -9250,14 +9273,8 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.fastPredictBag.fly = fly;
       obj.fastPredictBag.t = t;
       
-      perframefiles = obj.GetPerframeFiles(exp);
-      for j = 1:numel(perframefiles),
-        perframedata_all{j} = load(perframefiles{j});  %#ok
-        perframedata_all{j} = perframedata_all{j}.data;  %#ok
-      end
+      [success,msg,t0,t1,X] = obj.ComputeWindowDataChunk(exp,fly,t,'center',true);
       
-      object = CreateObjectForComputeWindowDataChunk(obj,perframedata_all,expi,flies);
-      [success,msg,t0,t1,X] = ComputeWindowDataChunk(object,t,'center',true);
       curX = X((t0:t1)==t,:);
       curF = zeros(1,numel(obj.bagModels));
       for ndx = 1:numel(obj.bagModels);
@@ -9514,18 +9531,12 @@ classdef JLabelData < matlab.mixin.Copyable
       
       windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
         (obj.windowdata.flies == obj.flies) & ...
-        (obj.windowdata.t == curTime) ,1);
+        (obj.windowdata.t == curTime) ,1);      
       
-      perframefiles = obj.GetPerframeFiles(obj.expi);
-      for j = 1:numel(perframefiles),
-        perframedata_all{j} = load(perframefiles{j});  %#ok
-        perframedata_all{j} = perframedata_all{j}.data;  %#ok
-      end
-
       if isempty(distNdx) % The example was not part of the training data.
         outOfTraining = 1;
-        object = CreateObjectForComputeWindowDataChunk(obj,perframedata_all,obj.expi,obj.flies);
-        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(object,curTime);
+        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(obj.expi,obj.flies,curTime);
+
         curX = curX(curTime-t0+1,:);
         curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
         count = 1;

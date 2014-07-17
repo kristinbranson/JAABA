@@ -150,6 +150,10 @@ classdef Trx < handle
     bl_x = []; bl_y = [];
     br_x = []; br_y = [];
     
+    %% larva contour
+    xcontour = {};
+    ycontour = {};
+    
 %     %% larva spine
 %     xspine = [];
 %     yspine = [];
