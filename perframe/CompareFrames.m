@@ -145,8 +145,9 @@ handles.ts = ts;
 handles.centralframe = find(ts == handles.t);
 
 img = readframe_fcn(ts(1));
-handles.imgcache = zeros(handles.JLabelH.guidata.movie_height,...
-  handles.JLabelH.guidata.movie_width,size(img,3),numel(ts));
+movie_height = handles.JLabelH.guidata.movie_maxy - handles.JLabelH.guidata.movie_miny + handles.JLabelH.guidata.movie_pixelsize;
+movie_width = handles.JLabelH.guidata.movie_maxx - handles.JLabelH.guidata.movie_minx + handles.JLabelH.guidata.movie_pixelsize;
+handles.imgcache = zeros(movie_height,movie_width,size(img,3),numel(ts));
 
 for ndx = 1:numel(ts)
   img = readframe_fcn(ts(ndx));
