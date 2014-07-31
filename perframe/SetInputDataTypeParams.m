@@ -12,6 +12,7 @@ InputDataTypes.Ctrax.writearena = 'maybe';
 InputDataTypes.Ctrax.writepxpermm = 'maybe';
 InputDataTypes.Ctrax.writefps = 'maybe';
 InputDataTypes.Ctrax.files = [];
+InputDataTypes.Ctrax.allowCrop = true;
 
 file = struct;
 file.name = 'Trx mat file';
@@ -42,6 +43,7 @@ InputDataTypes.LarvaeRiveraAlba.writearena = 'no';
 InputDataTypes.LarvaeRiveraAlba.writepxpermm = 'no';
 InputDataTypes.LarvaeRiveraAlba.writefps = 'no';
 InputDataTypes.LarvaeRiveraAlba.files = [];
+InputDataTypes.LarvaeRiveraAlba.allowCrop = false;
 
 file = struct;
 file.name = 'Trx mat file';
@@ -63,6 +65,7 @@ InputDataTypes.Motr.writearena = 'yes';
 InputDataTypes.Motr.writepxpermm = 'yes';
 InputDataTypes.Motr.writefps = 'no';
 InputDataTypes.Motr.files = [];
+InputDataTypes.Motr.allowCrop = true;
 
 file = struct;
 file.name = 'Seq index file';
@@ -93,6 +96,7 @@ InputDataTypes.Qtrax.writearena = 'yes';
 InputDataTypes.Qtrax.writepxpermm = 'no';
 InputDataTypes.Qtrax.writefps = 'no';
 InputDataTypes.Qtrax.files = [];
+InputDataTypes.Qtrax.allowCrop = false;
 
 file = struct;
 file.name = 'Feature file';
@@ -123,6 +127,7 @@ InputDataTypes.MAGATAnalyzer.writearena = 'yes';
 InputDataTypes.MAGATAnalyzer.writepxpermm = 'no';
 InputDataTypes.MAGATAnalyzer.writefps = 'no';
 InputDataTypes.MAGATAnalyzer.files = [];
+InputDataTypes.MAGATAnalyzer.allowCrop = false;
 
 file = struct;
 file.name = 'Experiment mat file';
@@ -144,6 +149,7 @@ InputDataTypes.MWT.writearena = 'yes';
 InputDataTypes.MWT.writepxpermm = 'maybe';
 InputDataTypes.MWT.writefps = 'no';
 InputDataTypes.MWT.files = [];
+InputDataTypes.MWT.allowCrop = false;
 
 file = struct;
 file.name = 'Blobs file';
@@ -187,6 +193,7 @@ InputDataTypes.LarvaeReid.writearena = 'yes';
 InputDataTypes.LarvaeReid.writepxpermm = 'maybe';
 InputDataTypes.LarvaeReid.writefps = 'no';
 InputDataTypes.LarvaeReid.files = [];
+InputDataTypes.LarvaeReid.allowCrop = false;
 
 file = struct;
 file.name = 'Blobs file';
@@ -231,6 +238,7 @@ InputDataTypes.LarvaeLouis.writepxpermm = 'no';
 InputDataTypes.LarvaeLouis.writefps = 'no';
 InputDataTypes.LarvaeLouis.files = [];
 InputDataTypes.LarvaeLouis.inputs = [];
+InputDataTypes.LarvaeLouis.allowCrop = false;
 
 file = struct;
 file.name = 'Data txt file';
@@ -284,6 +292,7 @@ InputDataTypes.CtraxPlusWings.writearena = 'maybe';
 InputDataTypes.CtraxPlusWings.writepxpermm = 'maybe';
 InputDataTypes.CtraxPlusWings.writefps = 'maybe';
 InputDataTypes.CtraxPlusWings.files = [];
+InputDataTypes.CtraxPlusWings.allowCrop = true;
 
 file = struct;
 file.name = 'Trx mat file';
@@ -323,6 +332,7 @@ InputDataTypes.SimpleTwoFlies.writearena = 'maybe';
 InputDataTypes.SimpleTwoFlies.writepxpermm = 'yes';
 InputDataTypes.SimpleTwoFlies.writefps = 'yes';
 InputDataTypes.SimpleTwoFlies.files = [];
+InputDataTypes.SimpleTwoFlies.allowCrop = true;
 
 file = struct;
 file.name = 'Trx mat file';
@@ -355,6 +365,7 @@ InputDataTypes.JCtrax.writearena = 'no';
 InputDataTypes.JCtrax.writepxpermm = 'no';
 InputDataTypes.JCtrax.writefps = 'no';
 InputDataTypes.JCtrax.files = [];
+InputDataTypes.JCtrax.allowCrop = false;
 
 file = struct;
 file.name = 'Track file';
