@@ -10,7 +10,7 @@ msg = {};
   pxpermm,fps,overridefps,overridearena,...
   dosoftlink,...
   dofliplr,doflipud,dotransposeimage,...
-  inperframedir] = myparse(varargin,...
+  inperframedir,frameinterval] = myparse(varargin,...
   'inmoviefile','','intrxfile','','annfile','',...
   'expdir','','moviefilestr','movie.ufmf','trxfilestr','trx.mat','perframedirstr','perframe',...
   'arenatype','None','arenacenterx',0,'arenacentery',0,...
@@ -21,7 +21,8 @@ msg = {};
   'fliplr',false,...
   'flipud',false,...
   'dotransposeimage',false,...
-  'inperframedir','');
+  'inperframedir','',...
+  'frameinterval',[]);
 
 wingunits = struct(...
   'nwingsdetected',parseunits('unit'),...
@@ -137,6 +138,36 @@ if dotransposeimage,
   msg{end+1} = 'Switched x and y in trajectories.';
 end
 
+% Clip the tracks if necessary
+outofrange = [];
+clipranges = zeros(length(trx),2);
+if (frameinterval(1)>1) || ~isinf(frameinterval(end)),
+  fields2clip = {'x','y','a','b','theta','timestamps',...
+                 'wing_anglel','wing_angler',...
+                 'xwingl','ywingl','xwingr','ywingr'};
+  for fly = 1:length(trx),
+    if trx(fly).endframe<frameinterval(1) || ...
+        trx(fly).firstframe>frameinterval(2),
+      outofrange(end+1) = fly;  %#ok<AGROW>
+      continue;
+    end
+    tstart = max(1,frameinterval(1)-trx(fly).firstframe+1);
+    tend = min(trx(fly).nframes,frameinterval(2)-trx(fly).endframe+trx(fly).nframes);
+    clipranges(fly,1) = tstart;
+    clipranges(fly,2) = tend;
+    trx(fly).firstframe = max(frameinterval(1),trx(fly).firstframe);
+    trx(fly).endframe = min(frameinterval(2),trx(fly).endframe);
+    trx(fly).nframes = trx(fly).endframe-trx(fly).firstframe+1;
+    for fieldndx = 1:numel(fields2clip)
+      if isfield(trx(fly),fields2clip{fieldndx});
+        trx(fly).(fields2clip{fieldndx}) = trx(fly).(fields2clip{fieldndx})(tstart:tend);
+      end
+    end
+  end
+  
+end
+trx(outofrange) = [];
+
 % compute frame rate if not overriding and possible
 if ~overridefps && ~isempty(timestamps),
   fps = 1/nanmedian(diff(timestamps));
@@ -167,10 +198,13 @@ elseif strcmpi(arenatype,'None'),
   arenacentery = 0;
 end
 
-roi2(:,1) = (roi2(:,1)-arenacenterx) / pxpermm;
-roi2(:,2) = (roi2(:,2)-arenacentery) / pxpermm;
-roi2(:,3) = roi2(:,3) / pxpermm;
-roi2(:,4) = roi2(:,4) / pxpermm;
+if ~isempty(roi2)
+  roi2(:,1) = (roi2(:,1)-arenacenterx) / pxpermm;
+  roi2(:,2) = (roi2(:,2)-arenacentery) / pxpermm;
+  roi2(:,3) = roi2(:,3) / pxpermm;
+  roi2(:,4) = roi2(:,4) / pxpermm;
+end
+
 
 % apply to trajectories
 for fly = 1:length(trx),
@@ -326,14 +360,37 @@ end
 % copy over wing features
 if iswings,
   fns = fieldnames(wingunits);
+
+  doclip = false;
+  docopy = false;
+  fn = fns{1};
+  filenamein = fullfile(inperframedir,[fn,'.mat']);
+  filenameout = fullfile(perframedir,[fn,'.mat']);
+  if (frameinterval(1)>1) || ~isinf(frameinterval(end)),
+    if strcmp(filenamein,filenameout),
+      qstr = sprintf('Input and output file locations for %s/%s.mat (and possibly others) are the same. The original file will be overwritten with newer version with fewer frames. Overwrite?',...
+        perframedir,fn);
+      res = questdlg(qstr,'Overwrite perframe file','Yes','No','No');
+      if strcmpi(res,'Yes'),doclip = true; end
+    else
+      doclip = true;
+    end
+  else
+    if strcmp(filenamein,filenameout),
+      msg{end+1} = fprintf('%s/%s.mat input and output file locations are the same, not copying.',perframedir,fn); 
+    else
+      docopy = true;
+    end
+  end
+
+  
   for i = 1:numel(fns),
     fn = fns{i};
     filenamein = fullfile(inperframedir,[fn,'.mat']);
     filenameout = fullfile(perframedir,[fn,'.mat']);
     
-    if strcmp(filenamein,filenameout),
-      msg{end+1} = fprintf('%s/%s.mat input and output file locations are the same, not copying.',perframedir,fn); %#ok<AGROW>
-    else
+
+    if docopy
       if exist(filenameout,'file'),
         delete(filenameout);
       end
@@ -343,6 +400,23 @@ if iswings,
         return;
       end
     end
+    
+    if doclip
+      Q = load(filenamein);
+      for fly = 1:numel(Q.data)
+        if ismember(fly,outofrange),
+          continue;
+        end
+        Q.data{fly} = Q.data{fly}(clipranges(fly,1):clipranges(fly,2));
+      end
+      Q.data(outofrange) = [];
+      
+      save(filenameout,'-struct','Q');
+      
+      
+    end
+    
+    
   end
 end
 
