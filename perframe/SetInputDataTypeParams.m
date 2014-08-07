@@ -4,7 +4,7 @@ InputDataTypes = struct;
 
 InputDataTypes.Ctrax = struct;
 InputDataTypes.Ctrax.name = 'Ctrax';
-InputDataTypes.Ctrax.videorequired = true;
+InputDataTypes.Ctrax.videorequired = false;
 InputDataTypes.Ctrax.readarena = 'maybe';
 InputDataTypes.Ctrax.readpxpermm = 'maybe';
 InputDataTypes.Ctrax.readfps = 'maybe';
