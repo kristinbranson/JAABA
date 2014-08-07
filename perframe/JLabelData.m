@@ -9273,14 +9273,8 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.fastPredictBag.fly = fly;
       obj.fastPredictBag.t = t;
       
-      perframefiles = obj.GetPerframeFiles(exp);
-      for j = 1:numel(perframefiles),
-        perframedata_all{j} = load(perframefiles{j});  %#ok
-        perframedata_all{j} = perframedata_all{j}.data;  %#ok
-      end
+      [success,msg,t0,t1,X] = obj.ComputeWindowDataChunk(exp,fly,t,'center',true);
       
-      object = CreateObjectForComputeWindowDataChunk(obj,perframedata_all,expi,flies);
-      [success,msg,t0,t1,X] = ComputeWindowDataChunk(object,t,'center',true); % AL XXX: does this work?
       curX = X((t0:t1)==t,:);
       curF = zeros(1,numel(obj.bagModels));
       for ndx = 1:numel(obj.bagModels);
@@ -9537,18 +9531,12 @@ classdef JLabelData < matlab.mixin.Copyable
       
       windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
         (obj.windowdata.flies == obj.flies) & ...
-        (obj.windowdata.t == curTime) ,1);
+        (obj.windowdata.t == curTime) ,1);      
       
-      perframefiles = obj.GetPerframeFiles(obj.expi);
-      for j = 1:numel(perframefiles),
-        perframedata_all{j} = load(perframefiles{j});  %#ok
-        perframedata_all{j} = perframedata_all{j}.data;  %#ok
-      end
-
       if isempty(distNdx) % The example was not part of the training data.
         outOfTraining = 1;
-        object = CreateObjectForComputeWindowDataChunk(obj,perframedata_all,obj.expi,obj.flies);
-        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(object,curTime); % AL XXX: does this work?
+        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(obj.expi,obj.flies,curTime);
+
         curX = curX(curTime-t0+1,:);
         curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
         count = 1;

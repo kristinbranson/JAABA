@@ -1694,7 +1694,7 @@ handlesindividualsbehavior=zeros(sum(cellfun(@length,handles.experimentlist)),le
 timestamps=nan(1,length(newclassifiers));
 parfor c=1:length(newclassifiers)
 %for c=1:length(newclassifiers)
-  classifier=load(newclassifiers{c},'-mat');
+  classifier=load(newclassifiers{c},'-mat'); %#ok<PFTUS>
 
   timestamps(c)=classifier.x.classifierStuff.timeStamp;
 
@@ -4259,7 +4259,7 @@ for b=bb
 
     traj_len=behavior_data.allScores.tEnd-behavior_data.allScores.tStart;
 
-    frames_labelled=nan(1,length(behavior_data.allScores.t0s));
+    frames_labelled=nan(1,length(behavior_data.allScores.t0s)); %#ok<PFTUS>
     frames_total=nan(1,length(behavior_data.allScores.t0s));
     sex=nan(1,length(behavior_data.allScores.t0s));
 
