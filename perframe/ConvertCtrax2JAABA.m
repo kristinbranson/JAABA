@@ -23,6 +23,9 @@ msg = {};
   'dotransposeimage',false,...
   'inperframedir','');
 
+% note that if flipping, transposing trajectories and input arena is given,
+% the input arena is NOT flipped
+
 wingunits = struct(...
   'nwingsdetected',parseunits('unit'),...
   'wing_areal',parseunits('px^2'),...
@@ -30,10 +33,7 @@ wingunits = struct(...
   'wing_trough_angle',parseunits('rad'));
 
 %% check that required inputs are given
-if isempty(inmoviefile),
-  msg = 'Input movie file is empty';
-  return;
-end
+ismoviefile = ~isempty(inmoviefile);
 if isempty(intrxfile),
   msg = 'Input trx mat file is empty';
   return;
@@ -44,7 +44,11 @@ end
 % end
 
 % output file locations
-moviefile = fullfile(expdir,moviefilestr);
+if ismoviefile,
+  moviefile = fullfile(expdir,moviefilestr);
+else
+  moviefile = '';
+end
 trxfile = fullfile(expdir,trxfilestr);
 perframedir = fullfile(expdir,perframedirstr);
 
@@ -80,6 +84,12 @@ if iswings,
 end
 
 if dofliplr || doflipud,
+  
+  if ~ismoviefile,
+    msg = 'Cannot flip without input movie file';
+    return;
+  end
+  
   try
     % get image size
     [readframe,~,fid] = get_readframe_fcn(inmoviefile);
@@ -104,6 +114,11 @@ if dofliplr,
       trx(i).xwingr = imwidth-trx(i).xwingr+1;
     end
   end
+  if isfield(trx,'arena') && isfield(trx(1).arena,'x'),
+    for i = 1:numel(trx),
+      trx(i).arena.x = imwidth-trx(i).arena.x+1;
+    end
+  end
   msg{end+1} = 'Flipped the trajectories left-right.';
 end
 if doflipud,
@@ -113,6 +128,11 @@ if doflipud,
     if iswings,
       trx(i).ywingl = imheight-trx(i).xwingl+1;
       trx(i).ywingr = imheight-trx(i).xwingr+1;
+    end
+  end
+  if isfield(trx,'arena') && isfield(trx(1).arena,'y'),
+    for i = 1:numel(trx),
+      trx(i).arena.y = imheight-trx(i).arena.y+1;
     end
   end
   msg{end+1} = 'Flipped the trajectories up-down.';
@@ -132,6 +152,13 @@ if dotransposeimage,
       tmp = trx(i).xwingr;
       trx(i).xwingr = trx(i).ywingr;
       trx(i).ywingr = tmp;
+    end
+  end
+  if isfield(trx,'arena') && isfield(trx(1).arena,'x') && isfield(trx(1).arena,'y'),
+    for i = 1:numel(trx),
+      tmp = trx(i).arena.x;
+      trx(i).arena.x = trx(i).arena.y;
+      trx(i).arena.y = tmp;
     end
   end
   msg{end+1} = 'Switched x and y in trajectories.';
@@ -167,10 +194,12 @@ elseif strcmpi(arenatype,'None'),
   arenacentery = 0;
 end
 
-roi2(:,1) = (roi2(:,1)-arenacenterx) / pxpermm;
-roi2(:,2) = (roi2(:,2)-arenacentery) / pxpermm;
-roi2(:,3) = roi2(:,3) / pxpermm;
-roi2(:,4) = roi2(:,4) / pxpermm;
+if ~isempty(roi2),
+  roi2(:,1) = (roi2(:,1)-arenacenterx) / pxpermm;
+  roi2(:,2) = (roi2(:,2)-arenacentery) / pxpermm;
+  roi2(:,3) = roi2(:,3) / pxpermm;
+  roi2(:,4) = roi2(:,4) / pxpermm;
+end
 
 % apply to trajectories
 for fly = 1:length(trx),
@@ -209,6 +238,7 @@ arenacenterx_mm = 0;
 arenacentery_mm = 0;
 trx = SetLandmarkParameters(trx,arenatype,arenacenterx_mm,arenacentery_mm,...
   arenaradius_mm,arenawidth_mm,arenaheight_mm,roi2); 
+trx = SetLandmarkParameters_px(trx,arenatype,arenacenterx,arenacentery,arenaradius); 
 
 if strcmpi(arenatype,'Circle')
   msg{end+1} = sprintf('Set circular arena parameters. Center = (0,0) mm, radius = %.1f mm.',arenaradius_mm);
@@ -242,76 +272,79 @@ end
 msg{end+1} = sprintf('Saved trx to file %s.',trxfile);
 
 % copy/soft-link movie
-if strcmp(fullfile(inmoviefile),fullfile(moviefile)),
-  msg{end+1} = 'Input and out movie files are the same, not copying/linking.';
-else
-  
-  if dosoftlink,
-    if exist(moviefile,'file'),
-      delete(moviefile);
+if ismoviefile,
+  if strcmp(fullfile(inmoviefile),fullfile(moviefile)),
+    msg{end+1} = 'Input and out movie files are the same, not copying/linking.';
+  else
+    
+    if dosoftlink,
+      if exist(moviefile,'file'),
+        delete(moviefile);
+      end
+      if isunix,
+        cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
+        unix(cmd);
+        % test to make sure it worked
+        [status,result] = unix(sprintf('readlink %s',moviefile));
+        result = strtrim(result);
+        if status ~= 0 || ~strcmp(result,inmoviefile),
+          res = questdlg(sprintf('Failed to make soft link. Copy %s to %s instead?',inmoviefile,moviefile));
+          if ~strcmpi(res,'Yes'),
+            msg = sprintf('Failed to make soft link from %s to %s.',inmoviefile,moviefile);
+            return;
+          end
+          dosoftlink = false;
+        end
+      elseif ispc,
+        if exist([moviefile,'.lnk'],'file'),
+          delete([moviefile,'.lnk']);
+        end
+        cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
+        fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
+        system(cmd);
+        % test to make sure that worked
+        [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
+        if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
+          res = questdlg(sprintf('Failed to make shortcut. Copy %s to %s instead?',inmoviefile,moviefile));
+          if ~strcmpi(res,'Yes'),
+            msg = sprintf('Failed to make shortcut from %s to %s.',inmoviefile,moviefile);
+            return;
+          end
+          dosoftlink = false;
+        end
+      else
+        res = questdlg(sprintf('Unknown OS, cannot soft-link movie file %s. Copy instead?',inmoviefile));
+        if ~strcmpi(res,'Yes'),
+          msg = sprintf('Failed to make softlink from %s to %s.',inmoviefile,moviefile);
+          return;
+        end
+        dosoftlink = false;
+      end
+      if dosoftlink,
+        msg{end+1} = sprintf('Made a link to movie file %s at %s',inmoviefile,moviefile);
+      end
     end
-    if isunix,
-      cmd = sprintf('ln -s %s %s',inmoviefile,moviefile);
-      unix(cmd);
-      % test to make sure it worked
-      [status,result] = unix(sprintf('readlink %s',moviefile));
-      result = strtrim(result);
-      if status ~= 0 || ~strcmp(result,inmoviefile),
-        res = questdlg(sprintf('Failed to make soft link. Copy %s to %s instead?',inmoviefile,moviefile));
-        if ~strcmpi(res,'Yes'),
-          msg = sprintf('Failed to make soft link from %s to %s.',inmoviefile,moviefile);
-          return;
+    
+    if ~dosoftlink,
+      if ispc,
+        if exist([moviefile,'.lnk'],'file'),
+          delete([moviefile,'.lnk']);
         end
-        dosoftlink = false;
       end
-    elseif ispc,
-      if exist([moviefile,'.lnk'],'file'),
-        delete([moviefile,'.lnk']);
+      if exist(moviefile,'file'),
+        delete(moviefile);
       end
-      cmd = sprintf('mkshortcut.vbs /target:"%s" /shortcut:"%s"',inmoviefile,moviefile);
-      fprintf('Making a Windows shortcut file at "%s" with target "%s"\n',inmoviefile,moviefile);
-      system(cmd);
-      % test to make sure that worked
-      [equalmoviefile,didfind] = GetPCShortcutFileActualPath(moviefile);
-      if ~didfind || ~strcmp(equalmoviefile,inmoviefile),
-        res = questdlg(sprintf('Failed to make shortcut. Copy %s to %s instead?',inmoviefile,moviefile));
-        if ~strcmpi(res,'Yes'),
-          msg = sprintf('Failed to make shortcut from %s to %s.',inmoviefile,moviefile);
-          return;
-        end
-        dosoftlink = false;
-      end
-    else
-      res = questdlg(sprintf('Unknown OS, cannot soft-link movie file %s. Copy instead?',inmoviefile));
-      if ~strcmpi(res,'Yes'),
-        msg = sprintf('Failed to make softlink from %s to %s.',inmoviefile,moviefile);
+      [success1,msg1] = copyfile(inmoviefile,moviefile);
+      if ~success1,
+        msg = msg1;
+        success = false;
         return;
       end
-      dosoftlink = false;
+      msg{end+1} = sprintf('Copied movie file %s to %s',inmoviefile,moviefile);
     end
-    if dosoftlink,
-      msg{end+1} = sprintf('Made a link to movie file %s at %s',inmoviefile,moviefile);
-    end
+    
   end
   
-  if ~dosoftlink,
-    if ispc,
-      if exist([moviefile,'.lnk'],'file'),
-        delete([moviefile,'.lnk']);
-      end
-    end
-    if exist(moviefile,'file'),
-      delete(moviefile);
-    end
-    [success1,msg1] = copyfile(inmoviefile,moviefile);
-    if ~success1,
-      msg = msg1;
-      success = false;
-      return;
-    end
-    msg{end+1} = sprintf('Copied movie file %s to %s',inmoviefile,moviefile);
-  end
-
 end
   
 % make per-frame directory
