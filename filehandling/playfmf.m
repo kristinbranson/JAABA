@@ -196,6 +196,9 @@ if handles.f ~= handles.lastfread,
   catch ME
     warning('Failed to read frame %d: %s',handles.f,getReport(ME));
   end  
+%   if isa(handles.im,'uint16'),
+%     handles.im = im2uint8(handles.im);
+%   end
   set(handles.himage,'CData',handles.im);
 end
 if hObject ~= handles.edit_Frame,
@@ -347,11 +350,24 @@ set(handles.slider_Frame,'Value',0,'SliderStep',sliderstep);
 % show first image
 handles.f = 1;
 [handles.im,handles.timestamp] = handles.readframe(handles.f);
+handles.minv = 0;
+if isa(handles.im,'uint8'),
+  handles.maxv = 255;
+elseif isa(handles.im,'uint16'),
+  handles.maxv = 2^16-1;
+elseif isa(handles.im,'double'),
+  if max(handles.im(:)) > 1,
+    handles.maxv = 255;
+  else
+    handles.maxv = 1;
+  end
+end
+
 handles.lastfread = handles.f;
 if size(handles.im,3) == 1,
-  handles.himage = imagesc(handles.im,'Parent',handles.axes_Video,[0,255]);
+  handles.himage = imagesc(handles.im,'Parent',handles.axes_Video,[handles.minv,handles.maxv]);
 else
-  handles.himage = image(uint8(handles.im),'Parent',handles.axes_Video);
+  handles.himage = image(im2uint8(handles.im),'Parent',handles.axes_Video);
 end
 colormap(handles.axes_Video,'gray');
 axis(handles.axes_Video,'image','off');
@@ -427,8 +443,13 @@ prompts = {};
 defAns = {};
 prompts{end+1} = 'Max FPS: ';
 defAns{end+1} = num2str(handles.MaxFPS);
+prompts{end+1} = 'Min intensity: ';
+defAns{end+1} = num2str(handles.minv);
+prompts{end+1} = 'Max intensity: ';
+defAns{end+1} = num2str(handles.maxv);
 while true,
   answer = inputdlg(prompts,'playfmf Preferences',1,defAns,'on');
+  msgs = {};
   if isempty(answer),
     return;
   end
@@ -436,17 +457,55 @@ while true,
   iserror = false;
   if isnan(v),
     iserror = true;
+    msgs{end+1} = 'Max FPS must be a number';
+  elseif v < 0,
+    iserror = true;
+    msgs{end+1} = 'Max FPS must be >= 0';
   else
     defAns{1} = num2str(v);
     handles.MaxFPS = v;
     handles.MinSPF = 1 / handles.MaxFPS;
   end
+  
+  minv = str2double(answer{2});
+  if isnan(minv),
+    iserror = true;
+    msgs{end+1} = 'Min intensity must be a number';
+  elseif v < 0,
+    iserror = true;
+    msgs{end+1} = 'Min intensity must be >= 0';
+  end
+  
+  maxv = str2double(answer{3});
+  if isnan(maxv),
+    iserror = true;
+    msgs{end+1} = 'Max intensity must be a number';
+  elseif maxv < 0,
+    iserror = true;
+    msgs{end+1} = 'Max intensity must be >= 0';
+  end
+  
+  if ~iserror,
+    if minv > maxv,
+      iserror = true;
+      msgs{end+1} = 'Max intensity must be > min intensity';
+    else  
+      defAns{2} = num2str(minv);
+      defAns{3} = num2str(maxv);
+      handles.minv = minv;
+      handles.maxv = maxv;
+    end
+  end
+  
   if iserror,
-    uiwait(warndlg('Illegal values entered. Max FPS must be a number','Bad Preferences'));
+    uiwait(warndlg('Illegal values entered. Max FPS, min and max intensity must be numbers','Bad Preferences'));
   else
     break;
   end
 end
+
+set(handles.axes_Video,'CLim',[handles.minv,handles.maxv]);
+
 guidata(hObject,handles);
 
 
