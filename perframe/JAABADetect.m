@@ -123,7 +123,11 @@ for ndx = order(:)'
     fprintf('Added experiment %d for behavior %s\n',expi,behavior{ndx});
 
     fprintf('Predicting on experiment %d for behavior %s\n',expi,behavior{ndx});
-    allScores{ndx,expi} = data.PredictSaveMovie(data.nexps);
+    if DEBUG ~= 0,
+      allScores{ndx,expi} = data.PredictSaveMovie(data.nexps,0);
+    else
+      allScores{ndx,expi} = data.PredictSaveMovie(data.nexps);
+    end
     data.RemoveExpDirs(data.nexps);
     catch ME
       fprintf('Could not classify experiment %d for %s:\n%s\n',expi,behavior{ndx},getReport(ME));
