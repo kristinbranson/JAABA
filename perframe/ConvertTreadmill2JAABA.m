@@ -9,11 +9,12 @@ QTRMIN = 0.2269;
 
 [inmoviefile,intrxfile,...
   expdir,moviefilestr,trxfilestr,perframedirstr,...
-  arenafile,dosoftlink,uniqueframesonly] = myparse(varargin,...
+  arenafile,dosoftlink,uniqueframesonly,resamplerate,roiradius_mm] = myparse(varargin,...
   'inmoviefile','','intrxfile','',...
   'expdir','','moviefilestr','movie.avi','trxfilestr','trx.mat','perframedirstr','perframe',...
   'arenafile','','dosoftlink',false,...
-  'uniqueframesonly',true);
+  'uniqueframesonly',false,'resamplerate',10,...
+  'roiradius_mm',4);
 
 %% check that required inputs are given
 % if isempty(inmoviefile),
@@ -75,14 +76,14 @@ while true,
   
   trx.x(end+1) = ss(idx.x);
   trx.y(end+1) = ss(idx.y);
-  trx.theta(end+1) = ss(idx.orientation)*pi/180;
+  trx.theta(end+1) = modrange(ss(idx.orientation)*pi/180,-pi,pi);
   trx.a(end+1) = QTRMAJ;
   trx.b(end+1) = QTRMIN;
-  trx.timestamps(end+1) = idx.time;
+  trx.timestamps(end+1) = ss(idx.time);
   
 end
 
-if uniqueframesonly,
+if uniqueframesonly || ~isempty(resamplerate),
   isunique = [true,diff(trx.x) ~= 0 & diff(trx.y) ~= 0];
   trx.x = trx.x(isunique);
   trx.y = trx.y(isunique);
@@ -91,6 +92,46 @@ if uniqueframesonly,
   trx.b = trx.b(isunique);
   trx.timestamps = trx.timestamps(isunique);
   trx.tidx = find(isunique);
+end
+if ~isempty(resamplerate),
+  
+  T0 = trx.timestamps(1);
+  T1 = trx.timestamps(end);
+  ts = T0:1/resamplerate:T1;
+
+  trx.x = interp1(trx.timestamps,trx.x,ts);
+  trx.y = interp1(trx.timestamps,trx.y,ts);
+  trx.theta = modrange(interp1(trx.timestamps,unwrap(trx.theta),ts),-pi,pi);
+  trx.nframes = numel(ts);
+  trx.a = repmat(QTRMAJ,[1,trx.nframes]);
+  trx.b = repmat(QTRMIN,[1,trx.nframes]);
+  off = 1;
+  % get timestamp index
+  trx.tidx = nan(1,trx.nframes);
+  for i = 1:trx.nframes,
+    for j = off:numel(trx.timestamps),
+      if trx.timestamps(j)>=ts(i),
+        d2 = trx.timestamps(j)-ts(i);
+        if j > 1,
+          d1 = ts(i)-trx.timestamps(j-1);
+        else
+          d1 = inf;
+        end
+        if d2 < d1,
+          off = j;
+        else
+          off = j-1;
+        end
+        trx.tidx(i) = off;
+        break;
+      end
+    end
+    if isnan(trx.tidx(i)),
+      error('Sanity check: tidx(%d) did not get assigned',i);
+    end
+  end
+  trx.timestamps = ts;
+  
 end
 
 trx.x_mm = trx.x;
@@ -149,6 +190,9 @@ while true,
     otherwise
       if numel(vals) ~= 3,
         error('Did not find 3 values for %s: %s',name,s);
+      end
+      if ~isempty(roiradius_mm),
+        vals(3) = roiradius_mm;
       end
       rois(end+1,:) = [vals',nan];
       roinames{end+1} = name;

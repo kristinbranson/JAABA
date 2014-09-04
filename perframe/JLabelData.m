@@ -2961,7 +2961,13 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.balancedGTSuggestions = [];
       for ndx = 1:numint
         obj.SetStatus('Finding interval %d to label',ndx);
-        cumwt = cumsum(int.wt)/sum(int.wt);
+        
+        % weight sampling was off by 1
+        % fixed 20140331 by KB
+        
+        % old sampling
+        %cumwt = cumsum(int.wt)/sum(int.wt);
+        cumwt = cumsum([0,int.wt(1:end-1)])/sum(int.wt);
         intlocs = rand;
         locsSel = find(cumwt<=intlocs,1,'last');
         
@@ -5359,13 +5365,15 @@ classdef JLabelData < matlab.mixin.Copyable
         allScores = self.PredictWholeMovie(expi);
       end
       
-      try
-        self.SaveScores(allScores,expi,sfn);
-      catch ME,
-        if nargout > 0,
-          warning('Could not save scores to file %s: %s',sfn,getReport(ME));
-        else
-          error(getReport(ME));
+      if ischar(sfn),
+        try
+          self.SaveScores(allScores,expi,sfn);
+        catch ME,
+          if nargout > 0,
+            warning('Could not save scores to file %s: %s',sfn,getReport(ME));
+          else
+            error(getReport(ME));
+          end
         end
       end
       self.AddScores(expi,allScores,now(),'',true);
@@ -7019,6 +7027,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function [success, msg, ts, projectName] = ScoresToPerframe(obj,expi,fileName,ts, projectName)
+      persistent perframescoresfile_didselectyes;
       success = true; msg = '';
       %outdir = obj.outexpdirs{expi};
       outdir = obj.expdirs{expi};      
@@ -7088,11 +7097,17 @@ classdef JLabelData < matlab.mixin.Copyable
       try
         save(scoresFileOut,'-struct','OUT');
       catch ME,
-        questmsg = sprintf('Could not write perframe file from scores file: %s. Continue',fileName);
-        button = questdlg(questmsg,'Continue','Yes');
-        if ~strcmp(button,'Yes')
-          success = false;
-          msg = ME.message;
+        questmsg = sprintf('Could not write perframe file from scores file: %s.',fileName);
+        if obj.isInteractive && isempty(perframescoresfile_didselectyes),
+          button = questdlg([questmsg,' Continue?'],'Continue','Yes');
+          if ~strcmp(button,'Yes')
+            success = false;
+            msg = ME.message;
+          else
+            perframescoresfile_didselectyes = true;
+          end
+        else
+          warning(questmsg); %#ok<SPWRN>
         end
       end
     end
@@ -9258,14 +9273,8 @@ classdef JLabelData < matlab.mixin.Copyable
       obj.fastPredictBag.fly = fly;
       obj.fastPredictBag.t = t;
       
-      perframefiles = obj.GetPerframeFiles(exp);
-      for j = 1:numel(perframefiles),
-        perframedata_all{j} = load(perframefiles{j});  %#ok
-        perframedata_all{j} = perframedata_all{j}.data;  %#ok
-      end
+      [success,msg,t0,t1,X] = obj.ComputeWindowDataChunk(exp,fly,t,'center',true);
       
-      object = CreateObjectForComputeWindowDataChunk(obj,perframedata_all,expi,flies);
-      [success,msg,t0,t1,X] = ComputeWindowDataChunk(object,t,'center',true); % AL XXX: does this work?
       curX = X((t0:t1)==t,:);
       curF = zeros(1,numel(obj.bagModels));
       for ndx = 1:numel(obj.bagModels);
@@ -9522,18 +9531,12 @@ classdef JLabelData < matlab.mixin.Copyable
       
       windowNdx = find( (obj.windowdata.exp == obj.expi) & ...
         (obj.windowdata.flies == obj.flies) & ...
-        (obj.windowdata.t == curTime) ,1);
+        (obj.windowdata.t == curTime) ,1);      
       
-      perframefiles = obj.GetPerframeFiles(obj.expi);
-      for j = 1:numel(perframefiles),
-        perframedata_all{j} = load(perframefiles{j});  %#ok
-        perframedata_all{j} = perframedata_all{j}.data;  %#ok
-      end
-
       if isempty(distNdx) % The example was not part of the training data.
         outOfTraining = 1;
-        object = CreateObjectForComputeWindowDataChunk(obj,perframedata_all,obj.expi,obj.flies);
-        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(object,curTime); % AL XXX: does this work?
+        [~,~,t0,~,curX] = obj.ComputeWindowDataChunk(obj.expi,obj.flies,curTime);
+
         curX = curX(curTime-t0+1,:);
         curD = zeros(1,length(obj.bagModels)*length(obj.bagModels{1}));
         count = 1;

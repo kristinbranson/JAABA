@@ -1,4 +1,4 @@
-function img = getframe_invisible(img,sz)
+function img = getframe_invisible(img,sz,GRAYBORDER)
 
 if nargin < 1,
   img = get(0,'currentfigure');
@@ -6,18 +6,20 @@ if nargin < 1,
     error('No window open');
   end
 end
-issize = nargin == 2;
+issize = nargin == 2 && ~isempty(sz);
 
 if ~ishandle(img)
   error('Input is not a handle');
 end
 
-GRAYBORDER = 204;
+if nargin < 3,
+  GRAYBORDER = 204;
+end
 
 inputType = getInputType(img);
 
 if strcmp(inputType,'figure'),
-    
+  
   hfig = img;
 
   haxes = get(hfig,'children');
