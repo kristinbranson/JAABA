@@ -6,11 +6,11 @@ classdef ClassifierStuff < handle
     params
     timeStamp
     confThresholds
-    scoreNorm
+    scoreNorm % AL does windowdata.scoreNorm dup .scoreNorm?
     postProcessParams
     trainingParams
     featureNames
-    windowdata
+    windowdata 
     savewindowdata
   end  % properties
   methods
@@ -23,7 +23,7 @@ classdef ClassifierStuff < handle
                          'tr',{}, ...
                          'alpha',{});  % 0x1 struct array
       self.timeStamp=0;  % default time stamp (bad idea?)
-      self.confThresholds=[0 0];
+      self.confThresholds=zeros(1,0); % row vec indexed by behavior 
       self.scoreNorm=0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
       self.postProcessParams.method = 'Hysteresis';
       self.postProcessParams.hystopts(1) = struct('name','High Threshold','tag','hthres','value',0);
@@ -67,6 +67,29 @@ classdef ClassifierStuff < handle
           self.(propertyName)=value;
         end
       end  % for loop
-    end  % constructor    
+    end  % constructor  
+    
+    function init(self,nbehavior)
+      self.params = repmat({self.params},1,nbehavior);
+      self.trainingParams = repmat({self.trainingParams},1,nbehavior);
+      self.timeStamp = repmat(self.timeStamp,1,nbehavior);
+      assert(all(self.confThresholds==0));
+      self.confThresholds = zeros(1,2*nbehavior);
+      self.scoreNorm = repmat(self.scoreNorm,1,nbehavior);
+    end
+    
+    function tfmodified = modernize(self) 
+      % ALQ: Why is this only updating .timeStamp?
+      tfmodified = false;
+      
+      nbehavior = numel(self.params);
+      if numel(self.timeStamp)~=nbehavior
+        ts = self.timeStamp;
+        assert(isscalar(ts));
+        self.timeStamp = repmat(ts,1,nbehavior);
+        tfmodified = true;
+      end
+    end
+        
   end  % methods
 end  % classdef
