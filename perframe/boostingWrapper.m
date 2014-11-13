@@ -1,5 +1,8 @@
 function [allDataModel outScores, stats] = boostingWrapper(data,labels,obj,binVals,bins,params)
 
+assert(isvector(labels) && numel(labels)==size(data,1));
+assert(all(ismember(labels,[0 1])));
+
 boostIterations = params.iter;
 % Learn classifier with all the data.
 numEx = size(data,1);
