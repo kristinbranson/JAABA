@@ -145,18 +145,13 @@ adjustColorsIfMac(hObject);
 % Hide the splash window
 set(handles.guidata.hsplash,'visible','off');
 
+handles = initLabelButtons(handles);
+
 % save the window state
 guidata(hObject,handles);
 
 % Update the arrays of graphics handles (grandles) within the figure's guidata
 handles.guidata.UpdateGraphicsHandleArrays(hObject);
-
-% Get some figure dimensions useful when we need to redo the layout
-set(handles.togglebutton_label_behavior1,'Units','pixels');
-button1_pos = get(handles.togglebutton_label_behavior1,'Position');
-set(handles.togglebutton_label_unknown,'Units','pixels');
-unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
-handles.guidata.in_border_y = button1_pos(2) - (unknown_button_pos(2)+unknown_button_pos(4));
 
 % Update the label buttons, to get everything into a self-consistent state
 handles = UpdateLabelButtons(handles);
@@ -505,7 +500,7 @@ handles.guidata.himage_timeline_manual = ...
         'cdata',zeros([1,1,3]));
 set(handles.guidata.himage_timeline_manual,'HitTest','off');
 %hold(handles.axes_timeline_manual,'on');
-ylim = [.5,1.5];
+ylim = [.5,handles.data.ntimelines+0.5];
 ydata = [ylim(1)+diff(ylim)*.025,ylim(2)-diff(ylim)*.025];
 handles.guidata.htimeline_label_curr = ...
   patch('Parent',handles.axes_timeline_manual, ...
@@ -529,12 +524,12 @@ setAllowAxesPan(handles.guidata.hpan,handles.axes_timeline_manual,false);
 
 % auto timeline
 delete(get(handles.axes_timeline_auto,'children'));
-ydata_im = [2/3,4/3];
+%ydata_im = [2/3,4/3];
 %handles.guidata.himage_timeline_auto = image(zeros([3,1,3]),'Parent',handles.axes_timeline_auto);
 handles.guidata.himage_timeline_auto = ...
   image('Parent',handles.axes_timeline_auto, ...
         'cdata',zeros([3,1,3]));
-set(handles.guidata.himage_timeline_auto,'YData',ydata_im);
+%set(handles.guidata.himage_timeline_auto,'YData',ydata_im);
 set(handles.guidata.himage_timeline_auto,'HitTest','off');
 %hold(handles.axes_timeline_auto,'on');
 %handles.htimeline_auto_starts = plot(handles.axes_timeline_auto,nan,nan,'w-','HitTest','off');
@@ -555,7 +550,7 @@ for h = handles.guidata.axes_timeline_labels,
   set(h, ...
       'layer','top', ...
       'box','on', ...
-      'ylim',[0.5 1.5], ...
+      'ylim',[0.5 handles.data.ntimelines+0.5], ...
       'ydir','reverse', ...
       'xticklabel',{});
 end
@@ -892,9 +887,11 @@ end
 if refresh_timeline_auto,
   set(handles.guidata.himage_timeline_auto,'CData',handles.guidata.labels_plot.predicted_im);
   [pred,t0,t1] = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(1),handles.guidata.ts(1));
-  if t0 <= handles.guidata.ts(1) && t1>=handles.guidata.ts(1) &&    pred.predictedidx~=0 
-    cur_scores = handles.data.NormalizeScores(pred.scoresidx);
-    set(handles.text_scores,'String',sprintf('%+.2f',cur_scores));
+  predidx1 = pred.predictedidx(1);
+  % ALTODO only showing score for first beh
+  if t0 <= handles.guidata.ts(1) && t1>=handles.guidata.ts(1) && predidx1~=0     
+    cur_scores = handles.data.NormalizeScores(pred.scoresidx(:,1));
+    set(handles.text_scores,'String',sprintf('%+.2f',cur_scores(1)));
   else
     set(handles.text_scores,'String','');
   end
@@ -1117,9 +1114,11 @@ for i = axes2,
     elseif handles.guidata.plot_labels_manual,
       labelidxStruct = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
       labelidx = labelidxStruct.vals;
+      labelidx = labelidx(1); % show first behavior/timeline
     elseif handles.guidata.plot_labels_automatic,
        prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,handles.guidata.ts(i),handles.guidata.ts(i));
        labelidx = prediction.predictedidx;
+       labelidx = labelidx(1);
     end
     inbounds = handles.data.firstframes_per_exp{handles.data.expi} <= handles.guidata.ts(i) & ...
       handles.data.endframes_per_exp{handles.data.expi} >= handles.guidata.ts(i);
@@ -1214,8 +1213,12 @@ for i = axes2,
           set(handles.guidata.hflies_extra(j,:,i),'Color',handles.guidata.labelunknowncolor,...
             'MarkerFaceColor',handles.guidata.labelunknowncolor);
         else
-          set(handles.guidata.hflies(j,i),'Color',handles.guidata.labelcolors(labelidx,:),...
-            'MarkerFaceColor',handles.guidata.labelcolors(labelidx,:));
+          if labelidx==JLabelGUIData.LABELSTATE.NoneAll
+            lblcolor = handles.guidata.labelnoneallcolor;
+          else
+            lblcolor = handles.guidata.labelcolors(labelidx,:);
+          end
+          set(handles.guidata.hflies(j,i),'Color',lblcolor,'MarkerFaceColor',lblcolor);
         end
       end
     end
@@ -1259,11 +1262,11 @@ for i = axes2,
       t0 = min(T1,max(T0,handles.guidata.ts(i)-nprev));
       t1 = min(T1,max(T0,handles.guidata.ts(i)+npost));
       for j = 1:handles.data.nbehaviors,
-        xplot = handles.guidata.labels_plot.x(:,handles.guidata.labels_plot_off+t0:handles.guidata.labels_plot_off+t1,j,k);
-        yplot = handles.guidata.labels_plot.y(:,handles.guidata.labels_plot_off+t0:handles.guidata.labels_plot_off+t1,j,k);
+        xplot = handles.guidata.labels_plot.x(:,handles.guidata.labels_plot.off+t0:handles.guidata.labels_plot.off+t1,j,k);
+        yplot = handles.guidata.labels_plot.y(:,handles.guidata.labels_plot.off+t0:handles.guidata.labels_plot.off+t1,j,k);
         set(handles.guidata.hlabels(j),'XData',xplot(:),'YData',yplot(:));
-        xpred = handles.guidata.labels_plot.predx(:,handles.guidata.labels_plot_off+t0:handles.guidata.labels_plot_off+t1,j,k);
-        ypred = handles.guidata.labels_plot.predy(:,handles.guidata.labels_plot_off+t0:handles.guidata.labels_plot_off+t1,j,k);
+        xpred = handles.guidata.labels_plot.predx(:,handles.guidata.labels_plot.off+t0:handles.guidata.labels_plot.off+t1,j,k);
+        ypred = handles.guidata.labels_plot.predy(:,handles.guidata.labels_plot.off+t0:handles.guidata.labels_plot.off+t1,j,k);
         set(handles.guidata.hpredicted(j),'XData',xpred(:),'YData',ypred(:));
       end
       if handles.guidata.label_state ~= 0,
@@ -1273,9 +1276,13 @@ for i = axes2,
         xdata = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(1),t0:t1);
         ydata = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(1),t0:t1);
         set(handles.guidata.hlabel_curr(1),'XData',xdata,'YData',ydata);
-        if handles.guidata.label_state == -1,
+        if handles.guidata.label_state == JLabelGUIData.LABELSTATE.UnknownAll,
           set(handles.guidata.hlabel_curr(1),'Color',handles.guidata.labelunknowncolor);
-        else
+        elseif handles.guidata.label_state == JLabelGUIData.LABELSTATE.NoneAll
+          set(handles.guidata.hlabel_curr(1),'Color',handles.guidata.labelnoneallcolor);
+        elseif handles.guidata.label_state<0,
+          % ALTODO behavior-specific unknown
+        else          
           set(handles.guidata.hlabel_curr(1),'Color',handles.guidata.labelcolors(handles.guidata.label_state,:));
         end
       else
@@ -1380,6 +1387,18 @@ end
 if ~success,
   uiwait(errordlg(sprintf('Error loading data for experiment %d: %s',expi,msg)));
   return;
+end
+
+if handles.guidata.thisMoviePresent
+  maxEndFrame = handles.data.GetMaxEndFrame();
+  if handles.guidata.nframes < maxEndFrame
+    warnstr = sprintf('Movie %s contains only %d frames, while trajectories extend to frame %d. Navigating past end of movie will cause an error.',...
+      handles.guidata.nframes,maxEndFrame);
+    % ALTODO: not user-friendly to just harderror if they navigate past end
+    % of movie. Enhancement, add method to JLabelData to crop
+    % JLabelData.trx, JLabelData.endframes_per_exp.
+    uiwait(warndlg(warnstr,'Movie Shorter Than Expected'));
+  end
 end
 
 % if no movie, then set limits, or we don't want to use
@@ -1581,7 +1600,7 @@ end
 
 % enable GUI components
 UpdateEnablementAndVisibilityOfControls(handles);
-
+menu_view_show_whole_frame_Callback(handles.menu_view_show_whole_frame,[],handles);
 success = true;
 return
 
@@ -1694,30 +1713,32 @@ end
 
 % form of labels for easier plotting:
 % x, y positions of all labels
-handles.guidata.labels_plot = struct;
-n = handles.data.t1_curr-handles.data.t0_curr+1;
-handles.guidata.labels_plot.im = zeros([1,n,3]);
-handles.guidata.labels_plot.predicted_im = zeros([1,n,3]);
-handles.guidata.labels_plot.suggest_xs = nan;
-handles.guidata.labels_plot.error_xs = nan;
-%handles.guidata.labels_plot.suggested_im = zeros([1,n,3]);
-%handles.guidata.labels_plot.error_im = zeros([1,n,3]);
-handles.guidata.labels_plot.x = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-handles.guidata.labels_plot.y = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-handles.guidata.labels_plot.predx = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-handles.guidata.labels_plot.predy = nan(2,n,data.nbehaviors,numel(handles.data.flies));
-handles.guidata.labels_plot_off = 1-handles.data.t0_curr;
-% set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto,...
-%   handles.himage_timeline_error,handles.himage_timeline_suggest],...
-%   'XData',[handles.data.t0_curr,handles.data.t1_curr]);
+handles.guidata.labels_plot = LabelsPlot.labelsPlot(...
+  data.t0_curr,data.t1_curr,data.ntimelines,data.nbehaviors,numel(data.flies));
+
+% handles.guidata.labels_plot = struct;
+% n = handles.data.t1_curr-handles.data.t0_curr+1;
+% handles.guidata.labels_plot.im = zeros([1,n,3]);
+% handles.guidata.labels_plot.predicted_im = zeros([1,n,3]);
+% handles.guidata.labels_plot.suggest_xs = nan;
+% handles.guidata.labels_plot.error_xs = nan;
+% %handles.guidata.labels_plot.suggested_im = zeros([1,n,3]);
+% %handles.guidata.labels_plot.error_im = zeros([1,n,3]);
+% handles.guidata.labels_plot.x = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+% handles.guidata.labels_plot.y = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+% handles.guidata.labels_plot.predx = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+% handles.guidata.labels_plot.predy = nan(2,n,data.nbehaviors,numel(handles.data.flies));
+% handles.guidata.labels_plot.off = 1-handles.data.t0_curr;
+% % set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto,...
+% %   handles.himage_timeline_error,handles.himage_timeline_suggest],...
+% %   'XData',[handles.data.t0_curr,handles.data.t1_curr]);
 set([handles.guidata.himage_timeline_manual,handles.guidata.himage_timeline_auto],...
   'XData',[handles.data.t0_curr,handles.data.t1_curr]);
 
-labelidxStruct = data.GetLabelIdx(handles.data.expi,flies);
-labelidx = labelidxStruct.vals;
+labelidx = data.GetLabelIdx(handles.data.expi,flies);
 
 classifierPresent=data.classifierIsPresent();
-if classifierPresent ,
+if classifierPresent,
   prediction = data.GetPredictedIdx(handles.data.expi,flies);
   predictedidx = prediction.predictedidx;
   scores = data.NormalizeScores(prediction.scoresidx);
@@ -1734,17 +1755,27 @@ for flyi = 1:numel(flies),
     handles.guidata.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
     handles.guidata.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
     
-    if classifierPresent ,
-      % idx = find(predictedidx == behaviori);
-      idx = find((predictedidx == behaviori) & ...
-        (abs(scores)>data.GetConfidenceThreshold(behaviori)));
-      idx1 = min(idx+1,numel(x));
-      handles.guidata.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
-      handles.guidata.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
-      handles.guidata.labels_plot.predy(1,idx,behaviori,flyi) = y(idx);
-      handles.guidata.labels_plot.predy(2,idx,behaviori,flyi) = y(idx1);
-    end
-  end
+  handles.guidata.labels_plot = LabelsPlot.labelsPlotInitXY(...
+    handles.guidata.labels_plot,labelidx,flyi,x,y);
+%   for behaviori = 1:data.nbehaviors
+%     idx = find(labelidx == behaviori);
+%     idx1 = min(idx+1,numel(x));
+%     handles.guidata.labels_plot.x(1,idx,behaviori,flyi) = x(idx);
+%     handles.guidata.labels_plot.x(2,idx,behaviori,flyi) = x(idx1);
+%     handles.guidata.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
+%     handles.guidata.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
+%     
+%     if classifierPresent ,
+%       % idx = find(predictedidx == behaviori);
+%       idx = find((predictedidx == behaviori) & ...
+%         (abs(scores)>data.GetConfidenceThreshold(behaviori)));
+%       idx1 = min(idx+1,numel(x));
+%       handles.guidata.labels_plot.predx(1,idx,behaviori,flyi) = x(idx);
+%       handles.guidata.labels_plot.predx(2,idx,behaviori,flyi) = x(idx1);
+%       handles.guidata.labels_plot.predy(1,idx,behaviori,flyi) = y(idx);
+%       handles.guidata.labels_plot.predy(2,idx,behaviori,flyi) = y(idx1);
+%     end
+%   end
 end
 handles = UpdateTimelineImages(handles);
 
@@ -1755,7 +1786,7 @@ handles.guidata.current_interval = [];
 set(handles.guidata.himage_timeline_manual,'CData',handles.guidata.labels_plot.im);
 %axis(handles.axes_timeline_manual,[handles.data.t0_curr-.5,handles.data.t1_curr+.5,.5,1.5]);
 set(handles.axes_timeline_manual,'xlim',[handles.data.t0_curr-.5,handles.data.t1_curr+.5]);
-set(handles.axes_timeline_manual,'ylim',[.5 1.5]);
+set(handles.axes_timeline_manual,'ylim',[.5 handles.data.ntimelines+0.5]); % AL is this necessary?
 % update zoom
 for h = handles.guidata.axes_timeline_labels,
   zoom(h,'reset');
@@ -1836,25 +1867,13 @@ function handles = UpdateTimelineImages(handles)
 if handles.data.nexps==0 ,
   return
 end
-handles.guidata.labels_plot.im(:) = 0;
 labelidx = handles.data.GetLabelIdx(handles.data.expi,handles.data.flies);
 
-for behaviori = 1:handles.data.nbehaviors
-  idx = (labelidx.vals == behaviori) & labelidx.imp;
-  curColor = handles.guidata.labelcolors(behaviori,:);
-  for channel = 1:3,
-    handles.guidata.labels_plot.im(1,idx,channel) = curColor(channel);
-  end
-  
-  idx = (labelidx.vals == behaviori) & ~labelidx.imp;
-  curColor = ShiftColor.decreaseIntensity(handles.guidata.labelcolors(behaviori,:));
-  for channel = 1:3,
-    handles.guidata.labels_plot.im(1,idx,channel) = curColor(channel);
-  end
-end
+handles.guidata.labels_plot = LabelsPlot.labelsPlotInitIm(...
+  handles.guidata.labels_plot,labelidx,handles.guidata.labelcolors);
 
-handles.guidata.labels_plot.predicted_im(:) = 0;
-prediction= handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies);
+%handles.guidata.labels_plot.predicted_im(:) = 0;
+prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies);
 predictedidx = prediction.predictedidx;
 scores = handles.data.NormalizeScores(prediction.scoresidx);
 
@@ -1882,40 +1901,48 @@ switch handles.guidata.bottomAutomatic
 end
 
 if ~(any(strcmp(handles.guidata.bottomAutomatic,{'Postprocessed','Distance','Imported'})))
-prediction_bottom = zeros(size(scores_bottom));
-prediction_bottom(scores_bottom>0) = 1;
-prediction_bottom(scores_bottom<0) = 2;
+  prediction_bottom = zeros(size(scores_bottom));
+  prediction_bottom(scores_bottom>0) = 1;
+  prediction_bottom(scores_bottom<0) = 2;
 end
 
-idxBottomScores = ~isnan(scores_bottom);
-bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
+handles.guidata.labels_plot = LabelsPlot.labelsPlotInitPredIm(...
+  handles.guidata.labels_plot,prediction_bottom==1,handles.guidata.labelcolors);
 
-for behaviori = 1:handles.data.nbehaviors
 
-  idxScores = predictedidx == behaviori ;
-  idxPredict = idxScores & ...
-    (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
-  for channel = 1:3,
-    
-      handles.guidata.labels_plot.predicted_im(1,idxPredict,channel) = handles.guidata.labelcolors(behaviori,channel);
-      handles.guidata.labels_plot.predicted_im(2,idxPredict,channel) = handles.guidata.labelcolors(behaviori,channel);
-      scoreNdx = ceil(scores(idxScores)*31)+32;
-      handles.guidata.labels_plot.predicted_im(3,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
-      handles.guidata.labels_plot.predicted_im(4,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
-    
-      % bottom row scores.
-      if strcmp(handles.guidata.bottomAutomatic,'Distance'),
-        handles.guidata.labels_plot.predicted_im(5:6,:,channel) = repmat(1-dist(:)',[2 1 1]);
-        handles.guidata.labels_plot.predicted_im(5:6,isnan(dist),channel) = 0;
-        
-      else
-        handles.guidata.labels_plot.predicted_im(5,idxBottomScores,channel) = handles.guidata.scorecolor(bottomScoreNdx,channel,1);
-        handles.guidata.labels_plot.predicted_im(6,prediction_bottom==behaviori,channel) = ...
-          handles.guidata.labelcolors(behaviori,channel);
-      end
-  end    
-  
-end
+% idxBottomScores = ~isnan(scores_bottom);
+% bottomScoreNdx = ceil(scores_bottom(idxBottomScores)*31)+32;
+
+% for behaviori = 1:handles.data.nbehaviors
+% 
+%   idxScores = predictedidx == behaviori;
+%   idxPredict = idxScores & ...
+%     (abs(scores)>handles.data.GetConfidenceThreshold(behaviori));
+%   for channel = 1:3,
+%     
+% %       handles.guidata.labels_plot.predicted_im(1,idxPredict,channel) = handles.guidata.labelcolors(behaviori,channel);
+% %       handles.guidata.labels_plot.predicted_im(2,idxPredict,channel) = handles.guidata.labelcolors(behaviori,channel);
+% %       scoreNdx = ceil(scores(idxScores)*31)+32;
+% %       handles.guidata.labels_plot.predicted_im(3,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
+% %       handles.guidata.labels_plot.predicted_im(4,idxScores,channel) = handles.guidata.scorecolor(scoreNdx,channel,1);
+%     
+%       % bottom row scores.
+%       if strcmp(handles.guidata.bottomAutomatic,'Distance'),
+%         handles.guidata.labels_plot.predicted_im(5:6,:,channel) = repmat(1-dist(:)',[2 1 1]);
+%         handles.guidata.labels_plot.predicted_im(5:6,isnan(dist),channel) = 0;
+%         
+%       else
+%         handles.guidata.labels_plot.predicted_im(4:6,idxBottomScores,channel) = repmat(handles.guidata.scorecolor(bottomScoreNdx,channel,1)',[3 1]);
+%         handles.guidata.labels_plot.predicted_im(1,prediction_bottom==behaviori,channel) = ...
+%           handles.guidata.labelcolors(behaviori,channel);
+%         handles.guidata.labels_plot.predicted_im(2,prediction_bottom==behaviori,channel) = ...
+%           handles.guidata.labelcolors(behaviori,channel);
+%         handles.guidata.labels_plot.predicted_im(3,prediction_bottom==behaviori,channel) = ...
+%           handles.guidata.labelcolors(behaviori,channel);
+%       end
+%   end    
+%   
+% end
 
 [error_t0s,error_t1s] = get_interval_ends(labelidx.vals ~= 0 & predictedidx ~= 0 & ...
   labelidx.vals ~= predictedidx);
@@ -1958,10 +1985,10 @@ end
 %end
 %}
 
-handles.guidata.labels_plot.isstart = ...
-cat(2,labelidx.vals(1)~=0,...
-labelidx.vals(2:end)~=0 & ...
-labelidx.vals(1:end-1)~=labelidx.vals(2:end));
+% handles.guidata.labels_plot.isstart = ...
+% cat(2,labelidx.vals(1)~=0,...
+% labelidx.vals(2:end)~=0 & ...
+% labelidx.vals(1:end-1)~=labelidx.vals(2:end));
 return
 
 
@@ -2351,23 +2378,61 @@ set(handles.menu_go_previous_automatic_bout_end,'Label',...
   sprintf('Next %s bout end (shift + left arrow)',jumpType));
 return
 
+%--------------------------------------------------------------------------
+function handles = initLabelButtons(handles)
+% Initialize state for managing label buttons. 
+% Record positions of labelbutton-related controls from GUIDE figure for
+% subsequent use in positioning buttons etc
+
+if isfield(handles,'labelButtonLayoutInfo')
+  % already initted
+  return;
+end
+
+info = struct();
+
+% flds = fieldnames(handles);
+% info.original_label_button_tags = flds(regexpmatch(flds,'togglebutton_label'));
+
+set(handles.panel_labelbuttons,'Units','pixels');
+info.panel_pos = get(handles.panel_labelbuttons,'Position');
+info.select_pos = get(handles.panel_select,'Position');
+set(handles.togglebutton_label_behavior1,'Units','pixels');
+info.button1_pos = get(handles.togglebutton_label_behavior1,'Position');
+set(handles.togglebutton_label_unknown,'Units','pixels');
+info.unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
+
+info.in_border_y = info.button1_pos(2) - ...
+  (info.unknown_button_pos(2)+info.unknown_button_pos(4));
+info.out_border_y = info.unknown_button_pos(2);
+info.out_border_x = info.unknown_button_pos(1);
+info.button_width = info.button1_pos(3);
+info.button_height = info.button1_pos(4);
+
+handles.labelButtonLayoutInfo = info;
+
+function handles = resetLabelButtons(handles)
+% Destroy all created labeling buttons   
+
+deleteHandleNotNan(handles.guidata.togglebutton_label_behaviors(2:end));
+handles.guidata.togglebutton_label_behaviors = handles.guidata.togglebutton_label_behaviors(1);
+deleteHandleNotNan(handles.guidata.togglebutton_unknown_behaviors);
+handles.guidata.togglebutton_unknown_behaviors = [];
+handles.guidata.togglebutton_unknowns = handles.togglebutton_label_unknown;
+deleteHandleNotNan(handles.guidata.togglebutton_label_noneall);
+handles.guidata.togglebutton_label_noneall = [];
 
 %--------------------------------------------------------------------------
 function handles = UpdateLabelButtons(handles)
-% Makes sure the label buttons are appropriate for the current behavior and
-% the the current mode.
+% Create/position label buttons as appropriate for current project.
 
-% get some freqeuntly used things into local vars
-%if isempty(handles.data)
-if ~handles.data.thereIsAnOpenFile ,
-  %projectPresent=false;
+if ~handles.data.thereIsAnOpenFile,
   nBehaviors=2;  % just for layout purposes
-  labelColors=[1 0 0 ; ...
+  labelColors=[1 0 0; ...
                0 0 1];
   behaviorNameCapitalized={'Abiding'; ...
                            'None'};           
 else
-  %projectPresent=true;
   nBehaviors=handles.data.nbehaviors;
   labelColors=handles.guidata.labelcolors;
   behaviorNameCapitalized=cell(nBehaviors,1);
@@ -2377,39 +2442,34 @@ else
 end
 isAdvancedMode=handles.guidata.GUIAdvancedMode;
 isBasicMode=~isAdvancedMode;
-
-% get positions of stuff
-set(handles.panel_labelbuttons,'Units','pixels');
-panel_pos = get(handles.panel_labelbuttons,'Position');
-select_pos = get(handles.panel_select,'Position');
-set(handles.togglebutton_label_behavior1,'Units','pixels');
-button1_pos = get(handles.togglebutton_label_behavior1,'Position');
-set(handles.togglebutton_label_unknown,'Units','pixels');
-unknown_button_pos = get(handles.togglebutton_label_unknown,'Position');
-out_border_y = unknown_button_pos(2);
-out_border_x = unknown_button_pos(1);
-in_border_y = handles.guidata.in_border_y;
-button_width = button1_pos(3);
-button_height = button1_pos(4);
+assert(mod(nBehaviors,2)==0); % Each behavior has a None or No_behavior
+tfMultiClassifiers = nBehaviors>2;
+nRealBeh = nBehaviors/2;
+info = handles.labelButtonLayoutInfo;
 
 % calculate menu_file_open_old_school_files height for the panel
 if isBasicMode
-  new_panel_height = 2*out_border_y + (nBehaviors+1)*button_height + ...
-    nBehaviors*in_border_y;
+  if ~tfMultiClassifiers
+    new_panel_height = 2*info.out_border_y + (nBehaviors+1)*info.button_height + ...
+      nBehaviors*info.in_border_y;
+  else
+    new_panel_height = 2*info.out_border_y + (nRealBeh+2)*info.button_height + ... 
+      (nBehaviors+1)*info.in_border_y;
+  end
 else
-  new_panel_height = 2*out_border_y + (2*nBehaviors+1)*button_height + ...
-    2*nBehaviors*in_border_y;
+  new_panel_height = 2*info.out_border_y + (2*nBehaviors+1)*info.button_height + ...
+    2*nBehaviors*info.in_border_y;
 end
 % update panel position
-panel_top = panel_pos(2)+panel_pos(4);
-new_panel_pos = [panel_pos(1),panel_top-new_panel_height,panel_pos(3),new_panel_height];
+panel_top = info.panel_pos(2)+info.panel_pos(4);
+new_panel_pos = [info.panel_pos(1),panel_top-new_panel_height,info.panel_pos(3),new_panel_height];
 set(handles.panel_labelbuttons,'Position',new_panel_pos);
-dy_label_select = panel_pos(2) - select_pos(2) - select_pos(4);
-new_select_pos = [select_pos(1),new_panel_pos(2)-select_pos(4)-dy_label_select,select_pos(3:4)];
+dy_label_select = info.panel_pos(2) - info.select_pos(2) - info.select_pos(4);
+new_select_pos = [info.select_pos(1),new_panel_pos(2)-info.select_pos(4)-dy_label_select,info.select_pos(3:4)];
 set(handles.panel_select,'Position',new_select_pos);
 
 % move unknown button to the bottom
-new_unknown_button_pos = [unknown_button_pos(1),out_border_y,unknown_button_pos(3),button_height];
+new_unknown_button_pos = [info.unknown_button_pos(1),info.out_border_y,info.unknown_button_pos(3),info.button_height];
 set(handles.togglebutton_label_unknown,'Position',new_unknown_button_pos);
 
 % update the array of button handles
@@ -2426,7 +2486,7 @@ for i=1:nBehaviors
     fif(isempty(thisButton),nan,thisButton);
   % maybe the behavior
   thisButton=findobj(handles.figure_JLabel,'tag',sprintf('togglebutton_label_normbehavior%d',i));
-  handles.guidata.togglebutton_label_behaviors(2*i  )= ...
+  handles.guidata.togglebutton_label_behaviors(2*i)= ...
     fif(isempty(thisButton),nan,thisButton);
 end
   
@@ -2444,6 +2504,7 @@ for i = 1:nBehaviors,
                 'FontUnits','pixels', ...
                 'FontSize',14,...
                 'FontWeight','bold', ...
+                'Enable','off',...
                 'Callback',callback,...
                 'Parent',handles.panel_labelbuttons,...
                 'Tag',sprintf('togglebutton_label_behavior%d',i));
@@ -2451,14 +2512,28 @@ for i = 1:nBehaviors,
   end
   % Set the button properties (always)
   if isAdvancedMode
-    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i-1)-in_border_y*(2*i-2),...
-           button_width,button_height];
+    pos = [info.out_border_x,new_panel_height-info.out_border_y-info.button_height*(2*i-1)-info.in_border_y*(2*i-2),...
+           info.button_width,info.button_height];
     buttonLabel=sprintf('Important %s',behaviorNameCapitalized{i});
   else
     % basic mode, or no project present
-    pos = [out_border_x,new_panel_height-out_border_y-button_height*i-in_border_y*(i-1),...
-           button_width,button_height];
+    if ~tfMultiClassifiers
+      pos = [info.out_border_x,new_panel_height-info.out_border_y-info.button_height*i-info.in_border_y*(i-1),...
+             info.button_width,info.button_height];
     buttonLabel=behaviorNameCapitalized{i};
+    else % put buttons side-by-side, leave room for behavior-specific unknown
+      tfNoneButton = i>nRealBeh;
+      if ~tfNoneButton
+        pos = [info.out_border_x,new_panel_height-info.out_border_y-info.button_height*i-info.in_border_y*(i-1),...
+             info.button_width/3,info.button_height];  
+        buttonLabel=behaviorNameCapitalized{i};
+      else
+        iRealButton = i-nRealBeh;
+        pos = [info.out_border_x+info.button_width/3,new_panel_height-info.out_border_y-info.button_height*iRealButton-info.in_border_y*(iRealButton-1),...
+             info.button_width/3,info.button_height];
+        buttonLabel='No';
+      end
+    end
   end
   set(handles.guidata.togglebutton_label_behaviors(2*i-1), ...
       'Position',pos, ...
@@ -2486,8 +2561,8 @@ for i = 1:nBehaviors,
       %SetButtonImage(handles.guidata.togglebutton_label_behaviors(2*i));
     end
     % Set the button properties
-    pos = [out_border_x,new_panel_height-out_border_y-button_height*(2*i)-in_border_y*(2*i-1),...
-           button_width,button_height];
+    pos = [info.out_border_x,new_panel_height-info.out_border_y-info.button_height*(2*i)-info.in_border_y*(2*i-1),...
+           info.button_width,info.button_height];
     buttonLabel=behaviorNameCapitalized{i};
     set(handles.guidata.togglebutton_label_behaviors(2*i), ...
         'Position',pos, ...
@@ -2503,8 +2578,36 @@ for i = 1:nBehaviors,
       delete(thisButton)
       handles.guidata.togglebutton_label_behaviors(2*i)=nan;
     end
+  end  
+end
+
+%
+% Set up the behavior-specific unknown buttons if necessary
+%
+unkcallback = get(handles.togglebutton_label_unknown,'Callback');
+handles.guidata.togglebutton_unknown_behaviors = nan(1,nRealBeh);
+if tfMultiClassifiers
+  for i = 1:nRealBeh
+    pos = [info.out_border_x+info.button_width*2/3,new_panel_height-info.out_border_y-info.button_height*i-info.in_border_y*(i-1),...
+      info.button_width/3,info.button_height];
+    hTBUnk = ...
+      uicontrol('Style','togglebutton', ...
+      'Units','pixels', ...
+      'FontUnits','pixels', ...
+      'FontSize',14,...
+      'FontWeight','bold', ...
+      'String','Unk',...
+      'Position',pos,...
+      'Enable','off',...
+      'Callback',unkcallback,...
+      'Parent',handles.panel_labelbuttons,...
+      'Tag',sprintf('togglebutton_unknown_behavior%d',i),...
+      'UserData',-i); % Note, UserData index here is based on realBeh index rather than beh index as for togglebutton_label_behaviors
+    setLabelButtonColor(hTBUnk,handles.guidata.labelunknowncolor);
+    handles.guidata.togglebutton_unknown_behaviors(i) = hTBUnk;
   end
 end
+handles.guidata.togglebutton_unknowns = [handles.guidata.togglebutton_unknown_behaviors handles.togglebutton_label_unknown];
 
 % set props for unknown button (always present)
 set(handles.togglebutton_label_unknown,...
@@ -2513,10 +2616,30 @@ set(handles.togglebutton_label_unknown,...
     'FontUnits','pixels', ...
     'FontSize',14,...
     'FontWeight','bold', ...
-    'UserData',-1);
+    'UserData',JLabelGUIData.LABELSTATE.UnknownAll);
 %SetButtonImage(handles.togglebutton_label_unknown);
 setLabelButtonColor(handles.togglebutton_label_unknown, ...
                     handles.guidata.labelunknowncolor);
+                  
+% SuperNone button
+if tfMultiClassifiers
+    pos = [info.out_border_x,info.out_border_y+info.button_height+info.in_border_y,info.button_width,info.button_height];
+    hTBSuperNo = ...
+      uicontrol('Style','togglebutton', ...
+      'Units','pixels', ...
+      'FontUnits','pixels', ...
+      'FontSize',14,...
+      'FontWeight','bold', ...
+      'String','None (all)',...
+      'Position',pos,...
+      'Enable','off',...
+      'Callback',callback,...
+      'Parent',handles.panel_labelbuttons,...
+      'Tag','togglebutton_none_all',...
+      'UserData',2*JLabelGUIData.LABELSTATE.NoneAll-1); % Note, UserData index here is based on realBeh index rather than beh index as for togglebutton_label_behaviors
+    setLabelButtonColor(hTBSuperNo,handles.guidata.labelnoneallcolor);    
+    handles.guidata.togglebutton_label_noneall = hTBSuperNo;    
+end
 
 % Since we made and deleted buttons, need to make sure the arrays of
 % buttons are up-to-date
@@ -2630,7 +2753,7 @@ inGroundTruthingMode=thereIsAnOpenFile && ...
                      data.gtMode;
 %inNormalMode=~inGroundTruthingMode;
 classifierExists=~isempty(data) && ...
-                 ~isempty(data.classifier);
+  data.getClassifierExists();
 % atLeastOneNormalLabelExists= ...
 %   ~isempty(data) && ...
 %   data.getAtLeastOneNormalLabelExists();
@@ -2774,7 +2897,9 @@ set(handles.menu_classifier_clear, ...
 grobjectsEnabledIffMovie = ...
   [handles.contextmenu_timeline_manual_timeline_options,...
    handles.guidata.togglebutton_label_behaviors,...
-   handles.togglebutton_label_unknown,...
+   handles.guidata.togglebutton_unknown_behaviors,...
+   handles.togglebutton_label_unknown,...   
+   handles.guidata.togglebutton_label_noneall,...
    handles.togglebutton_select,...
    handles.pushbutton_clearselection, ...
    handles.pushbutton_playselection, ...
@@ -2788,7 +2913,7 @@ set(grobjectsEnabledIffMovie,'Enable',onIff(someExperimentIsCurrent));
 if ispc && someExperimentIsCurrent,
 
   % refresh button text colors
-  h = [handles.guidata.togglebutton_label_behaviors,handles.togglebutton_label_unknown];
+  h = [handles.guidata.togglebutton_label_behaviors,handles.guidata.togglebutton_unknown_behaviors,handles.togglebutton_label_unknown,handles.guidata.togglebutton_label_noneall];
   h = h(ishandle(h));
   set(h,'ForegroundColor','k');
   set(h,'ForegroundColor','w');
@@ -3289,9 +3414,14 @@ if get(hObject,'Value'),
     end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
   end
+  setIfValidHandle(handles.guidata.togglebutton_unknown_behaviors,'Value',0,'Enable','off');
   set(handles.togglebutton_label_unknown,'Value',0,'Enable','off');
 
-  curColor = handles.guidata.labelcolors(behaviori,:);
+  if handles.guidata.label_state==JLabelGUIData.LABELSTATE.NoneAll
+    curColor = handles.guidata.labelnoneallcolor;
+  else
+    curColor = handles.guidata.labelcolors(behaviori,:);
+  end
   if ~isImportant, curColor = ShiftColor.decreaseIntensity(curColor); end
   set(handles.guidata.htimeline_label_curr,'XData',handles.label_t0 + [-.5,-.5,.5,.5,-.5],...
     'FaceColor',curColor);
@@ -3333,7 +3463,14 @@ else % label pen is up.
   end
   t0 = min(handles.data.t1_curr,max(handles.data.t0_curr,t0));
   t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
-  handles = SetLabelPlot(handles,t0,t1,handles.guidata.label_state,handles.guidata.label_imp);
+  if handles.guidata.label_state==JLabelGUIData.LABELSTATE.NoneAll    
+    for iBeh = handles.data.nbehaviors/2+1:handles.data.nbehaviors
+      % should be looping over No-behaviors
+      handles = SetLabelPlot(handles,t0,t1,iBeh,handles.guidata.label_imp);
+    end
+  else
+    handles = SetLabelPlot(handles,t0,t1,handles.guidata.label_state,handles.guidata.label_imp);
+  end
 
   handles.guidata.label_state = 0;
   handles.guidata.label_imp = [];
@@ -3359,6 +3496,7 @@ else % label pen is up.
     if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','on');
   end
+  setIfValidHandle(handles.guidata.togglebutton_unknown_behaviors,'Value',0,'Enable','on');
   set(handles.togglebutton_label_unknown,'Value',0,'Enable','on');
   %set(handles.guidata.togglebutton_label_behaviors(behaviori),'String',sprintf('Label %s',handles.data.labelnames{behaviori}));
 
@@ -3379,6 +3517,12 @@ return
 
 % -------------------------------------------------------------------------
 function handles = SetLabelPlot(handles,t0,t1,behaviori,important)
+% behaviori: 
+% - If greater than 0, behavior index to label. Valid vals: [1..numbehaviors]
+% - If == 0, clear labels for all timelines/behaviors. 
+% - If < 0, timeline index to clear. Valid vals: [1..numtimelines]
+%
+% Note: this calls handles.data.SetLabel as well as updating handles.guidata.
 
 % if behaviori == 0,
 %   return;
@@ -3417,29 +3561,49 @@ if t1 < t0,
   t1 = t0;
   t0 = tmp;
 end
-handles.guidata.labels_plot.x(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
-handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
-% handles.data.labelidx(t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off) = 0;
+idx = t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off;
 
-for channel = 1:3,
-  handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelunknowncolor(channel);
-end
-handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behaviori,important);
-if behaviori > 0,
-  % handles.data.labelidx(t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off) = behaviori;
+if behaviori<=0
+  assert(important==0,'Importance should be zero when clearing labels');
+  
+  if behaviori==0
+    idxTL = 1:handles.data.labelidx.nTL;
+    idxBeh = 1:handles.data.labelidx.nbeh;
+  else
+    idxTL = -behaviori;
+    idxBeh = handles.data.labelidx.TL2idxBeh{idxTL};
+  end
+  handles.guidata.labels_plot.x(:,idx,idxBeh,:) = nan; % ALTODO Why is this clearing/initting for all flies?
+  handles.guidata.labels_plot.y(:,idx,idxBeh,:) = nan; % ALTODO Why is this clearing/initting for all flies?  
   for channel = 1:3,
-    handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelcolors(behaviori,channel);
+    handles.guidata.labels_plot.im(idxTL,idx,channel) = handles.guidata.labelunknowncolor(channel);
+  end
+  handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behaviori,important);
+else
+  handles.guidata.labels_plot.x(:,idx,behaviori,:) = nan; % ALTODO Why is this clearing/initting for all flies?
+  handles.guidata.labels_plot.y(:,idx,behaviori,:) = nan; % ALTODO Why is this clearing/initting for all flies?
+  % handles.data.labelidx(t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off) = 0;
+  
+  iTL = handles.data.labelidx.idxBeh2idxTL(behaviori);
+  for channel = 1:3,
+    handles.guidata.labels_plot.im(iTL,idx,channel) = handles.guidata.labelunknowncolor(channel);
+  end
+  handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behaviori,important);
+
+  % handles.data.labelidx(t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off) = behaviori;
+  for channel = 1:3,
+    handles.guidata.labels_plot.im(iTL,idx,channel) = handles.guidata.labelcolors(behaviori,channel);
   end
   for l = 1:numel(handles.data.flies),
     %off = handles.data.trx(handles.data.flies(l)).off;
     %j0 = t0+off;
     %j2 = t2+off;
-    k0 = t0+handles.guidata.labels_plot_off;
-    k2 = t1+handles.guidata.labels_plot_off+1;
+    k0 = t0+handles.guidata.labels_plot.off;
+    k2 = t1+handles.guidata.labels_plot.off+1;
     xplot = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),min(t0:t1+1,handles.data.t1_curr));
     yplot = handles.data.GetTrxValues('Y1',handles.data.expi,handles.data.flies(l),min(t0:t1+1,handles.data.t1_curr));
-    handles.guidata.labels_plot.x(:,k0:k2-1,behaviori,l) = [xplot(1:end-1);xplot(2:end)];
-    handles.guidata.labels_plot.y(:,k0:k2-1,behaviori,l) = [yplot(1:end-1);yplot(2:end)];      
+    handles.guidata.labels_plot.x(:,k0:k2-1,behaviori,l) = [xplot(1:end-1);xplot(2:end)]; % ALTODO Only fly 1
+    handles.guidata.labels_plot.y(:,k0:k2-1,behaviori,l) = [yplot(1:end-1);yplot(2:end)]; % ALTODO Only fly 1
 
 %     handles.guidata.labels_plot.x(k0:k2,behaviori,l) = ...
 %       handles.data.trx(handles.data.flies(l)).x(j0:j2);
@@ -3449,17 +3613,18 @@ if behaviori > 0,
 end
 
 % isstart
-if t0 == handles.data.t0_curr,
-  handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot_off) = behaviori ~= 0;
-end
-t00 = max(handles.data.t0_curr+1,t0);
-off0 = t00+handles.guidata.labels_plot_off;
-off1 = t1+handles.guidata.labels_plot_off;
+% AL: isstart stuff appears to be unused/obsolete
+% if t0 == handles.data.t0_curr,
+%   handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot.off) = behaviori ~= 0;
+% end
+% t00 = max(handles.data.t0_curr+1,t0);
+% off0 = t00+handles.guidata.labels_plot.off;
+% off1 = t1+handles.guidata.labels_plot.off;
 % handles.guidata.labels_plot.isstart(off0:off1) = ...
 %   handles.data.labelidx(off0:off1)~=0 & ...
 %   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
-handles.guidata.labels_plot.isstart(off0:off1) = ...
-  handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
+% handles.guidata.labels_plot.isstart(off0:off1) = ...
+%   handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
 
 handles = UpdateErrors(handles);
 
@@ -3475,6 +3640,7 @@ return
 
 % -------------------------------------------------------------------------
 function handles = SetLabelsPlot(handles,t0,t1,behavioris)
+% ALTODO See SetLabelPlot, dup?
 
 
 if t1 < t0,
@@ -3483,11 +3649,11 @@ if t1 < t0,
   t0 = tmp;
 end
 
-handles.guidata.labels_plot.x(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
-handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,:,:) = nan;
+handles.guidata.labels_plot.x(:,t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off,:,:) = nan;
+handles.guidata.labels_plot.y(:,t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off,:,:) = nan;
 
 for channel = 1:3,
-  handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot_off:t1+handles.guidata.labels_plot_off,channel) = handles.guidata.labelunknowncolor(channel);
+  handles.guidata.labels_plot.im(1,t0+handles.guidata.labels_plot.off:t1+handles.guidata.labels_plot.off,channel) = handles.guidata.labelunknowncolor(channel);
 end
 handles.data.SetLabel(handles.data.expi,handles.data.flies,t0:t1,behavioris,0);
 
@@ -3498,10 +3664,10 @@ for behaviori = 1:handles.data.nbehaviors,
     continue;
   end
   for channel = 1:3,
-    handles.guidata.labels_plot.im(1,t0-1+bidx+handles.guidata.labels_plot_off,channel) = handles.guidata.labelcolors(behaviori,channel);
+    handles.guidata.labels_plot.im(1,t0-1+bidx+handles.guidata.labels_plot.off,channel) = handles.guidata.labelcolors(behaviori,channel);
   end
   for l = 1:numel(handles.data.flies),
-    ks = t0-1+handles.guidata.labels_plot_off+bidx;
+    ks = t0-1+handles.guidata.labels_plot.off+bidx;
     xplot0 = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),t0-1+bidx);
     xplot1 = handles.data.GetTrxValues('X1',handles.data.expi,handles.data.flies(l),min(t0+bidx,handles.data.t1_curr));
     handles.guidata.labels_plot.x(:,ks,behaviori,l) = [xplot0;xplot1];
@@ -3513,17 +3679,17 @@ for behaviori = 1:handles.data.nbehaviors,
 end
 
 % isstart
-if t0 == handles.data.t0_curr,
-  handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot_off) = behavioris(1) ~= 0;
-end
+% if t0 == handles.data.t0_curr,
+%   handles.guidata.labels_plot.isstart(t0+handles.guidata.labels_plot.off) = behavioris(1) ~= 0;
+% end
 t00 = max(handles.data.t0_curr+1,t0);
-off0 = t00+handles.guidata.labels_plot_off;
-off1 = t1+handles.guidata.labels_plot_off;
+off0 = t00+handles.guidata.labels_plot.off;
+off1 = t1+handles.guidata.labels_plot.off;
 % handles.guidata.labels_plot.isstart(off0:off1) = ...
 %   handles.data.labelidx(off0:off1)~=0 & ...
 %   handles.data.labelidx(off0-1:off1-1)~=handles.data.labelidx(off0:off1);
-handles.guidata.labels_plot.isstart(off0:off1) = ...
-  handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
+% handles.guidata.labels_plot.isstart(off0:off1) = ...
+%   handles.data.IsLabelStart(handles.data.expi,handles.data.flies,t00:t1);
 
 handles = UpdateErrors(handles);
 
@@ -3564,7 +3730,7 @@ scores = handles.data.NormalizeScores(scoresidx);
 
 % Set the x,y for the predictions to nan, so they don't show up except
 % where we set them below
-labelsPlotOffset=handles.guidata.labels_plot_off;
+labelsPlotOffset=handles.guidata.labels_plot.off;
 iFirst=t0+labelsPlotOffset;
 iLast=t1+labelsPlotOffset;
 handles.guidata.labels_plot.predx(:,iFirst:iLast,:,:) = nan;
@@ -3603,8 +3769,8 @@ function togglebutton_label_unknown_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of togglebutton_label_unknown
 if get(hObject,'Value'),
-  % toggle on
-  handles.guidata.label_state = -1; 
+  % toggle on  
+  handles.guidata.label_state = get(hObject,'UserData'); 
   handles.guidata.label_imp = [];
   handles.label_t0 = handles.guidata.ts(1);
 
@@ -3612,7 +3778,9 @@ if get(hObject,'Value'),
   for j = 1:2*handles.data.nbehaviors,
     if isnan(handles.guidata.togglebutton_label_behaviors(j)), continue; end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'Enable','off');
-  end
+  end  
+  h = handles.guidata.togglebutton_unknowns;
+  set(h(h~=hObject & ~isnan(h)),'Value',0,'Enable','off');
 
   set(handles.guidata.htimeline_label_curr,'XData',handles.label_t0 + [-.5,-.5,.5,.5,-.5],...
     'FaceColor',handles.guidata.labelunknowncolor);
@@ -3658,7 +3826,13 @@ else
   end
   t0 = min(handles.data.t1_curr,max(handles.data.t0_curr,t0));
   t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
-  handles = SetLabelPlot(handles,t0,t1,0,0);
+  
+  setLabelPlotBehIdx = handles.guidata.label_state;
+  assert(setLabelPlotBehIdx~=0);
+  if setLabelPlotBehIdx==JLabelGUIData.LABELSTATE.UnknownAll
+    setLabelPlotBehIdx = 0; 
+  end    
+  handles = SetLabelPlot(handles,t0,t1,setLabelPlotBehIdx,0);
 
   handles.guidata.label_state = 0;
   handles.guidata.label_imp = [];
@@ -3674,7 +3848,8 @@ else
     end
     set(handles.guidata.togglebutton_label_behaviors(j),'Value',0,'String',buttonStr,'Enable','on');
   end
-  set(handles.togglebutton_label_unknown,'Value',0,'String','Unknown','Enable','on');  
+  h = handles.guidata.togglebutton_unknowns;
+  set(h(h~=hObject & ~isnan(h)),'Value',0,'Enable','on');  
   UpdatePlots(handles,...
     'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
     'refresh_timeline_manual',true,...
@@ -3915,6 +4090,29 @@ t = min(max(handles.data.GetMinFirstFrame,round(pt(1,1))),handles.data.GetMaxEnd
 % TODO: which axes?
 SetCurrentFrame(handles,1,t,hObject);
 return
+
+function hlpPredict(handles)
+macguffin = handles.data.getMacguffin();
+% KB 20140227: classifier is stored in data
+% jabfilename = handles.data.everythingFileNameAbs();
+% [bdir,nn,~] = fileparts(jabfilename);
+% classifierfilename = fullfile(bdir,[nn '_classifier.mat']);
+if numel(unique(handles.data.expdirs)) ~= numel(handles.data.expdirs),
+  error('KB SANITY CHECK: The same experiment has been added twice');
+end
+assert(isequaln(macguffin.classifierStuff.params,handles.data.classifier)); % jab should match JLD state
+tfCurrentMovieOnly = get(handles.cbScoreCurrentMovieOnly,'Value');
+if tfCurrentMovieOnly
+  SetStatus(handles,'Classifying current movie..');
+  classifyMovie(handles.data.expdirs{handles.data.expi},macguffin,'verbose',1);
+  menu_file_import_scores_curr_exp_default_loc_Callback([],[],handles);
+else
+  SetStatus(handles,'Classifying all movies..');
+  for ndx = 1:numel(handles.data.expdirs)
+    classifyMovie(handles.data.expdirs{ndx},macguffin,'verbose',1);
+  end
+  menu_file_import_scores_all_exp_default_loc_Callback([],[],handles);
+end
 
 
 % -------------------------------------------------------------------------
@@ -4559,21 +4757,34 @@ switch eventdata.Key,
     buttonNum = find(strcmp(eventdata.Key,handles.guidata.label_shortcuts),1);
     if buttonNum > 2*handles.data.nbehaviors,
       if handles.guidata.label_state > 0,
-        buttonNum = 2*handles.guidata.label_state - handles.guidata.label_imp;
-        set(handles.guidata.togglebutton_label_behaviors(buttonNum),'Value',false);
-        togglebutton_label_behavior1_Callback(handles.guidata.togglebutton_label_behaviors(buttonNum), eventdata, handles);
+        if handles.guidata.label_state==JLabelGUIData.LABELSTATE.NoneAll
+          set(handles.guidata.togglebutton_label_noneall,'Value',false);
+          togglebutton_label_behavior1_Callback(handles.guidata.togglebutton_label_noneall, eventdata, handles);          
+        else
+          buttonNum = 2*handles.guidata.label_state - handles.guidata.label_imp;
+          set(handles.guidata.togglebutton_label_behaviors(buttonNum),'Value',false);
+          togglebutton_label_behavior1_Callback(handles.guidata.togglebutton_label_behaviors(buttonNum), eventdata, handles);
+        end
         handles = guidata(hObject);
       end
+      %ALTODO behavior-specific unknown buttons
+      %setIfValidHandle(handles.guidata.togglebutton_unknown_behaviors,...)
       set(handles.togglebutton_label_unknown,'Value',get(handles.togglebutton_label_unknown,'Value')==0);
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
       return;
     else
       if ~handles.guidata.GUIAdvancedMode && ~mod(buttonNum,2); return; end 
       % Don't do anything when unimportant label keys are pressed in the Normal mode
-      if handles.guidata.label_state == -1,
+      if handles.guidata.label_state == JLabelGUIData.LABELSTATE.UnknownAll,
+        %ALTODO behavior-specific unknown buttons
+        %setIfValidHandle(handles.guidata.togglebutton_unknown_behaviors,...)
         set(handles.togglebutton_label_unknown,'Value',false);
         togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
         handles = guidata(hObject);
+      elseif handles.guidata.label_state == JLabelGUIData.LABELSTATE.NoneAll
+        assert(false,'UNSUPPORTED KEYPRESS during NoneAll labeling');
+      elseif handles.guidata.label_state<0
+        % ALTODO behavior-specific unknown        
       elseif handles.guidata.label_state > 0 && (2*handles.guidata.label_state -handles.guidata.label_imp)~= buttonNum,
         prevButtonNum = 2*handles.guidata.label_state - handles.guidata.label_imp;
         set(handles.guidata.togglebutton_label_behaviors(prevButtonNum),'Value',false);
@@ -4586,6 +4797,7 @@ switch eventdata.Key,
       return;
     end
   case {'esc','escape'},
+    %ALTODO behavior-specific unknown buttons
     if get(handles.togglebutton_label_unknown,'Value') ~= 0,
       set(handles.togglebutton_label_unknown,'Value',0);
       togglebutton_label_unknown_Callback(handles.togglebutton_label_unknown, eventdata, handles);
@@ -4597,6 +4809,7 @@ switch eventdata.Key,
           togglebutton_label_behavior1_Callback(handles.guidata.togglebutton_label_behaviors(behaviori), eventdata, handles);
         end
       end
+      % ALTODO noneall button
     end
     
 end
@@ -6621,7 +6834,7 @@ t0 = min(handles.data.t1_curr,max(handles.data.t0_curr,t0));
 t1 = min(handles.data.t1_curr,max(handles.data.t0_curr,t1));
 prediction = handles.data.GetPredictedIdx(handles.data.expi,handles.data.flies,t0,t1);
 predictedidx = prediction.predictedidx;
-handles = SetLabelsPlot(handles,t0,t1,predictedidx);
+handles = SetLabelsPlot(handles,t0,t1,predictedidx); % ALTODO SetLabelPlot?
 
 UpdatePlots(handles,...
   'refreshim',false,'refreshflies',true,'refreshtrx',false,'refreshlabels',true,...
@@ -7079,6 +7292,9 @@ function menu_file_import_scores_curr_exp_diff_rootdir_Callback(hObject, eventda
 % hObject    handle to menu_file_import_scores_curr_exp_diff_rootdir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+assert(false,'ALTODO Unsupported codepath (multiclassifier)');
+
 tstring = sprintf('Root dir to load scores for current experiment');
 fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
 if ~fname; return; end;
@@ -7140,6 +7356,8 @@ function menu_file_import_scores_all_exp_diff_rootdir_Callback(hObject, eventdat
 % hObject    handle to menu_file_import_scores_all_exp_diff_rootdir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+assert(false,'ALTODO Unsupported codepath (multiclassifier)');
 
 tstring = sprintf('Root dir to load scores for all experiments');
 fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
@@ -7266,6 +7484,8 @@ function menu_classifier_visualize_Callback(hObject, eventdata, handles)
 % hObject    handle to menu_classifier_visualize (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+assert(false,'ALTODO Multiclassifier unsupported codepath.');
 
 if ~handles.data.HasWindowdata();
   uiwait(warndlg('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata.'));
@@ -9093,6 +9313,8 @@ UpdateGUIToMatchGroundTruthingMode(handles);
 %handles=guidata(hObject);
 UpdateEnablementAndVisibilityOfControls(handles);
 
+handles = resetLabelButtons(handles);
+
 % Clear the current fly info
 set(handles.text_selection_info,'string','');
 
@@ -9147,16 +9369,18 @@ function newEverythingFile(figureJLabel)
 handles=guidata(figureJLabel);
 
 % launch the project setup GUI
+hobj = HandleObj;
 uiwait(ProjectSetup('figureJLabel',handles.figure_JLabel,...
   'defaultmoviefilename',handles.guidata.defaultmoviefilename,...
-  'defaulttrxfilename',handles.guidata.defaulttrxfilename));
+  'defaulttrxfilename',handles.guidata.defaulttrxfilename,...
+  'handleobj',hobj));
+
+newFileSetupDone(figureJLabel,hobj.data);
 
 % no experiments? ask to add
 if handles.data.nexps == 0,
-
   drawnow;
-  JModifyFiles('figureJLabel',handles.figure_JLabel);
-  
+  uiwait(JModifyFiles('figureJLabel',handles.figure_JLabel));   
 end
   
            
@@ -9210,7 +9434,7 @@ return
 
 
 % -------------------------------------------------------------------------
-function newFileSetupDone(figureJLabel,basicParams)
+function newFileSetupDone(figureJLabel,macguffin)
 % Called by ProjectSetup after the user clicks Done.  Causes the JLabel
 % "object" to set itself up for a new file, using the settings in
 % basicParams, which is a Macguffin.
@@ -9239,7 +9463,7 @@ handles.guidata.status_bar_text_when_clear='';
 guidata(figureJLabel,handles);  % sync the guidata to handles
 
 % Set up the model for a new file
-handles.data.newJabFile(basicParams);
+handles.data.newJabFile(macguffin);
 
 % % First set the project parameters, which will initialize the JLabelData
 % groundTruthingMode=false;  % all new files start in labeling mode
@@ -10386,3 +10610,55 @@ for i = 1:numel(handles.guidata.axes_previews),
     hold(handles.guidata.axes_previews(i),'off');
   end
 end
+
+% --- Executes on button press in cbScoreCurrentMovieOnly.
+function cbScoreCurrentMovieOnly_Callback(hObject, eventdata, handles)
+% hObject    handle to cbScoreCurrentMovieOnly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cbScoreCurrentMovieOnly
+
+% ALTODO is this checkbox useful?
+
+function pbEthogram_Callback(hObject, eventdata, handles)
+
+% ALTODO probable menu item?
+
+tags = handles.data.getAllUniqueExperimentTags;
+if ~isempty(tags)
+  tagstrs = strcat('Tag:',tags(:));
+  choiceList = [{'All'};tags(:)]; % There could be a tag called 'All' but that is ok
+  choiceListDisplay = [{'All'};tagstrs];
+  [cIdx,ok] = listdlg('ListString',choiceListDisplay,'SelectionMode','single',...
+    'ListSize',[300 300],'Name','Ethogram Plot','PromptString','Select experiments to plot');
+  if ~ok
+    return;
+  end  
+  tfTag = cIdx>1;
+else
+  tfTag = false;
+end
+
+SetStatus(handles,'Saving..');
+menu_file_save_Callback(hObject,eventdata,handles);
+
+SetStatus(handles,'Opening ethogram..');
+if tfTag
+  tagSelected = choiceList{cIdx};
+  [expdirs,exptags] = handles.data.getTaggedExperiments(tagSelected);  
+else
+  expdirs = handles.data.expdirs;
+  exptags = handles.data.expdirtags;
+end
+jabname = handles.data.everythingFileNameAbs;
+endframesperexp = handles.data.endframes_per_exp;
+maxendframe = cellfun(@max,endframesperexp);
+maxendframe = max(maxendframe);
+%Nexp = numel(expdirs);
+
+realbehs = Labels.verifyBehaviorNames(handles.data.labelnames);
+automarks = ExpPP.doNamesSpanAllBasicBehaviors(realbehs);
+ethogram_plot(expdirs,{jabname},maxendframe,'automarks',automarks,'exptags',exptags);
+
+ClearStatus(handles);

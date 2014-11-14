@@ -61,12 +61,14 @@ handles.defpath = pwd;
 [figureJLabel, ...
  basicParamsStruct,...
  defaultmoviefilename,...
- defaulttrxfilename] = ...
+ defaulttrxfilename,...
+ handles.handleobj] = ...
    myparse(varargin,...
            'figureJLabel',[],...
            'basicParamsStruct',[],...
            'defaultmoviefilename',0,...
-           'defaulttrxfilename',0);
+           'defaulttrxfilename',0,...
+           'handleobj',[]);
 
 % If we got called via New..., basicParamsStruct should be empty
 % If via Basic Settings..., basicParamsStruct should be nonempty
@@ -112,6 +114,14 @@ else
   warning('off','MATLAB:structOnObject');  % turn off annoying warning
   handles.basicParamsStruct = struct(basicParamsStruct);
   warning(old);  % restore annoying warning  
+end
+
+% update checkbox
+if ~isfield(handles.basicParamsStruct,'extra'),
+  handles.basicParamsStruct.extra = struct;
+end
+if ~isfield(handles.basicParamsStruct.extra,'usePastOnly'),
+  handles.basicParamsStruct.extra.usePastOnly = false;
 end
 
 % Update the configuration table in the GUI
@@ -237,8 +247,8 @@ function updateEditsListboxesAndPopupmenus(handles)
 % update the behavior name editbox
 if isfield(handles.basicParamsStruct.behaviors,'names');
   names = handles.basicParamsStruct.behaviors.names;
-  if numel(names)>0
-    namestr = [sprintf('%s,',names{1:end-1}),names{end}];
+  if numel(names)>0    
+    namestr = String.cellstr2CommaSepList(names);
   else
     namestr = '';
   end
@@ -247,20 +257,17 @@ else
   set(handles.editName,'String','');
 end
 
-% Update all the editboxes
-% fnames = {'labelfilename','gtlabelfilename','scorefilename',...
-%           'moviefilename','trxfilename'};
-% boxnames = {'editlabelfilename','editgtlabelfilename','editscorefilename',...
-%             'editmoviefilename','edittrxfilename'};
-fnames = {'scorefilename',...
-          'moviefilename','trxfilename'};
-boxnames = {'editscorefilename',...
-            'editmoviefilename','edittrxfilename'};
+fnames = {'scorefilename','moviefilename','trxfilename'};
+boxnames = {'editscorefilename','editmoviefilename','edittrxfilename'};
 for ndx = 1:numel(fnames)
   curf = fnames{ndx};
   curbox = boxnames{ndx};
   if isfield(handles.basicParamsStruct.file,curf);
-    set(handles.(curbox),'String',handles.basicParamsStruct.file.(curf));
+    val = handles.basicParamsStruct.file.(curf);
+    if iscellstr(val)
+      val = String.cellstr2CommaSepList(val);
+    end
+    set(handles.(curbox),'String',val);
   else
     set(handles.(curbox),'String','');
   end
@@ -288,7 +295,8 @@ function handles = fileNameEditTwiddled(handles,editName)
 varName=editName(5:end);  % trim 'edit' off of start
 newFileName=strtrim(get(handles.(editName),'String'));
 allowEmpty = ismember(varName,{'moviefilename'});
-[handles,whatHappened]=setFileName(handles,varName,newFileName,allowEmpty);
+allowMulti = ismember(varName,{'scorefilename'});
+[handles,whatHappened]=setFileName(handles,varName,newFileName,allowEmpty,allowMulti);
 warnIfInvalid(varName,whatHappened);
 updateFileNameEdit(handles,editName);
 updateConfigTable(handles);
@@ -296,14 +304,10 @@ return
 
 
 % -------------------------------------------------------------------------
-function [handles,whatHappened] = setFileName(handles,varName,newFileName,allowEmpty)
+function [handles,whatHappened] = setFileName(handles,varName,newFileName,allowEmpty,allowMulti)
 % Set the given file name in the model, if it's a valid name.  whatHappened
 % is a string that can be 'notChanged', 'emptyEntry','changed', or
 % 'invalidEntry', depending.
-
-if nargin < 4,
-  allowEmpty = false;
-end
 
 fileName=handles.basicParamsStruct.file.(varName);
 
@@ -321,9 +325,17 @@ if isequal(newFileName,fileName)
   whatHappened='notChanged';
 elseif isempty(newFileName)
   whatHappened='emptyEntry';
-elseif IsNiceFileName(newFileName)
+elseif ~allowMulti && IsNiceFileName(newFileName)
   whatHappened='changed';
   handles.basicParamsStruct.file.(varName)=newFileName;
+elseif allowMulti
+  newFileNameCellStr = String.commaSepList2CellStr(newFileName);
+  if all(cellfun(@IsNiceFileName,newFileNameCellStr))
+    whatHappened = 'changed';
+    handles.basicParamsStruct.file.(varName)=newFileNameCellStr;
+  else
+    whatHappened = 'invalidEntry';
+  end
 else
   whatHappened='invalidEntry';
 end
@@ -348,7 +360,11 @@ return
 function updateFileNameEdit(handles,editName)
   % Update the named file name edit to match the model.
   varName=editName(5:end);  % trim 'edit' off of start
-  set(handles.(editName),'String',handles.basicParamsStruct.file.(varName));
+  val = handles.basicParamsStruct.file.(varName);
+  if iscellstr(val)
+    val = String.cellstr2CommaSepList(val);
+  end
+  set(handles.(editName),'String',val);
 return
 
 
@@ -437,27 +453,36 @@ function editName_Callback(hObject, eventdata, handles)  %#ok
 
 % Hints: get(hObject,'String') returns contents of editName as text
 %        str2double(get(hObject,'String')) returns contents of editName as a double
-name = get(hObject,'String');
-if isempty(regexp(name,'^[a-zA-Z][\w_,]*$','once','start'));
+name = String.commaSepList2CellStr(get(hObject,'String'));
+if any(cellfun(@(x)isempty(regexp(x,'^[a-zA-Z][\w_,]*$','once','start')),name));
    uiwait(warndlg(['The behavior name cannot have special characters.'...
                    'Please use only alphanumeric characters and _']));
    updateEditsListboxesAndPopupmenus(handles);              
    return
 end
     
-name = regexp(name,',','split');
-name_str = [sprintf('%s_',name{1:end-1}),name{end}];
 handles.basicParamsStruct.behaviors.names = name;
-%handles.basicParamsStruct.file.moviefilename = 'movie.ufmf';
-%handles.basicParamsStruct.file.trxfilename = 'registered_trx.mat';
-%handles.basicParamsStruct.file.labelfilename = sprintf('label_%s.mat',name_str);
-%handles.basicParamsStruct.file.gtlabelfilename = sprintf('gt_label_%s.mat',name_str);
-handles.basicParamsStruct.file.scorefilename = sprintf('scores_%s.mat',name_str);
+handles.basicParamsStruct.behaviors = enforceBehaviorParamConstraints(handles.basicParamsStruct.behaviors);
+handles.basicParamsStruct.file.scorefilename = cellfun(@(x)sprintf('scores_%s.mat',x),name,'uni',0);
 guidata(hObject,handles);
-updateEditsListboxesAndPopupmenus(handles);
+updateEditsListboxesAndPopupmenus(handles); 
 updateConfigTable(handles);
 return
 
+function behaviorsStruct = enforceBehaviorParamConstraints(behaviorsStruct,dowarn)
+
+if ~exist('dowarn','var')
+  dowarn = false;
+end
+
+nbeh = numel(behaviorsStruct.names);
+nlblClrs = numel(behaviorsStruct.labelcolors);
+
+if nlblClrs~=3*nbeh && dowarn
+  warning('ProjectSetup:behaviorParams','Specified label colors not consistent with number of behaviors. Updating.');
+end
+
+behaviorsStruct.labelcolors = Labels.cropOrAugmentLabelColors(behaviorsStruct.labelcolors,nbeh);
 
 % -------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
@@ -811,16 +836,6 @@ if isempty(behaviorName) ,
   return
 end
 
-% In some cases, the user doesn't have the movie.  We can deal with this.
-% % Check for an empty movie file name
-% movieFileName=handles.basicParamsStruct.file.moviefilename;
-% if isempty(movieFileName) ,
-%   uiwait(errordlg('You must enter a movie file name.', ...
-%                   'No movie file name', ...
-%                   'modal'));
-%   return
-% end
-
 % Check for an empty track file name
 trackFileName=handles.basicParamsStruct.file.trxfilename;
 if isempty(trackFileName) ,
@@ -839,27 +854,44 @@ if isempty(scoreFileName) ,
   return
 end
 
+nbehavior = numel(handles.basicParamsStruct.behaviors.names);
+assert(iscellstr(handles.basicParamsStruct.file.scorefilename));
+nscorefile = numel(handles.basicParamsStruct.file.scorefilename);
+if nbehavior~=nscorefile,
+  uiwait(errordlg('The number of score files must match the number of behaviors.', ...
+                  'Invalid score file names', ...
+                  'modal'));
+  return
+end
+
+handles.basicParamsStruct.behaviors = ...
+  enforceBehaviorParamConstraints(handles.basicParamsStruct.behaviors,true);
+handles.basicParamsStruct.classifierStuff.init(nbehavior);
+
 % Get the info we need out of the handles
 basicParamsStruct=handles.basicParamsStruct;
 figureJLabel=handles.figureJLabel;
 everythingParams=Macguffin(basicParamsStruct);
 
-% Call the appropriate function to notify the JLabel "object" that 
-% we're done.
-if (handles.new)
-  % we were called via New..., so act accordingly
-  JLabel('newFileSetupDone', ...
-         figureJLabel, ...
-         everythingParams);
-else
-  % we were called via Basic Settings..., so act accordingly
-%   JLabel('basicSettingsChanged', ...
+% % Call the appropriate function to notify the JLabel "object" that 
+% % we're done.
+% if (handles.new)
+%   % we were called via New..., so act accordingly
+%   JLabel('newFileSetupDone', ...
 %          figureJLabel, ...
-%          everythingParams); 
-  JLabel('newFileSetupDone', ...
-         figureJLabel, ...
-         everythingParams);
-end
+%          everythingParams);
+% else
+%   % we were called via Basic Settings..., so act accordingly
+% %   JLabel('basicSettingsChanged', ...
+% %          figureJLabel, ...
+% %          everythingParams); 
+%   JLabel('newFileSetupDone', ...
+%          figureJLabel, ...
+%          everythingParams);
+% end
+
+assert(~isempty(handles.handleobj),'ALTODO not all codepaths using handleobj return yet');
+handles.handleobj.data = everythingParams;
 
 % Delete the ProjectSetup window
 delete(get(hObject,'parent'));
@@ -1174,6 +1206,12 @@ return
 % -------------------------------------------------------------------------
 function handles = EditConfigValue(handles,name,value) 
 
+switch name
+  case 'behaviors.names'
+    value = regexp(value,',','split'); %#ok<NASGU>
+  otherwise
+end
+
 % try to convert it to a number if possible
 valuen = regexp(value,',','split');
 valuen = str2double(valuen);
@@ -1246,3 +1284,13 @@ if isequal(eventdata.Key,'f') && isControlLike(eventdata.Modifier)
 end
 
 return
+
+% --- Executes on button press in checkbox_UsePastOnly.
+function checkbox_UsePastOnly_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_UsePastOnly (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_UsePastOnly
+handles.basicParamsStruct.extra.usePastOnly = get(hObject,'Value');
+guidata(hObject,handles);
