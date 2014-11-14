@@ -7,6 +7,13 @@ classdef JLabelGUIData < handle
   % functions of JLabel might be refactored such that the visual aspects are 
   % done in methods of this class.  All of this would make this class
   % closer to a View in the Model-View-Controller sense.  --ALT, May 1 2013
+  
+  properties (Constant)
+    LABELSTATE = struct(... % see label_state
+      'UnknownAll',-100,...
+      'NoneAll',100); 
+  end
+
   properties (Access=public)
     
     %previousConfigFileName = '';
@@ -96,7 +103,15 @@ classdef JLabelGUIData < handle
     % expi = 0;
     % flies = [];
     ts = 0;
-    label_state = 0;
+    
+    % label_state
+    % - If zero, no labeling is in progress
+    % - If positive, labeling of <behavior idx>=label_state is in progress
+    % - If negative, unknown-labeling of <behavior idx>=|label_state| is in progress
+    % - If equal to LABELSTATE.UnknownAll, unknown-labeling of all behaviors is in progress
+    % - If equal to LABELSTATE.NoneAll, none-labeling of all behaviors is in progress
+    label_state = 0;     
+    
     label_imp = [];
     % nflies_curr = 0;
     
@@ -105,6 +120,7 @@ classdef JLabelGUIData < handle
     in_border_y = [];
     labelcolors = [];
     labelunknowncolor = [0,0,0];
+    labelnoneallcolor = [0.5,0.5,0.5];
     % nextra_markers = 1;
     % flies_extra_markersize = 12;
     % flies_extra_marker = {'o'};
@@ -120,7 +136,13 @@ classdef JLabelGUIData < handle
     emphasiscolor = [.7,.7,0];
     unemphasiscolor = [1,1,1];
 
-    togglebutton_label_behaviors = [];
+    % togglebutton handles for labeling behaviors
+    togglebutton_label_behaviors = []; 
+    % togglebutton handles for behavior-specific unknowns 
+    togglebutton_unknown_behaviors = [];
+    % convenience property, togglebutton_unknown_behaviors plus "Universal unknown" togglebutton
+    togglebutton_unknowns = [];     
+    togglebutton_label_noneall = [];
     
 %     GUIGroundTruthingMode = [];  % true iff the GUI is in ground truth mode, as
 %                                  % opposed to labeling mode.  Empty if
@@ -201,7 +223,7 @@ classdef JLabelGUIData < handle
     % t0_curr = nan;
     % t1_curr = nan;
     labels_plot = struct;
-    labels_plot_off = nan;
+    % labels_plot_off = nan;
 
     current_interval = [];
     didclearselection = false;
@@ -532,31 +554,44 @@ classdef JLabelGUIData < handle
       % number of flies for the current movie
       % self.nflies_curr = 0;
 
+      % ALTODO call to this method seems unnecessary, just init directly off
+      % self.data
       basicParamsStruct=self.data.getBasicParamsStruct();
       % label colors
       if isfield(basicParamsStruct,'behaviors') && ...
          isfield(basicParamsStruct.behaviors,'labelcolors'),
         labelcolors = basicParamsStruct.behaviors.labelcolors; %#ok<*PROP>
-        if numel(labelcolors) >= 3*self.data.nbehaviors,
-          self.labelcolors = reshape(labelcolors(1:3*self.data.nbehaviors),[self.data.nbehaviors,3]);
-        else
-          uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
-          if isfield(basicParamsStruct,'labels') && ...
-              isfield(basicParamsStruct.labels,'colormap'),
-            cm = basicParamsStruct.labels.colormap;
-          else
-            cm = 'lines';
-          end
-          if ~exist(cm,'file'),
-            cm = 'lines';
-          end
-      %     try
-            self.labelcolors = eval(sprintf('%s(%d)',cm,self.data.nbehaviors));
-      %     catch ME,
-      %       uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
-      %       self.labelcolors = lines(self.data.nbehaviors);
-      %     end
+        nbehaviors = numel(basicParamsStruct.behaviors.names);
+        assert(numel(labelcolors)==3*nbehaviors);        
+        if size(labelcolors,2)~=3
+          labelcolors = reshape(labelcolors,[3,nbehaviors])';
         end
+        self.labelcolors = labelcolors;
+        
+        % ALTODO Update JLD.labelcolors. The JLD prop is not used but is
+        % saved to the JAB file. Consider cleaning up this duplicated
+        % param.
+        self.data.labelcolors = self.labelcolors;
+
+      
+%         else
+%           uiwait(warndlg('Error parsing label colors from config file, automatically assigning','Error parsing config label colors'));
+%           if isfield(basicParamsStruct,'labels') && ...
+%               isfield(basicParamsStruct.labels,'colormap'),
+%             cm = basicParamsStruct.labels.colormap;
+%           else
+%             cm = 'lines';
+%           end
+%           if ~exist(cm,'file'),
+%             cm = 'lines';
+%           end
+%       %     try
+%             self.labelcolors = eval(sprintf('%s(%d)',cm,self.data.nbehaviors));
+%       %     catch ME,
+%       %       uiwait(warndlg(sprintf('Error using label colormap from config file: %s',getReport(ME)),'Error parsing config label colors'));
+%       %       self.labelcolors = lines(self.data.nbehaviors);
+%       %     end
+%         end
       end
       
       self.labelunknowncolor = [0,0,0];
@@ -771,7 +806,54 @@ classdef JLabelGUIData < handle
       %guidata(handles.figure_JLabel,handles);  % write handles to the guidata
     end  % method
     
+    function debugDumpLabelButtonState(obj)
+      % debug routine
+      
+      hJAABA = findall(0,'type','figure','name','JAABA');
+      gd = guidata(hJAABA);
+      pnl = gd.panel_labelbuttons;
+      hButton = findobj(pnl,'type','uicontrol');
+
+      tb_behs = obj.togglebutton_label_behaviors;
+      tb_unks = obj.togglebutton_unknown_behaviors;
+      tb_unkAll = gd.togglebutton_label_unknown;
+      tb_noneAll = obj.togglebutton_label_noneall;    
+
+      %assert(all(ismember(hButton,[tb_behs(:);tb_unks(:);tb_unkAll(:)])));
     
+      for i = 1:numel(tb_behs)
+        if ~isnan(tb_behs(i))
+          fprintf(1,'tbbeh %02d: %s %s %s %s\n',...
+            i,get(tb_behs(i),'String'),get(tb_behs(i),'Tag'),...
+            char(get(tb_behs(i),'Callback')),mat2str(get(tb_behs(i),'UserData')));
+        end
+      end
+      for i = 1:numel(tb_unks)
+        if ~isnan(tb_unks(i))
+          fprintf(1,'tbunk %02d: %s %s %s %s\n',...
+            i,get(tb_unks(i),'String'),get(tb_unks(i),'Tag'),...
+            char(get(tb_unks(i),'Callback')),mat2str(get(tb_unks(i),'UserData')));
+        end
+      end
+      if ~isnan(tb_unkAll)
+        fprintf(1,'tbunk All: %s %s %s %s\n',...
+          get(tb_unkAll,'String'),get(tb_unkAll,'Tag'),...
+          char(get(tb_unkAll,'Callback')),mat2str(get(tb_unkAll,'UserData')));
+      end
+      if ~isnan(tb_noneAll)
+        fprintf(1,'tbnone All: %s %s %s %s\n',...
+          get(tb_noneAll,'String'),get(tb_noneAll,'Tag'),...
+          char(get(tb_noneAll,'Callback')),mat2str(get(tb_noneAll,'UserData')));
+      end
+      
+%          togglebutton_label_behaviors = []; 
+%       % togglebutton handles for behavior-specific unknowns 
+%     togglebutton_unknown_behaviors = [];
+%     % convenience property, togglebutton_unknown_behaviors plus "Universal unknown" togglebutton
+%     togglebutton_unknowns = []; 
+%     
+      
+    end
 %     % ---------------------------------------------------------------------
 %     function SaveScores(obj,allScores,expi,sfn)  %#ok
 %     % Save prediction scores for the whole experiment.
