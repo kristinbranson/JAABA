@@ -1747,13 +1747,6 @@ for flyi = 1:numel(flies),
   fly = flies(flyi);
   x = data.GetTrxValues('X1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
   y = data.GetTrxValues('Y1',handles.data.expi,fly,handles.data.t0_curr:handles.data.t1_curr);
-  for behaviori = 1:data.nbehaviors
-    idx = find(labelidx == behaviori);
-    idx1 = min(idx+1,numel(x));
-    handles.guidata.labels_plot.x(1,idx,behaviori,flyi) = x(idx);
-    handles.guidata.labels_plot.x(2,idx,behaviori,flyi) = x(idx1);
-    handles.guidata.labels_plot.y(1,idx,behaviori,flyi) = y(idx);
-    handles.guidata.labels_plot.y(2,idx,behaviori,flyi) = y(idx1);
     
   handles.guidata.labels_plot = LabelsPlot.labelsPlotInitXY(...
     handles.guidata.labels_plot,labelidx,flyi,x,y);
