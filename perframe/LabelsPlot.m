@@ -38,10 +38,10 @@ classdef LabelsPlot
         labels_plot.y(1,idx,ibeh,ifly) = y(idx);
         labels_plot.y(2,idx,ibeh,ifly) = y(idx1);
         
-        % ALTODO this can be true
+        % ALXXX this can be true
         classifierPresent = false;
         if classifierPresent,
-          assert(false,'XXXAL');
+          assert(false,'ALXXX');
           % idx = find(predictedidx == behaviori);
           idx = find((predictedidx == ibeh) & ...
             (abs(scores)>data.GetConfidenceThreshold(ibeh)));
