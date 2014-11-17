@@ -890,7 +890,7 @@ everythingParams=Macguffin(basicParamsStruct);
 %          everythingParams);
 % end
 
-assert(~isempty(handles.handleobj),'ALTODO not all codepaths using handleobj return yet');
+assert(~isempty(handles.handleobj),'ALXXX not all codepaths using handleobj return yet');
 handles.handleobj.data = everythingParams;
 
 % Delete the ProjectSetup window

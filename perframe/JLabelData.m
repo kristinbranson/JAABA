@@ -1451,7 +1451,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function FindFastPredictParams(obj)
       
-        assert(false,'ALTODO: Multiclass unsupported codepath')
+        assert(false,'ALXXX: Multiclass unsupported codepath')
       
         if isempty(obj.classifier),
           return;
@@ -1527,7 +1527,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function finished = WindowDataPredictFast(obj,expi,flies,t0,t1)
       % try to predict using data cached in windowdata
 
-      assert(false,'ALTODO: Multiclass unsupported codepath.');
+      assert(false,'ALXXX: Multiclass unsupported codepath.');
       
       finished = false;
       if isempty(obj.windowdata.exp),
@@ -1571,7 +1571,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function didpredict = PredictFast(obj,expi,flies,t0,t1)
     % Predict fast by computing only the required window features.
 
-      assert(false,'ALTODO: multiclass unsupported');
+      assert(false,'ALXXX: multiclass unsupported');
     
       didpredict = false;
     
@@ -1785,7 +1785,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function errorRates = createConfMat(obj,scores,modLabels)
       
-      assert(false,'ALTODO: unsupported');
+      assert(false,'ALXXX: unsupported');
       
       confMat = zeros(2*obj.nbehaviors,3);
       scoreNorm = obj.windowdata.scoreNorm;
@@ -3159,7 +3159,7 @@ classdef JLabelData < matlab.mixin.Copyable
       has = true;
       for expi = 1:obj.nexps,
         for flies = 1:obj.nflies_per_exp(expi)
-          for iTL = 1:numel(obj.predictdata{expi}{flies}) % ALTODO not sure this is donig right thing for multiclass
+          for iTL = 1:numel(obj.predictdata{expi}{flies}) % ALXXX not sure this is donig right thing for multiclass
             if ~obj.predictdata{expi}{flies}(iTL).loaded_valid(1),
               has = false; return;
             end
@@ -3210,7 +3210,7 @@ classdef JLabelData < matlab.mixin.Copyable
           
       %fprintf('Calling ApplyPostprocessing for %d experiments and %d flies...\n',numel(expis),sum(cellfun(@numel,allflies)));  
       
-      scoreNorm = obj.windowdata.scoreNorm; % ALTODO: not sure about this
+      scoreNorm = obj.windowdata.scoreNorm; % ALXXX: not sure about this
       assert(numel(scoreNorm)==obj.ntimelines);
       for ibeh = 1:obj.ntimelines
       for expii = 1:numel(expis),
@@ -3267,7 +3267,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
       %didbak = false;
 
-      assert(false,'ALTODO: Multiclass unsupported codepath'); 
+      assert(false,'ALXXX: Multiclass unsupported codepath'); 
       
       if exist(sfn,'file'),
         if exist([sfn '~'],'file')
@@ -4942,7 +4942,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       if ~success,error(msg);end
 
       if self.gtMode ,
-        assert(false,'ALTODO Currently unsupported');
+        assert(false,'ALXXX Currently unsupported');
         dirNames=everythingParams.gtExpDirNames;
         labels=everythingParams.gtLabels;
         self.otherModeLabelsEtc=struct('expDirNames',{everythingParams.expDirNames}, ...
@@ -5365,7 +5365,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function allScores = PredictSaveMovie(self,expi,sfn)
     % Predicts for the whole movie and saves the scores.
     
-      assert(false,'ALTODO Unsupported codepath');
+      assert(false,'ALXXX Unsupported codepath');
       
       if nargin < 3
         sfn = self.GetFile('scores',expi);
@@ -5437,7 +5437,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function SaveCurScores(self,expi,sfn)
     % Saves the current scores to a file.
     
-      assert(false,'ALTODO multiclass unsupported');
+      assert(false,'ALXXX multiclass unsupported');
     
       if nargin < 3
         sfn = self.GetFile('scores',expi);
@@ -5535,7 +5535,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       elseif ~updateCurrent,
         for ibeh = 1:obj.ntimelines 
-          assert(false,'ALTODO, codepath needs to be updated');
+          assert(false,'ALXXX, codepath needs to be updated');
           for ndx = 1:numel(allScores{ibeh}.loaded) % Out of date fieldname
             tStart = allScores{ibeh}.tStart(ndx);
             tEnd = allScores{ibeh}.tEnd(ndx);
@@ -6216,7 +6216,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      assert(size(obj.labelidx.vals,1)==1,'ALTODO multicls');
+      assert(size(obj.labelidx.vals,1)==1,'ALXXX multicls');
 
       
     end
@@ -7177,7 +7177,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [success, msg, ts, projectName] = ScoresToPerframe(obj,expi,fileName,ts, projectName)
       
-      assert(false,'ALTODO Multiclass unsupported codepath.');
+      assert(false,'ALXXX Multiclass unsupported codepath.');
       
       persistent perframescoresfile_didselectyes;
       success = true; msg = '';
@@ -8205,7 +8205,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     function predictions = GetPredictionsAllFlies(obj,expi,curt,fliesinrange)
 
-      assert(false,'ALTODO, update me');
+      assert(false,'ALXXX, update me');
 
       predictions = zeros(1,numel(fliesinrange));
       
@@ -8331,7 +8331,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % expi, flies from frames T0 to T1. If T0 and T1 are not input, then
     % firstframe to endframe are used. 
 
-    assert(size(obj.labelidx.vals,1)==1,'ALTODO multicls');
+    assert(size(obj.labelidx.vals,1)==1,'ALXXX multicls');
 
           
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
@@ -8657,7 +8657,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % newly labeled frames. If the classifier has not yet been trained, it
     % is trained from scratch. 
       
-      assert(false,'ALTODO update me');
+      assert(false,'ALXXX update me');
 
       % Store the current labels
       obj.StoreLabelsAndPreLoadWindowData();
@@ -8798,7 +8798,7 @@ classdef JLabelData < matlab.mixin.Copyable
      
       % TODO: don't store window data just because predicting. 
 
-      assert(false,'ALTODO: updateme');      
+      assert(false,'ALXXX: updateme');      
 
       if isempty(obj.classifier),
         return;
@@ -8837,7 +8837,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function allScores = PredictWholeMovie(obj,expi)
       
-      assert(false,'ALTODO, updateme');
+      assert(false,'ALXXX, updateme');
       
       if isempty(obj.classifier),
         return;
@@ -9336,7 +9336,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function DoFastBagging(obj)
       
-      assert(false,'ALTODO Multiclass unsupported codepath');
+      assert(false,'ALXXX Multiclass unsupported codepath');
       
       obj.StoreLabelsForCurrentAnimal();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
@@ -9514,7 +9514,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [nextT, distT] = NextClosestBagFly(obj,dir,curt,expi,flies,curV,ignore,jumpList,jumpRestrict)
       
-      assert(false,'ALTODO multiclass unsupported');
+      assert(false,'ALXXX multiclass unsupported');
             
       nextT = []; distT =[];
       if  isempty(obj.fastPredictBag.dist) || ...
@@ -10038,7 +10038,7 @@ classdef JLabelData < matlab.mixin.Copyable
           return; 
         end
         
-        assert(false,'ALTODO unsupported multiclass');
+        assert(false,'ALXXX unsupported multiclass');
         
         wScores = myBoostClassify(obj.windowdata.X,obj.classifier);
         scoreNorm = prctile(abs(wScores),80);
@@ -10273,7 +10273,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function crossError = GetGTPerformance(obj)
       
-      assert(false,'ALTODO multiclass unsupported');
+      assert(false,'ALXXX multiclass unsupported');
       
       % Computes the performance on the GT data.
       if ~obj.gtMode ,
@@ -10390,7 +10390,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function blen = GetPostprocessedBoutLengths(obj)
       
-      assert(false,'ALTODO multiclass unsupported');
+      assert(false,'ALXXX multiclass unsupported');
       
       %[success,msg] = obj.ApplyPostprocessing();  %#ok
       blen = [];
@@ -10447,7 +10447,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj)
       
-      assert(false,'ALTODO unsupported multiclass');
+      assert(false,'ALXXX unsupported multiclass');
       
       if isempty(obj.windowdata.exp)
         labels = []; labeledscores = []; 
@@ -11173,7 +11173,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % load the file
       macguffin=loadAnonymous(fileNameAbs);
 
-      assert(false,'ALTODO:updateme');
+      assert(false,'ALXXX:updateme');
 
       % Set the classifier in self
       self.setScoreFeatures(macguffin.scoreFeatures);
