@@ -17,11 +17,11 @@ classdef ClassifierStuff < handle
     function self=ClassifierStuff(varargin)
       % set default values
       self.type='boosting';
-      self.params=struct('dim',{}, ...
-                         'error',{}, ...
-                         'dir',{}, ....
-                         'tr',{}, ...
-                         'alpha',{});  % 0x1 struct array
+      self.params=struct('dim',[], ...
+                         'error',[], ...
+                         'dir',[], ....
+                         'tr',[], ...
+                         'alpha',[]);
       self.timeStamp=0;  % default time stamp (bad idea?)
       self.confThresholds=zeros(1,0); % row vec indexed by behavior 
       self.scoreNorm=0;  % default time stamp, number of days since Jan 0, 0000 (typically non-integer)
@@ -39,7 +39,7 @@ classdef ClassifierStuff < handle
                'baseClassifierTypes','Decision Stumps', ...
                'baseClassifierSelected',1);
       self.featureNames = {};
-      self.windowdata =         struct('X',single([]),'exp',[],'flies',[],'t',[],...
+      self.windowdata = struct('X',single([]),'exp',[],'flies',[],'t',[],...
                'labelidx_cur',[],'labelidx_new',[],'labelidx_old',[],...
                'labelidx_imp',[],'featurenames',{{}},...
                'predicted',[],'predicted_probs',[],'isvalidprediction',[],...
@@ -79,16 +79,15 @@ classdef ClassifierStuff < handle
     end
     
     function tfmodified = modernize(self) 
-      % ALQ: Why is this only updating .timeStamp?
       tfmodified = false;
-      
-      nbehavior = numel(self.params);
-      if numel(self.timeStamp)~=nbehavior
-        ts = self.timeStamp;
-        assert(isscalar(ts));
-        self.timeStamp = repmat(ts,1,nbehavior);
-        tfmodified = true;
-      end
+%       
+%       nbehavior = numel(self.params);
+%       if numel(self.timeStamp)~=nbehavior
+%         ts = self.timeStamp;
+%         assert(isscalar(ts));
+%         self.timeStamp = repmat(ts,1,nbehavior);
+%         tfmodified = true;
+%       end
     end
         
   end  % methods
