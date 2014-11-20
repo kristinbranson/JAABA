@@ -153,10 +153,15 @@ classdef Labels
       Nexp = numel(labels);
       
       if ~isfield(labels,'timelinetimestamp')
-        for iExp = 1:Nexp
-          Nfly = numel(labels(iExp).flies);
-          labels(iExp).timelinetimestamp = cell(1,Nfly);
-        end        
+        if isempty(labels)
+          % trick to add field to empty structure
+          [labels(:).timelinetimestamp] = deal([]);
+        else
+          for iExp = 1:Nexp
+            Nfly = numel(labels(iExp).flies);
+            labels(iExp).timelinetimestamp = cell(1,Nfly);
+          end        
+        end
         tmp = Labels.labels(0); % Just to get fieldnames in current/proper order
         labels = orderfields(labels,tmp);
 
