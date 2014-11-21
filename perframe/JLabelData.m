@@ -1974,42 +1974,43 @@ classdef JLabelData < matlab.mixin.Copyable
       end
     end
       
-    function [success,msg] = SetWindowFeatureNames(obj)
-        %ALXXX updateme
-      success = false; msg = '';
+    function SetWindowFeatureNames(obj)
+      % set windowdata.featurenames based on obj.curperframefns and
+      % obj.windowfeaturescellparams.
+      
+      % MERGESTUPDATED
+
       obj.SetStatus('Setting window feature names...');
+      
+      FAKEPFDATA = zeros(1,101);
+
+      nclassifiers = obj.nclassifiers;
+      for iCls = 1:nclassifiers
         
-      if isempty(fieldnames(obj.windowfeaturesparams))
-        msg = 'No features selected';
-        obj.ClearStatus();
-        return;
-      end
-      
-      curperframefns = obj.curperframefns;
-      allperframefns = obj.allperframefns;
-      x_curr_all = cell(1,numel(curperframefns));
-      feature_names_all = cell(1,numel(curperframefns));
-      windowfeaturescellparams = obj.windowfeaturescellparams;
+        wfparams = obj.windowfeaturesparams{iCls};
+        wfcparams = obj.windowfeaturescellparams{iCls};
+        curPFFs = obj.curperframefns{iCls};
+        Ncpff = numel(curPFFs);
+        
+        if isempty(fieldnames(wfparams))
+          feature_names = {cell(1,0)};
+          % msg = 'No features selected';
+          % obj.ClearStatus();
+          % return;
+        else        
+          feature_names = cell(1,Ncpff);
+          for j = 1:Ncpff
+            fn = curPFFs{j};
+            [~,tmp_feature_names_all] = ...
+              ComputeWindowFeatures(FAKEPFDATA,wfcparams.(fn){:},'t0',51,'t1',51);
+            feature_names{j} = cellfun(@(s) [{fn},s],tmp_feature_names_all,'UniformOutput',false);
+          end
+        end
 
-      % make fake per-frame data
-      perframedata = zeros(1,101);
-
-      
-      for j = 1:numel(curperframefns),
-        fn = curperframefns{j};
-        [~,feature_names_all{j}] = ...
-          ComputeWindowFeatures(perframedata,windowfeaturescellparams.(fn){:},'t0',51,'t1',51);
+        obj.windowdata(iCls) = WindowData.windowdataSetFeaturenames(...
+          obj.windowdata(iCls),{[feature_names{:}]});
       end
-      
-      feature_names=cell(1,numel(curperframefns));
-      for j = 1:numel(curperframefns),
-        fn = curperframefns{j};
-        feature_names_curr = feature_names_all{j};
-        feature_names{j} = cellfun(@(s) [{fn},s],feature_names_curr,'UniformOutput',false); 
-      end
-      obj.windowdata.featurenames=[feature_names{:}];
-      
-      success = true;
+        
       obj.ClearStatus();
 
     end  % method
@@ -2232,17 +2233,20 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function ClearWindowData(obj)
-      % Clears window features and predictions for a clean start when 
+      % Clears windowdata, predictblocks, predictions for a clean start when 
       % selecting features.
       
       %MERGESTUPDATED
 
-      obj.windowdata = WindowData.windowdatalear(obj.windowdata);
+      obj.windowdata = WindowData.windowdataClear(obj.windowdata);
       
-      obj.predictblocks.t0 = [];
-      obj.predictblocks.t1 = [];
-      obj.predictblocks.flies = [];
-      obj.predictblocks.expi = [];
+      assert(numel(obj.predictblocks)==obj.nclassifiers);
+      for iCls = 1:obj.nclassifiers
+        obj.predictblocks(iCls).t0 = [];
+        obj.predictblocks(iCls).t1 = [];
+        obj.predictblocks(iCls).flies = [];
+        obj.predictblocks(iCls).expi = [];
+      end
       
       obj.UpdatePredictedIdx();
     end
@@ -2947,9 +2951,10 @@ classdef JLabelData < matlab.mixin.Copyable
       % positive and half are negative.
       % Excludes frames that have normal labels.
       
+      assert(false,'ALXXX updateme');
       success = true; msg = '';
       
-      if ~obj.HasLoadedScores(),
+      if ~obj.HasLoadedScores(), % ALXXX API
         uiwait(warndlg('No scores have been loaded. Load precomputed scores to use this'));
       end
       
@@ -3125,14 +3130,20 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     % ---------------------------------------------------------------------
-    function has = HasLoadedScores(obj)
-      has = true;
-      for expi = 1:obj.nexps,
+    function tf = HasLoadedScores(obj,iCls)
+      % tf: true if there are loaded for all exps/flies
+      
+      %MERGESTUPDATED
+      
+      assert(isscalar(iCls) && any(iCls==1:obj.nclassifiers));
+      
+      tf = true;
+      for expi = 1:obj.nexps
         for flies = 1:obj.nflies_per_exp(expi)
-          for iTL = 1:numel(obj.predictdata{expi}{flies}) % ALXXX not sure this is donig right thing for multiclass
-            if ~obj.predictdata{expi}{flies}(iTL).loaded_valid(1),
-              has = false; return;
-            end
+          pdArr = obj.predictdata{expi}{flies};
+          if ~pdArr(iCls).loaded_valid(1)
+            tf = false;
+            return;
           end
         end
       end      
@@ -8566,48 +8577,34 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function setWindowFeaturesParams(obj,windowFeaturesParams)
-      % Updates the feature params.  Called after user clicks Done in Select
-      % Features...
-%       hasClassifier=~isempty(obj.classifier);
+      % Updates the feature params.  Called after user clicks Done in 
+      % Select Features...
       
-%       if nargin < 3
-%         dotrain = true;
-%       end
+      % MERGESTUPDATED
       
-    %ALXXX updateme
+      assert(iscell(windowFeaturesParams) && numel(windowFeaturesParams)==obj.nclassifiers);
+            
       % obj.setWindowFeaturesParamsRaw(params);
       obj.windowfeaturesparams = windowFeaturesParams;
-      windowFeaturesCellParams= ...
-        JLabelData.convertParams2CellParams(windowFeaturesParams);
-      obj.windowfeaturescellparams = windowFeaturesCellParams;
-      obj.curperframefns = fieldnames(windowFeaturesParams);
-      oldScoreNorm = obj.windowdata.scoreNorm;
-%       if nargin>2
-%         %obj.basicFeatureTable = basicFeatureTable;
-%         obj.maxWindowRadiusCommonCached = maxWindowRadiusCommon;
-%       end
-      %obj.savewindowfeatures = true;  
+      obj.windowfeaturescellparams = cellfun(...
+        @JLabelData.convertParams2CellParams,windowFeaturesParams,'uni',0);
+      obj.curperframefns = cellfun(@fieldnames,windowFeaturesParams,'uni',0);
+      oldScoreNorm = {obj.windowdata.scoreNorm};
 
       obj.clearClassifierProper();
-      % obj.classifier = [];
-      % obj.classifier_old = [];
       obj.ClearWindowData();
       obj.SetWindowFeatureNames();
 %       [success,msg]=obj.PreLoadPeriLabelWindowData();
 %       if ~success, 
 %         error('JLabelData:unableToLoadPerLabelWindowData',msg);
 %       end
-      obj.needsave=true;
+      obj.needsave = true;
       
-      if obj.HasLoadedScores(),
-          obj.windowdata.scoreNorm = oldScoreNorm;
+      for iCls = 1:obj.nclassifiers
+        if obj.HasLoadedScores(iCls)
+            obj.windowdata(iCls).scoreNorm = oldScoreNorm{iCls};
+        end
       end
-      
-%       if hasClassifier && dotrain,
-%         % obj.StoreLabelsAndPreLoadWindowData();  % done in Train()
-%         obj.Train();
-%       end
-      % TODO: remove clearwindow features.
     end
     
     
@@ -10089,7 +10086,8 @@ classdef JLabelData < matlab.mixin.Copyable
 
     % ---------------------------------------------------------------------
     function avgBoutLen = GetAverageLoadedPredictionBoutLength(obj)
-      if ~obj.HasLoadedScores(),
+      assert(false,'ALXXX update');
+      if ~obj.HasLoadedScores(), % ALXXX API
         error('JLabelData:noLoadedScores', ...
               'No scores have been loaded.'); 
       end
@@ -10277,7 +10275,7 @@ classdef JLabelData < matlab.mixin.Copyable
       crossError.numbers = zeros(4,3);
       crossError.frac = zeros(4,3);
 
-      hasloaded = obj.HasLoadedScores();
+      hasloaded = obj.HasLoadedScores(); %ALXXX API
       if ~hasloaded
         
         for expi = 1:obj.nexps,
