@@ -116,6 +116,20 @@ classdef WindowData
 %         wd(i).postprocessed(idxcurr(1:numel(wd(i).postprocessed)),:) = [];
       end
     end
+    
+    function wd = windowdataSetFeaturenames(wd,featurenames)
+      assert(iscell(featurenames)&&numel(featurenames)==numel(wd));
+      for i = 1:numel(wd)
+        if ~isempty(wd(i).X)
+          nCol = size(wd(i).X,2);
+          nFtr = numel(featurenames{i});
+          assert(nCol==nFtr,...
+            'Number of featurenames (%d) does not match number of cols in feature matrix (%d).',...
+            nFtr,nCol);
+        end
+        wd(i).featurenames = featurenames{i};
+      end
+    end
         
   end
   
