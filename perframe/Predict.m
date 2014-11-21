@@ -28,7 +28,7 @@ classdef Predict
       % feature_names: cellstr
       
         nClassifier = numel(classifiers);
-        assert(nClassifier==numel(classifierTS));
+        assert(isequal(nClassifier,numel(classifierTS),numel(feature_names)));
         
         fastPredict = Predict.fastPredict(nClassifier); % No part of fastPredict is reused 
         
@@ -36,7 +36,7 @@ classdef Predict
           
           % which features are actually used
           dims = [classifiers{iCls}.dim];
-          feature_names_cls = feature_names(dims);
+          feature_names_cls = feature_names{iCls}(dims);
           
           % put these in with the rest of the classifiers' window features
           wfs = {};
