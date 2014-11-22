@@ -217,26 +217,19 @@ classdef JLabelData < matlab.mixin.Copyable
     perframe_params
     landmark_params
     
-    % classifier
-    
-    % type of classifier to use
-    classifiertype
-    
+    classifiertype % 1-by-nclassifiers cellstr    
     % currently learned classifier. structure depends on the type of
     % classifier. if empty, then no classifier has been trained yet. 
-    classifier
+    classifier % 1-by-nclassifiers cell
     classifier_old
     lastFullClassifierTrainingSize
-    
-    % Classifier Time Stamp
-    classifierTS  % vector of default time stamps, 1xnrealbehaviors. Number of days since Jan 0, 0000 (typically non-integer)
+    classifierTS  % 1-by-nclassifiers vector of default time stamps. Number of days since Jan 0, 0000 (typically non-integer)
     
     % training statistics
     trainstats
     
-    % parameters to learning the classifier. struct fields depend on type
-    % of classifier.
-    % TODO
+    % parameters to learning the classifier. struct fields depend on type of classifier.
+    % 1-by-nclassifiers cell
     classifier_params
     
     % stuff cached during prediction
@@ -381,8 +374,7 @@ classdef JLabelData < matlab.mixin.Copyable
     bagModels
     fastPredictBag 
 
-    % Confidence Thresholds
-    confThresholds % row vec, indexed by behavioridx
+    confThresholds % 1-by-2*nclassifiers row vec, indexed by behavioridx
     
     % Retrain properly
     doUpdate 
@@ -404,10 +396,10 @@ classdef JLabelData < matlab.mixin.Copyable
     GTSuggestionMode
     
     cacheSize
-    savewindowdata
-    loadwindowdata
+    savewindowdata % 1-by-nclassifiers double
+    loadwindowdata % 1-by-nclassifiers double
     
-    postprocessparams
+    postprocessparams % 1-by-nclassifiers cell
     version
         
     % A place to store things for the other mode.
@@ -660,8 +652,8 @@ classdef JLabelData < matlab.mixin.Copyable
       self.everythingFileNameAbs='';
       self.userHasSpecifiedEverythingFileName=false;
       self.needsave=false;
-      self.savewindowdata = false;
-      self.loadwindowdata = true;
+      self.savewindowdata = false(1,0);
+      self.loadwindowdata = true(1,0);
       
       self.usePastOnly = false;
       
@@ -1987,25 +1979,25 @@ classdef JLabelData < matlab.mixin.Copyable
       nclassifiers = obj.nclassifiers;
       for iCls = 1:nclassifiers
         
-        wfparams = obj.windowfeaturesparams{iCls};
+        %wfparams = obj.windowfeaturesparams{iCls};
         wfcparams = obj.windowfeaturescellparams{iCls};
         curPFFs = obj.curperframefns{iCls};
         Ncpff = numel(curPFFs);
         
-        if isempty(fieldnames(wfparams))
-          feature_names = {cell(1,0)};
-          % msg = 'No features selected';
-          % obj.ClearStatus();
-          % return;
-        else        
-          feature_names = cell(1,Ncpff);
-          for j = 1:Ncpff
-            fn = curPFFs{j};
-            [~,tmp_feature_names_all] = ...
-              ComputeWindowFeatures(FAKEPFDATA,wfcparams.(fn){:},'t0',51,'t1',51);
-            feature_names{j} = cellfun(@(s) [{fn},s],tmp_feature_names_all,'UniformOutput',false);
-          end
+%         if isempty(fieldnames(wfparams))
+%           feature_names = {cell(1,0)};
+%           % msg = 'No features selected';
+%           % obj.ClearStatus();
+%           % return;
+%         else        
+        feature_names = cell(1,Ncpff);
+        for j = 1:Ncpff
+          fn = curPFFs{j};
+          [~,tmp_feature_names_all] = ...
+            ComputeWindowFeatures(FAKEPFDATA,wfcparams.(fn){:},'t0',51,'t1',51);
+          feature_names{j} = cellfun(@(s) [{fn},s],tmp_feature_names_all,'UniformOutput',false);
         end
+%         end
 
         obj.windowdata(iCls) = WindowData.windowdataSetFeaturenames(...
           obj.windowdata(iCls),{[feature_names{:}]});
@@ -4997,51 +4989,46 @@ classdef JLabelData < matlab.mixin.Copyable
       % ALTODO: Seems like classifier-related properties can be
       % consolidated/cleaned up. Why not just use ClassifierStuff?
       
+      %MERGESTUPDATED
+      
       classifierStuff.modernize();
       
       nrealbeh = self.ntimelines;
       assert(numel(classifierStuff)==nrealbeh);
-      self.classifiertype = cell(1,nrealbeh); % ALXXX doc classifier props
+      self.classifiertype = cell(1,nrealbeh);
       self.classifier = cell(1,nrealbeh);
       self.classifier_params = cell(1,nrealbeh);
       self.classifierTS = nan(1,nrealbeh);
       self.confThresholds = nan(1,2*nrealbeh);
-      self.windowdata.scoreNorm = nan(1,nrealbeh);
       self.postprocessparams = cell(1,nrealbeh);
-      self.savewindowdata = nan(1,nrealbeh);      
-      for iBeh = 1:nrealbeh      
+      self.savewindowdata = false(1,nrealbeh);
+      for iBeh = 1:nrealbeh
         cs = classifierStuff(iBeh);
         self.classifiertype{iBeh} = cs.type;
         self.classifier{iBeh} = cs.params;
-        self.classifier_params{iBeh} = cs.trainingParams;        
+        self.classifier_params{iBeh} = cs.trainingParams;
         self.classifierTS(iBeh) = cs.timeStamp;
         self.confThresholds(2*iBeh-1:2*iBeh) = cs.confThresholds;
-        self.windowdata.scoreNorm(iBeh) = cs.scoreNorm;
+        self.windowdata(iBeh).scoreNorm = cs.scoreNorm;
         self.postprocessparams{iBeh} = cs.postProcessParams;
         self.savewindowdata(iBeh) = cs.savewindowdata;
       end
             
-      % Set the window feature names
-      feature_names = {};
-      for j = 1:numel(self.curperframefns),
-        fn = self.curperframefns{j};
-        [~,feature_names_curr_proto] = ComputeWindowFeatures([0,0],...
-                                                             self.windowfeaturescellparams.(fn){:});
-        feature_names_curr = cellfun(@(x) [{fn},x],feature_names_curr_proto,'UniformOutput',false);
-        feature_names = [feature_names,feature_names_curr]; %#ok<AGROW>
-      end
-      
+      % AL20141122: Why are we setting windowfeaturenames? This only
+      % depends on self.curperframefns and self.windowfeaturescellparams.
+      self.SetWindowFeatureNames();
+     % verify windowFeatureNames in classifierStuff
       for iBeh = 1:nrealbeh
         cs = classifierStuff(iBeh);
         if ~isempty(cs.featureNames) && ...
             ~isempty(cs.featureNames{1}) && ...
-            ~isequal(cs.featureNames,feature_names)
-          uiwait(warndlg('The feature names stored in the jab file don''t match the current feature names. The loaded classifier shouldn''t be used; retrain a new classifier.'));
-          self.loadwindowdata = false;
+            ~isequal(cs.featureNames,self.windowdata(iBeh).featurenames)
+          warnstr = sprintf('The feature names stored in the jab file don''t match the current feature names. The loaded classifier for ''%s'' shouldn''t be used; retrain a new classifier.',...
+            self.labelnames{iBeh});
+          uiwait(warndlg(warnstr));
+          self.loadwindowdata(iBeh) = false;
         end
       end
-      assert(obj.nclassifier==1,'ALTODO multicls fixme');
-      self.windowdata.featurenames = feature_names;
             
       % Update the window data near the labels
 %       [success,msg] = self.PreLoadPeriLabelWindowData();
@@ -5085,7 +5072,9 @@ classdef JLabelData < matlab.mixin.Copyable
       self.classifier = repmat({self.classifier},1,nrealbeh); % ALTODO scattered classifier initialization: JLD, ProjectSetup
       self.classifier_old = self.classifier;
       self.classifierTS = zeros(1,nrealbeh); 
-      self.windowdata.scoreNorm = zeros(1,nrealbeh);
+      for iCls = 1:nrealbeh
+        self.windowdata(iCls).scoreNorm = 0;
+      end
       self.invalidatePredictions();
       self.UpdatePredictedIdx();  % update cached predictions for current target
       self.needsave=true;
@@ -10487,6 +10476,8 @@ classdef JLabelData < matlab.mixin.Copyable
 %       fieldNamesInSelf = JLabelData.fieldNamesInSelf;
 %       fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
       
+      assert(false,'ALXXX updateme, note save/loadwindowdata arrayized');
+        
       % make sure current labels are committed
       self.StoreLabelsForCurrentAnimal();
       
@@ -10873,7 +10864,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       oldScoreNorm = self.windowdata.scoreNorm;
       oldfeaturenames = self.windowdata.featurenames;
-      if isprop(macguffin.classifierStuff,'windowdata') && ...
+      if isprop(macguffin.classifierStuff,'windowdata') && ... % ALXXX save/loadwindowdata arrayized
           isstruct(macguffin.classifierStuff.windowdata) && ...
           ~substitutionsMade && self.loadwindowdata &&...
           ~isempty(macguffin.classifierStuff.savewindowdata) && ...
@@ -11251,9 +11242,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
     
     function setsavewindowdata(self,value)
-      self.savewindowdata = value;
-      self.needsave = true;
-      
+      assert(numel(self.savewindowdata)==self.nclassifiers);
+      self.savewindowdata(:) = value;
+      self.needsave = true;      
     end
     
     
