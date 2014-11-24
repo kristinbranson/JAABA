@@ -200,9 +200,9 @@ if ismac,
   if ~exist(outdirname,'dir')
     mkdir(outdirname);
   end
-  movefile('JAABA.app',outdirname);
-  movefile('JAABAPlot.app',outdirname);
-  movefile('PrepareJAABAData.app',outdirname);
+  movefile('JAABA.app',outdirname,'f');
+  movefile('JAABAPlot.app',outdirname,'f');
+  movefile('PrepareJAABAData.app',outdirname,'f');
   copyfile(fullfile(jaabaRootDirName,'LICENSE.txt'),outdirname);
   copyfile(fullfile(jaabaRootDirName,'README.txt'),outdirname);
   copyfile(fullfile(jaabaRootDirName,'misc','javasysmon-0.3.4.jar'),outdirname);
