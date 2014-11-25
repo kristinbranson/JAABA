@@ -289,7 +289,16 @@ classdef JLabelGUIData < handle
     function obj = JLabelGUIData(jld)
       % Constructor
       obj.data=jld;  % store a reference to the "model"
-      obj.computation_threads = max(1,matlabpool('size'));        
+      if verLessThan('matlab','8.3.0.532'),
+        obj.computation_threads = max(1,matlabpool('size'));        
+      else
+        if isempty(gcp('nocreate')),
+          obj.computation_threads = 0;
+        else
+          c = gcp;
+          obj.computation_threads = c.NumWorkers;        
+        end
+      end
     end
 
     
