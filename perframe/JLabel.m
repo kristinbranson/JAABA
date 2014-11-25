@@ -7286,7 +7286,7 @@ function menu_file_import_scores_curr_exp_diff_rootdir_Callback(hObject, eventda
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-assert(false,'ALXXX Unsupported codepath (multiclassifier)');
+assert(false,'Appears unused');
 
 tstring = sprintf('Root dir to load scores for current experiment');
 fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
@@ -7350,7 +7350,7 @@ function menu_file_import_scores_all_exp_diff_rootdir_Callback(hObject, eventdat
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-assert(false,'ALXXX Unsupported codepath (multiclassifier)');
+assert(false,'Appears unused');
 
 tstring = sprintf('Root dir to load scores for all experiments');
 fname = uigetdir(handles.data.defaultpath,'*.mat',tstring);
@@ -7478,7 +7478,7 @@ function menu_classifier_visualize_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-assert(false,'ALXXX Multiclassifier unsupported codepath.');
+assert(false,'ALXXX EXPANDED.');
 
 if ~handles.data.HasWindowdata();
   uiwait(warndlg('Cannot create classifier visualization without windowdata. Train a classifier again to generate windowdata.'));
