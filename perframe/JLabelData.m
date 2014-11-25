@@ -1622,7 +1622,7 @@ classdef JLabelData < matlab.mixin.Copyable
             % Find blocks that overlap with the current interval and merge
             % them into one block.
             overlapping_blocks1 = find(curbs_t0-t0 >= 0 & curbs_t0-t1 <= 0); %
-            overlapping_blocks2 = find(curbs_t1-t0 >= 0 & curbs_t0-t1 <= 0); % ALXXX: intend curbs_t1 in both terms?
+            overlapping_blocks2 = find(curbs_t1-t0 >= 0 & curbs_t0-t1 <= 0); % ALXXX MINIMAL: intend curbs_t1 in both terms?
             overlapping_blocks = unique([overlapping_blocks1(:);overlapping_blocks2(:)]);
             if ~isempty(overlapping_blocks),
               t0 = min(t0,min(curbs_t0(overlapping_blocks)));
@@ -1768,7 +1768,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function errorRates = createConfMat(obj,scores,modLabels)
       
-      assert(false,'ALXXX: unsupported');
+      assert(false,'ALXXX EXPANDED');
       
       confMat = zeros(2*obj.nbehaviors,3);
       scoreNorm = obj.windowdata.scoreNorm;
@@ -1795,7 +1795,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function bouts = getLabeledBouts(obj)
     % Find the bouts from window data.
     
-    % ALXXX UPDATE ME
+    % ALXXX MINIMAL
 
     bouts = struct('ndx',[],'label',[],'timestamp',[]);
       for expNdx = 1:obj.nexps
@@ -2030,7 +2030,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % forces the function to recalculate all the features even though they
     % were calculated before.
       
-    %ALXXX updateme. very similar to preloadwindowdata? 
+    %ALXXX MINIMAL. very similar to preloadwindowdata? 
     
       success = false; msg = '';  %#ok
       
@@ -2943,7 +2943,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % positive and half are negative.
       % Excludes frames that have normal labels.
       
-      assert(false,'ALXXX updateme');
+      assert(false,'ALXXX EXPANDED');
       success = true; msg = '';
       
       if ~obj.HasLoadedScores(), % ALXXX API
@@ -3256,7 +3256,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
       %didbak = false;
 
-      assert(false,'ALXXX: Multiclass unsupported codepath'); 
+      assert(false,'ALXXX MINIMAL'); 
       
       if exist(sfn,'file'),
         if exist([sfn '~'],'file')
@@ -4928,7 +4928,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       if ~success,error(msg);end
 
       if self.gtMode ,
-        assert(false,'ALXXX Currently unsupported');
+        assert(false,'ALXXX EXPANDED');
         dirNames=everythingParams.gtExpDirNames;
         labels=everythingParams.gtLabels;
         self.otherModeLabelsEtc=struct('expDirNames',{everythingParams.expDirNames}, ...
@@ -5063,7 +5063,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       % Set the classifier in the JLabelData object
 %       self.setClassifierStuff(classifierStuff);
       %self.ClearWindowData();
-      self.classifier=struct('dim',{}, ...
+      self.classifier = struct('dim',{}, ...
                              'error',{}, ...
                              'dir',{}, ....
                              'tr',{}, ...
@@ -5077,7 +5077,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       self.invalidatePredictions();
       self.UpdatePredictedIdx();  % update cached predictions for current target
-      self.needsave=true;
+      self.needsave = true;
       %self.PreLoadPeriLabelWindowData();  % do we need to do this?
     end  
 
@@ -5337,7 +5337,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function allScores = PredictSaveMovie(self,expi,sfn)
     % Predicts for the whole movie and saves the scores.
     
-      assert(false,'ALXXX Unsupported codepath');
+      assert(false,'ALXXX MINIMAL');
       
       if nargin < 3
         sfn = self.GetFile('scores',expi);
@@ -5409,7 +5409,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function SaveCurScores(self,expi,sfn)
     % Saves the current scores to a file.
     
-      assert(false,'ALXXX multiclass unsupported');
+      assert(false,'ALXXX MINIMAL');
     
       if nargin < 3
         sfn = self.GetFile('scores',expi);
@@ -5507,7 +5507,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       elseif ~updateCurrent,
         for ibeh = 1:obj.ntimelines 
-          assert(false,'ALXXX, codepath needs to be updated');
+          assert(false,'ALXXX MINIMAL');
           for ndx = 1:numel(allScores{ibeh}.loaded) % Out of date fieldname
             tStart = allScores{ibeh}.tStart(ndx);
             tEnd = allScores{ibeh}.tEnd(ndx);
@@ -6188,7 +6188,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      assert(size(obj.labelidx.vals,1)==1,'ALXXX multicls');
+      assert(size(obj.labelidx.vals,1)==1,'ALXXX MINIMAL');
 
       
     end
@@ -6971,7 +6971,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function RemoveArenaPFs(obj)
-      %ALXXX updateme
+      %ALXXX MINIMAL
       
       %settings = ReadXMLParams(obj.featureConfigFile);
       
@@ -7138,7 +7138,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [success, msg, ts, projectName] = ScoresToPerframe(obj,expi,fileName,ts, projectName)
       
-      assert(false,'ALXXX Multiclass unsupported codepath.');
+      assert(false,'ALXXX EXPANDED.');
       
       persistent perframescoresfile_didselectyes;
       success = true; msg = '';
@@ -8194,7 +8194,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function scores = GetValidatedScores(obj,expi,flies,T0,T1)
       % ALTODO this and the next 4 methods (Get*Scores) seem very similar
       
-      %ALXXX UPDATE ME
+      %ALXXX UPDATE MINIMAL
       
       if nargin<4
         T0 = max(obj.GetTrxFirstFrame(expi,flies));
@@ -8301,7 +8301,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % expi, flies from frames T0 to T1. If T0 and T1 are not input, then
     % firstframe to endframe are used. 
 
-    assert(size(obj.labelidx.vals,1)==1,'ALXXX multicls');
+    assert(size(obj.labelidx.vals,1)==1,'ALXXX MINIMAL');
 
           
       if ~isempty(obj.expi) && expi == obj.expi && numel(flies) == numel(obj.flies) && all(flies == obj.flies),
@@ -8614,7 +8614,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % newly labeled frames. If the classifier has not yet been trained, it
     % is trained from scratch. 
       
-      assert(false,'ALXXX update me');
+      assert(false,'ALXXX MINIMAL');
 
       % Store the current labels
       obj.StoreLabelsAndPreLoadWindowData();
@@ -8755,7 +8755,7 @@ classdef JLabelData < matlab.mixin.Copyable
      
       % TODO: don't store window data just because predicting. 
 
-      assert(false,'ALXXX: updateme');      
+      assert(false,'ALXXX MINIMAL');      
 
       if isempty(obj.classifier),
         return;
@@ -8794,7 +8794,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function allScores = PredictWholeMovie(obj,expi)
       
-      assert(false,'ALXXX, updateme');
+      assert(false,'ALXXX MINIMAL');
       
       if isempty(obj.classifier),
         return;
@@ -9293,7 +9293,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function DoFastBagging(obj)
       
-      assert(false,'ALXXX Multiclass unsupported codepath');
+      assert(false,'ALXXX EXPANDED');
       
       obj.StoreLabelsForCurrentAnimal();
       [success,msg] = obj.PreLoadPeriLabelWindowData();
@@ -9442,7 +9442,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function dist = GetDistance(obj,expi,flies)
-      %ALXXX UPDATE ME
+      %ALXXX EXPANDED
       
       if obj.HasDistance(expi,flies)
         obj.ComputeBagDistanceTraining();
@@ -9473,7 +9473,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [nextT, distT] = NextClosestBagFly(obj,dir,curt,expi,flies,curV,ignore,jumpList,jumpRestrict)
       
-      assert(false,'ALXXX multiclass unsupported');
+      assert(false,'ALXXX EXPANDED');
             
       nextT = []; distT =[];
       if  isempty(obj.fastPredictBag.dist) || ...
@@ -9571,7 +9571,7 @@ classdef JLabelData < matlab.mixin.Copyable
     function [nextT, distT, fly, exp ] = ...
         NextClosestBagTraining(obj,jtype,curT,curExp,curFly,ignore,jumpList,jumpRestrict)
       
-      %ALXXX UPDATE ME
+      %ALXXX EXPANDED
       
       nextT = []; distT = []; fly = []; exp = [];
       
@@ -9829,7 +9829,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
       
-      %ALXXX UPDATE ME
+      %ALXXX EXPANDED
       
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
             
@@ -10075,7 +10075,7 @@ classdef JLabelData < matlab.mixin.Copyable
 
     % ---------------------------------------------------------------------
     function avgBoutLen = GetAverageLoadedPredictionBoutLength(obj)
-      assert(false,'ALXXX update');
+      assert(false,'ALXXX EXPANDED');
       if ~obj.HasLoadedScores(), % ALXXX API
         error('JLabelData:noLoadedScores', ...
               'No scores have been loaded.'); 
@@ -10253,7 +10253,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function crossError = GetGTPerformance(obj)
       
-      assert(false,'ALXXX multiclass unsupported');
+      assert(false,'ALXXX EXPANDED');
       
       % Computes the performance on the GT data.
       if ~obj.gtMode ,
@@ -10370,7 +10370,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function blen = GetPostprocessedBoutLengths(obj)
       
-      assert(false,'ALXXX multiclass unsupported');
+      assert(false,'ALXXX MINIMAL');
       
       %[success,msg] = obj.ApplyPostprocessing();  %#ok
       blen = [];
@@ -10427,7 +10427,7 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function [labels,labeledscores,allScores,scoreNorm] = GetAllLabelsAndScores(obj)
       
-      assert(false,'ALXXX unsupported multiclass');
+      assert(false,'ALXXX MINIMAL');
       
       if isempty(obj.windowdata.exp)
         labels = []; labeledscores = []; 
@@ -10476,7 +10476,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       fieldNamesInSelf = JLabelData.fieldNamesInSelf;
 %       fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
       
-      assert(false,'ALXXX updateme, note save/loadwindowdata arrayized');
+      assert(false,'ALXXX MINIMAL, note save/loadwindowdata arrayized');
         
       % make sure current labels are committed
       self.StoreLabelsForCurrentAnimal();
@@ -10864,7 +10864,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       oldScoreNorm = self.windowdata.scoreNorm;
       oldfeaturenames = self.windowdata.featurenames;
-      if isprop(macguffin.classifierStuff,'windowdata') && ... % ALXXX save/loadwindowdata arrayized
+      if isprop(macguffin.classifierStuff,'windowdata') && ... % ALXXX MINIMAL save/loadwindowdata arrayized
           isstruct(macguffin.classifierStuff.windowdata) && ...
           ~substitutionsMade && self.loadwindowdata &&...
           ~isempty(macguffin.classifierStuff.savewindowdata) && ...
@@ -11155,7 +11155,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % load the file
       macguffin=loadAnonymous(fileNameAbs);
 
-      assert(false,'ALXXX:updateme');
+      assert(false,'ALXXX MINIMAL');
 
       % Set the classifier in self
       self.setScoreFeatures(macguffin.scoreFeatures);

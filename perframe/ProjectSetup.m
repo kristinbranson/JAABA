@@ -828,8 +828,8 @@ function pushbutton_done_Callback(hObject, ~, handles)  %#ok
 % handles    structure with handles and user data (see GUIDATA)
 
 % Check for an empty behavior name
-behaviorName=handles.basicParamsStruct.behaviors.names;
-if isempty(behaviorName) ,
+behaviorName = handles.basicParamsStruct.behaviors.names;
+if isempty(behaviorName)
   uiwait(errordlg('You must enter a behavior name.', ...
                   'No behavior name', ...
                   'modal'));
@@ -837,8 +837,8 @@ if isempty(behaviorName) ,
 end
 
 % Check for an empty track file name
-trackFileName=handles.basicParamsStruct.file.trxfilename;
-if isempty(trackFileName) ,
+trackFileName = handles.basicParamsStruct.file.trxfilename;
+if isempty(trackFileName)
   uiwait(errordlg('You must enter a track file name.', ...
                   'No track file name', ...
                   'modal'));
@@ -846,8 +846,8 @@ if isempty(trackFileName) ,
 end
 
 % Check for an empty score file name
-scoreFileName=handles.basicParamsStruct.file.scorefilename;
-if isempty(scoreFileName) ,
+scoreFileName = handles.basicParamsStruct.file.scorefilename;
+if isempty(scoreFileName)
   uiwait(errordlg('You must enter a score file name.', ...
                   'No score file name', ...
                   'modal'));
@@ -857,7 +857,7 @@ end
 nbehavior = numel(handles.basicParamsStruct.behaviors.names);
 assert(iscellstr(handles.basicParamsStruct.file.scorefilename));
 nscorefile = numel(handles.basicParamsStruct.file.scorefilename);
-if nbehavior~=nscorefile,
+if nbehavior~=nscorefile
   uiwait(errordlg('The number of score files must match the number of behaviors.', ...
                   'Invalid score file names', ...
                   'modal'));
@@ -866,12 +866,20 @@ end
 
 handles.basicParamsStruct.behaviors = ...
   enforceBehaviorParamConstraints(handles.basicParamsStruct.behaviors,true);
-handles.basicParamsStruct.classifierStuff.init(nbehavior);
+if handles.new
+  for i = nbehavior:-1:1
+    cs(i,1) = ClassifierStuff();
+  end
+  handles.basicParamsStuff.classifierStuff = cs;
+else   
+  handles.basicParamsStruct.classifierStuff.init(nbehavior); 
+  assert(false,'ALXXX MINIMAL');
+end
 
 % Get the info we need out of the handles
-basicParamsStruct=handles.basicParamsStruct;
-figureJLabel=handles.figureJLabel;
-everythingParams=Macguffin(basicParamsStruct);
+basicParamsStruct = handles.basicParamsStruct;
+%figureJLabel = handles.figureJLabel;
+everythingParams = Macguffin(basicParamsStruct);
 
 % % Call the appropriate function to notify the JLabel "object" that 
 % % we're done.
@@ -890,13 +898,11 @@ everythingParams=Macguffin(basicParamsStruct);
 %          everythingParams);
 % end
 
-assert(~isempty(handles.handleobj),'ALXXX not all codepaths using handleobj return yet');
+assert(~isempty(handles.handleobj),'ALXXX MINIMAL not all codepaths using handleobj return yet');
 handles.handleobj.data = everythingParams;
 
 % Delete the ProjectSetup window
 delete(get(hObject,'parent'));
-
-return
 
 
 % -------------------------------------------------------------------------

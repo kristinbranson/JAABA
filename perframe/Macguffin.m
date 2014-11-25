@@ -48,7 +48,7 @@ classdef Macguffin < handle
       self.featureLexicon=featureLexicon;
       featureLexiconPFNames = fieldnames(featureLexicon.perframe);
       self.sublexiconPFNames = featureLexiconPFNames;
-      self.windowFeaturesParams=struct();  % scalar sctruct with no fields
+      self.windowFeaturesParams={struct()};  % scalar struct with no fields
         % This is valid b/c no per-frame features have been enabled yet
       self.labels=struct('t0s',{}, ...
                          't1s',{}, ...
@@ -608,6 +608,12 @@ classdef Macguffin < handle
         % if tfmodtags
         %   self(i).expDirTags = ExperimentTags.expTags(self(i).expDirNames);
         % end
+        
+        if isstruct(self(i).windowFeaturesParams)
+          self(i).windowFeaturesParams = {self(i).windowFeaturesParams};
+        end
+        nCls = numel(self(i).classifierStuff);
+        assert(numel(self(i).windowFeaturesParams)==nCls);        
         
         tfmod = tfmodlbl || tfmodcls; % || tfmodtags;
         if dowarn && tfmod
