@@ -1694,7 +1694,7 @@ handlesindividualsbehavior=zeros(sum(cellfun(@length,handles.experimentlist)),le
 timestamps=nan(1,length(newclassifiers));
 parfor c=1:length(newclassifiers)
 %for c=1:length(newclassifiers)
-  classifier=load(newclassifiers{c},'-mat');
+  classifier=load(newclassifiers{c},'-mat'); %#ok<PFTUS>
 
   timestamps(c)=classifier.x.classifierStuff.timeStamp;
 
@@ -4259,7 +4259,7 @@ for b=bb
 
     traj_len=behavior_data.allScores.tEnd-behavior_data.allScores.tStart;
 
-    frames_labelled=nan(1,length(behavior_data.allScores.t0s));
+    frames_labelled=nan(1,length(behavior_data.allScores.t0s)); %#ok<PFTUS>
     frames_total=nan(1,length(behavior_data.allScores.t0s));
     sex=nan(1,length(behavior_data.allScores.t0s));
 
@@ -5775,7 +5775,9 @@ while true,
     
     if ischange && isempty(errs),
         
+      if verLessThan('matlab','8.3.0.532'),
         % remove extra computation threads
+        
         if matlabpool('size') > computation_threads,
             set(handles.Status,'string',sprintf('Shrinking matlab pool to %d workers',computation_threads),'foregroundcolor','b');
             set(handles.figure1,'pointer','watch');
@@ -5796,7 +5798,33 @@ while true,
             matlabpool('open',computation_threads);
             pause(1);
         end
+      else
+
+        curpool = gcp('nocreate');
+        % remove extra computation threads
+        if ~isempty(curpool) && curpool.NumWorkers > computation_threads,
+            set(handles.Status,'string',sprintf('Shrinking parallel pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            pause(2);
+            delete(gcp);
+            parpool(computation_threads);
+        end
         
+        % add extra computation threads
+        if isempty(curpool) || curpool.NumWorkers < computation_threads,
+            set(handles.Status,'string',sprintf('Growing parallel pool to %d workers',computation_threads),'foregroundcolor','b');
+            set(handles.figure1,'pointer','watch');
+            drawnow;
+            if isempty(curpool),
+                delete(gcp);
+            end
+            pause(1);
+            parpool(computation_threads);
+            pause(1);
+        end
+        
+        
+      end
         
         handles.computation_threads = computation_threads;
         %     ClearStatus(handles);

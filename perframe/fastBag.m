@@ -5,7 +5,7 @@ if nargin < 6
 end
 
 numIters = 100;
-wkSamples = 50;
+wkSamples = min(50,size(data,2));
 numPerm = 300;
 
 numEx = size(data,1);
