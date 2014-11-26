@@ -60,7 +60,8 @@ bottomtextfontsize=8;
   fixedaxis,...
   animaltype,...
   headmarksize,...
-  bottomtextfontsize] = ...
+  bottomtextfontsize,...
+  isstjaaba] = ...
   myparse(varargin,'framestarts',[],'nframesperseg',[],...
   'fracstarts',[],'fracperseg',1/60,...
   'targets',[],...
@@ -106,12 +107,14 @@ bottomtextfontsize=8;
   'fixedaxis',[],...
   'animaltype',animaltype,...
   'headmarksize',headmarksize,...
-  'bottomtextfontsize',bottomtextfontsize);
+  'bottomtextfontsize',bottomtextfontsize,...
+  'isstjaaba',false);
 
 classifierparams = ReadClassifierParamsFile(classifierparamsfile);
 nbehaviors = numel(classifierparams);
 behaviors = cell(1,nbehaviors);
 scorefns = cell(1,nbehaviors);
+labelfns = cell(1,nbehaviors);
 for i = 1:nbehaviors,
   behaviors{i} = classifierparams(i).behaviors.names{1};
   j = find(strcmp(behaviors{i},behaviorname_dict(:,1)),1);
@@ -122,6 +125,7 @@ for i = 1:nbehaviors,
   end
   scorefn = classifierparams(i).file.scorefilename;
   scorefns{i} = regexprep(scorefn,'\.mat$','');
+  labelfns{i} = regexprep(scorefns{i},'score','label','preservecase','once');
 end
 
 if ~isempty(behaviororder),
@@ -130,6 +134,7 @@ if ~isempty(behaviororder),
   [~,orderidx] = sort(orderidx);
   behaviors = behaviors(orderidx);
   scorefns = scorefns(orderidx);
+  labelfns = labelfns(orderidx);
   classifierparams = classifierparams(orderidx);
 end
 
@@ -261,7 +266,7 @@ end
 if isempty(behaviorweight),
   behaviorweight = nan(nbehaviors,1);
   for behaviori = 1:nbehaviors,
-    tmp = trx(targets).(scorefns{behaviori});
+    tmp = trx(targets).(labelfns{behaviori});
     if iscell(tmp),
       tmp = [tmp{:}];
     end
@@ -377,6 +382,12 @@ set(haxbottom,'XTick',1:nbehaviors,'XTickLabel',behaviors,'YTick',[],...
 
 set(hfig,'Color','k');
 
+if isstjaaba,
+  set([htrx,htarget],'Visible','off');
+  textpos = [size(im,2)/2,size(im,1)];
+end
+
+
 %% update plots
 
 isfirstframe = true;
@@ -435,8 +446,10 @@ for segi = 1:numel(framestarts),
   end
 
   scores = nan(nbehaviors,nframes_curr);
+  labels = nan(nbehaviors,nframes_curr);
   for behaviori = 1:nbehaviors,
     scores(behaviori,:) = min(1,max(-1,trx(target).(scorefns{behaviori})/score_norms(behaviori)));
+    labels(behaviori,:) = double(trx(target).(labelfns{behaviori}))*2-1;
   end
   
   for t = framestarts(segi):frameends(segi),
@@ -467,7 +480,7 @@ for segi = 1:numel(framestarts),
     
     for behaviori = 1:nbehaviors,
       set(hbar(behaviori),'YData',[0,0,1,1,0]*scores(behaviori,i));
-      set(hbarback(behaviori),'YData',[0,0,1,1,0]*sign(scores(behaviori,i)));
+      set(hbarback(behaviori),'YData',[0,0,1,1,0]*labels(behaviori,i));
     end
     w = max(0,scores(:,i)).*behaviorweight;
     z = sum(w);
@@ -478,27 +491,34 @@ for segi = 1:numel(framestarts),
     end
     set(htarget,'Color',colortmp);
     
-    tailpos = [x(i)-(pxback+2*a(i))*cos(theta(i)),y(i)-(pxback+2*a(i))*sin(theta(i))];      
-    sectori = sector(i);
-    % floor(modrange((smooththeta(i)-pi/8),0,2*pi)/pi*4)+1;
-    
-    if ismember(sectori,[1,7,8]),
-      halign = 'right';
-    elseif ismember(sectori,[2,6]),
+    if isstjaaba,
+      tailpos = textpos;
       halign = 'center';
-    elseif ismember(sectori,[3,4,5]),
-      halign = 'left';
-    else
-      error('Sanity check: sectori > 8 or < 1');
-    end
-    if ismember(sectori,[1,2,3]),
       valign = 'bottom';
-    elseif ismember(sectori,[4,8]),
-      valign = 'middle';
-    elseif ismember(sectori,[5,6,7]),
-      valign = 'top';
     else
-      error('Sanity check: sectori > 8 or < 1');
+    
+      tailpos = [x(i)-(pxback+2*a(i))*cos(theta(i)),y(i)-(pxback+2*a(i))*sin(theta(i))];
+      sectori = sector(i);
+      % floor(modrange((smooththeta(i)-pi/8),0,2*pi)/pi*4)+1;
+      
+      if ismember(sectori,[1,7,8]),
+        halign = 'right';
+      elseif ismember(sectori,[2,6]),
+        halign = 'center';
+      elseif ismember(sectori,[3,4,5]),
+        halign = 'left';
+      else
+        error('Sanity check: sectori > 8 or < 1');
+      end
+      if ismember(sectori,[1,2,3]),
+        valign = 'bottom';
+      elseif ismember(sectori,[4,8]),
+        valign = 'middle';
+      elseif ismember(sectori,[5,6,7]),
+        valign = 'top';
+      else
+        error('Sanity check: sectori > 8 or < 1');
+      end
     end
     
     labelis = find(scores(:,i) > 0);
@@ -515,7 +535,11 @@ for segi = 1:numel(framestarts),
       'HorizontalAlignment',halign,...
       'VerticalAlignment',valign);
 
-    ss = sprintf('Target %d (%s), Frame %d',target,sex{i},t);
+    if isstjaaba,
+      ss = sprintf('Frame %d',t);
+    else
+      ss = sprintf('Target %d (%s), Frame %d',target,sex{i},t);
+    end
     if ~isempty(textprefix),
       ss = sprintf('%s, %s',textprefix,ss);
     end
@@ -525,6 +549,7 @@ for segi = 1:numel(framestarts),
     if ~isempty(titlepagetext),
       ss = [ss,titlepagetext2];
     end
+    
 
     set(hinfo,'String',ss)
     
@@ -590,7 +615,7 @@ for segi = 1:numel(framestarts),
     end
 
     % pause for a few frames at the start of a new segment
-    if t == framestarts(segi),% && segi > 1,
+    if t == framestarts(segi) && numel(framestarts) > 1,
       set(hinfo,'Color',[.5,0,0],'FontWeight','bold');
       fr = getframe(hfig);
       for pausei = 1:fps,

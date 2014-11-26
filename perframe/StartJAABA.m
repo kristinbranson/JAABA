@@ -22,7 +22,11 @@ SetUpJAABAPath;
 
 try
   
-  nthreads = SetUpMatlabPool();
+  if verLessThan('matlab','8.3.0.532'),
+    nthreads = SetUpMatlabPool();
+  else
+    nthreads = SetUpParPool();
+  end
 
 catch ME
   

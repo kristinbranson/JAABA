@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+<params>
+  <defaults>
+  <normal
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="30" 
+    nwindow_radii="5" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </normal>
+  
+  <more
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="30" 
+    nwindow_radii="9" 
+    window_offsets="0,0.5,-0.5,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <hist hist_edges="-1,1"/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="5"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </more>  
+  
+  <less
+    sanitycheck="0"
+    min_window_radius="1" 
+    max_window_radius="30" 
+    nwindow_radii="3" 
+    window_offsets="0,-1,1" 
+    trans_types="none"  >
+    <mean min_window_radius="0"/>
+    <min/>
+    <max/>
+    <change change_window_radii="1,3"/>
+    <std/>
+    <harmonic num_harmonic="3"/>
+    <diff_neighbor_mean/>
+    <diff_neighbor_min/>
+    <diff_neighbor_max/>
+    <zscore_neighbors/>
+  </less>
+  
+  </defaults>
+  
+  <perframe>
+
+  <absangchvsangtc trans_types="none" type="abs_appearance"/>
+  <angchvsangtc trans_types="abs,flip" type="appearance"/>
+  <area trans_types="none,relative" type="appearance"/>
+  <centralheadang trans_types="none" type="position"/>
+  <centralheadmag trans_types="none,relative" type="appearance"/>
+  <ratioarealength trans_types="none,relative" type="appearance"/>
+  <spinelength trans_types="none,relative" type="appearance"/>
+  <tailcentralang trans_types="none" type="position"/>
+  <tailcentralmag trans_types="none,relative" type="appearance"/>
+  <tailheadang trans_types="none" type="position"/>
+  <tailheadmag trans_types="none,relative" type="appearance"/>
+  <velang trans_types="none" type="locomotion_global"/>
+  <velch trans_types="none,relative" type="locomotion"/>
+  <velmag trans_types="none,relative" type="locomotion"/>
+  <velperch trans_types="abs,flip" type="locomotion"/>
+  <vx_cm trans_types="none" type="locomotion_global"/>
+  <vy_cm trans_types="none" type="locomotion_global"/>
+  <xcentral_mm trans_types="none" type="position"/>
+  <x_cm trans_types="none" type="position"/>
+  <xhead_mm trans_types="none" type="position"/>
+  <xtail_mm trans_types="none" type="position"/>
+  <ycentral_mm trans_types="none" type="position"/>
+  <y_cm trans_types="none" type="position"/>
+  <yhead_mm trans_types="none" type="position"/>
+  <ytail_mm trans_types="none" type="position"/>
+  <dtailheadmag trans_types="none,abs,relative" type="locomotion"/>
+  <dtailcentralmag trans_types="none,abs,relative" type="locomotion"/>
+  <dcentralheadmag trans_types="none,abs,relative" type="locomotion"/>
+  <dtailheadang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dtailcentralang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dcentralheadang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxhead_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dyhead_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxcentral_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dycentral_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxtail_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dytail_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dspinelength trans_types="none,abs,relative" type="locomotion"/>
+  <darea trans_types="none,abs,relative" type="locomotion"/>
+  <dratioarealength trans_types="none,abs,relative" type="locomotion"/>
+  <dangchvsangtc trans_types="abs,flip" type="locomotion"/>
+  <theta trans_types="none" type="position"/>
+  <a_mm trans_types="none,relative" type="appearance"/>
+  <b_mm trans_types="none,relative" type="appearance"/>
+  <ecc trans_types="none,relative" type="appearance"/>
+  <da_mm trans_types="none,relative" type="locomotion_global"/>
+  <db_mm trans_types="none,relative" type="locomotion_global"/>
+  <decc trans_types="none,relative" type="locomotion_global"/>
+  <dtheta trans_types="none" type="locomotion_global"/>
+  <velmaghead trans_types="none,relative" type="locomotion"/>
+  <velmagcentral trans_types="none,relative" type="locomotion"/>
+  <velmagtail trans_types="none,relative" type="locomotion"/>
+  <velanghead trans_types="none,abs,relative" type="locomotion_global"/>
+  <velangcentral trans_types="none,abs,relative" type="locomotion_global"/>
+  <velangtail trans_types="none,abs,relative" type="locomotion_global"/>
+  <velheadch trans_types="none,relative" type="locomotion"/>
+  <velcentralch trans_types="none,relative" type="locomotion"/>
+  <veltailch trans_types="none,relative" type="locomotion"/>
+  <velheadperch trans_types="none,relative" type="locomotion"/>
+  <velcentralperch trans_types="none,relative" type="locomotion"/>
+  <veltailperch trans_types="none,relative" type="locomotion"/>
+  <velheadtc trans_types="none,relative" type="locomotion"/>
+  <velcentraltc trans_types="none,relative" type="locomotion"/>
+  <veltailtc trans_types="none,relative" type="locomotion"/>
+  <velheadpertc trans_types="none,relative" type="locomotion"/>
+  <velcentralpertc trans_types="none,relative" type="locomotion"/>
+  <veltailpertc trans_types="none,relative" type="locomotion"/>
+  <velheadth trans_types="none,relative" type="locomotion"/>
+  <velcentralth trans_types="none,relative" type="locomotion"/>
+  <veltailth trans_types="none,relative" type="locomotion"/>
+  <velheadperth trans_types="none,relative" type="locomotion"/>
+  <velcentralperth trans_types="none,relative" type="locomotion"/>
+  <veltailperth trans_types="none,relative" type="locomotion"/>  
+  <veltc trans_types="none,relative" type="locomotion"/>
+  <velpertc trans_types="abs,flip" type="locomotion"/>
+  <velth trans_types="none,relative" type="locomotion"/>
+  <velperth trans_types="abs,flip" type="locomotion"/>
+  <sumspinerelangle trans_types="none,abs,relative" type="appearance"/>
+  <sumspinerelanglehc trans_types="none,abs,relative" type="appearance"/>
+  <sumspinerelanglect trans_types="none,abs,relative" type="appearance"/>
+  <dsumspinerelangle trans_types="none,abs,relative" type="locomotion"/>
+  <dsumspinerelanglehc trans_types="none,abs,relative" type="locomotion"/>
+  <dsumspinerelanglect trans_types="none,abs,relative" type="locomotion"/>
+  <tailinflang trans_types="none" type="position"/>
+  <tailinflmag trans_types="none,relative" type="appearance"/>
+  <inflheadang trans_types="none" type="position"/>
+  <inflheadmag trans_types="none,relative" type="appearance"/>
+  <angihvsangti trans_types="abs,flip" type="appearance"/>
+  <dangihvsangti trans_types="abs,flip" type="locomotion"/>
+  <xinflection_mm trans_types="none" type="position"/>
+  <yinflection_mm trans_types="none" type="position"/>
+  <dxinflection_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dyinflection_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dtailinflmag trans_types="none,abs,relative" type="locomotion"/>
+  <dtailinflang trans_types="none,abs,relative" type="locomotion_global"/>
+  <dinflheadmag trans_types="none,abs,relative" type="locomotion"/>
+  <dinflheadang trans_types="none,abs,relative" type="locomotion_global"/>
+  <xheadsm_mm trans_types="none" type="position"/>
+  <xtailsm_mm trans_types="none" type="position"/>
+  <yheadsm_mm trans_types="none" type="position"/>
+  <ytailsm_mm trans_types="none" type="position"/>
+  <dxheadsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dyheadsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dxtailsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <dytailsm_mm trans_types="none,abs,relative" type="locomotion_global"/>
+  <centralheadsmang trans_types="none" type="position"/>
+  <velchsm trans_types="none,relative" type="locomotion"/>
+  <tailsmcentralang trans_types="none" type="position"/>
+  <veltsmc trans_types="none,relative" type="locomotion"/>
+  <tailsmheadsmang trans_types="none" type="position"/>
+  <veltsmhsm trans_types="none,relative" type="locomotion"/>
+  <tailsminflang trans_types="none" type="position"/>
+  <inflheadsmang trans_types="none" type="position"/>
+  <angihsmvsangtsmi trans_types="abs,flip" type="appearance"/>
+</perframe>
+</params>
