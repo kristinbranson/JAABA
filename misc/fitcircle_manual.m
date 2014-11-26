@@ -1,4 +1,4 @@
-function [xc,yc,radius,h] = fitcircle_manual(hfig,color)
+function [xc,yc,radius,h] = fitcircle_manual(hfig,color,ti)
 
 xc = [];
 yc = [];
@@ -10,7 +10,10 @@ if nargin < 1,
 end
 hold on;
 
-title('Click points on circle');
+if nargin < 3,
+  ti = 'Click points on circle';
+end
+title(ti);
 try
   [x,y] = getline(hfig,'closed');
 catch %#ok<CTCH>

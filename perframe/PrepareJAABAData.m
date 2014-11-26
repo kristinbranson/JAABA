@@ -192,6 +192,7 @@ handles.visible_override_arena = 'on';
 handles.visible_compute_arena = 'on';
 handles.visible_read_arena = 'on';
 handles.visible_read_fps = 'on';
+handles.visible_crop = 'on';
 
 if strcmpi(InputDataType.writefps,'no'),
   handles.visible_edit_fps = 'off';
@@ -223,6 +224,9 @@ end
 if strcmpi(InputDataType.readfps,'no') || strcmpi(InputDataType.writefps,'no'),
   handles.visible_read_fps = 'off';
 end
+if ~InputDataType.allowCrop,
+  handles.visible_crop = 'off';
+end
 
 set([handles.text_fps,handles.edit_fps],'Visible',handles.visible_edit_fps);
 set([handles.text_OverRideFPS,handles.checkbox_OverRideFPS],'Visible',handles.visible_override_fps);
@@ -237,6 +241,11 @@ set([handles.text_OverRideArena,handles.checkbox_OverRideArena],'Visible',handle
 set(handles.pushbutton_ComputeArenaParameters,'Visible',handles.visible_compute_arena);
 set(handles.pushbutton_ReadArenaParameters,'Visible',handles.visible_read_arena);
 set(handles.pushbutton_ReadFPS,'Visible',handles.visible_read_fps);
+set(handles.edit_CropEndFrame,'Visible',handles.visible_crop);
+set(handles.edit_CropFirstFrame,'Visible',handles.visible_crop);
+set(handles.text_framerange,'Visible',handles.visible_crop);
+set(handles.text_framerange2,'Visible',handles.visible_crop);
+
 
 function handles = UpdateOutputFilesTable(handles)
 
