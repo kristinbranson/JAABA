@@ -105,5 +105,13 @@ classdef Predict
         
   end
   
+  methods (Static) % predictblocks
+    
+    function pb = predictblocks(nCls)
+      pb = struct('t0',cell(nCls,1),'t1',[],'expi',[],'flies',[]);
+    end
+    
+  end
+  
   
 end
