@@ -48,8 +48,6 @@ classdef WindowData
     end
     
     function wd = windowdataClear(wd)
-      % ALTODO not used anymore
-      
       for iCls = 1:numel(wd)
         wd(iCls).X = single([]);
         wd(iCls).exp = [];

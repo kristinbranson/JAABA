@@ -866,11 +866,15 @@ end
 
 handles.basicParamsStruct.behaviors = ...
   enforceBehaviorParamConstraints(handles.basicParamsStruct.behaviors,true);
-if handles.new
+
+% ALTODO: What is right way to handle init
+if handles.new  
   for i = nbehavior:-1:1
     cs(i,1) = ClassifierStuff();
+    wfp{i,1} = handles.basicParamsStruct.windowFeaturesParams{1};
   end
-  handles.basicParamsStuff.classifierStuff = cs;
+  handles.basicParamsStruct.classifierStuff = cs;
+  handles.basicParamsStruct.windowFeaturesParams = wfp;
 else   
   handles.basicParamsStruct.classifierStuff.init(nbehavior); 
   assert(false,'ALXXX MINIMAL');
