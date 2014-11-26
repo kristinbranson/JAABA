@@ -544,7 +544,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.featureLexicon=[];
       self.windowdata = WindowData.windowdata(0);
       self.predictdata = {};
-      self.predictblocks = struct('t0',[],'t1',[],'expi',[],'flies',[]);
+      self.predictblocks = Predict.predictblocks(0);
       self.fastPredict = Predict.fastPredict(0);
       self.windowdatachunk_radius = 100;
       self.predictwindowdatachunk_radius = 10000;
@@ -1073,6 +1073,7 @@ classdef JLabelData < matlab.mixin.Copyable
         if loadexps,
           obj.setAllLabels(everythingParams);
         end
+        
         obj.setScoreFeatures(everythingParams.scoreFeatures);
         obj.setWindowFeaturesParams(everythingParams.windowFeaturesParams);
         obj.setClassifierStuff(everythingParams.classifierStuff);
@@ -2220,26 +2221,16 @@ classdef JLabelData < matlab.mixin.Copyable
       %X = single(X);
       success = true;
      
-    end  % method
-    
-    
+    end  % method    
+   
     % ---------------------------------------------------------------------
-    function ClearWindowData(obj)
-      % Clears windowdata, predictblocks, predictions for a clean start when 
-      % selecting features.
+    function initWindowData(obj)
+      % Inits windowdata and predictblocks. Clears predictions.
       
       %MERGESTUPDATED
 
-      obj.windowdata = WindowData.windowdataClear(obj.windowdata);
-      
-      assert(numel(obj.predictblocks)==obj.nclassifiers);
-      for iCls = 1:obj.nclassifiers
-        obj.predictblocks(iCls).t0 = [];
-        obj.predictblocks(iCls).t1 = [];
-        obj.predictblocks(iCls).flies = [];
-        obj.predictblocks(iCls).expi = [];
-      end
-      
+      obj.windowdata = WindowData.windowdata(obj.nclassifiers);
+      obj.predictblocks = Predict.predictblocks(obj.nclassifiers);      
       obj.UpdatePredictedIdx();
     end
     
@@ -2601,27 +2592,36 @@ classdef JLabelData < matlab.mixin.Copyable
       assert(isequal(labelidx.labelnames,obj.labelnames));
       assert(labelidx.nbeh==obj.nbehaviors);
       for iTL = 1:labelidx.nTL
-        % Optimization: don't loop over all behaviors/labels, just those relevant
-        % to this timeline
-      for j = 1:obj.nbehaviors,
-          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==j);
         
-        if ~isempty(i0s),
-          n = numel(i0s);
-          newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
-          newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
+        % Write bouts
+        % ALTODO: Optimization: don't loop over all behaviors/labels, just those relevant
+        % to this timeline
+        for j = 1:obj.nbehaviors,
+          [i0s,i1s] = get_interval_ends(labelidx.vals(iTL,:)==j);          
+          if ~isempty(i0s)
+            n = numel(i0s);
+            newlabels.t0s(end+1:end+n) = i0s - labelidx_off;
+            newlabels.t1s(end+1:end+n) = i1s - labelidx_off;
             newlabels.names(end+1:end+n) = repmat(labelidx.labelnames(j),[1,n]);
-            newlabels.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts 
+            newlabels.timestamp(end+1:end+n) = labelidx.timestamp(iTL,i0s); % first frames of bouts
             assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
+          end
         end
+        
+        % Write importance
+        [i0s,i1s] = get_interval_ends(labelidx.imp(iTL,:));
+        if ~isempty(i0s),
+          newlabels.imp_t0s = i0s - labelidx_off;
+          newlabels.imp_t1s = i1s - labelidx_off;
+        end
+        
       end
-      end      
       if labelidx.nTL==1
-      [i0s,i1s] = get_interval_ends(labelidx.imp);
-      if ~isempty(i0s),
-        newlabels.imp_t0s = i0s - labelidx_off;
-        newlabels.imp_t1s = i1s - labelidx_off;
-      end
+        [i0s,i1s] = get_interval_ends(labelidx.imp);
+        if ~isempty(i0s),
+          newlabels.imp_t0s = i0s - labelidx_off;
+          newlabels.imp_t1s = i1s - labelidx_off;
+        end
       else
         warningNoTrace('TODO, importance not written to labels correctly.');
         assert(labelidx_off==labelidx.off);
@@ -4908,7 +4908,10 @@ classdef JLabelData < matlab.mixin.Copyable
       %self.SetStatus('Loading labels...');
 
       % remove all experiments, if present
-      self.RemoveExpDirs(1:self.nexps);
+      % AL 20141125: Unnecessary, SetExpDirs() call handles this
+%       if self.nexps>0
+%         self.RemoveExpDirs(1:self.nexps);
+%       end
 
       % I think all this stuff is taken care of when we set the project
 %       % set movie
@@ -4927,7 +4930,7 @@ classdef JLabelData < matlab.mixin.Copyable
 %       [success,msg] = self.SetClipsDir(everythingParams.file.clipsdir);
 %       if ~success,error(msg);end
 
-      if self.gtMode ,
+      if self.gtMode
         assert(false,'ALXXX EXPANDED');
         dirNames=everythingParams.gtExpDirNames;
         labels=everythingParams.gtLabels;
@@ -4935,15 +4938,15 @@ classdef JLabelData < matlab.mixin.Copyable
                                        'labels',{everythingParams.labels});
       else
         % Normal labeling mode (not GT)
-        dirNames=everythingParams.expDirNames;
-        labels=everythingParams.labels;
-        self.otherModeLabelsEtc=struct('expDirNames',{everythingParams.gtExpDirNames}, ...
+        dirNames = everythingParams.expDirNames;
+        labels = everythingParams.labels;
+        self.otherModeLabelsEtc = struct('expDirNames',{everythingParams.gtExpDirNames}, ...
                                        'labels',{everythingParams.gtLabels});
       end
 
       % set experiment directories
       [success,msg] = self.SetExpDirs(dirNames);
-      if ~success,error(msg); end
+      if ~success, error(msg); end
       
       % Update the status table
       [success,msg] = self.UpdateStatusTable();
@@ -5211,6 +5214,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % experiments not in expdirs, then calls AddExpDirs to add the new
     % experiment directories. 
 
+      % MERGESTUPDATED
+      
       success = false;
       msg = '';
       
@@ -5224,17 +5229,19 @@ classdef JLabelData < matlab.mixin.Copyable
                   
       oldexpdirs = obj.expdirs;
       
-      % remove oldexpdirs
-      
-      [success1,msg] = obj.RemoveExpDirs(find(~ismember(oldexpdirs,expdirs))); %#ok<FNDSB>
-      if ~success1,
-        return;
+      % remove all oldexpdirs that aren't in expdirs
+      expi = find(~ismember(oldexpdirs,expdirs));
+      if ~isempty(expi)
+        [success1,msg] = obj.RemoveExpDirs(expi);
+        if ~success1,
+          return;
+        end
       end
 
-      % add new expdirs
+      % add all new expdirs that weren't in oldexpdirs
       idx = find(~ismember(expdirs,oldexpdirs));
       success = true;
-      for i = idx,
+      for i = idx(:)'
         [success1,msg1] = obj.AddExpDir(expdirs{i});
         success = success && success1;
         if isempty(msg),
@@ -5244,7 +5251,7 @@ classdef JLabelData < matlab.mixin.Copyable
         end        
       end
 
-    end  % method
+    end
 
 
 %     % ---------------------------------------------------------------------
@@ -6091,6 +6098,9 @@ classdef JLabelData < matlab.mixin.Copyable
     
     function [success,msg] = AddExpDirAndLabelsFromJab(obj,jabfilename,importlabels)
 
+      assert(obj.nclassifier==1,'ALXXX MINIMAL');
+
+      
       success = true; 
       msg = '';
       
@@ -6180,7 +6190,7 @@ classdef JLabelData < matlab.mixin.Copyable
               if t0>T1 || t1<T0; continue;end
               t0 = max(T0,t0);
               t1 = min(T1+1,t1);
-              labelidx.imp(t0+off:t1-1+off) = 1;
+              labelidx.imp(t0+off:t1-1+off) = 1; % ALXXX MINIMAL labelidx.imp multiclass
             end
             obj.labelidx = labelidx;
           end
@@ -6188,7 +6198,6 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
       
-      assert(size(obj.labelidx.vals,1)==1,'ALXXX MINIMAL');
 
       
     end
@@ -6674,6 +6683,8 @@ classdef JLabelData < matlab.mixin.Copyable
       % in order to roll-back the partially-completed addition of an
       % experiment.
 
+      % ALXXX MINIMAL
+      
       success = false;
       msg = '';
       
@@ -8415,6 +8426,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function ClearLabels(obj,expi,flies)
       
+      %ALXXX MINIMAL
+      
       if obj.nexps == 0,
         return;
       end
@@ -8581,7 +8594,7 @@ classdef JLabelData < matlab.mixin.Copyable
       oldScoreNorm = {obj.windowdata.scoreNorm};
 
       obj.clearClassifierProper();
-      obj.ClearWindowData();
+      obj.initWindowData();
       obj.SetWindowFeatureNames();
 %       [success,msg]=obj.PreLoadPeriLabelWindowData();
 %       if ~success, 
@@ -8616,12 +8629,11 @@ classdef JLabelData < matlab.mixin.Copyable
       
       assert(false,'ALXXX MINIMAL');
 
-      % Store the current labels
       obj.StoreLabelsAndPreLoadWindowData();
       
       % load all labeled data
-      [success,msg]=obj.PreLoadPeriLabelWindowData();
-      if ~success, 
+      [success,msg] = obj.PreLoadPeriLabelWindowData();
+      if ~success
         error('JLabelData:unableToLoadPerLabelWindowData',msg);
       end
       
@@ -9829,7 +9841,7 @@ classdef JLabelData < matlab.mixin.Copyable
       % Calculates statistics such as number of labeled bouts, predicted bouts
       % and change in scores.
       
-      %ALXXX EXPANDED
+      assert(false,'ALXXX MINIMAL');
       
       obj.SetStatus('Computing stats for %s, target %d',obj.expnames{expi},flyNum);
             
@@ -10313,7 +10325,7 @@ classdef JLabelData < matlab.mixin.Copyable
             t0 = labels_curr.t0s(j);
             t1 = labels_curr.t1s(j);
             
-            curLabel = 2*repmat(find(strcmp(labels_curr.names{j},obj.labelnames)),1,t1-t0);
+            curLabel = 2*repmat(find(strcmp(labels_curr.names{j},obj.labelnames)),1,t1-t0); %ALXXX ?
             curLabel(ismember(t0:t1-1,labels_imp)) = curLabel(ismember(t0:t1-1,labels_imp)) -1;
             
             gt_labels = [gt_labels curLabel];  %#ok
