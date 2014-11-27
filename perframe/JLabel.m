@@ -2934,10 +2934,9 @@ set(handles.pushbutton_predict, ...
     'enable',onIff(classifierExists&&someExperimentIsCurrent));
 
 if savewindowdata,
-  set(handles.menu_file_savewindowdata,'checked','on' );
+  set(handles.menu_file_savewindowdata,'checked','on');
 else
-  set(handles.menu_file_savewindowdata,'checked','off' );
-  
+  set(handles.menu_file_savewindowdata,'checked','off');  
 end
   
 return
@@ -10333,7 +10332,6 @@ if strcmp(get(handles.menu_file_savewindowdata,'checked'),'on')
 else
   handles.data.setsavewindowdata(true);
   set(handles.menu_file_savewindowdata,'checked','on');
-  
 end
 
 
