@@ -339,8 +339,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % experiment/file management
 
-    % matrix of size numel(file_types) x nexps, where
-    % fileexists(filei,expi) indicates whether file filetypes{filei} exists
+    % matrix of size nexps x numel(file_types), where
+    % fileexists(expi,filei) indicates whether file filetypes{filei} exists
     % for experiment expi
     fileexists 
     
@@ -397,7 +397,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     cacheSize
     savewindowdata % 1-by-nclassifiers double
-    loadwindowdata % 1-by-nclassifiers double
+    loadwindowdata % 1-by-nclassifiers double. 
     
     postprocessparams % 1-by-nclassifiers cell
     version
@@ -2591,6 +2591,8 @@ classdef JLabelData < matlab.mixin.Copyable
       newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
       assert(isequal(labelidx.labelnames,obj.labelnames));
       assert(labelidx.nbeh==obj.nbehaviors);
+      tmpImp = labelidx.imp(labelidx.vals>0);
+      assert(all(tmpImp(:)),'Expected all labeled frames to be important'); % ALTODO labels.importance
       for iTL = 1:labelidx.nTL
         
         % Write bouts
@@ -2607,15 +2609,8 @@ classdef JLabelData < matlab.mixin.Copyable
             assert(all(labelidx.timestamp(iTL,i0s)>0),'Label with missing timestamp.');
           end
         end
-        
-        % Write importance
-        [i0s,i1s] = get_interval_ends(labelidx.imp(iTL,:));
-        if ~isempty(i0s),
-          newlabels.imp_t0s = i0s - labelidx_off;
-          newlabels.imp_t1s = i1s - labelidx_off;
-        end
-        
       end
+      % write importance
       if labelidx.nTL==1
         [i0s,i1s] = get_interval_ends(labelidx.imp);
         if ~isempty(i0s),
@@ -2623,10 +2618,8 @@ classdef JLabelData < matlab.mixin.Copyable
           newlabels.imp_t1s = i1s - labelidx_off;
         end
       else
-        warningNoTrace('TODO, importance not written to labels correctly.');
-        assert(labelidx_off==labelidx.off);
-        newlabels.imp_t0s = 1-labelidx_off;        
-        newlabels.imp_t1s = labelidx.n-labelidx_off;
+        % ALTODO labels.importance
+        % Don't set importance, appears to be unused
       end
       maxtimestamps = max(labelidx.timestamp,[],2); % most recent timestamp each timeline was edited
 %       % Store labels according to the mode
@@ -5020,13 +5013,18 @@ classdef JLabelData < matlab.mixin.Copyable
       % AL20141122: Why are we setting windowfeaturenames? This only
       % depends on self.curperframefns and self.windowfeaturescellparams.
       self.SetWindowFeatureNames();
-     % verify windowFeatureNames in classifierStuff
+      
+      % AL20141126: initialization of loadwindowdata is change from earlier
+      % behavior
+      self.loadwindowdata = true(1,nrealbeh);
+      
+      % verify windowFeatureNames in classifierStuff
       for iBeh = 1:nrealbeh
         cs = classifierStuff(iBeh);
         if ~isempty(cs.featureNames) && ...
-            ~isempty(cs.featureNames{1}) && ...
-            ~isequal(cs.featureNames,self.windowdata(iBeh).featurenames)
-          warnstr = sprintf('The feature names stored in the jab file don''t match the current feature names. The loaded classifier for ''%s'' shouldn''t be used; retrain a new classifier.',...
+           ~isempty(cs.featureNames{1}) && ...
+           ~isequal(cs.featureNames,self.windowdata(iBeh).featurenames)
+          warnstr = sprintf('The feature names stored in the jab file don''t match the current feature names. The loaded classifier ''%s'' shouldn''t be used; retrain a new classifier.',...
             self.labelnames{iBeh});
           uiwait(warndlg(warnstr));
           self.loadwindowdata(iBeh) = false;
@@ -10316,7 +10314,7 @@ classdef JLabelData < matlab.mixin.Copyable
           % Find the importatnt labels
           labels_imp = [];
           for j = 1:numel(labels_curr.imp_t0s),
-            t0 = labels_curr.imp_t0s(j);
+            t0 = labels_curr.imp_t0s(j); % ALXXX imp_t0s/t1s changed
             t1 = labels_curr.imp_t1s(j);
             labels_imp = [labels_imp t0:t1-1];  %#ok
           end
@@ -10782,6 +10780,8 @@ classdef JLabelData < matlab.mixin.Copyable
                          originalExpDirNames, ...
                          substituteExpDirNames) 
                        
+      %MERGESTUPDATED
+      
       % originalExpDirNames and substituteExpDirNames are optional.
       % If given, they should be cell arrays of the same length, each
       % element a string giving an absolute path to an experiment
@@ -10790,143 +10790,133 @@ classdef JLabelData < matlab.mixin.Copyable
       % element of substitureExpDirNames gives an experiment dir name to be
       % used in place of the original one.  This is to enable the user to
       % manually locate exp dir names that are missing.  Whether these
-      % experiment dir names are treated as normal exp dir names of
+      % experiment dir names are treated as normal exp dir names or
       % ground-truthing exp dir names depends on groundTruthingMode.
                        
       % process the args
       if ~exist('originalExpDirNames','var')
-        originalExpDirNames=cell(0,1);
+        originalExpDirNames = cell(0,1);
       end
       if ~exist('substituteExpDirNames','var')
-        substituteExpDirNames=cell(0,1);
+        substituteExpDirNames = cell(0,1);
       end
+      assert(numel(originalExpDirNames)==numel(substituteExpDirNames));
       
-      % Set the ground-truthing mode
-      self.gtMode=groundTruthingMode;
+      self.gtMode = groundTruthingMode;
 
-      %
       % Open the file
-      %
-      
-      % get just the relative file name
-      fileDirPathAbs=fileparts(fileNameAbs);
-      %[fileDirPathAbs,baseName,ext]=fileparts(fileNameAbs);
-      %fileNameRel=[baseName ext];
-
-      % load the file
-      macguffin=loadAnonymous(fileNameAbs);
-      % if we get here, file was read successfully
+      macguffin = loadAnonymous(fileNameAbs);
       macguffin.modernize(true);
       
-      % do the substiutions, if any
-      substitutionsMade=false;
+      % Do the substiutions, if any
+      substitutionsMade = false;
       if groundTruthingMode
-        expDirNames=macguffin.gtExpDirNames;
-        labels=macguffin.gtLabels;
+        expDirNames = macguffin.gtExpDirNames;
+        labels = macguffin.gtLabels;
       else
-        expDirNames=macguffin.expDirNames;
-        labels=macguffin.labels;
+        expDirNames = macguffin.expDirNames;
+        labels = macguffin.labels;
       end
-      newExpDirNames=cell(1,0);
+      newExpDirNames = cell(1,0);
       newLabels = Labels.labels(0);
-      %newLabels=struct('t0s',{},'t1s',{},'names',{},'flies',{},'off',{},'timestamp',{},'imp_t0s',{},'imp_t1s',{});
-      for i=1:length(expDirNames)
-        expDirName=expDirNames{i};
-        j=whichstr(expDirName,originalExpDirNames);
-        if isempty(j),
-          newExpDirNames{end+1}=expDirNames{i};  %#ok
-          newLabels(end+1)=labels(i);  %#ok
+      for i = 1:length(expDirNames)
+        expDirName = expDirNames{i};
+        j = whichstr(expDirName,originalExpDirNames);
+        if isempty(j)
+          newExpDirNames{end+1} = expDirNames{i};  %#ok
+          newLabels(end+1) = labels(i);  %#ok
         else
-          newExpDirName=substituteExpDirNames{j};
+          newExpDirName = substituteExpDirNames{j};
           if ~isempty(newExpDirName)
-            newExpDirNames{end+1}=substituteExpDirNames{j};  %#ok
-            newLabels(end+1)=labels(i);  %#ok
+            newExpDirNames{end+1} = substituteExpDirNames{j};  %#ok
+            newLabels(end+1) = labels(i);  %#ok
           else
             % AL 20140908 
-            % No new name for this experiment; experiment will not be added
-            % Is this the intent?
+            % Empty new name for this experiment; experiment will not be added
+            % Is this the intent or should this be asserted false?
           end
-          substitutionsMade=true;
+          substitutionsMade = true;
         end
       end
       if groundTruthingMode
-        macguffin.gtExpDirNames=newExpDirNames;
-        macguffin.gtLabels=newLabels;
+        macguffin.gtExpDirNames = newExpDirNames;
+        macguffin.gtLabels = newLabels;
       else
-        macguffin.expDirNames=newExpDirNames;
-        macguffin.labels=newLabels;
+        macguffin.expDirNames = newExpDirNames;
+        macguffin.labels = newLabels;
       end
       
       % Set the JLD to match the Macguffin
       self.setMacguffin(macguffin,true);
       
       % Store file-related stuff
-      self.thereIsAnOpenFile=true;
-      self.everythingFileNameAbs=fileNameAbs;
-      self.userHasSpecifiedEverythingFileName=true;
-      self.needsave=substitutionsMade;  % Only need save if substitutions were made
-      self.defaultpath=fileDirPathAbs;
+      self.thereIsAnOpenFile = true;
+      self.everythingFileNameAbs = fileNameAbs;
+      self.userHasSpecifiedEverythingFileName = true;
+      self.needsave = substitutionsMade; % Only need save if substitutions were made
+      self.defaultpath = fileparts(fileNameAbs);
      
       % initialize the status table describing what required files exist
       [success,msg] = self.UpdateStatusTable();
       if ~success,
         error('JLabelData:unableToUpdateStatusTable',msg);
-      end      
-      
-      
-      oldScoreNorm = self.windowdata.scoreNorm;
-      oldfeaturenames = self.windowdata.featurenames;
-      if isprop(macguffin.classifierStuff,'windowdata') && ... % ALXXX MINIMAL save/loadwindowdata arrayized
-          isstruct(macguffin.classifierStuff.windowdata) && ...
-          ~substitutionsMade && self.loadwindowdata &&...
-          ~isempty(macguffin.classifierStuff.savewindowdata) && ...
-          macguffin.classifierStuff.savewindowdata && ...
-          ~self.IsGTMode(),
-        isPerframeNewer = false;
-        perframeNdx = find(strcmp('perframedir',self.filetypes));
-        perframeTS = 0; expnamenewer = '';
-        for ndx = 1:self.nexps
-          if any(self.classifierTS < self.filetimestamps(ndx,perframeNdx));
-            isPerframeNewer = true;
-            expnamenewer = self.expnames{ndx};
-            perframeTS = self.filetimestamps(ndx,perframeNdx);
-          end
-        end
-        
-        if isPerframeNewer && self.isInteractive,
-          
-          qstr{1} = sprintf('One of the perframe file (Generated on %s) ',...
-            datestr(perframeTS));
-          qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS));
-          qstr{end+1} = sprintf('for the experiment %s.',expnamenewer);
-          qstr{end+1} = ' Still load the windowdata stored in the jab file?';
-          res = questdlg(qstr, ...
-            'Load Window Data?', ...
-            'Yes','No', ...
-            'No');
-          
-          if strcmpi(res,'Yes'),
-            self.windowdata = macguffin.classifierStuff.windowdata;
-          end
-        else
-          self.windowdata = macguffin.classifierStuff.windowdata;
-        end
-        
-        if isempty(self.windowdata.scoreNorm) 
-          if numel(oldScoreNorm)==self.nrealbehaviors
-            self.windowdata.scoreNorm = oldScoreNorm;
-          else
-            warning('JLabelData:scoreNormWrongSize','old scoreNorm has wrong number of elements. Not using.');
-          end
-        end
-        
-        if isempty(self.windowdata.featurenames),
-          self.windowdata.featurenames = oldfeaturenames;
-        end
-        
       end
       
-    end  % method
+      % Load windowdata if appropriate
+      cs = macguffin.classifierStuff;
+      if isprop(cs,'windowdata') && ~substitutionsMade && ~self.IsGTMode()
+        assert(isequal(self.nclassifiers,numel(cs),numel(self.windowdata)));
+        perframeNdx = find(strcmp('perframedir',self.filetypes));
+      
+        for iCls = 1:self.nclassifiers
+          if self.loadwindowdata(iCls) && isstruct(cs(iCls).windowdata) ...
+              && ~isempty(cs(iCls).savewindowdata) && cs(iCls).savewindowdata
+            
+            % determine whether to load windowdata for this classifier
+            tfLoadWinData = true;
+            if self.isInteractive
+              isPerframeNewer = false;
+              for ndx = 1:self.nexps
+                if self.classifierTS(iCls) < self.filetimestamps(ndx,perframeNdx);
+                  isPerframeNewer = true;
+                  expnamenewer = self.expnames{ndx};
+                  perframeTS = self.filetimestamps(ndx,perframeNdx);
+                  break;
+                end
+              end
+            
+              if isPerframeNewer
+                qstr{1} = sprintf('One of the perframe files (Generated on %s) ',...
+                  datestr(perframeTS));
+                qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS(iCls))); %#ok<AGROW>
+                qstr{end+1} = sprintf('for the experiment %s.',expnamenewer); %#ok<AGROW>
+                qstr{end+1} = ' Still load the windowdata stored in the jab file?'; %#ok<AGROW>
+                res = questdlg(qstr, ...
+                  'Load Window Data?', ...
+                  'Yes','No', ...
+                  'No');
+                tfLoadWinData = strcmpi(res,'Yes');
+              end
+            end
+            % If ~self.isInteractive, or classifiers newer than all PF
+            % dirs, then tfLoadWinData true by default
+
+            if tfLoadWinData
+              oldScoreNorm = self.windowdata(iCls).scoreNorm;
+              oldfeaturenames = self.windowdata(iCls).featurenames;
+              self.windowdata(iCls) = cs(iCls).windowdata;
+              if isempty(self.windowdata(iCls).scoreNorm) && ~isempty(oldScoreNorm)
+                self.windowdata(iCls).scoreNorm = oldScoreNorm;
+              end
+              if isempty(self.windowdata(iCls).featurenames) && ~isempty(oldfeaturenames)
+                self.windowdata(iCls).featurenames = oldfeaturenames;
+              end
+            end
+          end
+        end
+      end
+      
+    end
     
     
     % ---------------------------------------------------------------------
@@ -11010,7 +11000,7 @@ classdef JLabelData < matlab.mixin.Copyable
       end
       
       % Set the ground-truthing mode to false, b/c new file
-      obj.gtMode=false;
+      obj.gtMode = false;
       
       % Massage macguffin.behaviors
       % * ProjectSetup does not add 'None' or 'No_<behavior>'.
@@ -11060,12 +11050,12 @@ classdef JLabelData < matlab.mixin.Copyable
           rethrow(excp);
         end
       end  
-      fileNameAbs=fullfile(obj.defaultpath,fileNameRel);
+      fileNameAbs = fullfile(obj.defaultpath,fileNameRel);
 
       % Set other file-related instance vars
-      obj.thereIsAnOpenFile=true;
-      obj.everythingFileNameAbs=fileNameAbs;
-      obj.userHasSpecifiedEverythingFileName=false;
+      obj.thereIsAnOpenFile = true;
+      obj.everythingFileNameAbs = fileNameAbs;
+      obj.userHasSpecifiedEverythingFileName = false;
       obj.needsave = true;  % b/c new file
       
 %       % Now handle other arguments
@@ -11255,6 +11245,7 @@ classdef JLabelData < matlab.mixin.Copyable
     
     function setsavewindowdata(self,value)
       assert(numel(self.savewindowdata)==self.nclassifiers);
+      assert(isscalar(value) || numel(value)==self.nclassifiers);
       self.savewindowdata(:) = value;
       self.needsave = true;      
     end
