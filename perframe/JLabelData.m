@@ -223,10 +223,8 @@ classdef JLabelData < matlab.mixin.Copyable
     classifier % 1-by-nclassifiers cell
     classifier_old
     lastFullClassifierTrainingSize
-    classifierTS  % 1-by-nclassifiers vector of default time stamps. Number of days since Jan 0, 0000 (typically non-integer)
-    
-    % training statistics
-    trainstats
+    classifierTS  % 1-by-nclassifiers vector of default time stamps. Number of days since Jan 0, 0000 (typically non-integer)    
+    trainstats % 1-by-nclassifiers cell array
     
     % parameters to learning the classifier. struct fields depend on type of classifier.
     % 1-by-nclassifiers cell
@@ -374,7 +372,7 @@ classdef JLabelData < matlab.mixin.Copyable
     bagModels
     fastPredictBag 
 
-    confThresholds % 1-by-2*nclassifiers row vec, indexed by behavioridx
+    confThresholds % nclassifiers-by-2 array
     
     % Retrain properly
     doUpdate 
@@ -570,7 +568,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.classifier_old = [];
       self.lastFullClassifierTrainingSize = 0;
       self.classifierTS = zeros(1,0); 
-      self.trainstats = [];
+      self.trainstats = cell(1,0);
       self.classifier_params = ...
         struct('iter',100, ...
                'iter_updates',10, ...
@@ -630,7 +628,7 @@ classdef JLabelData < matlab.mixin.Copyable
                'curF',[], ...
                'dist',[], ...
                'trainDist',[]);
-      self.confThresholds = zeros(1,0);
+      self.confThresholds = zeros(0,2);
       self.doUpdate = true;
       self.gtMode = [];
       self.randomGTSuggestions = {};
@@ -1305,7 +1303,7 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.predictdata{expi}{flies}(iTL).old = obj.predictdata{expi}{flies}(iTL).cur;
             obj.predictdata{expi}{flies}(iTL).old_valid = obj.predictdata{expi}{flies}(iTL).cur_valid;
             obj.predictdata{expi}{flies}(iTL).old_pp = obj.predictdata{expi}{flies}(iTL).cur_pp;
-            obj.predictdata{expi}{flies}(iTL).cur_valid(:) = false;          
+            obj.predictdata{expi}{flies}(iTL).cur_valid(:) = false;
           end
         end
       end
@@ -1314,6 +1312,8 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function res = DoFullTraining(obj,doFastUpdates)  %#ok
+      % ALTODO remove?
+      
       % Check if we should do fast updates or not.
       res = true; return; % Always do complete training.
 %       if ~doFastUpdates, return; end
@@ -1356,7 +1356,7 @@ classdef JLabelData < matlab.mixin.Copyable
               numcurexdone = nnz(pbs.expi(1:ndx)==curex & pbs.flies(1:ndx)==flies);
               obj.SetStatus('Predicting for %s: exp %s fly %d ... %d%% done',...
                 obj.labelnames{iCls},obj.expnames{curex},flies,round(100*numcurexdone/numcurex));
-              obj.PredictFast(curex,flies,iCls,pbs.t0(ndx),pbs.t1(ndx));
+              obj.PredictFast(curex,flies,pbs.t0(ndx),pbs.t1(ndx),iCls);
             end
         end
       end
@@ -1782,7 +1782,7 @@ classdef JLabelData < matlab.mixin.Copyable
         else
           curIdx = modLabels > (ndx-1.5) & modLabels<(ndx+0.5);
         end
-        confMat(ndx,1) = nnz(scores(curIdx)>=  (obj.confThresholds(1)*scoreNorm));
+        confMat(ndx,1) = nnz(scores(curIdx)>=  (obj.confThresholds(1)*scoreNorm)); %ALXXX confThresholds size change
         confMat(ndx,2) = nnz(-scores(curIdx)<  (obj.confThresholds(2)*scoreNorm) & ...
                               scores(curIdx)<  (obj.confThresholds(1)*scoreNorm) );
         confMat(ndx,3) = nnz(-scores(curIdx)>= (obj.confThresholds(2)*scoreNorm));
@@ -2267,20 +2267,28 @@ classdef JLabelData < matlab.mixin.Copyable
             obj.CheckFlies(flies);
             
             [labelIdx,labelIdxT0{flyi}] = obj.GetLabelIdx(expi,flies);
-            assert(isequal(size(labelIdx.vals,2),size(labelIdx.imp,2),obj.nclassiifers));
+            assert(isequal(size(labelIdx.vals,1),size(labelIdx.imp,1),obj.nclassifiers));
             labelIdxVals{flyi} = labelIdx.vals(iCls,:);
             labelIdxImp{flyi} = labelIdx.imp(iCls,:);
-            object{flyi} = obj.createPreLoadWindowDataObj(obj,expi,flies);
+            object{flyi} = obj.createPreLoadWindowDataObj(expi,flies,iCls);
             
             % Find all labeled frames for this exp/classifier/fly
-            ts = [];
-            labels_curr = obj.GetLabels(expi,flies);
-            for j = 1:numel(labels_curr.t0s),
-              ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
+            if obj.nclassifiers==1
+              % Legacy codepath: build up ts from labels_curr. This should
+              % end up the same as labelidxVals{flyi}; assert this to
+              % verify.
+              ts = [];
+              labels_curr = obj.GetLabels(expi,flies);
+              for j = 1:numel(labels_curr.t0s),
+                ts = [ts,labels_curr.t0s(j):labels_curr.t1s(j)-1]; %#ok<AGROW>
+              end              
+              assert(isequal(ts+labelIdx.off,find(labelIdxVals{flyi})));
+            else
+              % Just use labelIdxVals{flyi} and trust that it is the right
+              % thing.
+              ts = find(labelIdxVals{flyi})-labelIdx.off;
             end
-            assert(obj.nclassifiers==1,'ALTODO fix me for multiclass by just using labelIdxVals{flyi}');
-            assert(isequal(ts,find(labelIdxVals{flyi})));
-            
+              
             % Determine which frames are missing windowdata
             if isempty(obj.windowdata(iCls).exp)
               missingts{flyi} = ts;
@@ -2586,6 +2594,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % ---------------------------------------------------------------------
     function StoreLabelsForGivenAnimal(obj,expi,flies,labelidx,labelidx_off)
       
+      % MERGESTUPDATED
+      
       % Write label info to newlabels structure
       % TODO: don't know why writing to intermediate variable rather than obj.labels
       newlabels = struct('t0s',[],'t1s',[],'names',{{}},'flies',[],'timestamp',[],'imp_t0s',[],'imp_t1s',[]);
@@ -2661,10 +2671,10 @@ classdef JLabelData < matlab.mixin.Copyable
           max(obj.labels(expi).timelinetimestamp{j}.(classifiername),maxtimestamps(iTL));
       end          
 
-      % store labelstats
+      %ALTODO: isn't obj.labels(expi).flies always unique?
       obj.labelstats(expi).nflies_labeled = numel(unique(obj.labels(expi).flies));
       obj.labelstats(expi).nbouts_labeled = numel(newlabels.t1s);
-    end  % method
+    end
     
     
 % Show similar frames
@@ -3183,6 +3193,7 @@ classdef JLabelData < matlab.mixin.Copyable
       assert(numel(obj.windowdata)==nCls);
       for ibeh = 1:nCls
         scoreNorm = obj.windowdata(ibeh).scoreNorm;
+        ppparams = obj.postprocessparams{ibeh};
         for expii = 1:numel(expis),
           endx = expis(expii);
           for flies = allflies{expii},
@@ -3199,7 +3210,7 @@ classdef JLabelData < matlab.mixin.Copyable
               curidx = idx(idxorder(gaps(ndx):gaps(ndx+1)-1));
               curs = obj.predictdata{endx}{flies}(ibeh).cur(curidx);
               obj.predictdata{endx}{flies}(ibeh).cur_pp(curidx) = ...
-                obj.Postprocess(curs,scoreNorm);
+                PostProcessor.PostProcess(curs,ppparams,scoreNorm);
             end
           end
         end
@@ -3207,6 +3218,7 @@ classdef JLabelData < matlab.mixin.Copyable
       
       for ibeh = 1:nCls
         scoreNorm = obj.windowdata(ibeh).scoreNorm;
+        ppparams = obj.postprocessparams{ibeh};
         for expii = 1:numel(expis),
           endx = expis(expii);
           for flies = allflies{expii},
@@ -3221,7 +3233,7 @@ classdef JLabelData < matlab.mixin.Copyable
             end
             curs = obj.predictdata{endx}{flies}(ibeh).loaded(curidx);
             obj.predictdata{endx}{flies}(ibeh).loaded_pp(curidx) = ...
-              obj.Postprocess(curs,scoreNorm);
+              PostProcessor.PostProcess(curs,ppparams,scoreNorm);
           end %flies
         end
       end
@@ -3231,11 +3243,11 @@ classdef JLabelData < matlab.mixin.Copyable
     end  % method
 
     
-    % ---------------------------------------------------------------------
-    function posts = Postprocess(obj,curs,scoreNorm)
-      posts = ApplyPostprocessing.PostProcess(curs,obj.postprocessparams,scoreNorm);
-    end 
-    
+%     % ---------------------------------------------------------------------
+%     function posts = Postprocess(obj,curs,scoreNorm)
+%       posts = PostProcessor.PostProcess(curs,obj.postprocessparams,scoreNorm);
+%     end 
+%     
     
     % ---------------------------------------------------------------------
     function SaveScores(self,allScores,expi,sfn)  %#ok
@@ -3595,7 +3607,7 @@ classdef JLabelData < matlab.mixin.Copyable
         vid = fopen('version.txt','r');
         vv = textscan(vid,'%s');
         fclose(vid);
-        obj.version = vv;
+        obj.version = vv{1};
       catch ME
         warning('Cannot detect JAABA Version (%s). Setting it to 0.0',ME.message);  
         obj.version = '0.0';
@@ -4995,7 +5007,7 @@ classdef JLabelData < matlab.mixin.Copyable
       self.classifier = cell(1,nrealbeh);
       self.classifier_params = cell(1,nrealbeh);
       self.classifierTS = nan(1,nrealbeh);
-      self.confThresholds = nan(1,2*nrealbeh);
+      self.confThresholds = nan(nrealbeh,2);
       self.postprocessparams = cell(1,nrealbeh);
       self.savewindowdata = false(1,nrealbeh);
       for iBeh = 1:nrealbeh
@@ -5004,7 +5016,7 @@ classdef JLabelData < matlab.mixin.Copyable
         self.classifier{iBeh} = cs.params;
         self.classifier_params{iBeh} = cs.trainingParams;
         self.classifierTS(iBeh) = cs.timeStamp;
-        self.confThresholds(2*iBeh-1:2*iBeh) = cs.confThresholds;
+        self.confThresholds(iBeh,:) = cs.confThresholds;
         self.windowdata(iBeh).scoreNorm = cs.scoreNorm;
         self.postprocessparams{iBeh} = cs.postProcessParams;
         self.savewindowdata(iBeh) = cs.savewindowdata;
@@ -5031,6 +5043,8 @@ classdef JLabelData < matlab.mixin.Copyable
         end
       end
             
+      self.trainstats = cell(1,nrealbeh);
+
       % Update the window data near the labels
 %       [success,msg] = self.PreLoadPeriLabelWindowData();
 %       if ~success,error(msg);end   
@@ -7835,13 +7849,18 @@ classdef JLabelData < matlab.mixin.Copyable
     
     % ---------------------------------------------------------------------
     function SetConfidenceThreshold(obj,thresholds,ndx)
-      obj.confThresholds(ndx) = thresholds;
+      assert(obj.nclassifiers==1);
+      assert(isscalar(ndx) && any(ndx==[1 2]));
+      obj.confThresholds(1,ndx) = thresholds;
     end
     
     
     % ---------------------------------------------------------------------
-    function thresholds = GetConfidenceThreshold(obj,ndx)
-      thresholds = obj.confThresholds(ndx);
+    function t = GetConfidenceThreshold(obj,ndx)
+      % thresholds = GetConfidenceThreshold(obj,ndx)
+      % ndx: indices into handles.data.labelnames      
+      
+      t = obj.confThresholds(ndx); 
     end
     
     
@@ -8535,7 +8554,7 @@ classdef JLabelData < matlab.mixin.Copyable
         obj.labelidx.imp(iTL,ts+obj.labelidx_off) = important;
         obj.labelidx.timestamp(iTL,ts+obj.labelidx_off) = now;
       else
-        [labelidx,T0] = obj.GetLabelIdx(expi,flies);                  %#ok<*PROP>
+        [labelidx,T0] = obj.GetLabelIdx(expi,flies); %#ok<*PROP>
         labelidx.vals(iTL,ts+1-T0) = lblVal;
         labelidx.imp(iTL,ts+1-T0) = important;
         labelidx.timestamp(iTL,ts+1-T0) = now;
@@ -8582,7 +8601,13 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % MERGESTUPDATED
       
-      assert(iscell(windowFeaturesParams) && numel(windowFeaturesParams)==obj.nclassifiers);
+      if iscell(windowFeaturesParams)
+        assert(numel(windowFeaturesParams)==obj.nclassifiers);
+      else
+        % convenience API, 'scalar expansion'
+        assert(isstruct(windowFeaturesParams) && isscalar(windowFeaturesParams));
+        windowFeaturesParams = repmat({windowFeaturesParams},1,obj.nclassifiers);
+      end
             
       % obj.setWindowFeaturesParamsRaw(params);
       obj.windowfeaturesparams = windowFeaturesParams;
@@ -8625,8 +8650,8 @@ classdef JLabelData < matlab.mixin.Copyable
     % newly labeled frames. If the classifier has not yet been trained, it
     % is trained from scratch. 
       
-      assert(false,'ALXXX MINIMAL');
-
+    % MERGEST UPDATED
+    
       obj.StoreLabelsAndPreLoadWindowData();
       
       % load all labeled data
@@ -8635,120 +8660,134 @@ classdef JLabelData < matlab.mixin.Copyable
         error('JLabelData:unableToLoadPerLabelWindowData',msg);
       end
       
-      islabeled = (obj.windowdata.labelidx_new ~= 0) & (obj.windowdata.labelidx_imp);
-      if nargin >= 3 && ~isempty(timerange),
-        label_timestamp = obj.GetLabelTimestamps(obj.windowdata.exp(islabeled),...
-          obj.windowdata.flies(islabeled,:),obj.windowdata.t(islabeled));
-        islabeled(islabeled) = label_timestamp >= timerange(1) & label_timestamp < timerange(2);
+      if nargin<2
+        % ALTODO: Looks like doFastUpdates input arg can be removed
+        doFastUpdates = false;
       end
+      assert(nargin<3,'Unexpected call arguments.');      
+%       if nargin >= 3 && ~isempty(timerange),
+%         label_timestamp = obj.GetLabelTimestamps(obj.windowdata.exp(islabeled),...
+%           obj.windowdata.flies(islabeled,:),obj.windowdata.t(islabeled));
+%         islabeled(islabeled) = label_timestamp >= timerange(1) & label_timestamp < timerange(2);
+%       end
 
-      if ~any(islabeled),
-        %uiwait(warndlg('No frames have been labeled. Not doing any training'));
-        % Let the user figure this out.
-        return;
-      end
-      
-      switch obj.classifiertype,
-                
-        case {'boosting','fancyboosting'},
-          
-          %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
-          %stream = RandStream.getGlobalStream;
-          %reset(stream);                    
-          
-          if nargin<2
-            doFastUpdates = false;
-          end
+      cls2IdxBeh = obj.labelidx.TL2idxBeh;
+      assert(numel(cls2IdxBeh)==obj.nclassifiers);
+      assert(iscell(obj.trainstats) && numel(obj.trainstats)==obj.nclassifiers);
+      for iCls = 1:obj.nclassifiers
+        islabeled = obj.windowdata(iCls).labelidx_new~=0 & obj.windowdata(iCls).labelidx_imp;
+        if ~any(islabeled)
+          continue;
+        end
 
-          if obj.DoFullTraining(doFastUpdates),
-            obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
-
-            obj.classifier_old = obj.classifier;
-            [obj.windowdata.binVals] = findThresholds(obj.windowdata.X(islabeled,:),obj.classifier_params);
-            bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
-            labels = obj.windowdata.labelidx_new(islabeled);
-            npos = nnz(labels ==1);
-            nneg = nnz(labels~=1);
-            if npos < 1 || nneg < 1,
-              uiwait(warndlg('Only behavior or nones have been labeled. Not training a classifier'));
-              obj.ClearStatus();
-              return;
-            end
-            
+        switch obj.classifiertype{iCls}
+          case {'boosting','fancyboosting'}
             %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
             %stream = RandStream.getGlobalStream;
             %reset(stream);
-            
-           if strcmp(obj.classifiertype,'boosting'),
-              [obj.classifier, ~, trainstats] =...
-                boostingWrapper(obj.windowdata.X(islabeled,:), ...
-                                obj.windowdata.labelidx_new(islabeled),obj,...
-                                obj.windowdata.binVals,...
-                                bins, ...
-                                obj.classifier_params);
-            else
-              [obj.classifier] = ...
-                fastBag(obj.windowdata.X(islabeled,:),...
-                        obj.windowdata.labelidx_new(islabeled),...
-                        obj.windowdata.binVals,...
-                        bins, ...
-                        obj.classifier_params);
-              trainstats = struct;
-            end
-            obj.lastFullClassifierTrainingSize = nnz(islabeled);
-            
-          else
-            oldNumPts = nnz(obj.windowdata.labelidx_cur ~= 0 & obj.windowdata.labelidx_imp );
-            newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
-            newData = newNumPts - oldNumPts;
-            obj.SetStatus('Updating boosting classifier with %d examples...',newData);
-            
-            bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
-            
-            obj.classifier_old = obj.classifier;
-            if strcmp(obj.classifiertype,'boosting'),
-              [obj.classifier, ~, trainstats] = ...
-                boostingUpdate(obj.windowdata.X(islabeled,:),...
-                               obj.windowdata.labelidx_new(islabeled),...
-                               obj.classifier, ...
-                               obj.windowdata.binVals,...
-                               bins, ...
-                               obj.classifier_params);
-            else
-              error('Fast updates not defined for fancy boosting.');
-            end
-          end
-          obj.classifierTS = now();
-          
-          % store training statistics
-          if isempty(obj.trainstats),
-            obj.trainstats = trainstats;
-            obj.trainstats.timestamps = obj.classifierTS;
-          else
-            trainstatfns = fieldnames(trainstats);
-            for fni = 1:numel(trainstatfns),
-              obj.trainstats.(trainstatfns{fni})(end+1) = trainstats.(trainstatfns{fni});
-            end
-            obj.trainstats.timestamps(end+1) = obj.classifierTS;
-          end
-                    
-          obj.windowdata.labelidx_old = obj.windowdata.labelidx_cur;
-          obj.windowdata.labelidx_cur = obj.windowdata.labelidx_new;
-          
-          obj.MoveCurPredictionsToOld();
-          
-          obj.windowdata.scoreNorm = [];
-          % To later find out where each example came from.
 
-%           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
-          
-          obj.FindFastPredictParams();
-          obj.PredictLoaded();
+            if obj.DoFullTraining(doFastUpdates)
+              obj.SetStatus('Training boosting classifier from %d examples...',nnz(islabeled));
+
+              % form label vec that has 1 for 'behavior present'
+              labels01 = obj.windowdata(iCls).labelidx_new(islabeled);
+              assert(numel(cls2IdxBeh{iCls})==2);
+              lblValueBeh = cls2IdxBeh{iCls}(1);
+              labels01(labels01==lblValueBeh) = 1;
+              % check for presence of both positive and negative labels
+              npos = nnz(labels01==1);
+              nneg = nnz(labels01~=1);
+              if npos < 1 || nneg < 1
+                warnstr = sprintf('Classifier %s: Only behavior or nones have been labeled. Not training classifier.',...
+                  obj.labelnames{iCls});
+                uiwait(warndlg(warnstr));
+                continue;
+              end
+              
+              obj.classifier_old{iCls} = obj.classifier{iCls};
+              [obj.windowdata(iCls).binVals] = findThresholds(...
+                obj.windowdata(iCls).X(islabeled,:),...
+                obj.classifier_params{iCls});
+              bins = findThresholdBins(obj.windowdata(iCls).X(islabeled,:),...
+                obj.windowdata(iCls).binVals);
+              
+              %fprintf('!!REMOVE THIS: resetting the random number generator for repeatability!!\n');
+              %stream = RandStream.getGlobalStream;
+              %reset(stream);
+
+             if strcmp(obj.classifiertype,'boosting'),
+                [obj.classifier{iCls},~,trainstats] =...
+                  boostingWrapper(obj.windowdata(iCls).X(islabeled,:), ...
+                                  labels01,obj,...
+                                  obj.windowdata(iCls).binVals,...
+                                  bins, ...
+                                  obj.classifier_params{iCls});
+              else
+                [obj.classifier{iCls}] = ...
+                  fastBag(obj.windowdata(iCls).X(islabeled,:),...
+                          labels01,...
+                          obj.windowdata(iCls).binVals,...
+                          bins, ...
+                          obj.classifier_params{iCls});
+                trainstats = struct;
+              end
+              obj.lastFullClassifierTrainingSize = nnz(islabeled);
+
+            else
+              assert(false,'MERGE unreachable codepath not updated.');
+%               oldNumPts = nnz(obj.windowdata.labelidx_cur ~= 0 & obj.windowdata.labelidx_imp );
+%               newNumPts = nnz(obj.windowdata.labelidx_new ~= 0 & obj.windowdata.labelidx_imp );
+%               newData = newNumPts - oldNumPts;
+%               obj.SetStatus('Updating boosting classifier with %d examples...',newData);
+% 
+%               bins = findThresholdBins(obj.windowdata.X(islabeled,:),obj.windowdata.binVals);
+% 
+%               obj.classifier_old = obj.classifier;
+%               if strcmp(obj.classifiertype,'boosting'),
+%                 [obj.classifier, ~, trainstats] = ...
+%                   boostingUpdate(obj.windowdata.X(islabeled,:),...
+%                                  obj.windowdata.labelidx_new(islabeled),...
+%                                  obj.classifier, ...
+%                                  obj.windowdata.binVals,...
+%                                  bins, ...
+%                                  obj.classifier_params);
+%               else
+%                 error('Fast updates not defined for fancy boosting.');
+%               end
+            end
+            
+            obj.classifierTS(iCls) = now();
+
+            % store training statistics
+            if isempty(obj.trainstats{iCls})
+              obj.trainstats{iCls} = trainstats;
+              obj.trainstats{iCls}.timestamps = obj.classifierTS(iCls);
+            else
+              assert(isstruct(obj.trainstats{iCls}));
+              trainstatfns = fieldnames(trainstats);
+              for fni = 1:numel(trainstatfns)
+                obj.trainstats{iCls}.(trainstatfns{fni})(end+1) = trainstats.(trainstatfns{fni});
+              end
+              obj.trainstats{iCls}.timestamps(end+1) = obj.classifierTS(iCls);
+            end
+
+            obj.windowdata(iCls).labelidx_old = obj.windowdata(iCls).labelidx_cur;
+            obj.windowdata(iCls).labelidx_cur = obj.windowdata(iCls).labelidx_new;
+            obj.windowdata(iCls).scoreNorm = [];
+            
+            % To later find out where each example came from.
+            
+  %           obj.windowdata.isvalidprediction = false(numel(islabeled),1);
+        end
       end
-      obj.needsave=true;
-      obj.ClearStatus();
       
-    end  % method
+      obj.MoveCurPredictionsToOld();
+      obj.FindFastPredictParams();
+      obj.PredictLoaded();
+ 
+      obj.needsave = true;
+      obj.ClearStatus();      
+    end 
     
     
     % ---------------------------------------------------------------------
@@ -10259,10 +10298,9 @@ classdef JLabelData < matlab.mixin.Copyable
       end      
     end
     
-    
     % ---------------------------------------------------------------------
     function crossError = GetGTPerformance(obj)
-      
+           
       assert(false,'ALXXX EXPANDED');
       
       % Computes the performance on the GT data.
@@ -10478,63 +10516,32 @@ classdef JLabelData < matlab.mixin.Copyable
 
     
     % ---------------------------------------------------------------------    
-    function classifierStuff=getClassifierStuff(self)
-      % Extracts the classifier parameters, stores them
-      % in a scalar struct, which is returned.
+    function cs = getClassifierStuff(self)
       
-%       % get the mapping of field names
-%       fieldNamesInSelf = JLabelData.fieldNamesInSelf;
-%       fieldNamesInClassifier = JLabelData.fieldNamesInClassifier;
-      
-      assert(false,'ALXXX MINIMAL, note save/loadwindowdata arrayized');
+      %MERGEST UPDATED
         
       % make sure current labels are committed
       self.StoreLabelsForCurrentAnimal();
       
-      % create the classifier object from fields in self
-      if ~isempty(self.savewindowdata) && self.savewindowdata && ~self.IsGTMode(),
-        classifierStuff = ...
-          ClassifierStuff('type',self.classifiertype, ...
-          'params',self.classifier, ...
-          'trainingParams',self.classifier_params, ...
-          'timeStamp',self.classifierTS, ...
-          'confThresholds',self.confThresholds, ...
-          'scoreNorm',self.windowdata.scoreNorm, ...
-          'postProcessParams',self.postprocessparams,...
-          'featureNames',self.windowdata.featurenames,...
-          'savewindowdata',self.savewindowdata,....
-          'windowdata',self.windowdata);
-        
-      else
-        classifierStuff = ...
-          ClassifierStuff('type',self.classifiertype, ...
-          'params',self.classifier, ...
-          'trainingParams',self.classifier_params, ...
-          'timeStamp',self.classifierTS, ...
-          'confThresholds',self.confThresholds, ...
-          'scoreNorm',self.windowdata.scoreNorm, ...
-          'postProcessParams',self.postprocessparams,...
-          'savewindowdata',self.savewindowdata,....
-          'featureNames',self.windowdata.featurenames);
+      cs = ClassifierStuff.empty(0,1);
+      for iCls = self.nclassifiers:-1:1
+        csArgs = { ...
+            'type',self.classifiertype{iCls}, ...
+            'params',self.classifier{iCls}, ...
+            'trainingParams',self.classifier_params{iCls}, ...
+            'timeStamp',self.classifierTS(iCls), ...
+            'confThresholds',self.confThresholds(iCls,:), ...
+            'scoreNorm',self.windowdata(iCls).scoreNorm, ...
+            'postProcessParams',self.postprocessparams{iCls}, ...
+            'featureNames',self.windowdata(iCls).featurenames,...
+            'savewindowdata',self.savewindowdata(iCls)};
+        if self.savewindowdata(iCls) && ~self.IsGTMode()
+          csArgs(end+1:end+2) = {'windowdata',self.windowdata(iCls)};
+        end          
+        cs(iCls,1) = ClassifierStuff(csArgs{:});
       end
-
-%       % build the classifier structure
-%       classifier = Classifier();  % struct to be returned
-%       % for each classifier field, store it in the classifier struct
-%       nFields=numel(fieldNamesInSelf);
-%       for i = 1:nFields,
-%         fieldNameInSelf = fieldNamesInSelf{i};
-%         fieldNameInClassifier = fieldNamesInClassifier{i};
-%         if isequal(fieldNameInClassifier,'scoreNorm')
-%           % this one lives in self.windowdata
-%           classifier.(fieldNameInClassifier)=self.windowdata.(fieldNameInSelf);
-%         else    
-%           % the usual case---just map one field name to the other
-%           classifier.(fieldNameInClassifier)=self.(fieldNameInSelf);
-%         end
-%       end  
-    end  % method
-    
+    end
+      
     
 %     % ---------------------------------------------------------------------
 %     function projectParams=getProjectParams(self)
@@ -10584,11 +10591,10 @@ classdef JLabelData < matlab.mixin.Copyable
 
 
     % ---------------------------------------------------------------------
-    function result=getPerFrameFeatureSetIsNonEmpty(self)
-      % Returns true iff the current set of per-frame features in use
-      % is non-empty, i.e. contains at least one per-frame feature.
-      %result=~isempty(fieldnames(self.windowfeaturesparams));
-      result=~isempty(self.curperframefns);
+    function tf = getPerFrameFeatureSetIsNonEmpty(self)
+      % tf: nclassifiers-by-1 logical vec, true iff the current set of 
+      % per-frame features in use is non-empty, i.e. contains at least one per-frame feature.
+      tf = ~cellfun(@isempty,self.curperframefns);
     end
     
     % ---------------------------------------------------------------------
@@ -10806,6 +10812,9 @@ classdef JLabelData < matlab.mixin.Copyable
 
       % Open the file
       macguffin = loadAnonymous(fileNameAbs);
+      if isstruct(macguffin)
+        macguffin = Macguffin(macguffin);
+      end
       macguffin.modernize(true);
       
       % Do the substiutions, if any
@@ -10864,58 +10873,59 @@ classdef JLabelData < matlab.mixin.Copyable
       
       % Load windowdata if appropriate
       cs = macguffin.classifierStuff;
-      if isprop(cs,'windowdata') && ~substitutionsMade && ~self.IsGTMode()
-        assert(isequal(self.nclassifiers,numel(cs),numel(self.windowdata)));
-        perframeNdx = find(strcmp('perframedir',self.filetypes));
-      
-        for iCls = 1:self.nclassifiers
-          if self.loadwindowdata(iCls) && isstruct(cs(iCls).windowdata) ...
-              && ~isempty(cs(iCls).savewindowdata) && cs(iCls).savewindowdata
-            
-            % determine whether to load windowdata for this classifier
-            tfLoadWinData = true;
-            if self.isInteractive
-              isPerframeNewer = false;
-              for ndx = 1:self.nexps
-                if self.classifierTS(iCls) < self.filetimestamps(ndx,perframeNdx);
-                  isPerframeNewer = true;
-                  expnamenewer = self.expnames{ndx};
-                  perframeTS = self.filetimestamps(ndx,perframeNdx);
-                  break;
-                end
-              end
-            
-              if isPerframeNewer
-                qstr{1} = sprintf('One of the perframe files (Generated on %s) ',...
-                  datestr(perframeTS));
-                qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS(iCls))); %#ok<AGROW>
-                qstr{end+1} = sprintf('for the experiment %s.',expnamenewer); %#ok<AGROW>
-                qstr{end+1} = ' Still load the windowdata stored in the jab file?'; %#ok<AGROW>
-                res = questdlg(qstr, ...
-                  'Load Window Data?', ...
-                  'Yes','No', ...
-                  'No');
-                tfLoadWinData = strcmpi(res,'Yes');
+      assert(isequal(self.nclassifiers,numel(cs),numel(self.windowdata)));
+      perframeNdx = find(strcmp('perframedir',self.filetypes));
+      for iCls = 1:self.nclassifiers
+        if ~substitutionsMade && ...
+            ~self.IsGTMode() && ... 
+            self.loadwindowdata(iCls) && ...
+            isprop(cs(iCls),'windowdata') && ...
+            isstruct(cs(iCls).windowdata) && ...
+            ~isempty(cs(iCls).savewindowdata) && ...
+            cs(iCls).savewindowdata
+          
+          % determine whether to load windowdata for this classifier
+          tfLoadWinData = true;
+          if self.isInteractive
+            isPerframeNewer = false;
+            for ndx = 1:self.nexps
+              if self.classifierTS(iCls) < self.filetimestamps(ndx,perframeNdx);
+                isPerframeNewer = true;
+                expnamenewer = self.expnames{ndx};
+                perframeTS = self.filetimestamps(ndx,perframeNdx);
+                break;
               end
             end
-            % If ~self.isInteractive, or classifiers newer than all PF
-            % dirs, then tfLoadWinData true by default
-
-            if tfLoadWinData
-              oldScoreNorm = self.windowdata(iCls).scoreNorm;
-              oldfeaturenames = self.windowdata(iCls).featurenames;
-              self.windowdata(iCls) = cs(iCls).windowdata;
-              if isempty(self.windowdata(iCls).scoreNorm) && ~isempty(oldScoreNorm)
-                self.windowdata(iCls).scoreNorm = oldScoreNorm;
-              end
-              if isempty(self.windowdata(iCls).featurenames) && ~isempty(oldfeaturenames)
-                self.windowdata(iCls).featurenames = oldfeaturenames;
-              end
+            
+            if isPerframeNewer
+              qstr{1} = sprintf('One of the perframe files (Generated on %s) ',...
+                datestr(perframeTS));
+              qstr{end+1} = sprintf('is newer than the classifier (Trained on %s)',datestr(self.classifierTS(iCls))); %#ok<AGROW>
+              qstr{end+1} = sprintf('for the experiment %s.',expnamenewer); %#ok<AGROW>
+              qstr{end+1} = ' Still load the windowdata stored in the jab file?'; %#ok<AGROW>
+              res = questdlg(qstr, ...
+                'Load Window Data?', ...
+                'Yes','No', ...
+                'No');
+              tfLoadWinData = strcmpi(res,'Yes');
+            end
+          end
+          % If ~self.isInteractive, or classifiers newer than all PF
+          % dirs, then tfLoadWinData true by default
+          
+          if tfLoadWinData
+            oldScoreNorm = self.windowdata(iCls).scoreNorm;
+            oldfeaturenames = self.windowdata(iCls).featurenames;
+            self.windowdata(iCls) = cs(iCls).windowdata;
+            if isempty(self.windowdata(iCls).scoreNorm) && ~isempty(oldScoreNorm)
+              self.windowdata(iCls).scoreNorm = oldScoreNorm;
+            end
+            if isempty(self.windowdata(iCls).featurenames) && ~isempty(oldfeaturenames)
+              self.windowdata(iCls).featurenames = oldfeaturenames;
             end
           end
         end
       end
-      
     end
     
     
