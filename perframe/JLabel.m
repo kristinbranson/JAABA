@@ -3696,55 +3696,60 @@ return
 
 % -------------------------------------------------------------------------
 function handles = SetPredictedPlot(handles,t0,t1)
-% Updates handles.guidata.labels_plot.predx and handles.guidata.labels_plot.predx 
-% to match the current predictions.
+% Updates handles.guidata.labels_plot.predx/predy to match the current 
+% predictions.
 
-% If no experiments, nothing to do
-if (handles.data.nexps==0)
+%MERGESTUPDATED
+
+if handles.data.nexps==0
   return
 end
 
 % Get the prediction over the relevant time range, and the time range, if
 % not provided.
-iExp=handles.data.expi;
+iExp = handles.data.expi;
 if nargin < 2,
   [prediction,t0,t1] = handles.data.GetPredictedIdx(iExp,handles.data.flies);
 else
   prediction = handles.data.GetPredictedIdx(iExp,handles.data.flies,t0,t1);
 end
-
-% Break out prediction
 predictedidx = prediction.predictedidx;
-scoresidx=prediction.scoresidx;
+scoresidx = prediction.scoresidx;
 
-% Normalize the scores
 scores = handles.data.NormalizeScores(scoresidx);
 
 % Set the x,y for the predictions to nan, so they don't show up except
 % where we set them below
-labelsPlotOffset=handles.guidata.labels_plot.off;
-iFirst=t0+labelsPlotOffset;
-iLast=t1+labelsPlotOffset;
+labelsPlotOffset = handles.guidata.labels_plot.off;
+iFirst = t0+labelsPlotOffset;
+iLast = t1+labelsPlotOffset;
 handles.guidata.labels_plot.predx(:,iFirst:iLast,:,:) = nan;
 handles.guidata.labels_plot.predy(:,iFirst:iLast,:,:) = nan;
 
 % Loop over the behaviors (including "none")
-for behaviori = 1:handles.data.nbehaviors,
-  confidenceThreshold=handles.data.GetConfidenceThreshold(behaviori);
-  bidx = find( (behaviori == predictedidx) & ...
-               (abs(scores)>confidenceThreshold) );
-  if isempty(bidx),
+nBeh = handles.data.nbehaviors;
+nTL = handles.data.ntimelines;
+assert(nBeh==2*nTL);
+iBeh2iTL = handles.data.lblIdx2timelineIdx;
+assert(isequal(nTL,size(predictedidx,1),size(scores,1)));
+for iBeh = 1:nBeh % indexing handles.data.labelnames
+  iTL = iBeh2iTL(iBeh);
+  predVal = ceil(2*iBeh/nBeh); % 1 for <beh>, 2 for No-<beh>
+  confidenceThreshold = handles.data.GetConfidenceThreshold(iBeh);
+  bidx = find( (predictedidx(iTL,:)==predVal) & ...
+               (abs(scores(iTL,:))>confidenceThreshold) );
+  if isempty(bidx)
     continue;
   end
-  for i = 1:numel(handles.data.flies),
+  for i = 1:numel(handles.data.flies)
     ks = t0-1+labelsPlotOffset+bidx;
-    j=handles.data.flies(i);
+    j = handles.data.flies(i);
     xplot0 = handles.data.GetTrxValues('X1',iExp,j,t0-1+bidx);
     xplot1 = handles.data.GetTrxValues('X1',iExp,j,min(t0+bidx,handles.data.t1_curr));
-    handles.guidata.labels_plot.predx(:,ks,behaviori,i) = [xplot0;xplot1];
+    handles.guidata.labels_plot.predx(:,ks,iBeh,i) = [xplot0;xplot1];
     yplot0 = handles.data.GetTrxValues('Y1',iExp,j,t0-1+bidx);
     yplot1 = handles.data.GetTrxValues('Y1',iExp,j,min(t0+bidx,handles.data.t1_curr));
-    handles.guidata.labels_plot.predy(:,ks,behaviori,i) = [yplot0;yplot1];
+    handles.guidata.labels_plot.predy(:,ks,iBeh,i) = [yplot0;yplot1];
   end
 end
 

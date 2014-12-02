@@ -222,7 +222,7 @@ classdef JLabelGUIData < handle
     movieheaderinfo = struct;
     % t0_curr = nan;
     % t1_curr = nan;
-    labels_plot = struct;
+    labels_plot = struct; % See LabelsPlot
     % labels_plot_off = nan;
 
     current_interval = [];
